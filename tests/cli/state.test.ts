@@ -44,7 +44,7 @@ describe('CLI state persistence', () => {
 });
 
 async function makeTempDir(): Promise<string> {
-  const dir = await mkdtemp(join(tmpdir(), 'deckbuild-cli-'));
+  const dir = await mkdtemp(join(tmpdir(), 'deckfront-'));
   tempDirs.push(dir);
   return dir;
 }

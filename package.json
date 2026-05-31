@@ -1,5 +1,5 @@
 {
-  "name": "deckbuild-cli",
+  "name": "deckfront",
   "version": "0.1.0",
   "type": "module",
   "private": true,

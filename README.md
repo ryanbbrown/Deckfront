@@ -1,6 +1,14 @@
-# Deckbuild CLI
+# Deckfront
 
-A small TypeScript sandbox for testing deckbuilding turns alongside a tactical territory board.
+Deckfront is a small TypeScript sandbox for designing a game that combines deck building with territory control.
+
+The name is a blend of deck and front: the deckbuilding engine drives the decisions, while the battle front is the shared territory board those decisions affect.
+
+## Why This Exists
+
+I play a lot of board games. Dominion is probably my favorite game, and deck building in general is one of my favorite game systems. I also like a lot of games with territory control, area control, and tactical positioning.
+
+There are not many games that combine deck building and territory control well. The main one I have played is Tyrants of the Underdark, which was fun at first, but has some clear flaws that made my group stop wanting to play it. Deckfront is an experiment in taking a step back and building my own version of that design space, using AI as a collaborator for implementation, playtesting, and iteration.
 
 The repo has two main pieces:
 
