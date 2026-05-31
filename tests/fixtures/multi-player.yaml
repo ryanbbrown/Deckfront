@@ -1,0 +1,31 @@
+players: 2
+setup:
+  initialActions: 1
+  initialBuys: 1
+  initialMoney: 0
+  handSize: 1
+  startingDeck: [copper]
+  attributes: {}
+cards:
+  - id: copper
+    name: Copper
+    type: treasure
+    cost: 0
+    treasure: 1
+  - id: estate
+    name: Estate
+    type: victory
+    cost: 0
+    victoryPoints: 1
+  - id: province
+    name: Province
+    type: victory
+    cost: 8
+    victoryPoints: 6
+supply:
+  - card: estate
+    count: 1
+  - card: province
+    count: 1
+endGame:
+  gte: [emptyPiles, 1]

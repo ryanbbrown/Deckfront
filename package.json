@@ -1,0 +1,29 @@
+{
+  "name": "deckbuild-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "cli": "bun run src/cli/main.ts",
+    "viewer": "vite --config viewer/vite.config.ts",
+    "viewer:build": "vite build --config viewer/vite.config.ts",
+    "viewer:typecheck": "tsc --project viewer/tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "yaml": "^2.8.1",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.2.22",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.14",
+    "vitest": "^3.2.4"
+  }
+}

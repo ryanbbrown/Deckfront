@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.games/
+.context/
+.plans/
+.reviews/
+.specs/
+.DS_Store

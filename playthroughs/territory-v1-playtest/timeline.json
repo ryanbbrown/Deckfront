@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "title": "Territory V1 Replay",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Zap",
+          "Bandage",
+          "Rest",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Bandage",
+          "Rest"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 claimed the northeast and east supply centers.",
+      "reasoning": "P1 had damage and healing available but no useful combat target on turn one. The raider used its speed to cross the one-hex gap into the northeast center, while the scout reached the east center and the slower units formed behind them."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Rest",
+          "Rest",
+          "Copper"
+        ],
+        "played": [
+          "Rest"
+        ],
+        "bought": [
+          "Copper"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 answered by claiming the west-south supply center.",
+      "reasoning": "P2 produced no combat attributes, so the scouts pushed safely out of the home cluster. One scout reached the closest supply center, while the marksman and druid moved up to support a later fight for the middle."
+    }
+  ]
+}
