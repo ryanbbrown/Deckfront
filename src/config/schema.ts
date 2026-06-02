@@ -37,7 +37,8 @@ const effectSchema = z.discriminatedUnion('kind', [
       actions: z.number().int().nonnegative().optional(),
       buys: z.number().int().nonnegative().optional(),
       money: z.number().int().nonnegative().optional(),
-      attributes: z.record(z.string(), z.number().int()).optional()
+      attributes: z.record(z.string(), z.number().int()).optional(),
+      persistentAttributes: z.record(z.string(), z.number().int()).optional()
     })
     .strict(),
   z

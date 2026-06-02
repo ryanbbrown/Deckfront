@@ -72,105 +72,41 @@
       "hp": 2
     }
   ],
-  "supplyCenters": [
+  "notes": [
+    "Replay turn 001 before-state: corrected starter state."
+  ],
+  "supplyControl": [
     {
       "id": "center-northwest",
-      "q": 2,
-      "r": 2,
       "controller": null
     },
     {
       "id": "center-west-south",
-      "q": 3,
-      "r": 7,
       "controller": null
     },
     {
       "id": "center-center-north",
-      "q": 5,
-      "r": 3,
       "controller": null
     },
     {
       "id": "center-center",
-      "q": 6,
-      "r": 5,
       "controller": null
     },
     {
       "id": "center-center-south",
-      "q": 6,
-      "r": 8,
       "controller": null
     },
     {
       "id": "center-northeast",
-      "q": 8,
-      "r": 1,
       "controller": null
     },
     {
       "id": "center-east",
-      "q": 10,
-      "r": 3,
       "controller": null
     },
     {
       "id": "center-southeast",
-      "q": 9,
-      "r": 7,
       "controller": null
     }
-  ],
-  "homeBases": [
-    {
-      "id": "P1-home",
-      "player": "P1",
-      "hexes": [
-        {
-          "q": 10,
-          "r": 1
-        },
-        {
-          "q": 11,
-          "r": 0
-        },
-        {
-          "q": 12,
-          "r": 1
-        },
-        {
-          "q": 11,
-          "r": 1
-        }
-      ]
-    },
-    {
-      "id": "P2-home",
-      "player": "P2",
-      "hexes": [
-        {
-          "q": 0,
-          "r": 8
-        },
-        {
-          "q": 1,
-          "r": 7
-        },
-        {
-          "q": 1,
-          "r": 8
-        },
-        {
-          "q": 0,
-          "r": 9
-        }
-      ]
-    }
-  ],
-  "notes": [
-    "Starter state based on the first board sketch.",
-    "Map uses flat-top hexes arranged as alternating 10/9-height columns.",
-    "Supply centers are full-hex terrain markers, separate from current unit occupation."
   ]
 }

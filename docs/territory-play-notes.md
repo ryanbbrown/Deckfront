@@ -4,20 +4,22 @@ This is a brief durable reference for LLM playtests. It is not a complete rulebo
 
 ## Starter Board
 
-- Map: `rulesets/territory-v1/maps/sketch-v1.json`
-- Scenario: `scenarios/sketch-v1.board.json`
+- Map: `maps/sketch-v1.json`
+- Current sample run: `.games/territory-v1-playtest/board.json`
 - Coordinates use `{ "q": number, "r": number }` in the board files.
 - The current sketch map is flat-top and uses alternating column heights: 10 / 9 / 10 / 9 / 10 / 9 / 10 / 9 / 10 / 9 / 10 / 9 / 10.
 
 ## Home Bases
 
-Home bases are stored in board state under `homeBases` so scenarios can move starting areas without code changes.
+Home bases are stored in the map so each map defines its own starting areas.
 
 - `P1-home`: `10,1`, `11,0`, `12,1`, `11,1`
 - `P2-home`: `0,8`, `1,7`, `1,8`, `0,9`
 
-Units start on their player's home-base hexes unless a scenario says otherwise.
+Starting units are part of the initial `.games/<run>/board.json` state.
 
 ## Playtest Convention
 
-The deck CLI produces board-relevant counters as player attributes, such as `damage` and `heal`. Compare the active player's deck state before and after a turn to decide which board updates to make.
+The deck CLI produces board-relevant counters as turn attributes, such as `damage` and `heal`. These reset during cleanup, so the current active player's attributes after deck choices are the board resources available for that turn.
+
+Persistent changes belong in board state unless a deck experiment explicitly uses `persistentAttributes`.

@@ -41,17 +41,63 @@ export const boardMapSchema = z
     name: z.string().min(1),
     orientation: z.enum(['pointy', 'flat']).default('pointy'),
     hexes: z.array(hexCoordSchema).min(1),
-    blocked: z.array(hexCoordSchema).default([])
+    blocked: z.array(hexCoordSchema).default([]),
+    supplyCenters: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            q: z.number().int(),
+            r: z.number().int()
+          })
+          .strict()
+      )
+      .default([]),
+    homeBases: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            player: z.string().min(1),
+            hexes: z.array(hexCoordSchema).min(1)
+          })
+          .strict()
+      )
+      .default([])
   })
   .strict()
   .superRefine((map, context) => {
     assertUniqueCoords(map.hexes, ['hexes'], context);
     assertUniqueCoords(map.blocked, ['blocked'], context);
+    assertUniqueStrings(
+      map.supplyCenters.map((center) => center.id),
+      ['supplyCenters'],
+      'Duplicate supply center id',
+      context
+    );
+    assertUniqueStrings(
+      map.homeBases.map((homeBase) => homeBase.id),
+      ['homeBases'],
+      'Duplicate home base id',
+      context
+    );
 
     const hexes = new Set(map.hexes.map(coordKey));
     for (const blocked of map.blocked) {
       if (!hexes.has(coordKey(blocked))) {
         context.addIssue({ code: 'custom', path: ['blocked'], message: `Blocked hex is not in map: ${coordKey(blocked)}` });
+      }
+    }
+    for (const center of map.supplyCenters) {
+      if (!hexes.has(coordKey(center))) {
+        context.addIssue({ code: 'custom', path: ['supplyCenters'], message: `Supply center is not in map: ${coordKey(center)}` });
+      }
+    }
+    for (const homeBase of map.homeBases) {
+      for (const hex of homeBase.hexes) {
+        if (!hexes.has(coordKey(hex))) {
+          context.addIssue({ code: 'custom', path: ['homeBases'], message: `Home base hex is not in map: ${coordKey(hex)}` });
+        }
       }
     }
   });
@@ -82,25 +128,12 @@ export const boardStateSchema = z
           .strict()
       )
       .default([]),
-    supplyCenters: z
+    supplyControl: z
       .array(
         z
           .object({
             id: z.string().min(1),
-            q: z.number().int(),
-            r: z.number().int(),
             controller: z.string().min(1).nullable()
-          })
-          .strict()
-      )
-      .default([]),
-    homeBases: z
-      .array(
-        z
-          .object({
-            id: z.string().min(1),
-            player: z.string().min(1),
-            hexes: z.array(hexCoordSchema).min(1)
           })
           .strict()
       )
@@ -116,15 +149,9 @@ export const boardStateSchema = z
       context
     );
     assertUniqueStrings(
-      state.supplyCenters.map((center) => center.id),
-      ['supplyCenters'],
-      'Duplicate supply center id',
-      context
-    );
-    assertUniqueStrings(
-      state.homeBases.map((homeBase) => homeBase.id),
-      ['homeBases'],
-      'Duplicate home base id',
+      state.supplyControl.map((center) => center.id),
+      ['supplyControl'],
+      'Duplicate supply control id',
       context
     );
   });

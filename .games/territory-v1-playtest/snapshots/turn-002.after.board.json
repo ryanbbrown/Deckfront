@@ -3,8 +3,8 @@
   "ruleset": "territory-v1",
   "map": "sketch-v1",
   "turn": {
-    "activePlayer": "P2",
-    "round": 1
+    "activePlayer": "P1",
+    "round": 2
   },
   "units": [
     {
@@ -43,7 +43,7 @@
       "id": "P2-marksman-1",
       "player": "P2",
       "type": "marksman",
-      "q": 0,
+      "q": 1,
       "r": 8,
       "hp": 3
     },
@@ -51,7 +51,7 @@
       "id": "P2-druid-1",
       "player": "P2",
       "type": "druid",
-      "q": 1,
+      "q": 2,
       "r": 7,
       "hp": 4
     },
@@ -59,7 +59,7 @@
       "id": "P2-scout-1",
       "player": "P2",
       "type": "scout",
-      "q": 1,
+      "q": 3,
       "r": 8,
       "hp": 2
     },
@@ -67,108 +67,46 @@
       "id": "P2-scout-2",
       "player": "P2",
       "type": "scout",
-      "q": 0,
-      "r": 9,
+      "q": 3,
+      "r": 7,
       "hp": 2
     }
   ],
-  "supplyCenters": [
+  "notes": [
+    "Replay turn 002 after-state: P2 claims the west-south supply center and develops toward the middle lane."
+  ],
+  "supplyControl": [
     {
       "id": "center-northwest",
-      "q": 2,
-      "r": 2,
       "controller": null
     },
     {
       "id": "center-west-south",
-      "q": 3,
-      "r": 7,
-      "controller": null
+      "controller": "P2"
     },
     {
       "id": "center-center-north",
-      "q": 5,
-      "r": 3,
       "controller": null
     },
     {
       "id": "center-center",
-      "q": 6,
-      "r": 5,
       "controller": null
     },
     {
       "id": "center-center-south",
-      "q": 6,
-      "r": 8,
       "controller": null
     },
     {
       "id": "center-northeast",
-      "q": 8,
-      "r": 1,
       "controller": "P1"
     },
     {
       "id": "center-east",
-      "q": 10,
-      "r": 3,
       "controller": "P1"
     },
     {
       "id": "center-southeast",
-      "q": 9,
-      "r": 7,
       "controller": null
     }
-  ],
-  "homeBases": [
-    {
-      "id": "P1-home",
-      "player": "P1",
-      "hexes": [
-        {
-          "q": 10,
-          "r": 1
-        },
-        {
-          "q": 11,
-          "r": 0
-        },
-        {
-          "q": 12,
-          "r": 1
-        },
-        {
-          "q": 11,
-          "r": 1
-        }
-      ]
-    },
-    {
-      "id": "P2-home",
-      "player": "P2",
-      "hexes": [
-        {
-          "q": 0,
-          "r": 8
-        },
-        {
-          "q": 1,
-          "r": 7
-        },
-        {
-          "q": 1,
-          "r": 8
-        },
-        {
-          "q": 0,
-          "r": 9
-        }
-      ]
-    }
-  ],
-  "notes": [
-    "Replay turn 002 before-state mirrors turn 001 after-state."
   ]
 }

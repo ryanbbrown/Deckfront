@@ -34,21 +34,27 @@ describe('replay timeline schema', () => {
     expect(timeline.entries[0]?.deck.produced.damage).toBe(1);
   });
 
-  it('loads the territory playtest timeline from the corrected starter board', async () => {
-    const timeline = replayTimelineSchema.parse(await loadJson('playthroughs/territory-v1-playtest/timeline.json'));
-    const scenario = boardStateSchema.parse(await loadJson('scenarios/sketch-v1.board.json'));
-    const starter = boardStateSchema.parse(await loadJson('playthroughs/territory-v1-playtest/snapshots/turn-001.before.board.json'));
-    const turnOneAfter = boardStateSchema.parse(await loadJson('playthroughs/territory-v1-playtest/snapshots/turn-001.after.board.json'));
-    const turnTwoAfter = boardStateSchema.parse(await loadJson('playthroughs/territory-v1-playtest/snapshots/turn-002.after.board.json'));
+  it('loads the territory playtest timeline from the starter board state', async () => {
+    const timeline = replayTimelineSchema.parse(await loadJson('.games/territory-v1-playtest/timeline.json'));
+    const starter = boardStateSchema.parse(await loadJson('.games/territory-v1-playtest/snapshots/turn-001.before.board.json'));
+    const turnOneAfter = boardStateSchema.parse(await loadJson('.games/territory-v1-playtest/snapshots/turn-001.after.board.json'));
+    const turnTwoAfter = boardStateSchema.parse(await loadJson('.games/territory-v1-playtest/snapshots/turn-002.after.board.json'));
 
     expect(timeline.entries).toHaveLength(2);
     expect(timeline.entries[0]?.board.before).toBe('snapshots/turn-001.before.board.json');
-    expect(starter.units).toEqual(scenario.units);
-    expect(starter.supplyCenters).toEqual(scenario.supplyCenters);
-    expect(starter.homeBases).toEqual(scenario.homeBases);
-    expect(turnOneAfter.supplyCenters.find((center) => center.id === 'center-northeast')?.controller).toBe('P1');
-    expect(turnOneAfter.supplyCenters.find((center) => center.id === 'center-east')?.controller).toBe('P1');
-    expect(turnTwoAfter.supplyCenters.find((center) => center.id === 'center-west-south')?.controller).toBe('P2');
+    expect(starter.units.map((unit) => unit.id).sort()).toEqual([
+      'P1-guardian-1',
+      'P1-marksman-1',
+      'P1-raider-1',
+      'P1-scout-1',
+      'P2-druid-1',
+      'P2-marksman-1',
+      'P2-scout-1',
+      'P2-scout-2'
+    ]);
+    expect(turnOneAfter.supplyControl.find((center) => center.id === 'center-northeast')?.controller).toBe('P1');
+    expect(turnOneAfter.supplyControl.find((center) => center.id === 'center-east')?.controller).toBe('P1');
+    expect(turnTwoAfter.supplyControl.find((center) => center.id === 'center-west-south')?.controller).toBe('P2');
   });
 });
 

@@ -99,6 +99,10 @@ function applyEffect(state: GameState, effect: Effect, effects: Effect[], effect
     for (const [key, value] of Object.entries(effect.attributes ?? {})) {
       player.attributes[key] = (player.attributes[key] ?? 0) + value;
     }
+    player.persistentAttributes ??= {};
+    for (const [key, value] of Object.entries(effect.persistentAttributes ?? {})) {
+      player.persistentAttributes[key] = (player.persistentAttributes[key] ?? 0) + value;
+    }
     return undefined;
   }
 

@@ -16,6 +16,7 @@ export function setupGame(config: GameConfig, rng: Rng): GameState {
       buys: config.setup.initialBuys,
       money: config.setup.initialMoney,
       attributes: { ...config.setup.attributes },
+      persistentAttributes: {},
       vpCounters: 0,
       turnsTaken: 0
     };
@@ -51,7 +52,8 @@ export function cloneState(state: GameState): GameState {
       hand: [...player.hand],
       discard: [...player.discard],
       play: [...player.play],
-      attributes: { ...player.attributes }
+      attributes: { ...player.attributes },
+      persistentAttributes: { ...(player.persistentAttributes ?? {}) }
     }))
   };
 }
@@ -96,6 +98,8 @@ export function resetTurnResources(player: PlayerState, config: GameConfig): voi
   player.actions = config.setup.initialActions;
   player.buys = config.setup.initialBuys;
   player.money = config.setup.initialMoney;
+  player.attributes = { ...config.setup.attributes };
+  player.persistentAttributes ??= {};
 }
 
 function ensureDrawHasCards(player: PlayerState, rng: Rng): void {

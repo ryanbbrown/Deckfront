@@ -14,6 +14,7 @@ function playerWithDiscard(discard: string[]): PlayerState {
     buys: 1,
     money: 0,
     attributes: {},
+    persistentAttributes: {},
     vpCounters: 0,
     turnsTaken: 0
   };

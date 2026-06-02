@@ -136,6 +136,44 @@ describe('effects', () => {
     expect(topEstate.players[0]?.draw).toEqual(['estate', 'copper']);
   });
 
+  it('resets custom attributes at cleanup', () => {
+    const state = setupGame(
+      testConfig({
+        cards: [
+          { id: 'estate', name: 'Estate', type: 'victory', cost: 2, victoryPoints: 1 },
+          {
+            id: 'monument',
+            name: 'Monument',
+            type: 'action',
+            cost: 4,
+            effects: [
+              { kind: 'vp', points: 1 },
+              { kind: 'grant', attributes: { damage: 2 } }
+            ]
+          }
+        ],
+        setup: {
+          initialActions: 1,
+          initialBuys: 1,
+          initialMoney: 0,
+          handSize: 1,
+          startingDeck: ['monument'],
+          attributes: { damage: 0 }
+        },
+        supply: [{ card: 'estate', count: 8 }]
+      }),
+      new SeededRng(1)
+    );
+    state.players[0]!.hand = ['monument'];
+
+    const afterPlay = applyAction(state, { type: 'playAction', handIndex: 0 }, new SeededRng(1));
+    const afterCleanup = applyAction(applyAction(afterPlay, { type: 'moveToBuy' }, new SeededRng(1)), { type: 'endTurn' }, new SeededRng(1));
+
+    expect(afterCleanup.players[0]?.vpCounters).toBe(1);
+    expect(afterPlay.players[0]?.attributes.damage).toBe(2);
+    expect(afterCleanup.players[0]?.attributes.damage).toBe(0);
+  });
+
   it('tracks VP counters and persistent custom attributes', () => {
     const state = setupGame(
       testConfig({
@@ -148,7 +186,7 @@ describe('effects', () => {
             cost: 4,
             effects: [
               { kind: 'vp', points: 1 },
-              { kind: 'grant', attributes: { tokens: 2 } }
+              { kind: 'grant', persistentAttributes: { tokens: 2 } }
             ]
           }
         ],
@@ -158,7 +196,7 @@ describe('effects', () => {
           initialMoney: 0,
           handSize: 1,
           startingDeck: ['monument'],
-          attributes: { tokens: 0 }
+          attributes: {}
         },
         supply: [{ card: 'estate', count: 8 }]
       }),
@@ -170,6 +208,6 @@ describe('effects', () => {
     const afterCleanup = applyAction(applyAction(afterPlay, { type: 'moveToBuy' }, new SeededRng(1)), { type: 'endTurn' }, new SeededRng(1));
 
     expect(afterCleanup.players[0]?.vpCounters).toBe(1);
-    expect(afterCleanup.players[0]?.attributes.tokens).toBe(2);
+    expect(afterCleanup.players[0]?.persistentAttributes.tokens).toBe(2);
   });
 });

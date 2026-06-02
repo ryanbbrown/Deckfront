@@ -83,11 +83,11 @@ export function App(): ReactElement {
         </section>
         <section>
           <h2>Supply</h2>
-          <SupplyList state={bundle.state} />
+          <SupplyList bundle={bundle} />
         </section>
         <section>
           <h2>Home</h2>
-          <HomeBaseList state={bundle.state} />
+          <HomeBaseList map={bundle.map} />
         </section>
         <footer>
           <span>{updatedAt ? updatedAt.toLocaleTimeString() : 'Not loaded'}</span>
@@ -101,6 +101,7 @@ export function App(): ReactElement {
 function BoardView({ bundle, title }: { bundle: BoardBundle; title: string }): ReactElement {
   const { state, map } = bundle;
   const blocked = useMemo(() => new Set(map.blocked.map(coordKey)), [map.blocked]);
+  const supplyControllerById = useMemo(() => new Map(state.supplyControl.map((center) => [center.id, center.controller])), [state.supplyControl]);
   const layout = useMemo(() => buildLayout(map.hexes, map.orientation), [map.hexes, map.orientation]);
 
   return (
@@ -122,7 +123,7 @@ function BoardView({ bundle, title }: { bundle: BoardBundle; title: string }): R
             const key = coordKey(hex);
             return <polygon key={key} className={blocked.has(key) ? 'hex blocked' : 'hex'} points={hexPoints(center, layout.size, map.orientation)} />;
           })}
-          {state.homeBases.map((homeBase) =>
+          {map.homeBases.map((homeBase) =>
             homeBase.hexes.map((hex) => {
               const center = hexToPixel(hex, layout.size, map.orientation);
               return (
@@ -134,13 +135,14 @@ function BoardView({ bundle, title }: { bundle: BoardBundle; title: string }): R
               );
             })
           )}
-          {state.supplyCenters.map((center) => {
+          {map.supplyCenters.map((center) => {
             const point = hexToPixel(center, layout.size, map.orientation);
+            const controller = supplyControllerById.get(center.id) ?? null;
             return (
-              <g key={center.id} className={`supply ${center.controller ? playerClasses[center.controller] ?? '' : ''}`} transform={`translate(${point.x} ${point.y})`}>
+              <g key={center.id} className={`supply ${controller ? playerClasses[controller] ?? '' : ''}`} transform={`translate(${point.x} ${point.y})`}>
                 <polygon className="supply-zone" points={hexPoints({ x: 0, y: 0 }, layout.size * 0.86, map.orientation)} />
                 <path className="supply-glyph" d="M 0 -17 L 15 0 L 0 17 L -15 0 Z" />
-                <text y="5">{center.controller ?? ''}</text>
+                <text y="5">{controller ?? ''}</text>
               </g>
             );
           })}
@@ -155,12 +157,13 @@ function BoardView({ bundle, title }: { bundle: BoardBundle; title: string }): R
               </g>
             );
           })}
-          {state.supplyCenters.map((center) => {
+          {map.supplyCenters.map((center) => {
             const point = hexToPixel(center, layout.size, map.orientation);
+            const controller = supplyControllerById.get(center.id) ?? null;
             return (
               <polygon
                 key={`${center.id}-outline`}
-                className={`supply-outline ${center.controller ? playerClasses[center.controller] ?? '' : ''}`}
+                className={`supply-outline ${controller ? playerClasses[controller] ?? '' : ''}`}
                 points={hexPoints(point, layout.size * 0.9, map.orientation)}
               />
             );
@@ -297,17 +300,22 @@ function UnitList({ state }: { state: BoardState }): ReactElement {
   );
 }
 
-function SupplyList({ state }: { state: BoardState }): ReactElement {
+function SupplyList({ bundle }: { bundle: BoardBundle }): ReactElement {
+  const { state, map } = bundle;
   const unitByCoord = new Map(state.units.map((unit) => [`${unit.q},${unit.r}`, unit]));
+  const supplyControllerById = new Map(state.supplyControl.map((center) => [center.id, center.controller]));
   return (
     <div className="supply-list">
-      {state.supplyCenters.map((center) => (
-        <div key={center.id} className="supply-row">
-          <strong>{center.id.replace('center-', '')}</strong>
-          <span>{center.controller ? `controlled by ${center.controller}` : 'uncontrolled'}</span>
-          <span>{formatSupplyOccupant(unitByCoord.get(`${center.q},${center.r}`))}</span>
-        </div>
-      ))}
+      {map.supplyCenters.map((center) => {
+        const controller = supplyControllerById.get(center.id) ?? null;
+        return (
+          <div key={center.id} className="supply-row">
+            <strong>{center.id.replace('center-', '')}</strong>
+            <span>{controller ? `controlled by ${controller}` : 'uncontrolled'}</span>
+            <span>{formatSupplyOccupant(unitByCoord.get(`${center.q},${center.r}`))}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -316,10 +324,10 @@ function formatSupplyOccupant(unit: BoardState['units'][number] | undefined): st
   return unit ? `${unit.player} ${unit.type}` : 'empty';
 }
 
-function HomeBaseList({ state }: { state: BoardState }): ReactElement {
+function HomeBaseList({ map }: { map: BoardBundle['map'] }): ReactElement {
   return (
     <div className="list">
-      {state.homeBases.map((homeBase) => (
+      {map.homeBases.map((homeBase) => (
         <div key={homeBase.id} className="list-row two-column">
           <span>{homeBase.player}</span>
           <span>{homeBase.hexes.map((hex) => `${hex.q},${hex.r}`).join(' · ')}</span>

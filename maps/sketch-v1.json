@@ -533,5 +533,93 @@
       "q": 12,
       "r": 7
     }
+  ],
+  "supplyCenters": [
+    {
+      "id": "center-northwest",
+      "q": 2,
+      "r": 2
+    },
+    {
+      "id": "center-west-south",
+      "q": 3,
+      "r": 7
+    },
+    {
+      "id": "center-center-north",
+      "q": 5,
+      "r": 3
+    },
+    {
+      "id": "center-center",
+      "q": 6,
+      "r": 5
+    },
+    {
+      "id": "center-center-south",
+      "q": 6,
+      "r": 8
+    },
+    {
+      "id": "center-northeast",
+      "q": 8,
+      "r": 1
+    },
+    {
+      "id": "center-east",
+      "q": 10,
+      "r": 3
+    },
+    {
+      "id": "center-southeast",
+      "q": 9,
+      "r": 7
+    }
+  ],
+  "homeBases": [
+    {
+      "id": "P1-home",
+      "player": "P1",
+      "hexes": [
+        {
+          "q": 10,
+          "r": 1
+        },
+        {
+          "q": 11,
+          "r": 0
+        },
+        {
+          "q": 12,
+          "r": 1
+        },
+        {
+          "q": 11,
+          "r": 1
+        }
+      ]
+    },
+    {
+      "id": "P2-home",
+      "player": "P2",
+      "hexes": [
+        {
+          "q": 0,
+          "r": 8
+        },
+        {
+          "q": 1,
+          "r": 7
+        },
+        {
+          "q": 1,
+          "r": 8
+        },
+        {
+          "q": 0,
+          "r": 9
+        }
+      ]
+    }
   ]
 }

@@ -13,7 +13,7 @@ There are not many games that combine deck building and territory control well. 
 The repo has two main pieces:
 
 - A Bun CLI that runs a Dominion-like deckbuilding engine from YAML game configs.
-- A Vite/React viewer that renders board scenarios and replay timelines for territory playtests.
+- A Vite/React viewer that renders board states and replay timelines for territory playtests.
 
 ## Requirements
 
@@ -57,7 +57,7 @@ bun run cli -- --config examples/minimal-game.yaml --seed 1
 Persist and resume state:
 
 ```sh
-bun run cli -- --config examples/territory-v1.yaml --state .games/sketch-v1/deck.json --seed 1
+bun run cli -- --config rulesets/territory-v1/deck.yaml --state .games/territory-v1-playtest/deck.json --seed 1
 ```
 
 Run from a numeric script:
@@ -88,16 +88,16 @@ Open the default board:
 http://localhost:5173/
 ```
 
-Open a scratch scenario from `.games/`:
+Open a mutable board from `.games/`:
 
 ```text
-http://localhost:5173/?scenario=/game-data/.games/sketch-v1/board.json
+http://localhost:5173/?board=/game-data/.games/territory-v1-playtest/board.json
 ```
 
-Open the committed sample playthrough:
+Open the sample playtest replay:
 
 ```text
-http://localhost:5173/?timeline=/game-data/playthroughs/territory-v1-playtest/timeline.json
+http://localhost:5173/?timeline=/game-data/.games/territory-v1-playtest/timeline.json
 ```
 
 Replay mode starts on the first entry's `before` snapshots, so frame 1 is the initial board state. Press Next to step through completed turn after-states.
@@ -107,16 +107,18 @@ Replay mode starts on the first entry's `before` snapshots, so frame 1 is the in
 - `src/core/`: deckbuilding engine, actions, scoring, random state.
 - `src/config/`: YAML config loading and validation.
 - `src/cli/`: command-line interaction, scripting, persistence, rendering.
-- `src/board/`: board/ruleset/scenario schemas.
+- `src/board/`: map and board-state schemas.
 - `src/replay/`: replay timeline schema.
+- `src/playtest/`: playtest run layout and replay bundle validation.
 - `viewer/`: React board and replay viewer.
-- `rulesets/`: board maps, unit rules, and board card metadata.
-- `scenarios/`: starter board states.
-- `playthroughs/`: committed replay timelines and snapshots.
-- `.games/`: ignored local scratch state for experiments.
+- `rulesets/`: deck config, board rules, unit rules, and board card metadata.
+- `maps/`: board geometry, blocked hexes, supply centers, and home bases.
+- `.games/`: mutable playtest runs, timelines, notes, and snapshots.
 - `docs/`: playtest workflow notes and board conventions.
 - `tests/`: unit and integration coverage.
 
-## Playthroughs
+## Playtest Runs
 
-Use `.games/` for mutable experiments. When a replay is worth keeping, promote its timeline and snapshots into `playthroughs/<name>/` so it can be committed and loaded by the viewer.
+Use `.games/<run>/` for experiments and recorded replays. A run has one current `deck.json`, one current `board.json`, one `timeline.json`, and turn snapshots under `snapshots/`. Agents can add run notes in the same folder when a game is worth revisiting later.
+
+The playtest helpers in `src/playtest/` define this layout and validate that replay timelines point at complete deck and board snapshots.

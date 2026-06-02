@@ -3,11 +3,11 @@ import { describe, expect, it } from 'vitest';
 import { boardCardsSchema, boardMapSchema, boardStateSchema, coordKey, unitRulesSchema } from '../../src/board/schema';
 
 describe('board and ruleset schemas', () => {
-  it('loads the starter ruleset and board scenario', async () => {
+  it('loads the starter ruleset, map, and playtest board state', async () => {
     const cards = boardCardsSchema.parse(await loadJson('rulesets/territory-v1/cards.json'));
     const units = unitRulesSchema.parse(await loadJson('rulesets/territory-v1/units.json'));
-    const map = boardMapSchema.parse(await loadJson('rulesets/territory-v1/maps/sketch-v1.json'));
-    const state = boardStateSchema.parse(await loadJson('scenarios/sketch-v1.board.json'));
+    const map = boardMapSchema.parse(await loadJson('maps/sketch-v1.json'));
+    const state = boardStateSchema.parse(await loadJson('.games/territory-v1-playtest/snapshots/turn-001.before.board.json'));
 
     expect(cards.storm?.effect).toContain('connected hexes');
     expect(units.scout?.movement).toBeGreaterThan(units.guardian?.movement ?? 0);
@@ -40,21 +40,21 @@ describe('board and ruleset schemas', () => {
       expect(units[unit.type]).toBeDefined();
       expect(mapHexes.has(coordKey(unit))).toBe(true);
     }
-    for (const center of state.supplyCenters) {
+    for (const center of map.supplyCenters) {
       expect(mapHexes.has(coordKey(center))).toBe(true);
     }
-    for (const homeBase of state.homeBases) {
+    for (const homeBase of map.homeBases) {
       for (const hex of homeBase.hexes) {
         expect(mapHexes.has(coordKey(hex))).toBe(true);
       }
     }
 
-    for (const center of state.supplyCenters) {
+    for (const center of map.supplyCenters) {
       expect(center.r).toBeLessThan(maxRowByColumn.get(center.q) ?? -1);
     }
 
-    expect(state.supplyCenters.find((center) => center.id === 'center-northeast')).toMatchObject({ q: 8, r: 1 });
-    expect(state.supplyCenters.find((center) => center.id === 'center-center-south')).toMatchObject({ q: 6, r: 8 });
+    expect(map.supplyCenters.find((center) => center.id === 'center-northeast')).toMatchObject({ q: 8, r: 1 });
+    expect(map.supplyCenters.find((center) => center.id === 'center-center-south')).toMatchObject({ q: 6, r: 8 });
 
     expect(map.blocked).toContainEqual({ q: 3, r: 5 });
 

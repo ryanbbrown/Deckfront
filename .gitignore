@@ -1,7 +1,10 @@
 node_modules/
 dist/
 coverage/
-.games/
+.games/*
+!.games/territory-v1-playtest/
+!.games/territory-v1-playtest/**
+.games/territory-v1-playtest/snapshots/*.work.json
 .context/
 .plans/
 .reviews/

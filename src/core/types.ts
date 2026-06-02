@@ -20,6 +20,7 @@ export interface GrantEffect {
   buys?: number;
   money?: number;
   attributes?: Record<string, number>;
+  persistentAttributes?: Record<string, number>;
 }
 
 export interface DiscardEffect {
@@ -94,6 +95,7 @@ export interface PlayerState {
   buys: number;
   money: number;
   attributes: Record<string, number>;
+  persistentAttributes: Record<string, number>;
   vpCounters: number;
   turnsTaken: number;
 }

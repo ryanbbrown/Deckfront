@@ -19,18 +19,18 @@ export interface ReplayBundle extends BoardBundle {
   deck: DeckBundle;
 }
 
-const defaultScenarioUrl = '/game-data/scenarios/sketch-v1.board.json';
+const defaultBoardUrl = '/game-data/.games/territory-v1-playtest/board.json';
 
-export function scenarioUrlFromLocation(location: Location = window.location): string {
-  return new URLSearchParams(location.search).get('scenario') ?? defaultScenarioUrl;
+export function boardUrlFromLocation(location: Location = window.location): string {
+  return new URLSearchParams(location.search).get('board') ?? defaultBoardUrl;
 }
 
 export function timelineUrlFromLocation(location: Location = window.location): string | null {
   return new URLSearchParams(location.search).get('timeline');
 }
 
-export async function loadBoardBundle(scenarioUrl = scenarioUrlFromLocation()): Promise<BoardBundle> {
-  const state = boardStateSchema.parse(await fetchJson(scenarioUrl));
+export async function loadBoardBundle(boardUrl = boardUrlFromLocation()): Promise<BoardBundle> {
+  const state = boardStateSchema.parse(await fetchJson(boardUrl));
   return loadBoardBundleForState(state);
 }
 
@@ -46,10 +46,9 @@ export async function loadReplayBundle(timelineUrl: string, index: number): Prom
 }
 
 async function loadBoardBundleForState(state: BoardState): Promise<BoardBundle> {
-  const rulesetBase = `/game-data/rulesets/${state.ruleset}`;
   const [map, units] = await Promise.all([
-    fetchJson(`${rulesetBase}/maps/${state.map}.json`).then((json) => boardMapSchema.parse(json)),
-    fetchJson(`${rulesetBase}/units.json`).then((json) => unitRulesSchema.parse(json))
+    fetchJson(`/game-data/maps/${state.map}.json`).then((json) => boardMapSchema.parse(json)),
+    fetchJson(`/game-data/rulesets/${state.ruleset}/units.json`).then((json) => unitRulesSchema.parse(json))
   ]);
 
   return { state, map, units };
