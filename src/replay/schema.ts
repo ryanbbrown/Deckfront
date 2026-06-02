@@ -34,7 +34,7 @@ export const replayTimelineSchema = z
   .object({
     schemaVersion: z.literal(1),
     title: z.string().min(1),
-    entries: z.array(replayEntrySchema).min(1)
+    entries: z.array(replayEntrySchema).default([])
   })
   .strict();
 

@@ -4,6 +4,16 @@ import { boardStateSchema } from '../../src/board/schema';
 import { replayTimelineSchema } from '../../src/replay/schema';
 
 describe('replay timeline schema', () => {
+  it('accepts a newly initialized empty timeline', () => {
+    const timeline = replayTimelineSchema.parse({
+      schemaVersion: 1,
+      title: 'New Run',
+      entries: []
+    });
+
+    expect(timeline.entries).toEqual([]);
+  });
+
   it('accepts one complete-turn replay entry', () => {
     const timeline = replayTimelineSchema.parse({
       schemaVersion: 1,

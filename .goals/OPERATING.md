@@ -6,7 +6,8 @@
 - Keep map changes in a new `maps/<id>.json` file.
 - Keep each experiment run in `.games/<experiment-id>-<slug>/`.
 - Every completed run should have `deck.json`, `board.json`, `timeline.json`, and `snapshots/`.
-- Validate replay bundles before treating a run as complete.
+- Initialize new runs with `bun run init-run`.
+- Validate replay bundles with `bun run validate-run` before treating a run as complete.
 - Record ambiguous rules calls in the run notes.
 - Playtest agents must read `.goals/prompts/PLAYTEST_AGENT.md`.
 - Review/evaluation agents must read `.goals/prompts/REVIEW_EVALUATE_AGENT.md`.

@@ -71,7 +71,7 @@ Recruited units enter on empty hexes in that player's home base. If there are no
 
 Deck money is separate from board supply. Deck money buys cards; board supply recruits units.
 
-Until board snapshots have a first-class supply field, playtest agents should track each player's saved supply in timeline entries or run notes rather than adding unsupported fields to board JSON.
+Track each player's saved board supply in board state under `supply`.
 
 ## Supply Centers
 

@@ -16,6 +16,12 @@ Use one directory per playtest run. A run directory has:
 - `timeline.json`: replay entries for completed player turns.
 - `snapshots/`: before/after deck and board snapshots for each completed turn.
 
+Initialize a run directory:
+
+```sh
+bun run init-run -- --run .games/e001-baseline --ruleset territory-v1 --map sketch-v1
+```
+
 ## Start or Resume the Deck Game
 
 ```sh
@@ -52,6 +58,7 @@ Deck card effects that matter to the board are represented as turn attributes su
 - `ruleset` should reference an existing ruleset folder.
 - `map` should reference an existing file in `maps/`.
 - Supply control entries reference map supply center ids; `controller` is either `null` or a player id like `P1`.
+- Saved board supply is tracked per player under `supply`.
 - Movement values in the starter ruleset are placeholders for testing the iteration loop.
 
 ## Viewer
@@ -101,3 +108,7 @@ Each timeline entry should point to both deck and board snapshots:
 ```
 
 Replay timelines should be validated as bundles before review. A valid bundle has all referenced deck and board snapshots, matching active player and round metadata for each entry, and continuous deck and board states between adjacent turns.
+
+```sh
+bun run validate-run -- .games/territory-v1-playtest/timeline.json
+```

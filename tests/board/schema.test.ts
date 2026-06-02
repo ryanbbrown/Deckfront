@@ -55,6 +55,10 @@ describe('board and ruleset schemas', () => {
 
     expect(map.supplyCenters.find((center) => center.id === 'center-northeast')).toMatchObject({ q: 8, r: 1 });
     expect(map.supplyCenters.find((center) => center.id === 'center-center-south')).toMatchObject({ q: 6, r: 8 });
+    expect(state.supply).toEqual([
+      { player: 'P1', amount: 0 },
+      { player: 'P2', amount: 0 }
+    ]);
 
     expect(map.blocked).toContainEqual({ q: 3, r: 5 });
 
@@ -80,6 +84,21 @@ describe('board and ruleset schemas', () => {
         blocked: []
       })
     ).toThrow('Duplicate hex coordinate');
+  });
+
+  it('rejects duplicate player supply entries', () => {
+    expect(() =>
+      boardStateSchema.parse({
+        schemaVersion: 1,
+        ruleset: 'territory-v1',
+        map: 'sketch-v1',
+        turn: { activePlayer: 'P1', round: 1 },
+        supply: [
+          { player: 'P1', amount: 0 },
+          { player: 'P1', amount: 2 }
+        ]
+      })
+    ).toThrow('Duplicate player supply');
   });
 });
 

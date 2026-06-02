@@ -74,6 +74,20 @@ Useful flags:
 - `--state <path>`: persisted game state JSON.
 - `--max-actions <number>`: stop after this many accepted actions.
 
+## Playtest Runs
+
+Initialize a run:
+
+```sh
+bun run init-run -- --run .games/e001-baseline --ruleset territory-v1 --map sketch-v1
+```
+
+Validate a replay bundle:
+
+```sh
+bun run validate-run -- .games/e001-baseline/timeline.json
+```
+
 ## Viewer
 
 Start the viewer:

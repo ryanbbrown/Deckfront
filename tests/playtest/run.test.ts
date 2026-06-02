@@ -1,8 +1,11 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { describe, expect, it } from 'vitest';
-import { playtestRunPaths, turnSnapshotPaths, validateReplayBundle } from '../../src/playtest/run';
+import { boardStateSchema } from '../../src/board/schema';
+import { replayTimelineSchema } from '../../src/replay/schema';
+import { initPlaytestRun, playtestRunPaths, turnSnapshotPaths, validateReplayBundle } from '../../src/playtest/run';
+import { runPlaytestCli } from '../../src/playtest/main';
 
 describe('playtest run helpers', () => {
   it('uses one directory layout for mutable run artifacts', () => {
@@ -28,6 +31,36 @@ describe('playtest run helpers', () => {
     expect(bundle.entries).toHaveLength(2);
     expect(bundle.entries[0]?.entry.id).toBe('turn-001');
     expect(bundle.entries[1]?.entry.player).toBe('P2');
+  });
+
+  it('initializes a mutable run directory from a ruleset and map', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'deckfront-run-'));
+
+    const paths = await initPlaytestRun({ root, ruleset: 'territory-v1', map: 'sketch-v1', title: 'Fresh Run' });
+    const board = boardStateSchema.parse(JSON.parse(await readFile(paths.boardState, 'utf8')) as unknown);
+    const timeline = replayTimelineSchema.parse(JSON.parse(await readFile(paths.timeline, 'utf8')) as unknown);
+
+    expect(board.ruleset).toBe('territory-v1');
+    expect(board.map).toBe('sketch-v1');
+    expect(board.units).toEqual([]);
+    expect(board.supplyControl).toHaveLength(8);
+    expect(board.supply).toEqual([
+      { player: 'P1', amount: 0 },
+      { player: 'P2', amount: 0 }
+    ]);
+    expect(timeline).toEqual({ schemaVersion: 1, title: 'Fresh Run', entries: [] });
+  });
+
+  it('runs validate and init through the playtest CLI', async () => {
+    const output: string[] = [];
+    await runPlaytestCli(['validate', '.games/territory-v1-playtest/timeline.json'], (line) => output.push(line));
+
+    expect(output[0]).toContain('Valid replay bundle');
+
+    const root = await mkdtemp(join(tmpdir(), 'deckfront-run-'));
+    await runPlaytestCli(['init', '--run', root, '--ruleset', 'territory-v1', '--map', 'sketch-v1'], (line) => output.push(line));
+
+    expect(output.at(-1)).toBe(`Initialized playtest run: ${root}`);
   });
 
   it('fails loudly when a timeline references missing snapshots', async () => {

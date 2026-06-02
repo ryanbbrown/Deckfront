@@ -138,6 +138,16 @@ export const boardStateSchema = z
           .strict()
       )
       .default([]),
+    supply: z
+      .array(
+        z
+          .object({
+            player: z.string().min(1),
+            amount: z.number().int().nonnegative()
+          })
+          .strict()
+      )
+      .default([]),
     notes: z.array(z.string()).default([])
   })
   .strict()
@@ -152,6 +162,12 @@ export const boardStateSchema = z
       state.supplyControl.map((center) => center.id),
       ['supplyControl'],
       'Duplicate supply control id',
+      context
+    );
+    assertUniqueStrings(
+      state.supply.map((supply) => supply.player),
+      ['supply'],
+      'Duplicate player supply',
       context
     );
   });

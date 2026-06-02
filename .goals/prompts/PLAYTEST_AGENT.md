@@ -15,6 +15,7 @@ Use this as the base prompt for agents that play games.
 
 - Follow the assigned strategy; do not drift into a generic balanced plan unless forced.
 - Fight for supply centers, but do not sacrifice units without compensation.
+- Track saved board supply in `board.json` under `supply`.
 - Record ambiguous rules calls in `.games/<run>/notes.md`.
 - Keep board changes legal under the current ruleset and map.
 - Preserve enough detail in `timeline.json` for later review.

@@ -1,6 +1,6 @@
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
-import { boardStateSchema, type BoardState } from '../board/schema';
+import { boardMapSchema, boardStateSchema, type BoardState } from '../board/schema';
 import type { GameState } from '../core/types';
 import { replayTimelineSchema, type ReplayEntry, type ReplayTimeline } from '../replay/schema';
 
@@ -38,6 +38,15 @@ export interface ValidatedReplayBundle {
   entries: ValidatedReplayEntry[];
 }
 
+export interface InitPlaytestRunOptions {
+  root: string;
+  ruleset: string;
+  map: string;
+  players?: string[];
+  unitsPath?: string;
+  title?: string;
+}
+
 export function playtestRunPaths(root: string): PlaytestRunPaths {
   return {
     root,
@@ -56,6 +65,36 @@ export function turnSnapshotPaths(root: string, turnId: string): TurnSnapshotPat
     boardBefore: join(snapshotsDir, `${turnId}.before.board.json`),
     boardAfter: join(snapshotsDir, `${turnId}.after.board.json`)
   };
+}
+
+export async function initPlaytestRun(options: InitPlaytestRunOptions): Promise<PlaytestRunPaths> {
+  const paths = playtestRunPaths(options.root);
+  const players = options.players ?? ['P1', 'P2'];
+  const map = boardMapSchema.parse(await readJson(join('maps', `${options.map}.json`)));
+  const units = options.unitsPath ? boardStateSchema.shape.units.parse(await readJson(options.unitsPath)) : [];
+  const boardState: BoardState = {
+    schemaVersion: 1,
+    ruleset: options.ruleset,
+    map: map.id,
+    turn: {
+      activePlayer: players[0] ?? 'P1',
+      round: 1
+    },
+    units,
+    supplyControl: map.supplyCenters.map((center) => ({ id: center.id, controller: null })),
+    supply: players.map((player) => ({ player, amount: 0 })),
+    notes: []
+  };
+  const timeline: ReplayTimeline = {
+    schemaVersion: 1,
+    title: options.title ?? `${options.ruleset} ${map.id}`,
+    entries: []
+  };
+
+  await mkdir(paths.snapshotsDir, { recursive: true });
+  await writeFile(paths.boardState, `${JSON.stringify(boardStateSchema.parse(boardState), null, 2)}\n`);
+  await writeFile(paths.timeline, `${JSON.stringify(timeline, null, 2)}\n`);
+  return paths;
 }
 
 export async function validateReplayBundle(timelinePath: string): Promise<ValidatedReplayBundle> {

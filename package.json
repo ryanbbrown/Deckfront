@@ -7,6 +7,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "cli": "bun run src/cli/main.ts",
+    "playtest": "bun run src/playtest/main.ts",
+    "validate-run": "bun run src/playtest/main.ts validate",
+    "init-run": "bun run src/playtest/main.ts init",
     "viewer": "vite --config viewer/vite.config.ts",
     "viewer:build": "vite build --config viewer/vite.config.ts",
     "viewer:typecheck": "tsc --project viewer/tsconfig.json --noEmit"

@@ -86,6 +86,10 @@ export function App(): ReactElement {
           <SupplyList bundle={bundle} />
         </section>
         <section>
+          <h2>Saved Supply</h2>
+          <SavedSupplyList state={bundle.state} />
+        </section>
+        <section>
           <h2>Home</h2>
           <HomeBaseList map={bundle.map} />
         </section>
@@ -322,6 +326,19 @@ function SupplyList({ bundle }: { bundle: BoardBundle }): ReactElement {
 
 function formatSupplyOccupant(unit: BoardState['units'][number] | undefined): string {
   return unit ? `${unit.player} ${unit.type}` : 'empty';
+}
+
+function SavedSupplyList({ state }: { state: BoardState }): ReactElement {
+  return (
+    <div className="list">
+      {state.supply.map((supply) => (
+        <div key={supply.player} className="list-row two-column">
+          <span>{supply.player}</span>
+          <span>{supply.amount}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function HomeBaseList({ map }: { map: BoardBundle['map'] }): ReactElement {
