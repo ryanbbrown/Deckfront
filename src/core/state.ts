@@ -18,7 +18,8 @@ export function setupGame(config: GameConfig, rng: Rng): GameState {
       attributes: { ...config.setup.attributes },
       persistentAttributes: {},
       vpCounters: 0,
-      turnsTaken: 0
+      turnsTaken: 0,
+      freeTrashUsed: false
     };
     drawCards(player, config.setup.handSize, rng);
     return player;
@@ -53,7 +54,8 @@ export function cloneState(state: GameState): GameState {
       discard: [...player.discard],
       play: [...player.play],
       attributes: { ...player.attributes },
-      persistentAttributes: { ...(player.persistentAttributes ?? {}) }
+      persistentAttributes: { ...(player.persistentAttributes ?? {}) },
+      freeTrashUsed: player.freeTrashUsed ?? false
     }))
   };
 }
@@ -100,6 +102,7 @@ export function resetTurnResources(player: PlayerState, config: GameConfig): voi
   player.money = config.setup.initialMoney;
   player.attributes = { ...config.setup.attributes };
   player.persistentAttributes ??= {};
+  player.freeTrashUsed = false;
 }
 
 function ensureDrawHasCards(player: PlayerState, rng: Rng): void {

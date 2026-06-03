@@ -4,6 +4,7 @@ interface InitArgs {
   run?: string;
   ruleset?: string;
   map?: string;
+  board?: string;
   units?: string;
   players?: string[];
   title?: string;
@@ -41,6 +42,7 @@ export async function runPlaytestCli(argv: string[], output: (message: string) =
       root: args.run,
       ruleset: args.ruleset,
       map: args.map,
+      ...(args.board ? { boardPath: args.board } : {}),
       ...(args.units ? { unitsPath: args.units } : {}),
       ...(args.players ? { players: args.players } : {}),
       ...(args.title ? { title: args.title } : {})
@@ -62,6 +64,8 @@ function parseInitArgs(argv: string[]): InitArgs {
       args.ruleset = requireValue(argv, ++index, '--ruleset');
     } else if (arg === '--map') {
       args.map = requireValue(argv, ++index, '--map');
+    } else if (arg === '--board') {
+      args.board = requireValue(argv, ++index, '--board');
     } else if (arg === '--units') {
       args.units = requireValue(argv, ++index, '--units');
     } else if (arg === '--players') {
@@ -89,7 +93,7 @@ function helpText(): string {
     '',
     'Commands:',
     '  validate <timeline.json>',
-    '  init --run <path> --ruleset <id> --map <id> [--units <file>] [--players P1,P2] [--title <title>]'
+    '  init --run <path> --ruleset <id> --map <id> [--board <file>] [--units <file>] [--players P1,P2] [--title <title>]'
   ].join('\n');
 }
 

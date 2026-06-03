@@ -98,6 +98,7 @@ export interface PlayerState {
   persistentAttributes: Record<string, number>;
   vpCounters: number;
   turnsTaken: number;
+  freeTrashUsed: boolean;
 }
 
 export interface PendingEffect {
@@ -130,6 +131,7 @@ export type PendingChoice =
 
 export type ChosenAction =
   | { type: 'playAction'; handIndex: number }
+  | { type: 'trashCard'; handIndex: number }
   | { type: 'moveToBuy' }
   | { type: 'buyCard'; cardId: CardId }
   | { type: 'endTurn' }

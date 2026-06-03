@@ -24,7 +24,10 @@ describe('legal actions', () => {
     expect(listLegalActions(state).map((action) => action.description)).toEqual([
       'Play Village',
       'Play Cellar',
-      'Move to buy phase'
+      'Move to buy phase',
+      'Trash Village',
+      'Trash Cellar',
+      'Trash Copper'
     ]);
   });
 
@@ -42,6 +45,26 @@ describe('legal actions', () => {
       }),
       new SeededRng(1)
     );
+
+    expect(listLegalActions(state).map((action) => action.description)).toEqual(['Move to buy phase', 'Trash Village']);
+  });
+
+  it('does not offer free trash after a card has been played', () => {
+    const state = setupGame(
+      testConfig({
+        setup: {
+          initialActions: 1,
+          initialBuys: 1,
+          initialMoney: 0,
+          handSize: 2,
+          startingDeck: ['village', 'copper'],
+          attributes: {}
+        }
+      }),
+      new SeededRng(1)
+    );
+    state.players[0]!.hand = ['copper'];
+    state.players[0]!.play = ['village'];
 
     expect(listLegalActions(state).map((action) => action.description)).toEqual(['Move to buy phase']);
   });

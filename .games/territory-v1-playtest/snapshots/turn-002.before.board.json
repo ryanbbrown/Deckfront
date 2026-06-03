@@ -11,65 +11,81 @@
       "id": "P1-raider-1",
       "player": "P1",
       "type": "raider",
-      "q": 8,
-      "r": 1,
-      "hp": 6
+      "col": 8,
+      "row": 1,
+      "hp": 6,
+      "maxHp": 8,
+      "attack": 6
     },
     {
       "id": "P1-marksman-1",
       "player": "P1",
       "type": "marksman",
-      "q": 10,
-      "r": 0,
-      "hp": 3
+      "col": 10,
+      "row": 0,
+      "hp": 3,
+      "maxHp": 8,
+      "attack": 4
     },
     {
       "id": "P1-scout-1",
       "player": "P1",
       "type": "scout",
-      "q": 10,
-      "r": 3,
-      "hp": 2
+      "col": 10,
+      "row": 3,
+      "hp": 2,
+      "maxHp": 8,
+      "attack": 2
     },
     {
       "id": "P1-guardian-1",
       "player": "P1",
       "type": "guardian",
-      "q": 10,
-      "r": 2,
-      "hp": 1
+      "col": 10,
+      "row": 2,
+      "hp": 1,
+      "maxHp": 16,
+      "attack": 4
     },
     {
       "id": "P2-marksman-1",
       "player": "P2",
       "type": "marksman",
-      "q": 0,
-      "r": 8,
-      "hp": 3
+      "col": 0,
+      "row": 8,
+      "hp": 3,
+      "maxHp": 8,
+      "attack": 4
     },
     {
       "id": "P2-druid-1",
       "player": "P2",
       "type": "druid",
-      "q": 1,
-      "r": 7,
-      "hp": 4
+      "col": 1,
+      "row": 7,
+      "hp": 4,
+      "maxHp": 10,
+      "attack": 4
     },
     {
       "id": "P2-scout-1",
       "player": "P2",
       "type": "scout",
-      "q": 1,
-      "r": 8,
-      "hp": 2
+      "col": 1,
+      "row": 8,
+      "hp": 2,
+      "maxHp": 8,
+      "attack": 2
     },
     {
       "id": "P2-scout-2",
       "player": "P2",
       "type": "scout",
-      "q": 0,
-      "r": 9,
-      "hp": 2
+      "col": 0,
+      "row": 9,
+      "hp": 2,
+      "maxHp": 8,
+      "attack": 2
     }
   ],
   "notes": [

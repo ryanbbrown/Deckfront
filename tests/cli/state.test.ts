@@ -41,6 +41,36 @@ describe('CLI state persistence', () => {
 
     expect(resumed).toEqual(uninterrupted);
   });
+
+  it('applies starting deck overrides only when creating a new state', async () => {
+    const dir = await makeTempDir();
+    const statePath = join(dir, 'deck.json');
+
+    await runCli(
+      [
+        '--config',
+        'tests/fixtures/multi-player.yaml',
+        '--seed',
+        '1',
+        '--state',
+        statePath,
+        '--max-actions',
+        '0',
+        '--starting-deck',
+        'P1=copper,copper,province',
+        '--starting-deck',
+        'P2=copper,estate,estate'
+      ],
+      () => undefined
+    );
+
+    const saved = JSON.parse(await readFile(statePath, 'utf8')) as PersistedGame;
+    const playerOneCards = [...saved.game.players[0]!.hand, ...saved.game.players[0]!.draw].sort();
+    const playerTwoCards = [...saved.game.players[1]!.hand, ...saved.game.players[1]!.draw].sort();
+
+    expect(playerOneCards).toEqual(['copper', 'copper', 'province']);
+    expect(playerTwoCards).toEqual(['copper', 'estate', 'estate']);
+  });
 });
 
 async function makeTempDir(): Promise<string> {

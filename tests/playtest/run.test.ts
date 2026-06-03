@@ -63,6 +63,31 @@ describe('playtest run helpers', () => {
     expect(output.at(-1)).toBe(`Initialized playtest run: ${root}`);
   });
 
+  it('initializes from a starter board file', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'deckfront-run-'));
+
+    await runPlaytestCli(
+      [
+        'init',
+        '--run',
+        root,
+        '--ruleset',
+        'territory-v1',
+        '--map',
+        'sketch-v1',
+        '--board',
+        '.games/territory-v1-playtest/snapshots/turn-001.before.board.json'
+      ],
+      () => undefined
+    );
+
+    const board = boardStateSchema.parse(JSON.parse(await readFile(join(root, 'board.json'), 'utf8')) as unknown);
+
+    expect(board.units).toHaveLength(8);
+    expect(board.units.find((unit) => unit.id === 'P1-guardian-1')?.hp).toBe(16);
+    expect(board.units.find((unit) => unit.id === 'P2-druid-1')?.hp).toBe(10);
+  });
+
   it('fails loudly when a timeline references missing snapshots', async () => {
     const root = await mkdtemp(join(tmpdir(), 'deckfront-run-'));
     const timelinePath = join(root, 'timeline.json');

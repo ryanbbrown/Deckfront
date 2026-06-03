@@ -12,6 +12,7 @@
 - Playtest agents must read `.goals/prompts/PLAYTEST_AGENT.md`.
 - Review/evaluation agents must read `.goals/prompts/REVIEW_EVALUATE_AGENT.md`.
 - Do not conclude from a single playthrough unless explicitly directed.
+- Code changes are allowed when an experiment needs new rule or tooling support, but they should remain backward-compatible with other rulesets unless the user approves otherwise.
 
 ## Workflow
 

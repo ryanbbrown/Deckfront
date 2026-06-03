@@ -60,6 +60,12 @@ Persist and resume state:
 bun run cli -- --config rulesets/territory-v1/deck.yaml --state .games/territory-v1-playtest/deck.json --seed 1
 ```
 
+Create a new state with game-level starting deck overrides:
+
+```sh
+bun run cli -- --config rulesets/territory-v1/deck.yaml --state .games/e001-baseline/deck.json --seed 1 --max-actions 0 --starting-deck P1=copper,copper,copper,copper,copper,copper,copper,zap,bandage --starting-deck P2=copper,copper,copper,copper,copper,copper,copper,village,silver
+```
+
 Run from a numeric script:
 
 ```sh
@@ -73,6 +79,7 @@ Useful flags:
 - `--script <path>`: numeric choices, one per line.
 - `--state <path>`: persisted game state JSON.
 - `--max-actions <number>`: stop after this many accepted actions.
+- `--starting-deck <cards>`: override a new state's starting deck; use `P1=card,card` for one player.
 
 ## Playtest Runs
 
@@ -80,6 +87,12 @@ Initialize a run:
 
 ```sh
 bun run init-run -- --run .games/e001-baseline --ruleset territory-v1 --map sketch-v1
+```
+
+Initialize from the corrected starter board:
+
+```sh
+bun run init-run -- --run .games/e001-baseline --ruleset territory-v1 --map sketch-v1 --board .games/territory-v1-playtest/snapshots/turn-001.before.board.json
 ```
 
 Validate a replay bundle:
@@ -121,7 +134,7 @@ Replay mode starts on the first entry's `before` snapshots, so frame 1 is the in
 - `src/core/`: deckbuilding engine, actions, scoring, random state.
 - `src/config/`: YAML config loading and validation.
 - `src/cli/`: command-line interaction, scripting, persistence, rendering.
-- `src/board/`: map and board-state schemas.
+- `src/board/`: map and board-state schemas, coordinates, and movement helpers.
 - `src/replay/`: replay timeline schema.
 - `src/playtest/`: playtest run layout and replay bundle validation.
 - `viewer/`: React board and replay viewer.

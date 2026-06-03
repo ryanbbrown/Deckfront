@@ -2,12 +2,13 @@ import { z } from 'zod';
 
 export const hexCoordSchema = z
   .object({
-    q: z.number().int(),
-    r: z.number().int()
+    col: z.number().int(),
+    row: z.number().int()
   })
   .strict();
 
 export type HexCoord = z.infer<typeof hexCoordSchema>;
+export type BoardCoord = HexCoord;
 
 export const boardCardSchema = z
   .object({
@@ -40,6 +41,7 @@ export const boardMapSchema = z
     id: z.string().min(1),
     name: z.string().min(1),
     orientation: z.enum(['pointy', 'flat']).default('pointy'),
+    coordinateSystem: z.enum(['odd-column']).default('odd-column'),
     hexes: z.array(hexCoordSchema).min(1),
     blocked: z.array(hexCoordSchema).default([]),
     supplyCenters: z
@@ -47,8 +49,8 @@ export const boardMapSchema = z
         z
           .object({
             id: z.string().min(1),
-            q: z.number().int(),
-            r: z.number().int()
+            col: z.number().int(),
+            row: z.number().int()
           })
           .strict()
       )
@@ -121,9 +123,11 @@ export const boardStateSchema = z
             id: z.string().min(1),
             player: z.string().min(1),
             type: z.string().min(1),
-            q: z.number().int(),
-            r: z.number().int(),
-            hp: z.number().int().nonnegative()
+            col: z.number().int(),
+            row: z.number().int(),
+            hp: z.number().int().nonnegative(),
+            maxHp: z.number().int().positive(),
+            attack: z.number().int().nonnegative()
           })
           .strict()
       )
@@ -174,7 +178,7 @@ export const boardStateSchema = z
 export type BoardState = z.infer<typeof boardStateSchema>;
 
 export function coordKey(coord: HexCoord): string {
-  return `${coord.q},${coord.r}`;
+  return `${coord.col},${coord.row}`;
 }
 
 function assertUniqueCoords(coords: HexCoord[], path: Array<string | number>, context: z.RefinementCtx): void {

@@ -15,12 +15,19 @@ The current sketch map has 8 supply centers.
 
 Each player turn has a deck phase and a board phase.
 
-1. Resolve the active player's deck choices using the CLI.
-2. Use the deck-produced board counters for this turn.
-3. Resolve board movement, combat, capture, and recruitment.
-4. Save the resulting board state and advance to the next player.
+1. Optionally trash one card from the active player's hand before using cards this turn.
+2. Resolve the active player's deck choices using the CLI.
+3. Use the deck-produced board counters for this turn.
+4. Resolve board movement, combat, capture, and recruitment.
+5. Save the resulting board state and advance to the next player.
 
-Deck counters such as `damage`, `heal`, `bonusHp`, `bonusAttack`, `reattack`, and `stormTargets` are turn resources. They do not persist unless a future ruleset explicitly says they do.
+Deck counters such as `damage`, `heal`, `upgradeHealth`, `upgradeDamage`, `reattack`, and `stormTargets` are turn resources. They do not persist unless a future ruleset explicitly says they do.
+
+## Deck Start
+
+At the start of each turn, the active player may trash one card from hand before playing actions or moving to the buy phase. The trashed card goes to the shared deck trash and cannot be played, spent, discarded, or otherwise used that turn.
+
+The initial deck is a game-level setup decision. For current territory-v1 playtests, each player starts with 7 Coppers plus 12 coin to draft additional starting cards before turn 1. If a playtest uses a different initial draft budget or a fixed starting deck, record that in the run notes and timeline.
 
 ## Win Condition
 
@@ -38,7 +45,7 @@ If both players somehow satisfy a win condition at the same start-of-turn check,
 
 ## Units And Starting HP
 
-Units start at their max HP from `rulesets/territory-v1/units.json`.
+Units start at their max HP and attack from `rulesets/territory-v1/units.json`.
 
 Current unit definitions:
 
@@ -98,7 +105,24 @@ Current movement values:
 | druid | 1 |
 | healer | 1 |
 
-Movement uses axial hex adjacency on the active map.
+Movement uses the active map's coordinate system. `maps/sketch-v1.json` uses flat-top, odd-column offset coordinates:
+
+- `col` increases from west to east.
+- `row` increases from north to south.
+- Odd-numbered columns are shifted half a hex south.
+
+Direction offsets depend on whether the moving unit starts in an even or odd column:
+
+| Direction | Even column change | Odd column change |
+| --- | --- | --- |
+| north | `col + 0, row - 1` | `col + 0, row - 1` |
+| northeast | `col + 1, row - 1` | `col + 1, row + 0` |
+| southeast | `col + 1, row + 0` | `col + 1, row + 1` |
+| south | `col + 0, row + 1` | `col + 0, row + 1` |
+| southwest | `col - 1, row + 0` | `col - 1, row + 1` |
+| northwest | `col - 1, row - 1` | `col - 1, row + 0` |
+
+For multi-hex movement, count the shortest legal path through adjacent map hexes. Do not count paths through blocked hexes or occupied enemy hexes.
 
 Rules:
 
@@ -131,8 +155,8 @@ Suggested v0 interpretation:
 | --- | --- |
 | `damage` | Extra damage that may be assigned to legal attacks this turn. |
 | `heal` | Healing that may be assigned to friendly units, up to max HP. |
-| `bonusHp` | Temporary or persistent HP bonus, pending playtest decision. Prefer persistent only if written into board state. |
-| `bonusAttack` | Add this much attack to one friendly unit this turn. |
+| `upgradeHealth` | Permanently increase one living friendly unit's `maxHp` by this amount. Also heal that unit by the same amount. |
+| `upgradeDamage` | Permanently increase one living friendly unit's `attack` by this amount. |
 | `reattack` | Allow one friendly unit to make one additional attack this turn. |
 | `stormTargets` | If paired with damage, allow that damage to affect two connected occupied enemy hexes. |
 
@@ -158,6 +182,6 @@ These are intentional v0 unknowns to evaluate through simulation:
 
 - Whether the 3-unit lead should be checked only at start of turn or also after opponent elimination.
 - Whether unrestricted multi-unit recruitment makes supply control too decisive.
-- Whether `bonusHp` should be temporary or persistent.
+- Whether initial deck drafting should use 7 Coppers and 12 coin or 6 Coppers and 15 coin.
 - Whether deck `damage` should require an attacking unit or be assignable as direct spell damage.
 - Whether the current asymmetric starter map gives P1 too much early supply access.

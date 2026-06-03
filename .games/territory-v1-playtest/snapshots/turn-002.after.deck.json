@@ -24,8 +24,8 @@
         "attributes": {
           "damage": 0,
           "heal": 0,
-          "bonusHp": 0,
-          "bonusAttack": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
           "reattack": 0,
           "stormTargets": 0
         }
@@ -212,7 +212,7 @@
             {
               "kind": "grant",
               "attributes": {
-                "bonusHp": 2
+                "upgradeHealth": 2
               }
             }
           ]
@@ -227,7 +227,7 @@
               "kind": "grant",
               "actions": 1,
               "attributes": {
-                "bonusAttack": 1
+                "upgradeDamage": 1
               }
             }
           ]
@@ -503,7 +503,7 @@
           {
             "kind": "grant",
             "attributes": {
-              "bonusHp": 2
+              "upgradeHealth": 2
             }
           }
         ]
@@ -518,7 +518,7 @@
             "kind": "grant",
             "actions": 1,
             "attributes": {
-              "bonusAttack": 1
+              "upgradeDamage": 1
             }
           }
         ]
@@ -564,13 +564,14 @@
         "attributes": {
           "damage": 1,
           "heal": 1,
-          "bonusHp": 0,
-          "bonusAttack": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
           "reattack": 0,
           "stormTargets": 0
         },
         "vpCounters": 0,
-        "turnsTaken": 1
+        "turnsTaken": 1,
+        "freeTrashUsed": false
       },
       {
         "id": "P2",
@@ -597,13 +598,14 @@
         "attributes": {
           "damage": 0,
           "heal": 0,
-          "bonusHp": 0,
-          "bonusAttack": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
           "reattack": 0,
           "stormTargets": 0
         },
         "vpCounters": 0,
-        "turnsTaken": 1
+        "turnsTaken": 1,
+        "freeTrashUsed": false
       }
     ],
     "activePlayer": 0,

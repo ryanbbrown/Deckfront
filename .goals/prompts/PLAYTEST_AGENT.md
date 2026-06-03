@@ -5,6 +5,7 @@ Use this as the base prompt for agents that play games.
 ## Deck-Building Basics
 
 - Do not buy Copper unless a ruleset gives a specific reason. It is usually the worst buy.
+- If the active rules allow start-of-turn trashing, use it to remove weak cards before playing or spending them.
 - Prefer buys that improve future turns: stronger money, card draw, extra actions, or useful board counters.
 - Avoid terminal-action clog: do not buy many action cards unless the deck has enough extra actions.
 - Balance payload and engine. Draw/actions are only useful if they lead to money or board impact.
@@ -16,8 +17,10 @@ Use this as the base prompt for agents that play games.
 - Follow the assigned strategy; do not drift into a generic balanced plan unless forced.
 - Fight for supply centers, but do not sacrifice units without compensation.
 - Track saved board supply in `board.json` under `supply`.
+- Track permanent unit upgrades on the specific unit's board-state `attack` and `maxHp` values.
 - Record ambiguous rules calls in `.games/<run>/notes.md`.
 - Keep board changes legal under the current ruleset and map.
+- Read the map coordinate declaration before moving units. For the current odd-column map, use `col,row` movement offsets from `rulesets/territory-v1/board-rules.md`.
 - Preserve enough detail in `timeline.json` for later review.
 
 ## Required Strategy Assignment

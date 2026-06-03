@@ -43,6 +43,7 @@ export interface InitPlaytestRunOptions {
   ruleset: string;
   map: string;
   players?: string[];
+  boardPath?: string;
   unitsPath?: string;
   title?: string;
 }
@@ -72,29 +73,42 @@ export async function initPlaytestRun(options: InitPlaytestRunOptions): Promise<
   const players = options.players ?? ['P1', 'P2'];
   const map = boardMapSchema.parse(await readJson(join('maps', `${options.map}.json`)));
   const units = options.unitsPath ? boardStateSchema.shape.units.parse(await readJson(options.unitsPath)) : [];
-  const boardState: BoardState = {
-    schemaVersion: 1,
-    ruleset: options.ruleset,
-    map: map.id,
-    turn: {
-      activePlayer: players[0] ?? 'P1',
-      round: 1
-    },
-    units,
-    supplyControl: map.supplyCenters.map((center) => ({ id: center.id, controller: null })),
-    supply: players.map((player) => ({ player, amount: 0 })),
-    notes: []
-  };
+  const boardState = options.boardPath
+    ? boardStateSchema.parse(await readJson(options.boardPath))
+    : initialBoardState(options, map.id, players, units, map.supplyCenters.map((center) => center.id));
   const timeline: ReplayTimeline = {
     schemaVersion: 1,
     title: options.title ?? `${options.ruleset} ${map.id}`,
     entries: []
   };
 
+  if (boardState.ruleset !== options.ruleset) {
+    throw new Error(`Starter board ruleset is ${boardState.ruleset}, expected ${options.ruleset}`);
+  }
+  if (boardState.map !== map.id) {
+    throw new Error(`Starter board map is ${boardState.map}, expected ${map.id}`);
+  }
+
   await mkdir(paths.snapshotsDir, { recursive: true });
   await writeFile(paths.boardState, `${JSON.stringify(boardStateSchema.parse(boardState), null, 2)}\n`);
   await writeFile(paths.timeline, `${JSON.stringify(timeline, null, 2)}\n`);
   return paths;
+}
+
+function initialBoardState(options: InitPlaytestRunOptions, mapId: string, players: string[], units: BoardState['units'], supplyCenterIds: string[]): BoardState {
+  return {
+    schemaVersion: 1,
+    ruleset: options.ruleset,
+    map: mapId,
+    turn: {
+      activePlayer: players[0] ?? 'P1',
+      round: 1
+    },
+    units,
+    supplyControl: supplyCenterIds.map((id) => ({ id, controller: null })),
+    supply: players.map((player) => ({ player, amount: 0 })),
+    notes: []
+  };
 }
 
 export async function validateReplayBundle(timelinePath: string): Promise<ValidatedReplayBundle> {

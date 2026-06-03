@@ -16,7 +16,8 @@ function playerWithDiscard(discard: string[]): PlayerState {
     attributes: {},
     persistentAttributes: {},
     vpCounters: 0,
-    turnsTaken: 0
+    turnsTaken: 0,
+    freeTrashUsed: false
   };
 }
 

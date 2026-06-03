@@ -13,7 +13,7 @@
   "bandage": { "name": "Bandage", "effect": "1 card, 1 action, 1 heal", "cost": 3 },
   "potion": { "name": "Potion", "effect": "2 heal, 1 action", "cost": 4 },
   "healer": { "name": "Healer", "effect": "4 heal", "cost": 5 },
-  "armory": { "name": "Armory", "effect": "+2 hp", "cost": 5 },
-  "training": { "name": "Training", "effect": "1 action, +1 attack", "cost": 5 },
+  "armory": { "name": "Armory", "effect": "upgrade one unit's max hp by 2", "cost": 5 },
+  "training": { "name": "Training", "effect": "1 action, upgrade one unit's attack by 1", "cost": 5 },
   "second-wind": { "name": "Second Wind", "effect": "1 card, re-attack", "cost": 5 }
 }

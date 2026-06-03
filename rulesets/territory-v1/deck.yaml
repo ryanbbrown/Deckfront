@@ -18,8 +18,8 @@ setup:
   attributes:
     damage: 0
     heal: 0
-    bonusHp: 0
-    bonusAttack: 0
+    upgradeHealth: 0
+    upgradeDamage: 0
     reattack: 0
     stormTargets: 0
 cards:
@@ -137,7 +137,7 @@ cards:
     effects:
       - kind: grant
         attributes:
-          bonusHp: 2
+          upgradeHealth: 2
   - id: training
     name: Training
     type: action
@@ -146,7 +146,7 @@ cards:
       - kind: grant
         actions: 1
         attributes:
-          bonusAttack: 1
+          upgradeDamage: 1
   - id: second-wind
     name: Second Wind
     type: action

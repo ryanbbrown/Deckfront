@@ -43,6 +43,25 @@ export function applyAction(state: GameState, action: ChosenAction, rng: Rng): G
     return next;
   }
 
+  if (action.type === 'trashCard') {
+    if (next.phase !== 'action') {
+      throw new Error('Cards can only be trashed before the buy phase');
+    }
+    if (player.freeTrashUsed === true) {
+      throw new Error('Free trash has already been used this turn');
+    }
+    if (player.play.length > 0) {
+      throw new Error('Free trash must happen before playing cards this turn');
+    }
+    const [cardId] = player.hand.splice(action.handIndex, 1);
+    if (!cardId) {
+      throw new Error('Selected hand card is not available');
+    }
+    player.freeTrashUsed = true;
+    next.trash.push(cardId);
+    return next;
+  }
+
   if (action.type === 'moveToBuy') {
     if (next.phase !== 'action') {
       throw new Error('Can only move to buy phase from action phase');
@@ -122,6 +141,9 @@ function actionsEqual(left: ChosenAction, right: ChosenAction): boolean {
     return false;
   }
   if (left.type === 'playAction' && right.type === 'playAction') {
+    return left.handIndex === right.handIndex;
+  }
+  if (left.type === 'trashCard' && right.type === 'trashCard') {
     return left.handIndex === right.handIndex;
   }
   if (left.type === 'moveToBuy' && right.type === 'moveToBuy') {

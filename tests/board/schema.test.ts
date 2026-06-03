@@ -16,7 +16,7 @@ describe('board and ruleset schemas', () => {
 
     const maxRowByColumn = new Map<number, number>();
     for (const hex of map.hexes) {
-      maxRowByColumn.set(hex.q, Math.max(maxRowByColumn.get(hex.q) ?? hex.r, hex.r));
+      maxRowByColumn.set(hex.col, Math.max(maxRowByColumn.get(hex.col) ?? hex.row, hex.row));
     }
 
     expect(Array.from(maxRowByColumn.entries()).sort(([left], [right]) => left - right)).toEqual([
@@ -50,26 +50,33 @@ describe('board and ruleset schemas', () => {
     }
 
     for (const center of map.supplyCenters) {
-      expect(center.r).toBeLessThan(maxRowByColumn.get(center.q) ?? -1);
+      expect(center.row).toBeLessThan(maxRowByColumn.get(center.col) ?? -1);
     }
 
-    expect(map.supplyCenters.find((center) => center.id === 'center-northeast')).toMatchObject({ q: 8, r: 1 });
-    expect(map.supplyCenters.find((center) => center.id === 'center-center-south')).toMatchObject({ q: 6, r: 8 });
+    expect(map.coordinateSystem).toBe('odd-column');
+    expect(map.supplyCenters.find((center) => center.id === 'center-northeast')).toMatchObject({ col: 8, row: 1 });
+    expect(map.supplyCenters.find((center) => center.id === 'center-center-south')).toMatchObject({ col: 6, row: 8 });
     expect(state.supply).toEqual([
       { player: 'P1', amount: 0 },
       { player: 'P2', amount: 0 }
     ]);
 
-    expect(map.blocked).toContainEqual({ q: 3, r: 5 });
+    expect(map.blocked).toContainEqual({ col: 3, row: 5 });
 
     const playerOneUnits = state.units.filter((unit) => unit.player === 'P1');
     expect(playerOneUnits).toHaveLength(4);
     expect(playerOneUnits.map((unit) => `${unit.type}:${coordKey(unit)}:${unit.hp}`).sort()).toEqual([
-      'guardian:11,1:1',
-      'marksman:11,0:3',
-      'raider:10,1:6',
-      'scout:12,1:2'
+      'guardian:11,1:16',
+      'marksman:11,0:8',
+      'raider:10,1:8',
+      'scout:12,1:8'
     ]);
+
+    for (const unit of state.units) {
+      expect(unit.hp).toBe(units[unit.type]?.hp);
+      expect(unit.maxHp).toBe(units[unit.type]?.hp);
+      expect(unit.attack).toBe(units[unit.type]?.attack);
+    }
   });
 
   it('rejects duplicate map coordinates', () => {
@@ -78,8 +85,8 @@ describe('board and ruleset schemas', () => {
         id: 'bad',
         name: 'Bad Map',
         hexes: [
-          { q: 0, r: 0 },
-          { q: 0, r: 0 }
+          { col: 0, row: 0 },
+          { col: 0, row: 0 }
         ],
         blocked: []
       })

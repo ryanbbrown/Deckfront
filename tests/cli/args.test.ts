@@ -10,7 +10,11 @@ describe('CLI args', () => {
       script: 'script.txt',
       state: 'state.json',
       maxActions: 3,
+      startingDecks: [],
       help: false
+    });
+    expect(parseArgs(['--config', 'game.yaml', '--starting-deck', 'P1=copper,copper,village', '--starting-deck', 'estate'])).toMatchObject({
+      startingDecks: ['P1=copper,copper,village', 'estate']
     });
   });
 

@@ -22,6 +22,12 @@ Initialize a run directory:
 bun run init-run -- --run .games/e001-baseline --ruleset territory-v1 --map sketch-v1
 ```
 
+For baseline territory-v1 runs, seed from the corrected starter board:
+
+```sh
+bun run init-run -- --run .games/e001-baseline --ruleset territory-v1 --map sketch-v1 --board .games/territory-v1-playtest/snapshots/turn-001.before.board.json
+```
+
 ## Start or Resume the Deck Game
 
 ```sh
@@ -36,25 +42,37 @@ bun run cli -- --config rulesets/territory-v1/deck.yaml --state .games/territory
 
 If the state file does not exist, the CLI creates a new game. If it exists, the CLI resumes from the saved deck state and RNG state.
 
+To create a new deck state with run-level starting decks, pass `--starting-deck` before the first save. Use a plain comma-separated list to apply one deck to all players, or a player prefix for one player:
+
+```sh
+bun run cli -- --config rulesets/territory-v1/deck.yaml --state .games/e001-baseline/deck.json --seed 1 --max-actions 0 --starting-deck P1=copper,copper,copper,copper,copper,copper,copper,zap,bandage --starting-deck P2=copper,copper,copper,copper,copper,copper,copper,village,silver
+```
+
+`--starting-deck` is ignored when resuming an existing state file.
+
 ## Player Turn Loop
 
 1. Read the current deck state file.
-2. Use the CLI to take the active player's deckbuilding choices.
-3. Read the current board state file.
-4. Apply board updates directly to the board state JSON.
-5. Save before/after deck and board snapshots for the complete turn.
-6. Append one entry to `timeline.json` with hand, played cards, purchases, produced counters, summary, and reasoning.
-7. Keep ruleset files unchanged during the game.
-8. Repeat for the next active player.
+2. If the active rules allow it, optionally use the CLI's start-of-turn trash action before playing or spending cards.
+3. Use the CLI to take the active player's deckbuilding choices.
+4. Read the current board state file.
+5. Apply board updates directly to the board state JSON.
+6. Save before/after deck and board snapshots for the complete turn.
+7. Append one entry to `timeline.json` with hand, played cards, purchases, produced counters, summary, and reasoning.
+8. Keep ruleset files unchanged during the game.
+9. Repeat for the next active player.
 
 The frontend does not enforce rules. The LLM is responsible for legal movement, attacks, captures, and card effects.
 
-Deck card effects that matter to the board are represented as turn attributes such as `damage`, `heal`, `bonusHp`, `bonusAttack`, `reattack`, and `stormTargets`. These reset at cleanup like actions, buys, and money. Persistent deck-player counters must use `persistentAttributes` explicitly; the current territory ruleset does not use them.
+Deck card effects that matter to the board are represented as turn attributes such as `damage`, `heal`, `upgradeHealth`, `upgradeDamage`, `reattack`, and `stormTargets`. These reset at cleanup like actions, buys, and money. Persistent deck-player counters must use `persistentAttributes` explicitly; the current territory ruleset does not use them.
 
 ## Board State Expectations
 
-- Coordinates use axial `{ "q": number, "r": number }` values.
+- Coordinates use `{ "col": number, "row": number }` values.
+- The current map declares `coordinateSystem: "odd-column"`: flat-top hexes, columns left-to-right, rows top-to-bottom, odd columns shifted half a hex south.
+- Use the Movement section in `rulesets/territory-v1/board-rules.md` for north, northeast, southeast, south, southwest, and northwest offsets.
 - Unit `type` values should match `rulesets/territory-v1/units.json`.
+- Unit `hp`, `maxHp`, and `attack` are current board-state values. Permanent upgrades should modify the specific unit, not every unit of that type.
 - `ruleset` should reference an existing ruleset folder.
 - `map` should reference an existing file in `maps/`.
 - Supply control entries reference map supply center ids; `controller` is either `null` or a player id like `P1`.
