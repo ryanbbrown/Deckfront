@@ -27,7 +27,9 @@ Deck counters such as `damage`, `heal`, `upgradeHealth`, `upgradeDamage`, `reatt
 
 At the start of each turn, the active player may trash one card from hand before playing actions or moving to the buy phase. The trashed card goes to the shared deck trash and cannot be played, spent, discarded, or otherwise used that turn.
 
-The initial deck is a game-level setup decision. For current territory-v1 playtests, each player starts with 7 Coppers plus 12 coin to draft additional starting cards before turn 1. If a playtest uses a different initial draft budget or a fixed starting deck, record that in the run notes and timeline.
+The initial deck is a game-level setup decision. For current territory-v1 playtests, each player starts with 7 Coppers plus 12 coin to draft additional starting cards before turn 1. Unspent draft coin carries into that player's first turn and may be used for first-turn deck buys. Track that carryover in the playtest notes or timeline reasoning; there is no dedicated CLI mechanic for it.
+
+Do not force the initial draft to spend exactly 12 coin. It is acceptable to leave coin unspent if that produces a more coherent opening deck. If a playtest uses a different initial draft budget or a fixed starting deck, record that in the run notes and timeline.
 
 ## Win Condition
 

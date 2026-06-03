@@ -39,6 +39,7 @@ Ruleset Score: 100
 
 - Games usually reach a satisfying conclusion.
 - Early, mid, and late phases are distinguishable.
+- The opening should not feel inert; if the first 8 turns are mostly boring setup, the design should be sped up.
 - Early advantage matters but does not decide the game immediately.
 - Comebacks or stabilizing responses are possible.
 - Reference range: 9-20 completed player turns, with 12-16 as the current best guess.
