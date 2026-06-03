@@ -2,23 +2,25 @@
 
 ## Current Strategy
 
-Start with a baseline playtest batch, then compare small ruleset/map variants that test different strategic pressures.
+Fix the baseline setup issue found in E001, then rerun baseline matchups from a rules-legal max-HP starter board.
 
 Each experiment should use 2-3 strategy matchups, with 2 parallel playthroughs per matchup.
 
 ## Next Queue
 
-1. E001 - Baseline `territory-v1` on `sketch-v1`.
-2. E002 - Early board-pressure variant.
-3. E003 - Slower deck-engine scaling variant.
-4. E004 - Unit role differentiation variant.
+1. E002 - Baseline rerun with max-HP starter board and clarified support/damage timing.
+2. E003 - Early board-pressure variant if rush remains too strong.
+3. E004 - Slower deck-engine stabilization variant.
+4. E005 - Unit role differentiation variant.
 
 ## Current Best
 
-None yet.
+E001 scored 68 / 100 as partial evidence. It showed strong board tension but exposed a damaged-starter setup flaw.
 
 ## Open Questions
 
-- What scoring rubric should define a successful game?
-- Are scouts too dominant in early supply capture?
+- Should deck `damage` require a legal unit attack?
+- How exactly do druid/healer unit healing actions work?
+- What is the board phase order for income, recruitment, movement, combat, and healing?
+- Are low-HP starter units intentionally part of the setup, or should all starters use max HP?
 - Can slower deck-building catch up after early board pressure?
