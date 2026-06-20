@@ -1,12 +1,10 @@
-import { loadGameConfig } from '../config/loadGameConfig';
 import { applyAction } from '../core/engine';
 import { listLegalActions } from '../core/legalActions';
-import { SeededRng, shuffle, type Rng } from '../core/random';
-import { drawCards, setupGame } from '../core/state';
 import type { GameState } from '../core/types';
 import { InteractiveInputAdapter, parseIntegerChoice, scriptedInputFromFile, type InputAdapter } from './modes';
-import { loadPersistedGame, savePersistedGame, stateFileExists } from './persistence';
 import { renderResults, renderState } from './render';
+import { loadDeckSession } from './session';
+import { runBoardTurnCli, runDeckTurnCli, runLegalActionsCli } from './structured';
 
 export interface CliArgs {
   config?: string;
@@ -19,6 +17,19 @@ export interface CliArgs {
 }
 
 export async function runCli(argv: string[], output: (message: string) => void = console.log): Promise<GameState> {
+  if (argv[0] === 'legal-actions') {
+    await runLegalActionsCli(argv.slice(1), output);
+    return undefined as never;
+  }
+  if (argv[0] === 'deck-turn') {
+    await runDeckTurnCli(argv.slice(1), output);
+    return undefined as never;
+  }
+  if (argv[0] === 'board-turn') {
+    await runBoardTurnCli(argv.slice(1), output);
+    return undefined as never;
+  }
+
   const args = parseArgs(argv);
   if (args.help) {
     output(helpText());
@@ -28,19 +39,15 @@ export async function runCli(argv: string[], output: (message: string) => void =
     throw new Error('Missing required --config path');
   }
 
-  const config = await loadGameConfig(args.config);
-  const loaded = args.state && (await stateFileExists(args.state)) ? await loadPersistedGame(args.state) : undefined;
-  const rng = loaded ? SeededRng.fromState(loaded.rngState) : new SeededRng(args.seed);
   const input = args.script ? await scriptedInputFromFile(args.script) : new InteractiveInputAdapter();
-  let state = loaded ? loaded.game : setupGame(config, rng);
-  if (!loaded && args.startingDecks.length > 0) {
-    applyStartingDeckOverrides(state, args.startingDecks, rng);
-  }
+  const session = await loadDeckSession({
+    config: args.config,
+    seed: args.seed,
+    ...(args.state ? { state: args.state } : {}),
+    startingDecks: args.startingDecks
+  });
+  let state = session.game;
   let acceptedActions = 0;
-
-  if (args.state && !loaded) {
-    await savePersistedGame(args.state, { schemaVersion: 1, rngState: rng.snapshot(), game: state });
-  }
 
   while (!state.ended) {
     if (args.maxActions !== undefined && acceptedActions >= args.maxActions) {
@@ -49,11 +56,9 @@ export async function runCli(argv: string[], output: (message: string) => void =
     const actions = listLegalActions(state);
     output(renderState(state, actions));
     const choice = await readValidChoice(input, actions.length, output);
-    state = applyAction(state, actions[choice - 1]!.action, rng);
+    state = applyAction(state, actions[choice - 1]!.action, session.rng);
     acceptedActions += 1;
-    if (args.state) {
-      await savePersistedGame(args.state, { schemaVersion: 1, rngState: rng.snapshot(), game: state });
-    }
+    await session.save(state);
   }
   if (state.ended) {
     output(renderResults(state));
@@ -92,41 +97,6 @@ export function parseArgs(argv: string[]): CliArgs {
   return args;
 }
 
-function applyStartingDeckOverrides(state: GameState, overrides: string[], rng: Rng): void {
-  for (const override of overrides) {
-    const [maybePlayer, maybeCards] = override.includes('=') ? override.split('=', 2) : [undefined, override];
-    const playerIds = maybePlayer ? [maybePlayer.trim()] : state.players.map((player) => player.id);
-    const cards = parseCardList(maybeCards ?? '');
-    if (cards.length === 0) {
-      throw new Error('--starting-deck must include at least one card');
-    }
-    for (const cardId of cards) {
-      if (!state.cards[cardId]) {
-        throw new Error(`Unknown starting deck card: ${cardId}`);
-      }
-    }
-    for (const playerId of playerIds) {
-      const player = state.players.find((candidate) => candidate.id === playerId);
-      if (!player) {
-        throw new Error(`Unknown starting deck player: ${playerId}`);
-      }
-      player.draw = shuffle(cards, rng);
-      player.hand = [];
-      player.discard = [];
-      player.play = [];
-      player.freeTrashUsed = false;
-      drawCards(player, state.config.setup.handSize, rng);
-    }
-  }
-}
-
-function parseCardList(value: string): string[] {
-  return value
-    .split(',')
-    .map((cardId) => cardId.trim())
-    .filter((cardId) => cardId.length > 0);
-}
-
 function requireValue(argv: string[], index: number, flag: string): string {
   const value = argv[index];
   if (!value) {
@@ -156,6 +126,9 @@ function helpText(): string {
     '  --state <path>   Persist and resume game state from JSON',
     '  --max-actions <number> Stop after this many accepted actions',
     '  --starting-deck <cards> Override new-game starting deck; use P1=card,card for one player',
+    '  legal-actions --config <path> --state <path> --json',
+    '  deck-turn --config <path> --state <path> --actions <file> --result <file>',
+    '  board-turn --state <board.json> --deck-result <file> --actions <file> --result <file>',
     '  --help           Show this help'
   ].join('\n');
 }
