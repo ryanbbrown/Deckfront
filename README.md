@@ -115,6 +115,8 @@ uv run scripts/run_game.py --run .games/e024-claude-vs-claude --reset --max-turn
 
 `scripts/run_game.py` creates one persistent Claude Code session per player and alternates turns. Each player session mutates the shared run directory on its own turn, using the existing `deck-turn`, `board-turn`, `commit-turn`, and strict validation CLIs. By default it uses the E024 high-movement six-center ruleset, `claude-opus-4-8` (Opus 4.8), low effort, and a 180-second per-turn timeout; override with `--model`, `--effort`, or `--timeout-seconds` if needed.
 
+Shared playtest prompts live in `agent-context/prompts/`. Runners render those prompts and snapshot the exact run context under `.games/<run>/context/`, including the base player prompt, per-player initial prompts, per-turn prompts, compact briefings, and a manifest with prompt/rule/map file hashes.
+
 ## Viewer
 
 Start the viewer:

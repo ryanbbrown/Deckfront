@@ -13,12 +13,17 @@ import json
 import shutil
 import subprocess
 import sys
-import textwrap
 import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from playtest_context import build_initial_prompt
+from playtest_context import build_repair_prompt
+from playtest_context import build_turn_prompt
+from playtest_context import load_system_prompt
+from playtest_context import write_context_snapshot
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -61,6 +66,7 @@ def main() -> int:
 
     ensure_initialized(args, run_dir)
     write_runner_state(args, run_dir, players)
+    write_context_snapshot(args, run_dir, players, runner="claude", drafts=drafts(args))
     started_sessions: set[str] = set()
 
     for _ in range(args.max_turns):
@@ -76,8 +82,11 @@ def main() -> int:
         turn_id = f"turn-{next_turn:03d}"
 
         print(f"\n=== {turn_id} {player.id} ===", flush=True)
+        resume = player.session_id in started_sessions
         prompt = build_turn_prompt(args, run_dir, player, turn_id)
-        result = run_claude_turn(args, run_dir, player, prompt, resume=player.session_id in started_sessions)
+        if not resume:
+            prompt = f"{build_initial_prompt(args, run_dir, player, players, drafts(args))}\n\n{prompt}"
+        result = run_claude_turn(args, run_dir, player, prompt, resume=resume)
         started_sessions.add(player.session_id)
         append_text(run_dir / "logs" / f"{turn_id}.{player.id}.claude.txt", result.stdout)
         if result.stderr:
@@ -257,129 +266,6 @@ def drafts(args: argparse.Namespace) -> list[str]:
     return list(args.draft if args.draft is not None else DEFAULT_DRAFTS)
 
 
-def build_turn_prompt(args: argparse.Namespace, run_dir: Path, player: Player, turn_id: str) -> str:
-    briefing = build_state_briefing(args, run_dir)
-    return textwrap.dedent(
-        f"""
-        You are {player.id} in Deckfront. Play to maximize {player.id}'s win chance; do not optimize for balance.
-        Strategy: {player.strategy}
-
-        Complete exactly one turn now: {turn_id} in {rel(run_dir)}. Use Bash only. Do not read source/docs/rules/maps unless a command error is unclear. Do not create probe files. Use only these exact paths:
-        deck actions: {rel(run_dir / "actions" / f"{turn_id}.deck.json")}
-        board actions: {rel(run_dir / "actions" / f"{turn_id}.board.json")}
-        win events, if strict commit requires them: {rel(run_dir / "actions" / f"{turn_id}.win-events.json")}
-        terminal win events, if strict commit requires them: {rel(run_dir / "actions" / f"{turn_id}.terminal-win-events.json")}
-        deck result: {rel(run_dir / "results" / f"{turn_id}.deck.result.json")}
-        board result: {rel(run_dir / "results" / f"{turn_id}.board.result.json")}
-
-        Briefing JSON: {briefing}
-
-        Deck action file: {{"schemaVersion":1,"turnId":"{turn_id}","player":"{player.id}","actions":[...]}}. Use only briefing.deck.legal actions, then endTurn.
-        Hand indices are live: if you trash, trash before play/draw actions and adjust later handIndex values. After moveToBuy, buy a useful card if money/buys allow.
-        Board action file: {{"schemaVersion":1,"turnId":"{turn_id}","player":"{player.id}","actions":{{"movements":[],"recruits":[],"attacks":[],"heals":[],"upgrades":[]}}}}.
-        Movement objects: {{"unit":"id","from":{{"col":0,"row":0}},"to":{{"col":0,"row":0}}}}. Recruit objects: {{"unit":"new-id","type":"raider","at":{{"col":0,"row":0}}}}. Attack objects: {{"attacker":"id","target":"id","deckDamage":0}}; board-turn computes damage.
-
-        Run the full turn in one Bash call if possible:
-        1. write deck actions
-        2. `bun run --silent cli -- deck-turn --config {args.config} --state {rel(run_dir / "deck.json")} --actions {rel(run_dir / "actions" / f"{turn_id}.deck.json")} --result {rel(run_dir / "results" / f"{turn_id}.deck.result.json")}`
-        3. write board actions
-        4. `bun run --silent cli -- board-turn --state {rel(run_dir / "board.json")} --deck-result {rel(run_dir / "results" / f"{turn_id}.deck.result.json")} --actions {rel(run_dir / "actions" / f"{turn_id}.board.json")} --result {rel(run_dir / "results" / f"{turn_id}.board.result.json")}`
-        5. `bun run --silent playtest -- commit-turn --run {rel(run_dir)} --deck-result {rel(run_dir / "results" / f"{turn_id}.deck.result.json")} --board-result {rel(run_dir / "results" / f"{turn_id}.board.result.json")} --summary "<summary>" --reasoning "<reasoning>" --strict-win`
-        6. `bun run --silent validate-run -- --strict --strict-deck --strict-win {rel(run_dir / "timeline.json")}`
-
-        If strict commit fails because winEvents or terminalWinEvents do not match expected events, copy the expected JSON array exactly into the matching event file above and retry commit with `--win-events <file>` and/or `--terminal-win-events <file>` plus `--strict-win`. Stop after a valid committed turn and print the deck line, board line, and rationale.
-        """
-    ).strip()
-
-
-def build_state_briefing(args: argparse.Namespace, run_dir: Path) -> str:
-    deck = read_json(run_dir / "deck.json")
-    board = read_json(run_dir / "board.json")
-    map_data = read_json(ROOT / "maps" / f"{args.map}.json")
-    unit_rules = read_json(ROOT / "rulesets" / args.ruleset / "units.json")
-
-    game = deck["game"]
-    active_player = game["players"][game["activePlayer"]]
-    supply_counts = {entry["card"]: entry["count"] for entry in game["config"]["supply"]}
-    cards = []
-    for card in game["config"]["cards"]:
-        entry: dict[str, Any] = {"id": card["id"], "type": card["type"], "cost": card["cost"], "n": supply_counts.get(card["id"], 0)}
-        if "treasure" in card:
-            entry["treasure"] = card["treasure"]
-        if "effects" in card:
-            entry["effects"] = card["effects"]
-        cards.append(entry)
-
-    legal_actions = run(
-        [
-            "bun",
-            "run",
-            "--silent",
-            "cli",
-            "--",
-            "legal-actions",
-            "--config",
-            args.config,
-            "--state",
-            rel(run_dir / "deck.json"),
-            "--json",
-        ],
-        check=True,
-        echo=False,
-    )
-
-    briefing = {
-        "activePlayer": active_player["id"],
-        "deck": {
-            "phase": game["phase"],
-            "active": {
-                "id": active_player["id"],
-                "handIndexed": list(enumerate(active_player["hand"])),
-                "hand": active_player["hand"],
-                "drawCount": len(active_player["draw"]),
-                "discard": active_player["discard"],
-                "play": active_player["play"],
-                "actions": active_player["actions"],
-                "buys": active_player["buys"],
-                "money": active_player["money"],
-                "attributes": active_player["attributes"],
-                "freeTrashUsed": active_player["freeTrashUsed"],
-            },
-            "legal": [
-                {
-                    "i": action["index"],
-                    "d": action["description"],
-                    "a": action["action"],
-                }
-                for action in json.loads(legal_actions.stdout)["actions"]
-            ],
-            "market": cards,
-        },
-        "board": {
-            "turn": board["turn"],
-            "units": [
-                {
-                    "id": unit["id"],
-                    "p": unit["player"],
-                    "t": unit["type"],
-                    "c": unit["col"],
-                    "r": unit["row"],
-                    "hp": unit["hp"],
-                    "max": unit["maxHp"],
-                    "atk": unit["attack"],
-                }
-                for unit in board["units"]
-            ],
-            "supplyControl": board["supplyControl"],
-            "supply": board["supply"],
-            "homeBases": map_data["homeBases"],
-            "supplyCenters": map_data["supplyCenters"],
-            "unitRules": unit_rules,
-        },
-    }
-    return json.dumps(briefing, separators=(",", ":"))
-
-
 def run_claude_turn(args: argparse.Namespace, run_dir: Path, player: Player, prompt: str, *, resume: bool = False) -> subprocess.CompletedProcess[str]:
     command = [
         args.claude_bin,
@@ -395,12 +281,18 @@ def run_claude_turn(args: argparse.Namespace, run_dir: Path, player: Player, pro
         args.permission_mode,
         "--output-format",
         "text",
-        prompt,
-        "--tools",
-        "Bash",
-        "--add-dir",
-        str(ROOT),
     ]
+    if not resume:
+        command.extend(["--system-prompt", load_system_prompt()])
+    command.extend(
+        [
+            prompt,
+            "--tools",
+            "Bash",
+            "--add-dir",
+            str(ROOT),
+        ]
+    )
     try:
         return subprocess.run(
             command,
@@ -431,17 +323,7 @@ def validate_run(args: argparse.Namespace, run_dir: Path) -> subprocess.Complete
 def retry_invalid_turn(args: argparse.Namespace, run_dir: Path, player: Player, turn_id: str, previous_entries: int, error: str) -> bool:
     for attempt in range(args.retry_on_invalid):
         print(f"Validation failed for {turn_id}; asking {player.id} to repair attempt {attempt + 1}", flush=True)
-        prompt = textwrap.dedent(
-            f"""
-            Your previous {turn_id} move left the run invalid.
-
-            Validation error:
-            {error}
-
-            Repair the same turn in {rel(run_dir)}. You may inspect current files and rerun the CLIs.
-            Do not take any later turn. Finish with a valid committed {turn_id} replay entry.
-            """
-        ).strip()
+        prompt = build_repair_prompt(run_dir, player, turn_id, error, attempt + 1)
         result = run_claude_turn(args, run_dir, player, prompt, resume=True)
         append_text(run_dir / "logs" / f"{turn_id}.{player.id}.repair-{attempt + 1}.claude.txt", result.stdout)
         if result.stderr:
