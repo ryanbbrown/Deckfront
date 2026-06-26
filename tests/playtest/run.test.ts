@@ -138,6 +138,29 @@ describe('playtest run helpers', () => {
     await expect(validateReplayBundle(timelinePath, { strict: true })).rejects.toThrow('recruit P1-guardian-1 is logged but missing after the turn');
   });
 
+  it('allows recruits into home hexes vacated earlier in the board phase', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'deckfront-run-'));
+    const timelinePath = await writeSingleTurnReplay(root, {
+      beforeSupply: [
+        { player: 'P1', amount: 3 },
+        { player: 'P2', amount: 0 }
+      ],
+      afterSupply: [
+        { player: 'P1', amount: 0 },
+        { player: 'P2', amount: 0 }
+      ],
+      beforeUnits: [testUnit('P1-scout-1', 'P1', 'scout', 10, 1, 8, 8, 2)],
+      afterUnits: [testUnit('P1-scout-1', 'P1', 'scout', 9, 1, 8, 8, 2), testUnit('P1-guardian-1', 'P1', 'guardian', 10, 1, 16, 16, 4)],
+      actions: {
+        movements: [{ unit: 'P1-scout-1', from: { col: 10, row: 1 }, to: { col: 9, row: 1 } }],
+        recruits: [{ unit: 'P1-guardian-1', type: 'guardian', at: { col: 10, row: 1 } }],
+        attacks: []
+      }
+    });
+
+    await expect(validateReplayBundle(timelinePath, { strict: true })).resolves.toMatchObject({ entries: expect.any(Array) });
+  });
+
   it('rejects multiple recruits under recruitcap rulesets', async () => {
     const root = await mkdtemp(join(tmpdir(), 'deckfront-run-'));
     const timelinePath = await writeSingleTurnReplay(root, {

@@ -11,10 +11,16 @@ describe('CLI args', () => {
       state: 'state.json',
       maxActions: 3,
       startingDecks: [],
+      drafts: [],
       help: false
     });
     expect(parseArgs(['--config', 'game.yaml', '--starting-deck', 'P1=copper,copper,village', '--starting-deck', 'estate'])).toMatchObject({
-      startingDecks: ['P1=copper,copper,village', 'estate']
+      startingDecks: ['P1=copper,copper,village', 'estate'],
+      drafts: []
+    });
+    expect(parseArgs(['--config', 'game.yaml', '--draft', 'P1=silver'])).toMatchObject({
+      startingDecks: [],
+      drafts: ['P1=silver']
     });
   });
 
@@ -25,6 +31,7 @@ describe('CLI args', () => {
     expect(() => parseArgs(['--seed', '1.5'])).toThrow('--seed must be an integer');
     expect(() => parseArgs(['--max-actions', '-1'])).toThrow('--max-actions must be a non-negative integer');
     expect(() => parseArgs(['--max-actions', 'one'])).toThrow('--max-actions must be a non-negative integer');
+    expect(() => parseArgs(['--starting-deck', 'copper', '--draft', 'silver'])).toThrow('--draft cannot be combined with --starting-deck');
     expect(() => parseArgs(['--unknown'])).toThrow('Unknown argument');
   });
 

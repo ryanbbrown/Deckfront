@@ -332,6 +332,9 @@ function validateRecruits(
   errors: string[]
 ): void {
   const beforeUnits = new Map(snapshots.boardBefore.units.map((unit) => [unit.id, unit]));
+  const occupiedAtRecruit = new Map(
+    snapshots.boardAfter.units.filter((unit) => beforeUnits.has(unit.id)).map((unit) => [coordKey(unit), unit.id])
+  );
   const recruits = new Map(actions.recruits.map((recruit) => [recruit.unit, recruit]));
   const activeHomeHexes = new Set(
     context.map.homeBases.filter((homeBase) => homeBase.player === entry.player).flatMap((homeBase) => homeBase.hexes.map(coordKey))
@@ -347,14 +350,15 @@ function validateRecruits(
     if (!activeHomeHexes.has(coordKey(recruit.at))) {
       errors.push(`${entry.id}: recruit ${recruit.unit} entered outside ${entry.player}'s home base at ${coordKey(recruit.at)}`);
     }
-    const occupiedBefore = snapshots.boardBefore.units.find((unit) => coordKey(unit) === coordKey(recruit.at));
-    if (occupiedBefore) {
-      errors.push(`${entry.id}: recruit ${recruit.unit} entered occupied hex ${coordKey(recruit.at)} containing ${occupiedBefore.id}`);
+    const occupiedBy = occupiedAtRecruit.get(coordKey(recruit.at));
+    if (occupiedBy) {
+      errors.push(`${entry.id}: recruit ${recruit.unit} entered occupied hex ${coordKey(recruit.at)} containing ${occupiedBy}`);
     }
     const after = snapshots.boardAfter.units.find((unit) => unit.id === recruit.unit);
     if (!after) {
       errors.push(`${entry.id}: recruit ${recruit.unit} is logged but missing after the turn`);
     }
+    occupiedAtRecruit.set(coordKey(recruit.at), recruit.unit);
   }
 
   for (const after of snapshots.boardAfter.units) {

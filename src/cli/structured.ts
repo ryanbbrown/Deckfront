@@ -13,6 +13,7 @@ interface StructuredBaseArgs {
   seed: number;
   state?: string;
   startingDecks: string[];
+  drafts: string[];
 }
 
 interface LegalActionsArgs extends StructuredBaseArgs {
@@ -41,7 +42,8 @@ export async function runLegalActionsCli(argv: string[], output: (message: strin
     config: args.config,
     seed: args.seed,
     ...(args.state ? { state: args.state } : {}),
-    startingDecks: args.startingDecks
+    startingDecks: args.startingDecks,
+    drafts: args.drafts
   });
   const actions = listLegalActions(session.game);
   const activePlayer = session.game.players[session.game.activePlayer]?.id;
@@ -86,7 +88,8 @@ export async function runDeckTurnCli(argv: string[], output: (message: string) =
     config: args.config,
     seed: args.seed,
     state: args.state,
-    startingDecks: args.startingDecks
+    startingDecks: args.startingDecks,
+    drafts: args.drafts
   });
   const input = await readDeckTurnInput(args.actions);
   const runRoot = dirname(args.state);
@@ -142,7 +145,7 @@ export async function runBoardTurnCli(argv: string[], output: (message: string) 
 }
 
 function parseLegalActionsArgs(argv: string[]): LegalActionsArgs {
-  const args: LegalActionsArgs = { seed: 1, startingDecks: [], json: false };
+  const args: LegalActionsArgs = { seed: 1, startingDecks: [], drafts: [], json: false };
   parseStructuredBaseArgs(argv, args, (arg) => {
     if (arg === '--json') {
       args.json = true;
@@ -154,7 +157,7 @@ function parseLegalActionsArgs(argv: string[]): LegalActionsArgs {
 }
 
 function parseDeckTurnArgs(argv: string[]): DeckTurnArgs {
-  const args: DeckTurnArgs = { seed: 1, startingDecks: [] };
+  const args: DeckTurnArgs = { seed: 1, startingDecks: [], drafts: [] };
   parseStructuredBaseArgs(argv, args, (arg, argv, index) => {
     if (arg === '--actions') {
       args.actions = requireValue(argv, index + 1, '--actions');
@@ -203,6 +206,8 @@ function parseStructuredBaseArgs(
       args.state = requireValue(argv, ++index, '--state');
     } else if (arg === '--starting-deck') {
       args.startingDecks.push(requireValue(argv, ++index, '--starting-deck'));
+    } else if (arg === '--draft') {
+      args.drafts.push(requireValue(argv, ++index, '--draft'));
     } else {
       const extra = parseExtra(String(arg), argv, index);
       if (extra === true) {
@@ -218,6 +223,9 @@ function parseStructuredBaseArgs(
 
   if (!Number.isInteger(args.seed)) {
     throw new Error('--seed must be an integer');
+  }
+  if (args.startingDecks.length > 0 && args.drafts.length > 0) {
+    throw new Error('--draft cannot be combined with --starting-deck');
   }
 }
 

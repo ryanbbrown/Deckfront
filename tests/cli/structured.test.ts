@@ -29,6 +29,22 @@ describe('structured deck CLI', () => {
     expect(saved.game.players[0]?.hand).toEqual(['copper']);
   });
 
+  it('initializes structured deck commands with draft overrides', async () => {
+    const dir = await makeTempDir();
+    const statePath = join(dir, 'deck.json');
+
+    await runCli(['legal-actions', '--config', 'tests/fixtures/multi-player.yaml', '--state', statePath, '--seed', '1', '--draft', 'P1=province', '--json'], () =>
+      undefined
+    );
+
+    const saved = JSON.parse(await readFile(statePath, 'utf8')) as PersistedGame;
+    const playerOneCards = [...saved.game.players[0]!.hand, ...saved.game.players[0]!.draw].sort();
+    const playerTwoCards = [...saved.game.players[1]!.hand, ...saved.game.players[1]!.draw].sort();
+
+    expect(playerOneCards).toEqual(['copper', 'copper', 'copper', 'copper', 'copper', 'copper', 'copper', 'province']);
+    expect(playerTwoCards).toEqual(['copper']);
+  });
+
   it('executes one structured deck turn and derives result fields from engine state', async () => {
     const dir = await makeTempDir();
     const statePath = join(dir, 'deck.json');

@@ -66,6 +66,12 @@ Create a new state with game-level starting deck overrides:
 bun run cli -- --config rulesets/territory-v1/deck.yaml --state .games/e001-baseline/deck.json --seed 1 --max-actions 0 --starting-deck P1=copper,copper,copper,copper,copper,copper,copper,zap,bandage --starting-deck P2=copper,copper,copper,copper,copper,copper,copper,village,silver
 ```
 
+Create a new state from draft-start rules, using 7 Copper plus up to 12 coin of drafted cards per player. Unspent draft money carries into that player's first turn:
+
+```sh
+bun run cli -- --config rulesets/territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6/deck.yaml --state .games/e024/deck.json --seed 1 --max-actions 0 --draft P1=zap,bandage,silver --draft P2=village,silver
+```
+
 Run from a numeric script:
 
 ```sh
@@ -100,6 +106,14 @@ Validate a replay bundle:
 ```sh
 bun run validate-run -- .games/e001-baseline/timeline.json
 ```
+
+Run an experimental two-agent Claude Code playthrough:
+
+```sh
+uv run scripts/run_game.py --run .games/e024-claude-vs-claude --reset --max-turns 30
+```
+
+`scripts/run_game.py` creates one persistent Claude Code session per player and alternates turns. Each player session mutates the shared run directory on its own turn, using the existing `deck-turn`, `board-turn`, `commit-turn`, and strict validation CLIs. By default it uses the E024 high-movement six-center ruleset, `claude-opus-4-8` (Opus 4.8), low effort, and a 180-second per-turn timeout; override with `--model`, `--effort`, or `--timeout-seconds` if needed.
 
 ## Viewer
 

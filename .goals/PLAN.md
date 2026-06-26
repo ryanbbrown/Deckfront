@@ -2,24 +2,20 @@
 
 ## Current Strategy
 
-Rerun baseline matchups from the corrected max-HP starter board.
-
-Each experiment should use 2-3 strategy matchups, with 2 parallel playthroughs per matchup.
+Reset the playtest process before treating any new experiment as evidence.
 
 ## Next Queue
 
-1. E002 - Baseline rerun using `.games/territory-v1-playtest/snapshots/turn-001.before.board.json` as the max-HP starter board, with clarified support/damage timing.
-2. E003 - Early board-pressure variant if rush remains too strong.
-3. E004 - Slower deck-engine stabilization variant.
-4. E005 - Unit role differentiation variant.
+1. Rebuild validation requirements for full deck and board state fidelity.
+2. Align `deck.yaml`, board rules, and run setup before starting new experiments.
+3. Run fresh experiments only after the workflow requires real deck-state continuity.
 
 ## Current Best
 
-E001 scored 68 / 100 as partial evidence. It showed strong board tension but exposed a damaged-starter setup flaw.
+None. Prior generated experiments are archived in `.goals-v1` and should not be treated as validated evidence under the reset process.
 
 ## Open Questions
 
-- Should deck `damage` require a legal unit attack?
-- How exactly do druid/healer unit healing actions work?
-- What is the board phase order for income, recruitment, movement, combat, and healing?
-- Can slower deck-building catch up after early board pressure?
+- What exact validation should make a replay qualify as full deck-building evidence?
+- Should custom run generators be disallowed entirely, or allowed only for fixtures and approved tooling?
+- What is the canonical starting deck rule for the next ruleset baseline?

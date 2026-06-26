@@ -50,6 +50,14 @@ bun run cli -- --config rulesets/territory-v1/deck.yaml --state .games/e001-base
 
 `--starting-deck` is ignored when resuming an existing state file.
 
+For draft-start rulesets, pass `--draft` before the first save. Each draft starts that player with 7 Copper plus up to 12 coin of drafted cards; unspent draft coin carries over as one-time deck money on that player's first turn:
+
+```sh
+bun run cli -- --config rulesets/territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6/deck.yaml --state .games/e024/deck.json --seed 1 --max-actions 0 --draft P1=zap,bandage,silver --draft P2=village,silver
+```
+
+`--draft` uses the same player targeting as `--starting-deck` and cannot be combined with `--starting-deck`.
+
 ## Player Turn Loop
 
 1. Read the current deck state file.

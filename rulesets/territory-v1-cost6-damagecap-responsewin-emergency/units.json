@@ -1,0 +1,8 @@
+{
+  "guardian": { "role": "melee", "attack": 4, "hp": 16, "movement": 1 },
+  "raider": { "role": "melee", "attack": 6, "hp": 8, "movement": 2 },
+  "marksman": { "role": "ranged", "attack": 4, "hp": 8, "movement": 1, "range": 2 },
+  "scout": { "role": "ranged", "attack": 2, "hp": 8, "movement": 3, "range": 2 },
+  "druid": { "role": "mage", "attack": 4, "hp": 10, "movement": 1, "heal": 1 },
+  "healer": { "role": "mage", "attack": 1, "hp": 4, "movement": 1, "heal": 1, "range": 2 }
+}

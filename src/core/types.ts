@@ -99,6 +99,7 @@ export interface PlayerState {
   vpCounters: number;
   turnsTaken: number;
   freeTrashUsed: boolean;
+  draftCarryoverMoney?: number;
 }
 
 export interface PendingEffect {

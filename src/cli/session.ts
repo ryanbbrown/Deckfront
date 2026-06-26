@@ -4,11 +4,16 @@ import { drawCards, setupGame } from '../core/state';
 import type { GameConfig, GameState } from '../core/types';
 import { loadPersistedGame, savePersistedGame, stateFileExists, type PersistedGame } from './persistence';
 
+const DRAFT_BASE_CARD = 'copper';
+const DRAFT_BASE_COUNT = 7;
+const DRAFT_BUDGET = 12;
+
 export interface DeckSessionArgs {
   config: string;
   seed: number;
   state?: string;
   startingDecks: string[];
+  drafts: string[];
 }
 
 export interface DeckSession {
@@ -26,6 +31,9 @@ export async function loadDeckSession(args: DeckSessionArgs): Promise<DeckSessio
   const game = loaded ? loaded.game : setupGame(config, rng);
   if (!loaded && args.startingDecks.length > 0) {
     applyStartingDeckOverrides(game, args.startingDecks, rng);
+  }
+  if (!loaded && args.drafts.length > 0) {
+    applyDraftOverrides(game, args.drafts, rng);
   }
 
   async function save(gameToSave: GameState): Promise<PersistedGame | undefined> {
@@ -67,6 +75,49 @@ function applyStartingDeckOverrides(state: GameState, overrides: string[], rng: 
       player.discard = [];
       player.play = [];
       player.freeTrashUsed = false;
+      drawCards(player, state.config.setup.handSize, rng);
+    }
+  }
+}
+
+function applyDraftOverrides(state: GameState, drafts: string[], rng: Rng): void {
+  if (!state.cards[DRAFT_BASE_CARD]) {
+    throw new Error(`Draft base card is missing from config: ${DRAFT_BASE_CARD}`);
+  }
+
+  for (const draft of drafts) {
+    const [maybePlayer, maybeCards] = draft.includes('=') ? draft.split('=', 2) : [undefined, draft];
+    const playerIds = maybePlayer ? [maybePlayer.trim()] : state.players.map((player) => player.id);
+    const draftedCards = parseCardList(maybeCards ?? '');
+    const spent = draftedCards.reduce((sum, cardId) => {
+      const card = state.cards[cardId];
+      if (!card) {
+        throw new Error(`Unknown draft card: ${cardId}`);
+      }
+      return sum + card.cost;
+    }, 0);
+
+    if (spent > DRAFT_BUDGET) {
+      throw new Error(`Draft costs ${spent}, exceeding budget ${DRAFT_BUDGET}`);
+    }
+    const carryover = DRAFT_BUDGET - spent;
+
+    for (const playerId of playerIds) {
+      const playerIndex = state.players.findIndex((candidate) => candidate.id === playerId);
+      const player = state.players[playerIndex];
+      if (!player) {
+        throw new Error(`Unknown draft player: ${playerId}`);
+      }
+      player.draw = shuffle([...Array(DRAFT_BASE_COUNT).fill(DRAFT_BASE_CARD), ...draftedCards], rng);
+      player.hand = [];
+      player.discard = [];
+      player.play = [];
+      player.freeTrashUsed = false;
+      player.draftCarryoverMoney = carryover;
+      if (playerIndex === state.activePlayer) {
+        player.money = state.config.setup.initialMoney + carryover;
+        delete player.draftCarryoverMoney;
+      }
       drawCards(player, state.config.setup.handSize, rng);
     }
   }

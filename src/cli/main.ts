@@ -13,6 +13,7 @@ export interface CliArgs {
   state?: string;
   maxActions?: number;
   startingDecks: string[];
+  drafts: string[];
   help: boolean;
 }
 
@@ -44,7 +45,8 @@ export async function runCli(argv: string[], output: (message: string) => void =
     config: args.config,
     seed: args.seed,
     ...(args.state ? { state: args.state } : {}),
-    startingDecks: args.startingDecks
+    startingDecks: args.startingDecks,
+    drafts: args.drafts
   });
   let state = session.game;
   let acceptedActions = 0;
@@ -67,7 +69,7 @@ export async function runCli(argv: string[], output: (message: string) => void =
 }
 
 export function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { seed: 1, startingDecks: [], help: false };
+  const args: CliArgs = { seed: 1, startingDecks: [], drafts: [], help: false };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--help' || arg === '-h') {
@@ -84,9 +86,14 @@ export function parseArgs(argv: string[]): CliArgs {
       args.maxActions = parseIntegerChoice(requireValue(argv, ++index, '--max-actions'));
     } else if (arg === '--starting-deck') {
       args.startingDecks.push(requireValue(argv, ++index, '--starting-deck'));
+    } else if (arg === '--draft') {
+      args.drafts.push(requireValue(argv, ++index, '--draft'));
     } else {
       throw new Error(`Unknown argument: ${String(arg)}`);
     }
+  }
+  if (args.startingDecks.length > 0 && args.drafts.length > 0) {
+    throw new Error('--draft cannot be combined with --starting-deck');
   }
   if (!Number.isInteger(args.seed)) {
     throw new Error('--seed must be an integer');
@@ -126,6 +133,7 @@ function helpText(): string {
     '  --state <path>   Persist and resume game state from JSON',
     '  --max-actions <number> Stop after this many accepted actions',
     '  --starting-deck <cards> Override new-game starting deck; use P1=card,card for one player',
+    '  --draft <cards> Build 7 copper plus up to 12 cost of drafted cards; unspent money carries to first turn',
     '  legal-actions --config <path> --state <path> --json',
     '  deck-turn --config <path> --state <path> --actions <file> --result <file>',
     '  board-turn --state <board.json> --deck-result <file> --actions <file> --result <file>',

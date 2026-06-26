@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -70,6 +70,100 @@ describe('CLI state persistence', () => {
 
     expect(playerOneCards).toEqual(['copper', 'copper', 'province']);
     expect(playerTwoCards).toEqual(['copper', 'estate', 'estate']);
+  });
+
+  it('applies draft overrides as seven copper plus budgeted cards', async () => {
+    const dir = await makeTempDir();
+    const statePath = join(dir, 'deck.json');
+
+    await runCli(
+      [
+        '--config',
+        'tests/fixtures/multi-player.yaml',
+        '--seed',
+        '1',
+        '--state',
+        statePath,
+        '--max-actions',
+        '0',
+        '--draft',
+        'P1=province',
+        '--draft',
+        'P2=estate'
+      ],
+      () => undefined
+    );
+
+    const saved = JSON.parse(await readFile(statePath, 'utf8')) as PersistedGame;
+    const playerOneCards = [...saved.game.players[0]!.hand, ...saved.game.players[0]!.draw].sort();
+    const playerTwoCards = [...saved.game.players[1]!.hand, ...saved.game.players[1]!.draw].sort();
+
+    expect(playerOneCards).toEqual(['copper', 'copper', 'copper', 'copper', 'copper', 'copper', 'copper', 'province']);
+    expect(playerTwoCards).toEqual(['copper', 'copper', 'copper', 'copper', 'copper', 'copper', 'copper', 'estate']);
+    expect(saved.game.players[0]!.money).toBe(4);
+    expect(saved.game.players[0]!.draftCarryoverMoney).toBeUndefined();
+    expect(saved.game.players[1]!.money).toBe(0);
+    expect(saved.game.players[1]!.draftCarryoverMoney).toBe(12);
+  });
+
+  it('spends draft carryover on the drafted player first turn only', async () => {
+    const dir = await makeTempDir();
+    const statePath = join(dir, 'deck.json');
+    const actionPath = join(dir, 'actions', 'turn-001.deck.json');
+    const resultPath = join(dir, 'results', 'turn-001.deck-result.json');
+    await mkdir(join(dir, 'actions'), { recursive: true });
+    await writeFile(
+      actionPath,
+      `${JSON.stringify({ schemaVersion: 1, turnId: 'turn-001', player: 'P1', actions: [{ type: 'moveToBuy' }, { type: 'endTurn' }] }, null, 2)}\n`
+    );
+
+    await runCli(
+      [
+        'deck-turn',
+        '--config',
+        'tests/fixtures/multi-player.yaml',
+        '--seed',
+        '1',
+        '--state',
+        statePath,
+        '--draft',
+        'P1=province',
+        '--draft',
+        'P2=estate',
+        '--actions',
+        actionPath,
+        '--result',
+        resultPath
+      ],
+      () => undefined
+    );
+
+    const saved = JSON.parse(await readFile(statePath, 'utf8')) as PersistedGame;
+
+    expect(saved.game.players[1]!.money).toBe(12);
+    expect(saved.game.players[1]!.draftCarryoverMoney).toBeUndefined();
+  });
+
+  it('rejects drafts over the 12-coin budget', async () => {
+    const dir = await makeTempDir();
+
+    await expect(
+      runCli(
+        [
+          '--config',
+          'tests/fixtures/multi-player.yaml',
+          '--seed',
+          '1',
+          '--state',
+          join(dir, 'deck.json'),
+          '--max-actions',
+          '0',
+          '--draft',
+          'P1=province,province'
+        ],
+        () => undefined
+      )
+    ).rejects.toThrow('exceeding budget 12');
   });
 });
 

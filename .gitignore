@@ -10,3 +10,5 @@ coverage/
 .reviews/
 .specs/
 .DS_Store
+.gstack/
+.gstack/

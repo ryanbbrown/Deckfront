@@ -1,0 +1,19 @@
+{
+  "rest": { "name": "Rest", "effect": "do nothing", "cost": 0 },
+  "copper": { "name": "Copper", "effect": "1 coin", "cost": 0 },
+  "silver": { "name": "Silver", "effect": "2 coins", "cost": 3 },
+  "gold": { "name": "Gold", "effect": "3 coins", "cost": 6 },
+  "village": { "name": "Village", "effect": "1 card, 2 actions", "cost": 4 },
+  "smithy": { "name": "Smithy", "effect": "3 cards", "cost": 4 },
+  "peddler": { "name": "Peddler", "effect": "1 card, 1 action, 1 coin", "cost": 4 },
+  "zap": { "name": "Zap", "effect": "1 card, 1 action, 1 damage", "cost": 3 },
+  "blast": { "name": "Blast", "effect": "2 damage, 1 action", "cost": 4 },
+  "inferno": { "name": "Inferno", "effect": "4 damage", "cost": 5 },
+  "storm": { "name": "Storm", "effect": "2 damage to 2 connected hexes", "cost": 5 },
+  "bandage": { "name": "Bandage", "effect": "1 card, 1 action, 1 heal", "cost": 3 },
+  "potion": { "name": "Potion", "effect": "2 heal, 1 action", "cost": 4 },
+  "healer": { "name": "Healer", "effect": "4 heal", "cost": 5 },
+  "armory": { "name": "Armory", "effect": "upgrade one unit's max hp by 2", "cost": 5 },
+  "training": { "name": "Training", "effect": "1 action, upgrade one unit's attack by 1", "cost": 5 },
+  "second-wind": { "name": "Second Wind", "effect": "1 card, re-attack", "cost": 5 }
+}

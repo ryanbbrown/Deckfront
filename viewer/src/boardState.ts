@@ -10,6 +10,7 @@ export interface BoardBundle {
 
 export interface DeckBundle {
   game: GameState;
+  rngState: number;
 }
 
 export interface ReplayBundle extends BoardBundle {
@@ -17,6 +18,9 @@ export interface ReplayBundle extends BoardBundle {
   entry: ReplayEntry | null;
   index: number;
   deck: DeckBundle;
+  initialDeck: DeckBundle;
+  previousState: BoardState | null;
+  deckBefore: DeckBundle | null;
 }
 
 const defaultBoardUrl = '/game-data/.games/territory-v1-playtest/board.json';
@@ -38,11 +42,20 @@ export async function loadReplayBundle(timelineUrl: string, index: number): Prom
   const timeline = replayTimelineSchema.parse(await fetchJson(timelineUrl));
   const boundedIndex = clamp(index, 0, timeline.entries.length);
   const entry = timeline.entries[Math.max(0, boundedIndex - 1)]!;
+  const boardBeforeUrl = resolveRelativeGameUrl(timelineUrl, entry.board.before);
+  const initialDeckUrl = resolveRelativeGameUrl(timelineUrl, timeline.entries[0]!.deck.before);
+  const deckBeforeUrl = resolveRelativeGameUrl(timelineUrl, entry.deck.before);
   const boardUrl = resolveRelativeGameUrl(timelineUrl, boundedIndex === 0 ? entry.board.before : entry.board.after);
   const deckUrl = resolveRelativeGameUrl(timelineUrl, boundedIndex === 0 ? entry.deck.before : entry.deck.after);
-  const [state, deck] = await Promise.all([fetchJson(boardUrl).then((json) => boardStateSchema.parse(json)), loadDeckBundle(deckUrl)]);
+  const [state, previousState, deck, initialDeck, deckBefore] = await Promise.all([
+    fetchJson(boardUrl).then((json) => boardStateSchema.parse(json)),
+    boundedIndex === 0 ? Promise.resolve(null) : fetchJson(boardBeforeUrl).then((json) => boardStateSchema.parse(json)),
+    loadDeckBundle(deckUrl),
+    loadDeckBundle(initialDeckUrl),
+    boundedIndex === 0 ? Promise.resolve(null) : loadDeckBundle(deckBeforeUrl)
+  ]);
   const board = await loadBoardBundleForState(state);
-  return { ...board, timeline, entry: boundedIndex === 0 ? null : entry, index: boundedIndex, deck };
+  return { ...board, timeline, entry: boundedIndex === 0 ? null : entry, index: boundedIndex, deck, initialDeck, previousState, deckBefore };
 }
 
 async function loadBoardBundleForState(state: BoardState): Promise<BoardBundle> {
@@ -59,7 +72,12 @@ async function loadDeckBundle(url: string): Promise<DeckBundle> {
   if (!raw || typeof raw !== 'object' || !('game' in raw)) {
     throw new Error(`Invalid deck snapshot: ${url}`);
   }
-  return { game: (raw as { game: GameState }).game };
+  const snapshot = raw as { game: GameState; rngState?: unknown };
+  const rngState = snapshot.rngState;
+  if (!Number.isInteger(rngState)) {
+    throw new Error(`Invalid deck snapshot rng state: ${url}`);
+  }
+  return { game: snapshot.game, rngState: rngState as number };
 }
 
 function resolveRelativeGameUrl(baseUrl: string, path: string): string {

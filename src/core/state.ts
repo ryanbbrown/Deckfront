@@ -99,7 +99,8 @@ export function takeTopCards(player: PlayerState, count: number, rng: Rng): Card
 export function resetTurnResources(player: PlayerState, config: GameConfig): void {
   player.actions = config.setup.initialActions;
   player.buys = config.setup.initialBuys;
-  player.money = config.setup.initialMoney;
+  player.money = config.setup.initialMoney + (player.draftCarryoverMoney ?? 0);
+  delete player.draftCarryoverMoney;
   player.attributes = { ...config.setup.attributes };
   player.persistentAttributes ??= {};
   player.freeTrashUsed = false;
