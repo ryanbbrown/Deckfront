@@ -1,0 +1,28 @@
+id: "claude-opus-schema-10turn-01"
+experiment: "E001-current-best"
+updatedAt: "2026-06-27T03:41:51.773905+00:00"
+status: "max_turns"
+runner: "claude"
+model: "claude-opus-4-8"
+effort: "low"
+timeoutSeconds: 180
+maxTurns: 10
+seed: 2106
+ruleset: "current"
+map: "current"
+deckConfig: "game/deck.yaml"
+drafts:
+  - "P1=blast,zap,silver"
+  - "P2=village,smithy,peddler"
+players:
+  P1:
+    strategy: |-
+      Rush: contest centers early with high-movement units, convert center income into recruits, buy damage/cycling cards, and win by board pressure.
+    startingUnits: "raider,scout,raider,marksman"
+  P2:
+    strategy: |-
+      Engine/control: still contest centers early with competent unit play, but use deck buys to build draw/economy into damage and stabilization.
+    startingUnits: "raider,scout,guardian,marksman"
+result:
+  turns: 10
+  terminal: false

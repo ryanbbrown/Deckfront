@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "title": "Current best baseline playthrough",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 turn 1: trashed copper, played Zap (+1 dmg), bought Blast; captured center-northeast with raider-1, pushed scout toward center-center-north, raider-3 advancing",
+      "reasoning": "Rush strategy: thin deck by trashing a copper, Zap gives damage counter, Blast is key rush card. On board, raider-1 captures center-northeast immediately for income. Scout positions at (6,3) to take center-center-north next turn. Raider-3 advances west to threaten more centers."
+    }
+  ]
+}

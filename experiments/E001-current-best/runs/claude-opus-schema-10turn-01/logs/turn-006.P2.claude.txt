@@ -1,0 +1,9 @@
+Turn-006 complete and validated.
+
+**Situation:** My raider was killed after capturing center-northwest, leaving me down **3 units to 5** with P1 holding 5 of 8 centers. Priority shifted to stabilization.
+
+**Deck:** No actions in hand (copper/silver heavy). Bought **Gold** with 6 money to ramp toward damage/heal/recruit buys.
+
+**Board:** Pulled the exposed scout back to (1,6), anchored the tanky **guardian (16hp) on center-west-south** (3,7), and tucked the marksman to (2,7) — forming a compact defensive cluster around my southern center. Conceded the contested north rather than feed more units into P1's massed force. No attacks reachable; supply (5) just short of a recruit.
+
+Next turn income should bring supply to ~9 for a recruit to begin rebuilding the unit count and avoid P1 reaching a 4-unit lead threat.

@@ -1,0 +1,12 @@
+Turn-010 complete and validated — that completes the 10-turn target for this run.
+
+**Situation:** P1's raider rush hit 8 units to my 4 (a 4-unit gap), but the lead was not pending at their prior turn start, so no immediate loss.
+
+**Deck:** Played Village to dig, then bought **Training** to permanently raise a guardian's attack toward reliably trading with 8hp raiders.
+
+**Board:** Recruited a **third guardian** at (1,8), bringing me to **5 units** and cutting the lead back to **3** — denying the lead-4 win threat. Held the guardian wall on center-west-south; the blocked hex at (3,5) continues to funnel P1's approach, so no enemy was in attack range.
+
+## Run summary (P2, engine/control)
+The matchup played out as a clear test of rush vs. engine: P1's high-movement raider rush converted its central supply dominance (7–8 of 8 centers) into a steady recruit stream, reaching an 8–5 unit advantage. My engine/economy plan came online (peddlers, smithy, gold, healer, training) but the early loss of my raider contesting center-northwest put me permanently behind on the board, forcing a defensive guardian-wall-and-recruit grind to repeatedly dodge the lead-4 loss rather than convert economy into a stabilized front.
+
+**Balance observations for the runner:** the deck-damage cap (1/unit) makes high-cost burst cards (inferno/blast/storm) inefficient, pushing value toward cantrip/economy and permanent upgrades; and P1's early center access let the rush snowball recruits faster than a slower engine could stabilize — relevant to the open question about whether the asymmetric map favors P1.

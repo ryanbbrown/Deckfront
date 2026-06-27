@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "model": "accounts/fireworks/models/glm-5p2",
+  "effort": "high",
+  "drafts": [
+    "P1=blast,zap,silver",
+    "P2=village,smithy,peddler"
+  ],
+  "players": {
+    "P1": {
+      "sessionId": "ef4f3fa0-cede-43c3-a4a1-d164a5fecf6a",
+      "strategy": "Rush: contest centers early with high-movement units, convert center income into recruits, buy damage/cycling cards, and win by board pressure."
+    },
+    "P2": {
+      "sessionId": "03cfa67b-d482-406e-9572-e17c685440b8",
+      "strategy": "Engine/control: still contest centers early with competent unit play, but use deck buys to build draw/economy into damage and stabilization."
+    }
+  }
+}

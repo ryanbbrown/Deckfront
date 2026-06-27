@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-003",
+  "player": "P1",
+  "before": "snapshots/turn-003.before.deck.json",
+  "after": "snapshots/turn-003.after.deck.json",
+  "actions": [
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "zap"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "blast",
+    "copper",
+    "copper",
+    "copper"
+  ],
+  "played": [],
+  "bought": [
+    "zap"
+  ],
+  "produced": {
+    "money": 1
+  }
+}

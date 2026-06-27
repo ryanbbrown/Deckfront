@@ -1,0 +1,8 @@
+Turn-003 complete and validated.
+
+**Summary of P1 turn 3 (round 2):**
+- **Deck:** Bought Zap (more cycling + damage payload for the Rush plan).
+- **Board:** Spread my fast units across the central cluster, flipping **3 new centers** — center-center-north (5,3), center-center (6,5), and center-center-south (7,5). Routed around the blocked hex at (8,4). Marksman advanced to (7,3) for support.
+- **Result:** I now control **4 supply centers** (incl. center-northeast), bringing income to 6/turn so I can start recruiting next turn. P2 has only flipped center-west-south. No units in combat range yet.
+
+Validated clean (3 entries).

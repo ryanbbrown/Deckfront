@@ -1,0 +1,11 @@
+Turn-001 complete and validated.
+
+**Deck:** Played Zap (cycle + 1 deck damage banked, unused since no enemies in range), bought **Blast** for future board payload — consistent with the Rush plan of stacking damage cards.
+
+**Board:**
+- **Raider1** → (8,1), capturing **center-northeast** (first supply center).
+- **Marksman** → (9,1), supporting the captured center.
+- **Scout** → (6,2), pushing deep toward the central/north-west centers.
+- **Raider3** → (8,3), advancing on center-east / center-center-south.
+
+No attacks (enemies still in their home corner), no recruits (supply 2 < 6 cost). No win threats pending. Strict validation passed.

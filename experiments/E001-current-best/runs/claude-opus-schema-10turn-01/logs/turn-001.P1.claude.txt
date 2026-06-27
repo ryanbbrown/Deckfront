@@ -1,0 +1,7 @@
+Turn-001 complete and validated.
+
+**Summary of P1 turn 1:**
+- **Deck:** Played Zap (cycled +1 card, +1 action, banked 1 damage) and bought Blast — building Rush damage payload.
+- **Board:** Advanced all four units west toward the centers. Raider-1 ended on **center-northeast (8,1)**, flipping P1's first supply center. Scout pushed deep to (6,1), raider-3 to (9,3), marksman to (9,2) to contest the central cluster next turn. No enemies were in range, so no attacks.
+
+The turn passed strict validation.

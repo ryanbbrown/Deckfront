@@ -1,0 +1,9 @@
+Turn-008 complete and validated.
+
+**Situation:** P1 is mass-producing raiders — 6 units to my 3 (a 3-unit lead, one short of a losing threat) and now holds all but center-west-south.
+
+**Deck:** Played both Peddlers + Smithy (drawing the reshuffled gold/silver), then bought a **Healer** (+4 heal/turn) for sustained stabilization.
+
+**Board:** Recruited a second **guardian** (16hp) at home (1,7), bringing my unit count to **4** — keeping the lead at 2 and avoiding the lead-4 loss. Slid scout to (2,6) to tighten the cluster; forward guardian still anchors center-west-south. No combat in reach.
+
+Plan going forward: grind a guardian-wall defense with healer sustain, recruit each turn to track P1's count, and hold my one center while looking for favorable trades against overextended raiders.

@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "title": "Current best baseline playthrough",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 6,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 T1: Zap played, bought Blast; raider captures center-northeast, units advance to contest mid centers",
+      "reasoning": "Rush opening: play Zap to cycle, buy Blast for board payload. Raider1 ends on center-northeast to capture it; scout/raider3/marksman push west toward central supply centers. No attacks/recruits possible (enemies far, supply 2<6). No win threats."
+    }
+  ]
+}

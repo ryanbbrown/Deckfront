@@ -1,0 +1,9 @@
+Turn-007 complete and validated.
+
+**Summary of P1 turn 7 (round 4):**
+- **Board:** Raider1 flipped **center-northwest** (3,3); raider3 grabbed the uncontrolled **center-southeast** (8,7). I now control **7 of 8 supply centers** — P2 is down to just center-west-south.
+- **Recruits:** Income 7 + supply 6 = 13 funded **two raiders** at (10,1) and (12,1).
+- **Win track:** Unit count is now **7 vs 3 — a 4-unit lead**, which records a **pending unit-count win threat**. P2 gets one full turn to respond (most likely recruiting to 4, making it 7v4 and clearing the threat). If they can't reduce it below 4, I win at my next start-of-turn check.
+- **Deck:** Bought Zap to keep cycling my stockpile of Blasts.
+
+P2 is turtled in their corner with a guardian; my raiders are positioned to keep pressure. Validated clean (7 entries).

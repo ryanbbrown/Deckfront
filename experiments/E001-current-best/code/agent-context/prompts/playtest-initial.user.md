@@ -38,4 +38,36 @@ $starting_units
 
 Target length: play to a legal winner when possible, or until the runner stops the game.
 
-Before your first move, read the board rules, deck config, unit rules, and map file listed above. Use them with the compact turn briefing. Do not read experiment goal, rubric, or evaluation files.
+Use the injected files below with the compact turn briefing. Do not read these files again unless validation says the prompt copy is stale. Do not read experiment goal, rubric, evaluation files, source code, or previous runs.
+
+## Injected Board Rules
+
+Source: `$board_rules`
+
+```markdown
+$board_rules_content
+```
+
+## Injected Deck Config
+
+Source: `$deck_config`
+
+```yaml
+$deck_config_content
+```
+
+## Injected Unit Rules
+
+Source: `$units_file`
+
+```json
+$units_json_content
+```
+
+## Injected Map
+
+Source: `$map_file`
+
+```json
+$map_json_content
+```

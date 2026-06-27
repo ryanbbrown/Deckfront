@@ -1,0 +1,9 @@
+Turn 1 complete and valid.
+
+**Summary:**
+- **Deck**: Trashed a Copper (deck thinning), played Zap (produced 1 damage), moved to buy, purchased **Blast** (cost 4) — core rush card giving +2 damage when played.
+- **Board**:
+  - **Raider-1** (10,1) → **(8,1)**: Captured **center-northeast** immediately. P1 now controls 1 supply center → income becomes 3/turn next board phase.
+  - **Scout** (11,0) → **(6,3)**: Positioned one hex from center-center-north (5,3); can capture it next turn.
+  - **Raider-3** (12,1) → **(8,3)**: Pressing west toward center-center-south (7,5) and center-east (8,6).
+  - **Marksman** held at (11,1) to defend home base and provide ranged support.

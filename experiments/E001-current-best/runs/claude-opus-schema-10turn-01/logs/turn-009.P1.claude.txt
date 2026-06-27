@@ -1,0 +1,10 @@
+Turn-009 complete and validated.
+
+**Summary of P1 turn 9 (round 5):**
+- **Situation:** P2 cleared my pending threat by recruiting a 2nd guardian → 7v4 (3-unit lead). They're still turtling in the SW corner.
+- **Plan — win the recruit race:** With 7/8 centers, my income (9) + supply funds **2 recruits/turn** vs P2's ~1, so my unit lead grows +1 per round.
+- **Board:** Advanced the 3 home raiders to midfield (t5→(7,3), t7a→(6,2), t7b→(9,3)) to free home hexes, then **recruited 2 more raiders**. Forward units stayed put — safe, since P2 has no guardian in reach and the best non-guardian combo (scout 2 + marksman 4 = 6) can't kill an 8hp raider.
+- **Result:** Now **9 vs 4**. Next P1 turn (T11) I expect to re-record a pending 4-unit-lead; P2 can't recruit fast enough to clear it, setting up the win around T13.
+- **Deck:** Cycled with 2 Zaps, bought a Silver.
+
+Validated clean (9 entries).

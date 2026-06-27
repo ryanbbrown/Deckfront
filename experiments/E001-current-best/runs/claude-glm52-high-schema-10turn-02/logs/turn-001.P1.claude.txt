@@ -1,0 +1,15 @@
+Turn-001 is complete and validated. Here's a summary:
+
+**Deck phase:**
+- Trashed a Copper for deck thinning (rush strategy values fast cycling)
+- Played Zap → drew 1 card, gained 1 damage counter (no enemies in range, so unused)
+- Bought Gold (cost 6) using 2 draft carryover + 2 Coppers + Silver = 6 money
+- Gold improves economy for future damage card purchases
+
+**Board phase:**
+- **Raider-1** → (8,1): Captured **center-northeast** (the only center reachable on turn 1)
+- **Scout-2** → (9,4): Positioned within 2 hexes of both center-center-south (7,5) and center-east (8,6) for next-turn capture
+- **Raider-3** → (11,4): Positioned within 3 hexes of center-east (8,6) for next-turn capture  
+- **Marksman-4** → (9,2): Heading toward center-center-north (5,3)
+- Income: 2 supply (0 centers controlled at phase start), 2 saved — not enough to recruit yet
+- No win threats (4v4 units, 1 center)

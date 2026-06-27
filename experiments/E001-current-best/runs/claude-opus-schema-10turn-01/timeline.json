@@ -1,0 +1,984 @@
+{
+  "schemaVersion": 1,
+  "title": "Current best baseline playthrough",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 6,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 T1: Zap cycle, buy Blast; rush units west, capture center-northeast",
+      "reasoning": "Rush plan: play Zap to cycle and gain damage payload, buy Blast for board damage. Advance all units toward central supply centers; raider1 flips center-northeast (8,1). No enemies in range yet."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "village",
+          "smithy"
+        ],
+        "played": [
+          "village",
+          "smithy"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-start-2",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-start-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 T2: played village+smithy, bought silver; advanced units, captured center-west-south with scout",
+      "reasoning": "Engine/control: build economy with silver while pushing units forward to contest central supply centers; scout flips center-west-south, raider advances to (4,6) to threaten center-center next turn."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "blast",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "zap"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "zap"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 6,
+              "row": 1
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 9,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 T3: buy Zap; seize 3 central centers (center-center-north, center-center, center-center-south)",
+      "reasoning": "Rush: spread fast units to flip central cluster, reaching 4 controlled centers for income to recruit next turn. Routed raider3 and others around blocked (8,4). Bought Zap for cycling+damage. No enemies in range."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "smithy",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "peddler",
+          "smithy"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "peddler"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-start-1",
+            "from": {
+              "col": 4,
+              "row": 6
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-scout-start-2",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 3,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 2,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 T4: played peddler+smithy, bought peddler; raider captured center-northwest, scout/marksman/guardian advanced north",
+      "reasoning": "Behind on centers (1 vs 4). Grab uncontested center-northwest with raider to lift income, bring scout into range-2 support and advance guardian/marksman as a cohesive northern push. No combat reachable this turn; build economy with second peddler toward later damage buys."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "blast",
+          "zap"
+        ],
+        "played": [
+          "zap",
+          "blast"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 4,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 4,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-t5",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-start-1",
+            "target": "P2-raider-start-1",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-start-2",
+            "target": "P2-raider-start-1",
+            "damage": 1,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 T5: kill P2 raider on center-northwest (raider1+scout w/ deck dmg), capture center-east, recruit raider",
+      "reasoning": "Rush: played Zap+Blast for 3 deck damage. Raider1 (6+1) and scout (2+1) focus-fire P2 raider on (3,3) for 10 total, killing it (now 5v3 units, building toward 4-lead). Raider3 flips center-east for 5 centers. Recruited raider at home. Marksman to (5,3) for ranged support next turn to retake center-northwest."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 3,
+              "row": 6
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-start-2",
+            "from": {
+              "col": 2,
+              "row": 3
+            },
+            "to": {
+              "col": 1,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 2,
+              "row": 6
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 T6: bought gold; retreated scout, anchored guardian on center-west-south, regrouped marksman to form defensive cluster",
+      "reasoning": "Lost raider at center-northwest; now down 3 units to 5. Avoid further attrition by pulling exposed scout back and clustering guardian (16hp tank) on center-west-south with marksman support. Concede the contested north for now. Buy gold to ramp toward damage/heal buys and recruit via supply next turn (supply 5, income brings to ~9 for one recruit)."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "blast",
+          "copper",
+          "copper",
+          "blast"
+        ],
+        "played": [],
+        "bought": [
+          "zap"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "zap"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 4,
+              "row": 3
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 4,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-t7a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-t7b",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 T7: flip center-northwest + capture center-southeast (7 centers), double-recruit raiders; now 7v3 units (pending 4-lead threat)",
+      "reasoning": "P2 turtled in SW corner (guardian tank). Raider1 flips center-northwest (3,3); raider3 grabs uncontrolled center-southeast (8,7) -> 7 of 8 centers, P2 left with one. Income 7 + supply 6 = 13 funds two raider recruits at (10,1),(12,1). Unit count goes 7v3 = 4-unit lead, recording a PENDING unit-count win threat; P2 gets one turn to respond (likely recruits to 4 -> 7v4). Bought Zap to cycle blasts. No targets in range so no attacks."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "peddler",
+          "smithy",
+          "copper"
+        ],
+        "played": [
+          "peddler",
+          "peddler",
+          "smithy"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "money": 5
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "healer"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-start-2",
+            "from": {
+              "col": 1,
+              "row": 6
+            },
+            "to": {
+              "col": 2,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-t8",
+            "type": "guardian",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 T8: played 2 peddler+smithy, bought healer; recruited guardian at home, tightened defensive cluster",
+      "reasoning": "P1 swarming raiders, 6 units vs my 3 (lead 3, one short of losing threat). Recruit a second guardian (16hp) to grow unit count to 4 and build a durable wall; bought healer for 4/turn sustain on the cluster. Hold center-west-south with the forward guardian, scout slides to (2,6) to support. No combat reachable yet."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "zap",
+          "copper",
+          "zap",
+          "blast"
+        ],
+        "played": [
+          "zap",
+          "zap"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-t5",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-t7a",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 6,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-t7b",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-t9a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-t9b",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 T9: advance 3 home raiders to midfield, recruit 2 more raiders (9v4); win the recruit race on 7-center economy",
+      "reasoning": "P2 cleared the prior threat by recruiting a 2nd guardian (7v4=3 lead). With 7/8 centers my income (9) + supply funds 2 recruits/turn vs P2's ~1, so unit lead grows +1/round. Moved t5->(7,3), t7a->(6,2), t7b->(9,3) to free home hexes; recruited raiders at (10,1),(12,1). Forward units left in place are safe: P2 has no guardian in reach and max combined non-guardian damage (scout2+marksman4=6) cannot kill an 8hp raider. End 9v4; plan to record a renewed pending 4-lead around T11 and convert by T13. Played 2 Zaps to cycle, bought Silver for economy."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "gold",
+          "village"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "training"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P2-guardian-t10",
+            "type": "guardian",
+            "at": {
+              "col": 1,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 T10: played village, bought training; recruited third guardian to cut P1's unit lead from 4 to 3",
+      "reasoning": "P1 reached 8 units vs my 4 (lead 4) but it was not pending at their last turn start, so no immediate loss. Recruit a third guardian (now 5 units, lead 3) to keep the gap under 4 and deny the lead-4 win threat. Bought training to permanently raise a guardian's attack toward reliably trading with 8hp raiders. Hold the defensive wall on center-west-south; no enemy in attack range yet (blocked hex at 3,5 funnels their approach)."
+    }
+  ]
+}

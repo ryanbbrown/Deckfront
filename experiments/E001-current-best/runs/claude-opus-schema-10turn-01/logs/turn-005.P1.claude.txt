@@ -1,0 +1,8 @@
+Turn-005 complete and validated.
+
+**Summary of P1 turn 5 (round 3):**
+- **Deck:** Played Zap + Blast (3 deck damage), bought another Blast for the damage engine.
+- **Combat:** Focus-fired P2's raider sitting on center-northwest (3,3) — raider1 (6+1) then scout (2+1) for 10 total, **killing it**. Unit count is now **5 vs 3** in my favor, one step toward the 4-unit-lead win.
+- **Board:** Raider3 flipped **center-east** (8,6) → I now control **5 supply centers**. Marksman repositioned to (5,3) to give ranged support and threaten to retake center-northwest next turn. **Recruited a raider** at home (11,1).
+
+P2 is down to 3 units and I have a growing board + economy lead. Validated clean (5 entries).

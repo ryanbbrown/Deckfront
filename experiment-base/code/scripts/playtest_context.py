@@ -118,6 +118,10 @@ def build_initial_prompt(args: Any, run_dir: Path, player: Any, players: list[An
         "board_rules": rel(ROOT / "game" / "board-rules.md"),
         "units_file": rel(ROOT / "game" / "units.json"),
         "map_file": rel(ROOT / "game" / "map.json"),
+        "deck_config_content": read_text(ROOT / args.config),
+        "board_rules_content": read_text(ROOT / "game" / "board-rules.md"),
+        "units_json_content": read_text(ROOT / "game" / "units.json"),
+        "map_json_content": read_text(ROOT / "game" / "map.json"),
         "drafts": "\n".join(drafts),
         "starting_units": f"P1={args.p1_units}\nP2={args.p2_units}",
     }
@@ -270,6 +274,10 @@ def run_silent(command: list[str], *, check: bool) -> subprocess.CompletedProces
 
 def read_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text())
+
+
+def read_text(path: Path) -> str:
+    return path.read_text().strip()
 
 
 def write_json(path: Path, value: Any) -> None:

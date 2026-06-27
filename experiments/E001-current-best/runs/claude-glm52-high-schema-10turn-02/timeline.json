@@ -1,0 +1,216 @@
+{
+  "schemaVersion": 1,
+  "title": "Current best baseline playthrough",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 11,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 turn 1: Trashed Copper, played Zap (1 damage, cycled), bought Gold. Board: raider-1 captured center-northeast (8,1); scout positioned at (9,4) toward center-center-south/east; raider-3 at (11,4) toward center-east; marksman at (9,2) toward center-center-north. Income 2 supply, 0 saved for recruits.",
+      "reasoning": "Rush strategy: contest centers early. Raider-1 (mov 4) moved 2 hexes west to capture center-northeast (8,1) — the only center reachable turn 1. Scout (mov 5) moved 5 hexes through friendly-occupied (11,1) to (9,4), positioning within 2 hexes of both center-center-south (7,5) and center-east (8,6) for next-turn capture. Raider-3 (mov 4) moved south to (11,4), within 3 hexes of center-east (8,6) for next-turn capture. Marksman (mov 2) moved to (9,2) heading toward center-center-north (5,3). No enemies in range; Zap damage unused. Deck: trashed Copper for thinning, bought Gold for economy to fund future damage purchases. No pending win threats (4v4 units, 1 center controlled)."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "village",
+          "smithy"
+        ],
+        "played": [
+          "village",
+          "smithy"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-start-2",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-raider-start-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 2,
+              "row": 9
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 turn 2: Played Village+Smithy for 4 card draw, bought 2nd Village for engine. Board: scout captured center-center (6,5), raider captured center-west-south (3,7), guardian and marksman pushed east toward eastern centers. No combat possible. P2 now controls 2 centers vs P1's 1.",
+      "reasoning": "Deck: Engine strategy - Village first for +2 actions/+1 card, then Smithy for +3 cards, maximizing hand size. Bought Village to build action/draw engine. No trash needed yet; coppers provide early buying power. Board: Contested 2 supply centers aggressively. Scout used full movement 5 to reach center-center (6,5), the most central and valuable hex. Raider used 3 of 4 movement to capture center-west-south (3,7). Guardian moved to (2,8) and marksman to (2,9), both pushing east toward center-east (8,6) and center-southeast (8,7) for future turns. No enemies in range for attacks. Income next turn: 2+2=4 supply. No pending win threats."
+    }
+  ]
+}

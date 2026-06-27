@@ -1,0 +1,7 @@
+{"schemaVersion":1,"turnId":"turn-001","player":"P1","actions":[
+  {"type":"trashCard","handIndex":0},
+  {"type":"playAction","handIndex":3},
+  {"type":"moveToBuy"},
+  {"type":"buyCard","cardId":"blast"},
+  {"type":"endTurn"}
+]}

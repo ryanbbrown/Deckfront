@@ -1,0 +1,16 @@
+Turn-002 is complete and validated. Here's a summary of what I did:
+
+**Deck Phase:**
+- Played **Village** first (+1 card, +2 actions) to enable followed actions
+- Played **Smithy** (+3 cards) to maximize hand draw
+- Moved to buy phase and bought a **second Village** (cost 4) to strengthen the action/draw engine
+- No trash — kept all coppers for buying power this early turn
+
+**Board Phase:**
+- **Scout** (1,7)→(6,5): Used full 5-hex movement to capture **center-center**, the most strategically valuable central hex
+- **Raider** (0,8)→(3,7): Captured **center-west-south** with a 3-hex path
+- **Guardian** (1,8)→(2,8): Pushed east toward future center contests
+- **Marksman** (0,9)→(2,9): Also pushed east toward center-east/southeast
+- No attacks possible — all P1 units are on the far east side
+
+**Result:** P2 now controls 2 supply centers (center-center, center-west-south) vs P1's 1 (center-northeast). Next turn income will be 2+2=4 supply. No win threats pending.

@@ -1,0 +1,11 @@
+Turn-001 complete and validated.
+
+**Summary of P1 turn 1 (Rush):**
+- **Deck:** Played Zap (cycle + 1 action, drew a card, banked the wasted +1 damage), moved to buy, and bought **Blast** — a damage payload for upcoming center fights, keeping the rush identity.
+- **Board:** 
+  - Raider1 (10,1) → (8,1): **captured center-northeast** for +1 income.
+  - Scout (11,0) → (6,0): pushed deep to threaten center-center-north next turn.
+  - Raider2 (12,1) → (9,3) and Marksman (11,1) → (9,2): advancing to contest center-east / center-center-south.
+- No enemies in range, no recruits possible (only 2 supply saved, recruit costs 6). No win threats pending either side.
+
+Validation passed strict checks.

@@ -1,0 +1,1 @@
+{"schemaVersion":1,"turnId":"turn-008","player":"P2","actions":{"movements":[{"unit":"P2-scout-start-2","from":{"col":1,"row":6},"to":{"col":2,"row":6}}],"recruits":[{"unit":"P2-guardian-t8","type":"guardian","at":{"col":1,"row":7}}],"attacks":[],"heals":[],"upgrades":[]}}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-001",
+  "player": "P1",
+  "actions": [
+    {"type": "playAction", "handIndex": 4},
+    {"type": "moveToBuy"},
+    {"type": "buyCard", "cardId": "blast"},
+    {"type": "endTurn"}
+  ]
+}
