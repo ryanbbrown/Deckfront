@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-001",
+  "player": "P1",
+  "before": "snapshots/turn-001.before.board.json",
+  "after": "snapshots/turn-001.after.board.json",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P1-raider-start-3",
+        "from": {
+          "col": 12,
+          "row": 1
+        },
+        "to": {
+          "col": 8,
+          "row": 1
+        }
+      },
+      {
+        "unit": "P1-scout-start-2",
+        "from": {
+          "col": 11,
+          "row": 0
+        },
+        "to": {
+          "col": 7,
+          "row": 3
+        }
+      },
+      {
+        "unit": "P1-raider-start-1",
+        "from": {
+          "col": 10,
+          "row": 1
+        },
+        "to": {
+          "col": 6,
+          "row": 3
+        }
+      },
+      {
+        "unit": "P1-marksman-start-4",
+        "from": {
+          "col": 11,
+          "row": 1
+        },
+        "to": {
+          "col": 9,
+          "row": 2
+        }
+      }
+    ],
+    "recruits": [],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

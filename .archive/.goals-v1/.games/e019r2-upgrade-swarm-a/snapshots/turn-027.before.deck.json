@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "rngState": 19461,
+  "game": {
+    "config": {
+      "players": 2,
+      "setup": {
+        "initialActions": 1,
+        "initialBuys": 1,
+        "initialMoney": 0,
+        "handSize": 5,
+        "startingDeck": [
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "zap",
+          "bandage",
+          "rest",
+          "rest",
+          "rest"
+        ],
+        "attributes": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "cards": [],
+      "supply": [],
+      "endGame": {
+        "gte": [
+          "emptyPiles",
+          3
+        ]
+      }
+    },
+    "cards": {},
+    "players": [
+      {
+        "id": "P1",
+        "draw": [],
+        "hand": [],
+        "discard": [
+          "silver",
+          "silver",
+          "village",
+          "armory",
+          "training",
+          "second-wind",
+          "potion",
+          "armory",
+          "gold",
+          "second-wind",
+          "healer",
+          "armory",
+          "armory"
+        ],
+        "play": [
+          "second-wind",
+          "training",
+          "zap",
+          "gold",
+          "silver"
+        ],
+        "actions": 1,
+        "buys": 1,
+        "money": 0,
+        "attributes": {
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 1,
+          "stormTargets": 0,
+          "money": 5
+        },
+        "persistentAttributes": {},
+        "vpCounters": 0,
+        "turnsTaken": 13,
+        "freeTrashUsed": false
+      },
+      {
+        "id": "P2",
+        "draw": [],
+        "hand": [],
+        "discard": [
+          "silver",
+          "silver",
+          "peddler",
+          "village",
+          "gold",
+          "gold",
+          "blast",
+          "peddler",
+          "storm",
+          "gold",
+          "peddler",
+          "gold",
+          "gold"
+        ],
+        "play": [
+          "storm",
+          "zap",
+          "gold",
+          "silver",
+          "silver"
+        ],
+        "actions": 1,
+        "buys": 1,
+        "money": 0,
+        "attributes": {
+          "damage": 3,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 2,
+          "money": 7
+        },
+        "persistentAttributes": {},
+        "vpCounters": 0,
+        "turnsTaken": 13,
+        "freeTrashUsed": false
+      }
+    ],
+    "activePlayer": 0,
+    "phase": "action",
+    "supply": {},
+    "trash": [],
+    "ended": false
+  }
+}

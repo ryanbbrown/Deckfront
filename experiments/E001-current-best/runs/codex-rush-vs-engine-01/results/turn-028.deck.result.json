@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-028",
+  "player": "P2",
+  "before": "snapshots/turn-028.before.deck.json",
+  "after": "snapshots/turn-028.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 1
+    },
+    {
+      "type": "playAction",
+      "handIndex": 1
+    },
+    {
+      "type": "playAction",
+      "handIndex": 1
+    },
+    {
+      "type": "playAction",
+      "handIndex": 1
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "training",
+    "village",
+    "training",
+    "training"
+  ],
+  "played": [
+    "training",
+    "village",
+    "training",
+    "training"
+  ],
+  "bought": [],
+  "produced": {
+    "money": 2,
+    "upgradeDamage": 3
+  }
+}

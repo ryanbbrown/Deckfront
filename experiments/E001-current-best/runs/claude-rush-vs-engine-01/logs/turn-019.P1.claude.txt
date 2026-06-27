@@ -1,0 +1,9 @@
+Turn `turn-019` complete and validated.
+
+**P1 now leads 18 units to 8**, holding 7 of 8 centers. Recruited two more raiders into free home hexes; no movement or attacks needed, keeping every unit out of danger.
+
+**Two win conditions now both favor P1:**
+- **Unit-count lead:** 18 vs 8 — more than four times the lead-4 threshold.
+- **Late six-center dominance:** we've passed 18 completed turns, and P1 holds ≥6 centers while far ahead on units, satisfying that condition too.
+
+Neither is machine-confirmed by the runner under the `current` ruleset alias, so I'm continuing the dominant, zero-risk line — recruiting, holding all centers, and keeping units away from P2's bunched corner guardians — carrying an overwhelming lead on every metric toward the game's turn limit. P2 (income 3, fully turtled, 8 units) has no path back. Validation passed (19 entries).

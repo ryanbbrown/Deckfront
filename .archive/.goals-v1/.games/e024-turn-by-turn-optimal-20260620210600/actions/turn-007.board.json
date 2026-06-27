@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-007",
+  "player": "P1",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P1-marksman-start-4",
+        "from": {
+          "col": 6,
+          "row": 4
+        },
+        "to": {
+          "col": 6,
+          "row": 5
+        }
+      },
+      {
+        "unit": "P1-raider-recruit-1",
+        "from": {
+          "col": 10,
+          "row": 1
+        },
+        "to": {
+          "col": 8,
+          "row": 1
+        }
+      }
+    ],
+    "attacks": [
+      {
+        "attacker": "P1-raider-start-1",
+        "target": "P2-guardian-start-1",
+        "deckDamage": 0
+      },
+      {
+        "attacker": "P1-raider-start-3",
+        "target": "P2-guardian-start-1",
+        "deckDamage": 0
+      },
+      {
+        "attacker": "P1-marksman-start-4",
+        "target": "P2-guardian-start-1",
+        "deckDamage": 0
+      },
+      {
+        "attacker": "P1-scout-start-2",
+        "target": "P2-marksman-start-4",
+        "deckDamage": 1
+      }
+    ],
+    "heals": [],
+    "upgrades": [],
+    "recruits": [
+      {
+        "unit": "P1-raider-recruit-2",
+        "type": "raider",
+        "at": {
+          "col": 10,
+          "row": 1
+        }
+      },
+      {
+        "unit": "P1-scout-recruit-1",
+        "type": "scout",
+        "at": {
+          "col": 11,
+          "row": 0
+        }
+      }
+    ]
+  }
+}

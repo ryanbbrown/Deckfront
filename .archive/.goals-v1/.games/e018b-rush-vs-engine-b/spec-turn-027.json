@@ -1,0 +1,29 @@
+{
+  "id": "turn-027",
+  "player": "P1",
+  "round": 14,
+  "play": ["zap", "training"],
+  "buyOptions": ["gold", "training", "storm", "blast", "silver", "zap"],
+  "moves": [
+    { "id": "P1-raider-5", "to": [5, 5] },
+    { "id": "P1-marksman-1", "to": [5, 4] },
+    { "id": "P1-raider-8", "to": [9, 1] },
+    { "id": "P1-raider-6", "to": [7, 3] },
+    { "id": "P1-raider-7", "to": [8, 3] }
+  ],
+  "upgrades": {
+    "damage": [
+      { "id": "P1-marksman-1", "amount": 1 }
+    ]
+  },
+  "attacks": [
+    { "attacker": "P1-raider-5", "target": "P2-guardian-6" },
+    { "attacker": "P1-marksman-1", "target": "P2-guardian-6" },
+    { "attacker": "P1-scout-2", "target": "P2-guardian-6", "bonus": 1 }
+  ],
+  "recruits": [
+    { "type": "raider", "id": "P1-raider-9", "at": [10, 1] }
+  ],
+  "summary": "P1 upgraded a marksman, killed P2's guardian, bought Gold, and recruited another raider.",
+  "reasoning": "Training created a permanent 5-attack marksman and let P1 assemble exact lethal damage on P2-guardian-6. The end count is 10-5, a severe but still response-window-gated lead."
+}

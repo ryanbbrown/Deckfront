@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-008",
+  "player": "P2",
+  "before": "snapshots/turn-008.before.board.json",
+  "after": "snapshots/turn-008.after.board.json",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-guardian-turn-006",
+        "from": {
+          "col": 1,
+          "row": 8
+        },
+        "to": {
+          "col": 2,
+          "row": 8
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P2-marksman-turn-008",
+        "type": "marksman",
+        "at": {
+          "col": 1,
+          "row": 8
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

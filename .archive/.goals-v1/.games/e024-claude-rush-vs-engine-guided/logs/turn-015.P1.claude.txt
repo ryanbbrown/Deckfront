@@ -1,0 +1,5 @@
+Turn-015 committed and validated.
+
+- **Deck:** Play Peddler → Play Blast (+2 deck damage) → moveToBuy → buy Peddler.
+- **Board:** r9a (8,3)→(8,5); attacks r9a (6+1) and marksman (4+1) = 12 damage kill **P2-raider-r8** at (8,6) (`targetRemoved: true`); recruit P1-raider-r15 at (10,1).
+- **Rationale:** I funneled r9a down the corridor adjacent to the forward P2 raider and focus-fired with the marksman to remove it. That drops P2 to **4 units** while my recruit pushes me to **9** — a 4+ unit lead toward the win — and r9a now sits next to center-east, ready to retake it. Both the unit-lead and 5-center territory paths are widening together while P2's offense gets dismantled.

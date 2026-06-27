@@ -1,0 +1,22 @@
+{
+  "id": "turn-017",
+  "player": "P1",
+  "round": 9,
+  "play": ["blast", "storm"],
+  "buy": "blast",
+  "moves": [
+    { "id": "P1-raider-4", "to": [7, 3] },
+    { "id": "P1-scout-2", "to": [8, 3] },
+    { "id": "P1-marksman-1", "to": [6, 3] },
+    { "id": "P1-marksman-2", "to": [8, 2] },
+    { "id": "P1-marksman-3", "to": [8, 1] }
+  ],
+  "attacks": [
+    { "attacker": "P1-guardian-1", "target": "P2-marksman-1", "bonus": 1 }
+  ],
+  "recruits": [
+    { "type": "raider", "id": "P1-raider-5", "at": [10, 1] }
+  ],
+  "summary": "P1 bought Blast, killed P2's upgraded marksman, and recruited a raider.",
+  "reasoning": "Blast plus Storm produced more damage than P1 could legally attach. The guardian used one capped bonus damage to finish the marksman; the rest expired."
+}

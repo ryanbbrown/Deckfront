@@ -1,0 +1,23 @@
+{
+  "id": "turn-023",
+  "player": "P1",
+  "round": 12,
+  "play": ["blast", "zap", "blast", "storm"],
+  "buyOptions": ["training", "storm", "blast", "silver", "zap"],
+  "moves": [
+    { "id": "P1-raider-4", "to": [6, 6] },
+    { "id": "P1-raider-6", "to": [9, 1] },
+    { "id": "P1-scout-3", "to": [9, 6] },
+    { "id": "P1-marksman-2", "to": [6, 2] },
+    { "id": "P1-marksman-3", "to": [6, 1] }
+  ],
+  "attacks": [
+    { "attacker": "P1-guardian-1", "target": "P2-guardian-4", "bonus": 1 },
+    { "attacker": "P1-scout-2", "target": "P2-guardian-4", "bonus": 1 }
+  ],
+  "recruits": [
+    { "type": "raider", "id": "P1-raider-7", "at": [10, 1] }
+  ],
+  "summary": "P1 kept pressure on P2's healed guardian and recruited to another four-unit end-turn lead.",
+  "reasoning": "P1 again had more deck damage than legal attackers. The attack left P2-guardian-4 damaged but alive, showing how deck healing can blunt rush tempo even after printed healing was removed."
+}

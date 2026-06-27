@@ -1,0 +1,2 @@
+Valid replay bundle: Current best baseline playthrough (4 entries)
+$ bun run src/playtest/main.ts validate --strict --strict-deck --strict-win "../runs/claude-rush-vs-engine-01/timeline.json"

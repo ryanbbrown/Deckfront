@@ -1,0 +1,705 @@
+{
+  "schemaVersion": 1,
+  "title": "E017b rush-vs-engine B tight center-control replay",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Rest",
+          "Copper",
+          "Bandage",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 opened the rush by taking northeast and sending the scout down the east lane.",
+      "reasoning": "No start-of-turn threat existed. P1 used the fastest center route: raider to center-northeast, scout toward center-east, and the slower marksman/guardian into support lanes."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Rest",
+          "Bandage",
+          "Rest"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [],
+        "produced": {
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 claimed the west-south center and began the lower-center engine posture.",
+      "reasoning": "P2 preserved the army while taking the nearest lower center. The second scout moved toward northwest instead of racing into unsupported east combat."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 converted the east lane into a second center before P2 could contest it.",
+      "reasoning": "The scout had a clean path to center-east. P1 still had no legal deck-damage target, so the board phase prioritized tempo and center spread."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Zap",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 advanced toward northwest and center-south while keeping the first center covered.",
+      "reasoning": "P2 could not yet flip an eastern center. The engine side kept units alive and staged for three lower/west centers."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Silver",
+          "Rest",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Training"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 5
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 took southeast and recruited the first extra raider for center pressure.",
+      "reasoning": "P1 reached three centers before turn 6. The recruit kept the rush from relying on center count alone, but the five-center win gate was still far away."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Village",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 reached a three-center lower/west shape and recruited a guardian.",
+      "reasoning": "The engine side answered with durable board material rather than a risky east dive. Northwest, west-south, and center-south became P2 centers."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Blast",
+          "Copper",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Blast"
+        ],
+        "bought": [
+          "Training"
+        ],
+        "produced": {
+          "damage": 2,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 5
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 captured center-north and reinforced northeast.",
+      "reasoning": "P1 now held four centers but still had no gated win pressure. The new marksman supported the top lane while the raider occupied center-center-north."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Copper",
+          "Zap",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 moved a scout into the southeast response lane and recruited healing support.",
+      "reasoning": "P2 could not enter the occupied southeast center, so the scout moved adjacent and started damaging the P1 scout. The response plan was to preserve bodies and threaten a later flip."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Copper",
+          "Training",
+          "Bandage"
+        ],
+        "played": [
+          "Zap",
+          "Bandage",
+          "Training",
+          "Training"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 2,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 captured center-center, creating a five-center board shape before the gate opened.",
+      "reasoning": "This was not a pending win because only eight player turns had been completed before P1 started. P1 still needed to preserve a real unit lead until the turn-17 gate."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Copper",
+          "Village",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Village"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 5
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 damaged the southeast holder and recruited another guardian.",
+      "reasoning": "P2 preserved the three-center lower shape and continued the response plan, but the eastern center was still occupied by P1 units."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Blast",
+          "Copper",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Blast"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "damage": 2,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 6
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 killed the southeast-response scout and recruited a second scout.",
+      "reasoning": "P1 used the wounded scout, guardian contact, and one deck-damage point from a legal attack to remove P2-scout-1. That preserved five centers without creating any start-of-turn win yet."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Bandage",
+          "Zap",
+          "Healer",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Bandage",
+          "Healer",
+          "Zap"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 5,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 stabilized lower-center but could not replace the lost scout immediately.",
+      "reasoning": "P2 had only five supply after income, so no recruit was legal. The response shifted to healing and marksman coverage while keeping three centers."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Training",
+          "Zap",
+          "Copper",
+          "Copper",
+          "Training"
+        ],
+        "played": [
+          "Zap",
+          "Training",
+          "Training"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 2,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 recruited another raider while keeping five centers intact.",
+      "reasoning": "The rush side widened material without reaching a 4-unit lead at a P1 start-of-turn check. The center-control gate still had not opened."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Copper",
+          "Copper",
+          "Healer",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Village",
+          "Bandage",
+          "Healer",
+          "Zap"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 5,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 bought time with healing economy and recruited a marksman.",
+      "reasoning": "P2 still needed either a center flip or enough bodies to deny the later two-unit lead. The marksman recruit made the future center-control check tighter."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Training",
+          "Copper",
+          "Blast",
+          "Zap",
+          "Silver"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Training",
+          "Training"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 3,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 2,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 recruited a third marksman and maintained the five-center formation.",
+      "reasoning": "No center-control threat could be created yet because only fourteen player turns had been completed before this start check. P1 prepared for the gated check instead of overextending into lower-center."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Village",
+          "Zap",
+          "Village",
+          "Bandage"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Village",
+          "Bandage",
+          "Village",
+          "Village",
+          "Zap",
+          "Healer"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 5,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 recruited a healer and failed to break the future center-control shape.",
+      "reasoning": "This was the last full P2 turn before the turn-17 gate. P2 increased unit count to keep the lead small, but no unit could legally enter a P1-controlled center."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Gold"
+        ],
+        "played": [],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 8
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "summary": "P1 recorded the pending tight center-control threat and recruited another scout.",
+      "reasoning": "Start-of-turn check after 16 completed player turns: P1 controlled five centers and led living units 10 to 8, so this recorded a pending P1 center-control threat. It was not an immediate win because P2 still received a full response turn."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Bandage",
+          "Village",
+          "Copper",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Village",
+          "Bandage",
+          "Healer",
+          "Zap",
+          "Village"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 5,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "summary": "P2 took the response turn but could not clear the pending center-control threat.",
+      "reasoning": "P2 needed to reduce P1 below five centers or reduce the living-unit lead below two. P2 recruited one druid and wounded P1-guardian-1, but P1 still controlled five centers and led 11 to 9 after the response. P1 therefore wins at the beginning of round 10 before turn-19 actions."
+    }
+  ]
+}

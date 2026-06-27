@@ -1,0 +1,2560 @@
+{
+  "schemaVersion": 1,
+  "title": "E024 R2 upgrade/support vs swarm/economy A strict high-movement six-center dominance",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "zap",
+          "bandage",
+          "rest"
+        ],
+        "played": [
+          "zap",
+          "bandage",
+          "copper",
+          "copper"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "P1 played zap, bandage, copper, copper, moved 4, attacked 0, recruited 0, and moved from 0 to 1 centers.",
+      "reasoning": "P1-scout-1 moved from 12,1 to 8,1. P1-raider-1 moved from 10,1 to 6,3. P1-marksman-1 moved from 11,0 to 9,1. P1-guardian-1 moved from 11,1 to 9,2."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "zap",
+          "bandage",
+          "rest"
+        ],
+        "played": [
+          "zap",
+          "bandage",
+          "copper",
+          "copper"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "P2 played zap, bandage, copper, copper, moved 4, attacked 0, recruited 0, and moved from 0 to 1 centers.",
+      "reasoning": "P2-scout-1 moved from 1,8 to 3,7. P2-scout-2 moved from 0,9 to 4,6. P2-marksman-1 moved from 0,8 to 1,6. P2-druid-1 moved from 1,7 to 3,6."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "rest",
+          "rest"
+        ],
+        "played": [
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 9,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "P1 played copper, copper, copper, moved 4, attacked 0, recruited 0, and moved from 1 to 3 centers.",
+      "reasoning": "P1-scout-1 moved from 8,1 to 5,3. P1-raider-1 moved from 6,3 to 6,5. P1-marksman-1 moved from 9,1 to 7,2. P1-guardian-1 moved from 9,2 to 8,3."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "rest",
+          "rest"
+        ],
+        "played": [
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 4,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 1,
+              "row": 6
+            },
+            "to": {
+              "col": 2,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 3,
+              "row": 6
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-scout-1",
+            "target": "P1-raider-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "P2 played copper, copper, copper, moved 4, attacked 1, recruited 0, and moved from 1 to 3 centers.",
+      "reasoning": "P2-scout-1 moved from 3,7 to 8,6. P2-scout-2 moved from 4,6 to 8,7. P2-marksman-1 moved from 1,6 to 2,5. P2-druid-1 moved from 3,6 to 3,7. P2-scout-1 attacked P1-raider-1 for 2."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "copper",
+          "copper",
+          "bandage",
+          "rest"
+        ],
+        "played": [
+          "bandage",
+          "silver",
+          "copper",
+          "copper"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-guardian-2",
+            "type": "guardian",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-1",
+            "target": "P2-druid-1",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-1",
+            "target": "P2-scout-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-scout-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [
+          {
+            "target": "P1-raider-1",
+            "amount": 1,
+            "source": "deck"
+          }
+        ],
+        "upgrades": []
+      },
+      "summary": "P1 played bandage, silver, copper, copper, moved 4, attacked 3, recruited 1, and moved from 3 to 4 centers.",
+      "reasoning": "P1-scout-1 moved from 5,3 to 7,5. P1-raider-1 moved from 6,5 to 2,7. P1-marksman-1 moved from 7,2 to 7,4. P1-guardian-1 moved from 8,3 to 6,4. P1-raider-1 attacked P2-druid-1 for 6. P1-marksman-1 attacked P2-scout-1 for 4. P1-scout-1 attacked P2-scout-1 for 2. P1 used 1 deck heal on P1-raider-1. P1 recruited P1-guardian-2 at 10,1."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "copper",
+          "copper",
+          "zap",
+          "rest"
+        ],
+        "played": [
+          "zap",
+          "silver",
+          "copper",
+          "copper"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 2,
+              "row": 5
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-3",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-1",
+            "target": "P1-marksman-1",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-2",
+            "target": "P1-marksman-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-druid-1",
+            "target": "P1-raider-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "P2 played zap, silver, copper, copper, moved 3, attacked 3, recruited 1, and moved from 3 to 5 centers.",
+      "reasoning": "P2-scout-1 moved from 8,6 to 6,5. P2-scout-2 moved from 8,7 to 8,6. P2-marksman-1 moved from 2,5 to 3,3. P2-scout-1 attacked P1-marksman-1 for 3 including 1 deck damage. P2-scout-2 attacked P1-marksman-1 for 2. P2-druid-1 attacked P1-raider-1 for 4. P2 recruited P2-scout-3 at 0,8."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "copper",
+          "zap",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "zap",
+          "silver",
+          "copper",
+          "copper"
+        ],
+        "bought": [
+          "armory"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-guardian-2",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-scout-2",
+            "type": "scout",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-1",
+            "target": "P2-druid-1",
+            "damage": 4,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-scout-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-marksman-1",
+            "target": "P2-scout-2",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-scout-2",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "P1 played zap, silver, copper, copper, moved 3, attacked 4, recruited 1, and moved from 3 to 4 centers.",
+      "reasoning": "P1-scout-1 moved from 7,5 to 8,7. P1-marksman-1 moved from 7,4 to 7,5. P1-guardian-2 moved from 10,1 to 8,2. P1-raider-1 attacked P2-druid-1 for 4 including 1 deck damage. P2-druid-1 was KO'd. P1-guardian-1 attacked P2-scout-1 for 2. P2-scout-1 was KO'd. P1-marksman-1 attacked P2-scout-2 for 4. P1-scout-1 attacked P2-scout-2 for 2. P1 recruited P1-scout-2 at 11,0."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "peddler",
+          "copper",
+          "bandage",
+          "rest"
+        ],
+        "played": [
+          "peddler",
+          "bandage",
+          "silver",
+          "copper"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-3",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 3,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-1",
+            "type": "raider",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-1",
+            "target": "P1-marksman-1",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-scout-2",
+            "target": "P1-scout-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [
+          {
+            "target": "P2-scout-2",
+            "amount": 1,
+            "source": "deck"
+          }
+        ],
+        "upgrades": []
+      },
+      "summary": "P2 played peddler, bandage, silver, copper, moved 2, attacked 2, recruited 1, and moved from 4 to 4 centers.",
+      "reasoning": "P2-scout-3 moved from 0,8 to 5,6. P2-marksman-1 moved from 3,3 to 5,4. P2-marksman-1 attacked P1-marksman-1 for 3. P1-marksman-1 was KO'd. P2-scout-2 attacked P1-scout-1 for 2. P2 used 1 deck heal on P2-scout-2. P2 recruited P2-raider-1 at 1,7."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "silver",
+          "copper",
+          "bandage",
+          "rest"
+        ],
+        "played": [
+          "armory",
+          "silver",
+          "copper"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-scout-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 6,
+              "row": 4
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-guardian-2",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-raider-1",
+            "target": "P2-marksman-1",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-scout-2",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-raider-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-2",
+            "target": "P2-marksman-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P1-guardian-1",
+            "attack": 0,
+            "maxHp": 2
+          }
+        ]
+      },
+      "summary": "P1 played armory, silver, copper, moved 5, attacked 4, recruited 0, and moved from 4 to 6 centers.",
+      "reasoning": "P1-scout-1 moved from 8,7 to 3,7. P1-scout-2 moved from 11,0 to 7,3. P1-raider-1 moved from 2,7 to 6,5. P1-guardian-1 moved from 6,4 to 7,5. P1-guardian-2 moved from 8,2 to 8,3. P1 used Armory-style upgradeHealth on P1-guardian-1; max HP is now 18. P1-raider-1 attacked P2-marksman-1 for 6. P1-guardian-1 attacked P2-scout-2 for 3. P2-scout-2 was KO'd. P1-scout-1 attacked P2-raider-1 for 2. P1-scout-2 attacked P2-marksman-1 for 2. P2-marksman-1 was KO'd."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "village",
+          "silver",
+          "copper",
+          "copper",
+          "zap"
+        ],
+        "played": [
+          "village",
+          "zap",
+          "silver",
+          "copper",
+          "copper"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-3",
+            "from": {
+              "col": 5,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-4",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-raider-1",
+            "target": "P1-raider-1",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-scout-3",
+            "target": "P1-guardian-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "P2 played village, zap, silver, copper, copper, moved 2, attacked 2, recruited 1, and moved from 2 to 3 centers.",
+      "reasoning": "P2-scout-3 moved from 5,6 to 8,7. P2-raider-1 moved from 1,7 to 5,5. P2-raider-1 attacked P1-raider-1 for 3 including 1 deck damage. P1-raider-1 was KO'd. P2-scout-3 attacked P1-guardian-1 for 2. P2 recruited P2-scout-4 at 0,8."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "training",
+          "village",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [
+          "village",
+          "training",
+          "zap",
+          "silver",
+          "copper"
+        ],
+        "bought": [
+          "second-wind"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-scout-2",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-guardian-2",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-2",
+            "type": "marksman",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-scout-3",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-2",
+            "target": "P2-scout-3",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P1-guardian-1",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "summary": "P1 played village, training, zap, silver, copper, moved 3, attacked 2, recruited 2, and moved from 5 to 6 centers.",
+      "reasoning": "P1-scout-1 moved from 3,7 to 8,6. P1-scout-2 moved from 7,3 to 7,6. P1-guardian-2 moved from 8,3 to 6,4. P1 used Training-style upgradeDamage on P1-guardian-1; attack is now 5. P1-scout-1 attacked P2-scout-3 for 3 including 1 deck damage. P1-scout-2 attacked P2-scout-3 for 2. P1 recruited P1-marksman-2 at 10,1. P1 recruited P1-raider-2 at 11,0."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "peddler",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "peddler",
+          "gold",
+          "silver",
+          "copper"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 6
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-3",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-scout-4",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 5,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-marksman-2",
+            "type": "marksman",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-raider-1",
+            "target": "P1-scout-1",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-scout-3",
+            "target": "P1-scout-2",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "P2 played peddler, gold, silver, copper, moved 3, attacked 2, recruited 1, and moved from 2 to 4 centers.",
+      "reasoning": "P2-scout-3 moved from 8,7 to 6,5. P2-scout-4 moved from 0,8 to 3,7. P2-raider-1 moved from 5,5 to 8,7. P2-raider-1 attacked P1-scout-1 for 6. P1-scout-1 was KO'd. P2-scout-3 attacked P1-scout-2 for 2. P2 recruited P2-marksman-2 at 1,7."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "bandage",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "armory",
+          "bandage",
+          "silver",
+          "copper"
+        ],
+        "bought": [
+          "potion"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-2",
+            "from": {
+              "col": 7,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-healer-1",
+            "type": "healer",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-scout-3",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-scout-2",
+            "target": "P2-raider-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [
+          {
+            "target": "P1-scout-2",
+            "amount": 1,
+            "source": "deck"
+          }
+        ],
+        "upgrades": [
+          {
+            "target": "P1-guardian-1",
+            "attack": 0,
+            "maxHp": 2
+          }
+        ]
+      },
+      "summary": "P1 played armory, bandage, silver, copper, moved 3, attacked 2, recruited 1, and moved from 4 to 4 centers.",
+      "reasoning": "P1-scout-2 moved from 7,6 to 8,6. P1-raider-2 moved from 11,0 to 8,3. P1-marksman-2 moved from 10,1 to 8,2. P1 used Armory-style upgradeHealth on P1-guardian-1; max HP is now 20. P1-guardian-1 attacked P2-scout-3 for 3. P2-scout-3 was KO'd. P1-scout-2 attacked P2-raider-1 for 2. P1 used 1 deck heal on P1-scout-2. P1 recruited P1-healer-1 at 12,1."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "village",
+          "gold",
+          "silver",
+          "zap",
+          "bandage"
+        ],
+        "played": [
+          "village",
+          "zap",
+          "bandage",
+          "gold",
+          "silver"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 5
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-4",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-marksman-2",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-2",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-raider-1",
+            "target": "P1-scout-2",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-scout-4",
+            "target": "P1-guardian-2",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [
+          {
+            "target": "P2-raider-1",
+            "amount": 1,
+            "source": "deck"
+          }
+        ],
+        "upgrades": []
+      },
+      "summary": "P2 played village, zap, bandage, gold, silver, moved 2, attacked 2, recruited 1, and moved from 4 to 4 centers.",
+      "reasoning": "P2-scout-4 moved from 3,7 to 6,5. P2-marksman-2 moved from 1,7 to 3,7. P2-raider-1 attacked P1-scout-2 for 7 including 1 deck damage. P1-scout-2 was KO'd. P2-scout-4 attacked P1-guardian-2 for 2. P2 used 1 deck heal on P2-raider-1. P2 recruited P2-raider-2 at 0,8."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "second-wind",
+          "training",
+          "silver",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "second-wind",
+          "training",
+          "silver",
+          "copper",
+          "copper"
+        ],
+        "bought": [
+          "armory"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 1,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-healer-1",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-raider-2",
+            "target": "P2-raider-1",
+            "damage": 5,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-scout-4",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-guardian-2",
+            "target": "P2-scout-4",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P1-guardian-1",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "summary": "P1 played second-wind, training, silver, copper, copper, moved 3, attacked 3, recruited 0, and moved from 4 to 4 centers.",
+      "reasoning": "P1-raider-2 moved from 8,3 to 8,6. P1-marksman-2 moved from 8,2 to 6,3. P1-healer-1 moved from 12,1 to 10,2. P1 used Training-style upgradeDamage on P1-guardian-1; attack is now 6. P1-raider-2 attacked P2-raider-1 for 5. P2-raider-1 was KO'd. P1-guardian-1 attacked P2-scout-4 for 6. P1-guardian-2 attacked P2-scout-4 for 2. P2-scout-4 was KO'd."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "blast",
+          "gold",
+          "silver",
+          "copper"
+        ],
+        "played": [
+          "peddler",
+          "blast",
+          "gold",
+          "silver",
+          "copper"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "damage": 2,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 7
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-2",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-5",
+            "type": "scout",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-2",
+            "target": "P1-guardian-1",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "P2 played peddler, blast, gold, silver, copper, moved 2, attacked 1, recruited 1, and moved from 4 to 4 centers.",
+      "reasoning": "P2-raider-2 moved from 0,8 to 4,6. P2-marksman-2 moved from 3,7 to 5,6. P2-marksman-2 attacked P1-guardian-1 for 5 including 1 deck damage. P2 recruited P2-scout-5 at 1,7."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "potion",
+          "silver",
+          "copper",
+          "bandage"
+        ],
+        "played": [
+          "armory",
+          "potion",
+          "silver",
+          "copper"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-healer-1",
+            "from": {
+              "col": 10,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-druid-1",
+            "type": "druid",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-3",
+            "type": "scout",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [
+          {
+            "target": "P1-guardian-2",
+            "amount": 1,
+            "source": "deck"
+          },
+          {
+            "target": "P1-guardian-1",
+            "amount": 1,
+            "source": "deck"
+          },
+          {
+            "healer": "P1-healer-1",
+            "target": "P1-guardian-2",
+            "amount": 1,
+            "source": "unit"
+          }
+        ],
+        "upgrades": [
+          {
+            "target": "P1-guardian-1",
+            "attack": 0,
+            "maxHp": 2
+          }
+        ]
+      },
+      "summary": "P1 played armory, potion, silver, copper, moved 3, attacked 0, recruited 2, and moved from 4 to 5 centers.",
+      "reasoning": "P1-raider-2 moved from 8,6 to 6,5. P1-marksman-2 moved from 6,3 to 7,4. P1-healer-1 moved from 10,2 to 8,3. P1 used Armory-style upgradeHealth on P1-guardian-1; max HP is now 22. P1 used 1 deck heal on P1-guardian-2. P1 used 1 deck heal on P1-guardian-1. P1-healer-1 used 1 printed healing on P1-guardian-2. P1 recruited P1-druid-1 at 10,1. P1 recruited P1-scout-3 at 11,0."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "village",
+          "peddler",
+          "gold",
+          "gold",
+          "zap"
+        ],
+        "played": [
+          "village",
+          "peddler",
+          "zap",
+          "gold",
+          "gold"
+        ],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 7
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-5",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 4,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-2",
+            "from": {
+              "col": 5,
+              "row": 6
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-raider-2",
+            "target": "P1-guardian-1",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-marksman-2",
+            "target": "P1-raider-2",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-5",
+            "target": "P1-raider-2",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "P2 played village, peddler, zap, gold, gold, moved 3, attacked 3, recruited 0, and moved from 3 to 4 centers.",
+      "reasoning": "P2-scout-5 moved from 1,7 to 6,7. P2-raider-2 moved from 4,6 to 8,6. P2-marksman-2 moved from 5,6 to 7,6. P2-raider-2 attacked P1-guardian-1 for 7 including 1 deck damage. P2-marksman-2 attacked P1-raider-2 for 4. P2-scout-5 attacked P1-raider-2 for 2."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "training",
+          "zap",
+          "silver",
+          "silver",
+          "rest"
+        ],
+        "played": [
+          "training",
+          "zap",
+          "silver",
+          "silver"
+        ],
+        "bought": [
+          "second-wind"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-3",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 8,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-druid-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-healer-1",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-raider-2",
+            "damage": 8,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-marksman-2",
+            "target": "P2-marksman-2",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-healer-1",
+            "target": "P2-marksman-2",
+            "damage": 1,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P1-guardian-1",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "summary": "P1 played training, zap, silver, silver, moved 5, attacked 3, recruited 0, and moved from 4 to 5 centers.",
+      "reasoning": "P1 created a pending unit-count threat at the start of turn 19: 7 vs 3. P1-scout-3 moved from 11,0 to 9,4. P1-raider-2 moved from 6,5 to 3,7. P1-marksman-2 moved from 7,4 to 8,5. P1-druid-1 moved from 10,1 to 8,2. P1-healer-1 moved from 8,3 to 7,4. P1 used Training-style upgradeDamage on P1-guardian-1; attack is now 7. P1-guardian-1 attacked P2-raider-2 for 8 including 1 deck damage. P2-raider-2 was KO'd. P1-marksman-2 attacked P2-marksman-2 for 4. P1-healer-1 attacked P2-marksman-2 for 1."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "blast",
+          "gold",
+          "silver",
+          "bandage"
+        ],
+        "played": [
+          "storm",
+          "blast",
+          "bandage",
+          "gold",
+          "silver"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "damage": 4,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 2,
+          "money": 5
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-5",
+            "from": {
+              "col": 6,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-marksman-2",
+            "from": {
+              "col": 7,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-1",
+            "type": "guardian",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-2",
+            "target": "P1-healer-1",
+            "damage": 4,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-scout-5",
+            "target": "P1-marksman-2",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [
+          {
+            "target": "P2-marksman-2",
+            "amount": 1,
+            "source": "deck"
+          }
+        ],
+        "upgrades": []
+      },
+      "summary": "P2 played storm, blast, bandage, gold, silver, moved 2, attacked 2, recruited 1, and moved from 3 to 4 centers.",
+      "reasoning": "P2-scout-5 moved from 6,7 to 6,5. P2-marksman-2 moved from 7,6 to 8,6. P2-marksman-2 attacked P1-healer-1 for 4 including 1 deck damage. P1-healer-1 was KO'd. P2-scout-5 attacked P1-marksman-2 for 3 including 1 deck damage. P2 used 1 deck heal on P2-marksman-2. P2 recruited P2-guardian-1 at 0,8."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "bandage",
+          "gold",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "armory",
+          "bandage",
+          "gold",
+          "copper"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-3",
+            "from": {
+              "col": 9,
+              "row": 4
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 8,
+              "row": 5
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-druid-1",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-raider-2",
+            "target": "P2-scout-5",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-scout-5",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-marksman-2",
+            "target": "P2-marksman-2",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [
+          {
+            "target": "P1-raider-2",
+            "amount": 1,
+            "source": "deck"
+          }
+        ],
+        "upgrades": [
+          {
+            "target": "P1-guardian-1",
+            "attack": 0,
+            "maxHp": 2
+          }
+        ]
+      },
+      "summary": "P1 played armory, bandage, gold, copper, moved 4, attacked 3, recruited 0, and moved from 4 to 5 centers.",
+      "reasoning": "P1's pending unit-count threat was cleared before turn 21; P1 now leads by 3. P1-scout-3 moved from 9,4 to 8,7. P1-raider-2 moved from 3,7 to 5,5. P1-marksman-2 moved from 8,5 to 7,4. P1-druid-1 moved from 8,2 to 8,3. P1 used Armory-style upgradeHealth on P1-guardian-1; max HP is now 24. P1-raider-2 attacked P2-scout-5 for 6. P1-guardian-1 attacked P2-scout-5 for 2. P2-scout-5 was KO'd. P1-marksman-2 attacked P2-marksman-2 for 4. P2-marksman-2 was KO'd. P1 used 1 deck heal on P1-raider-2."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "village",
+          "peddler",
+          "gold",
+          "gold",
+          "blast"
+        ],
+        "played": [
+          "village",
+          "peddler",
+          "blast",
+          "gold",
+          "gold"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "damage": 2,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 7
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-marksman-3",
+            "type": "marksman",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "P2 played village, peddler, blast, gold, gold, moved 1, attacked 0, recruited 1, and moved from 3 to 3 centers.",
+      "reasoning": "P2-guardian-1 moved from 0,8 to 2,7. P2 recruited P2-marksman-3 at 1,7."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "second-wind",
+          "training",
+          "gold",
+          "silver",
+          "zap"
+        ],
+        "played": [
+          "second-wind",
+          "training",
+          "zap",
+          "gold",
+          "silver"
+        ],
+        "bought": [
+          "armory"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 1,
+          "stormTargets": 0,
+          "money": 5
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-3",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 5,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-druid-1",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-guardian-3",
+            "type": "guardian",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [
+          {
+            "healer": "P1-druid-1",
+            "target": "P1-guardian-1",
+            "amount": 1,
+            "source": "unit"
+          }
+        ],
+        "upgrades": [
+          {
+            "target": "P1-guardian-1",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "summary": "P1 played second-wind, training, zap, gold, silver, moved 4, attacked 0, recruited 1, and moved from 5 to 7 centers.",
+      "reasoning": "P1 created a pending unit-count threat at the start of turn 23: 6 vs 2. P1-scout-3 moved from 8,7 to 6,5. P1-raider-2 moved from 5,5 to 8,6. P1-marksman-2 moved from 7,4 to 6,3. P1-druid-1 moved from 8,3 to 7,4. P1 used Training-style upgradeDamage on P1-guardian-1; attack is now 8. P1-druid-1 used 1 printed healing on P1-guardian-1. P1 recruited P1-guardian-3 at 10,1."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "zap",
+          "gold",
+          "silver",
+          "silver"
+        ],
+        "played": [
+          "storm",
+          "zap",
+          "gold",
+          "silver",
+          "silver"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "damage": 3,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 2,
+          "money": 7
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-3",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-guardian-1",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-6",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "P2 played storm, zap, gold, silver, silver, moved 2, attacked 0, recruited 1, and moved from 1 to 2 centers.",
+      "reasoning": "P2-marksman-3 moved from 1,7 to 3,7. P2-guardian-1 moved from 2,7 to 4,7. P2 recruited P2-scout-6 at 0,8."
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-010",
+  "player": "P2",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-druid-recruit-1",
+        "from": {
+          "col": 3,
+          "row": 7
+        },
+        "to": {
+          "col": 4,
+          "row": 7
+        }
+      }
+    ],
+    "attacks": [
+      {
+        "attacker": "P2-druid-recruit-1",
+        "target": "P1-raider-start-1",
+        "deckDamage": 0
+      }
+    ],
+    "heals": [],
+    "upgrades": [],
+    "recruits": [
+      {
+        "unit": "P2-raider-recruit-1",
+        "type": "raider",
+        "at": {
+          "col": 0,
+          "row": 8
+        }
+      }
+    ]
+  }
+}

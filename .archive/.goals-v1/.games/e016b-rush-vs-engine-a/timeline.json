@@ -1,0 +1,968 @@
+{
+  "schemaVersion": 1,
+  "title": "E016b Rush vs Engine A",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "rest",
+          "copper",
+          "zap",
+          "rest"
+        ],
+        "played": [
+          "zap",
+          "bandage"
+        ],
+        "bought": [
+          "zap"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 1/P2 0, units P1 4/P2 4.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-001. P1 gained 2 supply from normal income 2 + 0 centers. P1-scout-1 12,1->9,1 P1-raider-1 10,1->8,1 P1-raider-1 captured center-northeast P1-marksman-1 11,0->10,1 P1-guardian-1 11,1->10,2 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "rest",
+          "copper",
+          "copper",
+          "rest",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 1/P2 1, units P1 4/P2 4.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-002. P2 gained 2 supply from normal income 2 + 0 centers. P2-scout-1 1,8->3,7 P2-scout-1 captured center-west-south P2-scout-2 0,9->2,8 P2-marksman-1 0,8->1,8 P2-druid-1 1,7->2,7 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "rest",
+          "copper",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "zap",
+          "zap"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 1/P2 1, units P1 4/P2 4.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-003. P1 gained 3 supply from normal income 2 + 1 centers. P1-marksman-1 10,1->9,0 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "zap",
+          "rest",
+          "bandage"
+        ],
+        "played": [
+          "bandage",
+          "zap"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "heal": 1,
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 1/P2 2, units P1 4/P2 4.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-004. P2 gained 3 supply from normal income 2 + 1 centers. P2-scout-1 3,7->5,7 P2-scout-1 captured center-center-south P2-scout-2 2,8->3,7 P2-marksman-1 1,8->2,8 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "rest",
+          "bandage",
+          "copper",
+          "zap"
+        ],
+        "played": [
+          "zap",
+          "bandage",
+          "blast"
+        ],
+        "bought": [
+          "zap"
+        ],
+        "produced": {
+          "damage": 3,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 1/P2 2, units P1 5/P2 4.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-005. P1 gained 3 supply from normal income 2 + 1 centers. P1 recruited delayed raider P1-raider-2 at 10,1 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "rest",
+          "copper",
+          "copper",
+          "village"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 1/P2 3, units P1 5/P2 5.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-006. P2 gained 4 supply from normal income 2 + 2 centers. P2-scout-1 5,7->6,5 P2-scout-1 captured center-center P2 recruited delayed guardian P2-guardian-2 at 0,8 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "zap",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "zap",
+          "zap",
+          "zap",
+          "blast"
+        ],
+        "bought": [
+          "zap"
+        ],
+        "produced": {
+          "damage": 5
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 1/P2 3, units P1 5/P2 5.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-007. P1 gained 3 supply from normal income 2 + 1 centers. P1-scout-1 9,1->6,3 P1-raider-2 10,1->9,1 P1-scout-1 attacked P2-scout-1 for 3 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "bandage",
+          "copper",
+          "silver",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "bandage",
+          "village",
+          "zap"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "heal": 1,
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 1/P2 4, units P1 5/P2 6.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-008. P2 gained 5 supply from normal income 2 + 3 centers. P2-scout-1 6,5->3,3 P2-scout-1 captured center-northwest P2-guardian-2 0,8->1,7 deck heal restored 1 HP to P2-scout-1 P2 recruited delayed healer P2-healer-3 at 0,8 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "bandage",
+          "copper",
+          "zap",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "zap",
+          "bandage",
+          "zap",
+          "zap",
+          "blast"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "damage": 5,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 2/P2 4, units P1 6/P2 6.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-009. P1 gained 3 supply from normal income 2 + 1 centers. P1-scout-1 6,3->5,3 P1-scout-1 captured center-center-north P1-scout-1 attacked P2-scout-1 for 3 P1 recruited delayed scout P1-scout-3 at 10,1 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "village",
+          "village",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "village",
+          "village"
+        ],
+        "bought": [
+          "armory"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 2/P2 4, units P1 6/P2 7.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-010. P2 gained 6 supply from normal income 2 + 4 centers. P2-healer-3 0,8->1,8 P2-scout-1 attacked P1-scout-1 for 2 P2 recruited delayed druid P2-druid-4 at 0,8 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "zap",
+          "copper",
+          "bandage",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "zap",
+          "zap",
+          "zap",
+          "zap",
+          "bandage",
+          "blast"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 6,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 3/P2 3, units P1 7/P2 7.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-011. P1 gained 4 supply from normal income 2 + 2 centers. P1-scout-1 5,3->6,5 P1-scout-1 captured center-center P1-scout-3 10,1->8,2 deck heal restored 1 HP to P1-scout-1 P1 recruited delayed marksman P1-marksman-4 at 10,1 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "zap",
+          "bandage",
+          "village",
+          "copper"
+        ],
+        "played": [
+          "village",
+          "bandage",
+          "zap",
+          "armory"
+        ],
+        "bought": [
+          "armory"
+        ],
+        "produced": {
+          "heal": 1,
+          "damage": 1,
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 2/P2 4, units P1 7/P2 8.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-012. P2 gained 5 supply from normal income 2 + 3 centers. P2-scout-1 3,3->5,3 P2-scout-1 captured center-center-north Armory-style health upgrade added 1 max HP to P2-guardian-2 Armory-style health upgrade added 1 max HP to P2-guardian-2 P2-scout-1 attacked P1-scout-1 for 3 deck heal restored 1 HP to P2-scout-1 P2 recruited delayed marksman P2-marksman-5 at 0,9 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "zap",
+          "zap",
+          "copper",
+          "zap",
+          "bandage"
+        ],
+        "played": [
+          "zap",
+          "zap",
+          "zap",
+          "bandage",
+          "zap",
+          "blast",
+          "blast"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "damage": 8,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 3/P2 3, units P1 7/P2 8.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-013. P1 gained 4 supply from normal income 2 + 2 centers. P1-scout-1 6,5->5,7 P1-scout-1 captured center-center-south P1-scout-3 8,2->6,3 P1-scout-1 attacked P2-scout-2 for 3 P1-scout-3 attacked P2-scout-1 for 3 deck heal restored 1 HP to P1-scout-1 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "village",
+          "village",
+          "copper",
+          "village"
+        ],
+        "played": [
+          "village",
+          "village",
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 2/P2 4, units P1 6/P2 9.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-014. P2 gained 5 supply from normal income 2 + 3 centers. P2-scout-1 5,3->6,5 P2-scout-1 captured center-center P2-marksman-1 2,8->3,8 P2-guardian-2 1,7->2,8 P2-marksman-1 attacked P1-scout-1 for 4 P2-scout-1 attacked P1-scout-3 for 2 P2-scout-2 attacked P1-scout-1 for 2 P1-scout-1 was removed P2-druid-1 healed P2-scout-2 for 1 P2-healer-3 healed P2-scout-2 for 1 P2 recruited delayed scout P2-scout-6 at 1,7 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "zap",
+          "zap",
+          "blast",
+          "bandage",
+          "zap"
+        ],
+        "played": [
+          "zap",
+          "zap",
+          "zap",
+          "zap",
+          "bandage",
+          "blast",
+          "blast"
+        ],
+        "bought": [
+          "second-wind"
+        ],
+        "produced": {
+          "damage": 8,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 3/P2 3, units P1 7/P2 8.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-015. P1 gained 4 supply from normal income 2 + 2 centers. P1-scout-3 6,3->5,3 P1-scout-3 captured center-center-north P1-scout-3 attacked P2-scout-1 for 3 P2-scout-1 was removed deck heal restored 1 HP to P1-scout-3 P1 recruited delayed guardian P1-guardian-5 at 11,0 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "armory",
+          "zap",
+          "bandage",
+          "armory"
+        ],
+        "played": [
+          "bandage",
+          "zap",
+          "village",
+          "armory",
+          "armory"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "heal": 1,
+          "damage": 1,
+          "upgradeHealth": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 2/P2 4, units P1 7/P2 8.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-016. P2 gained 5 supply from normal income 2 + 3 centers. P2-scout-2 3,7->5,7 P2-scout-2 captured center-center-south P2-scout-6 1,7->3,7 P2-druid-4 0,8->1,7 Armory-style health upgrade added 1 max HP to P2-guardian-2 Armory-style health upgrade added 1 max HP to P2-guardian-2 Armory-style health upgrade added 1 max HP to P2-guardian-2 Armory-style health upgrade added 1 max HP to P2-guardian-2 deck heal restored 1 HP to P2-scout-2 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "zap",
+          "silver",
+          "silver",
+          "zap",
+          "blast"
+        ],
+        "played": [
+          "zap",
+          "zap",
+          "blast",
+          "blast",
+          "second-wind"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 6,
+          "reattack": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 3/P2 3, units P1 8/P2 8.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-017. P1 gained 4 supply from normal income 2 + 2 centers. P1-scout-3 5,3->6,5 P1-scout-3 captured center-center P1-guardian-5 11,0->10,0 P1 recruited delayed raider P1-raider-6 at 11,0 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "village",
+          "village",
+          "copper",
+          "gold",
+          "silver"
+        ],
+        "played": [
+          "village",
+          "village",
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 3/P2 4, units P1 8/P2 9.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-018. P2 gained 5 supply from normal income 2 + 3 centers. P2-scout-2 5,7->8,6 P2-scout-2 captured center-east P2-scout-2 attacked P1-scout-3 for 2 P2 recruited delayed guardian P2-guardian-7 at 0,8 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "zap",
+          "copper",
+          "bandage",
+          "blast",
+          "zap"
+        ],
+        "played": [
+          "zap",
+          "zap",
+          "zap",
+          "bandage",
+          "blast",
+          "blast",
+          "second-wind"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 7,
+          "heal": 1,
+          "reattack": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 4/P2 4, units P1 8/P2 9.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-019. P1 gained 5 supply from normal income 2 + 3 centers. P1-scout-3 6,5->8,7 P1-scout-3 captured center-southeast P1-scout-3 attacked P2-scout-2 for 3 P1-scout-3 reattacked P2-scout-2 for 2 deck heal restored 1 HP to P1-scout-3 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "armory",
+          "bandage",
+          "armory",
+          "copper"
+        ],
+        "played": [
+          "bandage",
+          "zap",
+          "armory"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "heal": 1,
+          "damage": 1,
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 3/P2 5, units P1 8/P2 9.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-020. P2 gained 6 supply from normal income 2 + 4 centers. P2-scout-2 8,6->6,5 P2-scout-2 captured center-center Armory-style health upgrade added 1 max HP to P2-guardian-2 Armory-style health upgrade added 1 max HP to P2-guardian-2 deck heal restored 1 HP to P2-scout-2 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "blast",
+          "zap",
+          "blast",
+          "silver",
+          "blast"
+        ],
+        "played": [
+          "zap",
+          "blast",
+          "blast",
+          "blast",
+          "blast"
+        ],
+        "bought": [],
+        "produced": {
+          "damage": 9
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 4/P2 4, units P1 9/P2 9.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-021. P1 gained 5 supply from normal income 2 + 3 centers. P1-scout-3 8,7->8,6 P1-scout-3 captured center-east P1-scout-3 attacked P2-scout-2 for 3 P1 recruited delayed scout P1-scout-7 at 12,1 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "copper",
+          "copper",
+          "village",
+          "gold"
+        ],
+        "played": [
+          "village",
+          "zap"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 3/P2 5, units P1 9/P2 9.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-022. P2 gained 6 supply from normal income 2 + 4 centers. P2-scout-2 6,5->5,3 P2-scout-2 captured center-center-north Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "zap",
+          "silver",
+          "second-wind",
+          "bandage",
+          "zap"
+        ],
+        "played": [
+          "zap",
+          "zap",
+          "zap",
+          "zap",
+          "bandage",
+          "blast",
+          "blast",
+          "blast",
+          "second-wind"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 10,
+          "heal": 1,
+          "reattack": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 4/P2 4, units P1 10/P2 8.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-023. P1 gained 5 supply from normal income 2 + 3 centers. P1-scout-3 8,6->6,5 P1-scout-3 captured center-center P1-scout-7 12,1->9,2 P1-scout-3 attacked P2-scout-2 for 3 P2-scout-2 was removed deck heal restored 1 HP to P1-scout-3 P1 recruited delayed marksman P1-marksman-8 at 12,1 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "village",
+          "silver",
+          "village",
+          "armory",
+          "silver"
+        ],
+        "played": [
+          "village",
+          "village",
+          "armory",
+          "armory"
+        ],
+        "bought": [
+          "armory"
+        ],
+        "produced": {
+          "upgradeHealth": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 4/P2 4, units P1 10/P2 8.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-024. P2 gained 6 supply from normal income 2 + 4 centers. Armory-style health upgrade added 1 max HP to P2-guardian-2 Armory-style health upgrade added 1 max HP to P2-guardian-2 Armory-style health upgrade added 1 max HP to P2-guardian-2 Armory-style health upgrade added 1 max HP to P2-guardian-2 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-025",
+      "player": "P1",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-025.before.deck.json",
+        "after": "snapshots/turn-025.after.deck.json",
+        "drawnHand": [
+          "blast",
+          "silver",
+          "second-wind",
+          "bandage",
+          "blast"
+        ],
+        "played": [
+          "bandage",
+          "zap",
+          "zap",
+          "zap",
+          "blast",
+          "blast",
+          "blast",
+          "second-wind"
+        ],
+        "bought": [],
+        "produced": {
+          "heal": 1,
+          "damage": 9,
+          "reattack": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-025.before.board.json",
+        "after": "snapshots/turn-025.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 5/P2 3, units P1 11/P2 8.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-025. P1 gained 6 supply from normal income 2 + 4 centers. P1-scout-3 6,5->5,3 P1-scout-3 captured center-center-north P1-scout-7 9,2->8,2 P1-marksman-8 12,1->11,1 deck heal restored 1 HP to P1-scout-3 P1 recruited delayed scout P1-scout-9 at 12,1 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-026",
+      "player": "P2",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-026.before.deck.json",
+        "after": "snapshots/turn-026.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "village",
+          "bandage",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "village",
+          "bandage",
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-026.before.board.json",
+        "after": "snapshots/turn-026.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 5/P2 3, units P1 11/P2 9.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-026. P2 gained 5 supply from normal income 2 + 3 centers. P2-scout-6 3,7->5,7 P2-marksman-1 3,8->3,7 P2-druid-1 2,7->3,6 P2-druid-4 1,7->2,7 P2-guardian-7 0,8->1,7 P2 recruited delayed healer P2-healer-8 at 0,8 Pending threats after turn: unit=none, center=none."
+    },
+    {
+      "id": "turn-027",
+      "player": "P1",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-027.before.deck.json",
+        "after": "snapshots/turn-027.after.deck.json",
+        "drawnHand": [
+          "zap",
+          "silver",
+          "blast",
+          "zap",
+          "bandage"
+        ],
+        "played": [
+          "zap",
+          "zap",
+          "zap",
+          "bandage",
+          "zap",
+          "blast",
+          "blast",
+          "blast"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 10,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-027.before.board.json",
+        "after": "snapshots/turn-027.after.board.json"
+      },
+      "summary": "P1 completed board phase; centers P1 6/P2 2, units P1 12/P2 9.",
+      "reasoning": "P1 records a pending center-control threat at start of turn-027. P1 gained 7 supply from normal income 2 + 5 centers. P1-scout-3 5,3->3,3 P1-scout-3 captured center-northwest P1-scout-7 8,2->5,3 P1-scout-9 12,1->9,2 P1 recruited delayed guardian P1-guardian-10 at 12,1 Pending threats after turn: unit=none, center=P1."
+    },
+    {
+      "id": "turn-028",
+      "player": "P2",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-028.before.deck.json",
+        "after": "snapshots/turn-028.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "copper",
+          "village",
+          "copper",
+          "gold"
+        ],
+        "played": [
+          "village",
+          "armory"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-028.before.board.json",
+        "after": "snapshots/turn-028.after.board.json"
+      },
+      "summary": "P2 completed board phase; centers P1 5/P2 3, units P1 12/P2 11.",
+      "reasoning": "No confirmed or newly pending response-window win at start of turn-028. P2 gained 4 supply from normal income 2 + 2 centers. P2-scout-6 5,7->6,5 P2-scout-6 captured center-center P2-druid-1 3,6->4,6 P2-druid-4 2,7->2,6 P2-guardian-2 2,8->2,7 P2-guardian-7 1,7->1,6 P2-healer-3 1,8->1,7 P2-healer-8 0,8->0,7 Armory-style health upgrade added 1 max HP to P2-guardian-2 Armory-style health upgrade added 1 max HP to P2-guardian-2 P2-scout-6 attacked P1-scout-7 for 2 P2 recruited delayed druid P2-druid-9 at 0,8 P2 recruited delayed marksman P2-marksman-10 at 1,8 Pending threats after turn: unit=none, center=P1."
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+Turn-016 committed and validated.
+
+- **Deck line:** Play Peddler → moveToBuy → buy Gold → endTurn.
+- **Board line:** Recruit raiders `P2-raider-r16a` (1,7) and `P2-raider-r16b` (1,8); Guardian `P2-guardian-start-3` (8,7)→(8,6) onto center-east; Raider `P2-raider-r12` (5,7)→(7,6) supporting.
+- **Rationale:** P1 killed my forward raider, opening a 9–4 unit lead (lead 5) — the response window was now against me, so the priority was shrinking that gap. I spent all 12 supply on two recruits (now 9–6, lead 3) to defuse the loss condition, and parked the tanky guardian on center-east to block the incoming P1 raider and hold the center. Economy keeps compounding for the combat turns ahead.

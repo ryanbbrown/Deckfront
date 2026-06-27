@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-001",
+  "player": "P1",
+  "before": "snapshots/turn-001.before.deck.json",
+  "after": "snapshots/turn-001.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "gold"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "blast",
+    "copper",
+    "copper",
+    "copper",
+    "copper"
+  ],
+  "played": [
+    "blast"
+  ],
+  "bought": [
+    "gold"
+  ],
+  "produced": {
+    "damage": 2
+  }
+}

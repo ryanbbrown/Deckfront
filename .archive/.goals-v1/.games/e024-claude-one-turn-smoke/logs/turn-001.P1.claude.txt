@@ -1,0 +1,9 @@
+Turn-001 committed and validated.
+
+**Deck line:** Play Zap (handIndex 4) → +1 card, +1 action, +1 damage attribute; moveToBuy; endTurn.
+
+**Board line:** Advanced all four units toward center — `P1-raider-start-1` (10,1)→(8,1) onto **center-northeast** supply, `P1-raider-start-3` (12,1)→(9,2), `P1-scout-start-2` (11,0)→(8,2), `P1-marksman-start-4` (11,1)→(10,2). No attacks (no enemies in range), no recruits.
+
+**Rationale:** Rush center — Zap banks a damage attribute for upcoming attacks while keeping the action/card chain alive; raider-1 grabs the nearest uncontested supply center (center-northeast) and the rest of the squad pushes into the central column to establish board pressure ahead of contact with P2.
+
+All steps passed: DECK_OK, BOARD_OK, COMMIT_OK, VALIDATE_OK (valid replay bundle, 1 entry).

@@ -1,0 +1,1 @@
+{"schemaVersion":1,"turnId":"turn-014","player":"P2","actions":{"movements":[{"unit":"P2-raider-turn-012","from":{"col":0,"row":8},"to":{"col":3,"row":8}}],"recruits":[],"attacks":[{"attacker":"P2-raider-turn-010","target":"P1-raider-turn-005","deckDamage":0}],"heals":[],"upgrades":[{"target":"P2-raider-turn-012","attack":1}]}}

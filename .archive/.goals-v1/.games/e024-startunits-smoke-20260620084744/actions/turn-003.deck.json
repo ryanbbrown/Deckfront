@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-003",
+  "player": "P1",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 1
+    },
+    {
+      "type": "playAction",
+      "handIndex": 2
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "village"
+    },
+    {
+      "type": "endTurn"
+    }
+  ]
+}

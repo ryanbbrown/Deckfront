@@ -1,0 +1,10 @@
+id: "E001-current-best"
+createdAt: "2026-06-27T00:18:42.921514+00:00"
+source:
+  type: "base"
+  id: "experiment-base"
+  path: "experiment-base"
+hypothesis: "Current best E024 baseline as the canonical starting point for isolated experiments"
+description: "Baseline copied from experiment-base/code using the single game/ definition."
+codePath: code
+runsPath: runs

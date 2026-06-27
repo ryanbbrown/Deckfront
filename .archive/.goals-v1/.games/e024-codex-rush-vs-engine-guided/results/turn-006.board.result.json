@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-006",
+  "player": "P2",
+  "before": "snapshots/turn-006.before.board.json",
+  "after": "snapshots/turn-006.after.board.json",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-scout-start-2",
+        "from": {
+          "col": 4,
+          "row": 7
+        },
+        "to": {
+          "col": 8,
+          "row": 7
+        }
+      },
+      {
+        "unit": "P2-guardian-start-3",
+        "from": {
+          "col": 4,
+          "row": 6
+        },
+        "to": {
+          "col": 5,
+          "row": 5
+        }
+      },
+      {
+        "unit": "P2-marksman-start-4",
+        "from": {
+          "col": 4,
+          "row": 8
+        },
+        "to": {
+          "col": 6,
+          "row": 7
+        }
+      }
+    ],
+    "recruits": [],
+    "attacks": [
+      {
+        "attacker": "P2-scout-start-2",
+        "target": "P1-scout-start-2",
+        "damage": 2,
+        "deckDamage": 0,
+        "targetRemoved": true
+      },
+      {
+        "attacker": "P2-guardian-start-3",
+        "target": "P1-raider-start-3",
+        "damage": 4,
+        "deckDamage": 0,
+        "targetRemoved": false
+      },
+      {
+        "attacker": "P2-marksman-start-4",
+        "target": "P1-raider-start-3",
+        "damage": 4,
+        "deckDamage": 0,
+        "targetRemoved": true
+      }
+    ],
+    "heals": [],
+    "upgrades": []
+  }
+}

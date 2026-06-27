@@ -1,0 +1,18 @@
+id: "current-best"
+description: "Canonical base template for new Deckfront experiments."
+codePath: "code"
+game: "code/game"
+rules: "code/game/board-rules.md"
+deck: "code/game/deck.yaml"
+cards: "code/game/cards.json"
+units: "code/game/units.json"
+map: "code/game/map.json"
+origin:
+  label: "E024 highmove center6"
+  note: "Recreated as canonical base; archived goal files are not part of the active experiment system."
+defaultDrafts:
+  - "P1=blast,zap,silver"
+  - "P2=village,smithy,peddler"
+defaultStartingUnits:
+  P1: "raider,scout,raider,marksman"
+  P2: "raider,scout,guardian,marksman"

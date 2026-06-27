@@ -1,0 +1,5 @@
+Turn-005 committed and validated.
+
+- **Deck:** moveToBuy → buy Peddler (4 money: 2 copper + silver). Held Inferno/Zap unplayed — their damage would be wasted with no targets in range, and they recycle for a combat turn.
+- **Board:** raider-3 (5,3)→(3,3) center-northwest; marksman (7,3)→(7,5) center-center-south; scout (6,5)→(8,6) center-east; raider-1 holds center-northeast.
+- **Rationale:** The win condition is supply lead, and there are still no enemies in attack range, so I fan out to claim three more centers (now contesting 6 of 8) to widen the lead. Peddler adds actions/economy to enable a big multi-card burst turn once P2's cluster comes into range.

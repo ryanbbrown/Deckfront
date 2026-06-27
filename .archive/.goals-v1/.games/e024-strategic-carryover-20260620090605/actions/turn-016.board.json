@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-016",
+  "player": "P2",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-marksman-start-4",
+        "from": {
+          "col": 5,
+          "row": 4
+        },
+        "to": {
+          "col": 5,
+          "row": 3
+        }
+      },
+      {
+        "unit": "P2-scout-6",
+        "from": {
+          "col": 6,
+          "row": 4
+        },
+        "to": {
+          "col": 8,
+          "row": 7
+        }
+      },
+      {
+        "unit": "P2-raider-1",
+        "from": {
+          "col": 0,
+          "row": 8
+        },
+        "to": {
+          "col": 1,
+          "row": 4
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P2-scout-8",
+        "type": "scout",
+        "at": {
+          "col": 0,
+          "row": 8
+        }
+      }
+    ],
+    "attacks": [
+      {
+        "attacker": "P2-marksman-start-4",
+        "target": "P1-druid-6",
+        "deckDamage": 0
+      },
+      {
+        "attacker": "P2-scout-6",
+        "target": "P1-druid-5",
+        "deckDamage": 0
+      }
+    ],
+    "heals": [],
+    "upgrades": []
+  }
+}

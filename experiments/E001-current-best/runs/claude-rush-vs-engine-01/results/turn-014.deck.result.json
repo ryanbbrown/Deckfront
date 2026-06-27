@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-014",
+  "player": "P2",
+  "before": "snapshots/turn-014.before.deck.json",
+  "after": "snapshots/turn-014.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 1
+    },
+    {
+      "type": "playAction",
+      "handIndex": 1
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "storm"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "gold",
+    "training",
+    "peddler",
+    "copper",
+    "healer"
+  ],
+  "played": [
+    "training",
+    "peddler"
+  ],
+  "bought": [
+    "storm"
+  ],
+  "produced": {
+    "money": 1,
+    "upgradeDamage": 1
+  }
+}

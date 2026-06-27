@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-029",
+  "player": "P1",
+  "before": "snapshots/turn-029.before.deck.json",
+  "after": "snapshots/turn-029.after.deck.json",
+  "actions": [
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "silver"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "copper",
+    "silver",
+    "blast",
+    "blast"
+  ],
+  "played": [],
+  "bought": [
+    "silver"
+  ],
+  "produced": {
+    "money": 1
+  }
+}

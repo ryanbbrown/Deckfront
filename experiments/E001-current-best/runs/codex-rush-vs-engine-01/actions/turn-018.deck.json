@@ -1,0 +1,1 @@
+{"schemaVersion":1,"turnId":"turn-018","player":"P2","actions":[{"type":"playAction","handIndex":2},{"type":"playAction","handIndex":1},{"type":"playAction","handIndex":2},{"type":"moveToBuy"},{"type":"buyCard","cardId":"training"},{"type":"endTurn"}]}

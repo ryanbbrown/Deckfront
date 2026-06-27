@@ -1,0 +1,5 @@
+Turn `turn-027` complete and validated.
+
+**P1 leads 23 units to 10**, holding 7 of 8 centers. Freed a home hex and recruited a 23rd raider; all three rule-defined win conditions remain nominally satisfied (unconfirmed under the `current` alias).
+
+Continuing the safe, dominant line into the final turns — P2's corner siege stays unnecessary and -EV given the crushing margin on every metric. Validation passed (27 entries).

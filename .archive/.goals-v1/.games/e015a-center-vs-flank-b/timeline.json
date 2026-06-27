@@ -1,0 +1,1136 @@
+{
+  "schemaVersion": 1,
+  "title": "E015a Center vs Flank B",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Copper",
+          "Rest",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 gained 1 supply from 0 centers and made no recruit.",
+      "reasoning": "Compressed income math: 0 controlled centers => 1 income, saved supply 0 -> 1 after recruit spending. Center split moved from P1 0 / P2 0 / neutral 8 to P1 0 / P2 0 / neutral 8. Moves/captures: P1-guardian-1 11,1->11,2; P1-marksman-1 11,0->11,1; P1-raider-1 10,1->10,3; P1-scout-1 12,1->12,4. No permanent deck upgrades applied. No legal attacks were available or useful. No healing changed HP. Living units after turn: P1 4, P2 4."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Rest",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 gained 1 supply from 0 centers and made no recruit.",
+      "reasoning": "Compressed income math: 0 controlled centers => 1 income, saved supply 0 -> 1 after recruit spending. Center split moved from P1 0 / P2 0 / neutral 8 to P1 0 / P2 1 / neutral 7. Moves/captures: P2-scout-1 1,8->4,7; P2-scout-2 0,9->3,7; P2-scout-2 captured center-west-south; P2-marksman-1 0,8->1,8; P2-druid-1 1,7->2,7. No permanent deck upgrades applied. No legal attacks were available or useful. No healing changed HP. Living units after turn: P1 4, P2 4."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Copper",
+          "Bandage",
+          "Rest"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 gained 1 supply from 0 centers and made no recruit.",
+      "reasoning": "Compressed income math: 0 controlled centers => 1 income, saved supply 1 -> 2 after recruit spending. Center split moved from P1 0 / P2 1 / neutral 7 to P1 0 / P2 1 / neutral 7. Moves/captures: P1-guardian-1 11,2->11,3; P1-marksman-1 11,1->11,2; P1-raider-1 10,3->10,5; P1-scout-1 12,4->10,6. No permanent deck upgrades applied. No legal attacks were available or useful. No healing changed HP. Living units after turn: P1 4, P2 4."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Rest",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 gained 2 supply from 1 centers and made no recruit.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 1 -> 3 after recruit spending. Center split moved from P1 0 / P2 1 / neutral 7 to P1 0 / P2 1 / neutral 7. Moves/captures: P2-scout-1 4,7->7,5; P2-scout-2 3,7->6,6; P2-marksman-1 1,8->2,8; P2-druid-1 2,7->3,6. No permanent deck upgrades applied. No legal attacks were available or useful. No healing changed HP. Living units after turn: P1 4, P2 4."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Silver",
+          "Copper",
+          "Peddler",
+          "Zap"
+        ],
+        "played": [
+          "Peddler",
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 gained 1 supply from 0 centers and made no recruit.",
+      "reasoning": "Compressed income math: 0 controlled centers => 1 income, saved supply 2 -> 3 after recruit spending. Center split moved from P1 0 / P2 1 / neutral 7 to P1 1 / P2 1 / neutral 6. Moves/captures: P1-guardian-1 11,3->11,4; P1-marksman-1 11,2->11,3; P1-raider-1 10,5->8,6; P1-raider-1 captured center-east; P1-scout-1 10,6->7,7. No permanent deck upgrades applied. Combat: P1-raider-1 hit P2-scout-1 for 7 including 1 deck damage (1/8 hp left); P1-scout-1 hit P2-scout-1 for 2, killing it. No healing changed HP. Living units after turn: P1 4, P2 3."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Rest",
+          "Copper",
+          "Zap"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 gained 2 supply from 1 centers and made no recruit.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 3 -> 5 after recruit spending. Center split moved from P1 1 / P2 1 / neutral 6 to P1 1 / P2 1 / neutral 6. Moves/captures: P2-scout-2 6,6->7,5; P2-marksman-1 2,8->3,7; P2-druid-1 3,6->4,6. No permanent deck upgrades applied. Combat: P2-scout-2 hit P1-raider-1 for 3 including 1 deck damage (5/8 hp left). No healing changed HP. Living units after turn: P1 4, P2 3."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Zap",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Peddler"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 gained 2 supply from 1 centers and made no recruit.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 3 -> 5 after recruit spending. Center split moved from P1 1 / P2 1 / neutral 6 to P1 2 / P2 1 / neutral 5. Moves/captures: P1-guardian-1 11,4->10,5; P1-marksman-1 11,3->11,4; P1-raider-1 8,6->6,7; P1-scout-1 7,7->5,7; P1-scout-1 captured center-center-south. No permanent deck upgrades applied. Combat: P1-scout-1 hit P2-marksman-1 for 3 including 1 deck damage (5/8 hp left). No healing changed HP. Living units after turn: P1 4, P2 3."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Silver",
+          "Peddler",
+          "Copper",
+          "Silver"
+        ],
+        "played": [
+          "Peddler",
+          "Bandage"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 gained 2 supply from 1 centers and recruited P2-scout-3.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 5 -> 1 after recruit spending. Center split moved from P1 2 / P2 1 / neutral 5 to P1 1 / P2 2 / neutral 5. Moves/captures: P2-scout-2 7,5->8,6; P2-scout-2 captured center-east; P2-marksman-1 3,7->4,7; P2-druid-1 4,6->5,5. No permanent deck upgrades applied. Combat: P2-marksman-1 hit P1-raider-1 for 4 (1/8 hp left); P2-scout-2 hit P1-raider-1 for 2, killing it. Healing: deck healed P2-marksman-1 to 6/8. Living units after turn: P1 3, P2 4."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Bandage",
+          "Village",
+          "Silver",
+          "Peddler"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Bandage"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 gained 2 supply from 1 centers and recruited P1-guardian-2.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 5 -> 1 after recruit spending. Center split moved from P1 1 / P2 2 / neutral 5 to P1 1 / P2 2 / neutral 5. Moves/captures: P1-guardian-1 10,5->9,5; P1-marksman-1 11,4->10,5. No permanent deck upgrades applied. Combat: P1-marksman-1 hit P2-scout-2 for 4 (4/8 hp left); P1-guardian-1 hit P2-scout-2 for 4, killing it; P1-scout-1 hit P2-marksman-1 for 2 (4/8 hp left). No healing changed HP. Living units after turn: P1 4, P2 3."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Copper",
+          "Village",
+          "Bandage"
+        ],
+        "played": [
+          "Village",
+          "Zap",
+          "Bandage",
+          "Peddler"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 gained 3 supply from 2 centers and made no recruit.",
+      "reasoning": "Compressed income math: 2 controlled centers => 3 income, saved supply 1 -> 4 after recruit spending. Center split moved from P1 1 / P2 2 / neutral 5 to P1 1 / P2 3 / neutral 4. Moves/captures: P2-scout-3 0,8->3,6; P2-marksman-1 4,7->5,6; P2-druid-1 5,5->6,5; P2-druid-1 captured center-center. No permanent deck upgrades applied. Combat: P2-marksman-1 hit P1-scout-1 for 5 including 1 deck damage (3/8 hp left); P2-scout-3 hit P1-scout-1 for 2 (1/8 hp left). Healing: deck healed P2-marksman-1 to 5/8. Living units after turn: P1 4, P2 3."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Copper",
+          "Bandage",
+          "Silver"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Training"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 gained 2 supply from 1 centers and made no recruit.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 1 -> 3 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 2 / P2 2 / neutral 4. Moves/captures: P1-guardian-1 9,5->8,6; P1-guardian-1 captured center-east; P1-guardian-2 10,1->10,2; P1-marksman-1 10,5->9,5. No permanent deck upgrades applied. Combat: P1-scout-1 hit P2-marksman-1 for 3 including 1 deck damage (2/8 hp left). Healing: deck healed P1-scout-1 to 2/8. Living units after turn: P1 4, P2 3."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Silver",
+          "Copper",
+          "Blast"
+        ],
+        "played": [
+          "Blast"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "damage": 2,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 gained 3 supply from 2 centers and recruited P2-raider-1.",
+      "reasoning": "Compressed income math: 2 controlled centers => 3 income, saved supply 4 -> 1 after recruit spending. Center split moved from P1 2 / P2 2 / neutral 4 to P1 2 / P2 2 / neutral 4. Moves/captures: P2-scout-3 3,6->6,6; P2-marksman-1 5,6->6,7; P2-druid-1 6,5->7,5. No permanent deck upgrades applied. Combat: P2-marksman-1 hit P1-scout-1 for 5 including 1 deck damage, killing it; P2-druid-1 hit P1-guardian-1 for 5 including 1 deck damage (11/16 hp left); P2-scout-3 hit P1-guardian-1 for 2 (9/16 hp left). No healing changed HP. Living units after turn: P1 3, P2 4."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Armory",
+          "Copper",
+          "Village",
+          "Copper",
+          "Peddler"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Armory"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 gained 3 supply from 2 centers and recruited P1-marksman-2.",
+      "reasoning": "Compressed income math: 2 controlled centers => 3 income, saved supply 3 -> 0 after recruit spending. Center split moved from P1 2 / P2 2 / neutral 4 to P1 2 / P2 2 / neutral 4. Moves/captures: P1-guardian-1 8,6->7,6; P1-guardian-2 10,2->10,3; P1-marksman-1 9,5->8,6. Permanent upgrades: P1-guardian-1 +2 maxHp. Combat: P1-marksman-1 hit P2-marksman-1 for 4, killing it; P1-guardian-1 hit P2-scout-3 for 4 (4/8 hp left). No healing changed HP. Living units after turn: P1 4, P2 3."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Peddler",
+          "Bandage",
+          "Silver"
+        ],
+        "played": [
+          "Peddler",
+          "Zap",
+          "Village",
+          "Bandage",
+          "Peddler"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 gained 3 supply from 2 centers and made no recruit.",
+      "reasoning": "Compressed income math: 2 controlled centers => 3 income, saved supply 1 -> 4 after recruit spending. Center split moved from P1 2 / P2 2 / neutral 4 to P1 2 / P2 2 / neutral 4. Moves/captures: P2-scout-3 6,6->8,5; P2-raider-1 0,8->2,7. No permanent deck upgrades applied. Combat: P2-druid-1 hit P1-marksman-1 for 5 including 1 deck damage (3/8 hp left); P2-scout-3 hit P1-marksman-1 for 2 (1/8 hp left). Healing: deck healed P2-scout-3 to 5/8; P2-druid-1 printed-healed P2-scout-3 to 6/8. Living units after turn: P1 4, P2 3."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Bandage",
+          "Silver",
+          "Training",
+          "Zap"
+        ],
+        "played": [
+          "Zap",
+          "Bandage",
+          "Armory"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 gained 3 supply from 2 centers and made no recruit.",
+      "reasoning": "Compressed income math: 2 controlled centers => 3 income, saved supply 0 -> 3 after recruit spending. Center split moved from P1 2 / P2 2 / neutral 4 to P1 2 / P2 2 / neutral 4. Moves/captures: P1-guardian-1 7,6->6,7; P1-guardian-2 10,3->10,4; P1-marksman-1 8,6->7,6; P1-marksman-2 10,1->10,2. Permanent upgrades: P1-guardian-1 +2 maxHp. Combat: P1-marksman-1 hit P2-scout-3 for 5 including 1 deck damage (1/8 hp left). Healing: deck healed P1-marksman-1 to 2/8. Living units after turn: P1 4, P2 3."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Silver",
+          "Copper",
+          "Silver",
+          "Zap"
+        ],
+        "played": [
+          "Zap",
+          "Blast"
+        ],
+        "bought": [
+          "Second Wind"
+        ],
+        "produced": {
+          "damage": 3,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 gained 3 supply from 2 centers and recruited P2-marksman-2.",
+      "reasoning": "Compressed income math: 2 controlled centers => 3 income, saved supply 4 -> 1 after recruit spending. Center split moved from P1 2 / P2 2 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P2-scout-3 8,5->8,6; P2-scout-3 captured center-east; P2-raider-1 2,7->4,6. No permanent deck upgrades applied. Combat: P2-druid-1 hit P1-marksman-1 for 5 including 1 deck damage, killing it; P2-scout-3 hit P1-guardian-1 for 3 including 1 deck damage (10/20 hp left). Healing: P2-druid-1 printed-healed P2-scout-3 to 2/8. Living units after turn: P1 3, P2 4."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Village",
+          "Copper",
+          "Peddler",
+          "Peddler"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Peddler",
+          "Bandage",
+          "Training"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "summary": "P1 gained 2 supply from 1 centers and made no recruit.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 3 -> 5 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P1-guardian-1 6,7->5,7; P1-guardian-2 10,4->10,5; P1-marksman-2 10,2->10,3. Permanent upgrades: P1-guardian-1 +1 attack. No legal attacks were available or useful. Healing: deck healed P1-guardian-1 to 11/20. Living units after turn: P1 3, P2 4."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Peddler",
+          "Village",
+          "Copper",
+          "Peddler"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Peddler",
+          "Bandage",
+          "Second Wind",
+          "Zap",
+          "Blast"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 3,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "summary": "P2 gained 4 supply from 3 centers and made no recruit.",
+      "reasoning": "Compressed income math: 3 controlled centers => 4 income, saved supply 1 -> 5 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P2-raider-1 4,6->6,5; P2-marksman-2 0,8->1,7. No permanent deck upgrades applied. Combat: P2-scout-3 hit P1-guardian-2 for 3 including 1 deck damage (13/16 hp left); reattack P2-scout-3 hit P1-guardian-2 for 2 (11/16 hp left). Healing: deck healed P2-scout-3 to 3/8; P2-druid-1 printed-healed P2-scout-3 to 4/8. Living units after turn: P1 3, P2 4."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "Armory",
+          "Silver",
+          "Zap",
+          "Village",
+          "Silver"
+        ],
+        "played": [
+          "Village",
+          "Zap",
+          "Peddler",
+          "Peddler",
+          "Bandage",
+          "Village",
+          "Armory"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "summary": "P1 gained 2 supply from 1 centers and recruited P1-healer-1.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 5 -> 1 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P1-guardian-2 10,5->9,5; P1-marksman-2 10,3->10,4. Permanent upgrades: P1-guardian-1 +2 maxHp. Combat: P1-guardian-2 hit P2-scout-3 for 5 including 1 deck damage, killing it. Healing: deck healed P1-guardian-1 to 14/22. Living units after turn: P1 4, P2 3."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Second Wind",
+          "Blast",
+          "Peddler",
+          "Copper"
+        ],
+        "played": [
+          "Peddler",
+          "Village",
+          "Blast",
+          "Second Wind"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "damage": 2,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "summary": "P2 gained 4 supply from 3 centers and recruited P2-guardian-1.",
+      "reasoning": "Compressed income math: 3 controlled centers => 4 income, saved supply 5 -> 3 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P2-raider-1 6,5->8,5; P2-marksman-2 1,7->2,7; P2-druid-1 7,5->8,6. No permanent deck upgrades applied. Combat: P2-raider-1 hit P1-guardian-2 for 7 including 1 deck damage (4/16 hp left); reattack P2-raider-1 hit P1-guardian-2 for 6, killing it. No healing changed HP. Living units after turn: P1 3, P2 4."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Training",
+          "Village",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Village",
+          "Zap",
+          "Bandage",
+          "Peddler",
+          "Peddler",
+          "Village",
+          "Armory",
+          "Training"
+        ],
+        "bought": [
+          "Training"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 2,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "summary": "P1 gained 2 supply from 1 centers and made no recruit.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 1 -> 3 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P1-marksman-2 10,4->10,5; P1-healer-1 10,1->10,2. Permanent upgrades: P1-guardian-1 +2 maxHp; P1-guardian-1 +1 attack. Combat: P1-marksman-2 hit P2-raider-1 for 5 including 1 deck damage (3/8 hp left). Healing: deck healed P1-guardian-1 to 17/24. Living units after turn: P1 3, P2 4."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Bandage",
+          "Zap",
+          "Peddler",
+          "Peddler"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Peddler",
+          "Zap",
+          "Bandage",
+          "Blast",
+          "Second Wind",
+          "Village"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 3,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "summary": "P2 gained 4 supply from 3 centers and recruited P2-scout-4.",
+      "reasoning": "Compressed income math: 3 controlled centers => 4 income, saved supply 3 -> 1 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P2-marksman-2 2,7->3,6; P2-guardian-1 0,8->1,7. No permanent deck upgrades applied. Combat: P2-marksman-2 hit P1-guardian-1 for 5 including 1 deck damage (12/24 hp left); reattack P2-marksman-2 hit P1-guardian-1 for 4 (8/24 hp left). Healing: deck healed P2-raider-1 to 4/8; P2-druid-1 printed-healed P2-raider-1 to 5/8. Living units after turn: P1 3, P2 5."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Armory",
+          "Copper",
+          "Village",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Armory"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "summary": "P1 gained 2 supply from 1 centers and made no recruit.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 3 -> 5 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P1-marksman-2 10,5->9,5; P1-healer-1 10,2->10,3. Permanent upgrades: P1-guardian-1 +2 maxHp. Combat: P1-marksman-2 hit P2-raider-1 for 4 (1/8 hp left). No healing changed HP. Living units after turn: P1 3, P2 5."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Silver",
+          "Silver",
+          "Second Wind",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Zap",
+          "Bandage",
+          "Village",
+          "Second Wind",
+          "Peddler",
+          "Blast"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "damage": 3,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "summary": "P2 gained 4 supply from 3 centers and made no recruit.",
+      "reasoning": "Compressed income math: 3 controlled centers => 4 income, saved supply 1 -> 5 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P2-scout-4 0,8->3,7; P2-marksman-2 3,6->4,6; P2-guardian-1 1,7->2,7. No permanent deck upgrades applied. Combat: P2-raider-1 hit P1-marksman-2 for 7 including 1 deck damage (1/8 hp left); reattack P2-raider-1 hit P1-marksman-2 for 6, killing it; P2-marksman-2 hit P1-guardian-1 for 5 including 1 deck damage (5/26 hp left); P2-scout-4 hit P1-guardian-1 for 3 including 1 deck damage (2/26 hp left). Healing: deck healed P2-raider-1 to 2/8; P2-druid-1 printed-healed P2-raider-1 to 3/8. Living units after turn: P1 2, P2 5."
+    },
+    {
+      "id": "turn-025",
+      "player": "P1",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-025.before.deck.json",
+        "after": "snapshots/turn-025.after.deck.json",
+        "drawnHand": [
+          "Armory",
+          "Peddler",
+          "Zap",
+          "Training",
+          "Training"
+        ],
+        "played": [
+          "Peddler",
+          "Peddler",
+          "Zap",
+          "Village",
+          "Bandage",
+          "Armory",
+          "Training",
+          "Training"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 2,
+          "upgradeDamage": 2,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-025.before.board.json",
+        "after": "snapshots/turn-025.after.board.json"
+      },
+      "summary": "P1 gained 2 supply from 1 centers and recruited P1-guardian-3.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 5 -> 1 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P1-healer-1 10,3->10,4. Permanent upgrades: P1-guardian-1 +2 maxHp; P1-guardian-1 +2 attack. Combat: P1-healer-1 hit P2-raider-1 for 2 including 1 deck damage (1/8 hp left). Healing: deck healed P1-guardian-1 to 5/28. Living units after turn: P1 3, P2 5."
+    },
+    {
+      "id": "turn-026",
+      "player": "P2",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-026.before.deck.json",
+        "after": "snapshots/turn-026.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Peddler",
+          "Second Wind",
+          "Silver",
+          "Peddler"
+        ],
+        "played": [
+          "Peddler",
+          "Peddler",
+          "Bandage",
+          "Village",
+          "Village",
+          "Blast",
+          "Second Wind"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 2,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-026.before.board.json",
+        "after": "snapshots/turn-026.after.board.json"
+      },
+      "summary": "P2 gained 4 supply from 3 centers and recruited P2-marksman-3.",
+      "reasoning": "Compressed income math: 3 controlled centers => 4 income, saved supply 5 -> 3 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P2-scout-4 3,7->6,6; P2-marksman-2 4,6->5,5; P2-guardian-1 2,7->3,6. No permanent deck upgrades applied. Combat: P2-marksman-2 hit P1-guardian-1 for 5 including 1 deck damage, killing it. Healing: deck healed P2-raider-1 to 2/8; P2-druid-1 printed-healed P2-raider-1 to 3/8. Living units after turn: P1 2, P2 6."
+    },
+    {
+      "id": "turn-027",
+      "player": "P1",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-027.before.deck.json",
+        "after": "snapshots/turn-027.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Silver",
+          "Armory",
+          "Village",
+          "Bandage"
+        ],
+        "played": [
+          "Village",
+          "Bandage",
+          "Zap",
+          "Armory",
+          "Training"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 2,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-027.before.board.json",
+        "after": "snapshots/turn-027.after.board.json"
+      },
+      "summary": "P1 gained 2 supply from 1 centers and made no recruit.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 1 -> 3 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P1-guardian-3 10,1->10,2; P1-healer-1 10,4->10,5. Permanent upgrades: P1-guardian-3 +2 maxHp; P1-guardian-3 +1 attack. Combat: P1-healer-1 hit P2-raider-1 for 2 including 1 deck damage (1/8 hp left). No healing changed HP. Living units after turn: P1 2, P2 6."
+    },
+    {
+      "id": "turn-028",
+      "player": "P2",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-028.before.deck.json",
+        "after": "snapshots/turn-028.after.deck.json",
+        "drawnHand": [
+          "Peddler",
+          "Zap",
+          "Silver",
+          "Silver",
+          "Bandage"
+        ],
+        "played": [
+          "Peddler",
+          "Village",
+          "Zap",
+          "Bandage",
+          "Peddler",
+          "Second Wind"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-028.before.board.json",
+        "after": "snapshots/turn-028.after.board.json"
+      },
+      "summary": "P2 gained 4 supply from 3 centers and recruited P2-guardian-2.",
+      "reasoning": "Compressed income math: 3 controlled centers => 4 income, saved supply 3 -> 1 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P2-scout-4 6,6->7,5; P2-marksman-2 5,5->6,5; P2-marksman-3 0,8->1,7; P2-guardian-1 3,6->4,6. No permanent deck upgrades applied. No legal attacks were available or useful. Healing: deck healed P2-raider-1 to 2/8; P2-druid-1 printed-healed P2-raider-1 to 3/8. Living units after turn: P1 2, P2 7. Pending lead marker before next check: P2."
+    },
+    {
+      "id": "turn-029",
+      "player": "P1",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-029.before.deck.json",
+        "after": "snapshots/turn-029.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Village",
+          "Peddler",
+          "Armory",
+          "Peddler"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Peddler",
+          "Peddler",
+          "Bandage",
+          "Armory",
+          "Armory"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 4,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-029.before.board.json",
+        "after": "snapshots/turn-029.after.board.json"
+      },
+      "summary": "P1 gained 2 supply from 1 centers and made no recruit.",
+      "reasoning": "Compressed income math: 1 controlled centers => 2 income, saved supply 3 -> 5 after recruit spending. Center split moved from P1 1 / P2 3 / neutral 4 to P1 1 / P2 3 / neutral 4. Moves/captures: P1-guardian-3 10,2->10,3; P1-healer-1 10,5->9,5. Permanent upgrades: P1-guardian-3 +4 maxHp. Combat: P1-healer-1 hit P2-raider-1 for 1 (2/8 hp left). No healing changed HP. Living units after turn: P1 2, P2 7. Pending lead marker before next check: P2."
+    }
+  ]
+}

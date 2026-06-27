@@ -1,0 +1,5 @@
+Turn-017 committed and validated.
+
+- **Deck:** Play Inferno (+4 deck damage) → moveToBuy → buy Peddler.
+- **Board:** r9a (8,5)→(7,7) flanks adjacent to the target; marksman (4+1) and r9a (6+1) = 12 kill **P2-raider-r12** at (7,6) (`targetRemoved: true`); advance r11→(8,3), r15→(9,2); recruit P1-raider-r17 at (10,1).
+- **Rationale:** P2 over-recruited to 6 units but left raider-r12 exposed. I flanked r9a to the adjacent hex and focus-fired with the marksman to remove it, dropping P2 to 5 while my recruit pushes me to 10 — a 5-unit lead toward the win condition. I keep funneling reserves down the corridor to press center-east/southeast. Each turn I'm trading kills + recruits faster than P2 can replace, widening both the unit-lead and territory advantages.

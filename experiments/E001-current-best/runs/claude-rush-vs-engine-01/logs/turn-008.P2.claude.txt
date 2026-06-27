@@ -1,0 +1,9 @@
+Turn-008 for P2 complete and validated.
+
+**Situation:** P1's mass-raider rush has snowballed — they now lead **7-4 in units** and hold **7 of 8 centers** (income 9 vs my 3). I can't win the recruit race, so my game is pure stabilization: recruit every turn to keep their lead under the 4-unit win threshold, and focus-kill any raider that engages my wall.
+
+**Deck phase** — 7 money, bought **Training** (permanent +1 attack) so fewer units secure each raider kill over time.
+
+**Board phase** — Recruited a **second marksman** at home and closed the line with guardian006 → (2,8). My southwest fortress around center-west-south is now 2 guardians (front), 2 marksmen (range-2 DPS), and a scout — able to concentrate up to ~16 damage and kill 1-2 raiders per turn when they dive. Units now **5v7 (lead 2, no pending threat)**.
+
+**Honest assessment:** This game is likely lost — P1's 7-center income lets them out-recruit me indefinitely, and the only thing keeping me alive is that they haven't fed raiders into my kill zone. I'm playing it out competently to delay the 4-unit-lead clock and punish any overextension, but barring P1 mistakes the rush is winning the territory-and-tempo war decisively.

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-010",
+  "player": "P2",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-scout-start",
+        "from": {
+          "col": 8,
+          "row": 1
+        },
+        "to": {
+          "col": 6,
+          "row": 5
+        }
+      },
+      {
+        "unit": "P2-raider-start",
+        "from": {
+          "col": 6,
+          "row": 4
+        },
+        "to": {
+          "col": 8,
+          "row": 7
+        }
+      },
+      {
+        "unit": "P2-druid-5",
+        "from": {
+          "col": 2,
+          "row": 7
+        },
+        "to": {
+          "col": 4,
+          "row": 6
+        }
+      },
+      {
+        "unit": "P2-healer-6",
+        "from": {
+          "col": 0,
+          "row": 8
+        },
+        "to": {
+          "col": 1,
+          "row": 7
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P2-scout-7",
+        "type": "scout",
+        "at": {
+          "col": 0,
+          "row": 8
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

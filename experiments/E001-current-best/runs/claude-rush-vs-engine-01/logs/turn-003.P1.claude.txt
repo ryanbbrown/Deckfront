@@ -1,0 +1,8 @@
+Turn `turn-003` complete and validated.
+
+**P1 seizes the center:**
+- **Board:** Captured **center-center-north**, **center-center**, and **center-center-south** in one turn. P1 now controls **4 of 8 centers** (cn, cc, ccs, ne) vs P2's lone center-west-south. Income jumps to 6/turn — enough to recruit every turn. Marksman pushed to (9,4) to threaten center-east next.
+- **Deck:** Bought a second **Blast** to stack damage burst for the imminent clash with P2's raider near (4,6).
+- **State:** Supply 5 (P1) vs 2 (P2). Units 4v4, no win threats.
+
+The rush is ahead on territory and about to convert that income lead into recruits and board pressure. Validation passed (3 entries).

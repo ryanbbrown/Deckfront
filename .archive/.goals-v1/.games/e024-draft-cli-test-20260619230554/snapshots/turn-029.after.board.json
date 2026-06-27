@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6",
+  "map": "sketch-v5-recenter",
+  "turn": {
+    "activePlayer": "P2",
+    "round": 15
+  },
+  "units": [
+    {
+      "id": "P1-scout-1",
+      "player": "P1",
+      "type": "scout",
+      "col": 8,
+      "row": 6,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-scout-1",
+      "player": "P2",
+      "type": "scout",
+      "col": 8,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-raider-2",
+      "player": "P1",
+      "type": "raider",
+      "col": 8,
+      "row": 5,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-raider-2",
+      "player": "P2",
+      "type": "raider",
+      "col": 4,
+      "row": 3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-guardian-3",
+      "player": "P1",
+      "type": "guardian",
+      "col": 6,
+      "row": 5,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P2-guardian-3",
+      "player": "P2",
+      "type": "guardian",
+      "col": 7,
+      "row": 6,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-marksman-4",
+      "player": "P1",
+      "type": "marksman",
+      "col": 9,
+      "row": 6,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-druid-5",
+      "player": "P1",
+      "type": "druid",
+      "col": 9,
+      "row": 5,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-marksman-4",
+      "player": "P2",
+      "type": "marksman",
+      "col": 4,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-healer-6",
+      "player": "P1",
+      "type": "healer",
+      "col": 5,
+      "row": 2,
+      "hp": 4,
+      "maxHp": 4,
+      "attack": 1
+    },
+    {
+      "id": "P2-druid-5",
+      "player": "P2",
+      "type": "druid",
+      "col": 3,
+      "row": 2,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-healer-6",
+      "player": "P2",
+      "type": "healer",
+      "col": 2,
+      "row": 5,
+      "hp": 4,
+      "maxHp": 4,
+      "attack": 1
+    },
+    {
+      "id": "P1-scout-7",
+      "player": "P1",
+      "type": "scout",
+      "col": 7,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-scout-7",
+      "player": "P2",
+      "type": "scout",
+      "col": 5,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-raider-8",
+      "player": "P1",
+      "type": "raider",
+      "col": 9,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-raider-8",
+      "player": "P2",
+      "type": "raider",
+      "col": 4,
+      "row": 6,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-guardian-9",
+      "player": "P1",
+      "type": "guardian",
+      "col": 10,
+      "row": 3,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P2-guardian-9",
+      "player": "P2",
+      "type": "guardian",
+      "col": 0,
+      "row": 8,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-marksman-10",
+      "player": "P1",
+      "type": "marksman",
+      "col": 10,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    }
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": "P2"
+    },
+    {
+      "id": "center-west-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-north",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center-south",
+      "controller": "P1"
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P1"
+    },
+    {
+      "id": "center-east",
+      "controller": "P1"
+    },
+    {
+      "id": "center-southeast",
+      "controller": "P2"
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 0
+    },
+    {
+      "player": "P2",
+      "amount": 2
+    }
+  ],
+  "notes": []
+}

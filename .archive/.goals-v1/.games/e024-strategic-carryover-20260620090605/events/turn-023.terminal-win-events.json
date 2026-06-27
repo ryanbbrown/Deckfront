@@ -1,0 +1,22 @@
+[
+  {
+    "type": "unitLead",
+    "status": "confirmed",
+    "player": "P2",
+    "completedTurns": 23,
+    "playerUnits": 8,
+    "opponentUnits": 4,
+    "playerCenters": 6,
+    "opponentCenters": 2
+  },
+  {
+    "type": "sixCenterDominance",
+    "status": "confirmed",
+    "player": "P2",
+    "completedTurns": 23,
+    "playerUnits": 8,
+    "opponentUnits": 4,
+    "playerCenters": 6,
+    "opponentCenters": 2
+  }
+]

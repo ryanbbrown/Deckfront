@@ -1,0 +1,5 @@
+Turn-002 committed and validated.
+
+- **Deck line:** Play Village → Play Smithy → moveToBuy → buy Silver → endTurn. Net +4 cards drawn, extra actions chained, and economy grown with a Silver.
+- **Board line:** Scout `P2-scout-start-2` (1,7)→(3,7) and Raider `P2-raider-start-1` (0,8)→(3,8), both advancing toward the neutral center-west-south supply center.
+- **Rationale:** Engine line — develop the deck with Village+Smithy and buy Silver for economy, while pushing two mobile units toward an uncontested center to start staking board control early.

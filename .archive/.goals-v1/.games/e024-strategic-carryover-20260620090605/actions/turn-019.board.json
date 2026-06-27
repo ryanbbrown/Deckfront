@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-019",
+  "player": "P1",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P1-druid-7",
+        "from": {
+          "col": 6,
+          "row": 3
+        },
+        "to": {
+          "col": 5,
+          "row": 3
+        }
+      },
+      {
+        "unit": "P1-druid-8",
+        "from": {
+          "col": 8,
+          "row": 1
+        },
+        "to": {
+          "col": 6,
+          "row": 2
+        }
+      },
+      {
+        "unit": "P1-guardian-1",
+        "from": {
+          "col": 10,
+          "row": 1
+        },
+        "to": {
+          "col": 8,
+          "row": 2
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P1-guardian-2",
+        "type": "guardian",
+        "at": {
+          "col": 10,
+          "row": 1
+        }
+      }
+    ],
+    "attacks": [
+      {
+        "attacker": "P1-druid-7",
+        "target": "P2-raider-1",
+        "deckDamage": 1
+      }
+    ],
+    "heals": [],
+    "upgrades": []
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-007",
+  "player": "P1",
+  "before": "snapshots/turn-007.before.deck.json",
+  "after": "snapshots/turn-007.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 2
+    },
+    {
+      "type": "playAction",
+      "handIndex": 2
+    },
+    {
+      "type": "playAction",
+      "handIndex": 4
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "gold"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "copper",
+    "village",
+    "bandage",
+    "copper"
+  ],
+  "played": [
+    "village",
+    "bandage",
+    "zap"
+  ],
+  "bought": [
+    "gold"
+  ],
+  "produced": {
+    "damage": 1,
+    "heal": 1
+  }
+}

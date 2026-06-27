@@ -1,0 +1,51 @@
+# Turn Context
+
+Complete exactly one turn now: `turn-001` for `P1`.
+
+Run directory: `.games/context-smoke`
+
+Use Bash only. Do not create probe files. Use only these exact turn artifact paths:
+
+- Deck actions: `.games/context-smoke/actions/turn-001.deck.json`
+- Board actions: `.games/context-smoke/actions/turn-001.board.json`
+- Win events, if strict commit requires them: `.games/context-smoke/actions/turn-001.win-events.json`
+- Terminal win events, if strict commit requires them: `.games/context-smoke/actions/turn-001.terminal-win-events.json`
+- Deck result: `.games/context-smoke/results/turn-001.deck.result.json`
+- Board result: `.games/context-smoke/results/turn-001.board.result.json`
+
+Briefing JSON:
+
+```json
+{"activePlayer":"P1","deck":{"phase":"action","active":{"id":"P1","handIndexed":[[0,"copper"],[1,"copper"],[2,"silver"],[3,"copper"],[4,"zap"]],"hand":["copper","copper","silver","copper","zap"],"drawCount":5,"discard":[],"play":[],"actions":1,"buys":1,"money":2,"attributes":{"damage":0,"heal":0,"upgradeHealth":0,"upgradeDamage":0,"reattack":0,"stormTargets":0},"freeTrashUsed":false},"legal":[{"i":1,"d":"Play Zap","a":{"type":"playAction","handIndex":4}},{"i":2,"d":"Move to buy phase","a":{"type":"moveToBuy"}},{"i":3,"d":"Trash Copper","a":{"type":"trashCard","handIndex":0}},{"i":4,"d":"Trash Copper","a":{"type":"trashCard","handIndex":1}},{"i":5,"d":"Trash Silver","a":{"type":"trashCard","handIndex":2}},{"i":6,"d":"Trash Copper","a":{"type":"trashCard","handIndex":3}},{"i":7,"d":"Trash Zap","a":{"type":"trashCard","handIndex":4}}],"market":[{"id":"rest","type":"action","cost":0,"n":0,"effects":[]},{"id":"copper","type":"treasure","cost":0,"n":60,"treasure":1},{"id":"silver","type":"treasure","cost":3,"n":40,"treasure":2},{"id":"gold","type":"treasure","cost":6,"n":30,"treasure":3},{"id":"village","type":"action","cost":4,"n":10,"effects":[{"kind":"grant","cards":1,"actions":2}]},{"id":"smithy","type":"action","cost":4,"n":10,"effects":[{"kind":"grant","cards":3}]},{"id":"peddler","type":"action","cost":4,"n":10,"effects":[{"kind":"grant","cards":1,"actions":1,"money":1}]},{"id":"zap","type":"action","cost":3,"n":10,"effects":[{"kind":"grant","cards":1,"actions":1,"attributes":{"damage":1}}]},{"id":"blast","type":"action","cost":4,"n":10,"effects":[{"kind":"grant","actions":1,"attributes":{"damage":2}}]},{"id":"inferno","type":"action","cost":5,"n":10,"effects":[{"kind":"grant","attributes":{"damage":4}}]},{"id":"storm","type":"action","cost":5,"n":10,"effects":[{"kind":"grant","attributes":{"damage":2,"stormTargets":2}}]},{"id":"bandage","type":"action","cost":3,"n":10,"effects":[{"kind":"grant","cards":1,"actions":1,"attributes":{"heal":1}}]},{"id":"potion","type":"action","cost":4,"n":10,"effects":[{"kind":"grant","actions":1,"attributes":{"heal":2}}]},{"id":"healer","type":"action","cost":5,"n":10,"effects":[{"kind":"grant","attributes":{"heal":4}}]},{"id":"armory","type":"action","cost":5,"n":10,"effects":[{"kind":"grant","attributes":{"upgradeHealth":2}}]},{"id":"training","type":"action","cost":5,"n":10,"effects":[{"kind":"grant","actions":1,"attributes":{"upgradeDamage":1}}]},{"id":"second-wind","type":"action","cost":5,"n":10,"effects":[{"kind":"grant","cards":1,"attributes":{"reattack":1}}]}]},"board":{"turn":{"activePlayer":"P1","round":1},"units":[{"id":"P1-raider-start-1","p":"P1","t":"raider","c":10,"r":1,"hp":8,"max":8,"atk":6},{"id":"P1-scout-start-2","p":"P1","t":"scout","c":11,"r":0,"hp":8,"max":8,"atk":2},{"id":"P1-raider-start-3","p":"P1","t":"raider","c":12,"r":1,"hp":8,"max":8,"atk":6},{"id":"P1-marksman-start-4","p":"P1","t":"marksman","c":11,"r":1,"hp":8,"max":8,"atk":4},{"id":"P2-raider-start-1","p":"P2","t":"raider","c":0,"r":8,"hp":8,"max":8,"atk":6},{"id":"P2-scout-start-2","p":"P2","t":"scout","c":1,"r":7,"hp":8,"max":8,"atk":2},{"id":"P2-guardian-start-3","p":"P2","t":"guardian","c":1,"r":8,"hp":16,"max":16,"atk":4},{"id":"P2-marksman-start-4","p":"P2","t":"marksman","c":0,"r":9,"hp":8,"max":8,"atk":4}],"supplyControl":[{"id":"center-northwest","controller":null},{"id":"center-west-south","controller":null},{"id":"center-center-north","controller":null},{"id":"center-center","controller":null},{"id":"center-center-south","controller":null},{"id":"center-northeast","controller":null},{"id":"center-east","controller":null},{"id":"center-southeast","controller":null}],"supply":[{"player":"P1","amount":0},{"player":"P2","amount":0}],"homeBases":[{"id":"P1-home","player":"P1","hexes":[{"col":10,"row":1},{"col":11,"row":0},{"col":12,"row":1},{"col":11,"row":1}]},{"id":"P2-home","player":"P2","hexes":[{"col":0,"row":8},{"col":1,"row":7},{"col":1,"row":8},{"col":0,"row":9}]}],"supplyCenters":[{"id":"center-northwest","col":3,"row":3},{"id":"center-west-south","col":3,"row":7},{"id":"center-center-north","col":5,"row":3},{"id":"center-center","col":6,"row":5},{"id":"center-center-south","col":7,"row":5},{"id":"center-northeast","col":8,"row":1},{"id":"center-east","col":8,"row":6},{"id":"center-southeast","col":8,"row":7}],"unitRules":{"guardian":{"role":"melee","attack":4,"hp":16,"movement":2},"raider":{"role":"melee","attack":6,"hp":8,"movement":4},"marksman":{"role":"ranged","attack":4,"hp":8,"movement":2,"range":2},"scout":{"role":"ranged","attack":2,"hp":8,"movement":5,"range":2},"druid":{"role":"mage","attack":4,"hp":10,"movement":2,"heal":1},"healer":{"role":"mage","attack":1,"hp":4,"movement":2,"heal":1,"range":2}}}}
+```
+
+Deck action file shape:
+
+```json
+{"schemaVersion":1,"turnId":"turn-001","player":"P1","actions":[]}
+```
+
+Use only `briefing.deck.legal` actions, then `endTurn`. Hand indices are live: if you trash, trash before play/draw actions and adjust later `handIndex` values. After `moveToBuy`, buy a useful card if money and buys allow.
+
+Board action file shape:
+
+```json
+{"schemaVersion":1,"turnId":"turn-001","player":"P1","actions":{"movements":[],"recruits":[],"attacks":[],"heals":[],"upgrades":[]}}
+```
+
+Movement objects: `{"unit":"id","from":{"col":0,"row":0},"to":{"col":0,"row":0}}`.
+Recruit objects: `{"unit":"new-id","type":"raider","at":{"col":0,"row":0}}`.
+Attack objects: `{"attacker":"id","target":"id","deckDamage":0}`. `board-turn` computes printed attack damage.
+
+Run the turn:
+
+```sh
+bun run --silent cli -- deck-turn --config rulesets/territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6/deck.yaml --state .games/context-smoke/deck.json --actions .games/context-smoke/actions/turn-001.deck.json --result .games/context-smoke/results/turn-001.deck.result.json
+bun run --silent cli -- board-turn --state .games/context-smoke/board.json --deck-result .games/context-smoke/results/turn-001.deck.result.json --actions .games/context-smoke/actions/turn-001.board.json --result .games/context-smoke/results/turn-001.board.result.json
+bun run --silent playtest -- commit-turn --run .games/context-smoke --deck-result .games/context-smoke/results/turn-001.deck.result.json --board-result .games/context-smoke/results/turn-001.board.result.json --summary "<summary>" --reasoning "<reasoning>" --strict-win
+bun run --silent validate-run -- --strict --strict-deck --strict-win .games/context-smoke/timeline.json
+```
+
+If strict commit fails because expected `winEvents` or `terminalWinEvents` do not match, copy the expected JSON array exactly into the matching event file above and retry commit with `--win-events <file>` and/or `--terminal-win-events <file>` plus `--strict-win`.
+
+Stop after one valid committed turn and print the deck line, board line, and rationale.

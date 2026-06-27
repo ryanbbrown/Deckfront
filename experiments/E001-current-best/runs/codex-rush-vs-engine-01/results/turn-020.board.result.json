@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-020",
+  "player": "P2",
+  "before": "snapshots/turn-020.before.board.json",
+  "after": "snapshots/turn-020.after.board.json",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-guardian-turn-018",
+        "from": {
+          "col": 0,
+          "row": 9
+        },
+        "to": {
+          "col": 1,
+          "row": 8
+        }
+      }
+    ],
+    "recruits": [],
+    "attacks": [
+      {
+        "attacker": "P2-guardian-turn-018",
+        "target": "P1-marksman-start-4",
+        "damage": 1,
+        "deckDamage": 0,
+        "targetRemoved": true
+      }
+    ],
+    "heals": [],
+    "upgrades": []
+  }
+}

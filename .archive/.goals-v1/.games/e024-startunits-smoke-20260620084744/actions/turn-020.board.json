@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-020",
+  "player": "P2",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-scout-start",
+        "from": {
+          "col": 5,
+          "row": 3
+        },
+        "to": {
+          "col": 3,
+          "row": 3
+        }
+      },
+      {
+        "unit": "P2-scout-7",
+        "from": {
+          "col": 8,
+          "row": 1
+        },
+        "to": {
+          "col": 9,
+          "row": 5
+        }
+      },
+      {
+        "unit": "P2-guardian-9",
+        "from": {
+          "col": 2,
+          "row": 5
+        },
+        "to": {
+          "col": 2,
+          "row": 4
+        }
+      },
+      {
+        "unit": "P2-marksman-10",
+        "from": {
+          "col": 0,
+          "row": 6
+        },
+        "to": {
+          "col": 2,
+          "row": 7
+        }
+      },
+      {
+        "unit": "P2-druid-11",
+        "from": {
+          "col": 0,
+          "row": 8
+        },
+        "to": {
+          "col": 2,
+          "row": 8
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P2-healer-12",
+        "type": "healer",
+        "at": {
+          "col": 0,
+          "row": 8
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

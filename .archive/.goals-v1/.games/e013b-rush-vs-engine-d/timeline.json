@@ -1,0 +1,835 @@
+{
+  "schemaVersion": 1,
+  "title": "E013b rush-vs-engine D contest replay",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Rest"
+        ],
+        "played": [],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 opened toward the east cluster, claiming northeast while lining up a lower-east scout lane.",
+      "reasoning": "The damage hand had no legal attack, so P1 converted the turn into tempo: raider took center-northeast, scout sprinted toward the east/southeast route, and slower units left home to keep future recruits legal."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Copper",
+          "Rest",
+          "Copper",
+          "Rest"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 answered with the southern engine posture and took west-south.",
+      "reasoning": "P2 preserved the druid and marksman while scouts moved first. This denied P1 a free lower-center sweep and kept a later center-south flip realistic."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Zap",
+          "Rest",
+          "Bandage"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 reached east and started the center-north approach.",
+      "reasoning": "P1 still lacked a clean attack, so the rush prioritized a 2-center income base and central threat projection over early chip damage."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Rest",
+          "Zap",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 claimed center-south and recruited a guardian screen.",
+      "reasoning": "P2 could not spend yet because center-south was captured after income. The engine side accepted that P1 would likely take center-north, but made the lower center expensive to crack."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Blast"
+        ],
+        "bought": [
+          "Zap"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 2,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 took center-north, poked the southern scout, and recruited a second raider.",
+      "reasoning": "Zap/Blast support finally had a concrete attack. P1 put capped deck damage onto the lead raider attack instead of throwing damage without a follow-up."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Rest",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 healed the scout line, put bodies around center-south, and added a healer.",
+      "reasoning": "P2 chose survival conversion over counterattacking into P1 range. The guardian moved out just far enough to matter next turn while the healer entered safely."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Rest",
+          "Copper",
+          "Copper",
+          "Zap"
+        ],
+        "played": [
+          "Zap",
+          "Blast"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 3,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 claimed center and recruited marksman follow-up.",
+      "reasoning": "The rush avoided overextending into the guardian. P1 used the scout to flip center while the marksman line moved into range for the next exchange."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Silver",
+          "Rest",
+          "Rest",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Village",
+          "Zap",
+          "Village"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 contested center with a guardian and recruited a marksman for ranged trades.",
+      "reasoning": "P2 could not let the 5-center pattern settle. Guardian-2 moved onto the center road while the damaged scout backed off for healing."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Copper",
+          "Zap",
+          "Bandage"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 killed the first P2 scout, retook southeast, and added another scout.",
+      "reasoning": "This was the first real rush payoff: P1 focused a damaged scout with raider plus capped deck damage, then used the original scout to keep the lower-east centers under P1 control."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Rest",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 preserved the center-south core and recruited a second guardian.",
+      "reasoning": "With one scout gone, P2 avoided a low-value revenge attack and instead kept the healer/druid package behind a guardian line."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Rest",
+          "Blast",
+          "Rest"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Blast"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 1,
+          "damage": 5,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 upgraded the lead raider and recruited a third raider.",
+      "reasoning": "P1 chose Training because the upgraded raider could keep threatening real kills through P2 healing. The board stayed at a P1-favored 5-3 center split."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Zap",
+          "Silver",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Village",
+          "Village",
+          "Village"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 counterkilled the original raider and recruited a druid.",
+      "reasoning": "P2 finally converted the guardian screen into a trade. Removing the upgraded raider reduced P1 count pressure, but P1 still retained the east/southeast income engine."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Bandage",
+          "Copper",
+          "Rest"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 killed P2 marksman-1 and recruited another marksman.",
+      "reasoning": "The rush deck used Blast only because two ready attackers could make the focus fire matter. P1 traded up on unit count and kept all five eastern/central centers."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Copper",
+          "Rest",
+          "Silver",
+          "Copper"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 added a second guardian and stabilized guardian-2.",
+      "reasoning": "P2 was behind on count but not out of the game. The engine/heal deck converted into repair, and P2 kept center-south instead of chasing a risky east flip."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Bandage",
+          "Blast",
+          "Zap"
+        ],
+        "played": [
+          "Zap",
+          "Bandage",
+          "Blast"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 3,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 recruited a guardian off the 5-center economy and pressed the lower-east kill box.",
+      "reasoning": "The 5-3 split started to matter. P1 bought a durable center holder, creating the first plausible lead-4 route if P2 could not find kills."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Healer",
+          "Copper",
+          "Rest",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Bandage",
+          "Healer"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 5,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 killed P1 scout-1 and recruited a replacement scout.",
+      "reasoning": "This cleared any immediate lead-4 danger and showed the engine side still had a response. P2 used ranged focus fire rather than exposing the support units."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Blast",
+          "Copper",
+          "Rest",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Blast"
+        ],
+        "bought": [
+          "Zap"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 3,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "summary": "P1 wounded healer-1 and restored the count pressure.",
+      "reasoning": "P1 prioritized the support unit over more guardian damage. Leaving the healer at 1 HP reduced future P2 stabilization without requiring an overcommitted attack."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Rest",
+          "Copper",
+          "Copper",
+          "Zap"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "summary": "P2 flipped center-south and repaired the front, but did not find a kill.",
+      "reasoning": "The support engine was still meaningful, yet the wounded healer reduced P2 action efficiency on the board. P2 held the southern three centers and stayed alive on units."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Blast",
+          "Copper",
+          "Rest",
+          "Zap"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Blast"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 1,
+          "damage": 5,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "summary": "P1 killed scout-2 and recruited a fourth raider.",
+      "reasoning": "Second Wind lined up with a concrete ranged follow-up, so P1 used it to remove a mobile flipper. The board returned to a 5-3 split with P1 threatening a count win."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Village",
+          "Silver",
+          "Bandage",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Bandage"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "summary": "P2 reclaimed northwest, using the scout for denial instead of a doomed attack.",
+      "reasoning": "P2 was now behind on count, so the best response was to avoid feeding another kill and create income counterplay. No pending lead existed yet because the start-of-turn count was only P1 10 to P2 7."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Rest",
+          "Copper",
+          "Bandage",
+          "Copper"
+        ],
+        "played": [
+          "Bandage",
+          "Zap",
+          "Blast"
+        ],
+        "bought": [
+          "Zap"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 3,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "summary": "P1 created a pending lead-4 threat and killed guardian-2.",
+      "reasoning": "Start-of-turn count was P1 10 to P2 6, creating a pending P1 lead-4 threat. P1 then focused the wounded guardian with real attacks plus capped deck damage and recruited one more marksman, forcing P2 to reduce the lead below 4 on the response turn."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "Healer",
+          "Zap",
+          "Silver",
+          "Village",
+          "Rest"
+        ],
+        "played": [
+          "Village",
+          "Healer",
+          "Zap",
+          "Village"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 4,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "summary": "P2 response killed one raider and recruited, but the P1 lead remained exactly 4.",
+      "reasoning": "P2 took the best available response: focus down raider-3 and add a scout. That changed the count from P1 11 / P2 5 to P1 10 / P2 6, which was not enough to clear the pending P1 threat."
+    }
+  ]
+}

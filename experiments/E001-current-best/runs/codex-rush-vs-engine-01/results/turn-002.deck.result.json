@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-002",
+  "player": "P2",
+  "before": "snapshots/turn-002.before.deck.json",
+  "after": "snapshots/turn-002.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "playAction",
+      "handIndex": 6
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "peddler"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "copper",
+    "copper",
+    "village",
+    "smithy"
+  ],
+  "played": [
+    "village",
+    "smithy",
+    "peddler"
+  ],
+  "bought": [
+    "peddler"
+  ],
+  "produced": {
+    "money": 4
+  }
+}

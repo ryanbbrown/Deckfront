@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-025",
+  "player": "P1",
+  "before": "snapshots/turn-025.before.board.json",
+  "after": "snapshots/turn-025.after.board.json",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P1-raider-turn-023a",
+        "from": {
+          "col": 12,
+          "row": 1
+        },
+        "to": {
+          "col": 12,
+          "row": 0
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P1-raider-turn-025a",
+        "type": "raider",
+        "at": {
+          "col": 12,
+          "row": 1
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

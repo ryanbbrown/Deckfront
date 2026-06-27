@@ -10,10 +10,11 @@ I play a lot of board games. Dominion is probably my favorite game, and deck bui
 
 There are not many games that combine deck building and territory control well. The main one I have played is Tyrants of the Underdark, which was fun at first, but has some clear flaws that made my group stop wanting to play it. Deckfront is an experiment in taking a step back and building my own version of that design space, using AI as a collaborator for implementation, playtesting, and iteration.
 
-The repo has two main pieces:
+The repo has three main pieces:
 
 - A Bun CLI that runs a Dominion-like deckbuilding engine from YAML game configs.
 - A Vite/React viewer that renders board states and replay timelines for territory playtests.
+- Experiment sandboxes under `experiments/`, each with its own copied game definition, prompts, and playthrough scripts.
 
 ## Requirements
 
@@ -57,19 +58,7 @@ bun run cli -- --config examples/minimal-game.yaml --seed 1
 Persist and resume state:
 
 ```sh
-bun run cli -- --config rulesets/territory-v1/deck.yaml --state .games/territory-v1-playtest/deck.json --seed 1
-```
-
-Create a new state with game-level starting deck overrides:
-
-```sh
-bun run cli -- --config rulesets/territory-v1/deck.yaml --state .games/e001-baseline/deck.json --seed 1 --max-actions 0 --starting-deck P1=copper,copper,copper,copper,copper,copper,copper,zap,bandage --starting-deck P2=copper,copper,copper,copper,copper,copper,copper,village,silver
-```
-
-Create a new state from draft-start rules, using 7 Copper plus up to 12 coin of drafted cards per player. Unspent draft money carries into that player's first turn:
-
-```sh
-bun run cli -- --config rulesets/territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6/deck.yaml --state .games/e024/deck.json --seed 1 --max-actions 0 --draft P1=zap,bandage,silver --draft P2=village,silver
+bun run cli -- --config experiments/E001-current-best/code/game/deck.yaml --state /tmp/deckfront-state.json --seed 1
 ```
 
 Run from a numeric script:
@@ -87,39 +76,67 @@ Useful flags:
 - `--max-actions <number>`: stop after this many accepted actions.
 - `--starting-deck <cards>`: override a new state's starting deck; use `P1=card,card` for one player.
 
-## Playtest Runs
+## Experiments
 
-Initialize a run:
-
-```sh
-bun run init-run -- --run .games/e001-baseline --ruleset territory-v1 --map sketch-v1
-```
-
-Initialize from the corrected starter board:
+Create a new experiment from the canonical base:
 
 ```sh
-bun run init-run -- --run .games/e001-baseline --ruleset territory-v1 --map sketch-v1 --board .games/territory-v1-playtest/snapshots/turn-001.before.board.json
+uv run scripts/experiment.py create --id E002-my-hypothesis --from-base --hypothesis "Describe the design question."
 ```
 
-Validate a replay bundle:
+Create a new experiment from an existing experiment:
 
 ```sh
-bun run validate-run -- .games/e001-baseline/timeline.json
+uv run scripts/experiment.py create --id E003-next-variant --from-experiment E002-my-hypothesis --hypothesis "Describe the variant."
 ```
 
-Run an experimental two-agent Claude Code playthrough:
+Each experiment has one mutable game definition:
+
+```text
+experiments/<id>/code/game/
+  board-rules.md
+  cards.json
+  deck.yaml
+  map.json
+  units.json
+```
+
+Run playthroughs from inside an experiment's copied code directory:
 
 ```sh
-uv run scripts/run_game.py --run .games/e024-claude-vs-claude --reset --max-turns 30
+cd experiments/E001-current-best/code
+uv run scripts/run_game_codex.py --run ../runs/rush-vs-engine-01 --reset --max-turns 30
 ```
 
-`scripts/run_game.py` creates one persistent Claude Code session per player and alternates turns. Each player session mutates the shared run directory on its own turn, using the existing `deck-turn`, `board-turn`, `commit-turn`, and strict validation CLIs. By default it uses the E024 high-movement six-center ruleset, `claude-opus-4-8` (Opus 4.8), low effort, and a 180-second per-turn timeout; override with `--model`, `--effort`, or `--timeout-seconds` if needed.
+The playthrough runner stores outputs under the experiment:
 
-Shared playtest prompts live in `agent-context/prompts/`. Runners render those prompts and snapshot the exact run context under `.games/<run>/context/`, including the base player prompt, per-player initial prompts, per-turn prompts, compact briefings, and a manifest with prompt/rule/map file hashes.
+```text
+experiments/<id>/runs/<run>/
+  deck.json
+  board.json
+  timeline.json
+  actions/
+  results/
+  context/
+```
+
+Experiment-local prompts live in:
+
+```text
+experiments/<id>/code/agent-context/prompts/
+```
+
+Prompt changes are therefore part of the experiment's copied code state.
+
+Validate a replay bundle from inside an experiment code directory:
+
+```sh
+bun run validate-run -- ../runs/rush-vs-engine-01/timeline.json
+```
 
 ## Viewer
 
-Start the viewer:
+Start the viewer from the repo root:
 
 ```sh
 bun run viewer
@@ -131,16 +148,10 @@ Open the default board:
 http://localhost:5173/
 ```
 
-Open a mutable board from `.games/`:
+Open an experiment replay:
 
 ```text
-http://localhost:5173/?board=/game-data/.games/territory-v1-playtest/board.json
-```
-
-Open the sample playtest replay:
-
-```text
-http://localhost:5173/?timeline=/game-data/.games/territory-v1-playtest/timeline.json
+http://localhost:5173/?timeline=/game-data/experiments/E001-current-best/runs/rush-vs-engine-01/timeline.json
 ```
 
 Replay mode starts on the first entry's `before` snapshots, so frame 1 is the initial board state. Press Next to step through completed turn after-states.
@@ -154,14 +165,9 @@ Replay mode starts on the first entry's `before` snapshots, so frame 1 is the in
 - `src/replay/`: replay timeline schema.
 - `src/playtest/`: playtest run layout and replay bundle validation.
 - `viewer/`: React board and replay viewer.
-- `rulesets/`: deck config, board rules, unit rules, and board card metadata.
-- `maps/`: board geometry, blocked hexes, supply centers, and home bases.
-- `.games/`: mutable playtest runs, timelines, notes, and snapshots.
+- `experiment-base/`: canonical copied-code template for new experiments.
+- `experiments/`: isolated experiment sandboxes and their runs.
 - `docs/`: playtest workflow notes and board conventions.
 - `tests/`: unit and integration coverage.
 
-## Playtest Runs
-
-Use `.games/<run>/` for experiments and recorded replays. A run has one current `deck.json`, one current `board.json`, one `timeline.json`, and turn snapshots under `snapshots/`. Agents can add run notes in the same folder when a game is worth revisiting later.
-
-The playtest helpers in `src/playtest/` define this layout and validate that replay timelines point at complete deck and board snapshots.
+Root `src/` and `viewer/` are shared implementation surfaces. Experiment-specific game rules, maps, prompts, and playthrough scripts live under `experiments/<id>/code/`.

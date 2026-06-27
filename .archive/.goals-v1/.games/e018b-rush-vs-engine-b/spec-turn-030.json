@@ -1,0 +1,24 @@
+{
+  "id": "turn-030",
+  "player": "P2",
+  "round": 15,
+  "play": ["zap", "peddler", "peddler", "bandage", "potion", "armory", "healer"],
+  "buyOptions": ["gold", "healer", "armory", "peddler", "potion", "village", "silver"],
+  "moves": [
+    { "id": "P2-guardian-3", "to": [8, 8] },
+    { "id": "P2-guardian-5", "to": [7, 7] },
+    { "id": "P2-marksman-2", "to": [5, 8] },
+    { "id": "P2-guardian-7", "to": [4, 8] },
+    { "id": "P2-guardian-8", "to": [3, 8] },
+    { "id": "P2-marksman-3", "to": [1, 8] }
+  ],
+  "attacks": [
+    { "attacker": "P2-guardian-3", "target": "P1-scout-3", "bonus": 1 },
+    { "attacker": "P2-guardian-5", "target": "P1-scout-2" }
+  ],
+  "recruits": [
+    { "type": "guardian", "id": "P2-guardian-9", "at": [1, 7] }
+  ],
+  "summary": "P2 killed one scout and recruited a guardian, but failed to clear P1's pending lead-4 threat.",
+  "reasoning": "P2 needed to reduce the lead below four. After killing P1-scout-3 and recruiting, the count was still P1 11 to P2 7, so the pending P1 threat remains for confirmation at P1's next start check."
+}

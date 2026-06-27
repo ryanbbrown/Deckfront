@@ -1,0 +1,2 @@
+Valid replay bundle: E024 Codex Rush vs Engine Guided (30 entries)
+$ bun run src/playtest/main.ts validate --strict --strict-deck --strict-win ".games/e024-codex-rush-vs-engine-guided/timeline.json"

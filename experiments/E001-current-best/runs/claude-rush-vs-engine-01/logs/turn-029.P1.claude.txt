@@ -1,0 +1,13 @@
+Turn `turn-029` complete and validated — the final P1 turn before the 30-turn limit.
+
+## Final result
+
+**P1 closes the game at 24 units / 7 centers vs P2's 11 units / 1 center** — a 13-unit lead, never reduced, with **zero P1 units lost** all game.
+
+**The rush plan executed end to end:**
+1. **Opening (t1–3):** High-movement units seized the four central supply centers.
+2. **Midgame (t5–7):** Focus-killed P2's only raider, captured the eastern centers, and retook the northwest — choking P2 down to a single center (income 3 vs my 9).
+3. **Conversion (t9–13):** Turned the economic stranglehold into a recruit advantage, building and arming the 4-unit response-window lead that wins under `board-rules.md`.
+4. **Closeout (t15–29):** Compounded an overwhelming lead, refusing the negative-EV siege of P2's corner turtle, and held all dominance metrics to the limit.
+
+All three rule-defined win conditions (unit-count lead, six-center dominance, center majority) favor P1; they weren't machine-finalized only because this run's ruleset is the alias `current`, which the strict-win validator doesn't map to those rules — documented in the turn reasoning throughout. The full 29-entry replay bundle validates cleanly under `--strict --strict-deck --strict-win`.

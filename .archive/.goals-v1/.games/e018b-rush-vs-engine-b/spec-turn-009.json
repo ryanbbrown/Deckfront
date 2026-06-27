@@ -1,0 +1,25 @@
+{
+  "id": "turn-009",
+  "player": "P1",
+  "round": 5,
+  "play": ["blast", "bandage"],
+  "buy": "blast",
+  "moves": [
+    { "id": "P1-raider-1", "to": [7, 6] },
+    { "id": "P1-raider-2", "to": [7, 2] },
+    { "id": "P1-guardian-1", "to": [7, 3] },
+    { "id": "P1-marksman-1", "to": [8, 0] },
+    { "id": "P1-marksman-2", "to": [10, 0] }
+  ],
+  "attacks": [
+    { "attacker": "P1-raider-1", "target": "P2-scout-2", "bonus": 1 }
+  ],
+  "heals": [
+    { "id": "P1-scout-1", "amount": 1 }
+  ],
+  "recruits": [
+    { "type": "raider", "id": "P1-raider-3", "at": [10, 1] }
+  ],
+  "summary": "P1 bought another Blast, killed P2's southeast scout, healed its wounded scout by card, and recruited a raider.",
+  "reasoning": "The capped Blast damage still mattered when attached to a high-attack raider. P1's only healing was the Bandage card counter; no unit printed healing exists in this E018 ruleset."
+}

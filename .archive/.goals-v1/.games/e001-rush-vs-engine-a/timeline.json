@@ -1,0 +1,443 @@
+{
+  "schemaVersion": 1,
+  "title": "E001 Rush vs Engine A",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Zap",
+          "Bandage",
+          "Rest",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 claimed the northeast and east supply centers.",
+      "reasoning": "The rush side used raider and scout speed immediately. Deck damage had no target, so only Bandage healing mattered."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Rest",
+          "Rest",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 claimed west-south while keeping the fragile starter pieces grouped.",
+      "reasoning": "The engine side avoided early combat and preserved a support cluster near its first center."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Rest"
+        ],
+        "played": [],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 spent the first recruit on another scout and pushed toward center-north and southeast.",
+      "reasoning": "P1 had enough saved supply after two controlled centers. The rush plan added speed rather than durability."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 1,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 took center-south and recruited a guardian screen.",
+      "reasoning": "P2 hit the first recruit threshold and chose durability to buy time for the slower deck."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Rest",
+          "Zap",
+          "Bandage"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Bandage"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 1,
+          "damage": 3,
+          "heal": 1,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 expanded to four centers and added a second raider.",
+      "reasoning": "The rush player converted tempo into supply control before P2 could contest the middle."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Rest",
+          "Rest",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 slipped into the center but could not recruit this turn.",
+      "reasoning": "P2 preserved the center scout as a temporary forward claim while the support units lagged behind."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Zap"
+        ],
+        "played": [
+          "Zap",
+          "Blast"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 3,
+          "heal": 0,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 killed the exposed center scout and kept recruiting pressure units.",
+      "reasoning": "A scout attack plus deck damage removed the low-HP center holder. Control of center persisted for P2, but its body count fell."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Bandage",
+          "Village",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 1,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 used accumulated supply for a second guardian and formed a southern line.",
+      "reasoning": "The engine deck was still building; on board P2 chose not to overextend a damaged position."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Rest",
+          "Rest",
+          "Bandage",
+          "Copper"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 1,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 flipped center and focused the druid before it could stabilize the line.",
+      "reasoning": "The least expansive damage interpretation assigned spell damage through a legal scout attack, deleting the fragile druid."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Rest",
+          "Rest",
+          "Copper",
+          "Zap"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 0,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 killed the center scout and recruited a replacement druid.",
+      "reasoning": "P2 finally answered the forward scout with concentrated ranged attacks, but the response cost tempo."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Zap",
+          "Copper",
+          "Blast"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Blast"
+        ],
+        "bought": [
+          "Zap"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 5,
+          "heal": 0,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 removed P2’s last scout and widened the unit lead.",
+      "reasoning": "Raider pressure forced another kill near center-south; P1 still avoided sacrificing units into guardians."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Village",
+          "Copper",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Bandage"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 1,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 stabilized with another guardian but remained behind on units and center control.",
+      "reasoning": "The engine side reached a defensive posture, but the low-HP seed and P1 supply lead made the recovery too slow."
+    }
+  ]
+}

@@ -1,0 +1,529 @@
+{
+  "schemaVersion": 1,
+  "title": "E002 Swarm vs Upgrade B",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Zap",
+          "Bandage",
+          "Rest",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 opened by taking the northeast and east supply centers.",
+      "reasoning": "The swarm plan sent the fastest units to income immediately while the slower marksman and guardian followed as a second line. No legal combat target existed, so deck damage and healing went unused. Board state moved from P1 4u/0c/0s, P2 4u/0c/0s to P1 4u/2c/2s, P2 4u/0c/0s."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Rest",
+          "Rest",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 claimed the west-south center and formed a compact support line.",
+      "reasoning": "P2 prioritized keeping units mutually supportive. The first scout took income, while the druid and marksman advanced behind it instead of racing unsupported toward the middle. Board state moved from P1 4u/2c/2s, P2 4u/0c/0s to P1 4u/2c/2s, P2 4u/1c/2s."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Rest",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 converted early income into another scout and pushed toward central centers.",
+      "reasoning": "With two centers controlled before income, P1 could recruit immediately. The recruit favored board coverage, while the original raider and scout moved to threaten center-north and southeast. Board state moved from P1 4u/2c/2s, P2 4u/1c/2s to P1 5u/2c/1s, P2 4u/1c/2s."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 took center-south and recruited a guardian as the first upgrade target.",
+      "reasoning": "The quality plan still needed enough bodies not to fall behind the unit-count win condition. P2 chose a durable guardian rather than a disposable scout. Board state moved from P1 5u/2c/1s, P2 4u/1c/2s to P1 5u/2c/1s, P2 5u/2c/0s."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Rest",
+          "Zap",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 expanded to four centers and added a raider for trading pressure.",
+      "reasoning": "The swarm side accepted an exposed scout on the southeast center because center count was the clearest path to repeated recruits. The raider recruit kept P1 aligned with the quantity-and-trades plan. Board state moved from P1 5u/2c/1s, P2 5u/2c/0s to P1 6u/4c/0s, P2 5u/2c/0s."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Rest",
+          "Copper",
+          "Armory",
+          "Copper"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 denied the center and started damaging the exposed southeast scout.",
+      "reasoning": "P2 could not yet recruit again, so it used scout mobility to flip the center and put ranged pressure on P1's advanced scout. Any deck damage was assigned only through that legal scout attack. Board state moved from P1 6u/4c/0s, P2 5u/2c/0s to P1 6u/4c/0s, P2 5u/3c/4s."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Peddler",
+          "Copper",
+          "Zap",
+          "Peddler",
+          "Bandage"
+        ],
+        "played": [
+          "Peddler",
+          "Peddler",
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 recruited again and badly wounded both P2 scouts.",
+      "reasoning": "P1 used the raider to punish the center scout and kept the southeast scout firing instead of retreating. The attack left P2 with heal decisions rather than immediately removing the unit. Board state moved from P1 6u/4c/0s, P2 5u/3c/4s to P1 7u/4c/1s, P2 5u/3c/4s."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Bandage",
+          "Zap",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Bandage",
+          "Armory"
+        ],
+        "bought": [
+          "Potion"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 healed the forward scout and added a marksman.",
+      "reasoning": "The quality plan spent deck healing and upgrades on units contesting the middle, but the druid was not close enough to heal both damaged scouts. Recruiting only one unit kept the formation smaller but prevented the unit-count gap from becoming immediately decisive. Board state moved from P1 7u/4c/1s, P2 5u/3c/4s to P1 7u/4c/1s, P2 6u/3c/4s."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Bandage",
+          "Gold",
+          "Copper",
+          "Peddler"
+        ],
+        "played": [
+          "Peddler",
+          "Bandage"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 8,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 cleared the center scout and kept pressure on P2's retreating line.",
+      "reasoning": "P1 could not move onto the occupied center before combat, so the raider attacked from an adjacent hex and removed the wounded scout. The recruit was a marksman because the front was becoming dense enough that ranged follow-up mattered. Board state moved from P1 7u/4c/1s, P2 6u/3c/4s to P1 8u/4c/2s, P2 5u/3c/4s."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Copper",
+          "Armory",
+          "Copper"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 concentrated fire on P1's lead raider and recruited another guardian.",
+      "reasoning": "P2 could not match P1's coverage, so it focused on making the central fight costly. The second guardian was another durable upgrade body and also kept the unit count within reach. Board state moved from P1 8u/4c/2s, P2 5u/3c/4s to P1 8u/4c/2s, P2 6u/3c/4s."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Peddler",
+          "Copper",
+          "Zap",
+          "Bandage",
+          "Copper"
+        ],
+        "played": [
+          "Peddler",
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 8,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 used the center mass to wound P2 support and recruited another scout.",
+      "reasoning": "The swarm side leaned into quantity: even damaged front units kept attacking because P1 could add another body. P2's druid became the priority because it was extending the life of wounded scouts. Board state moved from P1 8u/4c/2s, P2 6u/3c/4s to P1 9u/5c/3s, P2 6u/2c/4s."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Copper",
+          "Bandage",
+          "Potion"
+        ],
+        "played": [
+          "Potion",
+          "Zap",
+          "Bandage",
+          "Armory"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 3,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 killed P1's lead raider and brought in a healer.",
+      "reasoning": "This was the quality plan's best tactical turn: upgraded durable units held the center long enough for focused marksman fire to remove a raider. The healer recruit favored preservation over matching P1's damage output. Board state moved from P1 9u/5c/3s, P2 6u/2c/4s to P1 8u/5c/3s, P2 7u/2c/3s."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Gold",
+          "Peddler",
+          "Copper",
+          "Gold"
+        ],
+        "played": [
+          "Peddler",
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 11,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 refilled the center after losing a raider and kept buying bodies.",
+      "reasoning": "P1 did not have a clean kill after P2's healing turn, so the best swarm response was to keep central occupancy high and recruit another raider for the next exchange. Board state moved from P1 8u/5c/3s, P2 7u/2c/3s to P1 9u/5c/5s, P2 7u/2c/3s."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Silver",
+          "Potion",
+          "Copper"
+        ],
+        "played": [
+          "Potion"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 held the line with healing but remained behind on board coverage.",
+      "reasoning": "P2 continued preserving the elite formation and added ranged support. The stopping point shows P2 tactically alive, but P1 still has broader center coverage and a larger unit roster. Board state moved from P1 9u/5c/5s, P2 7u/2c/3s to P1 9u/5c/5s, P2 8u/2c/2s."
+    }
+  ]
+}

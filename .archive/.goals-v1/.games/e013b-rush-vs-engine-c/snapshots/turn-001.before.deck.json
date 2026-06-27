@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "rngState": 81337,
+  "game": {
+    "activePlayer": 0,
+    "phase": "action",
+    "cards": {
+      "rest": {
+        "id": "rest",
+        "name": "Rest"
+      },
+      "copper": {
+        "id": "copper",
+        "name": "Copper"
+      },
+      "silver": {
+        "id": "silver",
+        "name": "Silver"
+      },
+      "gold": {
+        "id": "gold",
+        "name": "Gold"
+      },
+      "village": {
+        "id": "village",
+        "name": "Village"
+      },
+      "smithy": {
+        "id": "smithy",
+        "name": "Smithy"
+      },
+      "peddler": {
+        "id": "peddler",
+        "name": "Peddler"
+      },
+      "zap": {
+        "id": "zap",
+        "name": "Zap"
+      },
+      "blast": {
+        "id": "blast",
+        "name": "Blast"
+      },
+      "inferno": {
+        "id": "inferno",
+        "name": "Inferno"
+      },
+      "storm": {
+        "id": "storm",
+        "name": "Storm"
+      },
+      "bandage": {
+        "id": "bandage",
+        "name": "Bandage"
+      },
+      "potion": {
+        "id": "potion",
+        "name": "Potion"
+      },
+      "healer": {
+        "id": "healer",
+        "name": "Healer"
+      },
+      "armory": {
+        "id": "armory",
+        "name": "Armory"
+      },
+      "training": {
+        "id": "training",
+        "name": "Training"
+      },
+      "second-wind": {
+        "id": "second-wind",
+        "name": "Second Wind"
+      }
+    },
+    "supply": {
+      "rest": 10,
+      "copper": 60,
+      "silver": 40,
+      "gold": 30,
+      "village": 10,
+      "smithy": 10,
+      "peddler": 10,
+      "zap": 10,
+      "blast": 10,
+      "inferno": 10,
+      "storm": 10,
+      "bandage": 10,
+      "potion": 10,
+      "healer": 10,
+      "armory": 10,
+      "training": 10,
+      "second-wind": 10
+    },
+    "trash": [],
+    "players": [
+      {
+        "id": "P1",
+        "hand": [
+          "zap",
+          "bandage",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "draw": [],
+        "discard": [],
+        "play": [],
+        "actions": 1,
+        "buys": 1,
+        "money": 0,
+        "attributes": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        },
+        "freeTrashUsed": false,
+        "turnsTaken": 0
+      },
+      {
+        "id": "P2",
+        "hand": [
+          "village",
+          "peddler",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "draw": [],
+        "discard": [],
+        "play": [],
+        "actions": 1,
+        "buys": 1,
+        "money": 0,
+        "attributes": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        },
+        "freeTrashUsed": false,
+        "turnsTaken": 0
+      }
+    ]
+  }
+}

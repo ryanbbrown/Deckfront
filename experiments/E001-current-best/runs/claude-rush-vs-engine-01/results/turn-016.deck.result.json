@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-016",
+  "player": "P2",
+  "before": "snapshots/turn-016.before.deck.json",
+  "after": "snapshots/turn-016.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 2
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "silver"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "inferno",
+    "village",
+    "copper",
+    "inferno"
+  ],
+  "played": [
+    "village"
+  ],
+  "bought": [
+    "silver"
+  ],
+  "produced": {}
+}

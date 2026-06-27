@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1-locked",
+  "map": "sketch-v1",
+  "turn": {
+    "activePlayer": "P2",
+    "round": 6
+  },
+  "units": [
+    {
+      "id": "P1-raider-1",
+      "player": "P1",
+      "type": "raider",
+      "col": 7,
+      "row": 4,
+      "hp": 2,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-marksman-1",
+      "player": "P1",
+      "type": "marksman",
+      "col": 6,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-scout-1",
+      "player": "P1",
+      "type": "scout",
+      "col": 8,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-guardian-1",
+      "player": "P1",
+      "type": "guardian",
+      "col": 7,
+      "row": 5,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P2-marksman-1",
+      "player": "P2",
+      "type": "marksman",
+      "col": 5,
+      "row": 6,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 5
+    },
+    {
+      "id": "P2-druid-1",
+      "player": "P2",
+      "type": "druid",
+      "col": 5,
+      "row": 8,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-scout-2",
+      "player": "P2",
+      "type": "scout",
+      "col": 6,
+      "row": 8,
+      "hp": 5,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-guardian-1",
+      "player": "P2",
+      "type": "guardian",
+      "col": 3,
+      "row": 8,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-2",
+      "player": "P1",
+      "type": "raider",
+      "col": 6,
+      "row": 3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-druid-1",
+      "player": "P1",
+      "type": "druid",
+      "col": 9,
+      "row": 2,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-marksman-2",
+      "player": "P2",
+      "type": "marksman",
+      "col": 1,
+      "row": 8,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-healer-1",
+      "player": "P1",
+      "type": "healer",
+      "col": 11,
+      "row": 1,
+      "hp": 4,
+      "maxHp": 4,
+      "attack": 1
+    },
+    {
+      "id": "P2-guardian-2",
+      "player": "P2",
+      "type": "guardian",
+      "col": 0,
+      "row": 8,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-scout-3",
+      "player": "P1",
+      "type": "scout",
+      "col": 12,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    }
+  ],
+  "notes": [
+    "Starter state: units begin at max HP from rulesets/territory-v1/units.json.",
+    "E003 locked starter: max-HP starter board copied from territory-v1 with ruleset id changed to territory-v1-locked.",
+    "turn-001: P1 opened with a two-center east claim and angled the support pair down the flank lane.",
+    "turn-002: P2 took west-south and formed the first compact center-support pocket.",
+    "turn-003: P1 sent the scout toward southeast and recruited a second scout to keep the flank wide.",
+    "turn-004: P2 claimed center-south and recruited a guardian for the delayed center block.",
+    "turn-005: P1 flipped southeast and kept the raider pointed at P2’s delayed center route.",
+    "turn-006: P2 reached the middle and damaged P1’s first flank raider.",
+    "turn-007: P1 answered by killing P2’s wounded center scout and chipping the second scout.",
+    "turn-008: P2 re-flipped center-south and recruited a marksman to keep the core intact.",
+    "turn-009: P1 flipped the exact middle from the east and kept pressure on center-south.",
+    "turn-010: P2 used a heavy Blast turn to kill P1’s exposed center scout.",
+    "turn-011: P1 restored the southeast scout and widened east pressure after losing the center scout."
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": null
+    },
+    {
+      "id": "center-west-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-north",
+      "controller": null
+    },
+    {
+      "id": "center-center",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P1"
+    },
+    {
+      "id": "center-east",
+      "controller": "P1"
+    },
+    {
+      "id": "center-southeast",
+      "controller": "P1"
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 1
+    },
+    {
+      "player": "P2",
+      "amount": 3
+    }
+  ]
+}

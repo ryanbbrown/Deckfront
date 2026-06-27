@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6",
+  "map": "sketch-v5-recenter",
+  "turn": {
+    "activePlayer": "P2",
+    "round": 2
+  },
+  "units": [],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": null
+    },
+    {
+      "id": "center-west-south",
+      "controller": null
+    },
+    {
+      "id": "center-center-north",
+      "controller": null
+    },
+    {
+      "id": "center-center",
+      "controller": null
+    },
+    {
+      "id": "center-center-south",
+      "controller": null
+    },
+    {
+      "id": "center-northeast",
+      "controller": null
+    },
+    {
+      "id": "center-east",
+      "controller": null
+    },
+    {
+      "id": "center-southeast",
+      "controller": null
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 4
+    },
+    {
+      "player": "P2",
+      "amount": 2
+    }
+  ],
+  "notes": []
+}

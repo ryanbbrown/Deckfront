@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1-cost6-damagecap-responsewin-lead4-compressed",
+  "map": "sketch-v3-contest",
+  "turn": {
+    "activePlayer": "P1",
+    "round": 4
+  },
+  "units": [
+    {
+      "id": "P1-raider-1",
+      "player": "P1",
+      "type": "raider",
+      "col": 5,
+      "row": 3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-marksman-1",
+      "player": "P1",
+      "type": "marksman",
+      "col": 8,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-scout-1",
+      "player": "P1",
+      "type": "scout",
+      "col": 8,
+      "row": 6,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-guardian-1",
+      "player": "P1",
+      "type": "guardian",
+      "col": 8,
+      "row": 3,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P2-marksman-1",
+      "player": "P2",
+      "type": "marksman",
+      "col": 3,
+      "row": 8,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-druid-1",
+      "player": "P2",
+      "type": "druid",
+      "col": 4,
+      "row": 7,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-scout-1",
+      "player": "P2",
+      "type": "scout",
+      "col": 5,
+      "row": 6,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-scout-2",
+      "player": "P2",
+      "type": "scout",
+      "col": 5,
+      "row": 7,
+      "hp": 6,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-guardian-2",
+      "player": "P2",
+      "type": "guardian",
+      "col": 0,
+      "row": 8,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    }
+  ],
+  "notes": [
+    "Replay turn 006 after-state: P2 repaired the lower scout and recruited a guardian screen."
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": null
+    },
+    {
+      "id": "center-west-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-north",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center",
+      "controller": null
+    },
+    {
+      "id": "center-center-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P1"
+    },
+    {
+      "id": "center-east",
+      "controller": "P1"
+    },
+    {
+      "id": "center-southeast",
+      "controller": null
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 5
+    },
+    {
+      "player": "P2",
+      "amount": 0
+    }
+  ]
+}

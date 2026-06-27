@@ -1,0 +1,509 @@
+{
+  "schemaVersion": 1,
+  "title": "E005 Rush vs Engine A",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 played Zap, produced 5 money and 1 damage, bought Blast; gained 2 supply; flipped center-northeast; moved raider-1 to 8,1, scout-1 to 12,4, marksman-1 to 10,1, guardian-1 to 11,2.",
+      "reasoning": "1 deck damage expired because no stronger legal attack attachment was available."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 played no actions, produced 5 money and 0 damage, bought Peddler; gained 2 supply; flipped center-west-south; moved scout-1 to 3,7, scout-2 to 2,8, druid-1 to 2,7.",
+      "reasoning": "P2 followed the assigned engine/stabilization posture while respecting delayed recruit activation."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Blast",
+          "Copper",
+          "Blast",
+          "Blast"
+        ],
+        "played": [
+          "Blast",
+          "Blast",
+          "Blast"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 6,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 played Blast/Blast/Blast, produced 2 money and 6 damage, bought nothing; gained 3 supply; flipped center-east; moved scout-1 to 9,5, marksman-1 to 9,1, guardian-1 to 11,3; recruited scout-2.",
+      "reasoning": "6 deck damage expired because no stronger legal attack attachment was available."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Peddler",
+          "Village",
+          "Copper",
+          "Silver",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 0,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 played Village/Peddler, produced 7 money and 0 damage, bought Gold; gained 3 supply; flipped center-center-south; moved marksman-1 to 1,7, scout-2 to 5,7; recruited guardian-1.",
+      "reasoning": "P2 followed the assigned engine/stabilization posture while respecting delayed recruit activation."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Zap"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 played Zap, produced 5 money and 1 damage, bought Blast; gained 4 supply; moved scout-1 to 6,7, scout-2 to 10,4, guardian-1 to 11,4; scout-1 hit scout-2 for 3 (1 deck).",
+      "reasoning": "P1 followed the assigned rush/tempo posture while respecting delayed recruit activation."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Peddler",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Peddler",
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 8,
+          "damage": 0,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 played Peddler/Peddler, produced 8 money and 0 damage, bought Gold; gained 4 supply; flipped center-west-south; moved guardian-1 to 1,8, marksman-1 to 2,8, scout-1 to 4,7, druid-1 to 3,7; scout-1 hit scout-1 for 2; scout-2 hit scout-1 for 2.",
+      "reasoning": "P2 followed the assigned engine/stabilization posture while respecting delayed recruit activation."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Blast",
+          "Zap",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Blast"
+        ],
+        "bought": [
+          "Zap"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 5,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 played Zap/Blast/Blast, produced 3 money and 5 damage, bought Zap; gained 4 supply; flipped center-east; moved scout-2 to 9,5, guardian-1 to 10,5; scout-1 hit scout-2 for 5 (3 deck); scout-2 died; recruited raider-2.",
+      "reasoning": "2 deck damage expired because no stronger legal attack attachment was available."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Gold",
+          "Copper",
+          "Copper",
+          "Village"
+        ],
+        "played": [
+          "Village"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 0,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 played Village, produced 7 money and 0 damage, bought Gold; gained 4 supply; flipped center-center-south; moved scout-1 to 5,7; scout-1 hit scout-1 for 2; recruited guardian-2.",
+      "reasoning": "P2 followed the assigned engine/stabilization posture while respecting delayed recruit activation."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Blast",
+          "Copper"
+        ],
+        "played": [
+          "Blast"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 2,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 played Blast, produced 4 money and 2 damage, bought Blast; gained 4 supply; flipped center-east; moved raider-2 to 9,0, scout-2 to 6,6, guardian-1 to 9,5; scout-1 hit scout-1 for 4 (2 deck); scout-2 hit scout-1 for 2; recruited scout-3.",
+      "reasoning": "P1 followed the assigned rush/tempo posture while respecting delayed recruit activation."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Peddler",
+          "Silver",
+          "Peddler",
+          "Gold",
+          "Copper"
+        ],
+        "played": [
+          "Peddler",
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 10,
+          "damage": 0,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 played Peddler/Peddler, produced 10 money and 0 damage, bought Gold; gained 4 supply; moved guardian-2 to 1,7; scout-1 hit scout-1 for 2; scout-1 died; recruited druid-2.",
+      "reasoning": "P2 followed the assigned engine/stabilization posture while respecting delayed recruit activation."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Blast"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 2,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+    "summary": "P1 played Blast, produced 4 money and 2 damage, bought Blast; gained 4 supply; moved scout-3 to 10,4; scout-2 hit scout-1 for 4 (2 deck); scout-1 died; recruited scout-4.",
+      "reasoning": "P1 followed the assigned rush/tempo posture while respecting delayed recruit activation."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Peddler",
+          "Copper",
+          "Gold",
+          "Copper",
+          "Silver"
+        ],
+        "played": [
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 11,
+          "damage": 0,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 played Peddler, produced 11 money and 0 damage, bought Gold; gained 4 supply; moved guardian-2 to 2,7, druid-2 to 1,7; recruited druid-3.",
+      "reasoning": "P2 followed the assigned engine/stabilization posture while respecting delayed recruit activation."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Zap",
+          "Copper",
+          "Copper",
+          "Blast"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Blast"
+        ],
+        "bought": [
+          "Zap"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 5,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+    "summary": "P1 played Zap/Blast/Blast, produced 3 money and 5 damage, bought Zap; gained 4 supply; flipped center-center-south; moved scout-2 to 5,7, scout-3 to 10,5, scout-4 to 10,4; scout-2 hit druid-1 for 4 (2 deck); recruited marksman-2.",
+      "reasoning": "3 deck damage expired because no stronger legal attack attachment was available."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Gold",
+          "Village",
+          "Peddler",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 10,
+          "damage": 0,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 played Village/Peddler, produced 10 money and 0 damage, bought Gold; gained 3 supply; moved marksman-1 to 3,8, druid-1 to 4,7, druid-2 to 2,8, druid-3 to 1,7; marksman-1 hit scout-2 for 4; druid-1 healed druid-1 for 1.",
+      "reasoning": "P2 followed the assigned engine/stabilization posture while respecting delayed recruit activation."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Blast",
+          "Zap",
+          "Blast",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Blast",
+          "Blast",
+          "Blast"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 1,
+          "damage": 9,
+          "heal": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+    "summary": "P1 played Zap/Blast/Blast/Blast/Blast, produced 1 money and 9 damage, bought nothing; gained 5 supply; flipped center-southeast; moved scout-3 to 9,7, scout-4 to 10,5; scout-2 hit druid-1 for 7 (5 deck); druid-1 died; recruited raider-3.",
+      "reasoning": "4 deck damage expired because no stronger legal attack attachment was available."
+    }
+  ]
+}

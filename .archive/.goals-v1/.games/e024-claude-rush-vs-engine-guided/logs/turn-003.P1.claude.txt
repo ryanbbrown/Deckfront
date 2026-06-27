@@ -1,0 +1,5 @@
+Turn-003 committed and validated.
+
+- **Deck:** Play Blast (+1 action, +2 damage) → moveToBuy → buy second Blast (cost 4 from 4 coppers).
+- **Board:** raider-3 (8,3)→(5,3) onto center-center-north; scout (6,3)→(6,5) onto center-center; marksman (9,2)→(7,3) advancing. raider-1 holds center-northeast.
+- **Rationale:** RUSH — still no enemy in range, so I grab two more central supply centers and keep pushing the line while stacking burst damage (2nd Blast) for the coming clash.

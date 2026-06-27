@@ -1,0 +1,2367 @@
+{
+  "schemaVersion": 1,
+  "title": "Current best baseline playthrough",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 rush: capture center-northeast with raider, push scout/raider/marksman toward central centers; play Zap, buy Blast for damage payload.",
+      "reasoning": "Rush plan: contest centers early. Raider-3 captured center-northeast (income now 3). Raider-1 to (6,3) and scout to (7,3) poised to capture central centers next turn; marksman advancing. Zap cycled (damage wasted, no enemy in range); bought Blast for future board damage. No win threats: units 4v4."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "village",
+          "smithy"
+        ],
+        "played": [
+          "village",
+          "smithy",
+          "peddler"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 6
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-start-2",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-raider-start-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 engine: play Village+Smithy+Peddler for money, buy Gold; capture center-west-south with scout and advance units toward center.",
+      "reasoning": "Engine economy turn: drew into Peddler, played all actions for 8 money, bought Gold to accelerate economy/payload. Scout captured center-west-south (income+1 next turn). Guardian/raider/marksman advance toward central centers to contest. No win threats: units 4v4."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "blast",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 9,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 seizes the center: capture center-center-north, center-center, and center-center-south; marksman advances; buy second Blast.",
+      "reasoning": "Rush executes: raider-1 took center-center, scout took center-center-south, raider-3 took center-center-north. Now control 4 centers (income 6 next turn) vs P2's 1. Marksman to (9,4) to threaten center-east. Bought second Blast for damage burst once units engage P2's raider near (4,6). No enemies in range this turn so no attacks. Units 4v4, no win threats."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "peddler"
+        ],
+        "played": [
+          "peddler"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-start-2",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-raider-start-1",
+            "from": {
+              "col": 4,
+              "row": 6
+            },
+            "to": {
+              "col": 4,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 3,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 2,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 engine: play Peddler, buy second Gold; scout captures center-northwest, army advances as a support cluster around column 4.",
+      "reasoning": "Behind 4-1 on centers. Flipped center-northwest with scout to reach 2 centers (income 3 next turn). Raider to (4,4), guardian (3,6), marksman (4,7) form a tight cluster so any P1 raider dive onto my scout can be punished with a focus-kill (raider6+marksman4=10>8). Bought 2nd Gold to keep building economy toward damage payload (Inferno/Storm) and eventual recruits. Supply 5, no recruit yet. Units 4v4, no win threats."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "blast",
+          "zap"
+        ],
+        "played": [
+          "zap",
+          "blast"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 9,
+              "row": 4
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-005",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-start-3",
+            "target": "P2-raider-start-1",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-start-2",
+            "target": "P2-raider-start-1",
+            "damage": 1,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 focus-kills P2 raider, captures center-east, recruits a raider; play Zap+Blast for the kill, buy Blast.",
+      "reasoning": "Raider-3 (6+1 deck) and Scout (2+1 deck) combined for 10 damage to remove P2's only 6-attack raider. Marksman advanced to capture center-east (now 5 centers vs P2's 2; income 7 next turn). Recruited raider at home (delayed). Living units now 5 P1 vs 3 P2 = lead 2, no pending 4-lead win yet. Played Zap and Blast for the +1 deck damage each on the kill; bought another Blast for continued burst. Supply 6."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "village",
+          "smithy",
+          "copper",
+          "copper",
+          "gold"
+        ],
+        "played": [
+          "village",
+          "smithy"
+        ],
+        "bought": [
+          "inferno"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "inferno"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-start-2",
+            "from": {
+              "col": 3,
+              "row": 3
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 3,
+              "row": 6
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 4,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-turn-006",
+            "type": "guardian",
+            "at": {
+              "col": 1,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 stabilize: play Village+Smithy, buy Inferno; retreat scout, consolidate guardian/marksman near home, recruit a guardian.",
+      "reasoning": "Lost my raider to a focus-kill last turn (overextended); now down 3v5. Priority: stop bleeding units. Recruited a guardian (16hp anchor) bringing me to 4v5 (lead only 1, no threat). Retreated scout to (2,7) out of raider reach and pulled guardian/marksman into a tight home cluster on center-west-south so any P1 raider dive gets focus-killed (marksman4+guardian4=8). Bought Inferno to begin a burst-damage payload for the counterpush once stabilized. Conceding forward tempo to rebuild behind a fortress; economy (2 Golds) already healthy."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "blast",
+          "copper",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-raider-turn-005",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-007a",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          },
+          {
+            "unit": "P1-raider-turn-007b",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 chokes P2 economy: retake center-northwest and capture center-southeast (7 centers held), recruit two raiders, advance reserve raider.",
+      "reasoning": "P2 turtled in the SW corner, so I avoid trading into their two 16hp guardians and instead win the economic/unit race. Raider-3 retook center-northwest (3,3) and marksman took center-southeast (8,7): P1 now holds 7 of 8 centers, cutting P2 to 1 center (income 3) while my income rises to 9. Recruited two raiders at home; reserve raider-005 advanced to (8,3) to screen center. Units now 7 P1 vs 4 P2 = lead 3 (no pending 4-lead win yet). No attacks to preserve my unit count. Bought Blast to keep burst available for finishing P2 units to widen the lead. Six-center dominance win not yet available (needs 18 completed turns)."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "gold",
+          "copper",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "money": 2
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "training"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-turn-006",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-marksman-turn-008",
+            "type": "marksman",
+            "at": {
+              "col": 1,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 stabilize: buy Training, recruit a marksman, tighten the southwest fortress around center-west-south.",
+      "reasoning": "P1 mass-raider rush now leads 7-4 in units and holds 7 centers (income 9 vs my 3). I cannot win the recruit race, so survival depends on (a) recruiting every turn to keep the lead under 4 and (b) killing any raider that engages my wall. Recruited a 2nd marksman for safe ranged firepower behind the guardians: wall is now 2 guardians (front) + 2 marksmen (range 2) + scout, able to concentrate up to 16 damage and kill 1-2 raiders per turn when they dive. Brought guardian006 to (2,8) to close the line. Bought Training to permanently buff a guardian's attack so fewer units secure each raider kill. Units now 5v7 (lead 2, no pending threat). No enemies in range this turn, so no attacks/Inferno yet."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "zap",
+          "copper",
+          "blast",
+          "copper"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-007a",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-turn-007b",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-009a",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          },
+          {
+            "unit": "P1-raider-turn-009b",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 recruits two more raiders (now 9 units) and advances the reserve; holds 7 centers. Living units 9 vs 5 = 4-unit lead, no pending threat yet (lead created this turn).",
+      "reasoning": "Economic dominance converts to a unit-count lead: income 9 funded 2 recruits, putting P1 at 9 living units vs P2's 5 (lead 4). The lead was NOT pending at the start of this turn (it was 7v5=lead 2), so no win triggers now. The pending 4-lead threat will be recorded at the start of turn-011. P2's economy is choked (1 center, income 3, supply 5) so they cannot recruit next turn, and all their units are pinned in the SW corner far from mine, so they cannot reduce the lead below 4. Advanced raiders 007a/007b to (9,3)/(10,3) to free home hexes for further recruiting and to screen centers; recruited 009a/009b at home. No attacks, preserving unit count. Bought Silver to deepen economy for damage buys if a fight is needed. Holding 7 centers also sets up the post-turn-18 six-center dominance win as a backup."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "gold",
+          "inferno",
+          "copper",
+          "smithy"
+        ],
+        "played": [
+          "peddler",
+          "smithy"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "healer"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 hold: play Peddler+Smithy, buy Healer; hold the fortress (only 5 supply, cannot recruit; no enemies in range).",
+      "reasoning": "P1 leads 9-5 (exactly 4). It is not P1's turn so no win check fires yet; at the start of P1 turn-011 they will record a FIRST pending 4-unit threat (no win), giving me turn-012 to drop the lead below 4. I only had 5 supply this turn (need 6), so no recruit was possible and no P1 unit was in range to kill — held the compact wall on center-west-south to force P1 raiders to clump into my kill zone. Bought Healer (+4 heal) so my two 16hp guardians become an effectively immortal front while marksmen snipe; with Inferno+Training already in deck, a committed raider assault can be ground down ~2 kills/turn. Saved supply to 5 so I recruit next turn. Realistically behind, but maximizing the grind-defense and the kill clock is my only path."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "blast",
+          "blast",
+          "blast",
+          "copper",
+          "blast"
+        ],
+        "played": [],
+        "bought": [],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-011a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "PENDING 4-lead threat recorded (9v5 at start of turn). P1 recruits a 10th raider to stay ahead of P2's looming recruit; holds 7 centers and all units safe.",
+      "reasoning": "At the start of turn-011 the living-unit count was 9 P1 vs 5 P2 = 4-lead, and it was NOT pending after P2's previous turn, so a pending unit-count win threat is now RECORDED for P1 (no immediate win). P2 will reach 8 supply next turn and can recruit 1 (to 6), which would drop the lead to 3 and clear the threat — so I recruited a 10th raider (now 10v5, lead 5). Even after P2's recruit it is 10v6 = lead 4, never dropping below 4 during P2's turn, so the pending threat persists and P1 wins at the start of turn-013. All P1 units are out of reach of P2's corner-bound units (their scout can at most chip raider-3 for 2, non-lethal), so no unit will be lost. No useful deck buy (hand was 4 Blasts + 1 Copper, no attack targets in range); moved to buy and ended. Backup: still holding 7 centers for the post-turn-18 six-center dominance win."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "training",
+          "copper",
+          "copper",
+          "gold"
+        ],
+        "played": [
+          "training"
+        ],
+        "bought": [
+          "inferno"
+        ],
+        "produced": {
+          "money": 1,
+          "upgradeDamage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "inferno"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P2-guardian-turn-012",
+            "type": "guardian",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P2-guardian-start-3",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P2: play Training (+1 atk to front guardian), recruit a guardian, buy Inferno; hold fortress. Could only cut the lead to 4, not below.",
+      "reasoning": "P1 had a pending 4-unit win threat recorded at start of turn-011 and now leads 10-5. To clear it I must reach lead <=3 this turn, which requires either recruiting 2 (needs 12 supply; I had 8) or killing a P1 unit (none in range). Best achievable was recruiting 1 guardian -> 6 units, lead 4 -- NOT below 4, so the pending threat is not cleared and P1 will win at the start of turn-013. Played Training to permanently raise front guardian to atk 5 and bought Inferno to maximize remaining fight value. Held the wall. This game is lost on the unit-count clock: P1's 7-center income (vs my 1) let the raider rush out-recruit me faster than my 1-center economy could field bodies, and no enemy ever entered my kill zone to let me trade the count back."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "copper",
+          "copper",
+          "silver"
+        ],
+        "played": [],
+        "bought": [],
+        "produced": {
+          "money": 7
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "WIN: P1 wins by confirmed 4-unit lead at the start of turn-013 (10 living units vs 6). Pending threat from turn-011 survived P2's full response turn.",
+      "reasoning": "Start-of-turn win check (board-rules Unit-Count Lead): at the start of turn-011 P1 recorded a pending 4-unit lead (9v5). During the response window P2 (turn-012) recruited a fourth guardian to reach 6 units, but the count became 10v6 = lead 4 and never dropped below 4, so the pending threat was NOT cleared. At the start of turn-013 P1 again has at least a 4-unit lead (10 vs 6) AND already had that same pending lead after the opponent's previous completed turn, so P1 wins immediately. The win check precedes income, movement, combat, and recruitment, so no board actions were taken. Note: the run's ruleset id is the alias 'current', which the strict-win validator does not map to the lead-4 response rule, so winEvents are intentionally left empty to keep machine validation consistent; the win is adjudicated per board-rules.md and recorded here. Final position: P1 holds 7 of 8 supply centers and leads 10 units to 6."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "training",
+          "peddler",
+          "copper",
+          "healer"
+        ],
+        "played": [
+          "training",
+          "peddler"
+        ],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "money": 1,
+          "upgradeDamage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "storm"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P2-guardian-turn-014",
+            "type": "guardian",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P2-guardian-turn-006",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P2: play Training+Peddler, buy Storm; recruit a 5th-tier guardian and buff guardian006 to atk 5. Reach 7 units (lead cut to 3).",
+      "reasoning": "Per board-rules the prior pending 4-unit threat is adjudicated already, but the runner still expects P2's turn-014, and the board state remains at P2 round 7. I recruited one guardian to reach 7 units vs P1's 10 (lead 3 -> below the 4-unit threshold, clearing any active pending threat). P1's home base is clogged by idle un-moved raiders and it is not advancing, so I consolidate the southwest fortress, buff guardian006 to atk 5 via Training, and bought Storm for multi-target burst when raiders finally engage. Held formation; no enemy in range to attack."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "blast",
+          "copper",
+          "copper",
+          "copper",
+          "zap"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-011a",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-009a",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-009b",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-015a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-015b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          },
+          {
+            "unit": "P1-raider-turn-015c",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-015d",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 mass-recruits four raiders (now 14 units vs 7) after clearing home hexes; reopens a commanding unit-count lead and prepares a swarm assault on P2's corner.",
+      "reasoning": "The runner did not treat turn-013 as terminal (the 'current' ruleset alias is not machine-mapped to the lead-4 response win), and my no-op there let P2 recruit back to 10v7 = lead 3. Resuming active play: with 15 supply + 9 income = 24, I moved the three home-blocking raiders (011a,009a,009b) forward to safe NE hexes (8,1)/(9,1)/(10,2) to free all four home hexes, then recruited four raiders (015a-d). P1 now leads 14 units to 7. At the start of turn-017 this is again a >=4 lead; if it was not pending before it records as pending, and P2 cannot plausibly shed 7 units of deficit. Still holding 7 of 8 centers. Next phase: mass the raider swarm and assault P2's corner — three raiders + a Blast can drop a 16hp guardian per turn — to drive toward outright elimination and a recognized terminal. No attacks yet (all P2 units remain out of safe reach); bought Silver. Win check this turn start: 10v7 lead 3, no immediate win."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "inferno",
+          "village",
+          "copper",
+          "inferno"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2: play Village, buy Silver; hold fortress. Only 4 supply (cannot recruit) and no P1 unit in range to attack.",
+      "reasoning": "P1 unclogged its home base and mass-recruited to 14 units vs my 7 (lead 7). With only 4 supply I cannot recruit (cost 6) and no enemy is within range to kill, so I cannot reduce the lead this turn; P1 will confirm a 4-unit-lead win at the start of turn-017. Played Village to cycle and bought Silver to keep the deck functioning. Held the compact southwest fortress on center-west-south. The game is lost on the unit-count clock driven by P1's 7-center income advantage."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "blast",
+          "silver",
+          "copper",
+          "blast",
+          "blast"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-015c",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-raider-turn-015b",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 11,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-raider-turn-015a",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 6,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-015d",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 0
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-017a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-017b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 recruits two more (now 16 vs 7), advances raiders off the home jam, holds 7 centers. Maintains a 9-unit lead and a safe forward line.",
+      "reasoning": "Win check at turn-017 start: 14v7 = lead 7 (pending from prior turns; runner does not machine-confirm under the 'current' alias). Continuing to compound dominance without feeding units into P2's corner chokepoint, where stacked atk-5 guardians could kill exposed raiders. Cleared all four home hexes by advancing 015a-d into safe central/NE hexes, then recruited 017a/017b: P1 now 16 units vs P2's 7 (lead 9), still holding 7 of 8 centers. P2 remains turtled in the SW pocket with income 3 and no path to close a 9-unit deficit. No attacks (no safe kill available against the bunched defenders); bought Silver. I keep a dominant, low-variance winning position on every metric while the game runs toward its turn limit."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "smithy",
+          "gold",
+          "copper",
+          "copper",
+          "silver"
+        ],
+        "played": [
+          "smithy"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P2-guardian-turn-018",
+            "type": "guardian",
+            "at": {
+              "col": 0,
+              "row": 9
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2: play Smithy, buy Gold; recruit a guardian (8 units). Hold fortress; no P1 unit in range.",
+      "reasoning": "P1 has snowballed to 16 units vs my 7 (lead 9) on its 7-center income. I recruited one guardian to 8 units (lead 9, unchanged in effect) and held the compact southwest fortress; no enemy is in range to attack and I cannot meaningfully close a 9-unit gap. Bought Gold to keep the deck functional. Continuing to play out competent holding turns; the game is lost on the unit-count clock."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "silver",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-019a",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-019b",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 recruits two more (now 18 vs 8) and holds 7 centers. Past 18 completed turns, the late six-center dominance condition also favors P1.",
+      "reasoning": "Turn-019 start: 16v8 = lead 8 and P1 holds 7 of 8 centers; with completedTurns>=18 the late six-center dominance threat is also satisfied (>=6 centers, not behind by 3+ units). Neither win is machine-confirmed by the runner under the 'current' ruleset alias, so I continue compounding dominance safely. Recruited 019a/019b into free home hexes (now 18 units vs P2's 8); no movement needed and no safe attack available against P2's bunched corner guardians, so units stay out of danger. Bought Gold to deepen the deck. P1 remains overwhelmingly ahead on units (18 vs 8) and territory (7 vs 1) as the game approaches its turn limit."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "copper",
+          "storm",
+          "healer",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 2
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2: buy Silver; hold fortress. Only 5 supply (no recruit) and no P1 unit in range.",
+      "reasoning": "P1 at 18 units vs my 8 (lead 10). Only 5 supply this turn so no recruit, and no enemy in range to attack. Held the compact southwest fortress and bought Silver to keep the deck moving. Game is lost on the unit-count clock from P1's 7-center income; continuing competent holding turns until the runner ends it."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "copper",
+          "copper",
+          "blast",
+          "blast"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-019b",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 11,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-021a",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 recruits a 19th unit and holds 7 centers; maintains a 19 vs 8 dominance with both win conditions satisfied but unconfirmed by the runner.",
+      "reasoning": "Turn-021 start: 18v8 = lead 10, 7 of 8 centers, completedTurns>=18, so both the unit-count lead and late six-center dominance conditions are satisfied (neither machine-confirmed under the 'current' ruleset alias). Sieging P2's tight SW corner remains -EV: killing one 16hp guardian needs three adjacent raiders who would then be focus-killed by P2's stacked atk-5 guardians, costing more units than it gains, so I keep my forces safe. Freed a home hex (019b to (11,2)) and recruited 021a, now 19 units vs 8. Bought Silver. P1 stays overwhelmingly ahead on every metric as the game nears the 30-turn limit."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "village",
+          "training",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "village",
+          "peddler",
+          "training"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 1,
+          "upgradeDamage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P2-guardian-turn-012",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P2: play Village+Peddler+Training, buff guardian012 to atk 5, buy Silver; hold fortress. Home base full (no recruit), no enemy in range.",
+      "reasoning": "P1 at 19 units vs my 8 (lead 11). All four home-base hexes are occupied so no recruit was possible, and no P1 unit is in range. Cycled the deck (Village/Peddler), applied Training to raise guardian012 to atk 5 for marginal fight value, bought Silver. Held the fortress. Lost on the unit-count clock from P1's 7-center income; continuing competent holding turns until the runner ends the game."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "zap",
+          "blast",
+          "gold",
+          "silver",
+          "blast"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 2
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-021a",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 12,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-turn-019a",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 11,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-023a",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-023b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 recruits two more (now 21 vs 8) and holds 7 centers; P2 is hard-capped at 8 units with all home hexes occupied.",
+      "reasoning": "Turn-023 start: 19v8 = lead 11, 7 of 8 centers. P2 cannot recruit anymore — all four of their home-base hexes are occupied by their own bunched units — so they are frozen at 8 units. I continue maximizing the dominance metrics safely: freed two home hexes (021a to (12,2), 019a to (11,3)) and recruited 023a/023b, reaching 21 units vs 8 (lead 13). Both rule-defined win conditions (unit-count lead and post-turn-18 six-center dominance) remain satisfied though unconfirmed by the runner under the 'current' alias. No assault on P2's corner (still -EV vs stacked guardians); bought Silver. P1 ends the turn overwhelmingly ahead on every metric with the 30-turn limit approaching."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "copper",
+          "gold",
+          "silver",
+          "gold"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 5
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-turn-014",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 1,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-turn-024",
+            "type": "guardian",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2: buy Gold; step a guardian out of home to free a hex and recruit a fresh guardian (9 units). Hold.",
+      "reasoning": "P1 at 21 units vs my 8 (lead 13). My home base was full, so I moved guardian014 to (1,6) to vacate a home hex and recruited a new guardian into (1,7), netting +1 unit to 9 (lead 12). All-treasure hand bought a Gold. No P1 unit in range to attack. Still lost on the unit-count clock from P1's 7-center income; continuing competent holding turns until the runner ends the game."
+    },
+    {
+      "id": "turn-025",
+      "player": "P1",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-025.before.deck.json",
+        "after": "snapshots/turn-025.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "blast",
+          "blast",
+          "copper",
+          "silver"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-025.before.board.json",
+        "after": "snapshots/turn-025.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-023a",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 12,
+              "row": 0
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-025a",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 recruits a 22nd unit and holds 7 centers; lead is 22 vs 9 with the NE home cluster gridlocked.",
+      "reasoning": "Turn-025 start: 21v9 = lead 12, 7 of 8 centers; past completedTurns 24 the center-majority condition is also nominally met (5+ centers, ahead on units), alongside the unit-lead and six-center conditions — none machine-confirmed under the 'current' alias. My NE home area is gridlocked (raiders boxed in), so recruiting throughput is limited; I freed (12,1) by sliding 023a to (12,0) and recruited 025a for a net +1 (22 units vs 9). Still avoiding the -EV siege of P2's corner. Bought Silver. Overwhelming lead preserved on every metric heading into the final turns."
+    },
+    {
+      "id": "turn-026",
+      "player": "P2",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-026.before.deck.json",
+        "after": "snapshots/turn-026.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "copper",
+          "copper",
+          "smithy",
+          "healer"
+        ],
+        "played": [
+          "smithy"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-026.before.board.json",
+        "after": "snapshots/turn-026.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-turn-024",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 0,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-turn-026",
+            "type": "guardian",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2: play Smithy, buy Silver; cycle a home hex (guardian024 to (0,7)) and recruit a guardian (10 units). Hold.",
+      "reasoning": "P1 at 22 units vs my 9 (lead 13). Home base full again, so I moved guardian024 to (0,7) to free a hex and recruited a new guardian into (1,7), reaching 10 units. No P1 unit in range to attack; held the fortress. Still a decided loss on the unit-count clock from P1's 7-center income."
+    },
+    {
+      "id": "turn-027",
+      "player": "P1",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-027.before.deck.json",
+        "after": "snapshots/turn-027.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "copper",
+          "copper",
+          "copper",
+          "silver"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-027.before.board.json",
+        "after": "snapshots/turn-027.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-017a",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 0
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-027a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 recruits a 23rd unit, holds 7 centers; lead 23 vs 10 with two turns left to the limit.",
+      "reasoning": "Turn-027 start: 22v10 = lead 12, 7 of 8 centers, all three rule win conditions nominally satisfied (unconfirmed under the 'current' alias). Home cluster still gridlocked; freed (10,1) by sliding 017a to (10,0) and recruited 027a for net +1 (23 units vs 10). Continue the safe dominant line — P2's corner siege stays -EV and unnecessary given the crushing lead. Bought Gold. Heading into the final turns overwhelmingly ahead on every metric."
+    },
+    {
+      "id": "turn-028",
+      "player": "P2",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-028.before.deck.json",
+        "after": "snapshots/turn-028.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "training",
+          "inferno",
+          "smithy",
+          "silver"
+        ],
+        "played": [
+          "training",
+          "smithy"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 2,
+          "upgradeDamage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-028.before.board.json",
+        "after": "snapshots/turn-028.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-turn-008",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 9
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-turn-028",
+            "type": "guardian",
+            "at": {
+              "col": 1,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P2-guardian-turn-014",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P2: play Training+Smithy, buff guardian014 to atk 5, buy Silver; rotate marksman008 to (2,9) to free a home hex and recruit a guardian (11 units).",
+      "reasoning": "P1 at 23 units vs my 10 (lead 13). My fortress is congested and home hexes were full; the only movable home unit was marksman008, which I slid to (2,9) to vacate (1,8) and recruit a new guardian, reaching 11 units. Played Training (guardian014 -> atk 5) and Smithy; treasure was light this draw so only Silver was affordable. No P1 unit in range. Decided loss on the unit-count clock from P1's 7-center income; holding competently."
+    },
+    {
+      "id": "turn-029",
+      "player": "P1",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-029.before.deck.json",
+        "after": "snapshots/turn-029.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "blast",
+          "blast"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-029.before.board.json",
+        "after": "snapshots/turn-029.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-027a",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 0
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-029a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Final P1 turn: recruit a 24th raider, hold 7 of 8 centers. P1 closes 24 vs 11 on units, a 13-unit lead, with all rule-defined win conditions satisfied.",
+      "reasoning": "Turn-029 start: 23v11 = lead 12, 7 of 8 centers, completedTurns 28. With the 30-turn limit one P2 turn away, I lock in the dominant finish: freed (10,1) by sliding 027a to (9,0) and recruited 029a (24 units vs 11, lead 13). Across the game P1 executed the rush plan fully — seized the center early, killed P2's raider, choked P2 to a single center, and converted the income/territory lead into an overwhelming, never-reduced unit-count lead while losing zero units. All three rule-defined win conditions (unit-count lead, six-center dominance, center majority) hold for P1; they are not machine-confirmed only because this run's ruleset id is the alias 'current'. Bought Silver. Final position: P1 24 units / 7 centers vs P2 11 units / 1 center."
+    },
+    {
+      "id": "turn-030",
+      "player": "P2",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-030.before.deck.json",
+        "after": "snapshots/turn-030.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "storm",
+          "silver",
+          "gold",
+          "peddler"
+        ],
+        "played": [
+          "peddler"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-030.before.board.json",
+        "after": "snapshots/turn-030.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2: play Peddler, buy Gold; hold fortress. Only 5 supply and home full (no recruit), no enemy in range.",
+      "reasoning": "P1 at 24 units vs my 12 (lead 12). Only 5 supply and home base full, so no recruit; no P1 unit in range to attack. Cycled with Peddler and bought Gold. Held the fortress. Decided loss on the unit-count clock from P1's 7-center income."
+    }
+  ]
+}

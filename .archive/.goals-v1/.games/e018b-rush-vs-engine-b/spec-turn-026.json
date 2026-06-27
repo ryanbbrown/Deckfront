@@ -1,0 +1,21 @@
+{
+  "id": "turn-026",
+  "player": "P2",
+  "round": 13,
+  "play": ["zap", "peddler", "bandage"],
+  "buyOptions": ["gold", "healer", "armory", "peddler", "potion", "village", "silver"],
+  "moves": [
+    { "id": "P2-marksman-2", "to": [3, 8] },
+    { "id": "P2-guardian-7", "to": [2, 8] },
+    { "id": "P2-guardian-8", "to": [1, 8] }
+  ],
+  "attacks": [
+    { "attacker": "P2-guardian-3", "target": "P1-raider-4", "bonus": 1 },
+    { "attacker": "P2-guardian-6", "target": "P1-raider-4" }
+  ],
+  "heals": [
+    { "id": "P2-guardian-6", "amount": 1 }
+  ],
+  "summary": "P2 used Zap and two guardians to kill P1's forward raider, clearing the four-unit lead without recruiting.",
+  "reasoning": "P2 had only four supply after income, so a recruit was unavailable. The response succeeded through a legal attack-bound Zap bonus plus a small Bandage heal on a damaged guardian."
+}

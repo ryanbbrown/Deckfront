@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-009",
+  "player": "P1",
+  "before": "snapshots/turn-009.before.deck.json",
+  "after": "snapshots/turn-009.after.deck.json",
+  "actions": [
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "gold"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "gold",
+    "copper",
+    "copper",
+    "gold"
+  ],
+  "played": [],
+  "bought": [
+    "gold"
+  ],
+  "produced": {
+    "money": 3
+  }
+}

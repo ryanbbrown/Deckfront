@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-012",
+  "player": "P2",
+  "before": "snapshots/turn-012.before.board.json",
+  "after": "snapshots/turn-012.after.board.json",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-guardian-start-1",
+        "from": {
+          "col": 6,
+          "row": 4
+        },
+        "to": {
+          "col": 7,
+          "row": 5
+        }
+      },
+      {
+        "unit": "P2-marksman-start-4",
+        "from": {
+          "col": 5,
+          "row": 4
+        },
+        "to": {
+          "col": 6,
+          "row": 5
+        }
+      },
+      {
+        "unit": "P2-scout-5",
+        "from": {
+          "col": 5,
+          "row": 5
+        },
+        "to": {
+          "col": 6,
+          "row": 4
+        }
+      },
+      {
+        "unit": "P2-scout-6",
+        "from": {
+          "col": 0,
+          "row": 8
+        },
+        "to": {
+          "col": 5,
+          "row": 5
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P2-scout-7",
+        "type": "scout",
+        "at": {
+          "col": 0,
+          "row": 8
+        }
+      }
+    ],
+    "attacks": [
+      {
+        "attacker": "P2-guardian-start-1",
+        "target": "P1-raider-start-1",
+        "damage": 3,
+        "deckDamage": 0,
+        "targetRemoved": true
+      },
+      {
+        "attacker": "P2-marksman-start-4",
+        "target": "P1-druid-6",
+        "damage": 4,
+        "deckDamage": 0,
+        "targetRemoved": false
+      },
+      {
+        "attacker": "P2-scout-5",
+        "target": "P1-healer-1",
+        "damage": 2,
+        "deckDamage": 0,
+        "targetRemoved": false
+      }
+    ],
+    "heals": [],
+    "upgrades": []
+  }
+}

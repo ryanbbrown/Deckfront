@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-010",
+  "player": "P2",
+  "before": "snapshots/turn-010.before.deck.json",
+  "after": "snapshots/turn-010.after.deck.json",
+  "actions": [
+    {
+      "type": "trashCard",
+      "handIndex": 1
+    },
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "playAction",
+      "handIndex": 4
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "inferno"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "village",
+    "copper",
+    "copper",
+    "gold",
+    "gold"
+  ],
+  "played": [
+    "village",
+    "smithy",
+    "peddler",
+    "village"
+  ],
+  "bought": [
+    "inferno"
+  ],
+  "produced": {
+    "money": 7
+  }
+}

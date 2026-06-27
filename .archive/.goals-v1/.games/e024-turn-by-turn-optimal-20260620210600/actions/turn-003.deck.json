@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-003",
+  "player": "P1",
+  "actions": [
+    {
+      "type": "trashCard",
+      "handIndex": 0
+    },
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "zap"
+    },
+    {
+      "type": "endTurn"
+    }
+  ]
+}

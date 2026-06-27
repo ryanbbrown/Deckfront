@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-024",
+  "player": "P2",
+  "before": "snapshots/turn-024.before.deck.json",
+  "after": "snapshots/turn-024.after.deck.json",
+  "actions": [
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "gold"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "silver",
+    "copper",
+    "gold",
+    "silver",
+    "gold"
+  ],
+  "played": [],
+  "bought": [
+    "gold"
+  ],
+  "produced": {
+    "money": 5
+  }
+}

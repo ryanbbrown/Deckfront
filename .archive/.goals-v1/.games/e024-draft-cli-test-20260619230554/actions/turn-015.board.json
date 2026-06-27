@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-015",
+  "player": "P1",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P1-scout-1",
+        "from": {
+          "col": 6,
+          "row": 5
+        },
+        "to": {
+          "col": 7,
+          "row": 5
+        }
+      },
+      {
+        "unit": "P1-raider-2",
+        "from": {
+          "col": 11,
+          "row": 4
+        },
+        "to": {
+          "col": 8,
+          "row": 7
+        }
+      },
+      {
+        "unit": "P1-guardian-3",
+        "from": {
+          "col": 10,
+          "row": 1
+        },
+        "to": {
+          "col": 10,
+          "row": 3
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P1-marksman-4",
+        "type": "marksman",
+        "at": {
+          "col": 11,
+          "row": 0
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

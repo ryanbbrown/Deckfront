@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-027",
+  "player": "P1",
+  "before": "snapshots/turn-027.before.deck.json",
+  "after": "snapshots/turn-027.after.deck.json",
+  "actions": [
+    {
+      "type": "trashCard",
+      "handIndex": 3
+    },
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "playAction",
+      "handIndex": 2
+    },
+    {
+      "type": "playAction",
+      "handIndex": 1
+    },
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "training",
+    "zap",
+    "blast",
+    "copper",
+    "training"
+  ],
+  "played": [
+    "training",
+    "training",
+    "blast",
+    "zap"
+  ],
+  "bought": [],
+  "produced": {
+    "money": 1,
+    "damage": 3,
+    "upgradeDamage": 2
+  }
+}

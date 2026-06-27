@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1-cost6-damagecap-responsewin-lead4-compressed",
+  "map": "sketch-v3-contest",
+  "turn": {
+    "activePlayer": "P2",
+    "round": 10
+  },
+  "units": [
+    {
+      "id": "P1-marksman-1",
+      "player": "P1",
+      "type": "marksman",
+      "col": 6,
+      "row": 3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-guardian-1",
+      "player": "P1",
+      "type": "guardian",
+      "col": 5,
+      "row": 4,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P2-druid-1",
+      "player": "P2",
+      "type": "druid",
+      "col": 5,
+      "row": 7,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-guardian-2",
+      "player": "P2",
+      "type": "guardian",
+      "col": 4,
+      "row": 8,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-2",
+      "player": "P1",
+      "type": "raider",
+      "col": 6,
+      "row": 5,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-marksman-2",
+      "player": "P1",
+      "type": "marksman",
+      "col": 9,
+      "row": 0,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-scout-2",
+      "player": "P1",
+      "type": "scout",
+      "col": 8,
+      "row": 6,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-raider-3",
+      "player": "P1",
+      "type": "raider",
+      "col": 6,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-guardian-3",
+      "player": "P2",
+      "type": "guardian",
+      "col": 2,
+      "row": 8,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-marksman-3",
+      "player": "P1",
+      "type": "marksman",
+      "col": 10,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-guardian-2",
+      "player": "P1",
+      "type": "guardian",
+      "col": 10,
+      "row": 2,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-4",
+      "player": "P1",
+      "type": "raider",
+      "col": 11,
+      "row": 0,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    }
+  ],
+  "notes": [
+    "Replay turn 019 after-state: P1 killed scout-2 and recruited a fourth raider, creating a pending lead-4 threat.",
+    "Pending P1 lead-4 threat recorded at the beginning of turn 19; P1 ended the turn with 9 units to P2 3."
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": null
+    },
+    {
+      "id": "center-west-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-north",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P1"
+    },
+    {
+      "id": "center-east",
+      "controller": "P1"
+    },
+    {
+      "id": "center-southeast",
+      "controller": "P1"
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 3
+    },
+    {
+      "player": "P2",
+      "amount": 6
+    }
+  ]
+}

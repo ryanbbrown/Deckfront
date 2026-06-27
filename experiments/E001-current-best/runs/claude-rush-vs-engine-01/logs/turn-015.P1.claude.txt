@@ -1,0 +1,7 @@
+Turn `turn-015` complete and validated.
+
+**P1 reopens a commanding lead:** mass-recruited four raiders to reach **14 units vs 7** (lead 7), after sliding the three home-blocking raiders forward to free all four home hexes.
+
+**Context on the "win":** The runner kept the game going past turn-013 because this run's ruleset is the alias `current`, which the strict-win validator doesn't map to the lead-4 response rule — so the unit-count win isn't machine-enforced, and my no-op turn-013 let P2 recruit back to a 3-unit gap. I've resumed active play rather than coasting.
+
+**Plan from here:** with 7/8 centers and a 2:1 unit advantage that P2's choked economy (1 supply, 1 free home hex) can't close, I'll mass the raider swarm and march on P2's southwest corner. Three raiders plus a Blast drop a 16hp guardian per turn, so I can grind their stack down toward outright elimination — a terminal state the runner will unambiguously recognize — while the unit-count lead stays far past 4. Validation passed (15 entries).

@@ -1,0 +1,9 @@
+Turn-018 for P2 complete and validated (18 entries).
+
+**Situation:** P1 has snowballed to **16 units vs my 8** (lead 8). The center/income gap continues to drive uncontestable recruitment.
+
+**What I did:**
+- **Deck:** Played Smithy to dig, bought Gold to keep the deck functional.
+- **Board:** Recruited a guardian (now 8 units) and held the compact southwest fortress. No P1 unit is in range to attack.
+
+**Honest assessment:** The game is lost and has been since the mid-game center concession — I can't close an 8-9 unit gap when P1 out-recruits me ~3-to-1 from its 7-center income, and the raider mass has not yet committed into my kill zone where I could trade any of it back. I'm playing out competent holding turns (recruit when affordable, hold the wall, keep the deck running) until the runner ends the game. Each turn validates cleanly, but there is no realistic path to a P2 win from this position.

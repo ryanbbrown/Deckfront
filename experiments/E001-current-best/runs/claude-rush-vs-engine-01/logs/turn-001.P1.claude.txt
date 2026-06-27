@@ -1,0 +1,8 @@
+Turn `turn-001` complete and validated.
+
+**Summary of P1's rush opening:**
+- **Deck:** Played Zap (cycled; +1 damage wasted with no enemy in range), bought **Blast** for future board-damage payload.
+- **Board:** Raider-3 captured **center-northeast** (income now 3/turn). Raider-1 → (6,3) and Scout → (7,3) are poised to capture central supply centers next turn; Marksman advanced to (9,2).
+- **State:** Supply control 1–0 (P1), saved supply 2. Units 4v4, no win threats pending.
+
+Validation passed (`Valid replay bundle, 1 entries`). The rush is on track to contest the central centers next turn and convert income into recruits.

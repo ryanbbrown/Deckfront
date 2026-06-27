@@ -1,0 +1,9 @@
+Turn-026 for P2 complete and validated (26 entries).
+
+**Situation:** P1 at **22 units vs my 10** (lead 12).
+
+**What I did:** Home base was full again, so I cycled a hex — moved guardian024 out to (0,7), recruited a fresh guardian into (1,7) (9→10 units). Played Smithy to dig, bought Silver. No P1 unit in range, held the fortress.
+
+**Honest assessment:** No change — this is a settled loss. P1's 7-center income keeps its raider count growing roughly twice as fast as mine, and the gap holds around 12-13. I'm capturing the only marginal gain available (recruit one body per turn by rotating a home hex) and committing clean, valid turns.
+
+Standing process flag, unchanged: per the committed timeline P1 already satisfied the 4-unit-lead win at turn-013, but the `current` ruleset alias isn't mapped in the strict-win validator so the game never auto-ends and the runner keeps issuing P2 turns. If the objective is to stop at a legal winner, this run should be scored a P1 victory and halted. I'll continue committing valid turns for as long as I'm asked.

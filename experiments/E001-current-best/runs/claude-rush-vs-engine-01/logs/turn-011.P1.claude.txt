@@ -1,0 +1,8 @@
+Turn `turn-011` complete and validated.
+
+**Pending win threat now armed:**
+- At the start of this turn the count was **9 P1 vs 5 P2 = 4-lead**, and it was *not* previously pending → a **pending unit-count win threat is recorded** for P1 (no immediate win — the response window must elapse).
+- **Critical adjustment:** P2 reaches 8 supply next turn and can recruit one unit (to 6), which would drop the lead to 3 and *clear* the threat. So I recruited a **10th raider → 10 vs 5 (lead 5)**. Even after P2's recruit it's 10v6 = lead 4, never dipping below 4 during their turn, so the threat survives.
+- All P1 units are beyond reach of P2's corner-bound force (their scout can at most chip raider-3 for 2, non-lethal), so no unit is lost.
+
+**Outcome:** At the start of **turn-013**, the lead is still ≥4 and was pending through P2's full response turn → **P1 wins by unit-count lead.** Holding 7 centers remains a redundant backup (post-turn-18 six-center dominance). Validation passed (11 entries).

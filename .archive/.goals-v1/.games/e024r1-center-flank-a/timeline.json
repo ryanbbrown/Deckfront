@@ -1,0 +1,3051 @@
+{
+  "schemaVersion": 1,
+  "title": "E024 round 1 center-control vs flank/economy high-movement six-center strict A",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 0
+            }
+          },
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-001: P1 4 moves, 0 attacks, 0 recruits; units P1 4 vs P2 4; centers P1 1 / P2 0 / neutral 7.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 4, P2 4. Centers after turn: P1 1, P2 0, neutral 7. The late six-center dominance rule is still gated because only 1 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 6,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-002: P2 4 moves, 0 attacks, 0 recruits; units P1 4 vs P2 4; centers P1 1 / P2 0 / neutral 7.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 4, P2 4. Centers after turn: P1 1, P2 0, neutral 7. The late six-center dominance rule is still gated because only 2 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 9,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 9,
+              "row": 0
+            },
+            "to": {
+              "col": 8,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-scout-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-003: P1 4 moves, 1 attacks, 0 recruits; units P1 4 vs P2 4; centers P1 1 / P2 0 / neutral 7.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 4, P2 4. Centers after turn: P1 1, P2 0, neutral 7. The late six-center dominance rule is still gated because only 3 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 3,
+              "row": 6
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 6,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 4,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-scout-1",
+            "target": "P1-raider-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-2",
+            "target": "P1-scout-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-004: P2 4 moves, 2 attacks, 0 recruits; units P1 4 vs P2 4; centers P1 1 / P2 2 / neutral 5.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 4, P2 4. Centers after turn: P1 1, P2 2, neutral 5. The late six-center dominance rule is still gated because only 4 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "village"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 8,
+              "row": 5
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-2",
+            "type": "marksman",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-marksman-1",
+            "target": "P2-druid-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-005: P1 4 moves, 1 attacks, 1 recruits; units P1 5 vs P2 4; centers P1 2 / P2 2 / neutral 4.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 5, P2 4. Centers after turn: P1 2, P2 2, neutral 4. The late six-center dominance rule is still gated because only 5 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "damage": 1,
+          "stormTargets": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 4,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 5,
+              "row": 5
+            },
+            "to": {
+              "col": 3,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-3",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-006: P2 4 moves, 0 attacks, 1 recruits; units P1 5 vs P2 5; centers P1 2 / P2 4 / neutral 2.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 5, P2 5. Centers after turn: P1 2, P2 4, neutral 2. The late six-center dominance rule is still gated because only 6 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-3",
+            "type": "marksman",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-1",
+            "target": "P2-scout-2",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-1",
+            "target": "P2-scout-2",
+            "damage": 1,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-marksman-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-007: P1 5 moves, 3 attacks, 1 recruits; units P1 6 vs P2 4; centers P1 4 / P2 3 / neutral 1.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 5 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 6, P2 4. Centers after turn: P1 4, P2 3, neutral 1. The late six-center dominance rule is still gated because only 7 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 3,
+              "row": 6
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-scout-3",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-4",
+            "type": "scout",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-1",
+            "target": "P1-raider-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-druid-1",
+            "target": "P1-marksman-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-1",
+            "target": "P1-raider-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-scout-3",
+            "target": "P1-marksman-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-008: P2 3 moves, 4 attacks, 1 recruits; units P1 5 vs P2 5; centers P1 4 / P2 3 / neutral 1.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 3 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 5, P2 5. Centers after turn: P1 4, P2 3, neutral 1. The late six-center dominance rule is still gated because only 8 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 10,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-marksman-3",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 10,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-2",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-marksman-1",
+            "target": "P2-scout-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-scout-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-009: P1 4 moves, 2 attacks, 1 recruits; units P1 6 vs P2 4; centers P1 4 / P2 3 / neutral 1.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 6, P2 4. Centers after turn: P1 4, P2 3, neutral 1. The late six-center dominance rule is still gated because only 9 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 6,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 5,
+              "row": 5
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-3",
+            "from": {
+              "col": 5,
+              "row": 6
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-scout-4",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-1",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-3",
+            "target": "P1-guardian-1",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-4",
+            "target": "P1-marksman-1",
+            "damage": 2,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-010: P2 4 moves, 2 attacks, 1 recruits; units P1 5 vs P2 5; centers P1 2 / P2 5 / neutral 1.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 5, P2 5. Centers after turn: P1 2, P2 5, neutral 1. The late six-center dominance rule is still gated because only 10 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-3",
+            "from": {
+              "col": 10,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-druid-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-scout-4",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-2",
+            "target": "P2-scout-4",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-011: P1 4 moves, 3 attacks, 0 recruits; units P1 5 vs P2 4; centers P1 2 / P2 5 / neutral 1.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 5, P2 4. Centers after turn: P1 2, P2 5, neutral 1. The late six-center dominance rule is still gated because only 11 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 7,
+              "row": 6
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-3",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-5",
+            "type": "scout",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-1",
+            "target": "P1-scout-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-3",
+            "target": "P1-scout-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-012: P2 4 moves, 2 attacks, 1 recruits; units P1 4 vs P2 5; centers P1 2 / P2 5 / neutral 1.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 4, P2 5. Centers after turn: P1 2, P2 5, neutral 1. The late six-center dominance rule is still gated because only 12 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "armory"
+        ],
+        "produced": {
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 6,
+              "row": 4
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-3",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 9,
+              "row": 4
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-4",
+            "type": "marksman",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-marksman-3",
+            "target": "P2-marksman-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-raider-2",
+            "target": "P2-marksman-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-013: P1 4 moves, 2 attacks, 1 recruits; units P1 5 vs P2 4; centers P1 2 / P2 5 / neutral 1.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 5, P2 4. Centers after turn: P1 2, P2 5, neutral 1. The late six-center dominance rule is still gated because only 13 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "village"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 5,
+              "row": 6
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-3",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 4,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-5",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-6",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-5",
+            "target": "P1-marksman-3",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-014: P2 4 moves, 1 attacks, 1 recruits; units P1 5 vs P2 5; centers P1 2 / P2 5 / neutral 1.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 5, P2 5. Centers after turn: P1 2, P2 5, neutral 1. The late six-center dominance rule is still gated because only 14 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-3",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-3",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-scout-5",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-2",
+            "target": "P2-scout-5",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-raider-2",
+            "target": "P2-druid-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-015: P1 5 moves, 3 attacks, 1 recruits; units P1 6 vs P2 3; centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 5 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 6, P2 3. Centers after turn: P1 3, P2 4, neutral 1. The late six-center dominance rule is still gated because only 15 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-3",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-6",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-2",
+            "type": "raider",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-3",
+            "target": "P1-marksman-3",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-016: P2 3 moves, 1 attacks, 1 recruits; units P1 6 vs P2 4; centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 3 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 6, P2 4. Centers after turn: P1 3, P2 4, neutral 1. The late six-center dominance rule is still gated because only 16 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-3",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 10,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-scout-3",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-3",
+            "target": "P2-scout-3",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-017: P1 4 moves, 2 attacks, 0 recruits; units P1 6 vs P2 3; centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 6, P2 3. Centers after turn: P1 3, P2 4, neutral 1. The late six-center dominance rule is still gated because only 17 completed player turns exist after this entry. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 4,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-scout-6",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-7",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-raider-1",
+            "target": "P1-marksman-3",
+            "damage": 4,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-scout-6",
+            "target": "P1-raider-2",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-018: P2 3 moves, 2 attacks, 1 recruits; units P1 5 vs P2 4; centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 3 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 5, P2 4. Centers after turn: P1 3, P2 4, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 10,
+              "row": 4
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-5",
+            "type": "marksman",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-scout-6",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-2",
+            "target": "P2-raider-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-raider-2",
+            "target": "P2-raider-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-019: P1 3 moves, 3 attacks, 1 recruits; units P1 6 vs P2 3; centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 3 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 6, P2 3. Centers after turn: P1 3, P2 4, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-6",
+            "from": {
+              "col": 5,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 5,
+              "row": 6
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-7",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-8",
+            "type": "scout",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-6",
+            "target": "P1-raider-2",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-020: P2 3 moves, 1 attacks, 1 recruits; units P1 6 vs P2 4; centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 3 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 6, P2 4. Centers after turn: P1 3, P2 4, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 5,
+              "row": 4
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-5",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-4",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-021: P1 6 moves, 0 attacks, 1 recruits; units P1 7 vs P2 4; centers P1 4 / P2 3 / neutral 1.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 6 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 7, P2 4. Centers after turn: P1 4, P2 3, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-6",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-scout-7",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-scout-8",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-3",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-6",
+            "target": "P1-raider-2",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-raider-2",
+            "target": "P1-raider-2",
+            "damage": 1,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-scout-7",
+            "target": "P1-raider-3",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-8",
+            "target": "P1-raider-3",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-022: P2 4 moves, 4 attacks, 1 recruits; units P1 6 vs P2 5; centers P1 4 / P2 3 / neutral 1.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 6, P2 5. Centers after turn: P1 4, P2 3, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-5",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-4",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-6",
+            "type": "marksman",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-scout-7",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-2",
+            "target": "P2-scout-7",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-023: P1 6 moves, 2 attacks, 1 recruits; units P1 7 vs P2 4; centers P1 4 / P2 3 / neutral 1.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 6 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 7, P2 4. Centers after turn: P1 4, P2 3, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-6",
+            "from": {
+              "col": 7,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 5,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-8",
+            "from": {
+              "col": 6,
+              "row": 6
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-3",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-9",
+            "type": "scout",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-6",
+            "target": "P1-guardian-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-024: P2 4 moves, 1 attacks, 1 recruits; units P1 7 vs P2 5; centers P1 4 / P2 3 / neutral 1.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 7, P2 5. Centers after turn: P1 4, P2 3, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-025",
+      "player": "P1",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-025.before.deck.json",
+        "after": "snapshots/turn-025.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "village"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-025.before.board.json",
+        "after": "snapshots/turn-025.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-4",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-6",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-7",
+            "type": "marksman",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-3",
+            "target": "P2-scout-6",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-025: P1 6 moves, 1 attacks, 1 recruits; units P1 8 vs P2 4; centers P1 4 / P2 3 / neutral 1.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 6 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 8, P2 4. Centers after turn: P1 4, P2 3, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-026",
+      "player": "P2",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-026.before.deck.json",
+        "after": "snapshots/turn-026.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "damage": 1,
+          "stormTargets": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-026.before.board.json",
+        "after": "snapshots/turn-026.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-8",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-raider-3",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-scout-9",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-raider-2",
+            "target": "P1-raider-3",
+            "damage": 4,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-scout-8",
+            "target": "P1-marksman-5",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-9",
+            "target": "P1-raider-4",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-026: P2 4 moves, 3 attacks, 0 recruits; units P1 7 vs P2 4; centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 4 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 7, P2 4. Centers after turn: P1 3, P2 4, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-027",
+      "player": "P1",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-027.before.deck.json",
+        "after": "snapshots/turn-027.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-027.before.board.json",
+        "after": "snapshots/turn-027.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-marksman-5",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-6",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-marksman-7",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-5",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-raider-3",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-2",
+            "target": "P2-scout-8",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-5",
+            "target": "P2-raider-3",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-raider-4",
+            "target": "P2-scout-8",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-027: P1 6 moves, 4 attacks, 1 recruits; units P1 8 vs P2 2; centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 6 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 8, P2 2. Centers after turn: P1 3, P2 4, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-028",
+      "player": "P2",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-028.before.deck.json",
+        "after": "snapshots/turn-028.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-028.before.board.json",
+        "after": "snapshots/turn-028.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 7,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-9",
+            "from": {
+              "col": 6,
+              "row": 6
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-4",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-028: P2 2 moves, 0 attacks, 1 recruits; units P1 8 vs P2 3; centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 2 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 8, P2 3. Centers after turn: P1 3, P2 4, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: No pending response-window threat has been recorded yet."
+    },
+    {
+      "id": "turn-029",
+      "player": "P1",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-029.before.deck.json",
+        "after": "snapshots/turn-029.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "zap",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-029.before.board.json",
+        "after": "snapshots/turn-029.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 5,
+              "row": 4
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-4",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-6",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-7",
+            "from": {
+              "col": 9,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-5",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 0
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-8",
+            "type": "marksman",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-4",
+            "target": "P2-raider-2",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-029: P1 7 moves, 1 attacks, 1 recruits; units P1 9 vs P2 3; centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 keeps a center-control posture, using high-movement scouts and raiders to recapture contested centers while guardians and marksmen anchor the middle. 7 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 9, P2 3. Centers after turn: P1 3, P2 4, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: Start turn 29: P1 creates pending lead-4 threat at units P1 8 / P2 3."
+    },
+    {
+      "id": "turn-030",
+      "player": "P2",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-030.before.deck.json",
+        "after": "snapshots/turn-030.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "gold",
+          "blast",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-030.before.board.json",
+        "after": "snapshots/turn-030.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-9",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-raider-4",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-10",
+            "type": "scout",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-9",
+            "target": "P1-marksman-5",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "summary": "turn-030: P2 3 moves, 1 attacks, 1 recruits; units P1 9 vs P2 4; centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 keeps the flank/economy posture, using high-movement scouts and raiders to pressure lower/east lanes and convert center income into repeated recruitment. 3 movement logs show the high-movement branch producing board churn this turn. Unit counts after turn: P1 9, P2 4. Centers after turn: P1 3, P2 4, neutral 1. The late six-center dominance rule is live at future start-of-turn checks; pending, cleared, or confirmed six-center threats are recorded in the win log when conditions change. Latest response-window state: Start turn 29: P1 creates pending lead-4 threat at units P1 8 / P2 3."
+    }
+  ]
+}

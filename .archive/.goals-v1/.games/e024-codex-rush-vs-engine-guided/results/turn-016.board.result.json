@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-016",
+  "player": "P2",
+  "before": "snapshots/turn-016.before.board.json",
+  "after": "snapshots/turn-016.after.board.json",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-raider-turn-014-1",
+        "from": {
+          "col": 1,
+          "row": 7
+        },
+        "to": {
+          "col": 5,
+          "row": 7
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P2-raider-turn-016-1",
+        "type": "raider",
+        "at": {
+          "col": 0,
+          "row": 8
+        }
+      }
+    ],
+    "attacks": [
+      {
+        "attacker": "P2-raider-turn-010-1",
+        "target": "P1-raider-turn-009-1",
+        "damage": 2,
+        "deckDamage": 0,
+        "targetRemoved": true
+      },
+      {
+        "attacker": "P2-scout-start-2",
+        "target": "P1-raider-turn-011-1",
+        "damage": 2,
+        "deckDamage": 0,
+        "targetRemoved": false
+      }
+    ],
+    "heals": [],
+    "upgrades": []
+  }
+}

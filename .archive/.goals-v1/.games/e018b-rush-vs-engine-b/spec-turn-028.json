@@ -1,0 +1,26 @@
+{
+  "id": "turn-028",
+  "player": "P2",
+  "round": 14,
+  "play": ["peddler", "bandage", "potion"],
+  "buyOptions": ["gold", "healer", "armory", "peddler", "potion", "village", "silver"],
+  "moves": [
+    { "id": "P2-guardian-3", "to": [7, 7] },
+    { "id": "P2-guardian-5", "to": [6, 8] },
+    { "id": "P2-marksman-2", "to": [4, 8] },
+    { "id": "P2-guardian-7", "to": [3, 8] },
+    { "id": "P2-guardian-8", "to": [2, 8] }
+  ],
+  "attacks": [
+    { "attacker": "P2-guardian-3", "target": "P1-scout-3" }
+  ],
+  "heals": [
+    { "id": "P2-guardian-3", "amount": 2 },
+    { "id": "P2-guardian-3", "amount": 1 }
+  ],
+  "recruits": [
+    { "type": "marksman", "id": "P2-marksman-3", "at": [0, 8] }
+  ],
+  "summary": "P2 recruited a marksman, upgraded and healed a guardian, but could not clear P1's four-unit lead.",
+  "reasoning": "P2 lacked a second recruit or a kill. P1 should therefore record a pending lead-4 threat at the next start-of-turn check if the count remains 10-6."
+}

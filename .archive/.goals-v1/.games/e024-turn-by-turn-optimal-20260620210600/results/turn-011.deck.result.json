@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-011",
+  "player": "P1",
+  "before": "snapshots/turn-011.before.deck.json",
+  "after": "snapshots/turn-011.after.deck.json",
+  "actions": [
+    {
+      "type": "trashCard",
+      "handIndex": 0
+    },
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "playAction",
+      "handIndex": 2
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "inferno"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "zap",
+    "copper",
+    "gold",
+    "storm"
+  ],
+  "played": [
+    "zap",
+    "storm"
+  ],
+  "bought": [
+    "inferno"
+  ],
+  "produced": {
+    "money": 1,
+    "damage": 3,
+    "stormTargets": 2
+  }
+}

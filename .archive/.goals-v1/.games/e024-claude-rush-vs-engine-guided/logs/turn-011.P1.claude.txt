@@ -1,0 +1,5 @@
+Turn-011 committed and validated.
+
+- **Deck:** Play Zap (cycle, +1 card/action) → moveToBuy → buy Peddler.
+- **Board:** Recruit P1-raider-r11 at home hex (11,1); ready units hold their centers.
+- **Rationale:** I control 6 of 8 centers and have no clean kills in range (the guardian is 16hp; isolated targets survive a single capped hit). The fastest win is the 4-unit-lead condition: this recruit makes it **8 units vs P2's 4 = lead 4**, which resolves after P2's one response turn. Scout stays on center-east (8hp absorbs the guardian's 4 damage), keeping 6-center dominance as a backup win path. Reserve raiders remain ready to punish any P2 attempt to break the lead.

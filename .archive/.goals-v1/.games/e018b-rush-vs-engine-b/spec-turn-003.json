@@ -1,0 +1,15 @@
+{
+  "id": "turn-003",
+  "player": "P1",
+  "round": 2,
+  "trash": "rest",
+  "buy": "silver",
+  "moves": [
+    { "id": "P1-raider-1", "to": [6, 2] },
+    { "id": "P1-scout-1", "to": [8, 5] },
+    { "id": "P1-marksman-1", "to": [9, 0] },
+    { "id": "P1-guardian-1", "to": [9, 2] }
+  ],
+  "summary": "P1 cleaned a Rest, bought Silver, and advanced from northeast toward center-north and east.",
+  "reasoning": "The rush deck needed money after a low-buy opening. Board control of northeast persists after the raider leaves, so P1 used the unit lead to threaten the next line of centers."
+}

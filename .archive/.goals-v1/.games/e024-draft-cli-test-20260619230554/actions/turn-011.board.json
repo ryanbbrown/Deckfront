@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-011",
+  "player": "P1",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P1-scout-1",
+        "from": {
+          "col": 5,
+          "row": 3
+        },
+        "to": {
+          "col": 3,
+          "row": 3
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P1-raider-2",
+        "type": "raider",
+        "at": {
+          "col": 11,
+          "row": 0
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

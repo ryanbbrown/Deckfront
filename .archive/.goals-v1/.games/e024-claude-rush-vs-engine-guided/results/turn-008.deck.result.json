@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-008",
+  "player": "P2",
+  "before": "snapshots/turn-008.before.deck.json",
+  "after": "snapshots/turn-008.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 2
+    },
+    {
+      "type": "playAction",
+      "handIndex": 2
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "inferno"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "silver",
+    "peddler",
+    "smithy",
+    "copper"
+  ],
+  "played": [
+    "peddler",
+    "smithy"
+  ],
+  "bought": [
+    "inferno"
+  ],
+  "produced": {
+    "money": 5
+  }
+}

@@ -1,0 +1,5 @@
+Turn-004 committed and validated.
+
+- **Deck line:** Play Peddler → Play Smithy → moveToBuy → buy Silver → endTurn. Peddler cycles with +1 money, Smithy draws 3, Silver continues the economy ramp.
+- **Board line:** Raider `P2-raider-start-1` (3,8)→(6,8) pushing toward the eastern centers; Guardian `P2-guardian-start-3` (1,8)→(3,8) advancing as support; Scout stays on center-west-south to keep that control.
+- **Rationale:** Keep the engine growing while converting into board presence — hold the captured west-south center, advance toward uncontested eastern centers to widen the supply lead.

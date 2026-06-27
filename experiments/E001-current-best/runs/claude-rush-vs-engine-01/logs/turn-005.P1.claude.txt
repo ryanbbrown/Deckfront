@@ -1,0 +1,10 @@
+Turn `turn-005` complete and validated.
+
+**P1 presses the advantage:**
+- **Combat:** Raider-3 (6 +1 deck) and Scout (2 +1 deck) combined for 10 damage to **kill P2's raider** — removing their only 6-attack threat.
+- **Territory:** Marksman captured **center-east** → P1 now holds **5 of 8 centers** vs P2's 2 (income 7/turn).
+- **Recruit:** Added a raider at home (delayed, enters next turn).
+- **Deck:** Played Zap + Blast to fuel the kill; bought another Blast for sustained burst.
+- **State:** Living units **5 P1 vs 3 P2** (lead 2 — not yet the 4-lead win threshold). Supply 6.
+
+The rush is now firmly ahead on both board pressure and economy. Next turn the recruited raider becomes active and I can keep grinding the unit-count lead toward a win while P2's remaining force (scout, guardian, marksman) is pinned in the southwest. Validation passed (5 entries).

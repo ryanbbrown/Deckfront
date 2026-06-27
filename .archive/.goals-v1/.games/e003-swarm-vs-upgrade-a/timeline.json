@@ -1,0 +1,448 @@
+{
+  "schemaVersion": 1,
+  "title": "E003 Swarm vs Upgrade A",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Gold",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 7
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 bought Gold and opened by taking the northeast and east centers.",
+      "reasoning": "P1 kept the full 7-money hand rather than trashing Copper, then split the raider and scout to capture two nearby centers; no legal deck damage was produced."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 5
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 bought Armory and claimed the west-south center.",
+      "reasoning": "P2 kept all five Coppers to afford the first upgrade card, then used scout mobility to establish the southwest foothold while support pieces advanced."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Copper",
+          "Copper",
+          "Zap",
+          "Copper"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 trashed Copper, bought another Gold, and recruited the first delayed scout.",
+      "reasoning": "Zap drew into Gold for the buy; its damage had no legal attack target, so P1 used the board phase for center approach and a delayed quantity recruit."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Armory",
+          "Training",
+          "Copper"
+        ],
+        "played": [
+          "Training",
+          "Armory"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "upgradeDamage": 1,
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 chained Training into Armory, upgraded the marksman, and recruited a guardian.",
+      "reasoning": "Training before Armory preserved the action chain; both upgrades went onto the marksman as P2 began building a smaller elite formation."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Gold"
+        ],
+        "played": [],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 6
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 bought Gold, flipped two central centers, and recruited a raider.",
+      "reasoning": "P1 could trash a Copper and still hit 6 money; the board phase prioritized center control and used a scout attack to chip P2 scout-2."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Armory",
+          "Copper"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [
+          "Potion"
+        ],
+        "produced": {
+          "money": 4,
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 bought Potion and softened P1 scout-1 in the center.",
+      "reasoning": "The Armory health upgrade went onto the elite marksman; P2 lacked enough supply to recruit, so the response was ranged pressure on the central scout."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Gold",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 6
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 bought Gold, killed P2 scout-2, and recruited another scout.",
+      "reasoning": "P1 used the raider to remove the wounded forward scout and created a temporary three-unit lead, leaving P2 one response turn before P1 could win."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Armory",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Potion"
+        ],
+        "played": [
+          "Potion",
+          "Armory"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "heal": 2,
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 killed P1 scout-1 and recruited a marksman to reset the unit-count threat.",
+      "reasoning": "Potion kept the Armory chain alive; P2 healed and upgraded defensively, then the upgraded marksman removed the wounded central scout."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Copper",
+          "Gold",
+          "Gold",
+          "Silver"
+        ],
+        "played": [],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 11
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 bought Peddler, took the southeast center, and recruited a raider.",
+      "reasoning": "With enough treasure already, P1 shifted into payload support and widened board coverage while damaging P2 druid and scout-1."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Armory",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Training"
+        ],
+        "played": [
+          "Training",
+          "Armory"
+        ],
+        "bought": [
+          "Potion"
+        ],
+        "produced": {
+          "money": 4,
+          "upgradeDamage": 1,
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 bought Potion, killed P1 raider-1, and recruited a second guardian.",
+      "reasoning": "P2 stacked more upgrades onto the marksman and focused attacks on P1 raider-1 to prevent the swarm lead from snowballing immediately."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Gold",
+          "Peddler",
+          "Gold",
+          "Gold"
+        ],
+        "played": [
+          "Zap",
+          "Peddler"
+        ],
+        "bought": [
+          "Storm"
+        ],
+        "produced": {
+          "money": 14,
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 bought Storm, flipped center-south, killed the druid, and recruited a scout.",
+      "reasoning": "The action chain produced a huge buy and one damage; P1 attached the damage to a legal scout attack while the guardian removed the wounded druid."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Armory",
+          "Silver"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 5,
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 bought Healer, killed the center-south scout, and recruited a healer unit.",
+      "reasoning": "P2 still had only enough supply for one recruit, so the elite marksman removed P1 scout-2 while Armory preserved P2 scout-1."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Gold",
+          "Silver",
+          "Copper",
+          "Peddler"
+        ],
+        "played": [
+          "Peddler",
+          "Zap"
+        ],
+        "bought": [
+          "Second Wind"
+        ],
+        "produced": {
+          "money": 11,
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 bought Second Wind, killed P2 scout-1, and spent supply on two recruits.",
+      "reasoning": "P1 had 12 supply after income, so the swarm plan converted center control into a two-unit recruit and forced P2 to answer an 8-to-5 unit count."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Potion",
+          "Copper",
+          "Copper",
+          "Potion",
+          "Copper"
+        ],
+        "played": [
+          "Potion",
+          "Potion"
+        ],
+        "bought": [
+          "Bandage"
+        ],
+        "produced": {
+          "money": 3,
+          "heal": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 bought Bandage and focus-fired P1 guardian-1 but could not prevent the pending P1 win.",
+      "reasoning": "Double Potion generated healing but no damage or recruit; P2 had only 3 supply and could wound the guardian to 2 HP, leaving P1 with an 8-to-5 start-turn unit lead."
+    }
+  ]
+}

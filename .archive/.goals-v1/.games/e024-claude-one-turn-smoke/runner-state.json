@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "model": "claude-opus-4-8",
+  "effort": "medium",
+  "drafts": [
+    "P1=blast,zap,silver",
+    "P2=village,smithy,peddler"
+  ],
+  "players": {
+    "P1": {
+      "sessionId": "28829d1c-4e51-4d4a-8a90-464561bc705b",
+      "strategy": "Rush strategy: choose a strong legal first turn quickly. Commit exactly one turn and prioritize center pressure on the board."
+    },
+    "P2": {
+      "sessionId": "238bee43-552e-4abb-b31c-300c640775e5",
+      "strategy": "Engine strategy: unused in this one-turn smoke."
+    }
+  }
+}

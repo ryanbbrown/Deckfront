@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1-locked",
+  "map": "sketch-v1",
+  "turn": {
+    "activePlayer": "P2",
+    "round": 3
+  },
+  "units": [
+    {
+      "id": "P1-raider-1",
+      "player": "P1",
+      "type": "raider",
+      "col": 6,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-marksman-1",
+      "player": "P1",
+      "type": "marksman",
+      "col": 8,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-scout-1",
+      "player": "P1",
+      "type": "scout",
+      "col": 5,
+      "row": 3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-guardian-1",
+      "player": "P1",
+      "type": "guardian",
+      "col": 8,
+      "row": 2,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 5
+    },
+    {
+      "id": "P2-marksman-1",
+      "player": "P2",
+      "type": "marksman",
+      "col": 2,
+      "row": 8,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-druid-1",
+      "player": "P2",
+      "type": "druid",
+      "col": 3,
+      "row": 7,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-scout-1",
+      "player": "P2",
+      "type": "scout",
+      "col": 6,
+      "row": 8,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-scout-2",
+      "player": "P2",
+      "type": "scout",
+      "col": 5,
+      "row": 8,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-marksman-2",
+      "player": "P1",
+      "type": "marksman",
+      "col": 10,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-raider-1",
+      "player": "P2",
+      "type": "raider",
+      "col": 0,
+      "row": 8,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    }
+  ],
+  "notes": [
+    "Starter state: units begin at max HP from rulesets/territory-v1/units.json.",
+    "E003 locked starter: max-HP starter board copied from territory-v1 with ruleset id changed to territory-v1-locked.",
+    "turn-001: P1 opened with near-side center captures and kept the guardian/marksman pair pointed toward the middle.",
+    "turn-002: P2 committed both scouts south and west, starting the flank without exposing the support units.",
+    "turn-003: P1 upgraded the lead guardian and pushed the center column while recruiting a second marksman.",
+    "turn-004: P2 flipped the southern center and added a raider to make the flank punish more than a capture race.",
+    "turn-005: P1 took center-north and tightened the guardian/marksman line around the middle."
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": null
+    },
+    {
+      "id": "center-west-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-north",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center",
+      "controller": null
+    },
+    {
+      "id": "center-center-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P1"
+    },
+    {
+      "id": "center-east",
+      "controller": "P1"
+    },
+    {
+      "id": "center-southeast",
+      "controller": null
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 5
+    },
+    {
+      "player": "P2",
+      "amount": 0
+    }
+  ]
+}

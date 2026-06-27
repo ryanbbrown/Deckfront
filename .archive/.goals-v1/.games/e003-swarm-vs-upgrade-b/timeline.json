@@ -1,0 +1,515 @@
+{
+  "schemaVersion": 1,
+  "title": "E003 Swarm vs Upgrade B",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Gold"
+        ],
+        "played": [],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 opened by taking the northeast and east supply centers.",
+      "reasoning": "P1 used the fastest units for immediate income: raider to center-northeast and scout to center-east. No legal combat target existed. Trashed this turn: Copper. Board state moved to P1 4u/2c/2s, P2 4u/0c/0s."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Training",
+          "Copper",
+          "Armory",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Training",
+          "Armory"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 established the southwest center and immediately upgraded the lead marksman.",
+      "reasoning": "P2 followed the quality plan: Training and Armory both landed on P2-marksman-1, making it a durable ranged upgrade target before combat began. Trashed this turn: Copper. Board state moved to P1 4u/2c/2s, P2 4u/1c/2s."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 recruited the first swarm scout while pushing toward the central lane.",
+      "reasoning": "P1 trashed Copper, played Zap for a future attack counter, and bought Gold. There was still no legal attack target, so the board phase prioritized ready-unit movement and delayed scout recruitment. Trashed this turn: Copper. Board state moved to P1 5u/2c/1s, P2 4u/1c/2s."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Training"
+        ],
+        "played": [
+          "Training"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 claimed center-south and added a guardian as the first elite anchor.",
+      "reasoning": "P2 used Training on the upgraded marksman, bought Silver, advanced both scouts, and recruited a guardian into an empty home hex. The new guardian did not act this turn. Trashed this turn: Copper. Board state moved to P1 5u/2c/1s, P2 5u/2c/0s."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Copper",
+          "Copper",
+          "Gold",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 widened to four centers and recruited a second raider for board coverage.",
+      "reasoning": "P1 reached center-center-north and center-southeast, then spent saved supply on a raider. Quantity and center coverage took priority over preserving a compact line. Trashed this turn: Copper. Board state moved to P1 6u/4c/0s, P2 5u/2c/0s."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Armory",
+          "Copper",
+          "Training",
+          "Copper"
+        ],
+        "played": [
+          "Training",
+          "Armory"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 flipped the center and upgraded the guardian instead of matching P1 unit count.",
+      "reasoning": "P2 put Training and Armory on the newly ready guardian, then used the scouts to flip center-center. The guardian stayed back as a high-HP anchor. Trashed this turn: Copper. Board state moved to P1 6u/4c/0s, P2 5u/3c/4s."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Gold",
+          "Copper",
+          "Zap",
+          "Gold"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 8,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 pressed the middle with Zap support and recruited another scout.",
+      "reasoning": "P1 attached Zap damage to legal attacks in the central fight, leaving P2-scout-2 badly wounded while adding another delayed scout at home. Trashed this turn: Copper. Board state moved to P1 7u/4c/1s, P2 5u/3c/4s."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Silver",
+          "Armory",
+          "Copper"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [
+          "Potion"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 hardened the guardian again and recruited a second marksman to stabilize.",
+      "reasoning": "P2 used Armory on the guardian and recruited another marksman rather than a disposable scout, keeping with the elite-preservation plan. Trashed this turn: Copper. Board state moved to P1 7u/4c/1s, P2 6u/3c/4s."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Silver",
+          "Gold",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 9,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 kept converting superior economy into Gold buys and another marksman.",
+      "reasoning": "P1 bought another Gold, held four centers, and used a recruit slot for marksman support as the central cluster tightened. Trashed this turn: Copper. Board state moved to P1 8u/4c/2s, P2 5u/3c/4s."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Training",
+          "Armory",
+          "Potion",
+          "Copper"
+        ],
+        "played": [
+          "Training",
+          "Potion",
+          "Armory"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 1,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 2,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 combined Potion, Training, and Armory to preserve the elite front.",
+      "reasoning": "P2 used Training plus Potion before Armory so all three actions resolved; the guardian received the permanent upgrade while Potion healing stabilized damaged defenders. Trashed this turn: Copper. Board state moved to P1 8u/4c/2s, P2 6u/3c/4s."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Zap",
+          "Copper",
+          "Gold",
+          "Gold"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 12,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 retook the center and used the larger formation to wound multiple defenders.",
+      "reasoning": "P1 used Zap through legal attacks only, flipped center-center, and damaged the marksman/druid/scout pocket without overextending the newest recruit. Trashed this turn: Copper. Board state moved to P1 9u/5c/3s, P2 6u/2c/4s."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Copper",
+          "Potion",
+          "Armory"
+        ],
+        "played": [
+          "Potion",
+          "Armory"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 killed an exposed raider, healed damaged units, and recruited a healer.",
+      "reasoning": "P2 used healing and another Armory to keep the guardian and marksman line alive, then recruited a healer for printed healing support. Trashed this turn: Copper. Board state moved to P1 8u/5c/3s, P2 7u/2c/3s."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Copper",
+          "Gold",
+          "Silver",
+          "Gold"
+        ],
+        "played": [],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 11,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 kept the central surround and recruited a fresh raider from home.",
+      "reasoning": "P1 had no deck damage this turn, so the board plan stayed positional: maintain five centers, pressure the west-south lane, and add another raider. Trashed this turn: Copper. Board state moved to P1 9u/5c/5s, P2 7u/2c/3s."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Training",
+          "Silver",
+          "Copper",
+          "Potion",
+          "Armory"
+        ],
+        "played": [
+          "Training",
+          "Potion",
+          "Armory"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 2,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 healed and upgraded again, holding the line but staying behind on coverage.",
+      "reasoning": "P2 again sequenced Training, Potion, and Armory; the guardian became extremely durable, but P2 still controlled fewer centers and had fewer bodies. Trashed this turn: Copper. Board state moved to P1 9u/5c/5s, P2 8u/2c/2s."
+    }
+  ]
+}

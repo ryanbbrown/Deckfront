@@ -1,0 +1,1237 @@
+{
+  "schemaVersion": 1,
+  "title": "E015a center vs flank A compressed replay",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Bandage",
+          "Copper",
+          "Zap"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 compressed income 1 from 0 centers; P1-raider-1 captured center-northeast; 1 deck damage expired; units 4-4 to 4-4, centers 1-0.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 1 from 0 centers; P1-raider-1 captured center-northeast; 1 deck damage expired."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Bandage",
+          "Rest",
+          "Zap",
+          "Rest"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 compressed income 1 from 0 centers; P2-scout-1 captured center-west-south; 1 deck damage expired; units 4-4 to 4-4, centers 1-1.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 1 from 0 centers; P2-scout-1 captured center-west-south; 1 deck damage expired."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Rest",
+          "Zap",
+          "Copper"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 compressed income 2 from 1 centers; 1 deck damage expired; units 4-4 to 4-4, centers 1-1.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 2 from 1 centers; 1 deck damage expired."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Zap",
+          "Copper"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 compressed income 2 from 1 centers; P2-scout-1 captured center-center-south; 1 deck damage expired; units 4-4 to 4-4, centers 1-2.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 2 from 1 centers; P2-scout-1 captured center-center-south; 1 deck damage expired."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Bandage",
+          "Silver",
+          "Copper"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 compressed income 2 from 1 centers; P1-raider-1 captured center-center-north; P1-scout-1 captured center-east; units 4-4 to 4-4, centers 3-2.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 2 from 1 centers; P1-raider-1 captured center-center-north; P1-scout-1 captured center-east."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Bandage",
+          "Rest",
+          "Rest",
+          "Silver"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 compressed income 3 from 2 centers; P2-scout-1 captured center-center; P2-scout-2 captured center-northwest; units 4-4 to 5-4, centers 3-4.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 3 from 2 centers; P2-scout-1 captured center-center; P2-scout-2 captured center-northwest; P2-scout-1 hit P1-scout-1 for 2; P2-scout-2 hit P1-raider-1 for 2; recruited P2-scout-3."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Copper",
+          "Zap",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 compressed income 4 from 3 centers; P1-scout-1 captured center-southeast; P1-raider-1 hit P2-scout-1 for 7; units 4-5 to 5-5, centers 4-4.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 4 from 3 centers; P1-scout-1 captured center-southeast; P1-raider-1 hit P2-scout-1 for 7; recruited P1-guardian-2."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Zap",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 compressed income 5 from 4 centers; P2-scout-1 captured center-east; P2-scout-2 captured center-center-north; units 5-5 to 5-5, centers 2-6.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 5 from 4 centers; P2-scout-1 captured center-east; P2-scout-2 captured center-center-north; P2-scout-1 hit P1-scout-1 for 3; P2-scout-2 hit P1-raider-1 for 2."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Bandage",
+          "Silver",
+          "Rest"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 compressed income 3 from 2 centers; P1-raider-1 hit P2-scout-2 for 6; P1-scout-1 hit P2-scout-1 for 2; units 5-5 to 6-4, centers 2-6.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 3 from 2 centers; P1-raider-1 hit P2-scout-2 for 6; P1-scout-1 hit P2-scout-1 for 2; removed P2-scout-1; recruited P1-marksman-2."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Silver",
+          "Copper",
+          "Bandage",
+          "Silver"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 compressed income 6 from 6 centers; P2-scout-2 hit P1-marksman-1 for 2; P2-scout-3 hit P1-scout-1 for 2; units 4-6 to 5-6, centers 2-6.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 6 from 6 centers; P2-scout-2 hit P1-marksman-1 for 2; P2-scout-3 hit P1-scout-1 for 2; recruited P2-raider-1."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Silver",
+          "Zap",
+          "Silver"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 compressed income 3 from 2 centers; P1-raider-1 captured center-center-north; P1-scout-1 captured center-east; units 6-5 to 6-4, centers 5-3.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 3 from 2 centers; P1-raider-1 captured center-center-north; P1-scout-1 captured center-east; P1-guardian-1 captured center-center; P1-scout-1 hit P2-scout-3 for 3; P1-guardian-1 hit P2-scout-3 for 4; P1-guardian-2 hit P2-scout-2 for 4; removed P2-scout-2."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Zap",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 compressed income 4 from 3 centers; P2-marksman-1 hit P1-raider-1 for 5; P2-druid-1 hit P1-guardian-1 for 4; units 4-6 to 5-4, centers 5-3.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 4 from 3 centers; P2-marksman-1 hit P1-raider-1 for 5; P2-druid-1 hit P1-guardian-1 for 4; P2-scout-3 hit P1-scout-1 for 2; removed P1-raider-1, P1-scout-1; recruited P2-marksman-2."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Silver",
+          "Silver",
+          "Copper",
+          "Silver"
+        ],
+        "played": [],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 compressed income 6 from 5 centers; P1-marksman-1 hit P2-scout-3 for 4; P1-guardian-1 hit P2-druid-1 for 4; units 4-5 to 5-4, centers 5-3.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 6 from 5 centers; P1-marksman-1 hit P2-scout-3 for 4; P1-guardian-1 hit P2-druid-1 for 4; removed P2-scout-3; recruited P1-druid-1."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Silver",
+          "Copper",
+          "Silver",
+          "Copper"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 compressed income 4 from 3 centers; P2-druid-1 captured center-center; P2-marksman-1 hit P1-guardian-1 for 4; units 4-5 to 5-5, centers 4-4.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 4 from 3 centers; P2-druid-1 captured center-center; P2-marksman-1 hit P1-guardian-1 for 4; P2-druid-1 healed P2-druid-1; recruited P2-guardian-1."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Peddler",
+          "Peddler",
+          "Copper"
+        ],
+        "played": [
+          "Peddler",
+          "Peddler",
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 compressed income 5 from 4 centers; P1-marksman-1 hit P2-druid-1 for 5; P1-guardian-1 hit P2-druid-1 for 4; units 5-5 to 6-4, centers 4-4.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 5 from 4 centers; P1-marksman-1 hit P2-druid-1 for 5; P1-guardian-1 hit P2-druid-1 for 4; removed P2-druid-1; recruited P1-guardian-3."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Silver",
+          "Zap",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 compressed income 5 from 4 centers; P2-marksman-1 captured center-center-north; P2-marksman-1 hit P1-guardian-1 for 5; units 4-6 to 5-6, centers 3-5.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 5 from 4 centers; P2-marksman-1 captured center-center-north; P2-marksman-1 hit P1-guardian-1 for 5; recruited P2-scout-4."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Silver",
+          "Silver",
+          "Peddler"
+        ],
+        "played": [
+          "Peddler"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "summary": "P1 compressed income 4 from 3 centers; P1-marksman-1 captured center-center; P1-marksman-1 hit P2-marksman-1 for 4; units 6-5 to 7-4, centers 4-4.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 4 from 3 centers; P1-marksman-1 captured center-center; P1-marksman-1 hit P2-marksman-1 for 4; P1-guardian-1 hit P2-marksman-1 for 4; removed P2-marksman-1; recruited P1-guardian-4."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Silver",
+          "Silver",
+          "Peddler",
+          "Silver"
+        ],
+        "played": [
+          "Peddler"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "summary": "P2 compressed income 5 from 4 centers; P2-raider-1 hit P1-guardian-1 for 6; removed P1-guardian-1; units 4-7 to 4-6, centers 4-4.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 5 from 4 centers; P2-raider-1 hit P1-guardian-1 for 6; removed P1-guardian-1."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Peddler"
+        ],
+        "played": [
+          "Peddler",
+          "Zap",
+          "Peddler",
+          "Bandage",
+          "Peddler"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "summary": "P1 compressed income 5 from 4 centers; P1-guardian-2 captured center-center-north; P1-marksman-1 hit P2-raider-1 for 5; units 6-4 to 6-3, centers 5-3.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 5 from 4 centers; P1-guardian-2 captured center-center-north; P1-marksman-1 hit P2-raider-1 for 5; P1-marksman-2 hit P2-raider-1 for 4; removed P2-raider-1."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Silver",
+          "Zap",
+          "Silver"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "summary": "P2 compressed income 4 from 3 centers; P2-scout-4 captured center-center; P2-marksman-2 hit P1-marksman-1 for 5; units 3-6 to 4-5, centers 4-4.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 4 from 3 centers; P2-scout-4 captured center-center; P2-marksman-2 hit P1-marksman-1 for 5; P2-scout-4 hit P1-marksman-1 for 2; removed P1-marksman-1; recruited P2-raider-2."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Copper",
+          "Silver",
+          "Peddler",
+          "Silver"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Village",
+          "Peddler"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "summary": "P1 compressed income 5 from 4 centers; P1-guardian-2 hit P2-scout-4 for 4; P1-marksman-2 hit P2-scout-4 for 4; units 5-4 to 6-3, centers 4-4.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 5 from 4 centers; P1-guardian-2 hit P2-scout-4 for 4; P1-marksman-2 hit P2-scout-4 for 4; removed P2-scout-4; recruited P1-marksman-3."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Copper",
+          "Peddler",
+          "Peddler",
+          "Copper"
+        ],
+        "played": [
+          "Peddler",
+          "Peddler",
+          "Peddler",
+          "Bandage"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "summary": "P2 compressed income 5 from 4 centers; P2-marksman-2 hit P1-guardian-2 for 4; recruited P2-marksman-3; units 3-6 to 4-6, centers 4-4.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 5 from 4 centers; P2-marksman-2 hit P1-guardian-2 for 4; recruited P2-marksman-3."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Zap",
+          "Copper",
+          "Peddler",
+          "Copper"
+        ],
+        "played": [
+          "Peddler",
+          "Zap",
+          "Bandage",
+          "Peddler",
+          "Peddler",
+          "Village",
+          "Peddler"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "summary": "P1 compressed income 5 from 4 centers; P1-guardian-2 captured center-center; P1-marksman-2 hit P2-marksman-2 for 5; units 6-4 to 7-4, centers 5-3.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 5 from 4 centers; P1-guardian-2 captured center-center; P1-marksman-2 hit P2-marksman-2 for 5; recruited P1-druid-2."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Peddler",
+          "Copper",
+          "Silver",
+          "Peddler"
+        ],
+        "played": [
+          "Peddler",
+          "Peddler"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "summary": "P2 compressed income 4 from 3 centers; P2-marksman-2 hit P1-marksman-2 for 4; recruited P2-guardian-2; units 4-7 to 5-7, centers 5-3.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 4 from 3 centers; P2-marksman-2 hit P1-marksman-2 for 4; recruited P2-guardian-2."
+    },
+    {
+      "id": "turn-025",
+      "player": "P1",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-025.before.deck.json",
+        "after": "snapshots/turn-025.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Silver",
+          "Village",
+          "Silver",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Village",
+          "Peddler"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-025.before.board.json",
+        "after": "snapshots/turn-025.after.board.json"
+      },
+      "summary": "P1 compressed income 6 from 5 centers; P1-marksman-2 hit P2-marksman-2 for 4; removed P2-marksman-2; units 7-5 to 8-4, centers 5-3.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 6 from 5 centers; P1-marksman-2 hit P2-marksman-2 for 4; removed P2-marksman-2; recruited P1-healer-1."
+    },
+    {
+      "id": "turn-026",
+      "player": "P2",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-026.before.deck.json",
+        "after": "snapshots/turn-026.after.deck.json",
+        "drawnHand": [
+          "Peddler",
+          "Zap",
+          "Copper",
+          "Silver",
+          "Peddler"
+        ],
+        "played": [
+          "Peddler",
+          "Peddler",
+          "Zap",
+          "Peddler",
+          "Bandage"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-026.before.board.json",
+        "after": "snapshots/turn-026.after.board.json"
+      },
+      "summary": "P2 compressed income 4 from 3 centers; P2-guardian-1 hit P1-marksman-2 for 5; removed P1-marksman-2; units 4-8 to 4-7, centers 5-3.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 4 from 3 centers; P2-guardian-1 hit P1-marksman-2 for 5; removed P1-marksman-2."
+    },
+    {
+      "id": "turn-027",
+      "player": "P1",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-027.before.deck.json",
+        "after": "snapshots/turn-027.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Village",
+          "Silver",
+          "Peddler",
+          "Zap"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Peddler",
+          "Peddler",
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-027.before.board.json",
+        "after": "snapshots/turn-027.after.board.json"
+      },
+      "summary": "P1 compressed income 6 from 5 centers; P1-guardian-3 hit P2-raider-2 for 5; P1-druid-1 healed P1-guardian-2; units 7-4 to 8-4, centers 5-3.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 6 from 5 centers; P1-guardian-3 hit P2-raider-2 for 5; P1-druid-1 healed P1-guardian-2; recruited P1-guardian-5."
+    },
+    {
+      "id": "turn-028",
+      "player": "P2",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-028.before.deck.json",
+        "after": "snapshots/turn-028.after.deck.json",
+        "drawnHand": [
+          "Peddler",
+          "Copper",
+          "Copper",
+          "Silver",
+          "Silver"
+        ],
+        "played": [
+          "Peddler"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-028.before.board.json",
+        "after": "snapshots/turn-028.after.board.json"
+      },
+      "summary": "P2 compressed income 4 from 3 centers; P2-raider-2 captured center-center-north; P2-guardian-1 hit P1-guardian-3 for 4; units 4-8 to 5-8, centers 4-4.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 4 from 3 centers; P2-raider-2 captured center-center-north; P2-guardian-1 hit P1-guardian-3 for 4; P2-raider-2 hit P1-guardian-3 for 6; recruited P2-scout-5."
+    },
+    {
+      "id": "turn-029",
+      "player": "P1",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-029.before.deck.json",
+        "after": "snapshots/turn-029.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Village",
+          "Village",
+          "Copper",
+          "Armory"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Village",
+          "Peddler",
+          "Armory"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-029.before.board.json",
+        "after": "snapshots/turn-029.after.board.json"
+      },
+      "summary": "P1 compressed income 5 from 4 centers; P1-guardian-2 captured center-center-south; P1-guardian-2 gained +1 max HP; units 8-5 to 9-4, centers 5-3.",
+      "reasoning": "P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 5 from 4 centers; P1-guardian-2 captured center-center-south; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-3 hit P2-raider-2 for 4; removed P2-raider-2; recruited P1-marksman-4."
+    },
+    {
+      "id": "turn-030",
+      "player": "P2",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-030.before.deck.json",
+        "after": "snapshots/turn-030.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Peddler",
+          "Silver",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Peddler",
+          "Peddler",
+          "Peddler"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-030.before.board.json",
+        "after": "snapshots/turn-030.after.board.json"
+      },
+      "summary": "P2 compressed income 4 from 3 centers; P2-guardian-1 captured center-center; P2-guardian-1 hit P1-guardian-3 for 4; units 4-9 to 5-9, centers 4-4.",
+      "reasoning": "P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 4 from 3 centers; P2-guardian-1 captured center-center; P2-guardian-1 hit P1-guardian-3 for 4; P2-marksman-3 hit P1-guardian-2 for 4; P2-scout-5 hit P1-guardian-2 for 2; recruited P2-raider-3."
+    },
+    {
+      "id": "turn-031",
+      "player": "P1",
+      "round": 16,
+      "deck": {
+        "before": "snapshots/turn-031.before.deck.json",
+        "after": "snapshots/turn-031.after.deck.json",
+        "drawnHand": [
+          "Armory",
+          "Village",
+          "Copper",
+          "Peddler",
+          "Armory"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Village",
+          "Peddler",
+          "Zap",
+          "Armory",
+          "Armory"
+        ],
+        "bought": [
+          "Training"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 4,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-031.before.board.json",
+        "after": "snapshots/turn-031.after.board.json"
+      },
+      "summary": "P1 compressed income 5 from 4 centers; P1-guardian-3 captured center-center-north; P1-guardian-2 gained +1 max HP; units 9-5 to 10-5, centers 5-3.",
+      "reasoning": "Pending threat after start check: P1. P1 followed the balanced economy/control assignment: hold the central/eastern centers, preserve anchors with support, and make attacks matter through upgrades and capped deck damage. Board events: compressed income 5 from 4 centers; P1-guardian-3 captured center-center-north; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 hit P2-scout-5 for 5; P1-druid-1 hit P2-guardian-1 for 4; P1-guardian-4 hit P2-guardian-1 for 4; P1-marksman-3 hit P2-guardian-1 for 4; recruited P1-druid-3."
+    },
+    {
+      "id": "turn-032",
+      "player": "P2",
+      "round": 16,
+      "deck": {
+        "before": "snapshots/turn-032.before.deck.json",
+        "after": "snapshots/turn-032.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Village",
+          "Peddler",
+          "Zap",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Peddler",
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-032.before.board.json",
+        "after": "snapshots/turn-032.after.board.json"
+      },
+      "summary": "P2 compressed income 4 from 3 centers; P2-marksman-3 captured center-center-south; P2-guardian-1 hit P1-druid-1 for 5; units 5-10 to 5-10, centers 4-4.",
+      "reasoning": "Pending threat after start check: P1. P2 followed the flank/economy assignment: use mobile units for west/south/east flips, buy economy first, and convert center pressure into recruit tempo without assuming the southeast route is free. Board events: compressed income 4 from 3 centers; P2-marksman-3 captured center-center-south; P2-guardian-1 hit P1-druid-1 for 5; P2-marksman-3 hit P1-guardian-2 for 4; P2-scout-5 hit P1-druid-1 for 2."
+    }
+  ]
+}

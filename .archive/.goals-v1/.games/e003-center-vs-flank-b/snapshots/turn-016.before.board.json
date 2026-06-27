@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1-locked",
+  "map": "sketch-v1",
+  "turn": {
+    "activePlayer": "P2",
+    "round": 8
+  },
+  "units": [
+    {
+      "id": "P1-marksman-1",
+      "player": "P1",
+      "type": "marksman",
+      "col": 6,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-guardian-1",
+      "player": "P1",
+      "type": "guardian",
+      "col": 6,
+      "row": 5,
+      "hp": 10,
+      "maxHp": 16,
+      "attack": 5
+    },
+    {
+      "id": "P2-druid-1",
+      "player": "P2",
+      "type": "druid",
+      "col": 5,
+      "row": 8,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P1-marksman-2",
+      "player": "P1",
+      "type": "marksman",
+      "col": 8,
+      "row": 3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-raider-1",
+      "player": "P2",
+      "type": "raider",
+      "col": 5,
+      "row": 5,
+      "hp": 4,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-guardian-2",
+      "player": "P1",
+      "type": "guardian",
+      "col": 10,
+      "row": 3,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P2-healer-1",
+      "player": "P2",
+      "type": "healer",
+      "col": 4,
+      "row": 7,
+      "hp": 4,
+      "maxHp": 4,
+      "attack": 1
+    },
+    {
+      "id": "P1-marksman-3",
+      "player": "P1",
+      "type": "marksman",
+      "col": 10,
+      "row": 2,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-scout-3",
+      "player": "P2",
+      "type": "scout",
+      "col": 3,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-guardian-3",
+      "player": "P1",
+      "type": "guardian",
+      "col": 10,
+      "row": 1,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P2-raider-2",
+      "player": "P2",
+      "type": "raider",
+      "col": 0,
+      "row": 8,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-marksman-4",
+      "player": "P1",
+      "type": "marksman",
+      "col": 12,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    }
+  ],
+  "notes": [
+    "Starter state: units begin at max HP from rulesets/territory-v1/units.json.",
+    "E003 locked starter: max-HP starter board copied from territory-v1 with ruleset id changed to territory-v1-locked.",
+    "turn-001: P1 opened with near-side center captures and kept the guardian/marksman pair pointed toward the middle.",
+    "turn-002: P2 committed both scouts south and west, starting the flank without exposing the support units.",
+    "turn-003: P1 upgraded the lead guardian and pushed the center column while recruiting a second marksman.",
+    "turn-004: P2 flipped the southern center and added a raider to make the flank punish more than a capture race.",
+    "turn-005: P1 took center-north and tightened the guardian/marksman line around the middle.",
+    "turn-006: P2 completed the southeast capture and chipped P1’s raider from the southern screen.",
+    "turn-007: P1 collapsed onto the forward scout and removed it while adding a second guardian.",
+    "turn-008: P2 kept the remaining scout wide and built a healer behind the southern support pocket.",
+    "turn-009: P1 claimed the exact middle and shifted the second guardian toward the east response lane.",
+    "turn-010: P2 flipped the east center and punished both exposed center units.",
+    "turn-011: P1 killed the flanking scout, then recruited another marksman to rebuild the center screen.",
+    "turn-012: P2 killed P1’s center scout and sent a fresh scout toward the west-south recapture.",
+    "turn-013: P1 converted the upgraded guardian into a kill on P2’s support marksman and added another guardian.",
+    "turn-014: P2 re-flipped west-south and hit the lead guardian instead of feeding support into the center.",
+    "turn-015: P1 held the middle, reinforced east, and damaged the southern raider without ending the game."
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": null
+    },
+    {
+      "id": "center-west-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-north",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P1"
+    },
+    {
+      "id": "center-east",
+      "controller": "P1"
+    },
+    {
+      "id": "center-southeast",
+      "controller": "P2"
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 12
+    },
+    {
+      "player": "P2",
+      "amount": 10
+    }
+  ]
+}

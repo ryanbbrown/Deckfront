@@ -1,0 +1,5 @@
+Turn-008 committed and validated.
+
+- **Deck line:** Play Peddler → Play Smithy → moveToBuy → buy Inferno → endTurn. Engine draw keeps cards flowing; Inferno (damage 4) adds attack punch to deckDamage.
+- **Board line:** Recruit raider `P2-raider-r8` at home (1,7); Guardian `P2-guardian-start-3` (5,8)→(7,8) advancing toward the southeast. Scout holds center-west-south.
+- **Rationale:** P1 has pulled ahead on the board (18 vs 8 supply, 6 centers) and my forward raider was lost, so I pivot to military — buy a heavy damage card, rebuild infantry with a recruit, and push the guardian to defend the southeast center while keeping the engine running to fund the fightback.

@@ -1,0 +1,5 @@
+Turn `turn-023` complete and validated.
+
+**P1 leads 21 units to 8** (lead 13), holding 7 of 8 centers. Recruited two more raiders after freeing home hexes.
+
+Key development: **P2 is now hard-capped at 8 units** — all four of their home-base hexes are occupied by their own bunched units, so they physically cannot recruit anymore. They're frozen while my count keeps climbing. Both rule-defined win conditions (unit-count lead and post-turn-18 six-center dominance) remain satisfied, just unconfirmed by the runner under the `current` alias. I'm continuing the safe, dominant line — no -EV assault on the corner — and will carry a crushing lead on every metric to the 30-turn limit. Validation passed (23 entries).

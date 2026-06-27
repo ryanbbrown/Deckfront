@@ -1,0 +1,9 @@
+Turn-030 for P2 complete and validated (30 entries).
+
+**Situation:** P1 at **24 units vs my 12** (lead 12).
+
+**What I did:** Only 5 supply and home base full, so no recruit was possible; no P1 unit in range to attack. Cycled with Peddler, bought Gold, held the fortress.
+
+**Honest assessment:** Unchanged — a settled loss, gap steady at ~12. P1's 7-center income keeps the raider count climbing while my single center caps my recruitment, and my cluster is fully packed. I'm committing clean, valid holding turns.
+
+Standing process flag (repeating since it persists): per the committed timeline, P1 met the 4-unit-lead win condition back at turn-013, but the `current` ruleset alias isn't mapped in the strict-win validator, so the game never auto-terminates and the runner keeps issuing P2 turns. If the intent is to stop at a legal winner, this run should be scored a P1 victory and halted. I'll keep going as asked, but flagging that these turns are no longer changing the outcome.

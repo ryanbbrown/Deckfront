@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-019",
+  "player": "P1",
+  "before": "snapshots/turn-019.before.board.json",
+  "after": "snapshots/turn-019.after.board.json",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P1-raider-turn-007-a",
+        "from": {
+          "col": 1,
+          "row": 8
+        },
+        "to": {
+          "col": 0,
+          "row": 8
+        }
+      },
+      {
+        "unit": "P1-marksman-start-4",
+        "from": {
+          "col": 3,
+          "row": 7
+        },
+        "to": {
+          "col": 2,
+          "row": 8
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P1-raider-turn-019-a",
+        "type": "raider",
+        "at": {
+          "col": 12,
+          "row": 1
+        }
+      },
+      {
+        "unit": "P1-raider-turn-019-b",
+        "type": "raider",
+        "at": {
+          "col": 11,
+          "row": 1
+        }
+      }
+    ],
+    "attacks": [
+      {
+        "attacker": "P1-raider-turn-007-a",
+        "target": "P2-guardian-turn-018",
+        "damage": 9,
+        "deckDamage": 0,
+        "targetRemoved": false
+      },
+      {
+        "attacker": "P1-marksman-start-4",
+        "target": "P2-guardian-turn-018",
+        "damage": 4,
+        "deckDamage": 0,
+        "targetRemoved": false
+      }
+    ],
+    "heals": [],
+    "upgrades": []
+  }
+}

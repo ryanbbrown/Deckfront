@@ -1,0 +1,5 @@
+Turn-013 committed and validated.
+
+- **Deck:** Play Peddler → moveToBuy → buy Peddler.
+- **Board:** March r9a (10,1)→(8,3) and r11 (11,1)→(9,2) toward the center corridor; recruit P1-raider-r13 at (11,1); marksman holds center-center-south.
+- **Rationale:** P2 broke my unit lead by killing my scout and recruiting (now 7 vs 5). No kill was reachable this turn — the exposed P2 raider at (7,6) needs a melee partner my northern raiders can't yet reach. So I rebuild the lead by recruiting (now **8 vs 5**) and begin funneling my stranded NE reserve raiders through the (8,3) exit corridor toward center-east/south, both to defend my six controlled centers and to set up a clean kill on the forward P2 raider next turn. I still hold 6 of 8 centers as a parallel win path.

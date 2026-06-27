@@ -1,0 +1,7 @@
+Repaired. The issue was that turn-014 had never actually been committed — the board state was still sitting at P2's round 7, so the run needed a real turn-014 entry from P2.
+
+I played and committed it:
+- **Deck:** Played Training + Peddler, bought **Storm** (multi-target burst for when raiders engage).
+- **Board:** Recruited a guardian (now **7 units vs P1's 10 → lead 3**, below the 4-unit threshold), buffed guardian006 to atk 5 via Training, held the southwest fortress (no enemy in range).
+
+`commit-turn` recorded `turn-014` and `validate-run --strict --strict-deck --strict-win` now reports a **valid replay bundle (14 entries)**. The run is repaired.

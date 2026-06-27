@@ -1,0 +1,24 @@
+{
+  "id": "turn-021",
+  "player": "P1",
+  "round": 11,
+  "play": ["blast", "blast", "zap"],
+  "buyOptions": ["training", "storm", "blast", "silver", "zap"],
+  "moves": [
+    { "id": "P1-raider-4", "to": [6, 5] },
+    { "id": "P1-guardian-1", "to": [6, 7] },
+    { "id": "P1-scout-2", "to": [7, 6] },
+    { "id": "P1-raider-5", "to": [7, 3] },
+    { "id": "P1-marksman-1", "to": [5, 3] },
+    { "id": "P1-scout-3", "to": [9, 3] }
+  ],
+  "attacks": [
+    { "attacker": "P1-guardian-1", "target": "P2-guardian-4", "bonus": 1 },
+    { "attacker": "P1-scout-2", "target": "P2-guardian-4", "bonus": 1 }
+  ],
+  "recruits": [
+    { "type": "raider", "id": "P1-raider-6", "at": [11, 0] }
+  ],
+  "summary": "P1 retook center-center, wounded a guardian, and recruited to a four-unit end-turn lead.",
+  "reasoning": "The attack damage was capped to one deck damage per attacker. P2 can still answer before any P1 pending lead-4 threat is recorded, but the rush economy has forced another response."
+}

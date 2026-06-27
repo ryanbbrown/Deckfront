@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "model": "claude-opus-4-8",
+  "effort": "medium",
+  "drafts": [
+    "P1=blast,zap,silver",
+    "P2=village,smithy,peddler"
+  ],
+  "players": {
+    "P1": {
+      "sessionId": "d50ed803-4719-53c2-a77c-1e7aadc88a73",
+      "strategy": "Rush: contest centers early with high-movement units, convert center income into recruits, buy damage/cycling cards, and win by board pressure."
+    },
+    "P2": {
+      "sessionId": "1f290f66-31e8-5851-bfbb-3240558ff893",
+      "strategy": "Engine/control: still contest centers early with competent unit play, but use deck buys to build draw/economy into damage and stabilization."
+    }
+  }
+}

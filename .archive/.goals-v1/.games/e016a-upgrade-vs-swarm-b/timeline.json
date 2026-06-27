@@ -1,0 +1,345 @@
+{
+  "schemaVersion": 1,
+  "title": "E016a Upgrade Support vs Swarm B",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Copper",
+          "Zap",
+          "Rest"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 moved 4 units, recruited 0, centers P1-P2 1-0, units P1-P2 4-4.",
+      "reasoning": "P1 trashed Rest before playing cards. P1 played Zap. P1 played Bandage. P1 bought Silver. P1 gained 2 supply from 0 centers. P1 captured center-northeast."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Copper",
+          "Rest",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 moved 3 units, recruited 0, centers P1-P2 1-1, units P1-P2 4-4.",
+      "reasoning": "P2 trashed Rest before playing cards. P2 bought Silver. P2 gained 2 supply from 0 centers. P2 captured center-west-south."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Copper",
+          "Silver",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 moved 3 units, recruited 0, centers P1-P2 1-1, units P1-P2 4-4.",
+      "reasoning": "P1 trashed Rest before playing cards. P1 bought Armory. P1 gained 3 supply from 1 centers."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Zap",
+          "Rest",
+          "Bandage"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 moved 4 units, recruited 0, centers P1-P2 1-2, units P1-P2 4-4.",
+      "reasoning": "P2 trashed Rest before playing cards. P2 played Zap. P2 played Bandage. P2 bought Peddler. P2 gained 3 supply from 1 centers. P2 captured center-center-south."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Copper",
+          "Rest",
+          "Bandage"
+        ],
+        "played": [
+          "Zap",
+          "Bandage",
+          "Armory"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 moved 3 units, recruited 1, centers P1-P2 2-2, units P1-P2 5-4.",
+      "reasoning": "P1 trashed Rest before playing cards. P1 played Zap. P1 played Bandage. P1 played Armory. P1 bought Silver. P1 gained 3 supply from 1 centers. P1 captured center-center. P1 Armory upgraded P1-guardian-1 to 18/18. P1 recruited P1-guardian-2."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Rest",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 moved 4 units, recruited 1, centers P1-P2 2-3, units P1-P2 5-5.",
+      "reasoning": "P2 trashed Rest before playing cards. P2 bought Peddler. P2 gained 4 supply from 2 centers. P2 captured center-east. P2-scout-1 hit P1-scout-1 for 2. P2-scout-2 hit P1-scout-1 for 2. P2 recruited P2-scout-3."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Copper",
+          "Copper",
+          "Silver",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 moved 4 units, recruited 1, centers P1-P2 3-3, units P1-P2 6-5.",
+      "reasoning": "P1 bought Gold. P1 gained 4 supply from 2 centers. P1 captured center-center-north. P1-scout-1 hit P2-scout-2 for 2. P1 recruited P1-guardian-3."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Bandage",
+          "Silver",
+          "Peddler"
+        ],
+        "played": [
+          "Peddler",
+          "Zap",
+          "Bandage",
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 moved 5 units, recruited 1, centers P1-P2 2-5, units P1-P2 5-6.",
+      "reasoning": "P2 played Peddler. P2 played Zap. P2 played Bandage. P2 played Peddler. P2 bought Gold. P2 gained 5 supply from 3 centers. P2 captured center-center. P2 captured center-northwest. P2-scout-1 hit P1-scout-1 for 3 with deck damage. P2-scout-2 hit P1-scout-1 for 2. Removed P1-scout-1. P2 deck-healed P2-scout-2 to 7/8. P2 recruited P2-scout-4."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Copper",
+          "Copper",
+          "Zap",
+          "Armory"
+        ],
+        "played": [
+          "Zap",
+          "Bandage",
+          "Armory"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 moved 4 units, recruited 0, centers P1-P2 2-5, units P1-P2 5-6.",
+      "reasoning": "P1 played Zap. P1 played Bandage. P1 played Armory. P1 bought Peddler. P1 gained 4 supply from 2 centers. P1 Armory upgraded P1-guardian-1 to 20/20. P1-marksman-1 hit P2-scout-1 for 5 with deck damage."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Bandage",
+          "Peddler",
+          "Copper"
+        ],
+        "played": [
+          "Peddler",
+          "Bandage",
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 moved 5 units, recruited 1, centers P1-P2 1-7, units P1-P2 5-7.",
+      "reasoning": "P2 records pending center-control threat; opponent gets a full response turn. P2 played Peddler. P2 played Bandage. P2 played Peddler. P2 bought Gold. P2 gained 7 supply from 5 centers. P2 captured center-southeast. P2 captured center-center-north. P2-scout-1 hit P1-guardian-1 for 2. P2-scout-2 hit P1-marksman-1 for 2. P2-scout-3 hit P1-guardian-1 for 2. P2 deck-healed P2-scout-1 to 4/8. P2 recruited P2-raider-1."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Silver",
+          "Copper",
+          "Gold",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 moved 4 units, recruited 1, centers P1-P2 2-6, units P1-P2 6-6.",
+      "reasoning": "P1 bought Gold. P1 gained 3 supply from 1 centers. P1 captured center-east. P1-marksman-1 hit P2-scout-2 for 4. P1-guardian-1 hit P2-scout-1 for 4. Removed P2-scout-1. P1 recruited P1-marksman-2."
+    }
+  ]
+}

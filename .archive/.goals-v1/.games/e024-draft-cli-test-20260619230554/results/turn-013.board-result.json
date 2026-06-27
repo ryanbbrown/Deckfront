@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-013",
+  "player": "P1",
+  "before": "snapshots/turn-013.before.board.json",
+  "after": "snapshots/turn-013.after.board.json",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P1-scout-1",
+        "from": {
+          "col": 3,
+          "row": 3
+        },
+        "to": {
+          "col": 6,
+          "row": 5
+        }
+      },
+      {
+        "unit": "P1-raider-2",
+        "from": {
+          "col": 11,
+          "row": 0
+        },
+        "to": {
+          "col": 11,
+          "row": 4
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P1-guardian-3",
+        "type": "guardian",
+        "at": {
+          "col": 10,
+          "row": 1
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

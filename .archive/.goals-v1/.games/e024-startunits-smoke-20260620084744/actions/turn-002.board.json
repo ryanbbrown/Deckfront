@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-002",
+  "player": "P2",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-scout-start",
+        "from": {
+          "col": 0,
+          "row": 8
+        },
+        "to": {
+          "col": 3,
+          "row": 7
+        }
+      },
+      {
+        "unit": "P2-raider-start",
+        "from": {
+          "col": 1,
+          "row": 7
+        },
+        "to": {
+          "col": 2,
+          "row": 7
+        }
+      },
+      {
+        "unit": "P2-guardian-start",
+        "from": {
+          "col": 1,
+          "row": 8
+        },
+        "to": {
+          "col": 2,
+          "row": 8
+        }
+      },
+      {
+        "unit": "P2-marksman-start",
+        "from": {
+          "col": 0,
+          "row": 9
+        },
+        "to": {
+          "col": 2,
+          "row": 9
+        }
+      }
+    ],
+    "recruits": [],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

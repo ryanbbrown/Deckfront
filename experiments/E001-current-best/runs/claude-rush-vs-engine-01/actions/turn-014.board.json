@@ -1,0 +1,1 @@
+{"schemaVersion":1,"turnId":"turn-014","player":"P2","actions":{"movements":[],"recruits":[{"unit":"P2-guardian-turn-014","type":"guardian","at":{"col":1,"row":7}}],"attacks":[],"heals":[],"upgrades":[{"target":"P2-guardian-turn-006","attack":1,"maxHp":0}]}}

@@ -1,0 +1,1563 @@
+{
+  "schemaVersion": 1,
+  "title": "E024 Claude Rush vs Engine Guided",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "inferno"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "inferno"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Play Zap (+1 dmg), buy Inferno; advance both raiders/scout/marksman toward NE and center supply hexes",
+      "reasoning": "RUSH: no enemy in range turn 1, so push tempo by claiming center-northeast and pressing toward center supply centers while building damage in deck (Inferno)."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "village",
+          "smithy"
+        ],
+        "played": [
+          "village",
+          "smithy"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-start-2",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-start-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Village+Smithy engine play, bought silver; scout and raider advance toward center-west-south",
+      "reasoning": "Play village then smithy for +4 cards net and extra actions, buy silver to grow economy. Advance scout (mv5) and raider toward center-west-south to contest a neutral supply center early."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "blast",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "blast"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Play Blast (+2 dmg), buy second Blast; push raider to center-center-north, scout to center-center, marksman forward",
+      "reasoning": "RUSH: still no enemy contact, so seize two more central supply centers (center-center-north, center-center) and keep advancing the front while stacking burst damage (2nd Blast) for the imminent clash."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "smithy",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "peddler",
+          "smithy"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "money": 4
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-start-1",
+            "from": {
+              "col": 3,
+              "row": 8
+            },
+            "to": {
+              "col": 6,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Peddler+Smithy chain, bought silver; raider pushes toward eastern centers, guardian advances and scout holds center-west-south",
+      "reasoning": "Play peddler (cycle+money) then smithy for big draw, buy silver to keep ramping economy. Scout stays on center-west-south to hold control; raider pushes east toward center-east/southeast to contest more centers; guardian advances to support."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "inferno",
+          "zap"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "peddler"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Buy Peddler for action/economy; spread to claim center-northwest, center-center-south, and center-east",
+      "reasoning": "Win path is supply lead: no enemy in attack range, so I fan out to grab three more centers (6 of 8) and widen the supply lead, holding NE. Kept Inferno/Zap undumped since damage would be wasted with no targets; they recycle for a combat turn. Peddler adds actions to enable big multi-card play later."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-start-1",
+            "from": {
+              "col": 6,
+              "row": 8
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 3,
+              "row": 8
+            },
+            "to": {
+              "col": 5,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "All-treasure hand: bought Gold; raider captures center-southeast, guardian advances",
+      "reasoning": "No actions in hand, 6 money - buy Gold to enable bigger combat-card buys next cycle. P1 leads board, so claim the open center-southeast with the raider, keep scout on center-west-south, and push guardian forward to contest center-center-south."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "blast",
+          "copper",
+          "inferno"
+        ],
+        "played": [
+          "blast",
+          "inferno"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "damage": 6
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "peddler"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-raider-start-1",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-start-2",
+            "target": "P2-raider-start-1",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Play Blast+Inferno for damage, buy Peddler; marksman+scout focus-fire and kill advancing P2 raider at (8,7)",
+      "reasoning": "First contact: P2 raider pushed to (8,6)-adjacent. Deck-damage cap is 1 per attacker, so I combine scout (2+1) and marksman (4+1) = 8 to exactly remove the 8hp raider, clearing P2's forward threat while I hold a 6-center / supply lead. Bought Peddler for sustained actions/economy."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "peddler",
+          "smithy",
+          "copper"
+        ],
+        "played": [
+          "peddler",
+          "smithy"
+        ],
+        "bought": [
+          "inferno"
+        ],
+        "produced": {
+          "money": 5
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "inferno"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 5,
+              "row": 8
+            },
+            "to": {
+              "col": 7,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-r8",
+            "type": "raider",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Peddler+Smithy, bought Inferno; recruited a raider, guardian pushes toward southeast",
+      "reasoning": "P1 leads board 18-8 and my forward raider died, so pivot to military: buy Inferno (damage 4) to threaten P1 units, recruit a fresh raider from home to rebuild force, and push the guardian east to hold/contest the southeast corner. Engine plays (peddler+smithy) keep cards flowing to fund combat cards."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "copper",
+          "copper",
+          "blast",
+          "copper"
+        ],
+        "played": [
+          "peddler"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "peddler"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P1-raider-r9a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-r9b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          },
+          {
+            "unit": "P1-raider-r9c",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Play Peddler, buy Peddler; recruit 3 raiders at home base while holding all 6 controlled centers",
+      "reasoning": "I already control 6 of 8 centers and lead supply 18-6. Rather than overextend ready units into P2's clustered guardian/raider/marksman, I spend the big supply surplus to recruit 3 raiders (now 7 units vs P2's 4), pushing toward the 4-unit-lead win and building reserves to defend center-northwest and center-east next turn. Units stay put to keep the 6-center dominance intact."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "copper",
+          "copper",
+          "copper",
+          "peddler"
+        ],
+        "played": [
+          "peddler"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 7,
+              "row": 8
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-r8",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Played Peddler, bought Village; guardian secures center-southeast, raider pushes toward center-center-south",
+      "reasoning": "Gap closed to 8-6. Buy Village to enable action-chaining so I can play Inferno alongside other cards and attack with deck damage. Guardian sits on center-southeast to hold it; recruited raider pushes up to contest center-center-south. Scout keeps center-west-south."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "zap",
+          "copper",
+          "blast",
+          "copper"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "peddler"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P1-raider-r11",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Cycle Zap, buy Peddler; recruit a 4th reserve raider to reach 8 units vs P2's 4 (lead 4)",
+      "reasoning": "I hold 6 of 8 centers. No clean kills are in range (guardian is 16hp, lone targets survive), so the fastest win is the 4-unit-lead condition: recruiting one more raider makes it 8 vs 4 = lead 4, which resolves after P2's single response turn. My ready units stay on their centers (scout absorbs guardian's 4 dmg with 8hp and keeps center-east), preserving 6-center dominance as a backup win."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "inferno",
+          "village",
+          "silver",
+          "copper",
+          "gold"
+        ],
+        "played": [
+          "village",
+          "inferno"
+        ],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 4
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "storm"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-r8",
+            "from": {
+              "col": 5,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-r12",
+            "type": "raider",
+            "at": {
+              "col": 1,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-start-3",
+            "target": "P1-scout-start-2",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-raider-r8",
+            "target": "P1-scout-start-2",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Village+Inferno; killed P1 scout with guardian+raider focus-fire and recruited a raider to break the 4-unit lead window",
+      "reasoning": "P1 reached an 8-vs-4 unit lead, opening the lead-4 response window, so I had to shrink the gap this turn. Cap is 1 extra deck damage per attacker, so I focus-fired the P1 scout (guardian 4+1 and raider 6+1 = 12 >= 8) to kill it, and also recruited a raider, taking the count to 7-5. Bought Storm for future split damage."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "inferno",
+          "silver",
+          "copper",
+          "blast"
+        ],
+        "played": [
+          "peddler"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "peddler"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-r9a",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-r11",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-r13",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Play Peddler, buy Peddler; march two reserve raiders south toward the center corridor and recruit another raider (8 units vs 5)",
+      "reasoning": "P2 broke my lead by killing my scout and recruiting (now 7v5). No kill is reachable this turn (raider-r8 needs a melee partner my raiders can't yet reach). So I rebuild the unit lead by recruiting (8v5) and start funneling my NE reserve raiders through the (8,3) corridor toward center-east/south to defend my 6 centers and set up kills on the exposed P2 raider next turn. Marksman holds center-center-south."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "smithy",
+          "copper",
+          "silver",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "smithy"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-r8",
+            "from": {
+              "col": 7,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-r12",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 5,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Smithy + buy Gold; raider captures center-east, second raider advances to contest center-center-south",
+      "reasoning": "With P1's scout dead, center-east is undefended, so raider-r8 moves onto (8,6) to flip it to me (now holding west-south, southeast, east). Raider-r12 pushes up to threaten center-center-south. No damage card in hand, so no attacks this turn; Smithy keeps the engine drawing and Gold deepens economy for future multi-card combat turns. Guardian holds center-southeast."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "copper",
+          "copper",
+          "blast",
+          "peddler"
+        ],
+        "played": [
+          "peddler",
+          "blast"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "damage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "peddler"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-r9a",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-r15",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-r9a",
+            "target": "P2-raider-r8",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-raider-r8",
+            "damage": 1,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Peddler+Blast for damage; raider r9a + marksman kill P2 raider-r8 at (8,6), recruit another raider",
+      "reasoning": "Brought r9a down the corridor to (8,5) adjacent to the forward P2 raider and focus-fired with the marksman (6+1 and 4+1 = 12 vs 8hp) to remove it. That drops P2 to 4 units while I recruit to 9 total -> a 4+ unit lead, and r9a is now poised to retake center-east next turn. Widening both the unit-lead and territory win paths simultaneously."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "inferno",
+          "silver",
+          "copper",
+          "peddler",
+          "copper"
+        ],
+        "played": [
+          "peddler"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-r12",
+            "from": {
+              "col": 5,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-r16a",
+            "type": "raider",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-r16b",
+            "type": "raider",
+            "at": {
+              "col": 1,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Recruited two raiders to break P1's 5-unit lead; guardian defends center-east, raider supports",
+      "reasoning": "P1 killed my forward raider, pushing the count to 9-4 (lead 5) and opening the lead-4 response window against me. I spent all 12 supply to recruit two raiders (now 9-6, lead 3), defusing the win threat. Guardian steps onto center-east (8,6) to body-block the incoming P1 raider and hold the captured center; raider-r12 moves up to support. Peddler+Gold keep the economy compounding."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "inferno",
+          "copper",
+          "copper",
+          "silver",
+          "copper"
+        ],
+        "played": [
+          "inferno"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 4
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "peddler"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-r9a",
+            "from": {
+              "col": 8,
+              "row": 5
+            },
+            "to": {
+              "col": 7,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-raider-r11",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-r15",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-r17",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-raider-r12",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-raider-r9a",
+            "target": "P2-raider-r12",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Play Inferno for damage; r9a flanks to (7,7) and with marksman kills P2 raider-r12, recruit another raider, advance reserves",
+      "reasoning": "P2 over-recruited (6 units) but left raider-r12 exposed at (7,6). I flank r9a to adjacent (7,7) and focus-fire with the marksman (7+5=12 vs 8hp) to remove it, dropping P2 to 5 while I recruit to 10 -> a 5-unit lead toward the win. Continued funneling reserves (r11,r15) down the corridor to keep pressing center-east/southeast."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "storm",
+          "copper",
+          "copper",
+          "inferno"
+        ],
+        "played": [
+          "inferno"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "damage": 4
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "silver"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-r16a",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-r16b",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-start-3",
+            "target": "P1-raider-r9a",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "Inferno on guardian to chip P1 raider r9a; raiders advance. Could not break P1's 5-unit lead (only 5 supply, no reachable double-kill)",
+      "reasoning": "P1 reopened a 10-5 unit lead (lead 5) on turn 17, putting me in the response window. With only 5 supply I cannot recruit (cost 6), and only the guardian could reach any P1 unit (r9a) for at most 5 damage versus 8 HP, so no kill and no count fix was possible. I moved the guardian adjacent and chipped r9a with Inferno deck damage, and advanced both raiders toward the center to contest. The lead-4 window likely resolves for P1 next turn unless they thin out."
+    }
+  ],
+  "terminalWinEvents": [
+    {
+      "type": "unitLead",
+      "status": "created",
+      "player": "P1",
+      "completedTurns": 18,
+      "playerUnits": 10,
+      "opponentUnits": 5,
+      "playerCenters": 5,
+      "opponentCenters": 3
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "id": "turn-020",
+  "player": "P2",
+  "round": 10,
+  "play": ["village", "peddler", "peddler", "zap", "bandage", "potion", "armory", "healer"],
+  "buyOptions": ["gold", "healer", "armory", "peddler", "potion", "village", "silver"],
+  "moves": [
+    { "id": "P2-guardian-3", "to": [6, 8] },
+    { "id": "P2-guardian-4", "to": [5, 7] },
+    { "id": "P2-guardian-5", "to": [3, 8] },
+    { "id": "P2-guardian-6", "to": [3, 7] }
+  ],
+  "recruits": [
+    { "type": "marksman", "id": "P2-marksman-2", "at": [0, 8] }
+  ],
+  "summary": "P2 used engine economy to recruit a marksman and close the unit-count gap.",
+  "reasoning": "P1 ended turn 19 at an 8-4 lead, but P2's recruit made the count 8-5 before P1's next start check, so no P1 pending lead-4 threat was created."
+}

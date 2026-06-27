@@ -1,0 +1,15 @@
+Turn-012 for P2 complete and validated.
+
+**The decisive moment — and it's a loss.** P1 recorded a pending 4-unit win threat at the start of turn-011 and now leads **10-5**. To clear the threat I had to reach a lead of **≤3** this turn. That required either:
+- Recruiting 2 units (needs 12 supply; I only had 8), or
+- Killing a P1 unit (none were in range of my wall).
+
+Neither was possible. The best I could do was recruit **1 guardian → 6 units, lead 4** — which is *not below 4*, so the pending threat survives.
+
+**What I did:**
+- **Deck:** Played Training (permanent +1 attack → front guardian now atk 5), bought Inferno for remaining fight value.
+- **Board:** Recruited a guardian at home, applied the upgrade, held the fortress.
+
+**Outcome:** P1 wins at the start of turn-013 via the confirmed 4-unit-lead condition. The runner will close it out.
+
+**Why I lost (honest post-mortem):** The game was decided by the center/economy disparity, not by tactics late. P1's rush grabbed and held 5-7 supply centers early (income up to 9 vs my 3), which let it out-recruit me faster than my single-center economy could field bodies. My one real tactical error was turn-005's losing my raider to a focus-kill (overextending it to 4,4), which put me permanently behind on the unit count. After that, my control/fortress plan was sound defensively but irrelevant — P1 never had to attack into my kill zone; it just kept recruiting from its income lead and won on the count clock. The engine deck needed to contest centers harder and earlier (turns 2-4) before the income gap compounded; turtling conceded the only resource that mattered.

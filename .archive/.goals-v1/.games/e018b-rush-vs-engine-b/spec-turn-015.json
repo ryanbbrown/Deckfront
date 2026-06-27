@@ -1,0 +1,22 @@
+{
+  "id": "turn-015",
+  "player": "P1",
+  "round": 8,
+  "play": ["blast", "zap", "zap"],
+  "buy": "blast",
+  "moves": [
+    { "id": "P1-guardian-1", "to": [7, 6] },
+    { "id": "P1-raider-3", "to": [6, 5] },
+    { "id": "P1-raider-4", "to": [8, 2] },
+    { "id": "P1-marksman-1", "to": [6, 2] },
+    { "id": "P1-marksman-3", "to": [9, 0] }
+  ],
+  "attacks": [
+    { "attacker": "P1-guardian-1", "target": "P2-marksman-1", "bonus": 1 }
+  ],
+  "recruits": [
+    { "type": "scout", "id": "P1-scout-2", "at": [10, 1] }
+  ],
+  "summary": "P1 bought Blast, wounded P2's marksman, and recruited a scout while holding five centers.",
+  "reasoning": "P1 produced four deck damage but had only one useful legal attack, so three damage expired. This illustrates how the damage cap restrains rush burst even when the deck lines up multiple damage cards."
+}

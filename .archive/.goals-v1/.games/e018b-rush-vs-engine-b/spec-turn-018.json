@@ -1,0 +1,16 @@
+{
+  "id": "turn-018",
+  "player": "P2",
+  "round": 9,
+  "play": ["zap", "village", "peddler", "bandage", "potion", "armory", "healer"],
+  "buyOptions": ["gold", "healer", "armory", "peddler", "potion", "village", "silver"],
+  "moves": [
+    { "id": "P2-guardian-2", "to": [6, 5] },
+    { "id": "P2-guardian-3", "to": [5, 8] },
+    { "id": "P2-guardian-4", "to": [4, 8] },
+    { "id": "P2-guardian-5", "to": [2, 8] },
+    { "id": "P2-guardian-6", "to": [2, 7] }
+  ],
+  "summary": "P2 flipped center-center back and advanced the guardian wall.",
+  "reasoning": "P2 had only five supply, so no recruit was available. The positional center flip was more valuable than leaving the guardian stationary for a small attack; any unused deck damage or healing expired."
+}

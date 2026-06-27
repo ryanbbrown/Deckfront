@@ -1,0 +1,11 @@
+Turn-002 for P2 complete and validated.
+
+**Summary of what I did:**
+
+**Deck phase** — Drew into Peddler, so I chained all three actions (Village → Smithy → Peddler) for card draw + actions, ending at 8 money. Bought **Gold** to accelerate my engine/control economy toward future damage/stabilization payloads (2 money unspent).
+
+**Board phase** — Income gave me 2 supply (not enough to recruit yet at cost 6). Contested the board:
+- **Scout** (1,7)→(3,7): captured **center-west-south** (income +1 next turn).
+- **Raider** advanced to (4,6), **Guardian** to (3,8), **Marksman** to (2,8), all pushing toward the central supply centers to contest P1's rush.
+
+Centers now: P2 controls center-west-south, P1 controls center-northeast. Units 4v4, no win threats pending. Validation passed strict/strict-deck/strict-win.

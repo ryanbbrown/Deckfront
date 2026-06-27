@@ -1,0 +1,4 @@
+{"schemaVersion":1,"turnId":"turn-007","player":"P1","actions":{"movements":[],"recruits":[],"attacks":[
+{"attacker":"P1-marksman-start-4","target":"P2-raider-start-1","deckDamage":1},
+{"attacker":"P1-scout-start-2","target":"P2-raider-start-1","deckDamage":1}
+],"heals":[],"upgrades":[]}}

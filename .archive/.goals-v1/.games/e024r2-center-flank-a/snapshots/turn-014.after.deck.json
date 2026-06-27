@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "rngState": 2435,
+  "game": {
+    "activePlayer": 0,
+    "players": [
+      {
+        "id": "P1",
+        "deck": [
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "zap",
+          "bandage",
+          "silver",
+          "peddler",
+          "village"
+        ]
+      },
+      {
+        "id": "P2",
+        "deck": [
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "zap",
+          "bandage",
+          "peddler",
+          "silver",
+          "gold"
+        ]
+      }
+    ],
+    "trash": [],
+    "supply": []
+  }
+}

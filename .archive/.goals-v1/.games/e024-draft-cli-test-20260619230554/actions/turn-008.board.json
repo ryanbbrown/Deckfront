@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-008",
+  "player": "P2",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-scout-1",
+        "from": {
+          "col": 0,
+          "row": 8
+        },
+        "to": {
+          "col": 3,
+          "row": 7
+        }
+      }
+    ],
+    "recruits": [],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

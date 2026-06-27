@@ -1,0 +1,5 @@
+Turn `turn-021` complete and validated.
+
+**P1 leads 19 units to 8**, holding 7 of 8 centers. Freed a home hex and recruited a 19th raider; all units remain safe.
+
+Both win conditions defined in the rules are satisfied (a 10+ unit lead and, past 18 turns, six-center dominance), though neither is machine-confirmed under the `current` ruleset alias. Sieging P2's compact corner stays negative-value — taking a 16hp guardian needs three adjacent raiders who'd then be focus-killed by stacked atk-5 guardians — so I keep my forces intact and carry an overwhelming lead on every metric toward the 30-turn limit. P2 (8 units, income 3, fully turtled) has no path back. Validation passed (21 entries).

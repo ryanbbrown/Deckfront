@@ -1,0 +1,23 @@
+{
+  "id": "turn-006",
+  "player": "P2",
+  "round": 3,
+  "trash": "rest",
+  "play": ["zap", "peddler"],
+  "buy": "healer",
+  "moves": [
+    { "id": "P2-scout-2", "to": [8, 7] },
+    { "id": "P2-scout-1", "to": [6, 6] },
+    { "id": "P2-druid-1", "to": [4, 7] },
+    { "id": "P2-marksman-1", "to": [3, 8] }
+  ],
+  "attacks": [
+    { "attacker": "P2-scout-2", "target": "P1-scout-1", "bonus": 1 },
+    { "attacker": "P2-scout-1", "target": "P1-scout-1" }
+  ],
+  "recruits": [
+    { "type": "guardian", "id": "P2-guardian-2", "at": [1, 7] }
+  ],
+  "summary": "P2 converted Peddler into a Healer buy, claimed southeast, and wounded P1's east scout.",
+  "reasoning": "The engine side used deck damage through a legal scout attack and recruited a guardian to preserve board presence. No unit healing was used; the future Healer card is deck-produced healing and remains legal."
+}

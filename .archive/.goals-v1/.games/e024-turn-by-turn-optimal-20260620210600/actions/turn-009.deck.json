@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-009",
+  "player": "P1",
+  "actions": [
+    {
+      "type": "trashCard",
+      "handIndex": 2
+    },
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "storm"
+    },
+    {
+      "type": "endTurn"
+    }
+  ]
+}

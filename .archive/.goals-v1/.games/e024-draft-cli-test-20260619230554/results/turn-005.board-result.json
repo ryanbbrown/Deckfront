@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-005",
+  "player": "P1",
+  "before": "snapshots/turn-005.before.board.json",
+  "after": "snapshots/turn-005.after.board.json",
+  "actions": {
+    "movements": [],
+    "recruits": [
+      {
+        "unit": "P1-scout-1",
+        "type": "scout",
+        "at": {
+          "col": 10,
+          "row": 1
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

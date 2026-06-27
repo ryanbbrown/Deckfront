@@ -1,0 +1,24 @@
+{
+  "id": "turn-008",
+  "player": "P2",
+  "round": 4,
+  "trash": "rest",
+  "play": ["bandage"],
+  "buy": "potion",
+  "moves": [
+    { "id": "P2-druid-1", "to": [5, 6] },
+    { "id": "P2-marksman-1", "to": [4, 8] },
+    { "id": "P2-guardian-2", "to": [2, 7] }
+  ],
+  "attacks": [
+    { "attacker": "P2-scout-2", "target": "P1-scout-1" }
+  ],
+  "heals": [
+    { "id": "P2-scout-2", "amount": 1 }
+  ],
+  "recruits": [
+    { "type": "guardian", "id": "P2-guardian-3", "at": [0, 8] }
+  ],
+  "summary": "P2 bought Potion, used Bandage healing on the forward scout, and recruited another guardian.",
+  "reasoning": "P2 could not finish P1's east scout without deck damage, so the engine plan preserved its damaged scout and moved the druid as a body rather than using any printed healing."
+}

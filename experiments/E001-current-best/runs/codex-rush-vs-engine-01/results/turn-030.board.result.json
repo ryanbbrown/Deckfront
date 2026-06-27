@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-030",
+  "player": "P2",
+  "before": "snapshots/turn-030.before.board.json",
+  "after": "snapshots/turn-030.after.board.json",
+  "actions": {
+    "movements": [],
+    "recruits": [],
+    "attacks": [
+      {
+        "attacker": "P2-guardian-turn-028",
+        "target": "P1-raider-turn-007-a",
+        "damage": 2,
+        "deckDamage": 0,
+        "targetRemoved": true
+      }
+    ],
+    "heals": [],
+    "upgrades": [
+      {
+        "target": "P2-guardian-turn-028",
+        "attack": 1,
+        "maxHp": 0
+      }
+    ]
+  }
+}

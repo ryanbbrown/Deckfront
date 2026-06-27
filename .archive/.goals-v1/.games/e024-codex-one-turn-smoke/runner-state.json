@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "model": null,
+  "effort": "low",
+  "drafts": [
+    "P1=blast,zap,silver",
+    "P2=village,smithy,peddler"
+  ],
+  "players": {
+    "P1": {
+      "sessionId": "019f05ed-b3f6-7630-8fb0-0b1dce0c6f40",
+      "strategy": "RUSH: contest centers, move aggressively, buy tempo/damage, recruit/attack for immediate board pressure. Trash only when it does not cost tempo."
+    },
+    "P2": {
+      "sessionId": null,
+      "strategy": "ENGINE: unused in this one-turn smoke."
+    }
+  }
+}

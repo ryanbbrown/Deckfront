@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-026",
+  "player": "P2",
+  "before": "snapshots/turn-026.before.deck.json",
+  "after": "snapshots/turn-026.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "silver"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "storm",
+    "copper",
+    "copper",
+    "smithy",
+    "healer"
+  ],
+  "played": [
+    "smithy"
+  ],
+  "bought": [
+    "silver"
+  ],
+  "produced": {
+    "money": 3
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "id": "turn-016",
+  "player": "P2",
+  "round": 8,
+  "play": ["village", "peddler", "zap", "bandage", "potion", "armory", "healer"],
+  "buyOptions": ["gold", "healer", "armory", "peddler", "potion", "village", "silver"],
+  "moves": [
+    { "id": "P2-guardian-2", "to": [6, 6] },
+    { "id": "P2-guardian-3", "to": [4, 8] },
+    { "id": "P2-guardian-4", "to": [3, 8] },
+    { "id": "P2-guardian-5", "to": [1, 8] }
+  ],
+  "upgrades": {
+    "health": [
+      { "id": "P2-marksman-1", "amount": 2 }
+    ]
+  },
+  "attacks": [
+    { "attacker": "P2-guardian-2", "target": "P1-raider-3" },
+    { "attacker": "P2-marksman-1", "target": "P1-raider-3" }
+  ],
+  "recruits": [
+    { "type": "guardian", "id": "P2-guardian-6", "at": [1, 7] }
+  ],
+  "summary": "P2 upgraded its wounded marksman, killed P1's raider, and recruited a guardian.",
+  "reasoning": "Armory's upgrade-health healing is legal deck support and kept the marksman alive. P2's kill-and-recruit turn stabilized the unit count without any printed druid/healer healing."
+}

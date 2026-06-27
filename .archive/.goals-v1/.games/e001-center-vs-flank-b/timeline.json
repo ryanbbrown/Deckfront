@@ -1,0 +1,241 @@
+{
+  "schemaVersion": 1,
+  "title": "E001 Center vs Flank B",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Zap",
+          "Bandage",
+          "Rest",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 took northeast and east, with the guardian and marksman forming behind the raider.",
+      "reasoning": "P1 followed the assigned central durable formation plan. Board supply income was resolved before recruitment/movement, deck counters were spent only on the active turn, and no Copper was bought."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Rest",
+          "Rest",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [],
+        "produced": {
+          "money": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 opened west-south and staged a scout-heavy flank.",
+      "reasoning": "P2 followed the assigned flanking healing/control plan. Board supply income was resolved before recruitment/movement, deck counters were spent only on the active turn, and no Copper was bought."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Zap"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 recruited a guardian and advanced toward center-north.",
+      "reasoning": "P1 followed the assigned central durable formation plan. Board supply income was resolved before recruitment/movement, deck counters were spent only on the active turn, and no Copper was bought."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 spent saved supply on another scout and flipped center-south.",
+      "reasoning": "P2 followed the assigned flanking healing/control plan. Board supply income was resolved before recruitment/movement, deck counters were spent only on the active turn, and no Copper was bought."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Rest",
+          "Bandage",
+          "Rest",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 claimed center-north and center, then removed the forward P2 scout with scout fire plus Zap damage.",
+      "reasoning": "P1 followed the assigned central durable formation plan. Board supply income was resolved before recruitment/movement, deck counters were spent only on the active turn, and no Copper was bought."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Rest",
+          "Copper",
+          "Silver",
+          "Bandage"
+        ],
+        "played": [],
+        "bought": [
+          "Potion"
+        ],
+        "produced": {
+          "money": 0,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 could not yet afford support, but flipped southeast and killed the central P1 scout.",
+      "reasoning": "P2 followed the assigned flanking healing/control plan. Board supply income was resolved before recruitment/movement, deck counters were spent only on the active turn, and no Copper was bought."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Copper",
+          "Copper",
+          "Silver"
+        ],
+        "played": [],
+        "bought": [
+          "Inferno"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 reinforced with another guardian and wounded the exposed druid without overcommitting.",
+      "reasoning": "P1 followed the assigned central durable formation plan. Board supply income was resolved before recruitment/movement, deck counters were spent only on the active turn, and no Copper was bought."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Zap",
+          "Copper",
+          "Rest"
+        ],
+        "played": [],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 finally added healer support and used marksman fire to remove the damaged central guardian.",
+      "reasoning": "P2 followed the assigned flanking healing/control plan. Board supply income was resolved before recruitment/movement, deck counters were spent only on the active turn, and no Copper was bought."
+    }
+  ]
+}

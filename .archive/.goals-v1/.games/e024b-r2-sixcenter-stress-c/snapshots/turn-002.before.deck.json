@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "rngState": 19036,
+  "game": {
+    "config": {
+      "players": 2,
+      "setup": {
+        "initialActions": 1,
+        "initialBuys": 1,
+        "initialMoney": 0,
+        "handSize": 5,
+        "startingDeck": [
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "zap",
+          "bandage",
+          "rest",
+          "rest",
+          "rest"
+        ],
+        "attributes": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "cards": [],
+      "supply": [],
+      "endGame": {
+        "gte": [
+          "emptyPiles",
+          3
+        ]
+      }
+    },
+    "cards": {},
+    "players": [
+      {
+        "id": "P1",
+        "draw": [],
+        "hand": [],
+        "discard": [
+          "silver"
+        ],
+        "play": [
+          "zap",
+          "bandage",
+          "copper",
+          "copper"
+        ],
+        "actions": 1,
+        "buys": 1,
+        "money": 0,
+        "attributes": {
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "money": 2
+        },
+        "persistentAttributes": {},
+        "vpCounters": 0,
+        "turnsTaken": 1,
+        "freeTrashUsed": false
+      },
+      {
+        "id": "P2",
+        "draw": [],
+        "hand": [],
+        "discard": [],
+        "play": [],
+        "actions": 1,
+        "buys": 1,
+        "money": 0,
+        "attributes": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        },
+        "persistentAttributes": {},
+        "vpCounters": 0,
+        "turnsTaken": 0,
+        "freeTrashUsed": false
+      }
+    ],
+    "activePlayer": 1,
+    "phase": "action",
+    "supply": {},
+    "trash": [],
+    "ended": false
+  }
+}

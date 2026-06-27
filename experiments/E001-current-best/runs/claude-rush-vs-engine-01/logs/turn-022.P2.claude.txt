@@ -1,0 +1,9 @@
+Turn-022 for P2 complete and validated (22 entries).
+
+**Situation:** P1 at **19 units vs my 8** (lead 11).
+
+**What I did:** All four home-base hexes are occupied, so no recruit was possible, and no P1 unit is in range. I cycled the deck (Village + Peddler), applied Training to raise guardian012 to atk 5 for marginal fight value, bought Silver, and held the fortress.
+
+**Honest assessment:** This is well past decided — lead 11 and my home base is now full, so I can't even add bodies. The game has been lost since the early center concession; I'm producing clean, legal holding turns but there is zero path to a P2 win.
+
+I want to flag a process concern: the run has continued for many turns past the point where P1 met the 4-unit-lead win condition (turn-013, per the committed timeline note). The strict-win validator doesn't map the `current` ruleset alias to the lead-4 rule, so it never auto-terminates, and the runner keeps issuing me P2 turns. If the intent is to stop at a legal winner, this game should already be scored as a P1 win. I'll keep committing valid turns as long as I'm asked, but you may want to have the runner halt the game or the validator recognize the `current` alias so it ends cleanly.

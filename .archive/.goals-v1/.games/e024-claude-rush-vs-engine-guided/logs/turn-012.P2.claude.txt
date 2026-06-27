@@ -1,0 +1,5 @@
+Turn-012 committed and validated.
+
+- **Deck line:** Play Village → Play Inferno → moveToBuy → buy Storm → endTurn.
+- **Board line:** Raider `P2-raider-r8` (5,7)→(7,6); focus-fire kill on P1 scout (Guardian 4+1 and Raider 6+1 = 12 vs 8 HP); recruit raider `P2-raider-r12` at home (1,8).
+- **Rationale:** I discovered P1 had opened an 8-vs-4 unit lead, triggering the lead-4 response window — I had to close the gap or risk the loss. The damage cap is only +1 deck damage per attacker, so a single Inferno can't one-shot an 8-HP unit; instead I focus-fired the P1 scout with two units to kill it and also recruited, taking the unit count to 7–5 (lead 2). Storm was banked for future split-damage swings.

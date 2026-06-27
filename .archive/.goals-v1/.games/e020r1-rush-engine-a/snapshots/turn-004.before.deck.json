@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "rngState": 1901,
+  "game": {
+    "players": [
+      {
+        "id": "P1"
+      },
+      {
+        "id": "P2"
+      }
+    ],
+    "activePlayer": 1
+  }
+}

@@ -1,0 +1,8 @@
+Turn `turn-007` complete and validated.
+
+**P1 strangles P2's economy:**
+- **Territory:** Raider-3 retook **center-northwest** and Marksman captured **center-southeast** — P1 now holds **7 of 8 centers**, cutting P2 to a single center (their income drops to 3, mine rises to 9).
+- **Recruits:** Two more raiders at home (delayed); reserve raider-005 advanced to (8,3) to screen the center.
+- **State:** Units **7 P1 vs 4 P2** = lead 3 (one short of the 4-lead win threshold). Supply 3.
+
+**The plan:** P2 has turtled two 16hp guardians in their corner, so charging in trades my fragile raiders for nothing. Instead I'm winning the economic race — my income (9) lets me recruit every turn with surplus while P2's choked economy (3) can barely add one unit every other turn. Once my recruits keep arriving and/or I pick off one of their fragile units (scout/marksman) with Blast-fueled raiders, the lead crosses 4 and the response-window win triggers. Validation passed (7 entries).

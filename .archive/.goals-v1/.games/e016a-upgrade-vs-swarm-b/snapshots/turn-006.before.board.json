@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1-cost6-damagecap-responsewin-lead4-centercontrol",
+  "map": "sketch-v3-contest",
+  "turn": {
+    "activePlayer": "P2",
+    "round": 3
+  },
+  "units": [
+    {
+      "id": "P1-raider-1",
+      "player": "P1",
+      "type": "raider",
+      "col": 8,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-marksman-1",
+      "player": "P1",
+      "type": "marksman",
+      "col": 9,
+      "row": 2,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-scout-1",
+      "player": "P1",
+      "type": "scout",
+      "col": 6,
+      "row": 5,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-guardian-1",
+      "player": "P1",
+      "type": "guardian",
+      "col": 9,
+      "row": 3,
+      "hp": 18,
+      "maxHp": 18,
+      "attack": 4
+    },
+    {
+      "id": "P2-marksman-1",
+      "player": "P2",
+      "type": "marksman",
+      "col": 1,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-druid-1",
+      "player": "P2",
+      "type": "druid",
+      "col": 3,
+      "row": 6,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-scout-1",
+      "player": "P2",
+      "type": "scout",
+      "col": 5,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-scout-2",
+      "player": "P2",
+      "type": "scout",
+      "col": 3,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-guardian-2",
+      "player": "P1",
+      "type": "guardian",
+      "col": 10,
+      "row": 1,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    }
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": null
+    },
+    {
+      "id": "center-west-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-north",
+      "controller": null
+    },
+    {
+      "id": "center-center",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P1"
+    },
+    {
+      "id": "center-east",
+      "controller": null
+    },
+    {
+      "id": "center-southeast",
+      "controller": null
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 2
+    },
+    {
+      "player": "P2",
+      "amount": 5
+    }
+  ],
+  "notes": [
+    "Starter state: units begin at max HP from rulesets/territory-v1/units.json.",
+    "E003 locked starter: max-HP starter board copied from territory-v1 with ruleset id changed to territory-v1-locked.",
+    "E005 map-access starter: max-HP starter board copied from E003 and retargeted to sketch-v2-access.",
+    "E006 cost-6 starter: copied from E005 access starter and retargeted to territory-v1-cost6.",
+    "E007 damage-cap starter: copied from E006 cost-6 starter and retargeted to territory-v1-cost6-damagecap."
+  ]
+}

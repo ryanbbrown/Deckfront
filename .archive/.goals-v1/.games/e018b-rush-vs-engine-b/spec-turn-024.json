@@ -1,0 +1,22 @@
+{
+  "id": "turn-024",
+  "player": "P2",
+  "round": 12,
+  "play": ["village", "peddler", "peddler", "zap", "bandage", "potion", "armory", "healer"],
+  "buyOptions": ["gold", "healer", "armory", "peddler", "potion", "village", "silver"],
+  "moves": [
+    { "id": "P2-guardian-5", "to": [5, 8] },
+    { "id": "P2-guardian-6", "to": [5, 6] },
+    { "id": "P2-marksman-2", "to": [2, 8] },
+    { "id": "P2-guardian-7", "to": [1, 8] }
+  ],
+  "attacks": [
+    { "attacker": "P2-guardian-3", "target": "P1-guardian-1" },
+    { "attacker": "P2-guardian-4", "target": "P1-guardian-1" }
+  ],
+  "recruits": [
+    { "type": "guardian", "id": "P2-guardian-8", "at": [0, 8] }
+  ],
+  "summary": "P2 killed P1's damaged guardian and recruited a guardian, clearing the four-unit lead.",
+  "reasoning": "The response-window safeguard mattered again: P1's 10-6 end-turn lead did not become pending because P2 reduced it to 9-7 before P1's next start check."
+}

@@ -1,0 +1,5 @@
+Turn-014 committed and validated.
+
+- **Deck line:** Play Smithy → moveToBuy → buy Gold → endTurn.
+- **Board line:** Raider `P2-raider-r8` (7,6)→(8,6) capturing center-east; Raider `P2-raider-r12` (1,8)→(5,7) advancing toward center-center-south. Guardian holds center-southeast, scout holds center-west-south.
+- **Rationale:** P1's scout death left center-east undefended, so I occupy it and flip it to me — now holding three centers (west-south, southeast, east). The second raider pushes up to pressure center-center-south. No damage card in hand this turn, so I avoid unfavorable 8-HP trades and instead keep the engine running (Smithy) and bank Gold for future multi-card attack turns.

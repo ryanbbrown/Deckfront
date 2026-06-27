@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1",
+  "map": "sketch-v1",
+  "turn": {
+    "activePlayer": "P2",
+    "round": 4
+  },
+  "units": [
+    {
+      "id": "P1-raider-1",
+      "player": "P1",
+      "type": "raider",
+      "col": 6,
+      "row": 5,
+      "hp": 5,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-marksman-1",
+      "player": "P1",
+      "type": "marksman",
+      "col": 7,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-scout-1",
+      "player": "P1",
+      "type": "scout",
+      "col": 5,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-guardian-1",
+      "player": "P1",
+      "type": "guardian",
+      "col": 7,
+      "row": 2,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P2-marksman-1",
+      "player": "P2",
+      "type": "marksman",
+      "col": 3,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-druid-1",
+      "player": "P2",
+      "type": "druid",
+      "col": 4,
+      "row": 7,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-scout-1",
+      "player": "P2",
+      "type": "scout",
+      "col": 9,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-scout-2",
+      "player": "P2",
+      "type": "scout",
+      "col": 6,
+      "row": 6,
+      "hp": 1,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-marksman-2",
+      "player": "P1",
+      "type": "marksman",
+      "col": 9,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-raider-1",
+      "player": "P2",
+      "type": "raider",
+      "col": 2,
+      "row": 8,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-guardian-2",
+      "player": "P1",
+      "type": "guardian",
+      "col": 11,
+      "row": 1,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    }
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": null
+    },
+    {
+      "id": "center-west-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-north",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P1"
+    },
+    {
+      "id": "center-east",
+      "controller": "P1"
+    },
+    {
+      "id": "center-southeast",
+      "controller": "P2"
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 5
+    },
+    {
+      "player": "P2",
+      "amount": 4
+    }
+  ],
+  "notes": [
+    "Starter state: units begin at max HP from rulesets/territory-v1/units.json.",
+    "turn-001: P1 opened by taking the northeast and east centers while the guardian/marksman core moved toward the middle.",
+    "turn-002: P2 started the southern flank by taking west-south and pushing both scouts toward the southeast lane.",
+    "turn-003: P1 advanced into center-north and recruited a marksman from early center income.",
+    "turn-004: P2 flipped center-south and prepared a southeast wrap with a new raider.",
+    "turn-005: P1 claimed center-north and pressed toward the middle with the guardian/marksman core.",
+    "turn-006: P2 completed the southeast flank and chipped P1’s central raider from a legal scout attack.",
+    "turn-007: P1 took the exact middle, bloodied the forward southern scout, and added a guardian."
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-004",
+  "player": "P2",
+  "before": "snapshots/turn-004.before.board.json",
+  "after": "snapshots/turn-004.after.board.json",
+  "actions": {
+    "movements": [],
+    "recruits": [],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "turn-002",
+  "player": "P2",
+  "round": 1,
+  "trash": "rest",
+  "moves": [
+    { "id": "P2-scout-1", "to": [3, 7] },
+    { "id": "P2-scout-2", "to": [3, 8] },
+    { "id": "P2-druid-1", "to": [2, 7] },
+    { "id": "P2-marksman-1", "to": [1, 8] }
+  ],
+  "summary": "P2 trashed a Rest and sent scouts toward the lower-center lane, taking west-south.",
+  "reasoning": "With only two Copper available, P2 could not buy an engine card. The board priority was preserving bodies while claiming an early southern economy point; druid printed healing is not available in this ruleset."
+}

@@ -1,0 +1,5 @@
+{"schemaVersion":1,"turnId":"turn-009","player":"P1","actions":{"movements":[],"recruits":[
+{"unit":"P1-raider-r9a","type":"raider","at":{"col":10,"row":1}},
+{"unit":"P1-raider-r9b","type":"raider","at":{"col":11,"row":0}},
+{"unit":"P1-raider-r9c","type":"raider","at":{"col":12,"row":1}}
+],"attacks":[],"heals":[],"upgrades":[]}}

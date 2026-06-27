@@ -1,0 +1,613 @@
+{
+  "schemaVersion": 1,
+  "title": "E004 Flank vs Center A",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Potion",
+          "Copper",
+          "Copper",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Potion"
+        ],
+        "bought": [
+          "Potion"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 opened with a two-center east claim and angled the support pair down the flank lane.",
+      "reasoning": "The flank/control seat used its fast units for northeast and east, not center-north. Village/Potion/Peddler produced healing but there was no damage yet, so the board value was positional and P1 avoided buying Copper."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Training",
+          "Copper",
+          "Blast",
+          "Copper"
+        ],
+        "played": [
+          "Blast",
+          "Training"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 2,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 took west-south and formed the first compact center-support pocket.",
+      "reasoning": "P2’s opening hand delivered Training plus Blast. The upgrade went onto the marksman core piece, while the scout captured the safe western center and the druid/marksman advanced together instead of racing the southeast flank."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Potion",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Potion"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 sent the scout toward southeast and recruited a second scout to keep the flank wide.",
+      "reasoning": "P1’s first income spike came from the two nearby eastern centers. Rather than pivoting center, P1 spent the first recruit on another scout and pushed the original scout down the east edge to threaten center-southeast."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Training"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 claimed center-south and recruited a guardian for the delayed center block.",
+      "reasoning": "From the bottom-left seat, the exact middle was not reachable this turn. P2 took center-south first, kept the second scout and support pair close, and used the first 5 supply on a guardian as assigned."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Peddler",
+          "Copper",
+          "Copper",
+          "Potion",
+          "Copper"
+        ],
+        "played": [
+          "Peddler",
+          "Potion"
+        ],
+        "bought": [
+          "Potion"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 flipped southeast and kept the raider pointed at P2’s delayed center route.",
+      "reasoning": "P1 kept the flank promise: the scout took the southeast center while the raider moved to the east edge of the center lane. P1 recruited a raider to make isolated center units expensive for P2."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Blast"
+        ],
+        "played": [
+          "Blast"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 2,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 reached the middle and damaged P1’s first flank raider.",
+      "reasoning": "P2’s center-south scout advanced into the exact middle. The two scouts punished the raider that stepped into the lane; Blast damage, if available, stayed attached to the legal scout attack rather than becoming direct damage."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Potion",
+          "Village",
+          "Silver",
+          "Potion"
+        ],
+        "played": [
+          "Village",
+          "Potion",
+          "Potion"
+        ],
+        "bought": [
+          "Potion"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 4,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 answered by killing P2’s wounded center scout and chipping the second scout.",
+      "reasoning": "The first raider survived at low HP and made one more melee attack into the center scout. P1 could not also flip center-south, so the original scout only chipped P2’s next capture unit while P1 added a druid for later printed healing."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Training",
+          "Training",
+          "Silver"
+        ],
+        "played": [
+          "Training",
+          "Training"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 2,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 re-flipped center-south and recruited a marksman to keep the core intact.",
+      "reasoning": "The center plan still had enough bodies to answer. P2 moved the fresh guardian into the lane, reclaimed center-south with the second scout, and used the druid’s printed healing rather than an attack."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Peddler",
+          "Potion",
+          "Potion"
+        ],
+        "played": [
+          "Peddler",
+          "Village",
+          "Potion",
+          "Potion",
+          "Potion"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 6,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 flipped the exact middle from the east and kept pressure on center-south.",
+      "reasoning": "The flank was now forcing the compact formation to turn around. P1’s fresh scout took the center, the original scout stayed on the southeast lane, and the druid moved into support range instead of overcommitting to an illegal kill."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Blast",
+          "Blast",
+          "Copper",
+          "Blast"
+        ],
+        "played": [
+          "Blast",
+          "Blast",
+          "Blast"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 6,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 used a heavy Blast turn to kill P1’s exposed center scout.",
+      "reasoning": "P2 did not chase the flank all the way east. It reinforced the central lane and attached Blast damage to a legal marksman attack, removing the scout that flipped the center."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Potion",
+          "Copper",
+          "Silver",
+          "Potion"
+        ],
+        "played": [
+          "Potion",
+          "Potion"
+        ],
+        "bought": [
+          "Potion"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 4,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 restored the southeast scout and widened east pressure after losing the center scout.",
+      "reasoning": "The damaged center scout could not be saved without overcommitting. P1 instead used deck healing and printed support to keep the southeast scout alive, while raider pressure headed for center-north."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Silver",
+          "Training",
+          "Training"
+        ],
+        "played": [
+          "Training",
+          "Training"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 2,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 settled into a guardian/marksman block and chipped P1’s lead guardian.",
+      "reasoning": "The compact formation had removed P1’s center scout last turn, so this turn focused on holding shape. P2 also recruited another marksman, but the effort pulled resources away from retaking the southeast."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Peddler",
+          "Copper",
+          "Potion",
+          "Silver"
+        ],
+        "played": [
+          "Peddler",
+          "Village",
+          "Potion",
+          "Potion"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 4,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 flipped center-north and east while the healed scout kept the southeast flank alive.",
+      "reasoning": "P1’s center scout died, but the raider and fresh scout converted the edge pressure into more center control. The turn showed the seat-advantage question sharply: P1 was up on centers while P2 was up on concentrated combat stats."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Training",
+          "Silver",
+          "Blast",
+          "Copper"
+        ],
+        "played": [
+          "Blast",
+          "Training"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 2,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 reclaimed the center and killed P1’s overextended raider with upgraded marksman fire.",
+      "reasoning": "P2’s compact plan did answer the middle: the guardian retook the lane while Training and Blast made the lead marksman a legal finisher against the raider. The downside was that southeast and east still belonged to P1."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Potion",
+          "Copper",
+          "Potion",
+          "Potion"
+        ],
+        "played": [
+          "Village",
+          "Potion",
+          "Potion",
+          "Potion"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 6,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 used the flank economy to recruit again and kill P2’s damaged lead marksman.",
+      "reasoning": "P2’s center retake cost the exposed marksman. P1’s guardian finished it after the earlier chip, while the healer/druid support stayed behind the flank units and P1 converted the center-count lead into another recruit."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Training",
+          "Copper",
+          "Copper",
+          "Blast"
+        ],
+        "played": [
+          "Blast",
+          "Blast",
+          "Training"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 4,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 preserved the center block but could not erase P1’s flank-center income lead by the stop point.",
+      "reasoning": "P2 had a durable guardian line and enough units to avoid the immediate 3-unit loss check. The run stopped after 16 completed player turns because P1 led on supply centers and unit count, but P2 still had a coherent central formation and the result was not formally resolved."
+    }
+  ]
+}

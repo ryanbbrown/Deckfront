@@ -1,0 +1,11 @@
+Turn-004 for P2 complete and validated.
+
+**Deck phase** — Played Peddler, hit 6 money, bought a **second Gold** to keep accelerating economy toward a damage payload (Inferno/Storm) and future recruits.
+
+**Board phase** — I'm behind 4-1 on centers, so I contested:
+- **Scout** (3,7)→(3,3): captured **center-northwest**, bringing me to **2 centers** (income 3 next turn).
+- **Raider**→(4,4), **Guardian**→(3,6), **Marksman**→(4,7): formed a tight support cluster along column 4. If a P1 raider dives my forward scout, I can focus-kill it (raider 6 + marksman 4 = 10 > 8 hp) — the control deck's bait-and-punish answer to the rush.
+
+Supply at 5 (not enough to recruit at 6 yet). Units 4v4, no pending win threats. Strict validation passed.
+
+The key tension: P1's rush holds the 4 central supply centers (income 6 vs my 4), so they out-recruit me over time. My plan is to stabilize with the cluster, punish overextensions, and convert my Gold-heavy economy into damage cards to start trading up.

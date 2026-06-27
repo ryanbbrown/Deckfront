@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-011",
+  "player": "P1",
+  "before": "snapshots/turn-011.before.deck.json",
+  "after": "snapshots/turn-011.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "playAction",
+      "handIndex": 1
+    },
+    {
+      "type": "playAction",
+      "handIndex": 1
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "blast",
+    "copper",
+    "training",
+    "storm",
+    "copper"
+  ],
+  "played": [
+    "blast",
+    "training",
+    "storm"
+  ],
+  "bought": [],
+  "produced": {
+    "money": 2,
+    "damage": 4,
+    "upgradeDamage": 1,
+    "stormTargets": 2
+  }
+}

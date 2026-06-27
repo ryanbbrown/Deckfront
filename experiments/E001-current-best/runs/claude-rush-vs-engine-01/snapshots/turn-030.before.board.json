@@ -1,0 +1,408 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "current",
+  "map": "current",
+  "turn": {
+    "activePlayer": "P2",
+    "round": 15
+  },
+  "units": [
+    {
+      "id": "P1-raider-start-1",
+      "player": "P1",
+      "type": "raider",
+      "col": 6,
+      "row": 5,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-scout-start-2",
+      "player": "P1",
+      "type": "scout",
+      "col": 5,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-raider-start-3",
+      "player": "P1",
+      "type": "raider",
+      "col": 3,
+      "row": 3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-marksman-start-4",
+      "player": "P1",
+      "type": "marksman",
+      "col": 8,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-scout-start-2",
+      "player": "P2",
+      "type": "scout",
+      "col": 2,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-guardian-start-3",
+      "player": "P2",
+      "type": "guardian",
+      "col": 3,
+      "row": 7,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 5
+    },
+    {
+      "id": "P2-marksman-start-4",
+      "player": "P2",
+      "type": "marksman",
+      "col": 3,
+      "row": 8,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-turn-005",
+      "player": "P1",
+      "type": "raider",
+      "col": 8,
+      "row": 3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-guardian-turn-006",
+      "player": "P2",
+      "type": "guardian",
+      "col": 2,
+      "row": 8,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 5
+    },
+    {
+      "id": "P1-raider-turn-007a",
+      "player": "P1",
+      "type": "raider",
+      "col": 9,
+      "row": 3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-raider-turn-007b",
+      "player": "P1",
+      "type": "raider",
+      "col": 10,
+      "row": 3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-marksman-turn-008",
+      "player": "P2",
+      "type": "marksman",
+      "col": 2,
+      "row": 9,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-turn-009a",
+      "player": "P1",
+      "type": "raider",
+      "col": 9,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-raider-turn-009b",
+      "player": "P1",
+      "type": "raider",
+      "col": 10,
+      "row": 2,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-raider-turn-011a",
+      "player": "P1",
+      "type": "raider",
+      "col": 8,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-guardian-turn-012",
+      "player": "P2",
+      "type": "guardian",
+      "col": 0,
+      "row": 8,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 5
+    },
+    {
+      "id": "P2-guardian-turn-014",
+      "player": "P2",
+      "type": "guardian",
+      "col": 1,
+      "row": 6,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 5
+    },
+    {
+      "id": "P1-raider-turn-015a",
+      "player": "P1",
+      "type": "raider",
+      "col": 6,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-raider-turn-015b",
+      "player": "P1",
+      "type": "raider",
+      "col": 11,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-raider-turn-015c",
+      "player": "P1",
+      "type": "raider",
+      "col": 10,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-raider-turn-015d",
+      "player": "P1",
+      "type": "raider",
+      "col": 7,
+      "row": 0,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-raider-turn-017a",
+      "player": "P1",
+      "type": "raider",
+      "col": 10,
+      "row": 0,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-raider-turn-017b",
+      "player": "P1",
+      "type": "raider",
+      "col": 11,
+      "row": 0,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-guardian-turn-018",
+      "player": "P2",
+      "type": "guardian",
+      "col": 0,
+      "row": 9,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-turn-019a",
+      "player": "P1",
+      "type": "raider",
+      "col": 11,
+      "row": 3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-raider-turn-019b",
+      "player": "P1",
+      "type": "raider",
+      "col": 11,
+      "row": 2,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-raider-turn-021a",
+      "player": "P1",
+      "type": "raider",
+      "col": 12,
+      "row": 2,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-raider-turn-023a",
+      "player": "P1",
+      "type": "raider",
+      "col": 12,
+      "row": 0,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-raider-turn-023b",
+      "player": "P1",
+      "type": "raider",
+      "col": 11,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-guardian-turn-024",
+      "player": "P2",
+      "type": "guardian",
+      "col": 0,
+      "row": 7,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-turn-025a",
+      "player": "P1",
+      "type": "raider",
+      "col": 12,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-guardian-turn-026",
+      "player": "P2",
+      "type": "guardian",
+      "col": 1,
+      "row": 7,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-turn-027a",
+      "player": "P1",
+      "type": "raider",
+      "col": 9,
+      "row": 0,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-guardian-turn-028",
+      "player": "P2",
+      "type": "guardian",
+      "col": 1,
+      "row": 8,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-turn-029a",
+      "player": "P1",
+      "type": "raider",
+      "col": 10,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    }
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": "P1"
+    },
+    {
+      "id": "center-west-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-north",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center-south",
+      "controller": "P1"
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P1"
+    },
+    {
+      "id": "center-east",
+      "controller": "P1"
+    },
+    {
+      "id": "center-southeast",
+      "controller": "P1"
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 17
+    },
+    {
+      "player": "P2",
+      "amount": 2
+    }
+  ],
+  "notes": [
+    "Generated by code/scripts/run_game.py"
+  ]
+}

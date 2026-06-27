@@ -1,0 +1,513 @@
+{
+  "schemaVersion": 1,
+  "title": "E004 Flank vs Center B",
+  "entries": [
+    {
+      "id": "t01-p1-r1",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/t01-p1-r1.before.deck.json",
+        "after": "snapshots/t01-p1-r1.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "copper",
+          "copper",
+          "village"
+        ],
+        "played": [
+          "village",
+          "peddler"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/t01-p1-r1.before.board.json",
+        "after": "snapshots/t01-p1-r1.after.board.json"
+      },
+      "summary": "P1 opens the southeast flank and immediately claims center-east with the scout.",
+      "reasoning": "P1 trashed a Copper while still reaching Healer, then used the fast scout to take the nearest eastern supply center and shifted the melee line south."
+    },
+    {
+      "id": "t02-p2-r1",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/t02-p2-r1.before.deck.json",
+        "after": "snapshots/t02-p2-r1.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/t02-p2-r1.before.board.json",
+        "after": "snapshots/t02-p2-r1.after.board.json"
+      },
+      "summary": "P2 takes center-west-south and keeps the core compact.",
+      "reasoning": "P2 accepted a slower first buy after trashing Copper, then advanced both support units behind the scout capture instead of scattering to the far flank."
+    },
+    {
+      "id": "t03-p1-r2",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/t03-p1-r2.before.deck.json",
+        "after": "snapshots/t03-p1-r2.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "potion",
+          "copper",
+          "copper",
+          "peddler"
+        ],
+        "played": [
+          "peddler",
+          "potion",
+          "healer"
+        ],
+        "bought": [
+          "potion"
+        ],
+        "produced": {
+          "heal": 6
+        }
+      },
+      "board": {
+        "before": "snapshots/t03-p1-r2.before.board.json",
+        "after": "snapshots/t03-p1-r2.after.board.json"
+      },
+      "summary": "P1 reinforces the east capture and saves the flank tempo with a second scout.",
+      "reasoning": "Income from center-east hit the first recruit threshold; the new scout is delayed, so only the original units continued the southward push this turn."
+    },
+    {
+      "id": "t04-p2-r2",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/t04-p2-r2.before.deck.json",
+        "after": "snapshots/t04-p2-r2.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "training",
+          "copper",
+          "blast",
+          "copper"
+        ],
+        "played": [
+          "training",
+          "blast"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 2,
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/t04-p2-r2.before.board.json",
+        "after": "snapshots/t04-p2-r2.after.board.json"
+      },
+      "summary": "P2 stretches to center-center-south while upgrading the marksman core.",
+      "reasoning": "Training was applied to the protected marksman. The scout capture was aggressive but still backed by druid and marksman bodies from the west lane."
+    },
+    {
+      "id": "t05-p1-r3",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/t05-p1-r3.before.deck.json",
+        "after": "snapshots/t05-p1-r3.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "village",
+          "copper",
+          "potion"
+        ],
+        "played": [
+          "village",
+          "potion"
+        ],
+        "bought": [
+          "potion"
+        ],
+        "produced": {
+          "heal": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/t05-p1-r3.before.board.json",
+        "after": "snapshots/t05-p1-r3.after.board.json"
+      },
+      "summary": "P1 completes the southeast flank capture and positions the raider to threaten center.",
+      "reasoning": "Potion healing had no wounded target, so it was recorded as available but functionally redundant; the important board action was taking center-southeast before P2 could consolidate there."
+    },
+    {
+      "id": "t06-p2-r3",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/t06-p2-r3.before.deck.json",
+        "after": "snapshots/t06-p2-r3.after.deck.json",
+        "drawnHand": [
+          "blast",
+          "copper",
+          "silver",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "blast"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "damage": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/t06-p2-r3.before.board.json",
+        "after": "snapshots/t06-p2-r3.after.board.json"
+      },
+      "summary": "P2 claims center-center and keeps center-center-south covered.",
+      "reasoning": "P2 chose the compact center plan over chasing the southeast scout; the delayed guardian became ready and started walking up as a second-line anchor."
+    },
+    {
+      "id": "t07-p1-r4",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/t07-p1-r4.before.deck.json",
+        "after": "snapshots/t07-p1-r4.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "healer",
+          "potion",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "peddler",
+          "village",
+          "potion",
+          "healer"
+        ],
+        "bought": [
+          "potion"
+        ],
+        "produced": {
+          "heal": 6
+        }
+      },
+      "board": {
+        "before": "snapshots/t07-p1-r4.before.board.json",
+        "after": "snapshots/t07-p1-r4.after.board.json"
+      },
+      "summary": "P1 collapses on the central scout and removes P2-scout-1.",
+      "reasoning": "The flank force finally converted tempo into damage: raider plus scout exactly removed the exposed center-center scout, while the druid recruit prepared for a longer brawl."
+    },
+    {
+      "id": "t08-p2-r4",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/t08-p2-r4.before.deck.json",
+        "after": "snapshots/t08-p2-r4.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "blast",
+          "blast"
+        ],
+        "played": [
+          "blast",
+          "blast"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "damage": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/t08-p2-r4.before.board.json",
+        "after": "snapshots/t08-p2-r4.after.board.json"
+      },
+      "summary": "P2 wounds the advanced P1 scout and adds a second marksman.",
+      "reasoning": "Blast damage was attached to a legal scout attack rather than used as global damage. P2 still had enough center income to recruit despite losing the first scout."
+    },
+    {
+      "id": "t09-p1-r5",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/t09-p1-r5.before.deck.json",
+        "after": "snapshots/t09-p1-r5.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "potion",
+          "potion",
+          "copper"
+        ],
+        "played": [
+          "potion",
+          "potion"
+        ],
+        "bought": [],
+        "produced": {
+          "heal": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/t09-p1-r5.before.board.json",
+        "after": "snapshots/t09-p1-r5.after.board.json"
+      },
+      "summary": "P1 destroys the second P2 scout and heals the wounded flanker.",
+      "reasoning": "The healing/control deck mattered here: Healer restored the damaged scout after it helped finish P2-scout-2, keeping P1 from trading down on the flank."
+    },
+    {
+      "id": "t10-p2-r5",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/t10-p2-r5.before.deck.json",
+        "after": "snapshots/t10-p2-r5.after.deck.json",
+        "drawnHand": [
+          "training",
+          "silver",
+          "blast",
+          "silver",
+          "copper"
+        ],
+        "played": [
+          "training",
+          "blast"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "damage": 2,
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/t10-p2-r5.before.board.json",
+        "after": "snapshots/t10-p2-r5.after.board.json"
+      },
+      "summary": "P2 answers by killing P1-raider-1 with marksman plus druid damage.",
+      "reasoning": "The compact center group finally punished the isolated raider. Deck damage was again tied to a legal ranged attack, and the guardian recruit kept P2 from falling too far behind on bodies."
+    },
+    {
+      "id": "t11-p1-r6",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/t11-p1-r6.before.deck.json",
+        "after": "snapshots/t11-p1-r6.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "potion",
+          "healer",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "potion",
+          "healer"
+        ],
+        "bought": [],
+        "produced": {
+          "heal": 6
+        }
+      },
+      "board": {
+        "before": "snapshots/t11-p1-r6.before.board.json",
+        "after": "snapshots/t11-p1-r6.after.board.json"
+      },
+      "summary": "P1 reloads the flank with the second raider and adds a healer.",
+      "reasoning": "With no clean legal attack, P1 used the turn to keep center pressure credible while investing supply in support instead of overextending another scout."
+    },
+    {
+      "id": "t12-p2-r6",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/t12-p2-r6.before.deck.json",
+        "after": "snapshots/t12-p2-r6.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "training",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "training"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/t12-p2-r6.before.board.json",
+        "after": "snapshots/t12-p2-r6.after.board.json"
+      },
+      "summary": "P2 wounds P1-scout-1 again and rebuilds the marksman shell.",
+      "reasoning": "This deck turn produced no damage, so P2 used only the legal marksman attack and relied on recruitment plus center control rather than forcing a kill."
+    },
+    {
+      "id": "t13-p1-r7",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/t13-p1-r7.before.deck.json",
+        "after": "snapshots/t13-p1-r7.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "village",
+          "copper",
+          "potion",
+          "potion"
+        ],
+        "played": [
+          "village",
+          "peddler",
+          "potion",
+          "potion"
+        ],
+        "bought": [
+          "potion"
+        ],
+        "produced": {
+          "heal": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/t13-p1-r7.before.board.json",
+        "after": "snapshots/t13-p1-r7.after.board.json"
+      },
+      "summary": "P1 flips center-center and wounds the P2 druid.",
+      "reasoning": "The flank reached the middle, but P1 only had one legal shot into the protected druid and could not break the formation outright."
+    },
+    {
+      "id": "t14-p2-r7",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/t14-p2-r7.before.deck.json",
+        "after": "snapshots/t14-p2-r7.after.deck.json",
+        "drawnHand": [
+          "blast",
+          "copper",
+          "blast",
+          "silver",
+          "training"
+        ],
+        "played": [
+          "training",
+          "blast",
+          "blast"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "damage": 4,
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/t14-p2-r7.before.board.json",
+        "after": "snapshots/t14-p2-r7.after.board.json"
+      },
+      "summary": "P2 kills P1-marksman-1 but cannot retake center-center before combat.",
+      "reasoning": "Because movement and captures happen before attacks, P2 could not step onto the occupied center-center hex this turn. The druid healed instead while the marksmen supplied lethal damage."
+    },
+    {
+      "id": "t15-p1-r8",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/t15-p1-r8.before.deck.json",
+        "after": "snapshots/t15-p1-r8.after.deck.json",
+        "drawnHand": [
+          "potion",
+          "potion",
+          "potion",
+          "potion",
+          "copper"
+        ],
+        "played": [
+          "potion",
+          "potion",
+          "potion",
+          "potion"
+        ],
+        "bought": [],
+        "produced": {
+          "heal": 8
+        }
+      },
+      "board": {
+        "before": "snapshots/t15-p1-r8.before.board.json",
+        "after": "snapshots/t15-p1-r8.after.board.json"
+      },
+      "summary": "P1 kills the center druid and recruits another scout for the flank.",
+      "reasoning": "P1 preserved the support pieces and used reachable guardian plus scout damage to remove the druid on center-center, but the attack did not immediately change supply-center control."
+    },
+    {
+      "id": "t16-p2-r8",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/t16-p2-r8.before.deck.json",
+        "after": "snapshots/t16-p2-r8.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "training",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "training"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/t16-p2-r8.before.board.json",
+        "after": "snapshots/t16-p2-r8.after.board.json"
+      },
+      "summary": "P2 reinforces the west-center shell but leaves P1 ahead on supply centers.",
+      "reasoning": "The game remained unresolved at 16 turns. P2 still had a compact formation, but P1 kept the east, southeast, and center-center control created by the flank."
+    }
+  ]
+}

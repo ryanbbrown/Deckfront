@@ -1,0 +1,5 @@
+Turn-010 committed and validated.
+
+- **Deck line:** Play Peddler → moveToBuy → buy Village → endTurn. Village adds action-chaining so I can play Inferno alongside other cards and still attack.
+- **Board line:** Guardian `P2-guardian-start-3` (7,8)→(8,7) parking on center-southeast to hold it; Raider `P2-raider-r8` (1,7)→(5,7) pushing up to contest center-center-south. Scout holds center-west-south.
+- **Rationale:** The supply gap has closed to 8–6. I solidify my two held centers and advance the raider toward a contested center, while buying Village to build an action engine that lets me deploy Inferno's deck damage into attacks on coming turns.

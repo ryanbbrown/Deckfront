@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-005",
+  "player": "P1",
+  "before": "snapshots/turn-005.before.deck.json",
+  "after": "snapshots/turn-005.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "storm"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "copper",
+    "silver",
+    "blast",
+    "zap"
+  ],
+  "played": [
+    "blast",
+    "zap"
+  ],
+  "bought": [
+    "storm"
+  ],
+  "produced": {
+    "damage": 3
+  }
+}

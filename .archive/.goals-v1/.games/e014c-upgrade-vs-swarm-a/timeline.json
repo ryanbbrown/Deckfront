@@ -1,0 +1,1705 @@
+{
+  "schemaVersion": 1,
+  "title": "E014c upgrade/support vs swarm/economy A tempo replay",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Rest",
+          "Copper",
+          "Rest"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 income 2; P1-raider-1 captured center-northeast; units 4-4 to 4-4, centers 1-0.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 2; P1-raider-1 captured center-northeast."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Rest",
+          "Copper",
+          "Bandage",
+          "Zap"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 income 2; P2-scout-1 captured center-west-south; units 4-4 to 4-4, centers 1-1.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 2; P2-scout-1 captured center-west-south."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Bandage",
+          "Copper",
+          "Rest",
+          "Copper"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 income 3; units 4-4 to 4-4, centers 1-1.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 3."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 income 3; P2-scout-1 captured center-center-south; units 4-4 to 4-4, centers 1-2.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 3; P2-scout-1 captured center-center-south."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Copper",
+          "Zap",
+          "Silver"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 income 3; P1-raider-1 captured center-center-north; P1-scout-1 captured center-east; units 4-4 to 5-4, centers 3-2.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 3; P1-raider-1 captured center-center-north; P1-scout-1 captured center-east; recruited P1-guardian-2."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Rest",
+          "Silver",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 income 4; P2-scout-1 captured center-center; P2-scout-2 captured center-northwest; units 4-5 to 5-5, centers 3-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 4; P2-scout-1 captured center-center; P2-scout-2 captured center-northwest; P2-scout-1 hit P1-raider-1 for 3; P2-scout-2 hit P1-raider-1 for 2; recruited P2-scout-3."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Silver",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 income 5; P1-raider-1 hit P2-scout-1 for 6; P1-scout-1 hit P2-scout-1 for 2; units 5-5 to 6-4, centers 3-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 5; P1-raider-1 hit P2-scout-1 for 6; P1-scout-1 hit P2-scout-1 for 2; removed P2-scout-1; recruited P1-marksman-2."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 income 6; P2-scout-2 hit P1-raider-1 for 2; recruited P2-scout-4; units 4-6 to 5-6, centers 3-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-scout-2 hit P1-raider-1 for 2; recruited P2-scout-4."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Zap",
+          "Silver",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 income 5; P1-raider-1 hit P2-scout-2 for 7; P1-marksman-1 hit P2-scout-2 for 4; units 6-5 to 6-4, centers 3-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 5; P1-raider-1 hit P2-scout-2 for 7; P1-marksman-1 hit P2-scout-2 for 4; removed P2-scout-2."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Zap",
+          "Bandage",
+          "Copper",
+          "Silver"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 income 6; P2-scout-3 hit P1-raider-1 for 3; removed P1-raider-1; units 4-6 to 5-5, centers 3-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-scout-3 hit P1-raider-1 for 3; removed P1-raider-1; recruited P2-scout-5."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Silver",
+          "Copper",
+          "Village"
+        ],
+        "played": [
+          "Village"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 income 5; P1-marksman-1 hit P2-scout-3 for 4; P1-scout-1 hit P2-scout-3 for 2; units 5-5 to 6-5, centers 3-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 5; P1-marksman-1 hit P2-scout-3 for 4; P1-scout-1 hit P2-scout-3 for 2; recruited P1-marksman-3."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Silver",
+          "Silver"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 income 6; P2-scout-3 captured center-east; P2-marksman-1 hit P1-scout-1 for 4; units 5-6 to 6-5, centers 2-5.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-scout-3 captured center-east; P2-marksman-1 hit P1-scout-1 for 4; P2-druid-1 hit P1-scout-1 for 4; P2-scout-3 hit P1-marksman-1 for 2; removed P1-scout-1; recruited P2-marksman-2."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Zap",
+          "Bandage",
+          "Copper"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 income 4; P1-marksman-1 captured center-center; P1-marksman-1 hit P2-scout-3 for 5; units 5-6 to 6-5, centers 3-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 4; P1-marksman-1 captured center-center; P1-marksman-1 hit P2-scout-3 for 5; removed P2-scout-3; recruited P1-marksman-4."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Zap",
+          "Silver",
+          "Silver",
+          "Copper"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 income 6; P2-marksman-1 hit P1-marksman-1 for 5; P2-druid-1 hit P1-marksman-1 for 4; units 5-6 to 6-5, centers 3-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-marksman-1 hit P1-marksman-1 for 5; P2-druid-1 hit P1-marksman-1 for 4; P2-scout-4 hit P1-guardian-1 for 2; removed P1-marksman-1; recruited P2-marksman-3."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Village",
+          "Silver"
+        ],
+        "played": [
+          "Village",
+          "Village"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 income 5; P1-guardian-1 captured center-east; P1-guardian-1 hit P2-scout-4 for 4; units 5-6 to 6-6, centers 4-3.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 5; P1-guardian-1 captured center-east; P1-guardian-1 hit P2-scout-4 for 4; recruited P1-marksman-5."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Copper",
+          "Silver",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 income 5; P2-marksman-1 captured center-center; P2-marksman-1 hit P1-guardian-1 for 4; units 6-6 to 7-6, centers 3-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 5; P2-marksman-1 captured center-center; P2-marksman-1 hit P1-guardian-1 for 4; P2-druid-1 hit P1-guardian-1 for 4; P2-scout-4 hit P1-guardian-1 for 2; P2-scout-5 hit P1-guardian-1 for 2; P2-druid-1 healed P2-scout-4; recruited P2-guardian-1."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Copper",
+          "Zap",
+          "Bandage",
+          "Silver"
+        ],
+        "played": [
+          "Village",
+          "Bandage",
+          "Zap",
+          "Village",
+          "Village"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "summary": "P1 income 5; P1-guardian-1 hit P2-scout-4 for 5; P1-marksman-2 hit P2-scout-5 for 4; units 6-7 to 6-5, centers 3-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 5; P1-guardian-1 hit P2-scout-4 for 5; P1-marksman-2 hit P2-scout-5 for 4; P1-marksman-3 hit P2-scout-5 for 4; removed P2-scout-4, P2-scout-5."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Silver",
+          "Silver",
+          "Peddler",
+          "Silver"
+        ],
+        "played": [
+          "Peddler",
+          "Zap"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "summary": "P2 income 6; P2-marksman-1 hit P1-guardian-1 for 5; removed P1-guardian-1; units 5-6 to 6-5, centers 3-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-marksman-1 hit P1-guardian-1 for 5; removed P1-guardian-1; recruited P2-marksman-4."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Village",
+          "Silver",
+          "Silver"
+        ],
+        "played": [
+          "Village",
+          "Village"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "summary": "P1 income 5; P1-guardian-2 captured center-southeast; P1-marksman-2 hit P2-marksman-1 for 4; units 5-6 to 6-5, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 5; P1-guardian-2 captured center-southeast; P1-marksman-2 hit P2-marksman-1 for 4; P1-marksman-3 hit P2-marksman-1 for 4; removed P2-marksman-1; recruited P1-marksman-6."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Copper",
+          "Silver",
+          "Zap",
+          "Copper"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "summary": "P2 income 6; P2-druid-1 captured center-east; P2-druid-1 hit P1-marksman-2 for 5; units 5-6 to 6-6, centers 3-5.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-druid-1 captured center-east; P2-druid-1 hit P1-marksman-2 for 5; recruited P2-marksman-5."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Bandage",
+          "Copper",
+          "Silver",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Armory",
+          "Bandage"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "summary": "P1 income 5; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; units 6-6 to 7-5, centers 3-5.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 5; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 hit P2-druid-1 for 4; P1-marksman-2 hit P2-druid-1 for 4; P1-marksman-3 hit P2-druid-1 for 4; removed P2-druid-1; recruited P1-guardian-3."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "Peddler",
+          "Silver",
+          "Silver",
+          "Peddler",
+          "Silver"
+        ],
+        "played": [
+          "Peddler",
+          "Peddler",
+          "Peddler"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "summary": "P2 income 7; recruited P2-marksman-6; units 5-7 to 6-7, centers 3-5.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 7; recruited P2-marksman-6."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Zap",
+          "Village",
+          "Armory",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Village",
+          "Village",
+          "Armory",
+          "Zap"
+        ],
+        "bought": [
+          "Training"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "summary": "P1 income 5; P1-guardian-2 captured center-east; P1-guardian-2 gained +1 max HP; units 7-6 to 8-6, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 5; P1-guardian-2 captured center-east; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-marksman-3 hit P2-marksman-2 for 5; recruited P1-marksman-7."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Silver",
+          "Peddler",
+          "Bandage"
+        ],
+        "played": [
+          "Peddler",
+          "Bandage",
+          "Peddler"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "summary": "P2 income 6; P2-marksman-2 hit P1-marksman-3 for 4; P2-marksman-3 hit P1-marksman-3 for 4; units 6-8 to 7-7, centers 4-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-marksman-2 hit P1-marksman-3 for 4; P2-marksman-3 hit P1-marksman-3 for 4; removed P1-marksman-3; recruited P2-guardian-2."
+    },
+    {
+      "id": "turn-025",
+      "player": "P1",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-025.before.deck.json",
+        "after": "snapshots/turn-025.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Armory",
+          "Copper",
+          "Armory",
+          "Copper"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [
+          "Smithy"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-025.before.board.json",
+        "after": "snapshots/turn-025.after.board.json"
+      },
+      "summary": "P1 income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; units 7-7 to 8-6, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 hit P2-marksman-2 for 4; P1-marksman-4 hit P2-marksman-3 for 4; removed P2-marksman-2; recruited P1-marksman-8."
+    },
+    {
+      "id": "turn-026",
+      "player": "P2",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-026.before.deck.json",
+        "after": "snapshots/turn-026.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Silver",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Peddler",
+          "Peddler",
+          "Peddler"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-026.before.board.json",
+        "after": "snapshots/turn-026.after.board.json"
+      },
+      "summary": "P2 income 6; P2-marksman-3 hit P1-marksman-2 for 5; removed P1-marksman-2; units 6-8 to 7-7, centers 4-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-marksman-3 hit P1-marksman-2 for 5; removed P1-marksman-2; recruited P2-guardian-3."
+    },
+    {
+      "id": "turn-027",
+      "player": "P1",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-027.before.deck.json",
+        "after": "snapshots/turn-027.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Bandage",
+          "Silver",
+          "Armory",
+          "Training"
+        ],
+        "played": [
+          "Training",
+          "Armory"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-027.before.board.json",
+        "after": "snapshots/turn-027.after.board.json"
+      },
+      "summary": "P1 income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; units 7-7 to 8-6, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 attack; P1-guardian-2 hit P2-marksman-3 for 5; P1-marksman-4 hit P2-guardian-1 for 4; removed P2-marksman-3; recruited P1-marksman-9."
+    },
+    {
+      "id": "turn-028",
+      "player": "P2",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-028.before.deck.json",
+        "after": "snapshots/turn-028.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Silver",
+          "Silver",
+          "Peddler",
+          "Silver"
+        ],
+        "played": [
+          "Peddler"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-028.before.board.json",
+        "after": "snapshots/turn-028.after.board.json"
+      },
+      "summary": "P2 income 6; P2-guardian-1 hit P1-marksman-4 for 4; P2-marksman-4 hit P1-marksman-4 for 4; units 6-8 to 7-7, centers 4-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-guardian-1 hit P1-marksman-4 for 4; P2-marksman-4 hit P1-marksman-4 for 4; removed P1-marksman-4; recruited P2-guardian-4."
+    },
+    {
+      "id": "turn-029",
+      "player": "P1",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-029.before.deck.json",
+        "after": "snapshots/turn-029.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Armory",
+          "Copper",
+          "Zap",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Armory",
+          "Zap"
+        ],
+        "bought": [
+          "Training"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-029.before.board.json",
+        "after": "snapshots/turn-029.after.board.json"
+      },
+      "summary": "P1 income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; units 7-7 to 8-6, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 hit P2-guardian-1 for 6; P1-marksman-5 hit P2-guardian-1 for 4; P1-marksman-6 hit P2-guardian-1 for 4; removed P2-guardian-1; recruited P1-marksman-10."
+    },
+    {
+      "id": "turn-030",
+      "player": "P2",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-030.before.deck.json",
+        "after": "snapshots/turn-030.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Village",
+          "Peddler",
+          "Peddler"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Peddler",
+          "Peddler",
+          "Village",
+          "Peddler",
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-030.before.board.json",
+        "after": "snapshots/turn-030.after.board.json"
+      },
+      "summary": "P2 income 6; P2-marksman-4 hit P1-marksman-5 for 5; P2-marksman-5 hit P1-marksman-5 for 4; units 6-8 to 7-7, centers 4-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-marksman-4 hit P1-marksman-5 for 5; P2-marksman-5 hit P1-marksman-5 for 4; removed P1-marksman-5; recruited P2-guardian-5."
+    },
+    {
+      "id": "turn-031",
+      "player": "P1",
+      "round": 16,
+      "deck": {
+        "before": "snapshots/turn-031.before.deck.json",
+        "after": "snapshots/turn-031.after.deck.json",
+        "drawnHand": [
+          "Smithy",
+          "Armory",
+          "Village",
+          "Copper",
+          "Silver"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Armory",
+          "Smithy",
+          "Armory"
+        ],
+        "bought": [
+          "Smithy"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 4,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-031.before.board.json",
+        "after": "snapshots/turn-031.after.board.json"
+      },
+      "summary": "P1 income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; units 7-7 to 8-6, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 hit P2-marksman-4 for 5; P1-marksman-6 hit P2-marksman-4 for 4; removed P2-marksman-4; recruited P1-marksman-11."
+    },
+    {
+      "id": "turn-032",
+      "player": "P2",
+      "round": 16,
+      "deck": {
+        "before": "snapshots/turn-032.before.deck.json",
+        "after": "snapshots/turn-032.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Silver",
+          "Village",
+          "Peddler"
+        ],
+        "played": [
+          "Village",
+          "Peddler"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-032.before.board.json",
+        "after": "snapshots/turn-032.after.board.json"
+      },
+      "summary": "P2 income 6; P2-marksman-5 hit P1-marksman-6 for 4; P2-marksman-6 hit P1-marksman-6 for 4; units 6-8 to 7-7, centers 4-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-marksman-5 hit P1-marksman-6 for 4; P2-marksman-6 hit P1-marksman-6 for 4; removed P1-marksman-6; recruited P2-guardian-6."
+    },
+    {
+      "id": "turn-033",
+      "player": "P1",
+      "round": 17,
+      "deck": {
+        "before": "snapshots/turn-033.before.deck.json",
+        "after": "snapshots/turn-033.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Training",
+          "Copper",
+          "Silver",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Training"
+        ],
+        "bought": [
+          "Training"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-033.before.board.json",
+        "after": "snapshots/turn-033.after.board.json"
+      },
+      "summary": "P1 income 6; P1-guardian-2 gained +1 attack; P1-guardian-2 hit P2-marksman-5 for 6; units 7-7 to 8-6, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 6; P1-guardian-2 gained +1 attack; P1-guardian-2 hit P2-marksman-5 for 6; P1-guardian-3 hit P2-marksman-5 for 4; removed P2-marksman-5; recruited P1-marksman-12."
+    },
+    {
+      "id": "turn-034",
+      "player": "P2",
+      "round": 17,
+      "deck": {
+        "before": "snapshots/turn-034.before.deck.json",
+        "after": "snapshots/turn-034.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Silver",
+          "Bandage",
+          "Village",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Bandage",
+          "Peddler",
+          "Village",
+          "Zap"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-034.before.board.json",
+        "after": "snapshots/turn-034.after.board.json"
+      },
+      "summary": "P2 income 6; P2-marksman-6 hit P1-marksman-7 for 5; recruited P2-guardian-7; units 6-8 to 7-8, centers 4-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-marksman-6 hit P1-marksman-7 for 5; recruited P2-guardian-7."
+    },
+    {
+      "id": "turn-035",
+      "player": "P1",
+      "round": 18,
+      "deck": {
+        "before": "snapshots/turn-035.before.deck.json",
+        "after": "snapshots/turn-035.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Armory",
+          "Silver",
+          "Training",
+          "Silver"
+        ],
+        "played": [
+          "Training",
+          "Armory"
+        ],
+        "bought": [
+          "Smithy"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-035.before.board.json",
+        "after": "snapshots/turn-035.after.board.json"
+      },
+      "summary": "P1 income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; units 8-7 to 9-6, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 attack; P1-guardian-2 hit P2-marksman-6 for 7; P1-guardian-3 hit P2-marksman-6 for 4; P1-marksman-8 hit P2-guardian-2 for 4; removed P2-marksman-6; recruited P1-druid-1."
+    },
+    {
+      "id": "turn-036",
+      "player": "P2",
+      "round": 18,
+      "deck": {
+        "before": "snapshots/turn-036.before.deck.json",
+        "after": "snapshots/turn-036.after.deck.json",
+        "drawnHand": [
+          "Peddler",
+          "Copper",
+          "Peddler",
+          "Peddler",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Peddler",
+          "Peddler",
+          "Village",
+          "Peddler",
+          "Village",
+          "Peddler",
+          "Bandage"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-036.before.board.json",
+        "after": "snapshots/turn-036.after.board.json"
+      },
+      "summary": "P2 income 6; P2-guardian-2 hit P1-marksman-8 for 4; recruited P2-guardian-8; units 6-9 to 7-9, centers 4-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-guardian-2 hit P1-marksman-8 for 4; recruited P2-guardian-8."
+    },
+    {
+      "id": "turn-037",
+      "player": "P1",
+      "round": 19,
+      "deck": {
+        "before": "snapshots/turn-037.before.deck.json",
+        "after": "snapshots/turn-037.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Armory",
+          "Silver",
+          "Smithy",
+          "Zap"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-037.before.board.json",
+        "after": "snapshots/turn-037.after.board.json"
+      },
+      "summary": "P1 income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; units 9-7 to 10-6, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 hit P2-guardian-2 for 7; P1-guardian-3 hit P2-guardian-2 for 4; P1-marksman-7 hit P2-guardian-2 for 4; P1-marksman-8 hit P2-guardian-3 for 4; removed P2-guardian-2; recruited P1-healer-1."
+    },
+    {
+      "id": "turn-038",
+      "player": "P2",
+      "round": 19,
+      "deck": {
+        "before": "snapshots/turn-038.before.deck.json",
+        "after": "snapshots/turn-038.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Copper",
+          "Silver",
+          "Silver",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Zap"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-038.before.board.json",
+        "after": "snapshots/turn-038.after.board.json"
+      },
+      "summary": "P2 income 6; P2-guardian-3 hit P1-marksman-8 for 5; removed P1-marksman-8; units 6-10 to 7-9, centers 4-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-guardian-3 hit P1-marksman-8 for 5; removed P1-marksman-8; recruited P2-guardian-9."
+    },
+    {
+      "id": "turn-039",
+      "player": "P1",
+      "round": 20,
+      "deck": {
+        "before": "snapshots/turn-039.before.deck.json",
+        "after": "snapshots/turn-039.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Silver",
+          "Copper",
+          "Armory"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [
+          "Smithy"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-039.before.board.json",
+        "after": "snapshots/turn-039.after.board.json"
+      },
+      "summary": "P1 income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; units 9-7 to 10-6, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 hit P2-guardian-3 for 7; P1-guardian-3 hit P2-guardian-3 for 4; P1-marksman-7 hit P2-guardian-3 for 4; removed P2-guardian-3; recruited P1-healer-2."
+    },
+    {
+      "id": "turn-040",
+      "player": "P2",
+      "round": 20,
+      "deck": {
+        "before": "snapshots/turn-040.before.deck.json",
+        "after": "snapshots/turn-040.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Gold",
+          "Peddler",
+          "Village",
+          "Silver"
+        ],
+        "played": [
+          "Village",
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-040.before.board.json",
+        "after": "snapshots/turn-040.after.board.json"
+      },
+      "summary": "P2 income 6; P2-guardian-4 hit P1-guardian-3 for 4; recruited P2-guardian-10; units 6-10 to 7-10, centers 4-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-guardian-4 hit P1-guardian-3 for 4; recruited P2-guardian-10."
+    },
+    {
+      "id": "turn-041",
+      "player": "P1",
+      "round": 21,
+      "deck": {
+        "before": "snapshots/turn-041.before.deck.json",
+        "after": "snapshots/turn-041.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Armory",
+          "Village",
+          "Village",
+          "Training"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Training",
+          "Training",
+          "Armory"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 2,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-041.before.board.json",
+        "after": "snapshots/turn-041.after.board.json"
+      },
+      "summary": "P1 income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; units 10-7 to 11-6, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 attack; P1-guardian-2 gained +1 attack; P1-guardian-2 hit P2-guardian-4 for 9; P1-guardian-3 hit P2-guardian-4 for 4; P1-marksman-7 hit P2-guardian-4 for 4; P1-marksman-11 hit P2-guardian-5 for 4; removed P2-guardian-4; P1-druid-1 healed P1-marksman-7; P1-healer-1 healed P1-marksman-7; recruited P1-guardian-4."
+    },
+    {
+      "id": "turn-042",
+      "player": "P2",
+      "round": 21,
+      "deck": {
+        "before": "snapshots/turn-042.before.deck.json",
+        "after": "snapshots/turn-042.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Zap",
+          "Silver",
+          "Peddler",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Peddler",
+          "Peddler",
+          "Peddler",
+          "Bandage",
+          "Village",
+          "Zap"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-042.before.board.json",
+        "after": "snapshots/turn-042.after.board.json"
+      },
+      "summary": "P2 income 6; P2-guardian-5 hit P1-marksman-11 for 5; recruited P2-guardian-11; units 6-11 to 7-11, centers 4-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-guardian-5 hit P1-marksman-11 for 5; recruited P2-guardian-11."
+    },
+    {
+      "id": "turn-043",
+      "player": "P1",
+      "round": 22,
+      "deck": {
+        "before": "snapshots/turn-043.before.deck.json",
+        "after": "snapshots/turn-043.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Training",
+          "Smithy",
+          "Village",
+          "Silver"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Training",
+          "Smithy",
+          "Smithy",
+          "Village",
+          "Village",
+          "Training",
+          "Armory"
+        ],
+        "bought": [
+          "Second Wind"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 2,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-043.before.board.json",
+        "after": "snapshots/turn-043.after.board.json"
+      },
+      "summary": "P1 income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; units 11-7 to 12-6, centers 4-4.",
+      "reasoning": "Pending threat after start check: P1. P1 followed the upgrade/support assignment by prioritizing preservation and quality targets, with recruits capped to one high-value body when possible. Board events: income 6; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 max HP; P1-guardian-2 gained +1 attack; P1-guardian-2 gained +1 attack; P1-guardian-2 hit P2-guardian-5 for 11; P1-guardian-3 hit P2-guardian-5 for 4; P1-marksman-11 hit P2-guardian-6 for 4; removed P2-guardian-5; P1-druid-1 healed P1-marksman-7; P1-healer-1 healed P1-marksman-7; recruited P1-marksman-13."
+    },
+    {
+      "id": "turn-044",
+      "player": "P2",
+      "round": 22,
+      "deck": {
+        "before": "snapshots/turn-044.before.deck.json",
+        "after": "snapshots/turn-044.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Village",
+          "Gold",
+          "Peddler",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-044.before.board.json",
+        "after": "snapshots/turn-044.after.board.json"
+      },
+      "summary": "P2 income 6; P2-guardian-6 hit P1-marksman-11 for 4; removed P1-marksman-11; units 6-12 to 7-11, centers 4-4.",
+      "reasoning": "Pending threat after start check: P1. P2 followed the swarm/economy assignment by converting supply into broad recruitment and contesting multiple centers. Board events: income 6; P2-guardian-6 hit P1-marksman-11 for 4; removed P1-marksman-11; recruited P2-guardian-12."
+    }
+  ]
+}

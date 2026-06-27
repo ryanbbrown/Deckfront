@@ -1,0 +1,2779 @@
+{
+  "schemaVersion": 1,
+  "title": "E024 draft CLI smoke",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "copper",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-001.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "copper",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-002.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "zap",
+          "copper",
+          "bandage",
+          "copper"
+        ],
+        "played": [
+          "zap",
+          "bandage"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 1,
+          "heal": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-003.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "village",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-004.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "gold",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 2
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P1-scout-1",
+            "type": "scout",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-005.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "copper",
+          "gold",
+          "copper",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 2
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P2-scout-1",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-006.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "village",
+          "bandage",
+          "copper"
+        ],
+        "played": [
+          "village",
+          "bandage",
+          "zap"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "damage": 1,
+          "heal": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-007.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "village"
+        ],
+        "played": [
+          "village",
+          "village"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-008.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "gold",
+          "copper",
+          "copper",
+          "gold"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-009.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "copper",
+          "gold",
+          "copper",
+          "silver"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 4
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-010.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "village",
+          "gold",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-2",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-011.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "village",
+          "copper",
+          "gold",
+          "copper",
+          "gold"
+        ],
+        "played": [
+          "village",
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-2",
+            "type": "raider",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-012.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "copper",
+          "copper",
+          "gold",
+          "silver"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 4
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 3,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 11,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-guardian-3",
+            "type": "guardian",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-013.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "gold",
+          "village",
+          "copper"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-3",
+            "type": "guardian",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-014.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "bandage",
+          "copper",
+          "zap",
+          "gold",
+          "gold"
+        ],
+        "played": [
+          "zap",
+          "bandage"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 11,
+              "row": 4
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-guardian-3",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-4",
+            "type": "marksman",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-015.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit only into home hexes empty at board.before."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "gold",
+          "copper",
+          "gold",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 2,
+              "row": 4
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-guardian-3",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 0,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-016.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit only into home hexes empty at board.before."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "village",
+          "copper"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-guardian-3",
+            "from": {
+              "col": 10,
+              "row": 3
+            },
+            "to": {
+              "col": 10,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 11,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-druid-5",
+            "type": "druid",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-017.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit only into home hexes empty at board.before."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "village",
+          "gold",
+          "village"
+        ],
+        "played": [
+          "village",
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 4
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 3,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-guardian-3",
+            "from": {
+              "col": 0,
+              "row": 6
+            },
+            "to": {
+              "col": 2,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-marksman-4",
+            "type": "marksman",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-018.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit only into home hexes empty at board.before."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "gold",
+          "gold",
+          "copper",
+          "bandage"
+        ],
+        "played": [
+          "bandage"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 3,
+          "heal": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-guardian-3",
+            "from": {
+              "col": 10,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 11,
+              "row": 2
+            },
+            "to": {
+              "col": 10,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-druid-5",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-healer-6",
+            "type": "healer",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-019.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "village",
+          "copper",
+          "gold",
+          "copper"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P2-guardian-3",
+            "from": {
+              "col": 2,
+              "row": 5
+            },
+            "to": {
+              "col": 4,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-marksman-4",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-druid-5",
+            "type": "druid",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-020.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "silver",
+          "copper",
+          "copper",
+          "gold"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 4
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 7,
+              "row": 6
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 10,
+              "row": 4
+            },
+            "to": {
+              "col": 9,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-healer-6",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-021.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "village",
+          "copper",
+          "silver",
+          "copper"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 4
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-guardian-3",
+            "from": {
+              "col": 4,
+              "row": 4
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-marksman-4",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-druid-5",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-healer-6",
+            "type": "healer",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-022.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "copper",
+          "village",
+          "gold",
+          "zap"
+        ],
+        "played": [
+          "village",
+          "zap"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-druid-5",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-scout-7",
+            "type": "scout",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-023.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "copper",
+          "village",
+          "copper",
+          "gold"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 5
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-marksman-4",
+            "from": {
+              "col": 4,
+              "row": 6
+            },
+            "to": {
+              "col": 4,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-druid-5",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 1,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-healer-6",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 0,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-7",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-024.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-025",
+      "player": "P1",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-025.before.deck.json",
+        "after": "snapshots/turn-025.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "bandage",
+          "gold",
+          "gold",
+          "gold"
+        ],
+        "played": [
+          "bandage"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 7,
+          "heal": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-025.before.board.json",
+        "after": "snapshots/turn-025.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 3,
+              "row": 3
+            },
+            "to": {
+              "col": 4,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 9,
+              "row": 5
+            },
+            "to": {
+              "col": 9,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-druid-5",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-healer-6",
+            "from": {
+              "col": 9,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-scout-7",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-8",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-025.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-026",
+      "player": "P2",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-026.before.deck.json",
+        "after": "snapshots/turn-026.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "gold",
+          "gold",
+          "copper",
+          "gold"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 5
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-026.before.board.json",
+        "after": "snapshots/turn-026.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-guardian-3",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-druid-5",
+            "from": {
+              "col": 1,
+              "row": 5
+            },
+            "to": {
+              "col": 2,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-healer-6",
+            "from": {
+              "col": 0,
+              "row": 6
+            },
+            "to": {
+              "col": 1,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-scout-7",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-8",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-026.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-027",
+      "player": "P1",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-027.before.deck.json",
+        "after": "snapshots/turn-027.after.deck.json",
+        "drawnHand": [
+          "village",
+          "copper",
+          "copper",
+          "gold",
+          "gold"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-027.before.board.json",
+        "after": "snapshots/turn-027.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 4,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-guardian-3",
+            "from": {
+              "col": 8,
+              "row": 5
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-druid-5",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-healer-6",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-8",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-guardian-9",
+            "type": "guardian",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-027.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-028",
+      "player": "P2",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-028.before.deck.json",
+        "after": "snapshots/turn-028.after.deck.json",
+        "drawnHand": [
+          "village",
+          "gold",
+          "gold",
+          "village",
+          "gold"
+        ],
+        "played": [
+          "village",
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 5
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-028.before.board.json",
+        "after": "snapshots/turn-028.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 3,
+              "row": 3
+            },
+            "to": {
+              "col": 4,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-druid-5",
+            "from": {
+              "col": 2,
+              "row": 4
+            },
+            "to": {
+              "col": 3,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P2-healer-6",
+            "from": {
+              "col": 1,
+              "row": 4
+            },
+            "to": {
+              "col": 2,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-scout-7",
+            "from": {
+              "col": 3,
+              "row": 4
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-raider-8",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-9",
+            "type": "guardian",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-028.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-029",
+      "player": "P1",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-029.before.deck.json",
+        "after": "snapshots/turn-029.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "silver",
+          "gold",
+          "copper",
+          "gold"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 4
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-029.before.board.json",
+        "after": "snapshots/turn-029.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-druid-5",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 9,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-healer-6",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-scout-7",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-raider-8",
+            "from": {
+              "col": 10,
+              "row": 5
+            },
+            "to": {
+              "col": 9,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-guardian-9",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-10",
+            "type": "marksman",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-029.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    },
+    {
+      "id": "turn-030",
+      "player": "P2",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-030.before.deck.json",
+        "after": "snapshots/turn-030.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "gold",
+          "copper",
+          "village",
+          "gold"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 6
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-030.before.board.json",
+        "after": "snapshots/turn-030.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 4,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-healer-6",
+            "from": {
+              "col": 2,
+              "row": 5
+            },
+            "to": {
+              "col": 3,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-scout-7",
+            "from": {
+              "col": 5,
+              "row": 4
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P2-raider-8",
+            "from": {
+              "col": 4,
+              "row": 6
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-guardian-9",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-marksman-10",
+            "type": "marksman",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-030.",
+      "reasoning": "Deterministic CLI smoke strategy: play legal deck actions, buy by fixed priority, move units toward nearest uncontrolled centers, recruit when supply reaches 6."
+    }
+  ],
+  "terminalWinEvents": []
+}

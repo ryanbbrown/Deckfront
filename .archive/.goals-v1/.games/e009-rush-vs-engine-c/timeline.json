@@ -1,0 +1,619 @@
+{
+  "schemaVersion": 1,
+  "title": "E009 Rush vs Engine C",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Second Wind",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Second Wind"
+        ],
+        "bought": [
+          "Second Wind"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 opened with the raider taking northeast while the rest of the rush package moved toward the east-center lane.",
+      "reasoning": "P1 used the fastest body for the safe center flip and saved board supply because the one-recruit cap did not matter before reaching 6 supply."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Potion",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Potion"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 claimed west-south and kept a compact marksman-druid screen behind the scouts.",
+      "reasoning": "The engine side prioritized preservation and did not chase a fight before healing cards could matter."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Blast",
+          "Copper",
+          "Copper",
+          "Zap"
+        ],
+        "played": [
+          "Zap",
+          "Blast"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 3,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 added center-east control and staged the raider for the center-north flip.",
+      "reasoning": "The rush player avoided a premature fight because the drawn damage had no legal carrier into P2 yet."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Peddler",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Peddler",
+          "Village"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 took center-south and formed the first punish pocket around the south approach.",
+      "reasoning": "P2 preserved both scouts and made P1 come through combat rather than simply matching bodies."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Second Wind",
+          "Second Wind",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Second Wind"
+        ],
+        "bought": [
+          "Zap"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 flipped center-north, wounded the center-south scout, and recruited only one delayed raider despite having 9 supply.",
+      "reasoning": "This was the first adaptation point: P1 banked excess supply because the cap prevented a multi-recruit spike, so pressure had to come from attack density."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Village",
+          "Potion",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Potion"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 punished the exposed P1 scout, healed the wounded scout, and recruited one delayed guardian.",
+      "reasoning": "The engine plan stabilized by trading cards and formation for a clean unit removal, keeping P1 from winning by body count."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Copper",
+          "Blast",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Blast",
+          "Blast"
+        ],
+        "bought": [
+          "Zap"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 4,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 used the lead raider plus deck damage to finish the healed center-south scout, then recruited one more delayed raider.",
+      "reasoning": "The cap forced P1 into a combat conversion: saved supply made the recruit reliable, but the unit lead came from removing a defender."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Gold",
+          "Copper",
+          "Village",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Potion"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 focused three ready units into the advanced raider and added a second guardian to keep the rush from snowballing.",
+      "reasoning": "P2 accepted a narrower economy in order to remove the unit that could otherwise chain center threats."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Second Wind",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Second Wind"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 regrouped on center-north and recruited a delayed marksman instead of trying to spend the bank on extra bodies.",
+      "reasoning": "The one-recruit cap made the saved supply a consistency advantage, not an immediate win; P1 chose ranged density for the next combat turn."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Village",
+          "Peddler",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Healer"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 4,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 advanced the remaining scout as bait while healing and banking, but could not recruit at 5 saved supply.",
+      "reasoning": "The engine player preserved core units and forced P1 to spend another turn converting pressure through combat."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Zap",
+          "Blast",
+          "Blast"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Blast"
+        ],
+        "bought": [
+          "Zap"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 5,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 killed the bait scout, flipped center with the guardian, and recruited a delayed scout as the cap again converted banked supply into only one body.",
+      "reasoning": "P1 adapted by using board position and attack cards to create the unit swing that extra recruits could no longer provide."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Village",
+          "Copper"
+        ],
+        "played": [
+          "Village"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 recruited a druid and damaged the exposed P1 guardian, but healing could only slow the center collapse.",
+      "reasoning": "The stabilizing deck kept P2 alive without creating enough tempo to retake the center immediately."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Zap",
+          "Second Wind",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Zap",
+          "Zap",
+          "Second Wind"
+        ],
+        "bought": [
+          "Second Wind"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 3,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 concentrated marksman fire and raider pressure to kill the forward druid, then recruited another delayed raider.",
+      "reasoning": "This turn showed the one-recruit adaptation most clearly: P1 could not flood, so the win path was selective removal of P2 sustain pieces."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Healer",
+          "Gold",
+          "Peddler",
+          "Potion",
+          "Gold"
+        ],
+        "played": [
+          "Peddler",
+          "Potion",
+          "Healer"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 0,
+          "heal": 6,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 finally removed the wounded P1 guardian and recruited a third guardian to reset the unit-count threat.",
+      "reasoning": "P2 chose the only line that avoided an immediate pending start-turn loss, sacrificing center tempo for a unit-count correction."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Blast",
+          "Blast",
+          "Blast"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Blast",
+          "Blast",
+          "Second Wind"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 7,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 broke the defensive pocket with attack density, killing the P2 marksman and a wounded guardian while recruiting one final delayed raider.",
+      "reasoning": "Second Wind and repeated attack purchases mattered because the one-recruit cap meant the decisive swing had to come from combat rather than spending the accumulated supply bank."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Village",
+          "Copper",
+          "Copper",
+          "Gold"
+        ],
+        "played": [
+          "Village",
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 recruited one last guardian and damaged the front line, but the cap left no way to erase P1's three-unit lead before the next start check.",
+      "reasoning": "P2 had supply for only one body and no clean kill, so the legal start-of-turn win passed to P1 after this completed response."
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"schemaVersion":1,"turnId":"turn-006","player":"P2","actions":{"movements":[{"unit":"P2-raider-start-1","from":{"col":6,"row":8},"to":{"col":8,"row":7}},{"unit":"P2-guardian-start-3","from":{"col":3,"row":8},"to":{"col":5,"row":8}}],"recruits":[],"attacks":[],"heals":[],"upgrades":[]}}

@@ -1,0 +1,25 @@
+{
+  "id": "turn-019",
+  "player": "P1",
+  "round": 10,
+  "play": ["blast", "bandage"],
+  "buy": "silver",
+  "moves": [
+    { "id": "P1-guardian-1", "to": [6, 6] },
+    { "id": "P1-raider-4", "to": [6, 4] },
+    { "id": "P1-raider-5", "to": [9, 2] },
+    { "id": "P1-scout-2", "to": [9, 5] },
+    { "id": "P1-marksman-2", "to": [7, 2] },
+    { "id": "P1-marksman-3", "to": [7, 1] }
+  ],
+  "attacks": [
+    { "attacker": "P1-raider-4", "target": "P2-guardian-2", "bonus": 1 },
+    { "attacker": "P1-guardian-1", "target": "P2-guardian-2", "bonus": 1 },
+    { "attacker": "P1-marksman-1", "target": "P2-guardian-2" }
+  ],
+  "recruits": [
+    { "type": "scout", "id": "P1-scout-3", "at": [10, 1] }
+  ],
+  "summary": "P1 killed P2's center guardian and recruited a scout, ending with a four-unit lead.",
+  "reasoning": "The center did not flip yet because no P1 unit ended movement on the occupied center hex before combat. The end position creates a lead-4 danger that P2 must reduce before P1 can convert it into a pending start-of-turn threat."
+}

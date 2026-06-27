@@ -1,0 +1,2282 @@
+{
+  "schemaVersion": 1,
+  "title": "E019 round 2 center-control vs flank strict A",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "village",
+          "peddler",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 10,
+              "row": 0
+            }
+          },
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "turn-001: P1 resolves no attacks, no recruits; units P1 4 vs P2 4, centers P1 1 / P2 0 / neutral 7.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 4, P2 4. Centers after turn: P1 1, P2 0, neutral 7."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "village",
+          "blast",
+          "silver",
+          "copper",
+          "bandage"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "turn-002: P2 resolves no attacks, no recruits; units P1 4 vs P2 4, centers P1 1 / P2 1 / neutral 6.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 4, P2 4. Centers after turn: P1 1, P2 1, neutral 6."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "training",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 10,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 0
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "turn-003: P1 resolves no attacks, no recruits; units P1 4 vs P2 4, centers P1 1 / P2 1 / neutral 6.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 4, P2 4. Centers after turn: P1 1, P2 1, neutral 6."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "gold",
+          "storm",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 2,
+              "row": 8
+            },
+            "to": {
+              "col": 5,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "turn-004: P2 resolves no attacks, no recruits; units P1 4 vs P2 4, centers P1 1 / P2 2 / neutral 5.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 4, P2 4. Centers after turn: P1 1, P2 2, neutral 5."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "training",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "village"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 6,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 5,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 9,
+              "row": 0
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-guardian-2",
+            "type": "guardian",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-005: P1 resolves no attacks, 1 recruits; units P1 5 vs P2 4, centers P1 1 / P2 2 / neutral 5.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 5, P2 4. Centers after turn: P1 1, P2 2, neutral 5."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "village",
+          "blast",
+          "silver",
+          "copper",
+          "bandage"
+        ],
+        "played": [],
+        "bought": [
+          "storm"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 5,
+              "row": 7
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 5,
+              "row": 8
+            },
+            "to": {
+              "col": 7,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 2,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-1",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-006: P2 resolves no attacks, 1 recruits; units P1 5 vs P2 5, centers P1 1 / P2 3 / neutral 4.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 5, P2 5. Centers after turn: P1 1, P2 3, neutral 4."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "village",
+          "peddler",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [],
+        "bought": [
+          "armory"
+        ],
+        "produced": {
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 6,
+              "row": 2
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 5,
+              "row": 2
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-guardian-2",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "turn-007: P1 resolves no attacks, no recruits; units P1 5 vs P2 5, centers P1 2 / P2 3 / neutral 3.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 5, P2 5. Centers after turn: P1 2, P2 3, neutral 3."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "village",
+          "blast",
+          "silver",
+          "copper",
+          "bandage"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 7,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 4,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "turn-008: P2 resolves no attacks, no recruits; units P1 5 vs P2 5, centers P1 2 / P2 4 / neutral 2.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 5, P2 5. Centers after turn: P1 2, P2 4, neutral 2."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "training",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-guardian-2",
+            "from": {
+              "col": 9,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-2",
+            "type": "marksman",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-scout-2",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "turn-009: P1 resolves 1 logged attacks, 1 recruits; units P1 6 vs P2 5, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 6, P2 5. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "gold",
+          "storm",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 6,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 4,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 2,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-3",
+            "type": "scout",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-2",
+            "target": "P1-scout-1",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "turn-010: P2 resolves 1 logged attacks, 1 recruits; units P1 6 vs P2 6, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 6, P2 6. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "training",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 10,
+              "row": 0
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "turn-011: P1 resolves no attacks, no recruits; units P1 6 vs P2 6, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 6, P2 6. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "village",
+          "blast",
+          "silver",
+          "copper",
+          "bandage"
+        ],
+        "played": [],
+        "bought": [
+          "armory"
+        ],
+        "produced": {
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 4,
+              "row": 8
+            },
+            "to": {
+              "col": 6,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-scout-3",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-scout-2",
+            "target": "P1-scout-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-marksman-1",
+            "target": "P1-raider-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "turn-012: P2 resolves 2 logged attacks, no recruits; units P1 6 vs P2 6, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 6, P2 6. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "village",
+          "peddler",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 10,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 0
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-healer-1",
+            "type": "healer",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-1",
+            "target": "P2-scout-2",
+            "damage": 5,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "turn-013: P1 resolves 1 logged attacks, 1 recruits; units P1 7 vs P2 5, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 7, P2 5. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "village",
+          "blast",
+          "silver",
+          "copper",
+          "bandage"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 5,
+              "row": 6
+            },
+            "to": {
+              "col": 6,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 6,
+              "row": 8
+            },
+            "to": {
+              "col": 7,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-scout-3",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-1",
+            "type": "guardian",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-1",
+            "target": "P1-raider-1",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-marksman-1",
+            "target": "P1-scout-1",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "turn-014: P2 resolves 2 logged attacks, 1 recruits; units P1 6 vs P2 6, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 6, P2 6. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "training",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 9,
+              "row": 0
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-healer-1",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-raider-1",
+            "target": "P2-scout-1",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "turn-015: P1 resolves 1 logged attacks, no recruits; units P1 6 vs P2 6, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 6, P2 6. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "gold",
+          "storm",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "heal": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-2",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 9
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-1",
+            "target": "P1-raider-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "turn-016: P2 resolves 1 logged attacks, 1 recruits; units P1 5 vs P2 7, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 5, P2 7. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "training",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "armory"
+        ],
+        "produced": {
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-2",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-healer-1",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-scout-2",
+            "type": "scout",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-017: P1 resolves no attacks, 1 recruits; units P1 6 vs P2 7, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 6, P2 7. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "village",
+          "blast",
+          "silver",
+          "copper",
+          "bandage"
+        ],
+        "played": [],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-1",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 2,
+              "row": 9
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-2",
+            "type": "guardian",
+            "at": {
+              "col": 1,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-018: P2 resolves no attacks, 1 recruits; units P1 6 vs P2 8, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 6, P2 8. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "village",
+          "peddler",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-2",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "turn-019: P1 resolves no attacks, no recruits; units P1 6 vs P2 8, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 6, P2 8. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "village",
+          "blast",
+          "silver",
+          "copper",
+          "bandage"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 7,
+              "row": 8
+            },
+            "to": {
+              "col": 7,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-guardian-1",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 2,
+              "row": 9
+            },
+            "to": {
+              "col": 4,
+              "row": 9
+            }
+          },
+          {
+            "unit": "P2-guardian-2",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-4",
+            "type": "scout",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-020: P2 resolves no attacks, 1 recruits; units P1 6 vs P2 9, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 6, P2 9. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "training",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-2",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-guardian-3",
+            "type": "guardian",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-021: P1 resolves no attacks, 1 recruits; units P1 7 vs P2 9, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 7, P2 9. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "gold",
+          "storm",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-1",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 4,
+              "row": 9
+            },
+            "to": {
+              "col": 6,
+              "row": 9
+            }
+          },
+          {
+            "unit": "P2-guardian-2",
+            "from": {
+              "col": 2,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-scout-4",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-marksman-2",
+            "type": "marksman",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-022: P2 resolves no attacks, 1 recruits; units P1 7 vs P2 10, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 7, P2 10. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "training",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-3",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 11,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-2",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-023: P1 resolves no attacks, 1 recruits; units P1 8 vs P2 10, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 8, P2 10. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "village",
+          "blast",
+          "silver",
+          "copper",
+          "bandage"
+        ],
+        "played": [],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 6,
+              "row": 9
+            },
+            "to": {
+              "col": 7,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-scout-4",
+            "from": {
+              "col": 4,
+              "row": 8
+            },
+            "to": {
+              "col": 6,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-marksman-2",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-3",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 9
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-024: P2 resolves no attacks, 1 recruits; units P1 8 vs P2 11, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 8, P2 11. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-025",
+      "player": "P1",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-025.before.deck.json",
+        "after": "snapshots/turn-025.after.deck.json",
+        "drawnHand": [
+          "village",
+          "peddler",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-025.before.board.json",
+        "after": "snapshots/turn-025.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-3",
+            "from": {
+              "col": 11,
+              "row": 2
+            },
+            "to": {
+              "col": 10,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-2",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 12,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-3",
+            "type": "marksman",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-025: P1 resolves no attacks, 1 recruits; units P1 9 vs P2 11, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 9, P2 11. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-026",
+      "player": "P2",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-026.before.deck.json",
+        "after": "snapshots/turn-026.after.deck.json",
+        "drawnHand": [
+          "village",
+          "blast",
+          "silver",
+          "copper",
+          "bandage"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-026.before.board.json",
+        "after": "snapshots/turn-026.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-2",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-raider-3",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 2,
+              "row": 9
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-3",
+            "type": "guardian",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-026: P2 resolves no attacks, 1 recruits; units P1 9 vs P2 12, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 9, P2 12. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-027",
+      "player": "P1",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-027.before.deck.json",
+        "after": "snapshots/turn-027.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "training",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "armory"
+        ],
+        "produced": {
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-027.before.board.json",
+        "after": "snapshots/turn-027.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-healer-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 0
+            }
+          },
+          {
+            "unit": "P1-guardian-3",
+            "from": {
+              "col": 10,
+              "row": 3
+            },
+            "to": {
+              "col": 9,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-3",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 12,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "turn-027: P1 resolves no attacks, no recruits; units P1 9 vs P2 12, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 9, P2 12. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-028",
+      "player": "P2",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-028.before.deck.json",
+        "after": "snapshots/turn-028.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "gold",
+          "storm",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-028.before.board.json",
+        "after": "snapshots/turn-028.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-3",
+            "from": {
+              "col": 2,
+              "row": 9
+            },
+            "to": {
+              "col": 4,
+              "row": 9
+            }
+          },
+          {
+            "unit": "P2-guardian-3",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-marksman-3",
+            "type": "marksman",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-028: P2 resolves no attacks, 1 recruits; units P1 9 vs P2 13, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 9, P2 13. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-029",
+      "player": "P1",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-029.before.deck.json",
+        "after": "snapshots/turn-029.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "training",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-029.before.board.json",
+        "after": "snapshots/turn-029.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P1-guardian-4",
+            "type": "guardian",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-029: P1 resolves no attacks, 1 recruits; units P1 10 vs P2 13, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 10, P2 13. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-030",
+      "player": "P2",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-030.before.deck.json",
+        "after": "snapshots/turn-030.after.deck.json",
+        "drawnHand": [
+          "village",
+          "blast",
+          "silver",
+          "copper",
+          "bandage"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-030.before.board.json",
+        "after": "snapshots/turn-030.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-3",
+            "from": {
+              "col": 4,
+              "row": 9
+            },
+            "to": {
+              "col": 6,
+              "row": 9
+            }
+          },
+          {
+            "unit": "P2-guardian-3",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-3",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-5",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 9
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-030: P2 resolves no attacks, 1 recruits; units P1 10 vs P2 14, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 10, P2 14. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-031",
+      "player": "P1",
+      "round": 16,
+      "deck": {
+        "before": "snapshots/turn-031.before.deck.json",
+        "after": "snapshots/turn-031.after.deck.json",
+        "drawnHand": [
+          "village",
+          "peddler",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-031.before.board.json",
+        "after": "snapshots/turn-031.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-4",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "turn-031: P1 resolves no attacks, no recruits; units P1 10 vs P2 14, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 10, P2 14. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-032",
+      "player": "P2",
+      "round": 16,
+      "deck": {
+        "before": "snapshots/turn-032.before.deck.json",
+        "after": "snapshots/turn-032.after.deck.json",
+        "drawnHand": [
+          "village",
+          "blast",
+          "silver",
+          "copper",
+          "bandage"
+        ],
+        "played": [],
+        "bought": [
+          "armory"
+        ],
+        "produced": {
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-032.before.board.json",
+        "after": "snapshots/turn-032.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P2-raider-4",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-032: P2 resolves no attacks, 1 recruits; units P1 10 vs P2 15, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P2 follows the assigned flank/economy plan. Unit counts after turn: P1 10, P2 15. Centers after turn: P1 3, P2 4, neutral 1."
+    },
+    {
+      "id": "turn-033",
+      "player": "P1",
+      "round": 17,
+      "deck": {
+        "before": "snapshots/turn-033.before.deck.json",
+        "after": "snapshots/turn-033.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "training",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-033.before.board.json",
+        "after": "snapshots/turn-033.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P1-scout-3",
+            "type": "scout",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "turn-033: P1 resolves no attacks, 1 recruits; units P1 11 vs P2 15, centers P1 3 / P2 4 / neutral 1.",
+      "reasoning": "P1 follows the assigned balanced center-control plan. Unit counts after turn: P1 11, P2 15. Centers after turn: P1 3, P2 4, neutral 1."
+    }
+  ]
+}

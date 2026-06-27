@@ -1,0 +1,5 @@
+Turn-001 committed and validated.
+
+- **Deck:** Play Zap (+1 card/action, +1 damage) → moveToBuy → buy Inferno (cost 5). Produced money 3, damage 1.
+- **Board:** raider-1 (10,1)→(8,1) onto center-northeast; raider-3 (12,1)→(8,3); scout (11,0)→(6,3); marksman (11,1)→(9,2). No attacks (no enemy in range turn 1).
+- **Rationale:** RUSH — turn 1 has no contact, so I spend tempo seizing center-northeast and advancing the whole front toward the central supply centers, while banking damage (Inferno) into the deck for the coming clash.

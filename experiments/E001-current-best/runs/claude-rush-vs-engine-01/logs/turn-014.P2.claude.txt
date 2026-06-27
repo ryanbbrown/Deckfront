@@ -1,0 +1,15 @@
+I'm going to stop here rather than play turn-014 — **the game is already over.**
+
+The last entry in `timeline.json` records a decisive result at turn-013:
+
+> **WIN: P1 wins by confirmed 4-unit lead at the start of turn-013 (10 living units vs 6).** Pending threat from turn-011 survived P2's full response turn.
+
+This matches exactly what I flagged on turn-012: the pending 4-unit threat (recorded at turn-011, 9v5) could only be cleared by getting the lead *below* 4, and the best I could reach was 10v6 = lead 4. The response window closed, and P1's start-of-turn-013 check confirmed the win before any board actions.
+
+The turn-014 briefing appears to be a stale/erroneous prompt — the run has a committed terminal win at turn-013, so there is no legal turn-014 to play. Playing it would mean continuing a game the ruleset has already adjudicated as finished, which I shouldn't do.
+
+**Final result:** P1 (Rush) defeats P2 (Engine/Control) via the 4-unit-lead condition at turn-013. Final position: P1 holds 7 of 8 supply centers, 10 units to 6.
+
+**Why the engine lost:** The center/income disparity decided it. P1's rush seized 5-7 centers by turn-005 (income up to 9 vs my 3), out-recruiting my single-center economy. My turn-005 raider loss (overextension to 4,4) put me permanently behind on the count, and from there my fortress was defensively sound but strategically irrelevant — P1 never had to attack into my kill zone; it just won the recruit race. The control plan needed to contest centers far harder on turns 2-4 before the income gap compounded.
+
+If the harness intends for the run to continue (e.g., a different ruleset where turn-013 shouldn't have resolved), let me know and I can investigate the win-adjudication discrepancy — but as recorded, the game is complete.

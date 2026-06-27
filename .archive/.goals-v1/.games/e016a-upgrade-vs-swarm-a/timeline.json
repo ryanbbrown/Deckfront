@@ -1,0 +1,863 @@
+{
+  "schemaVersion": 1,
+  "title": "E016a upgrade/support vs swarm/economy A center-control replay",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Copper",
+          "Bandage",
+          "Copper"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 income 2; P1-raider-1 captured center-northeast; 1 deck damage expired; units 4-4 to 4-4, centers 1-0.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing Armory/Training/Second Wind value, healing damaged quality units, and contesting eastern plus central centers. Board events: income 2; P1-raider-1 captured center-northeast; 1 deck damage expired."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Bandage",
+          "Zap",
+          "Copper",
+          "Rest"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 income 2; P2-scout-1 captured center-west-south; 1 deck damage expired; units 4-4 to 4-4, centers 1-1.",
+      "reasoning": "P2 followed the swarm/economy assignment by buying Silver/Gold/Peddler/Village, recruiting broadly, and sending fast units to flip or pressure center-control thresholds. Board events: income 2; P2-scout-1 captured center-west-south; 1 deck damage expired."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Rest",
+          "Bandage",
+          "Zap"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 income 3; 1 deck damage expired; units 4-4 to 4-4, centers 1-1.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing Armory/Training/Second Wind value, healing damaged quality units, and contesting eastern plus central centers. Board events: income 3; 1 deck damage expired."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 income 3; P2-scout-1 captured center-center-south; units 4-4 to 4-4, centers 1-2.",
+      "reasoning": "P2 followed the swarm/economy assignment by buying Silver/Gold/Peddler/Village, recruiting broadly, and sending fast units to flip or pressure center-control thresholds. Board events: income 3; P2-scout-1 captured center-center-south."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Rest",
+          "Copper",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 income 3; P1-raider-1 captured center-center-north; P1-scout-1 captured center-east; units 4-4 to 5-4, centers 3-2.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing Armory/Training/Second Wind value, healing damaged quality units, and contesting eastern plus central centers. Board events: income 3; P1-raider-1 captured center-center-north; P1-scout-1 captured center-east; 1 deck damage expired; recruited P1-guardian-2."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Rest",
+          "Bandage",
+          "Rest",
+          "Silver"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 income 4; P2-scout-1 captured center-center; P2-scout-2 captured center-northwest; units 4-5 to 5-5, centers 3-4.",
+      "reasoning": "P2 followed the swarm/economy assignment by buying Silver/Gold/Peddler/Village, recruiting broadly, and sending fast units to flip or pressure center-control thresholds. Board events: income 4; P2-scout-1 captured center-center; P2-scout-2 captured center-northwest; P2-scout-1 hit P1-raider-1 for 3; P2-scout-2 hit P1-raider-1 for 2; recruited P2-scout-3."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Silver"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 income 5; P1-scout-1 captured center-southeast; P1-raider-1 hit P2-scout-1 for 6; units 5-5 to 6-5, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing Armory/Training/Second Wind value, healing damaged quality units, and contesting eastern plus central centers. Board events: income 5; P1-scout-1 captured center-southeast; P1-raider-1 hit P2-scout-1 for 6; recruited P1-marksman-2."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Silver"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 income 6; P2-scout-1 captured center-east; P2-scout-2 captured center-center-north; units 5-6 to 6-6, centers 2-6.",
+      "reasoning": "P2 followed the swarm/economy assignment by buying Silver/Gold/Peddler/Village, recruiting broadly, and sending fast units to flip or pressure center-control thresholds. Board events: income 6; P2-scout-1 captured center-east; P2-scout-2 captured center-center-north; P2-scout-1 hit P1-scout-1 for 2; P2-scout-2 hit P1-raider-1 for 2; recruited P2-raider-1."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Silver",
+          "Bandage",
+          "Copper"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 income 4; P1-raider-1 hit P2-scout-2 for 7; P1-marksman-1 hit P2-scout-1 for 4; units 6-6 to 6-5, centers 2-6.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing Armory/Training/Second Wind value, healing damaged quality units, and contesting eastern plus central centers. Board events: income 4; P1-raider-1 hit P2-scout-2 for 7; P1-marksman-1 hit P2-scout-1 for 4; removed P2-scout-1; deck healing restored 1."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Silver",
+          "Copper",
+          "Zap",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 income 8; P2-scout-2 hit P1-raider-1 for 3; removed P1-raider-1; units 5-6 to 6-5, centers 2-6.",
+      "reasoning": "P2 followed the swarm/economy assignment by buying Silver/Gold/Peddler/Village, recruiting broadly, and sending fast units to flip or pressure center-control thresholds. Board events: income 8; P2-scout-2 hit P1-raider-1 for 3; removed P1-raider-1; deck healing restored 1; recruited P2-raider-2."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Copper",
+          "Silver",
+          "Copper",
+          "Silver"
+        ],
+        "played": [],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 income 4; P1-scout-1 captured center-east; recruited P1-marksman-3; units 5-6 to 6-6, centers 3-5.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing Armory/Training/Second Wind value, healing damaged quality units, and contesting eastern plus central centers. Board events: income 4; P1-scout-1 captured center-east; recruited P1-marksman-3."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Silver",
+          "Silver",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 income 7; P2-scout-2 hit P1-scout-1 for 2; P2-scout-3 hit P1-scout-1 for 2; units 6-6 to 8-6, centers 3-5.",
+      "reasoning": "Start-check events: P2 created pending center-control (units P1 6, P2 6; centers P1 3, P2 5). Threat state after start check: pending center-control: P2. P2 followed the swarm/economy assignment by buying Silver/Gold/Peddler/Village, recruiting broadly, and sending fast units to flip or pressure center-control thresholds. Board events: income 7; P2-scout-2 hit P1-scout-1 for 2; P2-scout-3 hit P1-scout-1 for 2; recruited P2-marksman-2, P2-guardian-1."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Bandage",
+          "Zap",
+          "Copper",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Bandage",
+          "Zap",
+          "Village"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 income 5; P1-scout-1 captured center-center; P1-marksman-1 hit P2-scout-2 for 5; units 6-8 to 7-7, centers 4-4.",
+      "reasoning": "Threat state after start check: pending center-control: P2. P1 followed the upgrade/support assignment by prioritizing Armory/Training/Second Wind value, healing damaged quality units, and contesting eastern plus central centers. Board events: income 5; P1-scout-1 captured center-center; P1-marksman-1 hit P2-scout-2 for 5; P1-scout-1 hit P2-marksman-1 for 2; removed P2-scout-2; deck healing restored 1; recruited P1-druid-1."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Copper",
+          "Zap",
+          "Copper",
+          "Silver"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 income 6; P2-marksman-1 hit P1-scout-1 for 5; P2-scout-3 hit P1-marksman-1 for 2; units 7-7 to 8-6, centers 4-4.",
+      "reasoning": "Start-check events: cleared pending P2 center-control before P2's start check (units P1 7, P2 7; centers P1 4, P2 4). P2 followed the swarm/economy assignment by buying Silver/Gold/Peddler/Village, recruiting broadly, and sending fast units to flip or pressure center-control thresholds. Board events: income 6; P2-marksman-1 hit P1-scout-1 for 5; P2-scout-3 hit P1-marksman-1 for 2; removed P1-scout-1; deck healing restored 1; P2-druid-1 healed P2-marksman-1; recruited P2-guardian-2."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Silver",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 income 6; P1-marksman-1 hit P2-marksman-1 for 4; P1-marksman-2 hit P2-druid-1 for 4; units 6-8 to 7-8, centers 4-4.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing Armory/Training/Second Wind value, healing damaged quality units, and contesting eastern plus central centers. Board events: income 6; P1-marksman-1 hit P2-marksman-1 for 4; P1-marksman-2 hit P2-druid-1 for 4; deck healing restored 1; recruited P1-druid-2."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Copper",
+          "Silver",
+          "Silver",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 income 6; P2-marksman-1 captured center-center; P2-scout-3 captured center-east; units 8-7 to 9-6, centers 2-6.",
+      "reasoning": "P2 followed the swarm/economy assignment by buying Silver/Gold/Peddler/Village, recruiting broadly, and sending fast units to flip or pressure center-control thresholds. Board events: income 6; P2-marksman-1 captured center-center; P2-scout-3 captured center-east; P2-marksman-1 hit P1-marksman-1 for 4; P2-druid-1 hit P1-marksman-1 for 4; P2-scout-3 hit P1-guardian-1 for 2; removed P1-marksman-1; P2-druid-1 healed P2-marksman-1; recruited P2-scout-4."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Village",
+          "Zap",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Zap",
+          "Village",
+          "Village"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "summary": "P1 income 4; P1-marksman-2 captured center-center-north; P1-guardian-1 hit P2-marksman-1 for 5; units 6-9 to 7-7, centers 3-5.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing Armory/Training/Second Wind value, healing damaged quality units, and contesting eastern plus central centers. Board events: income 4; P1-marksman-2 captured center-center-north; P1-guardian-1 hit P2-marksman-1 for 5; P1-guardian-2 hit P2-druid-1 for 4; P1-marksman-2 hit P2-druid-1 for 4; removed P2-marksman-1, P2-druid-1; recruited P1-druid-3."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Silver",
+          "Copper",
+          "Peddler",
+          "Silver"
+        ],
+        "played": [
+          "Peddler",
+          "Bandage"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "summary": "P2 income 7; P2-scout-3 hit P1-marksman-2 for 2; recruited P2-guardian-3; units 7-7 to 8-7, centers 3-5.",
+      "reasoning": "Start-check events: P2 created pending center-control (units P1 7, P2 7; centers P1 3, P2 5). Threat state after start check: pending center-control: P2. P2 followed the swarm/economy assignment by buying Silver/Gold/Peddler/Village, recruiting broadly, and sending fast units to flip or pressure center-control thresholds. Board events: income 7; P2-scout-3 hit P1-marksman-2 for 2; recruited P2-guardian-3."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Silver",
+          "Bandage",
+          "Copper"
+        ],
+        "played": [
+          "Bandage",
+          "Village",
+          "Armory"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "summary": "P1 income 5; P1-guardian-1 captured center-center; P1-guardian-1 gained +1 max HP; units 7-8 to 7-7, centers 4-4.",
+      "reasoning": "Threat state after start check: pending center-control: P2. P1 followed the upgrade/support assignment by prioritizing Armory/Training/Second Wind value, healing damaged quality units, and contesting eastern plus central centers. Board events: income 5; P1-guardian-1 captured center-center; P1-guardian-1 gained +1 max HP; P1-guardian-1 gained +1 max HP; P1-guardian-1 hit P2-scout-3 for 4; P1-marksman-2 hit P2-scout-3 for 4; removed P2-scout-3; deck healing restored 1."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Silver",
+          "Zap",
+          "Silver"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "summary": "P2 income 6; P2-raider-2 captured center-center-north; P2-raider-1 hit P1-marksman-2 for 7; units 7-7 to 8-6, centers 3-5.",
+      "reasoning": "Start-check events: cleared pending P2 center-control before P2's start check (units P1 7, P2 7; centers P1 4, P2 4). P2 followed the swarm/economy assignment by buying Silver/Gold/Peddler/Village, recruiting broadly, and sending fast units to flip or pressure center-control thresholds. Board events: income 6; P2-raider-2 captured center-center-north; P2-raider-1 hit P1-marksman-2 for 7; P2-scout-4 hit P1-guardian-1 for 2; removed P1-marksman-2; recruited P2-guardian-4."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Village",
+          "Village",
+          "Copper",
+          "Silver"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Village",
+          "Zap"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "summary": "P1 income 5; 1 deck damage expired; recruited P1-druid-4; units 6-8 to 7-8, centers 3-5.",
+      "reasoning": "P1 followed the upgrade/support assignment by prioritizing Armory/Training/Second Wind value, healing damaged quality units, and contesting eastern plus central centers. Board events: income 5; 1 deck damage expired; recruited P1-druid-4."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Copper",
+          "Peddler",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Peddler"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "summary": "P2 income 7; P2-raider-1 captured center-center; P2-raider-1 hit P1-guardian-1 for 6; units 8-7 to 9-7, centers 2-6.",
+      "reasoning": "Start-check events: P2 created pending center-control (units P1 7, P2 8; centers P1 3, P2 5). Threat state after start check: pending center-control: P2. P2 followed the swarm/economy assignment by buying Silver/Gold/Peddler/Village, recruiting broadly, and sending fast units to flip or pressure center-control thresholds. Board events: income 7; P2-raider-1 captured center-center; P2-raider-1 hit P1-guardian-1 for 6; recruited P2-scout-5."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Silver",
+          "Armory"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [
+          "Training"
+        ],
+        "produced": {
+          "money": 0,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "summary": "P1 income 4; P1-guardian-1 captured center-east; P1-guardian-1 gained +1 max HP; units 7-9 to 8-8, centers 3-5.",
+      "reasoning": "Threat state after start check: pending center-control: P2. P1 followed the upgrade/support assignment by prioritizing Armory/Training/Second Wind value, healing damaged quality units, and contesting eastern plus central centers. Board events: income 4; P1-guardian-1 captured center-east; P1-guardian-1 gained +1 max HP; P1-guardian-1 gained +1 max HP; P1-guardian-2 hit P2-raider-1 for 4; P1-marksman-3 hit P2-raider-1 for 4; removed P2-raider-1; P1-druid-1 healed P1-guardian-1; recruited P1-guardian-3."
+    }
+  ]
+}

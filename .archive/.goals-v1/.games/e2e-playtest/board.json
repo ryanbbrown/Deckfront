@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1",
+  "map": "sketch-v1",
+  "turn": {
+    "activePlayer": "P1",
+    "round": 2
+  },
+  "units": [
+    {
+      "id": "P1-druid-1",
+      "player": "P1",
+      "type": "druid",
+      "col": 2,
+      "row": -3,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P1-guardian-1",
+      "player": "P1",
+      "type": "guardian",
+      "col": 3,
+      "row": -3,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-1",
+      "player": "P1",
+      "type": "raider",
+      "col": 3,
+      "row": -2,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-marksman-1",
+      "player": "P1",
+      "type": "marksman",
+      "col": 4,
+      "row": -3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-scout-1",
+      "player": "P1",
+      "type": "scout",
+      "col": 2,
+      "row": -2,
+      "hp": 6,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-druid-1",
+      "player": "P2",
+      "type": "druid",
+      "col": -3,
+      "row": 3,
+      "hp": 9,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-marksman-1",
+      "player": "P2",
+      "type": "marksman",
+      "col": -4,
+      "row": 2,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-scout-1",
+      "player": "P2",
+      "type": "scout",
+      "col": -1,
+      "row": 1,
+      "hp": 7,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-scout-2",
+      "player": "P2",
+      "type": "scout",
+      "col": -3,
+      "row": 2,
+      "hp": 7,
+      "maxHp": 8,
+      "attack": 2
+    }
+  ],
+  "notes": [
+    "Approximate seed state based on the first board sketch.",
+    "Movement values and balance are placeholders for testing the iteration loop.",
+    "E2E playtest: after P1 deck turn, P1 advanced toward the northeast supply center and claimed it with P1-scout-1.",
+    "E2E playtest: after P2 deck turn, P2-druid-1 claimed the southwest supply center, P2 scouts advanced, and P1-scout-1 took 2 damage in a ranged skirmish."
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": null
+    },
+    {
+      "id": "center-center",
+      "controller": null
+    },
+    {
+      "id": "center-south",
+      "controller": null
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P1"
+    },
+    {
+      "id": "center-east",
+      "controller": null
+    },
+    {
+      "id": "center-southwest",
+      "controller": "P2"
+    },
+    {
+      "id": "center-southeast",
+      "controller": null
+    }
+  ]
+}

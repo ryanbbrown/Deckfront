@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-006",
+  "player": "P2",
+  "before": "snapshots/turn-006.before.deck.json",
+  "after": "snapshots/turn-006.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "inferno"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "village",
+    "smithy",
+    "copper",
+    "copper",
+    "gold"
+  ],
+  "played": [
+    "village",
+    "smithy"
+  ],
+  "bought": [
+    "inferno"
+  ],
+  "produced": {
+    "money": 3
+  }
+}

@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1-cost6-damagecap-responsewin-emergency",
+  "map": "sketch-v2-access",
+  "turn": {
+    "activePlayer": "P1",
+    "round": 14
+  },
+  "units": [
+    {
+      "id": "P1-marksman-1",
+      "player": "P1",
+      "type": "marksman",
+      "col": 6,
+      "row": 5,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-marksman-2",
+      "player": "P1",
+      "type": "marksman",
+      "col": 7,
+      "row": 3,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-druid-2",
+      "player": "P2",
+      "type": "druid",
+      "col": 1,
+      "row": 7,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P1-scout-2",
+      "player": "P1",
+      "type": "scout",
+      "col": 7,
+      "row": 7,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-raider-3",
+      "player": "P1",
+      "type": "raider",
+      "col": 5,
+      "row": 5,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-guardian-2",
+      "player": "P2",
+      "type": "guardian",
+      "col": 4,
+      "row": 7,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-scout-3",
+      "player": "P1",
+      "type": "scout",
+      "col": 4,
+      "row": 6,
+      "hp": 4,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-healer-1",
+      "player": "P2",
+      "type": "healer",
+      "col": 2,
+      "row": 8,
+      "hp": 4,
+      "maxHp": 4,
+      "attack": 1
+    },
+    {
+      "id": "P2-guardian-3",
+      "player": "P2",
+      "type": "guardian",
+      "col": 1,
+      "row": 8,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-4",
+      "player": "P1",
+      "type": "raider",
+      "col": 6,
+      "row": 6,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-marksman-2",
+      "player": "P2",
+      "type": "marksman",
+      "col": 0,
+      "row": 9,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-marksman-3",
+      "player": "P1",
+      "type": "marksman",
+      "col": 9,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-guardian-4",
+      "player": "P2",
+      "type": "guardian",
+      "col": 0,
+      "row": 7,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-5",
+      "player": "P1",
+      "type": "raider",
+      "col": 10,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P1-scout-4",
+      "player": "P1",
+      "type": "scout",
+      "col": 11,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-marksman-4",
+      "player": "P1",
+      "type": "marksman",
+      "col": 12,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P2-guardian-5",
+      "player": "P2",
+      "type": "guardian",
+      "col": 0,
+      "row": 8,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-6",
+      "player": "P1",
+      "type": "raider",
+      "col": 11,
+      "row": 0,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-scout-1",
+      "player": "P2",
+      "type": "scout",
+      "col": 0,
+      "row": 9,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    }
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": null
+    },
+    {
+      "id": "center-west-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-north",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P1"
+    },
+    {
+      "id": "center-east",
+      "controller": "P1"
+    },
+    {
+      "id": "center-southeast",
+      "controller": "P1"
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 2
+    },
+    {
+      "player": "P2",
+      "amount": 1
+    }
+  ],
+  "notes": [
+    "E011c emergency-response replay retargeted from E010c rush-vs-engine A.",
+    "The former E007c 10-to-7 start-of-turn position at P1 turn 25 creates a pending P1 unit-count threat instead of an immediate win.",
+    "P1 completed turn 25 after recording the pending threat and recruited P1-raider-6, increasing the count to 11-to-7.",
+    "P2 completed the required full response turn on turn 26. P2 had 4 supply after income, used the emergency defender rule to recruit P2-scout-1 for 3 supply at 0,9, and wounded but did not kill P1-scout-3.",
+    "The emergency defender reduced the final response count to P1 11 / P2 8 but did not reduce the lead below 3, so P1 remained confirmed at the beginning of turn 27 / round 14 before income, movement, combat, or recruitment."
+  ]
+}

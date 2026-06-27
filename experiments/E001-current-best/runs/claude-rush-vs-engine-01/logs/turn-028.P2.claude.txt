@@ -1,0 +1,9 @@
+Turn-028 for P2 complete and validated (28 entries).
+
+**Situation:** P1 at **23 units vs my 11** (lead 12).
+
+**What I did:** My fortress is now congested with home hexes full — the only movable home unit was marksman008, which I slid to (2,9) to vacate (1,8), then recruited a new guardian there (10→11 units). Played Training (guardian014 → atk 5) and Smithy; the draw was treasure-light so only Silver was affordable. No P1 unit in range, so I held. (Two illegal-action retries this turn: Smithy/Training ordering since I only had 1 action, and Gold→Silver on affordability — both corrected.)
+
+**Honest assessment:** Still a settled loss. The gap holds around 12-13; P1's 7-center income out-recruits my single center indefinitely, and my packed cluster is running out of room to even place new bodies. I'm getting the one marginal body per turn by rotating a home hex and committing clean turns.
+
+Same standing flag: per the committed timeline P1 already met the 4-unit-lead win at turn-013; the `current` ruleset alias just isn't recognized by the strict-win validator, so the game never auto-terminates. If the goal is to stop at a legal winner, this should be scored a P1 win and halted. I'll keep going as long as I'm asked.

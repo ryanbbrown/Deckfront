@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-023",
+  "player": "P1",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P1-druid-8",
+        "from": {
+          "col": 7,
+          "row": 1
+        },
+        "to": {
+          "col": 8,
+          "row": 1
+        }
+      },
+      {
+        "unit": "P1-guardian-2",
+        "from": {
+          "col": 9,
+          "row": 1
+        },
+        "to": {
+          "col": 7,
+          "row": 1
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P1-guardian-3",
+        "type": "guardian",
+        "at": {
+          "col": 10,
+          "row": 1
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [
+      {
+        "target": "P1-druid-8",
+        "amount": 1,
+        "source": "unit",
+        "healer": "P1-druid-8"
+      }
+    ],
+    "upgrades": []
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6",
+  "map": "sketch-v5-recenter",
+  "turn": {
+    "activePlayer": "P2",
+    "round": 8
+  },
+  "units": [
+    {
+      "id": "P2-marksman-start-4",
+      "player": "P2",
+      "type": "marksman",
+      "col": 5,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 4
+    },
+    {
+      "id": "P1-druid-5",
+      "player": "P1",
+      "type": "druid",
+      "col": 7,
+      "row": 5,
+      "hp": 6,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P1-druid-6",
+      "player": "P1",
+      "type": "druid",
+      "col": 3,
+      "row": 3,
+      "hp": 2,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-scout-6",
+      "player": "P2",
+      "type": "scout",
+      "col": 6,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-druid-7",
+      "player": "P1",
+      "type": "druid",
+      "col": 8,
+      "row": 2,
+      "hp": 9,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-scout-7",
+      "player": "P2",
+      "type": "scout",
+      "col": 3,
+      "row": 4,
+      "hp": 3,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P1-druid-8",
+      "player": "P1",
+      "type": "druid",
+      "col": 9,
+      "row": 1,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    },
+    {
+      "id": "P2-raider-1",
+      "player": "P2",
+      "type": "raider",
+      "col": 0,
+      "row": 8,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    }
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": "P1"
+    },
+    {
+      "id": "center-west-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-north",
+      "controller": "P1"
+    },
+    {
+      "id": "center-center",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-south",
+      "controller": "P1"
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P2"
+    },
+    {
+      "id": "center-east",
+      "controller": "P2"
+    },
+    {
+      "id": "center-southeast",
+      "controller": "P1"
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 5
+    },
+    {
+      "player": "P2",
+      "amount": 5
+    }
+  ],
+  "notes": []
+}

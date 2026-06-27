@@ -1,0 +1,593 @@
+{
+  "schemaVersion": 1,
+  "title": "E008 Engine vs Rush B",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Peddler",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Peddler"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 5
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 opened from the swapped engine seat by taking northeast access and staging toward the east center.",
+      "reasoning": "The engine/control side preserved its original four units and took only the safe northeast center with the raider. The scout and slower bodies stayed on the east approach instead of diving into early trades. Deck turn: trashed Copper; bought Healer"
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Inferno"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 answered with the rush seat by claiming west-south and massing behind the southern lane.",
+      "reasoning": "The rush side used scout speed to take the closest center immediately while keeping the druid and marksman close enough to support a center-south push. Deck turn: trashed Copper; bought Inferno"
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Copper",
+          "Smithy",
+          "Copper",
+          "Peddler"
+        ],
+        "played": [
+          "Peddler",
+          "Bandage",
+          "Smithy"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 7,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 took the east center while preparing to contest center-north without exposing the guardian.",
+      "reasoning": "The scout could safely claim east from the P1 side. The raider stopped short of the center-north fight so P2 could not convert one tempo attack into an immediate kill. Deck turn: did not trash; bought Gold"
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Silver"
+        ],
+        "played": [
+          "Blast"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 expanded to center-south and kept the west lane connected.",
+      "reasoning": "The rush line emphasized tempo through two southern centers rather than chasing the northeast raider. That produces a distinct pressure line from a direct P1-side rush. Deck turn: trashed Copper; bought Blast"
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Smithy"
+        ],
+        "played": [
+          "Smithy"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 6
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 claimed center-north and recruited a healer as the first stabilization piece.",
+      "reasoning": "The raider took the center-north income. P1 spent the first recruit on healing support rather than a second raider, keeping the deck-engine seat aligned with preservation and control. Deck turn: trashed Copper; bought Gold"
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Inferno",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Zap"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 7
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 grabbed the center and started capped chip damage into P1 east control.",
+      "reasoning": "The scout attacked from the newly claimed center. Any deck damage was limited to one extra point on that legal attack, so the rush pressure softened the P1 scout but did not collapse the flank. Deck turn: trashed Copper; bought nothing"
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Peddler",
+          "Gold",
+          "Copper"
+        ],
+        "played": [
+          "Peddler",
+          "Healer"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 6,
+          "heal": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 counter-punched the center scout and reinforced with a guardian.",
+      "reasoning": "P1 used multiple legal attacks to apply capped deck damage across different attackers. The healer repaired the exposed scout, and the recruit choice favored a durable front over a tempo race. Deck turn: trashed Copper; bought Gold"
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Blast",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Blast"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 kept pressure on the damaged scout and opened a southeast route.",
+      "reasoning": "The rush deck wanted damage through several legal attackers. The cap made both scouts relevant, but the rush side stayed committed to pressure rather than spending tempo on support. Deck turn: trashed Copper; bought Blast"
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Gold",
+          "Smithy",
+          "Bandage",
+          "Copper"
+        ],
+        "played": [
+          "Bandage",
+          "Healer"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 5,
+          "heal": 5
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 killed the center scout but backed the wounded scout onto the east center.",
+      "reasoning": "The engine seat converted stabilization into a controlled kill without lunging deeper south. The east scout retreated to a held center, showing the cap gives rush pressure time but not automatic conversion. Deck turn: did not trash; bought Healer"
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Inferno",
+          "Zap",
+          "Blast",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 9
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 flipped southeast and split attacks between the east scout and central raider.",
+      "reasoning": "The rush side did not have a single burst kill available. It used board spread and two legal attacks to make the damage cap feel like tempo pressure rather than direct removal. Deck turn: did not trash; bought nothing"
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Peddler",
+          "Gold",
+          "Copper",
+          "Gold"
+        ],
+        "played": [
+          "Peddler",
+          "Healer"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 9,
+          "heal": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 chipped the southeast scout while the guardian line advanced through the center.",
+      "reasoning": "The slow engine/control formation could not legally collapse onto the rush druid yet, so P1 preserved formation and used the east scout to keep P2 from freely converting the flank. Deck turn: did not trash; bought Gold"
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Copper",
+          "Silver",
+          "Blast",
+          "Blast"
+        ],
+        "played": [
+          "Blast",
+          "Blast",
+          "Blast"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 6
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 replaced lost support with raider pressure into the center and east.",
+      "reasoning": "The rush seat stayed coherent by recruiting another raider and attacking across three bodies. The damage cap again made the attack broad and positional instead of one stacked kill. Deck turn: did not trash; bought Silver"
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Smithy",
+          "Bandage",
+          "Copper",
+          "Healer"
+        ],
+        "played": [
+          "Bandage",
+          "Healer"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 5,
+          "heal": 5
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 removed the lead raider and added another healer rather than racing unit count.",
+      "reasoning": "The control side kept the fight around center/east and invested in recovery. This made P2 spend attacks into upgraded bodies instead of converting rush damage into a quick win. Deck turn: did not trash; bought Healer"
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Zap",
+          "Inferno",
+          "Blast"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 7
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 punished the advanced marksman and rebuilt wide pressure.",
+      "reasoning": "The rush side found a real tactical payoff by combining a raider and marksman attack into the exposed P1 marksman. The cap limited deck damage, but board positioning still created a removal. Deck turn: did not trash; bought Blast"
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Bandage",
+          "Healer",
+          "Gold",
+          "Healer"
+        ],
+        "played": [
+          "Bandage",
+          "Healer"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 6,
+          "heal": 5
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 stabilized by killing the second raider and holding east/center access.",
+      "reasoning": "P1 lost a marksman but still had enough bodies and healing to blunt the tempo. The control deck converted multiple attackers plus healing into board parity instead of overextending south. Deck turn: did not trash; bought Gold"
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Blast",
+          "Copper",
+          "Blast",
+          "Silver"
+        ],
+        "played": [
+          "Blast",
+          "Blast"
+        ],
+        "bought": [
+          "Inferno"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 ended the sample still threatening from southeast and center-south but without a unit-count win.",
+      "reasoning": "The rush side maintained center-south, southeast, and west-south routes. Even with repeated capped damage, the swapped engine/control seat survived to the 16-turn sample with no legal start-of-turn unit lead win. Deck turn: did not trash; bought Inferno"
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Gold",
+          "Copper",
+          "Gold",
+          "Peddler"
+        ],
+        "played": [
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 10
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "summary": "P1 killed the wounded center raider, moved the damaged scout out of immediate range, and recruited another guardian.",
+      "reasoning": "At the 16-turn checkpoint P1 led 9 units to 7, so there was no start-of-turn win yet. P1 used the stabilized center position to remove P2-raider-2 and spend saved supply plus income on a guardian, creating a 10 to 6 unit lead before P2 response. Deck turn: did not trash; bought Gold"
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Zap",
+          "Blast",
+          "Inferno"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 9
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "summary": "P2 recruited from the rush seat and made a legal central attack, but could not erase the unit deficit.",
+      "reasoning": "P2 had no start-of-turn win while behind on units. The rush side recruited a raider and used the druid to keep pressure on the central guardian, but this left P1 ahead 10 units to 7 at the next start-of-turn check. Deck turn: did not trash; bought nothing"
+    }
+  ]
+}

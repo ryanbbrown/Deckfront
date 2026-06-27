@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-002",
+  "player": "P2",
+  "before": "snapshots/turn-002.before.board.json",
+  "after": "snapshots/turn-002.after.board.json",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-druid-start-2",
+        "from": {
+          "col": 1,
+          "row": 7
+        },
+        "to": {
+          "col": 3,
+          "row": 7
+        }
+      },
+      {
+        "unit": "P2-guardian-start-1",
+        "from": {
+          "col": 0,
+          "row": 8
+        },
+        "to": {
+          "col": 2,
+          "row": 8
+        }
+      },
+      {
+        "unit": "P2-healer-start-3",
+        "from": {
+          "col": 1,
+          "row": 8
+        },
+        "to": {
+          "col": 3,
+          "row": 8
+        }
+      },
+      {
+        "unit": "P2-marksman-start-4",
+        "from": {
+          "col": 0,
+          "row": 9
+        },
+        "to": {
+          "col": 2,
+          "row": 9
+        }
+      }
+    ],
+    "recruits": [],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

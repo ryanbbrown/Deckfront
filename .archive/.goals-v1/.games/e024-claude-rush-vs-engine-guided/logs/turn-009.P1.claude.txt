@@ -1,0 +1,5 @@
+Turn-009 committed and validated.
+
+- **Deck:** Play Peddler (+1 card/action/money) → moveToBuy → buy Peddler.
+- **Board:** Recruit 3 raiders (P1-raider-r9a/b/c) at home-base hexes (10,1),(11,0),(12,1); all existing units hold their centers.
+- **Rationale:** I already control 6 of 8 supply centers and lead supply 18–6. Instead of overextending ready units into P2's clustered guardian/raider/marksman, I convert the supply surplus into board mass — 3 fresh raiders take me to 7 units vs P2's 4, advancing the 4-unit-lead win condition while building reserves to defend center-northwest and center-east. Holding position keeps the 6-center dominance clock running.

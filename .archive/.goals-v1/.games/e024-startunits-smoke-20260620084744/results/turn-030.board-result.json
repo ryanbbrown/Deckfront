@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-030",
+  "player": "P2",
+  "before": "snapshots/turn-030.before.board.json",
+  "after": "snapshots/turn-030.after.board.json",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P2-scout-start",
+        "from": {
+          "col": 6,
+          "row": 5
+        },
+        "to": {
+          "col": 5,
+          "row": 3
+        }
+      },
+      {
+        "unit": "P2-marksman-start",
+        "from": {
+          "col": 7,
+          "row": 5
+        },
+        "to": {
+          "col": 7,
+          "row": 7
+        }
+      },
+      {
+        "unit": "P2-raider-8",
+        "from": {
+          "col": 3,
+          "row": 7
+        },
+        "to": {
+          "col": 3,
+          "row": 4
+        }
+      },
+      {
+        "unit": "P2-marksman-10",
+        "from": {
+          "col": 4,
+          "row": 2
+        },
+        "to": {
+          "col": 5,
+          "row": 2
+        }
+      },
+      {
+        "unit": "P2-druid-11",
+        "from": {
+          "col": 3,
+          "row": 6
+        },
+        "to": {
+          "col": 4,
+          "row": 5
+        }
+      },
+      {
+        "unit": "P2-healer-12",
+        "from": {
+          "col": 2,
+          "row": 7
+        },
+        "to": {
+          "col": 2,
+          "row": 5
+        }
+      },
+      {
+        "unit": "P2-raider-14",
+        "from": {
+          "col": 2,
+          "row": 8
+        },
+        "to": {
+          "col": 2,
+          "row": 4
+        }
+      },
+      {
+        "unit": "P2-guardian-15",
+        "from": {
+          "col": 1,
+          "row": 7
+        },
+        "to": {
+          "col": 1,
+          "row": 5
+        }
+      },
+      {
+        "unit": "P2-marksman-16",
+        "from": {
+          "col": 0,
+          "row": 8
+        },
+        "to": {
+          "col": 0,
+          "row": 6
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P2-druid-17",
+        "type": "druid",
+        "at": {
+          "col": 0,
+          "row": 8
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-007",
+  "player": "P1",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P1-scout-start",
+        "from": {
+          "col": 7,
+          "row": 5
+        },
+        "to": {
+          "col": 6,
+          "row": 5
+        }
+      },
+      {
+        "unit": "P1-raider-start",
+        "from": {
+          "col": 8,
+          "row": 6
+        },
+        "to": {
+          "col": 8,
+          "row": 7
+        }
+      },
+      {
+        "unit": "P1-guardian-start",
+        "from": {
+          "col": 9,
+          "row": 5
+        },
+        "to": {
+          "col": 9,
+          "row": 6
+        }
+      },
+      {
+        "unit": "P1-marksman-start",
+        "from": {
+          "col": 7,
+          "row": 3
+        },
+        "to": {
+          "col": 7,
+          "row": 4
+        }
+      },
+      {
+        "unit": "P1-druid-5",
+        "from": {
+          "col": 10,
+          "row": 1
+        },
+        "to": {
+          "col": 8,
+          "row": 2
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P1-healer-6",
+        "type": "healer",
+        "at": {
+          "col": 10,
+          "row": 1
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

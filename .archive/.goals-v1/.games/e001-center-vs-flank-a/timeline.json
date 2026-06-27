@@ -1,0 +1,518 @@
+{
+  "schemaVersion": 1,
+  "title": "E001 Center vs Flank A",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Zap",
+          "Bandage",
+          "Rest",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 opened by taking the northeast and east supply centers.",
+      "reasoning": "P1 followed the center-contest plan without overextending the damaged starter units. The raider and scout claimed the two reachable eastern centers, while the marksman and guardian formed behind them; one heal was assigned to the fragile guardian."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Rest",
+          "Rest",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [],
+        "produced": {
+          "money": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 claimed the west-south center and began a wide southern flank.",
+      "reasoning": "P2 saved supply for support recruitment and kept both scouts together instead of sending one alone. The druid patched the lead scout for one HP under the working interpretation that mage heal values are unit actions."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Rest"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 recruited a second guardian and advanced toward center-north.",
+      "reasoning": "The saved eastern income let P1 recruit on its second turn. The new guardian stayed homeward while the raider, marksman, and first guardian shifted toward a durable mid-board line."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 recruited a healer and pushed both scouts toward the southern centers.",
+      "reasoning": "P2 prioritized support as assigned, spending the first 5 supply on a healer. The scouts stayed paired on the flank, threatening center-south without being close enough to take it yet."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Rest",
+          "Zap",
+          "Bandage"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 took center-north and added a marksman to the support line.",
+      "reasoning": "The raider reached center-north while the fragile scout moved only as far as the formation could plausibly support. P1 spent exactly 5 supply on a marksman, preserving the guardian/marksman plan."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Rest",
+          "Rest",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [],
+        "produced": {
+          "money": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 reached center-south and picked off P1’s exposed scout.",
+      "reasoning": "The flank generated the first tactical payoff: scout-2 moved into range and killed the low-HP P1 scout, while scout-1 claimed center-south. P2 could not recruit this turn after spending on support earlier."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Zap"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 recruited again, seized the central center, and killed the forward P2 scout.",
+      "reasoning": "P1’s raider converted center-north access into center control and then attacked the adjacent scout. This restored the center plan but left P1 dependent on the raider as the front anchor."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Bandage",
+          "Silver",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 recruited a second druid and swung the surviving scout to the southeast center.",
+      "reasoning": "P2 used the response turn to restore unit count and complete the flank. The central fight was out of range, so P2 chose positional pressure over a low-value poke."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Rest",
+          "Rest",
+          "Silver",
+          "Copper"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 5,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 added a scout and eliminated P2’s southeast flanker.",
+      "reasoning": "P1’s center income produced another recruit, then the raider left the central hex to chase down the scout that had just taken southeast. Control of the center persisted, but the move exposed the raider to counterfire."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Rest",
+          "Rest",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Potion"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 recruited a marksman and killed P1’s wounded front guardian.",
+      "reasoning": "P2 was facing a three-unit deficit at the start of its response turn. Recruiting cut that to two, and the first marksman punished the low-HP guardian in the center screen, reducing the deficit to one."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Bandage",
+          "Zap",
+          "Copper",
+          "Rest"
+        ],
+        "played": [
+          "Zap",
+          "Bandage",
+          "Peddler",
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 reinforced with another guardian and damaged P2’s central druid.",
+      "reasoning": "P1 kept buying/recruiting for formation durability. The raider attacked the druid rather than diving deeper, creating a damaged support target but not increasing the unit lead."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Rest",
+          "Copper",
+          "Healer"
+        ],
+        "played": [
+          "Healer"
+        ],
+        "bought": [
+          "Bandage"
+        ],
+        "produced": {
+          "money": 3,
+          "heal": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 added another healer and focused fire to remove P1’s raider.",
+      "reasoning": "The support deck/board plan stabilized the unit count. Druid damage plus marksman fire killed the raider that had been anchoring P1’s central captures, though control did not flip because no P2 unit ended on the center hex."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Rest",
+          "Rest",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 recruited a marksman and reoccupied the center with a guardian.",
+      "reasoning": "With the raider gone, P1 switched the center anchor to a full-health guardian. The attack on P2’s druid left it nearly dead but did not remove it, so P1 avoided creating a fragile overextension."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Potion",
+          "Silver",
+          "Rest",
+          "Healer"
+        ],
+        "played": [
+          "Potion",
+          "Healer"
+        ],
+        "bought": [
+          "Bandage"
+        ],
+        "produced": {
+          "money": 3,
+          "heal": 6
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 recruited a scout and concentrated damage into the central guardian.",
+      "reasoning": "P2 restored parity pressure with another flanker and used both druid and marksman attacks on the guardian. The healer restored one HP to the wounded druid, keeping it alive as a control piece."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Rest",
+          "Copper",
+          "Peddler",
+          "Gold"
+        ],
+        "played": [
+          "Peddler",
+          "Zap"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 recruited another scout and finally killed the wounded druid.",
+      "reasoning": "The central guardian converted its position into a kill, but P2 still had enough bodies to avoid the unit-lead loss condition on the following response turn."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Rest",
+          "Bandage",
+          "Zap"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Bandage"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 recruited a third druid and left the game paused in a contested center state.",
+      "reasoning": "P2 answered the two-unit deficit with another support body and more ranged damage into the central guardian. After 16 completed player turns, P1 led 8 units to 7 and held four centers, while P2 held three centers and still threatened the flank; no start-of-turn unit-lead win condition had resolved."
+    }
+  ]
+}

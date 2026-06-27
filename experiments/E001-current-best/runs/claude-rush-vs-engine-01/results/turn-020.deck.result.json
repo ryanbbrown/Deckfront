@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-020",
+  "player": "P2",
+  "before": "snapshots/turn-020.before.deck.json",
+  "after": "snapshots/turn-020.after.deck.json",
+  "actions": [
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "silver"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "gold",
+    "copper",
+    "storm",
+    "healer",
+    "copper"
+  ],
+  "played": [],
+  "bought": [
+    "silver"
+  ],
+  "produced": {
+    "money": 2
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "model": "claude-opus-4-8",
+  "effort": "low",
+  "drafts": [
+    "P1=blast,zap,silver",
+    "P2=village,smithy,peddler"
+  ],
+  "players": {
+    "P1": {
+      "sessionId": "43fc3d13-e9ae-47df-a16a-f3dba4041214",
+      "strategy": "RUSH: contest centers, move aggressively, buy tempo/damage, recruit/attack for immediate board pressure. Trash only when it does not cost tempo."
+    },
+    "P2": {
+      "sessionId": "503ddb3e-4acc-483f-a9c9-b616b2a97ccf",
+      "strategy": "ENGINE: build draw/action/economy, but still contest centers early, move efficiently, recruit/attack when needed, and convert engine output into board control."
+    }
+  }
+}

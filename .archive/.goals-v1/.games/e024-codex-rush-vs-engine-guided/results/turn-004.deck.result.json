@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-004",
+  "player": "P2",
+  "before": "snapshots/turn-004.before.deck.json",
+  "after": "snapshots/turn-004.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "gold"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "copper",
+    "copper",
+    "smithy",
+    "copper"
+  ],
+  "played": [
+    "smithy"
+  ],
+  "bought": [
+    "gold"
+  ],
+  "produced": {}
+}

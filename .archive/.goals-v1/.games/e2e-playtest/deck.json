@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "rngState": 1,
+  "game": {
+    "config": {
+      "players": 2,
+      "setup": {
+        "initialActions": 1,
+        "initialBuys": 1,
+        "initialMoney": 0,
+        "handSize": 1,
+        "startingDeck": [
+          "copper"
+        ],
+        "attributes": {}
+      },
+      "cards": [
+        {
+          "id": "copper",
+          "name": "Copper",
+          "type": "treasure",
+          "cost": 0,
+          "treasure": 1
+        },
+        {
+          "id": "estate",
+          "name": "Estate",
+          "type": "victory",
+          "cost": 0,
+          "victoryPoints": 1
+        },
+        {
+          "id": "province",
+          "name": "Province",
+          "type": "victory",
+          "cost": 8,
+          "victoryPoints": 6
+        }
+      ],
+      "supply": [
+        {
+          "card": "estate",
+          "count": 1
+        },
+        {
+          "card": "province",
+          "count": 1
+        }
+      ],
+      "endGame": {
+        "gte": [
+          "emptyPiles",
+          1
+        ]
+      }
+    },
+    "cards": {
+      "copper": {
+        "id": "copper",
+        "name": "Copper",
+        "type": "treasure",
+        "cost": 0,
+        "treasure": 1
+      },
+      "estate": {
+        "id": "estate",
+        "name": "Estate",
+        "type": "victory",
+        "cost": 0,
+        "victoryPoints": 1
+      },
+      "province": {
+        "id": "province",
+        "name": "Province",
+        "type": "victory",
+        "cost": 8,
+        "victoryPoints": 6
+      }
+    },
+    "players": [
+      {
+        "id": "P1",
+        "draw": [],
+        "hand": [
+          "copper"
+        ],
+        "discard": [],
+        "play": [],
+        "actions": 1,
+        "buys": 1,
+        "money": 1,
+        "attributes": {},
+        "vpCounters": 0,
+        "turnsTaken": 1,
+        "freeTrashUsed": false
+      },
+      {
+        "id": "P2",
+        "draw": [],
+        "hand": [],
+        "discard": [
+          "estate"
+        ],
+        "play": [
+          "copper"
+        ],
+        "actions": 1,
+        "buys": 0,
+        "money": 1,
+        "attributes": {},
+        "vpCounters": 0,
+        "turnsTaken": 1,
+        "freeTrashUsed": false
+      }
+    ],
+    "activePlayer": 1,
+    "phase": "buy",
+    "supply": {
+      "estate": 0,
+      "province": 1
+    },
+    "trash": [],
+    "ended": true
+  }
+}

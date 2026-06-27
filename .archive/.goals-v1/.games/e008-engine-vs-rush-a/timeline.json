@@ -1,0 +1,1252 @@
+{
+  "schemaVersion": 1,
+  "title": "E008 Engine vs Rush A",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Village",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Village"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 opened with a northeast capture while the slower engine side started the long walk toward east and center.",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Bandage",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Blast",
+          "Bandage"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 2,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 rushed out of the southwest and claimed west-south with the lead scout.",
+      "reasoning": "Deck counters this turn: damage 2, heal 1, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Potion",
+          "Copper",
+          "Smithy",
+          "Copper",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Potion",
+          "Smithy"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 had only one center income, so it advanced toward east and center-north instead of recruiting.",
+      "reasoning": "Deck counters this turn: damage 0, heal 2, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Inferno"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 seized center-south and set up the first real attack lanes for the following round.",
+      "reasoning": "Deck counters this turn: damage 1, heal 1, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Armory",
+          "Potion",
+          "Smithy",
+          "Copper"
+        ],
+        "played": [
+          "Potion",
+          "Armory"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 added center-north and east control, then recruited a healer once the delayed income arrived.",
+      "reasoning": "Deck counters this turn: damage 0, heal 2, upgradeHealth 2, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Blast",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Blast",
+          "Blast"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 4,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 moved both scouts into attack lanes around center and recruited a raider to keep pressure flowing.",
+      "reasoning": "Deck counters this turn: damage 4, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Village"
+        ],
+        "played": [
+          "Village"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "__damageUsed": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 claimed center, chipped the lead rushing scout, and recruited a defensive guardian.",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Inferno",
+          "Copper",
+          "Copper",
+          "Zap",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Inferno"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 5,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "__damageUsed": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 used two legal scout attacks to exploit the damage cap and left the P1 center scout barely alive.",
+      "reasoning": "Deck counters this turn: damage 5, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Smithy",
+          "Copper"
+        ],
+        "played": [
+          "Smithy"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 8,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "__damageUsed": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 retreated the damaged scout and removed the lead rushing scout with concentrated center fire.",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Copper",
+          "Inferno",
+          "Blast",
+          "Copper"
+        ],
+        "played": [
+          "Blast",
+          "Bandage",
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 8,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0,
+          "__damageUsed": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 shifted from scout chip to a raider-led burst, but the cap still spread deck damage across attackers.",
+      "reasoning": "Deck counters this turn: damage 8, heal 1, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Potion",
+          "Village",
+          "Gold",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Potion"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 shifted into the late-game economy race, clearing home-base space and recruiting 2 units (5 to 7 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 2, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Inferno"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 shifted into the late-game economy race, clearing home-base space and recruiting 1 unit (6 to 7 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Copper",
+          "Copper",
+          "Smithy",
+          "Armory"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 shifted into the late-game economy race, clearing home-base space and recruiting 1 unit (7 to 8 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 2, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Zap",
+          "Blast",
+          "Bandage",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Bandage"
+        ],
+        "bought": [
+          "Inferno"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 3,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 shifted into the late-game economy race, clearing home-base space and recruiting 1 unit (7 to 8 living units).",
+      "reasoning": "Deck counters this turn: damage 3, heal 1, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Gold",
+          "Copper",
+          "Armory"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 shifted into the late-game economy race, clearing home-base space and recruiting 1 unit (8 to 9 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 2, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Blast",
+          "Blast"
+        ],
+        "played": [
+          "Blast",
+          "Blast"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 4,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 shifted into the late-game economy race, clearing home-base space and recruiting 0 units (8 to 8 living units).",
+      "reasoning": "Deck counters this turn: damage 4, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Armory",
+          "Potion"
+        ],
+        "played": [
+          "Potion",
+          "Armory"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "summary": "P1 shifted into the late-game economy race, clearing home-base space and recruiting 1 unit (9 to 10 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 2, upgradeHealth 2, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "Inferno",
+          "Copper",
+          "Inferno",
+          "Blast",
+          "Copper"
+        ],
+        "played": [
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 6,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "summary": "P2 shifted into the late-game economy race, clearing home-base space and recruiting 1 unit (8 to 9 living units).",
+      "reasoning": "Deck counters this turn: damage 6, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Gold",
+          "Village",
+          "Gold",
+          "Smithy"
+        ],
+        "played": [
+          "Village",
+          "Smithy",
+          "Armory"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 14,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "summary": "P1 shifted into the late-game economy race, clearing home-base space and recruiting 1 unit (10 to 11 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 2, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "Silver",
+          "Blast",
+          "Blast",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Blast",
+          "Blast"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 4,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "summary": "P2 shifted into the late-game economy race, clearing home-base space and recruiting 1 unit (9 to 10 living units).",
+      "reasoning": "Deck counters this turn: damage 4, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Armory",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "summary": "P1 shifted into the late-game economy race, clearing home-base space and recruiting 0 units (11 to 11 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 2, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Zap",
+          "Inferno"
+        ],
+        "bought": [
+          "Inferno"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 5,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "summary": "P2 shifted into the late-game economy race, clearing home-base space and recruiting 0 units (10 to 10 living units).",
+      "reasoning": "Deck counters this turn: damage 5, heal 1, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Copper",
+          "Silver",
+          "Potion",
+          "Copper"
+        ],
+        "played": [
+          "Potion"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "summary": "P1 shifted into the late-game economy race, clearing home-base space and recruiting 0 units (11 to 11 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 2, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Silver",
+          "Copper",
+          "Blast",
+          "Inferno"
+        ],
+        "played": [
+          "Blast",
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 8,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "summary": "P2 shifted into the late-game economy race, clearing home-base space and recruiting 1 unit (10 to 11 living units).",
+      "reasoning": "Deck counters this turn: damage 8, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-025",
+      "player": "P1",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-025.before.deck.json",
+        "after": "snapshots/turn-025.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Copper",
+          "Smithy",
+          "Armory",
+          "Village"
+        ],
+        "played": [
+          "Village",
+          "Armory",
+          "Smithy"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 12,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-025.before.board.json",
+        "after": "snapshots/turn-025.after.board.json"
+      },
+      "summary": "P1 shifted into the late-game economy race, clearing home-base space and recruiting 0 units (11 to 11 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 2, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-026",
+      "player": "P2",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-026.before.deck.json",
+        "after": "snapshots/turn-026.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Inferno"
+        ],
+        "played": [
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 6,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-026.before.board.json",
+        "after": "snapshots/turn-026.after.board.json"
+      },
+      "summary": "P2 shifted into the late-game economy race, clearing home-base space and recruiting 1 unit (11 to 12 living units).",
+      "reasoning": "Deck counters this turn: damage 6, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-027",
+      "player": "P1",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-027.before.deck.json",
+        "after": "snapshots/turn-027.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Gold",
+          "Armory",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 8,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-027.before.board.json",
+        "after": "snapshots/turn-027.after.board.json"
+      },
+      "summary": "P1 shifted into the late-game economy race, clearing home-base space and recruiting 0 units (11 to 11 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 2, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-028",
+      "player": "P2",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-028.before.deck.json",
+        "after": "snapshots/turn-028.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Inferno",
+          "Copper",
+          "Copper",
+          "Blast"
+        ],
+        "played": [
+          "Zap",
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 7,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-028.before.board.json",
+        "after": "snapshots/turn-028.after.board.json"
+      },
+      "summary": "P2 shifted into the late-game economy race, clearing home-base space and recruiting 0 units (12 to 12 living units).",
+      "reasoning": "Deck counters this turn: damage 7, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-029",
+      "player": "P1",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-029.before.deck.json",
+        "after": "snapshots/turn-029.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Village",
+          "Gold",
+          "Gold",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Village",
+          "Smithy"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 15,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-029.before.board.json",
+        "after": "snapshots/turn-029.after.board.json"
+      },
+      "summary": "P1 shifted into the late-game economy race, clearing home-base space and recruiting 0 units (11 to 11 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-030",
+      "player": "P2",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-030.before.deck.json",
+        "after": "snapshots/turn-030.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Inferno",
+          "Copper",
+          "Blast",
+          "Inferno"
+        ],
+        "played": [
+          "Blast",
+          "Bandage",
+          "Inferno"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 6,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-030.before.board.json",
+        "after": "snapshots/turn-030.after.board.json"
+      },
+      "summary": "P2 shifted into the late-game economy race, clearing home-base space and recruiting 1 unit (12 to 13 living units).",
+      "reasoning": "Deck counters this turn: damage 6, heal 1, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-031",
+      "player": "P1",
+      "round": 16,
+      "deck": {
+        "before": "snapshots/turn-031.before.deck.json",
+        "after": "snapshots/turn-031.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Gold",
+          "Armory",
+          "Copper",
+          "Armory"
+        ],
+        "played": [
+          "Armory"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-031.before.board.json",
+        "after": "snapshots/turn-031.after.board.json"
+      },
+      "summary": "P1 shifted into the late-game economy race, clearing home-base space and recruiting 0 units (11 to 11 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 2, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    },
+    {
+      "id": "turn-032",
+      "player": "P2",
+      "round": 16,
+      "deck": {
+        "before": "snapshots/turn-032.before.deck.json",
+        "after": "snapshots/turn-032.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Silver",
+          "Inferno",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Inferno"
+        ],
+        "bought": [
+          "Inferno"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 5,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-032.before.board.json",
+        "after": "snapshots/turn-032.after.board.json"
+      },
+      "summary": "P2 shifted into the late-game economy race, clearing home-base space and recruiting 1 unit (13 to 14 living units).",
+      "reasoning": "Deck counters this turn: damage 5, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P2 prioritized pressure from the P2 side, assigning capped deck damage across multiple legal attackers whenever the board position allowed it."
+    },
+    {
+      "id": "turn-033",
+      "player": "P1",
+      "round": 17,
+      "deck": {
+        "before": "snapshots/turn-033.before.deck.json",
+        "after": "snapshots/turn-033.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Copper",
+          "Gold",
+          "Copper",
+          "Gold"
+        ],
+        "played": [],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 11,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-033.before.board.json",
+        "after": "snapshots/turn-033.after.board.json"
+      },
+      "summary": "P1 shifted into the late-game economy race, clearing home-base space and recruiting 0 units (11 to 11 living units).",
+      "reasoning": "Deck counters this turn: damage 0, heal 0, upgradeHealth 0, upgradeDamage 0, reattack 0, stormTargets 0. P1 prioritized center retention and unit preservation, spending supply on defensive recruits only when it did not require giving up key center positions."
+    }
+  ]
+}

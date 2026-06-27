@@ -1,0 +1,24 @@
+{
+  "id": "turn-025",
+  "player": "P1",
+  "round": 13,
+  "play": ["blast", "blast", "bandage"],
+  "buyOptions": ["training", "storm", "blast", "silver", "zap"],
+  "moves": [
+    { "id": "P1-raider-4", "to": [6, 7] },
+    { "id": "P1-scout-3", "to": [8, 7] },
+    { "id": "P1-raider-5", "to": [6, 4] },
+    { "id": "P1-raider-6", "to": [8, 2] },
+    { "id": "P1-raider-7", "to": [9, 2] }
+  ],
+  "attacks": [
+    { "attacker": "P1-raider-4", "target": "P2-guardian-4", "bonus": 1 },
+    { "attacker": "P1-scout-3", "target": "P2-guardian-3", "bonus": 1 },
+    { "attacker": "P1-scout-2", "target": "P2-guardian-6", "bonus": 1 }
+  ],
+  "recruits": [
+    { "type": "raider", "id": "P1-raider-8", "at": [11, 0] }
+  ],
+  "summary": "P1 killed P2's wounded guardian, chipped two more guardians, and recruited another raider.",
+  "reasoning": "P1 again ended with a four-unit lead, but this still needs to survive P2's full response turn before it can even become a pending P1 threat."
+}

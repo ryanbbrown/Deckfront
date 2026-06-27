@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6-tight",
+  "map": "sketch-v5-recenter",
+  "turn": {
+    "activePlayer": "P1",
+    "round": 8
+  },
+  "units": [
+    {
+      "id": "P1-guardian-1",
+      "player": "P1",
+      "type": "guardian",
+      "col": 5,
+      "row": 4,
+      "hp": 3,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P2-druid-1",
+      "player": "P2",
+      "type": "druid",
+      "col": 5,
+      "row": 5,
+      "hp": 7,
+      "maxHp": 12,
+      "attack": 4
+    },
+    {
+      "id": "P2-guardian-3",
+      "player": "P2",
+      "type": "guardian",
+      "col": 4,
+      "row": 5,
+      "hp": 16,
+      "maxHp": 16,
+      "attack": 4
+    },
+    {
+      "id": "P1-raider-3",
+      "player": "P1",
+      "type": "raider",
+      "col": 7,
+      "row": 4,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 6
+    },
+    {
+      "id": "P2-healer-4",
+      "player": "P2",
+      "type": "healer",
+      "col": 4,
+      "row": 6,
+      "hp": 4,
+      "maxHp": 4,
+      "attack": 1
+    },
+    {
+      "id": "P1-scout-4",
+      "player": "P1",
+      "type": "scout",
+      "col": 12,
+      "row": 1,
+      "hp": 8,
+      "maxHp": 8,
+      "attack": 2
+    },
+    {
+      "id": "P2-druid-5",
+      "player": "P2",
+      "type": "druid",
+      "col": 0,
+      "row": 8,
+      "hp": 10,
+      "maxHp": 10,
+      "attack": 4
+    }
+  ],
+  "notes": [
+    "Starter state: units begin at max HP from rulesets/territory-v1/units.json.",
+    "E003 locked starter: max-HP starter board copied from territory-v1 with ruleset id changed to territory-v1-locked.",
+    "E005 map-access starter: max-HP starter board copied from E003 and retargeted to sketch-v2-access.",
+    "E006 cost-6 starter: copied from E005 access starter and retargeted to territory-v1-cost6.",
+    "E007 damage-cap starter: copied from E006 cost-6 starter and retargeted to territory-v1-cost6-damagecap.",
+    "E020 recenter starter: copied from E013 contest starter and retargeted to sketch-v5-recenter, which moves center-center-south from (5,7) to (7,5).",
+    "E022 high-movement starter: copied from E020 recenter starter and retargeted to territory-v1-cost6-damagecap-responsewin-lead4-highmove. Unit movement is substantially increased while cards, economy, damage cap, and lead-4 response-window win timing stay unchanged.",
+    "E023 high-movement late-center starter: copied from E022 high-movement starter and retargeted to territory-v1-cost6-damagecap-responsewin-lead4-highmove-centermid. Adds a late center-majority response-window win while preserving high movement, economy, damage cap, and lead-4 unit-count win.",
+    "E024 high-movement six-center starter: copied from E023 high-movement center-majority starter and retargeted to territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6. Adds a stronger late six-center dominance response-window win while preserving high movement, economy, damage cap, and lead-4 unit-count win.",
+    "E024b high-movement six-center-tight starter: copied from E024 and retargeted to territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6-tight. Tightens six-center dominance so the threat is prevented or cleared when the opponent is at least 2 living units ahead instead of at least 3."
+  ],
+  "supplyControl": [
+    {
+      "id": "center-northwest",
+      "controller": null
+    },
+    {
+      "id": "center-west-south",
+      "controller": "P2"
+    },
+    {
+      "id": "center-center-north",
+      "controller": null
+    },
+    {
+      "id": "center-center",
+      "controller": null
+    },
+    {
+      "id": "center-center-south",
+      "controller": null
+    },
+    {
+      "id": "center-northeast",
+      "controller": "P1"
+    },
+    {
+      "id": "center-east",
+      "controller": null
+    },
+    {
+      "id": "center-southeast",
+      "controller": null
+    }
+  ],
+  "supply": [
+    {
+      "player": "P1",
+      "amount": 2
+    },
+    {
+      "player": "P2",
+      "amount": 2
+    }
+  ]
+}

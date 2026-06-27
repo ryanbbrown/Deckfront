@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-018",
+  "player": "P2",
+  "before": "snapshots/turn-018.before.board.json",
+  "after": "snapshots/turn-018.after.board.json",
+  "actions": {
+    "movements": [],
+    "recruits": [
+      {
+        "unit": "P2-guardian-turn-018",
+        "type": "guardian",
+        "at": {
+          "col": 0,
+          "row": 9
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}

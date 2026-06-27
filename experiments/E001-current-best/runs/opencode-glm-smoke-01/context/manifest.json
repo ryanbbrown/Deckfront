@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "runner": "codex",
+  "ruleset": "current",
+  "map": "current",
+  "deckConfig": "game/deck.yaml",
+  "title": "OpenCode GLM smoke playthrough",
+  "seed": 2106,
+  "drafts": [
+    "P1=blast,zap,silver",
+    "P2=village,smithy,peddler"
+  ],
+  "startingUnits": {
+    "P1": "raider,scout,raider,marksman",
+    "P2": "raider,scout,guardian,marksman"
+  },
+  "players": {
+    "P1": {
+      "strategy": "Rush: contest centers early with high-movement units, convert center income into recruits, buy damage/cycling cards, and win by board pressure."
+    },
+    "P2": {
+      "strategy": "Engine/control: still contest centers early with competent unit play, but use deck buys to build draw/economy into damage and stabilization."
+    }
+  },
+  "files": [
+    {
+      "path": "agent-context/prompts/playtest-player.system.md",
+      "sha256": "2df594ac5054ada9764930386136fcd093c8f37713ec81b39a2d9418e4934a38"
+    },
+    {
+      "path": "agent-context/prompts/playtest-initial.user.md",
+      "sha256": "2bab632b3f56be2c075c32002b4abf1d5a13daf59a57bb64f6b1ba0b62703738"
+    },
+    {
+      "path": "agent-context/prompts/playtest-turn.user.md",
+      "sha256": "7922ba50909449b9efa4691560166a7f6017591f1ebd70940fd552b6df25e74a"
+    },
+    {
+      "path": "agent-context/prompts/playtest-repair.user.md",
+      "sha256": "e521198ce36a2291057e6cd11a3db578692d939e511f32cfc7863a18e2ee4c82"
+    },
+    {
+      "path": "game/board-rules.md",
+      "sha256": "7eb2debd6a35c344ff2cf60d654edd2d0170dc1e3ff0815f49331758e3f028bd"
+    },
+    {
+      "path": "game/deck.yaml",
+      "sha256": "1b3cef72cde2b608b23ec4533896b4617fabe1cb100f492d9b3cb013326a93ca"
+    },
+    {
+      "path": "game/cards.json",
+      "sha256": "d1f371d00542b06086e5ff0fc8cb5e72560be52d17bf1d463ef698994ba08ba9"
+    },
+    {
+      "path": "game/units.json",
+      "sha256": "e0636e63c28073a452a212c33e0c77c800adc4bb57412e8d91f5408e49037658"
+    },
+    {
+      "path": "game/map.json",
+      "sha256": "b08d2962e05319c4dc15bc8d2699811ea26d2ebd570b1dcdef1c63795b2b39df"
+    }
+  ],
+  "notes": [
+    "Claude receives playtest-player.system.md through --system-prompt.",
+    "Codex CLI has no system-prompt flag, so the Codex runner prepends the same content to each player's first prompt."
+  ]
+}

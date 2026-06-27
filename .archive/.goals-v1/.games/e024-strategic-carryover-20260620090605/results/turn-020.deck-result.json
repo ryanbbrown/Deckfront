@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-020",
+  "player": "P2",
+  "before": "snapshots/turn-020.before.deck.json",
+  "after": "snapshots/turn-020.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "playAction",
+      "handIndex": 6
+    },
+    {
+      "type": "playAction",
+      "handIndex": 5
+    },
+    {
+      "type": "playAction",
+      "handIndex": 6
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "village"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "village",
+    "gold",
+    "copper",
+    "gold",
+    "smithy"
+  ],
+  "played": [
+    "village",
+    "smithy",
+    "village",
+    "peddler",
+    "village"
+  ],
+  "bought": [
+    "village"
+  ],
+  "produced": {
+    "money": 12
+  }
+}

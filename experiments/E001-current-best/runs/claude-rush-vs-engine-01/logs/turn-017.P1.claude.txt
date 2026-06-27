@@ -1,0 +1,5 @@
+Turn `turn-017` complete and validated.
+
+**P1 now leads 16 units to 7** (lead 9), holding 7 of 8 centers. Recruited two more raiders after clearing the home-base traffic jam, advancing the older recruits into safe central/NE positions.
+
+**Strategic read:** The position is decisively won on every metric, but P2's southwest corner is a chokepoint — only a couple of hexes border their stacked atk-5 guardians, so charging raiders in would feed 8hp units into lethal crossfire and shrink my lead for little gain. Since the runner won't machine-confirm the start-of-turn lead win (the `current` ruleset alias isn't mapped to the lead-4 rule), the highest-value, lowest-variance line is to keep compounding dominance — more recruits, all centers held, units kept safe — and carry this crushing lead to the game's turn limit. P2 (income 3, fully turtled) has no path to close a 9-unit deficit. Validation passed (17 entries).

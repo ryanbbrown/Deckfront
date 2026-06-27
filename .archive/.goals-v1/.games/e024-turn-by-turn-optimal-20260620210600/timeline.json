@@ -1,0 +1,1426 @@
+{
+  "schemaVersion": 1,
+  "title": "E024 turn-by-turn strategic play",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 opened the rush by taking northeast and staging both raiders toward the center.",
+      "reasoning": "P1 skipped trashing because the Copper plus draft carryover produced a Gold buy; early Gold supports repeated high-cost damage buys while the board units rush center access."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "village",
+          "smithy"
+        ],
+        "played": [
+          "village",
+          "smithy",
+          "peddler"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 5
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-start-2",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-guardian-start-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-healer-start-3",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 2,
+              "row": 9
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 trashed Copper, played the full Village-Smithy-Peddler chain, bought Gold, and claimed west-south with the druid.",
+      "reasoning": "The Copper trash does not cost the Gold buy after the engine draw chain, so P2 improves deck quality while opening on a durable income posture rather than racing the northeast fight."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "blast",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "blast"
+        ],
+        "bought": [
+          "zap"
+        ],
+        "produced": {
+          "damage": 2
+        },
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "zap"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 9,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 10,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 10,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 thinned a Copper, bought Zap, and used the high-move rush units to seize center-north, center-south, and east.",
+      "reasoning": "Trashing one Copper did not stop Blast from producing board damage, and Zap is the best rush buy at three money because it cycles while adding repeatable attack pressure."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "village",
+          "peddler",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "village",
+          "peddler",
+          "smithy"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-start-2",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-guardian-start-1",
+            "from": {
+              "col": 2,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-healer-start-3",
+            "from": {
+              "col": 3,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 2,
+              "row": 9
+            },
+            "to": {
+              "col": 4,
+              "row": 9
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 trashed another Copper, chained Village into Peddler and Smithy, bought Gold, and advanced as a compact support block.",
+      "reasoning": "The engine line preserves a Gold buy while thinning; the board line does not yet win back a center, but it creates a protected contesting front for the next cycle."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "gold",
+          "zap"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 6,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-recruit-1",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-start-1",
+            "target": "P2-druid-start-2",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-raider-start-3",
+            "target": "P2-druid-start-2",
+            "damage": 4,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 trashed Copper, bought Gold, killed P2’s druid with a two-raider collapse, captured southeast, and recruited another raider.",
+      "reasoning": "The rush plan prioritizes converting the center lead into unit advantage; spending Zap damage on the druid removes P2’s best durable support unit before the engine can stabilize."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "gold"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-1",
+            "from": {
+              "col": 4,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 4,
+              "row": 9
+            },
+            "to": {
+              "col": 6,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-healer-start-3",
+            "from": {
+              "col": 4,
+              "row": 8
+            },
+            "to": {
+              "col": 5,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-druid-recruit-1",
+            "type": "druid",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-start-1",
+            "target": "P1-raider-start-3",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-marksman-start-4",
+            "target": "P1-scout-start-2",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 thinned a Copper, bought another Gold, wounded P1’s central raider and southeast scout, and recruited a replacement druid.",
+      "reasoning": "The engine player cannot yet undo P1’s center lead, so the best response is to keep scaling the deck while using the support block to reduce rush-unit staying power."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "blast",
+          "zap",
+          "copper",
+          "gold"
+        ],
+        "played": [
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "damage": 3
+        },
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "storm"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 6,
+              "row": 4
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-recruit-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-recruit-2",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-recruit-1",
+            "type": "scout",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-start-1",
+            "target": "P2-guardian-start-1",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-raider-start-3",
+            "target": "P2-guardian-start-1",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-guardian-start-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-scout-start-2",
+            "target": "P2-marksman-start-4",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 trashed Copper, bought Storm, killed the guardian, captured center, wounded the marksman, and recruited two more rush units.",
+      "reasoning": "The priority is removing P2’s durable blocker while the center economy is peaking; spending supply immediately pushes the unit-count plan instead of saving for later."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "smithy",
+          "copper",
+          "village",
+          "gold"
+        ],
+        "played": [
+          "village",
+          "peddler",
+          "smithy"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 9
+        },
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-recruit-1",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-start-4",
+            "target": "P1-scout-start-2",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [
+          {
+            "target": "P2-marksman-start-4",
+            "amount": 1,
+            "source": "unit",
+            "healer": "P2-healer-start-3"
+          }
+        ],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 trashed the last Copper in hand, ran the engine chain, bought Village, killed the damaged scout, and healed the marksman.",
+      "reasoning": "The engine has enough Gold, so Village is the tactical buy; killing the scout reduces P1’s unit lead before it can become a confirmed win threat."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "zap",
+          "gold",
+          "copper",
+          "copper",
+          "silver"
+        ],
+        "played": [
+          "zap",
+          "blast"
+        ],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 3
+        },
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "storm"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 5,
+              "row": 5
+            },
+            "to": {
+              "col": 5,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 6,
+              "row": 6
+            },
+            "to": {
+              "col": 6,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-raider-recruit-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-recruit-2",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-recruit-1",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-recruit-3",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-start-1",
+            "target": "P2-healer-start-3",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-raider-start-3",
+            "target": "P2-marksman-start-4",
+            "damage": 6,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-druid-recruit-1",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 trashed Copper, chained Zap into Blast, bought Storm, killed P2’s healer and marksman, wounded the druid, and recruited another raider.",
+      "reasoning": "This is the rush conversion turn: P1 spends the damage burst on removing support units and uses six-center income to keep the unit-count pressure climbing."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "village",
+          "copper",
+          "copper",
+          "gold",
+          "gold"
+        ],
+        "played": [
+          "village",
+          "smithy",
+          "peddler",
+          "village"
+        ],
+        "bought": [
+          "inferno"
+        ],
+        "produced": {
+          "money": 7
+        },
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "inferno"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-recruit-1",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-recruit-1",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-druid-recruit-1",
+            "target": "P1-raider-start-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 trashed Copper, ran a full engine turn, bought Inferno, wounded a forward raider, and recruited a mobile raider.",
+      "reasoning": "The engine is now pivoting into interaction; Inferno gives future board damage, while the raider recruit is the fastest available way to contest P1’s widening unit lead."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "zap",
+          "copper",
+          "gold",
+          "storm"
+        ],
+        "played": [
+          "zap",
+          "storm"
+        ],
+        "bought": [
+          "inferno"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 3,
+          "stormTargets": 2
+        },
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "inferno"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-recruit-1",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-recruit-2",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-recruit-1",
+            "from": {
+              "col": 9,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-raider-recruit-3",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 6,
+              "row": 7
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 5,
+              "row": 6
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-recruit-4",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-start-1",
+            "target": "P2-druid-recruit-1",
+            "damage": 5,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [
+        {
+          "type": "unitLead",
+          "status": "created",
+          "player": "P1",
+          "completedTurns": 10,
+          "playerUnits": 7,
+          "opponentUnits": 2,
+          "playerCenters": 6,
+          "opponentCenters": 1
+        }
+      ],
+      "summary": "P1 trashed Copper, chained Zap into Storm, bought Inferno, killed the druid, captured northwest, and recruited another raider.",
+      "reasoning": "P1 is maximizing the rush win path: more centers, more units, and enough damage density that P2 must immediately clear a large unit-lead threat or lose on the next P1 start."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "gold",
+          "peddler",
+          "inferno",
+          "gold"
+        ],
+        "played": [
+          "peddler",
+          "inferno"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 4
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-recruit-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-raider-recruit-1",
+            "target": "P1-raider-start-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 played Peddler into Inferno, bought Village, and used the lone raider to kill one damaged P1 raider.",
+      "reasoning": "This is the best available survival line, but the Inferno damage is bottlenecked by having only one attacker; P2 cannot clear the pending unit-lead threat this turn."
+    }
+  ],
+  "terminalWinEvents": [
+    {
+      "type": "unitLead",
+      "status": "confirmed",
+      "player": "P1",
+      "completedTurns": 12,
+      "playerUnits": 7,
+      "opponentUnits": 1,
+      "playerCenters": 7,
+      "opponentCenters": 1
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "id": "turn-005",
+  "player": "P1",
+  "round": 3,
+  "play": ["zap", "bandage"],
+  "buy": "blast",
+  "moves": [
+    { "id": "P1-raider-1", "to": [5, 3] },
+    { "id": "P1-scout-1", "to": [8, 6] },
+    { "id": "P1-marksman-1", "to": [8, 0] },
+    { "id": "P1-guardian-1", "to": [8, 2] }
+  ],
+  "attacks": [
+    { "attacker": "P1-scout-1", "target": "P2-scout-2", "bonus": 1 }
+  ],
+  "recruits": [
+    { "type": "raider", "id": "P1-raider-2", "at": [10, 1] }
+  ],
+  "summary": "P1 took center-north and east, pinged P2's forward scout, and recruited a raider.",
+  "reasoning": "This was the first rush payoff turn: P1 converted early center income into a raider and used Zap's damage only through the scout's legal range attack. Bandage healing again expired without a damaged friendly target."
+}

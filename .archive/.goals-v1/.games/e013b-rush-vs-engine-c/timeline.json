@@ -1,0 +1,1060 @@
+{
+  "schemaVersion": 1,
+  "title": "E013b rush-vs-engine C contest replay",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Bandage",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Zap"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 opened with cantrip damage and sent the raider directly to the northeast center while the scout shaded toward the east lane.",
+      "reasoning": "No legal attack existed, so the deck damage expired. P1 prioritized reach and center tempo over a protected formation."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Peddler",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Peddler"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 used the first engine hand for economy and moved scouts toward west-south and center-south rather than chasing the northeast race.",
+      "reasoning": "The P2 plan needed a second lane. The druid stayed screened while scouts took paths toward the relocated southern centers."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Rest"
+        ],
+        "played": [
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 flipped the east center with the scout and kept the raider posted on the northeast approach.",
+      "reasoning": "P1 could not yet recruit under cost 6, but a two-center start set up the turn-5 pressure buy."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Rest"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 took center-south and kept the druid behind the scout line.",
+      "reasoning": "The heal was unused, but the center-south claim kept P1 from turning the east lane into an uncontested income ramp."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Silver",
+          "Copper",
+          "Copper",
+          "Bandage"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 reached center-north and recruited Raider-2 as the first pressure reinforcement.",
+      "reasoning": "P1 accepted delayed recruitment for a stronger card buy. Damage again expired because P2 kept outside clean attack contact."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Peddler",
+          "Silver",
+          "Copper",
+          "Rest"
+        ],
+        "played": [
+          "Village",
+          "Peddler"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 bought Gold and recruited Guardian-2 to anchor the southeast contest.",
+      "reasoning": "P2 chose durable stabilization over a race unit. The guardian entered delayed at home and would need a full turn before affecting combat."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Zap",
+          "Silver",
+          "Copper",
+          "Rest"
+        ],
+        "played": [
+          "Zap",
+          "Blast"
+        ],
+        "bought": [
+          "Training"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 3,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 pressed into the central hex and recruited Scout-2 for future flips.",
+      "reasoning": "One deck damage was attached to the marksman attack on P2 Scout-2; the rest expired under the per-attacker cap and lack of additional legal attacks."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Bandage",
+          "Silver",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Bandage"
+        ],
+        "bought": [
+          "Peddler"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 1,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 healed Scout-2 and recruited Healer-1, keeping the southeast body alive.",
+      "reasoning": "The first healing payoff mattered: P1 had wounded the southeast scout but could not finish it before P2 support arrived."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Training",
+          "Zap",
+          "Copper",
+          "Silver",
+          "Copper"
+        ],
+        "played": [
+          "Training",
+          "Zap"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 upgraded Raider-1 and brought Marksman-2 into the northeast lane.",
+      "reasoning": "The attack upgrade went on the forward raider to threaten kills through P2 healing. P1 also took northwest, briefly reaching five centers."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Gold",
+          "Village",
+          "Peddler",
+          "Copper",
+          "Potion"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Potion"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 used potion healing to preserve Scout-2 and flipped east back with Guardian-2.",
+      "reasoning": "The engine hand gave P2 both a useful buy and enough healing to deny P1 the first clean kill."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Blast",
+          "Zap",
+          "Training",
+          "Silver",
+          "Copper"
+        ],
+        "played": [
+          "Training",
+          "Zap",
+          "Blast"
+        ],
+        "bought": [
+          "Second Wind"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 3,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 killed P2 Scout-2 and recruited Raider-3, creating the first serious unit-count pressure.",
+      "reasoning": "Damage was attached to three legal attacks, capped at one per attacker. P2 dropped to six units, but P1 did not have a start-of-turn lead-4 threat."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Gold",
+          "Healer",
+          "Peddler",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Healer"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 4,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 recruited Druid-2 and killed P1 Scout-1 with the guardian-markman counterattack.",
+      "reasoning": "The response restored parity at seven units each and showed why the relocated east/southeast cluster matters: P2 could answer without abandoning center-south."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "Second Wind",
+          "Blast",
+          "Zap",
+          "Silver",
+          "Copper"
+        ],
+        "played": [
+          "Second Wind",
+          "Zap",
+          "Blast"
+        ],
+        "bought": [
+          "Storm"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 3,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "summary": "P1 used reattack pressure to kill Healer-1 and recruited Scout-3.",
+      "reasoning": "The reattack stayed on Raider-1, and the one-damage cap still applied to that unit across both attacks. P1 was ahead again but not yet by four at a start check."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "Armory",
+          "Village",
+          "Gold",
+          "Potion",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Potion",
+          "Armory"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 2,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "summary": "P2 upgraded Guardian-2, recruited Guardian-3, and killed P1 Raider-2.",
+      "reasoning": "P2 chose the durability line. The upgraded guardian became the east anchor that P1 would struggle to remove cleanly."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "Storm",
+          "Blast",
+          "Zap",
+          "Training",
+          "Copper"
+        ],
+        "played": [
+          "Training",
+          "Zap",
+          "Blast",
+          "Storm"
+        ],
+        "bought": [
+          "Inferno"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 5,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "summary": "P1 stormed the east cluster, killed P2 Scout-1, and recruited Marksman-3.",
+      "reasoning": "Storm used one original legal target plus one adjacent occupied target; base attack applied only to the original. P1 ended at eight units to six but still had no pending threat from start of turn."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Peddler",
+          "Healer",
+          "Gold",
+          "Silver"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Healer"
+        ],
+        "bought": [
+          "Storm"
+        ],
+        "produced": {
+          "money": 6,
+          "damage": 0,
+          "heal": 4,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "summary": "P2 recruited Healer-2 and Scout-3, then killed P1 Marksman-1 to erase the looming lead.",
+      "reasoning": "P2 spent the engine economy on bodies instead of another slow buy. Counts moved to P1 seven and P2 eight, clearing any near-term rush clock."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "Inferno",
+          "Blast",
+          "Zap",
+          "Training",
+          "Silver"
+        ],
+        "played": [
+          "Training",
+          "Zap",
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 7,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "summary": "P1 killed Healer-2 and recruited Raider-4, briefly regaining the initiative.",
+      "reasoning": "The high-damage hand still mattered, but excess damage expired because only four ready attackers had legal assignments."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "Storm",
+          "Village",
+          "Gold",
+          "Potion",
+          "Armory"
+        ],
+        "played": [
+          "Village",
+          "Potion",
+          "Armory",
+          "Storm"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 2,
+          "heal": 2,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "summary": "P2 recruited Druid-3 and Guardian-4, killed P1 Scout-3, and retook center with the guardian screen.",
+      "reasoning": "This was the stabilization turn: healing and an Armory upgrade kept Guardian-2 alive while two recruits pushed P2 ahead on unit count."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "Storm",
+          "Blast",
+          "Zap",
+          "Second Wind",
+          "Copper"
+        ],
+        "played": [
+          "Second Wind",
+          "Zap",
+          "Blast",
+          "Storm"
+        ],
+        "bought": [
+          "Training"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 5,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "summary": "P1 answered by killing Scout-3 and recruiting Scout-4, but could not crack Guardian-2.",
+      "reasoning": "P1 used storm to splash damage across adjacent east defenders. The upgraded guardian survived, preventing a wider collapse."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Peddler",
+          "Healer",
+          "Storm",
+          "Gold"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Healer",
+          "Storm"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 2,
+          "heal": 4,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "summary": "P2 engine-healing came fully online, killing Raider-1 and Scout-4 while adding Healer-3 and Guardian-5.",
+      "reasoning": "This was the decisive swing. P2 used storm conservatively with damage attached to legal attacks, then flipped the east/southeast cluster to five centers."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "Inferno",
+          "Blast",
+          "Zap",
+          "Training",
+          "Silver"
+        ],
+        "played": [
+          "Training",
+          "Zap",
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [
+          "Zap"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 7,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "summary": "P1 recruited Marksman-4 and killed Healer-3, but the rush line had lost its center lock.",
+      "reasoning": "P1 converted the damage hand into a support-unit kill. That improved counts to seven against nine, still short of clearing P2 board control."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "Armory",
+          "Village",
+          "Gold",
+          "Healer",
+          "Peddler"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Healer",
+          "Armory"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 4,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "summary": "P2 recruited Druid-4 and killed Raider-3, stretching the lead back to four bodies.",
+      "reasoning": "No P2 pending threat existed at the start because the lead was only two, but the board after combat forced P1 into emergency response play."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "Storm",
+          "Blast",
+          "Zap",
+          "Second Wind",
+          "Copper"
+        ],
+        "played": [
+          "Second Wind",
+          "Zap",
+          "Blast",
+          "Storm"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 5,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "summary": "P1 recruited Raider-5 and wounded Guardian-5, but no P2 unit died.",
+      "reasoning": "The response damage was spread across durable targets. P1 improved to seven units, leaving P2 ahead by three going into turn 24."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "Village",
+          "Gold",
+          "Peddler",
+          "Potion",
+          "Storm"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Potion",
+          "Storm"
+        ],
+        "bought": [
+          "Healer"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 2,
+          "heal": 2,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "summary": "P2 recruited Guardian-6 and Marksman-2, killed Scout-2, and fully stabilized the southeast front.",
+      "reasoning": "P2 started with only a three-unit lead, so no pending threat was created yet. The two-recruit turn came from the five-center economy and stored supply."
+    },
+    {
+      "id": "turn-025",
+      "player": "P1",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-025.before.deck.json",
+        "after": "snapshots/turn-025.after.deck.json",
+        "drawnHand": [
+          "Inferno",
+          "Blast",
+          "Zap",
+          "Training",
+          "Silver"
+        ],
+        "played": [
+          "Training",
+          "Zap",
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [
+          "Second Wind"
+        ],
+        "produced": {
+          "money": 2,
+          "damage": 7,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 1,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-025.before.board.json",
+        "after": "snapshots/turn-025.after.board.json"
+      },
+      "summary": "P1 recruited Scout-5 and badly wounded P2 Marksman-1, but still left P2 with an 11 to 7 unit lead.",
+      "reasoning": "This set up the decisive response-window moment: P2 would begin turn 26 with exactly a four-unit lead. P1 chose the safer recruit line but could not finish a P2 body through the guardian screen."
+    },
+    {
+      "id": "turn-026",
+      "player": "P2",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-026.before.deck.json",
+        "after": "snapshots/turn-026.after.deck.json",
+        "drawnHand": [
+          "Armory",
+          "Village",
+          "Healer",
+          "Gold",
+          "Peddler"
+        ],
+        "played": [
+          "Village",
+          "Peddler",
+          "Healer",
+          "Armory"
+        ],
+        "bought": [
+          "Armory"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 4,
+          "upgradeHealth": 2,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-026.before.board.json",
+        "after": "snapshots/turn-026.after.board.json"
+      },
+      "summary": "P2 recorded a pending lead-4 threat, recruited Healer-4, and killed P1 Guardian-1.",
+      "reasoning": "Pending P2 lead-4 threat created at the start of turn 26 with counts 11 to 7. P1 needed to reduce the lead below four on turn 27."
+    },
+    {
+      "id": "turn-027",
+      "player": "P1",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-027.before.deck.json",
+        "after": "snapshots/turn-027.after.deck.json",
+        "drawnHand": [
+          "Storm",
+          "Blast",
+          "Zap",
+          "Second Wind",
+          "Copper"
+        ],
+        "played": [
+          "Second Wind",
+          "Zap",
+          "Blast",
+          "Storm"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 5,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 1,
+          "stormTargets": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-027.before.board.json",
+        "after": "snapshots/turn-027.after.board.json"
+      },
+      "summary": "P1 spent the response turn recruiting Marksman-5 and focusing Guardian-5, but no P2 unit died.",
+      "reasoning": "Response turn to P2 pending lead-4. P1 rose to seven units, but P2 stayed at twelve; the lead remained five, so P2 confirms at the start of turn 28."
+    }
+  ]
+}

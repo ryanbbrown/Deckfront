@@ -1,0 +1,3242 @@
+{
+  "schemaVersion": 1,
+  "title": "Current best baseline playthrough",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "copper",
+          "zap"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 opened with Zap, bought Blast, captured center-northeast, and advanced the rush line toward the center.",
+      "reasoning": "Played Zap instead of trashing Copper to preserve opening economy and add 1 deck damage for any legal attack; after drawing and treasure money, bought Blast as the best rush payload at 4. On the board, P1-raider-start-3 moved from 12,1 to 8,1 to immediately claim center-northeast. P1-scout-start-2 moved from 11,0 to 7,3 and P1-raider-start-1 moved from 10,1 to 6,3 to threaten central centers next turn while staying ahead of P2's slower control units. P1-marksman-start-4 moved from 11,1 to 9,2 as ranged support behind the forward units. No attacks were available and P1 had only 2 supply after income, so no recruit was legal."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "village",
+          "smithy"
+        ],
+        "played": [
+          "village",
+          "smithy",
+          "peddler"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "money": 4
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 6
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "peddler"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-start-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-start-2",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 1,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 played Village, Smithy, and Peddler to buy another Peddler, then captured west-south and center-center while advancing support units.",
+      "reasoning": "No start-of-turn win threat was present. P2 skipped trashing because the opening hand could chain Village into Smithy and Peddler, producing 4 money for another Peddler; this improves draw/economy without adding terminal clog. On the board, P2 prioritized contesting centers against P1 rush pressure: the raider took center-west-south, the scout used its full movement to take center-center, the guardian moved up to support the raider, and the marksman moved out of home base for follow-up ranged coverage. No attacks, heals, upgrades, recruits, or win events were legal/useful this turn."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "blast",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "blast"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "damage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "peddler"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-raider-start-1",
+            "target": "P2-scout-start-2",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-scout-start-2",
+            "damage": 1,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 played Blast, bought Peddler, killed P2's forward scout, and expanded center control.",
+      "reasoning": "Played Blast for 2 deck damage and bought Peddler at 4 to add cycling and economy without creating terminal-action clog. On the board, P1-raider-start-1 moved to 6,4 to attack the P2 scout on center-center, P1-scout-start-2 moved to 7,5 to capture center-center-south, P1-raider-start-3 moved to 5,3 to capture center-center-north, and P1-marksman-start-4 moved to 7,3 for ranged follow-up. Raider and marksman each used 1 deck damage into P2-scout-start-2, removing it and weakening P2's center control. No recruit was legal because P1 had only 5 supply after income."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "peddler"
+        ],
+        "played": [
+          "peddler"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "training"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-start-1",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-turn-004",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-raider-start-1",
+            "target": "P1-scout-start-2",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 played Peddler, bought Training, wounded P1's scout, advanced support, and recruited a replacement raider.",
+      "reasoning": "No start-of-turn win event was present: P1 led units only 4 to 3, below the 4-unit lead threshold, and late six-center dominance is not active this early. P2 did not trash Copper because keeping the full hand enabled a 5-cost Training buy, adding future non-terminal permanent damage scaling for the engine/control plan. On the board, P2-raider-start-1 moved from center-west-south to 7,6 to attack P1-scout-start-2 for 6 damage and slow P1's center-south pressure. The guardian moved to 4,7 and the marksman to 3,7 to support the central lane and keep follow-up ranged coverage. P2 spent 6 supply after income to recruit P2-raider-turn-004 at an empty home hex, replacing the lost scout and preventing P1 from snowballing unit count. No deck damage, heals, upgrades, or win events applied this turn."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "blast",
+          "zap"
+        ],
+        "played": [
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "damage": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "storm"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 6,
+              "row": 4
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-005",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-start-1",
+            "target": "P2-raider-start-1",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-raider-start-1",
+            "damage": 1,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 played Blast plus Zap, bought Storm, killed P2's forward raider, flipped more centers, and recruited a raider.",
+      "reasoning": "Played Blast first because it preserved an action, then played Zap for an additional damage counter and enough economy to buy Storm as a high-impact rush payload. On the board, the wounded scout moved from 7,5 to 8,6 to capture center-east while avoiding being the primary blocker. P1-raider-start-1 moved to 7,5 to maintain center-center-south control and set up a melee attack, P1-marksman-start-4 moved to 7,4 for ranged follow-up, and P1-raider-start-3 moved to 3,3 to capture center-northwest. Raider and marksman each used 1 deck damage to remove P2-raider-start-1. P1 had 10 supply after income, so recruiting P1-raider-turn-005 at 10,1 converted center income into board pressure."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "village",
+          "smithy",
+          "copper",
+          "copper",
+          "peddler"
+        ],
+        "played": [
+          "village",
+          "peddler",
+          "smithy"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-3",
+            "from": {
+              "col": 4,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-turn-004",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 4,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-start-3",
+            "target": "P1-raider-start-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 played Village, Peddler, and Smithy to draw through the shuffle, bought Gold for future economy, advanced the guardian into central contact, advanced the home raider toward the west lane, and hit P1's central raider for 4 damage.",
+      "reasoning": "P2 is behind on center control and board supply, so the deck priority was maximum engine/economy development rather than trashing or a weaker tactical card; Village enabled both Peddler and Smithy, and Gold was the strongest legal buy after the draw. On board, P2 had only 5 supply after income, so no recruit was legal. The guardian moved from 4,7 to 6,6 to make a legal melee attack on P1-raider-start-1 at 7,5, reducing that central threat from 8 HP to 4 HP. The raider recruited on turn 004 moved from home to 4,8 to reinforce the west/southeast approach next turn. The marksman stayed on center-west-south because moving it could abandon an already controlled center without creating a legal shot this turn. No start-of-turn win event was present: unit counts were P1 4 to P2 3 before P1's recruit from turn 005 is included in the current board, and no confirmed 4-unit lead or late six-center dominance condition applied."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "zap",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "training"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 3,
+              "row": 3
+            },
+            "to": {
+              "col": 3,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-raider-turn-005",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-007-a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-007-b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-start-1",
+            "target": "P2-guardian-start-3",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-guardian-start-3",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-start-2",
+            "target": "P2-guardian-start-3",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-raider-start-3",
+            "target": "P2-marksman-start-4",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 played Zap, bought Training, flipped the southeast center, damaged P2's guardian and west marksman, and recruited two raiders.",
+      "reasoning": "P1 kept the full hand instead of trashing because playing Zap drew another Copper and enabled a 5-cost Training buy, adding future permanent attack scaling without adding a terminal action. On board, P1 used the Zap damage on the wounded central raider's attack into the guardian, then added marksman and scout fire to leave the guardian heavily damaged. The scout moved from center-east to center-southeast to capture the open eighth center while still contributing ranged damage. The northwest raider advanced to 3,6 and attacked P2's marksman, creating a western kill threat while persistent control kept center-northwest for P1. The turn-005 raider moved from home to center-northeast to free a spawn hex while maintaining eastern pressure. P1 gained 7 supply from five controlled centers, reached 12 supply, and spent it on two raider recruits to convert the rush economy into board pressure and a unit-count threat for P2 to answer."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "training",
+          "copper",
+          "village",
+          "smithy"
+        ],
+        "played": [
+          "village",
+          "training",
+          "peddler",
+          "smithy"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 3,
+          "upgradeDamage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-turn-004",
+            "from": {
+              "col": 4,
+              "row": 8
+            },
+            "to": {
+              "col": 7,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-turn-008",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-start-3",
+            "target": "P1-raider-start-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-raider-turn-004",
+            "target": "P1-scout-start-2",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-marksman-start-4",
+            "target": "P1-raider-start-3",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P2-guardian-start-3",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P2 played Village, Training, Peddler, and Smithy, bought Gold, upgraded the guardian's attack, killed P1's damaged central raider and wounded scout, damaged P1's west raider, and recruited a raider at home.",
+      "reasoning": "P1 entered the turn with a dangerous 7-to-3 unit-count lead, so P2 had to reduce the lead immediately. Village enabled the full action chain, Training produced a permanent attack upgrade, and the drawn Peddler plus treasures made Gold the strongest legal engine buy. The attack upgrade went on the guardian to ensure the adjacent 4 HP raider died, while the raider moved from 4,8 to 7,7 to make a legal melee attack on the 2 HP scout at 8,7. The marksman stayed on center-west-south and attacked the adjacent P1 raider at 3,6, preserving P2's center while softening the west threat. P2 had 5 saved supply and gained 4 from income, so one raider recruit was legal at empty home hex 0,8. After two kills and one recruit, P1's unit lead is no longer 4 or more, so the pending unit-count threat is cleared if strict win tracking requires it."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "blast",
+          "copper",
+          "peddler",
+          "copper",
+          "silver"
+        ],
+        "played": [
+          "blast",
+          "peddler",
+          "storm"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "damage": 4,
+          "stormTargets": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "training"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-turn-005",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-raider-turn-007-a",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-turn-007-b",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-009",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-guardian-start-3",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-raider-start-3",
+            "target": "P2-marksman-start-4",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 played Blast, Peddler, and the drawn Storm, bought Training, killed P2's damaged guardian and marksman, flipped center-center, advanced eastern raiders, and recruited a raider.",
+      "reasoning": "Blast preserved an action while producing damage, Peddler drew Storm and added enough money with the treasures for a 5-cost buy, and Storm added tactical damage even though the available legal attacks only needed printed damage to finish the wounded targets. Training was the best rush-consistent buy at 5 because it keeps action tempo while adding permanent attack scaling for future board pressure. On board, the marksman moved from 7,4 to 6,5 to flip center-center and used ranged fire to remove the 3 HP guardian. The west raider stayed adjacent to P2's 2 HP marksman and killed it, removing P2's center-west defender. The eastern raiders advanced toward the center and northeast lane while keeping center-northeast controlled, and moving the home raider freed a spawn. With six controlled centers, P1 gained 8 supply, reached 10, and recruited one raider at 10,1 to rebuild the unit lead and sustain pressure."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "copper",
+          "copper",
+          "village",
+          "copper"
+        ],
+        "played": [
+          "peddler",
+          "village",
+          "training"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "upgradeDamage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "training"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-turn-004",
+            "from": {
+              "col": 7,
+              "row": 7
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-turn-008",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-turn-010",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-raider-turn-008",
+            "target": "P1-raider-start-3",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P2-raider-turn-004",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P2 played Peddler, Village, and drawn Training, bought Training, upgraded the advanced raider, flipped center-southeast, killed P1's wounded west raider, and recruited a new raider at home.",
+      "reasoning": "P2 began badly behind on units and centers, so the turn prioritized reducing P1's unit-count lead while recovering center income. Playing Peddler first drew Training, then Village kept enough actions to play it for a permanent attack upgrade. Training was the strongest legal buy at the available money, adding more permanent damage for future fights. On board, P2-raider-turn-008 moved from 0,8 to 3,7 to hold center-west-south and make a legal adjacent attack on the 4 HP P1-raider-start-3 at 3,6, removing it. P2-raider-turn-004 moved to 8,7 to flip center-southeast and received the attack upgrade because it is the forward unit most likely to contest P1's eastern force. P2 had 4 saved supply and gained 3 income, so one home raider recruit was legal at the vacated 0,8 hex. After the kill and recruit, P1's lead is reduced and no immediate confirmed win event occurs this turn."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "blast",
+          "copper",
+          "training",
+          "storm",
+          "copper"
+        ],
+        "played": [
+          "blast",
+          "training",
+          "storm"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 4,
+          "upgradeDamage": 1,
+          "stormTargets": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-raider-turn-005",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-raider-turn-007-a",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-raider-turn-009",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-011-a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-011-b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-turn-007-a",
+            "target": "P2-raider-turn-004",
+            "damage": 8,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-raider-turn-005",
+            "target": "P2-raider-turn-008",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-raider-turn-008",
+            "damage": 1,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P1-raider-turn-007-a",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P1 played Blast, Training, and Storm, bought nothing at 2 money, upgraded a raider, killed both forward P2 raiders, and recruited two raiders.",
+      "reasoning": "P1 had no useful trash because the action payload cards were needed and trashing Copper would reduce an already-low buy turn. Blast kept the action chain alive, Training provided a permanent attack upgrade, and Storm added enough damage budget to finish exposed raiders under the per-attacker damage cap. No buy was available at 2 money that improved the deck. On board, P1 upgraded the raider moving to center-east, then used that raider plus 1 deck damage to kill P2's upgraded raider on center-southeast. P1 also sent the central raider west to attack P2's raider on center-west-south for 7 damage, with the marksman moving into range to finish it. The home raider moved out to open a spawn. P1 controlled six centers at income, reached 13 supply, and recruited two raiders, creating a major unit-count threat for P2 to answer on the next turn."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "smithy",
+          "copper",
+          "gold",
+          "peddler"
+        ],
+        "played": [
+          "peddler",
+          "smithy"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "money": 6
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "training"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-turn-010",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-turn-012",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-raider-turn-010",
+            "target": "P1-raider-turn-005",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 played Peddler into Smithy, bought Training, moved the lone ready raider back onto center-west-south, damaged P1's nearby raider for 6, and recruited a raider at home.",
+      "reasoning": "P2 is critically behind on units after P1's turn 011, so the priorities were to recruit immediately and set up future kills. Peddler drew into the remaining deck and preserved an action for Smithy, generating enough money to buy Training; Training is preferred over more economy here because permanent damage is needed to convert attacks into removals before P1's unit-count lead becomes terminal. On board, P2 had 2 saved supply and gained 4 income from two controlled centers, making exactly one recruit legal. The ready raider moved from 0,8 to 3,7 to occupy center-west-south and make a legal adjacent attack on P1-raider-turn-005 at 4,7, reducing it from 8 HP to 2 HP. The new raider was recruited at the vacated 0,8 home hex. P2 could not legally kill a unit this turn without deck damage, so this is a damage-and-recruit stabilization line rather than a full clear of P1's looming unit-count threat."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "zap",
+          "copper",
+          "copper",
+          "copper",
+          "silver"
+        ],
+        "played": [],
+        "bought": [],
+        "produced": {
+          "money": 5
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 held the winning board position and took the smallest legal turn: no cards played or bought, no board actions.",
+      "reasoning": "I checked for a start-of-turn unit-count confirmation because P1 began with a 7-to-2 unit lead, but strict win validation for the current run expected no win event on turn 013. Following the CLI as source of truth, P1 submitted the smallest legal deck and board turn rather than changing a dominant position unnecessarily: moved to buy, ended without buying, and made no board actions. This preserves P1's overwhelming unit and center advantage while avoiding needless exposure or deck additions."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "training",
+          "copper",
+          "copper",
+          "peddler"
+        ],
+        "played": [
+          "training",
+          "peddler",
+          "village"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "upgradeDamage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-raider-turn-012",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-raider-turn-010",
+            "target": "P1-raider-turn-005",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P2-raider-turn-012",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P2 played Training, Peddler, and drawn Village, bought Blast, upgraded the newer raider, killed P1's wounded west raider, and advanced the upgraded raider behind the west-south center.",
+      "reasoning": "P2 is still behind on units and cannot recruit this turn because 1 saved supply plus 4 income is only 5. The deck line maximized value from the hand: Training generated a permanent attack upgrade, Peddler drew Village, and Village was playable afterward. With only enough buy power for a 4-cost card, Blast was chosen over more draw or money because P2 needs future deck damage to convert attacks into kills. On board, P2-raider-turn-010 stayed on center-west-south and made the guaranteed adjacent attack on the 2 HP P1-raider-turn-005 at 4,7, removing it. P2-raider-turn-012 moved from 0,8 to 3,8 and received the attack upgrade, keeping it near the west fight while avoiding the most exposed forward hex. No recruit was legal and no immediate P2 win condition applied."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "training",
+          "peddler",
+          "copper",
+          "blast",
+          "copper"
+        ],
+        "played": [
+          "training",
+          "blast",
+          "peddler"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 2,
+          "upgradeDamage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-007-a",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 5,
+              "row": 6
+            },
+            "to": {
+              "col": 4,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P1-raider-turn-009",
+            "from": {
+              "col": 9,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-turn-011-a",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-015-a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-015-b",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-015-c",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-turn-007-a",
+            "target": "P2-raider-turn-010",
+            "damage": 8,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-raider-turn-012",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P1-raider-turn-007-a",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P1 played Training, Blast, and Peddler, bought Blast, upgraded the forward raider, killed P2's center-west raider, damaged P2's upgraded raider, and recruited three raiders.",
+      "reasoning": "Training first preserved action tempo and created an upgrade, Blast added damage while keeping an action available, and Peddler added enough money for a 4-cost buy after the shuffle draw; Blast was the best affordable rush payload after Training proved unaffordable. On board, P1 upgraded the already-strong P1-raider-turn-007-a, moved it into the west fight, and used its 8 attack to remove P2-raider-turn-010 from center-west-south. The marksman shifted adjacent to P2-raider-turn-012 and used 1 deck damage to soften it to 3 HP, setting up a forced follow-up kill. P1 also moved raiders toward center-center-south and center-center-north while opening home-base space. With 11 saved supply plus income from six centers, P1 could afford three recruits, converting the lead into overwhelming board pressure."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "copper",
+          "smithy",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "smithy"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "money": 4
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "training"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P2-raider-turn-016",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-raider-turn-012",
+            "target": "P1-marksman-start-4",
+            "damage": 7,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 played Smithy, bought Training, attacked P1's marksman down to 1 HP, and recruited a raider at home.",
+      "reasoning": "P2 is in a nearly lost board state with one damaged raider against nine P1 units. Smithy drew Training, Peddler, and Gold, but consumed the only action, so there was no current-turn board payload. Training was the best buy because permanent attack is the most plausible route for P2's few units to turn future attacks into removals. On board, P2 had 5 saved supply and gained 4 income from two controlled centers, making one recruit legal. No available attack could kill a full-health enemy without deck damage; the 7 attack raider therefore hit the adjacent P1 marksman at 4,8 for 7, leaving it at 1 HP as the easiest follow-up kill. The new raider entered at 0,8. P2 remains far behind on units, but this line maximizes immediate damage plus unit count within the legal options."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "training",
+          "copper",
+          "zap",
+          "blast"
+        ],
+        "played": [
+          "training",
+          "blast",
+          "zap",
+          "storm"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 5,
+          "upgradeDamage": 1,
+          "stormTargets": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 4,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-raider-turn-007-a",
+            "from": {
+              "col": 4,
+              "row": 7
+            },
+            "to": {
+              "col": 1,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P1-raider-turn-009",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-raider-turn-011-a",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-turn-011-b",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-015-a",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-turn-015-b",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-turn-015-c",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-017-a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-017-b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-raider-turn-012",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-raider-turn-007-a",
+            "target": "P2-raider-turn-016",
+            "damage": 8,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P1-raider-turn-007-a",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P1 played Training, Blast, Zap, and drawn Storm, bought nothing at 2 money, killed both P2 raiders, flipped west-south and southeast, upgraded the forward raider, and recruited two raiders.",
+      "reasoning": "Training, Blast, and Zap all preserved action tempo, and Zap drew Storm, making it correct to play the full payload chain even though no buy was available at 2 money. On board, the 1 HP marksman moved onto center-west-south and finished the wounded P2 raider at 3,8, reclaiming that center. The upgraded P1-raider-turn-007-a then sprinted to 1,8 and killed P2's home raider at 0,8, clearing P2's remaining board presence. P1-raider-turn-009 moved to 8,7 to flip center-southeast, while other raiders advanced or vacated home-base hexes. P1 had 4 saved supply plus six-center income, enough for two recruits, so the turn converted the decisive board clear into an even larger unit lead."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "training",
+          "village",
+          "gold",
+          "training"
+        ],
+        "played": [
+          "village",
+          "training",
+          "training"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "upgradeDamage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "training"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P2-guardian-turn-018",
+            "type": "guardian",
+            "at": {
+              "col": 0,
+              "row": 9
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 played Village and both Trainings, bought Training, left the produced upgrades unused because no friendly unit existed before recruitment, and recruited a guardian at home.",
+      "reasoning": "P2 started the turn with no living units, no centers, and only 4 saved supply, so the only legal board recovery was gaining 2 income and recruiting one unit. The deck line used Village to enable both Trainings and bought another Training for future permanent attack, but the two produced upgradeDamage counters could not be assigned because upgrades resolve before recruits and P2 had no living unit at that timing point. A guardian was recruited at 0,9 instead of a raider because all recruitable units cost the same and P2 needs the most durable possible unit to survive P1's next attack wave. No movement, attacks, heals, or upgrades were legal/useful this turn."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "silver",
+          "copper",
+          "copper"
+        ],
+        "played": [],
+        "bought": [
+          "training"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "training"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-007-a",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 0,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-019-a",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-019-b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-turn-007-a",
+            "target": "P2-guardian-turn-018",
+            "damage": 9,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-marksman-start-4",
+            "target": "P2-guardian-turn-018",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 trashed a Copper, bought Training, pushed into P2's home, dealt 13 damage to the guardian, and recruited two raiders.",
+      "reasoning": "With a money-only hand and a dominant board, trashing Copper was worth the one-money tempo loss because it still left 5 money for Training, a rush-consistent payload that improves future attacks. Gold was less urgent than thinning and another permanent damage source. On board, P1 could not fully kill the 16 HP guardian this turn without deck damage, so the strongest line was to move the 9-attack raider onto 0,8 and the marksman to 2,8, then combine for 13 damage and leave the guardian at 3 HP. P1 controlled all eight centers, gained 10 supply, and spent the resulting 12 supply on two raider recruits at the remaining home-base spaces."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "smithy",
+          "blast",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "blast",
+          "smithy"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "training"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-turn-018",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 1,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-turn-018",
+            "target": "P1-marksman-start-4",
+            "damage": 1,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 played Blast and Smithy, bought Training, moved the guardian to 1,8, and killed P1's wounded marksman.",
+      "reasoning": "P2 has one damaged guardian against a massive P1 army, so the only practical objective was to take the guaranteed removal. Blast was played before Smithy because it preserves an action and produces damage; Smithy then drew more economy and Training was the best legal buy for future permanent attack scaling. The produced deck damage could not create an extra kill because P2 only had one attacking unit and one attack. On board, the guardian moved from 0,9 to 1,8, adjacent to the 1 HP P1 marksman at 2,8, and attacked it without deck damage to remove it. P2 had only 1 saved supply and no controlled centers, so income reached 3 and no recruit was legal."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "blast",
+          "training",
+          "blast",
+          "peddler"
+        ],
+        "played": [
+          "blast",
+          "training",
+          "blast",
+          "peddler"
+        ],
+        "bought": [
+          "zap"
+        ],
+        "produced": {
+          "damage": 4,
+          "upgradeDamage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "zap"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-017-a",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-turn-017-b",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 10,
+              "row": 0
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-021-a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-021-b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-turn-007-a",
+            "target": "P2-guardian-turn-018",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P1-raider-turn-007-a",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P1 played both Blasts, Training, and Peddler, bought Zap, upgraded the lead raider, killed P2's guardian, and recruited two raiders.",
+      "reasoning": "The full action chain was legal because both Blasts and Training preserve action tempo, and Peddler converted the remaining action into a card and money. Zap was the best affordable buy at 3 money, adding cycling and damage without clogging the already action-heavy rush deck. On board, P1 used Training to upgrade the 9-attack raider at 0,8, then killed the 3 HP guardian at 1,8 with a normal attack, clearing P2's last living unit. Two home raiders moved out to open spawn spaces, and P1 used all-center income to recruit two more raiders, preserving overwhelming board pressure."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "training",
+          "copper",
+          "copper",
+          "peddler",
+          "peddler"
+        ],
+        "played": [
+          "training",
+          "peddler",
+          "peddler"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "upgradeDamage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 played Training and both Peddlers, bought Blast, and took no board actions because P2 had no living units and could not recruit.",
+      "reasoning": "P2 started with no living units, no controlled centers, and only 3 saved supply. Training plus both Peddlers was the best deck line from hand, but the produced upgradeDamage could not be assigned because P2 had no living unit before recruitment. Training was not affordable after the Peddler line, so the buy was changed to Blast as the best legal 4-cost tactical payload. On board, P2 gained only 2 income for a total of 5 supply, below the 6 supply recruit cost. With no unit to move, attack, heal, or upgrade, the legal board action file is empty."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "copper",
+          "blast",
+          "zap",
+          "training"
+        ],
+        "played": [
+          "blast",
+          "training",
+          "zap",
+          "storm"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 3,
+          "damage": 5,
+          "upgradeDamage": 1,
+          "stormTargets": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-021-a",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 0
+            }
+          },
+          {
+            "unit": "P1-raider-turn-021-b",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 12,
+              "row": 0
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-023-a",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-023-b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P1-raider-turn-007-a",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P1 played Blast, Training, Zap, and Storm, bought nothing at 3 money, upgraded the lead raider, moved two home raiders out, and recruited two raiders.",
+      "reasoning": "P1 had no enemy targets, but playing the full action chain was still correct because Blast, Training, and Zap preserved actions and Storm was safe to play last. The hand produced only 3 money, and buying no card was better than adding a weak card; Zap was not needed after the prior buy and Copper is forbidden. On board, the Training upgrade went onto P1-raider-turn-007-a, increasing the already decisive forward threat. Two home-base raiders moved to nearby empty hexes to free spawn space, and all-center income gave P1 enough supply to recruit two more raiders."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "training",
+          "gold",
+          "copper",
+          "training",
+          "gold"
+        ],
+        "played": [
+          "training",
+          "training"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "money": 2,
+          "upgradeDamage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "healer"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P2-guardian-turn-024",
+            "type": "guardian",
+            "at": {
+              "col": 0,
+              "row": 9
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 played both Trainings, bought Healer, left the produced upgrades unused because no friendly unit existed before recruitment, and recruited a guardian at home.",
+      "reasoning": "P2 began with no living units and 5 saved supply, while P1 occupied the 0,8 home hex with an 11 attack raider. Both Trainings were playable and produced upgradeDamage, but upgrades resolve before recruits, so there was no legal friendly target and those counters expired. The buy was Healer rather than more economy because P2's only path to extending the game is keeping a future guardian alive through P1's attacks. On board, P2 gained 2 income for 7 total supply and recruited one guardian at the empty 0,9 home hex. No movement, attacks, heals, or upgrades were legal."
+    },
+    {
+      "id": "turn-025",
+      "player": "P1",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-025.before.deck.json",
+        "after": "snapshots/turn-025.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "peddler",
+          "blast",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "blast",
+          "peddler"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "damage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "training"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-025.before.board.json",
+        "after": "snapshots/turn-025.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-019-a",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 12,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-turn-019-b",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 11,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-025-a",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-025-b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-turn-007-a",
+            "target": "P2-guardian-turn-024",
+            "damage": 12,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 played Blast and Peddler, bought Training, hit P2's guardian for 12, moved two home raiders out, and recruited two raiders.",
+      "reasoning": "Blast preserved the action and produced damage, then Peddler converted the remaining action into a card draw and enough buy power for Training. Training was the best 5-cost buy because permanent attack scaling keeps future guardian kills reliable. On board, only P1-raider-turn-007-a was in position to attack the guardian, so P1 assigned 1 deck damage under the cap for 12 total damage, leaving the guardian at 4 HP. Two home-base raiders moved to adjacent empty hexes, opening spaces for two recruits from P1's all-center income."
+    },
+    {
+      "id": "turn-026",
+      "player": "P2",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-026.before.deck.json",
+        "after": "snapshots/turn-026.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "training",
+          "training",
+          "copper"
+        ],
+        "played": [
+          "training",
+          "training"
+        ],
+        "bought": [
+          "zap"
+        ],
+        "produced": {
+          "upgradeDamage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "zap"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-026.before.board.json",
+        "after": "snapshots/turn-026.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-turn-024",
+            "target": "P1-raider-turn-007-a",
+            "damage": 6,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P2-guardian-turn-024",
+            "attack": 2,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P2 played both Trainings, bought Zap, upgraded the guardian by 2 attack, and hit P1's lead home raider for 6 damage.",
+      "reasoning": "P2's only living unit is a 4 HP guardian adjacent to P1's 11 attack raider in the home base. Playing both Trainings was mandatory to turn the guardian's attack from 4 to 6 and create the best available trade pressure. With only three Coppers for buying, Zap was the best affordable tactical card for future damage and cycling. On board, P2 had only 2 saved supply and no centers, so after income P2 reached 4 supply and no recruit was legal. The guardian stayed in place, received both attack upgrades, and attacked the adjacent P1-raider-turn-007-a at 0,8 for 6, leaving it at 2 HP. There was no legal way to kill it this turn without deck damage."
+    },
+    {
+      "id": "turn-027",
+      "player": "P1",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-027.before.deck.json",
+        "after": "snapshots/turn-027.after.deck.json",
+        "drawnHand": [
+          "training",
+          "zap",
+          "blast",
+          "copper",
+          "training"
+        ],
+        "played": [
+          "training",
+          "training",
+          "blast",
+          "zap"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 1,
+          "damage": 3,
+          "upgradeDamage": 2
+        },
+        "actions": [
+          {
+            "type": "trashCard",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-027.before.board.json",
+        "after": "snapshots/turn-027.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-019-a",
+            "from": {
+              "col": 12,
+              "row": 2
+            },
+            "to": {
+              "col": 12,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-turn-019-b",
+            "from": {
+              "col": 11,
+              "row": 2
+            },
+            "to": {
+              "col": 11,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-turn-025-a",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 12,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-turn-025-b",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 11,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-027-a",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-027-b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-turn-007-a",
+            "target": "P2-guardian-turn-024",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P1-raider-turn-009",
+            "attack": 1,
+            "maxHp": 0
+          },
+          {
+            "target": "P1-raider-turn-011-a",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P1 trashed a Copper, played both Trainings, Blast, and Zap, killed P2's guardian, upgraded two raiders, and recruited two raiders.",
+      "reasoning": "The Copper was worth trashing because the action payload was sufficient and the buy turn was not going to produce a useful purchase. Both Trainings preserved action tempo and produced two permanent attack upgrades, Blast added damage while preserving the action chain, and Zap was safe to play last. On board, P1 used the adjacent lead raider to finish the 4 HP guardian without spending deck damage. The two attack upgrades went to central raiders to spread future threat, while a sequential home-base unjam moved older raiders outward and opened two recruit spaces for P1's all-center income."
+    },
+    {
+      "id": "turn-028",
+      "player": "P2",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-028.before.deck.json",
+        "after": "snapshots/turn-028.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "training",
+          "village",
+          "training",
+          "training"
+        ],
+        "played": [
+          "training",
+          "village",
+          "training",
+          "training"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "upgradeDamage": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-028.before.board.json",
+        "after": "snapshots/turn-028.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [
+          {
+            "unit": "P2-guardian-turn-028",
+            "type": "guardian",
+            "at": {
+              "col": 0,
+              "row": 9
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 played Training, Village, and two more Trainings, bought nothing at 2 money, left the produced upgrades unused because no friendly unit existed before recruitment, and recruited a guardian at home.",
+      "reasoning": "P2 again started with no living units and 4 saved supply. The intended Village-first line was rejected by the deck CLI, so the legal Training-first sequence was used; it still played Village and all three Trainings, producing 3 upgradeDamage. Those upgrades could not be assigned because board upgrades resolve before recruitment and P2 had no living unit at that point. With only 2 money after the deck phase, no useful buy was legal. On board, P2 gained 2 income for exactly 6 supply and recruited one guardian at 0,9 as the most durable available unit. No movement, attacks, heals, or upgrades were legal."
+    },
+    {
+      "id": "turn-029",
+      "player": "P1",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-029.before.deck.json",
+        "after": "snapshots/turn-029.after.deck.json",
+        "drawnHand": [
+          "training",
+          "peddler",
+          "blast",
+          "training",
+          "copper"
+        ],
+        "played": [
+          "training",
+          "training",
+          "blast",
+          "peddler"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 3,
+          "damage": 2,
+          "upgradeDamage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-029.before.board.json",
+        "after": "snapshots/turn-029.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-turn-019-a",
+            "from": {
+              "col": 12,
+              "row": 3
+            },
+            "to": {
+              "col": 12,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-raider-turn-019-b",
+            "from": {
+              "col": 11,
+              "row": 3
+            },
+            "to": {
+              "col": 11,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-raider-turn-025-a",
+            "from": {
+              "col": 12,
+              "row": 2
+            },
+            "to": {
+              "col": 12,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-turn-025-b",
+            "from": {
+              "col": 11,
+              "row": 2
+            },
+            "to": {
+              "col": 11,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-turn-027-a",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 12,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-turn-027-b",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 11,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-turn-029-a",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-turn-029-b",
+            "type": "raider",
+            "at": {
+              "col": 11,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-turn-007-a",
+            "target": "P2-guardian-turn-028",
+            "damage": 13,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P1-raider-turn-007-a",
+            "attack": 1,
+            "maxHp": 0
+          },
+          {
+            "target": "P1-raider-turn-009",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P1 played both Trainings, Blast, and Peddler, bought nothing at 3 money, dealt 13 to P2's guardian, upgraded two raiders, and recruited two raiders.",
+      "reasoning": "Both Trainings and Blast preserved the action chain, and Peddler added money and a draw, but the final 3 money did not justify adding a weak card. On board, P1 upgraded the lead raider and another center raider, then used the lead raider plus 1 deck damage to deal 13 to the full-health guardian, leaving it at 3 HP for an easy follow-up. P1 also cascaded the east home-base stack outward to free two recruit spaces, spending all-center income on two more raiders."
+    },
+    {
+      "id": "turn-030",
+      "player": "P2",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-030.before.deck.json",
+        "after": "snapshots/turn-030.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "gold",
+          "training",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "training"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "money": 3,
+          "upgradeDamage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "healer"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-030.before.board.json",
+        "after": "snapshots/turn-030.after.board.json"
+      },
+      "actions": {
+        "movements": [],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-turn-028",
+            "target": "P1-raider-turn-007-a",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": [
+          {
+            "target": "P2-guardian-turn-028",
+            "attack": 1,
+            "maxHp": 0
+          }
+        ]
+      },
+      "winEvents": [],
+      "summary": "P2 played Training, bought Healer, upgraded the guardian, and killed P1's damaged home raider.",
+      "reasoning": "P2's only tactical target was the 2 HP P1-raider-turn-007-a occupying 0,8 beside the damaged guardian. Training produced one attack upgrade, raising the guardian from 4 to 5 attack before attacks. The deck had enough treasure to buy Healer, which is the best support card if the guardian survives long enough to be stabilized. On board, P2 had only 1 saved supply and no centers, so after income P2 reached 3 supply and no recruit was legal. The guardian stayed at 0,9, received the attack upgrade, and attacked the adjacent raider for lethal damage, clearing the home-base invader."
+    }
+  ]
+}

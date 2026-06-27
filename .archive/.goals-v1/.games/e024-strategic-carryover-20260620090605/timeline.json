@@ -1,0 +1,2898 @@
+{
+  "schemaVersion": 1,
+  "title": "E024 carryover strategic smoke",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "blast",
+          "copper",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "blast"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "damage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-001.",
+      "reasoning": "P1 tempo plan: pressure centers with raiders/scout, convert attack cards into kills when in range, and buy damage/economy that supports board pressure."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "peddler"
+        ],
+        "played": [
+          "peddler"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 4
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-druid-start-2",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-healer-start-3",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-002.",
+      "reasoning": "P2 control plan: build a draw/economy engine, hold central centers with durable/support units, and recruit steadily from supply income."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "zap",
+          "silver"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 9,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-003.",
+      "reasoning": "P1 tempo plan: pressure centers with raiders/scout, convert attack cards into kills when in range, and buy damage/economy that supports board pressure."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "village",
+          "copper",
+          "copper",
+          "smithy",
+          "peddler"
+        ],
+        "played": [
+          "village",
+          "peddler",
+          "smithy"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 4
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-1",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-druid-start-2",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-healer-start-3",
+            "from": {
+              "col": 2,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 1,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-004.",
+      "reasoning": "P2 control plan: build a draw/economy engine, hold central centers with durable/support units, and recruit steadily from supply income."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "blast",
+          "copper",
+          "gold"
+        ],
+        "played": [
+          "blast"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "damage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-start-4",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-druid-5",
+            "type": "druid",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-scout-start-2",
+            "target": "P2-healer-start-3",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-005.",
+      "reasoning": "P1 tempo plan: pressure centers with raiders/scout, convert attack cards into kills when in range, and buy damage/economy that supports board pressure."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "peddler",
+          "copper"
+        ],
+        "played": [
+          "peddler"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {},
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-1",
+            "from": {
+              "col": 4,
+              "row": 6
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-druid-start-2",
+            "from": {
+              "col": 5,
+              "row": 6
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 1,
+              "row": 5
+            },
+            "to": {
+              "col": 2,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-5",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-start-1",
+            "target": "P1-marksman-start-4",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-druid-start-2",
+            "target": "P1-marksman-start-4",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-healer-start-3",
+            "target": "P1-scout-start-2",
+            "damage": 1,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-marksman-start-4",
+            "target": "P1-raider-start-3",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-006.",
+      "reasoning": "P2 control plan: build a draw/economy engine, hold central centers with durable/support units, and recruit steadily from supply income."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "silver",
+          "blast",
+          "gold",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "blast"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 1,
+          "damage": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-start-3",
+            "from": {
+              "col": 3,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-druid-5",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-druid-6",
+            "type": "druid",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-healer-1",
+            "type": "healer",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-scout-start-2",
+            "target": "P2-healer-start-3",
+            "damage": 1,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-raider-start-3",
+            "target": "P2-guardian-start-1",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-007.",
+      "reasoning": "P1 tempo plan: pressure centers with raiders/scout, convert attack cards into kills when in range, and buy damage/economy that supports board pressure."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "copper",
+          "village",
+          "smithy",
+          "copper"
+        ],
+        "played": [
+          "village",
+          "smithy",
+          "peddler"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 6
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 5
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-1",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-druid-start-2",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 2,
+              "row": 4
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-scout-5",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-start-1",
+            "target": "P1-raider-start-3",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-druid-start-2",
+            "target": "P1-raider-start-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-008.",
+      "reasoning": "P2 control plan: build a draw/economy engine, hold central centers with durable/support units, and recruit steadily from supply income."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "copper",
+          "zap",
+          "gold",
+          "copper"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "storm"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-scout-start-2",
+            "from": {
+              "col": 5,
+              "row": 5
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-druid-5",
+            "from": {
+              "col": 10,
+              "row": 3
+            },
+            "to": {
+              "col": 10,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-druid-6",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-healer-1",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-raider-start-1",
+            "target": "P2-druid-start-2",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-start-2",
+            "target": "P2-druid-start-2",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-009.",
+      "reasoning": "P1 tempo plan: pressure centers with raiders/scout, convert attack cards into kills when in range, and buy damage/economy that supports board pressure."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "gold",
+          "copper",
+          "copper",
+          "gold"
+        ],
+        "played": [],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "gold"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-1",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-druid-start-2",
+            "from": {
+              "col": 8,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 3,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-scout-5",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-6",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-start-1",
+            "target": "P1-scout-start-2",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-marksman-start-4",
+            "target": "P1-scout-start-2",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-scout-5",
+            "target": "P1-raider-start-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [
+          {
+            "target": "P2-druid-start-2",
+            "amount": 1,
+            "source": "unit",
+            "healer": "P2-druid-start-2"
+          }
+        ],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-010.",
+      "reasoning": "P2 control plan: build a draw/economy engine, hold central centers with durable/support units, and recruit steadily from supply income."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "zap",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "damage": 1
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "storm"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-raider-start-1",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-druid-5",
+            "from": {
+              "col": 10,
+              "row": 5
+            },
+            "to": {
+              "col": 9,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-druid-6",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-healer-1",
+            "from": {
+              "col": 9,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-druid-7",
+            "type": "druid",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-start-1",
+            "target": "P2-druid-start-2",
+            "damage": 2,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-druid-6",
+            "target": "P2-guardian-start-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-healer-1",
+            "target": "P2-guardian-start-1",
+            "damage": 1,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [
+          {
+            "target": "P1-raider-start-1",
+            "amount": 1,
+            "source": "unit",
+            "healer": "P1-druid-5"
+          }
+        ],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-011.",
+      "reasoning": "P1 tempo plan: pressure centers with raiders/scout, convert attack cards into kills when in range, and buy damage/economy that supports board pressure."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "smithy",
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "peddler",
+          "smithy"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 7
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-1",
+            "from": {
+              "col": 6,
+              "row": 4
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 5,
+              "row": 4
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-scout-5",
+            "from": {
+              "col": 5,
+              "row": 5
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-scout-6",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-7",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-start-1",
+            "target": "P1-raider-start-1",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-marksman-start-4",
+            "target": "P1-druid-6",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-5",
+            "target": "P1-healer-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-012.",
+      "reasoning": "P2 control plan: build a draw/economy engine, hold central centers with durable/support units, and recruit steadily from supply income."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "silver",
+          "gold",
+          "gold",
+          "gold"
+        ],
+        "played": [],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "money": 9
+        },
+        "actions": [
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "storm"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-druid-5",
+            "from": {
+              "col": 9,
+              "row": 6
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P1-druid-6",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-healer-1",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-druid-7",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-druid-8",
+            "type": "druid",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-druid-6",
+            "target": "P2-scout-5",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-healer-1",
+            "target": "P2-scout-5",
+            "damage": 1,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-013.",
+      "reasoning": "P1 tempo plan: pressure centers with raiders/scout, convert attack cards into kills when in range, and buy damage/economy that supports board pressure."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "village",
+          "copper",
+          "gold",
+          "village"
+        ],
+        "played": [
+          "village",
+          "village",
+          "peddler"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 8
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-start-1",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-scout-5",
+            "from": {
+              "col": 6,
+              "row": 4
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P2-scout-6",
+            "from": {
+              "col": 5,
+              "row": 5
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-scout-7",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-1",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-start-1",
+            "target": "P1-druid-5",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-marksman-start-4",
+            "target": "P1-healer-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-scout-5",
+            "target": "P1-druid-7",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-6",
+            "target": "P1-druid-6",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-7",
+            "target": "P1-druid-6",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-014.",
+      "reasoning": "P2 control plan: build a draw/economy engine, hold central centers with durable/support units, and recruit steadily from supply income."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "copper",
+          "copper",
+          "blast",
+          "silver"
+        ],
+        "played": [
+          "blast",
+          "storm"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 4,
+          "stormTargets": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "blast"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-druid-5",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-druid-6",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-druid-8",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-druid-5",
+            "target": "P2-guardian-start-1",
+            "damage": 4,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-druid-6",
+            "target": "P2-scout-7",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-druid-7",
+            "target": "P2-scout-5",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [
+          {
+            "target": "P1-druid-7",
+            "amount": 1,
+            "source": "unit",
+            "healer": "P1-druid-8"
+          }
+        ],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-015.",
+      "reasoning": "P1 tempo plan: pressure centers with raiders/scout, convert attack cards into kills when in range, and buy damage/economy that supports board pressure."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "smithy",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "smithy"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 7
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 5,
+              "row": 4
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-scout-6",
+            "from": {
+              "col": 6,
+              "row": 4
+            },
+            "to": {
+              "col": 8,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-scout-8",
+            "type": "scout",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-start-4",
+            "target": "P1-druid-6",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-scout-6",
+            "target": "P1-druid-5",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-016.",
+      "reasoning": "P2 control plan: build a draw/economy engine, hold central centers with durable/support units, and recruit steadily from supply income."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "gold",
+          "storm",
+          "gold",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "storm"
+        ],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 2,
+          "stormTargets": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "storm"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-druid-5",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-druid-7",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-druid-8",
+            "from": {
+              "col": 9,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-guardian-1",
+            "type": "guardian",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-druid-5",
+            "target": "P2-scout-6",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-druid-7",
+            "target": "P2-marksman-start-4",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-017.",
+      "reasoning": "P1 tempo plan: pressure centers with raiders/scout, convert attack cards into kills when in range, and buy damage/economy that supports board pressure."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "village",
+          "gold",
+          "copper"
+        ],
+        "played": [
+          "village"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 5,
+              "row": 3
+            },
+            "to": {
+              "col": 3,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-scout-6",
+            "from": {
+              "col": 8,
+              "row": 7
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-scout-7",
+            "from": {
+              "col": 3,
+              "row": 4
+            },
+            "to": {
+              "col": 7,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 1,
+              "row": 4
+            },
+            "to": {
+              "col": 4,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-scout-8",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-raider-2",
+            "type": "raider",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-6",
+            "target": "P1-druid-5",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-7",
+            "target": "P1-druid-5",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-018.",
+      "reasoning": "P2 control plan: build a draw/economy engine, hold central centers with durable/support units, and recruit steadily from supply income."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "zap",
+          "gold",
+          "copper",
+          "storm",
+          "gold"
+        ],
+        "played": [
+          "zap",
+          "storm"
+        ],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 3,
+          "stormTargets": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "storm"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-druid-7",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-druid-8",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 6,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-guardian-2",
+            "type": "guardian",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-druid-7",
+            "target": "P2-raider-1",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-019.",
+      "reasoning": "P1 tempo plan: pressure centers with raiders/scout, convert attack cards into kills when in range, and buy damage/economy that supports board pressure."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "village",
+          "gold",
+          "copper",
+          "gold",
+          "smithy"
+        ],
+        "played": [
+          "village",
+          "smithy",
+          "village",
+          "peddler",
+          "village"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 12
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "playAction",
+            "handIndex": 6
+          },
+          {
+            "type": "playAction",
+            "handIndex": 5
+          },
+          {
+            "type": "playAction",
+            "handIndex": 6
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 3,
+              "row": 3
+            },
+            "to": {
+              "col": 4,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-scout-6",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P2-scout-7",
+            "from": {
+              "col": 7,
+              "row": 6
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-scout-8",
+            "from": {
+              "col": 3,
+              "row": 4
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 2,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-1",
+            "type": "guardian",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "type": "druid",
+            "at": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-start-4",
+            "target": "P1-druid-7",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-6",
+            "target": "P1-druid-8",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-7",
+            "target": "P1-druid-7",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-raider-1",
+            "target": "P1-druid-7",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P2 completed turn-020.",
+      "reasoning": "P2 control plan: build a draw/economy engine, hold central centers with durable/support units, and recruit steadily from supply income."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "zap",
+          "copper",
+          "blast",
+          "copper"
+        ],
+        "played": [
+          "zap",
+          "blast",
+          "storm"
+        ],
+        "bought": [
+          "zap"
+        ],
+        "produced": {
+          "damage": 5,
+          "stormTargets": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 1
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "playAction",
+            "handIndex": 3
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "zap"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-druid-8",
+            "from": {
+              "col": 6,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-guardian-2",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-druid-8",
+            "target": "P2-scout-6",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-021.",
+      "reasoning": "P1 tempo plan: pressure centers with raiders/scout, convert attack cards into kills when in range, and buy damage/economy that supports board pressure."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "village",
+          "copper",
+          "copper",
+          "village",
+          "copper"
+        ],
+        "played": [
+          "village",
+          "village"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "money": 3
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "playAction",
+            "handIndex": 2
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "village"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-start-4",
+            "from": {
+              "col": 4,
+              "row": 4
+            },
+            "to": {
+              "col": 5,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-scout-7",
+            "from": {
+              "col": 6,
+              "row": 4
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-raider-1",
+            "from": {
+              "col": 4,
+              "row": 3
+            },
+            "to": {
+              "col": 5,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P2-scout-8",
+            "from": {
+              "col": 5,
+              "row": 4
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-raider-2",
+            "from": {
+              "col": 2,
+              "row": 5
+            },
+            "to": {
+              "col": 4,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P2-guardian-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 0,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 1,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-druid-2",
+            "type": "druid",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-7",
+            "target": "P1-druid-8",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ],
+        "heals": [],
+        "upgrades": []
+      },
+      "winEvents": [
+        {
+          "type": "unitLead",
+          "status": "created",
+          "player": "P2",
+          "completedTurns": 21,
+          "playerUnits": 7,
+          "opponentUnits": 3,
+          "playerCenters": 6,
+          "opponentCenters": 2
+        },
+        {
+          "type": "sixCenterDominance",
+          "status": "created",
+          "player": "P2",
+          "completedTurns": 21,
+          "playerUnits": 7,
+          "opponentUnits": 3,
+          "playerCenters": 6,
+          "opponentCenters": 2
+        }
+      ],
+      "summary": "P2 completed turn-022.",
+      "reasoning": "P2 control plan: build a draw/economy engine, hold central centers with durable/support units, and recruit steadily from supply income."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "copper",
+          "copper",
+          "copper",
+          "storm"
+        ],
+        "played": [
+          "storm"
+        ],
+        "bought": [
+          "zap"
+        ],
+        "produced": {
+          "damage": 2,
+          "stormTargets": 2
+        },
+        "actions": [
+          {
+            "type": "playAction",
+            "handIndex": 0
+          },
+          {
+            "type": "moveToBuy"
+          },
+          {
+            "type": "buyCard",
+            "cardId": "zap"
+          },
+          {
+            "type": "endTurn"
+          }
+        ]
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-druid-8",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-guardian-2",
+            "from": {
+              "col": 9,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-guardian-3",
+            "type": "guardian",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [],
+        "heals": [
+          {
+            "target": "P1-druid-8",
+            "amount": 1,
+            "source": "unit",
+            "healer": "P1-druid-8"
+          }
+        ],
+        "upgrades": []
+      },
+      "winEvents": [],
+      "summary": "P1 completed turn-023.",
+      "reasoning": "P1 tempo plan: pressure centers with raiders/scout, convert attack cards into kills when in range, and buy damage/economy that supports board pressure."
+    }
+  ],
+  "terminalWinEvents": [
+    {
+      "type": "unitLead",
+      "status": "confirmed",
+      "player": "P2",
+      "completedTurns": 23,
+      "playerUnits": 8,
+      "opponentUnits": 4,
+      "playerCenters": 6,
+      "opponentCenters": 2
+    },
+    {
+      "type": "sixCenterDominance",
+      "status": "confirmed",
+      "player": "P2",
+      "completedTurns": 23,
+      "playerUnits": 8,
+      "opponentUnits": 4,
+      "playerCenters": 6,
+      "opponentCenters": 2
+    }
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-011",
+  "player": "P1",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P1-raider-recruit-1",
+        "from": {
+          "col": 5,
+          "row": 3
+        },
+        "to": {
+          "col": 3,
+          "row": 3
+        }
+      },
+      {
+        "unit": "P1-raider-recruit-2",
+        "from": {
+          "col": 8,
+          "row": 1
+        },
+        "to": {
+          "col": 5,
+          "row": 3
+        }
+      },
+      {
+        "unit": "P1-scout-recruit-1",
+        "from": {
+          "col": 9,
+          "row": 3
+        },
+        "to": {
+          "col": 8,
+          "row": 6
+        }
+      },
+      {
+        "unit": "P1-raider-recruit-3",
+        "from": {
+          "col": 10,
+          "row": 1
+        },
+        "to": {
+          "col": 8,
+          "row": 1
+        }
+      },
+      {
+        "unit": "P1-raider-start-3",
+        "from": {
+          "col": 6,
+          "row": 7
+        },
+        "to": {
+          "col": 8,
+          "row": 7
+        }
+      },
+      {
+        "unit": "P1-marksman-start-4",
+        "from": {
+          "col": 5,
+          "row": 6
+        },
+        "to": {
+          "col": 6,
+          "row": 5
+        }
+      }
+    ],
+    "attacks": [
+      {
+        "attacker": "P1-raider-start-1",
+        "target": "P2-druid-recruit-1",
+        "deckDamage": 0
+      }
+    ],
+    "heals": [],
+    "upgrades": [],
+    "recruits": [
+      {
+        "unit": "P1-raider-recruit-4",
+        "type": "raider",
+        "at": {
+          "col": 10,
+          "row": 1
+        }
+      }
+    ]
+  }
+}

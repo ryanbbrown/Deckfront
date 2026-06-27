@@ -1,0 +1,11 @@
+Turn-016 for P2 complete and validated (16 entries).
+
+**Situation:** P1 unclogged its home base and mass-recruited four more raiders — now **14 units vs my 7 (lead 7)**.
+
+**Constraints:** Only 4 supply (recruit costs 6) so no recruit was possible, and no P1 unit is within range of my wall, so no kills. I had no legal way to reduce the lead.
+
+**What I did:**
+- **Deck:** Played Village to cycle, bought Silver to keep the deck functioning.
+- **Board:** Held the compact southwest fortress on center-west-south.
+
+**Outcome:** The game is decisively lost on the unit-count clock. P1 will confirm a 4-unit-lead win at the start of turn-017, and there is no defense available — the 7-center income gap (9/turn vs my 3/turn) let the rush field nearly double my army. My engine/control plan never recovered from conceding the centers early; competent fortress defense was irrelevant because P1 won purely on recruitment tempo without needing to engage my kill zone.

@@ -1,0 +1,3318 @@
+{
+  "schemaVersion": 1,
+  "title": "E020 round 1 rush vs engine A strict recenter",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "zap",
+          "rest",
+          "rest"
+        ],
+        "played": [
+          "zap"
+        ],
+        "bought": [
+          "zap"
+        ],
+        "produced": {
+          "damage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 10,
+              "row": 0
+            }
+          },
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "P1 played zap; bought zap; moved 4 unit(s).",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "bandage",
+          "rest",
+          "rest"
+        ],
+        "played": [
+          "bandage"
+        ],
+        "bought": [
+          "silver"
+        ],
+        "produced": {
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 1,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 0,
+              "row": 9
+            },
+            "to": {
+              "col": 2,
+              "row": 8
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "P2 played bandage; bought silver; moved 4 unit(s).",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "bandage",
+          "rest"
+        ],
+        "played": [
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "bought": [
+          "zap"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 10,
+              "row": 2
+            },
+            "to": {
+              "col": 10,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 10,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 0
+            }
+          },
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "P1 played copper, copper, copper; bought zap; moved 4 unit(s).",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "copper",
+          "copper",
+          "copper",
+          "zap",
+          "rest"
+        ],
+        "played": [
+          "copper",
+          "copper",
+          "copper"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 6,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 2,
+              "row": 8
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": []
+      },
+      "summary": "P2 played copper, copper, copper; bought village; moved 4 unit(s).",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "zap",
+          "zap",
+          "copper",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "zap",
+          "zap"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 10,
+              "row": 3
+            },
+            "to": {
+              "col": 9,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 9,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-scout-2",
+            "type": "scout",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "P1 played zap, zap; bought blast; moved 4 unit(s); recruited scout.",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "village",
+          "silver",
+          "bandage",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "village",
+          "bandage"
+        ],
+        "bought": [
+          "peddler"
+        ],
+        "produced": {
+          "heal": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 3,
+              "row": 6
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-scout-1",
+            "from": {
+              "col": 6,
+              "row": 6
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-3",
+            "type": "guardian",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-scout-1",
+            "target": "P1-raider-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-scout-2",
+            "target": "P1-raider-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P2 played village, bandage; bought peddler; moved 4 unit(s); made 2 legal attack(s); recruited guardian.",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "blast",
+          "zap",
+          "copper",
+          "copper",
+          "bandage"
+        ],
+        "played": [
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "second-wind"
+        ],
+        "produced": {
+          "damage": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 9,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 9,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-2",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-raider-1",
+            "target": "P2-scout-1",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-scout-1",
+            "damage": 1,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "P1 played blast, zap; bought second-wind; moved 3 unit(s); made 2 legal attack(s).",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "silver",
+          "copper",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "peddler"
+        ],
+        "bought": [
+          "armory"
+        ],
+        "produced": {}
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-3",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 3,
+              "row": 6
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-scout-2",
+            "from": {
+              "col": 5,
+              "row": 5
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-scout-2",
+            "target": "P1-raider-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P2 played peddler; bought armory; moved 3 unit(s); made 1 legal attack(s).",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "second-wind",
+          "zap",
+          "zap",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "second-wind",
+          "zap",
+          "zap"
+        ],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "damage": 2,
+          "reattack": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-2",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 6,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-3",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-1",
+            "target": "P2-scout-2",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-raider-1",
+            "target": "P2-scout-2",
+            "damage": 1,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "P1 played second-wind, zap, zap; bought storm; moved 2 unit(s); made 2 legal attack(s); recruited raider.",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "village",
+          "bandage",
+          "copper",
+          "silver"
+        ],
+        "played": [
+          "village",
+          "armory",
+          "bandage"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "heal": 1,
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-1",
+            "from": {
+              "col": 4,
+              "row": 6
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-guardian-3",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-healer-4",
+            "type": "healer",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "P2 played village, armory, bandage; bought healer; moved 3 unit(s); recruited healer.",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "blast",
+          "zap",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "storm",
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "training"
+        ],
+        "produced": {
+          "damage": 5,
+          "stormTargets": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-1",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-scout-1",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 4,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-scout-2",
+            "from": {
+              "col": 6,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-raider-1",
+            "target": "P2-druid-1",
+            "damage": 7,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-druid-1",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "P1 played storm, blast, zap; bought training; moved 6 unit(s); made 2 legal attack(s).",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "healer",
+          "peddler",
+          "silver",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "peddler",
+          "healer"
+        ],
+        "bought": [
+          "gold"
+        ],
+        "produced": {
+          "heal": 4
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-3",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-healer-4",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 4,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-1",
+            "target": "P1-raider-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "P2 played peddler, healer; bought gold; moved 3 unit(s); made 1 legal attack(s).",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-013",
+      "player": "P1",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-013.before.deck.json",
+        "after": "snapshots/turn-013.after.deck.json",
+        "drawnHand": [
+          "training",
+          "second-wind",
+          "zap",
+          "copper",
+          "copper"
+        ],
+        "played": [
+          "training",
+          "second-wind",
+          "zap"
+        ],
+        "bought": [
+          "blast"
+        ],
+        "produced": {
+          "damage": 1,
+          "upgradeDamage": 1,
+          "reattack": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-013.before.board.json",
+        "after": "snapshots/turn-013.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 10,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-2",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-4",
+            "type": "marksman",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-marksman-1",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-marksman-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-2",
+            "target": "P2-marksman-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P1 played training, second-wind, zap; bought blast; moved 4 unit(s); made 3 legal attack(s); recruited marksman.",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-014",
+      "player": "P2",
+      "round": 7,
+      "deck": {
+        "before": "snapshots/turn-014.before.deck.json",
+        "after": "snapshots/turn-014.after.deck.json",
+        "drawnHand": [
+          "armory",
+          "healer",
+          "village",
+          "silver",
+          "copper"
+        ],
+        "played": [
+          "village",
+          "armory",
+          "healer"
+        ],
+        "bought": [
+          "potion"
+        ],
+        "produced": {
+          "heal": 4,
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-014.before.board.json",
+        "after": "snapshots/turn-014.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-healer-4",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-druid-5",
+            "type": "druid",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-1",
+            "target": "P1-scout-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-guardian-3",
+            "target": "P1-scout-2",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-healer-4",
+            "target": "P1-scout-2",
+            "damage": 1,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P2 played village, armory, healer; bought potion; moved 1 unit(s); made 3 legal attack(s); recruited druid.",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-015",
+      "player": "P1",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-015.before.deck.json",
+        "after": "snapshots/turn-015.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "blast",
+          "zap",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "storm",
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "zap"
+        ],
+        "produced": {
+          "damage": 5,
+          "stormTargets": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-015.before.board.json",
+        "after": "snapshots/turn-015.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 11,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-scout-5",
+            "type": "scout",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-marksman-1",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-2",
+            "target": "P2-healer-4",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P1 played storm, blast, zap; bought zap; moved 4 unit(s); made 2 legal attack(s); recruited scout.",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-016",
+      "player": "P2",
+      "round": 8,
+      "deck": {
+        "before": "snapshots/turn-016.before.deck.json",
+        "after": "snapshots/turn-016.after.deck.json",
+        "drawnHand": [
+          "potion",
+          "bandage",
+          "peddler",
+          "gold",
+          "copper"
+        ],
+        "played": [
+          "peddler",
+          "potion",
+          "bandage"
+        ],
+        "bought": [
+          "armory"
+        ],
+        "produced": {
+          "heal": 3
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-016.before.board.json",
+        "after": "snapshots/turn-016.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-5",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-healer-4",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-1",
+            "target": "P1-scout-2",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "P2 played peddler, potion, bandage; bought armory; moved 2 unit(s); made 1 legal attack(s).",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-017",
+      "player": "P1",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-017.before.deck.json",
+        "after": "snapshots/turn-017.after.deck.json",
+        "drawnHand": [
+          "second-wind",
+          "blast",
+          "zap",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "second-wind",
+          "blast",
+          "zap",
+          "zap"
+        ],
+        "bought": [
+          "storm"
+        ],
+        "produced": {
+          "damage": 4,
+          "reattack": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-017.before.board.json",
+        "after": "snapshots/turn-017.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-5",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-marksman-1",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-1",
+            "target": "P2-marksman-1",
+            "damage": 2,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P1 played second-wind, blast, zap, zap; bought storm; moved 4 unit(s); made 2 legal attack(s).",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-018",
+      "player": "P2",
+      "round": 9,
+      "deck": {
+        "before": "snapshots/turn-018.before.deck.json",
+        "after": "snapshots/turn-018.after.deck.json",
+        "drawnHand": [
+          "healer",
+          "armory",
+          "silver",
+          "gold",
+          "copper"
+        ],
+        "played": [
+          "healer",
+          "armory"
+        ],
+        "bought": [
+          "village"
+        ],
+        "produced": {
+          "heal": 4,
+          "upgradeHealth": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-018.before.board.json",
+        "after": "snapshots/turn-018.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-5",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-healer-4",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-guardian-6",
+            "type": "guardian",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-1",
+            "target": "P1-scout-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "P2 played healer, armory; bought village; moved 2 unit(s); made 1 legal attack(s); recruited guardian.",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-019",
+      "player": "P1",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-019.before.deck.json",
+        "after": "snapshots/turn-019.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "training",
+          "blast",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "storm",
+          "training",
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "second-wind"
+        ],
+        "produced": {
+          "damage": 5,
+          "stormTargets": 2,
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-019.before.board.json",
+        "after": "snapshots/turn-019.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-5",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-6",
+            "type": "raider",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": []
+      },
+      "summary": "P1 played storm, training, blast, zap; bought second-wind; moved 5 unit(s); recruited raider.",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-020",
+      "player": "P2",
+      "round": 10,
+      "deck": {
+        "before": "snapshots/turn-020.before.deck.json",
+        "after": "snapshots/turn-020.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "potion",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "peddler",
+          "potion"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "heal": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-020.before.board.json",
+        "after": "snapshots/turn-020.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-5",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-guardian-6",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-healer-4",
+            "from": {
+              "col": 4,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-1",
+            "from": {
+              "col": 4,
+              "row": 6
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-1",
+            "target": "P1-guardian-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P2 played peddler, potion; bought healer; moved 4 unit(s); made 1 legal attack(s).",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-021",
+      "player": "P1",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-021.before.deck.json",
+        "after": "snapshots/turn-021.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "training",
+          "blast",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "storm",
+          "training",
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "second-wind"
+        ],
+        "produced": {
+          "damage": 5,
+          "stormTargets": 2,
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-021.before.board.json",
+        "after": "snapshots/turn-021.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 6,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 9,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-raider-6",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-scout-5",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 3
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-scout-7",
+            "type": "scout",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-marksman-1",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P1 played storm, training, blast, zap; bought second-wind; moved 6 unit(s); made 1 legal attack(s); recruited scout.",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-022",
+      "player": "P2",
+      "round": 11,
+      "deck": {
+        "before": "snapshots/turn-022.before.deck.json",
+        "after": "snapshots/turn-022.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "potion",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "peddler",
+          "potion"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "heal": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-022.before.board.json",
+        "after": "snapshots/turn-022.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-5",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-guardian-3",
+            "from": {
+              "col": 3,
+              "row": 6
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-guardian-6",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-healer-4",
+            "from": {
+              "col": 5,
+              "row": 6
+            },
+            "to": {
+              "col": 6,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-marksman-7",
+            "type": "marksman",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-1",
+            "target": "P1-raider-3",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-healer-4",
+            "target": "P1-raider-3",
+            "damage": 1,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P2 played peddler, potion; bought healer; moved 4 unit(s); made 2 legal attack(s); recruited marksman.",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-023",
+      "player": "P1",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-023.before.deck.json",
+        "after": "snapshots/turn-023.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "training",
+          "blast",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "storm",
+          "training",
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "second-wind"
+        ],
+        "produced": {
+          "damage": 5,
+          "stormTargets": 2,
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-023.before.board.json",
+        "after": "snapshots/turn-023.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 7,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-6",
+            "from": {
+              "col": 10,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-5",
+            "from": {
+              "col": 9,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-scout-7",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P1-raider-3",
+            "target": "P2-healer-4",
+            "damage": 4,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-marksman-1",
+            "target": "P2-marksman-1",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-5",
+            "target": "P2-marksman-1",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-marksman-1",
+            "damage": 1,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "P1 played storm, training, blast, zap; bought second-wind; moved 6 unit(s); made 4 legal attack(s).",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-024",
+      "player": "P2",
+      "round": 12,
+      "deck": {
+        "before": "snapshots/turn-024.before.deck.json",
+        "after": "snapshots/turn-024.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "potion",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "peddler",
+          "potion"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "heal": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-024.before.board.json",
+        "after": "snapshots/turn-024.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-druid-5",
+            "from": {
+              "col": 4,
+              "row": 7
+            },
+            "to": {
+              "col": 5,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-guardian-3",
+            "from": {
+              "col": 4,
+              "row": 6
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P2-guardian-6",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-7",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-3",
+            "target": "P1-guardian-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P2 played peddler, potion; bought healer; moved 4 unit(s); made 1 legal attack(s).",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-025",
+      "player": "P1",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-025.before.deck.json",
+        "after": "snapshots/turn-025.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "training",
+          "blast",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "storm",
+          "training",
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "second-wind"
+        ],
+        "produced": {
+          "damage": 5,
+          "stormTargets": 2,
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-025.before.board.json",
+        "after": "snapshots/turn-025.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 6,
+              "row": 4
+            },
+            "to": {
+              "col": 5,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 8,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-3",
+            "from": {
+              "col": 7,
+              "row": 5
+            },
+            "to": {
+              "col": 6,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P1-raider-6",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-5",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 4,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-scout-7",
+            "from": {
+              "col": 9,
+              "row": 2
+            },
+            "to": {
+              "col": 6,
+              "row": 4
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-marksman-8",
+            "type": "marksman",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-3",
+            "target": "P2-druid-5",
+            "damage": 10,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-marksman-1",
+            "target": "P2-guardian-3",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-5",
+            "target": "P2-guardian-3",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-7",
+            "target": "P2-guardian-3",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-guardian-3",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P1 played storm, training, blast, zap; bought second-wind; moved 6 unit(s); made 5 legal attack(s); recruited marksman.",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-026",
+      "player": "P2",
+      "round": 13,
+      "deck": {
+        "before": "snapshots/turn-026.before.deck.json",
+        "after": "snapshots/turn-026.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "potion",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "peddler",
+          "potion"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "heal": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-026.before.board.json",
+        "after": "snapshots/turn-026.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-6",
+            "from": {
+              "col": 3,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-7",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-marksman-8",
+            "type": "marksman",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-guardian-3",
+            "target": "P1-raider-3",
+            "damage": 3,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "P2 played peddler, potion; bought healer; moved 2 unit(s); made 1 legal attack(s); recruited marksman.",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-027",
+      "player": "P1",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-027.before.deck.json",
+        "after": "snapshots/turn-027.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "training",
+          "blast",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "storm",
+          "training",
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "second-wind"
+        ],
+        "produced": {
+          "damage": 5,
+          "stormTargets": 2,
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-027.before.board.json",
+        "after": "snapshots/turn-027.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-marksman-8",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 11,
+              "row": 0
+            }
+          },
+          {
+            "unit": "P1-raider-6",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-7",
+            "from": {
+              "col": 6,
+              "row": 4
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-raider-9",
+            "type": "raider",
+            "at": {
+              "col": 10,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-marksman-1",
+            "target": "P2-guardian-3",
+            "damage": 4,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-scout-5",
+            "target": "P2-guardian-6",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-scout-7",
+            "target": "P2-marksman-7",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P1 played storm, training, blast, zap; bought second-wind; moved 4 unit(s); made 3 legal attack(s); recruited raider.",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-028",
+      "player": "P2",
+      "round": 14,
+      "deck": {
+        "before": "snapshots/turn-028.before.deck.json",
+        "after": "snapshots/turn-028.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "potion",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "peddler",
+          "potion"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "heal": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-028.before.board.json",
+        "after": "snapshots/turn-028.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-7",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-8",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-7",
+            "target": "P1-scout-7",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-guardian-6",
+            "target": "P1-scout-7",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "P2 played peddler, potion; bought healer; moved 2 unit(s); made 2 legal attack(s).",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-029",
+      "player": "P1",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-029.before.deck.json",
+        "after": "snapshots/turn-029.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "training",
+          "blast",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "storm",
+          "training",
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "second-wind"
+        ],
+        "produced": {
+          "damage": 5,
+          "stormTargets": 2,
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-029.before.board.json",
+        "after": "snapshots/turn-029.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-guardian-1",
+            "from": {
+              "col": 6,
+              "row": 5
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 7,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-marksman-8",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 11,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-6",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-raider-9",
+            "from": {
+              "col": 10,
+              "row": 1
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-5",
+            "from": {
+              "col": 4,
+              "row": 5
+            },
+            "to": {
+              "col": 2,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-scout-10",
+            "type": "scout",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-scout-5",
+            "target": "P2-marksman-7",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P1 played storm, training, blast, zap; bought second-wind; moved 6 unit(s); made 1 legal attack(s); recruited scout.",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-030",
+      "player": "P2",
+      "round": 15,
+      "deck": {
+        "before": "snapshots/turn-030.before.deck.json",
+        "after": "snapshots/turn-030.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "potion",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "peddler",
+          "potion"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "heal": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-030.before.board.json",
+        "after": "snapshots/turn-030.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-guardian-6",
+            "from": {
+              "col": 4,
+              "row": 7
+            },
+            "to": {
+              "col": 4,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-8",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 1,
+              "row": 6
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-marksman-9",
+            "type": "marksman",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-7",
+            "target": "P1-scout-5",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P2-marksman-8",
+            "target": "P1-scout-5",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-guardian-6",
+            "target": "P1-guardian-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P2 played peddler, potion; bought healer; moved 2 unit(s); made 3 legal attack(s); recruited marksman.",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-031",
+      "player": "P1",
+      "round": 16,
+      "deck": {
+        "before": "snapshots/turn-031.before.deck.json",
+        "after": "snapshots/turn-031.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "training",
+          "blast",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "storm",
+          "training",
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "second-wind"
+        ],
+        "produced": {
+          "damage": 5,
+          "stormTargets": 2,
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-031.before.board.json",
+        "after": "snapshots/turn-031.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-1",
+            "from": {
+              "col": 5,
+              "row": 4
+            },
+            "to": {
+              "col": 4,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 7,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-8",
+            "from": {
+              "col": 11,
+              "row": 1
+            },
+            "to": {
+              "col": 10,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-raider-6",
+            "from": {
+              "col": 8,
+              "row": 3
+            },
+            "to": {
+              "col": 7,
+              "row": 4
+            }
+          },
+          {
+            "unit": "P1-raider-9",
+            "from": {
+              "col": 8,
+              "row": 1
+            },
+            "to": {
+              "col": 7,
+              "row": 2
+            }
+          },
+          {
+            "unit": "P1-scout-10",
+            "from": {
+              "col": 12,
+              "row": 1
+            },
+            "to": {
+              "col": 9,
+              "row": 0
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-scout-11",
+            "type": "scout",
+            "at": {
+              "col": 11,
+              "row": 0
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-marksman-1",
+            "target": "P2-marksman-7",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          },
+          {
+            "attacker": "P1-guardian-1",
+            "target": "P2-guardian-6",
+            "damage": 5,
+            "deckDamage": 1,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P1 played storm, training, blast, zap; bought second-wind; moved 6 unit(s); made 2 legal attack(s); recruited scout.",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-032",
+      "player": "P2",
+      "round": 16,
+      "deck": {
+        "before": "snapshots/turn-032.before.deck.json",
+        "after": "snapshots/turn-032.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "potion",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "peddler",
+          "potion"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "heal": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-032.before.board.json",
+        "after": "snapshots/turn-032.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-8",
+            "from": {
+              "col": 1,
+              "row": 6
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          },
+          {
+            "unit": "P2-marksman-9",
+            "from": {
+              "col": 0,
+              "row": 8
+            },
+            "to": {
+              "col": 1,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-7",
+            "target": "P1-guardian-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P2-guardian-6",
+            "target": "P1-marksman-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": false
+          }
+        ]
+      },
+      "summary": "P2 played peddler, potion; bought healer; moved 2 unit(s); made 2 legal attack(s).",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-033",
+      "player": "P1",
+      "round": 17,
+      "deck": {
+        "before": "snapshots/turn-033.before.deck.json",
+        "after": "snapshots/turn-033.after.deck.json",
+        "drawnHand": [
+          "storm",
+          "training",
+          "blast",
+          "zap",
+          "copper"
+        ],
+        "played": [
+          "storm",
+          "training",
+          "blast",
+          "zap"
+        ],
+        "bought": [
+          "second-wind"
+        ],
+        "produced": {
+          "damage": 5,
+          "stormTargets": 2,
+          "upgradeDamage": 1
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-033.before.board.json",
+        "after": "snapshots/turn-033.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P1-marksman-4",
+            "from": {
+              "col": 7,
+              "row": 3
+            },
+            "to": {
+              "col": 8,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-marksman-8",
+            "from": {
+              "col": 10,
+              "row": 2
+            },
+            "to": {
+              "col": 9,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-raider-6",
+            "from": {
+              "col": 7,
+              "row": 4
+            },
+            "to": {
+              "col": 5,
+              "row": 5
+            }
+          },
+          {
+            "unit": "P1-raider-9",
+            "from": {
+              "col": 7,
+              "row": 2
+            },
+            "to": {
+              "col": 8,
+              "row": 1
+            }
+          },
+          {
+            "unit": "P1-scout-10",
+            "from": {
+              "col": 9,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 3
+            }
+          },
+          {
+            "unit": "P1-scout-11",
+            "from": {
+              "col": 11,
+              "row": 0
+            },
+            "to": {
+              "col": 9,
+              "row": 2
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P1-scout-12",
+            "type": "scout",
+            "at": {
+              "col": 12,
+              "row": 1
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P1-raider-6",
+            "target": "P2-guardian-6",
+            "damage": 8,
+            "deckDamage": 1,
+            "targetRemoved": true
+          },
+          {
+            "attacker": "P1-marksman-1",
+            "target": "P2-marksman-7",
+            "damage": 3,
+            "deckDamage": 1,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "P1 played storm, training, blast, zap; bought second-wind; moved 6 unit(s); made 2 legal attack(s); recruited scout.",
+      "reasoning": "P1 followed the assigned rush/tempo plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    },
+    {
+      "id": "turn-034",
+      "player": "P2",
+      "round": 17,
+      "deck": {
+        "before": "snapshots/turn-034.before.deck.json",
+        "after": "snapshots/turn-034.after.deck.json",
+        "drawnHand": [
+          "peddler",
+          "potion",
+          "silver",
+          "copper",
+          "rest"
+        ],
+        "played": [
+          "peddler",
+          "potion"
+        ],
+        "bought": [
+          "healer"
+        ],
+        "produced": {
+          "heal": 2
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-034.before.board.json",
+        "after": "snapshots/turn-034.after.board.json"
+      },
+      "actions": {
+        "movements": [
+          {
+            "unit": "P2-marksman-8",
+            "from": {
+              "col": 2,
+              "row": 7
+            },
+            "to": {
+              "col": 3,
+              "row": 6
+            }
+          },
+          {
+            "unit": "P2-marksman-9",
+            "from": {
+              "col": 1,
+              "row": 7
+            },
+            "to": {
+              "col": 2,
+              "row": 7
+            }
+          }
+        ],
+        "recruits": [
+          {
+            "unit": "P2-marksman-10",
+            "type": "marksman",
+            "at": {
+              "col": 0,
+              "row": 8
+            }
+          }
+        ],
+        "attacks": [
+          {
+            "attacker": "P2-marksman-8",
+            "target": "P1-marksman-1",
+            "damage": 4,
+            "deckDamage": 0,
+            "targetRemoved": true
+          }
+        ]
+      },
+      "summary": "P2 played peddler, potion; bought healer; moved 2 unit(s); made 1 legal attack(s); recruited marksman.",
+      "reasoning": "P2 followed the assigned engine/control plan. Legal board actions are logged explicitly; any unused deck counters expired at end of turn."
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-011",
+  "player": "P1",
+  "before": "snapshots/turn-011.before.board.json",
+  "after": "snapshots/turn-011.after.board.json",
+  "actions": {
+    "movements": [
+      {
+        "unit": "P1-marksman-start-4",
+        "from": {
+          "col": 6,
+          "row": 5
+        },
+        "to": {
+          "col": 5,
+          "row": 6
+        }
+      },
+      {
+        "unit": "P1-raider-turn-005",
+        "from": {
+          "col": 7,
+          "row": 4
+        },
+        "to": {
+          "col": 4,
+          "row": 7
+        }
+      },
+      {
+        "unit": "P1-raider-turn-007-a",
+        "from": {
+          "col": 8,
+          "row": 3
+        },
+        "to": {
+          "col": 8,
+          "row": 6
+        }
+      },
+      {
+        "unit": "P1-raider-turn-009",
+        "from": {
+          "col": 10,
+          "row": 1
+        },
+        "to": {
+          "col": 9,
+          "row": 3
+        }
+      }
+    ],
+    "recruits": [
+      {
+        "unit": "P1-raider-turn-011-a",
+        "type": "raider",
+        "at": {
+          "col": 10,
+          "row": 1
+        }
+      },
+      {
+        "unit": "P1-raider-turn-011-b",
+        "type": "raider",
+        "at": {
+          "col": 11,
+          "row": 0
+        }
+      }
+    ],
+    "attacks": [
+      {
+        "attacker": "P1-raider-turn-007-a",
+        "target": "P2-raider-turn-004",
+        "damage": 8,
+        "deckDamage": 1,
+        "targetRemoved": true
+      },
+      {
+        "attacker": "P1-raider-turn-005",
+        "target": "P2-raider-turn-008",
+        "damage": 7,
+        "deckDamage": 1,
+        "targetRemoved": false
+      },
+      {
+        "attacker": "P1-marksman-start-4",
+        "target": "P2-raider-turn-008",
+        "damage": 1,
+        "deckDamage": 0,
+        "targetRemoved": true
+      }
+    ],
+    "heals": [],
+    "upgrades": [
+      {
+        "target": "P1-raider-turn-007-a",
+        "attack": 1,
+        "maxHp": 0
+      }
+    ]
+  }
+}

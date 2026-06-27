@@ -1,0 +1,25 @@
+{
+  "id": "turn-029",
+  "player": "P1",
+  "round": 15,
+  "play": ["blast", "blast", "bandage"],
+  "buyOptions": ["training", "storm", "blast", "silver", "zap"],
+  "moves": [
+    { "id": "P1-raider-5", "to": [6, 6] },
+    { "id": "P1-raider-8", "to": [8, 2] },
+    { "id": "P1-raider-9", "to": [9, 2] }
+  ],
+  "attacks": [
+    { "attacker": "P1-scout-2", "target": "P2-guardian-3", "bonus": 1 },
+    { "attacker": "P1-scout-3", "target": "P2-guardian-3", "bonus": 1 }
+  ],
+  "heals": [
+    { "id": "P1-scout-3", "amount": 1 }
+  ],
+  "recruits": [
+    { "type": "raider", "id": "P1-raider-10", "at": [11, 0] },
+    { "type": "scout", "id": "P1-scout-4", "at": [12, 1] }
+  ],
+  "summary": "P1 recorded a pending lead-4 threat, chipped P2's guardian, healed its scout by Bandage, and recruited two units.",
+  "reasoning": "Start check: P1 began 10-6 with no existing pending threat, so P1 records a pending lead-4 threat but does not win yet. P2 gets a full response turn to reduce the lead below four."
+}

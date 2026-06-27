@@ -1,0 +1,24 @@
+{
+  "id": "turn-013",
+  "player": "P1",
+  "round": 7,
+  "play": ["blast", "bandage"],
+  "buy": "storm",
+  "moves": [
+    { "id": "P1-raider-2", "to": [6, 6] },
+    { "id": "P1-guardian-1", "to": [7, 5] },
+    { "id": "P1-raider-3", "to": [7, 3] },
+    { "id": "P1-marksman-1", "to": [7, 1] },
+    { "id": "P1-marksman-2", "to": [8, 1] },
+    { "id": "P1-marksman-3", "to": [10, 0] }
+  ],
+  "attacks": [
+    { "attacker": "P1-raider-2", "target": "P2-druid-1", "bonus": 1 },
+    { "attacker": "P1-guardian-1", "target": "P2-druid-1" }
+  ],
+  "recruits": [
+    { "type": "raider", "id": "P1-raider-4", "at": [10, 1] }
+  ],
+  "summary": "P1 bought Storm, killed P2's upgraded druid, and recruited another raider.",
+  "reasoning": "The lack of printed healing made the upgraded druid vulnerable once P1 could line up two attackers. Bandage healing expired because P1 had no damaged surviving unit."
+}

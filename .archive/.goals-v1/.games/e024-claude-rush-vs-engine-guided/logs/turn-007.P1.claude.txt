@@ -1,0 +1,5 @@
+Turn-007 committed and validated.
+
+- **Deck:** Play Blast (+2 dmg, +action) → Inferno (+4 dmg) → moveToBuy → buy Peddler.
+- **Board:** marksman (7,5)→P2-raider deckDamage 1 (4+1=5), scout (8,6)→P2-raider deckDamage 1 (2+1=3); total 8 removes the 8hp raider.
+- **Rationale:** First contact — P2's raider had pushed adjacent to my scout. The deck-damage cap is 1 per attacker (so big damage cards are mostly overkill insurance), so I focus-fired scout + marksman to exactly kill the 8hp raider, clearing P2's forward threat while I hold a 6-center board and a growing supply lead (10 vs 8). Peddler keeps actions/economy flowing for future burst turns.

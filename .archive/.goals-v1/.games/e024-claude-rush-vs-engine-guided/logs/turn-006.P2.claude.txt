@@ -1,0 +1,5 @@
+Turn-006 committed and validated.
+
+- **Deck line:** moveToBuy → buy Gold → endTurn. All-treasure hand (6 money), no actions to play — Gold maximizes value and sets up bigger buys (combat/engine cards) next cycle.
+- **Board line:** Raider `P2-raider-start-1` (6,8)→(8,7) capturing the open center-southeast; Guardian `P2-guardian-start-3` (3,8)→(5,8) advancing toward center-center-south. Scout holds center-west-south.
+- **Rationale:** P1 has a board lead (10 vs 5 supply, 6 centers), so I grab the uncontested southeast center now and push forward, while banking economy to start buying damage cards to fight back into the contested centers.

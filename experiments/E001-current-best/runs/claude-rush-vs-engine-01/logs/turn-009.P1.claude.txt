@@ -1,0 +1,13 @@
+Turn `turn-009` complete and validated.
+
+**P1 establishes the winning lead:**
+- **Recruits:** Two more raiders → **9 living units vs P2's 5 = a 4-unit lead.** Reserve raiders advanced to (9,3)/(10,3) to free home hexes and screen the center.
+- **Territory:** Still holding **7 of 8 centers** (income 9 vs P2's 3).
+- **Deck:** Cycled Zap, bought Silver to deepen economy.
+
+**Win path (no win this turn — by design):** The 4-lead did *not* exist at the start of turn-009 (it was 7v5), so the response-window rule means no immediate win. The sequence now:
+- **Turn-011 start:** lead is 9v5 → a pending 4-lead threat gets *recorded*.
+- **Turn-012 (P2):** They're choked — 1 center, income 3, supply 5, so **they cannot recruit**, and every P2 unit is pinned in the SW corner far from mine, so they **cannot reduce the lead below 4**.
+- **Turn-013 start:** lead still ≥4 and was pending → **P1 wins by unit-count lead.**
+
+As long as I keep my units alive and don't let P2 close the gap, the win is locked in two turns out (with the post-turn-18 six-center dominance as a redundant backup). Validation passed (9 entries).

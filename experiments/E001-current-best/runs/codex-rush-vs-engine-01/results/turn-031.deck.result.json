@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-031",
+  "player": "P1",
+  "before": "snapshots/turn-031.before.deck.json",
+  "after": "snapshots/turn-031.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 1
+    },
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "blast"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "silver",
+    "blast",
+    "copper",
+    "copper",
+    "storm"
+  ],
+  "played": [
+    "blast",
+    "storm"
+  ],
+  "bought": [
+    "blast"
+  ],
+  "produced": {
+    "damage": 4,
+    "stormTargets": 2
+  }
+}

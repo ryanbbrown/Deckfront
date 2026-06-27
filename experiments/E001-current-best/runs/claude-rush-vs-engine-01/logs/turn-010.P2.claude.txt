@@ -1,0 +1,11 @@
+Turn-010 for P2 complete and validated.
+
+**Situation:** P1 now leads **9-5** — exactly the 4-unit margin. The timing matters: since it's not P1's turn, no win check fires now. At the start of P1's turn-011 they'll record their **first** pending 4-unit threat (no win yet), which gives me turn-012 to drop the lead below 4 before their turn-013 check.
+
+**Constraints this turn:** Only 5 supply (need 6), so **no recruit was possible**, and no P1 unit was in range to kill — Inferno had no target.
+
+**What I did:**
+- **Deck:** Played Peddler + Smithy, bought **Healer** (+4 heal). With Inferno and Training already in the deck, my two 16hp guardians become a near-immortal front while marksmen snipe — a committed raider assault can be ground down ~2 kills/turn.
+- **Board:** Held the compact wall on center-west-south to force P1's raiders to clump into my kill zone rather than overextending into the open. Supply carried to 5 so I recruit next turn.
+
+**Honest assessment:** The game is in a losing position — P1's 7-center income (vs my 1) lets them out-recruit me, and they're at the win-threat threshold. My only path is the grind-defense: bait the raider mass into my fortified kill zone, trade up with Healer-sustained guardians + Inferno, and recruit every turn to fight the unit-lead clock. Barring P1 feeding units into my wall or misplaying the threat timing, the rush is winning.

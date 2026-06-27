@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-024",
+  "player": "P2",
+  "before": "snapshots/turn-024.before.deck.json",
+  "after": "snapshots/turn-024.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "playAction",
+      "handIndex": 2
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "healer"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "training",
+    "gold",
+    "copper",
+    "training",
+    "gold"
+  ],
+  "played": [
+    "training",
+    "training"
+  ],
+  "bought": [
+    "healer"
+  ],
+  "produced": {
+    "money": 2,
+    "upgradeDamage": 2
+  }
+}

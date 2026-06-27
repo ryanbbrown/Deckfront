@@ -1,0 +1,443 @@
+{
+  "schemaVersion": 1,
+  "title": "E001 Rush vs Engine B",
+  "entries": [
+    {
+      "id": "turn-001",
+      "player": "P1",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-001.before.deck.json",
+        "after": "snapshots/turn-001.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Rest",
+          "Bandage",
+          "Copper",
+          "Rest"
+        ],
+        "played": [
+          "Bandage",
+          "Rest"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-001.before.board.json",
+        "after": "snapshots/turn-001.after.board.json"
+      },
+      "summary": "P1 took the northeast and east centers while healing the damaged guardian.",
+      "reasoning": "P1 followed the rush assignment: raider and scout claimed the nearest eastern centers immediately, while slower units left home to support future center pressure."
+    },
+    {
+      "id": "turn-002",
+      "player": "P2",
+      "round": 1,
+      "deck": {
+        "before": "snapshots/turn-002.before.deck.json",
+        "after": "snapshots/turn-002.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Rest"
+        ],
+        "played": [],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 0,
+          "heal": 0,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-002.before.board.json",
+        "after": "snapshots/turn-002.after.board.json"
+      },
+      "summary": "P2 claimed the west-south center and staged cautiously behind it.",
+      "reasoning": "P2 had no reason to fight yet, so the fast scout took the closest supply while the durable support units advanced in a compact second line."
+    },
+    {
+      "id": "turn-003",
+      "player": "P1",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-003.before.deck.json",
+        "after": "snapshots/turn-003.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Inferno"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 0,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-003.before.board.json",
+        "after": "snapshots/turn-003.after.board.json"
+      },
+      "summary": "P1 recruited a scout and pushed both fast units toward the middle.",
+      "reasoning": "With one recruit available, P1 added another scout for pressure. The raider and first scout moved toward the center while avoiding an unsupported attack."
+    },
+    {
+      "id": "turn-004",
+      "player": "P2",
+      "round": 2,
+      "deck": {
+        "before": "snapshots/turn-004.before.deck.json",
+        "after": "snapshots/turn-004.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Copper",
+          "Zap",
+          "Bandage"
+        ],
+        "played": [
+          "Bandage",
+          "Zap"
+        ],
+        "bought": [
+          "Silver"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 1,
+          "heal": 1,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-004.before.board.json",
+        "after": "snapshots/turn-004.after.board.json"
+      },
+      "summary": "P2 recruited a guardian and took the center-south supply.",
+      "reasoning": "P2 stayed on the engine/stabilize plan: a guardian entered before the center fight, while the forward scout claimed a second supply center instead of overextending into P1 range."
+    },
+    {
+      "id": "turn-005",
+      "player": "P1",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-005.before.deck.json",
+        "after": "snapshots/turn-005.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Rest",
+          "Bandage",
+          "Rest",
+          "Rest"
+        ],
+        "played": [
+          "Zap",
+          "Rest"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-005.before.board.json",
+        "after": "snapshots/turn-005.after.board.json"
+      },
+      "summary": "P1 recruited a raider, captured both central supplies, and killed the forward P2 scout.",
+      "reasoning": "P1 converted board pressure into the first fight. The scout on the center attacked the adjacent P2 scout; deck damage was not needed for the kill."
+    },
+    {
+      "id": "turn-006",
+      "player": "P2",
+      "round": 3,
+      "deck": {
+        "before": "snapshots/turn-006.before.deck.json",
+        "after": "snapshots/turn-006.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Rest",
+          "Copper",
+          "Silver",
+          "Copper"
+        ],
+        "played": [],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 5,
+          "damage": 0,
+          "heal": 0,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-006.before.board.json",
+        "after": "snapshots/turn-006.after.board.json"
+      },
+      "summary": "P2 killed the exposed center scout but could not recruit.",
+      "reasoning": "P2 preserved the durable units and used the remaining scout to punish P1 exposure. The income curve left P2 one supply short of a stabilizing recruit."
+    },
+    {
+      "id": "turn-007",
+      "player": "P1",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-007.before.deck.json",
+        "after": "snapshots/turn-007.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Copper",
+          "Inferno",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Inferno"
+        ],
+        "bought": [
+          "Blast"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 4,
+          "heal": 0,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-007.before.board.json",
+        "after": "snapshots/turn-007.after.board.json"
+      },
+      "summary": "P1 recruited a marksman and removed P2's last scout.",
+      "reasoning": "The rush stayed focused on unit-count pressure. P1 added ranged follow-up, then used the second scout to finish P2's remaining mobile unit."
+    },
+    {
+      "id": "turn-008",
+      "player": "P2",
+      "round": 4,
+      "deck": {
+        "before": "snapshots/turn-008.before.deck.json",
+        "after": "snapshots/turn-008.after.deck.json",
+        "drawnHand": [
+          "Bandage",
+          "Silver",
+          "Rest",
+          "Copper",
+          "Copper"
+        ],
+        "played": [
+          "Bandage"
+        ],
+        "bought": [
+          "Village"
+        ],
+        "produced": {
+          "money": 4,
+          "damage": 0,
+          "heal": 1,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-008.before.board.json",
+        "after": "snapshots/turn-008.after.board.json"
+      },
+      "summary": "P2 recruited a druid and traded it forward to kill P1's second scout.",
+      "reasoning": "P2 prioritized stabilization over center control. Marksman plus druid damage killed the exposed scout, narrowing the unit gap enough to delay P1's win check."
+    },
+    {
+      "id": "turn-009",
+      "player": "P1",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-009.before.deck.json",
+        "after": "snapshots/turn-009.after.deck.json",
+        "drawnHand": [
+          "Rest",
+          "Copper",
+          "Rest",
+          "Bandage",
+          "Zap"
+        ],
+        "played": [
+          "Zap",
+          "Bandage"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 1,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-009.before.board.json",
+        "after": "snapshots/turn-009.after.board.json"
+      },
+      "summary": "P1 recruited another raider and killed the forward druid.",
+      "reasoning": "P1 kept the unit-count race going. The raider already in the center punished P2's stabilizing druid, maintaining pressure despite losing scouts."
+    },
+    {
+      "id": "turn-010",
+      "player": "P2",
+      "round": 5,
+      "deck": {
+        "before": "snapshots/turn-010.before.deck.json",
+        "after": "snapshots/turn-010.after.deck.json",
+        "drawnHand": [
+          "Zap",
+          "Rest",
+          "Copper",
+          "Village",
+          "Rest"
+        ],
+        "played": [
+          "Village",
+          "Zap"
+        ],
+        "bought": [],
+        "produced": {
+          "money": 2,
+          "damage": 1,
+          "heal": 0,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-010.before.board.json",
+        "after": "snapshots/turn-010.after.board.json"
+      },
+      "summary": "P2 recruited a guardian and damaged the central raider.",
+      "reasoning": "P2 chose durable reinforcement first. The marksman softened P1's lead raider, but without a second attack P2 could not convert the damage into a kill."
+    },
+    {
+      "id": "turn-011",
+      "player": "P1",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-011.before.deck.json",
+        "after": "snapshots/turn-011.after.deck.json",
+        "drawnHand": [
+          "Inferno",
+          "Copper",
+          "Copper",
+          "Copper",
+          "Blast"
+        ],
+        "played": [
+          "Blast",
+          "Inferno"
+        ],
+        "bought": [
+          "Zap"
+        ],
+        "produced": {
+          "money": 3,
+          "damage": 6,
+          "heal": 0,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-011.before.board.json",
+        "after": "snapshots/turn-011.after.board.json"
+      },
+      "summary": "P1 recruited a scout and killed P2's marksman.",
+      "reasoning": "P1's pressure plan reached its strongest point: another cheap mobile recruit entered, and the wounded raider still had enough attack to remove P2's ranged defender."
+    },
+    {
+      "id": "turn-012",
+      "player": "P2",
+      "round": 6,
+      "deck": {
+        "before": "snapshots/turn-012.before.deck.json",
+        "after": "snapshots/turn-012.after.deck.json",
+        "drawnHand": [
+          "Copper",
+          "Village",
+          "Silver",
+          "Bandage",
+          "Copper"
+        ],
+        "played": [
+          "Village",
+          "Silver"
+        ],
+        "bought": [
+          "Gold"
+        ],
+        "produced": {
+          "money": 7,
+          "damage": 0,
+          "heal": 1,
+          "bonusHp": 0,
+          "bonusAttack": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "board": {
+        "before": "snapshots/turn-012.before.board.json",
+        "after": "snapshots/turn-012.after.board.json"
+      },
+      "summary": "P2 recruited a druid but could not prevent P1's start-of-turn unit lead.",
+      "reasoning": "P2 added another stabilizing body, but the surviving units were too far from P1's damaged raider to kill it this turn. The run stops because P1 will begin the next turn ahead 7 living units to 4."
+    }
+  ]
+}

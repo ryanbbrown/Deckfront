@@ -1,0 +1,23 @@
+{
+  "id": "turn-007",
+  "player": "P1",
+  "round": 4,
+  "trash": "rest",
+  "play": ["zap"],
+  "buy": "zap",
+  "moves": [
+    { "id": "P1-raider-1", "to": [6, 5] },
+    { "id": "P1-raider-2", "to": [8, 1] },
+    { "id": "P1-guardian-1", "to": [8, 3] },
+    { "id": "P1-marksman-1", "to": [9, 0] }
+  ],
+  "attacks": [
+    { "attacker": "P1-raider-1", "target": "P2-scout-1", "bonus": 1 },
+    { "attacker": "P1-scout-1", "target": "P2-scout-1" }
+  ],
+  "recruits": [
+    { "type": "marksman", "id": "P1-marksman-2", "at": [11, 0] }
+  ],
+  "summary": "P1 bought another Zap, killed P2's center-south scout, and recruited a marksman.",
+  "reasoning": "The rush side chose a confirmed unit kill over spreading damage. The damaged P1 scout stayed exposed because its attack was needed to finish P2-scout-1 before deck healing could matter."
+}

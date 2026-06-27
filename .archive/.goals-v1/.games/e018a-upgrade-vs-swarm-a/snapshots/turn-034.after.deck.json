@@ -1,0 +1,667 @@
+{
+  "schemaVersion": 1,
+  "rngState": 2695453784,
+  "game": {
+    "config": {
+      "players": 2,
+      "setup": {
+        "initialActions": 1,
+        "initialBuys": 1,
+        "initialMoney": 0,
+        "handSize": 5,
+        "startingDeck": [
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "copper",
+          "zap",
+          "bandage",
+          "rest",
+          "rest",
+          "rest"
+        ],
+        "attributes": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        }
+      },
+      "cards": [
+        {
+          "id": "rest",
+          "name": "Rest",
+          "type": "action",
+          "cost": 0,
+          "effects": []
+        },
+        {
+          "id": "copper",
+          "name": "Copper",
+          "type": "treasure",
+          "cost": 0,
+          "treasure": 1
+        },
+        {
+          "id": "silver",
+          "name": "Silver",
+          "type": "treasure",
+          "cost": 3,
+          "treasure": 2
+        },
+        {
+          "id": "gold",
+          "name": "Gold",
+          "type": "treasure",
+          "cost": 6,
+          "treasure": 3
+        },
+        {
+          "id": "village",
+          "name": "Village",
+          "type": "action",
+          "cost": 4,
+          "effects": [
+            {
+              "kind": "grant",
+              "cards": 1,
+              "actions": 2
+            }
+          ]
+        },
+        {
+          "id": "smithy",
+          "name": "Smithy",
+          "type": "action",
+          "cost": 4,
+          "effects": [
+            {
+              "kind": "grant",
+              "cards": 3
+            }
+          ]
+        },
+        {
+          "id": "peddler",
+          "name": "Peddler",
+          "type": "action",
+          "cost": 4,
+          "effects": [
+            {
+              "kind": "grant",
+              "cards": 1,
+              "actions": 1,
+              "money": 1
+            }
+          ]
+        },
+        {
+          "id": "zap",
+          "name": "Zap",
+          "type": "action",
+          "cost": 3,
+          "effects": [
+            {
+              "kind": "grant",
+              "cards": 1,
+              "actions": 1,
+              "attributes": {
+                "damage": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "blast",
+          "name": "Blast",
+          "type": "action",
+          "cost": 4,
+          "effects": [
+            {
+              "kind": "grant",
+              "actions": 1,
+              "attributes": {
+                "damage": 2
+              }
+            }
+          ]
+        },
+        {
+          "id": "inferno",
+          "name": "Inferno",
+          "type": "action",
+          "cost": 5,
+          "effects": [
+            {
+              "kind": "grant",
+              "attributes": {
+                "damage": 4
+              }
+            }
+          ]
+        },
+        {
+          "id": "storm",
+          "name": "Storm",
+          "type": "action",
+          "cost": 5,
+          "effects": [
+            {
+              "kind": "grant",
+              "attributes": {
+                "damage": 2,
+                "stormTargets": 2
+              }
+            }
+          ]
+        },
+        {
+          "id": "bandage",
+          "name": "Bandage",
+          "type": "action",
+          "cost": 3,
+          "effects": [
+            {
+              "kind": "grant",
+              "cards": 1,
+              "actions": 1,
+              "attributes": {
+                "heal": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "potion",
+          "name": "Potion",
+          "type": "action",
+          "cost": 4,
+          "effects": [
+            {
+              "kind": "grant",
+              "actions": 1,
+              "attributes": {
+                "heal": 2
+              }
+            }
+          ]
+        },
+        {
+          "id": "healer",
+          "name": "Healer",
+          "type": "action",
+          "cost": 5,
+          "effects": [
+            {
+              "kind": "grant",
+              "attributes": {
+                "heal": 4
+              }
+            }
+          ]
+        },
+        {
+          "id": "armory",
+          "name": "Armory",
+          "type": "action",
+          "cost": 5,
+          "effects": [
+            {
+              "kind": "grant",
+              "attributes": {
+                "upgradeHealth": 2
+              }
+            }
+          ]
+        },
+        {
+          "id": "training",
+          "name": "Training",
+          "type": "action",
+          "cost": 5,
+          "effects": [
+            {
+              "kind": "grant",
+              "actions": 1,
+              "attributes": {
+                "upgradeDamage": 1
+              }
+            }
+          ]
+        },
+        {
+          "id": "second-wind",
+          "name": "Second Wind",
+          "type": "action",
+          "cost": 5,
+          "effects": [
+            {
+              "kind": "grant",
+              "cards": 1,
+              "attributes": {
+                "reattack": 1
+              }
+            }
+          ]
+        }
+      ],
+      "supply": [
+        {
+          "card": "copper",
+          "count": 60
+        },
+        {
+          "card": "silver",
+          "count": 40
+        },
+        {
+          "card": "gold",
+          "count": 30
+        },
+        {
+          "card": "village",
+          "count": 10
+        },
+        {
+          "card": "smithy",
+          "count": 10
+        },
+        {
+          "card": "peddler",
+          "count": 10
+        },
+        {
+          "card": "zap",
+          "count": 10
+        },
+        {
+          "card": "blast",
+          "count": 10
+        },
+        {
+          "card": "inferno",
+          "count": 10
+        },
+        {
+          "card": "storm",
+          "count": 10
+        },
+        {
+          "card": "bandage",
+          "count": 10
+        },
+        {
+          "card": "potion",
+          "count": 10
+        },
+        {
+          "card": "healer",
+          "count": 10
+        },
+        {
+          "card": "armory",
+          "count": 10
+        },
+        {
+          "card": "training",
+          "count": 10
+        },
+        {
+          "card": "second-wind",
+          "count": 10
+        }
+      ],
+      "endGame": {
+        "gte": [
+          "emptyPiles",
+          3
+        ]
+      }
+    },
+    "cards": {
+      "rest": {
+        "id": "rest",
+        "name": "Rest",
+        "type": "action",
+        "cost": 0,
+        "effects": []
+      },
+      "copper": {
+        "id": "copper",
+        "name": "Copper",
+        "type": "treasure",
+        "cost": 0,
+        "treasure": 1
+      },
+      "silver": {
+        "id": "silver",
+        "name": "Silver",
+        "type": "treasure",
+        "cost": 3,
+        "treasure": 2
+      },
+      "gold": {
+        "id": "gold",
+        "name": "Gold",
+        "type": "treasure",
+        "cost": 6,
+        "treasure": 3
+      },
+      "village": {
+        "id": "village",
+        "name": "Village",
+        "type": "action",
+        "cost": 4,
+        "effects": [
+          {
+            "kind": "grant",
+            "cards": 1,
+            "actions": 2
+          }
+        ]
+      },
+      "smithy": {
+        "id": "smithy",
+        "name": "Smithy",
+        "type": "action",
+        "cost": 4,
+        "effects": [
+          {
+            "kind": "grant",
+            "cards": 3
+          }
+        ]
+      },
+      "peddler": {
+        "id": "peddler",
+        "name": "Peddler",
+        "type": "action",
+        "cost": 4,
+        "effects": [
+          {
+            "kind": "grant",
+            "cards": 1,
+            "actions": 1,
+            "money": 1
+          }
+        ]
+      },
+      "zap": {
+        "id": "zap",
+        "name": "Zap",
+        "type": "action",
+        "cost": 3,
+        "effects": [
+          {
+            "kind": "grant",
+            "cards": 1,
+            "actions": 1,
+            "attributes": {
+              "damage": 1
+            }
+          }
+        ]
+      },
+      "blast": {
+        "id": "blast",
+        "name": "Blast",
+        "type": "action",
+        "cost": 4,
+        "effects": [
+          {
+            "kind": "grant",
+            "actions": 1,
+            "attributes": {
+              "damage": 2
+            }
+          }
+        ]
+      },
+      "inferno": {
+        "id": "inferno",
+        "name": "Inferno",
+        "type": "action",
+        "cost": 5,
+        "effects": [
+          {
+            "kind": "grant",
+            "attributes": {
+              "damage": 4
+            }
+          }
+        ]
+      },
+      "storm": {
+        "id": "storm",
+        "name": "Storm",
+        "type": "action",
+        "cost": 5,
+        "effects": [
+          {
+            "kind": "grant",
+            "attributes": {
+              "damage": 2,
+              "stormTargets": 2
+            }
+          }
+        ]
+      },
+      "bandage": {
+        "id": "bandage",
+        "name": "Bandage",
+        "type": "action",
+        "cost": 3,
+        "effects": [
+          {
+            "kind": "grant",
+            "cards": 1,
+            "actions": 1,
+            "attributes": {
+              "heal": 1
+            }
+          }
+        ]
+      },
+      "potion": {
+        "id": "potion",
+        "name": "Potion",
+        "type": "action",
+        "cost": 4,
+        "effects": [
+          {
+            "kind": "grant",
+            "actions": 1,
+            "attributes": {
+              "heal": 2
+            }
+          }
+        ]
+      },
+      "healer": {
+        "id": "healer",
+        "name": "Healer",
+        "type": "action",
+        "cost": 5,
+        "effects": [
+          {
+            "kind": "grant",
+            "attributes": {
+              "heal": 4
+            }
+          }
+        ]
+      },
+      "armory": {
+        "id": "armory",
+        "name": "Armory",
+        "type": "action",
+        "cost": 5,
+        "effects": [
+          {
+            "kind": "grant",
+            "attributes": {
+              "upgradeHealth": 2
+            }
+          }
+        ]
+      },
+      "training": {
+        "id": "training",
+        "name": "Training",
+        "type": "action",
+        "cost": 5,
+        "effects": [
+          {
+            "kind": "grant",
+            "actions": 1,
+            "attributes": {
+              "upgradeDamage": 1
+            }
+          }
+        ]
+      },
+      "second-wind": {
+        "id": "second-wind",
+        "name": "Second Wind",
+        "type": "action",
+        "cost": 5,
+        "effects": [
+          {
+            "kind": "grant",
+            "cards": 1,
+            "attributes": {
+              "reattack": 1
+            }
+          }
+        ]
+      }
+    },
+    "players": [
+      {
+        "id": "P1",
+        "draw": [
+          "silver"
+        ],
+        "hand": [
+          "armory",
+          "armory",
+          "peddler",
+          "village",
+          "zap"
+        ],
+        "discard": [
+          "peddler",
+          "village",
+          "village",
+          "bandage",
+          "armory",
+          "potion",
+          "potion",
+          "silver",
+          "silver"
+        ],
+        "play": [],
+        "actions": 1,
+        "buys": 1,
+        "money": 0,
+        "attributes": {
+          "damage": 0,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        },
+        "persistentAttributes": {},
+        "vpCounters": 0,
+        "turnsTaken": 17,
+        "freeTrashUsed": false
+      },
+      {
+        "id": "P2",
+        "draw": [],
+        "hand": [
+          "peddler",
+          "peddler",
+          "gold",
+          "gold",
+          "peddler"
+        ],
+        "discard": [
+          "gold",
+          "village",
+          "village",
+          "village",
+          "peddler",
+          "peddler",
+          "zap",
+          "village",
+          "gold",
+          "silver",
+          "gold",
+          "gold",
+          "gold"
+        ],
+        "play": [],
+        "actions": 5,
+        "buys": 0,
+        "money": 10,
+        "attributes": {
+          "damage": 1,
+          "heal": 0,
+          "upgradeHealth": 0,
+          "upgradeDamage": 0,
+          "reattack": 0,
+          "stormTargets": 0
+        },
+        "persistentAttributes": {},
+        "vpCounters": 0,
+        "turnsTaken": 17,
+        "freeTrashUsed": false
+      }
+    ],
+    "activePlayer": 0,
+    "phase": "action",
+    "supply": {
+      "copper": 60,
+      "silver": 36,
+      "gold": 23,
+      "village": 3,
+      "smithy": 10,
+      "peddler": 3,
+      "zap": 10,
+      "blast": 10,
+      "inferno": 10,
+      "storm": 10,
+      "bandage": 10,
+      "potion": 8,
+      "healer": 10,
+      "armory": 7,
+      "training": 10,
+      "second-wind": 10
+    },
+    "trash": [
+      "rest",
+      "rest",
+      "rest",
+      "rest",
+      "rest",
+      "rest",
+      "copper",
+      "bandage",
+      "copper",
+      "copper",
+      "copper",
+      "copper",
+      "copper",
+      "copper",
+      "copper",
+      "copper",
+      "copper"
+    ],
+    "ended": false
+  }
+}

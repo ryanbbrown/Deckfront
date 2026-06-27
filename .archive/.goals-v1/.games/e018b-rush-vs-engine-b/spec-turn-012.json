@@ -1,0 +1,27 @@
+{
+  "id": "turn-012",
+  "player": "P2",
+  "round": 6,
+  "play": ["peddler", "potion", "armory"],
+  "buy": "village",
+  "moves": [
+    { "id": "P2-druid-1", "to": [7, 6] },
+    { "id": "P2-marksman-1", "to": [6, 7] },
+    { "id": "P2-guardian-2", "to": [4, 7] },
+    { "id": "P2-guardian-3", "to": [2, 8] },
+    { "id": "P2-guardian-4", "to": [1, 8] }
+  ],
+  "upgrades": {
+    "health": [
+      { "id": "P2-druid-1", "amount": 2 }
+    ]
+  },
+  "attacks": [
+    { "attacker": "P2-druid-1", "target": "P1-scout-1" }
+  ],
+  "heals": [
+    { "id": "P2-druid-1", "amount": 2 }
+  ],
+  "summary": "P2 bought Village, upgraded and healed its druid with deck support, and killed P1's wounded scout.",
+  "reasoning": "This was legal deck-produced durability, not printed unit healing. P2 could remove the scout but could not flip southeast in the same board phase because movement happens before attacks."
+}

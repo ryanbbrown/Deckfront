@@ -1,0 +1,24 @@
+{
+  "id": "turn-011",
+  "player": "P1",
+  "round": 6,
+  "trash": "rest",
+  "play": ["zap", "zap"],
+  "buy": "silver",
+  "moves": [
+    { "id": "P1-scout-1", "to": [8, 7] },
+    { "id": "P1-raider-2", "to": [6, 4] },
+    { "id": "P1-guardian-1", "to": [7, 4] },
+    { "id": "P1-raider-3", "to": [8, 2] },
+    { "id": "P1-marksman-1", "to": [8, 1] },
+    { "id": "P1-marksman-2", "to": [9, 0] }
+  ],
+  "attacks": [
+    { "attacker": "P1-scout-1", "target": "P2-druid-1", "bonus": 1 }
+  ],
+  "recruits": [
+    { "type": "marksman", "id": "P1-marksman-3", "at": [11, 0] }
+  ],
+  "summary": "P1 flipped southeast, chipped P2's druid with capped Zap damage, and recruited another marksman.",
+  "reasoning": "Only the scout had a good legal target, so one of the two Zap damage counters expired under the per-attacker damage cap. P1 still used the board tempo to reach a five-center split."
+}

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-007",
+  "player": "P1",
+  "before": "snapshots/turn-007.before.deck.json",
+  "after": "snapshots/turn-007.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 2
+    },
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "peddler"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "silver",
+    "blast",
+    "copper",
+    "inferno"
+  ],
+  "played": [
+    "blast",
+    "inferno"
+  ],
+  "bought": [
+    "peddler"
+  ],
+  "produced": {
+    "damage": 6
+  }
+}

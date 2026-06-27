@@ -1,0 +1,2 @@
+Valid replay bundle: OpenCode GLM smoke playthrough (1 entries)
+$ bun run src/playtest/main.ts validate --strict --strict-deck --strict-win "../runs/opencode-glm-smoke-01/timeline.json"

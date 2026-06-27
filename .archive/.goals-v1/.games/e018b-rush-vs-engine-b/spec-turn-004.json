@@ -1,0 +1,15 @@
+{
+  "id": "turn-004",
+  "player": "P2",
+  "round": 2,
+  "play": ["zap", "bandage"],
+  "buy": "peddler",
+  "moves": [
+    { "id": "P2-scout-1", "to": [5, 7] },
+    { "id": "P2-scout-2", "to": [6, 7] },
+    { "id": "P2-druid-1", "to": [3, 7] },
+    { "id": "P2-marksman-1", "to": [2, 8] }
+  ],
+  "summary": "P2 played Zap/Bandage, bought Peddler, and claimed center-south.",
+  "reasoning": "Peddler fit the engine/economy brief without adding terminal clog. The heal counter had no damaged target, and the druid again functioned only as a board body."
+}

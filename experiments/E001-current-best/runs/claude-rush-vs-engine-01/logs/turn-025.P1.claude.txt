@@ -1,0 +1,5 @@
+Turn `turn-025` complete and validated.
+
+**P1 leads 22 units to 9**, holding 7 of 8 centers. Past 24 completed turns, all three rule-defined win conditions (unit-count lead, six-center dominance, and now center majority) nominally favor P1 — none machine-confirmed under the `current` ruleset alias.
+
+My NE home cluster is gridlocked (raiders boxed in by their own numbers), so I freed one hex and recruited one more for a net +1. Continuing the safe dominant line — no -EV corner siege — preserving an overwhelming lead on every metric heading into the final turns. Validation passed (25 entries).

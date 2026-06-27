@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "runner": "codex",
+  "ruleset": "territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6",
+  "map": "sketch-v5-recenter",
+  "deckConfig": "rulesets/territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6/deck.yaml",
+  "title": "Claude-vs-Claude E024 playthrough",
+  "seed": 2106,
+  "drafts": [
+    "P1=blast,zap,silver",
+    "P2=village,smithy,peddler"
+  ],
+  "startingUnits": {
+    "P1": "raider,scout,raider,marksman",
+    "P2": "raider,scout,guardian,marksman"
+  },
+  "players": {
+    "P1": {
+      "strategy": "Rush: contest centers early with high-movement units, convert center income into recruits, buy damage/cycling cards, and win by board pressure."
+    },
+    "P2": {
+      "strategy": "Engine/control: still contest centers early with competent unit play, but use deck buys to build draw/economy into damage and stabilization."
+    }
+  },
+  "files": [
+    {
+      "path": "agent-context/prompts/playtest-player.system.md",
+      "sha256": "de7f6f28c57336054381d748041745dc736afd3f26d55629445ee6229c998c38"
+    },
+    {
+      "path": "agent-context/prompts/playtest-initial.user.md",
+      "sha256": "355659184b39da59597c26c2fbc6e32b4af9b6a55fea9847846996048d7dacdb"
+    },
+    {
+      "path": "agent-context/prompts/playtest-turn.user.md",
+      "sha256": "7b16e65b5add8c663267c021f814f162007ba093637db915c612fe147e89b45b"
+    },
+    {
+      "path": "agent-context/prompts/playtest-repair.user.md",
+      "sha256": "8fbc41a74c78db52e96479f6c1e518c1bef37920c58c71dc7d3201b0f00f95e8"
+    },
+    {
+      "path": "rulesets/territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6/board-rules.md",
+      "sha256": "fb79731ba465565302bfa96ff5478c66f2f80bda48991109c0f1751b9bda583e"
+    },
+    {
+      "path": "rulesets/territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6/deck.yaml",
+      "sha256": "1b3cef72cde2b608b23ec4533896b4617fabe1cb100f492d9b3cb013326a93ca"
+    },
+    {
+      "path": "rulesets/territory-v1-cost6-damagecap-responsewin-lead4-highmove-center6/units.json",
+      "sha256": "e0636e63c28073a452a212c33e0c77c800adc4bb57412e8d91f5408e49037658"
+    },
+    {
+      "path": "maps/sketch-v5-recenter.json",
+      "sha256": "9592642ea07d0e4d70cc1b116b739da0465e64113097096d3af8310759056f9b"
+    }
+  ],
+  "notes": [
+    "Claude receives playtest-player.system.md through --system-prompt.",
+    "Codex CLI has no system-prompt flag, so the Codex runner prepends the same content to each player's first prompt."
+  ]
+}

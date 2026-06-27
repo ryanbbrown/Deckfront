@@ -1,0 +1,9 @@
+Turn-006 for P2 complete and validated.
+
+**Situation:** I lost my raider last turn (it overextended to 4,4 and got focus-killed), leaving me down **3 units vs 5**. Stopping the unit bleed became the priority.
+
+**Deck phase** — Played Village + Smithy to dig, bought **Inferno** to start a burst-damage payload for the eventual counterpush.
+
+**Board phase** — Recruited a **guardian** (16hp anchor) at home → back to **4v5** (lead only 1, no win threat). Retreated the fragile scout to (2,7) out of raider range, and pulled guardian (3,7) + marksman (3,8) into a tight home cluster on center-west-south. Any P1 raider that dives this cluster gets focus-killed next turn (marksman 4 + guardian 4 = 8 = dead raider).
+
+**Standing:** P1 controls 5 centers to my 2 and leads the unit count, so the rush is ahead on tempo. My control plan now: turtle behind the fortress, keep recruiting tanky bodies, punish overextensions, and deploy the Gold-funded damage payload to trade up once stabilized.

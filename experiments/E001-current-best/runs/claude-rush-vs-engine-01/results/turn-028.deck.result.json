@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-028",
+  "player": "P2",
+  "before": "snapshots/turn-028.before.deck.json",
+  "after": "snapshots/turn-028.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 1
+    },
+    {
+      "type": "playAction",
+      "handIndex": 2
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "silver"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "training",
+    "inferno",
+    "smithy",
+    "silver"
+  ],
+  "played": [
+    "training",
+    "smithy"
+  ],
+  "bought": [
+    "silver"
+  ],
+  "produced": {
+    "money": 2,
+    "upgradeDamage": 1
+  }
+}

@@ -1,0 +1,1 @@
+{"schemaVersion":1,"turnId":"turn-022","player":"P2","actions":[{"type":"playAction","handIndex":4},{"type":"moveToBuy"},{"type":"buyCard","cardId":"gold"},{"type":"endTurn"}]}

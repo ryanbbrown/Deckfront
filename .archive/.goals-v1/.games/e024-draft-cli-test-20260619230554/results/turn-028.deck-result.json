@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-028",
+  "player": "P2",
+  "before": "snapshots/turn-028.before.deck.json",
+  "after": "snapshots/turn-028.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 0
+    },
+    {
+      "type": "playAction",
+      "handIndex": 2
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "gold"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "village",
+    "gold",
+    "gold",
+    "village",
+    "gold"
+  ],
+  "played": [
+    "village",
+    "village"
+  ],
+  "bought": [
+    "gold"
+  ],
+  "produced": {
+    "money": 5
+  }
+}

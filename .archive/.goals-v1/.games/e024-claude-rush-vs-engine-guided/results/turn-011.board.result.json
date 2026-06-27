@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-011",
+  "player": "P1",
+  "before": "snapshots/turn-011.before.board.json",
+  "after": "snapshots/turn-011.after.board.json",
+  "actions": {
+    "movements": [],
+    "recruits": [
+      {
+        "unit": "P1-raider-r11",
+        "type": "raider",
+        "at": {
+          "col": 11,
+          "row": 1
+        }
+      }
+    ],
+    "attacks": [],
+    "heals": [],
+    "upgrades": []
+  }
+}
