@@ -1,0 +1,1928 @@
+{
+  "turnId": "turn-011",
+  "player": "P1",
+  "strategy": "Rush: contest centers early with high-movement units, convert center income into recruits, buy damage/cycling cards, and win by board pressure.",
+  "opponent": {
+    "id": "P2",
+    "strategy": "Engine/control: still contest centers early with competent unit play, but use deck buys to build draw/economy into damage and stabilization."
+  },
+  "drafts": [
+    "P1=blast,zap,silver",
+    "P2=village,smithy,peddler"
+  ],
+  "startingUnits": {
+    "P1": [
+      "raider",
+      "scout",
+      "raider",
+      "marksman"
+    ],
+    "P2": [
+      "raider",
+      "scout",
+      "guardian",
+      "marksman"
+    ]
+  },
+  "deck": {
+    "phase": "action",
+    "active": {
+      "id": "P1",
+      "handIndexed": [
+        [
+          0,
+          "copper"
+        ],
+        [
+          1,
+          "copper"
+        ],
+        [
+          2,
+          "silver"
+        ],
+        [
+          3,
+          "blast"
+        ],
+        [
+          4,
+          "copper"
+        ]
+      ],
+      "actions": 1,
+      "buys": 1,
+      "money": 0,
+      "attributes": {
+        "damage": 0,
+        "heal": 0,
+        "upgradeHealth": 0,
+        "upgradeDamage": 0,
+        "reattack": 0,
+        "stormTargets": 0
+      },
+      "freeTrashUsed": false,
+      "play": [],
+      "discard": [],
+      "drawCount": 10
+    },
+    "drawHorizon": {
+      "maxVisibleDraws": 0,
+      "drawTop": [],
+      "shuffleCouldReachDiscard": false,
+      "discardIfShuffled": []
+    },
+    "legal": [
+      {
+        "i": 1,
+        "d": "Play Blast",
+        "a": {
+          "type": "playAction",
+          "handIndex": 3
+        }
+      },
+      {
+        "i": 2,
+        "d": "Move to buy phase",
+        "a": {
+          "type": "moveToBuy"
+        }
+      },
+      {
+        "i": 3,
+        "d": "Trash Copper",
+        "a": {
+          "type": "trashCard",
+          "handIndex": 0
+        }
+      },
+      {
+        "i": 4,
+        "d": "Trash Copper",
+        "a": {
+          "type": "trashCard",
+          "handIndex": 1
+        }
+      },
+      {
+        "i": 5,
+        "d": "Trash Silver",
+        "a": {
+          "type": "trashCard",
+          "handIndex": 2
+        }
+      },
+      {
+        "i": 6,
+        "d": "Trash Blast",
+        "a": {
+          "type": "trashCard",
+          "handIndex": 3
+        }
+      },
+      {
+        "i": 7,
+        "d": "Trash Copper",
+        "a": {
+          "type": "trashCard",
+          "handIndex": 4
+        }
+      }
+    ],
+    "notes": [
+      "Hand indexes are live and change after playAction, trashCard, and draws.",
+      "drawHorizon shows the top cards that can plausibly be drawn this turn if you play draw actions.",
+      "Use submit_deck_turn once with a complete sequence; the tool will validate against the real CLI and return retry feedback if needed."
+    ]
+  },
+  "board": {
+    "turn": {
+      "activePlayer": "P1",
+      "round": 6
+    },
+    "units": [
+      {
+        "id": "P2-guardian-start-3",
+        "p": "P2",
+        "t": "guardian",
+        "c": 6,
+        "r": 5,
+        "hp": 4,
+        "max": 16,
+        "atk": 4
+      },
+      {
+        "id": "P2-raider-turn-004",
+        "p": "P2",
+        "t": "raider",
+        "c": 4,
+        "r": 7,
+        "hp": 1,
+        "max": 8,
+        "atk": 6
+      },
+      {
+        "id": "P1-raider-turn-005",
+        "p": "P1",
+        "t": "raider",
+        "c": 7,
+        "r": 4,
+        "hp": 4,
+        "max": 8,
+        "atk": 6
+      },
+      {
+        "id": "P1-raider-turn-007-a",
+        "p": "P1",
+        "t": "raider",
+        "c": 6,
+        "r": 3,
+        "hp": 8,
+        "max": 8,
+        "atk": 6
+      },
+      {
+        "id": "P1-raider-turn-007-b",
+        "p": "P1",
+        "t": "raider",
+        "c": 7,
+        "r": 2,
+        "hp": 8,
+        "max": 8,
+        "atk": 6
+      },
+      {
+        "id": "P2-druid-turn-008",
+        "p": "P2",
+        "t": "druid",
+        "c": 2,
+        "r": 7,
+        "hp": 10,
+        "max": 10,
+        "atk": 4
+      },
+      {
+        "id": "P1-raider-turn-009",
+        "p": "P1",
+        "t": "raider",
+        "c": 10,
+        "r": 1,
+        "hp": 8,
+        "max": 8,
+        "atk": 6
+      }
+    ],
+    "supplyControl": [
+      {
+        "id": "center-northwest",
+        "controller": "P1"
+      },
+      {
+        "id": "center-west-south",
+        "controller": "P1"
+      },
+      {
+        "id": "center-center-north",
+        "controller": "P1"
+      },
+      {
+        "id": "center-center",
+        "controller": "P2"
+      },
+      {
+        "id": "center-center-south",
+        "controller": "P2"
+      },
+      {
+        "id": "center-northeast",
+        "controller": "P1"
+      },
+      {
+        "id": "center-east",
+        "controller": "P1"
+      },
+      {
+        "id": "center-southeast",
+        "controller": null
+      }
+    ],
+    "supply": [
+      {
+        "player": "P1",
+        "amount": 2
+      },
+      {
+        "player": "P2",
+        "amount": 3
+      }
+    ],
+    "homeBases": [
+      {
+        "id": "P1-home",
+        "player": "P1",
+        "hexes": [
+          {
+            "col": 10,
+            "row": 1
+          },
+          {
+            "col": 11,
+            "row": 0
+          },
+          {
+            "col": 12,
+            "row": 1
+          },
+          {
+            "col": 11,
+            "row": 1
+          }
+        ]
+      },
+      {
+        "id": "P2-home",
+        "player": "P2",
+        "hexes": [
+          {
+            "col": 0,
+            "row": 8
+          },
+          {
+            "col": 1,
+            "row": 7
+          },
+          {
+            "col": 1,
+            "row": 8
+          },
+          {
+            "col": 0,
+            "row": 9
+          }
+        ]
+      }
+    ],
+    "supplyCenters": [
+      {
+        "id": "center-northwest",
+        "col": 3,
+        "row": 3
+      },
+      {
+        "id": "center-west-south",
+        "col": 3,
+        "row": 7
+      },
+      {
+        "id": "center-center-north",
+        "col": 5,
+        "row": 3
+      },
+      {
+        "id": "center-center",
+        "col": 6,
+        "row": 5
+      },
+      {
+        "id": "center-center-south",
+        "col": 7,
+        "row": 5
+      },
+      {
+        "id": "center-northeast",
+        "col": 8,
+        "row": 1
+      },
+      {
+        "id": "center-east",
+        "col": 8,
+        "row": 6
+      },
+      {
+        "id": "center-southeast",
+        "col": 8,
+        "row": 7
+      }
+    ],
+    "unitRules": {
+      "guardian": {
+        "role": "melee",
+        "attack": 4,
+        "hp": 16,
+        "movement": 2
+      },
+      "raider": {
+        "role": "melee",
+        "attack": 6,
+        "hp": 8,
+        "movement": 4
+      },
+      "marksman": {
+        "role": "ranged",
+        "attack": 4,
+        "hp": 8,
+        "movement": 2,
+        "range": 2
+      },
+      "scout": {
+        "role": "ranged",
+        "attack": 2,
+        "hp": 8,
+        "movement": 5,
+        "range": 2
+      },
+      "druid": {
+        "role": "mage",
+        "attack": 4,
+        "hp": 10,
+        "movement": 2,
+        "heal": 1
+      },
+      "healer": {
+        "role": "mage",
+        "attack": 1,
+        "hp": 4,
+        "movement": 2,
+        "heal": 1,
+        "range": 2
+      }
+    },
+    "legalMovementOptions": [
+      {
+        "unit": "P1-raider-turn-005",
+        "from": {
+          "col": 7,
+          "row": 4
+        },
+        "movement": 4,
+        "destinations": [
+          {
+            "to": {
+              "col": 7,
+              "row": 5
+            },
+            "distance": 1,
+            "center": "center-center-south"
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 3
+            },
+            "distance": 2,
+            "center": "center-center-north"
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 6
+            },
+            "distance": 2,
+            "center": "center-east"
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 7
+            },
+            "distance": 3,
+            "center": "center-southeast"
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 3
+            },
+            "distance": 4,
+            "center": "center-northwest"
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 1
+            },
+            "distance": 4,
+            "center": "center-northeast"
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 4
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 3
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 5
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 4
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 6
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 6
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 3
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 4
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 5
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 3
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 4
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 5
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 2
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 5
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 6
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 2
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 7
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 1
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 7
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 2
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 2
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 3
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 6
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 4
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 5
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 6
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 2
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 4
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 2
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 6
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 1
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 7
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 1
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 8
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 0
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 8
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 8
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 1
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 7
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 2
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 3
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 7
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 3
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 4
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 5
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 6
+            },
+            "distance": 4
+          }
+        ]
+      },
+      {
+        "unit": "P1-raider-turn-007-a",
+        "from": {
+          "col": 6,
+          "row": 3
+        },
+        "movement": 4,
+        "destinations": [
+          {
+            "to": {
+              "col": 5,
+              "row": 3
+            },
+            "distance": 1,
+            "center": "center-center-north"
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 3
+            },
+            "distance": 3,
+            "center": "center-northwest"
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 5
+            },
+            "distance": 3,
+            "center": "center-center-south"
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 1
+            },
+            "distance": 3,
+            "center": "center-northeast"
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 6
+            },
+            "distance": 4,
+            "center": "center-east"
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 2
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 2
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 4
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 3
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 2
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 3
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 4
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 1
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 4
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 1
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 1
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 2
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 3
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 1
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 2
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 4
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 1
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 5
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 0
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 5
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 0
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 0
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 5
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 1
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 2
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 3
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 2,
+              "row": 1
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 2,
+              "row": 2
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 2,
+              "row": 3
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 2,
+              "row": 4
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 2,
+              "row": 5
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 0
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 0
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 6
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 6
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 6
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 6
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 0
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 0
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 4
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 5
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 2
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 3
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 4
+            },
+            "distance": 4
+          }
+        ]
+      },
+      {
+        "unit": "P1-raider-turn-007-b",
+        "from": {
+          "col": 7,
+          "row": 2
+        },
+        "movement": 4,
+        "destinations": [
+          {
+            "to": {
+              "col": 5,
+              "row": 3
+            },
+            "distance": 2,
+            "center": "center-center-north"
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 1
+            },
+            "distance": 2,
+            "center": "center-northeast"
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 5
+            },
+            "distance": 3,
+            "center": "center-center-south"
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 3
+            },
+            "distance": 4,
+            "center": "center-northwest"
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 6
+            },
+            "distance": 4,
+            "center": "center-east"
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 2
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 1
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 3
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 2
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 3
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 1
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 2
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 1
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 4
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 0
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 1
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 2
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 3
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 1
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 2
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 3
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 4
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 0
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 4
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 0
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 0
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 5
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 0
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 4
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 2
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 3
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 4
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 0
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 1
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 2
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 3,
+              "row": 4
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 0
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 4,
+              "row": 5
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 5,
+              "row": 5
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 6
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 6
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 5
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 0
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 5
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 0
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 1
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 2
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 3
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 4
+            },
+            "distance": 4
+          }
+        ]
+      },
+      {
+        "unit": "P1-raider-turn-009",
+        "from": {
+          "col": 10,
+          "row": 1
+        },
+        "movement": 4,
+        "destinations": [
+          {
+            "to": {
+              "col": 8,
+              "row": 1
+            },
+            "distance": 2,
+            "center": "center-northeast"
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 0
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 1
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 0
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 2
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 0
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 1
+            },
+            "distance": 1
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 0
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 2
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 2
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 3
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 2
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 12,
+              "row": 0
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 12,
+              "row": 1
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 12,
+              "row": 2
+            },
+            "distance": 2
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 0
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 1
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 8,
+              "row": 3
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 3
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 4
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 3
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 12,
+              "row": 3
+            },
+            "distance": 3
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 0
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 1
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 6,
+              "row": 2
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 7,
+              "row": 3
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 9,
+              "row": 4
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 10,
+              "row": 5
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 11,
+              "row": 4
+            },
+            "distance": 4
+          },
+          {
+            "to": {
+              "col": 12,
+              "row": 4
+            },
+            "distance": 4
+          }
+        ]
+      }
+    ]
+  },
+  "market": [
+    {
+      "id": "rest",
+      "type": "action",
+      "cost": 0,
+      "n": 0,
+      "effects": []
+    },
+    {
+      "id": "copper",
+      "type": "treasure",
+      "cost": 0,
+      "n": 60,
+      "treasure": 1
+    },
+    {
+      "id": "silver",
+      "type": "treasure",
+      "cost": 3,
+      "n": 40,
+      "treasure": 2
+    },
+    {
+      "id": "gold",
+      "type": "treasure",
+      "cost": 6,
+      "n": 30,
+      "treasure": 3
+    },
+    {
+      "id": "village",
+      "type": "action",
+      "cost": 4,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "cards": 1,
+          "actions": 2
+        }
+      ]
+    },
+    {
+      "id": "smithy",
+      "type": "action",
+      "cost": 4,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "cards": 3
+        }
+      ]
+    },
+    {
+      "id": "peddler",
+      "type": "action",
+      "cost": 4,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "cards": 1,
+          "actions": 1,
+          "money": 1
+        }
+      ]
+    },
+    {
+      "id": "zap",
+      "type": "action",
+      "cost": 3,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "cards": 1,
+          "actions": 1,
+          "attributes": {
+            "damage": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "blast",
+      "type": "action",
+      "cost": 4,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "actions": 1,
+          "attributes": {
+            "damage": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "inferno",
+      "type": "action",
+      "cost": 5,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "attributes": {
+            "damage": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": "storm",
+      "type": "action",
+      "cost": 5,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "attributes": {
+            "damage": 2,
+            "stormTargets": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "bandage",
+      "type": "action",
+      "cost": 3,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "cards": 1,
+          "actions": 1,
+          "attributes": {
+            "heal": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "potion",
+      "type": "action",
+      "cost": 4,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "actions": 1,
+          "attributes": {
+            "heal": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "healer",
+      "type": "action",
+      "cost": 5,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "attributes": {
+            "heal": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": "armory",
+      "type": "action",
+      "cost": 5,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "attributes": {
+            "upgradeHealth": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "training",
+      "type": "action",
+      "cost": 5,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "actions": 1,
+          "attributes": {
+            "upgradeDamage": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "second-wind",
+      "type": "action",
+      "cost": 5,
+      "n": 10,
+      "effects": [
+        {
+          "kind": "grant",
+          "cards": 1,
+          "attributes": {
+            "reattack": 1
+          }
+        }
+      ]
+    }
+  ]
+}

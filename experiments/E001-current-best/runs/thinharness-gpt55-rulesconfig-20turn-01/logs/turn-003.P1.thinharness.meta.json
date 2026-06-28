@@ -1,0 +1,30 @@
+{
+  "elapsedSeconds": 15.03970616683364,
+  "usage": {
+    "model_requests": 3,
+    "tool_calls": 2,
+    "cancelled_tool_calls": 0,
+    "output_retries": 0,
+    "tool_retries": {}
+  },
+  "stopReason": "end_turn",
+  "text": "done",
+  "toolCalls": [
+    {
+      "call": {
+        "id": "call_V6fTS71wm4LD382xwGYFEt9M",
+        "name": "submit_deck_turn",
+        "arguments": "{\"actions\":[{\"type\":\"playAction\",\"handIndex\":1},{\"type\":\"moveToBuy\"},{\"type\":\"buyCard\",\"cardId\":\"blast\"},{\"type\":\"endTurn\"}],\"note\":\"Play Blast for 2 damage, use four Copper to buy another Blast for rush pressure.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"deck turn valid\\\",\\\"played\\\":[\\\"blast\\\"],\\\"bought\\\":[\\\"blast\\\"],\\\"produced\\\":{\\\"damage\\\":2},\\\"next\\\":\\\"Call submit_board_turn with board actions that use these produced resources.\\\"}\", \"metadata\": {}}"
+    },
+    {
+      "call": {
+        "id": "call_5rzudIctVTMOu7gTv6c9bfA1",
+        "name": "submit_board_turn",
+        "arguments": "{\"actions\":{\"movements\":[{\"unit\":\"P1-scout-start-2\",\"from\":{\"col\":6,\"row\":3},\"to\":{\"col\":3,\"row\":3}},{\"unit\":\"P1-raider-start-1\",\"from\":{\"col\":8,\"row\":1},\"to\":{\"col\":5,\"row\":3}},{\"unit\":\"P1-raider-start-3\",\"from\":{\"col\":8,\"row\":3},\"to\":{\"col\":7,\"row\":5}},{\"unit\":\"P1-marksman-start-4\",\"from\":{\"col\":9,\"row\":2},\"to\":{\"col\":7,\"row\":3}}],\"recruits\":[],\"attacks\":[{\"attacker\":\"P1-marksman-start-4\",\"target\":\"P2-scout-start-2\",\"deckDamage\":1},{\"attacker\":\"P1-raider-start-3\",\"target\":\"P2-scout-start-2\",\"deckDamage\":1}],\"heals\":[],\"upgrades\":[]},\"summary\":\"P1 bought Blast, captured three more centers, and killed P2 scout with Blast-supported focus fire.\",\"reasoning\":\"Rush plan: convert the Blast turn into tempo. Scout takes northwest, raider takes center-north, and raider takes center-south to swing center control while marksman advances. Marksman plus raider each attach 1 deck damage to legally focus and remove P2 scout on center, reducing P2 board presence and income.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"turn committed and strict-validated\\\",\\\"turnId\\\":\\\"turn-003\\\"}\", \"metadata\": {}}"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-005",
+  "player": "P1",
+  "before": "snapshots/turn-005.before.deck.json",
+  "after": "snapshots/turn-005.after.deck.json",
+  "actions": [
+    {
+      "type": "playAction",
+      "handIndex": 4
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "training"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "copper",
+    "silver",
+    "gold",
+    "zap"
+  ],
+  "played": [
+    "zap"
+  ],
+  "bought": [
+    "training"
+  ],
+  "produced": {
+    "money": 3,
+    "damage": 1
+  }
+}

@@ -10,6 +10,7 @@ The runners should not hide durable player instructions inside Python string lit
 - `prompts/playtest-initial.user.md`: rendered once at the beginning of each player session. It identifies the run, player, strategy assignment, rules files, map, draft, and setup.
 - `prompts/playtest-turn.user.md`: rendered for each active turn. It gives the current compact state briefing for one turn.
 - `prompts/playtest-repair.user.md`: rendered only after validation fails. It tells the same player session to repair the same turn instead of advancing the game.
+- `prompts/thinharness-player.system.md`: ThinHarness tool-workflow addendum layered after `playtest-player.system.md`. It tells the player to call `submit_deck_turn`, then `submit_board_turn`; those tools own file writes, CLI execution, retry feedback, commits, and strict replay validation.
 - `prompts/review-evaluate.system.md`: stable reviewer/evaluator policy for later batch evaluation agents.
 
 Each runner snapshots rendered prompts under `runs/<run>/context/` so a playthrough can be audited after experiment-local prompts change.

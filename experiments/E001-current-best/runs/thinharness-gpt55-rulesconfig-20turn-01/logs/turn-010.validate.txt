@@ -1,0 +1,2 @@
+Valid replay bundle: Current best ThinHarness playthrough (10 entries)
+$ bun run src/playtest/main.ts validate --strict --strict-deck --strict-win "../runs/thinharness-gpt55-rulesconfig-20turn-01/timeline.json"

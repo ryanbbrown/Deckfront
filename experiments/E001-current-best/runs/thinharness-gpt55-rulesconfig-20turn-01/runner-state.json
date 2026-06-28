@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "runner": "thinharness-tools",
+  "model": "openai:gpt-5.5",
+  "effort": "low",
+  "drafts": [
+    "P1=blast,zap,silver",
+    "P2=village,smithy,peddler"
+  ],
+  "players": {
+    "P1": {
+      "strategy": "Rush: contest centers early with high-movement units, convert center income into recruits, buy damage/cycling cards, and win by board pressure."
+    },
+    "P2": {
+      "strategy": "Engine/control: still contest centers early with competent unit play, but use deck buys to build draw/economy into damage and stabilization."
+    }
+  }
+}

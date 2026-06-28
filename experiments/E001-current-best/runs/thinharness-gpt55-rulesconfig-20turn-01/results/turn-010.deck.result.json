@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "turnId": "turn-010",
+  "player": "P2",
+  "before": "snapshots/turn-010.before.deck.json",
+  "after": "snapshots/turn-010.after.deck.json",
+  "actions": [
+    {
+      "type": "trashCard",
+      "handIndex": 0
+    },
+    {
+      "type": "playAction",
+      "handIndex": 3
+    },
+    {
+      "type": "moveToBuy"
+    },
+    {
+      "type": "buyCard",
+      "cardId": "gold"
+    },
+    {
+      "type": "endTurn"
+    }
+  ],
+  "drawnHand": [
+    "copper",
+    "copper",
+    "gold",
+    "gold",
+    "peddler"
+  ],
+  "played": [
+    "peddler"
+  ],
+  "bought": [
+    "gold"
+  ],
+  "produced": {
+    "money": 3
+  }
+}
