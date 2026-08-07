@@ -5,6 +5,11 @@ setup:
   initialMoney: 0
   handSize: 1
   startingDeck: [copper]
+  draft:
+    baseCard: copper
+    baseCount: 7
+    maxCards: 3
+    maxCost: 8
   attributes: {}
 cards:
   - id: copper

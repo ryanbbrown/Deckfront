@@ -5,9 +5,12 @@
   "private": true,
   "scripts": {
     "test": "vitest run",
+    "test:harness": "uv run scripts/test_run_game.py",
+    "test:all": "bun run test && bun run test:harness",
     "typecheck": "tsc --noEmit",
     "cli": "bun run src/cli/main.ts",
     "playtest": "bun run src/playtest/main.ts",
+    "mock-game": "bun run scripts/build_mock_game.ts",
     "validate-run": "bun run src/playtest/main.ts validate",
     "init-run": "bun run src/playtest/main.ts init",
     "viewer": "vite --config viewer/vite.config.ts",

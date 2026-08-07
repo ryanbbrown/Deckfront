@@ -27,8 +27,7 @@ function gameDataPlugin(): Plugin {
         const url = new URL(request.url ?? '/', 'http://localhost');
         const relativePath = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
         if (
-          !relativePath.startsWith('rulesets/') &&
-          !relativePath.startsWith('maps/') &&
+          !relativePath.startsWith('game/') &&
           !relativePath.startsWith('.games/')
         ) {
           response.statusCode = 404;

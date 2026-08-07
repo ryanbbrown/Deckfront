@@ -1,0 +1,11 @@
+{"turnId":"turn-001","player":"P1","elapsedSeconds":18.468101625097916,"modelSeconds":18.356601666891947,"usage":{"model_requests":3,"tool_calls":2,"cancelled_tool_calls":0,"output_retries":0,"tool_retries":{}}}
+{"turnId":"turn-002","player":"P2","elapsedSeconds":20.311499333009124,"modelSeconds":20.17876833304763,"usage":{"model_requests":3,"tool_calls":2,"cancelled_tool_calls":0,"output_retries":0,"tool_retries":{}}}
+{"turnId":"turn-003","player":"P1","elapsedSeconds":15.176254000049084,"modelSeconds":15.03970616683364,"usage":{"model_requests":3,"tool_calls":2,"cancelled_tool_calls":0,"output_retries":0,"tool_retries":{}}}
+{"turnId":"turn-004","player":"P2","elapsedSeconds":21.840818207943812,"modelSeconds":21.704913540976122,"usage":{"model_requests":3,"tool_calls":2,"cancelled_tool_calls":0,"output_retries":0,"tool_retries":{}}}
+{"turnId":"turn-005","player":"P1","elapsedSeconds":19.47763887490146,"modelSeconds":19.34409279213287,"usage":{"model_requests":3,"tool_calls":2,"cancelled_tool_calls":0,"output_retries":0,"tool_retries":{}}}
+{"turnId":"turn-006","player":"P2","elapsedSeconds":13.26447470812127,"modelSeconds":13.130548374960199,"usage":{"model_requests":3,"tool_calls":2,"cancelled_tool_calls":0,"output_retries":0,"tool_retries":{}}}
+{"turnId":"turn-007","player":"P1","elapsedSeconds":18.906871041981503,"modelSeconds":18.772116624983028,"usage":{"model_requests":3,"tool_calls":2,"cancelled_tool_calls":0,"output_retries":0,"tool_retries":{}}}
+{"turnId":"turn-008","player":"P2","elapsedSeconds":20.4465546249412,"modelSeconds":20.31258791591972,"usage":{"model_requests":3,"tool_calls":2,"cancelled_tool_calls":0,"output_retries":0,"tool_retries":{}}}
+{"turnId":"turn-009","player":"P1","elapsedSeconds":37.40209662495181,"modelSeconds":37.26568966684863,"usage":{"model_requests":3,"tool_calls":2,"cancelled_tool_calls":0,"output_retries":0,"tool_retries":{}}}
+{"turnId":"turn-010","player":"P2","elapsedSeconds":19.53942441707477,"modelSeconds":19.405828417045996,"usage":{"model_requests":3,"tool_calls":2,"cancelled_tool_calls":0,"output_retries":0,"tool_retries":{}}}
+{"turnId":"turn-011","player":"P1","elapsedSeconds":23.78407970792614,"modelSeconds":23.650201957905665,"usage":{"model_requests":4,"tool_calls":3,"cancelled_tool_calls":0,"output_retries":0,"tool_retries":{"submit_deck_turn":1}}}

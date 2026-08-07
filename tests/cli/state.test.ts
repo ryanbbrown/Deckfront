@@ -72,7 +72,7 @@ describe('CLI state persistence', () => {
     expect(playerTwoCards).toEqual(['copper', 'estate', 'estate']);
   });
 
-  it('applies draft overrides as seven copper plus budgeted cards', async () => {
+  it('applies config-sourced draft limits without refunding unspent budget', async () => {
     const dir = await makeTempDir();
     const statePath = join(dir, 'deck.json');
 
@@ -100,13 +100,13 @@ describe('CLI state persistence', () => {
 
     expect(playerOneCards).toEqual(['copper', 'copper', 'copper', 'copper', 'copper', 'copper', 'copper', 'province']);
     expect(playerTwoCards).toEqual(['copper', 'copper', 'copper', 'copper', 'copper', 'copper', 'copper', 'estate']);
-    expect(saved.game.players[0]!.money).toBe(4);
-    expect(saved.game.players[0]!.draftCarryoverMoney).toBeUndefined();
+    expect(saved.game.players[0]!.money).toBe(0);
     expect(saved.game.players[1]!.money).toBe(0);
-    expect(saved.game.players[1]!.draftCarryoverMoney).toBe(12);
+    expect(saved.game.supply.province).toBe(0);
+    expect(saved.game.supply.estate).toBe(0);
   });
 
-  it('spends draft carryover on the drafted player first turn only', async () => {
+  it('keeps first-turn money at the configured baseline after a draft', async () => {
     const dir = await makeTempDir();
     const statePath = join(dir, 'deck.json');
     const actionPath = join(dir, 'actions', 'turn-001.deck.json');
@@ -121,15 +121,15 @@ describe('CLI state persistence', () => {
       [
         'deck-turn',
         '--config',
-        'tests/fixtures/multi-player.yaml',
+        'game/deck.yaml',
         '--seed',
         '1',
         '--state',
         statePath,
         '--draft',
-        'P1=province',
+        'P1=ranging',
         '--draft',
-        'P2=estate',
+        'P2=longbow',
         '--actions',
         actionPath,
         '--result',
@@ -140,11 +140,10 @@ describe('CLI state persistence', () => {
 
     const saved = JSON.parse(await readFile(statePath, 'utf8')) as PersistedGame;
 
-    expect(saved.game.players[1]!.money).toBe(12);
-    expect(saved.game.players[1]!.draftCarryoverMoney).toBeUndefined();
+    expect(saved.game.players[1]!.money).toBe(0);
   });
 
-  it('rejects drafts over the 12-coin budget', async () => {
+  it('rejects drafts over the card-count and cost limits', async () => {
     const dir = await makeTempDir();
 
     await expect(
@@ -159,11 +158,25 @@ describe('CLI state persistence', () => {
           '--max-actions',
           '0',
           '--draft',
-          'P1=province,province'
+          'P1=estate,estate,estate,estate'
         ],
         () => undefined
       )
-    ).rejects.toThrow('exceeding budget 12');
+    ).rejects.toThrow('exceeding maximum 3');
+
+    await expect(
+      runCli(
+        ['--config', 'tests/fixtures/multi-player.yaml', '--seed', '1', '--max-actions', '0', '--draft', 'P1=province,province'],
+        () => undefined
+      )
+    ).rejects.toThrow('exceeding budget 8');
+
+    await expect(
+      runCli(
+        ['--config', 'tests/fixtures/multi-player.yaml', '--seed', '1', '--max-actions', '0', '--draft', 'P1=province', '--draft', 'P2=province'],
+        () => undefined
+      )
+    ).rejects.toThrow('only 1 remain in the market');
   });
 });
 

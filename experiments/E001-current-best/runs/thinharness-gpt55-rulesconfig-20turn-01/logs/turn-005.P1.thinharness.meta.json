@@ -1,0 +1,30 @@
+{
+  "elapsedSeconds": 19.34409279213287,
+  "usage": {
+    "model_requests": 3,
+    "tool_calls": 2,
+    "cancelled_tool_calls": 0,
+    "output_retries": 0,
+    "tool_retries": {}
+  },
+  "stopReason": "end_turn",
+  "text": "done",
+  "toolCalls": [
+    {
+      "call": {
+        "id": "call_3kV7DKUlxopNF1vMcerRdWHY",
+        "name": "submit_deck_turn",
+        "arguments": "{\"actions\":[{\"type\":\"playAction\",\"handIndex\":4},{\"type\":\"moveToBuy\"},{\"type\":\"buyCard\",\"cardId\":\"training\"},{\"type\":\"endTurn\"}],\"note\":\"Play Zap for cycling and 1 damage, then buy Training as a nonterminal permanent attack payload for rush pressure.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"deck turn valid\\\",\\\"played\\\":[\\\"zap\\\"],\\\"bought\\\":[\\\"training\\\"],\\\"produced\\\":{\\\"money\\\":3,\\\"damage\\\":1},\\\"next\\\":\\\"Call submit_board_turn with board actions that use these produced resources.\\\"}\", \"metadata\": {}}"
+    },
+    {
+      "call": {
+        "id": "call_HDmzi76Hw5DC5C2hEVTnY7tV",
+        "name": "submit_board_turn",
+        "arguments": "{\"actions\":{\"movements\":[{\"unit\":\"P1-raider-start-1\",\"from\":{\"col\":5,\"row\":3},\"to\":{\"col\":4,\"row\":4}},{\"unit\":\"P1-raider-start-3\",\"from\":{\"col\":7,\"row\":5},\"to\":{\"col\":8,\"row\":6}},{\"unit\":\"P1-marksman-start-4\",\"from\":{\"col\":7,\"row\":3},\"to\":{\"col\":5,\"row\":4}}],\"recruits\":[{\"unit\":\"P1-raider-turn-005\",\"type\":\"raider\",\"at\":{\"col\":10,\"row\":1}}],\"attacks\":[{\"attacker\":\"P1-raider-start-1\",\"target\":\"P2-raider-start-1\",\"deckDamage\":1},{\"attacker\":\"P1-marksman-start-4\",\"target\":\"P2-raider-start-1\",\"deckDamage\":0}],\"heals\":[],\"upgrades\":[]},\"summary\":\"P1 cycled Zap, bought Training, killed the exposed P2 raider, flipped east, and recruited a raider.\",\"reasoning\":\"Rush plan: use Zap damage with the raider and marksman to remove P2-raider-start-1 before it can contest our centers. Move P1-raider-start-3 onto center-east to expand supply control to five centers while preserving pressure. Spend income on a new raider from home to maintain unit count and board tempo.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"turn committed and strict-validated\\\",\\\"turnId\\\":\\\"turn-005\\\"}\", \"metadata\": {}}"
+    }
+  ]
+}

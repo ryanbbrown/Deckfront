@@ -1,0 +1,9 @@
+Use the two tools in order. Retry only when a tool returns retryable validation feedback.
+
+First submit optional ordered `actions` plus one optional top-level `buyCard`. Start action or trash choices from `legalDeckActionsNow`. Those entries are alternative current choices, not actions that can necessarily be combined: choose at most one free `trashCard` each turn. Never put treasures, `moveToBuy`, `buyCard`, or `endTurn` inside `actions`; the harness plays treasures, makes the top-level purchase, and ends the turn. Hand indexes are zero-based and update after each play or trash. Cards drawn by an effect may be left unplayed. Use `resolvePending` only when the current state has `pendingDeckEffect`; never invent a pending choice.
+
+After the deck tool succeeds, use its `boardBriefing`. Submit only upgrades listed in `legalUpgrades`. An upgrade's `to` is the resulting stat value and is also its symbol cost. The total cost selected from one lane must not exceed `upgradeLaneBudgets` for that lane. Automatic key-point upgrades are already listed and applied; do not submit them as paid upgrades.
+
+Activate every surviving friendly unit by default. Submit only `unit`, `attackPlan`, and `to`; the harness derives the current `from`, attack `via`, and enemy target. For no attack, leave `attackPlan` empty and prefer a `to` from that unit's `noAttackTo`. For an attack, copy one id from an `attackChoicesByVia.attacks` entry and prefer a `to` from that same entry's `to` list. If a desired `to` is unavailable, the harness uses its nearest legal endpoint. The selected attack entry already accounts for both movement legs sharing one budget. Use distinct destination preferences for your units.
+
+A turn is complete only when the board tool confirms that the replay was committed and strict-validated. Then answer `done`.

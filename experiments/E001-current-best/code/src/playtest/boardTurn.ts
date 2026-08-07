@@ -11,7 +11,7 @@ import {
   type ReplayBoardActions
 } from '../replay/schema';
 import { deckTurnResultSchema, type DeckTurnResult } from './deckTurn';
-import { incomeForCenterCount, recruitCostForRuleset, supplyForPlayer } from './run';
+import { deckDamageCapPerAttacker, incomeForCenterCount, recruitCapPerTurn, recruitCostForRuleset } from './rulesConfig';
 
 const boardAttackInputSchema = z
   .object({
@@ -275,8 +275,9 @@ function applyAttacks(state: BoardState, input: BoardTurnInput, deckResult: Deck
     }
 
     const nextDeckDamageForAttacker = (deckDamageByAttacker.get(attacker.id) ?? 0) + attack.deckDamage;
-    if (state.ruleset.includes('damagecap') && nextDeckDamageForAttacker > 1) {
-      throw new Error(`${input.turnId}: ${attacker.id} used ${nextDeckDamageForAttacker} deck damage under damage cap`);
+    const damageCap = deckDamageCapPerAttacker(state.ruleset);
+    if (damageCap !== null && nextDeckDamageForAttacker > damageCap) {
+      throw new Error(`${input.turnId}: ${attacker.id} used ${nextDeckDamageForAttacker} deck damage under damage cap ${damageCap}`);
     }
     deckDamageByAttacker.set(attacker.id, nextDeckDamageForAttacker);
     totalDeckDamage += attack.deckDamage;
@@ -374,8 +375,9 @@ function applyRecruits(state: BoardState, input: BoardTurnInput, context: BoardR
   if (!supply) {
     throw new Error(`board supply is missing active player ${input.player}`);
   }
-  if (state.ruleset.includes('recruitcap') && input.actions.recruits.length > 1) {
-    throw new Error(`${input.turnId}: recruitcap rulesets allow at most 1 recruit per turn`);
+  const recruitCap = recruitCapPerTurn(state.ruleset);
+  if (recruitCap !== null && input.actions.recruits.length > recruitCap) {
+    throw new Error(`${input.turnId}: ruleset allows at most ${recruitCap} recruit(s) per turn`);
   }
   const cost = recruitCostForRuleset(state.ruleset);
   const activeHomeHexes = new Set(context.map.homeBases.filter((homeBase) => homeBase.player === input.player).flatMap((homeBase) => homeBase.hexes.map(coordKey)));

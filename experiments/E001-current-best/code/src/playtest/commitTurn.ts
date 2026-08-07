@@ -4,7 +4,7 @@ import { boardStateSchema } from '../board/schema';
 import { replayTimelineSchema, replayWinEventSchema, type ReplayEntry, type ReplayTimeline, type ReplayWinEvent } from '../replay/schema';
 import { boardTurnResultSchema } from './boardTurn';
 import { deckTurnResultSchema } from './deckTurn';
-import { turnSnapshotPaths, validateReplayBundle } from './run';
+import { expectedWinEventsForReplay, turnSnapshotPaths, validateReplayBundle } from './run';
 
 export interface CommitTurnOptions {
   run: string;
@@ -26,7 +26,7 @@ export async function commitTurn(options: CommitTurnOptions): Promise<ReplayEntr
   }
 
   const timelinePath = join(options.run, 'timeline.json');
-  const [timeline, deckResult, boardResult, winEvents, terminalWinEvents] = await Promise.all([
+  const [timeline, deckResult, boardResult, providedWinEvents, providedTerminalWinEvents] = await Promise.all([
     readJsonFile(timelinePath).then((value) => replayTimelineSchema.parse(value)),
     readJsonFile(options.deckResultPath).then((value) => deckTurnResultSchema.parse(value)),
     readJsonFile(options.boardResultPath).then((value) => boardTurnResultSchema.parse(value)),
@@ -70,18 +70,29 @@ export async function commitTurn(options: CommitTurnOptions): Promise<ReplayEntr
       after: boardResult.after
     },
     actions: boardResult.actions,
-    winEvents,
+    winEvents: providedWinEvents,
     summary: options.summary,
     reasoning: options.reasoning
   };
-  const candidate: ReplayTimeline = {
+  let candidate: ReplayTimeline = {
     ...timeline,
     entries: [...timeline.entries, entry],
-    ...(terminalWinEvents ? { terminalWinEvents } : {})
+    ...(providedTerminalWinEvents ? { terminalWinEvents: providedTerminalWinEvents } : {})
   };
 
   const tempPath = join(options.run, `.timeline.${deckResult.turnId}.${Date.now()}.tmp.json`);
   try {
+    if (options.strictWin && !options.winEventsPath && !options.terminalWinEventsPath) {
+      await writeFile(tempPath, `${JSON.stringify(candidate, null, 2)}\n`);
+      const validated = await validateReplayBundle(tempPath, { strict: true, strictDeck: true, strictWin: false });
+      const expected = expectedWinEventsForReplay(validated.entries);
+      const expectedWinEvents = expected.entryWinEvents.get(deckResult.turnId) ?? [];
+      candidate = {
+        ...candidate,
+        entries: candidate.entries.map((candidateEntry) => (candidateEntry.id === deckResult.turnId ? { ...candidateEntry, winEvents: expectedWinEvents } : candidateEntry)),
+        ...(expected.terminalWinEvents.length > 0 ? { terminalWinEvents: expected.terminalWinEvents } : {})
+      };
+    }
     await writeFile(tempPath, `${JSON.stringify(candidate, null, 2)}\n`);
     await validateReplayBundle(tempPath, { strict: true, strictDeck: true, strictWin: options.strictWin ?? false });
     await writeFile(timelinePath, `${JSON.stringify(candidate, null, 2)}\n`);

@@ -1,0 +1,30 @@
+{
+  "elapsedSeconds": 37.26568966684863,
+  "usage": {
+    "model_requests": 3,
+    "tool_calls": 2,
+    "cancelled_tool_calls": 0,
+    "output_retries": 0,
+    "tool_retries": {}
+  },
+  "stopReason": "end_turn",
+  "text": "done",
+  "toolCalls": [
+    {
+      "call": {
+        "id": "call_gAGHHPMEbCD1zvPzJ3Eg8n3F",
+        "name": "submit_deck_turn",
+        "arguments": "{\"actions\":[{\"type\":\"playAction\",\"handIndex\":1},{\"type\":\"playAction\",\"handIndex\":2},{\"type\":\"playAction\",\"handIndex\":2},{\"type\":\"moveToBuy\"},{\"type\":\"buyCard\",\"cardId\":\"zap\"},{\"type\":\"endTurn\"}],\"note\":\"Play cantrip/plus-action damage and training for rush board pressure; buy another Zap for cycling damage.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"deck turn valid\\\",\\\"played\\\":[\\\"zap\\\",\\\"blast\\\",\\\"training\\\"],\\\"bought\\\":[\\\"zap\\\"],\\\"produced\\\":{\\\"damage\\\":3,\\\"upgradeDamage\\\":1},\\\"next\\\":\\\"Call submit_board_turn with board actions that use these produced resources.\\\"}\", \"metadata\": {}}"
+    },
+    {
+      "call": {
+        "id": "call_Tv8nbt11UbZJLwP57DSipUvI",
+        "name": "submit_board_turn",
+        "arguments": "{\"actions\":{\"movements\":[{\"unit\":\"P1-raider-start-1\",\"from\":{\"col\":3,\"row\":7},\"to\":{\"col\":5,\"row\":7}},{\"unit\":\"P1-raider-turn-005\",\"from\":{\"col\":8,\"row\":1},\"to\":{\"col\":7,\"row\":4}},{\"unit\":\"P1-raider-turn-007-a\",\"from\":{\"col\":10,\"row\":1},\"to\":{\"col\":6,\"row\":3}},{\"unit\":\"P1-raider-turn-007-b\",\"from\":{\"col\":11,\"row\":0},\"to\":{\"col\":7,\"row\":2}}],\"recruits\":[{\"unit\":\"P1-raider-turn-009\",\"type\":\"raider\",\"at\":{\"col\":10,\"row\":1}}],\"attacks\":[{\"attacker\":\"P1-raider-start-1\",\"target\":\"P2-marksman-start-4\",\"deckDamage\":1},{\"attacker\":\"P1-raider-turn-005\",\"target\":\"P2-guardian-start-3\",\"deckDamage\":1}],\"heals\":[],\"upgrades\":[{\"target\":\"P1-raider-start-1\",\"attack\":1,\"maxHp\":0}]},\"summary\":\"P1 upgraded the wounded front raider, killed P2's marksman, damaged the guardian, advanced two fresh raiders, and recruited another raider.\",\"reasoning\":\"Rush pressure: use Training to make the exposed raider hit 8 with deck damage and remove the enemy marksman before it can stabilize. A second raider moves adjacent to the guardian and spends another deck damage to reduce it to low health. The two new raiders advance from home toward the central fight while income from six controlled centers funds an immediate replacement raider.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"turn committed and strict-validated\\\",\\\"turnId\\\":\\\"turn-009\\\"}\", \"metadata\": {}}"
+    }
+  ]
+}

@@ -1,66 +1,64 @@
 # Operating Instructions
 
-## Standards
+## Core Standards
 
-- Keep ruleset changes in a new `rulesets/<id>/` folder.
-- Keep map changes in a new `maps/<id>.json` file.
-- Keep each experiment run in `.games/<experiment-id>-<slug>/`.
-- Every completed run should have `deck.json`, `board.json`, `timeline.json`, and `snapshots/`.
-- Every new completed run must include per-turn `actions` in `timeline.json` so strict validation can audit movement, recruitment, attacks, healing, and permanent upgrades.
-- Every new completed run must include per-turn `winEvents` in `timeline.json` so strict win validation can audit response-window threat creation, clearing, and confirmation.
-- Runs that end on a start-of-next-turn confirmation must include root-level `terminalWinEvents` instead of adding a fake no-op turn.
-- Initialize new runs with `bun run init-run`.
-- Validate new replay bundles with `bun run validate-run -- --strict --strict-win <timeline.json>` before treating a run as full evidence.
-- Non-strict `bun run validate-run -- <timeline.json>` is only a structural/snapshot audit for legacy runs and cannot prove tactical legality.
-- `--strict` without `--strict-win` is only tactical/board evidence for legacy action-logged runs and cannot prove win-condition legality.
-- Record ambiguous rules calls in the run notes.
-- Playtest agents must read `.goals/prompts/PLAYTEST_AGENT.md`.
-- Review/evaluation agents must read `.goals/prompts/REVIEW_EVALUATE_AGENT.md`.
+- The current experiment code path is `experiments/E001-current-best/code`.
+- Keep experiment evidence in `experiments/E001-current-best/runs/<run-id>/`.
+- Run playthroughs through the shared ThinHarness runner, not custom per-experiment generators.
+- Do not create custom run-generation scripts for evidence runs unless the user explicitly approves that specific script and it uses shared validation-grade APIs.
+- Every evidence run should include `deck.json`, `board.json`, `timeline.json`, `snapshots/`, `actions/`, `results/`, `logs/`, and rendered context.
+- Every completed timeline entry must include per-turn `actions` so strict validation can audit movement, recruitment, attacks, healing, and permanent upgrades.
+- Win bookkeeping should be produced by shared code, not by model-authored prose. Runs that end on a start-of-next-turn confirmation must use root-level `terminalWinEvents`.
+- Validate replay bundles with `bun run validate-run -- --strict --strict-deck --strict-win <timeline.json>` before treating a run as full evidence.
+- Non-strict validation is only a structural audit and cannot prove gameplay legality.
+- Record ambiguity, interruptions, model/tool retry counts, and known evidence limitations in the experiment entry.
 - Do not conclude from a single playthrough unless explicitly directed.
-- Code changes are allowed when an experiment needs new rule or tooling support, but they should remain backward-compatible with other rulesets unless the user approves otherwise.
 
 ## Workflow
 
 - Read `.goals/GOAL.md`, `.goals/OPERATING.md`, `.goals/PLAN.md`, `.goals/EXPERIMENTS.md`, and `.goals/PROGRESS.md` before starting.
 - The main agent acts as orchestrator.
-- Use subagents for playthroughs, review, and evaluation when useful.
-- For each ruleset experiment, run 2-3 distinct strategy matchups.
-- For each strategy matchup, run multiple parallel playthrough agents with the same prompt. Use at least 3 for key balance questions, and more when playthrough capacity allows.
-- Tell each playthrough agent to read `.goals/prompts/PLAYTEST_AGENT.md` directly.
-- The orchestrator prompt should add only run-specific paths, ruleset/map ids, and P1/P2 strategy assignments.
-- Each strategy assignment must specify P1 and P2 deck strategy, board strategy, and unit priorities.
-- Playthrough agents should play until a legal winner whenever possible. Turn 16 is a checkpoint for pacing evidence, not a default stopping point.
-- Use one combined review/evaluation agent to review all runs in an experiment batch and produce one ruleset/map score.
-- Update `.goals/PLAN.md` as the next queue changes.
+- Start each experiment by stating a hypothesis and the specific lever being changed.
+- If rules affect legality, scoring, setup, map structure, unit stats, card effects, income, recruitment, or win conditions, encode them in shared code/config/assets before running evidence.
+- Keep prose prompts/rules synchronized with code-backed behavior. Prose-only rules are design notes, not evidence-grade rules.
+- Use the codebase ThinHarness prompts for playtesting agents, especially `experiments/E001-current-best/code/agent-context/prompts/thinharness-player.system.md`.
+- Run ThinHarness with explicit model, effort, timeout, retry, and max request/tool-call settings.
+- For each experiment batch, run distinct strategy matchups when the question is strategic rather than purely mechanical.
+- Each strategy assignment must specify P1 and P2 deck strategy, board strategy, unit priorities, and the tension the matchup is meant to test.
+- Play to a legal winner whenever practical. Turn-count caps are checkpoints or budget limits, not default endpoints.
+- Use a review/evaluation subagent with isolated context for batch scoring when useful.
 - Add one structured entry to `.goals/EXPERIMENTS.md` per experiment.
 - Append durable decisions and direction changes to `.goals/PROGRESS.md`.
+- Edit `.goals/PLAN.md` in place so it always reflects the current active plan. Do not use it as history.
+
+## Experiment Levers
+
+Every experiment should name at least one primary lever:
+
+- Center locations, count, clustering, and distance from home bases.
+- Starting troop count, placement, symmetry, and unit mix.
+- Recruitment cost, income curve, center income, recruit limits, and home-base constraints.
+- Unit roles, movement, HP, attack, range, healing, cost, and availability.
+- Card pool composition, costs, draw, actions, trashing, damage, healing, upgrades, and board-counter generation.
+- Win conditions, thresholds, response windows, center dominance, and unit-lead pressure.
+- Map topology, lanes, chokepoints, flank routes, neutral buffers, and contested middle space.
+
+Do not only make tiny numeric tuning changes if the current design is stuck. Across a run of experiments, deliberately alternate between structural variants and tuning variants.
 
 ## Subagent Context
-
-Playthrough agents should read:
-
-- `.goals/prompts/PLAYTEST_AGENT.md`
-- `.goals/GOAL.md`
-- `.goals/OPERATING.md`
-- The active `rulesets/<id>/board-rules.md`
-- The active `rulesets/<id>/deck.yaml`
-- The active `maps/<id>.json`
 
 Review/evaluation agents should read:
 
 - `.goals/prompts/REVIEW_EVALUATE_AGENT.md`
 - `.goals/GOAL.md`
 - `.goals/OPERATING.md`
-- The active `rulesets/<id>/board-rules.md`
-- The active `rulesets/<id>/deck.yaml`
-- The active `maps/<id>.json`
-- The batch's run directories, including `timeline.json`, `board.json`, `deck.json`, `notes.md` if present, and snapshots
+- Relevant codebase prompts and rules context under `experiments/E001-current-best/code/agent-context/`
+- The relevant code/config/assets changed for the experiment
+- The batch's run directories, including `timeline.json`, `board.json`, `deck.json`, `run.yaml`, `runner-state.json`, `timings.jsonl`, logs, snapshots, and rendered context
 
 Do not give review/evaluation agents `.goals/EXPERIMENTS.md` or `.goals/PROGRESS.md` by default. Prior conclusions can bias scoring; provide them only when explicitly asking for comparison.
 
 ## Experimentation Style
-
-Experiments may change important rules, not just numbers. Agents may test changes to win conditions, movement timing, attack rules, recruitment, supply income, card effects, unit roles, or map structure.
 
 Keep experiments interpretable:
 
@@ -73,13 +71,20 @@ Keep experiments interpretable:
 
 ## Evaluation Flow
 
-- Playthrough agents produce game evidence.
+- ThinHarness playthroughs produce game evidence.
 - Full-game evidence is preferred. If a playthrough reaches 40 completed player turns without a winner, it may stop as unresolved only if it documents why the game appears stalled or why no plausible forced progress remains.
-- One review/evaluation agent checks legality, replay coherence, issue severity, and scoring.
+- One review/evaluation agent checks legality, replay coherence, model/tool retry behavior, issue severity, and scoring.
 - Slightly flawed runs may still be useful evidence if the issue is minor and documented.
 - Runs with major or invalid issues should receive little or no scoring weight.
 - The review/evaluation agent should cite specific runs as evidence for each score category.
 - The orchestrator records the score in `.goals/EXPERIMENTS.md`, summarizes durable lessons in `.goals/PROGRESS.md`, and updates `.goals/PLAN.md`.
+
+## Evidence Levels
+
+- `full`: strict board/deck/win validation passes, artifacts are complete, and no material legality issue is known.
+- `partial`: validation passes or mostly passes, but the run is interrupted, strategically incomplete, has minor issues, or covers only part of the intended matchup.
+- `low`: the run has major limitations but may still suggest a design direction.
+- `invalid`: the run cannot be trusted as gameplay evidence.
 
 ## Updating Goal Files
 

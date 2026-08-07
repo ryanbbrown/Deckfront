@@ -74,10 +74,17 @@ export interface GameConfig {
   players: number;
   setup: {
     initialActions: number;
+    unlimitedActions?: boolean;
     initialBuys: number;
     initialMoney: number;
     handSize: number;
     startingDeck: CardId[];
+    draft?: {
+      baseCard: CardId;
+      baseCount: number;
+      maxCards: number;
+      maxCost: number;
+    };
     attributes: Record<string, number>;
   };
   cards: CardDefinition[];
@@ -99,7 +106,6 @@ export interface PlayerState {
   vpCounters: number;
   turnsTaken: number;
   freeTrashUsed: boolean;
-  draftCarryoverMoney?: number;
 }
 
 export interface PendingEffect {

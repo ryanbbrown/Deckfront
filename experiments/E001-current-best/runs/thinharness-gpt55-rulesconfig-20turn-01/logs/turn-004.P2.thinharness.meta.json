@@ -1,0 +1,30 @@
+{
+  "elapsedSeconds": 21.704913540976122,
+  "usage": {
+    "model_requests": 3,
+    "tool_calls": 2,
+    "cancelled_tool_calls": 0,
+    "output_retries": 0,
+    "tool_retries": {}
+  },
+  "stopReason": "end_turn",
+  "text": "done",
+  "toolCalls": [
+    {
+      "call": {
+        "id": "call_wbFMBwTr2Lvz6MS99F5y6CbG",
+        "name": "submit_deck_turn",
+        "arguments": "{\"actions\":[{\"type\":\"playAction\",\"handIndex\":1},{\"type\":\"playAction\",\"handIndex\":1},{\"type\":\"moveToBuy\"},{\"type\":\"buyCard\",\"cardId\":\"gold\"},{\"type\":\"endTurn\"}],\"note\":\"Play Peddler into Smithy to draw through coppers and hit 6 money for Gold, prioritizing engine economy over trash tempo this turn.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"deck turn valid\\\",\\\"played\\\":[\\\"peddler\\\",\\\"smithy\\\"],\\\"bought\\\":[\\\"gold\\\"],\\\"produced\\\":{\\\"money\\\":1},\\\"next\\\":\\\"Call submit_board_turn with board actions that use these produced resources.\\\"}\", \"metadata\": {}}"
+    },
+    {
+      "call": {
+        "id": "call_DbYMLEMFF7VvJgwrq9Zt7V8g",
+        "name": "submit_board_turn",
+        "arguments": "{\"actions\":{\"movements\":[{\"unit\":\"P2-raider-start-1\",\"from\":{\"col\":3,\"row\":7},\"to\":{\"col\":3,\"row\":4}},{\"unit\":\"P2-guardian-start-3\",\"from\":{\"col\":3,\"row\":8},\"to\":{\"col\":5,\"row\":7}},{\"unit\":\"P2-marksman-start-4\",\"from\":{\"col\":2,\"row\":9},\"to\":{\"col\":4,\"row\":8}}],\"recruits\":[{\"unit\":\"P2-raider-turn-004\",\"type\":\"raider\",\"at\":{\"col\":0,\"row\":8}}],\"attacks\":[{\"attacker\":\"P2-raider-start-1\",\"target\":\"P1-scout-start-2\",\"deckDamage\":0}],\"heals\":[],\"upgrades\":[]},\"summary\":\"P2 bought Gold, killed the wounded P1 scout, advanced support, and recruited a raider.\",\"reasoning\":\"Peddler plus Smithy hit 6 money for Gold to strengthen the engine/control economy. On board, the raider uses its reach to remove the damaged scout on the northwest center, reducing P1's rush unit count while leaving P2 center control intact. Guardian and marksman advance toward the southern/eastern fight, and income reaches 6 supply, so P2 recruits a raider for continued center contesting.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"turn committed and strict-validated\\\",\\\"turnId\\\":\\\"turn-004\\\"}\", \"metadata\": {}}"
+    }
+  ]
+}

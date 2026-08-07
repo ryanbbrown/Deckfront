@@ -1,0 +1,30 @@
+{
+  "elapsedSeconds": 20.17876833304763,
+  "usage": {
+    "model_requests": 3,
+    "tool_calls": 2,
+    "cancelled_tool_calls": 0,
+    "output_retries": 0,
+    "tool_retries": {}
+  },
+  "stopReason": "end_turn",
+  "text": "done",
+  "toolCalls": [
+    {
+      "call": {
+        "id": "call_XDXF85lqHiTDWmBa7zI0OqHc",
+        "name": "submit_deck_turn",
+        "arguments": "{\"actions\":[{\"type\":\"playAction\",\"handIndex\":3},{\"type\":\"playAction\",\"handIndex\":3},{\"type\":\"moveToBuy\"},{\"type\":\"buyCard\",\"cardId\":\"gold\"},{\"type\":\"endTurn\"}],\"note\":\"Open engine by chaining Village into Smithy to draw available Coppers and buy Gold for future economy.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"deck turn valid\\\",\\\"played\\\":[\\\"village\\\",\\\"smithy\\\"],\\\"bought\\\":[\\\"gold\\\"],\\\"produced\\\":{},\\\"next\\\":\\\"Call submit_board_turn with board actions that use these produced resources.\\\"}\", \"metadata\": {}}"
+    },
+    {
+      "call": {
+        "id": "call_GY9EKauocl0e2YPvsUQrMKZM",
+        "name": "submit_board_turn",
+        "arguments": "{\"actions\":{\"movements\":[{\"unit\":\"P2-raider-start-1\",\"from\":{\"col\":0,\"row\":8},\"to\":{\"col\":3,\"row\":7}},{\"unit\":\"P2-scout-start-2\",\"from\":{\"col\":1,\"row\":7},\"to\":{\"col\":6,\"row\":5}},{\"unit\":\"P2-guardian-start-3\",\"from\":{\"col\":1,\"row\":8},\"to\":{\"col\":3,\"row\":8}},{\"unit\":\"P2-marksman-start-4\",\"from\":{\"col\":0,\"row\":9},\"to\":{\"col\":2,\"row\":9}}],\"recruits\":[],\"attacks\":[{\"attacker\":\"P2-scout-start-2\",\"target\":\"P1-scout-start-2\",\"deckDamage\":0}],\"heals\":[],\"upgrades\":[]},\"summary\":\"P2 built economy with Village-Smithy into Gold, then captured west-south and center while advancing support.\",\"reasoning\":\"Chaining the engine cards maximized the opening hand and bought Gold for the control plan. On board, P2 must not concede the rush tempo: raider takes west-south, scout uses high movement to seize center-center and chip the advanced P1 scout, while guardian and marksman advance behind to support and deter trades. No recruit was affordable after only starting income.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"turn committed and strict-validated\\\",\\\"turnId\\\":\\\"turn-002\\\"}\", \"metadata\": {}}"
+    }
+  ]
+}

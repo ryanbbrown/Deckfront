@@ -1,0 +1,30 @@
+{
+  "elapsedSeconds": 18.772116624983028,
+  "usage": {
+    "model_requests": 3,
+    "tool_calls": 2,
+    "cancelled_tool_calls": 0,
+    "output_retries": 0,
+    "tool_retries": {}
+  },
+  "stopReason": "end_turn",
+  "text": "done",
+  "toolCalls": [
+    {
+      "call": {
+        "id": "call_4JbvmsfmCI2Qm7DOwY2XxPHd",
+        "name": "submit_deck_turn",
+        "arguments": "{\"actions\":[{\"type\":\"playAction\",\"handIndex\":1},{\"type\":\"moveToBuy\"},{\"type\":\"buyCard\",\"cardId\":\"gold\"},{\"type\":\"endTurn\"}],\"note\":\"Play Blast for attack damage, use 7 treasure to buy Gold for stronger future rush turns.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"deck turn valid\\\",\\\"played\\\":[\\\"blast\\\"],\\\"bought\\\":[\\\"gold\\\"],\\\"produced\\\":{\\\"money\\\":1,\\\"damage\\\":2},\\\"next\\\":\\\"Call submit_board_turn with board actions that use these produced resources.\\\"}\", \"metadata\": {}}"
+    },
+    {
+      "call": {
+        "id": "call_fvpgnnqQQGF9Uaz7WrsEgtBY",
+        "name": "submit_board_turn",
+        "arguments": "{\"actions\":{\"movements\":[{\"unit\":\"P1-raider-start-1\",\"from\":{\"col\":4,\"row\":4},\"to\":{\"col\":3,\"row\":7}},{\"unit\":\"P1-marksman-start-4\",\"from\":{\"col\":5,\"row\":4},\"to\":{\"col\":6,\"row\":5}},{\"unit\":\"P1-raider-turn-005\",\"from\":{\"col\":10,\"row\":1},\"to\":{\"col\":8,\"row\":1}}],\"recruits\":[{\"unit\":\"P1-raider-turn-007-a\",\"type\":\"raider\",\"at\":{\"col\":10,\"row\":1}},{\"unit\":\"P1-raider-turn-007-b\",\"type\":\"raider\",\"at\":{\"col\":11,\"row\":0}}],\"attacks\":[{\"attacker\":\"P1-raider-start-1\",\"target\":\"P2-raider-turn-004\",\"deckDamage\":1},{\"attacker\":\"P1-marksman-start-4\",\"target\":\"P2-guardian-start-3\",\"deckDamage\":1}],\"heals\":[],\"upgrades\":[]},\"summary\":\"Played Blast, bought Gold, flipped both contested central centers, damaged P2's raider and guardian, and recruited two raiders.\",\"reasoning\":\"Rush plan prioritizes territory and bodies. Raider flips west-south while mauling the enemy raider; marksman flips center and chips guardian with the second Blast damage; fresh raider holds northeast. Income reaches two recruits, so two raiders fill home spaces for pressure and a unit-count lead threat.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"turn committed and strict-validated\\\",\\\"turnId\\\":\\\"turn-007\\\"}\", \"metadata\": {}}"
+    }
+  ]
+}

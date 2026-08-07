@@ -1,0 +1,30 @@
+{
+  "elapsedSeconds": 13.130548374960199,
+  "usage": {
+    "model_requests": 3,
+    "tool_calls": 2,
+    "cancelled_tool_calls": 0,
+    "output_retries": 0,
+    "tool_retries": {}
+  },
+  "stopReason": "end_turn",
+  "text": "done",
+  "toolCalls": [
+    {
+      "call": {
+        "id": "call_rEvLRpRHQcX4NEVsgORQMp2H",
+        "name": "submit_deck_turn",
+        "arguments": "{\"actions\":[{\"type\":\"moveToBuy\"},{\"type\":\"buyCard\",\"cardId\":\"gold\"},{\"type\":\"endTurn\"}],\"note\":\"Hand has Gold plus four Coppers for 7 money; buy Gold to strengthen engine economy.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"deck turn valid\\\",\\\"played\\\":[],\\\"bought\\\":[\\\"gold\\\"],\\\"produced\\\":{\\\"money\\\":1},\\\"next\\\":\\\"Call submit_board_turn with board actions that use these produced resources.\\\"}\", \"metadata\": {}}"
+    },
+    {
+      "call": {
+        "id": "call_pUnsDgPvvteHNbtPnBkgrKiR",
+        "name": "submit_board_turn",
+        "arguments": "{\"actions\":{\"movements\":[{\"unit\":\"P2-guardian-start-3\",\"from\":{\"col\":5,\"row\":7},\"to\":{\"col\":7,\"row\":6}},{\"unit\":\"P2-marksman-start-4\",\"from\":{\"col\":4,\"row\":8},\"to\":{\"col\":6,\"row\":7}},{\"unit\":\"P2-raider-turn-004\",\"from\":{\"col\":0,\"row\":8},\"to\":{\"col\":4,\"row\":7}}],\"recruits\":[],\"attacks\":[{\"attacker\":\"P2-guardian-start-3\",\"target\":\"P1-raider-start-3\",\"deckDamage\":0},{\"attacker\":\"P2-marksman-start-4\",\"target\":\"P1-raider-start-3\",\"deckDamage\":0}],\"heals\":[],\"upgrades\":[]},\"summary\":\"P2 bought Gold, advanced all units toward the eastern fight, and combined guardian plus marksman attacks to kill P1's raider on center-east.\",\"reasoning\":\"With 7 coin, Gold best supports the engine/control economy. Board supply after income is only 4, so no recruit is available. The key tactical priority is reducing P1's board pressure and center income: moving guardian to 7,6 and marksman to 6,7 lets them deal exactly 8 total damage to P1-raider-start-3 on center-east, removing a high-attack unit. The new raider advances to 4,7 to reinforce the central/southern front while preserving current center control.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"turn committed and strict-validated\\\",\\\"turnId\\\":\\\"turn-006\\\"}\", \"metadata\": {}}"
+    }
+  ]
+}

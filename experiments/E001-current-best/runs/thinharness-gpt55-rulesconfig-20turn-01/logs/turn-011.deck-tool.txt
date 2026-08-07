@@ -1,0 +1,2 @@
+Illegal action: {"type":"buyCard","cardId":"gold"}
+Deck turn complete: ../runs/thinharness-gpt55-rulesconfig-20turn-01/results/turn-011.deck.result.json

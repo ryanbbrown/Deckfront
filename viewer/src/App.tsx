@@ -5,28 +5,15 @@ import { applyAction } from '../../src/core/engine';
 import { SeededRng } from '../../src/core/random';
 import { cloneState } from '../../src/core/state';
 import type { CardDefinition, CardId, GameState, PlayerState } from '../../src/core/types';
+import { buildBoardAnnotations, type BoardAnnotation } from './annotations';
 import { loadBoardBundle, loadReplayBundle, timelineUrlFromLocation, type BoardBundle, type ReplayBundle } from './boardState';
 import { buildLayout, hexPoints, hexToPixel } from './hex';
+import { buffedUnitStats } from './unitStats';
 
 const playerClasses: Record<string, string> = {
   P1: 'player-one',
   P2: 'player-two'
 };
-
-type BoardUnit = BoardState['units'][number];
-type AnnotationKind = 'movement' | 'recruitment' | 'attack';
-
-const draftBaseCard = 'copper';
-const draftBaseCount = 7;
-
-interface BoardAnnotation {
-  id: string;
-  kind: AnnotationKind;
-  player: string;
-  from: BoardUnit | null;
-  to: BoardUnit;
-  label: string;
-}
 
 interface PlayedActionSummary {
   card: CardId;
@@ -98,7 +85,7 @@ export function App(): ReactElement {
           </section>
         </aside>
       ) : null}
-      <BoardView bundle={bundle} replay={replay} game={replay?.deck.game ?? null} title={replay?.timeline.title ?? 'Territory Sandbox'} />
+      <BoardView bundle={bundle} replay={replay} game={replay?.deck.game ?? null} title={replay?.timeline.title ?? 'Skirmish'} />
       <aside className="side-panel">
         <header>
           <h2>State</h2>
@@ -111,16 +98,8 @@ export function App(): ReactElement {
           <UnitList bundle={bundle} />
         </section>
         <section>
-          <h2>Supply</h2>
-          <SupplyList bundle={bundle} />
-        </section>
-        <section>
-          <h2>Saved Supply</h2>
-          <SavedSupplyList state={bundle.state} />
-        </section>
-        <section>
-          <h2>Home</h2>
-          <HomeBaseList map={bundle.map} />
+          <h2>Key points</h2>
+          <KeyPointList bundle={bundle} />
         </section>
         <footer>
           <span>{updatedAt ? updatedAt.toLocaleTimeString() : 'Not loaded'}</span>
@@ -133,11 +112,13 @@ export function App(): ReactElement {
 
 function BoardView({ bundle, replay, game, title }: { bundle: BoardBundle; replay: ReplayBundle | null; game: GameState | null; title: string }): ReactElement {
   const [marketOpen, setMarketOpen] = useState(false);
-  const { state, map } = bundle;
+  const { state, map, unitRules } = bundle;
   const blocked = useMemo(() => new Set(map.blocked.map(coordKey)), [map.blocked]);
-  const supplyControllerById = useMemo(() => new Map(state.supplyControl.map((center) => [center.id, center.controller])), [state.supplyControl]);
   const layout = useMemo(() => buildLayout(map.hexes, map), [map]);
-  const annotations = useMemo(() => buildBoardAnnotations(replay?.previousState ?? null, state, replay?.entry?.player ?? null), [replay, state]);
+  const annotations = useMemo(
+    () => buildBoardAnnotations(replay?.previousState ?? null, state, replay?.entry?.player ?? null, replay?.entry?.actions),
+    [replay, state]
+  );
 
   return (
     <section className="board-panel" aria-label="Game board">
@@ -166,51 +147,43 @@ function BoardView({ bundle, replay, game, title }: { bundle: BoardBundle; repla
             const key = coordKey(hex);
             return <polygon key={key} className={blocked.has(key) ? 'hex blocked' : 'hex'} points={hexPoints(center, layout.size, map.orientation)} />;
           })}
-          {map.homeBases.map((homeBase) =>
-            homeBase.hexes.map((hex) => {
+          {map.deployment.map((zone) =>
+            zone.hexes.map((hex) => {
               const center = hexToPixel(hex, layout.size, map);
               return (
                 <polygon
-                  key={`${homeBase.id}-${coordKey(hex)}`}
-                  className={`home-base ${playerClasses[homeBase.player] ?? ''}`}
+                  key={`${zone.player}-${coordKey(hex)}`}
+                  className={`home-base ${playerClasses[zone.player] ?? ''}`}
                   points={hexPoints(center, layout.size * 0.91, map.orientation)}
                 />
               );
             })
           )}
-          {map.supplyCenters.map((center) => {
-            const point = hexToPixel(center, layout.size, map);
-            const controller = supplyControllerById.get(center.id) ?? null;
+          {map.keyPoints.map((keyPoint) => {
+            const point = hexToPixel(keyPoint, layout.size, map);
             return (
-              <g key={center.id} className={`supply ${controller ? playerClasses[controller] ?? '' : ''}`} transform={`translate(${point.x} ${point.y})`}>
+              <g key={keyPoint.id} className={`key-point key-point-${keyPoint.stat}`} transform={`translate(${point.x} ${point.y})`}>
                 <polygon className="supply-zone" points={hexPoints({ x: 0, y: 0 }, layout.size * 0.86, map.orientation)} />
                 <path className="supply-glyph" d="M 0 -17 L 15 0 L 0 17 L -15 0 Z" />
-                <text y="5">{controller ?? ''}</text>
+                <text y="5">{keyPoint.stat.slice(0, 1).toUpperCase()}</text>
               </g>
             );
           })}
           {state.units.map((unit) => {
             const point = hexToPixel(unit, layout.size, map);
+            const buffed = buffedUnitStats(unit, unitRules);
             return (
               <g key={unit.id} className={`unit ${playerClasses[unit.player] ?? ''}`} transform={`translate(${point.x} ${point.y})`}>
                 <path className="unit-token" d="M -29 -21 L 29 -21 L 34 1 L 0 27 L -34 1 Z" />
                 <path className="unit-cap" d="M -20 -13 L 20 -13" />
-                <text className="unit-kind" y="-1">{unitLabel(unit.type)}</text>
-                <text className="unit-health" y="14">
-                  {unit.hp}/{unit.maxHp}
+                <text className="unit-kind" y="-6">{unitLabel(unit.type)}</text>
+                <text className="unit-health" y="7">HP {unit.hp}</text>
+                <text className="unit-stats" y="18">
+                  <tspan className={buffed.attack ? 'stat-buffed' : undefined}>A{unit.attack}</tspan>{' '}
+                  <tspan className={buffed.movement ? 'stat-buffed' : undefined}>M{unit.movement}</tspan>{' '}
+                  <tspan className={buffed.range ? 'stat-buffed' : undefined}>R{unit.range}</tspan>
                 </text>
               </g>
-            );
-          })}
-          {map.supplyCenters.map((center) => {
-            const point = hexToPixel(center, layout.size, map);
-            const controller = supplyControllerById.get(center.id) ?? null;
-            return (
-              <polygon
-                key={`${center.id}-outline`}
-                className={`supply-outline ${controller ? playerClasses[controller] ?? '' : ''}`}
-                points={hexPoints(point, layout.size * 0.9, map.orientation)}
-              />
             );
           })}
           <g className="board-annotations" aria-hidden="true">
@@ -275,17 +248,6 @@ function BoardAnnotationView({
   map: BoardBundle['map'];
 }): ReactElement {
   const target = hexToPixel(annotation.to, layoutSize, map);
-  if (annotation.kind === 'recruitment') {
-    const badge = { x: target.x + layoutSize * 0.5, y: target.y - layoutSize * 0.5 };
-    return (
-      <g className={`annotation recruitment ${playerClasses[annotation.player] ?? ''}`} data-kind="recruitment" transform={`translate(${badge.x} ${badge.y})`}>
-        <circle className="annotation-ring outer" r={layoutSize * 0.38} />
-        <circle className="annotation-ring inner" r={layoutSize * 0.24} />
-        <path className="annotation-plus" d="M -8 0 L 8 0 M 0 -8 L 0 8" />
-      </g>
-    );
-  }
-
   if (!annotation.from) {
     return <AttackImpact annotation={annotation} layoutSize={layoutSize} target={target} />;
   }
@@ -301,7 +263,7 @@ function BoardAnnotationView({
       <polygon className="annotation-arrow halo" points={arrow.haloPoints} />
       <path className="annotation-line stroke" d={`M ${line.from.x} ${line.from.y} L ${arrow.base.x} ${arrow.base.y}`} />
       <polygon className="annotation-arrow stroke" points={arrow.points} />
-      {annotation.kind === 'attack' ? <AttackImpact annotation={annotation} dataKind={false} layoutSize={layoutSize} target={target} /> : null}
+      {annotation.kind === 'attack' && annotation.showImpact !== false ? <AttackImpact annotation={annotation} dataKind={false} layoutSize={layoutSize} target={target} /> : null}
     </g>
   );
 }
@@ -325,83 +287,6 @@ function AttackImpact({
       <text className="annotation-damage" y="5">{annotation.label}</text>
     </g>
   );
-}
-
-function buildBoardAnnotations(previousState: BoardState | null, state: BoardState, activePlayer: string | null): BoardAnnotation[] {
-  if (!previousState || !activePlayer) {
-    return [];
-  }
-
-  const currentUnitsById = new Map(state.units.map((unit) => [unit.id, unit]));
-  const previousUnitsById = new Map(previousState.units.map((unit) => [unit.id, unit]));
-  const activeUnits = state.units.filter((unit) => unit.player === activePlayer);
-  const annotations: BoardAnnotation[] = [];
-
-  for (const current of state.units) {
-    const previous = previousUnitsById.get(current.id);
-    if (!previous) {
-      annotations.push({
-        id: `recruitment-${current.id}`,
-        kind: 'recruitment',
-        player: current.player,
-        from: null,
-        to: current,
-        label: '+'
-      });
-      continue;
-    }
-
-    if (coordKey(previous) !== coordKey(current)) {
-      annotations.push({
-        id: `movement-${current.id}`,
-        kind: 'movement',
-        player: current.player,
-        from: previous,
-        to: current,
-        label: ''
-      });
-    }
-  }
-
-  for (const previous of previousState.units) {
-    if (previous.player === activePlayer) {
-      continue;
-    }
-
-    const current = currentUnitsById.get(previous.id);
-    const damage = current ? previous.hp - current.hp : previous.hp;
-    if (damage <= 0) {
-      continue;
-    }
-
-    annotations.push({
-      id: `attack-${previous.id}`,
-      kind: 'attack',
-      player: activePlayer,
-      from: nearestUnit(activeUnits, current ?? previous),
-      to: current ?? previous,
-      label: current ? `-${damage}` : 'KO'
-    });
-  }
-
-  return annotations;
-}
-
-function nearestUnit(units: BoardUnit[], target: BoardUnit): BoardUnit | null {
-  let nearest: BoardUnit | null = null;
-  let nearestDistance = Number.POSITIVE_INFINITY;
-
-  for (const unit of units) {
-    const colDistance = unit.col - target.col;
-    const rowDistance = unit.row - target.row;
-    const distance = colDistance * colDistance + rowDistance * rowDistance;
-    if (distance < nearestDistance) {
-      nearest = unit;
-      nearestDistance = distance;
-    }
-  }
-
-  return nearest;
 }
 
 function insetLine(from: { x: number; y: number }, to: { x: number; y: number }, startInset: number, endInset: number): { from: { x: number; y: number }; to: { x: number; y: number } } {
@@ -696,10 +581,8 @@ function playerCards(player: PlayerState): string[] {
 }
 
 function initialDraftedCards(replay: ReplayBundle, baseCards: string[]): string[] {
-  if (!replay.state.ruleset.includes('highmove-center6')) {
-    return [];
-  }
-  return subtractCardCounts(baseCards, Array(draftBaseCount).fill(draftBaseCard));
+  const draft = replay.deck.game.config.setup.draft;
+  return draft ? subtractCardCounts(baseCards, Array(draft.baseCount).fill(draft.baseCard)) : [];
 }
 
 function subtractCardCounts(expected: string[], actual: string[]): string[] {
@@ -807,23 +690,19 @@ function formatCount(count: number, singular: string, plural = `${singular}s`): 
 }
 
 function UnitList({ bundle }: { bundle: BoardBundle }): ReactElement {
-  const { state, units } = bundle;
+  const { state, unitRules } = bundle;
   return (
     <div className="list">
       {state.units.map((unit) => {
-        const movement = units[unit.type]?.movement;
+        const buffed = buffedUnitStats(unit, unitRules);
         return (
           <div key={unit.id} className="list-row unit-list-row">
             <span className={`dot ${playerClasses[unit.player] ?? ''}`} />
             <span>{unit.type}</span>
-            <span>
-              {unit.hp}/{unit.maxHp}
-            </span>
-            <span>atk {unit.attack}</span>
-            <span>mv {movement ?? '?'}</span>
-            <span className="unit-coord">
-              {unit.col},{unit.row}
-            </span>
+            <span>HP {unit.hp}</span>
+            <span className={buffed.attack ? 'stat-buffed' : undefined}>atk {unit.attack}</span>
+            <span className={buffed.movement ? 'stat-buffed' : undefined}>mv {unit.movement}</span>
+            <span className={buffed.range ? 'stat-buffed' : undefined}>rng {unit.range}</span>
           </div>
         );
       })}
@@ -831,19 +710,16 @@ function UnitList({ bundle }: { bundle: BoardBundle }): ReactElement {
   );
 }
 
-function SupplyList({ bundle }: { bundle: BoardBundle }): ReactElement {
+function KeyPointList({ bundle }: { bundle: BoardBundle }): ReactElement {
   const { state, map } = bundle;
   const unitByCoord = new Map(state.units.map((unit) => [coordKey(unit), unit]));
-  const supplyControllerById = new Map(state.supplyControl.map((center) => [center.id, center.controller]));
   return (
     <div className="supply-list">
-      {map.supplyCenters.map((center) => {
-        const controller = supplyControllerById.get(center.id) ?? null;
+      {map.keyPoints.map((point) => {
         return (
-          <div key={center.id} className="supply-row">
-            <strong>{center.id.replace('center-', '')}</strong>
-            <span>{controller ? `controlled by ${controller}` : 'uncontrolled'}</span>
-            <span>{formatSupplyOccupant(unitByCoord.get(coordKey(center)))}</span>
+          <div key={point.id} className="supply-row">
+            <strong>{point.stat}</strong>
+            <span>{formatPointOccupant(unitByCoord.get(coordKey(point)))}</span>
           </div>
         );
       })}
@@ -851,34 +727,8 @@ function SupplyList({ bundle }: { bundle: BoardBundle }): ReactElement {
   );
 }
 
-function formatSupplyOccupant(unit: BoardState['units'][number] | undefined): string {
+function formatPointOccupant(unit: BoardState['units'][number] | undefined): string {
   return unit ? `${unit.player} ${unit.type}` : 'empty';
-}
-
-function SavedSupplyList({ state }: { state: BoardState }): ReactElement {
-  return (
-    <div className="list">
-      {state.supply.map((supply) => (
-        <div key={supply.player} className="list-row two-column">
-          <span>{supply.player}</span>
-          <span>{supply.amount}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function HomeBaseList({ map }: { map: BoardBundle['map'] }): ReactElement {
-  return (
-    <div className="list">
-      {map.homeBases.map((homeBase) => (
-        <div key={homeBase.id} className="list-row two-column">
-          <span>{homeBase.player}</span>
-          <span>{homeBase.hexes.map(coordKey).join(' · ')}</span>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 function unitLabel(type: string): string {

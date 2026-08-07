@@ -1,0 +1,30 @@
+{
+  "elapsedSeconds": 18.356601666891947,
+  "usage": {
+    "model_requests": 3,
+    "tool_calls": 2,
+    "cancelled_tool_calls": 0,
+    "output_retries": 0,
+    "tool_retries": {}
+  },
+  "stopReason": "end_turn",
+  "text": "done",
+  "toolCalls": [
+    {
+      "call": {
+        "id": "call_rAVetATaBOp8yqAXPHcoRanx",
+        "name": "submit_deck_turn",
+        "arguments": "{\"actions\":[{\"type\":\"playAction\",\"handIndex\":4},{\"type\":\"moveToBuy\"},{\"type\":\"buyCard\",\"cardId\":\"gold\"},{\"type\":\"endTurn\"}],\"note\":\"Play cantrip Zap for damage and to draw copper, then use six money for Gold to accelerate rush economy.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"deck turn valid\\\",\\\"played\\\":[\\\"zap\\\"],\\\"bought\\\":[\\\"gold\\\"],\\\"produced\\\":{\\\"money\\\":2,\\\"damage\\\":1},\\\"next\\\":\\\"Call submit_board_turn with board actions that use these produced resources.\\\"}\", \"metadata\": {}}"
+    },
+    {
+      "call": {
+        "id": "call_5dBLb1ydcQ0FeHb2vPf1mCVs",
+        "name": "submit_board_turn",
+        "arguments": "{\"actions\":{\"movements\":[{\"unit\":\"P1-raider-start-1\",\"from\":{\"col\":10,\"row\":1},\"to\":{\"col\":8,\"row\":1}},{\"unit\":\"P1-scout-start-2\",\"from\":{\"col\":11,\"row\":0},\"to\":{\"col\":6,\"row\":3}},{\"unit\":\"P1-raider-start-3\",\"from\":{\"col\":12,\"row\":1},\"to\":{\"col\":8,\"row\":3}},{\"unit\":\"P1-marksman-start-4\",\"from\":{\"col\":11,\"row\":1},\"to\":{\"col\":9,\"row\":2}}],\"recruits\":[],\"attacks\":[],\"heals\":[],\"upgrades\":[]},\"summary\":\"P1 played Zap, bought Gold, captured northeast, and advanced all units toward central fights.\",\"reasoning\":\"Rush opening prioritizes early center income and forward pressure. The lead raider takes center-northeast immediately, scout and second raider push deep toward central/eastern centers for next-turn contests, and marksman follows in support. No legal attacks were available, so Zap damage expires; only 2 supply after income, so no recruit.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"turn committed and strict-validated\\\",\\\"turnId\\\":\\\"turn-001\\\"}\", \"metadata\": {}}"
+    }
+  ]
+}

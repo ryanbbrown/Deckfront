@@ -1,0 +1,30 @@
+{
+  "elapsedSeconds": 19.405828417045996,
+  "usage": {
+    "model_requests": 3,
+    "tool_calls": 2,
+    "cancelled_tool_calls": 0,
+    "output_retries": 0,
+    "tool_retries": {}
+  },
+  "stopReason": "end_turn",
+  "text": "done",
+  "toolCalls": [
+    {
+      "call": {
+        "id": "call_r9oCgKxUGwixpEy0xQHE0cXu",
+        "name": "submit_deck_turn",
+        "arguments": "{\"actions\":[{\"type\":\"trashCard\",\"handIndex\":0},{\"type\":\"playAction\",\"handIndex\":3},{\"type\":\"moveToBuy\"},{\"type\":\"buyCard\",\"cardId\":\"gold\"},{\"type\":\"endTurn\"}],\"note\":\"Trash Copper while still reaching Gold via Peddler plus two Golds; continue engine economy.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"deck turn valid\\\",\\\"played\\\":[\\\"peddler\\\"],\\\"bought\\\":[\\\"gold\\\"],\\\"produced\\\":{\\\"money\\\":3},\\\"next\\\":\\\"Call submit_board_turn with board actions that use these produced resources.\\\"}\", \"metadata\": {}}"
+    },
+    {
+      "call": {
+        "id": "call_ExmxRG7iM18jjaf2UejB34Y1",
+        "name": "submit_board_turn",
+        "arguments": "{\"actions\":{\"movements\":[{\"unit\":\"P2-guardian-start-3\",\"from\":{\"col\":7,\"row\":5},\"to\":{\"col\":6,\"row\":5}},{\"unit\":\"P2-druid-turn-008\",\"from\":{\"col\":0,\"row\":8},\"to\":{\"col\":2,\"row\":7}}],\"recruits\":[],\"attacks\":[{\"attacker\":\"P2-raider-turn-004\",\"target\":\"P1-raider-start-1\",\"deckDamage\":0},{\"attacker\":\"P2-guardian-start-3\",\"target\":\"P1-raider-turn-005\",\"deckDamage\":0}],\"heals\":[],\"upgrades\":[]},\"summary\":\"P2 trashed Copper, bought Gold, flipped center-center, killed the wounded raider, and damaged the forward raider.\",\"reasoning\":\"Trashing Copper still left enough money for Gold, strengthening the engine. On board, P2 is behind on units and centers, so the priority is reducing P1 count and reclaiming income: the raider stays to finish the 2 HP enemy, guardian flips center-center while hitting the adjacent raider, and druid advances toward the fight. No recruit is affordable after income.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"turn committed and strict-validated\\\",\\\"turnId\\\":\\\"turn-010\\\"}\", \"metadata\": {}}"
+    }
+  ]
+}

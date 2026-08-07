@@ -29,7 +29,7 @@ export function applyAction(state: GameState, action: ChosenAction, rng: Rng): G
     if (next.phase !== 'action') {
       throw new Error('Action cards can only be played in the action phase');
     }
-    if (player.actions <= 0) {
+    if (!next.config.setup.unlimitedActions && player.actions <= 0) {
       throw new Error('No actions remaining');
     }
     const [cardId] = player.hand.splice(action.handIndex, 1);
@@ -37,7 +37,9 @@ export function applyAction(state: GameState, action: ChosenAction, rng: Rng): G
     if (!card || card.type !== 'action') {
       throw new Error('Selected card is not a playable action');
     }
-    player.actions -= 1;
+    if (!next.config.setup.unlimitedActions) {
+      player.actions -= 1;
+    }
     player.play.push(card.id);
     continueEffects(next, card.effects ?? [], 0, rng);
     return next;

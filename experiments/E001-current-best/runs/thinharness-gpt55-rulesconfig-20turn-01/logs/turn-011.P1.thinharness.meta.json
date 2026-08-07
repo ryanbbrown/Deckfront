@@ -1,0 +1,40 @@
+{
+  "elapsedSeconds": 23.650201957905665,
+  "usage": {
+    "model_requests": 4,
+    "tool_calls": 3,
+    "cancelled_tool_calls": 0,
+    "output_retries": 0,
+    "tool_retries": {
+      "submit_deck_turn": 1
+    }
+  },
+  "stopReason": "end_turn",
+  "text": "done",
+  "toolCalls": [
+    {
+      "call": {
+        "id": "call_mCZjSQKFEMvVTpOOU2QUVn9H",
+        "name": "submit_deck_turn",
+        "arguments": "{\"actions\":[{\"type\":\"playAction\",\"handIndex\":3},{\"type\":\"moveToBuy\"},{\"type\":\"buyCard\",\"cardId\":\"gold\"},{\"type\":\"endTurn\"}],\"note\":\"Play Blast for damage pressure; 3 copper + silver buys Gold to improve economy.\"}"
+      },
+      "output": "{\"ok\": false, \"content\": \"The submitted deck action list was rejected by the Deckfront CLI.\\nIllegal action: {\\\"type\\\":\\\"buyCard\\\",\\\"cardId\\\":\\\"gold\\\"}\\n\\nSubmitted actions:\\n[{\\\"type\\\":\\\"playAction\\\",\\\"handIndex\\\":3},{\\\"type\\\":\\\"moveToBuy\\\"},{\\\"type\\\":\\\"buyCard\\\",\\\"cardId\\\":\\\"gold\\\"},{\\\"type\\\":\\\"endTurn\\\"}]\\n\\nCurrent deck context, including draw horizon and current legal actions:\\n{\\\"phase\\\":\\\"action\\\",\\\"active\\\":{\\\"id\\\":\\\"P1\\\",\\\"handIndexed\\\":[[0,\\\"copper\\\"],[1,\\\"copper\\\"],[2,\\\"silver\\\"],[3,\\\"blast\\\"],[4,\\\"copper\\\"]],\\\"actions\\\":1,\\\"buys\\\":1,\\\"money\\\":0,\\\"attributes\\\":{\\\"damage\\\":0,\\\"heal\\\":0,\\\"upgradeHealth\\\":0,\\\"upgradeDamage\\\":0,\\\"reattack\\\":0,\\\"stormTargets\\\":0},\\\"freeTrashUsed\\\":false,\\\"play\\\":[],\\\"discard\\\":[],\\\"drawCount\\\":10},\\\"drawHorizon\\\":{\\\"maxVisibleDraws\\\":0,\\\"drawTop\\\":[],\\\"shuffleCouldReachDiscard\\\":false,\\\"discardIfShuffled\\\":[]},\\\"legal\\\":[{\\\"i\\\":1,\\\"d\\\":\\\"Play Blast\\\",\\\"a\\\":{\\\"type\\\":\\\"playAction\\\",\\\"handIndex\\\":3}},{\\\"i\\\":2,\\\"d\\\":\\\"Move to buy phase\\\",\\\"a\\\":{\\\"type\\\":\\\"moveToBuy\\\"}},{\\\"i\\\":3,\\\"d\\\":\\\"Trash Copper\\\",\\\"a\\\":{\\\"type\\\":\\\"trashCard\\\",\\\"handIndex\\\":0}},{\\\"i\\\":4,\\\"d\\\":\\\"Trash Copper\\\",\\\"a\\\":{\\\"type\\\":\\\"trashCard\\\",\\\"handIndex\\\":1}},{\\\"i\\\":5,\\\"d\\\":\\\"Trash Silver\\\",\\\"a\\\":{\\\"type\\\":\\\"trashCard\\\",\\\"handIndex\\\":2}},{\\\"i\\\":6,\\\"d\\\":\\\"Trash Blast\\\",\\\"a\\\":{\\\"type\\\":\\\"trashCard\\\",\\\"handIndex\\\":3}},{\\\"i\\\":7,\\\"d\\\":\\\"Trash Copper\\\",\\\"a\\\":{\\\"type\\\":\\\"trashCard\\\",\\\"handIndex\\\":4}}],\\\"notes\\\":[\\\"Hand indexes are live and change after playAction, trashCard, and draws.\\\",\\\"drawHorizon shows the top cards that can plausibly be drawn this turn if you play draw actions.\\\",\\\"Use submit_deck_turn once with a complete sequence; the tool will validate against the real CLI and return retry feedback if needed.\\\"]}\\n\\nRetry submit_deck_turn with a complete corrected action list. Remember hand indexes are live after every play/trash/draw.\", \"metadata\": {\"error_type\": \"InvalidDeckTurn\", \"retry\": true}}"
+    },
+    {
+      "call": {
+        "id": "call_qKPgQ8xtagaeg7U31TVwBtAq",
+        "name": "submit_deck_turn",
+        "arguments": "{\"actions\":[{\"type\":\"playAction\",\"handIndex\":3},{\"type\":\"moveToBuy\"},{\"type\":\"buyCard\",\"cardId\":\"inferno\"},{\"type\":\"endTurn\"}],\"note\":\"Play Blast for 2 damage; spend 5 on Inferno for future burst damage.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"deck turn valid\\\",\\\"played\\\":[\\\"blast\\\"],\\\"bought\\\":[\\\"inferno\\\"],\\\"produced\\\":{\\\"damage\\\":2},\\\"next\\\":\\\"Call submit_board_turn with board actions that use these produced resources.\\\"}\", \"metadata\": {}}"
+    },
+    {
+      "call": {
+        "id": "call_vG8DoeKvXI14QNCgH8S69sRf",
+        "name": "submit_board_turn",
+        "arguments": "{\"actions\":{\"movements\":[{\"unit\":\"P1-raider-turn-005\",\"from\":{\"col\":7,\"row\":4},\"to\":{\"col\":7,\"row\":5}},{\"unit\":\"P1-raider-turn-007-a\",\"from\":{\"col\":6,\"row\":3},\"to\":{\"col\":4,\"row\":6}},{\"unit\":\"P1-raider-turn-007-b\",\"from\":{\"col\":7,\"row\":2},\"to\":{\"col\":5,\"row\":3}},{\"unit\":\"P1-raider-turn-009\",\"from\":{\"col\":10,\"row\":1},\"to\":{\"col\":8,\"row\":1}}],\"recruits\":[{\"unit\":\"P1-raider-turn-011\",\"type\":\"raider\",\"at\":{\"col\":10,\"row\":1}}],\"attacks\":[{\"attacker\":\"P1-raider-turn-005\",\"target\":\"P2-guardian-start-3\",\"deckDamage\":0},{\"attacker\":\"P1-raider-turn-007-a\",\"target\":\"P2-raider-turn-004\",\"deckDamage\":0}],\"heals\":[],\"upgrades\":[]},\"summary\":\"P1 played Blast, bought Inferno, flipped center-south, killed P2 guardian and wounded raider cleanup, and recruited a raider.\",\"reasoning\":\"Rush priority is to widen board control and unit lead. Moving to 7,5 flips a P2 center while killing the 4 HP guardian; moving to 4,6 lets another raider finish the 1 HP enemy raider. Other raiders occupy key northern centers and keep pressure. Income plus saved supply funds a fresh raider at the vacated home hex.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"turn committed and strict-validated\\\",\\\"turnId\\\":\\\"turn-011\\\"}\", \"metadata\": {}}"
+    }
+  ]
+}

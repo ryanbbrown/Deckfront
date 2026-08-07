@@ -1,0 +1,28 @@
+id: "thinharness-gpt55-rulesconfig-20turn-01"
+experiment: "E001-current-best"
+updatedAt: "2026-06-28T19:44:27.754162+00:00"
+status: "interrupted"
+runner: "thinharness"
+model: "openai:gpt-5.5"
+effort: "low"
+timeoutSeconds: 120
+maxTurns: 20
+seed: 2106
+ruleset: "current"
+map: "current"
+deckConfig: "game/deck.yaml"
+drafts:
+  - "P1=blast,zap,silver"
+  - "P2=village,smithy,peddler"
+players:
+  P1:
+    strategy: |-
+      Rush: contest centers early with high-movement units, convert center income into recruits, buy damage/cycling cards, and win by board pressure.
+    startingUnits: "raider,scout,raider,marksman"
+  P2:
+    strategy: |-
+      Engine/control: still contest centers early with competent unit play, but use deck buys to build draw/economy into damage and stabilization.
+    startingUnits: "raider,scout,guardian,marksman"
+result:
+  turns: 11
+  terminal: false

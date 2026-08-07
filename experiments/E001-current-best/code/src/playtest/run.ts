@@ -5,6 +5,16 @@ import { boardMapSchema, boardStateSchema, coordKey, unitRulesSchema, type Board
 import type { GameState } from '../core/types';
 import { replayTimelineSchema, type ReplayBoardActions, type ReplayEntry, type ReplayTimeline, type ReplayWinEvent } from '../replay/schema';
 import { deckTurnInputSchema, executeDeckTurn, isCompleteDeckSnapshot, type DeckSnapshot } from './deckTurn';
+import {
+  centerMajorityConfig,
+  deckDamageCapPerAttacker,
+  enabledWinEventTypes,
+  incomeForCenterCount as configuredIncomeForCenterCount,
+  recruitCapPerTurn,
+  recruitCostForRuleset as configuredRecruitCostForRuleset,
+  sixCenterDominanceConfig,
+  unitLeadThreshold
+} from './rulesConfig';
 
 export interface PlaytestRunPaths {
   root: string;
@@ -473,10 +483,11 @@ function validateAttacks(
     errors.push(`${entry.id}: attacks use ${usedDeckDamage} deck damage, exceeding produced damage ${producedDamage}`);
   }
 
-  if (snapshots.boardBefore.ruleset.includes('damagecap')) {
+  const damageCap = deckDamageCapPerAttacker(snapshots.boardBefore.ruleset);
+  if (damageCap !== null) {
     for (const [attacker, deckDamage] of deckDamageByAttacker) {
-      if (deckDamage > 1) {
-        errors.push(`${entry.id}: ${attacker} used ${deckDamage} deck damage under damage cap`);
+      if (deckDamage > damageCap) {
+        errors.push(`${entry.id}: ${attacker} used ${deckDamage} deck damage under damage cap ${damageCap}`);
       }
     }
   }
@@ -671,8 +682,9 @@ function validateSupplyAndCenters(
   const recruitCost = recruitCostForRuleset(snapshots.boardBefore.ruleset);
   const expectedAfterSupply = beforeSupply + income - actions.recruits.length * recruitCost;
 
-  if (snapshots.boardBefore.ruleset.includes('recruitcap') && actions.recruits.length > 1) {
-    errors.push(`${entry.id}: recruitcap rulesets allow at most 1 recruit per turn`);
+  const recruitCap = recruitCapPerTurn(snapshots.boardBefore.ruleset);
+  if (recruitCap !== null && actions.recruits.length > recruitCap) {
+    errors.push(`${entry.id}: ruleset allows at most ${recruitCap} recruit(s) per turn`);
   }
   if (expectedAfterSupply < 0) {
     errors.push(`${entry.id}: ${entry.player} spent more supply than available (${beforeSupply} + ${income} income - ${actions.recruits.length} recruits at ${recruitCost})`);
@@ -710,20 +722,11 @@ export function supplyForPlayer(state: BoardState, player: string): number {
 }
 
 export function recruitCostForRuleset(ruleset: string): number {
-  return ruleset.includes('cost6') ? 6 : 5;
+  return configuredRecruitCostForRuleset(ruleset);
 }
 
 export function incomeForCenterCount(ruleset: string, centers: number): number {
-  if (ruleset.includes('compressed')) {
-    if (centers <= 4) {
-      return centers + 1;
-    }
-    if (centers <= 6) {
-      return 6;
-    }
-    return 7;
-  }
-  return 2 + centers;
+  return configuredIncomeForCenterCount(ruleset, centers);
 }
 
 function mapWithEnemyBlocked(map: BoardMap, enemies: BoardUnit[]): BoardMap {
@@ -749,18 +752,16 @@ interface WinCounts {
 }
 
 function validateWinEvents(entries: ValidatedReplayEntry[], errors: string[]): void {
-  const pendingThreats: PendingWinThreat[] = [];
+  const expected = expectedWinEventsForReplay(entries);
 
-  entries.forEach((validated, completedTurns) => {
-    const expected = expectedWinEventsAtTurnStart(validated, completedTurns, pendingThreats);
-
+  entries.forEach((validated) => {
     if (!validated.entry.winEvents) {
       errors.push(`${validated.entry.id}: strict win validation requires winEvents`);
       return;
     }
 
     const actualComparable = validated.entry.winEvents.map(winEventComparable);
-    const expectedComparable = expected.map(winEventComparable);
+    const expectedComparable = (expected.entryWinEvents.get(validated.entry.id) ?? []).map(winEventComparable);
     if (stableJson(actualComparable) !== stableJson(expectedComparable)) {
       errors.push(
         `${validated.entry.id}: winEvents ${stableJson(actualComparable)} do not match expected ${stableJson(expectedComparable)}`
@@ -770,26 +771,30 @@ function validateWinEvents(entries: ValidatedReplayEntry[], errors: string[]): v
 }
 
 function validateTerminalWinEvents(timeline: ReplayTimeline, entries: ValidatedReplayEntry[], errors: string[]): void {
-  if (entries.length === 0) {
-    return;
-  }
-
-  const pendingThreats: PendingWinThreat[] = [];
-  for (const [completedTurns, validated] of entries.entries()) {
-    expectedWinEventsAtTurnStart(validated, completedTurns, pendingThreats);
-  }
-
-  const finalEntry = entries.at(-1);
-  if (!finalEntry) {
-    return;
-  }
-
-  const expectedTerminal = expectedWinEventsForState(finalEntry.boardAfter, entries.length, pendingThreats);
+  const expectedTerminal = expectedWinEventsForReplay(entries).terminalWinEvents;
   const actualTerminal = (timeline.terminalWinEvents ?? []).map(winEventComparable);
   const expectedComparable = expectedTerminal.map(winEventComparable);
   if (stableJson(actualTerminal) !== stableJson(expectedComparable)) {
     errors.push(`terminalWinEvents ${stableJson(actualTerminal)} do not match expected ${stableJson(expectedComparable)}`);
   }
+}
+
+export interface ExpectedReplayWinEvents {
+  entryWinEvents: Map<string, ReplayWinEvent[]>;
+  terminalWinEvents: ReplayWinEvent[];
+}
+
+export function expectedWinEventsForReplay(entries: ValidatedReplayEntry[]): ExpectedReplayWinEvents {
+  const pendingThreats: PendingWinThreat[] = [];
+  const entryWinEvents = new Map<string, ReplayWinEvent[]>();
+
+  for (const [completedTurns, validated] of entries.entries()) {
+    entryWinEvents.set(validated.entry.id, expectedWinEventsAtTurnStart(validated, completedTurns, pendingThreats));
+  }
+
+  const finalEntry = entries.at(-1);
+  const terminalWinEvents = finalEntry ? expectedWinEventsForState(finalEntry.boardAfter, entries.length, pendingThreats) : [];
+  return { entryWinEvents, terminalWinEvents };
 }
 
 function expectedWinEventsAtTurnStart(validated: ValidatedReplayEntry, completedTurns: number, pendingThreats: PendingWinThreat[]): ReplayWinEvent[] {
@@ -836,12 +841,13 @@ function winEventEligible(state: BoardState, type: WinEventType, player: string,
   }
 
   if (type === 'centerMajority') {
-    return completedTurns >= 24 && counts.playerCenters >= 5 && counts.playerUnits >= counts.opponentUnits;
+    const config = centerMajorityConfig(state.ruleset);
+    return config !== null && completedTurns >= config.minCompletedTurns && counts.playerCenters >= config.centersRequired && counts.playerUnits - counts.opponentUnits >= config.minUnitLead;
   }
 
   if (type === 'sixCenterDominance') {
-    const allowedBehind = sixCenterAllowedBehind(state.ruleset);
-    return completedTurns >= 18 && counts.playerCenters >= 6 && counts.opponentUnits - counts.playerUnits <= allowedBehind;
+    const config = sixCenterDominanceConfig(state.ruleset);
+    return config !== null && completedTurns >= config.minCompletedTurns && counts.playerCenters >= config.centersRequired && counts.opponentUnits - counts.playerUnits <= config.maxUnitDeficit;
   }
 
   return false;
@@ -871,34 +877,6 @@ function winEventForState(
 function winEventComparable(event: ReplayWinEvent): Omit<ReplayWinEvent, 'reason'> {
   const { reason, ...rest } = event;
   return rest;
-}
-
-function enabledWinEventTypes(ruleset: string): WinEventType[] {
-  const types: WinEventType[] = [];
-  if (unitLeadThreshold(ruleset) !== null) {
-    types.push('unitLead');
-  }
-  if (ruleset.includes('centermid')) {
-    types.push('centerMajority');
-  }
-  if (ruleset.includes('center6')) {
-    types.push('sixCenterDominance');
-  }
-  return types;
-}
-
-function unitLeadThreshold(ruleset: string): number | null {
-  if (ruleset.includes('responsewin-lead4')) {
-    return 4;
-  }
-  if (ruleset.includes('responsewin')) {
-    return 3;
-  }
-  return null;
-}
-
-function sixCenterAllowedBehind(ruleset: string): number {
-  return ruleset.includes('center6-tight') ? 1 : 2;
 }
 
 function opponentForPlayer(state: BoardState, player: string): string {

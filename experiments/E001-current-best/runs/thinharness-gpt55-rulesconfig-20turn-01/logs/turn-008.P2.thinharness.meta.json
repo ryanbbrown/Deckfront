@@ -1,0 +1,30 @@
+{
+  "elapsedSeconds": 20.31258791591972,
+  "usage": {
+    "model_requests": 3,
+    "tool_calls": 2,
+    "cancelled_tool_calls": 0,
+    "output_retries": 0,
+    "tool_retries": {}
+  },
+  "stopReason": "end_turn",
+  "text": "done",
+  "toolCalls": [
+    {
+      "call": {
+        "id": "call_zbfKzXjFKDMLbrn4C5PhiBSA",
+        "name": "submit_deck_turn",
+        "arguments": "{\"actions\":[{\"type\":\"playAction\",\"handIndex\":2},{\"type\":\"playAction\",\"handIndex\":4},{\"type\":\"playAction\",\"handIndex\":2},{\"type\":\"moveToBuy\"},{\"type\":\"buyCard\",\"cardId\":\"training\"},{\"type\":\"endTurn\"}],\"note\":\"Chain Peddler into Village and Smithy for max draw/economy, then buy Training for engine-compatible permanent damage scaling.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"deck turn valid\\\",\\\"played\\\":[\\\"peddler\\\",\\\"village\\\",\\\"smithy\\\"],\\\"bought\\\":[\\\"training\\\"],\\\"produced\\\":{\\\"money\\\":7},\\\"next\\\":\\\"Call submit_board_turn with board actions that use these produced resources.\\\"}\", \"metadata\": {}}"
+    },
+    {
+      "call": {
+        "id": "call_wD5POeRt6DoD9oSQB94WkFzW",
+        "name": "submit_board_turn",
+        "arguments": "{\"actions\":{\"movements\":[{\"unit\":\"P2-guardian-start-3\",\"from\":{\"col\":7,\"row\":6},\"to\":{\"col\":7,\"row\":5}}],\"recruits\":[{\"unit\":\"P2-druid-turn-008\",\"type\":\"druid\",\"at\":{\"col\":0,\"row\":8}}],\"attacks\":[{\"attacker\":\"P2-guardian-start-3\",\"target\":\"P1-marksman-start-4\",\"deckDamage\":0},{\"attacker\":\"P2-marksman-start-4\",\"target\":\"P1-marksman-start-4\",\"deckDamage\":0},{\"attacker\":\"P2-raider-turn-004\",\"target\":\"P1-raider-start-1\",\"deckDamage\":0}],\"heals\":[],\"upgrades\":[]},\"summary\":\"P2 played engine cards, bought Training, flipped center-south, killed P1 marksman, wounded west raider, and recruited a druid.\",\"reasoning\":\"Peddler/Village/Smithy maximized economy while adding nonterminal scaling. On board, guardian captured center-center-south and combined with marksman to remove the central P1 marksman, reducing pressure on the middle. The wounded raider struck P1's west-south raider to set up a later kill. With income reaching recruit threshold, a druid adds durable board presence and future healing.\"}"
+      },
+      "output": "{\"ok\": true, \"content\": \"{\\\"status\\\":\\\"turn committed and strict-validated\\\",\\\"turnId\\\":\\\"turn-008\\\"}\", \"metadata\": {}}"
+    }
+  ]
+}
