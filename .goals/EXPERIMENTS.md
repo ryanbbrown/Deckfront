@@ -2,4 +2,18 @@
 
 No reset-process experiments recorded yet.
 
-Earlier experiment logs are archived in `.goals-v1/EXPERIMENTS.md`.
+## Entry Template
+
+### E### - Title
+
+- Hypothesis:
+- Primary lever:
+- Exact changes:
+- Model/settings:
+- Strategy matchups:
+- Run IDs:
+- Validation:
+- Evidence level:
+- Score:
+- Result:
+- Next step:

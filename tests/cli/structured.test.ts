@@ -43,6 +43,7 @@ describe('structured deck CLI', () => {
 
     expect(playerOneCards).toEqual(['copper', 'copper', 'copper', 'copper', 'copper', 'copper', 'copper', 'province']);
     expect(playerTwoCards).toEqual(['copper']);
+    expect(saved.game.supply.province).toBe(0);
   });
 
   it('executes one structured deck turn and derives result fields from engine state', async () => {

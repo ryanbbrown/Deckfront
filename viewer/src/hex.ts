@@ -26,8 +26,11 @@ export function hexToPixel(coord: BoardCoord, size: number, map: RenderMap): Poi
       y: size * Math.sqrt(3) * (coord.row + (Math.abs(coord.col) % 2) * 0.5)
     };
   }
+  if (map.coordinateSystem !== 'odd-row') {
+    throw new Error(`Unsupported coordinate system: ${map.coordinateSystem}`);
+  }
   return {
-    x: size * Math.sqrt(3) * (coord.col + coord.row / 2),
+    x: size * Math.sqrt(3) * (coord.col + (1 - (Math.abs(coord.row) % 2)) * 0.5),
     y: size * 1.5 * coord.row
   };
 }

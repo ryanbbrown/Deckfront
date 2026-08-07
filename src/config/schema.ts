@@ -81,10 +81,17 @@ export const GameConfigSchema = z
     setup: z
       .object({
         initialActions: z.number().int().nonnegative().default(1),
+        unlimitedActions: z.boolean().default(false),
         initialBuys: z.number().int().nonnegative().default(1),
         initialMoney: z.number().int().nonnegative().default(0),
         handSize: z.number().int().positive().default(5),
         startingDeck: z.array(z.string()).min(1),
+        draft: z.object({
+          baseCard: z.string().min(1),
+          baseCount: z.number().int().positive(),
+          maxCards: z.number().int().nonnegative(),
+          maxCost: z.number().int().nonnegative()
+        }).strict().optional(),
         attributes: z.record(z.string(), z.number().int()).default({})
       })
       .strict(),
@@ -120,6 +127,9 @@ export const GameConfigSchema = z
       if (!ids.has(card)) {
         context.addIssue({ code: 'custom', path: ['setup', 'startingDeck'], message: `Unknown starting card: ${card}` });
       }
+    }
+    if (config.setup.draft && !ids.has(config.setup.draft.baseCard)) {
+      context.addIssue({ code: 'custom', path: ['setup', 'draft', 'baseCard'], message: `Unknown draft base card: ${config.setup.draft.baseCard}` });
     }
 
     const supplyIds = new Set<string>();

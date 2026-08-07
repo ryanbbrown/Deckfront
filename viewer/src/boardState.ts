@@ -5,7 +5,7 @@ import { replayTimelineSchema, type ReplayEntry, type ReplayTimeline } from '../
 export interface BoardBundle {
   state: BoardState;
   map: BoardMap;
-  units: UnitRules;
+  unitRules: UnitRules;
 }
 
 export interface DeckBundle {
@@ -23,7 +23,7 @@ export interface ReplayBundle extends BoardBundle {
   deckBefore: DeckBundle | null;
 }
 
-const defaultBoardUrl = '/game-data/.games/territory-v1-playtest/board.json';
+const defaultBoardUrl = '/game-data/game/board.json';
 
 export function boardUrlFromLocation(location: Location = window.location): string {
   return new URLSearchParams(location.search).get('board') ?? defaultBoardUrl;
@@ -41,6 +41,16 @@ export async function loadBoardBundle(boardUrl = boardUrlFromLocation()): Promis
 export async function loadReplayBundle(timelineUrl: string, index: number): Promise<ReplayBundle> {
   const timeline = replayTimelineSchema.parse(await fetchJson(timelineUrl));
   const boundedIndex = clamp(index, 0, timeline.entries.length);
+  if (timeline.entries.length === 0) {
+    const boardUrl = resolveRelativeGameUrl(timelineUrl, 'board.json');
+    const deckUrl = resolveRelativeGameUrl(timelineUrl, 'deck.json');
+    const [state, deck] = await Promise.all([
+      fetchJson(boardUrl).then((json) => boardStateSchema.parse(json)),
+      loadDeckBundle(deckUrl)
+    ]);
+    const board = await loadBoardBundleForState(state);
+    return { ...board, timeline, entry: null, index: 0, deck, initialDeck: deck, previousState: null, deckBefore: null };
+  }
   const entry = timeline.entries[Math.max(0, boundedIndex - 1)]!;
   const boardBeforeUrl = resolveRelativeGameUrl(timelineUrl, entry.board.before);
   const initialDeckUrl = resolveRelativeGameUrl(timelineUrl, timeline.entries[0]!.deck.before);
@@ -59,12 +69,11 @@ export async function loadReplayBundle(timelineUrl: string, index: number): Prom
 }
 
 async function loadBoardBundleForState(state: BoardState): Promise<BoardBundle> {
-  const [map, units] = await Promise.all([
-    fetchJson(`/game-data/maps/${state.map}.json`).then((json) => boardMapSchema.parse(json)),
-    fetchJson(`/game-data/rulesets/${state.ruleset}/units.json`).then((json) => unitRulesSchema.parse(json))
+  const [map, unitRules] = await Promise.all([
+    fetchJson('/game-data/game/map.json').then((json) => boardMapSchema.parse(json)),
+    fetchJson('/game-data/game/units.json').then((json) => unitRulesSchema.parse(json))
   ]);
-
-  return { state, map, units };
+  return { state, map, unitRules };
 }
 
 async function loadDeckBundle(url: string): Promise<DeckBundle> {

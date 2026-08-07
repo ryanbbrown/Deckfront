@@ -19,16 +19,26 @@ The repo has three main pieces:
 ## Requirements
 
 - Bun
+- Python 3.11+
+- [uv](https://docs.astral.sh/uv/)
+- `cproxy` for Codex-backed ThinHarness playthroughs
 
-Install dependencies:
+Install TypeScript dependencies; `uv run` resolves the locked Python dependencies automatically:
 
 ```sh
 bun install
+uv sync
 ```
 
 ## Commands
 
-Run the test suite:
+Run the full TypeScript and Python harness test suite:
+
+```sh
+bun run test:all
+```
+
+Run only the Vitest suite:
 
 ```sh
 bun run test
@@ -132,6 +142,25 @@ Validate a replay bundle from inside an experiment code directory:
 
 ```sh
 bun run validate-run -- ../runs/rush-vs-engine-01/timeline.json
+```
+
+## Skirmish ThinHarness playtests
+
+Player setup files use `{ "draft": [cardIds], "units": [{ "id", "type", "col", "row" }] }` with exactly five units. New runs default to 20 completed player turns. Run the harness through cproxy; the default model is `openai:gpt-5.6-luna`:
+
+```sh
+cproxy run -- uv run scripts/run_game_thinharness.py \
+  --run .games/skirmish-luna-01 \
+  --reset \
+  --p1-setup /path/to/p1-setup.json \
+  --p2-setup /path/to/p2-setup.json \
+  --model openai:gpt-5.6-luna
+```
+
+Resume by running the same command without `--reset`. The runner rewinds an interrupted, uncommitted turn to the latest timeline state and archives the partial attempt under `interrupted/<turn>/attempt-NNN/` before continuing. Each run records handler validation details in `submission-metrics.json` and every ThinHarness call, including schema rejections, in `harness-tool-calls.json`. Validate completed evidence with:
+
+```sh
+bun run validate-run -- --strict --strict-deck --strict-win .games/skirmish-luna-01/timeline.json
 ```
 
 ## Viewer

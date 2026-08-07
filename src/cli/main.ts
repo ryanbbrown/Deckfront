@@ -133,7 +133,7 @@ function helpText(): string {
     '  --state <path>   Persist and resume game state from JSON',
     '  --max-actions <number> Stop after this many accepted actions',
     '  --starting-deck <cards> Override new-game starting deck; use P1=card,card for one player',
-    '  --draft <cards> Build 7 copper plus up to 12 cost of drafted cards; unspent money carries to first turn',
+    '  --draft <cards> Build the configured base deck plus a config-limited draft; no resources carry into turn one',
     '  legal-actions --config <path> --state <path> --json',
     '  deck-turn --config <path> --state <path> --actions <file> --result <file>',
     '  board-turn --state <board.json> --deck-result <file> --actions <file> --result <file>',

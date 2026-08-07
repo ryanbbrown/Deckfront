@@ -1,0 +1,86 @@
+players: 2
+setup:
+  initialActions: 1
+  unlimitedActions: true
+  initialBuys: 1
+  initialMoney: 0
+  handSize: 5
+  startingDeck: [copper, copper, copper, copper, copper, copper, copper]
+  draft:
+    baseCard: copper
+    baseCount: 7
+    maxCards: 3
+    maxCost: 8
+  attributes:
+    soldierAttack: 0
+    soldierMovement: 0
+    archerRange: 0
+    archerAttack: 0
+    archerMovement: 0
+cards:
+  - { id: copper, name: Copper, type: treasure, cost: 0, treasure: 1 }
+  - { id: silver, name: Silver, type: treasure, cost: 3, treasure: 2 }
+  - { id: gold, name: Gold, type: treasure, cost: 6, treasure: 3 }
+  - id: muster
+    name: Muster
+    type: action
+    cost: 6
+    effects: [{ kind: grant, cards: 2 }]
+  - id: sparring
+    name: Sparring
+    type: action
+    cost: 4
+    effects: [{ kind: grant, cards: 1, attributes: { soldierAttack: 1 } }]
+  - id: whetstone
+    name: Whetstone
+    type: action
+    cost: 5
+    effects: [{ kind: grant, attributes: { soldierAttack: 2 } }]
+  - id: drill
+    name: Drill
+    type: action
+    cost: 4
+    effects: [{ kind: grant, cards: 1, attributes: { soldierMovement: 1 } }]
+  - id: forced-march
+    name: Forced March
+    type: action
+    cost: 5
+    effects: [{ kind: grant, attributes: { soldierMovement: 2 } }]
+  - id: ranging
+    name: Ranging
+    type: action
+    cost: 4
+    effects: [{ kind: grant, cards: 1, attributes: { archerRange: 1 } }]
+  - id: longbow
+    name: Longbow
+    type: action
+    cost: 5
+    effects: [{ kind: grant, attributes: { archerRange: 2 } }]
+  - id: bodkin
+    name: Bodkin
+    type: action
+    cost: 4
+    effects: [{ kind: grant, attributes: { archerAttack: 1 } }]
+  - id: skirmish-order
+    name: Skirmish Order
+    type: action
+    cost: 4
+    effects: [{ kind: grant, attributes: { archerMovement: 1 } }]
+supply:
+  - { card: copper, count: 60 }
+  - { card: silver, count: 40 }
+  - { card: gold, count: 30 }
+  - { card: muster, count: 10 }
+  - { card: sparring, count: 10 }
+  - { card: whetstone, count: 10 }
+  - { card: drill, count: 10 }
+  - { card: forced-march, count: 10 }
+  - { card: ranging, count: 10 }
+  - { card: longbow, count: 10 }
+  - { card: bodkin, count: 10 }
+  - { card: skirmish-order, count: 10 }
+endGame:
+  # Board elimination and the absolute turn cap own termination, so this deck expression is deliberately impossible.
+  and:
+    - { eq: [provincePileEmpty, true] }
+    - { eq: [provincePileEmpty, false] }

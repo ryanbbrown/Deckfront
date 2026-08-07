@@ -15,7 +15,7 @@ export function listLegalActions(state: GameState): LegalAction[] {
 
   if (state.phase === 'action') {
     const actions: LegalAction[] = [];
-    if (player.actions > 0) {
+    if (state.config.setup.unlimitedActions || player.actions > 0) {
       player.hand.forEach((cardId, handIndex) => {
         const card = state.cards[cardId];
         if (card?.type === 'action') {

@@ -9,6 +9,7 @@ interface InitArgs {
   units?: string;
   players?: string[];
   title?: string;
+  turnCap?: number;
 }
 
 interface ValidateArgs {
@@ -68,7 +69,8 @@ export async function runPlaytestCli(argv: string[], output: (message: string) =
       ...(args.board ? { boardPath: args.board } : {}),
       ...(args.units ? { unitsPath: args.units } : {}),
       ...(args.players ? { players: args.players } : {}),
-      ...(args.title ? { title: args.title } : {})
+      ...(args.title ? { title: args.title } : {}),
+      ...(args.turnCap ? { turnCap: args.turnCap } : {})
     });
     output(`Initialized playtest run: ${paths.root}`);
     return;
@@ -144,6 +146,12 @@ function parseInitArgs(argv: string[]): InitArgs {
       args.players = requireValue(argv, ++index, '--players').split(',').map((player) => player.trim()).filter((player) => player.length > 0);
     } else if (arg === '--title') {
       args.title = requireValue(argv, ++index, '--title');
+    } else if (arg === '--turn-cap') {
+      const value = Number(requireValue(argv, ++index, '--turn-cap'));
+      if (!Number.isInteger(value) || value <= 0) {
+        throw new Error('--turn-cap must be a positive integer');
+      }
+      args.turnCap = value;
     } else {
       throw new Error(`Unknown init argument: ${String(arg)}`);
     }
@@ -192,7 +200,8 @@ function helpText(): string {
     '',
     'Commands:',
     '  validate [--strict] [--strict-deck] [--strict-win] <timeline.json>',
-    '  init --run <path> --ruleset <id> --map <id> [--board <file>] [--units <file>] [--players P1,P2] [--title <title>]',
+    '  init --run <path> --ruleset <id> --map <id> (--board <complete-board.json> | --units <composition.json>) [--players P1,P2] [--title <title>]',
+    '    --units entries contain id, player, type, col, and row; canonical unit stats are derived from game/units.json',
     '  commit-turn --run <path> --deck-result <file> --board-result <file> --summary <text> --reasoning <text> [--win-events <file>] [--terminal-win-events <file>] [--strict-win]'
   ].join('\n');
 }

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "ruleset": "skirmish-v1",
+  "map": "skirmish-v1",
+  "players": [
+    "P1",
+    "P2"
+  ],
+  "turn": {
+    "activePlayer": "P1",
+    "round": 1
+  },
+  "units": [],
+  "notes": [
+    "Submit both armies before play."
+  ]
+}

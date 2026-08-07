@@ -2,20 +2,21 @@
 
 ## Current Strategy
 
-Reset the playtest process before treating any new experiment as evidence.
+Ready to resume evidence-grade experimentation with ThinHarness and explicit code-backed rules.
 
 ## Next Queue
 
-1. Rebuild validation requirements for full deck and board state fidelity.
-2. Align `deck.yaml`, board rules, and run setup before starting new experiments.
-3. Run fresh experiments only after the workflow requires real deck-state continuity.
+1. Establish the next baseline experiment from the current explicit rules config.
+2. Choose a primary exploration lever for the first new batch.
+3. Run ThinHarness playthroughs with explicit strategy matchups.
+4. Validate the resulting run bundles with strict board/deck/win validation.
+5. Score the batch and update the experiment queue.
 
 ## Current Best
 
-None. Prior generated experiments are archived in `.goals-v1` and should not be treated as validated evidence under the reset process.
+None under the reset process.
 
 ## Open Questions
 
-- What exact validation should make a replay qualify as full deck-building evidence?
-- Should custom run generators be disallowed entirely, or allowed only for fixtures and approved tooling?
-- What is the canonical starting deck rule for the next ruleset baseline?
+- Which lever should the next experiment target first: map centers, starting troops, recruitment economy, unit roles, card pool, or win conditions?
+- How many strategy matchups should be run for the first post-reset batch?

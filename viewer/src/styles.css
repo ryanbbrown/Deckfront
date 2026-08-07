@@ -295,6 +295,7 @@ footer,
 }
 
 .supply text,
+.key-point text,
 .unit text {
   dominant-baseline: middle;
   font-size: 11px;
@@ -303,9 +304,34 @@ footer,
   text-anchor: middle;
 }
 
-.supply text {
+.supply text,
+.key-point text {
   fill: #f5fff1;
   text-shadow: 0 1px 1px rgba(14, 42, 22, 0.6);
+}
+
+.key-point .supply-zone {
+  fill: rgba(226, 180, 64, 0.2);
+  stroke: #d7ad43;
+}
+
+.key-point-range .supply-zone {
+  stroke: #64b5d8;
+}
+
+.key-point-movement .supply-zone {
+  stroke: #77bd7c;
+}
+
+.unit-stats {
+  font-size: 8px;
+  letter-spacing: 0.02em;
+}
+
+.unit .stat-buffed {
+  fill: #baf4c4;
+  font-weight: 950;
+  text-shadow: 0 1px 2px rgba(8, 52, 24, 0.9);
 }
 
 .unit-token {
@@ -672,9 +698,12 @@ footer,
   white-space: nowrap;
 }
 
-.unit-coord {
-  color: #687064;
-  font-variant-numeric: tabular-nums;
+.unit-list-row .stat-buffed {
+  padding: 1px 3px;
+  border-radius: 4px;
+  background: #d8f1dc;
+  color: #176b35;
+  font-weight: 820;
 }
 
 .dot {

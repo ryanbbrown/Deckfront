@@ -4,10 +4,6 @@ import { drawCards, setupGame } from '../core/state';
 import type { GameConfig, GameState } from '../core/types';
 import { loadPersistedGame, savePersistedGame, stateFileExists, type PersistedGame } from './persistence';
 
-const DRAFT_BASE_CARD = 'copper';
-const DRAFT_BASE_COUNT = 7;
-const DRAFT_BUDGET = 12;
-
 export interface DeckSessionArgs {
   config: string;
   seed: number;
@@ -81,14 +77,22 @@ function applyStartingDeckOverrides(state: GameState, overrides: string[], rng: 
 }
 
 function applyDraftOverrides(state: GameState, drafts: string[], rng: Rng): void {
-  if (!state.cards[DRAFT_BASE_CARD]) {
-    throw new Error(`Draft base card is missing from config: ${DRAFT_BASE_CARD}`);
+  const draftConfig = state.config.setup.draft;
+  if (!draftConfig) {
+    throw new Error('Draft configuration is missing from game config');
+  }
+  if (!state.cards[draftConfig.baseCard]) {
+    throw new Error(`Draft base card is missing from config: ${draftConfig.baseCard}`);
   }
 
+  const assignments = new Map<string, string[]>();
   for (const draft of drafts) {
     const [maybePlayer, maybeCards] = draft.includes('=') ? draft.split('=', 2) : [undefined, draft];
     const playerIds = maybePlayer ? [maybePlayer.trim()] : state.players.map((player) => player.id);
     const draftedCards = parseCardList(maybeCards ?? '');
+    if (draftedCards.length > draftConfig.maxCards) {
+      throw new Error(`Draft has ${draftedCards.length} cards, exceeding maximum ${draftConfig.maxCards}`);
+    }
     const spent = draftedCards.reduce((sum, cardId) => {
       const card = state.cards[cardId];
       if (!card) {
@@ -97,29 +101,40 @@ function applyDraftOverrides(state: GameState, drafts: string[], rng: Rng): void
       return sum + card.cost;
     }, 0);
 
-    if (spent > DRAFT_BUDGET) {
-      throw new Error(`Draft costs ${spent}, exceeding budget ${DRAFT_BUDGET}`);
+    if (spent > draftConfig.maxCost) {
+      throw new Error(`Draft costs ${spent}, exceeding budget ${draftConfig.maxCost}`);
     }
-    const carryover = DRAFT_BUDGET - spent;
 
     for (const playerId of playerIds) {
-      const playerIndex = state.players.findIndex((candidate) => candidate.id === playerId);
-      const player = state.players[playerIndex];
-      if (!player) {
-        throw new Error(`Unknown draft player: ${playerId}`);
-      }
-      player.draw = shuffle([...Array(DRAFT_BASE_COUNT).fill(DRAFT_BASE_CARD), ...draftedCards], rng);
-      player.hand = [];
-      player.discard = [];
-      player.play = [];
-      player.freeTrashUsed = false;
-      player.draftCarryoverMoney = carryover;
-      if (playerIndex === state.activePlayer) {
-        player.money = state.config.setup.initialMoney + carryover;
-        delete player.draftCarryoverMoney;
-      }
-      drawCards(player, state.config.setup.handSize, rng);
+      if (!state.players.some((candidate) => candidate.id === playerId)) throw new Error(`Unknown draft player: ${playerId}`);
+      if (assignments.has(playerId)) throw new Error(`Draft was submitted more than once for ${playerId}`);
+      assignments.set(playerId, draftedCards);
     }
+  }
+
+  const draftedCounts: Record<string, number> = {};
+  for (const draftedCards of assignments.values()) {
+    for (const cardId of draftedCards) draftedCounts[cardId] = (draftedCounts[cardId] ?? 0) + 1;
+  }
+  for (const [cardId, count] of Object.entries(draftedCounts)) {
+    const available = state.supply[cardId];
+    if (available === undefined) throw new Error(`Draft card is not available in the market: ${cardId}`);
+    if (count > available) throw new Error(`Draft requests ${count} ${cardId}, but only ${available} remain in the market`);
+  }
+  for (const [cardId, count] of Object.entries(draftedCounts)) state.supply[cardId] = (state.supply[cardId] ?? 0) - count;
+
+  for (const [playerId, draftedCards] of assignments) {
+    const playerIndex = state.players.findIndex((candidate) => candidate.id === playerId);
+    const player = state.players[playerIndex]!;
+    player.draw = shuffle([...Array(draftConfig.baseCount).fill(draftConfig.baseCard), ...draftedCards], rng);
+    player.hand = [];
+    player.discard = [];
+    player.play = [];
+    player.freeTrashUsed = false;
+    if (playerIndex === state.activePlayer) {
+      player.money = state.config.setup.initialMoney;
+    }
+    drawCards(player, state.config.setup.handSize, rng);
   }
 }
 
