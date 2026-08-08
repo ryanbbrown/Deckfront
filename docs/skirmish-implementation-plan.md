@@ -263,7 +263,7 @@ Then: render key points, show per-unit `attack`/`movement`/`range`, drop supply-
 
 ## Step 13 — Harness and agent context
 
-Port the ThinHarness runner from E001. The two-tool structure (`submit_deck_turn` then `submit_board_turn`, both strict-validated, invalid submissions returned as retryable tool errors with no deterministic fallback) carries over unchanged.
+Port the ThinHarness runner from E001. Resolve each deck turn through `play_all_actions`, `choose_copper_trash`, and `choose_purchase`. Then submit the board turn through `submit_board_turn`. The final deck and board submissions use strict validation. Invalid submissions return retryable tool errors with no fallback.
 
 The Pydantic schemas in `run_game_thinharness.py` change to match the new action shapes — activations replacing movements/attacks, stat-typed upgrades, no recruits or heals — plus the two setup submissions from Step 6 (draft and army composition).
 

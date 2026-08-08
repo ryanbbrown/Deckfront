@@ -1,95 +1,98 @@
-# Operating Instructions
+# Goal-loop operating instructions
 
-## Core Standards
+## File responsibilities
 
-- The current experiment code path is `experiments/E001-current-best/code`.
-- Keep experiment evidence in `experiments/E001-current-best/runs/<run-id>/`.
-- Run playthroughs through the shared ThinHarness runner, not custom per-experiment generators.
-- Do not create custom run-generation scripts for evidence runs unless the user explicitly approves that specific script and it uses shared validation-grade APIs.
-- Every evidence run should include `deck.json`, `board.json`, `timeline.json`, `snapshots/`, `actions/`, `results/`, `logs/`, and rendered context.
-- Every completed timeline entry must include per-turn `actions` so strict validation can audit movement, recruitment, attacks, healing, and permanent upgrades.
-- Win bookkeeping should be produced by shared code, not by model-authored prose. Runs that end on a start-of-next-turn confirmation must use root-level `terminalWinEvents`.
-- Validate replay bundles with `bun run validate-run -- --strict --strict-deck --strict-win <timeline.json>` before treating a run as full evidence.
-- Non-strict validation is only a structural audit and cannot prove gameplay legality.
-- Record ambiguity, interruptions, model/tool retry counts, and known evidence limitations in the experiment entry.
-- Do not conclude from a single playthrough unless explicitly directed.
+- Read `GOAL.md`, `PLAN.md`, and `EXPERIMENTS.md` from the loop named in the task.
+- Run commands from the code root named in that loop's `GOAL.md`.
+- `GOAL.md` defines the loop objective, scope, allowed changes, frozen parts, evidence method, and completion criteria.
+- `PLAN.md` contains the current phase, next experiment, queue, open decisions, and blockers.
+- `EXPERIMENTS.md` is the append-only record of experiment batches and loop decisions.
 
-## Workflow
+Do not use `PLAN.md` as history. Move finished work into `EXPERIMENTS.md`, then update `PLAN.md` to show only the current state.
 
-- Read `.goals/GOAL.md`, `.goals/OPERATING.md`, `.goals/PLAN.md`, `.goals/EXPERIMENTS.md`, and `.goals/PROGRESS.md` before starting.
-- The main agent acts as orchestrator.
-- Start each experiment by stating a hypothesis and the specific lever being changed.
-- If rules affect legality, scoring, setup, map structure, unit stats, card effects, income, recruitment, or win conditions, encode them in shared code/config/assets before running evidence.
-- Keep prose prompts/rules synchronized with code-backed behavior. Prose-only rules are design notes, not evidence-grade rules.
-- Use the codebase ThinHarness prompts for playtesting agents, especially `experiments/E001-current-best/code/agent-context/prompts/thinharness-player.system.md`.
-- Run ThinHarness with explicit model, effort, timeout, retry, and max request/tool-call settings.
-- For each experiment batch, run distinct strategy matchups when the question is strategic rather than purely mechanical.
-- Each strategy assignment must specify P1 and P2 deck strategy, board strategy, unit priorities, and the tension the matchup is meant to test.
-- Play to a legal winner whenever practical. Turn-count caps are checkpoints or budget limits, not default endpoints.
-- Use a review/evaluation subagent with isolated context for batch scoring when useful.
-- Add one structured entry to `.goals/EXPERIMENTS.md` per experiment.
-- Append durable decisions and direction changes to `.goals/PROGRESS.md`.
-- Edit `.goals/PLAN.md` in place so it always reflects the current active plan. Do not use it as history.
+## Start a loop
 
-## Experiment Levers
+1. Copy the three file outlines from `.goals/LOOP_TEMPLATE.md` into a new loop folder.
+2. Give the loop a sequential id such as `L001`.
+3. Complete the goal, scope, evidence, and autonomy sections before the first balance experiment.
+4. Treat the objective and allowed scope as fixed after the first experiment starts.
 
-Every experiment should name at least one primary lever:
+If later work needs a different objective or wider scope, complete the current loop and create another loop. Correct factual errors in place and record the correction in `EXPERIMENTS.md`.
 
-- Center locations, count, clustering, and distance from home bases.
-- Starting troop count, placement, symmetry, and unit mix.
-- Recruitment cost, income curve, center income, recruit limits, and home-base constraints.
-- Unit roles, movement, HP, attack, range, healing, cost, and availability.
-- Card pool composition, costs, draw, actions, trashing, damage, healing, upgrades, and board-counter generation.
-- Win conditions, thresholds, response windows, center dominance, and unit-lead pressure.
-- Map topology, lanes, chokepoints, flank routes, neutral buffers, and contested middle space.
+## Run an experiment
 
-Do not only make tiny numeric tuning changes if the current design is stuck. Across a run of experiments, deliberately alternate between structural variants and tuning variants.
+An experiment is a batch of runs that tests one named hypothesis. A single game is one run, not one experiment.
 
-## Subagent Context
+1. Name the hypothesis and primary lever.
+2. Define the exact change, matchups, seeds, model settings, and run cap.
+3. Confirm that every change is allowed by the loop goal.
+4. Record the planned batch in `EXPERIMENTS.md`.
+5. Apply the smallest change that tests the hypothesis.
+6. Run the required tests before game generation.
+7. Generate runs through the shared ThinHarness runner.
+8. Validate every evidence run.
+9. Review strategy representation, legality, retries, and gameplay outcomes.
+10. Finish the experiment entry and update `PLAN.md`.
 
-Review/evaluation agents should read:
+Do not create one-off game generators for evidence runs. Do not replace engine actions with model-authored summaries.
 
-- `.goals/prompts/REVIEW_EVALUATE_AGENT.md`
-- `.goals/GOAL.md`
-- `.goals/OPERATING.md`
-- Relevant codebase prompts and rules context under `experiments/E001-current-best/code/agent-context/`
-- The relevant code/config/assets changed for the experiment
-- The batch's run directories, including `timeline.json`, `board.json`, `deck.json`, `run.yaml`, `runner-state.json`, `timings.jsonl`, logs, snapshots, and rendered context
+## Store run artifacts
 
-Do not give review/evaluation agents `.goals/EXPERIMENTS.md` or `.goals/PROGRESS.md` by default. Prior conclusions can bias scoring; provide them only when explicitly asking for comparison.
+Store runs under `.games/<loop-id>/<experiment-id>/<run-id>/` unless the loop goal specifies another run root.
 
-## Experimentation Style
+A complete run must contain the persisted deck and board states, timeline, snapshots, submitted actions, results, logs, rendered context, tool-call records, and submission metrics. The experiment entry must record:
 
-Keep experiments interpretable:
+- The exact command and working directory.
+- The model and reasoning settings.
+- The random seed and turn cap.
+- Both player setups and strategy instructions.
+- The rules, map, card, or code changes under test.
+- Each run path and validation result.
 
-- Large conceptual changes should usually be tested alone or with only minimal supporting changes.
-- Small tuning changes can be grouped when they target the same hypothesis.
-- Do not make massive unrelated changes in one experiment.
-- Do not only make tiny local tweaks if the current design seems stuck.
-- If an experiment works, iterate near it.
-- If it fails, record the lesson and try a different direction.
+## Validate evidence
 
-## Evaluation Flow
+Full evidence must pass:
 
-- ThinHarness playthroughs produce game evidence.
-- Full-game evidence is preferred. If a playthrough reaches 40 completed player turns without a winner, it may stop as unresolved only if it documents why the game appears stalled or why no plausible forced progress remains.
-- One review/evaluation agent checks legality, replay coherence, model/tool retry behavior, issue severity, and scoring.
-- Slightly flawed runs may still be useful evidence if the issue is minor and documented.
-- Runs with major or invalid issues should receive little or no scoring weight.
-- The review/evaluation agent should cite specific runs as evidence for each score category.
-- The orchestrator records the score in `.goals/EXPERIMENTS.md`, summarizes durable lessons in `.goals/PROGRESS.md`, and updates `.goals/PLAN.md`.
+```sh
+bun run validate-run -- --strict --strict-deck --strict-win <timeline.json>
+```
 
-## Evidence Levels
+Use these evidence levels:
 
-- `full`: strict board/deck/win validation passes, artifacts are complete, and no material legality issue is known.
-- `partial`: validation passes or mostly passes, but the run is interrupted, strategically incomplete, has minor issues, or covers only part of the intended matchup.
-- `low`: the run has major limitations but may still suggest a design direction.
-- `invalid`: the run cannot be trusted as gameplay evidence.
+- `full`: Strict deck, board, and win validation passes. The run is complete, and no material legality issue is known.
+- `partial`: The run remains useful but is incomplete, has a minor issue, or does not represent its assigned strategy well enough.
+- `low`: A major limitation distorts the result, but the run can still suggest a follow-up question.
+- `invalid`: The run cannot support a gameplay conclusion.
 
-## Updating Goal Files
+Validation proves legal state transitions. It does not prove good strategy or balanced rules.
 
-Agents should normally treat `.goals/` files as stable instructions.
+## Evaluate a batch
 
-They may update goal files when an experiment reveals a durable improvement to the process, scoring, prompts, or workflow. Changes to `.goals/GOAL.md` or `.goals/OPERATING.md` should be recorded in `.goals/PROGRESS.md`.
+- Apply the loop goal's strategy-representation rules before using a run for balance evidence.
+- Compare mirrored player order when the loop goal requires it.
+- Separate implementation defects, tool defects, agent mistakes, random variation, and balance signals.
+- Score the experiment batch, not each game in isolation.
+- Do not name a current best from one run unless the loop goal explicitly permits it.
+- Use `.goals/prompts/REVIEW_EVALUATE_AGENT.md` as the only review prompt.
 
-Do not rewrite goal files casually during ordinary experiments.
+An independent reviewer should read the loop goal and raw run evidence before reading prior experiment conclusions. This order reduces confirmation bias.
+
+## Respect loop scope
+
+Follow the autonomy rules in the named loop's `GOAL.md`. Never change a frozen part to rescue a weak result.
+
+Stop and request user direction before:
+
+- Expanding the objective or allowed changes.
+- Changing shared runner or validator behavior during a balance experiment.
+- Changing the evidence threshold after seeing results.
+- Starting another loop.
+
+## Complete a loop
+
+Complete a loop only when its stated completion criteria are met or the user ends it.
+
+1. Record the final evidence and conclusion in `EXPERIMENTS.md`.
+2. Replace the queue in `PLAN.md` with the final state and any deferred work.
+3. Leave the completed loop unchanged except for dated factual corrections.
+4. Create the next loop from the template when work continues under a new objective.

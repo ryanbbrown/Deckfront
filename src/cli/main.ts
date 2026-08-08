@@ -136,6 +136,7 @@ function helpText(): string {
     '  --draft <cards> Build the configured base deck plus a config-limited draft; no resources carry into turn one',
     '  legal-actions --config <path> --state <path> --json',
     '  deck-turn --config <path> --state <path> --actions <file> --result <file>',
+    '    actions support playAll and trashCardIfPresent batch commands',
     '  board-turn --state <board.json> --deck-result <file> --actions <file> --result <file>',
     '  --help           Show this help'
   ].join('\n');

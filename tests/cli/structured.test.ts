@@ -91,6 +91,56 @@ describe('structured deck CLI', () => {
     await expect(readFile(join(dir, result.after), 'utf8')).resolves.toContain('"schemaVersion": 1');
   });
 
+  it('plays recursively drawn actions before optionally trashing copper', async () => {
+    const dir = await makeTempDir();
+    const statePath = join(dir, 'deck.json');
+    const actionPath = join(dir, 'actions', 'turn-008.deck.json');
+    const resultPath = join(dir, 'results', 'turn-008.deck-result.json');
+    await runCli(['legal-actions', '--config', 'game/deck.yaml', '--state', statePath, '--seed', '1', '--json'], () => undefined);
+    const state = JSON.parse(await readFile(statePath, 'utf8')) as PersistedGame;
+    const player = state.game.players[0]!;
+    player.hand = ['sparring', 'copper'];
+    player.draw = ['sparring'];
+    player.discard = [];
+    player.play = [];
+    player.attributes = { ...state.game.config.setup.attributes };
+    await writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`);
+    await mkdir(join(dir, 'actions'), { recursive: true });
+    await writeFile(
+      actionPath,
+      `${JSON.stringify({
+        schemaVersion: 1,
+        turnId: 'turn-008',
+        player: 'P1',
+        actions: [
+          { type: 'playAll' },
+          { type: 'trashCardIfPresent', cardId: 'copper' },
+          { type: 'moveToBuy' },
+          { type: 'endTurn' }
+        ]
+      }, null, 2)}\n`
+    );
+
+    await runCli(['deck-turn', '--config', 'game/deck.yaml', '--state', statePath, '--actions', actionPath, '--result', resultPath], () => undefined);
+
+    const result = JSON.parse(await readFile(resultPath, 'utf8')) as {
+      played: string[];
+      produced: Record<string, number>;
+      actions: unknown[];
+    };
+    const after = JSON.parse(await readFile(statePath, 'utf8')) as PersistedGame;
+    expect(result.played).toEqual(['sparring', 'sparring']);
+    expect(result.produced).toEqual({ soldierAttack: 2 });
+    expect(result.actions).toEqual([
+      { type: 'playAction', handIndex: 0 },
+      { type: 'playAction', handIndex: 1 },
+      { type: 'trashCard', handIndex: 0 },
+      { type: 'moveToBuy' },
+      { type: 'endTurn' }
+    ]);
+    expect(after.game.trash).toEqual(['copper']);
+  });
+
   it('prints human-readable legal actions without the JSON flag', async () => {
     const dir = await makeTempDir();
     const output: string[] = [];

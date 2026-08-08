@@ -1,51 +1,67 @@
-# Review And Evaluation Agent Guide
+# Goal-loop review and evaluation guide
 
-Use this as the base prompt for agents that review experiment batches and score ruleset/map experiments.
+Review one completed experiment batch. Judge evidence quality before drawing a balance conclusion.
 
-## Role
+## Read first
 
-You review playthrough runs as evidence, then produce one batch-level ruleset/map evaluation.
+- `.goals/OPERATING.md`.
+- The named loop's `GOAL.md`.
+- The exact code and configuration under test.
+- The batch's raw run directories.
 
-## Review Each Run
+Do not read prior conclusions in the loop's `EXPERIMENTS.md` before the independent review. Read them later only when comparison is required.
 
-For each run:
+## Validate each run
 
-- Check whether the replay bundle is complete and coherent.
-- Run `bun run validate-run -- --strict --strict-deck --strict-win <timeline.json>` from `experiments/E001-current-best/code`. Treat non-strict validation and strict-without-win or strict-without-deck validation as insufficient for full evidence.
-- Check whether board moves, attacks, recruitment, healing, permanent upgrades, and supply changes follow the active rules.
-- Check whether deck turns were produced through the shared ThinHarness/tool workflow, not a custom generator or hand-authored summary.
-- Inspect `run.yaml`, `runner-state.json`, `timings.jsonl`, logs, action/result files, and rendered context when available.
-- Note model/tool retries and whether retries suggest prompt/schema/tool-shape issues.
-- Confirm the timeline includes per-turn `actions.movements`, `actions.recruits`, `actions.attacks`, `actions.heals`, and `actions.upgrades` sufficient to audit every move, new unit, HP loss/removal, HP increase, max-HP change, and attack change.
-- Confirm the timeline includes per-turn `winEvents` sufficient to audit every response-window threat creation, clear, and confirmation.
-- Confirm any start-of-next-turn final confirmation is logged in root-level `terminalWinEvents`, not as prose-only notes or a fake no-op board turn.
-- Check whether ambiguous rules calls, interruptions, or known evidence limits are recorded.
-- Classify issues by severity:
-  - `none`: no material issues found.
-  - `minor`: small mistakes that probably do not change the main lesson.
-  - `major`: mistakes that likely distort the game result.
-  - `invalid`: cannot be trusted as evidence.
+Run this command from the code root named in the loop goal:
 
-Minor flaws do not automatically discard a run. Note how much weight the run should receive.
+```sh
+bun run validate-run -- --strict --strict-deck --strict-win <timeline.json>
+```
 
-## Score The Batch
+Confirm that the shared ThinHarness runner produced the run. Inspect the timeline, deck and board states, snapshots, actions, results, rendered context, tool calls, and submission metrics.
 
-Score the ruleset/map experiment using `.goals/GOAL.md`.
+Check that:
 
-- Score the experiment batch, not individual games.
-- Use all valid and partially useful runs as evidence.
-- Cite specific runs when explaining each score category.
-- Distinguish gameplay quality from run-production quality. A technically valid run can still show poor strategic coherence.
-- Evaluate whether the experiment meaningfully tested its stated lever and hypothesis.
-- Do not read prior experiment conclusions unless the orchestrator explicitly asks for comparison.
-- Recommend whether to iterate near this experiment, broaden the search, or discard the direction.
+- Deck actions came from the deck engine.
+- Every action card resolved before copper trash and purchase choices.
+- Purchases used the actual money available after the trash choice.
+- Board upgrades used legal symbols and costs.
+- Unit activations, attacks, movement, damage, and removals are reproducible.
+- The recorded winner follows elimination or the turn-cap tiebreak.
+- Retries do not hide a prompt, schema, runner, or validator defect.
+
+## Judge the evidence
+
+Use the evidence levels in `.goals/OPERATING.md`. Apply the loop goal's strategy-representation test before using a run for balance conclusions.
+
+Separate these causes:
+
+- Implementation or validation defect.
+- Tool or prompt defect.
+- Agent tactical mistake.
+- Strategy mismatch.
+- Random variation.
+- Rules or balance signal.
+
+A legal run can still provide weak balance evidence. A player must represent its assigned strategy before its result measures that strategy.
+
+## Evaluate the batch
+
+- Evaluate the named hypothesis and primary lever only.
+- Compare mirrored seats and controls when the loop goal requires them.
+- Cite specific turns and run paths for important claims.
+- Do not infer a dominant strategy from one game.
+- State when the sample is too small or too noisy.
+- Recommend another batch, a nearby change, confirmation, or loop completion.
 
 ## Output
 
-Write a concise batch evaluation with:
+Write one concise evaluation with:
 
-- Run validity summary.
-- Ruleset/map score.
-- Evidence by score category.
-- Main lessons.
-- Recommended next experiment.
+- Run validity and evidence levels.
+- Strategy-representation results.
+- Primary metrics and outcomes.
+- Tactical and deck-building observations.
+- Answer to the experiment hypothesis.
+- Recommended decision and next experiment.

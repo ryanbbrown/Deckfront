@@ -12,12 +12,18 @@ export interface DeckSnapshot {
   game: GameState;
 }
 
+const deckTurnCommandSchema = z.union([
+  chosenActionSchema,
+  z.object({ type: z.literal('playAll') }).strict(),
+  z.object({ type: z.literal('trashCardIfPresent'), cardId: z.string().min(1) }).strict()
+]);
+
 export const deckTurnInputSchema = z
   .object({
     schemaVersion: z.literal(1),
     turnId: z.string().min(1),
     player: z.string().min(1),
-    actions: z.array(chosenActionSchema).min(1)
+    actions: z.array(deckTurnCommandSchema).min(1)
   })
   .strict();
 
@@ -38,6 +44,7 @@ export const deckTurnResultSchema = z
 
 export type DeckTurnInput = z.infer<typeof deckTurnInputSchema>;
 export type DeckTurnResult = z.infer<typeof deckTurnResultSchema>;
+type DeckTurnCommand = z.infer<typeof deckTurnCommandSchema>;
 
 export interface ExecuteDeckTurnOptions {
   beforePath: string;
@@ -78,9 +85,10 @@ export function executeDeckTurn(snapshot: DeckSnapshot, input: DeckTurnInput, op
   const drawnHand = [...startingPlayer.hand];
   const played: string[] = [];
   const bought: string[] = [];
+  const normalizedActions: ChosenAction[] = [];
   let completed = false;
 
-  for (const action of input.actions) {
+  const executeAction = (action: ChosenAction): void => {
     if (completed) {
       throw new Error(`${input.turnId}: deck action appears after the turn is complete`);
     }
@@ -97,10 +105,18 @@ export function executeDeckTurn(snapshot: DeckSnapshot, input: DeckTurnInput, op
         bought.push(action.cardId);
       }
     }
+    normalizedActions.push(action);
 
     if (action.type === 'endTurn' || game.ended) {
       completed = true;
     }
+  };
+
+  for (const command of input.actions) {
+    if (completed) {
+      throw new Error(`${input.turnId}: deck command appears after the turn is complete`);
+    }
+    executeDeckTurnCommand(command, () => game, input.turnId, executeAction);
   }
 
   if (!completed) {
@@ -122,13 +138,57 @@ export function executeDeckTurn(snapshot: DeckSnapshot, input: DeckTurnInput, op
       player: input.player,
       before: options.beforePath,
       after: options.afterPath,
-      actions: input.actions,
+      actions: normalizedActions,
       drawnHand,
       played,
       bought,
       produced: deriveProduced(before.game, after.game, activePlayerIndex)
     }
   };
+}
+
+function executeDeckTurnCommand(
+  command: DeckTurnCommand,
+  currentGame: () => GameState,
+  turnId: string,
+  executeAction: (action: ChosenAction) => void
+): void {
+  if (command.type === 'playAll') {
+    const game = currentGame();
+    if (!game.config.setup.unlimitedActions) {
+      throw new Error(`${turnId}: playAll requires unlimited actions`);
+    }
+    while (true) {
+      const game = currentGame();
+      if (game.pending) {
+        throw new Error(`${turnId}: playAll cannot resolve a pending card choice`);
+      }
+      const player = game.players[game.activePlayer];
+      if (!player) {
+        throw new Error(`${turnId}: active deck player is missing`);
+      }
+      const handIndex = player.hand.findIndex((cardId) => game.cards[cardId]?.type === 'action');
+      if (handIndex < 0) {
+        return;
+      }
+      executeAction({ type: 'playAction', handIndex });
+    }
+  }
+
+  if (command.type === 'trashCardIfPresent') {
+    const game = currentGame();
+    const player = game.players[game.activePlayer];
+    if (!player) {
+      throw new Error(`${turnId}: active deck player is missing`);
+    }
+    const handIndex = player.hand.indexOf(command.cardId);
+    if (handIndex >= 0) {
+      executeAction({ type: 'trashCard', handIndex });
+    }
+    return;
+  }
+
+  executeAction(command);
 }
 
 export function isCompleteDeckSnapshot(value: unknown): value is DeckSnapshot {

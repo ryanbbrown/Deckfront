@@ -27,7 +27,7 @@ export function listLegalActions(state: GameState): LegalAction[] {
       });
     }
     actions.push({ action: { type: 'moveToBuy' }, description: 'Move to buy phase' });
-    if (player.freeTrashUsed !== true && player.play.length === 0) {
+    if (player.freeTrashUsed !== true) {
       player.hand.forEach((cardId, handIndex) => {
         const card = state.cards[cardId];
         actions.push({

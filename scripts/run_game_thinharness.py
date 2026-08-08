@@ -7,6 +7,7 @@ import argparse
 import json
 import re
 import shutil
+import tempfile
 from itertools import permutations
 import sys
 import time
@@ -40,42 +41,6 @@ class PlayerSetup(BaseModel):
     units: list[SetupUnit] = Field(min_length=5, max_length=5)
 
 
-class PlayAction(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    type: Literal["playAction"]
-    handIndex: int = Field(ge=0)
-
-
-class TrashCard(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    type: Literal["trashCard"]
-    handIndex: int = Field(ge=0)
-
-
-class ResolveSkip(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    type: Literal["resolvePending"]
-    choice: Literal["skip"]
-
-
-class ResolveSelect(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    type: Literal["resolvePending"]
-    choice: Literal["select"]
-    handIndex: int = Field(ge=0)
-
-
-class ResolveLookahead(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    type: Literal["resolvePending"]
-    choice: Literal["lookahead"]
-    exposedIndex: int = Field(ge=0)
-    destination: Literal["draw", "discard", "trash", "top"]
-
-
-DeckChoice = PlayAction | TrashCard | ResolveSkip | ResolveSelect | ResolveLookahead
-
-
 class Activation(BaseModel):
     model_config = ConfigDict(extra="forbid")
     unit: str = Field(description="A surviving friendly unit id from activationOptions")
@@ -96,10 +61,19 @@ class BoardActions(BaseModel):
     activations: list[Activation] = Field(default_factory=list)
 
 
-class SubmitDeckTurnArgs(BaseModel):
+class PlayAllActionsArgs(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    actions: list[DeckChoice] = Field(default_factory=list, description="Optional action, free-trash, or pending-effect choices; do not include moveToBuy, buyCard, or endTurn")
-    buyCard: str = Field(default="", description="One card id to buy after actions and treasures, or an empty string to buy nothing")
+
+
+class ChooseCopperTrashArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    trashCopper: bool = Field(description="Trash one copper after reviewing the resolved action cards and both resulting money totals")
+    note: str = Field(default="", max_length=500)
+
+
+class ChoosePurchaseArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    buyCard: str = Field(default="", description="One card id from affordableCards; use an empty string only when no listed card improves the deck")
     note: str = Field(default="", max_length=500)
 
 
@@ -123,6 +97,8 @@ class TurnTools:
         self.player = player
         self.turn_id = turn_id
         self.previous_entries = previous_entries
+        self.deck_preview: dict[str, Any] | None = None
+        self.trash_copper: bool | None = None
         self.deck_done = False
         self.board_done = False
         self.deck_result = run_dir / "results" / f"{turn_id}.deck.result.json"
@@ -130,19 +106,67 @@ class TurnTools:
 
     def specs(self) -> list[ToolSpec]:
         return [
-            ToolSpec("submit_deck_turn", "Choose optional action/trash choices plus one optional buyCard. Never put treasures, moveToBuy, buyCard, or endTurn in actions. Free-trash choices are alternatives, so choose at most one. The harness plays treasures, performs the purchase, and ends the turn. Use resolvePending only for a current pending effect.", SubmitDeckTurnArgs, self.submit_deck_turn, max_retries=self.args.tool_retries, sequential=True),
-            ToolSpec("submit_board_turn", "After the deck succeeds, submit only listed legalUpgrades and activate every surviving friendly unit. For attacks, copy one attackPlan id. The harness derives from, via, and target, and snaps each preferred to coordinate to the nearest legal endpoint when necessary.", SubmitBoardTurnArgs, self.submit_board_turn, max_retries=self.args.tool_retries, sequential=True),
+            ToolSpec("play_all_actions", "Resolve every action card, including action cards drawn by other actions. This returns the actual cards played and the money available with or without trashing one copper.", PlayAllActionsArgs, self.play_all_actions, max_retries=self.args.tool_retries, sequential=True),
+            ToolSpec("choose_copper_trash", "After play_all_actions, choose whether to trash one copper. This returns the exact money and affordable cards after that choice.", ChooseCopperTrashArgs, self.choose_copper_trash, max_retries=self.args.tool_retries, sequential=True),
+            ToolSpec("choose_purchase", "After choose_copper_trash, choose one card from affordableCards. Copper is never a purchase option. Unspent money does not carry into the next turn.", ChoosePurchaseArgs, self.choose_purchase, max_retries=self.args.tool_retries, sequential=True),
+            ToolSpec("submit_board_turn", "Spend every affordable upgrade symbol, then activate every surviving friendly unit. Submit only listed legalUpgrades. For attacks, copy one attackPlan id. The harness derives from, via, and target, and snaps each preferred to coordinate to the nearest legal endpoint when necessary.", SubmitBoardTurnArgs, self.submit_board_turn, max_retries=self.args.tool_retries, sequential=True),
         ]
 
-    def submit_deck_turn(self, submitted: SubmitDeckTurnArgs) -> ToolResult:
-        submission = submitted.model_dump(by_alias=True, exclude_none=True)
+    def play_all_actions(self, submitted: PlayAllActionsArgs) -> ToolResult:
         if self.deck_done:
             produced = read_json(self.deck_result)["produced"]
             briefing = state_briefing(self.run_dir, self.player.id, produced)
             return ToolResult(True, json.dumps({"status": "alreadyValid", "message": "Deck turn is finished; do not submit it again.", "boardBriefing": briefing, "next": "submit_board_turn"}, separators=(",", ":")))
+        if self.deck_preview is None:
+            try:
+                self.deck_preview = preview_deck_choices(
+                    self.args.config,
+                    self.run_dir / "deck.json",
+                    self.player.id,
+                    self.turn_id,
+                )
+            except RuntimeError as error:
+                return self.retry("deck", str(error), submitted.model_dump())
+        return ToolResult(True, json.dumps({
+            "status": "actionsResolved",
+            **self.deck_preview,
+            "next": "choose_copper_trash",
+        }, separators=(",", ":")))
+
+    def choose_copper_trash(self, submitted: ChooseCopperTrashArgs) -> ToolResult:
+        submission = submitted.model_dump(by_alias=True, exclude_none=True)
+        if self.deck_preview is None:
+            return self.retry("deck", "play_all_actions must succeed first.", submission)
+        if submitted.trashCopper and not self.deck_preview["copperAvailable"]:
+            return self.retry("deck", "No copper is available to trash; submit trashCopper false.", submission)
+        self.trash_copper = submitted.trashCopper
+        available_money = self.deck_preview["moneyIfTrashed" if submitted.trashCopper else "moneyIfKept"]
+        return ToolResult(True, json.dumps({
+            "status": "trashChosen",
+            "trashCopper": submitted.trashCopper,
+            "availableMoney": available_money,
+            "affordableCards": affordable_cards(self.run_dir / "deck.json", available_money),
+            "unspentMoneyCarriesOver": False,
+            "next": "choose_purchase",
+        }, separators=(",", ":")))
+
+    def choose_purchase(self, submitted: ChoosePurchaseArgs) -> ToolResult:
+        if self.deck_preview is None:
+            return self.retry("deck", "play_all_actions must succeed first.", submitted.model_dump())
+        if self.trash_copper is None:
+            return self.retry("deck", "choose_copper_trash must succeed first.", submitted.model_dump())
+        available_money = self.deck_preview["moneyIfTrashed" if self.trash_copper else "moneyIfKept"]
+        affordable = affordable_cards(self.run_dir / "deck.json", available_money)
+        if submitted.buyCard and submitted.buyCard not in {card["id"] for card in affordable}:
+            return self.retry("deck", f"{submitted.buyCard} is not in affordableCards: {json.dumps(affordable, separators=(',', ':'))}", submitted.model_dump())
+        submission = {
+            "trashCopper": self.trash_copper,
+            "buyCard": submitted.buyCard,
+            "note": submitted.note,
+        }
         before = (self.run_dir / "deck.json").read_text()
         action_path = self.run_dir / "actions" / f"{self.turn_id}.deck.json"
-        normalized_actions = normalize_deck_actions(submitted.actions, submitted.buyCard)
+        normalized_actions = normalize_deck_actions(self.trash_copper, submitted.buyCard)
         write_json(action_path, {"schemaVersion": 1, "turnId": self.turn_id, "player": self.player.id, "actions": normalized_actions})
         result = run([
             "bun", "run", "--silent", "cli", "--", "deck-turn", "--config", self.args.config,
@@ -154,14 +178,15 @@ class TurnTools:
             return self.retry("deck", result.stdout + result.stderr, submission)
         self.deck_done = True
         record_submission(self.run_dir, self.turn_id, self.player.id, "deck", submission, accepted=True)
-        produced = read_json(self.deck_result)["produced"]
+        deck_result = read_json(self.deck_result)
+        produced = deck_result["produced"]
         briefing = state_briefing(self.run_dir, self.player.id, produced)
-        return ToolResult(True, json.dumps({"status": "valid", "normalizedActions": normalized_actions, "produced": produced, "boardBriefing": briefing, "next": "submit_board_turn"}, separators=(",", ":")))
+        return ToolResult(True, json.dumps({"status": "valid", "normalizedActions": deck_result["actions"], "produced": produced, "boardBriefing": briefing, "next": "submit_board_turn"}, separators=(",", ":")))
 
     def submit_board_turn(self, submitted: SubmitBoardTurnArgs) -> ToolResult:
         submission = submitted.model_dump(by_alias=True, exclude_none=True)
         if not self.deck_done:
-            return self.retry("board", "submit_deck_turn must succeed first.", submission)
+            return self.retry("board", "choose_purchase must succeed first.", submission)
         if self.board_done:
             return ToolResult(True, json.dumps({"status": "alreadyCommitted", "turnId": self.turn_id, "next": "answer done"}, separators=(",", ":")))
         board_before = (self.run_dir / "board.json").read_text()
@@ -169,6 +194,9 @@ class TurnTools:
         action_path = self.run_dir / "actions" / f"{self.turn_id}.board.json"
         produced = read_json(self.deck_result)["produced"]
         briefing = state_briefing(self.run_dir, self.player.id, produced)
+        unspent = unspent_affordable_upgrades(briefing["legalUpgrades"], submitted.actions.upgrades)
+        if unspent:
+            return self.retry("board", f"Affordable upgrades remain unspent: {json.dumps(unspent, separators=(',', ':'))}", submission)
         try:
             actions_payload = board_actions_payload(submitted.actions, briefing["activationOptions"])
         except ValueError as error:
@@ -253,21 +281,85 @@ def terminal_events(board: dict[str, Any], completed: int, cap: int) -> list[dic
     return [{"type": "elimination" if eliminated else "turnCap", "outcome": "win", "player": winner, "completedTurns": completed, "playerUnits": len(armies[winner]), "opponentUnits": len(armies[opponent]), "playerHp": sum(unit["hp"] for unit in armies[winner]), "opponentHp": sum(unit["hp"] for unit in armies[opponent])}]
 
 
-def normalize_deck_actions(actions: list[DeckChoice], buy_card: str = "") -> list[dict[str, Any]]:
-    normalized: list[dict[str, Any]] = []
-    trashed = False
-    for action in actions:
-        payload = action.model_dump()
-        if payload["type"] == "trashCard":
-            if trashed:
-                continue
-            trashed = True
-        normalized.append(payload)
+def normalize_deck_actions(trash_copper: bool, buy_card: str = "") -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = [{"type": "playAll"}]
+    if trash_copper:
+        normalized.append({"type": "trashCardIfPresent", "cardId": "copper"})
     normalized.append({"type": "moveToBuy"})
     if buy_card:
         normalized.append({"type": "buyCard", "cardId": buy_card})
     normalized.append({"type": "endTurn"})
     return normalized
+
+
+def preview_deck_choices(config: str, deck_path: Path, player: str, turn_id: str) -> dict[str, Any]:
+    variants: dict[str, dict[str, Any]] = {}
+    with tempfile.TemporaryDirectory(prefix="deckfront-preview-") as directory:
+        preview_dir = Path(directory)
+        for name, trash_copper in (("kept", False), ("trashed", True)):
+            state_path = preview_dir / name / "deck.json"
+            action_path = preview_dir / name / "actions.json"
+            result_path = preview_dir / name / "result.json"
+            state_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(deck_path, state_path)
+            write_json(action_path, {
+                "schemaVersion": 1,
+                "turnId": turn_id,
+                "player": player,
+                "actions": normalize_deck_actions(trash_copper),
+            })
+            result = run([
+                "bun", "run", "--silent", "cli", "--", "deck-turn", "--config", config,
+                "--state", str(state_path), "--actions", str(action_path), "--result", str(result_path),
+            ], check=False)
+            if result.returncode != 0:
+                raise RuntimeError((result.stdout + result.stderr).strip())
+            variants[name] = read_json(result_path)
+
+    kept = variants["kept"]
+    trashed = variants["trashed"]
+    return {
+        "played": kept["played"],
+        "producedAttributes": {key: value for key, value in kept["produced"].items() if key != "money"},
+        "copperAvailable": any(action["type"] == "trashCard" for action in trashed["actions"]),
+        "moneyIfKept": kept["produced"].get("money", 0),
+        "moneyIfTrashed": trashed["produced"].get("money", 0),
+    }
+
+
+def affordable_cards(deck_path: Path, money: int) -> list[dict[str, Any]]:
+    game = read_json(deck_path)["game"]
+    return [
+        {"id": card["id"], "cost": card["cost"], "remaining": game["supply"].get(card["id"], 0)}
+        for card in game["cards"].values()
+        if card["id"] != "copper" and card["cost"] <= money and game["supply"].get(card["id"], 0) > 0
+    ]
+
+
+def unspent_affordable_upgrades(
+    legal_upgrades: list[dict[str, Any]],
+    submitted: list[Upgrade],
+) -> list[dict[str, Any]]:
+    legal_by_key = {
+        (choice["target"], choice["stat"], choice["to"]): choice
+        for choice in legal_upgrades
+    }
+    selected_keys: set[tuple[str, str, int]] = set()
+    spent_by_lane: dict[str, int] = {}
+    for upgrade in submitted:
+        key = (upgrade.target, upgrade.stat, upgrade.to)
+        choice = legal_by_key.get(key)
+        if not choice or key in selected_keys:
+            continue
+        selected_keys.add(key)
+        lane = choice["lane"]
+        spent_by_lane[lane] = spent_by_lane.get(lane, 0) + choice["cost"]
+
+    return [
+        choice for key, choice in legal_by_key.items()
+        if key not in selected_keys
+        and choice["cost"] <= choice["available"] - spent_by_lane.get(choice["lane"], 0)
+    ]
 
 
 def board_actions_payload(actions: BoardActions, activation_options: list[dict[str, Any]]) -> dict[str, Any]:
@@ -514,7 +606,7 @@ def submission_metrics_summary(run_dir: Path) -> dict[str, Any]:
     for records in read_json(trace_path).get("turns", {}).values():
         for record in records:
             name = record.get("call", {}).get("name", "")
-            phase = "deck" if name == "submit_deck_turn" else "board" if name == "submit_board_turn" else name
+            phase = "deck" if name in {"play_all_actions", "choose_copper_trash", "choose_purchase"} else "board" if name == "submit_board_turn" else name
             if not phase:
                 continue
             phase_totals = totals.setdefault(phase, {"attempts": 0, "accepted": 0, "rejected": 0})

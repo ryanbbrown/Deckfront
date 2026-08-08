@@ -49,7 +49,7 @@ describe('legal actions', () => {
     expect(listLegalActions(state).map((action) => action.description)).toEqual(['Move to buy phase', 'Trash Village']);
   });
 
-  it('does not offer free trash after a card has been played', () => {
+  it('offers free trash after action cards but before treasures', () => {
     const state = setupGame(
       testConfig({
         setup: {
@@ -66,6 +66,6 @@ describe('legal actions', () => {
     state.players[0]!.hand = ['copper'];
     state.players[0]!.play = ['village'];
 
-    expect(listLegalActions(state).map((action) => action.description)).toEqual(['Move to buy phase']);
+    expect(listLegalActions(state).map((action) => action.description)).toEqual(['Move to buy phase', 'Trash Copper']);
   });
 });

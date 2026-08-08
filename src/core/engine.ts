@@ -52,9 +52,6 @@ export function applyAction(state: GameState, action: ChosenAction, rng: Rng): G
     if (player.freeTrashUsed === true) {
       throw new Error('Free trash has already been used this turn');
     }
-    if (player.play.length > 0) {
-      throw new Error('Free trash must happen before playing cards this turn');
-    }
     const [cardId] = player.hand.splice(action.handIndex, 1);
     if (!cardId) {
       throw new Error('Selected hand card is not available');
