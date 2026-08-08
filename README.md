@@ -157,6 +157,8 @@ cproxy run -- uv run scripts/run_game_thinharness.py \
   --model openai:gpt-5.6-luna
 ```
 
+The harness recursively plays every action card, including action cards drawn during the turn. The agent then chooses whether to trash one copper. The harness returns the exact remaining money and affordable cards before the agent chooses a purchase. The board submission must spend every affordable upgrade symbol.
+
 Resume by running the same command without `--reset`. The runner rewinds an interrupted, uncommitted turn to the latest timeline state and archives the partial attempt under `interrupted/<turn>/attempt-NNN/` before continuing. Each run records handler validation details in `submission-metrics.json` and every ThinHarness call, including schema rejections, in `harness-tool-calls.json`. Validate completed evidence with:
 
 ```sh

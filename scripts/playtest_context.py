@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 import math
-import subprocess
 from collections import deque
 from pathlib import Path
 from typing import Any
@@ -44,12 +43,13 @@ def state_briefing(run_dir: Path, player: str, produced: dict[str, int] | None =
             "deckPhase": game["phase"],
             "pendingDeckEffect": game.get("pending"),
             "deckChoiceRules": {
-                "legalActionsAreAlternatives": True,
-                "maximumFreeTrashesThisTurn": 0 if active.get("freeTrashUsed") else 1,
-                "submitPurchaseAsTopLevelBuyCard": True,
-                "harnessAddsMoveToBuyAndEndTurn": True,
+                "playsAllActionsRecursively": True,
+                "trashDecisionAfterActions": True,
+                "purchaseDecisionAfterTrash": True,
+                "preferTrashCopper": True,
+                "harnessAddsTreasuresAndEndTurn": True,
+                "unspentMoneyCarriesOver": False,
             },
-            "legalDeckActionsNow": legal_deck_actions(run_dir / "deck.json"),
             "handIndexed": [
                 {"index": index, **game["cards"][card_id]}
                 for index, card_id in enumerate(active["hand"])
@@ -64,28 +64,6 @@ def state_briefing(run_dir: Path, player: str, produced: dict[str, int] | None =
         briefing["upgradeLaneBudgets"] = produced
         briefing["legalUpgrades"] = legal_upgrades(board, map_data, player, unit_rules, produced)
     return briefing
-
-
-def legal_deck_actions(deck_path: Path) -> list[dict[str, Any]]:
-    """Return the engine's current legal actions through its existing CLI seam."""
-    result = subprocess.run(
-        [
-            "bun", "run", "--silent", "cli", "--", "legal-actions",
-            "--config", "game/deck.yaml", "--state", relative_to_root(deck_path), "--json",
-        ],
-        cwd=ROOT,
-        text=True,
-        capture_output=True,
-        check=False,
-    )
-    if result.returncode != 0:
-        raise RuntimeError((result.stdout + result.stderr).strip())
-    return json.loads(result.stdout)["actions"]
-
-
-def relative_to_root(path: Path) -> str:
-    resolved = path.resolve()
-    return str(resolved.relative_to(ROOT) if resolved.is_relative_to(ROOT) else resolved)
 
 
 def automatic_key_point_upgrades(

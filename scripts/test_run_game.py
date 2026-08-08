@@ -3,15 +3,16 @@
 
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from argparse import Namespace
 from pathlib import Path
 from unittest.mock import patch
 
-from playtest_context import activation_options, legal_deck_actions, legal_upgrades, state_briefing
+from playtest_context import activation_options, legal_upgrades, state_briefing
 from run_game import ensure_initialized, expected_next_turn_id, read_json, recover_uncommitted_turn, validate_reset_run_dir, write_json
-from run_game_thinharness import Activation, BoardActions, PlayAction, TrashCard, activation_order_candidates, board_actions_payload, closest_legal_coord, normalize_deck_actions, parse_args, record_harness_tool_calls, record_submission, remove_redundant_attacks, submission_metrics_summary
+from run_game_thinharness import Activation, BoardActions, ChooseCopperTrashArgs, ChoosePurchaseArgs, PlayAllActionsArgs, Player, SubmitBoardTurnArgs, TurnTools, Upgrade, activation_order_candidates, board_actions_payload, closest_legal_coord, normalize_deck_actions, parse_args, record_harness_tool_calls, record_submission, remove_redundant_attacks, submission_metrics_summary, unspent_affordable_upgrades
 
 
 class RunGameHelpersTest(unittest.TestCase):
@@ -111,33 +112,128 @@ class RunGameHelpersTest(unittest.TestCase):
                 "supply": {"drill": 7},
             }})
 
-            with patch("playtest_context.legal_deck_actions", return_value=[]):
-                briefing = state_briefing(run_dir, "P1")
+            briefing = state_briefing(run_dir, "P1")
 
             self.assertEqual(briefing["handIndexed"][0]["effects"], [{"kind": "grant", "cards": 1}])
             self.assertEqual(briefing["market"], [{"id": "drill", "cost": 4, "remaining": 7}])
-            self.assertEqual(briefing["legalDeckActionsNow"], [])
             self.assertEqual(briefing["deckChoiceRules"], {
-                "legalActionsAreAlternatives": True,
-                "maximumFreeTrashesThisTurn": 1,
-                "submitPurchaseAsTopLevelBuyCard": True,
-                "harnessAddsMoveToBuyAndEndTurn": True,
+                "playsAllActionsRecursively": True,
+                "trashDecisionAfterActions": True,
+                "purchaseDecisionAfterTrash": True,
+                "preferTrashCopper": True,
+                "harnessAddsTreasuresAndEndTurn": True,
+                "unspentMoneyCarriesOver": False,
             })
 
-    def test_deck_choices_keep_one_trash_and_gain_required_completion_actions(self) -> None:
-        actions = normalize_deck_actions([
-            TrashCard(type="trashCard", handIndex=0),
-            TrashCard(type="trashCard", handIndex=0),
-            PlayAction(type="playAction", handIndex=1),
-        ], "silver")
+    def test_deck_choice_plays_every_action_before_optional_copper_trash_and_purchase(self) -> None:
+        actions = normalize_deck_actions(trash_copper=True, buy_card="silver")
 
         self.assertEqual(actions, [
-            {"type": "trashCard", "handIndex": 0},
-            {"type": "playAction", "handIndex": 1},
+            {"type": "playAll"},
+            {"type": "trashCardIfPresent", "cardId": "copper"},
             {"type": "moveToBuy"},
             {"type": "buyCard", "cardId": "silver"},
             {"type": "endTurn"},
         ])
+
+    def test_deck_tools_choose_trash_and_purchase_after_recursively_drawn_cards(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            args = Namespace(
+                ruleset="skirmish-v1",
+                map="skirmish-v1",
+                title="Three-stage deck test",
+                max_turns=20,
+                config="game/deck.yaml",
+                seed=1,
+            )
+            ensure_initialized(args, run_dir, test_player_setups())
+            deck = read_json(run_dir / "deck.json")
+            player = deck["game"]["players"][0]
+            player["hand"] = ["drill", "copper"]
+            player["draw"] = ["sparring", "gold"]
+            player["discard"] = []
+            player["play"] = []
+            write_json(run_dir / "deck.json", deck)
+            tools = TurnTools(args, run_dir, Player("P1", "test"), "turn-001", 0)
+
+            action_result = tools.play_all_actions(PlayAllActionsArgs())
+            action_preview = json.loads(action_result.content)
+            self.assertTrue(action_result.ok)
+            self.assertEqual(action_preview["played"], ["drill", "sparring"])
+            self.assertEqual(action_preview["moneyIfKept"], 4)
+            self.assertEqual(action_preview["moneyIfTrashed"], 3)
+
+            trash_result = tools.choose_copper_trash(ChooseCopperTrashArgs(trashCopper=True))
+            trash_preview = json.loads(trash_result.content)
+            self.assertTrue(trash_result.ok)
+            self.assertEqual(trash_preview["availableMoney"], 3)
+            self.assertIn("silver", [card["id"] for card in trash_preview["affordableCards"]])
+            self.assertNotIn("sparring", [card["id"] for card in trash_preview["affordableCards"]])
+            self.assertNotIn("copper", [card["id"] for card in trash_preview["affordableCards"]])
+
+            purchase_result = tools.choose_purchase(ChoosePurchaseArgs(buyCard="silver"))
+            deck_result = read_json(run_dir / "results" / "turn-001.deck.result.json")
+            self.assertTrue(purchase_result.ok)
+            self.assertEqual(deck_result["played"], ["drill", "sparring"])
+            self.assertEqual(deck_result["bought"], ["silver"])
+            self.assertEqual([action["type"] for action in deck_result["actions"]], [
+                "playAction",
+                "playAction",
+                "trashCard",
+                "moveToBuy",
+                "buyCard",
+                "endTurn",
+            ])
+
+    def test_reports_affordable_upgrades_left_after_the_submission(self) -> None:
+        legal = [
+            {"target": "left", "stat": "attack", "to": 2, "lane": "soldierAttack", "cost": 2, "available": 4},
+            {"target": "right", "stat": "attack", "to": 2, "lane": "soldierAttack", "cost": 2, "available": 4},
+            {"target": "archer", "stat": "range", "to": 3, "lane": "archerRange", "cost": 3, "available": 3},
+        ]
+        submitted = [
+            Upgrade(target="left", stat="attack", to=2),
+            Upgrade(target="archer", stat="range", to=3),
+        ]
+
+        self.assertEqual(unspent_affordable_upgrades(legal, submitted), [legal[1]])
+        self.assertEqual(unspent_affordable_upgrades(legal, [
+            Upgrade(target="left", stat="attack", to=2),
+            Upgrade(target="right", stat="attack", to=2),
+            Upgrade(target="archer", stat="range", to=3),
+        ]), [])
+
+    def test_board_submission_rejects_affordable_upgrades_left_unspent(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            run_dir = Path(directory)
+            write_json(run_dir / "board.json", {"turn": {"activePlayer": "P1"}, "units": []})
+            write_json(run_dir / "timeline.json", {"entries": []})
+            write_json(run_dir / "results" / "turn-001.deck.result.json", {"produced": {"soldierAttack": 2}})
+            briefing = {
+                "legalUpgrades": [{
+                    "target": "soldier",
+                    "stat": "attack",
+                    "to": 2,
+                    "lane": "soldierAttack",
+                    "cost": 2,
+                    "available": 2,
+                }],
+                "activationOptions": [],
+                "automaticKeyPointUpgrades": [],
+            }
+            tools = TurnTools(Namespace(), run_dir, Player("P1", "test"), "turn-001", 0)
+            tools.deck_done = True
+
+            with patch("run_game_thinharness.state_briefing", return_value=briefing):
+                result = tools.submit_board_turn(SubmitBoardTurnArgs(
+                    actions=BoardActions(),
+                    summary="Hold position.",
+                    reasoning="No units remain.",
+                ))
+
+            self.assertFalse(result.ok)
+            self.assertIn("Affordable upgrades remain unspent", result.content)
 
     def test_board_briefing_exposes_automatic_and_affordable_upgrades_after_deck_success(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -332,19 +428,6 @@ class RunGameHelpersTest(unittest.TestCase):
             {"target": "archer", "stat": "range", "to": 3, "lane": "archerRange", "cost": 3, "available": 3},
         ])
 
-    def test_legal_deck_actions_come_from_the_engine_cli(self) -> None:
-        response = Namespace(
-            returncode=0,
-            stdout='{"actions":[{"index":1,"description":"Move to buy phase","action":{"type":"moveToBuy"}}]}',
-            stderr="",
-        )
-        with patch("playtest_context.subprocess.run", return_value=response) as mocked_run:
-            actions = legal_deck_actions(Path("/tmp/run/deck.json"))
-
-        self.assertEqual(actions, [{"index": 1, "description": "Move to buy phase", "action": {"type": "moveToBuy"}}])
-        self.assertIn("legal-actions", mocked_run.call_args.args[0])
-        self.assertIn("--json", mocked_run.call_args.args[0])
-
     def test_records_structured_submission_attempts_and_rejection_reasons(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             run_dir = Path(directory)
@@ -373,14 +456,16 @@ class RunGameHelpersTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             run_dir = Path(directory)
             record_harness_tool_calls(run_dir, "turn-001", [
-                {"call": {"name": "submit_deck_turn"}, "output": '{"ok":false,"content":"bad args","metadata":{"error_type":"ValidationError"}}'},
-                {"call": {"name": "submit_deck_turn"}, "output": '{"ok":true,"content":"valid","metadata":{}}'},
+                {"call": {"name": "play_all_actions"}, "output": '{"ok":true,"content":"valid","metadata":{}}'},
+                {"call": {"name": "choose_copper_trash"}, "output": '{"ok":false,"content":"bad args","metadata":{"error_type":"ValidationError"}}'},
+                {"call": {"name": "choose_copper_trash"}, "output": '{"ok":true,"content":"valid","metadata":{}}'},
+                {"call": {"name": "choose_purchase"}, "output": '{"ok":true,"content":"valid","metadata":{}}'},
                 {"call": {"name": "submit_board_turn"}, "output": '{"ok":true,"content":"valid","metadata":{}}'},
             ])
 
             summary = submission_metrics_summary(run_dir)
 
-            self.assertEqual(summary["totals"]["deck"], {"attempts": 2, "accepted": 1, "rejected": 1})
+            self.assertEqual(summary["totals"]["deck"], {"attempts": 4, "accepted": 3, "rejected": 1})
             self.assertEqual(summary["totals"]["board"], {"attempts": 1, "accepted": 1, "rejected": 0})
             self.assertEqual(summary["toolRejectionTypes"], {"ValidationError": 1})
 
@@ -408,6 +493,31 @@ class RunGameHelpersTest(unittest.TestCase):
 def deck_state(active_player: str) -> dict:
     players = [{"id": "P1"}, {"id": "P2"}]
     return {"game": {"players": players, "activePlayer": 0 if active_player == "P1" else 1}}
+
+
+def test_player_setups() -> dict[str, dict]:
+    return {
+        "P1": {
+            "draft": ["drill", "sparring"],
+            "units": [
+                {"id": "P1-soldier-left", "type": "soldier", "col": 2, "row": 0},
+                {"id": "P1-archer-left", "type": "archer", "col": 3, "row": 0},
+                {"id": "P1-soldier-center", "type": "soldier", "col": 4, "row": 0},
+                {"id": "P1-archer-right", "type": "archer", "col": 5, "row": 0},
+                {"id": "P1-soldier-right", "type": "soldier", "col": 6, "row": 0},
+            ],
+        },
+        "P2": {
+            "draft": ["ranging", "bodkin"],
+            "units": [
+                {"id": "P2-soldier-left", "type": "soldier", "col": 2, "row": 16},
+                {"id": "P2-archer-left", "type": "archer", "col": 3, "row": 16},
+                {"id": "P2-soldier-center", "type": "soldier", "col": 4, "row": 16},
+                {"id": "P2-archer-right", "type": "archer", "col": 5, "row": 16},
+                {"id": "P2-soldier-right", "type": "soldier", "col": 6, "row": 16},
+            ],
+        },
+    }
 
 
 if __name__ == "__main__":

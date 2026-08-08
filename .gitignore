@@ -5,6 +5,7 @@ __pycache__/
 dist/
 coverage/
 .games/*
+.archive/
 .context/
 .plans/
 .reviews/
