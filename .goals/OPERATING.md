@@ -1,6 +1,8 @@
-# Goal-loop operating instructions
+# Run a goal loop
 
-## File responsibilities
+Use this file when you start or resume the loop named in the task.
+
+## Resume the loop
 
 - Read `GOAL.md`, `PLAN.md`, and `EXPERIMENTS.md` from the loop named in the task.
 - Run commands from the code root named in that loop's `GOAL.md`.
@@ -9,15 +11,6 @@
 - `EXPERIMENTS.md` is the append-only record of experiment batches and loop decisions.
 
 Do not use `PLAN.md` as history. Move finished work into `EXPERIMENTS.md`, then update `PLAN.md` to show only the current state.
-
-## Start a loop
-
-1. Copy the three file outlines from `.goals/LOOP_TEMPLATE.md` into a new loop folder.
-2. Give the loop a sequential id such as `L001`.
-3. Complete the goal, scope, evidence, and autonomy sections before the first balance experiment.
-4. Treat the objective and allowed scope as fixed after the first experiment starts.
-
-If later work needs a different objective or wider scope, complete the current loop and create another loop. Correct factual errors in place and record the correction in `EXPERIMENTS.md`.
 
 ## Run an experiment
 
@@ -81,6 +74,8 @@ An independent reviewer should read the loop goal and raw run evidence before re
 
 Follow the autonomy rules in the named loop's `GOAL.md`. Never change a frozen part to rescue a weak result.
 
+Treat the objective and allowed scope as fixed after the first experiment starts. Correct factual errors in place and record each correction in `EXPERIMENTS.md`.
+
 Stop and request user direction before:
 
 - Expanding the objective or allowed changes.
@@ -95,4 +90,3 @@ Complete a loop only when its stated completion criteria are met or the user end
 1. Record the final evidence and conclusion in `EXPERIMENTS.md`.
 2. Replace the queue in `PLAN.md` with the final state and any deferred work.
 3. Leave the completed loop unchanged except for dated factual corrections.
-4. Create the next loop from the template when work continues under a new objective.

@@ -1,6 +1,17 @@
-# Goal-loop template
+# Create a goal loop
 
-Create `.goals/loops/<loop-id>-<short-name>/` with the three files shown here. Replace every bracketed field before the first experiment.
+Use this file once when the task is to create a loop. Use `.goals/OPERATING.md` when the task is to run or resume a loop.
+
+## Create the loop folder
+
+1. Find the highest loop id under `.goals/loops/`.
+2. Create `.goals/loops/<next-id>-<short-name>/` with the next sequential id.
+3. Add `GOAL.md`, `PLAN.md`, and `EXPERIMENTS.md` from the templates in this file.
+4. Replace every bracketed field before the first experiment.
+5. Resolve each decision that could change the first experiment.
+6. Confirm that the goal, allowed changes, evidence, completion criteria, and autonomy rules are explicit.
+
+Loop creation is complete when another agent can run the loop from its three files and `.goals/OPERATING.md` without prior conversation context.
 
 ## `GOAL.md`
 
