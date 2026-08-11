@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 from playtest_context import activation_options, legal_upgrades, state_briefing
 from run_game import ensure_initialized, expected_next_turn_id, read_json, recover_uncommitted_turn, validate_reset_run_dir, write_json
-from run_game_thinharness import Activation, BoardActions, ChooseCopperTrashArgs, ChoosePurchaseArgs, PlayAllActionsArgs, Player, SubmitBoardTurnArgs, TurnTools, Upgrade, activation_order_candidates, board_actions_payload, closest_legal_coord, normalize_deck_actions, parse_args, record_harness_tool_calls, record_submission, remove_redundant_attacks, submission_metrics_summary, unspent_affordable_upgrades
+from run_game_thinharness import Activation, BoardActions, ChooseCopperTrashArgs, ChoosePurchaseArgs, PlayAllActionsArgs, Player, SubmitBoardTurnArgs, TurnTools, Upgrade, activation_order_candidates, board_actions_payload, closest_legal_coord, normalize_deck_actions, parse_args, prepare_run_strategies, record_harness_tool_calls, record_submission, remove_redundant_attacks, submission_metrics_summary, unspent_affordable_upgrades
 
 
 class RunGameHelpersTest(unittest.TestCase):
@@ -481,6 +481,109 @@ class RunGameHelpersTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "named run directories"):
                 validate_reset_run_dir(repository.parent / "outside", repository)
 
+    def test_new_run_requires_both_strategy_files(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "--p2-strategy-file"):
+                prepare_run_strategies(
+                    Path(directory) / "run",
+                    initialize=True,
+                    p1_strategy_file=str(Path(directory) / "attack.md"),
+                    p2_strategy_file=None,
+                )
+
+    def test_new_run_copies_exact_strategies_and_records_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run_dir = root / "run"
+            p1_source = root / "attack-v2.md"
+            p2_source = root / "attack-range-mix.md"
+            p1_strategy = "Prioritize attack.\nKeep tactical flexibility.\n"
+            p2_strategy = "Mix range and attack without a trailing newline."
+            p1_source.write_text(p1_strategy)
+            p2_source.write_text(p2_strategy)
+
+            players = prepare_run_strategies(
+                run_dir,
+                initialize=True,
+                p1_strategy_file=str(p1_source),
+                p2_strategy_file=str(p2_source),
+            )
+
+            self.assertEqual(players, [Player("P1", p1_strategy), Player("P2", p2_strategy)])
+            self.assertEqual((run_dir / "strategies" / "P1.txt").read_text(), p1_strategy)
+            self.assertEqual((run_dir / "strategies" / "P2.txt").read_text(), p2_strategy)
+            self.assertEqual(read_json(run_dir / "run-config.json"), {
+                "schemaVersion": 1,
+                "strategies": {
+                    "P1": {
+                        "sourcePath": str(p1_source.resolve()),
+                        "savedPath": "strategies/P1.txt",
+                    },
+                    "P2": {
+                        "sourcePath": str(p2_source.resolve()),
+                        "savedPath": "strategies/P2.txt",
+                    },
+                },
+            })
+
+    def test_resume_uses_saved_strategies_after_sources_are_removed(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run_dir = root / "run"
+            p1_source = root / "p1.md"
+            p2_source = root / "p2.md"
+            p1_source.write_text("Saved P1 strategy")
+            p2_source.write_text("Saved P2 strategy")
+            prepare_run_strategies(
+                run_dir,
+                initialize=True,
+                p1_strategy_file=str(p1_source),
+                p2_strategy_file=str(p2_source),
+            )
+            p1_source.unlink()
+            p2_source.unlink()
+
+            players = prepare_run_strategies(
+                run_dir,
+                initialize=False,
+                p1_strategy_file=None,
+                p2_strategy_file=None,
+            )
+
+            self.assertEqual(players, [Player("P1", "Saved P1 strategy"), Player("P2", "Saved P2 strategy")])
+
+    def test_resume_accepts_matching_strategy_files_and_rejects_changed_contents(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            run_dir = root / "run"
+            p1_source = root / "p1.md"
+            p2_source = root / "p2.md"
+            p1_source.write_text("P1 strategy")
+            p2_source.write_text("P2 strategy")
+            prepare_run_strategies(
+                run_dir,
+                initialize=True,
+                p1_strategy_file=str(p1_source),
+                p2_strategy_file=str(p2_source),
+            )
+
+            matching_players = prepare_run_strategies(
+                run_dir,
+                initialize=False,
+                p1_strategy_file=str(p1_source),
+                p2_strategy_file=str(p2_source),
+            )
+            self.assertEqual(matching_players, [Player("P1", "P1 strategy"), Player("P2", "P2 strategy")])
+
+            p2_source.write_text("Changed P2 strategy")
+            with self.assertRaisesRegex(ValueError, "P2.*differs from saved strategy"):
+                prepare_run_strategies(
+                    run_dir,
+                    initialize=False,
+                    p1_strategy_file=str(p1_source),
+                    p2_strategy_file=str(p2_source),
+                )
+
     def test_harness_defaults_to_the_cproxy_luna_model(self) -> None:
         with patch("sys.argv", ["run_game_thinharness.py", "--run", ".games/test", "--p1-setup", "{}", "--p2-setup", "{}"]):
             self.assertEqual(parse_args().model, "openai:gpt-5.6-luna")
@@ -488,6 +591,22 @@ class RunGameHelpersTest(unittest.TestCase):
     def test_harness_defaults_to_twenty_completed_player_turns(self) -> None:
         with patch("sys.argv", ["run_game_thinharness.py", "--run", ".games/test", "--p1-setup", "{}", "--p2-setup", "{}"]):
             self.assertEqual(parse_args().max_turns, 20)
+
+    def test_harness_accepts_strategy_file_arguments(self) -> None:
+        with patch("sys.argv", [
+            "run_game_thinharness.py",
+            "--run", ".games/test",
+            "--p1-setup", "{}",
+            "--p2-setup", "{}",
+            "--p1-strategy-file", "strategies/attack-v2.md",
+            "--p2-strategy-file", "strategies/range-v1.md",
+        ]):
+            args = parse_args()
+
+        self.assertEqual(args.p1_strategy_file, "strategies/attack-v2.md")
+        self.assertEqual(args.p2_strategy_file, "strategies/range-v1.md")
+        self.assertFalse(hasattr(args, "p1_strategy"))
+        self.assertFalse(hasattr(args, "p2_strategy"))
 
 
 def deck_state(active_player: str) -> dict:

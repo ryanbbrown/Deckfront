@@ -154,12 +154,18 @@ cproxy run -- uv run scripts/run_game_thinharness.py \
   --reset \
   --p1-setup /path/to/p1-setup.json \
   --p2-setup /path/to/p2-setup.json \
+  --p1-strategy-file /path/to/attack-v2.md \
+  --p2-strategy-file /path/to/attack-range-mix.md \
   --model openai:gpt-5.6-luna
 ```
 
+New and reset runs require both strategy files. A run copies their exact text into `strategies/P1.txt` and `strategies/P2.txt`. It records the source and saved paths in `run-config.json`.
+
 The harness recursively plays every action card, including action cards drawn during the turn. The agent then chooses whether to trash one copper. The harness returns the exact remaining money and affordable cards before the agent chooses a purchase. The board submission must spend every affordable upgrade symbol.
 
-Resume by running the same command without `--reset`. The runner rewinds an interrupted, uncommitted turn to the latest timeline state and archives the partial attempt under `interrupted/<turn>/attempt-NNN/` before continuing. Each run records handler validation details in `submission-metrics.json` and every ThinHarness call, including schema rejections, in `harness-tool-calls.json`. Validate completed evidence with:
+Resume by running the same command without `--reset` and without the strategy arguments. The runner uses the saved strategy copies. You can supply strategy files during resume to verify them. Their contents must match the saved copies.
+
+The runner rewinds an interrupted, uncommitted turn to the latest timeline state. It archives the partial attempt under `interrupted/<turn>/attempt-NNN/` before continuing. Each run records handler validation details in `submission-metrics.json` and every ThinHarness call, including schema rejections, in `harness-tool-calls.json`. Validate completed evidence with:
 
 ```sh
 bun run validate-run -- --strict --strict-deck --strict-win .games/skirmish-luna-01/timeline.json

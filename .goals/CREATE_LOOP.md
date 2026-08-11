@@ -13,6 +13,14 @@ Use this file once when the task is to create a loop. Use `.goals/OPERATING.md` 
 
 Loop creation is complete when another agent can run the loop from its three files and `.goals/OPERATING.md` without prior conversation context.
 
+## Store strategies
+
+When a loop uses player strategies, store them under `.goals/loops/<loop>/strategies/`.
+
+Add any number of readable text files during the loop. Use names such as `attack-v1.md`, `attack-v2.md`, or `attack-range-v1.md`. Do not define a fixed strategy list in the loop template.
+
+Pass the selected files to the runner with `--p1-strategy-file` and `--p2-strategy-file`. Each run saves its own copies, so later strategy edits do not change prior evidence.
+
 ## `GOAL.md`
 
 ```md

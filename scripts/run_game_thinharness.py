@@ -90,6 +90,81 @@ class Player:
     strategy: str
 
 
+def prepare_run_strategies(
+    run_dir: Path,
+    *,
+    initialize: bool,
+    p1_strategy_file: str | None,
+    p2_strategy_file: str | None,
+) -> list[Player]:
+    supplied = {"P1": p1_strategy_file, "P2": p2_strategy_file}
+    if initialize:
+        return persist_run_strategies(run_dir, read_initial_strategy_files(supplied))
+
+    config_path = run_dir / "run-config.json"
+    if not config_path.exists():
+        raise RuntimeError(f"Resumed run is missing {config_path}")
+    config = read_json(config_path)
+    if config.get("schemaVersion") != 1 or not isinstance(config.get("strategies"), dict):
+        raise RuntimeError(f"Run strategy configuration is invalid: {config_path}")
+
+    players = []
+    for player in ("P1", "P2"):
+        record = config["strategies"].get(player)
+        if not isinstance(record, dict) or not isinstance(record.get("savedPath"), str):
+            raise RuntimeError(f"Run strategy configuration is missing {player}: {config_path}")
+        saved_path = (run_dir / record["savedPath"]).resolve()
+        if not saved_path.is_relative_to(run_dir.resolve()):
+            raise RuntimeError(f"Saved {player} strategy must be inside the run directory")
+        try:
+            strategy = saved_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError) as error:
+            raise RuntimeError(f"Cannot read saved {player} strategy file {saved_path}: {error}") from error
+        if supplied[player] is not None:
+            supplied_path, supplied_strategy = read_strategy_file(supplied[player], player)
+            if supplied_strategy != strategy:
+                raise ValueError(
+                    f"Supplied {player} strategy file {supplied_path} differs from saved strategy {saved_path}"
+                )
+        players.append(Player(player, strategy))
+    return players
+
+
+def read_initial_strategy_files(supplied: dict[str, str | None]) -> dict[str, tuple[Path, str]]:
+    missing = [f"--{player.lower()}-strategy-file" for player, value in supplied.items() if value is None]
+    if missing:
+        raise ValueError(f"New runs require both strategy files; missing {', '.join(missing)}")
+    return {player: read_strategy_file(value, player) for player, value in supplied.items()}
+
+
+def persist_run_strategies(run_dir: Path, loaded: dict[str, tuple[Path, str]]) -> list[Player]:
+    strategy_dir = run_dir / "strategies"
+    strategy_dir.mkdir(parents=True, exist_ok=True)
+    config: dict[str, Any] = {"schemaVersion": 1, "strategies": {}}
+    players: list[Player] = []
+    for player in ("P1", "P2"):
+        source_path, strategy = loaded[player]
+        saved_path = strategy_dir / f"{player}.txt"
+        saved_path.write_text(strategy, encoding="utf-8")
+        config["strategies"][player] = {
+            "sourcePath": str(source_path),
+            "savedPath": str(saved_path.relative_to(run_dir)),
+        }
+        players.append(Player(player, strategy))
+    write_json(run_dir / "run-config.json", config)
+    return players
+
+
+def read_strategy_file(value: str | None, player: str) -> tuple[Path, str]:
+    if value is None:
+        raise ValueError(f"Missing --{player.lower()}-strategy-file")
+    path = Path(value).expanduser().resolve()
+    try:
+        return path, path.read_text(encoding="utf-8")
+    except (OSError, UnicodeError) as error:
+        raise ValueError(f"Cannot read {player} strategy file {path}: {error}") from error
+
+
 class TurnTools:
     def __init__(self, args: argparse.Namespace, run_dir: Path, player: Player, turn_id: str, previous_entries: int):
         self.args = args
@@ -451,15 +526,29 @@ def main() -> int:
     run_dir = Path(args.run)
     if not run_dir.is_absolute():
         run_dir = ROOT / run_dir
+    initialized = all((run_dir / name).exists() for name in ("deck.json", "board.json", "timeline.json"))
+    initialize = args.reset or not initialized
+    initial_strategies = read_initial_strategy_files({
+        "P1": args.p1_strategy_file,
+        "P2": args.p2_strategy_file,
+    }) if initialize else None
     if args.reset and run_dir.exists():
         shutil.rmtree(validate_reset_run_dir(run_dir))
     for name in ("actions", "results", "logs", "context"):
         (run_dir / name).mkdir(parents=True, exist_ok=True)
+    if initial_strategies is not None:
+        players = persist_run_strategies(run_dir, initial_strategies)
+    else:
+        players = prepare_run_strategies(
+            run_dir,
+            initialize=False,
+            p1_strategy_file=args.p1_strategy_file,
+            p2_strategy_file=args.p2_strategy_file,
+        )
     setups = {"P1": load_setup(args.p1_setup), "P2": load_setup(args.p2_setup)}
     ensure_initialized(args, run_dir, setups)
     args.max_turns = int(read_json(run_dir / "timeline.json")["run"]["turnCap"])
     write_context_snapshot(run_dir)
-    players = [Player("P1", args.p1_strategy), Player("P2", args.p2_strategy)]
 
     while True:
         timeline = read_json(run_dir / "timeline.json")
@@ -509,8 +598,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--tool-retries", type=int, default=5)
     parser.add_argument("--max-model-requests", type=int, default=20)
     parser.add_argument("--max-tool-calls", type=int, default=20)
-    parser.add_argument("--p1-strategy", default="Advance toward key points, preserve units, and build a coherent upgrade lane.")
-    parser.add_argument("--p2-strategy", default="Contest key points, preserve units, and exploit favorable lines of sight.")
+    parser.add_argument("--p1-strategy-file", help="Readable text file with P1's strategy")
+    parser.add_argument("--p2-strategy-file", help="Readable text file with P2's strategy")
     return parser.parse_args()
 
 

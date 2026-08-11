@@ -33,12 +33,20 @@ Do not create one-off game generators for evidence runs. Do not replace engine a
 
 Store runs under `.games/<loop-id>/<experiment-id>/<run-id>/` unless the loop goal specifies another run root.
 
-A complete run must contain the persisted deck and board states, timeline, snapshots, submitted actions, results, logs, rendered context, tool-call records, and submission metrics. The experiment entry must record:
+A complete run must contain `run-config.json` and both saved strategy files. It must also contain the persisted game evidence listed below:
+
+- Deck and board states.
+- Timeline and snapshots.
+- Submitted actions and results.
+- Logs and rendered context.
+- Tool-call records and submission metrics.
+
+The experiment entry must record:
 
 - The exact command and working directory.
 - The model and reasoning settings.
 - The random seed and turn cap.
-- Both player setups and strategy instructions.
+- Both player setups and selected strategy file paths.
 - The rules, map, card, or code changes under test.
 - Each run path and validation result.
 
@@ -72,16 +80,13 @@ An independent reviewer should read the loop goal and raw run evidence before re
 
 ## Respect loop scope
 
-Follow the autonomy rules in the named loop's `GOAL.md`. Never change a frozen part to rescue a weak result.
+Follow the autonomy rules in the named loop's `GOAL.md`. Use the granted autonomy without seeking routine approval.
 
 Treat the objective and allowed scope as fixed after the first experiment starts. Correct factual errors in place and record each correction in `EXPERIMENTS.md`.
 
-Stop and request user direction before:
+Record evidence-rule changes before applying them to later experiments. Never change an earlier experiment's scoring after seeing its result.
 
-- Expanding the objective or allowed changes.
-- Changing shared runner or validator behavior during a balance experiment.
-- Changing the evidence threshold after seeing results.
-- Starting another loop.
+Stop only when the loop goal is complete or its `GOAL.md` defines a serious concern that prevents trustworthy continuation.
 
 ## Complete a loop
 
