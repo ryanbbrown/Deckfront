@@ -1,0 +1,11 @@
+Plan: Win with five soldiers that establish two mobile attackers and then invest in attack.
+
+Composition: Deploy five soldiers across the five central deployment hexes.
+
+Draft: Start with Forced March and Silver. This uses all eight draft-cost points.
+
+Purchases: During the first two purchase turns, buy Forced March when affordable and Drill otherwise. Starting with the third purchase turn, buy Sparring first and Whetstone when affordable. Buy Silver when no attack card is affordable. Do not buy more movement cards after the second purchase turn. Do not buy archer cards. Trash Copper when the remaining money still buys the current stage's card or Silver.
+
+Upgrades: During the movement stage, spend every affordable soldierMovement symbol and raise separate soldiers to movement 4. During the attack stage, spend every soldierAttack symbol on a mobile soldier with a current or likely attack lane. Spend leftover movement symbols when they fund a listed legal upgrade.
+
+Board tactics: Use the two mobile soldiers as opposite flanks behind a three-soldier screen. Attack an exposed enemy from two directions, then withdraw a damaged mobile soldier when possible. Concentrate attacks until one enemy is removed. Contest the movement point when it extends a useful flank. Deny the attack point when this does not expose an isolated soldier.

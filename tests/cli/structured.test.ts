@@ -99,8 +99,8 @@ describe('structured deck CLI', () => {
     await runCli(['legal-actions', '--config', 'game/deck.yaml', '--state', statePath, '--seed', '1', '--json'], () => undefined);
     const state = JSON.parse(await readFile(statePath, 'utf8')) as PersistedGame;
     const player = state.game.players[0]!;
-    player.hand = ['sparring', 'copper'];
-    player.draw = ['sparring'];
+    player.hand = ['ranging', 'copper'];
+    player.draw = ['ranging'];
     player.discard = [];
     player.play = [];
     player.attributes = { ...state.game.config.setup.attributes };
@@ -129,8 +129,8 @@ describe('structured deck CLI', () => {
       actions: unknown[];
     };
     const after = JSON.parse(await readFile(statePath, 'utf8')) as PersistedGame;
-    expect(result.played).toEqual(['sparring', 'sparring']);
-    expect(result.produced).toEqual({ soldierAttack: 2 });
+    expect(result.played).toEqual(['ranging', 'ranging']);
+    expect(result.produced).toEqual({ archerRange: 2 });
     expect(result.actions).toEqual([
       { type: 'playAction', handIndex: 0 },
       { type: 'playAction', handIndex: 1 },

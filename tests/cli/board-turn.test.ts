@@ -92,7 +92,7 @@ describe('structured Skirmish board turns', () => {
 
   it('rejects unaffordable, forbidden, and duplicate stat upgrades', async () => {
     const context = await loadBoardRulesContext();
-    const before = state([skirmishUnit('s1', 'P1', 'soldier', 4, 8), skirmishUnit('e1', 'P2', 'soldier', 8, 16)]);
+    const before = state([skirmishUnit('s1', 'P1', 'soldier', 1, 8), skirmishUnit('e1', 'P2', 'soldier', 8, 16)]);
     const input = (stat: 'attack' | 'range', to: number) => ({
       schemaVersion: 1 as const, turnId: 'turn-001', player: 'P1',
       actions: { activations: [], upgrades: [{ target: 's1', stat, to }] }
@@ -107,9 +107,9 @@ describe('structured Skirmish board turns', () => {
   it('charges threshold costs per symbol lane and applies key points first', async () => {
     const context = await loadBoardRulesContext();
     const before = state([
-      skirmishUnit('s1', 'P1', 'soldier', 4, 8),
+      skirmishUnit('s1', 'P1', 'soldier', 1, 8),
       skirmishUnit('s2', 'P1', 'soldier', 3, 7),
-      skirmishUnit('a1', 'P1', 'archer', 1, 8),
+      skirmishUnit('a1', 'P1', 'archer', 4, 8),
       skirmishUnit('a2', 'P1', 'archer', 2, 7),
       skirmishUnit('e1', 'P2', 'soldier', 0, 16)
     ]);
@@ -126,7 +126,7 @@ describe('structured Skirmish board turns', () => {
 
   it('lets a soldier deny the range point without receiving its upgrade', async () => {
     const context = await loadBoardRulesContext();
-    const executed = executeBoardTurn(state([skirmishUnit('s1', 'P1', 'soldier', 1, 8)]), deckResult(), {
+    const executed = executeBoardTurn(state([skirmishUnit('s1', 'P1', 'soldier', 4, 8)]), deckResult(), {
       schemaVersion: 1, turnId: 'turn-001', player: 'P1', actions: { upgrades: [], activations: [] }
     }, context, { beforePath: 'before', afterPath: 'after' });
     expect(executed.after.units[0]?.range).toBe(1);

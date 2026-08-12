@@ -1,0 +1,11 @@
+Plan: Win with five archers that combine safe firing distance with enough attack to finish focused targets.
+
+Composition: Deploy five archers across the five central deployment hexes.
+
+Draft: Start with Ranging and Bodkin. This uses all eight draft-cost points.
+
+Purchases: Buy Bodkin until the deck has three copies. Then buy Longbow until the deck has two copies. Buy Ranging when neither priority card is affordable. Buy Silver when no archer card is affordable. Buy Gold only after the deck has three Bodkins and two Longbows. Do not buy soldier cards. Trash Copper when the remaining money still buys the current priority card or Silver.
+
+Upgrades: Spend every affordable archerAttack and archerRange symbol. Raise attack on archers with a current or likely firing lane. Raise range on archers that can keep a clear line of sight. When several upgrades are possible, improve two firing lanes before raising one archer repeatedly.
+
+Board tactics: Advance in a staggered line until attacks become legal. Focus every possible attack on one soldier until it is removed. Keep at least two archers able to attack the focus target. Retreat from adjacent soldiers when a legal retreat preserves a shot or prevents another melee attack. Use walls and spacing to restrict the soldier front. Contest the range point only when it does not create a melee surround.

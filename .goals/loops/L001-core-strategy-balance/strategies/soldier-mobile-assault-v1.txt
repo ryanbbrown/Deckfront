@@ -1,0 +1,11 @@
+Plan: Win with one mobile soldier flanking a four-soldier attack front.
+
+Composition: Deploy five soldiers across the five central deployment hexes.
+
+Draft: Start with Forced March and Silver. This uses all eight draft-cost points.
+
+Purchases: Buy Sparring first when four coins are available. Buy Whetstone when five coins are available. Buy Silver when no attack card is affordable. Buy Gold only when attack cards are already frequent. Do not buy more movement cards. Do not buy archer cards. Trash Copper when the remaining money still buys an attack card or Silver.
+
+Upgrades: Use the drafted Forced March to raise one outside soldier to movement 4. Do not raise a second soldier's movement with paid symbols. Spend every soldierAttack symbol on the mobile soldier or another soldier with a current attack lane.
+
+Board tactics: Keep four soldiers in a connected central front. Send the mobile soldier around the safer flank. Use it to join focus fire, contest the movement point, threaten the rear, or withdraw when damaged. Concentrate attacks until one enemy is removed. Do not isolate the mobile soldier where several enemies can attack it.

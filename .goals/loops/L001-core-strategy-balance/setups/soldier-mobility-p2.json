@@ -1,0 +1,10 @@
+{
+  "draft": ["forced-march", "silver"],
+  "units": [
+    { "id": "P2-soldier-1", "type": "soldier", "col": 2, "row": 16 },
+    { "id": "P2-soldier-2", "type": "soldier", "col": 3, "row": 16 },
+    { "id": "P2-soldier-3", "type": "soldier", "col": 4, "row": 16 },
+    { "id": "P2-soldier-4", "type": "soldier", "col": 5, "row": 16 },
+    { "id": "P2-soldier-5", "type": "soldier", "col": 6, "row": 16 }
+  ]
+}

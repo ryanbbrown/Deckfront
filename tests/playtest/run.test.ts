@@ -240,7 +240,7 @@ describe('Skirmish replay validation', () => {
     await runPlaytestCli(['init', '--run', runRoot, '--ruleset', 'skirmish-v1', '--map', 'skirmish-v1', '--units', unitsPath], (message) => output.push(message));
     const initialized = JSON.parse(await readFile(join(runRoot, 'board.json'), 'utf8')) as ReturnType<typeof skirmishArmyState>;
     expect(initialized.units.find((unit) => unit.id === 'P1-soldier-1')).toMatchObject({ type: 'archer', hp: 4, attack: 1, movement: 3, range: 2 });
-    expect(initialized.units.find((unit) => unit.id === 'P1-soldier-2')).toMatchObject({ type: 'soldier', hp: 6, attack: 1, movement: 4, range: 1 });
+    expect(initialized.units.find((unit) => unit.id === 'P1-soldier-2')).toMatchObject({ type: 'soldier', hp: 6, attack: 1, movement: 3, range: 1 });
     expect(output).toEqual([`Initialized playtest run: ${runRoot}`]);
 
     const withStats = unitCompositions().map((unit) => ({ ...unit, hp: 99 }));

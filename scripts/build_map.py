@@ -38,8 +38,8 @@ def main() -> None:
         "hexes": [coord(row, col) for row in range(ROWS) for col in range(width(row))],
         "blocked": [coord(row, col) for row, col in walls],
         "keyPoints": [
-            {"id": "range", "stat": "range", **coord(8, 1)},
-            {"id": "attack", "stat": "attack", **coord(8, 4)},
+            {"id": "range", "stat": "range", **coord(8, 4)},
+            {"id": "attack", "stat": "attack", **coord(8, 1)},
             {"id": "movement", "stat": "movement", **coord(8, 7)},
         ],
         "deployment": [

@@ -3,7 +3,7 @@
     "role": "melee",
     "attack": 1,
     "hp": 6,
-    "movement": 4,
+    "movement": 3,
     "range": 1,
     "canUpgradeRange": false
   },

@@ -11,7 +11,7 @@ import type { DeckTurnResult } from '../../src/playtest/deckTurn';
 
 export function skirmishUnit(id: string, player: string, type: 'soldier' | 'archer', col: number, row: number): BoardState['units'][number] {
   return type === 'soldier'
-    ? { id, player, type, col, row, hp: 6, attack: 1, movement: 4, range: 1 }
+    ? { id, player, type, col, row, hp: 6, attack: 1, movement: 3, range: 1 }
     : { id, player, type, col, row, hp: 4, attack: 1, movement: 3, range: 2 };
 }
 

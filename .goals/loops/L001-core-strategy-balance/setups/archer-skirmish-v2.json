@@ -1,0 +1,10 @@
+{
+  "draft": ["ranging", "bodkin"],
+  "units": [
+    { "id": "P2-archer-1", "type": "archer", "col": 2, "row": 16 },
+    { "id": "P2-archer-2", "type": "archer", "col": 3, "row": 16 },
+    { "id": "P2-archer-3", "type": "archer", "col": 4, "row": 16 },
+    { "id": "P2-archer-4", "type": "archer", "col": 5, "row": 16 },
+    { "id": "P2-archer-5", "type": "archer", "col": 6, "row": 16 }
+  ]
+}

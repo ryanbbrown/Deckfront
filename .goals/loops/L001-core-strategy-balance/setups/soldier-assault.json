@@ -1,0 +1,10 @@
+{
+  "draft": ["sparring", "silver"],
+  "units": [
+    { "id": "P1-soldier-1", "type": "soldier", "col": 2, "row": 0 },
+    { "id": "P1-soldier-2", "type": "soldier", "col": 3, "row": 0 },
+    { "id": "P1-soldier-3", "type": "soldier", "col": 4, "row": 0 },
+    { "id": "P1-soldier-4", "type": "soldier", "col": 5, "row": 0 },
+    { "id": "P1-soldier-5", "type": "soldier", "col": 6, "row": 0 }
+  ]
+}

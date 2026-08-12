@@ -151,7 +151,7 @@ class RunGameHelpersTest(unittest.TestCase):
             deck = read_json(run_dir / "deck.json")
             player = deck["game"]["players"][0]
             player["hand"] = ["drill", "copper"]
-            player["draw"] = ["sparring", "gold"]
+            player["draw"] = ["ranging", "gold"]
             player["discard"] = []
             player["play"] = []
             write_json(run_dir / "deck.json", deck)
@@ -160,7 +160,7 @@ class RunGameHelpersTest(unittest.TestCase):
             action_result = tools.play_all_actions(PlayAllActionsArgs())
             action_preview = json.loads(action_result.content)
             self.assertTrue(action_result.ok)
-            self.assertEqual(action_preview["played"], ["drill", "sparring"])
+            self.assertEqual(action_preview["played"], ["drill", "ranging"])
             self.assertEqual(action_preview["moneyIfKept"], 4)
             self.assertEqual(action_preview["moneyIfTrashed"], 3)
 
@@ -175,7 +175,7 @@ class RunGameHelpersTest(unittest.TestCase):
             purchase_result = tools.choose_purchase(ChoosePurchaseArgs(buyCard="silver"))
             deck_result = read_json(run_dir / "results" / "turn-001.deck.result.json")
             self.assertTrue(purchase_result.ok)
-            self.assertEqual(deck_result["played"], ["drill", "sparring"])
+            self.assertEqual(deck_result["played"], ["drill", "ranging"])
             self.assertEqual(deck_result["bought"], ["silver"])
             self.assertEqual([action["type"] for action in deck_result["actions"]], [
                 "playAction",
@@ -241,7 +241,7 @@ class RunGameHelpersTest(unittest.TestCase):
             write_json(run_dir / "board.json", {
                 "turn": {"activePlayer": "P1"},
                 "units": [{
-                    "id": "soldier", "type": "soldier", "player": "P1", "col": 4, "row": 8,
+                    "id": "soldier", "type": "soldier", "player": "P1", "col": 1, "row": 8,
                     "hp": 6, "attack": 1, "movement": 4, "range": 1,
                 }],
             })

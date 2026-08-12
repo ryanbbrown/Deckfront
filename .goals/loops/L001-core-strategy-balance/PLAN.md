@@ -2,24 +2,23 @@
 
 ## Current phase
 
-Ready for baseline exploration.
+Complete at the 20-game cap.
 
 ## Next experiment
 
-E001: Create two contrasting cohesive strategies and run their first controlled matchup.
+None.
 
 ## Queue
 
-1. Inspect the current game values and existing readiness run.
-2. Write two strategy files with different unit compositions and upgrade plans.
-3. Verify the test and runner baseline.
-4. Record the planned E001 matchup in `EXPERIMENTS.md`.
-5. Run and validate the first game.
-6. Review the trace and decide whether to tune or run confirmation.
+- Retained baseline: soldier movement 3, Longbow 3, Bodkin 2, and Forced March 4.
+- Retained map: range at `(4,8)`, attack at `(1,8)`, and movement at `(7,8)`.
+- Valid choices: pure soldier attack, five-archer range and attack, combined arms, and mobile assault.
+- Deferred work: Isolate Player 1 advantage in a new loop before treating the rules as a final competitive baseline.
+- Deferred work: Make strict replay validation use each run's saved game configuration before relying on old tuning runs for fresh audits.
 
 ## Open decisions
 
-- None. Make experiment decisions during the loop and record them in `EXPERIMENTS.md`.
+- Decide whether a later loop should change initiative, deployment distance, or first-turn actions.
 
 ## Blockers
 

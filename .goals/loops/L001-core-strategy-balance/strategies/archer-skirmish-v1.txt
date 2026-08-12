@@ -1,0 +1,11 @@
+Plan: Win through a five-archer force that controls distance with range upgrades.
+
+Composition: Deploy five archers across the five central deployment hexes.
+
+Draft: Start with Ranging and Silver. This uses seven of eight draft-cost points.
+
+Purchases: Buy Ranging first when four coins are available. Buy Longbow when five coins are available. Buy Bodkin after at least two archers have improved range. Buy Silver when no useful archer card is affordable. Buy Gold only when archer cards are already frequent enough to support upgrades. Do not buy soldier cards. Trash Copper when the remaining money still buys an archer card or Silver.
+
+Upgrades: Spend every archerRange symbol. Concentrate range on archers with clear firing lanes. Use extra symbols on a second archer. Spend archerAttack symbols on an archer that can focus the current target. Use the range key point when it can be held without allowing several melee attacks.
+
+Board tactics: Advance in a staggered line with clear sight lanes. Attack at the longest safe range. Focus attacks on one soldier until it is removed. Move away from adjacent soldiers when a legal retreat preserves a shot or prevents the next attack. Use walls and friendly spacing to prevent a melee surround. Do not contest the attack or movement points unless this preserves distance.

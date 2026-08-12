@@ -45,7 +45,7 @@ cards:
     name: Forced March
     type: action
     cost: 5
-    effects: [{ kind: grant, attributes: { soldierMovement: 2 } }]
+    effects: [{ kind: grant, attributes: { soldierMovement: 4 } }]
   - id: ranging
     name: Ranging
     type: action
@@ -55,12 +55,12 @@ cards:
     name: Longbow
     type: action
     cost: 5
-    effects: [{ kind: grant, attributes: { archerRange: 2 } }]
+    effects: [{ kind: grant, attributes: { archerRange: 3 } }]
   - id: bodkin
     name: Bodkin
     type: action
     cost: 4
-    effects: [{ kind: grant, attributes: { archerAttack: 1 } }]
+    effects: [{ kind: grant, attributes: { archerAttack: 2 } }]
   - id: skirmish-order
     name: Skirmish Order
     type: action

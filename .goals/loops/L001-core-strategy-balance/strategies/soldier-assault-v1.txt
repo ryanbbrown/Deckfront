@@ -1,0 +1,11 @@
+Plan: Win through a five-soldier assault with concentrated attack upgrades.
+
+Composition: Deploy five soldiers across the five central deployment hexes.
+
+Draft: Start with Sparring and Silver. This uses seven of eight draft-cost points.
+
+Purchases: Buy Sparring first when four coins are available. Buy Whetstone when five coins are available. Buy Silver when no attack card is affordable. Buy Gold only when attack cards are already frequent enough to support upgrades. Do not buy archer cards. Trash Copper when the remaining money still buys an attack card or Silver.
+
+Upgrades: Spend every soldierAttack symbol. Concentrate attack on soldiers that can reach enemies soon. Raise a second soldier when concentration would waste symbols. Use free attack-point upgrades when this does not expose a unit to several attacks.
+
+Board tactics: Advance as a connected front toward the attack key point. Focus attacks on one enemy until it is removed. Screen damaged soldiers with healthy soldiers. Do not chase the range or movement points when that breaks the front. Prefer a legal attack over extra movement. Preserve at least two attack lanes around blockers.

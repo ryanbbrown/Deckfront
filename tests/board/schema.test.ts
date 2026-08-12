@@ -11,7 +11,7 @@ describe('Skirmish schemas and assets', () => {
     expect(map.hexes).toHaveLength(161);
     expect(map.blocked).toHaveLength(18);
     expect(map.keyPoints.map((point) => [point.stat, coordKey(point)])).toEqual([
-      ['range', '1,8'], ['attack', '4,8'], ['movement', '7,8']
+      ['range', '4,8'], ['attack', '1,8'], ['movement', '7,8']
     ]);
     for (const coord of map.hexes) expect(rotateSkirmishCoord(rotateSkirmishCoord(coord))).toEqual(coord);
     expect(Object.keys(units)).toEqual(['soldier', 'archer']);
@@ -27,9 +27,9 @@ describe('Skirmish schemas and assets', () => {
     expect(() => validateSkirmishMap({ ...raw, orientation: 'flat', coordinateSystem: 'odd-column' })).toThrow('Skirmish requires pointy orientation with odd-row coordinates');
     expect(() => validateSkirmishMap({ ...raw, blocked: blocked.slice(1) })).toThrow('blocked must be invariant under rotation');
     const points = raw.keyPoints as Array<Record<string, unknown>>;
-    expect(() => validateSkirmishMap({ ...raw, keyPoints: points.map((point) => point.stat === 'attack' ? { ...point, col: 3 } : point) })).toThrow('Attack key point must be at 4,8');
+    expect(() => validateSkirmishMap({ ...raw, keyPoints: points.map((point) => point.stat === 'range' ? { ...point, col: 3 } : point) })).toThrow('Range key point must be at 4,8');
     expect(() => validateSkirmishMap({ ...raw, keyPoints: points.map((point) => point.stat === 'movement' ? { ...point, col: 1 } : point) })).toThrow('Duplicate hex coordinate');
-    expect(() => validateSkirmishMap({ ...raw, keyPoints: points.map((point) => point.stat === 'movement' ? { ...point, col: 6 } : point) })).toThrow('Range and movement key points must be a rotation pair');
+    expect(() => validateSkirmishMap({ ...raw, keyPoints: points.map((point) => point.stat === 'movement' ? { ...point, col: 6 } : point) })).toThrow('Attack and movement key points must be a rotation pair');
     expect(() => validateSkirmishMap({ ...raw, keyPoints: points.map((point) => point.stat === 'movement' ? { ...point, stat: 'range' } : point) })).toThrow('one key point for each stat');
     const hexes = raw.hexes as Array<{ col: number; row: number }>;
     expect(() => validateSkirmishMap({ ...raw, hexes: hexes.filter((hex) => hex.col !== 8 || hex.row !== 0) })).toThrow('widths 9 on even rows and 10 on odd rows');

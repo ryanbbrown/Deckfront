@@ -1,0 +1,10 @@
+{
+  "draft": ["sparring", "bodkin"],
+  "units": [
+    { "id": "P1-soldier-left", "type": "soldier", "col": 2, "row": 0 },
+    { "id": "P1-archer-left", "type": "archer", "col": 3, "row": 0 },
+    { "id": "P1-soldier-center", "type": "soldier", "col": 4, "row": 0 },
+    { "id": "P1-archer-right", "type": "archer", "col": 5, "row": 0 },
+    { "id": "P1-soldier-right", "type": "soldier", "col": 6, "row": 0 }
+  ]
+}

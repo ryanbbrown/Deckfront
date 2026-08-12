@@ -158,14 +158,14 @@ const skirmishMapSchema = boardMapSchema.superRefine((map, context) => {
   if (map.keyPoints.length !== 3 || stats.size !== 3 || map.keyPoints.some((point) => point.row !== 8)) {
     context.addIssue({ code: 'custom', path: ['keyPoints'], message: 'Skirmish requires one key point for each stat on row 8' });
   }
-  const attack = map.keyPoints.find((point) => point.stat === 'attack');
-  if (!attack || attack.col !== 4 || attack.row !== 8) {
-    context.addIssue({ code: 'custom', path: ['keyPoints'], message: 'Attack key point must be at 4,8' });
-  }
   const range = map.keyPoints.find((point) => point.stat === 'range');
+  if (!range || range.col !== 4 || range.row !== 8) {
+    context.addIssue({ code: 'custom', path: ['keyPoints'], message: 'Range key point must be at 4,8' });
+  }
+  const attack = map.keyPoints.find((point) => point.stat === 'attack');
   const movement = map.keyPoints.find((point) => point.stat === 'movement');
-  if (!range || !movement || coordKey(rotateSkirmishCoord(range)) !== coordKey(movement)) {
-    context.addIssue({ code: 'custom', path: ['keyPoints'], message: 'Range and movement key points must be a rotation pair' });
+  if (!attack || !movement || coordKey(rotateSkirmishCoord(attack)) !== coordKey(movement)) {
+    context.addIssue({ code: 'custom', path: ['keyPoints'], message: 'Attack and movement key points must be a rotation pair' });
   }
 });
 

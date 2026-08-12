@@ -1,0 +1,11 @@
+Plan: Win with three soldiers screening two archers that provide focused ranged damage.
+
+Composition: Deploy soldiers in the left, center, and right lanes. Deploy one archer between each soldier pair.
+
+Draft: Start with Sparring and Bodkin. This uses all eight draft-cost points.
+
+Purchases: Buy Bodkin until both archers have attack 2. Buy Sparring first after that goal and Whetstone when affordable. Buy Ranging when an archer can safely contest the central range point. Buy Silver when no useful upgrade card is affordable. Buy Gold only after both unit types have attack cards. Do not buy movement cards. Trash Copper when the remaining money still buys the current priority card or Silver.
+
+Upgrades: Spend every affordable archerAttack symbol on separate archers until both reach attack 2. Spend soldierAttack symbols on a healthy screening soldier with a current or likely attack lane. Spend archerRange symbols on an archer with a clear firing lane.
+
+Board tactics: Keep the soldiers ahead of the archers and maintain clear sight lanes. Focus archer attacks and any reachable soldier attacks on one enemy until it is removed. Move a damaged soldier behind the other screen when possible. Retreat an archer from adjacent enemies while preserving a shot. Contest the central range point with an archer only when the soldiers can screen it.

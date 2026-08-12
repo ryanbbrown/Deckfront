@@ -1,0 +1,11 @@
+Plan: Win with five soldiers that use movement upgrades to choose engagements before adding attack.
+
+Composition: Deploy five soldiers across the five central deployment hexes.
+
+Draft: Start with Forced March and Silver. This uses all eight draft-cost points.
+
+Purchases: Buy Forced March until at least two soldiers have movement 4. Buy Drill when Forced March is not affordable. After two soldiers reach movement 4, buy Sparring first and Whetstone when affordable. Buy Silver when no useful upgrade card is affordable. Buy Gold only after the movement goal is met and attack cards are frequent. Do not buy archer cards. Trash Copper when the remaining money still buys the current priority card or Silver.
+
+Upgrades: Spend every affordable soldierMovement symbol until two soldiers reach movement 4. Improve separate soldiers before raising movement above 4. After the movement goal, spend every soldierAttack symbol on units that can reach the focus target.
+
+Board tactics: Advance toward the movement point with a central screen and two flanking soldiers. Use improved movement to attack an exposed enemy, support focus fire, withdraw a damaged soldier, or contest a key point. Avoid a symmetric collision with the attack-focused front. Concentrate attacks until one enemy is removed. Keep healthy soldiers between damaged soldiers and the strongest enemy.
