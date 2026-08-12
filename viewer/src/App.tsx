@@ -76,11 +76,11 @@ export function App(): ReactElement {
         <aside className="deck-panel">
           <ReplayControls replay={replay} onSelect={setReplayIndex} />
           <section>
-            <h2>Turn</h2>
+            <h2>{replay.entry ? phaseLabel(replay.entry.phase) : 'Replay start'}</h2>
             <TurnSummary replay={replay} />
           </section>
           <section>
-            <h2>{replay.entry ? `${replay.entry.player} Deck Changes` : 'Starting Deck'}</h2>
+            <h2>{replay.entry ? `${replay.entry.player} Deck` : 'Starting Deck'}</h2>
             <DeckChanges replay={replay} game={replay.deck.game} baseGame={replay.initialDeck.game} playerId={replay.entry?.player ?? bundle.state.turn.activePlayer} />
           </section>
         </aside>
@@ -90,7 +90,7 @@ export function App(): ReactElement {
         <header>
           <h2>State</h2>
           <p>
-            {bundle.state.turn.activePlayer} · Round {bundle.state.turn.round}
+            {bundle.state.turn.activePlayer} · {phaseLabel(bundle.state.turn.phase)} · Round {bundle.state.turn.round}
           </p>
         </header>
         <section>
@@ -135,7 +135,7 @@ function BoardView({ bundle, replay, game, title }: { bundle: BoardBundle; repla
           ) : null}
           <div className="turn-pill">
             <span>{state.turn.activePlayer}</span>
-            <strong>Round {state.turn.round}</strong>
+            <strong>{phaseLabel(state.turn.phase)} · Round {state.turn.round}</strong>
           </div>
         </div>
       </div>
@@ -371,10 +371,10 @@ function TurnSummary({ replay }: { replay: ReplayBundle }): ReactElement {
       <div className="turn-summary">
         <div className="summary-heading">
           <strong>Start</strong>
-          <span>before turn 1</span>
+          <span>before action 1</span>
         </div>
         <p>Initial board state.</p>
-        <p className="reasoning-text">Use Next to step through the replayed turns.</p>
+        <p className="reasoning-text">Use Next to step through the replayed actions.</p>
       </div>
     );
   }
@@ -397,6 +397,10 @@ function TurnSummary({ replay }: { replay: ReplayBundle }): ReactElement {
       </> : null) : <LabeledValues label="Activated" values={[entry.action.activation.unit]} />}
     </div>
   );
+}
+
+function phaseLabel(phase: 'setup' | 'activation'): string {
+  return phase === 'setup' ? 'Setup' : 'Activation';
 }
 
 function ActionFlow({ actions, game }: { actions: PlayedActionSummary[]; game: GameState }): ReactElement {
