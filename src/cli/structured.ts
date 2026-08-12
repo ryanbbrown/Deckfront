@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { boardStateSchema } from '../board/schema';
 import { listLegalActions } from '../core/legalActions';
-import { executeBoardTurn, loadBoardRulesContext, readBoardTurnInput, readDeckTurnResult } from '../playtest/boardTurn';
+import { executeBoardAction, loadBoardRulesContext, nextDeckPlayerAfterSetup, readBoardActionInput, readDeckTurnResult } from '../playtest/boardAction';
 import { readDeckTurnInput, executeDeckTurn, type DeckSnapshot } from '../playtest/deckTurn';
 import { savePersistedGame } from './persistence';
 import { renderState } from './render';
@@ -23,9 +23,10 @@ interface LegalActionsArgs extends StructuredBaseArgs {
 interface DeckTurnArgs extends StructuredBaseArgs {
   actions?: string;
   result?: string;
+  boardState?: string;
 }
 
-interface BoardTurnArgs {
+interface BoardActionArgs {
   state?: string;
   deckResult?: string;
   actions?: string;
@@ -92,6 +93,8 @@ export async function runDeckTurnCli(argv: string[], output: (message: string) =
     drafts: args.drafts
   });
   const input = await readDeckTurnInput(args.actions);
+  const board = args.boardState ? boardStateSchema.parse(JSON.parse(await readFile(args.boardState, 'utf8')) as unknown) : undefined;
+  if (board && (board.turn.phase !== 'setup' || board.turn.activePlayer !== input.player)) throw new Error(`Deck action requires ${board.turn.phase} phase for ${board.turn.activePlayer}`);
   const runRoot = dirname(args.state);
   const beforePath = join('snapshots', `${input.turnId}.before.deck.json`);
   const afterPath = join('snapshots', `${input.turnId}.after.deck.json`);
@@ -100,7 +103,11 @@ export async function runDeckTurnCli(argv: string[], output: (message: string) =
     rngState: session.rng.snapshot(),
     game: session.game
   };
-  const executed = executeDeckTurn(beforeSnapshot, input, { beforePath, afterPath });
+  const executed = executeDeckTurn(beforeSnapshot, input, {
+    beforePath,
+    afterPath,
+    ...(board ? { nextPlayer: nextDeckPlayerAfterSetup(board) } : {})
+  });
 
   await mkdir(join(runRoot, 'snapshots'), { recursive: true });
   await mkdir(dirname(args.result), { recursive: true });
@@ -111,13 +118,10 @@ export async function runDeckTurnCli(argv: string[], output: (message: string) =
   output(`Deck turn complete: ${args.result}`);
 }
 
-export async function runBoardTurnCli(argv: string[], output: (message: string) => void): Promise<void> {
-  const args = parseBoardTurnArgs(argv);
+export async function runBoardActionCli(argv: string[], output: (message: string) => void): Promise<void> {
+  const args = parseBoardActionArgs(argv);
   if (!args.state) {
     throw new Error('Missing required --state path');
-  }
-  if (!args.deckResult) {
-    throw new Error('Missing required --deck-result path');
   }
   if (!args.actions) {
     throw new Error('Missing required --actions path');
@@ -127,13 +131,13 @@ export async function runBoardTurnCli(argv: string[], output: (message: string) 
   }
 
   const board = boardStateSchema.parse(JSON.parse(await readFile(args.state, 'utf8')) as unknown);
-  const deckResult = await readDeckTurnResult(args.deckResult);
-  const input = await readBoardTurnInput(args.actions);
+  const input = await readBoardActionInput(args.actions);
+  const deckResult = args.deckResult ? await readDeckTurnResult(args.deckResult) : undefined;
   const context = await loadBoardRulesContext(board);
   const runRoot = dirname(args.state);
-  const beforePath = join('snapshots', `${input.turnId}.before.board.json`);
-  const afterPath = join('snapshots', `${input.turnId}.after.board.json`);
-  const executed = executeBoardTurn(board, deckResult, input, context, { beforePath, afterPath });
+  const beforePath = join('snapshots', `${input.stepId}.before.board.json`);
+  const afterPath = join('snapshots', `${input.stepId}.after.board.json`);
+  const executed = executeBoardAction(board, input, context, { beforePath, afterPath }, deckResult);
 
   await mkdir(join(runRoot, 'snapshots'), { recursive: true });
   await mkdir(dirname(args.result), { recursive: true });
@@ -141,7 +145,7 @@ export async function runBoardTurnCli(argv: string[], output: (message: string) 
   await writeFile(join(runRoot, afterPath), `${JSON.stringify(executed.after, null, 2)}\n`);
   await writeFile(args.result, `${JSON.stringify(executed.result, null, 2)}\n`);
   await writeFile(args.state, `${JSON.stringify(executed.after, null, 2)}\n`);
-  output(`Board turn complete: ${args.result}`);
+  output(`Board action complete: ${args.result}`);
 }
 
 function parseLegalActionsArgs(argv: string[]): LegalActionsArgs {
@@ -167,13 +171,17 @@ function parseDeckTurnArgs(argv: string[]): DeckTurnArgs {
       args.result = requireValue(argv, index + 1, '--result');
       return 1;
     }
+    if (arg === '--board-state') {
+      args.boardState = requireValue(argv, index + 1, '--board-state');
+      return 1;
+    }
     return false;
   });
   return args;
 }
 
-function parseBoardTurnArgs(argv: string[]): BoardTurnArgs {
-  const args: BoardTurnArgs = {};
+function parseBoardActionArgs(argv: string[]): BoardActionArgs {
+  const args: BoardActionArgs = {};
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--state') {

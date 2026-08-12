@@ -92,7 +92,14 @@ export const boardStateSchema = z.object({
   ruleset: z.string().min(1),
   map: z.string().min(1),
   players: z.tuple([z.string().min(1), z.string().min(1)]),
-  turn: z.object({ activePlayer: z.string().min(1), round: z.number().int().positive() }).strict(),
+  turn: z.object({
+    round: z.number().int().positive(),
+    phase: z.enum(['setup', 'activation']),
+    initiativePlayer: z.string().min(1),
+    activePlayer: z.string().min(1),
+    completedSetupPlayers: z.array(z.string().min(1)),
+    activatedUnitIds: z.array(z.string().min(1))
+  }).strict(),
   units: z.array(boardUnitSchema).default([]),
   notes: z.array(z.string()).default([])
 }).strict().superRefine((state, context) => {
@@ -100,6 +107,16 @@ export const boardStateSchema = z.object({
   assertUniqueStrings(state.units.map((unit) => unit.id), ['units'], 'Duplicate unit id', context);
   if (!state.players.includes(state.turn.activePlayer)) {
     context.addIssue({ code: 'custom', path: ['turn', 'activePlayer'], message: 'Active player is not in players' });
+  }
+  if (!state.players.includes(state.turn.initiativePlayer)) {
+    context.addIssue({ code: 'custom', path: ['turn', 'initiativePlayer'], message: 'Initiative player is not in players' });
+  }
+  assertUniqueStrings(state.turn.completedSetupPlayers, ['turn', 'completedSetupPlayers'], 'Duplicate setup player', context);
+  assertUniqueStrings(state.turn.activatedUnitIds, ['turn', 'activatedUnitIds'], 'Duplicate activated unit id', context);
+  for (const player of state.turn.completedSetupPlayers) {
+    if (!state.players.includes(player)) {
+      context.addIssue({ code: 'custom', path: ['turn', 'completedSetupPlayers'], message: `Setup player ${player} is not in players` });
+    }
   }
   for (const unit of state.units) {
     if (!state.players.includes(unit.player)) {

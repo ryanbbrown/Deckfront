@@ -22,22 +22,25 @@ def system_prompt() -> str:
 
 def state_briefing(run_dir: Path, player: str, produced: dict[str, int] | None = None) -> dict[str, Any]:
     board = json.loads((run_dir / "board.json").read_text())
-    deck = json.loads((run_dir / "deck.json").read_text())
-    game = deck["game"]
-    active = next(candidate for candidate in game["players"] if candidate["id"] == player)
     map_data = json.loads((ROOT / "game/map.json").read_text())
     unit_rules = json.loads((ROOT / "game/units.json").read_text())
-    key_point_upgrades = automatic_key_point_upgrades(board, map_data, player, unit_rules)
+    setup_phase = board["turn"]["phase"] == "setup"
     briefing: dict[str, Any] = {
         "player": player,
         "turn": board["turn"],
         "units": board["units"],
         "keyPoints": map_data["keyPoints"],
         "walls": map_data["blocked"],
-        "automaticKeyPointUpgrades": key_point_upgrades,
-        "activationOptions": activation_options(board, map_data, player, unit_rules),
-        "producedThisTurn": produced or {},
+        "activationOptions": activation_options(board, map_data, player, unit_rules) if not setup_phase else [],
     }
+    if not setup_phase:
+        return briefing
+
+    deck = json.loads((run_dir / "deck.json").read_text())
+    game = deck["game"]
+    active = next(candidate for candidate in game["players"] if candidate["id"] == player)
+    briefing["automaticKeyPointUpgrades"] = automatic_key_point_upgrades(board, map_data, player, unit_rules)
+    briefing["producedThisTurn"] = produced or {}
     if produced is None:
         briefing.update({
             "deckPhase": game["phase"],
@@ -133,13 +136,11 @@ def activation_options(board: dict[str, Any], map_data: dict[str, Any], player: 
     occupied = {coord_key(unit) for unit in board["units"]}
     options: list[dict[str, Any]] = []
     for unit in board["units"]:
-        if unit["player"] != player:
+        if unit["player"] != player or unit["id"] in board["turn"]["activatedUnitIds"]:
             continue
         start = {"col": unit["col"], "row": unit["row"]}
-        key_point = next((point for point in map_data.get("keyPoints", []) if coord_key(point) == coord_key(start)), None)
-        rules = unit_rules[unit["type"]]
-        movement = unit["movement"] + (1 if key_point and key_point["stat"] == "movement" else 0)
-        attack_range = unit["range"] + (1 if key_point and key_point["stat"] == "range" and rules["canUpgradeRange"] else 0)
+        movement = unit["movement"]
+        attack_range = unit["range"]
         blocked = walls | (occupied - {coord_key(start)})
         from_distances = movement_distances(start, movement, hexes, blocked)
         attack_choices = []

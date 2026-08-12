@@ -80,7 +80,7 @@ supply:
   - { card: bodkin, count: 10 }
   - { card: skirmish-order, count: 10 }
 endGame:
-  # Board elimination and the absolute turn cap own termination, so this deck expression is deliberately impossible.
+  # Board elimination and the round cap own termination, so this deck expression is deliberately impossible.
   and:
     - { eq: [provincePileEmpty, true] }
     - { eq: [provincePileEmpty, false] }

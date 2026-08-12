@@ -6,11 +6,11 @@ import { loadGameConfig } from '../src/config/loadGameConfig';
 import { SeededRng } from '../src/core/random';
 import { setupGame } from '../src/core/state';
 import { savePersistedGame } from '../src/cli/persistence';
-import { executeBoardTurn, loadBoardRulesContext, type BoardRulesContext, type BoardTurnInput } from '../src/playtest/boardTurn';
-import { commitTurn } from '../src/playtest/commitTurn';
+import { executeBoardAction, loadBoardRulesContext, nextDeckPlayerAfterSetup, type BoardActionInput, type BoardRulesContext } from '../src/playtest/boardAction';
+import { commitAction } from '../src/playtest/commitAction';
 import { executeDeckTurn, type DeckSnapshot, type DeckTurnInput } from '../src/playtest/deckTurn';
 import { expectedTerminalEvents, initPlaytestRun, validateReplayBundle } from '../src/playtest/run';
-import type { ReplayActivationInput, ReplayBoardActions } from '../src/replay/schema';
+import type { ReplayActivationInput } from '../src/replay/schema';
 
 const repoRoot = resolve(import.meta.dirname, '..');
 const runRoot = join(repoRoot, '.games', 'skirmish-mock');
@@ -39,76 +39,62 @@ let deck: DeckSnapshot = { schemaVersion: 1, rngState: rng.snapshot(), game: set
 let board = starterBoard;
 await savePersistedGame(paths.deckState, deck);
 
-for (let turn = 1; turn <= turnCap; turn += 1) {
-  const turnId = `turn-${String(turn).padStart(3, '0')}`;
+let step = 1;
+while (board.turn.round <= turnCap) {
+  const stepId = `step-${String(step).padStart(3, '0')}`;
   const player = board.turn.activePlayer;
-  const snapshotPrefix = join('snapshots', turnId);
-  const deckInput: DeckTurnInput = {
-    schemaVersion: 1,
-    turnId,
-    player,
-    actions: [{ type: 'moveToBuy' }, { type: 'buyCard', cardId: 'silver' }, { type: 'endTurn' }]
-  };
-  const deckActionPath = join(runRoot, 'actions', `${turnId}.deck.json`);
-  await writeJson(deckActionPath, deckInput);
-  const deckTurn = executeDeckTurn(deck, deckInput, {
-    beforePath: `${snapshotPrefix}.before.deck.json`,
-    afterPath: `${snapshotPrefix}.after.deck.json`
-  });
-  const deckResultPath = join(runRoot, 'results', `${turnId}.deck.result.json`);
-  await Promise.all([
-    writeJson(join(runRoot, deckTurn.result.before), deckTurn.before),
-    writeJson(join(runRoot, deckTurn.result.after), deckTurn.after),
-    writeJson(deckResultPath, deckTurn.result),
-    savePersistedGame(paths.deckState, deckTurn.after)
-  ]);
-
-  const activations = chooseActivations(board, player, context);
-  const boardInput: BoardTurnInput = {
-    schemaVersion: 1,
-    turnId,
-    player,
-    actions: { upgrades: [], activations }
-  };
-  const boardActionPath = join(runRoot, 'actions', `${turnId}.board.json`);
+  const snapshotPrefix = join('snapshots', stepId);
+  let deckResultPath: string | undefined;
+  let deckTurn: ReturnType<typeof executeDeckTurn> | undefined;
+  let boardInput: BoardActionInput;
+  if (board.turn.phase === 'setup') {
+    const deckInput: DeckTurnInput = { schemaVersion: 1, turnId: stepId, player, actions: [{ type: 'moveToBuy' }, { type: 'buyCard', cardId: 'silver' }, { type: 'endTurn' }] };
+    await writeJson(join(runRoot, 'actions', `${stepId}.deck.json`), deckInput);
+    deckTurn = executeDeckTurn(deck, deckInput, { beforePath: `${snapshotPrefix}.before.deck.json`, afterPath: `${snapshotPrefix}.after.deck.json`, nextPlayer: nextDeckPlayerAfterSetup(board) });
+    deckResultPath = join(runRoot, 'results', `${stepId}.deck.result.json`);
+    await Promise.all([writeJson(join(runRoot, deckTurn.result.before), deckTurn.before), writeJson(join(runRoot, deckTurn.result.after), deckTurn.after), writeJson(deckResultPath, deckTurn.result), savePersistedGame(paths.deckState, deckTurn.after)]);
+    boardInput = { schemaVersion: 1, stepId, player, action: { type: 'setup', upgrades: [] } };
+  } else {
+    const activation = chooseActivation(board, nextUnitId(board, player), player, context);
+    if (!activation) throw new Error(`${stepId}: no activation for ${player}`);
+    boardInput = { schemaVersion: 1, stepId, player, action: { type: 'activation', activation } };
+  }
+  const boardActionPath = join(runRoot, 'actions', `${stepId}.board.json`);
   await writeJson(boardActionPath, boardInput);
-  const boardTurn = executeBoardTurn(board, deckTurn.result, boardInput, context, {
+  const boardAction = executeBoardAction(board, boardInput, context, {
     beforePath: `${snapshotPrefix}.before.board.json`,
     afterPath: `${snapshotPrefix}.after.board.json`
-  });
-  const boardResultPath = join(runRoot, 'results', `${turnId}.board.result.json`);
+  }, deckTurn?.result);
+  const boardResultPath = join(runRoot, 'results', `${stepId}.board.result.json`);
   await Promise.all([
-    writeJson(join(runRoot, boardTurn.result.before), boardTurn.before),
-    writeJson(join(runRoot, boardTurn.result.after), boardTurn.after),
-    writeJson(boardResultPath, boardTurn.result),
-    writeJson(paths.boardState, boardTurn.after)
+    writeJson(join(runRoot, boardAction.result.before), boardAction.before),
+    writeJson(join(runRoot, boardAction.result.after), boardAction.after),
+    writeJson(boardResultPath, boardAction.result),
+    writeJson(paths.boardState, boardAction.after)
   ]);
 
-  const winEvents = expectedTerminalEvents(boardTurn.after, turn, turnCap);
-  const winEventsPath = winEvents.length > 0 ? join(runRoot, 'results', `${turnId}.win-events.json`) : undefined;
+  const winEvents = expectedTerminalEvents(boardAction.after, boardAction.after.turn.round - 1, turnCap);
+  const winEventsPath = winEvents.length > 0 ? join(runRoot, 'results', `${stepId}.win-events.json`) : undefined;
   if (winEventsPath) await writeJson(winEventsPath, winEvents);
-  await commitTurn({
+  await commitAction({
     run: runRoot,
-    deckResultPath,
+    ...(deckResultPath ? { deckResultPath } : {}),
     boardResultPath,
-    summary: summarizeTurn(player, boardTurn.result.actions.activations),
-    reasoning: 'Advance the full formation toward contact, focus attacks when legal, preserve a viable force, and buy one Silver.',
+    summary: boardInput.action.type === 'setup' ? `${player} completed setup.` : `${player} activated ${boardInput.action.activation.unit}.`,
+    reasoning: boardInput.action.type === 'setup' ? 'Bought one Silver and applied upgrades.' : 'Advanced toward contact and attacked when legal.',
     ...(winEventsPath ? { winEventsPath, terminalWinEventsPath: winEventsPath } : {}),
     strictWin: true
   });
 
-  deck = deckTurn.after;
-  board = boardTurn.after;
+  if (deckTurn) deck = deckTurn.after;
+  board = boardAction.after;
+  step += 1;
+  if (winEvents.length > 0) break;
 }
 
 const validated = await validateReplayBundle(paths.timeline, { strict: true, strictDeck: true, strictWin: true });
-for (const { entry, boardBefore } of validated.entries) {
-  const expected = boardBefore.units.filter((unit) => unit.player === entry.player).length;
-  const actual = entry.actions?.activations.length ?? 0;
-  if (actual !== expected) throw new Error(`${entry.id}: expected ${expected} activations for ${entry.player}, received ${actual}`);
-}
 const turnsByPlayer = Object.fromEntries(board.players.map((player) => [player, validated.timeline.entries.filter((entry) => entry.player === player).length]));
-const actions = validated.timeline.entries.flatMap((entry) => entry.actions?.activations ?? []);
+const actions = validated.timeline.entries.flatMap((entry) => entry.phase === 'activation' ? [entry.action.activation] : []);
 console.log(JSON.stringify({
   timeline: paths.timeline,
   entries: validated.entries.length,
@@ -117,7 +103,7 @@ console.log(JSON.stringify({
   moves: actions.filter((activation) => coordKey(activation.from) !== coordKey(activation.to)).length,
   attacks: actions.filter((activation) => activation.attack).length,
   removals: actions.filter((activation) => activation.attack?.targetRemoved).length,
-  keyPointUpgrades: validated.timeline.entries.flatMap((entry) => entry.actions?.keyPointUpgrades ?? []).length,
+  keyPointUpgrades: validated.timeline.entries.flatMap((entry) => entry.phase === 'setup' ? entry.action.keyPointUpgrades : []).length,
   terminalWinEvents: validated.timeline.terminalWinEvents
 }, null, 2));
 
@@ -139,7 +125,7 @@ function buildStarterBoard(context: BoardRulesContext): BoardState {
     ruleset: 'skirmish-v1',
     map: context.map.id,
     players: ['P1', 'P2'],
-    turn: { activePlayer: 'P1', round: 1 },
+    turn: { round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: [], activatedUnitIds: [] },
     units: placements.map(([id, player, type, col, row]) => {
       const rules = context.units[type];
       if (!rules) throw new Error(`Missing unit rules for ${type}`);
@@ -147,20 +133,6 @@ function buildStarterBoard(context: BoardRulesContext): BoardState {
     }),
     notes: ['Deterministic twenty-turn mock replay.']
   };
-}
-
-function chooseActivations(state: BoardState, player: string, context: BoardRulesContext): ReplayActivationInput[] {
-  const planning = structuredClone(state);
-  applyPlanningKeyPointUpgrades(planning, player, context);
-  const unitIds = planning.units.filter((unit) => unit.player === player).map((unit) => unit.id);
-  const activations: ReplayActivationInput[] = [];
-  for (const unitId of unitIds) {
-    const activation = chooseActivation(planning, unitId, player, context);
-    if (!activation) continue;
-    activations.push(activation);
-    applyPlannedActivation(planning, activation);
-  }
-  return activations;
 }
 
 function chooseActivation(state: BoardState, unitId: string, player: string, context: BoardRulesContext): ReplayActivationInput | undefined {
@@ -210,33 +182,6 @@ function chooseActivation(state: BoardState, unitId: string, player: string, con
   };
 }
 
-function applyPlanningKeyPointUpgrades(state: BoardState, player: string, context: BoardRulesContext): void {
-  for (const point of context.map.keyPoints) {
-    const unit = state.units.find((candidate) => candidate.player === player && coordKey(candidate) === coordKey(point));
-    if (!unit) continue;
-    const rules = context.units[unit.type];
-    if (!rules || (point.stat === 'range' && !rules.canUpgradeRange)) continue;
-    unit[point.stat] += 1;
-  }
-}
-
-function applyPlannedActivation(state: BoardState, activation: ReplayActivationInput): void {
-  const unit = state.units.find((candidate) => candidate.id === activation.unit);
-  if (!unit) return;
-  const via = activation.via ?? activation.from;
-  unit.col = via.col;
-  unit.row = via.row;
-  if (activation.attack) {
-    const target = state.units.find((candidate) => candidate.id === activation.attack?.target);
-    if (target) {
-      target.hp -= unit.attack;
-      if (target.hp <= 0) state.units = state.units.filter((candidate) => candidate.id !== target.id);
-    }
-  }
-  unit.col = activation.to.col;
-  unit.row = activation.to.row;
-}
-
 function isKeyPoint(coord: { col: number; row: number }, context: BoardRulesContext): boolean {
   return context.map.keyPoints.some((point) => coordKey(point) === coordKey(coord));
 }
@@ -246,11 +191,10 @@ function distanceFromHome(coord: { col: number; row: number }, player: string, c
   return Math.min(...(deployment?.hexes.map((hex) => hexDistance(coord, hex, context.map.coordinateSystem)) ?? [0]));
 }
 
-function summarizeTurn(player: string, activations: ReplayBoardActions['activations']): string {
-  const moved = activations.filter((activation) => coordKey(activation.from) !== coordKey(activation.to)).length;
-  const attacks = activations.filter((activation) => activation.attack).length;
-  const removals = activations.filter((activation) => activation.attack?.targetRemoved).length;
-  return `${player} activated ${activations.length} units: ${moved} moved, ${attacks} attacked${removals > 0 ? `, ${removals} removed` : ''}; bought Silver.`;
+function nextUnitId(state: BoardState, player: string): string {
+  const unit = state.units.find((candidate) => candidate.player === player && !state.turn.activatedUnitIds.includes(candidate.id));
+  if (!unit) throw new Error(`No unactivated unit for ${player}`);
+  return unit.id;
 }
 
 async function writeJson(path: string, value: unknown): Promise<void> {

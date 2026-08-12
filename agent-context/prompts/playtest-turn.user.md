@@ -1,1 +1,1 @@
-Complete the current turn from the supplied state. Use live hand indexes and ordered board activations.
+Complete the current setup or single-unit activation from the supplied state.

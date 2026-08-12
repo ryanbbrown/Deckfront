@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { chosenActionSchema } from '../core/actionSchema';
 import { applyAction } from '../core/engine';
 import { SeededRng } from '../core/random';
-import { cloneState } from '../core/state';
+import { cloneState, resetTurnResources } from '../core/state';
 import type { ChosenAction, GameState } from '../core/types';
 
 export interface DeckSnapshot {
@@ -49,6 +49,7 @@ type DeckTurnCommand = z.infer<typeof deckTurnCommandSchema>;
 export interface ExecuteDeckTurnOptions {
   beforePath: string;
   afterPath: string;
+  nextPlayer?: string;
 }
 
 export interface ExecutedDeckTurn {
@@ -123,11 +124,20 @@ export function executeDeckTurn(snapshot: DeckSnapshot, input: DeckTurnInput, op
     throw new Error(`${input.turnId}: deck actions did not complete the active player's turn`);
   }
 
+  const completedGame = cloneState(game);
   const after: DeckSnapshot = {
     schemaVersion: 1,
     rngState: rng.snapshot(),
-    game
+    game: cloneState(completedGame)
   };
+  if (options.nextPlayer) {
+    const nextIndex = after.game.players.findIndex((player) => player.id === options.nextPlayer);
+    if (nextIndex < 0) throw new Error(`${input.turnId}: next deck player ${options.nextPlayer} is missing`);
+    after.game.activePlayer = nextIndex;
+    const nextPlayer = after.game.players[nextIndex];
+    if (!nextPlayer) throw new Error(`${input.turnId}: next deck player ${options.nextPlayer} is missing`);
+    resetTurnResources(nextPlayer, after.game.config);
+  }
 
   return {
     before,
@@ -142,7 +152,7 @@ export function executeDeckTurn(snapshot: DeckSnapshot, input: DeckTurnInput, op
       drawnHand,
       played,
       bought,
-      produced: deriveProduced(before.game, after.game, activePlayerIndex)
+      produced: deriveProduced(before.game, completedGame, activePlayerIndex)
     }
   };
 }

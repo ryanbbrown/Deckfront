@@ -16,7 +16,9 @@ describe('strict deck replay validation', () => {
     const artifacts = await buildTurnArtifacts(root);
     await expect(validateReplayBundle(join(root, 'timeline.json'), { strictDeck: true })).resolves.toMatchObject({ entries: [{ entry: { id: 'turn-001' } }] });
     const timeline = structuredClone(artifacts.timeline);
-    timeline.entries[0]!.deck.played.push('sparring');
+    const entry = timeline.entries[0];
+    if (!entry || entry.phase !== 'setup') throw new Error('expected setup entry');
+    entry.deck.played.push('sparring');
     await writeFile(join(root, 'timeline.json'), `${JSON.stringify(timeline)}\n`);
     await expect(validateReplayBundle(join(root, 'timeline.json'), { strictDeck: true })).rejects.toThrow('deck.played does not match replay');
   });

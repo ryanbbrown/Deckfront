@@ -1,5 +1,5 @@
 import { coordKey, type BoardState } from '../../src/board/schema';
-import type { ReplayBoardActions } from '../../src/replay/schema';
+import type { ReplayBoardAction } from '../../src/replay/schema';
 
 type BoardUnit = BoardState['units'][number];
 type AnnotationKind = 'movement' | 'attack';
@@ -14,12 +14,13 @@ export interface BoardAnnotation {
   showImpact?: boolean;
 }
 
-export function buildBoardAnnotations(previousState: BoardState | null, state: BoardState, activePlayer: string | null, actions?: ReplayBoardActions): BoardAnnotation[] {
+export function buildBoardAnnotations(previousState: BoardState | null, state: BoardState, activePlayer: string | null, action?: ReplayBoardAction): BoardAnnotation[] {
   if (!previousState || !activePlayer) return [];
 
   const currentUnitsById = new Map(state.units.map((unit) => [unit.id, unit]));
   const previousUnitsById = new Map(previousState.units.map((unit) => [unit.id, unit]));
-  if (actions) return buildActionAnnotations(actions, currentUnitsById, previousUnitsById, activePlayer);
+  if (action?.type === 'activation') return buildActionAnnotations(action.activation, currentUnitsById, previousUnitsById, activePlayer);
+  if (action?.type === 'setup') return [];
 
   const activeUnits = state.units.filter((unit) => unit.player === activePlayer);
   const annotations: BoardAnnotation[] = [];
@@ -49,24 +50,13 @@ export function buildBoardAnnotations(previousState: BoardState | null, state: B
 }
 
 function buildActionAnnotations(
-  actions: ReplayBoardActions,
+  actionActivation: Extract<ReplayBoardAction, { type: 'activation' }>['activation'],
   currentUnitsById: Map<string, BoardUnit>,
   previousUnitsById: Map<string, BoardUnit>,
   activePlayer: string
 ): BoardAnnotation[] {
   const annotations: BoardAnnotation[] = [];
-  const attackTotals = new Map<string, { damage: number; removed: boolean; lastIndex: number }>();
-  for (const [index, activation] of actions.activations.entries()) {
-    if (!activation.attack) continue;
-    const previous = attackTotals.get(activation.attack.target);
-    attackTotals.set(activation.attack.target, {
-      damage: (previous?.damage ?? 0) + activation.attack.damage,
-      removed: (previous?.removed ?? false) || activation.attack.targetRemoved,
-      lastIndex: index
-    });
-  }
-
-  for (const [index, activation] of actions.activations.entries()) {
+  for (const [index, activation] of [actionActivation].entries()) {
     const unit = currentUnitsById.get(activation.unit) ?? previousUnitsById.get(activation.unit);
     if (!unit) continue;
     const from = { ...unit, ...activation.from };
@@ -79,16 +69,14 @@ function buildActionAnnotations(
     if (activation.attack) {
       const target = currentUnitsById.get(activation.attack.target) ?? previousUnitsById.get(activation.attack.target);
       if (target) {
-        const total = attackTotals.get(activation.attack.target);
-        const showImpact = total?.lastIndex === index;
         annotations.push({
           id: `attack-${activation.unit}-${index}`,
           kind: 'attack',
           player: activePlayer,
           from: via,
           to: target,
-          label: total?.removed ? 'KO' : `-${total?.damage ?? activation.attack.damage}`,
-          showImpact
+          label: activation.attack.targetRemoved ? 'KO' : `-${activation.attack.damage}`,
+          showImpact: true
         });
       }
     }

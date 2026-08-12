@@ -45,34 +45,52 @@ export const replayKeyPointUpgradeSchema = replayUpgradeActionSchema.extend({
   keyPoint: z.string().min(1)
 }).strict();
 
-export const replayBoardActionsSchema = z.object({
+export const replaySetupActionSchema = z.object({
+  type: z.literal('setup'),
   keyPointUpgrades: z.array(replayKeyPointUpgradeSchema).default([]),
-  upgrades: z.array(replayUpgradeActionSchema).default([]),
-  activations: z.array(replayActivationSchema).default([])
+  upgrades: z.array(replayUpgradeActionSchema).default([])
 }).strict();
+
+export const replayActivationActionSchema = z.object({
+  type: z.literal('activation'),
+  activation: replayActivationSchema
+}).strict();
+
+export const replayBoardActionSchema = z.discriminatedUnion('type', [replaySetupActionSchema, replayActivationActionSchema]);
 
 export const replayWinEventSchema = z.object({
   type: z.enum(['elimination', 'turnCap']),
   outcome: z.enum(['win', 'draw']),
   player: z.string().min(1).nullable(),
-  completedTurns: z.number().int().nonnegative(),
+  completedRounds: z.number().int().nonnegative(),
   playerUnits: z.number().int().nonnegative(),
   opponentUnits: z.number().int().nonnegative(),
   playerHp: z.number().int().nonnegative(),
   opponentHp: z.number().int().nonnegative()
 }).strict();
 
-export const replayEntrySchema = z.object({
+const replayEntryBaseSchema = z.object({
   id: z.string().min(1),
   player: z.string().min(1),
   round: z.number().int().positive(),
-  deck: replayDeckSummarySchema,
   board: replayBoardSummarySchema,
-  actions: replayBoardActionsSchema.optional(),
   winEvents: z.array(replayWinEventSchema).optional(),
   summary: z.string().min(1),
   reasoning: z.string().min(1)
+});
+
+const replaySetupEntrySchema = replayEntryBaseSchema.extend({
+  phase: z.literal('setup'),
+  deck: replayDeckSummarySchema,
+  action: replaySetupActionSchema
 }).strict();
+
+const replayActivationEntrySchema = replayEntryBaseSchema.extend({
+  phase: z.literal('activation'),
+  action: replayActivationActionSchema
+}).strict();
+
+export const replayEntrySchema = z.discriminatedUnion('phase', [replaySetupEntrySchema, replayActivationEntrySchema]);
 
 export const replayTimelineSchema = z.object({
   schemaVersion: z.literal(1),
@@ -84,6 +102,6 @@ export const replayTimelineSchema = z.object({
 
 export type ReplayEntry = z.infer<typeof replayEntrySchema>;
 export type ReplayTimeline = z.infer<typeof replayTimelineSchema>;
-export type ReplayBoardActions = z.infer<typeof replayBoardActionsSchema>;
+export type ReplayBoardAction = z.infer<typeof replayBoardActionSchema>;
 export type ReplayWinEvent = z.infer<typeof replayWinEventSchema>;
 export type ReplayActivationInput = z.infer<typeof replayActivationInputSchema>;

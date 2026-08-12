@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { loadGameConfig } from '../../src/config/loadGameConfig';
 import { SeededRng } from '../../src/core/random';
 import { setupGame } from '../../src/core/state';
-import { executeBoardTurn, loadBoardRulesContext, type BoardTurnInput } from '../../src/playtest/boardTurn';
+import { executeBoardAction, loadBoardRulesContext, type BoardActionInput } from '../../src/playtest/boardAction';
 import { executeDeckTurn, type DeckSnapshot } from '../../src/playtest/deckTurn';
 import type { ReplayTimeline } from '../../src/replay/schema';
 import type { DeckTurnResult } from '../../src/playtest/deckTurn';
@@ -26,7 +26,7 @@ export function skirmishArmyState(overrides: Partial<BoardState> = {}): BoardSta
     ruleset: 'skirmish-v1',
     map: 'skirmish-v1',
     players: ['P1', 'P2'],
-    turn: { activePlayer: 'P1', round: 1 },
+    turn: { round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: [], activatedUnitIds: [] },
     units,
     notes: [],
     ...overrides
@@ -48,14 +48,14 @@ export function deckResult(produced: Record<string, number> = {}): DeckTurnResul
   };
 }
 
-export async function buildTurnArtifacts(root: string, options: { boardInput?: BoardTurnInput; produced?: Record<string, number> } = {}): Promise<{
+export async function buildTurnArtifacts(root: string, options: { boardInput?: BoardActionInput; produced?: Record<string, number> } = {}): Promise<{
   timeline: ReplayTimeline;
   deckBefore: DeckSnapshot;
   deckAfter: DeckSnapshot;
   boardBefore: BoardState;
   boardAfter: BoardState;
   deckResult: DeckTurnResult;
-  boardResult: ReturnType<typeof executeBoardTurn>['result'];
+  boardResult: ReturnType<typeof executeBoardAction>['result'];
 }> {
   const config = await loadGameConfig('game/deck.yaml');
   const rng = new SeededRng(1);
@@ -65,27 +65,24 @@ export async function buildTurnArtifacts(root: string, options: { boardInput?: B
     turnId: 'turn-001',
     player: 'P1',
     actions: [{ type: 'moveToBuy' }, { type: 'endTurn' }]
-  }, { beforePath: 'snapshots/turn-001.before.deck.json', afterPath: 'snapshots/turn-001.after.deck.json' });
+  }, { beforePath: 'snapshots/turn-001.before.deck.json', afterPath: 'snapshots/turn-001.after.deck.json', nextPlayer: 'P2' });
   const deckTurnResult = options.produced ? { ...deck.result, produced: options.produced } : deck.result;
   const context = await loadBoardRulesContext();
-  const board = executeBoardTurn(skirmishArmyState(), deckTurnResult, options.boardInput ?? {
-    schemaVersion: 1,
-    turnId: 'turn-001',
-    player: 'P1',
-    actions: { upgrades: [], activations: [] }
-  }, context, { beforePath: 'snapshots/turn-001.before.board.json', afterPath: 'snapshots/turn-001.after.board.json' });
+  const board = executeBoardAction(skirmishArmyState(), options.boardInput ?? {
+    schemaVersion: 1, stepId: 'turn-001', player: 'P1', action: { type: 'setup', upgrades: [] }
+  }, context, { beforePath: 'snapshots/turn-001.before.board.json', afterPath: 'snapshots/turn-001.after.board.json' }, deckTurnResult);
   const timeline: ReplayTimeline = {
     schemaVersion: 1,
     title: 'Skirmish test',
     run: { turnCap: 20 },
     entries: [{
-      id: 'turn-001', player: 'P1', round: 1,
+      id: 'turn-001', player: 'P1', round: 1, phase: 'setup',
       deck: {
         before: deckTurnResult.before, after: deckTurnResult.after, drawnHand: deckTurnResult.drawnHand,
         played: deckTurnResult.played, bought: deckTurnResult.bought, produced: deckTurnResult.produced, actions: deckTurnResult.actions
       },
       board: { before: board.result.before, after: board.result.after },
-      actions: board.result.actions,
+      action: board.result.action as Extract<ReplayTimeline['entries'][number], { phase: 'setup' }>['action'],
       winEvents: [],
       summary: 'Held position',
       reasoning: 'No legal engagement was available.'

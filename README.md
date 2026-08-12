@@ -146,7 +146,7 @@ bun run validate-run -- ../runs/rush-vs-engine-01/timeline.json
 
 ## Skirmish ThinHarness playtests
 
-Player setup files use `{ "draft": [cardIds], "units": [{ "id", "type", "col", "row" }] }` with exactly five units. New runs default to 20 completed player turns. Run the harness through cproxy; the default model is `openai:gpt-5.6-luna`:
+Player setup files use `{ "draft": [cardIds], "units": [{ "id", "type", "col", "row" }] }` with exactly five units. New runs default to 20 completed rounds. Each round has two setup steps followed by alternating single-unit activations. Run the harness through cproxy; the default model is `openai:gpt-5.6-luna`:
 
 ```sh
 cproxy run -- uv run scripts/run_game_thinharness.py \
@@ -165,7 +165,7 @@ The harness recursively plays every action card, including action cards drawn du
 
 Resume by running the same command without `--reset` and without the strategy arguments. The runner uses the saved strategy copies. You can supply strategy files during resume to verify them. Their contents must match the saved copies.
 
-The runner rewinds an interrupted, uncommitted turn to the latest timeline state. It archives the partial attempt under `interrupted/<turn>/attempt-NNN/` before continuing. Each run records handler validation details in `submission-metrics.json` and every ThinHarness call, including schema rejections, in `harness-tool-calls.json`. Validate completed evidence with:
+The runner rewinds an interrupted, uncommitted step to the latest timeline state. It archives the partial attempt under `interrupted/<step>/attempt-NNN/` before continuing. Each run records handler validation details in `submission-metrics.json` and every ThinHarness call, including schema rejections, in `harness-tool-calls.json`. Validate completed evidence with:
 
 ```sh
 bun run validate-run -- --strict --strict-deck --strict-win .games/skirmish-luna-01/timeline.json

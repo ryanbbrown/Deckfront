@@ -116,7 +116,7 @@ function BoardView({ bundle, replay, game, title }: { bundle: BoardBundle; repla
   const blocked = useMemo(() => new Set(map.blocked.map(coordKey)), [map.blocked]);
   const layout = useMemo(() => buildLayout(map.hexes, map), [map]);
   const annotations = useMemo(
-    () => buildBoardAnnotations(replay?.previousState ?? null, state, replay?.entry?.player ?? null, replay?.entry?.actions),
+    () => buildBoardAnnotations(replay?.previousState ?? null, state, replay?.entry?.player ?? null, replay?.entry?.action),
     [replay, state]
   );
 
@@ -378,7 +378,7 @@ function TurnSummary({ replay }: { replay: ReplayBundle }): ReactElement {
       </div>
     );
   }
-  const deckDisplay = buildDeckTurnDisplay(replay);
+  const deckDisplay = entry.phase === 'setup' ? buildDeckTurnDisplay(replay) : null;
 
   return (
     <div className="turn-summary">
@@ -388,11 +388,13 @@ function TurnSummary({ replay }: { replay: ReplayBundle }): ReactElement {
       </div>
       <p>{entry.summary}</p>
       <p className="reasoning-text">{entry.reasoning}</p>
-      <CardDelta label="Starting Hand" cards={entry.deck.drawnHand} game={replay.deck.game} emptyText="none" />
-      <ActionFlow actions={deckDisplay.actions} game={replay.deck.game} />
-      <CardDelta label="Treasures" cards={deckDisplay.treasures} game={replay.deck.game} emptyText="none" />
-      <ProductionGrid production={deckDisplay.production} />
-      <LabeledValues label="Bought" values={entry.deck.bought} />
+      {entry.phase === 'setup' ? (deckDisplay ? <>
+        <CardDelta label="Starting Hand" cards={entry.deck.drawnHand} game={replay.deck.game} emptyText="none" />
+        <ActionFlow actions={deckDisplay.actions} game={replay.deck.game} />
+        <CardDelta label="Treasures" cards={deckDisplay.treasures} game={replay.deck.game} emptyText="none" />
+        <ProductionGrid production={deckDisplay.production} />
+        <LabeledValues label="Bought" values={entry.deck.bought} />
+      </> : null) : <LabeledValues label="Activated" values={[entry.action.activation.unit]} />}
     </div>
   );
 }
@@ -440,7 +442,7 @@ function ProductionGrid({ production }: { production: Record<string, number> }):
 function buildDeckTurnDisplay(replay: ReplayBundle): DeckTurnDisplay {
   const entry = replay.entry;
   const deckBefore = replay.deckBefore;
-  if (!entry || !deckBefore) {
+  if (!entry || entry.phase !== 'setup' || !deckBefore) {
     return { actions: [], treasures: [], production: {} };
   }
 
@@ -522,8 +524,7 @@ function DeckChanges({ replay, game, baseGame, playerId }: { replay: ReplayBundl
   const drafted = initialDraftedCards(replay, baseCards);
   const bought = replay.timeline.entries
     .slice(0, replay.index)
-    .filter((entry) => entry.player === playerId)
-    .flatMap((entry) => entry.deck.bought.map((card) => resolveCardId(game, card)));
+    .flatMap((entry) => entry.player === playerId && entry.phase === 'setup' ? entry.deck.bought.map((card) => resolveCardId(game, card)) : []);
   const acquired = [...drafted, ...bought];
   const ownedCards = player ? playerCards(player) : [];
   const expectedCards = [...baseCards, ...bought];

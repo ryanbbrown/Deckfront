@@ -1,4 +1,4 @@
-import { commitTurn } from './commitTurn';
+import { commitAction } from './commitAction';
 import { initPlaytestRun, validateReplayBundle } from './run';
 
 interface InitArgs {
@@ -19,7 +19,7 @@ interface ValidateArgs {
   strictWin?: boolean;
 }
 
-interface CommitTurnArgs {
+interface CommitActionArgs {
   run?: string;
   deckResult?: string;
   boardResult?: string;
@@ -76,13 +76,10 @@ export async function runPlaytestCli(argv: string[], output: (message: string) =
     return;
   }
 
-  if (command === 'commit-turn') {
-    const args = parseCommitTurnArgs(rest);
+  if (command === 'commit-action') {
+    const args = parseCommitActionArgs(rest);
     if (!args.run) {
       throw new Error('Missing required --run path');
-    }
-    if (!args.deckResult) {
-      throw new Error('Missing required --deck-result path');
     }
     if (!args.boardResult) {
       throw new Error('Missing required --board-result path');
@@ -93,10 +90,10 @@ export async function runPlaytestCli(argv: string[], output: (message: string) =
     if (!args.reasoning) {
       throw new Error('Missing required --reasoning text');
     }
-    const entry = await commitTurn({
+    const entry = await commitAction({
       run: args.run,
-      deckResultPath: args.deckResult,
       boardResultPath: args.boardResult,
+      ...(args.deckResult ? { deckResultPath: args.deckResult } : {}),
       summary: args.summary,
       reasoning: args.reasoning,
       ...(args.winEvents ? { winEventsPath: args.winEvents } : {}),
@@ -159,8 +156,8 @@ function parseInitArgs(argv: string[]): InitArgs {
   return args;
 }
 
-function parseCommitTurnArgs(argv: string[]): CommitTurnArgs {
-  const args: CommitTurnArgs = {};
+function parseCommitActionArgs(argv: string[]): CommitActionArgs {
+  const args: CommitActionArgs = {};
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--run') {
@@ -180,7 +177,7 @@ function parseCommitTurnArgs(argv: string[]): CommitTurnArgs {
     } else if (arg === '--strict-win') {
       args.strictWin = true;
     } else {
-      throw new Error(`Unknown commit-turn argument: ${String(arg)}`);
+      throw new Error(`Unknown commit-action argument: ${String(arg)}`);
     }
   }
   return args;
@@ -202,7 +199,7 @@ function helpText(): string {
     '  validate [--strict] [--strict-deck] [--strict-win] <timeline.json>',
     '  init --run <path> --ruleset <id> --map <id> (--board <complete-board.json> | --units <composition.json>) [--players P1,P2] [--title <title>]',
     '    --units entries contain id, player, type, col, and row; canonical unit stats are derived from game/units.json',
-    '  commit-turn --run <path> --deck-result <file> --board-result <file> --summary <text> --reasoning <text> [--win-events <file>] [--terminal-win-events <file>] [--strict-win]'
+    '  commit-action --run <path> [--deck-result <file>] --board-result <file> --summary <text> --reasoning <text> [--win-events <file>] [--terminal-win-events <file>] [--strict-win]'
   ].join('\n');
 }
 

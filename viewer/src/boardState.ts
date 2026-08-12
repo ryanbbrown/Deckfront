@@ -52,17 +52,20 @@ export async function loadReplayBundle(timelineUrl: string, index: number): Prom
     return { ...board, timeline, entry: null, index: 0, deck, initialDeck: deck, previousState: null, deckBefore: null };
   }
   const entry = timeline.entries[Math.max(0, boundedIndex - 1)]!;
+  const firstSetup = timeline.entries.find((candidate) => candidate.phase === 'setup');
+  if (!firstSetup) throw new Error('Replay has no setup entry');
+  const latestSetup = [...timeline.entries.slice(0, Math.max(1, boundedIndex))].reverse().find((candidate) => candidate.phase === 'setup') ?? firstSetup;
   const boardBeforeUrl = resolveRelativeGameUrl(timelineUrl, entry.board.before);
-  const initialDeckUrl = resolveRelativeGameUrl(timelineUrl, timeline.entries[0]!.deck.before);
-  const deckBeforeUrl = resolveRelativeGameUrl(timelineUrl, entry.deck.before);
+  const initialDeckUrl = resolveRelativeGameUrl(timelineUrl, firstSetup.deck.before);
+  const deckBeforeUrl = entry.phase === 'setup' ? resolveRelativeGameUrl(timelineUrl, entry.deck.before) : null;
   const boardUrl = resolveRelativeGameUrl(timelineUrl, boundedIndex === 0 ? entry.board.before : entry.board.after);
-  const deckUrl = resolveRelativeGameUrl(timelineUrl, boundedIndex === 0 ? entry.deck.before : entry.deck.after);
+  const deckUrl = resolveRelativeGameUrl(timelineUrl, boundedIndex === 0 ? firstSetup.deck.before : latestSetup.deck.after);
   const [state, previousState, deck, initialDeck, deckBefore] = await Promise.all([
     fetchJson(boardUrl).then((json) => boardStateSchema.parse(json)),
     boundedIndex === 0 ? Promise.resolve(null) : fetchJson(boardBeforeUrl).then((json) => boardStateSchema.parse(json)),
     loadDeckBundle(deckUrl),
     loadDeckBundle(initialDeckUrl),
-    boundedIndex === 0 ? Promise.resolve(null) : loadDeckBundle(deckBeforeUrl)
+    boundedIndex === 0 || !deckBeforeUrl ? Promise.resolve(null) : loadDeckBundle(deckBeforeUrl)
   ]);
   const board = await loadBoardBundleForState(state);
   return { ...board, timeline, entry: boundedIndex === 0 ? null : entry, index: boundedIndex, deck, initialDeck, previousState, deckBefore };

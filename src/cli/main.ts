@@ -4,7 +4,7 @@ import type { GameState } from '../core/types';
 import { InteractiveInputAdapter, parseIntegerChoice, scriptedInputFromFile, type InputAdapter } from './modes';
 import { renderResults, renderState } from './render';
 import { loadDeckSession } from './session';
-import { runBoardTurnCli, runDeckTurnCli, runLegalActionsCli } from './structured';
+import { runBoardActionCli, runDeckTurnCli, runLegalActionsCli } from './structured';
 
 export interface CliArgs {
   config?: string;
@@ -26,8 +26,8 @@ export async function runCli(argv: string[], output: (message: string) => void =
     await runDeckTurnCli(argv.slice(1), output);
     return undefined as never;
   }
-  if (argv[0] === 'board-turn') {
-    await runBoardTurnCli(argv.slice(1), output);
+  if (argv[0] === 'board-action') {
+    await runBoardActionCli(argv.slice(1), output);
     return undefined as never;
   }
 
@@ -135,9 +135,9 @@ function helpText(): string {
     '  --starting-deck <cards> Override new-game starting deck; use P1=card,card for one player',
     '  --draft <cards> Build the configured base deck plus a config-limited draft; no resources carry into turn one',
     '  legal-actions --config <path> --state <path> --json',
-    '  deck-turn --config <path> --state <path> --actions <file> --result <file>',
+  '  deck-turn --config <path> --state <path> --board-state <board.json> --actions <file> --result <file>',
     '    actions support playAll and trashCardIfPresent batch commands',
-    '  board-turn --state <board.json> --deck-result <file> --actions <file> --result <file>',
+  '  board-action --state <board.json> [--deck-result <file>] --actions <file> --result <file>',
     '  --help           Show this help'
   ].join('\n');
 }

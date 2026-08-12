@@ -8,7 +8,6 @@ import json
 import re
 import shutil
 import tempfile
-from itertools import permutations
 import sys
 import time
 from dataclasses import dataclass
@@ -16,7 +15,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 from playtest_context import hex_distance, state_briefing, system_prompt, write_context_snapshot
-from run_game import DEFAULT_CONFIG, DEFAULT_MAP, DEFAULT_RULESET, committed_expected_turn, ensure_initialized, expected_next_turn_id, read_json, rel, run, validate_reset_run_dir, validate_run, write_json
+from run_game import DEFAULT_CONFIG, DEFAULT_MAP, DEFAULT_RULESET, committed_expected_step, ensure_initialized, expected_next_step_id, read_json, rel, run, validate_reset_run_dir, validate_run, write_json
 
 from pydantic import BaseModel, ConfigDict, Field
 from thinharness import Harness, HarnessConfig, ToolResult, ToolSpec
@@ -55,10 +54,9 @@ class Upgrade(BaseModel):
     to: int = Field(gt=0, description="The resulting stat value from legalUpgrades; this value is also the symbol cost")
 
 
-class BoardActions(BaseModel):
+class SetupActions(BaseModel):
     model_config = ConfigDict(extra="forbid")
     upgrades: list[Upgrade] = Field(default_factory=list)
-    activations: list[Activation] = Field(default_factory=list)
 
 
 class PlayAllActionsArgs(BaseModel):
@@ -77,9 +75,16 @@ class ChoosePurchaseArgs(BaseModel):
     note: str = Field(default="", max_length=500)
 
 
-class SubmitBoardTurnArgs(BaseModel):
+class SubmitSetupArgs(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    actions: BoardActions
+    actions: SetupActions
+    summary: str = Field(min_length=1, max_length=240)
+    reasoning: str = Field(min_length=1, max_length=700)
+
+
+class SubmitActivationArgs(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    activation: Activation
     summary: str = Field(min_length=1, max_length=240)
     reasoning: str = Field(min_length=1, max_length=700)
 
@@ -165,40 +170,44 @@ def read_strategy_file(value: str | None, player: str) -> tuple[Path, str]:
         raise ValueError(f"Cannot read {player} strategy file {path}: {error}") from error
 
 
-class TurnTools:
-    def __init__(self, args: argparse.Namespace, run_dir: Path, player: Player, turn_id: str, previous_entries: int):
+class StepTools:
+    def __init__(self, args: argparse.Namespace, run_dir: Path, player: Player, step_id: str, previous_entries: int, phase: str):
         self.args = args
         self.run_dir = run_dir
         self.player = player
-        self.turn_id = turn_id
+        self.step_id = step_id
+        self.phase = phase
         self.previous_entries = previous_entries
         self.deck_preview: dict[str, Any] | None = None
         self.trash_copper: bool | None = None
         self.deck_done = False
-        self.board_done = False
-        self.deck_result = run_dir / "results" / f"{turn_id}.deck.result.json"
-        self.board_result = run_dir / "results" / f"{turn_id}.board.result.json"
+        self.step_done = False
+        self.deck_result = run_dir / "results" / f"{step_id}.deck.result.json"
+        self.board_result = run_dir / "results" / f"{step_id}.board.result.json"
 
     def specs(self) -> list[ToolSpec]:
+        if self.phase == "activation":
+            return [ToolSpec("submit_activation", "Activate exactly one listed unactivated unit. Copy one attackPlan id when attacking. The harness derives the exact path and snaps the preferred destination to a legal endpoint.", SubmitActivationArgs, self.submit_activation, max_retries=self.args.tool_retries, sequential=True)]
         return [
             ToolSpec("play_all_actions", "Resolve every action card, including action cards drawn by other actions. This returns the actual cards played and the money available with or without trashing one copper.", PlayAllActionsArgs, self.play_all_actions, max_retries=self.args.tool_retries, sequential=True),
             ToolSpec("choose_copper_trash", "After play_all_actions, choose whether to trash one copper. This returns the exact money and affordable cards after that choice.", ChooseCopperTrashArgs, self.choose_copper_trash, max_retries=self.args.tool_retries, sequential=True),
             ToolSpec("choose_purchase", "After choose_copper_trash, choose one card from affordableCards. Copper is never a purchase option. Unspent money does not carry into the next turn.", ChoosePurchaseArgs, self.choose_purchase, max_retries=self.args.tool_retries, sequential=True),
-            ToolSpec("submit_board_turn", "Spend every affordable upgrade symbol, then activate every surviving friendly unit. Submit only listed legalUpgrades. For attacks, copy one attackPlan id. The harness derives from, via, and target, and snaps each preferred to coordinate to the nearest legal endpoint when necessary.", SubmitBoardTurnArgs, self.submit_board_turn, max_retries=self.args.tool_retries, sequential=True),
+            ToolSpec("submit_setup", "Spend every affordable upgrade symbol. Submit only listed legalUpgrades. This completes setup without activating a unit.", SubmitSetupArgs, self.submit_setup, max_retries=self.args.tool_retries, sequential=True),
         ]
 
     def play_all_actions(self, submitted: PlayAllActionsArgs) -> ToolResult:
         if self.deck_done:
             produced = read_json(self.deck_result)["produced"]
             briefing = state_briefing(self.run_dir, self.player.id, produced)
-            return ToolResult(True, json.dumps({"status": "alreadyValid", "message": "Deck turn is finished; do not submit it again.", "boardBriefing": briefing, "next": "submit_board_turn"}, separators=(",", ":")))
+            return ToolResult(True, json.dumps({"status": "alreadyValid", "message": "Deck turn is finished; do not submit it again.", "boardBriefing": briefing, "next": "submit_setup"}, separators=(",", ":")))
         if self.deck_preview is None:
             try:
                 self.deck_preview = preview_deck_choices(
                     self.args.config,
                     self.run_dir / "deck.json",
+                    self.run_dir / "board.json",
                     self.player.id,
-                    self.turn_id,
+                    self.step_id,
                 )
             except RuntimeError as error:
                 return self.retry("deck", str(error), submitted.model_dump())
@@ -240,106 +249,145 @@ class TurnTools:
             "note": submitted.note,
         }
         before = (self.run_dir / "deck.json").read_text()
-        action_path = self.run_dir / "actions" / f"{self.turn_id}.deck.json"
+        action_path = self.run_dir / "actions" / f"{self.step_id}.deck.json"
         normalized_actions = normalize_deck_actions(self.trash_copper, submitted.buyCard)
-        write_json(action_path, {"schemaVersion": 1, "turnId": self.turn_id, "player": self.player.id, "actions": normalized_actions})
+        write_json(action_path, {"schemaVersion": 1, "turnId": self.step_id, "player": self.player.id, "actions": normalized_actions})
         result = run([
             "bun", "run", "--silent", "cli", "--", "deck-turn", "--config", self.args.config,
-            "--state", rel(self.run_dir / "deck.json"), "--actions", rel(action_path), "--result", rel(self.deck_result),
+            "--state", rel(self.run_dir / "deck.json"), "--board-state", rel(self.run_dir / "board.json"),
+            "--actions", rel(action_path), "--result", rel(self.deck_result),
         ], check=False)
-        append_log(self.run_dir / "logs" / f"{self.turn_id}.deck.txt", result.stdout + result.stderr)
+        append_log(self.run_dir / "logs" / f"{self.step_id}.deck.txt", result.stdout + result.stderr)
         if result.returncode != 0:
             (self.run_dir / "deck.json").write_text(before)
             return self.retry("deck", result.stdout + result.stderr, submission)
         self.deck_done = True
-        record_submission(self.run_dir, self.turn_id, self.player.id, "deck", submission, accepted=True)
+        record_submission(self.run_dir, self.step_id, self.player.id, "deck", submission, accepted=True)
         deck_result = read_json(self.deck_result)
         produced = deck_result["produced"]
         briefing = state_briefing(self.run_dir, self.player.id, produced)
-        return ToolResult(True, json.dumps({"status": "valid", "normalizedActions": deck_result["actions"], "produced": produced, "boardBriefing": briefing, "next": "submit_board_turn"}, separators=(",", ":")))
+        return ToolResult(True, json.dumps({"status": "valid", "normalizedActions": deck_result["actions"], "produced": produced, "boardBriefing": briefing, "next": "submit_setup"}, separators=(",", ":")))
 
-    def submit_board_turn(self, submitted: SubmitBoardTurnArgs) -> ToolResult:
+    def submit_setup(self, submitted: SubmitSetupArgs) -> ToolResult:
         submission = submitted.model_dump(by_alias=True, exclude_none=True)
         if not self.deck_done:
             return self.retry("board", "choose_purchase must succeed first.", submission)
-        if self.board_done:
-            return ToolResult(True, json.dumps({"status": "alreadyCommitted", "turnId": self.turn_id, "next": "answer done"}, separators=(",", ":")))
+        if self.step_done:
+            return ToolResult(True, json.dumps({"status": "alreadyCommitted", "stepId": self.step_id, "next": "answer done"}, separators=(",", ":")))
         board_before = (self.run_dir / "board.json").read_text()
         timeline_before = (self.run_dir / "timeline.json").read_text()
-        action_path = self.run_dir / "actions" / f"{self.turn_id}.board.json"
+        action_path = self.run_dir / "actions" / f"{self.step_id}.board.json"
         produced = read_json(self.deck_result)["produced"]
         briefing = state_briefing(self.run_dir, self.player.id, produced)
         unspent = unspent_affordable_upgrades(briefing["legalUpgrades"], submitted.actions.upgrades)
         if unspent:
             return self.retry("board", f"Affordable upgrades remain unspent: {json.dumps(unspent, separators=(',', ':'))}", submission)
-        try:
-            actions_payload = board_actions_payload(submitted.actions, briefing["activationOptions"])
-        except ValueError as error:
-            return self.retry("board", str(error), submission)
-        actions_payload = remove_redundant_attacks(actions_payload, read_json(self.run_dir / "board.json"), briefing["automaticKeyPointUpgrades"])
-        result = self.execute_board_actions(action_path, actions_payload)
-        append_log(self.run_dir / "logs" / f"{self.turn_id}.board.txt", result.stdout + result.stderr)
+        action = {"type": "setup", "upgrades": [upgrade.model_dump() for upgrade in submitted.actions.upgrades]}
+        result = self.execute_board_action(action_path, action, include_deck=True)
+        append_log(self.run_dir / "logs" / f"{self.step_id}.board.txt", result.stdout + result.stderr)
         if result.returncode != 0:
             (self.run_dir / "board.json").write_text(board_before)
             return self.retry("board", result.stdout + result.stderr, submission)
 
-        completed = self.previous_entries + 1
-        terminal = terminal_events(read_json(self.run_dir / "board.json"), completed, self.args.max_turns)
+        terminal = terminal_events(read_json(self.run_dir / "board.json"), self.args.max_turns)
         command = [
-            "bun", "run", "--silent", "playtest", "--", "commit-turn", "--run", rel(self.run_dir),
+            "bun", "run", "--silent", "playtest", "--", "commit-action", "--run", rel(self.run_dir),
             "--deck-result", rel(self.deck_result), "--board-result", rel(self.board_result),
             "--summary", submitted.summary, "--reasoning", submitted.reasoning, "--strict-win",
         ]
         if terminal:
-            event_path = self.run_dir / "results" / f"{self.turn_id}.win-events.json"
+            event_path = self.run_dir / "results" / f"{self.step_id}.win-events.json"
             write_json(event_path, terminal)
             command.extend(["--win-events", rel(event_path), "--terminal-win-events", rel(event_path)])
         commit = run(command, check=False)
-        append_log(self.run_dir / "logs" / f"{self.turn_id}.commit.txt", commit.stdout + commit.stderr)
+        append_log(self.run_dir / "logs" / f"{self.step_id}.commit.txt", commit.stdout + commit.stderr)
         if commit.returncode != 0:
             (self.run_dir / "board.json").write_text(board_before)
             (self.run_dir / "timeline.json").write_text(timeline_before)
             return self.retry("board", commit.stdout + commit.stderr, submission)
+        validation_started = time.monotonic()
         validation = validate_run(self.run_dir)
+        record_validation_timing(self.run_dir, "step", validation_started, self.step_id)
         timeline = read_json(self.run_dir / "timeline.json")
-        if validation.returncode != 0 or not committed_expected_turn(timeline, self.previous_entries, self.turn_id, self.player.id):
+        if validation.returncode != 0 or not committed_expected_step(timeline, self.previous_entries, self.step_id, self.player.id):
             (self.run_dir / "board.json").write_text(board_before)
             (self.run_dir / "timeline.json").write_text(timeline_before)
             return self.retry("board", validation.stdout + validation.stderr, submission)
-        self.board_done = True
-        record_submission(self.run_dir, self.turn_id, self.player.id, "board", submission, accepted=True)
-        return ToolResult(True, json.dumps({"status": "committed", "turnId": self.turn_id}, separators=(",", ":")))
+        self.step_done = True
+        record_submission(self.run_dir, self.step_id, self.player.id, "setup", submission, accepted=True)
+        record_timing(self.run_dir, self.step_id, "setup", self.player.id, getattr(self, "started_at", time.monotonic()))
+        return ToolResult(True, json.dumps({"status": "committed", "stepId": self.step_id}, separators=(",", ":")))
 
-    def execute_board_actions(self, action_path: Path, actions_payload: dict[str, Any]):
+    def submit_activation(self, submitted: SubmitActivationArgs) -> ToolResult:
+        submission = submitted.model_dump(by_alias=True, exclude_none=True)
+        if self.step_done:
+            return ToolResult(True, json.dumps({"status": "alreadyCommitted", "stepId": self.step_id}, separators=(",", ":")))
+        board_before = (self.run_dir / "board.json").read_text()
+        timeline_before = (self.run_dir / "timeline.json").read_text()
+        action_path = self.run_dir / "actions" / f"{self.step_id}.board.json"
+        briefing = state_briefing(self.run_dir, self.player.id)
+        try:
+            activation = activation_payload(submitted.activation, briefing["activationOptions"])
+        except ValueError as error:
+            return self.retry("activation", str(error), submission)
+        result = self.execute_board_action(action_path, {"type": "activation", "activation": activation}, include_deck=False)
+        append_log(self.run_dir / "logs" / f"{self.step_id}.board.txt", result.stdout + result.stderr)
+        if result.returncode != 0:
+            (self.run_dir / "board.json").write_text(board_before)
+            return self.retry("activation", result.stdout + result.stderr, submission)
+
+        terminal = terminal_events(read_json(self.run_dir / "board.json"), self.args.max_turns)
         command = [
-            "bun", "run", "--silent", "cli", "--", "board-turn", "--state", rel(self.run_dir / "board.json"),
-            "--deck-result", rel(self.deck_result), "--actions", rel(action_path), "--result", rel(self.board_result),
+            "bun", "run", "--silent", "playtest", "--", "commit-action", "--run", rel(self.run_dir),
+            "--board-result", rel(self.board_result), "--summary", submitted.summary,
+            "--reasoning", submitted.reasoning, "--strict-win",
         ]
-        last_result = None
-        for candidate in activation_order_candidates(actions_payload):
-            write_json(action_path, {"schemaVersion": 1, "turnId": self.turn_id, "player": self.player.id, "actions": candidate})
-            last_result = run(command, check=False)
-            if last_result.returncode == 0:
-                return last_result
-            message = last_result.stdout + last_result.stderr
-            if not re.search(r"moved \d+, exceeding movement|occupied hex", message, re.IGNORECASE):
-                return last_result
-        if last_result is None:
-            raise RuntimeError("No board activation order was generated")
-        return last_result
+        if terminal:
+            event_path = self.run_dir / "results" / f"{self.step_id}.win-events.json"
+            write_json(event_path, terminal)
+            command.extend(["--win-events", rel(event_path), "--terminal-win-events", rel(event_path)])
+        commit = run(command, check=False)
+        append_log(self.run_dir / "logs" / f"{self.step_id}.commit.txt", commit.stdout + commit.stderr)
+        if commit.returncode != 0:
+            (self.run_dir / "board.json").write_text(board_before)
+            (self.run_dir / "timeline.json").write_text(timeline_before)
+            return self.retry("activation", commit.stdout + commit.stderr, submission)
+        validation_started = time.monotonic()
+        validation = validate_run(self.run_dir)
+        record_validation_timing(self.run_dir, "step", validation_started, self.step_id)
+        timeline = read_json(self.run_dir / "timeline.json")
+        if validation.returncode != 0 or not committed_expected_step(timeline, self.previous_entries, self.step_id, self.player.id):
+            (self.run_dir / "board.json").write_text(board_before)
+            (self.run_dir / "timeline.json").write_text(timeline_before)
+            return self.retry("activation", validation.stdout + validation.stderr, submission)
+        self.step_done = True
+        record_submission(self.run_dir, self.step_id, self.player.id, "activation", submission, accepted=True)
+        record_timing(self.run_dir, self.step_id, "activation", self.player.id, getattr(self, "started_at", time.monotonic()))
+        return ToolResult(True, json.dumps({"status": "committed", "stepId": self.step_id}, separators=(",", ":")))
+
+    def execute_board_action(self, action_path: Path, action: dict[str, Any], *, include_deck: bool):
+        command = [
+            "bun", "run", "--silent", "cli", "--", "board-action", "--state", rel(self.run_dir / "board.json"),
+            "--actions", rel(action_path), "--result", rel(self.board_result),
+        ]
+        if include_deck:
+            command.extend(["--deck-result", rel(self.deck_result)])
+        write_json(action_path, {"schemaVersion": 1, "stepId": self.step_id, "player": self.player.id, "action": action})
+        return run(command, check=False)
 
     def retry(self, action_shape: str, message: str, submission: dict[str, Any]) -> ToolResult:
         record_retry(self.run_dir, action_shape)
-        record_submission(self.run_dir, self.turn_id, self.player.id, action_shape, submission, accepted=False, message=message)
+        record_submission(self.run_dir, self.step_id, self.player.id, action_shape, submission, accepted=False, message=message)
         produced = read_json(self.deck_result)["produced"] if self.deck_result.exists() else None
         briefing = state_briefing(self.run_dir, self.player.id, produced)
         return ToolResult(False, f"{message.strip()}\nCurrent state: {json.dumps(briefing, separators=(',', ':'))}", {"error_type": f"Invalid{action_shape.title()}", "retry": True})
 
 
-def terminal_events(board: dict[str, Any], completed: int, cap: int) -> list[dict[str, Any]]:
+def terminal_events(board: dict[str, Any], cap: int) -> list[dict[str, Any]]:
     players = board["players"]
     armies = {player: [unit for unit in board["units"] if unit["player"] == player] for player in players}
     eliminated = any(len(armies[player]) == 0 for player in players)
+    completed = board["turn"]["round"] - 1
     if not eliminated and completed < cap:
         return []
     first, second = players
@@ -351,9 +399,9 @@ def terminal_events(board: dict[str, Any], completed: int, cap: int) -> list[dic
         if hp[first] != hp[second]:
             winner = first if hp[first] > hp[second] else second
     if winner is None:
-        return [{"type": "elimination" if eliminated else "turnCap", "outcome": "draw", "player": None, "completedTurns": completed, "playerUnits": len(armies[first]), "opponentUnits": len(armies[second]), "playerHp": sum(unit["hp"] for unit in armies[first]), "opponentHp": sum(unit["hp"] for unit in armies[second])}]
+        return [{"type": "elimination" if eliminated else "turnCap", "outcome": "draw", "player": None, "completedRounds": completed, "playerUnits": len(armies[first]), "opponentUnits": len(armies[second]), "playerHp": sum(unit["hp"] for unit in armies[first]), "opponentHp": sum(unit["hp"] for unit in armies[second])}]
     opponent = second if winner == first else first
-    return [{"type": "elimination" if eliminated else "turnCap", "outcome": "win", "player": winner, "completedTurns": completed, "playerUnits": len(armies[winner]), "opponentUnits": len(armies[opponent]), "playerHp": sum(unit["hp"] for unit in armies[winner]), "opponentHp": sum(unit["hp"] for unit in armies[opponent])}]
+    return [{"type": "elimination" if eliminated else "turnCap", "outcome": "win", "player": winner, "completedRounds": completed, "playerUnits": len(armies[winner]), "opponentUnits": len(armies[opponent]), "playerHp": sum(unit["hp"] for unit in armies[winner]), "opponentHp": sum(unit["hp"] for unit in armies[opponent])}]
 
 
 def normalize_deck_actions(trash_copper: bool, buy_card: str = "") -> list[dict[str, Any]]:
@@ -367,7 +415,7 @@ def normalize_deck_actions(trash_copper: bool, buy_card: str = "") -> list[dict[
     return normalized
 
 
-def preview_deck_choices(config: str, deck_path: Path, player: str, turn_id: str) -> dict[str, Any]:
+def preview_deck_choices(config: str, deck_path: Path, board_path: Path, player: str, turn_id: str) -> dict[str, Any]:
     variants: dict[str, dict[str, Any]] = {}
     with tempfile.TemporaryDirectory(prefix="deckfront-preview-") as directory:
         preview_dir = Path(directory)
@@ -385,7 +433,8 @@ def preview_deck_choices(config: str, deck_path: Path, player: str, turn_id: str
             })
             result = run([
                 "bun", "run", "--silent", "cli", "--", "deck-turn", "--config", config,
-                "--state", str(state_path), "--actions", str(action_path), "--result", str(result_path),
+                "--state", str(state_path), "--board-state", str(board_path),
+                "--actions", str(action_path), "--result", str(result_path),
             ], check=False)
             if result.returncode != 0:
                 raise RuntimeError((result.stdout + result.stderr).strip())
@@ -437,88 +486,33 @@ def unspent_affordable_upgrades(
     ]
 
 
-def board_actions_payload(actions: BoardActions, activation_options: list[dict[str, Any]]) -> dict[str, Any]:
+def activation_payload(activation: Activation, activation_options: list[dict[str, Any]]) -> dict[str, Any]:
     options_by_unit = {option["unit"]: option for option in activation_options}
-    activations = []
-    activated: set[str] = set()
-    for activation in actions.activations:
-        if activation.unit in activated:
-            raise ValueError(f"{activation.unit} has multiple activations; submit each surviving unit once")
-        activated.add(activation.unit)
-        option = options_by_unit.get(activation.unit)
-        if not option:
-            raise ValueError(f"{activation.unit} is not a surviving friendly unit in activationOptions")
-        to = activation.to.model_dump()
-        payload: dict[str, Any] = {"unit": activation.unit, "from": option["from"], "to": to}
-        if not activation.attackPlan:
-            payload["to"] = closest_legal_coord(to, option["noAttackTo"])
-            activations.append(payload)
-            continue
-        selected: tuple[dict[str, Any], dict[str, str]] | None = None
-        for choice in option["attackChoicesByVia"]:
-            attack = next((candidate for candidate in choice["attacks"] if candidate["id"] == activation.attackPlan), None)
-            if attack:
-                selected = choice, attack
-                break
-        if not selected:
-            raise ValueError(f"{activation.unit} attackPlan is not listed for that unit")
-        choice, attack = selected
-        payload.update({
-            "to": closest_legal_coord(to, choice["to"]),
-            "via": choice["via"],
-            "attack": {"target": attack["target"]},
-        })
-        activations.append(payload)
-    return {"upgrades": [upgrade.model_dump() for upgrade in actions.upgrades], "activations": activations}
+    option = options_by_unit.get(activation.unit)
+    if not option:
+        raise ValueError(f"{activation.unit} is not an unactivated friendly unit in activationOptions")
+    to = activation.to.model_dump()
+    payload: dict[str, Any] = {"unit": activation.unit, "from": option["from"], "to": to}
+    if not activation.attackPlan:
+        payload["to"] = closest_legal_coord(to, option["noAttackTo"])
+        return payload
+    selected: tuple[dict[str, Any], dict[str, str]] | None = None
+    for choice in option["attackChoicesByVia"]:
+        attack = next((candidate for candidate in choice["attacks"] if candidate["id"] == activation.attackPlan), None)
+        if attack:
+            selected = choice, attack
+            break
+    if not selected:
+        raise ValueError(f"{activation.unit} attackPlan is not listed for that unit")
+    choice, attack = selected
+    payload.update({"to": closest_legal_coord(to, choice["to"]), "via": choice["via"], "attack": {"target": attack["target"]}})
+    return payload
 
 
 def closest_legal_coord(desired: dict[str, int], legal: list[dict[str, int]]) -> dict[str, int]:
     if not legal:
         raise ValueError("No legal destination is available")
     return min(legal, key=lambda candidate: hex_distance(candidate, desired))
-
-
-def remove_redundant_attacks(
-    actions_payload: dict[str, Any],
-    board: dict[str, Any],
-    automatic_upgrades: list[dict[str, Any]],
-) -> dict[str, Any]:
-    normalized = json.loads(json.dumps(actions_payload))
-    units = {unit["id"]: unit for unit in board["units"]}
-    attack_values = {unit_id: unit["attack"] for unit_id, unit in units.items()}
-    remaining_hp = {unit_id: unit["hp"] for unit_id, unit in units.items()}
-    for upgrade in [*automatic_upgrades, *normalized["upgrades"]]:
-        if upgrade["stat"] == "attack":
-            attack_values[upgrade["target"]] = upgrade["to"]
-    for activation in normalized["activations"]:
-        attack = activation.get("attack")
-        if not attack:
-            continue
-        target = attack["target"]
-        if remaining_hp.get(target, 0) <= 0:
-            activation.pop("attack", None)
-            activation.pop("via", None)
-            continue
-        remaining_hp[target] -= attack_values.get(activation["unit"], 0)
-    return normalized
-
-
-def activation_order_candidates(actions_payload: dict[str, Any]):
-    activations = actions_payload["activations"]
-    seen: set[tuple[str, ...]] = set()
-    preferred = [
-        activations,
-        [*filter(lambda item: "attack" not in item, activations), *filter(lambda item: "attack" in item, activations)],
-        [*filter(lambda item: "attack" in item, activations), *filter(lambda item: "attack" not in item, activations)],
-        list(reversed(activations)),
-    ]
-    orders = preferred if len(activations) > 7 else [*preferred, *permutations(activations)]
-    for order in orders:
-        key = tuple(activation["unit"] for activation in order)
-        if key in seen:
-            continue
-        seen.add(key)
-        yield {**actions_payload, "activations": list(order)}
 
 
 def main() -> int:
@@ -549,21 +543,28 @@ def main() -> int:
     ensure_initialized(args, run_dir, setups)
     args.max_turns = int(read_json(run_dir / "timeline.json")["run"]["turnCap"])
     write_context_snapshot(run_dir)
+    game_started = time.monotonic()
 
     while True:
         timeline = read_json(run_dir / "timeline.json")
         if timeline.get("terminalWinEvents"):
+            validation_started = time.monotonic()
+            validation = validate_run(run_dir)
+            record_validation_timing(run_dir, "final", validation_started)
+            if validation.returncode != 0:
+                print(validation.stdout + validation.stderr, file=sys.stderr)
+                return 1
+            finalize_timing(run_dir, game_started)
             print(json.dumps(timeline["terminalWinEvents"], indent=2))
             print(json.dumps({"submissionMetrics": submission_metrics_summary(run_dir)}, indent=2))
             return 0
         previous_entries = len(timeline.get("entries", []))
-        if previous_entries >= args.max_turns:
-            print("Turn cap reached without a terminal event", file=sys.stderr)
-            return 1
-        active = read_json(run_dir / "board.json")["turn"]["activePlayer"]
+        board = read_json(run_dir / "board.json")
+        active = board["turn"]["activePlayer"]
+        phase = board["turn"]["phase"]
         player = next(candidate for candidate in players if candidate.id == active)
-        turn_id = expected_next_turn_id(timeline)
-        tools = TurnTools(args, run_dir, player, turn_id, previous_entries)
+        step_id = expected_next_step_id(timeline)
+        tools = StepTools(args, run_dir, player, step_id, previous_entries, phase)
         prompt = "\n\n".join([
             (ROOT / "agent-context/prompts/playtest-initial.user.md").read_text().strip() if previous_entries == 0 else (ROOT / "agent-context/prompts/playtest-turn.user.md").read_text().strip(),
             f"Strategy: {player.strategy}",
@@ -571,13 +572,14 @@ def main() -> int:
         ])
         config = HarnessConfig(root=ROOT, model=args.model, system_prompt=system_prompt(), builtin_tools=[], max_model_requests=args.max_model_requests, max_tool_calls=args.max_tool_calls, tool_retries=args.tool_retries, request_timeout=args.timeout_seconds, extra_body={"reasoning": {"effort": args.effort}} if args.model.startswith("openai:") else {})
         started = time.monotonic()
+        tools.started_at = started
         result = Harness(config, tools=tools.specs()).run_sync(prompt)
-        record_harness_tool_calls(run_dir, turn_id, result.tool_call_records)
-        append_log(run_dir / "logs" / f"{turn_id}.model.txt", result.text)
-        if not tools.board_done:
-            print(f"{turn_id} ended without a committed board turn", file=sys.stderr)
+        record_harness_tool_calls(run_dir, step_id, result.tool_call_records)
+        append_log(run_dir / "logs" / f"{step_id}.model.txt", result.text)
+        if not tools.step_done:
+            print(f"{step_id} ended without a committed {phase} action", file=sys.stderr)
             return 1
-        print(f"{turn_id} committed in {time.monotonic() - started:.1f}s", flush=True)
+        print(f"{step_id} {phase} committed in {time.monotonic() - started:.1f}s", flush=True)
 
 
 def parse_args() -> argparse.Namespace:
@@ -591,7 +593,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default=DEFAULT_CONFIG)
     parser.add_argument("--title", default="Skirmish ThinHarness playthrough")
     parser.add_argument("--seed", type=int, default=2106)
-    parser.add_argument("--max-turns", type=int, default=20, help="Maximum completed player turns (default: 20)")
+    parser.add_argument("--max-turns", type=int, default=20, help="Maximum completed rounds (default: 20)")
     parser.add_argument("--model", default="openai:gpt-5.6-luna")
     parser.add_argument("--effort", default="low")
     parser.add_argument("--timeout-seconds", type=int, default=180)
@@ -639,8 +641,8 @@ def record_submission(
     phase_totals = metrics["totals"].setdefault(phase, {"attempts": 0, "accepted": 0, "rejected": 0})
     phase_totals["attempts"] += 1
     phase_totals["accepted" if accepted else "rejected"] += 1
-    turn = metrics["turns"].setdefault(turn_id, {"player": player, "deck": {"attempts": 0, "accepted": 0, "rejected": 0}, "board": {"attempts": 0, "accepted": 0, "rejected": 0}})
-    turn_phase = turn[phase]
+    turn = metrics["turns"].setdefault(turn_id, {"player": player})
+    turn_phase = turn.setdefault(phase, {"attempts": 0, "accepted": 0, "rejected": 0})
     turn_phase["attempts"] += 1
     turn_phase["accepted" if accepted else "rejected"] += 1
     event: dict[str, Any] = {
@@ -684,6 +686,37 @@ def record_harness_tool_calls(run_dir: Path, turn_id: str, records: list[dict[st
     write_json(path, trace)
 
 
+def record_timing(run_dir: Path, step_id: str, phase: str, player: str, started: float) -> None:
+    path = run_dir / "timings.json"
+    timing = read_json(path) if path.exists() else {"schemaVersion": 1, "steps": [], "setupSeconds": 0.0, "activationSeconds": 0.0}
+    duration = time.monotonic() - started
+    timing["steps"].append({"stepId": step_id, "phase": phase, "player": player, "durationSeconds": round(duration, 3)})
+    key = "setupSeconds" if phase == "setup" else "activationSeconds"
+    timing[key] = round(float(timing.get(key, 0.0)) + duration, 3)
+    write_json(path, timing)
+
+
+def record_validation_timing(run_dir: Path, kind: str, started: float, step_id: str | None = None) -> None:
+    path = run_dir / "timings.json"
+    timing = read_json(path) if path.exists() else {"schemaVersion": 1, "steps": [], "setupSeconds": 0.0, "activationSeconds": 0.0}
+    duration = time.monotonic() - started
+    validation = {"kind": kind, "durationSeconds": round(duration, 3)}
+    if step_id is not None:
+        validation["stepId"] = step_id
+    timing.setdefault("validations", []).append(validation)
+    timing["validationSeconds"] = round(float(timing.get("validationSeconds", 0.0)) + duration, 3)
+    write_json(path, timing)
+
+
+def finalize_timing(run_dir: Path, game_started: float) -> None:
+    path = run_dir / "timings.json"
+    timing = read_json(path) if path.exists() else {"schemaVersion": 1, "steps": [], "setupSeconds": 0.0, "activationSeconds": 0.0}
+    invocation_duration = time.monotonic() - game_started
+    phase_duration = float(timing.get("setupSeconds", 0.0)) + float(timing.get("activationSeconds", 0.0))
+    timing.setdefault("totalGameSeconds", round(max(invocation_duration, phase_duration), 3))
+    write_json(path, timing)
+
+
 def submission_metrics_summary(run_dir: Path) -> dict[str, Any]:
     metrics_path = run_dir / "submission-metrics.json"
     metrics = read_json(metrics_path) if metrics_path.exists() else {}
@@ -695,7 +728,7 @@ def submission_metrics_summary(run_dir: Path) -> dict[str, Any]:
     for records in read_json(trace_path).get("turns", {}).values():
         for record in records:
             name = record.get("call", {}).get("name", "")
-            phase = "deck" if name in {"play_all_actions", "choose_copper_trash", "choose_purchase"} else "board" if name == "submit_board_turn" else name
+            phase = "deck" if name in {"play_all_actions", "choose_copper_trash", "choose_purchase"} else "setup" if name == "submit_setup" else "activation" if name == "submit_activation" else name
             if not phase:
                 continue
             phase_totals = totals.setdefault(phase, {"attempts": 0, "accepted": 0, "rejected": 0})

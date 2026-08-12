@@ -2,16 +2,16 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
-import { hexDistance, lineOfSight, mapDistance } from '../board/coordinates';
 import { boardStateSchema, coordKey, unitRulesSchema, validateSkirmishMap, type BoardMap, type BoardState, type UnitRules } from '../board/schema';
 import { loadGameConfig } from '../config/loadGameConfig';
 import type { GameConfig, GameState, PlayerState } from '../core/types';
-import { replayTimelineSchema, type ReplayBoardActions, type ReplayEntry, type ReplayTimeline, type ReplayWinEvent } from '../replay/schema';
+import { replayTimelineSchema, type ReplayActivationInput, type ReplayEntry, type ReplayTimeline, type ReplayWinEvent } from '../replay/schema';
+import { executeBoardAction, nextDeckPlayerAfterSetup, type BoardActionInput, type BoardRulesContext } from './boardAction';
 import { deckTurnInputSchema, executeDeckTurn, isCompleteDeckSnapshot, type DeckSnapshot } from './deckTurn';
 
 export interface PlaytestRunPaths { root: string; deckState: string; boardState: string; timeline: string; snapshotsDir: string }
-export interface TurnSnapshotPaths { deckBefore: string; deckAfter: string; boardBefore: string; boardAfter: string }
-export interface ValidatedReplayEntry { entry: ReplayEntry; deckBefore: DeckSnapshot; deckAfter: DeckSnapshot; boardBefore: BoardState; boardAfter: BoardState }
+export interface StepSnapshotPaths { deckBefore: string; deckAfter: string; boardBefore: string; boardAfter: string }
+export interface ValidatedReplayEntry { entry: ReplayEntry; deckBefore?: DeckSnapshot; deckAfter?: DeckSnapshot; boardBefore: BoardState; boardAfter: BoardState }
 export interface ValidatedReplayBundle { timeline: ReplayTimeline; entries: ValidatedReplayEntry[] }
 export interface ValidateReplayBundleOptions { strict?: boolean; strictDeck?: boolean; strictWin?: boolean }
 export interface InitPlaytestRunOptions {
@@ -25,7 +25,7 @@ export interface InitPlaytestRunOptions {
   turnCap?: number;
 }
 
-interface RulesContext { map: BoardMap; units: UnitRules; unitsPerPlayer: number; deckConfig: GameConfig }
+interface RulesContext extends BoardRulesContext { unitsPerPlayer: number; deckConfig: GameConfig }
 type BoardUnit = BoardState['units'][number];
 
 const initialUnitSetupSchema = z.object({
@@ -41,13 +41,13 @@ export function playtestRunPaths(root: string): PlaytestRunPaths {
   return { root, deckState: join(root, 'deck.json'), boardState: join(root, 'board.json'), timeline: join(root, 'timeline.json'), snapshotsDir: join(root, 'snapshots') };
 }
 
-export function turnSnapshotPaths(root: string, turnId: string): TurnSnapshotPaths {
+export function stepSnapshotPaths(root: string, stepId: string): StepSnapshotPaths {
   const snapshots = playtestRunPaths(root).snapshotsDir;
   return {
-    deckBefore: join(snapshots, `${turnId}.before.deck.json`),
-    deckAfter: join(snapshots, `${turnId}.after.deck.json`),
-    boardBefore: join(snapshots, `${turnId}.before.board.json`),
-    boardAfter: join(snapshots, `${turnId}.after.board.json`)
+    deckBefore: join(snapshots, `${stepId}.before.deck.json`),
+    deckAfter: join(snapshots, `${stepId}.after.deck.json`),
+    boardBefore: join(snapshots, `${stepId}.before.board.json`),
+    boardAfter: join(snapshots, `${stepId}.after.board.json`)
   };
 }
 
@@ -76,14 +76,14 @@ export async function initPlaytestRun(options: InitPlaytestRunOptions): Promise<
     ruleset: options.ruleset,
     map: context.map.id,
     players: playerTuple,
-    turn: { activePlayer: playerTuple[0], round: 1 },
+    turn: initialRoundState(playerTuple[0]),
     units,
     notes: []
   });
   if (board.ruleset !== options.ruleset || board.map !== options.map) throw new Error('Starter board does not match requested ruleset and map');
   if (stableJson(board.players) !== stableJson(playerTuple)) throw new Error('Starter board players do not match requested players');
-  if (board.turn.activePlayer !== playerTuple[0] || board.turn.round !== 1) {
-    throw new Error(`Starter board must begin at round 1 with ${playerTuple[0]} active`);
+  if (stableJson(board.turn) !== stableJson(initialRoundState(playerTuple[0]))) {
+    throw new Error(`Starter board must begin in round 1 setup with ${playerTuple[0]} holding initiative`);
   }
   const setupErrors: string[] = [];
   validateInitialArmy(board, context, setupErrors);
@@ -103,6 +103,7 @@ export async function validateReplayBundle(timelinePath: string, options: Valida
   const entries: ValidatedReplayEntry[] = [];
   const errors: string[] = [];
   const seen = new Set<string>();
+  let lastDeckAfter: DeckSnapshot | undefined;
   if (timeline.entries.length === 0) errors.push('timeline has no entries');
 
   for (const entry of timeline.entries) {
@@ -117,14 +118,18 @@ export async function validateReplayBundle(timelinePath: string, options: Valida
     const previous = entries.at(-1);
     if (previous) checkContinuity(previous, validated, errors);
     if (options.strict) validateBoardTransitionIndependent(validated, context, errors);
-    if (options.strictDeck) validateDeckTransition(validated, errors);
+    if (options.strictDeck && entry.phase === 'setup') validateDeckTransition(validated, errors);
+    if (entry.phase === 'setup' && validated.deckBefore && validated.deckAfter) {
+      if (lastDeckAfter && stableJson(lastDeckAfter) !== stableJson(validated.deckBefore)) errors.push(`${entry.id}: deck.before does not match the previous setup deck.after`);
+      lastDeckAfter = validated.deckAfter;
+    }
     entries.push(validated);
   }
 
   const first = entries[0];
   if (first) {
     validateInitialArmy(first.boardBefore, context, errors);
-    validateInitialDeck(first.deckBefore, first.boardBefore.players, context.deckConfig, options.strictDeck ?? false, errors);
+    if (first.deckBefore) validateInitialDeck(first.deckBefore, first.boardBefore.players, context.deckConfig, options.strictDeck ?? false, errors);
   }
   if (options.strictWin) validateWinEvents(timeline, entries, errors);
   if (errors.length > 0) throw new Error(`Invalid replay bundle: ${errors.join('; ')}`);
@@ -133,103 +138,24 @@ export async function validateReplayBundle(timelinePath: string, options: Valida
 
 function validateBoardTransitionIndependent(validated: ValidatedReplayEntry, context: RulesContext, errors: string[]): void {
   const { entry } = validated;
-  if (!entry.actions) {
-    errors.push(`${entry.id}: strict validation requires board actions`);
-    return;
-  }
-  const state = boardStateSchema.parse(cloneJson(validated.boardBefore));
-  const raised = new Set<string>();
-  const expectedKeyPoints: ReplayBoardActions['keyPointUpgrades'] = [];
-
-  for (const point of context.map.keyPoints) {
-    const unit = state.units.find((candidate) => candidate.player === entry.player && coordKey(candidate) === coordKey(point));
-    if (!unit) continue;
-    const rules = context.units[unit.type];
-    if (!rules || (point.stat === 'range' && !rules.canUpgradeRange)) continue;
-    unit[point.stat] += 1;
-    raised.add(`${unit.id}:${point.stat}`);
-    expectedKeyPoints.push({ target: unit.id, stat: point.stat, to: unit[point.stat], keyPoint: point.id });
-  }
-  if (stableJson(entry.actions.keyPointUpgrades) !== stableJson(expectedKeyPoints)) {
-    errors.push(`${entry.id}: key point upgrades do not match start-of-turn occupancy`);
-  }
-
-  const spent: Record<string, number> = {};
-  for (const upgrade of entry.actions.upgrades) {
-    const unit = state.units.find((candidate) => candidate.id === upgrade.target);
-    if (!unit) { errors.push(`${entry.id}: upgrade references missing target ${upgrade.target}`); continue; }
-    if (unit.player !== entry.player) errors.push(`${entry.id}: upgrade target ${unit.id} is not a ${entry.player} unit`);
-    const rules = context.units[unit.type];
-    if (!rules) { errors.push(`${entry.id}: ${unit.id} has unknown unit type ${unit.type}`); continue; }
-    if (upgrade.stat === 'range' && !rules.canUpgradeRange) errors.push(`${entry.id}: ${unit.id} cannot upgrade range`);
-    const raiseKey = `${unit.id}:${upgrade.stat}`;
-    if (raised.has(raiseKey)) errors.push(`${entry.id}: ${unit.id} ${upgrade.stat} can only be raised once per turn`);
-    if (upgrade.to !== unit[upgrade.stat] + 1) errors.push(`${entry.id}: ${unit.id} ${upgrade.stat} must increase exactly once`);
-    const lane = `${unit.type}${upgrade.stat[0]?.toUpperCase() ?? ''}${upgrade.stat.slice(1)}`;
-    spent[lane] = (spent[lane] ?? 0) + upgrade.to;
-    if ((spent[lane] ?? 0) > (entry.deck.produced[lane] ?? 0)) errors.push(`${entry.id}: upgrades spend ${spent[lane]} ${lane}, exceeding produced ${entry.deck.produced[lane] ?? 0}`);
-    unit[upgrade.stat] = upgrade.to;
-    raised.add(raiseKey);
-  }
-
-  const activated = new Set<string>();
-  for (const activation of entry.actions.activations) {
-    if (activated.has(activation.unit)) errors.push(`${entry.id}: ${activation.unit} has multiple activations`);
-    activated.add(activation.unit);
-    const unit = state.units.find((candidate) => candidate.id === activation.unit);
-    if (!unit) { errors.push(`${entry.id}: activation references missing unit ${activation.unit}`); continue; }
-    if (unit.player !== entry.player) errors.push(`${entry.id}: ${unit.id} cannot activate during ${entry.player}'s turn`);
-    if (coordKey(unit) !== coordKey(activation.from)) errors.push(`${entry.id}: ${unit.id} activation starts at the wrong hex`);
-    const via = activation.via ?? activation.from;
-    const first = independentMovementDistance(state, context.map, unit, activation.from, via, entry.id, errors);
-    unit.col = via.col;
-    unit.row = via.row;
-    if (activation.attack) {
-      const target = state.units.find((candidate) => candidate.id === activation.attack?.target);
-      if (!target) {
-        errors.push(`${entry.id}: attack references missing target ${activation.attack.target}`);
-      } else {
-        if (target.player === entry.player) errors.push(`${entry.id}: ${unit.id} attacks friendly unit ${target.id}`);
-        const distance = hexDistance(unit, target, context.map.coordinateSystem);
-        if (distance > unit.range) errors.push(`${entry.id}: ${unit.id} attacked ${target.id} at range ${distance}, exceeding range ${unit.range}`);
-        if (unit.range > 1 && !lineOfSight(context.map, unit, target)) errors.push(`${entry.id}: ${unit.id} has no line of sight to ${target.id}`);
-        if (activation.attack.damage !== unit.attack) errors.push(`${entry.id}: ${unit.id} logged damage ${activation.attack.damage}, expected ${unit.attack}`);
-        target.hp -= unit.attack;
-        const removed = target.hp <= 0;
-        if (activation.attack.targetRemoved !== removed) errors.push(`${entry.id}: ${target.id} targetRemoved is ${activation.attack.targetRemoved}, expected ${removed}`);
-        if (removed) state.units = state.units.filter((candidate) => candidate.id !== target.id);
-      }
+  const input: BoardActionInput = entry.phase === 'setup'
+    ? { schemaVersion: 1, stepId: entry.id, player: entry.player, action: { type: 'setup', upgrades: entry.action.upgrades } }
+    : { schemaVersion: 1, stepId: entry.id, player: entry.player, action: { type: 'activation', activation: replayActivationInput(entry.action.activation) } };
+  try {
+    const replayed = executeBoardAction(
+      validated.boardBefore,
+      input,
+      context,
+      { beforePath: entry.board.before, afterPath: entry.board.after },
+      entry.phase === 'setup' ? replayDeckResult(entry) : undefined
+    );
+    if (stableJson(replayed.result.action) !== stableJson(entry.action)) errors.push(`${entry.id}: board action result does not match replay`);
+    if (stableJson(boardContinuityState(replayed.after)) !== stableJson(boardContinuityState(validated.boardAfter))) {
+      errors.push(`${entry.id}: replayed board action does not match board.after`);
     }
-    const second = independentMovementDistance(state, context.map, unit, via, activation.to, entry.id, errors);
-    if (first !== null && second !== null && first + second > unit.movement) errors.push(`${entry.id}: ${unit.id} moved ${first + second}, exceeding movement ${unit.movement}`);
-    unit.col = activation.to.col;
-    unit.row = activation.to.row;
+  } catch (error) {
+    errors.push(`${entry.id}: ${errorMessage(error)}`);
   }
-
-  state.turn = independentNextTurn(state);
-  if (stableJson(boardContinuityState(state)) !== stableJson(boardContinuityState(validated.boardAfter))) {
-    errors.push(`${entry.id}: independently replayed board actions do not match board.after`);
-  }
-}
-
-function independentMovementDistance(
-  state: BoardState,
-  map: BoardMap,
-  moving: BoardUnit,
-  from: { col: number; row: number },
-  to: { col: number; row: number },
-  entryId: string,
-  errors: string[]
-): number | null {
-  const occupant = state.units.find((unit) => unit.id !== moving.id && coordKey(unit) === coordKey(to));
-  if (occupant) errors.push(`${entryId}: ${moving.id} cannot move to occupied hex ${coordKey(to)} containing ${occupant.id}`);
-  const blockedByUnits = new Map(map.blocked.map((coord) => [coordKey(coord), coord]));
-  for (const unit of state.units) {
-    if (unit.id !== moving.id) blockedByUnits.set(coordKey(unit), { col: unit.col, row: unit.row });
-  }
-  const distance = mapDistance({ ...map, blocked: [...blockedByUnits.values()] }, from, to);
-  if (distance === null) errors.push(`${entryId}: ${moving.id} movement uses an invalid map path ${coordKey(from)} -> ${coordKey(to)}`);
-  return distance;
 }
 
 function validateWinEvents(timeline: ReplayTimeline, entries: ValidatedReplayEntry[], errors: string[]): void {
@@ -238,8 +164,8 @@ function validateWinEvents(timeline: ReplayTimeline, entries: ValidatedReplayEnt
     return;
   }
   let terminal: ReplayWinEvent[] = [];
-  for (const [index, validated] of entries.entries()) {
-    const expected = expectedTerminalEvents(validated.boardAfter, index + 1, timeline.run.turnCap);
+  for (const validated of entries) {
+    const expected = expectedTerminalEvents(validated.boardAfter, completedRounds(validated.boardAfter), timeline.run.turnCap);
     if (stableJson(validated.entry.winEvents ?? []) !== stableJson(expected)) errors.push(`${validated.entry.id}: winEvents do not match expected terminal state`);
     if (terminal.length > 0) errors.push(`${validated.entry.id}: replay continues after a terminal event`);
     if (expected.length > 0) terminal = expected;
@@ -247,12 +173,12 @@ function validateWinEvents(timeline: ReplayTimeline, entries: ValidatedReplayEnt
   if (stableJson(timeline.terminalWinEvents ?? []) !== stableJson(terminal)) errors.push('terminalWinEvents do not match the final terminal event');
 }
 
-export function expectedTerminalEvents(state: BoardState, completedTurns: number, turnCap: number): ReplayWinEvent[] {
+export function expectedTerminalEvents(state: BoardState, completedRoundsValue: number, turnCap: number): ReplayWinEvent[] {
   const [first, second] = state.players;
   const firstUnits = state.units.filter((unit) => unit.player === first);
   const secondUnits = state.units.filter((unit) => unit.player === second);
   const eliminated = firstUnits.length === 0 || secondUnits.length === 0;
-  if (!eliminated && completedTurns < turnCap) return [];
+  if (!eliminated && completedRoundsValue < turnCap) return [];
 
   let winner: string | null = null;
   const type: ReplayWinEvent['type'] = eliminated ? 'elimination' : 'turnCap';
@@ -264,23 +190,25 @@ export function expectedTerminalEvents(state: BoardState, completedTurns: number
     if (firstHp !== secondHp) winner = firstHp > secondHp ? first : second;
   }
   if (winner === null) {
-    return [{ type, outcome: 'draw', player: null, completedTurns, playerUnits: firstUnits.length, opponentUnits: secondUnits.length, playerHp: totalHp(firstUnits), opponentHp: totalHp(secondUnits) }];
+    return [{ type, outcome: 'draw', player: null, completedRounds: completedRoundsValue, playerUnits: firstUnits.length, opponentUnits: secondUnits.length, playerHp: totalHp(firstUnits), opponentHp: totalHp(secondUnits) }];
   }
   const opponent = winner === first ? second : first;
   const winnerUnits = state.units.filter((unit) => unit.player === winner);
   const opponentUnits = state.units.filter((unit) => unit.player === opponent);
-  return [{ type, outcome: 'win', player: winner, completedTurns, playerUnits: winnerUnits.length, opponentUnits: opponentUnits.length, playerHp: totalHp(winnerUnits), opponentHp: totalHp(opponentUnits) }];
+  return [{ type, outcome: 'win', player: winner, completedRounds: completedRoundsValue, playerUnits: winnerUnits.length, opponentUnits: opponentUnits.length, playerHp: totalHp(winnerUnits), opponentHp: totalHp(opponentUnits) }];
 }
 
 function validateDeckTransition(validated: ValidatedReplayEntry, errors: string[]): void {
   const { entry, deckBefore, deckAfter } = validated;
+  if (entry.phase !== 'setup') return;
   if (!isCompleteDeckSnapshot(deckBefore)) { errors.push(`${entry.id}: strict deck validation requires a complete deck.before snapshot`); return; }
   if (!isCompleteDeckSnapshot(deckAfter)) { errors.push(`${entry.id}: strict deck validation requires a complete deck.after snapshot`); return; }
   if (!entry.deck.actions) { errors.push(`${entry.id}: strict deck validation requires deck actions`); return; }
   const parsed = deckTurnInputSchema.safeParse({ schemaVersion: 1, turnId: entry.id, player: entry.player, actions: entry.deck.actions });
   if (!parsed.success) { errors.push(`${entry.id}: invalid deck actions: ${parsed.error.message}`); return; }
   try {
-    const replayed = executeDeckTurn(deckBefore, parsed.data, { beforePath: entry.deck.before, afterPath: entry.deck.after });
+    const nextPlayer = nextDeckPlayerAfterSetup(validated.boardBefore);
+    const replayed = executeDeckTurn(deckBefore, parsed.data, { beforePath: entry.deck.before, afterPath: entry.deck.after, nextPlayer });
     if (stableJson(replayed.after) !== stableJson(deckAfter)) errors.push(`${entry.id}: replayed deck actions do not match deck.after`);
     if (stableJson(entry.deck.drawnHand) !== stableJson(replayed.result.drawnHand)) errors.push(`${entry.id}: deck.drawnHand does not match replay`);
     if (stableJson(entry.deck.played) !== stableJson(replayed.result.played)) errors.push(`${entry.id}: deck.played does not match replay`);
@@ -312,8 +240,8 @@ async function loadInitialUnits(path: string, context: RulesContext): Promise<Bo
 }
 
 function validateInitialArmy(state: BoardState, context: RulesContext, errors: string[]): void {
-  if (state.turn.round !== 1 || state.turn.activePlayer !== state.players[0]) {
-    errors.push(`initial board must begin at round 1 with ${state.players[0]} active`);
+  if (stableJson(state.turn) !== stableJson(initialRoundState(state.players[0]))) {
+    errors.push(`initial board must begin in round 1 setup with ${state.players[0]} holding initiative`);
   }
   const occupied = new Set<string>();
   const walls = new Set(context.map.blocked.map(coordKey));
@@ -422,42 +350,52 @@ function validateState(label: string, state: BoardState, context: RulesContext, 
     occupied.add(key);
     if (!context.units[unit.type]) errors.push(`${label}: ${unit.id} has unknown unit type ${unit.type}`);
   }
+  const opponent = state.players.find((player) => player !== state.turn.initiativePlayer);
+  const setupOrder = opponent ? [state.turn.initiativePlayer, opponent] : [];
+  if (state.turn.phase === 'setup') {
+    if (state.turn.activatedUnitIds.length > 0) errors.push(`${label}: setup phase cannot retain activated units`);
+    if (stableJson(state.turn.completedSetupPlayers) !== stableJson(setupOrder.slice(0, state.turn.completedSetupPlayers.length))) errors.push(`${label}: completed setup players are out of initiative order`);
+    const expected = setupOrder[state.turn.completedSetupPlayers.length];
+    if (expected && state.turn.activePlayer !== expected) errors.push(`${label}: setup active player is ${state.turn.activePlayer}, expected ${expected}`);
+  } else {
+    if (stableJson(state.turn.completedSetupPlayers) !== stableJson(setupOrder)) errors.push(`${label}: activation phase requires both completed setups in initiative order`);
+    const activeHasUnit = state.units.some((unit) => unit.player === state.turn.activePlayer && !state.turn.activatedUnitIds.includes(unit.id));
+    const eliminated = state.players.some((player) => !state.units.some((unit) => unit.player === player));
+    if (!activeHasUnit && !eliminated) errors.push(`${label}: active player has no unactivated unit and should have passed automatically`);
+  }
 }
 
 function checkEntryMatchesSnapshots(validated: ValidatedReplayEntry, errors: string[]): void {
   const { entry, boardBefore, boardAfter, deckBefore } = validated;
   if (boardBefore.turn.activePlayer !== entry.player) errors.push(`${entry.id}: board.before active player is ${boardBefore.turn.activePlayer}, expected ${entry.player}`);
   if (boardBefore.turn.round !== entry.round) errors.push(`${entry.id}: board.before round is ${boardBefore.turn.round}, expected ${entry.round}`);
-  if (activeDeckPlayerId(deckBefore.game) !== entry.player) errors.push(`${entry.id}: deck.before active player does not match ${entry.player}`);
-  if (stableJson(boardAfter.turn) !== stableJson(independentNextTurn(boardBefore))) errors.push(`${entry.id}: board.after turn does not advance from board.before`);
+  if (boardBefore.turn.phase !== entry.phase) errors.push(`${entry.id}: board.before phase is ${boardBefore.turn.phase}, expected ${entry.phase}`);
+  if (entry.phase === 'setup' && deckBefore && activeDeckPlayerId(deckBefore.game) !== entry.player) errors.push(`${entry.id}: deck.before active player does not match ${entry.player}`);
+  if (entry.phase === 'activation' && (validated.deckBefore || validated.deckAfter)) errors.push(`${entry.id}: activation entry cannot contain deck snapshots`);
 }
 
 function checkContinuity(previous: ValidatedReplayEntry, current: ValidatedReplayEntry, errors: string[]): void {
-  if (stableJson(previous.deckAfter) !== stableJson(current.deckBefore)) errors.push(`${previous.entry.id}: deck.after does not match the next deck.before`);
+  const previousDeck = previous.deckAfter ?? previous.deckBefore;
+  const currentDeck = current.deckBefore ?? current.deckAfter;
+  if (previousDeck && currentDeck && stableJson(previousDeck) !== stableJson(currentDeck)) errors.push(`${previous.entry.id}: deck state does not match the next setup deck.before`);
   if (stableJson(boardContinuityState(previous.boardAfter)) !== stableJson(boardContinuityState(current.boardBefore))) errors.push(`${previous.entry.id}: board.after does not match the next board.before`);
-}
-
-function independentNextTurn(state: BoardState): BoardState['turn'] {
-  const current = state.players.indexOf(state.turn.activePlayer);
-  if (current < 0) return state.turn;
-  const next = (current + 1) % state.players.length;
-  return { activePlayer: state.players[next] ?? state.turn.activePlayer, round: state.turn.round + (next === 0 ? 1 : 0) };
 }
 
 async function loadRulesContext(): Promise<RulesContext> {
   const [map, units, setup, deckConfig] = await Promise.all([readJson('game/map.json'), readJson('game/units.json'), readJson('game/setup.json'), loadGameConfig('game/deck.yaml')]);
   const parsedSetup = z.object({ unitsPerPlayer: z.number().int().positive() }).strict().parse(setup);
-  return { map: validateSkirmishMap(map), units: unitRulesSchema.parse(units), unitsPerPlayer: parsedSetup.unitsPerPlayer, deckConfig };
+  return { map: validateSkirmishMap(map), units: unitRulesSchema.parse(units), setup: parsedSetup, unitsPerPlayer: parsedSetup.unitsPerPlayer, deckConfig };
 }
 
 async function loadEntrySnapshots(baseDir: string, entry: ReplayEntry, errors: string[]): Promise<Omit<ValidatedReplayEntry, 'entry'> | undefined> {
   const [deckBefore, deckAfter, boardBefore, boardAfter] = await Promise.all([
-    loadDeck(resolveSnapshotPath(baseDir, entry.deck.before), `${entry.id} deck.before`, errors),
-    loadDeck(resolveSnapshotPath(baseDir, entry.deck.after), `${entry.id} deck.after`, errors),
+    entry.phase === 'setup' ? loadDeck(resolveSnapshotPath(baseDir, entry.deck.before), `${entry.id} deck.before`, errors) : Promise.resolve(undefined),
+    entry.phase === 'setup' ? loadDeck(resolveSnapshotPath(baseDir, entry.deck.after), `${entry.id} deck.after`, errors) : Promise.resolve(undefined),
     loadBoard(resolveSnapshotPath(baseDir, entry.board.before), `${entry.id} board.before`, errors),
     loadBoard(resolveSnapshotPath(baseDir, entry.board.after), `${entry.id} board.after`, errors)
   ]);
-  return deckBefore && deckAfter && boardBefore && boardAfter ? { deckBefore, deckAfter, boardBefore, boardAfter } : undefined;
+  if (!boardBefore || !boardAfter || (entry.phase === 'setup' && (!deckBefore || !deckAfter))) return undefined;
+  return { ...(deckBefore ? { deckBefore } : {}), ...(deckAfter ? { deckAfter } : {}), boardBefore, boardAfter };
 }
 
 async function loadDeck(path: string, label: string, errors: string[]): Promise<DeckSnapshot | undefined> {
@@ -486,6 +424,16 @@ function isGameState(value: unknown): value is GameState {
 }
 
 function totalHp(units: BoardUnit[]): number { return units.reduce((sum, unit) => sum + unit.hp, 0); }
+function completedRounds(state: BoardState): number { return state.turn.round - 1; }
+function replayActivationInput(activation: Extract<ReplayEntry, { phase: 'activation' }>['action']['activation']): ReplayActivationInput {
+  return { unit: activation.unit, from: activation.from, ...(activation.via ? { via: activation.via } : {}), ...(activation.attack ? { attack: { target: activation.attack.target } } : {}), to: activation.to };
+}
+function replayDeckResult(entry: Extract<ReplayEntry, { phase: 'setup' }>) {
+  return { schemaVersion: 1 as const, turnId: entry.id, player: entry.player, ...entry.deck, actions: entry.deck.actions ?? [] };
+}
+function initialRoundState(firstPlayer: string): BoardState['turn'] {
+  return { round: 1, phase: 'setup', initiativePlayer: firstPlayer, activePlayer: firstPlayer, completedSetupPlayers: [], activatedUnitIds: [] };
+}
 function activeDeckPlayerId(game: GameState): string | undefined { return game.players[game.activePlayer]?.id; }
 function boardContinuityState(state: BoardState): Omit<BoardState, 'notes'> { const { notes, ...rest } = state; return rest; }
 function resolveSnapshotPath(baseDir: string, path: string): string { return isAbsolute(path) ? path : join(baseDir, path); }

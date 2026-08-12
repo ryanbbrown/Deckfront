@@ -58,20 +58,20 @@ def ensure_initialized(args: argparse.Namespace, run_dir: Path, setups: dict[str
     run(command)
 
 
-def expected_next_turn_id(timeline: dict[str, Any]) -> str:
+def expected_next_step_id(timeline: dict[str, Any]) -> str:
     entries = timeline.get("entries", [])
     for index, entry in enumerate(entries, start=1):
-        expected = f"turn-{index:03d}"
+        expected = f"step-{index:03d}"
         if entry.get("id") != expected:
             raise RuntimeError(f"Committed timeline entry {index} is {entry.get('id')}, expected {expected}")
-    return f"turn-{len(entries) + 1:03d}"
+    return f"step-{len(entries) + 1:03d}"
 
 
 def recover_uncommitted_turn(run_dir: Path) -> None:
     """Rewind a partial next turn to the latest state represented by the timeline."""
     timeline = read_json(run_dir / "timeline.json")
-    turn_id = expected_next_turn_id(timeline)
-    artifacts = uncommitted_turn_artifacts(run_dir, turn_id)
+    step_id = expected_next_step_id(timeline)
+    artifacts = uncommitted_step_artifacts(run_dir, step_id)
     partial = any(path.exists() for path in artifacts)
     deck = read_json(run_dir / "deck.json")
     board = read_json(run_dir / "board.json")
@@ -82,25 +82,28 @@ def recover_uncommitted_turn(run_dir: Path) -> None:
     entries = timeline.get("entries", [])
     if entries:
         last = entries[-1]
+        last_setup = next((entry for entry in reversed(entries) if entry.get("phase") == "setup"), None)
+        if last_setup is None:
+            raise RuntimeError("Committed activation history has no setup deck snapshot")
         try:
-            deck_before = read_json(run_dir / last["deck"]["after"])
+            deck_before = read_json(run_dir / last_setup["deck"]["after"])
             board_before = read_json(run_dir / last["board"]["after"])
         except (KeyError, FileNotFoundError) as error:
-            raise RuntimeError(f"Latest committed turn is missing an after snapshot: {error}") from error
+            raise RuntimeError(f"Committed history is missing an after snapshot: {error}") from error
     else:
-        deck_path = run_dir / "snapshots" / f"{turn_id}.before.deck.json"
-        board_path = run_dir / "snapshots" / f"{turn_id}.before.board.json"
+        deck_path = run_dir / "snapshots" / f"{step_id}.before.deck.json"
+        board_path = run_dir / "snapshots" / f"{step_id}.before.board.json"
         if not deck_path.exists():
-            assert_active_players_match(deck, board, f"persisted state before {turn_id}")
-            archive_uncommitted_artifacts(run_dir, turn_id, artifacts)
+            assert_active_players_match(deck, board, f"persisted state before {step_id}")
+            archive_uncommitted_artifacts(run_dir, step_id, artifacts)
             return
         deck_before = read_json(deck_path)
         board_before = read_json(board_path) if board_path.exists() else board
 
-    assert_active_players_match(deck_before, board_before, f"recovery state for {turn_id}")
+    assert_active_players_match(deck_before, board_before, f"recovery state for {step_id}")
     write_json(run_dir / "deck.json", deck_before)
     write_json(run_dir / "board.json", board_before)
-    archive_uncommitted_artifacts(run_dir, turn_id, artifacts)
+    archive_uncommitted_artifacts(run_dir, step_id, artifacts)
 
 
 def archive_uncommitted_artifacts(run_dir: Path, turn_id: str, artifacts: list[Path]) -> None:
@@ -117,16 +120,18 @@ def archive_uncommitted_artifacts(run_dir: Path, turn_id: str, artifacts: list[P
         path.replace(destination)
 
 
-def uncommitted_turn_artifacts(run_dir: Path, turn_id: str) -> list[Path]:
+def uncommitted_step_artifacts(run_dir: Path, step_id: str) -> list[Path]:
     return [
-        *(run_dir / "snapshots" / f"{turn_id}.{suffix}.json" for suffix in ("before.deck", "after.deck", "before.board", "after.board")),
-        *(run_dir / "actions" / f"{turn_id}.{kind}.json" for kind in ("deck", "board")),
-        *(run_dir / "results" / f"{turn_id}.{kind}.json" for kind in ("deck.result", "board.result", "win-events")),
-        *(run_dir / "logs" / f"{turn_id}.{kind}.txt" for kind in ("deck", "board", "commit", "model")),
+        *(run_dir / "snapshots" / f"{step_id}.{suffix}.json" for suffix in ("before.deck", "after.deck", "before.board", "after.board")),
+        *(run_dir / "actions" / f"{step_id}.{kind}.json" for kind in ("deck", "board")),
+        *(run_dir / "results" / f"{step_id}.{kind}.json" for kind in ("deck.result", "board.result", "win-events")),
+        *(run_dir / "logs" / f"{step_id}.{kind}.txt" for kind in ("deck", "board", "commit", "model")),
     ]
 
 
 def assert_active_players_match(deck: dict[str, Any], board: dict[str, Any], label: str) -> None:
+    if board.get("turn", {}).get("phase") == "activation":
+        return
     try:
         active_deck_player = deck["game"]["players"][deck["game"]["activePlayer"]]["id"]
         active_board_player = board["turn"]["activePlayer"]
@@ -160,7 +165,10 @@ def write_starter_board(path: Path, setups: dict[str, dict[str, Any]]) -> None:
             })
     write_json(path, {
         "schemaVersion": 1, "ruleset": DEFAULT_RULESET, "map": DEFAULT_MAP,
-        "players": ["P1", "P2"], "turn": {"activePlayer": "P1", "round": 1},
+        "players": ["P1", "P2"], "turn": {
+            "round": 1, "phase": "setup", "initiativePlayer": "P1", "activePlayer": "P1",
+            "completedSetupPlayers": [], "activatedUnitIds": [],
+        },
         "units": units, "notes": [],
     })
 
@@ -172,6 +180,6 @@ def validate_run(run_dir: Path) -> subprocess.CompletedProcess[str]:
     ], check=False)
 
 
-def committed_expected_turn(timeline: dict[str, Any], previous_entries: int, turn_id: str, player: str) -> bool:
+def committed_expected_step(timeline: dict[str, Any], previous_entries: int, step_id: str, player: str) -> bool:
     entries = timeline.get("entries", [])
-    return len(entries) == previous_entries + 1 and entries[-1].get("id") == turn_id and entries[-1].get("player") == player
+    return len(entries) == previous_entries + 1 and entries[-1].get("id") == step_id and entries[-1].get("player") == player

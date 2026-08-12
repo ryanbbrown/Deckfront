@@ -2,8 +2,10 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import type { BoardState } from '../../src/board/schema';
 import { runCli } from '../../src/cli/main';
 import type { PersistedGame } from '../../src/cli/persistence';
+import { skirmishUnit } from '../helpers/skirmish';
 
 const tempDirs: string[] = [];
 
@@ -139,6 +141,40 @@ describe('structured deck CLI', () => {
       { type: 'endTurn' }
     ]);
     expect(after.game.trash).toEqual(['copper']);
+  });
+
+  it('captures production before resetting the acting player for the next setup', async () => {
+    const dir = await makeTempDir();
+    const statePath = join(dir, 'deck.json');
+    const boardPath = join(dir, 'board.json');
+    const actionPath = join(dir, 'actions', 'step-002.deck.json');
+    const resultPath = join(dir, 'results', 'step-002.deck-result.json');
+    await runCli(['legal-actions', '--config', 'game/deck.yaml', '--state', statePath, '--seed', '1', '--json'], () => undefined);
+    const state = JSON.parse(await readFile(statePath, 'utf8')) as PersistedGame;
+    state.game.activePlayer = 1;
+    const player = state.game.players[1]!;
+    player.hand = ['sparring', 'copper'];
+    player.draw = [];
+    player.discard = [];
+    player.play = [];
+    player.attributes = { ...state.game.config.setup.attributes };
+    await writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`);
+    const board: BoardState = {
+      schemaVersion: 1, ruleset: 'skirmish-v1', map: 'skirmish-v1', players: ['P1', 'P2'],
+      turn: { round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P2', completedSetupPlayers: ['P1'], activatedUnitIds: [] },
+      units: [skirmishUnit('p1', 'P1', 'soldier', 0, 0), skirmishUnit('p2', 'P2', 'soldier', 0, 16)], notes: []
+    };
+    await writeFile(boardPath, `${JSON.stringify(board, null, 2)}\n`);
+    await mkdir(join(dir, 'actions'), { recursive: true });
+    await writeFile(actionPath, `${JSON.stringify({
+      schemaVersion: 1, turnId: 'step-002', player: 'P2',
+      actions: [{ type: 'playAll' }, { type: 'moveToBuy' }, { type: 'endTurn' }]
+    }, null, 2)}\n`);
+
+    await runCli(['deck-turn', '--config', 'game/deck.yaml', '--state', statePath, '--board-state', boardPath, '--actions', actionPath, '--result', resultPath], () => undefined);
+
+    const result = JSON.parse(await readFile(resultPath, 'utf8')) as { produced: Record<string, number> };
+    expect(result.produced).toEqual({ money: 1, soldierAttack: 1 });
   });
 
   it('prints human-readable legal actions without the JSON flag', async () => {
