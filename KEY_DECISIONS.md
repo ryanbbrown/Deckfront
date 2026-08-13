@@ -1,0 +1,26 @@
+# Key decisions
+
+- The game uses a 19-hex board and two pieces per player.
+- The first player to score five ring-outs wins.
+- A ringed piece respawns on its home edge at the start of its owner's next turn.
+- A push moves a contiguous line of pieces. The opponent of each ringed piece scores the point.
+- Each piece gets one adjacent baseline move on its owner's turn.
+- Players can interleave baseline moves and card plays.
+- Players can play any number of action cards from their five-card hand.
+- Players cannot act or make decisions during the opponent's turn.
+- Each turn ends with one optional purchase. The purchased card enters the discard pile.
+- Cleanup discards the remaining hand and played cards, then draws a new five-card hand.
+- The first version has no extra card draw or hand-size effects.
+- Each starting deck has five Copper, two Shove, two Dash, and one Brace.
+- The shared market supports direct force, unusual geometry, and confinement strategies.
+- Direct force uses repeated pushes and follow-up movement.
+- Geometry uses Pull, Vault, Sweep, and Relay to create new attack lines.
+- Confinement uses Block and Pin, then converts them into points with Corner.
+- Cull provides optional deck thinning without drawing a replacement card.
+- The AI uses ThinHarness and the same legal-action interface as the human.
+- The AI cannot see the human hand or either shuffled draw order.
+- The AI strategy is editable Markdown. The setup screen supports presets and pasted strategy text.
+- A deterministic search prevents the AI from missing available immediate points.
+- The app saves the exact strategy, seed, actions, purchases, score, and match duration.
+- The target match length is 15 to 25 minutes.
+- We will reconsider the board size and extra draw only after human playtests.
