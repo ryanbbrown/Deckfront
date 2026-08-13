@@ -66,7 +66,7 @@ class RunGameHelpersTest(unittest.TestCase):
     def test_activation_briefing_omits_deck_state(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             run_dir = Path(directory)
-            write_json(run_dir / "board.json", {"turn": {"phase": "activation", "activePlayer": "P1", "activatedUnitIds": []}, "units": [
+            write_json(run_dir / "board.json", {"turn": {"phase": "activation", "activePlayer": "P1", "activatedUnitIds": [], "activationCounts": {"P1": 0, "P2": 0}}, "units": [
                 {"id": "p1", "type": "soldier", "player": "P1", "col": 0, "row": 5, "movement": 3, "range": 1},
                 {"id": "p2", "type": "soldier", "player": "P2", "col": 8, "row": 11, "movement": 3, "range": 1},
             ]})
@@ -98,7 +98,7 @@ class RunGameHelpersTest(unittest.TestCase):
 
     def test_briefing_lists_only_unactivated_units(self) -> None:
         board = {
-            "turn": {"phase": "activation", "activatedUnitIds": ["used"]},
+            "turn": {"phase": "activation", "activatedUnitIds": ["used"], "activationCounts": {"P1": 1, "P2": 0}},
             "units": [
                 {"id": "used", "type": "soldier", "player": "P1", "col": 0, "row": 0, "movement": 3, "range": 1},
                 {"id": "ready", "type": "soldier", "player": "P1", "col": 1, "row": 0, "movement": 3, "range": 1},
@@ -106,17 +106,25 @@ class RunGameHelpersTest(unittest.TestCase):
             ],
         }
         map_data = {"hexes": [{"col": col, "row": 0} for col in range(5)], "blocked": [], "keyPoints": []}
-        options = activation_options(board, map_data, "P1", {"soldier": {"canUpgradeRange": False}})
+        options = activation_options(board, map_data, "P1", {"soldier": {"canUpgradeRange": False}}, {"maxActivationsPerPlayer": 3})
         self.assertEqual([option["unit"] for option in options], ["ready"])
 
     def test_activation_options_use_persisted_stats_without_reapplying_key_point(self) -> None:
-        board = {"turn": {"phase": "activation", "activatedUnitIds": []}, "units": [
+        board = {"turn": {"phase": "activation", "activatedUnitIds": [], "activationCounts": {"P1": 0, "P2": 0}}, "units": [
             {"id": "archer", "type": "archer", "player": "P1", "col": 0, "row": 0, "movement": 0, "range": 3},
             {"id": "enemy", "type": "soldier", "player": "P2", "col": 3, "row": 0, "movement": 0, "range": 1},
         ]}
         map_data = {"hexes": [{"col": col, "row": 0} for col in range(5)], "blocked": [], "keyPoints": [{"id": "range", "stat": "range", "col": 0, "row": 0}]}
-        [option] = activation_options(board, map_data, "P1", {"archer": {"canUpgradeRange": True}})
+        [option] = activation_options(board, map_data, "P1", {"archer": {"canUpgradeRange": True}}, {"maxActivationsPerPlayer": 3})
         self.assertEqual(option["range"], 3)
+
+    def test_activation_options_are_empty_after_three_activations(self) -> None:
+        board = {"turn": {"phase": "activation", "activatedUnitIds": ["used-1", "used-2", "used-3"], "activationCounts": {"P1": 3, "P2": 0}}, "units": [
+            {"id": "ready", "type": "soldier", "player": "P1", "col": 1, "row": 0, "movement": 3, "range": 1},
+            {"id": "enemy", "type": "soldier", "player": "P2", "col": 3, "row": 0, "movement": 3, "range": 1},
+        ]}
+        map_data = {"hexes": [{"col": col, "row": 0} for col in range(5)], "blocked": [], "keyPoints": []}
+        self.assertEqual(activation_options(board, map_data, "P1", {"soldier": {"canUpgradeRange": False}}, {"maxActivationsPerPlayer": 3}), [])
 
     def test_activation_payload_derives_path_and_target(self) -> None:
         options = [{"unit": "archer", "from": {"col": 0, "row": 0}, "noAttackTo": [], "attackChoicesByVia": [{"via": {"col": 2, "row": 0}, "attacks": [{"id": "archer@2,0>enemy", "target": "enemy"}], "to": [{"col": 2, "row": 1}]}]}]

@@ -1,4 +1,4 @@
-import { boardMapSchema, boardStateSchema, unitRulesSchema, type BoardMap, type BoardState, type UnitRules } from '../../src/board/schema';
+import { boardMapSchema, boardStateSchema, skirmishSetupRulesSchema, unitRulesSchema, type BoardMap, type BoardState, type SkirmishSetupRules, type UnitRules } from '../../src/board/schema';
 import type { GameState } from '../../src/core/types';
 import { replayTimelineSchema, type ReplayEntry, type ReplayTimeline } from '../../src/replay/schema';
 
@@ -6,6 +6,7 @@ export interface BoardBundle {
   state: BoardState;
   map: BoardMap;
   unitRules: UnitRules;
+  setupRules: SkirmishSetupRules;
 }
 
 export interface DeckBundle {
@@ -72,11 +73,12 @@ export async function loadReplayBundle(timelineUrl: string, index: number): Prom
 }
 
 async function loadBoardBundleForState(state: BoardState): Promise<BoardBundle> {
-  const [map, unitRules] = await Promise.all([
+  const [map, unitRules, setupRules] = await Promise.all([
     fetchJson('/game-data/game/map.json').then((json) => boardMapSchema.parse(json)),
-    fetchJson('/game-data/game/units.json').then((json) => unitRulesSchema.parse(json))
+    fetchJson('/game-data/game/units.json').then((json) => unitRulesSchema.parse(json)),
+    fetchJson('/game-data/game/setup.json').then((json) => skirmishSetupRulesSchema.parse(json))
   ]);
-  return { state, map, unitRules };
+  return { state, map, unitRules, setupRules };
 }
 
 async function loadDeckBundle(url: string): Promise<DeckBundle> {

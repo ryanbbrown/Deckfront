@@ -25,6 +25,12 @@ export const unitRulesSchema = z.record(
 );
 export type UnitRules = z.infer<typeof unitRulesSchema>;
 
+export const skirmishSetupRulesSchema = z.object({
+  unitsPerPlayer: z.number().int().positive(),
+  maxActivationsPerPlayer: z.number().int().positive()
+}).strict();
+export type SkirmishSetupRules = z.infer<typeof skirmishSetupRulesSchema>;
+
 const keyPointSchema = z.object({
   id: z.string().min(1),
   stat: z.enum(['attack', 'movement', 'range']),
@@ -98,7 +104,8 @@ export const boardStateSchema = z.object({
     initiativePlayer: z.string().min(1),
     activePlayer: z.string().min(1),
     completedSetupPlayers: z.array(z.string().min(1)),
-    activatedUnitIds: z.array(z.string().min(1))
+    activatedUnitIds: z.array(z.string().min(1)),
+    activationCounts: z.record(z.string().min(1), z.number().int().nonnegative())
   }).strict(),
   units: z.array(boardUnitSchema).default([]),
   notes: z.array(z.string()).default([])
@@ -113,6 +120,13 @@ export const boardStateSchema = z.object({
   }
   assertUniqueStrings(state.turn.completedSetupPlayers, ['turn', 'completedSetupPlayers'], 'Duplicate setup player', context);
   assertUniqueStrings(state.turn.activatedUnitIds, ['turn', 'activatedUnitIds'], 'Duplicate activated unit id', context);
+  const activationPlayers = Object.keys(state.turn.activationCounts);
+  if (activationPlayers.length !== state.players.length || state.players.some((player) => !activationPlayers.includes(player))) {
+    context.addIssue({ code: 'custom', path: ['turn', 'activationCounts'], message: 'Activation counts must contain exactly the board players' });
+  }
+  if (Object.values(state.turn.activationCounts).reduce((sum, count) => sum + count, 0) !== state.turn.activatedUnitIds.length) {
+    context.addIssue({ code: 'custom', path: ['turn', 'activationCounts'], message: 'Activation counts must match activated unit ids' });
+  }
   for (const player of state.turn.completedSetupPlayers) {
     if (!state.players.includes(player)) {
       context.addIssue({ code: 'custom', path: ['turn', 'completedSetupPlayers'], message: `Setup player ${player} is not in players` });

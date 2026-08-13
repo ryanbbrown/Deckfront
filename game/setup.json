@@ -1,3 +1,4 @@
 {
-  "unitsPerPlayer": 5
+  "unitsPerPlayer": 5,
+  "maxActivationsPerPlayer": 3
 }

@@ -2,7 +2,7 @@
 
 Two players deploy five soldiers and archers each. P1 deploys on row 0 and P2 on row 16. A unit's submitted setup stats must match `game/units.json`.
 
-Each round has setup and activation phases. Both players complete a deck turn and upgrades during setup. Initiative order determines setup order. Players then alternate single-unit activations. Each surviving unit activates at most once. Pass automatically when a player has no unactivated unit. Initiative changes after each completed round.
+Each round has setup and activation phases. Both players complete a deck turn and upgrades during setup. Initiative order determines setup order. Players then alternate single-unit activations. Each player can activate up to three units. Each unit activates at most once per round. A player with fewer than three surviving units can activate every survivor. Pass automatically when a player has no eligible unit. Initiative changes after each completed round.
 
 An activation has `from`, optional `via`, optional `attack`, and `to`. The unit moves from `from` to `via`, may attack there, then moves to `to`. Both movement distances share its movement budget. All occupied hexes block movement.
 

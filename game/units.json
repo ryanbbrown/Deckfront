@@ -2,7 +2,7 @@
   "soldier": {
     "role": "melee",
     "attack": 1,
-    "hp": 6,
+    "hp": 8,
     "movement": 3,
     "range": 1,
     "canUpgradeRange": false
@@ -10,7 +10,7 @@
   "archer": {
     "role": "ranged",
     "attack": 1,
-    "hp": 4,
+    "hp": 6,
     "movement": 3,
     "range": 2,
     "canUpgradeRange": true

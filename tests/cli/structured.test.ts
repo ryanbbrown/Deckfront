@@ -161,7 +161,7 @@ describe('structured deck CLI', () => {
     await writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`);
     const board: BoardState = {
       schemaVersion: 1, ruleset: 'skirmish-v1', map: 'skirmish-v1', players: ['P1', 'P2'],
-      turn: { round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P2', completedSetupPlayers: ['P1'], activatedUnitIds: [] },
+      turn: { round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P2', completedSetupPlayers: ['P1'], activatedUnitIds: [], activationCounts: { P1: 0, P2: 0 } },
       units: [skirmishUnit('p1', 'P1', 'soldier', 0, 0), skirmishUnit('p2', 'P2', 'soldier', 0, 16)], notes: []
     };
     await writeFile(boardPath, `${JSON.stringify(board, null, 2)}\n`);

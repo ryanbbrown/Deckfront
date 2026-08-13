@@ -125,7 +125,7 @@ function buildStarterBoard(context: BoardRulesContext): BoardState {
     ruleset: 'skirmish-v1',
     map: context.map.id,
     players: ['P1', 'P2'],
-    turn: { round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: [], activatedUnitIds: [] },
+    turn: { round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: [], activatedUnitIds: [], activationCounts: { P1: 0, P2: 0 } },
     units: placements.map(([id, player, type, col, row]) => {
       const rules = context.units[type];
       if (!rules) throw new Error(`Missing unit rules for ${type}`);

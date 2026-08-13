@@ -21,7 +21,7 @@ describe('structured Skirmish board actions', () => {
     const first = executeBoardAction(initial, setup('s1', 'P1'), context, paths(), deckFor('s1', 'P1'));
     expect(first.after.turn).toMatchObject({ phase: 'setup', activePlayer: 'P2', completedSetupPlayers: ['P1'] });
     const second = executeBoardAction(first.after, setup('s2', 'P2'), context, paths(), deckFor('s2', 'P2'));
-    expect(second.after.turn).toEqual({ round: 1, phase: 'activation', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: ['P1', 'P2'], activatedUnitIds: [] });
+    expect(second.after.turn).toEqual({ round: 1, phase: 'activation', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: ['P1', 'P2'], activatedUnitIds: [], activationCounts: { P1: 0, P2: 0 } });
   });
 
   it('alternates one unit at a time and rejects duplicate activation', async () => {
@@ -31,7 +31,7 @@ describe('structured Skirmish board actions', () => {
       skirmishUnit('p2a', 'P2', 'soldier', 0, 11), skirmishUnit('p2b', 'P2', 'soldier', 1, 11)
     ]);
     const first = executeBoardAction(ready, activation('a1', 'P1', 'p1a', 0, 5), context, paths());
-    expect(first.after.turn).toMatchObject({ activePlayer: 'P2', activatedUnitIds: ['p1a'] });
+    expect(first.after.turn).toMatchObject({ activePlayer: 'P2', activatedUnitIds: ['p1a'], activationCounts: { P1: 1, P2: 0 } });
     expect(() => executeBoardAction({ ...first.after, turn: { ...first.after.turn, activePlayer: 'P1' } }, activation('a2', 'P1', 'p1a', 0, 5), context, paths())).toThrow('already activated');
   });
 
@@ -45,7 +45,107 @@ describe('structured Skirmish board actions', () => {
     const two = executeBoardAction(one.after, activation('a2', 'P2', 'p2a', 0, 11), context, paths());
     expect(two.after.turn.activePlayer).toBe('P1');
     const three = executeBoardAction(two.after, activation('a3', 'P1', 'p1b', 1, 5), context, paths());
-    expect(three.after.turn).toEqual({ round: 2, phase: 'setup', initiativePlayer: 'P2', activePlayer: 'P2', completedSetupPlayers: [], activatedUnitIds: [] });
+    expect(three.after.turn).toEqual({ round: 2, phase: 'setup', initiativePlayer: 'P2', activePlayer: 'P2', completedSetupPlayers: [], activatedUnitIds: [], activationCounts: { P1: 0, P2: 0 } });
+  });
+
+  it('limits each player to three independently chosen units', async () => {
+    const context = await loadBoardRulesContext();
+    const units = ['a', 'b', 'c', 'd', 'e'];
+    let board = activationState([
+      ...units.map((suffix, index) => skirmishUnit(`p1${suffix}`, 'P1', 'soldier', index, 5)),
+      ...units.map((suffix, index) => skirmishUnit(`p2${suffix}`, 'P2', 'soldier', index, 11))
+    ]);
+    for (const [index, suffix] of ['a', 'b', 'c'].entries()) {
+      const p1 = executeBoardAction(board, activation(`p1-${suffix}`, 'P1', `p1${suffix}`, index, 5), context, paths());
+      board = p1.after;
+      const p2 = executeBoardAction(board, activation(`p2-${suffix}`, 'P2', `p2${suffix}`, index, 11), context, paths());
+      board = p2.after;
+    }
+    expect(board.turn).toEqual({
+      round: 2,
+      phase: 'setup',
+      initiativePlayer: 'P2',
+      activePlayer: 'P2',
+      completedSetupPlayers: [],
+      activatedUnitIds: [],
+      activationCounts: { P1: 0, P2: 0 }
+    });
+    expect(board.units.map((unit) => unit.id)).toEqual([
+      'p1a', 'p1b', 'p1c', 'p1d', 'p1e', 'p2a', 'p2b', 'p2c', 'p2d', 'p2e'
+    ]);
+  });
+
+  it('lets a two-unit player use both survivors while the opponent uses three units', async () => {
+    const context = await loadBoardRulesContext();
+    let board = activationState([
+      skirmishUnit('p1a', 'P1', 'soldier', 0, 5),
+      skirmishUnit('p1b', 'P1', 'soldier', 1, 5),
+      skirmishUnit('p2a', 'P2', 'soldier', 0, 11),
+      skirmishUnit('p2b', 'P2', 'soldier', 1, 11),
+      skirmishUnit('p2c', 'P2', 'soldier', 2, 11),
+      skirmishUnit('p2d', 'P2', 'soldier', 3, 11),
+      skirmishUnit('p2e', 'P2', 'soldier', 4, 11)
+    ]);
+    board = executeBoardAction(board, activation('p1-a', 'P1', 'p1a', 0, 5), context, paths()).after;
+    board = executeBoardAction(board, activation('p2-a', 'P2', 'p2a', 0, 11), context, paths()).after;
+    board = executeBoardAction(board, activation('p1-b', 'P1', 'p1b', 1, 5), context, paths()).after;
+    expect(board.turn).toMatchObject({ activePlayer: 'P2', activationCounts: { P1: 2, P2: 1 } });
+    board = executeBoardAction(board, activation('p2-b', 'P2', 'p2b', 1, 11), context, paths()).after;
+    expect(board.turn).toMatchObject({ activePlayer: 'P2', activationCounts: { P1: 2, P2: 2 } });
+    board = executeBoardAction(board, activation('p2-c', 'P2', 'p2c', 2, 11), context, paths()).after;
+    expect(board.turn).toEqual({
+      round: 2,
+      phase: 'setup',
+      initiativePlayer: 'P2',
+      activePlayer: 'P2',
+      completedSetupPlayers: [],
+      activatedUnitIds: [],
+      activationCounts: { P1: 0, P2: 0 }
+    });
+  });
+
+  it('rejects a fourth activation by the same player', async () => {
+    const context = await loadBoardRulesContext();
+    const ready = activationState([
+      skirmishUnit('p1a', 'P1', 'soldier', 0, 5),
+      skirmishUnit('p1b', 'P1', 'soldier', 1, 5),
+      skirmishUnit('p1c', 'P1', 'soldier', 2, 5),
+      skirmishUnit('p1d', 'P1', 'soldier', 3, 5),
+      skirmishUnit('p2a', 'P2', 'soldier', 0, 11)
+    ]);
+    ready.turn.activatedUnitIds = ['p1a', 'p1b', 'p1c'];
+    ready.turn.activationCounts.P1 = 3;
+    expect(() => executeBoardAction(ready, activation('a4', 'P1', 'p1d', 3, 5), context, paths())).toThrow('already completed 3 activations');
+  });
+
+  it('does not restore an activation when an activated unit is removed', async () => {
+    const context = await loadBoardRulesContext();
+    let board = activationState([
+      { ...skirmishUnit('p1a', 'P1', 'soldier', 4, 5), attack: 8 },
+      skirmishUnit('p1b', 'P1', 'soldier', 2, 5),
+      skirmishUnit('p1c', 'P1', 'soldier', 0, 5),
+      skirmishUnit('p2a', 'P2', 'soldier', 5, 5),
+      skirmishUnit('p2b', 'P2', 'soldier', 2, 11),
+      skirmishUnit('p2c', 'P2', 'soldier', 3, 11),
+      skirmishUnit('p2d', 'P2', 'soldier', 4, 11)
+    ]);
+    board.turn.initiativePlayer = 'P2';
+    board.turn.activePlayer = 'P2';
+    board = executeBoardAction(board, activation('p2-a', 'P2', 'p2a', 5, 5), context, paths()).after;
+    board = executeBoardAction(board, {
+      schemaVersion: 1,
+      stepId: 'p1-a',
+      player: 'P1',
+      action: { type: 'activation', activation: { unit: 'p1a', from: { col: 4, row: 5 }, attack: { target: 'p2a' }, to: { col: 4, row: 5 } } }
+    }, context, paths()).after;
+    expect(board.units.some((unit) => unit.id === 'p2a')).toBe(false);
+    expect(board.turn.activatedUnitIds).toContain('p2a');
+    expect(board.turn.activationCounts.P2).toBe(1);
+    board = executeBoardAction(board, activation('p2-b', 'P2', 'p2b', 2, 11), context, paths()).after;
+    board = executeBoardAction(board, activation('p1-b', 'P1', 'p1b', 2, 5), context, paths()).after;
+    board = executeBoardAction(board, activation('p2-c', 'P2', 'p2c', 3, 11), context, paths()).after;
+    board = executeBoardAction(board, activation('p1-c', 'P1', 'p1c', 0, 5), context, paths()).after;
+    expect(board.turn).toMatchObject({ round: 2, phase: 'setup', activationCounts: { P1: 0, P2: 0 } });
   });
 
   it('removes a target before it can activate and stops on elimination', async () => {
@@ -75,7 +175,7 @@ describe('structured Skirmish board actions', () => {
       action: { type: 'activation', activation: { unit: 'p1', from: { col: 4, row: 5 }, attack: { target: 'p2a' }, to: { col: 4, row: 5 } } }
     }, context, paths());
     expect(executed.after.units.map((unit) => unit.id)).toEqual(['p1', 'p2b']);
-    expect(executed.after.turn).toMatchObject({ activePlayer: 'P2', activatedUnitIds: ['p1'] });
+    expect(executed.after.turn).toMatchObject({ activePlayer: 'P2', activatedUnitIds: ['p1'], activationCounts: { P1: 1, P2: 0 } });
     expect(() => executeBoardAction(executed.after, activation('a2', 'P2', 'p2a', 5, 5), context, paths())).toThrow('missing unit p2a');
   });
 
@@ -142,16 +242,16 @@ describe('structured Skirmish board actions', () => {
     await writeFile(actionsPath, `${JSON.stringify(activation('a1', 'P1', 'p1', 0, 5))}\n`);
     await runCli(['board-action', '--state', statePath, '--actions', actionsPath, '--result', resultPath], () => undefined);
     const saved = JSON.parse(await readFile(statePath, 'utf8')) as BoardState;
-    expect(saved.turn).toMatchObject({ activePlayer: 'P2', activatedUnitIds: ['p1'] });
+    expect(saved.turn).toMatchObject({ activePlayer: 'P2', activatedUnitIds: ['p1'], activationCounts: { P1: 1, P2: 0 } });
     expect(JSON.parse(await readFile(resultPath, 'utf8')).action.type).toBe('activation');
   });
 });
 
 function state(units: BoardState['units']): BoardState {
-  return { schemaVersion: 1, ruleset: 'skirmish-v1', map: 'skirmish-v1', players: ['P1', 'P2'], turn: { round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: [], activatedUnitIds: [] }, units, notes: [] };
+  return { schemaVersion: 1, ruleset: 'skirmish-v1', map: 'skirmish-v1', players: ['P1', 'P2'], turn: { round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: [], activatedUnitIds: [], activationCounts: { P1: 0, P2: 0 } }, units, notes: [] };
 }
 function activationState(units: BoardState['units']): BoardState {
-  return { ...state(units), turn: { round: 1, phase: 'activation', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: ['P1', 'P2'], activatedUnitIds: [] } };
+  return { ...state(units), turn: { round: 1, phase: 'activation', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: ['P1', 'P2'], activatedUnitIds: [], activationCounts: { P1: 0, P2: 0 } } };
 }
 function setup(stepId: string, player: string): BoardActionInput { return { schemaVersion: 1, stepId, player, action: { type: 'setup', upgrades: [] } }; }
 function activation(stepId: string, player: string, unit: string, col: number, row: number): BoardActionInput { return { schemaVersion: 1, stepId, player, action: { type: 'activation', activation: { unit, from: { col, row }, to: { col, row } } } }; }

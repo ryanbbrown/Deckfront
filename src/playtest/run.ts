@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { z } from 'zod';
-import { boardStateSchema, coordKey, unitRulesSchema, validateSkirmishMap, type BoardMap, type BoardState, type UnitRules } from '../board/schema';
+import { boardStateSchema, coordKey, skirmishSetupRulesSchema, unitRulesSchema, validateSkirmishMap, type BoardMap, type BoardState, type UnitRules } from '../board/schema';
 import { loadGameConfig } from '../config/loadGameConfig';
 import type { GameConfig, GameState, PlayerState } from '../core/types';
 import { replayTimelineSchema, type ReplayActivationInput, type ReplayEntry, type ReplayTimeline, type ReplayWinEvent } from '../replay/schema';
@@ -76,13 +76,13 @@ export async function initPlaytestRun(options: InitPlaytestRunOptions): Promise<
     ruleset: options.ruleset,
     map: context.map.id,
     players: playerTuple,
-    turn: initialRoundState(playerTuple[0]),
+    turn: initialRoundState(playerTuple),
     units,
     notes: []
   });
   if (board.ruleset !== options.ruleset || board.map !== options.map) throw new Error('Starter board does not match requested ruleset and map');
   if (stableJson(board.players) !== stableJson(playerTuple)) throw new Error('Starter board players do not match requested players');
-  if (stableJson(board.turn) !== stableJson(initialRoundState(playerTuple[0]))) {
+  if (!isInitialRoundState(board.turn, playerTuple)) {
     throw new Error(`Starter board must begin in round 1 setup with ${playerTuple[0]} holding initiative`);
   }
   const setupErrors: string[] = [];
@@ -240,7 +240,7 @@ async function loadInitialUnits(path: string, context: RulesContext): Promise<Bo
 }
 
 function validateInitialArmy(state: BoardState, context: RulesContext, errors: string[]): void {
-  if (stableJson(state.turn) !== stableJson(initialRoundState(state.players[0]))) {
+  if (!isInitialRoundState(state.turn, state.players)) {
     errors.push(`initial board must begin in round 1 setup with ${state.players[0]} holding initiative`);
   }
   const occupied = new Set<string>();
@@ -354,12 +354,19 @@ function validateState(label: string, state: BoardState, context: RulesContext, 
   const setupOrder = opponent ? [state.turn.initiativePlayer, opponent] : [];
   if (state.turn.phase === 'setup') {
     if (state.turn.activatedUnitIds.length > 0) errors.push(`${label}: setup phase cannot retain activated units`);
+    if (Object.values(state.turn.activationCounts).some((count) => count !== 0)) errors.push(`${label}: setup phase cannot retain activation counts`);
     if (stableJson(state.turn.completedSetupPlayers) !== stableJson(setupOrder.slice(0, state.turn.completedSetupPlayers.length))) errors.push(`${label}: completed setup players are out of initiative order`);
     const expected = setupOrder[state.turn.completedSetupPlayers.length];
     if (expected && state.turn.activePlayer !== expected) errors.push(`${label}: setup active player is ${state.turn.activePlayer}, expected ${expected}`);
   } else {
     if (stableJson(state.turn.completedSetupPlayers) !== stableJson(setupOrder)) errors.push(`${label}: activation phase requires both completed setups in initiative order`);
-    const activeHasUnit = state.units.some((unit) => unit.player === state.turn.activePlayer && !state.turn.activatedUnitIds.includes(unit.id));
+    for (const player of state.players) {
+      if ((state.turn.activationCounts[player] ?? 0) > context.setup.maxActivationsPerPlayer) {
+        errors.push(`${label}: ${player} exceeds the activation limit of ${context.setup.maxActivationsPerPlayer}`);
+      }
+    }
+    const activeHasUnit = (state.turn.activationCounts[state.turn.activePlayer] ?? context.setup.maxActivationsPerPlayer) < context.setup.maxActivationsPerPlayer
+      && state.units.some((unit) => unit.player === state.turn.activePlayer && !state.turn.activatedUnitIds.includes(unit.id));
     const eliminated = state.players.some((player) => !state.units.some((unit) => unit.player === player));
     if (!activeHasUnit && !eliminated) errors.push(`${label}: active player has no unactivated unit and should have passed automatically`);
   }
@@ -383,7 +390,7 @@ function checkContinuity(previous: ValidatedReplayEntry, current: ValidatedRepla
 
 async function loadRulesContext(): Promise<RulesContext> {
   const [map, units, setup, deckConfig] = await Promise.all([readJson('game/map.json'), readJson('game/units.json'), readJson('game/setup.json'), loadGameConfig('game/deck.yaml')]);
-  const parsedSetup = z.object({ unitsPerPlayer: z.number().int().positive() }).strict().parse(setup);
+  const parsedSetup = skirmishSetupRulesSchema.parse(setup);
   return { map: validateSkirmishMap(map), units: unitRulesSchema.parse(units), setup: parsedSetup, unitsPerPlayer: parsedSetup.unitsPerPlayer, deckConfig };
 }
 
@@ -431,8 +438,28 @@ function replayActivationInput(activation: Extract<ReplayEntry, { phase: 'activa
 function replayDeckResult(entry: Extract<ReplayEntry, { phase: 'setup' }>) {
   return { schemaVersion: 1 as const, turnId: entry.id, player: entry.player, ...entry.deck, actions: entry.deck.actions ?? [] };
 }
-function initialRoundState(firstPlayer: string): BoardState['turn'] {
-  return { round: 1, phase: 'setup', initiativePlayer: firstPlayer, activePlayer: firstPlayer, completedSetupPlayers: [], activatedUnitIds: [] };
+function initialRoundState(players: BoardState['players']): BoardState['turn'] {
+  const [firstPlayer, secondPlayer] = players;
+  return {
+    round: 1,
+    phase: 'setup',
+    initiativePlayer: firstPlayer,
+    activePlayer: firstPlayer,
+    completedSetupPlayers: [],
+    activatedUnitIds: [],
+    activationCounts: { [firstPlayer]: 0, [secondPlayer]: 0 }
+  };
+}
+function isInitialRoundState(turn: BoardState['turn'], players: BoardState['players']): boolean {
+  const expected = initialRoundState(players);
+  return turn.round === expected.round
+    && turn.phase === expected.phase
+    && turn.initiativePlayer === expected.initiativePlayer
+    && turn.activePlayer === expected.activePlayer
+    && stableJson(turn.completedSetupPlayers) === stableJson(expected.completedSetupPlayers)
+    && stableJson(turn.activatedUnitIds) === stableJson(expected.activatedUnitIds)
+    && Object.keys(turn.activationCounts).length === players.length
+    && players.every((player) => turn.activationCounts[player] === 0);
 }
 function activeDeckPlayerId(game: GameState): string | undefined { return game.players[game.activePlayer]?.id; }
 function boardContinuityState(state: BoardState): Omit<BoardState, 'notes'> { const { notes, ...rest } = state; return rest; }

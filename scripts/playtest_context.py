@@ -24,6 +24,7 @@ def state_briefing(run_dir: Path, player: str, produced: dict[str, int] | None =
     board = json.loads((run_dir / "board.json").read_text())
     map_data = json.loads((ROOT / "game/map.json").read_text())
     unit_rules = json.loads((ROOT / "game/units.json").read_text())
+    setup_rules = json.loads((ROOT / "game/setup.json").read_text())
     setup_phase = board["turn"]["phase"] == "setup"
     briefing: dict[str, Any] = {
         "player": player,
@@ -31,7 +32,7 @@ def state_briefing(run_dir: Path, player: str, produced: dict[str, int] | None =
         "units": board["units"],
         "keyPoints": map_data["keyPoints"],
         "walls": map_data["blocked"],
-        "activationOptions": activation_options(board, map_data, player, unit_rules) if not setup_phase else [],
+        "activationOptions": activation_options(board, map_data, player, unit_rules, setup_rules) if not setup_phase else [],
     }
     if not setup_phase:
         return briefing
@@ -130,7 +131,15 @@ def legal_upgrades(
     return choices
 
 
-def activation_options(board: dict[str, Any], map_data: dict[str, Any], player: str, unit_rules: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+def activation_options(
+    board: dict[str, Any],
+    map_data: dict[str, Any],
+    player: str,
+    unit_rules: dict[str, dict[str, Any]],
+    setup_rules: dict[str, int],
+) -> list[dict[str, Any]]:
+    if board["turn"]["activationCounts"][player] >= setup_rules["maxActivationsPerPlayer"]:
+        return []
     hexes = {coord_key(coord) for coord in map_data["hexes"]}
     walls = {coord_key(coord) for coord in map_data["blocked"]}
     occupied = {coord_key(unit) for unit in board["units"]}

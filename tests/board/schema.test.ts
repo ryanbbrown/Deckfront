@@ -15,6 +15,8 @@ describe('Skirmish schemas and assets', () => {
     ]);
     for (const coord of map.hexes) expect(rotateSkirmishCoord(rotateSkirmishCoord(coord))).toEqual(coord);
     expect(Object.keys(units)).toEqual(['soldier', 'archer']);
+    expect(units.soldier?.hp).toBe(8);
+    expect(units.archer?.hp).toBe(6);
   });
 
   it('rejects incompatible orientation and coordinate systems', () => {
@@ -69,5 +71,13 @@ describe('Skirmish schemas and assets', () => {
     expect(boardStateSchema.parse(state).units).toHaveLength(10);
     expect(() => boardStateSchema.parse({ ...state, units: [{ ...state.units[0], hp: 0 }, ...state.units.slice(1)] })).toThrow();
     expect(() => boardStateSchema.parse({ ...state, units: [{ ...state.units[0], maxHp: 6 }, ...state.units.slice(1)] })).toThrow();
+    expect(() => boardStateSchema.parse({
+      ...state,
+      turn: { ...state.turn, activationCounts: { P1: 0 } }
+    })).toThrow('Activation counts must contain exactly the board players');
+    expect(() => boardStateSchema.parse({
+      ...state,
+      turn: { ...state.turn, activatedUnitIds: ['P1-soldier-1'], activationCounts: { P1: 0, P2: 0 } }
+    })).toThrow('Activation counts must match activated unit ids');
   });
 });

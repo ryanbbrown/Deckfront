@@ -146,7 +146,7 @@ bun run validate-run -- ../runs/rush-vs-engine-01/timeline.json
 
 ## Skirmish ThinHarness playtests
 
-Player setup files use `{ "draft": [cardIds], "units": [{ "id", "type", "col", "row" }] }` with exactly five units. New runs default to 20 completed rounds. Each round has two setup steps followed by alternating single-unit activations. Run the harness through cproxy; the default model is `openai:gpt-5.6-luna`:
+Player setup files use `{ "draft": [cardIds], "units": [{ "id", "type", "col", "row" }] }` with exactly five units. New runs default to 20 completed rounds. Each round has two setup steps followed by up to three alternating unit activations per player. Run the harness through cproxy; the default model is `openai:gpt-5.6-luna`:
 
 ```sh
 cproxy run -- uv run scripts/run_game_thinharness.py \

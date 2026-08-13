@@ -168,6 +168,7 @@ def write_starter_board(path: Path, setups: dict[str, dict[str, Any]]) -> None:
         "players": ["P1", "P2"], "turn": {
             "round": 1, "phase": "setup", "initiativePlayer": "P1", "activePlayer": "P1",
             "completedSetupPlayers": [], "activatedUnitIds": [],
+            "activationCounts": {"P1": 0, "P2": 0},
         },
         "units": units, "notes": [],
     })

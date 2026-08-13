@@ -12,7 +12,11 @@
     "initiativePlayer": "P1",
     "activePlayer": "P1",
     "completedSetupPlayers": [],
-    "activatedUnitIds": []
+    "activatedUnitIds": [],
+    "activationCounts": {
+      "P1": 0,
+      "P2": 0
+    }
   },
   "units": [],
   "notes": [

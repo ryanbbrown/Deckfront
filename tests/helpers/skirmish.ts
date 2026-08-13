@@ -11,8 +11,8 @@ import type { DeckTurnResult } from '../../src/playtest/deckTurn';
 
 export function skirmishUnit(id: string, player: string, type: 'soldier' | 'archer', col: number, row: number): BoardState['units'][number] {
   return type === 'soldier'
-    ? { id, player, type, col, row, hp: 6, attack: 1, movement: 3, range: 1 }
-    : { id, player, type, col, row, hp: 4, attack: 1, movement: 3, range: 2 };
+    ? { id, player, type, col, row, hp: 8, attack: 1, movement: 3, range: 1 }
+    : { id, player, type, col, row, hp: 6, attack: 1, movement: 3, range: 2 };
 }
 
 export function skirmishArmyState(overrides: Partial<BoardState> = {}): BoardState {
@@ -26,7 +26,7 @@ export function skirmishArmyState(overrides: Partial<BoardState> = {}): BoardSta
     ruleset: 'skirmish-v1',
     map: 'skirmish-v1',
     players: ['P1', 'P2'],
-    turn: { round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: [], activatedUnitIds: [] },
+    turn: { round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: [], activatedUnitIds: [], activationCounts: { P1: 0, P2: 0 } },
     units,
     notes: [],
     ...overrides

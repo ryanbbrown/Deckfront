@@ -5,6 +5,7 @@ import {
   boardMapSchema,
   boardStateSchema,
   coordKey,
+  skirmishSetupRulesSchema,
   unitRulesSchema,
   validateSkirmishMap,
   type BoardMap,
@@ -18,8 +19,6 @@ import {
   type ReplayBoardAction
 } from '../replay/schema';
 import { deckTurnResultSchema, type DeckTurnResult } from './deckTurn';
-
-const setupRulesSchema = z.object({ unitsPerPlayer: z.number().int().positive() }).strict();
 
 const setupInputSchema = z.object({
   type: z.literal('setup'),
@@ -57,7 +56,7 @@ export type BoardUnit = BoardState['units'][number];
 export interface BoardRulesContext {
   map: BoardMap;
   units: UnitRules;
-  setup: z.infer<typeof setupRulesSchema>;
+  setup: z.infer<typeof skirmishSetupRulesSchema>;
 }
 
 export interface ExecuteBoardActionOptions { beforePath: string; afterPath: string }
@@ -91,7 +90,7 @@ export async function loadBoardRulesContext(board?: BoardState): Promise<BoardRu
   if (board && (board.map !== map.id || board.ruleset !== 'skirmish-v1')) {
     throw new Error(`Board references ${board.ruleset}/${board.map}, expected skirmish-v1/${map.id}`);
   }
-  return { map, units: unitRulesSchema.parse(unitsRaw), setup: setupRulesSchema.parse(setupRaw) };
+  return { map, units: unitRulesSchema.parse(unitsRaw), setup: skirmishSetupRulesSchema.parse(setupRaw) };
 }
 
 export function executeBoardAction(
@@ -168,6 +167,7 @@ function executeSetup(
     state.turn.phase = 'activation';
     state.turn.activePlayer = state.turn.initiativePlayer;
     state.turn.activatedUnitIds = [];
+    state.turn.activationCounts = emptyActivationCounts(state.players);
   }
   return action;
 }
@@ -178,6 +178,9 @@ function executeActivation(
   context: BoardRulesContext
 ): ReplayBoardAction {
   const activation = input.action.activation;
+  if (activationCount(state, input.player) >= context.setup.maxActivationsPerPlayer) {
+    throw new Error(`${input.stepId}: ${input.player} already completed ${context.setup.maxActivationsPerPlayer} activations this round`);
+  }
   if (state.turn.activatedUnitIds.includes(activation.unit)) {
     throw new Error(`${input.stepId}: ${activation.unit} already activated this round`);
   }
@@ -215,8 +218,9 @@ function executeActivation(
   unit.col = activation.to.col;
   unit.row = activation.to.row;
   state.turn.activatedUnitIds.push(unit.id);
+  state.turn.activationCounts[input.player] = activationCount(state, input.player) + 1;
 
-  if (!armyEliminated(state)) advanceActivation(state, input.player);
+  if (!armyEliminated(state)) advanceActivation(state, input.player, context.setup.maxActivationsPerPlayer);
   return {
     type: 'activation',
     activation: {
@@ -303,14 +307,14 @@ function assertNoAffordableUpgrade(
   }
 }
 
-function advanceActivation(state: BoardState, player: string): void {
+function advanceActivation(state: BoardState, player: string, activationLimit: number): void {
   const opponent = state.players.find((candidate) => candidate !== player);
   if (!opponent) throw new Error(`board roster has no opponent for ${player}`);
-  if (hasUnactivatedUnit(state, opponent)) {
+  if (hasUnactivatedUnit(state, opponent, activationLimit)) {
     state.turn.activePlayer = opponent;
     return;
   }
-  if (hasUnactivatedUnit(state, player)) {
+  if (hasUnactivatedUnit(state, player, activationLimit)) {
     state.turn.activePlayer = player;
     return;
   }
@@ -323,12 +327,24 @@ function advanceActivation(state: BoardState, player: string): void {
     initiativePlayer: nextInitiative,
     activePlayer: nextInitiative,
     completedSetupPlayers: [],
-    activatedUnitIds: []
+    activatedUnitIds: [],
+    activationCounts: emptyActivationCounts(state.players)
   };
 }
 
-function hasUnactivatedUnit(state: BoardState, player: string): boolean {
-  return state.units.some((unit) => unit.player === player && !state.turn.activatedUnitIds.includes(unit.id));
+function hasUnactivatedUnit(state: BoardState, player: string, activationLimit: number): boolean {
+  return activationCount(state, player) < activationLimit
+    && state.units.some((unit) => unit.player === player && !state.turn.activatedUnitIds.includes(unit.id));
+}
+
+function activationCount(state: BoardState, player: string): number {
+  const count = state.turn.activationCounts[player];
+  if (count === undefined) throw new Error(`board turn has no activation count for ${player}`);
+  return count;
+}
+
+function emptyActivationCounts(players: BoardState['players']): Record<string, number> {
+  return Object.fromEntries(players.map((player) => [player, 0]));
 }
 
 function setupOrder(state: BoardState): string[] {

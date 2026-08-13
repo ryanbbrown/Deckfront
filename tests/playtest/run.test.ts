@@ -28,6 +28,7 @@ describe('Skirmish replay validation', () => {
     const duplicateRoot = await buildActivationReplay();
     const duplicateBoard = await json(join(duplicateRoot, 'snapshots/step-003.before.board.json'));
     duplicateBoard.turn.activatedUnitIds = ['P1-soldier-1'];
+    duplicateBoard.turn.activationCounts.P1 = 1;
     await writeFile(join(duplicateRoot, 'snapshots/step-003.before.board.json'), `${JSON.stringify(duplicateBoard)}\n`);
     await expect(validateReplayBundle(join(duplicateRoot, 'timeline.json'), { strict: true })).rejects.toThrow('already activated this round');
 
@@ -40,11 +41,29 @@ describe('Skirmish replay validation', () => {
 
   it('detects an incorrect initiative change', async () => {
     const root = await buildCompletedRoundReplay();
-    const afterPath = join(root, 'snapshots/step-012.after.board.json');
+    const afterPath = join(root, 'snapshots/step-008.after.board.json');
     const after = await json(afterPath);
     after.turn.initiativePlayer = 'P1';
     await writeFile(afterPath, `${JSON.stringify(after)}\n`);
     await expect(validateReplayBundle(join(root, 'timeline.json'), { strict: true })).rejects.toThrow('replayed board action does not match board.after');
+  });
+
+  it('strictly rejects a fourth activation and incorrect count continuity', async () => {
+    const fourthRoot = await buildActivationReplay();
+    const fourthBeforePath = join(fourthRoot, 'snapshots/step-003.before.board.json');
+    const fourthBefore = await json(fourthBeforePath);
+    fourthBefore.turn.activatedUnitIds = ['spent-1', 'spent-2', 'spent-3'];
+    fourthBefore.turn.activationCounts.P1 = 3;
+    await writeFile(fourthBeforePath, `${JSON.stringify(fourthBefore)}\n`);
+    await expect(validateReplayBundle(join(fourthRoot, 'timeline.json'), { strict: true })).rejects.toThrow('already completed 3 activations');
+
+    const continuityRoot = await buildCompletedRoundReplay();
+    const continuityBeforePath = join(continuityRoot, 'snapshots/step-004.before.board.json');
+    const continuityBefore = await json(continuityBeforePath);
+    continuityBefore.turn.activationCounts.P1 = 0;
+    continuityBefore.turn.activationCounts.P2 = 1;
+    await writeFile(continuityBeforePath, `${JSON.stringify(continuityBefore)}\n`);
+    await expect(validateReplayBundle(join(continuityRoot, 'timeline.json'), { strict: true })).rejects.toThrow('board.after does not match the next board.before');
   });
 
   it('strictly rejects an affordable upgrade left unspent', async () => {
@@ -67,10 +86,25 @@ describe('Skirmish replay validation', () => {
   it('initializes the full round state and validates army setup', async () => {
     const root = await tempDir();
     const unitsPath = join(root, 'units.json');
-    await writeFile(unitsPath, `${JSON.stringify(skirmishArmyState().units.map(({ id, player, type, col, row }) => ({ id, player, type, col, row })))}\n`);
+    const submittedUnits = skirmishArmyState().units.map(({ id, player, type, col, row }) => ({
+      id,
+      player,
+      type: id.endsWith('soldier-1') ? 'archer' : type,
+      col,
+      row
+    }));
+    await writeFile(unitsPath, `${JSON.stringify(submittedUnits)}\n`);
     const paths = await initPlaytestRun({ root: join(root, 'run'), ruleset: 'skirmish-v1', map: 'skirmish-v1', unitsPath, turnCap: 12 });
-    expect((await json(paths.boardState)).turn).toEqual({ round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: [], activatedUnitIds: [] });
+    const board = await json(paths.boardState);
+    expect(board.turn).toEqual({ round: 1, phase: 'setup', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: [], activatedUnitIds: [], activationCounts: { P1: 0, P2: 0 } });
+    expect(board.units.every((unit: { type: string; hp: number }) => unit.type === 'soldier' ? unit.hp === 8 : unit.hp === 6)).toBe(true);
     expect((await json(paths.timeline)).run.turnCap).toBe(12);
+
+    const reversedBoard = skirmishArmyState();
+    reversedBoard.turn.activationCounts = { P2: 0, P1: 0 };
+    const boardPath = join(root, 'reversed-counts-board.json');
+    await writeFile(boardPath, `${JSON.stringify(reversedBoard)}\n`);
+    await expect(initPlaytestRun({ root: join(root, 'reordered-run'), ruleset: 'skirmish-v1', map: 'skirmish-v1', boardPath })).resolves.toBeDefined();
   });
 });
 

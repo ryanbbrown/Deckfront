@@ -22,5 +22,5 @@ describe('board replay annotations', () => {
 });
 
 function state(units: BoardState['units']): BoardState {
-  return { schemaVersion: 1, ruleset: 'skirmish-v1', map: 'skirmish-v1', players: ['P1', 'P2'], turn: { round: 1, phase: 'activation', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: ['P1', 'P2'], activatedUnitIds: [] }, units, notes: [] };
+  return { schemaVersion: 1, ruleset: 'skirmish-v1', map: 'skirmish-v1', players: ['P1', 'P2'], turn: { round: 1, phase: 'activation', initiativePlayer: 'P1', activePlayer: 'P1', completedSetupPlayers: ['P1', 'P2'], activatedUnitIds: [], activationCounts: { P1: 0, P2: 0 } }, units, notes: [] };
 }

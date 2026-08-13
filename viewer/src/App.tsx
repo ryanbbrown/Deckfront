@@ -92,6 +92,7 @@ export function App(): ReactElement {
           <p>
             {bundle.state.turn.activePlayer} · {phaseLabel(bundle.state.turn.phase)} · Round {bundle.state.turn.round}
           </p>
+          {bundle.state.turn.phase === 'activation' ? <p>{activationCountLabel(bundle.state, bundle.setupRules.maxActivationsPerPlayer)}</p> : null}
         </header>
         <section>
           <h2>Units</h2>
@@ -112,7 +113,7 @@ export function App(): ReactElement {
 
 function BoardView({ bundle, replay, game, title }: { bundle: BoardBundle; replay: ReplayBundle | null; game: GameState | null; title: string }): ReactElement {
   const [marketOpen, setMarketOpen] = useState(false);
-  const { state, map, unitRules } = bundle;
+  const { state, map, unitRules, setupRules } = bundle;
   const blocked = useMemo(() => new Set(map.blocked.map(coordKey)), [map.blocked]);
   const layout = useMemo(() => buildLayout(map.hexes, map), [map]);
   const annotations = useMemo(
@@ -136,6 +137,7 @@ function BoardView({ bundle, replay, game, title }: { bundle: BoardBundle; repla
           <div className="turn-pill">
             <span>{state.turn.activePlayer}</span>
             <strong>{phaseLabel(state.turn.phase)} · Round {state.turn.round}</strong>
+            {state.turn.phase === 'activation' ? <small>{activationCountLabel(state, setupRules.maxActivationsPerPlayer)}</small> : null}
           </div>
         </div>
       </div>
@@ -401,6 +403,10 @@ function TurnSummary({ replay }: { replay: ReplayBundle }): ReactElement {
 
 function phaseLabel(phase: 'setup' | 'activation'): string {
   return phase === 'setup' ? 'Setup' : 'Activation';
+}
+
+function activationCountLabel(state: BoardState, activationLimit: number): string {
+  return state.players.map((player) => `${player} ${state.turn.activationCounts[player] ?? 0}/${activationLimit}`).join(' · ');
 }
 
 function ActionFlow({ actions, game }: { actions: PlayedActionSummary[]; game: GameState }): ReactElement {
