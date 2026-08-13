@@ -2,8 +2,9 @@
 
 - The game uses a 19-hex board and two pieces per player.
 - The first player to score five ring-outs wins.
-- A ringed piece respawns on its home edge at the start of its owner's next turn.
-- A push moves a contiguous line of pieces. The opponent of each ringed piece scores the point.
+- A ringed piece respawns at an original starting hex at the start of its owner's next turn.
+- If both starting hexes are occupied, it uses a nearest empty hex.
+- A push moves only its adjacent target. An occupied destination blocks the push.
 - Each piece gets one adjacent baseline move on its owner's turn.
 - Players can interleave baseline moves and card plays.
 - Players can play any number of action cards from their five-card hand.

@@ -43,8 +43,7 @@ Pieces cannot move through occupied hexes unless a card allows it.
 
 Start Ochre at `(-1, 0)` and `(-1, 1)`.
 Start Indigo at `(1, -1)` and `(1, 0)`.
-Ochre's home edge is `(-2, 0)`, `(-2, 1)`, and `(-2, 2)`.
-Indigo's home edge is `(2, -2)`, `(2, -1)`, and `(2, 0)`.
+These four starting hexes are also their owners' respawn anchors.
 Choose the first player with the saved random seed.
 
 ### Baseline movement
@@ -56,20 +55,17 @@ A pinned piece cannot use baseline movement during its next turn.
 
 ### Displacement
 
-A push moves a contiguous line of pieces directly away from the acting piece.
+A push moves one adjacent enemy directly away from the acting piece.
 The chosen target must be an adjacent enemy.
-Collect every contiguous piece beyond the target on that line.
-A temporary block stops the complete push.
-Otherwise, move the line from its farthest piece to its nearest piece.
-Ring out the farthest piece when the next hex is beyond the board.
+A piece or temporary block in the destination makes a push against an unbraced target illegal.
+Check Brace before destination occupancy.
+A displacement card can remove Brace even when its destination would be blocked.
 Resolve multi-hex displacement as separate push steps.
 A displacement beyond the board causes a ring-out.
 Remove the ringed piece and award one point immediately.
 Stop resolving effects against a ringed piece.
 
 Award the point to the opponent of the ringed piece.
-This rule also applies when a push chain rings out a friendly piece.
-A blocked push is illegal unless it will remove Brace.
 
 Pull and Sweep also count as displacement.
 Brace can cancel any of these effects.
@@ -78,8 +74,8 @@ Normal movement never causes a ring-out.
 ### Respawning
 
 Respawn ringed pieces at the start of their owner's next turn.
-The owner selects any empty hex on their home edge.
-If the home edge is full, select any empty hex with minimum distance from that edge.
+The owner selects either empty respawn anchor on their side.
+If both anchors are occupied, select any empty hex with minimum distance from either anchor.
 Resolve multiple respawns one at a time.
 Clear every status from a ringed piece.
 A respawned piece receives its normal baseline move.
@@ -90,7 +86,7 @@ The human or AI must choose among those locations.
 ### Status duration
 
 `Braced` lasts until it cancels one displacement card or its owner's next turn starts.
-A Brace in a pushed line cancels the complete push and is then removed.
+Brace on the chosen target cancels the complete push and is then removed.
 Brace cancels all steps from a multi-step Press or Corner.
 
 Apply `Pinned` immediately.
@@ -217,7 +213,6 @@ Drive preserves contact and supports another push from the same direction.
 Choose a friendly piece and an adjacent enemy.
 Push that enemy one hex.
 Remove and ignore Brace on the chosen target.
-Another Braced piece in the pushed line still cancels the push.
 
 Breaker prevents Brace from becoming a complete answer to force decks.
 
@@ -583,9 +578,9 @@ Tests must cover these high-risk behaviors:
 - Interleaved baseline moves and card plays
 - Each card's legal and illegal targets
 - Brace, Pin, and block expiration
-- Multi-step displacement and blocked paths
+- Multi-step displacement and blocked destinations
 - Every board edge ring-out direction
-- Respawn when home hexes are occupied
+- Respawn when both anchors are occupied
 - Immediate five-point termination
 - Undo without state drift
 - Human hidden information removal
