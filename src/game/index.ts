@@ -1,6 +1,6 @@
 export { CARDS, FIRST_MARKET, STARTING_DECK, cardDefinition } from './config';
 export {
-  applyAction, applyCommand, applyPreviewAction, createTurnPreview, legalRespawnLocations,
+  applyAction, applyCommand, applyPreviewAction, createActionPreview, legalRespawnLocations,
   listLegalActions, replayCommands, undoPreviewAction
 } from './engine';
 export { checkInvariants, assertInvariants } from './invariants';
