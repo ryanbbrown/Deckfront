@@ -8,11 +8,13 @@ dist/
 build/
 .next/
 coverage/
+*.tsbuildinfo
 
 __pycache__/
 .venv/
 
 .archive/
+.data/
 
 .reviews/*
 !.reviews/.gitkeep

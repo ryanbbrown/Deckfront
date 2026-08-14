@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 2,
+  "id": "push-out",
+  "title": "The Narrow Edge: Full Hands",
+  "objective": "Push-out",
+  "summary": "Ring out one opposing piece. Each turn gives both pieces baseline movement and a five-card tactical hand.",
+  "designQuestion": "Can full-hand sequencing create threats, costly defenses, and counter-pressure on only 19 hexes?",
+  "result": "Ochre wins on turn five with a four-card line after Indigo twice prevents a live ring-out.",
+  "findings": [
+    "Full hands create setup, payoff, and counterplay within one turn.",
+    "Brace matters because each use cancels a live edge push.",
+    "Relay turns an edge rescue into a counterattack instead of resetting play.",
+    "The finishing hand needs four effects in the correct order."
+  ],
+  "config": {
+    "boardRadius": 2,
+    "boardLabel": "19 hexes",
+    "pieceCount": 2,
+    "baselineMovement": 1,
+    "movementRule": "Move each piece once. Interleave those moves with any cards in the five-card hand.",
+    "victoryThreshold": 1,
+    "objectiveHexes": [],
+    "goals": { "P1": [], "P2": [] }
+  },
+  "rules": [
+    "Each piece can move to one adjacent empty hex each turn.",
+    "Play each card in the shown hand at most once.",
+    "Interleave baseline moves and card plays in any order.",
+    "A push moves its target one hex directly away from its source.",
+    "Brace cancels the next push against its piece, then clears.",
+    "Drive requires Off-Balance and can follow into the target's old hex.",
+    "The first ring-out wins."
+  ],
+  "abilities": {
+    "P1": ["Off-Balance", "Drive", "Shove", "Dash", "Pin"],
+    "P2": ["Relay", "Sidestep", "Countershove", "Brace", "Cleanse"]
+  },
+  "cardLibrary": {
+    "Off-Balance": "Mark an adjacent enemy. Drive can push it.",
+    "Drive": "Push an adjacent Off-Balance enemy. You may follow into its old hex.",
+    "Shove": "Push an adjacent enemy one hex.",
+    "Pin": "The target cannot use its next baseline move.",
+    "Dash": "Move one friendly piece to an adjacent empty hex.",
+    "Relay": "Swap two friendly pieces within two hexes.",
+    "Sidestep": "Move one friendly piece to an adjacent empty hex.",
+    "Countershove": "Push an adjacent enemy one hex.",
+    "Brace": "Cancel the next push against one friendly piece.",
+    "Cleanse": "Remove Pin and Off-Balance from one friendly piece."
+  },
+  "initialState": {
+    "pieces": [
+      { "id": "P1-A", "player": "P1", "label": "A", "position": { "q": -1, "r": 1 }, "inPlay": true, "statuses": {} },
+      { "id": "P1-B", "player": "P1", "label": "B", "position": { "q": -1, "r": 0 }, "inPlay": true, "statuses": {} },
+      { "id": "P2-A", "player": "P2", "label": "A", "position": { "q": 1, "r": -1 }, "inPlay": true, "statuses": {} },
+      { "id": "P2-B", "player": "P2", "label": "B", "position": { "q": 1, "r": 0 }, "inPlay": true, "statuses": {} }
+    ],
+    "blocks": [],
+    "objective": { "controller": null, "progress": 0 },
+    "score": { "P1": 0, "P2": 0 },
+    "winner": null
+  },
+  "entries": [
+    {
+      "id": "turn-01",
+      "round": 1,
+      "player": "P1",
+      "hand": ["Off-Balance", "Drive", "Pin", "Relay", "Brace"],
+      "summary": "Ochre creates an edge threat and taxes Indigo's movement.",
+      "reasoning": "Drive puts B on the edge. Pin prevents its free retreat, but Relay and card movement still offer several defenses.",
+      "actions": [
+        { "type": "move", "piece": "P1-A", "to": { "q": 0, "r": 1 }, "ability": "Baseline move", "note": "A takes the lower approach." },
+        { "type": "move", "piece": "P1-B", "to": { "q": 0, "r": 0 }, "ability": "Baseline move", "note": "B controls the center recovery lane." },
+        { "type": "status", "actor": "P1-A", "piece": "P2-B", "status": "offBalance", "value": true, "card": "Off-Balance", "ability": "Off-Balance", "note": "Prepare B for Drive." },
+        { "type": "push", "actor": "P1-A", "target": "P2-B", "to": { "q": 2, "r": -1 }, "follow": true, "requiresStatus": "offBalance", "clearsStatus": "offBalance", "card": "Drive", "ability": "Drive", "note": "Push B to the edge and follow into contact." },
+        { "type": "status", "actor": "P1-A", "piece": "P2-B", "status": "pinned", "value": true, "card": "Pin", "ability": "Pin", "note": "B loses its next baseline move." }
+      ]
+    },
+    {
+      "id": "turn-02",
+      "round": 1,
+      "player": "P2",
+      "hand": ["Relay", "Sidestep", "Countershove", "Brace", "Cleanse"],
+      "summary": "Indigo rescues B and turns the defense into two threats.",
+      "reasoning": "Relay extracts the pinned edge piece. Countershove threatens Ochre A, while Brace stops Ochre's available three-card ring-out of Indigo A.",
+      "actions": [
+        { "type": "move", "piece": "P2-A", "to": { "q": 0, "r": -1 }, "ability": "Baseline move", "note": "A moves inward before the relay." },
+        { "type": "swap", "first": "P2-A", "second": "P2-B", "card": "Relay", "ability": "Relay", "maxDistance": 2, "note": "Swap A with the pinned edge piece." },
+        { "type": "move", "piece": "P2-B", "to": { "q": 1, "r": -1 }, "card": "Sidestep", "ability": "Sidestep", "note": "B pays a card to bypass Pin." },
+        { "type": "push", "actor": "P2-B", "target": "P1-A", "to": { "q": 1, "r": 1 }, "card": "Countershove", "ability": "Countershove", "note": "Turn the rescue into edge pressure." },
+        { "type": "status", "piece": "P2-A", "status": "braced", "value": true, "card": "Brace", "ability": "Brace", "note": "Cancel the first push in Ochre's live ring-out line." },
+        { "type": "status", "piece": "P2-B", "status": "pinned", "value": false, "ability": "Pin expires", "note": "B lost its baseline move, so Pin clears." }
+      ]
+    },
+    {
+      "id": "turn-03",
+      "round": 2,
+      "player": "P1",
+      "hand": ["Shove", "Off-Balance", "Drive", "Pin", "Relay"],
+      "summary": "Ochre spends four cards to break Brace and rebuild mate-in-one.",
+      "reasoning": "Shove removes the live defense. Off-Balance and Drive put A on the edge. Pin makes Indigo pay for another rescue.",
+      "actions": [
+        { "type": "move", "piece": "P1-B", "to": { "q": 1, "r": 0 }, "ability": "Baseline move", "note": "B blocks Indigo's shortest support route." },
+        { "type": "move", "piece": "P1-A", "to": { "q": 2, "r": 0 }, "ability": "Baseline move", "note": "A lines up behind the braced edge target." },
+        { "type": "attempt", "actor": "P1-A", "target": "P2-A", "card": "Shove", "ability": "Shove", "outcome": "braced", "note": "Brace cancels Shove and then clears." },
+        { "type": "status", "actor": "P1-A", "piece": "P2-A", "status": "offBalance", "value": true, "card": "Off-Balance", "ability": "Off-Balance", "note": "Prepare A after its Brace is gone." },
+        { "type": "push", "actor": "P1-A", "target": "P2-A", "to": { "q": 2, "r": -2 }, "follow": true, "requiresStatus": "offBalance", "clearsStatus": "offBalance", "card": "Drive", "ability": "Drive", "note": "Push A to the corner and maintain contact." },
+        { "type": "status", "actor": "P1-A", "piece": "P2-A", "status": "pinned", "value": true, "card": "Pin", "ability": "Pin", "note": "A cannot retreat with baseline movement." }
+      ]
+    },
+    {
+      "id": "turn-04",
+      "round": 2,
+      "player": "P2",
+      "hand": ["Relay", "Brace", "Countershove", "Cleanse", "Sidestep"],
+      "summary": "Indigo transfers the edge risk and throws Ochre's attacker backward.",
+      "reasoning": "Relay saves pinned A. Brace protects the replacement edge piece. Countershove breaks contact and forces Ochre to rebuild its approach.",
+      "actions": [
+        { "type": "move", "piece": "P2-B", "to": { "q": 0, "r": -1 }, "ability": "Baseline move", "note": "B creates a relay endpoint and countershove line." },
+        { "type": "swap", "first": "P2-A", "second": "P2-B", "card": "Relay", "ability": "Relay", "maxDistance": 2, "note": "Move pinned A to safety and transfer the edge risk to B." },
+        { "type": "status", "piece": "P2-B", "status": "braced", "value": true, "card": "Brace", "ability": "Brace", "note": "Protect the replacement edge piece from Ochre's next Shove." },
+        { "type": "push", "actor": "P2-B", "target": "P1-A", "to": { "q": 2, "r": 0 }, "card": "Countershove", "ability": "Countershove", "note": "Break contact while keeping Ochre A near the edge." },
+        { "type": "status", "piece": "P2-A", "status": "pinned", "value": false, "ability": "Pin expires", "note": "A lost its baseline move, so Pin clears." }
+      ]
+    },
+    {
+      "id": "turn-05",
+      "round": 3,
+      "player": "P1",
+      "hand": ["Dash", "Off-Balance", "Shove", "Drive", "Relay"],
+      "summary": "Ochre assembles a four-card ring-out in the required order.",
+      "reasoning": "Dash creates contact. Off-Balance enables Drive. Shove must first consume Brace. Drive then finishes the exposed edge piece.",
+      "actions": [
+        { "type": "move", "piece": "P1-B", "to": { "q": 0, "r": 0 }, "ability": "Baseline move", "note": "B clears A's approach hex." },
+        { "type": "move", "piece": "P1-A", "to": { "q": 1, "r": 0 }, "ability": "Baseline move", "note": "A moves into Dash range." },
+        { "type": "move", "piece": "P1-A", "to": { "q": 1, "r": -1 }, "card": "Dash", "ability": "Dash", "note": "A establishes contact with the braced edge piece." },
+        { "type": "status", "actor": "P1-A", "piece": "P2-B", "status": "offBalance", "value": true, "card": "Off-Balance", "ability": "Off-Balance", "note": "Enable the finishing Drive." },
+        { "type": "attempt", "actor": "P1-A", "target": "P2-B", "card": "Shove", "ability": "Shove", "outcome": "braced", "note": "Brace cancels Shove and clears." },
+        { "type": "push", "actor": "P1-A", "target": "P2-B", "to": null, "follow": true, "requiresStatus": "offBalance", "clearsStatus": "offBalance", "card": "Drive", "ability": "Drive", "note": "Drive B beyond the board edge." },
+        { "type": "score", "player": "P1", "amount": 1, "reason": "Ring-out" },
+        { "type": "win", "player": "P1", "reason": "First ring-out" }
+      ]
+    }
+  ]
+}
