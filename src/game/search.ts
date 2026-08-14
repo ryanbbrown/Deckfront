@@ -1,5 +1,6 @@
 import { applyAction, listLegalActions } from './engine';
 import { cardDefinition } from './config';
+import { BOARD_RADIUS } from './hex';
 import type { GameState, LegalAction, PlayerId, SearchResult } from './types';
 
 interface CachedResult {
@@ -71,7 +72,7 @@ function ringOutUpperBound(state: GameState, playerId: PlayerId): number {
     .map((piece) => {
       const position = piece.position!;
       const depth = Math.max(Math.abs(position.q), Math.abs(position.r), Math.abs(position.q + position.r));
-      return 3 - depth;
+      return BOARD_RADIUS + 1 - depth;
     })
     .sort((left, right) => left - right);
   let ringOuts = 0;

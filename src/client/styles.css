@@ -66,7 +66,8 @@ h2 { margin-bottom: 0; font-size: 1rem; }
 .piece circle { stroke: rgba(25,32,28,.65); stroke-width: 2; transition: stroke-width .15s, filter .15s; }
 .piece--ochre circle { fill: var(--ochre); }
 .piece--indigo circle { fill: var(--indigo); }
-.piece--legal circle { stroke: #fff; stroke-width: 5; filter: drop-shadow(0 0 6px var(--mint)); }
+.piece--actor circle { stroke: #fff; stroke-width: 5; filter: drop-shadow(0 0 6px var(--mint)); }
+.piece--target circle { stroke: #fff; stroke-width: 5; filter: drop-shadow(0 0 7px #c74646); }
 .piece--selected circle { stroke: var(--mint); stroke-width: 6; }
 .piece text { pointer-events: none; text-anchor: middle; }
 .piece__name { fill: white; font-weight: 800; }
@@ -76,6 +77,10 @@ h2 { margin-bottom: 0; font-size: 1rem; }
 .block--ochre rect { stroke: var(--ochre-dark); }
 .block--indigo rect { stroke: var(--indigo-dark); }
 .block text { text-anchor: middle; font-size: 22px; }
+.block--legal { cursor: pointer; filter: drop-shadow(0 0 7px var(--mint)); }
+.block--legal rect { stroke: var(--mint); stroke-width: 5; }
+.board-instruction { min-height: 2.8rem; padding: 0.75rem 1rem 0; color: var(--muted); font-size: 0.82rem; text-align: center; }
+.board-instruction strong { color: var(--ink); }
 .board-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.25rem; padding: 0.4rem 1rem 0.8rem; color: var(--muted); font-size: 0.7rem; }
 .dot { display: inline-block; width: 9px; height: 9px; margin-right: 4px; border-radius: 50%; }
 .dot--ochre { background: var(--ochre); }.dot--indigo { background: var(--indigo); }
@@ -99,9 +104,11 @@ h2 { margin-bottom: 0; font-size: 1rem; }
 .card { position: relative; flex: 0 0 175px; min-height: 145px; padding: 1rem; border: 2px solid transparent; border-radius: 10px; color: var(--ink); background: #eee8d9; text-align: left; }
 .card--treasure { background: #f2e0a2; }
 .card--selected { border-color: var(--mint); box-shadow: 0 0 0 3px rgba(78,141,118,.2); }
+.card--target { border-color: #c74646; box-shadow: 0 0 0 3px rgba(199,70,70,.16); }
 .card__cost, .market-card__cost { position: absolute; top: 0.65rem; right: 0.65rem; display: grid; width: 24px; height: 24px; border-radius: 50%; color: white; background: var(--ink); place-items: center; font: 500 0.68rem 'DM Mono', monospace; }
 .card strong, .market-card strong { display: block; padding-right: 1.8rem; }
 .card small, .market-card small { display: block; margin-top: 1rem; color: var(--muted); line-height: 1.35; }
+.card em { display: block; margin-top: 0.65rem; color: #8f2626; font-size: 0.65rem; font-style: normal; font-weight: 700; }
 .lower-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(260px, .7fr); gap: 1rem; margin-top: 1rem; }
 .market-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 0.55rem; }
 .market-card { position: relative; min-height: 125px; padding: 0.8rem; border: 1px solid var(--line); border-radius: 8px; color: var(--ink); background: #efede6; text-align: left; }

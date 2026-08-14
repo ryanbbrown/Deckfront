@@ -92,9 +92,12 @@ describe('AI turn coordinator', () => {
 });
 
 function quietTurn(record: GameRecord): GameCommand[] {
+  const move = listLegalActions(record.state).find((action) => action.command.type === 'baselineMove');
+  if (!move) throw new Error('Expected one opening baseline move.');
   const enterBuy: GameCommand = { type: 'enterBuyPhase' };
-  const commands: GameCommand[] = [enterBuy];
-  let state = applyCommand(record.state, enterBuy);
+  const commands: GameCommand[] = [move.command, enterBuy];
+  let state = applyCommand(record.state, move.command);
+  state = applyCommand(state, enterBuy);
   const purchase = listLegalActions(state).find((action) => action.command.type === 'buyCard');
   if (purchase?.command.type === 'buyCard') {
     commands.push(purchase.command);

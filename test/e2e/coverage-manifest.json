@@ -1,0 +1,142 @@
+{
+  "shared": [
+    { "rule": "Select and deselect every playable card.", "tests": ["SELECTION-all-cards"] },
+    { "rule": "Show only friendly legal actors before actor selection.", "tests": ["SHOVE-roles-both-actors-and-targets"] },
+    { "rule": "Show only legal targets or destinations after actor selection.", "tests": ["SHOVE-roles-both-actors-and-targets", "ILLEGAL-cards-and-destinations"] },
+    { "rule": "Change the selected actor before resolution.", "tests": ["SELECTION-change-actor", "VAULT-direct-actor-switch"] },
+    { "rule": "Clear card and actor selections after resolution and Undo.", "tests": ["UNDO-shove", "UNDO-dash", "UNDO-brace", "UNDO-cull", "UNDO-drive", "UNDO-breaker", "UNDO-press", "UNDO-pull", "UNDO-vault", "UNDO-sweep", "UNDO-relay", "UNDO-block", "UNDO-pin", "UNDO-corner"] },
+    { "rule": "Disable cards with no complete legal action.", "tests": ["ILLEGAL-cards-and-destinations"] },
+    { "rule": "Never execute a different action when legal actions share a target.", "tests": ["SWEEP-directions"] },
+    { "rule": "Preserve exact game state after reload.", "tests": ["UNDO-and-reload"] }
+  ],
+  "baselineMove": [
+    { "rule": "Move either friendly piece in every legal direction.", "tests": ["MOVE-direction-0", "MOVE-direction-1", "MOVE-direction-2", "MOVE-direction-3", "MOVE-direction-4", "MOVE-direction-5", "MOVE-piece-b-directions"] },
+    { "rule": "Reject occupied and off-board destinations.", "tests": ["ILLEGAL-cards-and-destinations"] },
+    { "rule": "Consume only the chosen piece baseline move.", "tests": ["MOVE-direction-0"] },
+    { "rule": "Keep card movement after baseline movement.", "tests": ["MOVE-then-DASH"] },
+    { "rule": "Prevent a pinned piece baseline move.", "tests": ["PIN-baseline-only"] }
+  ],
+  "shove": [
+    { "rule": "Use either friendly piece as actor.", "tests": ["SHOVE-roles-both-actors-and-targets", "PUSH-CARDS-all-actor-target-pairs"] },
+    { "rule": "Target either adjacent enemy.", "tests": ["SHOVE-roles-both-actors-and-targets", "PUSH-CARDS-all-actor-target-pairs"] },
+    { "rule": "Offer both legal enemies for one actor.", "tests": ["SHOVE-roles-both-actors-and-targets"] },
+    { "rule": "Offer both friendly actors with legal targets.", "tests": ["SHOVE-roles-both-actors-and-targets"] },
+    { "rule": "Move only the chosen enemy and never a friendly piece.", "tests": ["SHOVE-roles-both-actors-and-targets", "PUSH-CARDS-all-actor-target-pairs"] },
+    { "rule": "Reject non-adjacent enemies.", "tests": ["ILLEGAL-cards-and-destinations"] },
+    { "rule": "Reject an occupied push destination.", "tests": ["SHOVE-blocked-destination"] },
+    { "rule": "Consume Brace without movement.", "tests": ["SHOVE-brace-and-blocked"] },
+    { "rule": "Ring out an edge target for exactly one point.", "tests": ["SHOVE-ring-out"] }
+  ],
+  "dash": [
+    { "rule": "Move either friendly piece in every legal direction.", "tests": ["DASH-direction-0", "DASH-direction-1", "DASH-direction-2", "DASH-direction-3", "DASH-direction-4", "DASH-direction-5", "DASH-piece-b-directions"] },
+    { "rule": "Reject occupied and off-board destinations.", "tests": ["ILLEGAL-cards-and-destinations"] },
+    { "rule": "Preserve baseline movement.", "tests": ["DASH-direction-0"] },
+    { "rule": "Allow Dash after baseline movement.", "tests": ["MOVE-then-DASH"] }
+  ],
+  "brace": [
+    { "rule": "Target either friendly piece and never an enemy.", "tests": ["BRACE-friendly-only"] },
+    { "rule": "Cancel displacement cards and clear after cancellation.", "tests": ["SHOVE-brace-and-blocked", "DRIVE-brace", "BREAKER-braced", "PULL-occupied-middle", "SWEEP-brace", "PRESS-brace", "CORNER-brace"] },
+    { "rule": "Expire at the correct turn boundary.", "tests": ["TURN-cleanup-status-expiry"] }
+  ],
+  "cull": [
+    { "rule": "Trash Cull itself.", "tests": ["CULL-self"] },
+    { "rule": "Trash another hand card and never a card outside hand.", "tests": ["CULL-other-card"] },
+    { "rule": "Update hand, play, trash, and cleanup zones.", "tests": ["CULL-other-card", "TURN-cleanup-status-expiry"] }
+  ],
+  "drive": [
+    { "rule": "Use either actor and either adjacent enemy.", "tests": ["PUSH-CARDS-all-actor-target-pairs"] },
+    { "rule": "Resolve the push and follow when the target is selected.", "tests": ["DRIVE-auto-follow"] },
+    { "rule": "Follow after a normal push or ring-out.", "tests": ["DRIVE-auto-follow", "DRIVE-ring-out"] },
+    { "rule": "Do not follow after Brace or a blocked push.", "tests": ["DRIVE-brace", "DRIVE-braced-no-follow", "DRIVE-blocked"] }
+  ],
+  "breaker": [
+    { "rule": "Push unbraced and braced targets.", "tests": ["PUSH-CARDS-all-actor-target-pairs", "BREAKER-braced"] },
+    { "rule": "Handle occupied destinations under Breaker rules.", "tests": ["BREAKER-occupied"] },
+    { "rule": "Never target friendly or non-adjacent pieces.", "tests": ["ILLEGAL-cards-and-destinations", "PUSH-CARDS-all-actor-target-pairs"] }
+  ],
+  "press": [
+    { "rule": "Push once without setup.", "tests": ["PRESS-basic"] },
+    { "rule": "Push twice after every qualifying setup card.", "tests": ["PRESS-setup-shove", "PRESS-setup-drive", "PRESS-setup-breaker", "PRESS-setup-pull", "PRESS-setup-sweep", "PRESS-setup-corner"] },
+    { "rule": "Do not let Press qualify another Press.", "tests": ["PRESS-does-not-self-setup"] },
+    { "rule": "Stop after Brace or first-step ring-out.", "tests": ["PRESS-brace", "PRESS-first-step-ring-out"] },
+    { "rule": "Score a second-step ring-out once.", "tests": ["PRESS-second-step-ring-out"] }
+  ],
+  "pull": [
+    { "rule": "Use either actor and either enemy on an exact two-hex line.", "tests": ["PULL-all-actor-target-pairs"] },
+    { "rule": "Move the enemy into the empty middle hex.", "tests": ["PULL-exact-line"] },
+    { "rule": "Reject wrong range, bent lines, and occupied middle.", "tests": ["PULL-wrong-range", "PULL-bent-line", "PULL-occupied-middle"] },
+    { "rule": "Resolve Brace and never move the actor.", "tests": ["PULL-occupied-middle", "PULL-exact-line"] }
+  ],
+  "vault": [
+    { "rule": "Use either friendly piece and jump either owner.", "tests": ["VAULT-friendly", "VAULT-direct-actor-switch", "VAULT-piece-b-directions"] },
+    { "rule": "Cover all six directions.", "tests": ["VAULT-direction-0", "VAULT-direction-1", "VAULT-direction-2", "VAULT-direction-3", "VAULT-direction-4", "VAULT-direction-5"] },
+    { "rule": "Reject empty adjacent, occupied landing, off-board landing, and bent jumps.", "tests": ["VAULT-illegal-patterns"] },
+    { "rule": "Preserve baseline movement.", "tests": ["VAULT-direction-0"] }
+  ],
+  "sweep": [
+    { "rule": "Use either actor and either adjacent enemy.", "tests": ["PUSH-CARDS-all-actor-target-pairs"] },
+    { "rule": "Offer and resolve both rotations independently.", "tests": ["SWEEP-directions", "SWEEP-counterclockwise"] },
+    { "rule": "Reject occupied on-board destinations.", "tests": ["SWEEP-occupied"] },
+    { "rule": "Ring out through an off-board destination.", "tests": ["SWEEP-off-board"] },
+    { "rule": "Consume Brace without movement.", "tests": ["SWEEP-brace"] }
+  ],
+  "relay": [
+    { "rule": "Swap at distance one and two.", "tests": ["RELAY-friendly-only", "RELAY-distance-one"] },
+    { "rule": "Reject distance greater than two and enemy pieces.", "tests": ["RELAY-range", "RELAY-friendly-only"] },
+    { "rule": "Preserve statuses and baseline moves.", "tests": ["RELAY-friendly-only"] }
+  ],
+  "block": [
+    { "rule": "Place in all directions for either actor.", "tests": ["BLOCK-direction-0", "BLOCK-direction-1", "BLOCK-direction-2", "BLOCK-direction-3", "BLOCK-direction-4", "BLOCK-direction-5", "BLOCK-piece-b-directions"] },
+    { "rule": "Reject occupied and off-board destinations.", "tests": ["ILLEGAL-cards-and-destinations"] },
+    { "rule": "Keep blocks through the correct boundary.", "tests": ["TURN-cleanup-status-expiry"] },
+    { "rule": "At limit select only one replaced owned block.", "tests": ["BLOCK-replacement", "BLOCK-selection-order-ochre-a", "BLOCK-selection-order-ochre-b", "BLOCK-never-replace-opponent"] }
+  ],
+  "pin": [
+    { "rule": "Use either actor and either adjacent enemy, never friendly or non-adjacent.", "tests": ["PUSH-CARDS-all-actor-target-pairs", "PIN-enemy-only"] },
+    { "rule": "Prevent next baseline move but keep card movement.", "tests": ["PIN-baseline-only"] },
+    { "rule": "Clear Pin at the correct boundary.", "tests": ["TURN-cleanup-status-expiry"] }
+  ],
+  "corner": [
+    { "rule": "Resolve one push without setup.", "tests": ["PUSH-CARDS-all-actor-target-pairs"] },
+    { "rule": "Resolve extra push for pinned target or owned block.", "tests": ["CORNER-pinned", "CORNER-owned-block"] },
+    { "rule": "Do not use opponent block.", "tests": ["CORNER-owned-block"] },
+    { "rule": "Stop after Brace or first-step ring-out.", "tests": ["CORNER-brace", "CORNER-first-step-ring-out"] },
+    { "rule": "Score a second-step ring-out once.", "tests": ["CORNER-second-step-ring-out"] }
+  ],
+  "respawnAndScoring": [
+    { "rule": "Offer empty anchors and exclude occupied anchors.", "tests": ["RESPAWN-anchors-and-fallback"] },
+    { "rule": "Offer every nearest empty fallback when anchors are occupied.", "tests": ["RESPAWN-anchors-and-fallback"] },
+    { "rule": "Resolve two respawns one at a time.", "tests": ["RESPAWN-two"] },
+    { "rule": "Clear statuses and restore baseline movement.", "tests": ["RESPAWN-two"] },
+    { "rule": "Award points only to the opponent of the ringed piece.", "tests": ["SHOVE-ring-out"] },
+    { "rule": "Stop immediately at five and prevent later work.", "tests": ["MATCH-END"] }
+  ],
+  "turnMarketPersistence": [
+    { "rule": "Interleave both baseline moves and multiple cards.", "tests": ["TURN-interleave"] },
+    { "rule": "Enter buy once and auto-play treasure.", "tests": ["TURN-buy-and-cleanup"] },
+    { "rule": "Buy every market card when affordable.", "tests": ["BUY-copper", "BUY-silver", "BUY-gold", "BUY-shove", "BUY-dash", "BUY-brace", "BUY-cull", "BUY-drive", "BUY-breaker", "BUY-press", "BUY-pull", "BUY-vault", "BUY-sweep", "BUY-relay", "BUY-block", "BUY-pin", "BUY-corner"] },
+    { "rule": "Reject unaffordable and empty piles.", "tests": ["BUY-illegal"] },
+    { "rule": "Put purchases in discard.", "tests": ["BUY-copper"] },
+    { "rule": "End turn, discard, shuffle deterministically, and draw five.", "tests": ["TURN-buy-and-cleanup"] },
+    { "rule": "Undo every action type and restore prior view.", "tests": ["UNDO-shove", "UNDO-dash", "UNDO-brace", "UNDO-cull", "UNDO-drive", "UNDO-breaker", "UNDO-press", "UNDO-pull", "UNDO-vault", "UNDO-sweep", "UNDO-relay", "UNDO-block", "UNDO-pin", "UNDO-corner"] },
+    { "rule": "Reject stale revisions without saved-game corruption.", "tests": ["STALE-revision"] },
+    { "rule": "Reload a draft and continue through the UI.", "tests": ["UNDO-and-reload"] }
+  ],
+  "actionLimits": [
+    { "rule": "Limit each named actor action to one use by each friendly piece.", "tests": ["ACTION-LIMIT-SHOVE", "ACTION-LIMIT-DRIVE", "ACTION-LIMIT-BREAKER", "ACTION-LIMIT-PRESS", "ACTION-LIMIT-PULL", "ACTION-LIMIT-SWEEP", "ACTION-LIMIT-BLOCK", "ACTION-LIMIT-PIN", "ACTION-LIMIT-CORNER", "ACTION-LIMIT-DASH", "ACTION-LIMIT-VAULT", "ACTION-LIMIT-BRACE"] },
+    { "rule": "Keep the other friendly piece selectable for a duplicate card.", "tests": ["ACTION-LIMIT-SHOVE", "ACTION-LIMIT-DRIVE", "ACTION-LIMIT-BREAKER", "ACTION-LIMIT-PRESS", "ACTION-LIMIT-PULL", "ACTION-LIMIT-SWEEP", "ACTION-LIMIT-BLOCK", "ACTION-LIMIT-PIN", "ACTION-LIMIT-CORNER", "ACTION-LIMIT-DASH", "ACTION-LIMIT-VAULT", "ACTION-LIMIT-BRACE"] },
+    { "rule": "Explain when no legal piece remains for a duplicate card.", "tests": ["ACTION-LIMIT-NO-ACTOR"] },
+    { "rule": "Limit Relay to one use during a turn.", "tests": ["ACTION-LIMIT-RELAY"] },
+    { "rule": "Keep duplicate Cull cards unrestricted.", "tests": ["ACTION-LIMIT-CULL"] },
+    { "rule": "Allow Drive, Relay, then Drive with the other piece.", "tests": ["ACTION-LIMIT-DRIVE-RELAY-DRIVE"] }
+  ],
+  "aiHandoff": [
+    { "rule": "Show visible progress while the AI runs.", "tests": ["AI-HANDOFF"] },
+    { "rule": "Require an opening legal board action.", "tests": ["AI-HANDOFF"] },
+    { "rule": "Require every immediate point.", "tests": ["AI-immediate-point"] },
+    { "rule": "Commit atomically and name actions and purchase in summary.", "tests": ["AI-HANDOFF"] },
+    { "rule": "Return control with a visibly updated board.", "tests": ["AI-HANDOFF"] },
+    { "rule": "Recover from a rejected plan and process error.", "tests": ["AI-browser-retry", "AI-browser-rejected-plan-retry"] },
+    { "rule": "Run one real ThinHarness browser smoke.", "tests": ["AI-LIVE-browser-smoke"] }
+  ]
+}

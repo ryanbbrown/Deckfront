@@ -47,7 +47,7 @@ describe('saved match transactions', () => {
     for (let point = 1; point <= 5; point += 1) {
       const beforeAi = await service.getRecord(created.id);
       expect(beforeAi.state.activePlayerId).toBe('indigo');
-      expect(findMaximumPoints(beforeAi.state).points).toBe(1);
+      expect(findMaximumPoints(beforeAi.state).points, `point ${point}`).toBe(1);
       const commands = point === 1
         ? firstScoringTurn(beforeAi.state, point < 5)
         : laterScoringTurn(beforeAi.state, point < 5);
@@ -80,9 +80,9 @@ describe('saved match transactions', () => {
     expect(saved.state.events.filter((event) => event.type === 'purchase')).toHaveLength(8);
     expect(saved.aiTurns.map((turn) => turn.durationSeconds)).toEqual([1.25, 2.25, 3.25, 4.25, 5.25]);
     expect(saved.aiTurns.at(-1)?.committedRevision).toBe(saved.revision);
-    expect(saved.committedCommands.at(-1)?.type).toBe('playShove');
+    expect(saved.committedCommands.at(-1)?.type).toBe('playPress');
     expect(saved.state.events.at(-1)?.type).toBe('ringOut');
-    expect(saved.state.players.indigo.deck.play.at(-1)?.definitionId).toBe('shove');
+    expect(saved.state.players.indigo.deck.play.at(-1)?.definitionId).toBe('press');
     expect(saved.state.activePlayerId).toBe('indigo');
     expect(saved.committedState).toEqual(replayCommands(saved.initialState, saved.committedCommands));
     expect(saved.state).toEqual(saved.committedState);
@@ -124,9 +124,9 @@ function completeMatchFixture(state: GameState): GameState {
   fixture.players.ochre.turnsTaken = 0;
   fixture.players.indigo.turnsTaken = 0;
   fixture.players.indigo.deck = {
-    hand: cards(['drive', 'shove', 'copper', 'copper', 'copper'], 100),
+    hand: cards(['drive', 'press', 'copper', 'copper', 'copper'], 100),
     draw: Array.from({ length: 4 }, (_, batch) =>
-      cards(['shove', 'copper', 'copper', 'copper', 'copper'], 200 + batch * 10)
+      cards(['drive', 'press', 'copper', 'copper', 'copper'], 200 + batch * 10)
     ).flat(),
     discard: [],
     play: []
@@ -142,20 +142,25 @@ function cards(definitionIds: string[], firstSerial: number): CardInstance[] {
 
 function firstScoringTurn(state: GameState, continueMatch: boolean): GameCommand[] {
   const drive = state.players.indigo.deck.hand.find((card) => card.definitionId === 'drive');
-  const shove = state.players.indigo.deck.hand.find((card) => card.definitionId === 'shove');
-  if (!drive || !shove) throw new Error('First scoring hand is incomplete.');
+  const press = state.players.indigo.deck.hand.find((card) => card.definitionId === 'press');
+  if (!drive || !press) throw new Error('First scoring hand is incomplete.');
   return [
-    { type: 'playDrive', cardInstanceId: drive.id, actorId: 'indigo-a', targetId: 'ochre-a', follow: true },
-    { type: 'playShove', cardInstanceId: shove.id, actorId: 'indigo-a', targetId: 'ochre-a' },
+    { type: 'playDrive', cardInstanceId: drive.id, actorId: 'indigo-a', targetId: 'ochre-a' },
+    { type: 'playPress', cardInstanceId: press.id, actorId: 'indigo-a', targetId: 'ochre-a' },
     ...(continueMatch ? buyCopperAndEnd() : [])
   ];
 }
 
 function laterScoringTurn(state: GameState, continueMatch: boolean): GameCommand[] {
-  const shove = state.players.indigo.deck.hand.find((card) => card.definitionId === 'shove');
-  if (!shove) throw new Error('Later scoring hand is incomplete.');
+  const drive = state.players.indigo.deck.hand.find((card) => card.definitionId === 'drive');
+  const press = state.players.indigo.deck.hand.find((card) => card.definitionId === 'press');
+  if (!drive || !press) throw new Error('Later scoring hand is incomplete.');
   return [
-    { type: 'playShove', cardInstanceId: shove.id, actorId: 'indigo-a', targetId: 'ochre-a' },
+    { type: 'playDrive', cardInstanceId: drive.id, actorId: 'indigo-a', targetId: 'ochre-a' },
+    { type: 'playPress', cardInstanceId: press.id, actorId: 'indigo-a', targetId: 'ochre-a' },
+    ...(continueMatch
+      ? [{ type: 'baselineMove' as const, pieceId: 'indigo-a' as const, destination: { q: -1, r: 0 } }]
+      : []),
     ...(continueMatch ? buyCopperAndEnd() : [])
   ];
 }
@@ -169,10 +174,8 @@ async function playHumanRespawnTurn(service: GameService, id: string): Promise<v
   const respawn = view.legalActions.find((action) =>
     action.command.type === 'respawn'
     && action.command.pieceId === 'ochre-a'
-    && action.command.destination.q === -2
-    && action.command.destination.r === 0
   );
-  if (!respawn) throw new Error('Expected the nearest open respawn at -2,0.');
+  if (!respawn) throw new Error('Expected an open respawn anchor.');
   view = await service.applyHumanAction(id, view.revision, respawn.id);
   for (const type of ['enterBuyPhase', 'buyCard', 'endTurn'] as const) {
     const action = view.legalActions.find((candidate) => candidate.command.type === type

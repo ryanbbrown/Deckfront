@@ -98,9 +98,9 @@ describe('maximum-point tactical search', () => {
     const state = gameFor();
     clearHand(state);
     giveCard(state, 'shove');
-    setPosition(state, 'ochre-a', { q: 1, r: 0 });
+    setPosition(state, 'ochre-a', { q: 2, r: 0 });
     setPosition(state, 'ochre-b', { q: -2, r: 0 });
-    setPosition(state, 'indigo-a', { q: 2, r: 0 });
+    setPosition(state, 'indigo-a', { q: 3, r: 0 });
     setPosition(state, 'indigo-b', { q: 0, r: -2 });
     const result = findMaximumPoints(state);
     expect(result.points).toBe(1);
@@ -113,7 +113,7 @@ describe('maximum-point tactical search', () => {
     giveCard(state, 'shove');
     setPosition(state, 'ochre-a', null);
     setPosition(state, 'ochre-b', { q: 0, r: 2 });
-    setPosition(state, 'indigo-a', { q: -2, r: 0 });
+    setPosition(state, 'indigo-a', { q: -3, r: 0 });
     setPosition(state, 'indigo-b', { q: 2, r: -2 });
     state.phase = 'respawn';
     const result = findMaximumPoints(state);
@@ -127,8 +127,8 @@ describe('maximum-point tactical search', () => {
     state.scores.ochre = 4;
     clearHand(state);
     giveCard(state, 'shove');
-    setPosition(state, 'ochre-a', { q: 1, r: 0 });
-    setPosition(state, 'indigo-a', { q: 2, r: 0 });
+    setPosition(state, 'ochre-a', { q: 2, r: 0 });
+    setPosition(state, 'indigo-a', { q: 3, r: 0 });
     const result = findMaximumPoints(state);
     expect(result.points).toBe(1);
     const final = result.actions.reduce((current, action) => applyCommand(current, action.command), state);

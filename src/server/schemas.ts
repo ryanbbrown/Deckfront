@@ -51,10 +51,7 @@ export const gameCommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('playDash'), ...cardCommand, pieceId: pieceIdSchema, destination: coordinateSchema }),
   z.object({ type: z.literal('playBrace'), ...cardCommand, pieceId: pieceIdSchema }),
   z.object({ type: z.literal('playCull'), ...cardCommand, trashInstanceId: z.string() }),
-  z.object({
-    type: z.literal('playDrive'), ...cardCommand, actorId: pieceIdSchema,
-    targetId: pieceIdSchema, follow: z.boolean()
-  }),
+  z.object({ type: z.literal('playDrive'), ...cardCommand, actorId: pieceIdSchema, targetId: pieceIdSchema }),
   z.object({ type: z.literal('playBreaker'), ...cardCommand, actorId: pieceIdSchema, targetId: pieceIdSchema }),
   z.object({ type: z.literal('playPress'), ...cardCommand, actorId: pieceIdSchema, targetId: pieceIdSchema }),
   z.object({ type: z.literal('playPull'), ...cardCommand, actorId: pieceIdSchema, targetId: pieceIdSchema }),
@@ -98,7 +95,9 @@ export const gameStateSchema = z.object({
   trash: z.array(cardInstanceSchema),
   turn: z.object({
     displacedPieceIds: z.array(pieceIdSchema),
-    pressSetupPieceIds: z.array(pieceIdSchema)
+    pressSetupPieceIds: z.array(pieceIdSchema),
+    actionUses: z.array(z.object({ pieceId: pieceIdSchema, definitionId: z.string() })),
+    relayUsed: z.boolean()
   }),
   events: z.array(eventSchema)
 });

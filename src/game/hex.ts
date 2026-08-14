@@ -1,5 +1,7 @@
 import type { Coordinate } from './types';
 
+export const BOARD_RADIUS = 3;
+
 export const DIRECTIONS: readonly Coordinate[] = [
   { q: 1, r: 0 },
   { q: 1, r: -1 },
@@ -35,14 +37,14 @@ export function distance(left: Coordinate, right: Coordinate): number {
 }
 
 export function onBoard(coordinate: Coordinate): boolean {
-  return distance({ q: 0, r: 0 }, coordinate) <= 2;
+  return distance({ q: 0, r: 0 }, coordinate) <= BOARD_RADIUS;
 }
 
 export function allBoardCoordinates(): Coordinate[] {
   const coordinates: Coordinate[] = [];
-  for (let q = -2; q <= 2; q += 1) {
-    const rMinimum = Math.max(-2, -q - 2);
-    const rMaximum = Math.min(2, -q + 2);
+  for (let q = -BOARD_RADIUS; q <= BOARD_RADIUS; q += 1) {
+    const rMinimum = Math.max(-BOARD_RADIUS, -q - BOARD_RADIUS);
+    const rMaximum = Math.min(BOARD_RADIUS, -q + BOARD_RADIUS);
     for (let r = rMinimum; r <= rMaximum; r += 1) coordinates.push({ q, r });
   }
   return coordinates;

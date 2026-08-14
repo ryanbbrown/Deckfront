@@ -1,19 +1,22 @@
-import { useMemo } from 'react';
 import { allBoardCoordinates, key } from '../game/hex';
-import type { Coordinate, LegalAction, PieceId } from '../game/types';
+import type { Coordinate, PieceId } from '../game/types';
 import type { SafeGameView } from '../shared/api';
-import { commandDestination, commandPieceIds } from './actionPresentation';
 
 interface BoardProps {
   game: SafeGameView;
-  candidateActions: LegalAction[];
+  actorIds: Set<PieceId>;
+  targetIds: Set<PieceId>;
+  destinations: Set<string>;
+  replacementBlockIds: Set<string>;
   selectedPieceId: PieceId | null;
   onPieceClick: (pieceId: PieceId) => void;
   onHexClick: (coordinate: Coordinate) => void;
+  onBlockClick: (blockId: string) => void;
 }
 
 const SIZE = 49;
-const CENTER = { x: 300, y: 250 };
+const CENTER = { x: 320, y: 290 };
+const BOARD_COORDINATES = allBoardCoordinates();
 
 function center(coordinate: Coordinate): { x: number; y: number } {
   return {
@@ -31,20 +34,13 @@ function polygonPoints(coordinate: Coordinate): string {
 }
 
 export function Board({
-  game, candidateActions, selectedPieceId, onPieceClick, onHexClick
+  game, actorIds, targetIds, destinations, replacementBlockIds, selectedPieceId,
+  onPieceClick, onHexClick, onBlockClick
 }: BoardProps) {
-  const destinations = useMemo(() => new Set(candidateActions.flatMap((action) => {
-    const destination = commandDestination(action.command);
-    return destination ? [key(destination)] : [];
-  })), [candidateActions]);
-  const referencedPieces = useMemo(() => new Set(candidateActions.flatMap(
-    (action) => commandPieceIds(action.command)
-  )), [candidateActions]);
-
   return (
-    <svg className="board" viewBox="0 0 600 500" role="img" aria-label="19 hex game board">
+    <svg className="board" viewBox="0 0 640 580" role="img" aria-label="37 hex game board">
       <g className="hexes">
-        {allBoardCoordinates().map((coordinate) => {
+        {BOARD_COORDINATES.map((coordinate) => {
           const destination = destinations.has(key(coordinate));
           return (
             <polygon
@@ -52,6 +48,8 @@ export function Board({
               points={polygonPoints(coordinate)}
               className={destination ? 'hex hex--legal' : 'hex'}
               onClick={destination ? () => onHexClick(coordinate) : undefined}
+              role={destination ? 'button' : undefined}
+              data-hex={key(coordinate)}
               aria-label={`Hex ${key(coordinate)}${destination ? ', legal destination' : ''}`}
             />
           );
@@ -60,7 +58,17 @@ export function Board({
       {game.blocks.map((block) => {
         const point = center(block.position);
         return (
-          <g key={block.id} transform={`translate(${point.x} ${point.y})`} className={`block block--${block.ownerId}`}>
+          <g
+            key={block.id}
+            transform={`translate(${point.x} ${point.y})`}
+            className={`block block--${block.ownerId}${replacementBlockIds.has(block.id) ? ' block--legal' : ''}`}
+            role={replacementBlockIds.has(block.id) ? 'button' : undefined}
+            aria-label={`Block at ${key(block.position)}${replacementBlockIds.has(block.id) ? ', legal replacement' : ''}`}
+            data-block-id={block.id}
+            data-position={key(block.position)}
+            data-owner-id={block.ownerId}
+            onClick={replacementBlockIds.has(block.id) ? () => onBlockClick(block.id) : undefined}
+          >
             <rect x="-22" y="-22" width="44" height="44" rx="8" />
             <text y="6">▦</text>
           </g>
@@ -69,21 +77,27 @@ export function Board({
       {Object.values(game.pieces).map((piece) => {
         if (!piece.position) return null;
         const point = center(piece.position);
-        const legalPiece = referencedPieces.has(piece.id);
+        const legalActor = actorIds.has(piece.id);
+        const legalTarget = targetIds.has(piece.id);
         const selected = selectedPieceId === piece.id;
-        const selectable = legalPiece || (
-          game.activePlayerId === game.humanPlayerId
-          && piece.ownerId === game.humanPlayerId
-          && piece.baselineMoves > 0
-        );
+        const selectable = legalActor || legalTarget;
+        const side = piece.ownerId === game.humanPlayerId ? 'Your' : 'AI';
+        const letter = piece.id.endsWith('a') ? 'A' : 'B';
+        const role = legalActor ? 'legal actor' : legalTarget ? 'legal target' : '';
         return (
           <g
             key={piece.id}
             transform={`translate(${point.x} ${point.y})`}
-            className={`piece piece--${piece.ownerId}${legalPiece ? ' piece--legal' : ''}${selected ? ' piece--selected' : ''}`}
+            className={`piece piece--${piece.ownerId}${legalActor ? ' piece--actor' : ''}${legalTarget ? ' piece--target' : ''}${selected ? ' piece--selected' : ''}`}
             onClick={selectable ? () => onPieceClick(piece.id) : undefined}
             role={selectable ? 'button' : undefined}
-            aria-label={`${piece.id}${legalPiece ? ', legal choice' : ''}`}
+            aria-label={`${side} piece ${letter}${role ? `, ${role}` : ''}`}
+            data-piece-id={piece.id}
+            data-position={key(piece.position)}
+            data-owner-id={piece.ownerId}
+            data-braced={String(piece.braced)}
+            data-pinned={String(piece.pinned)}
+            data-baseline-moves={piece.baselineMoves}
           >
             <circle r="30" />
             <text className="piece__name" y="6">{piece.id.endsWith('a') ? 'A' : 'B'}</text>

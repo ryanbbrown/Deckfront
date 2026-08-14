@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyCommand, assertInvariants, listLegalActions } from '../src/game';
+import { onBoard } from '../src/game/hex';
 import type { GameCommand } from '../src/game';
 import { clearHand, gameFor, giveCard, setPosition } from './helpers';
 
@@ -41,7 +42,7 @@ describe('basic cards', () => {
 });
 
 describe('direct force cards', () => {
-  it('Drive follows only after a successful displacement', () => {
+  it('Drive follows after a successful displacement', () => {
     const state = gameFor();
     clearHand(state);
     const drive = giveCard(state, 'drive');
@@ -49,7 +50,7 @@ describe('direct force cards', () => {
     setPosition(state, 'indigo-a', { q: 0, r: 0 });
     setPosition(state, 'indigo-b', { q: 2, r: -1 });
     const next = applyCommand(state, {
-      type: 'playDrive', cardInstanceId: drive.id, actorId: 'ochre-a', targetId: 'indigo-a', follow: true
+      type: 'playDrive', cardInstanceId: drive.id, actorId: 'ochre-a', targetId: 'indigo-a'
     });
     expect(next.pieces['ochre-a'].position).toEqual({ q: 0, r: 0 });
     expect(next.pieces['indigo-a'].position).toEqual({ q: 1, r: 0 });
@@ -59,8 +60,8 @@ describe('direct force cards', () => {
     const state = gameFor();
     clearHand(state);
     const breaker = giveCard(state, 'breaker');
-    setPosition(state, 'ochre-a', { q: 1, r: 0 });
-    setPosition(state, 'indigo-a', { q: 2, r: 0 });
+    setPosition(state, 'ochre-a', { q: 2, r: 0 });
+    setPosition(state, 'indigo-a', { q: 3, r: 0 });
     state.pieces['indigo-a'].braced = true;
     const next = applyCommand(state, {
       type: 'playBreaker', cardInstanceId: breaker.id, actorId: 'ochre-a', targetId: 'indigo-a'
@@ -74,11 +75,11 @@ describe('direct force cards', () => {
     clearHand(state);
     const drive = giveCard(state, 'drive');
     const press = giveCard(state, 'press');
-    setPosition(state, 'ochre-a', { q: -1, r: 0 });
-    setPosition(state, 'indigo-a', { q: 0, r: 0 });
+    setPosition(state, 'ochre-a', { q: 0, r: 0 });
+    setPosition(state, 'indigo-a', { q: 1, r: 0 });
     setPosition(state, 'indigo-b', { q: 2, r: -1 });
     state = applyCommand(state, {
-      type: 'playDrive', cardInstanceId: drive.id, actorId: 'ochre-a', targetId: 'indigo-a', follow: true
+      type: 'playDrive', cardInstanceId: drive.id, actorId: 'ochre-a', targetId: 'indigo-a'
     });
     state = applyCommand(state, {
       type: 'playPress', cardInstanceId: press.id, actorId: 'ochre-a', targetId: 'indigo-a'
@@ -150,7 +151,7 @@ describe('direct force cards', () => {
         type: 'playShove', cardInstanceId, actorId: 'ochre-a', targetId: 'indigo-a'
       }) },
       { cardId: 'drive', command: (cardInstanceId) => ({
-        type: 'playDrive', cardInstanceId, actorId: 'ochre-a', targetId: 'indigo-a', follow: false
+        type: 'playDrive', cardInstanceId, actorId: 'ochre-a', targetId: 'indigo-a'
       }) },
       { cardId: 'breaker', configure: (state) => { state.pieces['indigo-a'].braced = true; }, command: (cardInstanceId) => ({
         type: 'playBreaker', cardInstanceId, actorId: 'ochre-a', targetId: 'indigo-a'
@@ -236,14 +237,10 @@ describe('geometry cards', () => {
     const state = gameFor();
     clearHand(state);
     giveCard(state, 'sweep');
-    setPosition(state, 'ochre-a', { q: 2, r: -1 });
-    setPosition(state, 'indigo-a', { q: 2, r: 0 });
+    setPosition(state, 'ochre-a', { q: 3, r: -1 });
+    setPosition(state, 'indigo-a', { q: 3, r: 0 });
     const action = listLegalActions(state).find((candidate) =>
-      candidate.command.type === 'playSweep' && !(
-        Math.abs(candidate.command.destination.q) <= 2
-        && Math.abs(candidate.command.destination.r) <= 2
-        && Math.abs(candidate.command.destination.q + candidate.command.destination.r) <= 2
-      )
+      candidate.command.type === 'playSweep' && !onBoard(candidate.command.destination)
     );
     if (!action || action.command.type !== 'playSweep') throw new Error('Expected off-board Sweep.');
     const next = applyCommand(state, action.command);

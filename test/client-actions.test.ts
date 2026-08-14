@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { LegalAction } from '../src/game';
 import {
-  actionsForCard, baselineActionsForPiece, commandDestination, commandPieceIds
+  actionsForCard, baselineActionsForPiece, commandActorId, commandDestination, commandTargetId
 } from '../src/client/actionPresentation';
 
 const actions: LegalAction[] = [
@@ -31,7 +31,8 @@ describe('client action presentation', () => {
     expect(commandDestination(actions[1]!.command)).toBeNull();
   });
 
-  it('lists all board pieces referenced by a card choice', () => {
-    expect(commandPieceIds(actions[1]!.command)).toEqual(['ochre-a', 'indigo-a']);
+  it('keeps actor and target roles separate', () => {
+    expect(commandActorId(actions[1]!.command)).toBe('ochre-a');
+    expect(commandTargetId(actions[1]!.command)).toBe('indigo-a');
   });
 });

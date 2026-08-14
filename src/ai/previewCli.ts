@@ -64,6 +64,7 @@ async function main(): Promise<void> {
   }
   try {
     if (operation === 'take-action') takeAction(session, requiredValue(args, 'action-id'));
+    else if (operation === 'take-best-points') takeBestPoints(session);
     else if (operation === 'undo') undo(session);
     else if (operation === 'restart') restart(session);
     else if (operation === 'enter-buy') enterBuy(session);
@@ -79,6 +80,16 @@ async function main(): Promise<void> {
       error: error instanceof Error ? error.message : 'Preview action failed.',
       briefing: briefing(session)
     });
+  }
+}
+
+function takeBestPoints(session: PreviewSession): void {
+  const result = findMaximumPoints(session.state);
+  for (const action of result.actions) {
+    const selected = listLegalActions(session.state).find((candidate) => candidate.id === action.id);
+    if (!selected) throw new Error('Point search produced a stale action.');
+    session.state = applyAction(session.state, selected.id);
+    session.commands.push(selected.command);
   }
 }
 
@@ -111,6 +122,11 @@ function enterBuy(session: PreviewSession): void {
     throw new Error(
       `You scored ${scored}, but ${session.maximumPoints} point(s) are available. Restart or continue the tactical line.`
     );
+  }
+  const hasBoardAction = session.commands.some(isBoardCommand);
+  const boardActionAvailable = listLegalActions(session.baseState).some((action) => isBoardCommand(action.command));
+  if (!hasBoardAction && boardActionAvailable) {
+    throw new Error('Take a legal board action before entering the buy phase.');
   }
   const selected = listLegalActions(session.state).find((action) => action.command.type === 'enterBuyPhase');
   if (!selected) throw new Error('The action phase cannot enter the buy phase now.');
@@ -154,8 +170,15 @@ function briefing(session: PreviewSession) {
     session.state,
     session.aiPlayerId,
     session.maximumPoints,
-    session.initialScore
+    session.initialScore,
+    session.commands.filter(isBoardCommand).length
   );
+}
+
+function isBoardCommand(command: GameCommand): boolean {
+  return command.type === 'respawn'
+    || command.type === 'baselineMove'
+    || command.type.startsWith('play');
 }
 
 function success(session: PreviewSession) {

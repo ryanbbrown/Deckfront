@@ -1,6 +1,7 @@
 # Key decisions
 
-- The game uses a 19-hex board and two pieces per player.
+- The game uses a 37-hex board and two pieces per player.
+- Pieces start and respawn on the inner ring.
 - The first player to score five ring-outs wins.
 - A ringed piece respawns at an original starting hex at the start of its owner's next turn.
 - If both starting hexes are occupied, it uses a nearest empty hex.
@@ -8,6 +9,8 @@
 - Each piece gets one adjacent baseline move on its owner's turn.
 - Players can interleave baseline moves and card plays.
 - Players can play any number of action cards from their five-card hand.
+- A piece can use each named action only once during its turn.
+- Relay can be used once per turn. Cull and treasure cards have no use limit.
 - Players cannot act or make decisions during the opponent's turn.
 - Each turn ends with one optional purchase. The purchased card enters the discard pile.
 - Cleanup discards the remaining hand and played cards, then draws a new five-card hand.
@@ -24,4 +27,4 @@
 - A deterministic search prevents the AI from missing available immediate points.
 - The app saves the exact strategy, seed, actions, purchases, score, and match duration.
 - The target match length is 15 to 25 minutes.
-- We will reconsider the board size and extra draw only after human playtests.
+- We will reconsider extra draw only after human playtests.

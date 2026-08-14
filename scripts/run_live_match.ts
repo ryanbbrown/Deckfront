@@ -11,8 +11,8 @@ import { FileGameRepository } from '../src/server/persistence';
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const runName = process.env.HEXDECK_PLAYTEST_NAME ?? new Date().toISOString().replaceAll(':', '-');
 const runDirectory = path.resolve(process.env.HEXDECK_PLAYTEST_DIR ?? path.join(projectRoot, '.data/live-playtests', runName));
-const model = process.env.HEXDECK_AI_MODEL ?? 'openai:gpt-5.6-luna';
-const effort = process.env.HEXDECK_AI_EFFORT ?? 'low';
+const model = process.env.HEXDECK_AI_MODEL ?? 'openai:gpt-5.6-terra';
+const effort = process.env.HEXDECK_AI_EFFORT ?? 'medium';
 const seed = Number.parseInt(process.env.HEXDECK_PLAYTEST_SEED ?? '0', 10);
 
 interface TurnAudit {

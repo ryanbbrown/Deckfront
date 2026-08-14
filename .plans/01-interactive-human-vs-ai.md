@@ -200,7 +200,7 @@ The card library and market must live in data files, not application code.
 
 Choose a friendly piece and an adjacent enemy.
 Push that enemy one hex.
-You may follow into the vacated hex.
+Follow into the vacated hex after a successful push.
 
 Follow only when the target moved or rang out.
 Follow enters the target's original hex and does not use baseline movement.

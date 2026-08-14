@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { equal } from '../game/hex';
+import { equal, key, onBoard } from '../game/hex';
 import type { Coordinate, LegalAction, PieceId } from '../game/types';
 import type { SafeGameView, StrategyPreset } from '../shared/api';
-import { actionsForCard, baselineActionsForPiece, commandDestination, commandPieceIds } from './actionPresentation';
+import {
+  actionsForCard, baselineActionsForPiece, commandActorId, commandDestination, commandTargetId,
+  uniqueActorIds, uniqueTargetIds
+} from './actionPresentation';
 import {
   createGame, getAiTurnStatus, getStrategies, loadGame, startAiTurn, takeAction, undoAction
 } from './api';
@@ -125,6 +128,8 @@ function Game({
 }) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedPieceId, setSelectedPieceId] = useState<PieceId | null>(null);
+  const [selectedTargetId, setSelectedTargetId] = useState<PieceId | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState<Coordinate | null>(null);
   const [busy, setBusy] = useState(false);
   const [aiStatus, setAiStatus] = useState<'idle' | 'running' | 'error'>('idle');
   const [aiError, setAiError] = useState<string | null>(null);
@@ -176,17 +181,99 @@ function Game({
     };
   }, [aiAttempt, game.id, game.revision, isAiTurn, onGame]);
 
-  const candidateActions = useMemo(() => {
-    let actions = game.legalActions;
-    if (selectedCardId) actions = actionsForCard(actions, selectedCardId);
-    else if (selectedPieceId) actions = baselineActionsForPiece(actions, selectedPieceId);
-    else if (game.phase !== 'respawn') return [];
-    if (selectedPieceId && selectedCardId) {
-      const narrowed = actions.filter((action) => commandPieceIds(action.command).includes(selectedPieceId));
-      if (narrowed.length > 0) actions = narrowed;
+  const cardActions = useMemo(
+    () => selectedCardId ? actionsForCard(game.legalActions, selectedCardId) : [],
+    [game.legalActions, selectedCardId]
+  );
+  const actorActions = useMemo(
+    () => selectedPieceId
+      ? cardActions.filter((action) => commandActorId(action.command) === selectedPieceId)
+      : cardActions,
+    [cardActions, selectedPieceId]
+  );
+  const targetActions = useMemo(
+    () => selectedTargetId
+      ? actorActions.filter((action) => commandTargetId(action.command) === selectedTargetId)
+      : actorActions,
+    [actorActions, selectedTargetId]
+  );
+  const destinationActions = useMemo(
+    () => selectedDestination
+      ? targetActions.filter((action) => {
+        const destination = commandDestination(action.command);
+        return destination && equal(destination, selectedDestination);
+      })
+      : targetActions,
+    [selectedDestination, targetActions]
+  );
+
+  const actorIds = useMemo(() => {
+    if (!isHumanTurn) return new Set<PieceId>();
+    if (selectedCardId) return new Set(uniqueActorIds(cardActions));
+    if (game.phase === 'action') {
+      return new Set(game.legalActions.flatMap((action) =>
+        action.command.type === 'baselineMove' ? [action.command.pieceId] : []
+      ));
     }
-    return actions;
-  }, [game, selectedCardId, selectedPieceId]);
+    return new Set<PieceId>();
+  }, [cardActions, game.legalActions, game.phase, isHumanTurn, selectedCardId]);
+
+  const targetIds = useMemo(() => new Set(
+    selectedCardId && selectedPieceId ? uniqueTargetIds(actorActions) : []
+  ), [actorActions, selectedCardId, selectedPieceId]);
+
+  const destinations = useMemo(() => {
+    let actions: LegalAction[] = [];
+    if (game.phase === 'respawn') actions = game.legalActions;
+    else if (!selectedCardId && selectedPieceId) actions = baselineActionsForPiece(game.legalActions, selectedPieceId);
+    else if (selectedCardId && selectedPieceId) {
+      const hasTargets = uniqueTargetIds(actorActions).length > 0;
+      if (!hasTargets) actions = actorActions;
+      else if (selectedTargetId) actions = targetActions;
+    }
+    return new Set(actions.flatMap((action) => {
+      const destination = commandDestination(action.command);
+      return destination ? [key(destination)] : [];
+    }));
+  }, [actorActions, game.legalActions, game.phase, selectedCardId, selectedPieceId, selectedTargetId, targetActions]);
+
+  const replacementBlockIds = useMemo(() => {
+    const selectedDefinition = selectedCardId
+      ? game.cards[human.hand?.find((card) => card.id === selectedCardId)?.definitionId ?? '']
+      : undefined;
+    if (selectedDefinition?.mechanic !== 'block' || !selectedPieceId || !selectedDestination) {
+      return new Set<string>();
+    }
+    return new Set(destinationActions.flatMap((action) =>
+      action.command.type === 'playBlock' && action.command.replaceBlockId
+        ? [action.command.replaceBlockId]
+        : []
+    ));
+  }, [destinationActions, game.cards, human.hand, selectedCardId, selectedDestination, selectedPieceId]);
+
+  const selectedCard = selectedCardId ? human.hand?.find((card) => card.id === selectedCardId) : null;
+  const selectedDefinition = selectedCard ? game.cards[selectedCard.definitionId] : null;
+
+  const instruction = useMemo(() => {
+    if (!isHumanTurn) return 'Wait for the AI to finish its turn.';
+    if (game.phase === 'respawn') return 'Choose a highlighted hex to respawn your piece.';
+    if (!selectedCardId && !selectedPieceId) return 'Choose a card, or choose one of your pieces for its baseline move.';
+    if (!selectedCardId) return `Choose a highlighted destination for piece ${selectedPieceId?.endsWith('a') ? 'A' : 'B'}.`;
+    const name = selectedDefinition?.name ?? 'card';
+    if (selectedDefinition?.mechanic === 'cull') return 'Choose a card in your hand to trash, or use the self-trash button.';
+    if (uniqueActorIds(cardActions).length === 0) return `Confirm ${name} in Legal choices.`;
+    if (!selectedPieceId) return `Choose a highlighted friendly piece to use ${name}.`;
+    if (selectedDefinition?.mechanic === 'vault' && actorActions.some((action) => {
+      const targetId = commandTargetId(action.command);
+      return targetId !== null && actorIds.has(targetId);
+    })) {
+      return 'Select another friendly piece to switch actors, or choose the friendly Vault target in Legal choices.';
+    }
+    if (uniqueTargetIds(actorActions).length > 0 && !selectedTargetId) return `Choose a highlighted target for piece ${selectedPieceId.endsWith('a') ? 'A' : 'B'}.`;
+    if (selectedTargetId && targetActions.some((action) => commandDestination(action.command))) return `Choose a highlighted destination for ${name}.`;
+    if (selectedTargetId || selectedDestination) return `Choose how to finish ${name}.`;
+    return `Choose a highlighted destination for ${name}.`;
+  }, [actorActions, actorIds, cardActions, game.phase, isHumanTurn, selectedCardId, selectedDefinition, selectedDestination, selectedPieceId, selectedTargetId, targetActions]);
 
   async function act(action: LegalAction) {
     if (busy) return;
@@ -194,8 +281,7 @@ function Game({
     onError(null);
     try {
       onGame(await takeAction(game, action.id));
-      setSelectedCardId(null);
-      setSelectedPieceId(null);
+      clearSelection();
     } catch (cause) {
       onError(cause instanceof Error ? cause.message : 'Action failed.');
     } finally {
@@ -203,13 +289,19 @@ function Game({
     }
   }
 
+  function clearSelection() {
+    setSelectedCardId(null);
+    setSelectedPieceId(null);
+    setSelectedTargetId(null);
+    setSelectedDestination(null);
+  }
+
   async function undo() {
     setBusy(true);
     onError(null);
     try {
       onGame(await undoAction(game));
-      setSelectedCardId(null);
-      setSelectedPieceId(null);
+      clearSelection();
     } catch (cause) {
       onError(cause instanceof Error ? cause.message : 'Undo failed.');
     } finally {
@@ -218,27 +310,67 @@ function Game({
   }
 
   function onHexClick(destination: Coordinate) {
-    const matching = candidateActions.filter((action) => {
+    let source: LegalAction[] = [];
+    if (game.phase === 'respawn') source = game.legalActions;
+    else if (!selectedCardId && selectedPieceId) source = baselineActionsForPiece(game.legalActions, selectedPieceId);
+    else if (selectedCardId && selectedPieceId) source = selectedTargetId ? targetActions : actorActions;
+    const matching = source.filter((action) => {
       const candidate = commandDestination(action.command);
       return candidate && equal(candidate, destination);
     });
     if (matching.length === 1) void act(matching[0]!);
+    else if (matching.length > 1) setSelectedDestination(destination);
   }
 
   function onPieceClick(pieceId: PieceId) {
     if (!isHumanTurn || busy) return;
     if (selectedCardId) {
-      const matching = actionsForCard(game.legalActions, selectedCardId).filter(
-        (action) => commandPieceIds(action.command).includes(pieceId)
-      );
-      if (matching.length === 1 && !commandDestination(matching[0]!.command)) {
-        void act(matching[0]!);
-      } else if (matching.length > 0) {
+      if (selectedPieceId === pieceId) {
+        setSelectedPieceId(null);
+        setSelectedTargetId(null);
+        setSelectedDestination(null);
+        return;
+      }
+      if (selectedPieceId && actorIds.has(pieceId)) {
         setSelectedPieceId(pieceId);
+        setSelectedTargetId(null);
+        setSelectedDestination(null);
+        return;
+      }
+      if (selectedPieceId && targetIds.has(pieceId)) {
+        const matching = actorActions.filter((action) => commandTargetId(action.command) === pieceId);
+        const hasDestination = matching.some((action) => commandDestination(action.command));
+        if (matching.length === 1 && !hasDestination) void act(matching[0]!);
+        else {
+          setSelectedTargetId(pieceId);
+          setSelectedDestination(null);
+        }
+        return;
+      }
+      if (actorIds.has(pieceId)) {
+        const matching = cardActions.filter((action) => commandActorId(action.command) === pieceId);
+        const needsMore = matching.some((action) => commandTargetId(action.command) || commandDestination(action.command));
+        if (matching.length === 1 && !needsMore) void act(matching[0]!);
+        else {
+          setSelectedPieceId(pieceId);
+          setSelectedTargetId(null);
+          setSelectedDestination(null);
+        }
       }
       return;
     }
-    if (game.pieces[pieceId].ownerId === game.humanPlayerId) setSelectedPieceId(pieceId);
+    if (actorIds.has(pieceId)) {
+      setSelectedPieceId(selectedPieceId === pieceId ? null : pieceId);
+      setSelectedTargetId(null);
+      setSelectedDestination(null);
+    }
+  }
+
+  function onBlockClick(blockId: string) {
+    const action = destinationActions.find((candidate) =>
+      candidate.command.type === 'playBlock' && candidate.command.replaceBlockId === blockId
+    );
+    if (action) void act(action);
   }
 
   const enterBuy = game.legalActions.find((action) => action.command.type === 'enterBuyPhase');
@@ -290,12 +422,20 @@ function Game({
 
       <div className="game-layout">
         <section className="board-panel panel">
+          <div className="board-instruction" role="status">
+            <strong>{selectedDefinition ? `${selectedDefinition.name}: ` : ''}</strong>{instruction}
+            {selectedPieceId && <span> Selected actor: piece {selectedPieceId.endsWith('a') ? 'A' : 'B'}.</span>}
+          </div>
           <Board
             game={game}
-            candidateActions={candidateActions}
+            actorIds={actorIds}
+            targetIds={targetIds}
+            destinations={destinations}
+            replacementBlockIds={replacementBlockIds}
             selectedPieceId={selectedPieceId}
             onPieceClick={onPieceClick}
             onHexClick={onHexClick}
+            onBlockClick={onBlockClick}
           />
           <div className="board-legend">
             <span><i className="dot dot--ochre" /> You</span>
@@ -315,14 +455,36 @@ function Game({
               {endTurn && <button className="primary" disabled={busy} onClick={() => void act(endTurn)}>End turn</button>}
             </div>
             {game.lastAiSummary && <p className="ai-summary"><strong>AI:</strong> {game.lastAiSummary}</p>}
-            {candidateActions.length > 0 && (
+            {(() => {
+              let choices: LegalAction[] = [];
+              if (selectedDefinition?.mechanic === 'cull') {
+                choices = cardActions.filter((action) =>
+                  action.command.type === 'playCull' && action.command.trashInstanceId === selectedCardId
+                );
+              } else if (selectedCardId && uniqueActorIds(cardActions).length === 0) {
+                choices = cardActions;
+              } else if (selectedDefinition?.mechanic === 'vault' && selectedPieceId) {
+                choices = actorActions.filter((action) => {
+                  const targetId = commandTargetId(action.command);
+                  return targetId !== null && actorIds.has(targetId);
+                });
+              } else if (selectedTargetId && targetActions.length > 1 && !targetActions.some((action) => commandDestination(action.command))) {
+                choices = targetActions;
+              } else if (selectedTargetId) {
+                choices = targetActions.filter((action) => {
+                  const destination = commandDestination(action.command);
+                  return destination !== null && !onBoard(destination);
+                });
+              }
+              return choices.length > 0 && (
               <div className="choice-list">
                 <p>Legal choices</p>
-                {candidateActions.map((action) => (
-                  <button key={action.id} disabled={busy} onClick={() => void act(action)}>{action.label}</button>
+                {choices.map((action) => (
+                  <button key={action.id} disabled={busy} onClick={() => void act(action)}>{choiceLabel(action)}</button>
                 ))}
               </div>
-            )}
+              );
+            })()}
           </section>
 
           <section className="panel zones">
@@ -342,19 +504,36 @@ function Game({
             const definition = game.cards[card.definitionId];
             if (!definition) return null;
             const available = actionsForCard(game.legalActions, card.id).length > 0;
+            const unavailableReason = cardUnavailableReason(game, definition);
+            const cullTarget = selectedDefinition?.mechanic === 'cull' && card.id !== selectedCardId
+              ? cardActions.find((action) =>
+                action.command.type === 'playCull' && action.command.trashInstanceId === card.id
+              )
+              : undefined;
             return (
               <button
                 key={card.id}
-                className={`card card--${definition.type}${selectedCardId === card.id ? ' card--selected' : ''}`}
-                disabled={!available || busy}
+                className={`card card--${definition.type}${selectedCardId === card.id ? ' card--selected' : ''}${cullTarget ? ' card--target' : ''}`}
+                data-card-instance-id={card.id}
+                data-card-name={definition.name}
+                disabled={busy || (!available && !cullTarget)}
+                aria-label={`${definition.name}${available ? ', playable' : ', unavailable'}${cullTarget ? ', legal Cull target' : ''}`}
+                title={!available && !cullTarget ? unavailableReason : undefined}
                 onClick={() => {
+                  if (cullTarget) {
+                    void act(cullTarget);
+                    return;
+                  }
                   setSelectedCardId(selectedCardId === card.id ? null : card.id);
                   setSelectedPieceId(null);
+                  setSelectedTargetId(null);
+                  setSelectedDestination(null);
                 }}
               >
                 <span className="card__cost">{definition.cost}</span>
                 <strong>{definition.name}</strong>
                 <small>{definition.text}</small>
+                {!available && !cullTarget && definition.type === 'action' && <em>{unavailableReason}</em>}
               </button>
             );
           })}
@@ -368,6 +547,27 @@ function Game({
       </div>
     </main>
   );
+}
+
+function cardUnavailableReason(game: SafeGameView, definition: SafeGameView['cards'][string]): string {
+  if (definition.mechanic === 'relay' && game.turnActionLimits.relayUsed) {
+    return 'Relay was already used this turn.';
+  }
+  if (definition.mechanic !== 'cull' && game.turnActionLimits.actionUses.some(
+    (use) => use.definitionId === definition.id
+  )) {
+    return `No legal piece remains for ${definition.name} this turn.`;
+  }
+  return 'No complete legal action is available for this card.';
+}
+
+function choiceLabel(action: LegalAction): string {
+  if (action.command.type === 'playVault') {
+    const actor = action.command.pieceId.endsWith('-a') ? 'A' : 'B';
+    const target = action.command.jumpedPieceId.endsWith('-a') ? 'A' : 'B';
+    return `Vault over piece ${target} with piece ${actor}`;
+  }
+  return action.label;
 }
 
 function Market({ game, busy, onAction }: {
@@ -411,7 +611,12 @@ function History({ game }: { game: SafeGameView }) {
       <div className="panel-title"><h2>Action history</h2><span>{game.events.length} events</span></div>
       <ol>
         {game.events.slice(-24).reverse().map((event) => (
-          <li key={event.sequence} className={event.sequence >= game.draftEventStart ? 'history__draft' : ''}>
+          <li
+            key={event.sequence}
+            className={event.sequence >= game.draftEventStart ? 'history__draft' : ''}
+            data-event-sequence={event.sequence}
+            data-event-type={event.type}
+          >
             <span>{event.playerId}{event.sequence >= game.draftEventStart ? ' · draft' : ''}</span>
             <strong>{describeEvent(game, event)}</strong>
           </li>

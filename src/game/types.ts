@@ -82,6 +82,8 @@ export type Phase = 'respawn' | 'action' | 'buy' | 'ended';
 export interface TurnState {
   displacedPieceIds: PieceId[];
   pressSetupPieceIds: PieceId[];
+  actionUses: Array<{ pieceId: PieceId; definitionId: string }>;
+  relayUsed: boolean;
 }
 
 export type GameEventType =
@@ -137,7 +139,7 @@ export type GameCommand =
   | { type: 'playDash'; cardInstanceId: string; pieceId: PieceId; destination: Coordinate }
   | { type: 'playBrace'; cardInstanceId: string; pieceId: PieceId }
   | { type: 'playCull'; cardInstanceId: string; trashInstanceId: string }
-  | { type: 'playDrive'; cardInstanceId: string; actorId: PieceId; targetId: PieceId; follow: boolean }
+  | { type: 'playDrive'; cardInstanceId: string; actorId: PieceId; targetId: PieceId }
   | { type: 'playBreaker'; cardInstanceId: string; actorId: PieceId; targetId: PieceId }
   | { type: 'playPress'; cardInstanceId: string; actorId: PieceId; targetId: PieceId }
   | { type: 'playPull'; cardInstanceId: string; actorId: PieceId; targetId: PieceId }

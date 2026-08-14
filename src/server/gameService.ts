@@ -19,7 +19,7 @@ export interface CreateGameInput {
 export class GameService {
   constructor(
     private readonly repository: GameRepository,
-    private readonly aiRuntime = { model: 'openai:gpt-5.6-luna', effort: 'low' }
+    private readonly aiRuntime = { model: 'openai:gpt-5.6-terra', effort: 'medium' }
   ) {}
 
   async create(input: CreateGameInput): Promise<SafeGameView> {
@@ -121,6 +121,10 @@ export class GameService {
       if (record.draft.commands.length > 0) throw new ConflictError('The AI turn did not start from a clean draft.');
       const initialScore = record.state.scores[record.aiPlayerId];
       const maximumPoints = findMaximumPoints(record.state).points;
+      const boardActionAvailable = listLegalActions(record.state).some((action) => isBoardCommand(action.command));
+      if (boardActionAvailable && !commands.some(isBoardCommand)) {
+        throw new ConflictError('AI must take a legal board action before entering the buy phase.');
+      }
       let state = cloneGame(record.state);
       for (const command of commands) {
         if (state.activePlayerId !== record.aiPlayerId && !state.winner) {
@@ -248,6 +252,10 @@ export class GameService {
       cards: structuredClone(CARDS),
       players: safePlayers,
       trashCount: state.trash.length,
+      turnActionLimits: {
+        actionUses: structuredClone(state.turn.actionUses),
+        relayUsed: state.turn.relayUsed
+      },
       events: structuredClone(state.events),
       draftEventStart: record.draft.baseState.events.length,
       legalActions,
@@ -257,6 +265,12 @@ export class GameService {
       lastAiSummary: record.aiTurns.at(-1)?.summary ?? null
     };
   }
+}
+
+function isBoardCommand(command: GameCommand): boolean {
+  return command.type === 'respawn'
+    || command.type === 'baselineMove'
+    || command.type.startsWith('play');
 }
 
 export function commandFromAction(actions: LegalAction[], id: string): GameCommand | null {

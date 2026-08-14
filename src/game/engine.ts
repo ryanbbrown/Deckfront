@@ -117,12 +117,7 @@ function listPushCard(state: GameState, card: CardInstance, mechanic: 'shove' | 
       if (mechanic === 'breaker' ? !canBreaker(state, actor, target) : !canDisplace(state, actor, target)) continue;
       if (mechanic === 'drive') {
         actions.push(legal(state, `Drive: ${actor.id} → ${target.id}`, {
-          type: 'playDrive', cardInstanceId: card.id, actorId: actor.id, targetId: target.id, follow: false
-        }));
-        const destination = pushDestination(actor, target);
-        const willMove = !target.braced && (!onBoard(destination) || isEmpty(state, destination));
-        if (willMove) actions.push(legal(state, `Drive and follow: ${actor.id} → ${target.id}`, {
-          type: 'playDrive', cardInstanceId: card.id, actorId: actor.id, targetId: target.id, follow: true
+          type: 'playDrive', cardInstanceId: card.id, actorId: actor.id, targetId: target.id
         }));
       } else {
         const type = {
@@ -225,6 +220,7 @@ function listSweep(state: GameState, card: CardInstance): LegalAction[] {
 }
 
 function listRelay(state: GameState, card: CardInstance): LegalAction[] {
+  if (state.turn.relayUsed) return [];
   const pieces = friendlyPieces(state);
   if (pieces.length !== 2 || !pieces[0]?.position || !pieces[1]?.position) return [];
   if (distance(pieces[0].position, pieces[1].position) > 2) return [];
@@ -266,27 +262,57 @@ function listPin(state: GameState, card: CardInstance): LegalAction[] {
   )));
 }
 
+function cardActionActorId(command: GameCommand): PieceId | null {
+  switch (command.type) {
+    case 'playDash':
+    case 'playBrace':
+    case 'playVault':
+      return command.pieceId;
+    case 'playShove':
+    case 'playDrive':
+    case 'playBreaker':
+    case 'playPress':
+    case 'playPull':
+    case 'playSweep':
+    case 'playBlock':
+    case 'playPin':
+    case 'playCorner':
+      return command.actorId;
+    default:
+      return null;
+  }
+}
+
+function actorCanUseCard(state: GameState, definitionId: string, action: LegalAction): boolean {
+  const pieceId = cardActionActorId(action.command);
+  return pieceId === null || !state.turn.actionUses.some(
+    (use) => use.pieceId === pieceId && use.definitionId === definitionId
+  );
+}
+
 function listCardActions(state: GameState): LegalAction[] {
   const hand = state.players[state.activePlayerId].deck.hand;
   return hand.flatMap((card) => {
     const mechanic = cardDefinition(card.definitionId).mechanic;
+    let actions: LegalAction[];
     switch (mechanic) {
-      case 'money': return [];
-      case 'shove': return listPushCard(state, card, 'shove');
-      case 'dash': return listDash(state, card);
-      case 'brace': return listBrace(state, card);
-      case 'cull': return listCull(state, card);
-      case 'drive': return listPushCard(state, card, 'drive');
-      case 'breaker': return listPushCard(state, card, 'breaker');
-      case 'press': return listPushCard(state, card, 'press');
-      case 'pull': return listPull(state, card);
-      case 'vault': return listVault(state, card);
-      case 'sweep': return listSweep(state, card);
-      case 'relay': return listRelay(state, card);
-      case 'block': return listBlock(state, card);
-      case 'pin': return listPin(state, card);
-      case 'corner': return listPushCard(state, card, 'corner');
+      case 'money': actions = []; break;
+      case 'shove': actions = listPushCard(state, card, 'shove'); break;
+      case 'dash': actions = listDash(state, card); break;
+      case 'brace': actions = listBrace(state, card); break;
+      case 'cull': actions = listCull(state, card); break;
+      case 'drive': actions = listPushCard(state, card, 'drive'); break;
+      case 'breaker': actions = listPushCard(state, card, 'breaker'); break;
+      case 'press': actions = listPushCard(state, card, 'press'); break;
+      case 'pull': actions = listPull(state, card); break;
+      case 'vault': actions = listVault(state, card); break;
+      case 'sweep': actions = listSweep(state, card); break;
+      case 'relay': actions = listRelay(state, card); break;
+      case 'block': actions = listBlock(state, card); break;
+      case 'pin': actions = listPin(state, card); break;
+      case 'corner': actions = listPushCard(state, card, 'corner'); break;
     }
+    return actions.filter((action) => actorCanUseCard(state, card.definitionId, action));
   });
 }
 
@@ -404,6 +430,9 @@ function applyPlayCommand(state: GameState, command: Exclude<GameCommand,
     definitionId: card.definitionId,
     command
   });
+  const actorId = cardActionActorId(command);
+  if (actorId) state.turn.actionUses.push({ pieceId: actorId, definitionId: card.definitionId });
+  if (command.type === 'playRelay') state.turn.relayUsed = true;
   switch (command.type) {
     case 'playDash': {
       const piece = state.pieces[command.pieceId];
@@ -440,7 +469,7 @@ function applyPlayCommand(state: GameState, command: Exclude<GameCommand,
       const target = state.pieces[command.targetId];
       const result = pushOnce(state, actor, target);
       markPressSetup(state, command.targetId, result);
-      if (command.follow && result.moved && actor.position && !state.winner) {
+      if (result.moved && actor.position && !state.winner) {
         actor.position = result.origin;
         record(state, 'follow', { pieceId: actor.id, to: result.origin });
       }
@@ -584,6 +613,8 @@ function execute(state: GameState, command: GameCommand): void {
       piece.position = { ...command.destination };
       piece.needsRespawn = false;
       piece.baselineMoves = 1;
+      piece.braced = false;
+      piece.pinned = null;
       record(state, 'respawn', { pieceId: piece.id, destination: command.destination });
       if (!Object.values(state.pieces).some(
         (candidate) => candidate.ownerId === state.activePlayerId && candidate.needsRespawn

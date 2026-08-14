@@ -40,6 +40,19 @@ export function checkInvariants(state: GameState): string[] {
     if (!CARDS[cardId]) errors.push(`Supply has unknown card ${cardId}.`);
     if (!Number.isInteger(count) || count < 0) errors.push(`${cardId} has an invalid supply count.`);
   }
+  const actionUseKeys = new Set<string>();
+  for (const use of state.turn.actionUses) {
+    const piece = Object.values(state.pieces).find((candidate) => candidate.id === use.pieceId);
+    if (!piece) {
+      errors.push(`Action use has unknown piece ${use.pieceId}.`);
+    } else if (piece.ownerId !== state.activePlayerId) {
+      errors.push(`${use.pieceId} has an action use outside its turn.`);
+    }
+    if (!CARDS[use.definitionId]) errors.push(`Action use has unknown card ${use.definitionId}.`);
+    const useKey = `${use.pieceId}:${use.definitionId}`;
+    if (actionUseKeys.has(useKey)) errors.push(`${use.pieceId} used ${use.definitionId} more than once.`);
+    actionUseKeys.add(useKey);
+  }
 
   const cards = [
     ...state.trash,

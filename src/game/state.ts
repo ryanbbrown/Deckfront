@@ -79,7 +79,7 @@ export function createGame(seed: number): GameState {
       [...FIRST_MARKET.basicPiles, ...FIRST_MARKET.kingdomPiles].map((pile) => [pile.cardId, pile.count])
     ),
     trash: [],
-    turn: { displacedPieceIds: [], pressSetupPieceIds: [] },
+    turn: { displacedPieceIds: [], pressSetupPieceIds: [], actionUses: [], relayUsed: false },
     events: []
   };
   startTurn(state);
@@ -99,7 +99,7 @@ export function startTurn(state: GameState): void {
   }
   state.players[playerId].money = 0;
   state.players[playerId].buys = 1;
-  state.turn = { displacedPieceIds: [], pressSetupPieceIds: [] };
+  state.turn = { displacedPieceIds: [], pressSetupPieceIds: [], actionUses: [], relayUsed: false };
   state.phase = Object.values(state.pieces).some(
     (piece) => piece.ownerId === playerId && piece.needsRespawn
   ) ? 'respawn' : 'action';

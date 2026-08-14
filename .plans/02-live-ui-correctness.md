@@ -107,11 +107,9 @@ Fail the suite when a card or required scenario has no mapped browser test.
 ### Drive
 
 - Use either friendly actor and either adjacent enemy.
-- Resolve without Follow.
-- Resolve with Follow into the vacated hex.
-- Offer Follow only after movement or ring-out.
-- Do not offer Follow after Brace or a blocked push.
-- Keep the actor still until Follow is chosen.
+- Resolve the push and follow when the enemy is selected.
+- Follow after a successful push or ring-out.
+- Do not follow after Brace or a blocked push.
 
 ### Breaker
 

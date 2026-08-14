@@ -219,7 +219,7 @@ describe('authoritative game API', () => {
     expect(status.status).toBe('complete');
     expect(status.game?.activePlayerId).toBe('ochre');
     expect(status.game?.revision).toBe(1);
-    expect(status.game?.lastAiSummary).toMatch(/^AI bought (.+|nothing)\.$/);
+    expect(status.game?.lastAiSummary).toMatch(/^AI made 1 baseline move\. AI bought (.+|nothing)\.$/);
 
     const saved = await application.service.getRecord(game.id);
     expect(saved.committedCommands.map((command) => command.type)).toContain('enterBuyPhase');

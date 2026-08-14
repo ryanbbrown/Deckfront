@@ -48,6 +48,10 @@ export interface SafeGameView {
   cards: Record<string, CardDefinition>;
   players: Record<PlayerId, SafePlayer>;
   trashCount: number;
+  turnActionLimits: {
+    actionUses: Array<{ pieceId: PieceId; definitionId: string }>;
+    relayUsed: boolean;
+  };
   events: GameEvent[];
   draftEventStart: number;
   legalActions: LegalAction[];
