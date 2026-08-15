@@ -272,3 +272,29 @@ test('E2E-ENDED-REFRESH: the fifth point ends the match immediately and refresh 
   await expect(page.getByText(/You win/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Confirm action' })).toBeDisabled();
 });
+
+test('E2E-COMPLETE-MATCH: one match alternates, purchases, starts a new round, and ends on the fifth point', async ({ page, openGame }) => {
+  await openGame(page, (record) => {
+    clearHands(record.state);
+    addCard(record.state, record.humanPlayerId, 'gold');
+    addCard(record.state, record.aiPlayerId, 'silver');
+    const shove = addCard(record.state, record.humanPlayerId, 'shove');
+    record.state.players.ochre.deck.hand = record.state.players.ochre.deck.hand.filter((card) => card.id !== shove.id);
+    record.state.players.ochre.deck.draw.unshift(shove);
+    record.state.scores.ochre = 4;
+    setPosition(record.state, 'ochre-a', 2, 0); setPosition(record.state, 'indigo-a', 3, 0);
+    setPosition(record.state, 'ochre-b', -3, 0); setPosition(record.state, 'indigo-b', 0, 3);
+    record.state.pieces['indigo-a'].pinned = { sourcePlayerId: 'ochre' };
+    record.state.pieces['indigo-a'].baselineMoves = 0; record.state.pieces['indigo-b'].baselineMoves = 0;
+  });
+  await page.getByRole('button', { name: 'Pass for this round' }).click(); await confirmPreview(page);
+  await expect(page.getByText(/your purchase/)).toBeVisible();
+  await page.getByRole('button', { name: 'Buy nothing' }).click(); await confirmPreview(page);
+  await expect(page.getByRole('button', { name: 'Retry AI turn' })).toBeVisible();
+  await page.getByRole('button', { name: 'Retry AI turn' }).click();
+  await expect(page.getByText(/Round 2 · your action/)).toBeVisible();
+  await chooseCard(page, 'Shove'); await page.getByLabel('Your piece A, legal actor').click(); await page.getByLabel('AI piece A, legal target').click();
+  await expect(page.getByText(/You win/)).toBeVisible();
+  await confirmPreview(page);
+  await expect(page.getByLabel('Score')).toContainText('5');
+});
