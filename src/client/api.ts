@@ -40,6 +40,13 @@ export function undoAction(game: SafeGameView): Promise<SafeGameView> {
   });
 }
 
+export function confirmAction(game: SafeGameView): Promise<SafeGameView> {
+  return request(`/api/games/${game.id}/confirm`, {
+    method: 'POST',
+    body: JSON.stringify({ expectedRevision: game.revision })
+  });
+}
+
 export function startAiTurn(gameId: string): Promise<AiTurnStatus> {
   return request(`/api/games/${gameId}/ai-turn`, { method: 'POST' });
 }

@@ -1,15 +1,14 @@
 import type { AiTurnStatus, SafeGameView } from '../shared/api';
-import type { GameCommand } from '../game';
 import type { AiRunResult } from './aiRunner';
 import { ConflictError, ForbiddenActionError } from './gameService';
 import type { GameRecord } from './types';
 
 interface AiTurnService {
   getRecord(id: string): Promise<GameRecord>;
-  commitAiTurn(
+  commitAiAction(
     id: string,
     baseRevision: number,
-    commands: GameCommand[],
+    actionId: string,
     summary: string,
     durationSeconds: number
   ): Promise<SafeGameView>;
@@ -54,6 +53,7 @@ export class AiTurnCoordinator {
     if (job.status === 'error') return { status: 'error', error: job.error };
     const record = await this.service.getRecord(id);
     if (job.status === 'complete' && job.game?.revision === record.revision) {
+      this.jobs.delete(id);
       return { status: 'complete', game: job.game };
     }
     this.jobs.delete(id);
@@ -65,10 +65,10 @@ export class AiTurnCoordinator {
       const record = await this.service.getRecord(id);
       if (record.revision !== revision) throw new ConflictError('Game changed before the AI bridge started.');
       const result = await this.runner.run(record);
-      job.game = await this.service.commitAiTurn(
+      job.game = await this.service.commitAiAction(
         id,
         result.baseRevision,
-        result.commands,
+        result.actionId,
         result.summary,
         result.durationSeconds
       );

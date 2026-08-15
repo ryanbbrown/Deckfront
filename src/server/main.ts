@@ -5,8 +5,8 @@ import { createHexdeckServer } from './httpServer';
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const port = Number.parseInt(process.env.PORT ?? '4173', 10);
 const host = process.env.HOST ?? '127.0.0.1';
-const model = process.env.HEXDECK_AI_MODEL ?? 'openai:gpt-5.6-terra';
-const effort = process.env.HEXDECK_AI_EFFORT ?? 'medium';
+const model = process.env.HEXDECK_AI_MODEL ?? 'openai:gpt-5.6-luna';
+const effort = process.env.HEXDECK_AI_EFFORT ?? 'low';
 
 const { server } = createHexdeckServer({
   dataDirectory: process.env.HEXDECK_DATA_DIR ?? path.join(projectRoot, '.data/games'),

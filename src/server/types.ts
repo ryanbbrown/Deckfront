@@ -2,20 +2,23 @@ import type { GameCommand, GameState, PlayerId } from '../game/types';
 import type { DraftRecord } from '../shared/api';
 
 export interface GameRecord {
-  schemaVersion: 1;
+  schemaVersion: 2;
   id: string;
   revision: number;
   createdAt: string;
   updatedAt: string;
   finishedAt: string | null;
-  completedTurns: number;
+  completedActions: number;
   durationSeconds: number | null;
   humanPlayerId: PlayerId;
   aiPlayerId: PlayerId;
   strategy: { presetId: string; markdown: string };
   aiRuntime: { model: string; effort: string };
-  aiTurns: Array<{
+  aiActions: Array<{
     committedRevision: number;
+    round: number;
+    actionStep: number;
+    actionId: string;
     summary: string;
     durationSeconds: number;
   }>;

@@ -52,6 +52,8 @@ h2 { margin-bottom: 0; font-size: 1rem; }
 .header-actions { display: flex; justify-content: flex-end; align-items: center; gap: 1rem; }
 .header-actions a, .header-actions button { color: var(--muted); font-size: 0.78rem; }
 .turn-banner { padding: 0.8rem 1rem; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); font-family: 'DM Mono', monospace; font-size: 0.8rem; text-align: center; }
+.round-status { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem 1.25rem; color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.72rem; }
+.action-preview { margin: 0.7rem 0 0; padding: 0.65rem; border-left: 3px solid var(--ochre); background: var(--paper); font-size: 0.78rem; }
 .game-error { margin: 0.75rem 0 0; }
 .ai-error { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .ai-error button { flex: 0 0 auto; padding: 0.45rem 0.65rem; border: 1px solid #c55; border-radius: 6px; color: #8f2626; background: white; }

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { ZodError } from 'zod';
 import { GameService, ConflictError, ForbiddenActionError } from './gameService';
 import { GameNotFoundError, FileGameRepository } from './persistence';
-import { actionRequestSchema, createGameRequestSchema, undoRequestSchema } from './schemas';
+import { actionRequestSchema, createGameRequestSchema, revisionRequestSchema } from './schemas';
 import { loadStrategyPresets } from './strategies';
 import { ThinHarnessAiRunner, type AiRunnerConfig } from './aiRunner';
 import { AiTurnCoordinator } from './aiCoordinator';
@@ -72,7 +72,7 @@ async function handleApi(
     sendJson(response, 201, await service.create(input));
     return true;
   }
-  const match = url.pathname.match(/^\/api\/games\/([0-9a-f-]{36})(?:\/(actions|undo|export|ai-turn))?$/i);
+  const match = url.pathname.match(/^\/api\/games\/([0-9a-f-]{36})(?:\/(actions|confirm|undo|export|ai-turn))?$/i);
   if (!match?.[1]) throw new GameNotFoundError('Game not found.');
   const id = match[1];
   const operation = match[2];
@@ -82,11 +82,16 @@ async function handleApi(
   }
   if (request.method === 'POST' && operation === 'actions') {
     const input = actionRequestSchema.parse(await readJson(request));
-    sendJson(response, 200, await service.applyHumanAction(id, input.expectedRevision, input.actionId));
+    sendJson(response, 200, await service.previewHumanAction(id, input.expectedRevision, input.actionId));
+    return true;
+  }
+  if (request.method === 'POST' && operation === 'confirm') {
+    const input = revisionRequestSchema.parse(await readJson(request));
+    sendJson(response, 200, await service.confirmHumanAction(id, input.expectedRevision));
     return true;
   }
   if (request.method === 'POST' && operation === 'undo') {
-    const input = undoRequestSchema.parse(await readJson(request));
+    const input = revisionRequestSchema.parse(await readJson(request));
     sendJson(response, 200, await service.undoHumanAction(id, input.expectedRevision));
     return true;
   }

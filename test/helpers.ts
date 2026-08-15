@@ -1,32 +1,36 @@
-import { applyCommand, createGame } from '../src/game';
-import { startTurn } from '../src/game/state';
-import type { CardInstance, Coordinate, GameCommand, GameState, PieceId, PlayerId } from '../src/game';
+import { cardDefinition, cloneGame, createGame, listLegalActions } from '../src/game';
+import type { CardInstance, GameCommand, GameState, PieceId, PlayerId } from '../src/game';
 
-export function gameFor(playerId: PlayerId = 'ochre'): GameState {
-  const state = createGame(12345);
-  state.activePlayerId = playerId;
-  state.phase = 'action';
-  startTurn(state);
-  return state;
+export function freshState(seed = 1): GameState { return createGame(seed); }
+
+export function clearHands(state: GameState): void {
+  for (const player of Object.values(state.players)) {
+    player.deck.discard.push(...player.deck.hand, ...player.deck.play);
+    player.deck.hand = [];
+    player.deck.play = [];
+  }
 }
 
-export function setPosition(state: GameState, pieceId: PieceId, position: Coordinate | null): void {
-  state.pieces[pieceId].position = position ? { ...position } : null;
-  state.pieces[pieceId].needsRespawn = position === null;
-}
-
-export function giveCard(state: GameState, definitionId: string, playerId = state.activePlayerId): CardInstance {
+export function addCard(state: GameState, playerId: PlayerId, definitionId: string): CardInstance {
+  cardDefinition(definitionId);
   const card = { id: `card-${state.nextCardSerial++}`, definitionId };
   state.players[playerId].deck.hand.push(card);
   return card;
 }
 
-export function clearHand(state: GameState, playerId = state.activePlayerId): void {
-  const deck = state.players[playerId].deck;
-  deck.discard.push(...deck.hand);
-  deck.hand = [];
+export function setPosition(state: GameState, pieceId: PieceId, q: number, r: number): void {
+  state.pieces[pieceId].position = { q, r };
+  state.pieces[pieceId].needsRespawn = false;
 }
 
-export function play(state: GameState, command: GameCommand): GameState {
-  return applyCommand(state, command);
+export function actionFor(state: GameState, predicate: (command: GameCommand) => boolean) {
+  const action = listLegalActions(state).find((candidate) => predicate(candidate.command));
+  if (!action) throw new Error(`Missing legal action in ${JSON.stringify(listLegalActions(state))}`);
+  return action;
 }
+
+export function commandOf<T extends GameCommand['type']>(state: GameState, type: T): Extract<GameCommand, { type: T }> {
+  return actionFor(state, (command) => command.type === type).command as Extract<GameCommand, { type: T }>;
+}
+
+export function snapshot(state: GameState): GameState { return cloneGame(state); }

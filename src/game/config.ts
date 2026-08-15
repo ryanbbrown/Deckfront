@@ -1,5 +1,5 @@
-import rawCards from '../game-data/cards.json';
-import rawMarket from '../game-data/first-market.json';
+import rawCards from '../game-data/cards.json' with { type: 'json' };
+import rawMarket from '../game-data/first-market.json' with { type: 'json' };
 import { cardLibrarySchema, marketSchema } from './schema';
 import type { CardDefinition } from './types';
 

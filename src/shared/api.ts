@@ -1,6 +1,6 @@
 import type {
   CardDefinition, CardInstance, Coordinate, GameCommand, GameEvent, LegalAction,
-  Phase, PieceId, PlayerId, TemporaryBlock
+  Phase, PieceId, PlayerId, RoundState, TemporaryBlock
 } from '../game/types';
 
 export interface StrategyPreset {
@@ -25,7 +25,7 @@ export interface SafePlayer {
   zoneCounts: { draw: number; hand: number; discard: number; play: number };
   money: number;
   buys: number;
-  turnsTaken: number;
+  roundsCompleted: number;
 }
 
 export interface SafeGameView {
@@ -34,12 +34,13 @@ export interface SafeGameView {
   createdAt: string;
   updatedAt: string;
   elapsedSeconds: number;
-  completedTurns: number;
+  completedActions: number;
   durationSeconds: number | null;
   humanPlayerId: PlayerId;
   aiPlayerId: PlayerId;
   activePlayerId: PlayerId;
   phase: Phase;
+  round: RoundState;
   scores: Record<PlayerId, number>;
   winner: PlayerId | null;
   pieces: Record<PieceId, SafePiece>;
@@ -48,14 +49,12 @@ export interface SafeGameView {
   cards: Record<string, CardDefinition>;
   players: Record<PlayerId, SafePlayer>;
   trashCount: number;
-  turnActionLimits: {
-    actionUses: Array<{ pieceId: PieceId; definitionId: string }>;
-    relayUsed: boolean;
-  };
   events: GameEvent[];
   draftEventStart: number;
   legalActions: LegalAction[];
+  previewCommand: GameCommand | null;
   canUndo: boolean;
+  canConfirm: boolean;
   strategy: { presetId: string; markdown: string };
   aiRuntime: { model: string; effort: string };
   lastAiSummary: string | null;
@@ -68,7 +67,7 @@ export interface AiTurnStatus {
 }
 
 export interface RedactedExport {
-  schemaVersion: 1;
+  schemaVersion: 2;
   exportedAt: string;
   game: SafeGameView;
 }
@@ -76,5 +75,5 @@ export interface RedactedExport {
 export interface DraftRecord {
   baseVersion: number;
   baseState: import('../game/types').GameState;
-  commands: GameCommand[];
+  command: GameCommand | null;
 }

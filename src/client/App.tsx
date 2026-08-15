@@ -7,7 +7,7 @@ import {
   uniqueActorIds, uniqueTargetIds
 } from './actionPresentation';
 import {
-  createGame, getAiTurnStatus, getStrategies, loadGame, startAiTurn, takeAction, undoAction
+  confirmAction, createGame, getAiTurnStatus, getStrategies, loadGame, startAiTurn, takeAction, undoAction
 } from './api';
 import { Board } from './Board';
 
@@ -134,10 +134,12 @@ function Game({
   const [aiStatus, setAiStatus] = useState<'idle' | 'running' | 'error'>('idle');
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiAttempt, setAiAttempt] = useState(0);
+  const [aiElapsed, setAiElapsed] = useState(0);
   const human = game.players[game.humanPlayerId];
   const ai = game.players[game.aiPlayerId];
-  const isHumanTurn = game.activePlayerId === game.humanPlayerId && !game.winner;
-  const isAiTurn = game.activePlayerId === game.aiPlayerId && !game.winner;
+  const awaitingConfirmation = game.previewCommand !== null;
+  const isHumanTurn = (game.activePlayerId === game.humanPlayerId || awaitingConfirmation) && !game.winner;
+  const isAiTurn = game.activePlayerId === game.aiPlayerId && !game.winner && !awaitingConfirmation;
 
   useEffect(() => {
     if (!isAiTurn) {
@@ -149,6 +151,8 @@ function Game({
     let timer: ReturnType<typeof setTimeout> | undefined;
     setAiStatus('running');
     setAiError(null);
+    setAiElapsed(0);
+    const elapsedTimer = setInterval(() => setAiElapsed((seconds) => seconds + 1), 1000);
 
     async function poll(): Promise<void> {
       try {
@@ -177,6 +181,7 @@ function Game({
     void poll();
     return () => {
       cancelled = true;
+      clearInterval(elapsedTimer);
       if (timer) clearTimeout(timer);
     };
   }, [aiAttempt, game.id, game.revision, isAiTurn, onGame]);
@@ -224,8 +229,7 @@ function Game({
 
   const destinations = useMemo(() => {
     let actions: LegalAction[] = [];
-    if (game.phase === 'respawn') actions = game.legalActions;
-    else if (!selectedCardId && selectedPieceId) actions = baselineActionsForPiece(game.legalActions, selectedPieceId);
+    if (!selectedCardId && selectedPieceId) actions = baselineActionsForPiece(game.legalActions, selectedPieceId);
     else if (selectedCardId && selectedPieceId) {
       const hasTargets = uniqueTargetIds(actorActions).length > 0;
       if (!hasTargets) actions = actorActions;
@@ -255,12 +259,13 @@ function Game({
   const selectedDefinition = selectedCard ? game.cards[selectedCard.definitionId] : null;
 
   const instruction = useMemo(() => {
-    if (!isHumanTurn) return 'Wait for the AI to finish its turn.';
-    if (game.phase === 'respawn') return 'Choose a highlighted hex to respawn your piece.';
+    if (awaitingConfirmation) return 'Review the resolved action. Confirm it or undo it.';
+    if (!isHumanTurn) return 'Wait for the AI to finish its action.';
+    if (game.phase === 'purchase') return 'Buy one affordable card, or buy nothing.';
     if (!selectedCardId && !selectedPieceId) return 'Choose a card, or choose one of your pieces for its baseline move.';
     if (!selectedCardId) return `Choose a highlighted destination for piece ${selectedPieceId?.endsWith('a') ? 'A' : 'B'}.`;
     const name = selectedDefinition?.name ?? 'card';
-    if (selectedDefinition?.mechanic === 'cull') return 'Choose a card in your hand to trash, or use the self-trash button.';
+    if (selectedDefinition?.mechanic === 'cull') return 'Choose one exact two-card combination in Legal choices.';
     if (uniqueActorIds(cardActions).length === 0) return `Confirm ${name} in Legal choices.`;
     if (!selectedPieceId) return `Choose a highlighted friendly piece to use ${name}.`;
     if (selectedDefinition?.mechanic === 'vault' && actorActions.some((action) => {
@@ -273,7 +278,7 @@ function Game({
     if (selectedTargetId && targetActions.some((action) => commandDestination(action.command))) return `Choose a highlighted destination for ${name}.`;
     if (selectedTargetId || selectedDestination) return `Choose how to finish ${name}.`;
     return `Choose a highlighted destination for ${name}.`;
-  }, [actorActions, actorIds, cardActions, game.phase, isHumanTurn, selectedCardId, selectedDefinition, selectedDestination, selectedPieceId, selectedTargetId, targetActions]);
+  }, [actorActions, actorIds, awaitingConfirmation, cardActions, game.phase, isHumanTurn, selectedCardId, selectedDefinition, selectedDestination, selectedPieceId, selectedTargetId, targetActions]);
 
   async function act(action: LegalAction) {
     if (busy) return;
@@ -309,10 +314,22 @@ function Game({
     }
   }
 
+  async function confirm() {
+    setBusy(true);
+    onError(null);
+    try {
+      onGame(await confirmAction(game));
+      clearSelection();
+    } catch (cause) {
+      onError(cause instanceof Error ? cause.message : 'Confirmation failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function onHexClick(destination: Coordinate) {
     let source: LegalAction[] = [];
-    if (game.phase === 'respawn') source = game.legalActions;
-    else if (!selectedCardId && selectedPieceId) source = baselineActionsForPiece(game.legalActions, selectedPieceId);
+    if (!selectedCardId && selectedPieceId) source = baselineActionsForPiece(game.legalActions, selectedPieceId);
     else if (selectedCardId && selectedPieceId) source = selectedTargetId ? targetActions : actorActions;
     const matching = source.filter((action) => {
       const candidate = commandDestination(action.command);
@@ -373,8 +390,8 @@ function Game({
     if (action) void act(action);
   }
 
-  const enterBuy = game.legalActions.find((action) => action.command.type === 'enterBuyPhase');
-  const endTurn = game.legalActions.find((action) => action.command.type === 'endTurn');
+  const pass = game.legalActions.find((action) => action.command.type === 'pass');
+  const skipPurchase = game.legalActions.find((action) => action.command.type === 'skipPurchase');
 
   async function retryAiTurn(): Promise<void> {
     setAiStatus('running');
@@ -408,9 +425,16 @@ function Game({
 
       <section className="turn-banner">
         {game.winner ? `${game.winner === game.humanPlayerId ? 'You win' : 'AI wins'} · ${game.elapsedSeconds}s`
-          : isHumanTurn ? `Your ${game.phase} phase`
+          : awaitingConfirmation ? `Round ${game.round.number} · action preview`
+          : isHumanTurn ? `Round ${game.round.number} · your ${game.phase} · started by ${game.round.startingPlayerId}`
             : aiStatus === 'error' ? 'AI turn stopped'
-              : `AI is choosing its turn · ${game.aiRuntime.model}`}
+              : `Round ${game.round.number} · AI ${game.phase} · ${game.aiRuntime.model} · ${aiElapsed}s`}
+      </section>
+      <section className="round-status" aria-label="Round status">
+        <span>Action step {game.round.actionStep}</span>
+        <span>Active: {game.activePlayerId === game.humanPlayerId ? 'you' : 'AI'}</span>
+        <span>Started: {game.round.startingPlayerId === game.humanPlayerId ? 'you' : 'AI'}</span>
+        <span>Passed: {game.round.passedPlayerIds.length ? game.round.passedPlayerIds.map((id) => id === game.humanPlayerId ? 'you' : 'AI').join(', ') : 'none'}</span>
       </section>
       {error && <p className="error game-error" role="alert">{error}</p>}
       {aiError && (
@@ -448,19 +472,19 @@ function Game({
 
         <aside className="side-stack">
           <section className="panel phase-panel">
-            <div className="panel-title"><h2>Turn controls</h2><span>Revision {game.revision}</span></div>
+            <div className="panel-title"><h2>Action controls</h2><span>Revision {game.revision}</span></div>
             <div className="control-row">
               <button disabled={!game.canUndo || busy} onClick={() => void undo()}>Undo action</button>
-              {enterBuy && <button className="primary" disabled={busy} onClick={() => void act(enterBuy)}>Enter buy phase</button>}
-              {endTurn && <button className="primary" disabled={busy} onClick={() => void act(endTurn)}>End turn</button>}
+              <button className="primary" disabled={!game.canConfirm || busy} onClick={() => void confirm()}>Confirm action</button>
+              {pass && <button disabled={busy} onClick={() => void act(pass)}>Pass for this round</button>}
+              {skipPurchase && <button disabled={busy} onClick={() => void act(skipPurchase)}>Buy nothing</button>}
             </div>
+            {game.previewCommand && <p className="action-preview" role="status">Preview: {previewLabel(game)}</p>}
             {game.lastAiSummary && <p className="ai-summary"><strong>AI:</strong> {game.lastAiSummary}</p>}
             {(() => {
               let choices: LegalAction[] = [];
               if (selectedDefinition?.mechanic === 'cull') {
-                choices = cardActions.filter((action) =>
-                  action.command.type === 'playCull' && action.command.trashInstanceId === selectedCardId
-                );
+                choices = cardActions;
               } else if (selectedCardId && uniqueActorIds(cardActions).length === 0) {
                 choices = cardActions;
               } else if (selectedDefinition?.mechanic === 'vault' && selectedPieceId) {
@@ -505,25 +529,16 @@ function Game({
             if (!definition) return null;
             const available = actionsForCard(game.legalActions, card.id).length > 0;
             const unavailableReason = cardUnavailableReason(game, definition);
-            const cullTarget = selectedDefinition?.mechanic === 'cull' && card.id !== selectedCardId
-              ? cardActions.find((action) =>
-                action.command.type === 'playCull' && action.command.trashInstanceId === card.id
-              )
-              : undefined;
             return (
               <button
                 key={card.id}
-                className={`card card--${definition.type}${selectedCardId === card.id ? ' card--selected' : ''}${cullTarget ? ' card--target' : ''}`}
+                className={`card card--${definition.type}${selectedCardId === card.id ? ' card--selected' : ''}`}
                 data-card-instance-id={card.id}
                 data-card-name={definition.name}
-                disabled={busy || (!available && !cullTarget)}
-                aria-label={`${definition.name}${available ? ', playable' : ', unavailable'}${cullTarget ? ', legal Cull target' : ''}`}
-                title={!available && !cullTarget ? unavailableReason : undefined}
+                disabled={busy || !available}
+                aria-label={`${definition.name}${available ? ', playable' : ', unavailable'}`}
+                title={!available ? unavailableReason : undefined}
                 onClick={() => {
-                  if (cullTarget) {
-                    void act(cullTarget);
-                    return;
-                  }
                   setSelectedCardId(selectedCardId === card.id ? null : card.id);
                   setSelectedPieceId(null);
                   setSelectedTargetId(null);
@@ -533,7 +548,7 @@ function Game({
                 <span className="card__cost">{definition.cost}</span>
                 <strong>{definition.name}</strong>
                 <small>{definition.text}</small>
-                {!available && !cullTarget && definition.type === 'action' && <em>{unavailableReason}</em>}
+                {!available && definition.type === 'action' && <em>{unavailableReason}</em>}
               </button>
             );
           })}
@@ -550,15 +565,23 @@ function Game({
 }
 
 function cardUnavailableReason(game: SafeGameView, definition: SafeGameView['cards'][string]): string {
-  if (definition.mechanic === 'relay' && game.turnActionLimits.relayUsed) {
-    return 'Relay was already used this turn.';
-  }
-  if (definition.mechanic !== 'cull' && game.turnActionLimits.actionUses.some(
-    (use) => use.definitionId === definition.id
-  )) {
-    return `No legal piece remains for ${definition.name} this turn.`;
+  if (definition.mechanic === 'relay' && game.round.relayUsed[game.humanPlayerId]) {
+    return 'Relay was already used this round.';
   }
   return 'No complete legal action is available for this card.';
+}
+
+function previewLabel(game: SafeGameView): string {
+  const command = game.previewCommand;
+  if (!command) return '';
+  if (command.type === 'pass') return 'Pass for this round.';
+  if (command.type === 'skipPurchase') return 'Buy nothing.';
+  if (command.type === 'buyCard') return `Buy ${game.cards[command.definitionId]?.name ?? command.definitionId}.`;
+  const definitionId = 'cardInstanceId' in command
+    ? [...game.events].reverse().find((event) => event.type === 'cardPlayed' && event.detail.cardInstanceId === command.cardInstanceId)?.detail.definitionId
+    : null;
+  if (typeof definitionId === 'string') return `Play ${game.cards[definitionId]?.name ?? definitionId}.`;
+  return command.type === 'baselineMove' ? `Move piece ${command.pieceId.endsWith('a') ? 'A' : 'B'}.` : command.type;
 }
 
 function choiceLabel(action: LegalAction): string {
@@ -580,7 +603,7 @@ function Market({ game, busy, onAction }: {
   ));
   return (
     <section className="panel market-panel">
-      <div className="panel-title"><h2>Shared market</h2><span>One purchase per turn</span></div>
+      <div className="panel-title"><h2>Shared market</h2><span>One purchase per round</span></div>
       <div className="market-grid">
         {Object.entries(game.supply).map(([definitionId, count]) => {
           const definition = game.cards[definitionId];
@@ -648,8 +671,9 @@ function describeEvent(game: SafeGameView, event: SafeGameView['events'][number]
       const definitionId = text('definitionId');
       return `Bought ${definitionId ? game.cards[definitionId]?.name ?? definitionId : 'card'}`;
     }
-    case 'enterBuyPhase': return 'Entered buy phase';
-    case 'endTurn': return 'Ended turn';
+    case 'pass': return 'Passed for the round';
+    case 'skipPurchase': return 'Bought nothing';
+    case 'baselineMovePinned': return `Pin canceled ${shortPiece(text('pieceId'))}'s move`;
     case 'respawn': return `Respawned ${shortPiece(text('pieceId'))}`;
     case 'brace': return `Braced ${shortPiece(text('pieceId'))}`;
     case 'pin': return `Pinned ${shortPiece(text('pieceId'))}`;
