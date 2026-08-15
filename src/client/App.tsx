@@ -167,14 +167,14 @@ function Game({
         }
         if (status.status === 'error') {
           setAiStatus('error');
-          setAiError(status.error ?? 'AI turn failed.');
+          setAiError(status.error ?? 'AI action failed.');
           return;
         }
         timer = setTimeout(() => void poll(), 800);
       } catch (cause) {
         if (cancelled) return;
         setAiStatus('error');
-        setAiError(cause instanceof Error ? cause.message : 'AI turn failed.');
+        setAiError(cause instanceof Error ? cause.message : 'AI action failed.');
       }
     }
 
@@ -401,7 +401,7 @@ function Game({
       setAiAttempt((attempt) => attempt + 1);
     } catch (cause) {
       setAiStatus('error');
-      setAiError(cause instanceof Error ? cause.message : 'AI turn failed.');
+      setAiError(cause instanceof Error ? cause.message : 'AI action failed.');
     }
   }
 
@@ -427,7 +427,7 @@ function Game({
         {game.winner ? `${game.winner === game.humanPlayerId ? 'You win' : 'AI wins'} · ${game.elapsedSeconds}s`
           : awaitingConfirmation ? `Round ${game.round.number} · action preview`
           : isHumanTurn ? `Round ${game.round.number} · your ${game.phase} · started by ${game.round.startingPlayerId}`
-            : aiStatus === 'error' ? 'AI turn stopped'
+            : aiStatus === 'error' ? 'AI action stopped'
               : `Round ${game.round.number} · AI ${game.phase} · ${game.aiRuntime.model} · ${aiElapsed}s`}
       </section>
       <section className="round-status" aria-label="Round status">
@@ -440,7 +440,7 @@ function Game({
       {aiError && (
         <div className="error game-error ai-error" role="alert">
           <span>{aiError}</span>
-          <button onClick={() => void retryAiTurn()}>Retry AI turn</button>
+          <button onClick={() => void retryAiTurn()}>Retry AI action</button>
         </div>
       )}
 

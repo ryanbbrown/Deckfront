@@ -130,7 +130,7 @@ def main() -> int:
         }
         write_json(Path(args.output), output)
         trace.update({
-            "status": "complete",
+            "status": "awaiting-server-validation",
             "durationSeconds": round(time.monotonic() - started, 3),
             "calls": tool.calls,
             "harnessCalls": harness_calls,

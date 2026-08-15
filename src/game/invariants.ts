@@ -48,7 +48,7 @@ export function checkInvariants(state: GameState): string[] {
   if (cards.length !== state.nextCardSerial - 1) errors.push(`Expected ${state.nextCardSerial - 1} physical cards but found ${cards.length}.`);
   if (state.winner && (state.scores[state.winner] < 5 || state.phase !== 'ended')) errors.push('Winner and score do not agree.');
   if (!state.winner && state.phase === 'ended') errors.push('Ended game has no winner.');
-  if (state.phase !== 'ended' && Object.values(state.pieces).some((piece) => piece.ownerId === state.activePlayerId && piece.needsRespawn)) {
+  if (state.phase === 'action' && Object.values(state.pieces).some((piece) => piece.ownerId === state.activePlayerId && piece.needsRespawn)) {
     errors.push('Active player has an unresolved respawn.');
   }
   state.events.forEach((event, index) => { if (event.sequence !== index) errors.push(`Event ${index} has the wrong sequence.`); });

@@ -1,11 +1,17 @@
-import { describe, expect, it } from 'vitest';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, describe, expect, it } from 'vitest';
 import { applyAction, cloneGame, listLegalActions } from '../src/game';
 import type { GameRecord, GameRepository } from '../src/server/types';
 import { AiTurnCoordinator } from '../src/server/aiCoordinator';
-import { chooseFakeAction } from '../src/server/aiRunner';
+import { chooseFakeAction, ThinHarnessAiRunner } from '../src/server/aiRunner';
 import { ConflictError, GameService } from '../src/server/gameService';
 import { buildAiBriefing } from '../src/ai/briefing';
 import { addCard, clearHands, setPosition } from './helpers';
+
+const temporaryDirectories: string[] = [];
+afterEach(async () => Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))));
 
 class MemoryRepository implements GameRepository {
   record: GameRecord | null = null;
@@ -109,6 +115,44 @@ describe('saved human action previews', () => {
       'pass', 'pass', 'skipPurchase', 'skipPurchase'
     ]);
   });
+
+  it('persists a passed owner respawn through purchases and refresh until its next action', async () => {
+    const { repository, service, view } = await setup();
+    repository.seed((record) => {
+      clearHands(record.state); addCard(record.state, 'indigo', 'shove');
+      setPosition(record.state, 'indigo-a', 2, 0); setPosition(record.state, 'ochre-a', 3, 0);
+      setPosition(record.state, 'indigo-b', -2, 0); setPosition(record.state, 'ochre-b', 0, 2);
+      syncRecordState(record);
+    });
+    let current = await service.get(view.id);
+    const humanPass = current.legalActions.find((action) => action.command.type === 'pass')!;
+    current = await service.previewHumanAction(view.id, current.revision, humanPass.id);
+    current = await service.confirmHumanAction(view.id, current.revision);
+    let record = await service.getRecord(view.id);
+    const shove = listLegalActions(record.state).find((action) => action.command.type === 'playShove' && action.command.targetId === 'ochre-a')!;
+    current = await service.commitAiAction(view.id, current.revision, shove.id, shove.label, 0);
+    record = await service.getRecord(view.id);
+    const aiPass = listLegalActions(record.state).find((action) => action.command.type === 'pass')!;
+    current = await service.commitAiAction(view.id, current.revision, aiPass.id, aiPass.label, 0);
+    expect(current.phase).toBe('purchase');
+    expect(current.pieces['ochre-a'].needsRespawn).toBe(true);
+    expect((await service.get(view.id)).pieces['ochre-a'].needsRespawn).toBe(true);
+    const humanSkip = current.legalActions.find((action) => action.command.type === 'skipPurchase')!;
+    current = await service.previewHumanAction(view.id, current.revision, humanSkip.id);
+    current = await service.confirmHumanAction(view.id, current.revision);
+    record = await service.getRecord(view.id);
+    const aiSkip = listLegalActions(record.state).find((action) => action.command.type === 'skipPurchase')!;
+    current = await service.commitAiAction(view.id, current.revision, aiSkip.id, aiSkip.label, 0);
+    expect(current.round.number).toBe(2);
+    expect(current.pieces['ochre-a'].needsRespawn).toBe(true);
+    record = await service.getRecord(view.id);
+    const aiMove = listLegalActions(record.state).find((action) => action.command.type === 'baselineMove')!;
+    current = await service.commitAiAction(view.id, current.revision, aiMove.id, aiMove.label, 0);
+    expect(current.activePlayerId).toBe(current.humanPlayerId);
+    expect(current.pieces['ochre-a'].needsRespawn).toBe(false);
+    expect(current.pieces['ochre-a'].baselineMoves).toBe(1);
+    expect((await service.get(view.id)).pieces['ochre-a']).toEqual(current.pieces['ochre-a']);
+  });
 });
 
 describe('one enumerated AI action per decision', () => {
@@ -163,6 +207,24 @@ describe('one enumerated AI action per decision', () => {
     record = await service.getRecord(view.id);
     const nonWin = listLegalActions(record.state).find((action) => applyAction(record.state, action.id).winner !== 'indigo')!;
     await expect(service.commitAiAction(view.id, record.revision, nonWin.id, '', 0)).rejects.toThrow('match win');
+  });
+
+  it('accepts a zero-point non-pass action when another action can score', async () => {
+    const { repository, service, view } = await setup();
+    repository.seed((record) => {
+      record.state.activePlayerId = record.aiPlayerId; clearHands(record.state); addCard(record.state, record.aiPlayerId, 'shove');
+      setPosition(record.state, 'indigo-a', 2, 0); setPosition(record.state, 'ochre-a', 3, 0);
+      setPosition(record.state, 'indigo-b', -2, 0); setPosition(record.state, 'ochre-b', 0, 2);
+      syncRecordState(record);
+    });
+    const record = await service.getRecord(view.id);
+    const zeroPointMove = listLegalActions(record.state).find((action) => {
+      if (action.command.type !== 'baselineMove' || action.command.pieceId !== 'indigo-b') return false;
+      return applyAction(record.state, action.id).scores.indigo === record.state.scores.indigo;
+    })!;
+    const committed = await service.commitAiAction(view.id, record.revision, zeroPointMove.id, zeroPointMove.label, 0);
+    expect(committed.scores.indigo).toBe(0);
+    expect((await service.getRecord(view.id)).committedCommands).toEqual([zeroPointMove.command]);
   });
 
   it('can pass with no point, acts repeatedly after human passes, and purchases exactly once', async () => {
@@ -222,5 +284,130 @@ describe('one enumerated AI action per decision', () => {
     expect((await coordinator.status(view.id)).status).toBe('complete');
     expect((await coordinator.status(view.id)).status).toBe('idle');
     expect((await service.getRecord(view.id)).committedCommands).toHaveLength(1);
+  });
+
+  it('does not invoke the AI runner while a human preview awaits confirmation', async () => {
+    const { service, view } = await setup();
+    const move = view.legalActions.find((action) => action.command.type === 'baselineMove')!;
+    const preview = await service.previewHumanAction(view.id, view.revision, move.id);
+    let calls = 0;
+    const coordinator = new AiTurnCoordinator(service, {
+      run: async (record) => {
+        calls += 1;
+        return { baseRevision: record.revision, actionId: chooseFakeAction(record), summary: 'confirmed boundary', durationSeconds: 0 };
+      }
+    });
+    await expect(coordinator.start(view.id)).rejects.toThrow('Confirm or undo');
+    expect(calls).toBe(0);
+    expect((await service.getRecord(view.id)).draft.command).toEqual(move.command);
+    await service.confirmHumanAction(view.id, preview.revision);
+    await expect(coordinator.start(view.id)).resolves.toEqual({ status: 'running' });
+    await expect.poll(async () => (await coordinator.status(view.id)).status).toBe('complete');
+    expect(calls).toBe(1);
+  });
+});
+
+describe('AI traces report the final server outcome', () => {
+  async function traceRunner(fakeRejectOnce = false): Promise<{ directory: string; runner: ThinHarnessAiRunner }> {
+    const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-traces-'));
+    temporaryDirectories.push(directory);
+    return {
+      directory,
+      runner: new ThinHarnessAiRunner({
+        projectRoot: path.resolve('.'), traceDirectory: directory, model: 'openai:gpt-5.6-luna', effort: 'low',
+        timeoutMilliseconds: 30_000, fakeModel: true, fakeRejectOnce
+      })
+    };
+  }
+
+  async function waitForTerminal(coordinator: AiTurnCoordinator, id: string): Promise<'complete' | 'error'> {
+    let status = await coordinator.status(id);
+    for (let attempt = 0; attempt < 100 && status.status === 'running'; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      status = await coordinator.status(id);
+    }
+    if (status.status !== 'complete' && status.status !== 'error') throw new Error(`Unexpected AI status ${status.status}.`);
+    return status.status;
+  }
+
+  async function readTrace(directory: string, id: string, revision = 0): Promise<Record<string, unknown>> {
+    return JSON.parse(await readFile(path.join(directory, id, `${revision}.json`), 'utf8')) as Record<string, unknown>;
+  }
+
+  it('marks an unknown action trace as a server error', async () => {
+    const { repository, service, view } = await setup();
+    repository.seed((record) => { record.state.activePlayerId = record.aiPlayerId; syncRecordState(record); });
+    const { directory, runner } = await traceRunner(true);
+    const coordinator = new AiTurnCoordinator(service, runner);
+    await coordinator.start(view.id);
+    expect(await waitForTerminal(coordinator, view.id)).toBe('error');
+    const trace = await readTrace(directory, view.id);
+    expect(trace.status).toBe('error');
+    expect(trace.failure).toBe('The AI returned an unknown or stale action ID.');
+    expect(trace.serverOutcome).toEqual({ status: 'error', failure: trace.failure });
+    expect((await service.getRecord(view.id)).committedCommands).toEqual([]);
+  });
+
+  it('marks a stale choice trace as an error', async () => {
+    const { repository, service, view } = await setup();
+    repository.seed((record) => { record.state.activePlayerId = record.aiPlayerId; syncRecordState(record); });
+    const { directory, runner: finalizer } = await traceRunner();
+    let release!: () => void;
+    const paused = new Promise<void>((resolve) => { release = resolve; });
+    const coordinator = new AiTurnCoordinator(service, {
+      run: async (record) => {
+        const tracePath = path.join(directory, record.id, `${record.revision}.json`);
+        await mkdir(path.dirname(tracePath), { recursive: true });
+        await writeFile(tracePath, JSON.stringify({ schemaVersion: 2, round: record.state.round.number, actionStep: record.state.round.actionStep, revision: record.revision, prompt: {}, tools: ['choose_action'], result: { actionId: chooseFakeAction(record) }, durationSeconds: 0, status: 'awaiting-server-validation' }));
+        await paused;
+        return { baseRevision: record.revision, actionId: chooseFakeAction(record), summary: 'stale', durationSeconds: 0, tracePath };
+      },
+      finalize: finalizer.finalize.bind(finalizer)
+    });
+    await coordinator.start(view.id);
+    repository.seed((record) => { record.revision += 1; });
+    release();
+    expect(await waitForTerminal(coordinator, view.id)).toBe('error');
+    const trace = await readTrace(directory, view.id);
+    expect(trace.status).toBe('error');
+    expect(trace.failure).toContain('Expected revision 0, but current revision is 1');
+    expect((trace.serverOutcome as { status: string }).status).toBe('error');
+  });
+
+  it('marks correctness rejection as an error and one committed choice as complete', async () => {
+    for (const rejectPass of [true, false]) {
+      const { repository, service, view } = await setup();
+      repository.seed((record) => {
+        record.state.activePlayerId = record.aiPlayerId; clearHands(record.state); addCard(record.state, record.aiPlayerId, 'shove');
+        setPosition(record.state, 'indigo-a', 2, 0); setPosition(record.state, 'ochre-a', 3, 0);
+        setPosition(record.state, 'indigo-b', -2, 0); setPosition(record.state, 'ochre-b', 0, 2);
+        syncRecordState(record);
+      });
+      const { directory, runner: finalizer } = await traceRunner();
+      const coordinator = new AiTurnCoordinator(service, {
+        run: async (record) => {
+          const action = rejectPass
+            ? listLegalActions(record.state).find((candidate) => candidate.command.type === 'pass')!
+            : listLegalActions(record.state).find((candidate) => applyAction(record.state, candidate.id).scores.indigo === 1)!;
+          const tracePath = path.join(directory, record.id, `${record.revision}.json`);
+          await mkdir(path.dirname(tracePath), { recursive: true });
+          await writeFile(tracePath, JSON.stringify({ schemaVersion: 2, round: record.state.round.number, actionStep: record.state.round.actionStep, revision: record.revision, prompt: {}, tools: ['choose_action'], result: { actionId: action.id }, durationSeconds: 0, status: 'awaiting-server-validation' }));
+          return { baseRevision: record.revision, actionId: action.id, summary: action.label, durationSeconds: 0, tracePath };
+        },
+        finalize: finalizer.finalize.bind(finalizer)
+      });
+      await coordinator.start(view.id);
+      expect(await waitForTerminal(coordinator, view.id)).toBe(rejectPass ? 'error' : 'complete');
+      const trace = await readTrace(directory, view.id);
+      if (rejectPass) {
+        expect(trace.status).toBe('error');
+        expect(trace.failure).toBe('AI cannot pass when an immediate point is available.');
+        expect((await service.getRecord(view.id)).committedCommands).toEqual([]);
+      } else {
+        expect(trace.status).toBe('complete');
+        expect(trace.serverOutcome).toEqual({ status: 'complete', committedRevision: 1 });
+        expect((await service.getRecord(view.id)).committedCommands).toHaveLength(1);
+      }
+    }
   });
 });

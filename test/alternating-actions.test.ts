@@ -99,6 +99,49 @@ describe('alternating round flow', () => {
     }
     expect(replayCommands(initial, commands)).toEqual(state);
   });
+
+  it('keeps a passed owner pending through purchases and respawns before its next action step', () => {
+    let state = freshState(); clearHands(state); addCard(state, 'indigo', 'shove');
+    setPosition(state, 'indigo-a', 2, 0); setPosition(state, 'ochre-a', 3, 0);
+    setPosition(state, 'indigo-b', -2, 0); setPosition(state, 'ochre-b', 0, 2);
+    state = pass(state);
+    state = take(state, (command) => command.type === 'playShove' && command.actorId === 'indigo-a' && command.targetId === 'ochre-a');
+    expect(state.pieces['ochre-a'].needsRespawn).toBe(true);
+    expect(state.activePlayerId).toBe('indigo');
+    state = pass(state);
+    expect(state.phase).toBe('purchase');
+    expect(state.activePlayerId).toBe('ochre');
+    expect(state.pieces['ochre-a'].needsRespawn).toBe(true);
+    assertInvariants(state);
+    state = take(state, (command) => command.type === 'skipPurchase');
+    state = take(state, (command) => command.type === 'skipPurchase');
+    expect(state.round.number).toBe(2);
+    expect(state.activePlayerId).toBe('indigo');
+    expect(state.pieces['ochre-a'].needsRespawn).toBe(true);
+    state = take(state, (command) => command.type === 'baselineMove' && command.pieceId === 'indigo-a');
+    expect(state.activePlayerId).toBe('ochre');
+    expect(state.pieces['ochre-a'].needsRespawn).toBe(false);
+    expect(state.pieces['ochre-a'].baselineMoves).toBe(1);
+    expect(state.events.at(-1)?.type).toBe('respawn');
+  });
+
+  it('automatically passes players with no board action in deterministic order', () => {
+    let state = freshState(); clearHands(state);
+    state.pieces['indigo-a'].baselineMoves = 0; state.pieces['indigo-b'].baselineMoves = 0;
+    state = pass(state);
+    expect(state.phase).toBe('purchase');
+    expect(state.round.passedPlayerIds).toEqual(['ochre', 'indigo']);
+    expect(state.round.purchaseOrder).toEqual(['ochre', 'indigo']);
+  });
+
+  it('uses indigo-first pass order for purchases', () => {
+    let state = freshState();
+    state.activePlayerId = 'indigo'; state.round.startingPlayerId = 'indigo';
+    state = pass(state); state = pass(state);
+    expect(state.phase).toBe('purchase');
+    expect(state.round.purchaseOrder).toEqual(['indigo', 'ochre']);
+    expect(state.activePlayerId).toBe('indigo');
+  });
 });
 
 describe('ring-outs and round statuses', () => {
@@ -125,6 +168,18 @@ describe('ring-outs and round statuses', () => {
     expect(state.phase).toBe('ended');
     expect(state.scores.ochre).toBe(5);
     expect(state.pieces['indigo-a'].needsRespawn).toBe(true);
+  });
+
+  it('preserves unused and used baseline allowances through ring-out and respawn', () => {
+    for (const baselineMoves of [1, 0]) {
+      let state = freshState(); clearHands(state); addCard(state, 'ochre', 'shove');
+      setPosition(state, 'ochre-a', 2, 0); setPosition(state, 'indigo-a', 3, 0);
+      setPosition(state, 'ochre-b', -2, 0); setPosition(state, 'indigo-b', 0, 2);
+      state.pieces['indigo-a'].baselineMoves = baselineMoves;
+      state = take(state, (command) => command.type === 'playShove' && command.targetId === 'indigo-a');
+      expect(state.pieces['indigo-a'].needsRespawn).toBe(false);
+      expect(state.pieces['indigo-a'].baselineMoves).toBe(baselineMoves);
+    }
   });
 
   it('Brace cancels one displacement, then clears, and unused Brace clears at cleanup', () => {
@@ -171,6 +226,20 @@ describe('ring-outs and round statuses', () => {
     state = take(state, (command) => command.type === 'skipPurchase'); state = take(state, (command) => command.type === 'skipPurchase');
     expect(state.blocks).toEqual([]);
     expect(state.round.relayUsed.ochre).toBe(false);
+  });
+
+  it('keeps Pin through ring-out and respawn until the pinned baseline attempt', () => {
+    let state = freshState(); clearHands(state); addCard(state, 'ochre', 'shove');
+    setPosition(state, 'ochre-a', 2, 0); setPosition(state, 'indigo-a', 3, 0);
+    setPosition(state, 'ochre-b', -2, 0); setPosition(state, 'indigo-b', 0, 2);
+    state.pieces['indigo-a'].pinned = { sourcePlayerId: 'ochre' };
+    state = take(state, (command) => command.type === 'playShove' && command.targetId === 'indigo-a');
+    expect(state.pieces['indigo-a'].needsRespawn).toBe(false);
+    expect(state.pieces['indigo-a'].pinned).not.toBeNull();
+    const before = state.pieces['indigo-a'].position;
+    state = take(state, (command) => command.type === 'baselineMove' && command.pieceId === 'indigo-a');
+    expect(state.pieces['indigo-a'].position).toEqual(before);
+    expect(state.pieces['indigo-a'].pinned).toBeNull();
   });
 });
 
@@ -236,6 +305,16 @@ describe('approved card costs and abilities', () => {
     state = take(state, (command) => command.type === 'playPress' && command.actorId === 'ochre-b' && command.targetId === 'indigo-a');
     expect(state.pieces['indigo-a'].position).toEqual({ q: 3, r: -2 });
     expect(state.pieces['ochre-b'].position).toEqual({ q: 0, r: 1 });
+  });
+
+  it('enabled Press spends Brace on the first attempt and resolves the extra displacement', () => {
+    let state = freshState(); clearHands(state); addCard(state, 'ochre', 'press');
+    setPosition(state, 'ochre-a', -1, 0); setPosition(state, 'indigo-a', 0, 0);
+    setPosition(state, 'ochre-b', -3, 0); setPosition(state, 'indigo-b', 0, 3);
+    state.pieces['indigo-a'].braced = true; state.round.pressSetupPieceIds = ['indigo-a'];
+    state = take(state, (command) => command.type === 'playPress' && command.actorId === 'ochre-a');
+    expect(state.pieces['indigo-a'].braced).toBe(false);
+    expect(state.pieces['indigo-a'].position).toEqual({ q: 1, r: 0 });
   });
 
   it('Pull moves a target exactly two away one hex toward the actor', () => {
@@ -311,6 +390,44 @@ describe('approved card costs and abilities', () => {
     state.blocks.push({ id: 'corner-block', ownerId: 'ochre', position: { q: 1, r: -1 }, expiresAfterRound: 1 });
     state = take(state, (command) => command.type === 'playCorner' && command.actorId === 'ochre-a' && command.targetId === 'indigo-a');
     expect(state.pieces['indigo-a'].position).toEqual({ q: 2, r: 0 });
+  });
+
+  it('enabled Corner spends Brace on the first attempt and resolves the Pin or Block extra displacement', () => {
+    for (const setup of ['pin', 'block'] as const) {
+      let state = freshState(); clearHands(state); addCard(state, 'ochre', 'corner');
+      setPosition(state, 'ochre-a', -1, 0); setPosition(state, 'indigo-a', 0, 0);
+      setPosition(state, 'ochre-b', -3, 0); setPosition(state, 'indigo-b', 0, 3);
+      state.pieces['indigo-a'].braced = true;
+      if (setup === 'pin') state.pieces['indigo-a'].pinned = { sourcePlayerId: 'ochre' };
+      else state.blocks.push({ id: 'corner-block', ownerId: 'ochre', position: { q: 0, r: -1 }, expiresAfterRound: 1 });
+      state = take(state, (command) => command.type === 'playCorner' && command.actorId === 'ochre-a');
+      expect(state.pieces['indigo-a'].braced).toBe(false);
+      expect(state.pieces['indigo-a'].position).toEqual({ q: 1, r: 0 });
+    }
+  });
+
+  it('gives every pinned attempted destination a distinct complete summary', () => {
+    const state = freshState();
+    state.pieces['ochre-a'].pinned = { sourcePlayerId: 'indigo' };
+    const attempts = listLegalActions(state).filter((action) => action.command.type === 'baselineMove' && action.command.pieceId === 'ochre-a');
+    expect(attempts.length).toBeGreaterThan(1);
+    expect(new Set(attempts.map((action) => action.id)).size).toBe(attempts.length);
+    expect(new Set(attempts.map((action) => action.label)).size).toBe(attempts.length);
+    expect(attempts.every((action) => action.label.includes(' from ') && action.label.includes(' to '))).toBe(true);
+    const before = state.pieces['ochre-a'].position;
+    const next = applyAction(state, attempts[0]!.id);
+    expect(next.pieces['ochre-a'].position).toEqual(before);
+    expect(next.pieces['ochre-a'].baselineMoves).toBe(0);
+    expect(next.pieces['ochre-a'].pinned).toBeNull();
+  });
+
+  it('replays a schema-rematerialized command with a different key order', () => {
+    const initial = freshState(); clearHands(initial); const dash = addCard(initial, 'ochre', 'dash');
+    const original: GameCommand = { type: 'playDash', cardInstanceId: dash.id, pieceId: 'ochre-a', destination: { q: 0, r: 0 } };
+    const reordered = {
+      destination: { r: 0, q: 0 }, pieceId: 'ochre-a', cardInstanceId: dash.id, type: 'playDash'
+    } as GameCommand;
+    expect(applyCommand(initial, reordered)).toEqual(applyCommand(initial, original));
   });
 
   it('rejects commands that are not one current enumerated action', () => {

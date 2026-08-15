@@ -10,7 +10,15 @@ import type {
   PieceId, PieceState, PlayerId, TemporaryBlock
 } from './types';
 
-function commandKey(command: GameCommand): string { return JSON.stringify(command); }
+function stableValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(stableValue);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right))
+      .map(([name, child]) => [name, stableValue(child)]));
+  }
+  return value;
+}
+function commandKey(command: GameCommand): string { return JSON.stringify(stableValue(command)); }
 function legal(label: string, command: GameCommand): LegalAction { return { id: '', label, command }; }
 function withOpaqueIds(state: GameState, actions: LegalAction[]): LegalAction[] {
   return actions.map((action, index) => ({ ...action, id: `v${state.version}-action-${index + 1}` }));
@@ -70,7 +78,7 @@ function listBaselineMoves(state: GameState): LegalAction[] {
     if (!piece.position || piece.baselineMoves <= 0) return [];
     return DIRECTIONS.map((direction) => add(piece.position!, direction)).filter((destination) => isEmpty(state, destination)).map(
       (destination) => legal(
-        piece.pinned ? `Attempt move with pinned ${piece.id}` : `Move ${piece.id} from ${key(piece.position!)} to ${key(destination)}`,
+        piece.pinned ? `Attempt move with pinned ${piece.id} from ${key(piece.position!)} to ${key(destination)}` : `Move ${piece.id} from ${key(piece.position!)} to ${key(destination)}`,
         { type: 'baselineMove', pieceId: piece.id, destination }
       )
     );
@@ -246,7 +254,6 @@ function ringOut(state: GameState, target: PieceState): void {
   target.position = null;
   target.needsRespawn = true;
   target.braced = false;
-  target.baselineMoves = 0;
   const scorer = opponent(target.ownerId);
   state.scores[scorer] += 1;
   record(state, 'ringOut', { pieceId: target.id, scorer, score: state.scores[scorer] });
@@ -262,7 +269,6 @@ function displaceTo(state: GameState, target: PieceState, destination: Coordinat
   }
   if (ignoreBrace) target.braced = false;
   if (onBoard(destination) && !isEmpty(state, destination)) return { moved: false, ringedOut: false, origin };
-  if (!state.round.displacedPieceIds.includes(target.id)) state.round.displacedPieceIds.push(target.id);
   if (!state.round.pressSetupPieceIds.includes(target.id)) state.round.pressSetupPieceIds.push(target.id);
   if (!onBoard(destination)) {
     ringOut(state, target);
@@ -314,10 +320,10 @@ function applyPlayCommand(state: GameState, command: Extract<GameCommand, { card
     case 'playPress': {
       const actor = state.pieces[command.actorId]; const target = state.pieces[command.targetId];
       const earnedExtra = state.round.pressSetupPieceIds.includes(target.id);
+      const direction = actor.position && target.position ? directionFromTo(actor.position, target.position) : null;
+      if (!direction) throw new Error('Press pieces must be adjacent.');
       const first = pushOnce(state, actor, target);
-      if (earnedExtra && first.moved && !first.ringedOut && target.position && !state.winner) {
-        const direction = directionFromTo(first.origin, target.position);
-        if (!direction) throw new Error('Press lost its direction.');
+      if (earnedExtra && !first.ringedOut && target.position && !state.winner) {
         displaceTo(state, target, add(target.position, direction));
       }
       break;
@@ -355,12 +361,12 @@ function applyPlayCommand(state: GameState, command: Extract<GameCommand, { card
       record(state, 'pin', { pieceId: command.targetId }); break;
     case 'playCorner': {
       const actor = state.pieces[command.actorId]; const target = state.pieces[command.targetId]; const wasPinned = Boolean(target.pinned);
+      const direction = actor.position && target.position ? directionFromTo(actor.position, target.position) : null;
+      if (!direction) throw new Error('Corner pieces must be adjacent.');
       const first = pushOnce(state, actor, target);
-      if (!first.moved || first.ringedOut || !target.position || state.winner) break;
+      if (first.ringedOut || !target.position || state.winner) break;
       const touchesBlock = state.blocks.some((block) => block.ownerId === state.activePlayerId && distance(block.position, target.position!) === 1);
       if (wasPinned || touchesBlock) {
-        const direction = directionFromTo(first.origin, target.position);
-        if (!direction) throw new Error('Corner lost its direction.');
         displaceTo(state, target, add(target.position, direction));
       }
       break;
@@ -398,7 +404,7 @@ function cleanupAndStartRound(state: GameState): void {
   drawFive(state, 'ochre'); drawFive(state, 'indigo');
   const startingPlayerId = opponent(state.round.startingPlayerId);
   state.round = { number: state.round.number + 1, startingPlayerId, passedPlayerIds: [], purchaseOrder: [], purchaseIndex: 0,
-    actionStep: 1, displacedPieceIds: [], pressSetupPieceIds: [], relayUsed: { ochre: false, indigo: false } };
+    actionStep: 1, pressSetupPieceIds: [], relayUsed: { ochre: false, indigo: false } };
   state.activePlayerId = startingPlayerId; state.phase = 'action';
   respawnRequiredPieces(state); record(state, 'roundStarted', { round: state.round.number, startingPlayerId });
   settleAutomaticPasses(state);

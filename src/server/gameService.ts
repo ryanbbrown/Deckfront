@@ -168,10 +168,8 @@ export class GameService {
       throw new ConflictError('AI must take an immediate match win.');
     }
     const maximumPointGain = Math.max(0, ...outcomes.map((outcome) => outcome.state.scores[playerId] - record.state.scores[playerId]));
-    const selectedState = outcomes.find((outcome) => outcome.action.id === selected.id)!.state;
-    const selectedPointGain = selectedState.scores[playerId] - record.state.scores[playerId];
-    if (selectedPointGain < maximumPointGain) {
-      throw new ConflictError('AI must take an immediate point when one is available.');
+    if (maximumPointGain > 0 && selected.command.type === 'pass') {
+      throw new ConflictError('AI cannot pass when an immediate point is available.');
     }
   }
 

@@ -1,0 +1,52 @@
+{
+  "cards": {
+    "copper": ["pw:E2E-TREASURES"],
+    "silver": ["pw:E2E-TREASURES"],
+    "gold": ["pw:E2E-TREASURES"],
+    "shove": ["pw:E2E-SHOVE"],
+    "dash": ["pw:E2E-DASH"],
+    "brace": ["pw:E2E-BRACE"],
+    "cull": ["pw:E2E-CULL"],
+    "drive": ["pw:E2E-DRIVE-BREAKER"],
+    "breaker": ["pw:E2E-DRIVE-BREAKER"],
+    "press": ["pw:E2E-PRESS-PULL"],
+    "pull": ["pw:E2E-PRESS-PULL"],
+    "vault": ["pw:E2E-VAULT"],
+    "sweep": ["pw:E2E-SWEEP"],
+    "relay": ["pw:E2E-RELAY-BLOCK"],
+    "block": ["pw:E2E-RELAY-BLOCK"],
+    "pin": ["pw:E2E-PIN-CORNER", "pw:E2E-PIN-RINGOUT-REFRESH"],
+    "corner": ["pw:E2E-PIN-CORNER"]
+  },
+  "browserFlows": {
+    "baselineMarkers": ["pw:E2E-BASELINE"],
+    "everyCardVisible": ["pw:E2E-TREASURES", "pw:E2E-SHOVE", "pw:E2E-DASH", "pw:E2E-BRACE", "pw:E2E-CULL", "pw:E2E-DRIVE-BREAKER", "pw:E2E-PRESS-PULL", "pw:E2E-VAULT", "pw:E2E-SWEEP", "pw:E2E-RELAY-BLOCK", "pw:E2E-PIN-CORNER"],
+    "handoffAfterConfirm": ["pw:E2E-BASELINE"],
+    "previewUndoConfirmStale": ["pw:E2E-BASELINE"],
+    "passFinal": ["pw:E2E-PASS-PURCHASE-REFRESH"],
+    "consecutiveActions": ["pw:E2E-PASS-PURCHASE-REFRESH"],
+    "bothPurchaseOrders": ["pw:E2E-PASS-PURCHASE-REFRESH", "pw:E2E-AI-FIRST-PURCHASE"],
+    "buyNothing": ["pw:E2E-PASS-PURCHASE-REFRESH"],
+    "cullForms": ["pw:E2E-CULL"],
+    "sweepDirectionsAndRingout": ["pw:E2E-SWEEP"],
+    "relayAcrossBoardOnce": ["pw:E2E-RELAY-BLOCK"],
+    "pinAcrossRounds": ["pw:E2E-PIN-CORNER", "pw:E2E-PIN-RINGOUT-REFRESH"],
+    "statusCleanup": ["pw:E2E-CLEANUP"],
+    "refreshEveryPhase": ["pw:E2E-BASELINE", "pw:E2E-PASS-PURCHASE-REFRESH", "pw:E2E-AI-RETRY", "pw:E2E-ENDED-REFRESH"],
+    "aiRetryNoCorruption": ["pw:E2E-AI-RETRY"],
+    "completeMatch": ["pw:E2E-COMPLETE-MATCH"]
+  },
+  "aiFlows": {
+    "oneActionOnly": ["vitest:one-action Python tool contract > rejects a second choose_action call and keeps the first selection"],
+    "fortyChoices": ["vitest:one enumerated AI action per decision > briefs at least 40 complete opaque choices without exposing command construction"],
+    "staleId": ["vitest:one enumerated AI action per decision > rejects an old, missing, or invented action ID without changing saved state"],
+    "noInventedChoices": ["vitest:one enumerated AI action per decision > rejects an old, missing, or invented action ID without changing saved state"],
+    "immediatePointAndWin": ["vitest:one enumerated AI action per decision > forces an immediate point and an immediate match win"],
+    "passWithoutPoint": ["vitest:one enumerated AI action per decision > can pass with no point, acts repeatedly after human passes, and purchases exactly once"],
+    "repeatAfterHumanPass": ["vitest:one enumerated AI action per decision > can pass with no point, acts repeatedly after human passes, and purchases exactly once"],
+    "onePurchase": ["vitest:one enumerated AI action per decision > can pass with no point, acts repeatedly after human passes, and purchases exactly once"],
+    "liveAlternatingBrowser": ["pw:LIVE-AI-ALTERNATING"],
+    "previewBoundary": ["vitest:real HTTP API boundaries > rejects AI start during preview without a runner trace, then starts after confirmation"],
+    "finalTraceOutcomes": ["vitest:AI traces report the final server outcome > marks an unknown action trace as a server error", "vitest:AI traces report the final server outcome > marks a stale choice trace as an error", "vitest:AI traces report the final server outcome > marks correctness rejection as an error and one committed choice as complete"]
+  }
+}

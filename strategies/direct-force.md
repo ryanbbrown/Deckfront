@@ -10,4 +10,4 @@ Take every available ring-out. Keep one piece in contact after a push. Build rep
 
 ## Risk and tie breakers
 
-Accept an exposed piece when the turn scores or creates a forced scoring line. Prefer the line that keeps both pieces useful next turn.
+Accept an exposed piece when the action scores or creates a forced scoring line. Prefer the line that keeps both pieces useful in the next round.

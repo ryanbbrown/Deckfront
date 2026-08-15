@@ -1,5 +1,5 @@
 import type { AiTurnStatus, SafeGameView } from '../shared/api';
-import type { AiRunResult } from './aiRunner';
+import type { AiFinalOutcome, AiRunResult } from './aiRunner';
 import { ConflictError, ForbiddenActionError } from './gameService';
 import type { GameRecord } from './types';
 
@@ -16,6 +16,7 @@ interface AiTurnService {
 
 interface AiTurnRunner {
   run(record: GameRecord): Promise<AiRunResult>;
+  finalize?(result: AiRunResult, outcome: AiFinalOutcome): Promise<void>;
 }
 
 interface Job {
@@ -36,7 +37,10 @@ export class AiTurnCoordinator {
   async start(id: string): Promise<AiTurnStatus> {
     const record = await this.service.getRecord(id);
     if (record.state.activePlayerId !== record.aiPlayerId || record.state.winner) {
-      throw new ForbiddenActionError('There is no AI turn to run.');
+      throw new ForbiddenActionError('There is no AI action to run.');
+    }
+    if (record.draft.command) {
+      throw new ForbiddenActionError('Confirm or undo the human action preview before starting the AI.');
     }
     const existing = this.jobs.get(id);
     if (existing?.status === 'running' && existing.baseRevision === record.revision) return { status: 'running' };
@@ -61,10 +65,11 @@ export class AiTurnCoordinator {
   }
 
   private async run(id: string, revision: number, job: Job): Promise<void> {
+    let result: AiRunResult | undefined;
     try {
       const record = await this.service.getRecord(id);
       if (record.revision !== revision) throw new ConflictError('Game changed before the AI bridge started.');
-      const result = await this.runner.run(record);
+      result = await this.runner.run(record);
       job.game = await this.service.commitAiAction(
         id,
         result.baseRevision,
@@ -72,10 +77,19 @@ export class AiTurnCoordinator {
         result.summary,
         result.durationSeconds
       );
+      await this.runner.finalize?.(result, { status: 'complete', committedRevision: job.game.revision });
       job.status = 'complete';
     } catch (error) {
       job.status = 'error';
-      job.error = error instanceof Error ? error.message : 'AI turn failed.';
+      job.error = error instanceof Error ? error.message : 'AI action failed.';
+      if (result) {
+        try {
+          await this.runner.finalize?.(result, { status: 'error', failure: job.error });
+        } catch (traceError) {
+          const detail = traceError instanceof Error ? traceError.message : 'Unknown trace error.';
+          job.error = `${job.error} Trace finalization failed: ${detail}`;
+        }
+      }
     }
   }
 }

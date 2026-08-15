@@ -103,9 +103,12 @@ export function Board({
             <text className="piece__name" y="6">{piece.id.endsWith('a') ? 'A' : 'B'}</text>
             {piece.braced && <text className="piece__status" x="24" y="-20">◆</text>}
             {piece.pinned && <text className="piece__status" x="24" y="27">×</text>}
-            {piece.ownerId === game.humanPlayerId && (
-              <text className="piece__move" x="-27" y="-23">{piece.baselineMoves ? '●' : '○'}</text>
-            )}
+            <text
+              className="piece__move"
+              x="-27"
+              y="-23"
+              aria-label={`${side} piece ${letter} baseline move ${piece.baselineMoves ? 'remaining' : 'used'}`}
+            >{piece.baselineMoves ? '●' : '○'}</text>
           </g>
         );
       })}

@@ -33,6 +33,7 @@ it.skipIf(process.env.HEXDECK_LIVE_AI !== '1')('real cproxy returns and commits 
   expect(listed.has(result.actionId)).toBe(true);
   expect(result.baseRevision).toBe(record.revision);
   const committed = await service.commitAiAction(view.id, result.baseRevision, result.actionId, result.summary, result.durationSeconds);
+  await runner.finalize(result, { status: 'complete', committedRevision: committed.revision });
   expect(committed.revision).toBe(1);
   expect((await repository.load(view.id)).committedCommands).toHaveLength(1);
 }, 300_000);

@@ -25,6 +25,11 @@ async function confirmPreview(page: Page, text?: RegExp): Promise<void> {
 
 test('E2E-BASELINE: visible baseline move previews, undoes, confirms, hands off, and rejects a stale revision', async ({ page, openGame, baseUrl }) => {
   const record = await openGame(page);
+  await expect(page.getByLabel(/baseline move remaining$/)).toHaveCount(4);
+  await expect(page.getByLabel('Your piece A baseline move remaining')).toBeVisible();
+  await expect(page.getByLabel('Your piece B baseline move remaining')).toBeVisible();
+  await expect(page.getByLabel('AI piece A baseline move remaining')).toBeVisible();
+  await expect(page.getByLabel('AI piece B baseline move remaining')).toBeVisible();
   await page.getByLabel('Your piece A, legal actor').click();
   await page.getByLabel('Hex 0,0, legal destination').click();
   await expect(page.getByText('Preview: Move piece A.')).toBeVisible();
@@ -43,6 +48,8 @@ test('E2E-BASELINE: visible baseline move previews, undoes, confirms, hands off,
   await page.getByLabel('Hex 0,0, legal destination').click();
   await confirmPreview(page);
   await expect(page.locator('[data-piece-id="ochre-a"]')).toHaveAttribute('data-baseline-moves', '0');
+  await expect(page.getByLabel('Your piece A baseline move used')).toBeVisible();
+  await expect(page.getByLabel(/AI piece [AB] baseline move remaining$/)).toHaveCount(2);
   await expect(page.getByText(/AI action/)).toBeVisible();
 });
 
@@ -171,6 +178,31 @@ test('E2E-PIN-CORNER: Pin survives refresh and cancels one baseline attempt; Cor
   await expect(page.locator('[data-piece-id="indigo-a"]')).toHaveAttribute('data-position', '2,0');
 });
 
+test('E2E-PIN-RINGOUT-REFRESH: Pin and baseline allowance survive ring-out, respawn, and refresh until an attempted move', async ({ page, openGame }) => {
+  await openGame(page, (record) => {
+    clearHands(record.state); addCard(record.state, record.aiPlayerId, 'shove');
+    record.state.activePlayerId = record.aiPlayerId;
+    setPosition(record.state, 'indigo-a', 2, 0); setPosition(record.state, 'ochre-a', 3, 0);
+    setPosition(record.state, 'indigo-b', -2, 0); setPosition(record.state, 'ochre-b', 0, 2);
+    record.state.pieces['ochre-a'].pinned = { sourcePlayerId: 'indigo' };
+    record.state.pieces['ochre-a'].baselineMoves = 1;
+  });
+  await expect(page.getByRole('button', { name: 'Retry AI action' })).toBeVisible();
+  await page.getByRole('button', { name: 'Retry AI action' }).click();
+  await expect(page.getByText(/your action/)).toBeVisible();
+  await expect(page.locator('[data-piece-id="ochre-a"]')).toHaveAttribute('data-pinned', 'true');
+  await expect(page.locator('[data-piece-id="ochre-a"]')).toHaveAttribute('data-baseline-moves', '1');
+  await expect(page.getByLabel('Your piece A baseline move remaining')).toBeVisible();
+  await page.reload();
+  await expect(page.locator('[data-piece-id="ochre-a"]')).toHaveAttribute('data-pinned', 'true');
+  await expect(page.getByLabel('Your piece A baseline move remaining')).toBeVisible();
+  await page.getByLabel('Your piece A, legal actor').click();
+  await page.getByLabel(/legal destination/).first().click();
+  await expect(page.locator('[data-piece-id="ochre-a"]')).toHaveAttribute('data-pinned', 'false');
+  await expect(page.locator('[data-piece-id="ochre-a"]')).toHaveAttribute('data-baseline-moves', '0');
+  await expect(page.getByLabel('Your piece A baseline move used')).toBeVisible();
+});
+
 test('E2E-PASS-PURCHASE-REFRESH: pass is final, the other player continues, purchase order and buy-nothing persist', async ({ page, openGame, repository }) => {
   const record = await openGame(page, (saved) => {
     clearHands(saved.state); addCard(saved.state, saved.humanPlayerId, 'gold'); addCard(saved.state, saved.aiPlayerId, 'silver');
@@ -224,8 +256,8 @@ test('E2E-CLEANUP: Brace and Block expire at round cleanup', async ({ page, open
     record.state.blocks = [{ id: 'cleanup-block', ownerId: 'ochre', position: { q: 0, r: -1 }, expiresAfterRound: 1 }];
   });
   await page.getByRole('button', { name: 'Buy nothing' }).click(); await confirmPreview(page);
-  await expect(page.getByRole('button', { name: 'Retry AI turn' })).toBeVisible();
-  await page.getByRole('button', { name: 'Retry AI turn' }).click();
+  await expect(page.getByRole('button', { name: 'Retry AI action' })).toBeVisible();
+  await page.getByRole('button', { name: 'Retry AI action' }).click();
   await expect(page.getByText(/Round 2/)).toBeVisible();
   await expect(page.locator('[data-piece-id="ochre-a"]')).toHaveAttribute('data-braced', 'false');
   await expect(page.locator('[data-block-id="cleanup-block"]')).toHaveCount(0);
@@ -238,8 +270,8 @@ test('E2E-AI-FIRST-PURCHASE: AI-first purchase order reaches the human after one
     record.state.round.purchaseIndex = 0; record.state.activePlayerId = 'indigo'; record.state.players.indigo.money = 0;
   });
   await expect(page.getByText(/AI purchase/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Retry AI turn' })).toBeVisible();
-  await page.getByRole('button', { name: 'Retry AI turn' }).click();
+  await expect(page.getByRole('button', { name: 'Retry AI action' })).toBeVisible();
+  await page.getByRole('button', { name: 'Retry AI action' }).click();
   await expect(page.getByText(/your purchase/)).toBeVisible();
   await expect(page.getByRole('button', { name: 'Buy nothing' })).toBeEnabled();
 });
@@ -248,10 +280,13 @@ test('E2E-AI-RETRY: an AI failure shows retry and does not corrupt the saved gam
   const record = await openGame(page);
   await page.getByRole('button', { name: 'Pass for this round' }).click();
   await confirmPreview(page);
-  await expect(page.getByRole('button', { name: 'Retry AI turn' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Retry AI action' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('AI action stopped')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Retry AI action' })).toBeVisible();
   const before = await repository.load(record.id);
   expect(before.aiActions).toEqual([]);
-  await page.getByRole('button', { name: 'Retry AI turn' }).click();
+  await page.getByRole('button', { name: 'Retry AI action' }).click();
   await expect.poll(async () => (await repository.load(record.id)).aiActions.length).toBeGreaterThanOrEqual(2);
   const after = await repository.load(record.id);
   expect(after.committedCommands.length).toBeGreaterThanOrEqual(3);
@@ -290,8 +325,8 @@ test('E2E-COMPLETE-MATCH: one match alternates, purchases, starts a new round, a
   await page.getByRole('button', { name: 'Pass for this round' }).click(); await confirmPreview(page);
   await expect(page.getByText(/your purchase/)).toBeVisible();
   await page.getByRole('button', { name: 'Buy nothing' }).click(); await confirmPreview(page);
-  await expect(page.getByRole('button', { name: 'Retry AI turn' })).toBeVisible();
-  await page.getByRole('button', { name: 'Retry AI turn' }).click();
+  await expect(page.getByRole('button', { name: 'Retry AI action' })).toBeVisible();
+  await page.getByRole('button', { name: 'Retry AI action' }).click();
   await expect(page.getByText(/Round 2 · your action/)).toBeVisible();
   await chooseCard(page, 'Shove'); await page.getByLabel('Your piece A, legal actor').click(); await page.getByLabel('AI piece A, legal target').click();
   await expect(page.getByText(/You win/)).toBeVisible();

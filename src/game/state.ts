@@ -33,7 +33,7 @@ export function createGame(seed: number): GameState {
     activePlayerId: 'ochre', phase: 'action',
     round: {
       number: 1, startingPlayerId: 'ochre', passedPlayerIds: [], purchaseOrder: [], purchaseIndex: 0,
-      actionStep: 1, displacedPieceIds: [], pressSetupPieceIds: [], relayUsed: { ochre: false, indigo: false }
+      actionStep: 1, pressSetupPieceIds: [], relayUsed: { ochre: false, indigo: false }
     },
     scores: { ochre: 0, indigo: 0 }, winner: null,
     players: { ochre: createPlayer('ochre', random, serial), indigo: createPlayer('indigo', random, serial) },

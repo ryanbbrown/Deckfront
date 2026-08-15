@@ -30,7 +30,12 @@ export interface AiRunResult {
   actionId: string;
   summary: string;
   durationSeconds: number;
+  tracePath?: string | undefined;
 }
+
+export type AiFinalOutcome =
+  | { status: 'complete'; committedRevision: number }
+  | { status: 'error'; failure: string };
 
 export class ThinHarnessAiRunner {
   private failedOnce = false;
@@ -70,11 +75,11 @@ export class ThinHarnessAiRunner {
         effort: this.config.effort,
         prompt: { strategy: record.strategy.markdown, briefing: buildAiBriefing(record.state, record.aiPlayerId) },
         tools: ['choose_action'],
-        status: 'complete',
+        status: 'awaiting-server-validation',
         durationSeconds: 0,
         result: { actionId: 'invented-action' }
       }, null, 2)}\n`, 'utf8');
-      return { baseRevision: record.revision, actionId: 'invented-action', summary: 'Invalid fixture action.', durationSeconds: 0 };
+      return { baseRevision: record.revision, actionId: 'invented-action', summary: 'Invalid fixture action.', durationSeconds: 0, tracePath };
     }
     const started = performance.now();
     const workingDirectory = await mkdtemp(path.join(tmpdir(), 'hexdeck-ai-'));
@@ -105,11 +110,21 @@ export class ThinHarnessAiRunner {
         baseRevision: parsed.baseRevision,
         actionId: parsed.actionId,
         summary: parsed.summary,
-        durationSeconds: Math.round((performance.now() - started) / 100) / 10
+        durationSeconds: Math.round((performance.now() - started) / 100) / 10,
+        tracePath
       };
     } finally {
       await rm(workingDirectory, { recursive: true, force: true });
     }
+  }
+
+  async finalize(result: AiRunResult, outcome: AiFinalOutcome): Promise<void> {
+    if (!result.tracePath) return;
+    const trace = JSON.parse(await readFile(result.tracePath, 'utf8')) as Record<string, unknown>;
+    trace.status = outcome.status;
+    trace.serverOutcome = outcome;
+    if (outcome.status === 'error') trace.failure = outcome.failure;
+    await writeFile(result.tracePath, `${JSON.stringify(trace, null, 2)}\n`, 'utf8');
   }
 }
 

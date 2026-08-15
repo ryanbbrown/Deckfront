@@ -52,7 +52,7 @@ const roundSchema = z.object({
   number: z.number().int().positive(), startingPlayerId: playerIdSchema,
   passedPlayerIds: z.array(playerIdSchema), purchaseOrder: z.array(playerIdSchema),
   purchaseIndex: z.number().int().nonnegative(), actionStep: z.number().int().positive(),
-  displacedPieceIds: z.array(pieceIdSchema), pressSetupPieceIds: z.array(pieceIdSchema),
+  pressSetupPieceIds: z.array(pieceIdSchema),
   relayUsed: z.object({ ochre: z.boolean(), indigo: z.boolean() })
 });
 export const gameStateSchema = z.object({

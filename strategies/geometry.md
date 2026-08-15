@@ -10,4 +10,4 @@ Take every available ring-out. Create attack lines that baseline movement cannot
 
 ## Risk and tie breakers
 
-Avoid a predictable edge formation when another line scores equally. Prefer moves that leave several useful targets next turn.
+Avoid a predictable edge formation when another line scores equally. Prefer moves that leave several useful targets in later action steps.

@@ -31,7 +31,6 @@ export interface RoundState {
   purchaseOrder: PlayerId[];
   purchaseIndex: number;
   actionStep: number;
-  displacedPieceIds: PieceId[];
   pressSetupPieceIds: PieceId[];
   relayUsed: Record<PlayerId, boolean>;
 }
