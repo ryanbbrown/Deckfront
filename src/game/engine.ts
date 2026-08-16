@@ -1,8 +1,8 @@
-import { ACTION_CARD_IDS, CARDS, MARKET_CARD_IDS, cardDefinition } from './config';
+import { MARKET_CARD_IDS, cardDefinition } from './config';
 import { SeededRandom, shuffle } from './random';
 import { cloneGame, createCard, opponent } from './state';
 import type {
-  ActionAvailability, ActionPreview, CardInstance, DisabledReasonCode, GameCommand, GameEventType,
+  ActionAvailability, CardInstance, DisabledReasonCode, GameCommand, GameEventType,
   GameState, LegalAction, MovementChoice, PlayerId, RangeBand
 } from './types';
 
@@ -256,16 +256,7 @@ export function applyCommand(state: GameState, command: GameCommand): GameState 
 export function submitStartingBuild(state: GameState, playerId: PlayerId, definitionIds: string[]): GameState {
   return applyCommand(state, { type: 'submitStartingBuild', playerId, definitionIds });
 }
-export function createActionPreview(state: GameState): ActionPreview { return { baseState: cloneGame(state), command: null, state: cloneGame(state) }; }
-export function applyPreviewAction(preview: ActionPreview, id: string): ActionPreview {
-  if (preview.command) throw new Error('An action is already waiting for confirmation.');
-  const selected = listLegalActions(preview.baseState).find((action) => action.id === id);
-  if (!selected) throw new Error(`Unknown or stale legal action: ${id}`);
-  return { baseState: preview.baseState, command: selected.command, state: applyAction(preview.baseState, id) };
-}
-export function undoPreviewAction(preview: ActionPreview): ActionPreview { return createActionPreview(preview.baseState); }
 export function replayCommands(initialState: GameState, commands: readonly GameCommand[]): GameState {
   return commands.reduce((state, command) => applyCommand(state, command), cloneGame(initialState));
 }
 export function marketCost(definitionIds: readonly string[]): number { return definitionIds.reduce((sum, id) => sum + cardDefinition(id).cost, 0); }
-export { ACTION_CARD_IDS, CARDS };

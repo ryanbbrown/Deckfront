@@ -7,8 +7,8 @@ import { buildAiBriefing, buildAiStartingBuildBriefing } from '../ai/briefing';
 import { listLegalActions } from '../game';
 import type { GameRecord } from './types';
 
-const actionOutput = z.object({ schemaVersion: z.literal(2), kind: z.literal('action'), baseRevision: z.number().int().nonnegative(), actionId: z.string(), summary: z.string() });
-const buildOutput = z.object({ schemaVersion: z.literal(2), kind: z.literal('build'), baseRevision: z.number().int().nonnegative(), definitionIds: z.array(z.string()), summary: z.string() });
+const actionOutput = z.object({ schemaVersion: z.literal(2), kind: z.literal('action'), baseRevision: z.number().int().nonnegative(), actionId: z.string(), summary: z.string().min(1).max(500) });
+const buildOutput = z.object({ schemaVersion: z.literal(2), kind: z.literal('build'), baseRevision: z.number().int().nonnegative(), definitionIds: z.array(z.string()), summary: z.string().min(1).max(500) });
 const outputSchema = z.discriminatedUnion('kind', [actionOutput, buildOutput]);
 export interface AiRunnerConfig { projectRoot: string; traceDirectory: string; model: string; effort: string; timeoutMilliseconds: number; fakeModel?: boolean; fakeFailOnce?: boolean; fakeRejectOnce?: boolean }
 export type AiRunResult = (z.infer<typeof actionOutput> | z.infer<typeof buildOutput>) & { durationSeconds: number; tracePath?: string };
@@ -26,9 +26,10 @@ export class ThinHarnessAiRunner {
     const isBuild = record.state.phase === 'startingBuild'; const started = performance.now();
     const working = await mkdtemp(path.join(tmpdir(), 'hexdeck-ai-')); const snapshotPath = path.join(working, 'snapshot.json');
     const strategyPath = path.join(working, 'strategy.md'); const outputPath = path.join(working, 'result.json');
-    const recommended = isBuild ? chooseFakeBuild(record) : chooseFakeAction(record);
     const briefing = isBuild ? buildAiStartingBuildBriefing() : buildAiBriefing(record.state, record.aiPlayerId);
-    await writeFile(snapshotPath, JSON.stringify({ schemaVersion: 2, mode: isBuild ? 'build' : 'action', gameId: record.id, baseRevision: record.revision, turn: record.state.turn, phase: record.state.phase, recommended, briefing }), { mode: 0o600 });
+    const recommended = this.config.fakeModel ? (isBuild ? chooseFakeBuild(record) : chooseFakeAction(record)) : null;
+    const recommendedSummary = this.config.fakeModel ? (isBuild ? 'Built the requested strategy package.' : 'Selected the next deterministic strategy action.') : null;
+    await writeFile(snapshotPath, JSON.stringify({ schemaVersion: 2, mode: isBuild ? 'build' : 'action', gameId: record.id, baseRevision: record.revision, turn: record.state.turn, phase: record.state.phase, recommended, recommendedSummary, briefing }), { mode: 0o600 });
     await writeFile(strategyPath, record.strategy.markdown, { mode: 0o600 });
     const args = ['run', 'scripts/run_ai_action.py', '--snapshot', snapshotPath, '--strategy', strategyPath, '--output', outputPath, '--trace', tracePath, '--model', this.config.model, '--effort', this.config.effort, '--timeout-seconds', String(Math.ceil(this.config.timeoutMilliseconds / 1000))];
     if (this.config.fakeModel) args.push('--fake-model');

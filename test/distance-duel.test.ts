@@ -33,6 +33,11 @@ describe('starting build', () => {
     expect(state.nextCardSerial).toBe(21); expect(state.fighters.ochre).toMatchObject({ position: 2, health: 20 }); expect(state.fighters.indigo).toMatchObject({ position: 4, health: 20 });
     assertInvariants(state);
   });
+  it('creates instances, shuffles, and draws in the exact approved player order', () => {
+    let state = createGame({ seed: 7, firstPlayerId: 'ochre' }); state = submitStartingBuild(state, 'ochre', ['aim', 'volley']); state = submitStartingBuild(state, 'indigo', ['feint', 'drive']);
+    expect(state.nextCardSerial).toBe(19); expect(state.rngState).toBe(3338981911); expect(state.players.ochre.deck.hand.map((card) => [card.id, card.definitionId])).toEqual([['card-9', 'volley'], ['card-7', 'copper'], ['card-2', 'copper'], ['card-4', 'copper'], ['card-1', 'copper']]);
+    expect(state.players.indigo.deck.hand.map((card) => [card.id, card.definitionId])).toEqual([['card-18', 'drive'], ['card-15', 'copper'], ['card-11', 'copper'], ['card-14', 'copper'], ['card-12', 'copper']]); expect(state.fighters).toEqual({ ochre: { playerId: 'ochre', position: 2, health: 20, aimed: false, exposed: false }, indigo: { playerId: 'indigo', position: 4, health: 20, aimed: false, exposed: false } });
+  });
   it('accepts no paid cards, repeats, and free Copper but rejects bad builds', () => {
     const initial = createGame(2); expect(submitStartingBuild(initial, 'ochre', []).players.ochre.startingBuild).toEqual([]);
     expect(() => submitStartingBuild(createGame(2), 'ochre', ['gold', 'gold', 'copper', 'copper'])).not.toThrow();
@@ -83,9 +88,24 @@ describe('cards and conditions', () => {
     expect(state.players.ochre.deck.play.some((card) => card.definitionId === 'cull')).toBe(true); expect(state.trash.slice(-2).map((card) => card.definitionId).sort()).toEqual(['copper', 'silver']);
     isolateHand(state, 'ochre', ['cull']); expect(listActionAvailability(state, 'ochre')[0]).toMatchObject({ enabled: false, reasonCode: 'CULL_NEEDS_TWO' });
   });
-  it('Muster draws two across a reshuffle and stops at exhaustion', () => {
+  it('Muster draws across a reshuffle and stops when only one card exists', () => {
     let state = ready(); isolateHand(state, 'ochre', ['muster']); state.players.ochre.deck.discard.push(createCard(state, 'copper'), createCard(state, 'aim'));
     state = play(state, 'playMuster'); expect(state.players.ochre.deck.hand.map((card) => card.definitionId).sort()).toEqual(['aim', 'copper']);
+    state = ready(); isolateHand(state, 'ochre', ['muster']); state.players.ochre.deck.discard.push(createCard(state, 'volley')); state = play(state, 'playMuster'); expect(state.players.ochre.deck.hand.map((card) => card.definitionId)).toEqual(['volley']);
+  });
+  it('Footwork draws across a reshuffle boundary', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['footwork']); state.players.ochre.deck.discard.push(createCard(state, 'aim')); state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'withdraw').id); expect(state.players.ochre.deck.hand.map((card) => card.definitionId)).toEqual(['aim']);
+  });
+  it('Cull rejects duplicate, one, three, missing, and already-played target IDs', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['cull', 'copper', 'silver', 'muster']); const [cull, copper, silver, muster] = state.players.ochre.deck.hand;
+    const invalid = [
+      { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, copper!.id] },
+      { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id] },
+      { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, silver!.id, muster!.id] },
+      { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, 'missing-id'] }
+    ];
+    for (const command of invalid) expect(() => applyCommand(state, command as unknown as GameCommand)).toThrow('Illegal command');
+    state = applyAction(state, action(state, (command) => command.type === 'playMuster').id); expect(() => applyCommand(state, { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, muster!.id] })).toThrow('Illegal command');
   });
   it('Feint reapplies without stacking, Drive consumes it, pushes, follows, and collides', () => {
     let state = ready(); state.fighters.ochre.position = 2; state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['feint', 'feint', 'drive']);
@@ -138,6 +158,22 @@ describe('complete turns and purchases', () => {
     expect(state.supply.footwork).toBe(0); expect(listLegalActions(state).some((candidate) => candidate.command.type === 'buyCard' && candidate.command.definitionId === 'footwork')).toBe(false);
     for (const definitionId of ['copper', 'silver', 'gold']) { state = applyAction(state, action(state, (command) => command.type === 'buyCard' && command.definitionId === definitionId).id); }
     expect(state.players.ochre.purchases.slice(-3)).toEqual(['copper', 'silver', 'gold']);
+  });
+  it('keeps Aimed and Exposed through Buy actions and expires them exactly at Buy completion', () => {
+    let exposed = ready(); exposed.fighters.ochre.position = 2; exposed.fighters.indigo.position = 3; isolateHand(exposed, 'ochre', ['feint']); exposed = play(exposed, 'playFeint'); exposed = play(exposed, 'endActionPhase'); expect(exposed.fighters.indigo.exposed).toBe(true); exposed = applyAction(exposed, action(exposed, (command) => command.type === 'buyCard' && command.definitionId === 'copper').id); expect(exposed.fighters.indigo.exposed).toBe(true); exposed = play(exposed, 'endBuyPhase'); expect(exposed.fighters.indigo.exposed).toBe(false);
+    let aimed = ready(); isolateHand(aimed, 'ochre', ['aim']); aimed = play(aimed, 'playAim'); aimed = play(aimed, 'endActionPhase'); expect(aimed.fighters.ochre.aimed).toBe(true); aimed = play(aimed, 'endBuyPhase'); expect(aimed.fighters.ochre.aimed).toBe(false);
+  });
+  it('keeps replay equivalent after every representative command', () => {
+    let state = ready(14); isolateHand(state, 'ochre', ['aim', 'volley', 'copper']); const initial = structuredClone(state); const commands: GameCommand[] = [];
+    for (const choose of [
+      (candidate: GameCommand) => candidate.type === 'playAim',
+      (candidate: GameCommand) => candidate.type === 'playVolley',
+      (candidate: GameCommand) => candidate.type === 'endActionPhase',
+      (candidate: GameCommand) => candidate.type === 'buyCard' && candidate.definitionId === 'copper',
+      (candidate: GameCommand) => candidate.type === 'endBuyPhase'
+    ]) {
+      const command = action(state, choose).command; commands.push(command); state = applyCommand(state, command); expect(replayCommands(initial, commands)).toEqual(state);
+    }
   });
   it('expires carried money after the first Buy phase and supports buying nothing', () => {
     let state = ready(); isolateHand(state, 'ochre', []); state = play(state, 'endActionPhase'); expect(state.players.ochre.money).toBe(12);

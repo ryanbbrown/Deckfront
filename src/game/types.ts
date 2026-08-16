@@ -71,4 +71,3 @@ export interface ActionAvailability {
   eligibleCardInstanceIds: string[];
   movements: MovementChoice[];
 }
-export interface ActionPreview { baseState: GameState; command: GameCommand | null; state: GameState }

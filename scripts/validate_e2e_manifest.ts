@@ -17,13 +17,20 @@ export const requiredCards = [
 ];
 
 export const requiredBrowserFlows = [
-  'startingBuild', 'buildRefresh', 'freeCopper', 'firstPlayer', 'hiddenBuild', 'disabledReasons',
-  'drawPreviewUndoConfirm', 'cullSelections', 'multiplePurchases', 'turnCleanup', 'closeCombination',
-  'rangedCombination', 'wallCollision', 'midVolleyComparison', 'victoryRefreshNewGame', 'privateHtml'
+  'startingBuild', 'zeroPaidBuild', 'buildAddRemoveRepeat', 'buildRefresh', 'buildRace', 'buildLocked',
+  'freeCopper', 'overBudgetBuild', 'humanFirst', 'aiFirst', 'hiddenAiBuild', 'editedPrompt', 'promptCanClear',
+  'carriedStartingMoney', 'treasureAutoPlay', 'footworkSelections', 'cullBothForms', 'cullNoPair',
+  'disabledReasons', 'drawPreviewOpaque', 'buyDrawOpaque', 'previewUndoConfirm', 'multiplePurchases',
+  'baseTreasuresNondepleting', 'tenthActionSupply', 'turnCleanup', 'conditionDisplay', 'closeCombination',
+  'rangedCombination', 'wallCollision', 'midVolleyComparison', 'realFlurryShortChain', 'realFlurryCap',
+  'refreshActionPreview', 'refreshConfirmedAction', 'refreshBuy', 'refreshAiWait', 'refreshAiError', 'refreshEnded',
+  'confirmedVictory', 'completeGame', 'victoryRefreshNewGame', 'privateHtml', 'publicPurchaseHistory',
+  'modelSummaryUi', 'aiElapsedTimer'
 ];
 
 export const requiredAiFlows = [
-  'independentBuild', 'completeServerTurn', 'retryPreservesCommits', 'validFakeBuild', 'liveBridgeBuildAndTurn'
+  'independentBuild', 'strategyTrace', 'modelSummaryTrace', 'completeServerTurn', 'serverContinuesWithoutPage',
+  'aiErrorRetry', 'retryPreservesCommits', 'decisionGuard', 'validFakeBuild', 'liveBridgeBuildAndTurn'
 ];
 
 export function validateManifest(manifest: CoverageManifest, discoveredIds: Set<string>): { mappings: number; tests: number } {

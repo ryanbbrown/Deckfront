@@ -19,6 +19,11 @@ describe('distance duel HTTP interface', () => {
     const { base, games } = await server(); const id = '11111111-1111-4111-8111-111111111111'; await mkdir(games, { recursive: true }); await writeFile(path.join(games, `${id}.json`), JSON.stringify({ schemaVersion: 2 }));
     const response = await fetch(`${base}/api/games/${id}`); expect(response.status).toBe(409); expect(await response.json()).toEqual({ error: 'Saved game schema 2 is not supported. Start a new game.' });
   });
+  it('returns HTTP 400 for an unknown build card without changing revision or proposal', async () => {
+    const { base } = await server(); const created = await fetch(`${base}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 1, strategyPresetId: 'close-pressure', strategyMarkdown: '# close', firstPlayerId: 'ochre' }) }).then((response) => response.json()) as { id: string; revision: number; humanBuildProposal: string[] };
+    const bad = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['invented-card'], complete: false }) }); expect(bad.status).toBe(400); expect(await bad.json()).toEqual({ error: 'Starting build contains an unknown card.' });
+    const after = await fetch(`${base}/api/games/${created.id}`).then((response) => response.json()) as { revision: number; humanBuildProposal: string[] }; expect(after.revision).toBe(created.revision); expect(after.humanBuildProposal).toEqual([]);
+  });
   it('revision-locks starting-build updates and exposes only redacted exports', async () => {
     const { base } = await server(); const createdResponse = await fetch(`${base}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 1, strategyPresetId: 'close-pressure', strategyMarkdown: '# close', firstPlayerId: 'ochre' }) });
     const created = await createdResponse.json() as { id: string; revision: number };

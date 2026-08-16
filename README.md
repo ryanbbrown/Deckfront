@@ -53,6 +53,6 @@ npm run lint
 npm run build
 ```
 
-The backend suite covers setup, privacy, arena rules, every card, complete turns, purchases, replay, persistence, and AI sequencing. Playwright drives every card and required selection through the production browser and real local server. `npm run test:ai:live` is the opt-in real ThinHarness build-and-turn check.
+The backend suite covers setup, privacy, arena rules, every card, complete turns, purchases, replay, persistence, and AI sequencing. Playwright drives every card and required selection through the production browser and real local server. `npm run test:ai:live` sets `HEXDECK_LIVE_AI=1` for the live Vitest case and uses `playwright.live.config.ts`, which sets `HEXDECK_E2E_LIVE=1` for the real-browser bridge case. Both use `HEXDECK_AI_MODEL` and `HEXDECK_AI_EFFORT` when set.
 
 Card definitions live in `src/game-data/cards.json`. Strategy prompts live in `strategies/`. Saved AI traces live under `.data/ai-traces`.

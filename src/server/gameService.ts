@@ -3,7 +3,7 @@ import {
   CARDS, applyAction, applyCommand, assertInvariants, cardDefinition, cloneGame, createGame,
   listActionAvailability, listLegalActions, marketCost, rangeBand, replayCommands
 } from '../game';
-import type { GameCommand, LegalAction, PlayerId } from '../game';
+import type { GameCommand, PlayerId } from '../game';
 import type { RedactedExport, SafeCardInstance, SafeGameView } from '../shared/api';
 import type { GameRecord, GameRepository } from './types';
 
@@ -29,8 +29,9 @@ export class GameService {
   async updateHumanBuild(id: string, expectedRevision: number, definitionIds: string[], complete: boolean): Promise<SafeGameView> {
     return this.repository.withLock(id, async () => {
       const record = await this.repository.load(id); this.assertRevision(record, expectedRevision);
-      if (record.state.phase !== 'startingBuild' || record.state.players.ochre.startingBuild) throw new ForbiddenActionError('The human starting build is already complete.');
-      for (const definitionId of definitionIds) cardDefinition(definitionId);
+      if (record.state.phase !== 'startingBuild' || record.state.players[record.humanPlayerId].startingBuild) throw new ForbiddenActionError('The human starting build is already complete.');
+      try { for (const definitionId of definitionIds) cardDefinition(definitionId); }
+      catch { throw new BadBuildError('Starting build contains an unknown card.'); }
       if (complete && marketCost(definitionIds) > 12) throw new BadBuildError('Starting build costs more than 12 money.');
       record.humanBuildProposal = [...definitionIds];
       if (complete) this.commitCommand(record, { type: 'submitStartingBuild', playerId: record.humanPlayerId, definitionIds });
@@ -49,8 +50,9 @@ export class GameService {
   }
   async previewHumanAction(id: string, expectedRevision: number, actionId: string): Promise<SafeGameView> {
     return this.repository.withLock(id, async () => {
-      const record = await this.repository.load(id); this.assertRevision(record, expectedRevision); this.assertHumanChoice(record);
+      const record = await this.repository.load(id); this.assertRevision(record, expectedRevision);
       if (record.draft.command) throw new ForbiddenActionError('Confirm or undo the current preview first.');
+      this.assertHumanChoice(record);
       const selected = listLegalActions(record.state).find((action) => action.id === actionId);
       if (!selected) throw new ConflictError('That action is no longer legal.');
       record.draft = { baseVersion: record.state.version, baseState: cloneGame(record.state), command: selected.command };
@@ -108,10 +110,15 @@ export class GameService {
     assertInvariants(record.state);
   }
   private safeView(record: GameRecord): SafeGameView {
-    const state = record.state; const preview = record.draft.command !== null; const baseHandIds = new Set(record.draft.baseState.players[record.humanPlayerId].deck.hand.map((card) => card.id));
+    const state = record.state; const preview = record.draft.command !== null;
+    const baseHandIds = new Set(record.draft.baseState.players[record.humanPlayerId].deck.hand.map((card) => card.id));
+    const hideEveryHumanHandCard = record.draft.command?.type === 'endBuyPhase';
     const players = Object.fromEntries((['ochre', 'indigo'] as const).map((playerId) => {
-      const player = state.players[playerId];
-      const hand: SafeCardInstance[] | null = playerId === record.humanPlayerId ? player.deck.hand.map((card) => preview && !baseHandIds.has(card.id) ? { id: `hidden-${card.id}`, definitionId: null } : { ...card }) : null;
+      const player = state.players[playerId]; let hiddenIndex = 0;
+      const hand: SafeCardInstance[] | null = playerId === record.humanPlayerId ? player.deck.hand.map((card) => {
+        if (preview && (hideEveryHumanHandCard || !baseHandIds.has(card.id))) { hiddenIndex += 1; return { id: `hidden-${hiddenIndex}`, definitionId: null }; }
+        return { ...card };
+      }) : null;
       return [playerId, { id: playerId, hand, zoneCounts: { draw: player.deck.draw.length, hand: player.deck.hand.length, discard: player.deck.discard.length, play: player.deck.play.length }, money: player.money, firstBuyMoney: player.firstBuyMoney, firstBuyPending: player.firstBuyPending, purchases: [...player.purchases] }];
     })) as SafeGameView['players'];
     const canChoose = state.activePlayerId === record.humanPlayerId && !state.winner && !record.draft.command && state.phase !== 'startingBuild';
@@ -131,4 +138,3 @@ export class GameService {
     };
   }
 }
-export function commandFromAction(actions: LegalAction[], id: string): GameCommand | null { return actions.find((action) => action.id === id)?.command ?? null; }

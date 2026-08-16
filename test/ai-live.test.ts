@@ -20,7 +20,7 @@ describe.skipIf(process.env.HEXDECK_LIVE_AI !== '1')('live ThinHarness distance 
       const coordinator = new AiTurnCoordinator(service, runner); await coordinator.start(created.id);
       let status = await coordinator.status(created.id);
       for (let count = 0; status.status === 'running' && count < 300; count += 1) { await new Promise((resolve) => setTimeout(resolve, 1000)); status = await coordinator.status(created.id); }
-      expect(status.status).toBe('complete'); expect(status.game?.completedBuilds?.indigo.length).toBeGreaterThan(0); expect(status.game?.activePlayerId).toBe('ochre'); expect(status.game?.turn).toBe(2); expect(human.completedBuilds).toBeNull();
+      expect(status.status).toBe('complete'); expect(status.game?.completedBuilds?.indigo.length).toBeGreaterThan(0); expect(status.game?.activePlayerId).toBe('ochre'); expect(status.game?.turn).toBe(2); expect(status.game?.lastAiSummary?.length).toBeGreaterThan(0); expect(human.completedBuilds).toBeNull();
     } finally { await rm(directory, { recursive: true, force: true }); }
   }, 300_000);
 });
