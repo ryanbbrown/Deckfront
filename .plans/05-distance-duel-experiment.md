@@ -2,7 +2,7 @@
 
 ## Status
 
-This is a shared design draft. It defines one small playtest, not an approved implementation plan.
+This is the approved behavior plan for one small playtest. The technical implementation plan lives in `06-distance-duel-technical.md`.
 
 ## Goal
 
@@ -23,7 +23,7 @@ The first experiment does not need a large card pool. It needs two understandabl
 4. Close pressure can trap and damage an opponent.
 5. A ranged player can escape pressure and rebuild distance.
 6. Neither strategy wins mainly by buying repeated copies of one payoff card.
-7. Players can state their intended strategy by the end of their second purchase.
+7. Players can choose a starting build that expresses an intended strategy and explain how later purchases support or change it.
 
 ## Arena
 
@@ -45,7 +45,7 @@ The arena is one line with exactly five spaces:
 Range describes the number of spaces between the fighters:
 
 | Difference between positions | Range |
-|---:|---|
+| --- | --- |
 | 1 | Close |
 | 2 | Mid |
 | 3 or 4 | Far |
@@ -81,23 +81,17 @@ Players take complete turns. There are no alternating actions inside a turn.
 1. Play any number of Action cards from hand, one at a time, in any chosen order.
 2. Resolve each card completely before playing another card.
 3. Play all Treasure cards.
-4. Buy up to one card.
-5. Discard the remaining hand and every played card.
-6. Draw five cards.
-7. Give the opponent the next complete turn.
+4. During the player's first buy phase, add any money left from that player's starting build.
+5. Buy any number of cards whose total cost does not exceed the available money. Put bought cards in the discard pile.
+6. Discard the remaining hand and every played card.
+7. Draw five cards.
+8. Give the opponent the next complete turn.
 
-There is no per-piece card limit and no generic action-point resource. A card can restrict its own timing through range or a condition.
+Money not spent during a normal buy phase expires at the end of the turn. There is no per-piece card limit, purchase limit, or generic action-point resource. A card can restrict its own timing through range or a condition.
 
 ## Conditions
 
-The first experiment uses only three named conditions.
-
-### Guard
-
-- Guard reduces the next damage the fighter would suffer by the listed amount.
-- Remove Guard after it reduces damage.
-- Unused Guard expires at the start of its owner's next turn.
-- Guard does not prevent forced movement.
+The first experiment uses only two named conditions.
 
 ### Exposed
 
@@ -107,49 +101,51 @@ The first experiment uses only three named conditions.
 
 ### Aimed
 
-- Aimed increases the next ranged attack played during the current turn by 2 damage.
-- A ranged attack is an attack that requires Mid or Far range.
-- Remove Aimed after the bonus applies.
+- Aimed changes the next Volley played during the current turn.
+- At Mid range, an Aimed Volley deals 5 damage instead of 2.
+- At Far range, an Aimed Volley deals 7 damage instead of 5.
+- Remove Aimed after it changes a Volley.
 - Unused Aimed expires at the end of the active player's turn.
 
-## Starting deck
+## Starting build
 
-Each player starts with the same ten cards:
+Before the game, each player receives:
 
-| Count | Card | Ability |
-|---:|---|---|
-| 6 | Copper | Provide 1 money. |
-| 2 | Step | Advance or Withdraw one space. |
-| 1 | Jab | At Close range, deal 1 damage. |
-| 1 | Brace | Gain 2 Guard. |
+- seven Copper cards, each of which provides 1 money;
+- 12 money to spend on any cards from the market.
 
-Starting cards are not market piles unless the market lists them separately.
+A player can buy any number of cards during the starting build. Add those cards to the player's seven Copper cards to form the starting deck. The starting deck can contain any number of cards.
+
+Any unspent starting money carries into that player's first buy phase. It does not become part of the deck. Each player completes the starting build without seeing the other player's choices. After both players finish, reveal the completed starting builds, shuffle each deck, and draw five cards.
+
+Starting Copper cards and cards bought during the starting build do not reduce the market piles.
 
 ## Base market
 
 Base Treasure piles are available in every game.
 
 | Card | Cost | Ability |
-|---|---:|---|
+| --- | --- | --- |
 | Copper | 0 | Provide 1 money. |
 | Silver | 3 | Provide 2 money. |
 | Gold | 6 | Provide 3 money. |
+
+A player can buy any number of Copper cards. Adding too many Copper cards will make the player's useful combinations less reliable.
 
 ## First action market
 
 The complete first market is visible from the beginning. It does not rotate.
 
 | Card | Cost | Ability | Main role |
-|---|---:|---|---|
+| --- | --- | --- | --- |
 | Footwork | 2 | Advance or Withdraw one space, then draw one card. | Shared movement and combo extension. |
-| Brace | 2 | Gain 3 Guard. | Shared defense. |
-| Cull | 3 | Trash exactly two cards. Cull can be one of them. | Shared deck control. |
+| Cull | 3 | Trash exactly two cards. Choose Cull and one card from hand, or choose two cards from hand. Cull cannot trash other cards already played this turn. | Shared deck control. |
 | Muster | 5 | Draw two cards. | Shared long-turn engine. |
 | Feint | 3 | At Close range, give the opponent Exposed. | Close setup. |
 | Drive | 4 | At Close range, deal 2 damage, then push and follow. A wall collision deals 2 additional damage. | Close payoff and pressure. |
-| Flurry | 5 | At Close range, deal 1 damage for each other Action card played this turn, to a maximum of 5 damage. | Close finisher. |
+| Flurry | 5 | At any range, deal 1 damage for each other Action card played this turn, to a maximum of 5 damage. | Shared long-turn payoff. |
 | Vault | 3 | At Close range, jump over the opponent into the empty space directly beyond it, then draw one card. | Ranged escape and combo extension. |
-| Aim | 3 | At Mid or Far range, become Aimed, then draw one card. | Ranged setup. |
+| Aim | 3 | At Mid or Far range, become Aimed, then draw one card. | Ranged setup and combo extension. |
 | Volley | 5 | Deal 2 damage at Mid range or 5 damage at Far range. | Ranged payoff. |
 
 Each pile contains ten copies for the first experiment.
@@ -162,12 +158,7 @@ The close player wants to stay adjacent, force the opponent toward a wall, and p
 Footwork -> Feint -> Drive -> Flurry
 ```
 
-Likely purchases:
-
-1. Footwork or Feint;
-2. Drive;
-3. Flurry;
-4. Muster or Cull to make the combination more reliable.
+One possible starting build is Footwork, Feint, and Drive for 9 money, with 3 money carried into the first buy phase. A player can instead test repeated payoff cards or choose Treasure, draw, or trashing cards. Later purchases should respond to the opponent's deck and position.
 
 The close strategy should be strong after it reaches Close range. It should lose efficiency when it cannot draw approach cards or when Vault changes the fighters' order.
 
@@ -179,33 +170,60 @@ The ranged player wants to cross the opponent when trapped, create distance, and
 Vault -> Footwork to Withdraw -> Aim -> Volley
 ```
 
-Likely purchases:
+One possible starting build is Footwork, Aim, and Volley for 10 money, with 2 money carried into the first buy phase. A player can instead test repeated Volley cards or choose Vault, Treasure, draw, or trashing cards. Later purchases should respond to the opponent's deck and position.
 
-1. Vault or Footwork;
-2. Aim;
-3. Volley;
-4. Muster or Cull to make the combination more reliable.
-
-The ranged strategy should deal efficient damage at Far range. It should lose efficiency when the close player stays adjacent or when the ranged player draws Volley without movement or Aim.
+The ranged strategy should deal efficient damage at Far range. At Mid range, Aim should make one Volley stronger than two unprepared Volleys. The strategy should lose efficiency when the close player stays adjacent or when the ranged player draws Volley without movement or Aim.
 
 ## Why repeated payoff cards should not be enough
 
 - Drive requires Close range and becomes stronger after Feint or against a wall.
 - Flurry requires several earlier Action cards.
-- Volley requires Mid or Far range and becomes stronger after Aim.
+- At Mid range, Aim plus Volley deals 5 damage while two Volley cards deal 4.
+- At Far range, two Volley cards deal more immediate damage than Aim plus Volley, but Aim costs less and draws a card.
 - Vault and Footwork extend combinations while changing the board state.
 - Muster and Cull improve the chance of drawing a complete sequence.
 
-The first balance question is whether these dependencies are strong enough to reward a complete deck plan without making setup cards feel useless alone.
+The first balance question is whether these dependencies are strong enough to reward a complete deck plan without making setup cards feel useless alone. Starting builds can include repeated payoff cards so the playtest can compare them directly with complete combinations.
+
+## Future tension: speed or growth
+
+Both position strategies should eventually support two deck-building plans:
+
+- A fast deck buys damage and movement, may trash a small number of weak cards, and tries to win before the opponent's deck improves.
+- A growth deck spends early money on Treasure, draw, and trashing. It accepts weaker early turns to buy several cards at once and produce larger combinations later.
+
+Fighter health determines how much time a growth deck has before the fast deck wins. The first experiment does not need to balance this tension, but its rules should leave room for both plans.
+
+## Future market variety
+
+The fixed first market tests whether Close and Ranged work at all. A later version can use a larger card library and select only part of it for each game. The visible market, starting build, opponent's purchases, and current positions should all affect which strategy looks strongest. The first experiment does not need enough cards to test variable markets.
+
+## Human and AI players
+
+The human chooses which strategy prompt the AI receives. The initial prompts tell the AI to play either close pressure or ranged setup and payoff. The prompt guides decisions but does not restrict legal cards, purchases, or actions. Strategy prompts remain easy to edit between games.
+
+The human does not select a strategy through the game rules. The human can build and play any deck. For the first playtests, the human should attempt the strategy opposite the AI prompt.
+
+The human and AI choose their starting builds independently. Neither player sees the other starting build until both builds are complete. Starting builds and later purchases are public after they occur. Hands and draw-pile order remain hidden.
+
+The setup lets the human choose which player takes the first turn.
+
+During its turn, the AI chooses one legal action at a time. It can reconsider after each card draw. It continues until it ends its Action phase, then buys cards one at a time until it ends its buy phase.
 
 ## Playtest protocol
 
 Run at least four complete games:
 
-1. Player 1 uses close pressure; Player 2 uses ranged setup.
-2. Swap strategies without changing the starting player.
-3. Close pressure starts again with the other player taking the first turn.
-4. Swap strategies again.
+1. The human plays close pressure, the AI prompt specifies ranged setup, and the human takes the first turn.
+2. The human plays ranged setup, the AI prompt specifies close pressure, and the human takes the first turn.
+3. The human plays close pressure, the AI prompt specifies ranged setup, and the AI takes the first turn.
+4. The human plays ranged setup, the AI prompt specifies close pressure, and the AI takes the first turn.
+
+Before each game, record:
+
+- each player's starting build;
+- money left for each player's first buy phase;
+- each player's reason for the starting build.
 
 For each turn, record:
 
@@ -213,8 +231,8 @@ For each turn, record:
 - cards played in order;
 - damage dealt;
 - starting and ending positions;
-- purchase;
-- stated reason for the purchase;
+- cards bought;
+- stated reason for each purchase;
 - intended next combination.
 
 After each game, record:
@@ -233,11 +251,11 @@ The experiment is promising when all of these are true:
 
 - Each strategy wins at least one of the four seat-swapped games.
 - Most damage after the opening turns comes from sequences of at least two related Action cards.
-- Both players make purchases that clearly support their stated strategy.
+- Both players choose starting builds and later purchases that clearly support their stated strategy.
 - Both players produce at least one turn with four or more Action cards.
 - Vault plus withdrawal creates a real escape from wall pressure.
 - A player who draws a payoff without its setup has a weaker but still understandable turn.
-- Neither player can follow one fixed purchase order without considering the opponent's deck and current position.
+- Neither player can follow one fixed starting build and purchase order without considering the opponent's deck and current position.
 
 Four games cannot establish balance. They can show whether both strategies function and whether the game produces the intended decisions.
 
@@ -249,18 +267,25 @@ Four games cannot establish balance. They can show whether both strategies funct
 - a rotating market;
 - reactions played during the opponent's turn;
 - healing;
+- Guard or other defensive conditions;
 - poison, Bleed, or other damage-over-time conditions;
-- asymmetric starting decks;
-- more than the two intended strategies;
+- asymmetric starting resources or player powers;
+- more than the two intended position strategies;
+- full balance between fast and growth decks;
 - compatibility with the current ring-out rules or saved games.
 
 ## Questions to answer from play, not before it
 
 - Is 20 health too high or too low?
+- Do seven starting Copper cards dilute the chosen cards too much or too little?
+- Does the 12-money starting build reach useful combinations quickly enough?
+- Does carried starting money create a fair first buy phase?
+- Do unlimited purchases make Treasure useful without making growth too fast?
 - Does Close need more help approaching?
+- Does occupying the middle space suppress Far range too easily?
 - Is Vault available often enough for the ranged player to escape?
 - Does Footwork help both strategies, or does one strategy value it much more?
-- Does Brace create a useful timing decision or only delay the game?
 - Are Muster and Cull worth buying before another payoff card?
-- Does Flurry reward a long combination without becoming the only close finisher?
+- Does unrestricted Flurry become an automatic purchase for both strategies?
+- Is Aimed Volley strong enough at Mid range without being too strong at Far range?
 - Is Far-range Volley too safe after the ranged engine becomes reliable?
