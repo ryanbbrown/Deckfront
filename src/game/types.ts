@@ -1,9 +1,9 @@
 export type PlayerId = 'ochre' | 'indigo';
 export type CardType = 'action' | 'treasure';
-export type CardMechanic = 'money' | 'footwork' | 'cull' | 'muster' | 'feint' | 'drive' | 'flurry' | 'vault' | 'aim' | 'volley';
+export type CardMechanic = 'money' | 'footwork' | 'cull' | 'muster' | 'feint' | 'drive' | 'flurry' | 'aim' | 'volley';
 export type Phase = 'startingBuild' | 'action' | 'buy' | 'ended';
-export type RangeBand = 'Close' | 'Mid' | 'Far';
-export type MovementChoice = 'advance' | 'withdraw';
+export type RangeBand = 'Close' | 'Near' | 'Far';
+export type MovementChoice = 'left' | 'right';
 
 export interface CardDefinition {
   id: string;
@@ -29,7 +29,7 @@ export interface FighterState { playerId: PlayerId; position: number; health: nu
 export type GameEventType = 'buildComplete' | 'cardPlayed' | 'move' | 'draw' | 'condition' | 'damage' | 'push' | 'wallCollision' | 'trash' | 'phase' | 'purchase' | 'turn' | 'victory';
 export interface GameEvent { sequence: number; type: GameEventType; playerId: PlayerId; detail: Record<string, unknown> }
 export interface GameState {
-  schemaVersion: 3;
+  schemaVersion: 4;
   seed: number;
   rngState: number;
   version: number;
@@ -52,16 +52,15 @@ export type GameCommand =
   | { type: 'playCull'; cardInstanceId: string; trashInstanceIds: [string, string] }
   | { type: 'playMuster'; cardInstanceId: string }
   | { type: 'playFeint'; cardInstanceId: string }
-  | { type: 'playDrive'; cardInstanceId: string }
+  | { type: 'playDrive'; cardInstanceId: string; direction: MovementChoice }
   | { type: 'playFlurry'; cardInstanceId: string }
-  | { type: 'playVault'; cardInstanceId: string }
   | { type: 'playAim'; cardInstanceId: string }
   | { type: 'playVolley'; cardInstanceId: string }
   | { type: 'endActionPhase' }
   | { type: 'buyCard'; definitionId: string }
   | { type: 'endBuyPhase' };
 export interface LegalAction { id: string; label: string; command: GameCommand }
-export type DisabledReasonCode = 'NOT_YOUR_TURN' | 'WRONG_PHASE' | 'TREASURE_AUTOPLAYS' | 'NEEDS_CLOSE' | 'NEEDS_MID_OR_FAR' | 'NO_MOVEMENT' | 'NO_VAULT_LANDING' | 'CULL_NEEDS_TWO';
+export type DisabledReasonCode = 'NOT_YOUR_TURN' | 'WRONG_PHASE' | 'TREASURE_AUTOPLAYS' | 'NEEDS_CLOSE' | 'NEEDS_NEAR_OR_FAR' | 'CULL_NEEDS_TWO';
 export interface ActionAvailability {
   cardInstanceId: string;
   enabled: boolean;

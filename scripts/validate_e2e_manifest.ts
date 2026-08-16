@@ -13,16 +13,16 @@ export interface CoverageManifest {
 }
 
 export const requiredCards = [
-  'copper', 'silver', 'gold', 'footwork', 'cull', 'muster', 'feint', 'drive', 'flurry', 'vault', 'aim', 'volley'
+  'copper', 'silver', 'gold', 'footwork', 'cull', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley'
 ];
 
 export const requiredBrowserFlows = [
   'startingBuild', 'localTwoPlayer', 'zeroPaidBuild', 'buildAddRemoveRepeat', 'buildRefresh', 'buildRace', 'buildLocked',
   'freeCopper', 'overBudgetBuild', 'humanFirst', 'aiFirst', 'hiddenAiBuild', 'editedPrompt', 'promptCanClear',
-  'carriedStartingMoney', 'treasureAutoPlay', 'footworkSelections', 'cullBothForms', 'cullNoPair',
+  'carriedStartingMoney', 'treasureAutoPlay', 'footworkSelections', 'sharedSpaces', 'passThrough', 'driveDirection', 'cullBothForms', 'cullNoPair',
   'disabledReasons', 'drawPreviewOpaque', 'buyDrawOpaque', 'previewUndoConfirm', 'multiplePurchases',
   'baseTreasuresNondepleting', 'tenthActionSupply', 'turnCleanup', 'conditionDisplay', 'closeCombination',
-  'rangedCombination', 'wallCollision', 'midVolleyComparison', 'realFlurryShortChain', 'realFlurryCap',
+  'rangedCombination', 'wallCollision', 'nearVolleyComparison', 'realFlurryShortChain', 'realFlurryCap',
   'refreshActionPreview', 'refreshConfirmedAction', 'refreshBuy', 'refreshAiWait', 'refreshAiError', 'refreshEnded',
   'confirmedVictory', 'completeGame', 'victoryRefreshNewGame', 'privateHtml', 'publicPurchaseHistory',
   'modelSummaryUi', 'aiElapsedTimer'

@@ -1,6 +1,6 @@
 # Hexdeck
 
-Hexdeck is a Dominion-style deck builder with a five-space fighting arena. Play against a ThinHarness AI or play a two-player local game on one laptop. Each player creates a starting build, then uses complete turns to control range, combine cards, buy improvements, and reduce the opponent from 20 health to 0.
+Hexdeck is a Dominion-style deck builder with a five-space fighting arena. Play against a ThinHarness AI or play a two-player local game on one laptop. Each player creates a starting build, then uses complete turns to move through shared spaces, control range, combine cards, buy improvements, and reduce the opponent from 20 health to 0.
 
 ## Run
 
@@ -28,7 +28,7 @@ export HEXDECK_DATA_DIR='.data/games'
 export HEXDECK_AI_TRACE_DIR='.data/ai-traces'
 ```
 
-Saved games use schema version 3. Old ring-out saves are rejected and are not migrated.
+Saved games use schema version 4. Older saves are rejected and are not migrated.
 
 ## Play
 
@@ -39,7 +39,7 @@ Saved games use schema version 3. Old ring-out saves are rejected and are not mi
 5. End the Action phase to play all Treasure cards.
 6. Buy any number of affordable cards, then end the Buy phase.
 
-The arena has five spaces. A difference of 1 is Close, 2 is Mid, and 3 or 4 is Far. Bought cards enter the discard pile. The browser saves previews, supports undo and confirmation, and restores the active game after refresh.
+The arena has five spaces. Fighters can share a space and move through each other. A difference of 0 is Close, 1 is Near, and 2 or more is Far. Player 1 starts on space 2 and Player 2 starts on space 3. Bought cards enter the discard pile. The browser saves previews, supports undo and confirmation, and restores the active game after refresh.
 
 ## Verify
 

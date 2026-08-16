@@ -7,7 +7,6 @@
     { "cardId": "feint", "count": 10 },
     { "cardId": "drive", "count": 10 },
     { "cardId": "flurry", "count": 10 },
-    { "cardId": "vault", "count": 10 },
     { "cardId": "aim", "count": 10 },
     { "cardId": "volley", "count": 10 }
   ]

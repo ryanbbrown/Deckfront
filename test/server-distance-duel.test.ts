@@ -52,12 +52,12 @@ describe('GameService setup and privacy', () => {
   });
   it('exposes the same availability reason codes through the game module and safe view at every range', async () => {
     for (const [positions, expected] of [
-      [[2, 3], [null, 'NEEDS_MID_OR_FAR', null]],
-      [[2, 4], ['NEEDS_CLOSE', null, 'NEEDS_CLOSE']],
+      [[2, 2], [null, 'NEEDS_NEAR_OR_FAR', null]],
+      [[2, 3], ['NEEDS_CLOSE', null, 'NEEDS_CLOSE']],
       [[1, 5], ['NEEDS_CLOSE', null, 'NEEDS_CLOSE']]
     ] as const) {
       const { repository, service, game } = await setup(); const humanBuild = await service.updateHumanBuild(game.id, 0, [], true); await service.commitAiBuild(game.id, humanBuild.revision, [], 'build', 0); const record = await repository.load(game.id); const deck = record.state.players.ochre.deck;
-      record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.draw = []; deck.discard = []; deck.play = []; deck.hand = ['feint', 'aim', 'vault'].map((id) => createCard(record.state, id)); record.state.fighters.ochre.position = positions[0]; record.state.fighters.indigo.position = positions[1]; record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.draft = { baseVersion: record.state.version, baseState: structuredClone(record.state), command: null }; await repository.save(record);
+      record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.draw = []; deck.discard = []; deck.play = []; deck.hand = ['feint', 'aim', 'drive'].map((id) => createCard(record.state, id)); record.state.fighters.ochre.position = positions[0]; record.state.fighters.indigo.position = positions[1]; record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.draft = { baseVersion: record.state.version, baseState: structuredClone(record.state), command: null }; await repository.save(record);
       const domain = listActionAvailability(record.state, 'ochre').map((entry) => entry.reasonCode); const safe = (await service.get(game.id)).actionAvailability.map((entry) => entry.reasonCode); expect(domain).toEqual(expected); expect(safe).toEqual(expected);
     }
   });
@@ -65,12 +65,12 @@ describe('GameService setup and privacy', () => {
     const { repository, service, game } = await setup(); const humanBuild = await service.updateHumanBuild(game.id, 0, ['footwork'], true); await service.commitAiBuild(game.id, humanBuild.revision, [], 'build', 0);
     const record = await repository.load(game.id); const human = record.state.players.ochre; record.state.trash.push(...human.deck.draw, ...human.deck.hand, ...human.deck.discard, ...human.deck.play); human.deck.draw = [createCard(record.state, 'volley')]; human.deck.hand = [createCard(record.state, 'footwork')]; human.deck.discard = []; human.deck.play = [];
     record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.draft = { baseVersion: record.state.version, baseState: structuredClone(record.state), command: null }; await repository.save(record);
-    const loaded = await service.get(game.id); const footwork = loaded.legalActions.find((action) => action.command.type === 'playFootwork' && action.command.movement === 'advance')!;
+    const loaded = await service.get(game.id); const footwork = loaded.legalActions.find((action) => action.command.type === 'playFootwork' && action.command.movement === 'right')!;
     const realDrawId = record.state.players.ochre.deck.draw[0]!.id;
     const preview = await service.previewHumanAction(game.id, loaded.revision, footwork.id); expect(preview.previewHidesDraws).toBe(true); expect(preview.players.ochre.hand).toEqual([{ id: 'hidden-1', definitionId: null }]);
     expect(JSON.stringify(preview)).not.toContain(realDrawId); expect(JSON.stringify(preview.players.ochre.hand)).not.toContain('volley');
     const undone = await service.undoHumanAction(game.id, preview.revision); expect(undone.players.ochre.hand?.[0]?.definitionId).toBe('footwork');
-    const previewAgain = await service.previewHumanAction(game.id, undone.revision, undone.legalActions.find((action) => action.command.type === 'playFootwork' && action.command.movement === 'advance')!.id);
+    const previewAgain = await service.previewHumanAction(game.id, undone.revision, undone.legalActions.find((action) => action.command.type === 'playFootwork' && action.command.movement === 'right')!.id);
     const confirmed = await service.confirmHumanAction(game.id, previewAgain.revision); expect(confirmed.players.ochre.hand?.[0]?.definitionId).toBe('volley');
   });
   it('redacts every Buy-completion draw even when a base-hand card is discarded and redrawn', async () => {
@@ -88,7 +88,7 @@ describe('GameService setup and privacy', () => {
     for (const definitionId of ['aim', 'volley']) {
       const { repository, service, game } = await setup(); const humanBuild = await service.updateHumanBuild(game.id, 0, ['footwork'], true); await service.commitAiBuild(game.id, humanBuild.revision, [], 'build', 0);
       const record = await repository.load(game.id); const deck = record.state.players.ochre.deck; record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.draw = [createCard(record.state, definitionId)]; deck.hand = [createCard(record.state, 'footwork')]; deck.discard = []; deck.play = []; record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.draft = { baseVersion: record.state.version, baseState: structuredClone(record.state), command: null }; await repository.save(record);
-      const loaded = await service.get(game.id); const action = loaded.legalActions.find((entry) => entry.command.type === 'playFootwork' && entry.command.movement === 'advance')!; placeholders.push((await service.previewHumanAction(game.id, loaded.revision, action.id)).players.ochre.hand);
+      const loaded = await service.get(game.id); const action = loaded.legalActions.find((entry) => entry.command.type === 'playFootwork' && entry.command.movement === 'right')!; placeholders.push((await service.previewHumanAction(game.id, loaded.revision, action.id)).players.ochre.hand);
     }
     expect(placeholders[0]).toEqual(placeholders[1]); expect(placeholders[0]).toEqual([{ id: 'hidden-1', definitionId: null }]);
   });
@@ -155,12 +155,12 @@ describe('persistence schema', () => {
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8, strategyPresetId: 'close-pressure', strategyMarkdown: '# close' });
       await Promise.all([1, 2].map((marker) => repository.withLock(created.id, async () => { const record = await repository.load(created.id); await new Promise((resolve) => setTimeout(resolve, marker === 1 ? 5 : 0)); record.revision += 1; record.updatedAt = new Date(Date.parse(record.updatedAt) + marker * 1000).toISOString(); await repository.save(record); })));
-      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(3); expect(saved.state.phase).toBe('startingBuild');
+      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(4); expect(saved.state.phase).toBe('startingBuild');
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it('rejects an old save with a specific version message', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-old-')); const id = '11111111-1111-4111-8111-111111111111';
-    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 2 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 2 is not supported'); }
+    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 3 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 3 is not supported'); }
     finally { await rm(directory, { recursive: true, force: true }); }
   });
 });

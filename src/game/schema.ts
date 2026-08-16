@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const cardDefinitionSchema = z.object({
   id: z.string().min(1), name: z.string().min(1), type: z.enum(['action', 'treasure']),
   cost: z.number().int().nonnegative(), text: z.string(),
-  mechanic: z.enum(['money', 'footwork', 'cull', 'muster', 'feint', 'drive', 'flurry', 'vault', 'aim', 'volley']),
+  mechanic: z.enum(['money', 'footwork', 'cull', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley']),
   money: z.number().int().positive().optional()
 });
 export const cardLibrarySchema = z.object({ cards: z.array(cardDefinitionSchema).min(1) }).superRefine(({ cards }, context) => {
@@ -16,5 +16,5 @@ export const cardLibrarySchema = z.object({ cards: z.array(cardDefinitionSchema)
 });
 export const marketSchema = z.object({
   id: z.string().min(1),
-  actionPiles: z.array(z.object({ cardId: z.string(), count: z.number().int().positive() })).length(9)
+  actionPiles: z.array(z.object({ cardId: z.string(), count: z.number().int().positive() })).length(8)
 });

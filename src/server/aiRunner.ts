@@ -49,7 +49,7 @@ export class ThinHarnessAiRunner {
   }
 }
 export function chooseFakeBuild(record: GameRecord): string[] {
-  return record.strategy.presetId.includes('ranged') ? ['footwork', 'aim', 'volley'] : ['footwork', 'feint', 'drive'];
+  return record.strategy.presetId.includes('ranged') ? ['footwork', 'footwork', 'aim', 'volley'] : ['footwork', 'feint', 'drive'];
 }
 export function chooseFakeAction(record: GameRecord): string {
   const actions = listLegalActions(record.state);

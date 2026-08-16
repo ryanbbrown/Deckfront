@@ -8,7 +8,7 @@ Stable review feature name: `distance-duel`.
 
 ## Result
 
-The application supports a complete human-versus-AI distance duel:
+The application supports a complete human-versus-AI or two-player local distance duel:
 
 1. Select and edit the AI strategy prompt.
 2. Select whether the human or AI takes the first turn.
@@ -57,7 +57,7 @@ Keep deterministic seeded shuffling. Delete obsolete hex geometry, tactical sear
 
 Keep `GameRepository`. The file repository and in-memory test repository are two adapters at this seam.
 
-Use schema version 3 for game state, game record, persistence parsing, safe views, and shared transport. Use AI bridge protocol version 2 with separate starting-build and normal-action outputs. Reject old saves with a specific version error and preserve that message through HTTP error mapping. Do not migrate old saves.
+Use schema version 4 for game state, game record, persistence parsing, safe views, and shared transport. Use AI bridge protocol version 2 with separate starting-build and normal-action outputs. Reject old saves with a specific version error and preserve that message through HTTP error mapping. Do not migrate old saves.
 
 ## State model
 
@@ -79,7 +79,7 @@ The state contains:
 - ordered public events;
 - unique card-instance serial.
 
-The human remains ochre on space 2. The AI remains indigo on space 4. First-player selection changes turn order, not position.
+Ochre starts on space 2. Indigo starts on space 3. First-player selection changes turn order, not position. Fighters can share spaces and move through each other.
 
 Before both builds finish, no card instances exist and no cards are shuffled or drawn. During setup, the active player is the human until the human completes a build, then the AI until the AI completes its build. The selected first player remains separate. The human edits and completes a build first. The AI then chooses its build without receiving any human build information.
 
@@ -93,7 +93,7 @@ After the AI completes the second build, resolve setup in this exact order:
 6. Reveal both completed build lists.
 7. Enter the Action phase for the selected first player.
 
-Both fighters start at 20 health. Ochre starts on space 2 and indigo starts on space 4. Starting builds do not reduce market piles.
+Both fighters start at 20 health. Ochre starts on space 2 and indigo starts on space 3. Starting builds do not reduce market piles.
 
 ## Commands and phases
 
@@ -115,13 +115,12 @@ The build validator must:
 
 Use opaque legal action IDs for:
 
-- Footwork with Advance or Withdraw;
+- Footwork with Left or Right;
 - Cull with exactly two eligible card-instance IDs;
 - Muster;
 - Feint;
-- Drive;
+- Drive with a Left or Right push;
 - Flurry;
-- Vault;
 - Aim;
 - Volley;
 - end Action phase;
@@ -149,15 +148,14 @@ Carried starting money is available only in that player's first Buy phase. Any r
 Implement the approved cards directly:
 
 - **Copper, Silver, Gold:** provide 1, 2, and 3 money.
-- **Footwork:** validate Advance and Withdraw from current relative positions, move one space, then draw one.
+- **Footwork:** validate Left and Right against the arena walls, move one space even when another fighter occupies the destination, then draw one.
 - **Cull:** legal only when two eligible cards can be selected. Trash either Cull plus one card still in hand or two other cards still in hand. It cannot select another played card. A self-trashed Cull still counts as a resolved Action for Flurry.
 - **Muster:** draw two cards.
 - **Feint:** legal only at Close range. Give the opponent Exposed. Playing Feint while Exposed already exists is legal and refreshes the same non-stacking condition.
-- **Drive:** legal only at Close range. Deal 2 damage, apply and consume Exposed when present, then push. Follow only when the target moves. A wall collision adds 2 damage and moves neither fighter.
+- **Drive:** legal only when both fighters share a space. Deal 2 damage, apply and consume Exposed when present, then push the target Left or Right as chosen. The actor does not follow. A wall collision adds 2 damage and moves neither fighter.
 - **Flurry:** legal at every range. Deal damage equal to previously resolved Action cards this turn, capped at 5. It does not count itself. At Close range, the damage consumes Exposed and gains 2 even when its base damage is 0.
-- **Vault:** legal only at Close range when the space directly beyond the opponent is on the board and empty. Move there, then draw one.
-- **Aim:** legal only at Mid or Far range. Set Aimed, then draw one. Playing Aim while Aimed already exists is legal, refreshes the same non-stacking condition, and still draws.
-- **Volley:** legal only at Mid or Far range. Deal 2 at Mid or 5 at Far. Aimed changes this to 5 at Mid or 7 at Far and is then removed.
+- **Aim:** legal only at Near or Far range. Set Aimed, then draw one. Playing Aim while Aimed already exists is legal, refreshes the same non-stacking condition, and still draws.
+- **Volley:** legal only at Near or Far range. Deal 2 at Near or 5 at Far. Aimed changes this to 5 at Near or 7 at Far and is then removed.
 
 Drawing reshuffles discard when needed and stops when no cards remain. One draw effect can cross the shuffle boundary.
 
@@ -254,7 +252,7 @@ The model receives:
 - opaque legal action IDs and summaries;
 - no human hand or draw information.
 
-It returns one action ID. The server loop lets the AI reconsider after Footwork, Muster, Aim, Vault, purchases, and phase changes. The AI can make strategic mistakes; the server does not reject a legal choice because another action would win immediately.
+It returns one action ID. The server loop lets the AI reconsider after Footwork, Muster, Aim, purchases, and phase changes. The AI can make strategic mistakes; the server does not reject a legal choice because another action would win immediately.
 
 Earlier committed decisions remain committed if a later model request fails. Retry resumes from the latest persisted revision. After 30 model-chosen decisions in one AI turn, stop querying the model and deterministically commit the legal phase-ending actions until control changes. Record the fallback and reset the count when the next AI turn begins.
 
@@ -299,7 +297,7 @@ Show:
 
 - five labeled spaces;
 - fighter positions and health;
-- current Close, Mid, or Far range;
+- current Close, Near, or Far range;
 - Aimed and Exposed indicators;
 - current phase, player, and turn;
 - human hand;
@@ -314,7 +312,8 @@ Show:
 
 Card interaction requirements:
 
-- Footwork shows separate Advance and Withdraw choices and only legal destinations.
+- Footwork shows separate Left and Right choices and only directions that stay on the board.
+- Drive shows separate Push Left and Push Right choices.
 - Cull changes eligible cards into a two-card selection interface. Cull itself is eligible. Other played cards are not.
 - A card with one complete legal resolution can preview from its card control.
 - A card blocked by range, wall, landing space, or another rule stays visible but disabled with a specific reason.
@@ -382,15 +381,14 @@ Prove:
 
 ### Arena and range
 
-For every legal pair of distinct positions, prove:
+For every pair of positions, prove:
 
-- Close, Mid, and Far derivation;
-- shared positions rejected;
-- Advance moves toward the opponent;
-- Withdraw moves away;
-- walls and occupied spaces stop movement;
-- direction remains correct after Vault reverses fighter order;
-- a fighter on space 3 cannot be at Far range.
+- Close, Near, and Far derivation;
+- shared positions accepted as Close;
+- Left and Right use absolute arena direction;
+- walls stop movement;
+- occupied spaces do not stop movement;
+- fighters can move onto and past each other.
 
 ### Cards
 
@@ -401,11 +399,10 @@ Prove:
 - Cull covers both valid forms, no legal pair, self-trash counting for Flurry, and rejection of duplicate IDs, wrong counts, missing cards, and other played cards.
 - Muster draws two across a shuffle and handles deck exhaustion.
 - Feint covers invalid range, creation, legal reapplication without stacking, consumption, and expiry.
-- Drive covers open push and follow, wall collision, Exposed damage, and victory before movement.
+- Drive covers both push directions, no follow, wall collision, Exposed damage, and victory before movement.
 - Flurry covers 0 through 5 previous Actions, the cap above 5, every range, ordering, and zero-base Close damage consuming Exposed for 2.
-- Vault covers valid crossing in both orientations, wall failure, occupied landing, drawing, and later relative movement.
-- Aim covers invalid Close range, Mid, Far, drawing, legal reapplication without stacking, consumption, and expiry.
-- Volley covers invalid Close, normal Mid 2, normal Far 5, Aimed Mid 5, and Aimed Far 7.
+- Aim covers invalid Close range, Near, Far, drawing, legal reapplication without stacking, consumption, and expiry.
+- Volley covers invalid Close, normal Near 2, normal Far 5, Aimed Near 5, and Aimed Far 7.
 
 ### Turn and deck lifecycle
 
@@ -436,7 +433,7 @@ Prove:
 - preview, undo, confirm, and refresh work in each normal phase;
 - previewed draws hide identities, confirmation reveals them, and undo cannot become a draw-order oracle;
 - availability reason codes agree across the game module and safe view;
-- schema version 3 round-trips and version 2 fails through HTTP with a specific message;
+- schema version 4 round-trips and version 3 fails through HTTP with a specific message;
 - seeded fixture replay still succeeds after preview and confirmation;
 - concurrent writes serialize;
 - sentinel card IDs prove safe views, exports, traces, events, and HTML omit private data;
@@ -480,24 +477,23 @@ Cover:
 Cover through visible controls:
 
 - Copper, Silver, and Gold auto-play and produce exact visible money.
-- Footwork selects Advance and Withdraw, moves to the expected space, draws, and disables illegal directions.
+- Footwork selects Left and Right, moves onto and past the opponent, draws, and hides wall-blocked directions.
 - Cull selects Cull plus one hand card and two other hand cards, prevents a third selection, never offers other played cards, and shows a specific disabled reason when no pair exists.
 - Muster increases the visible hand by two and crosses a seeded reshuffle.
 - Feint is disabled outside Close, applies Exposed at Close, and shows consumption.
-- Drive is disabled outside Close and shows normal damage, push, follow, wall collision, and Exposed damage.
-- Flurry resolves at Close, Mid, and Far with literal damage for short and capped Action chains.
-- Vault is disabled without a legal landing space and crosses the opponent when legal.
-- Aim is disabled at Close, draws, and shows Aimed at Mid and Far.
-- Volley is disabled at Close and shows exact normal and Aimed damage at Mid and Far.
+- Drive is disabled outside Close and shows both push choices, normal damage, no follow, wall collision, and Exposed damage.
+- Flurry resolves at Close, Near, and Far with literal damage for short and capped Action chains.
+- Aim is disabled at Close, draws, and shows Aimed at Near and Far.
+- Volley is disabled at Close and shows exact normal and Aimed damage at Near and Far.
 
 ### Combinations
 
 Cover through visible controls:
 
 - `Footwork -> Feint -> Drive -> Flurry`, with exact final positions and 7 total damage in an open-space case;
-- `Vault -> Footwork Withdraw -> Aim -> Volley`, with side reversal, exact final range, draw count, and 5 damage at Mid;
+- `Footwork -> Footwork -> Aim -> Volley`, with pass-through, exact final range, draw count, and 7 damage at Far;
 - `Feint -> Drive` against a wall for 6 damage;
-- Aim plus Volley versus two unprepared Volleys at Mid: 5 versus 4;
+- Aim plus Volley versus two unprepared Volleys at Near: 5 versus 4;
 - Aim plus Volley at Far for 7;
 - draw effects revealing the next required combination card;
 - Cull followed by cleanup and reshuffle with trashed cards absent;

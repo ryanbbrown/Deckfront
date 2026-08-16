@@ -9,8 +9,7 @@ import type {
 const REASONS: Record<DisabledReasonCode, string> = {
   NOT_YOUR_TURN: 'It is not your turn.', WRONG_PHASE: 'This card cannot be played in this phase.',
   TREASURE_AUTOPLAYS: 'Treasure cards play when you end the Action phase.', NEEDS_CLOSE: 'Requires Close range.',
-  NEEDS_MID_OR_FAR: 'Requires Mid or Far range.', NO_MOVEMENT: 'No legal movement is available.',
-  NO_VAULT_LANDING: 'There is no empty space beyond the opponent.', CULL_NEEDS_TWO: 'Cull needs exactly two eligible cards.'
+  NEEDS_NEAR_OR_FAR: 'Requires Near or Far range.', CULL_NEEDS_TWO: 'Cull needs exactly two eligible cards.'
 };
 function stable(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stable);
@@ -22,28 +21,17 @@ function legal(label: string, command: GameCommand): LegalAction { return { id: 
 function ids(state: GameState, actions: LegalAction[]): LegalAction[] { return actions.map((action, index) => ({ ...action, id: `v${state.version}-action-${index + 1}` })); }
 export function rangeBand(state: GameState): RangeBand {
   const difference = Math.abs(state.fighters.ochre.position - state.fighters.indigo.position);
-  return difference === 1 ? 'Close' : difference === 2 ? 'Mid' : 'Far';
+  return difference === 0 ? 'Close' : difference === 1 ? 'Near' : 'Far';
 }
 function record(state: GameState, type: GameEventType, detail: Record<string, unknown>, playerId = state.activePlayerId): void {
   state.events.push({ sequence: state.events.length, type, playerId, detail });
 }
 function movements(state: GameState, playerId: PlayerId): MovementChoice[] {
-  const actor = state.fighters[playerId].position;
-  const target = state.fighters[opponent(playerId)].position;
-  const toward = target > actor ? 1 : -1;
+  const position = state.fighters[playerId].position;
   const result: MovementChoice[] = [];
-  const advance = actor + toward;
-  if (advance >= 1 && advance <= 5 && advance !== target) result.push('advance');
-  const withdraw = actor - toward;
-  if (withdraw >= 1 && withdraw <= 5 && withdraw !== target) result.push('withdraw');
+  if (position > 1) result.push('left');
+  if (position < 5) result.push('right');
   return result;
-}
-function vaultLanding(state: GameState, playerId: PlayerId): number | null {
-  if (rangeBand(state) !== 'Close') return null;
-  const actor = state.fighters[playerId].position;
-  const target = state.fighters[opponent(playerId)].position;
-  const landing = target + (target > actor ? 1 : -1);
-  return landing >= 1 && landing <= 5 ? landing : null;
 }
 function cardAvailability(state: GameState, playerId: PlayerId, card: CardInstance): ActionAvailability {
   const definition = cardDefinition(card.definitionId);
@@ -55,14 +43,14 @@ function cardAvailability(state: GameState, playerId: PlayerId, card: CardInstan
   else if (state.phase !== 'action') reasonCode = 'WRONG_PHASE';
   else if (definition.type === 'treasure') reasonCode = 'TREASURE_AUTOPLAYS';
   else if (definition.mechanic === 'footwork') {
-    selection = 'movement'; availableMovements = movements(state, playerId); if (!availableMovements.length) reasonCode = 'NO_MOVEMENT';
+    selection = 'movement'; availableMovements = movements(state, playerId);
   } else if (definition.mechanic === 'cull') {
     selection = 'trashTwo';
     eligibleCardInstanceIds = [card.id, ...state.players[playerId].deck.hand.filter((candidate) => candidate.id !== card.id).map((candidate) => candidate.id)];
     if (eligibleCardInstanceIds.length < 2) reasonCode = 'CULL_NEEDS_TWO';
   } else if (['feint', 'drive'].includes(definition.mechanic) && rangeBand(state) !== 'Close') reasonCode = 'NEEDS_CLOSE';
-  else if (definition.mechanic === 'vault' && vaultLanding(state, playerId) === null) reasonCode = rangeBand(state) === 'Close' ? 'NO_VAULT_LANDING' : 'NEEDS_CLOSE';
-  else if (['aim', 'volley'].includes(definition.mechanic) && rangeBand(state) === 'Close') reasonCode = 'NEEDS_MID_OR_FAR';
+  else if (definition.mechanic === 'drive') { selection = 'movement'; availableMovements = ['left', 'right']; }
+  else if (['aim', 'volley'].includes(definition.mechanic) && rangeBand(state) === 'Close') reasonCode = 'NEEDS_NEAR_OR_FAR';
   return { cardInstanceId: card.id, enabled: reasonCode === null, reasonCode, reason: reasonCode ? REASONS[reasonCode] : null, selection, eligibleCardInstanceIds, movements: availableMovements };
 }
 export function listActionAvailability(state: GameState, playerId: PlayerId): ActionAvailability[] {
@@ -77,7 +65,7 @@ function cardActions(state: GameState): LegalAction[] {
     const definition = cardDefinition(card.definitionId);
     switch (definition.mechanic) {
       case 'money': return [];
-      case 'footwork': return available.movements.map((movement) => legal(`Play Footwork: ${movement === 'advance' ? 'Advance' : 'Withdraw'}`, { type: 'playFootwork', cardInstanceId: card.id, movement }));
+      case 'footwork': return available.movements.map((movement) => legal(`Play Footwork: ${movement === 'left' ? 'Left' : 'Right'}`, { type: 'playFootwork', cardInstanceId: card.id, movement }));
       case 'cull': {
         const other = hand.filter((candidate) => candidate.id !== card.id);
         const actions: LegalAction[] = other.map((candidate) => legal(`Play Cull: trash Cull and ${cardDefinition(candidate.definitionId).name}`, { type: 'playCull', cardInstanceId: card.id, trashInstanceIds: [card.id, candidate.id] }));
@@ -88,9 +76,8 @@ function cardActions(state: GameState): LegalAction[] {
       }
       case 'muster': return [legal('Play Muster', { type: 'playMuster', cardInstanceId: card.id })];
       case 'feint': return [legal('Play Feint', { type: 'playFeint', cardInstanceId: card.id })];
-      case 'drive': return [legal('Play Drive', { type: 'playDrive', cardInstanceId: card.id })];
+      case 'drive': return available.movements.map((direction) => legal(`Play Drive: Push ${direction === 'left' ? 'Left' : 'Right'}`, { type: 'playDrive', cardInstanceId: card.id, direction }));
       case 'flurry': return [legal('Play Flurry', { type: 'playFlurry', cardInstanceId: card.id })];
-      case 'vault': return [legal('Play Vault', { type: 'playVault', cardInstanceId: card.id })];
       case 'aim': return [legal('Play Aim', { type: 'playAim', cardInstanceId: card.id })];
       case 'volley': return [legal('Play Volley', { type: 'playVolley', cardInstanceId: card.id })];
     }
@@ -151,8 +138,8 @@ function playCard(state: GameState, command: Extract<GameCommand, { cardInstance
   record(state, 'cardPlayed', { cardInstanceId: card.id, definitionId: card.definitionId });
   switch (command.type) {
     case 'playFootwork': {
-      const actor = state.fighters[actorId]; const target = state.fighters[targetId]; const toward = target.position > actor.position ? 1 : -1;
-      const from = actor.position; actor.position += command.movement === 'advance' ? toward : -toward;
+      const actor = state.fighters[actorId]; const from = actor.position;
+      actor.position += command.movement === 'left' ? -1 : 1;
       record(state, 'move', { movement: command.movement, from, to: actor.position }); draw(state, actorId, 1); break;
     }
     case 'playCull': {
@@ -170,18 +157,16 @@ function playCard(state: GameState, command: Extract<GameCommand, { cardInstance
     case 'playFeint': state.fighters[targetId].exposed = true; record(state, 'condition', { condition: 'Exposed', change: 'set', targetId }); break;
     case 'playDrive': {
       dealDamage(state, targetId, 2, true); if (state.winner) break;
-      const actor = state.fighters[actorId]; const target = state.fighters[targetId]; const origin = target.position;
-      const destination = target.position + (target.position > actor.position ? 1 : -1);
-      if (destination < 1 || destination > 5) { record(state, 'wallCollision', { targetId }); dealDamage(state, targetId, 2, false); }
-      else { target.position = destination; actor.position = origin; record(state, 'push', { targetId, to: destination, followTo: origin }); }
+      const target = state.fighters[targetId]; const destination = target.position + (command.direction === 'left' ? -1 : 1);
+      if (destination < 1 || destination > 5) { record(state, 'wallCollision', { targetId, direction: command.direction }); dealDamage(state, targetId, 2, false); }
+      else { target.position = destination; record(state, 'push', { targetId, direction: command.direction, to: destination }); }
       break;
     }
     case 'playFlurry': dealDamage(state, targetId, Math.min(5, previousActions), rangeBand(state) === 'Close'); break;
-    case 'playVault': { const actor = state.fighters[actorId]; const from = actor.position; actor.position = vaultLanding(state, actorId)!; record(state, 'move', { movement: 'vault', from, to: actor.position }); draw(state, actorId, 1); break; }
     case 'playAim': state.fighters[actorId].aimed = true; record(state, 'condition', { condition: 'Aimed', change: 'set', targetId: actorId }); draw(state, actorId, 1); break;
     case 'playVolley': {
       const aimed = state.fighters[actorId].aimed; const band = rangeBand(state);
-      const amount = aimed ? (band === 'Mid' ? 5 : 7) : (band === 'Mid' ? 2 : 5);
+      const amount = aimed ? (band === 'Near' ? 5 : 7) : (band === 'Near' ? 2 : 5);
       if (aimed) { state.fighters[actorId].aimed = false; record(state, 'condition', { condition: 'Aimed', change: 'consumed', targetId: actorId }); }
       dealDamage(state, targetId, amount, false); break;
     }

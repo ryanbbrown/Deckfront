@@ -16,7 +16,7 @@ export class GameService {
   async create(input: CreateGameInput): Promise<SafeGameView> {
     const now = new Date().toISOString(); const initialState = createGame({ seed: input.seed ?? Date.now(), firstPlayerId: input.firstPlayerId });
     const record: GameRecord = {
-      schemaVersion: 3, id: randomUUID(), revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
+      schemaVersion: 4, id: randomUUID(), revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
       completedActions: 0, durationSeconds: null, humanPlayerId: 'ochre', aiPlayerId: 'indigo', opponentMode: input.opponentMode ?? 'ai',
       strategy: { presetId: input.strategyPresetId, markdown: input.strategyMarkdown }, aiRuntime: { ...this.aiRuntime },
       humanBuildProposal: [], aiActions: [], initialState: cloneGame(initialState), committedCommands: [],
@@ -94,7 +94,7 @@ export class GameService {
       this.assertRecordReplay(record); await this.repository.save(record); return this.safeView(record);
     });
   }
-  async redactedExport(id: string): Promise<RedactedExport> { return { schemaVersion: 3, exportedAt: new Date().toISOString(), game: this.safeView(await this.repository.load(id)) }; }
+  async redactedExport(id: string): Promise<RedactedExport> { return { schemaVersion: 4, exportedAt: new Date().toISOString(), game: this.safeView(await this.repository.load(id)) }; }
   private commitCommand(record: GameRecord, command: GameCommand): void {
     record.state = applyCommand(record.state, command); record.committedCommands.push(command); record.committedState = cloneGame(record.state);
     record.draft = { baseVersion: record.state.version, baseState: cloneGame(record.state), command: null };
@@ -130,7 +130,7 @@ export class GameService {
     const canChoose = (local || state.activePlayerId === record.humanPlayerId) && !state.winner && !record.draft.command && state.phase !== 'startingBuild';
     const completedBuilds = state.players.ochre.startingBuild && state.players.indigo.startingBuild ? { ochre: [...state.players.ochre.startingBuild], indigo: [...state.players.indigo.startingBuild] } : null;
     return {
-      schemaVersion: 3, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
+      schemaVersion: 4, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
       elapsedSeconds: Math.max(0, Math.floor((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 1000)), completedActions: record.completedActions,
       durationSeconds: record.durationSeconds, humanPlayerId: record.humanPlayerId, aiPlayerId: record.aiPlayerId,
       opponentMode: record.opponentMode, viewPlayerId,

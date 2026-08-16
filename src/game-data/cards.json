@@ -3,14 +3,13 @@
     { "id": "copper", "name": "Copper", "type": "treasure", "cost": 0, "text": "Provide 1 money.", "mechanic": "money", "money": 1 },
     { "id": "silver", "name": "Silver", "type": "treasure", "cost": 3, "text": "Provide 2 money.", "mechanic": "money", "money": 2 },
     { "id": "gold", "name": "Gold", "type": "treasure", "cost": 6, "text": "Provide 3 money.", "mechanic": "money", "money": 3 },
-    { "id": "footwork", "name": "Footwork", "type": "action", "cost": 2, "text": "Advance or Withdraw one space, then draw one card.", "mechanic": "footwork" },
+    { "id": "footwork", "name": "Footwork", "type": "action", "cost": 2, "text": "Move one space left or right, then draw one card.", "mechanic": "footwork" },
     { "id": "cull", "name": "Cull", "type": "action", "cost": 3, "text": "Trash Cull and one card from hand, or two cards from hand.", "mechanic": "cull" },
     { "id": "muster", "name": "Muster", "type": "action", "cost": 5, "text": "Draw two cards.", "mechanic": "muster" },
     { "id": "feint", "name": "Feint", "type": "action", "cost": 3, "text": "At Close range, give the opponent Exposed.", "mechanic": "feint" },
-    { "id": "drive", "name": "Drive", "type": "action", "cost": 4, "text": "At Close range, deal 2 damage, then push and follow. A wall collision deals 2 additional damage.", "mechanic": "drive" },
+    { "id": "drive", "name": "Drive", "type": "action", "cost": 4, "text": "At Close range, deal 2 damage, then push left or right. A wall collision deals 2 additional damage.", "mechanic": "drive" },
     { "id": "flurry", "name": "Flurry", "type": "action", "cost": 5, "text": "Deal 1 damage for each other Action played this turn, to a maximum of 5.", "mechanic": "flurry" },
-    { "id": "vault", "name": "Vault", "type": "action", "cost": 3, "text": "At Close range, jump over the opponent into the empty space beyond, then draw one card.", "mechanic": "vault" },
-    { "id": "aim", "name": "Aim", "type": "action", "cost": 3, "text": "At Mid or Far range, become Aimed, then draw one card.", "mechanic": "aim" },
-    { "id": "volley", "name": "Volley", "type": "action", "cost": 5, "text": "Deal 2 damage at Mid range or 5 damage at Far range. Aimed changes this to 5 or 7.", "mechanic": "volley" }
+    { "id": "aim", "name": "Aim", "type": "action", "cost": 3, "text": "At Near or Far range, become Aimed, then draw one card.", "mechanic": "aim" },
+    { "id": "volley", "name": "Volley", "type": "action", "cost": 5, "text": "Deal 2 damage at Near range or 5 damage at Far range. Aimed changes this to 5 or 7.", "mechanic": "volley" }
   ]
 }

@@ -34,39 +34,38 @@ The arena is one line with exactly five spaces:
 ```
 
 - Player 1 starts on space 2.
-- Player 2 starts on space 4.
-- Fighters cannot share a space.
-- Fighters cannot pass each other through normal movement.
-- Vault is the only card in this experiment that can change the fighters' order.
+- Player 2 starts on space 3.
+- Fighters can share a space.
+- Fighters can move onto and past each other.
 - Both ends are walls. The walls do not belong to either player.
+
+The starting positions are not perfectly symmetric on a five-space line. Seat-swapped playtests should show whether the difference matters.
 
 ### Range
 
-Range describes the number of spaces between the fighters:
+Range is the difference between the fighters' positions:
 
 | Difference between positions | Range |
 | --- | --- |
-| 1 | Close |
-| 2 | Mid |
-| 3 or 4 | Far |
+| 0 | Close |
+| 1 | Near |
+| 2 or more | Far |
 
-For example, fighters on spaces 2 and 3 are Close. Fighters on spaces 1 and 5 are Far.
+For example, two fighters on space 3 are Close. Fighters on spaces 2 and 3 are Near. Fighters on spaces 1 and 3 are Far.
 
 ### Movement
 
-- Advance moves the active fighter one empty space toward the opponent.
-- Withdraw moves the active fighter one empty space away from the opponent.
+- Left moves the active fighter one space toward space 1.
+- Right moves the active fighter one space toward space 5.
 - A fighter cannot move beyond space 1 or space 5.
-- After the fighters change sides through Vault, Advance and Withdraw still use their current relative positions. They do not use an owned side of the arena.
+- Another fighter never blocks movement.
 
 ### Forced movement
 
-- Push moves the target one space directly away from the actor.
-- If the target moves, Follow moves the actor into the target's previous space.
-- If a wall prevents a push, the target suffers the listed collision damage and does not move.
-- A push and follow leaves the fighters Close.
-
-This rule lets a pressured fighter use `Vault`, cross the opponent, and then use `Footwork` to Withdraw toward open space.
+- Drive's player chooses Left or Right for the push.
+- Push moves only the target one space in the chosen direction.
+- If a wall prevents the push, the target suffers the listed collision damage and does not move.
+- The actor does not follow the target.
 
 ## Objective
 
@@ -102,7 +101,7 @@ The first experiment uses only two named conditions.
 ### Aimed
 
 - Aimed changes the next Volley played during the current turn.
-- At Mid range, an Aimed Volley deals 5 damage instead of 2.
+- At Near range, an Aimed Volley deals 5 damage instead of 2.
 - At Far range, an Aimed Volley deals 7 damage instead of 5.
 - Remove Aimed after it changes a Volley.
 - Unused Aimed expires at the end of the active player's turn.
@@ -138,15 +137,14 @@ The complete first market is visible from the beginning. It does not rotate.
 
 | Card | Cost | Ability | Main role |
 | --- | --- | --- | --- |
-| Footwork | 2 | Advance or Withdraw one space, then draw one card. | Shared movement and combo extension. |
+| Footwork | 2 | Move one space Left or Right, then draw one card. | Shared movement and combo extension. |
 | Cull | 3 | Trash exactly two cards. Choose Cull and one card from hand, or choose two cards from hand. Cull cannot trash other cards already played this turn. | Shared deck control. |
 | Muster | 5 | Draw two cards. | Shared long-turn engine. |
 | Feint | 3 | At Close range, give the opponent Exposed. | Close setup. |
-| Drive | 4 | At Close range, deal 2 damage, then push and follow. A wall collision deals 2 additional damage. | Close payoff and pressure. |
+| Drive | 4 | At Close range, deal 2 damage, then push Left or Right. A wall collision deals 2 additional damage. | Close payoff and pressure. |
 | Flurry | 5 | At any range, deal 1 damage for each other Action card played this turn, to a maximum of 5 damage. | Shared long-turn payoff. |
-| Vault | 3 | At Close range, jump over the opponent into the empty space directly beyond it, then draw one card. | Ranged escape and combo extension. |
-| Aim | 3 | At Mid or Far range, become Aimed, then draw one card. | Ranged setup and combo extension. |
-| Volley | 5 | Deal 2 damage at Mid range or 5 damage at Far range. | Ranged payoff. |
+| Aim | 3 | At Near or Far range, become Aimed, then draw one card. | Ranged setup and combo extension. |
+| Volley | 5 | Deal 2 damage at Near range or 5 damage at Far range. | Ranged payoff. |
 
 Each pile contains ten copies for the first experiment.
 
@@ -160,27 +158,27 @@ Footwork -> Feint -> Drive -> Flurry
 
 One possible starting build is Footwork, Feint, and Drive for 9 money, with 3 money carried into the first buy phase. A player can instead test repeated payoff cards or choose Treasure, draw, or trashing cards. Later purchases should respond to the opponent's deck and position.
 
-The close strategy should be strong after it reaches Close range. It should lose efficiency when it cannot draw approach cards or when Vault changes the fighters' order.
+The close strategy should be strong after it reaches Close range. It should lose efficiency when it cannot draw movement cards or when the ranged fighter moves through it and creates distance.
 
 ## Intended strategy: ranged setup and payoff
 
-The ranged player wants to cross the opponent when trapped, create distance, and produce turns such as:
+The ranged player wants to move through or away from the opponent, create distance, and produce turns such as:
 
 ```text
-Vault -> Footwork to Withdraw -> Aim -> Volley
+Footwork -> Footwork -> Aim -> Volley
 ```
 
-One possible starting build is Footwork, Aim, and Volley for 10 money, with 2 money carried into the first buy phase. A player can instead test repeated Volley cards or choose Vault, Treasure, draw, or trashing cards. Later purchases should respond to the opponent's deck and position.
+One possible starting build is two Footwork, Aim, and Volley for 12 money. A player can instead test repeated Volley cards or choose Treasure, draw, or trashing cards. Later purchases should respond to the opponent's deck and position.
 
-The ranged strategy should deal efficient damage at Far range. At Mid range, Aim should make one Volley stronger than two unprepared Volleys. The strategy should lose efficiency when the close player stays adjacent or when the ranged player draws Volley without movement or Aim.
+The ranged strategy should deal efficient damage at Far range. At Near range, Aim should make one Volley stronger than two unprepared Volleys. The strategy should lose efficiency when the close player shares its space or when the ranged player draws Volley without movement or Aim.
 
 ## Why repeated payoff cards should not be enough
 
 - Drive requires Close range and becomes stronger after Feint or against a wall.
 - Flurry requires several earlier Action cards.
-- At Mid range, Aim plus Volley deals 5 damage while two Volley cards deal 4.
+- At Near range, Aim plus Volley deals 5 damage while two Volley cards deal 4.
 - At Far range, two Volley cards deal more immediate damage than Aim plus Volley, but Aim costs less and draws a card.
-- Vault and Footwork extend combinations while changing the board state.
+- Footwork extends combinations while changing the board state.
 - Muster and Cull improve the chance of drawing a complete sequence.
 
 The first balance question is whether these dependencies are strong enough to reward a complete deck plan without making setup cards feel useless alone. Starting builds can include repeated payoff cards so the playtest can compare them directly with complete combinations.
@@ -253,7 +251,7 @@ The experiment is promising when all of these are true:
 - Most damage after the opening turns comes from sequences of at least two related Action cards.
 - Both players choose starting builds and later purchases that clearly support their stated strategy.
 - Both players produce at least one turn with four or more Action cards.
-- Vault plus withdrawal creates a real escape from wall pressure.
+- Repeated Footwork creates a real escape from Close pressure.
 - A player who draws a payoff without its setup has a weaker but still understandable turn.
 - Neither player can follow one fixed starting build and purchase order without considering the opponent's deck and current position.
 
@@ -261,7 +259,7 @@ Four games cannot establish balance. They can show whether both strategies funct
 
 ## Out of scope for the first experiment
 
-- a larger map;
+- a larger or symmetric map;
 - more than one fighter per player;
 - alternating actions;
 - a rotating market;
@@ -282,10 +280,11 @@ Four games cannot establish balance. They can show whether both strategies funct
 - Does carried starting money create a fair first buy phase?
 - Do unlimited purchases make Treasure useful without making growth too fast?
 - Does Close need more help approaching?
-- Does occupying the middle space suppress Far range too easily?
-- Is Vault available often enough for the ranged player to escape?
+- Does the space 2 and space 3 start give either seat a meaningful wall advantage?
+- Does sharing spaces make Close pressure clear and useful?
+- Can repeated Footwork create distance often enough for the ranged player to escape?
 - Does Footwork help both strategies, or does one strategy value it much more?
 - Are Muster and Cull worth buying before another payoff card?
 - Does unrestricted Flurry become an automatic purchase for both strategies?
-- Is Aimed Volley strong enough at Mid range without being too strong at Far range?
+- Is Aimed Volley strong enough at Near range without being too strong at Far range?
 - Is Far-range Volley too safe after the ranged engine becomes reliable?

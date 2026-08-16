@@ -12,12 +12,12 @@ export function createGame(config: number | CreateGameConfig): GameState {
   const seed = typeof config === 'number' ? config : config.seed;
   const firstPlayer = typeof config === 'number' ? 'ochre' : config.firstPlayerId ?? 'ochre';
   return {
-    schemaVersion: 3, seed, rngState: seed >>> 0, version: 0, nextCardSerial: 1,
+    schemaVersion: 4, seed, rngState: seed >>> 0, version: 0, nextCardSerial: 1,
     activePlayerId: 'ochre', selectedFirstPlayerId: firstPlayer, phase: 'startingBuild', turn: 0, winner: null,
     players: { ochre: player('ochre'), indigo: player('indigo') },
     fighters: {
       ochre: { playerId: 'ochre', position: 2, health: 20, aimed: false, exposed: false },
-      indigo: { playerId: 'indigo', position: 4, health: 20, aimed: false, exposed: false }
+      indigo: { playerId: 'indigo', position: 3, health: 20, aimed: false, exposed: false }
     },
     supply: Object.fromEntries(FIRST_MARKET.actionPiles.map((pile) => [pile.cardId, pile.count])),
     trash: [], actionsThisTurn: [], events: []
