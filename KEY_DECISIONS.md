@@ -1,30 +1,15 @@
 # Key decisions
 
-- The game uses a 37-hex board and two pieces per player.
-- Pieces start and respawn on the inner ring.
-- The first player to score five ring-outs wins.
-- A ringed piece respawns at an original starting hex at the start of its owner's next turn.
-- If both starting hexes are occupied, it uses a nearest empty hex.
-- A push moves only its adjacent target. An occupied destination blocks the push.
-- Each piece gets one adjacent baseline move on its owner's turn.
-- Players can interleave baseline moves and card plays.
-- Players can play any number of action cards from their five-card hand.
-- A piece can use each named action only once during its turn.
-- Relay can be used once per turn. Cull and treasure cards have no use limit.
-- Players cannot act or make decisions during the opponent's turn.
-- Each turn ends with one optional purchase. The purchased card enters the discard pile.
-- Cleanup discards the remaining hand and played cards, then draws a new five-card hand.
-- The first version has no extra card draw or hand-size effects.
-- Each starting deck has five Copper, two Shove, two Dash, and one Brace.
-- The shared market supports direct force, unusual geometry, and confinement strategies.
-- Direct force uses repeated pushes and follow-up movement.
-- Geometry uses Pull, Vault, Sweep, and Relay to create new attack lines.
-- Confinement uses Block and Pin, then converts them into points with Corner.
-- Cull provides optional deck thinning without drawing a replacement card.
-- The AI uses ThinHarness and the same legal-action interface as the human.
-- The AI cannot see the human hand or either shuffled draw order.
-- The AI strategy is editable Markdown. The setup screen supports presets and pasted strategy text.
-- A deterministic search prevents the AI from missing available immediate points.
-- The app saves the exact strategy, seed, actions, purchases, score, and match duration.
-- The target match length is 15 to 25 minutes.
-- We will reconsider extra draw only after human playtests.
+- The arena is one line with five spaces and one fighter per player.
+- Fighters start on spaces 2 and 4 with 20 health.
+- Players take complete turns and can play any number of Action cards.
+- Players can buy any number of affordable cards in each Buy phase.
+- Each player privately spends up to 12 money before the game and carries unused money into the first Buy phase.
+- Starting decks contain seven Copper plus selected starting cards.
+- Close, Mid, and Far use position differences of 1, 2, and 3 or 4.
+- Vault is the only card that crosses the opponent.
+- The first experiment has Exposed and Aimed, but no Guard.
+- Flurry works at every range.
+- The AI uses an editable strategy prompt and chooses one server-validated decision at a time.
+- The server owns a complete AI turn, so it continues without an open browser.
+- Saved games use schema version 3. Ring-out saves and rules are not compatible.

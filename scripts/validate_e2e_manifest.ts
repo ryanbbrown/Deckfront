@@ -13,21 +13,17 @@ export interface CoverageManifest {
 }
 
 export const requiredCards = [
-  'copper', 'silver', 'gold', 'shove', 'dash', 'brace', 'cull', 'drive', 'breaker',
-  'press', 'pull', 'vault', 'sweep', 'relay', 'block', 'pin', 'corner'
+  'copper', 'silver', 'gold', 'footwork', 'cull', 'muster', 'feint', 'drive', 'flurry', 'vault', 'aim', 'volley'
 ];
 
 export const requiredBrowserFlows = [
-  'baselineMarkers', 'everyCardVisible', 'handoffAfterConfirm', 'previewUndoConfirmStale',
-  'passFinal', 'consecutiveActions', 'bothPurchaseOrders', 'buyNothing', 'cullForms',
-  'sweepDirectionsAndRingout', 'relayAcrossBoardOnce', 'pinAcrossRounds', 'statusCleanup',
-  'refreshEveryPhase', 'aiRetryNoCorruption', 'completeMatch'
+  'startingBuild', 'buildRefresh', 'freeCopper', 'firstPlayer', 'hiddenBuild', 'disabledReasons',
+  'drawPreviewUndoConfirm', 'cullSelections', 'multiplePurchases', 'turnCleanup', 'closeCombination',
+  'rangedCombination', 'wallCollision', 'midVolleyComparison', 'victoryRefreshNewGame', 'privateHtml'
 ];
 
 export const requiredAiFlows = [
-  'oneActionOnly', 'fortyChoices', 'staleId', 'noInventedChoices', 'immediatePointAndWin',
-  'passWithoutPoint', 'repeatAfterHumanPass', 'onePurchase', 'liveAlternatingBrowser',
-  'previewBoundary', 'finalTraceOutcomes'
+  'independentBuild', 'completeServerTurn', 'retryPreservesCommits', 'validFakeBuild', 'liveBridgeBuildAndTurn'
 ];
 
 export function validateManifest(manifest: CoverageManifest, discoveredIds: Set<string>): { mappings: number; tests: number } {

@@ -1,21 +1,16 @@
 {
   "cards": [
-    { "id": "copper", "name": "Copper", "type": "treasure", "cost": 0, "text": "Provide 1 money.", "mechanic": "money", "money": 1, "tags": ["economy"], "synergy": [] },
-    { "id": "silver", "name": "Silver", "type": "treasure", "cost": 3, "text": "Provide 2 money.", "mechanic": "money", "money": 2, "tags": ["economy"], "synergy": ["gold"] },
-    { "id": "gold", "name": "Gold", "type": "treasure", "cost": 6, "text": "Provide 3 money.", "mechanic": "money", "money": 3, "tags": ["economy"], "synergy": [] },
-    { "id": "shove", "name": "Shove", "type": "action", "cost": 2, "text": "Push one adjacent enemy one hex. The actor does not follow.", "mechanic": "shove", "tags": ["basic", "force", "scoring"], "synergy": ["press", "corner"] },
-    { "id": "dash", "name": "Dash", "type": "action", "cost": 2, "text": "Move one friendly piece to an adjacent empty hex.", "mechanic": "dash", "tags": ["basic", "movement"], "synergy": ["shove", "pull"] },
-    { "id": "brace", "name": "Brace", "type": "action", "cost": 2, "text": "Give one friendly piece Brace until it cancels a displacement or the round ends.", "mechanic": "brace", "tags": ["basic", "protection"], "synergy": [] },
-    { "id": "cull", "name": "Cull", "type": "action", "cost": 3, "text": "Trash exactly two cards. Cull can be one of them.", "mechanic": "cull", "tags": ["basic", "deck-control"], "synergy": [] },
-    { "id": "drive", "name": "Drive", "type": "action", "cost": 3, "text": "Push one adjacent enemy one hex, then follow into its old hex.", "mechanic": "drive", "tags": ["force"], "synergy": ["press"] },
-    { "id": "breaker", "name": "Breaker", "type": "action", "cost": 3, "text": "Remove Brace from one adjacent enemy, then push it one hex.", "mechanic": "breaker", "tags": ["force", "counter-protection"], "synergy": ["press"] },
-    { "id": "press", "name": "Press", "type": "action", "cost": 5, "text": "Push one adjacent enemy one hex. If you displaced it earlier this round, push it one additional hex. The actor does not follow.", "mechanic": "press", "tags": ["force", "scoring"], "synergy": ["shove", "drive", "breaker"] },
-    { "id": "pull", "name": "Pull", "type": "action", "cost": 2, "text": "Pull an enemy exactly two hexes away one hex toward the actor.", "mechanic": "pull", "tags": ["geometry"], "synergy": ["shove", "sweep"] },
-    { "id": "vault", "name": "Vault", "type": "action", "cost": 3, "text": "Jump one friendly piece over one adjacent piece into the empty hex beyond it.", "mechanic": "vault", "tags": ["geometry", "movement"], "synergy": ["shove", "sweep"] },
-    { "id": "sweep", "name": "Sweep", "type": "action", "cost": 4, "text": "Move one adjacent enemy 120 degrees clockwise or counterclockwise around the actor. The actor does not follow.", "mechanic": "sweep", "tags": ["geometry", "scoring"], "synergy": ["pull"] },
-    { "id": "relay", "name": "Relay", "type": "action", "cost": 4, "text": "Swap the positions of your two pieces at any distance. Use Relay once per round.", "mechanic": "relay", "tags": ["geometry", "movement"], "synergy": ["shove", "sweep"] },
-    { "id": "block", "name": "Block", "type": "action", "cost": 2, "text": "Place a Block next to one friendly piece until round cleanup.", "mechanic": "block", "tags": ["confinement"], "synergy": ["corner"] },
-    { "id": "pin", "name": "Pin", "type": "action", "cost": 2, "text": "Cancel one enemy's next baseline move attempt. Pin also enables Corner.", "mechanic": "pin", "tags": ["confinement"], "synergy": ["corner"] },
-    { "id": "corner", "name": "Corner", "type": "action", "cost": 4, "text": "Push one adjacent enemy one hex. If it was Pinned, or ends next to your Block, push it one additional hex. The actor does not follow.", "mechanic": "corner", "tags": ["confinement", "scoring"], "synergy": ["pin", "block"] }
+    { "id": "copper", "name": "Copper", "type": "treasure", "cost": 0, "text": "Provide 1 money.", "mechanic": "money", "money": 1 },
+    { "id": "silver", "name": "Silver", "type": "treasure", "cost": 3, "text": "Provide 2 money.", "mechanic": "money", "money": 2 },
+    { "id": "gold", "name": "Gold", "type": "treasure", "cost": 6, "text": "Provide 3 money.", "mechanic": "money", "money": 3 },
+    { "id": "footwork", "name": "Footwork", "type": "action", "cost": 2, "text": "Advance or Withdraw one space, then draw one card.", "mechanic": "footwork" },
+    { "id": "cull", "name": "Cull", "type": "action", "cost": 3, "text": "Trash Cull and one card from hand, or two cards from hand.", "mechanic": "cull" },
+    { "id": "muster", "name": "Muster", "type": "action", "cost": 5, "text": "Draw two cards.", "mechanic": "muster" },
+    { "id": "feint", "name": "Feint", "type": "action", "cost": 3, "text": "At Close range, give the opponent Exposed.", "mechanic": "feint" },
+    { "id": "drive", "name": "Drive", "type": "action", "cost": 4, "text": "At Close range, deal 2 damage, then push and follow. A wall collision deals 2 additional damage.", "mechanic": "drive" },
+    { "id": "flurry", "name": "Flurry", "type": "action", "cost": 5, "text": "Deal 1 damage for each other Action played this turn, to a maximum of 5.", "mechanic": "flurry" },
+    { "id": "vault", "name": "Vault", "type": "action", "cost": 3, "text": "At Close range, jump over the opponent into the empty space beyond, then draw one card.", "mechanic": "vault" },
+    { "id": "aim", "name": "Aim", "type": "action", "cost": 3, "text": "At Mid or Far range, become Aimed, then draw one card.", "mechanic": "aim" },
+    { "id": "volley", "name": "Volley", "type": "action", "cost": 5, "text": "Deal 2 damage at Mid range or 5 damage at Far range. Aimed changes this to 5 or 7.", "mechanic": "volley" }
   ]
 }

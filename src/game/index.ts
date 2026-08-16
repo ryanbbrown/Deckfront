@@ -1,10 +1,9 @@
-export { CARDS, FIRST_MARKET, STARTING_DECK, cardDefinition } from './config';
+export { ACTION_CARD_IDS, CARDS, FIRST_MARKET, MARKET_CARD_IDS, cardDefinition } from './config';
 export {
-  applyAction, applyCommand, applyPreviewAction, createActionPreview, legalRespawnLocations,
-  listLegalActions, replayCommands, undoPreviewAction
+  applyAction, applyCommand, applyPreviewAction, createActionPreview, listActionAvailability,
+  listLegalActions, marketCost, rangeBand, replayCommands, submitStartingBuild, undoPreviewAction
 } from './engine';
-export { checkInvariants, assertInvariants } from './invariants';
+export { assertInvariants, checkInvariants } from './invariants';
 export { SeededRandom, shuffle } from './random';
-export { findMaximumPoints } from './search';
-export { createGame, cloneGame, opponent, PLAYER_IDS, RESPAWN_ANCHORS } from './state';
+export { cloneGame, createCard, createGame, opponent, PLAYER_IDS } from './state';
 export type * from './types';

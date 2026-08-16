@@ -1,24 +1,14 @@
 {
-  "id": "first-market",
-  "basicPiles": [
-    { "cardId": "copper", "count": 60 },
-    { "cardId": "silver", "count": 40 },
-    { "cardId": "gold", "count": 30 },
-    { "cardId": "shove", "count": 10 },
-    { "cardId": "dash", "count": 10 },
-    { "cardId": "brace", "count": 10 },
-    { "cardId": "cull", "count": 10 }
-  ],
-  "kingdomPiles": [
-    { "cardId": "drive", "count": 6 },
-    { "cardId": "breaker", "count": 6 },
-    { "cardId": "press", "count": 6 },
-    { "cardId": "pull", "count": 6 },
-    { "cardId": "vault", "count": 6 },
-    { "cardId": "sweep", "count": 6 },
-    { "cardId": "relay", "count": 6 },
-    { "cardId": "block", "count": 6 },
-    { "cardId": "pin", "count": 6 },
-    { "cardId": "corner", "count": 6 }
+  "id": "distance-duel",
+  "actionPiles": [
+    { "cardId": "footwork", "count": 10 },
+    { "cardId": "cull", "count": 10 },
+    { "cardId": "muster", "count": 10 },
+    { "cardId": "feint", "count": 10 },
+    { "cardId": "drive", "count": 10 },
+    { "cardId": "flurry", "count": 10 },
+    { "cardId": "vault", "count": 10 },
+    { "cardId": "aim", "count": 10 },
+    { "cardId": "volley", "count": 10 }
   ]
 }

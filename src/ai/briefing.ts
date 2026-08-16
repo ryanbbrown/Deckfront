@@ -1,35 +1,23 @@
-import { CARDS, listLegalActions } from '../game';
+import { CARDS, listLegalActions, rangeBand } from '../game';
 import type { GameState, PlayerId } from '../game';
 
-function unorderedDefinitions(cards: Array<{ definitionId: string }>): string[] {
-  return cards.map((card) => card.definitionId).sort();
-}
+function unordered(cards: Array<{ definitionId: string }>): string[] { return cards.map((card) => card.definitionId).sort(); }
 export function buildAiBriefing(state: GameState, aiPlayerId: PlayerId) {
-  const ai = state.players[aiPlayerId];
-  const humanPlayerId = aiPlayerId === 'ochre' ? 'indigo' : 'ochre';
-  const human = state.players[humanPlayerId];
+  const ai = state.players[aiPlayerId]; const humanId = aiPlayerId === 'ochre' ? 'indigo' : 'ochre'; const human = state.players[humanId];
   return {
-    activePlayerId: state.activePlayerId,
-    aiPlayerId,
-    humanPlayerId,
-    phase: state.phase,
-    scores: state.scores,
-    winner: state.winner,
-    round: state.round,
-    remainingBaselineMoves: Object.fromEntries(Object.values(state.pieces).map((piece) => [piece.id, piece.baselineMoves])),
+    activePlayerId: state.activePlayerId, aiPlayerId, humanPlayerId: humanId, phase: state.phase, turn: state.turn,
+    winner: state.winner, fighters: state.fighters, range: rangeBand(state),
     legalActions: listLegalActions(state).map((action) => ({ id: action.id, summary: action.label })),
-    pieces: state.pieces,
-    blocks: state.blocks,
-    market: state.phase === 'purchase' ? Object.entries(state.supply).map(([id, count]) => ({ id, count, ...CARDS[id] })) : [],
+    market: Object.values(CARDS).map(({ id, name, cost, text, type }) => ({ id, name, cost, text, type, count: type === 'action' ? state.supply[id] : null })),
     ai: {
-      hand: ai.deck.hand.map((card) => ({ ...card, definition: CARDS[card.definitionId] })),
-      zones: {
-        drawCount: ai.deck.draw.length, drawContentsUnordered: unorderedDefinitions(ai.deck.draw),
-        discardCount: ai.deck.discard.length, discardContentsUnordered: unorderedDefinitions(ai.deck.discard),
-        play: ai.deck.play.map((card) => ({ ...card, definition: CARDS[card.definitionId] }))
-      }, money: ai.money, buys: ai.buys
+      hand: ai.deck.hand.map((card) => ({ ...card, definition: CARDS[card.definitionId] })), money: ai.money,
+      zones: { drawCount: ai.deck.draw.length, drawContentsUnordered: unordered(ai.deck.draw), discardCount: ai.deck.discard.length, discardContentsUnordered: unordered(ai.deck.discard), play: unordered(ai.deck.play) }
     },
+    completedBuilds: state.players.ochre.startingBuild && state.players.indigo.startingBuild ? { ochre: state.players.ochre.startingBuild, indigo: state.players.indigo.startingBuild } : null,
     humanPublicCounts: { draw: human.deck.draw.length, hand: human.deck.hand.length, discard: human.deck.discard.length, play: human.deck.play.length },
     publicEvents: state.events
   };
+}
+export function buildAiStartingBuildBriefing() {
+  return { budget: 12, baseDeck: Array<string>(7).fill('copper'), market: Object.values(CARDS).map(({ id, name, cost, text, type }) => ({ id, name, cost, text, type })) };
 }

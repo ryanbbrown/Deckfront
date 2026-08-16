@@ -1,84 +1,74 @@
 export type PlayerId = 'ochre' | 'indigo';
-export type PieceId = 'ochre-a' | 'ochre-b' | 'indigo-a' | 'indigo-b';
 export type CardType = 'action' | 'treasure';
-export type CardMechanic =
-  | 'money' | 'shove' | 'dash' | 'brace' | 'cull' | 'drive' | 'breaker'
-  | 'press' | 'pull' | 'vault' | 'sweep' | 'relay' | 'block' | 'pin' | 'corner';
+export type CardMechanic = 'money' | 'footwork' | 'cull' | 'muster' | 'feint' | 'drive' | 'flurry' | 'vault' | 'aim' | 'volley';
+export type Phase = 'startingBuild' | 'action' | 'buy' | 'ended';
+export type RangeBand = 'Close' | 'Mid' | 'Far';
+export type MovementChoice = 'advance' | 'withdraw';
 
-export interface Coordinate { q: number; r: number }
 export interface CardDefinition {
-  id: string; name: string; type: CardType; cost: number; text: string;
-  mechanic: CardMechanic; money?: number | undefined; tags: string[]; synergy: string[];
+  id: string;
+  name: string;
+  type: CardType;
+  cost: number;
+  text: string;
+  mechanic: CardMechanic;
+  money?: number | undefined;
 }
 export interface CardInstance { id: string; definitionId: string }
 export interface DeckState { draw: CardInstance[]; hand: CardInstance[]; discard: CardInstance[]; play: CardInstance[] }
 export interface PlayerState {
-  id: PlayerId; deck: DeckState; money: number; buys: number; roundsCompleted: number;
+  id: PlayerId;
+  deck: DeckState;
+  money: number;
+  firstBuyMoney: number;
+  firstBuyPending: boolean;
+  startingBuild: string[] | null;
+  purchases: string[];
 }
-export interface PinStatus { sourcePlayerId: PlayerId }
-export interface PieceState {
-  id: PieceId; ownerId: PlayerId; position: Coordinate | null; needsRespawn: boolean;
-  baselineMoves: number; braced: boolean; pinned: PinStatus | null;
-}
-export interface TemporaryBlock {
-  id: string; ownerId: PlayerId; position: Coordinate; expiresAfterRound: number;
-}
-export type Phase = 'action' | 'purchase' | 'ended';
-export interface RoundState {
-  number: number;
-  startingPlayerId: PlayerId;
-  passedPlayerIds: PlayerId[];
-  purchaseOrder: PlayerId[];
-  purchaseIndex: number;
-  actionStep: number;
-  pressSetupPieceIds: PieceId[];
-  relayUsed: Record<PlayerId, boolean>;
-}
-export type GameEventType =
-  | 'baselineMove' | 'baselineMovePinned' | 'block' | 'brace' | 'braceCanceledDisplacement'
-  | 'cardPlayed' | 'cull' | 'dash' | 'displacement' | 'pass' | 'purchase' | 'skipPurchase'
-  | 'follow' | 'pin' | 'relay' | 'respawn' | 'ringOut' | 'roundStarted' | 'vault';
-export interface GameEvent {
-  sequence: number; type: GameEventType; playerId: PlayerId; detail: Record<string, unknown>;
-}
+export interface FighterState { playerId: PlayerId; position: number; health: number; aimed: boolean; exposed: boolean }
+export type GameEventType = 'buildComplete' | 'cardPlayed' | 'move' | 'draw' | 'condition' | 'damage' | 'push' | 'wallCollision' | 'trash' | 'phase' | 'purchase' | 'turn' | 'victory';
+export interface GameEvent { sequence: number; type: GameEventType; playerId: PlayerId; detail: Record<string, unknown> }
 export interface GameState {
-  schemaVersion: 2;
+  schemaVersion: 3;
   seed: number;
   rngState: number;
   version: number;
   nextCardSerial: number;
-  nextBlockSerial: number;
   activePlayerId: PlayerId;
+  selectedFirstPlayerId: PlayerId;
   phase: Phase;
-  round: RoundState;
-  scores: Record<PlayerId, number>;
+  turn: number;
   winner: PlayerId | null;
   players: Record<PlayerId, PlayerState>;
-  pieces: Record<PieceId, PieceState>;
-  blocks: TemporaryBlock[];
+  fighters: Record<PlayerId, FighterState>;
   supply: Record<string, number>;
   trash: CardInstance[];
+  actionsThisTurn: string[];
   events: GameEvent[];
 }
 export type GameCommand =
-  | { type: 'baselineMove'; pieceId: PieceId; destination: Coordinate }
-  | { type: 'playShove'; cardInstanceId: string; actorId: PieceId; targetId: PieceId }
-  | { type: 'playDash'; cardInstanceId: string; pieceId: PieceId; destination: Coordinate }
-  | { type: 'playBrace'; cardInstanceId: string; pieceId: PieceId }
+  | { type: 'submitStartingBuild'; playerId: PlayerId; definitionIds: string[] }
+  | { type: 'playFootwork'; cardInstanceId: string; movement: MovementChoice }
   | { type: 'playCull'; cardInstanceId: string; trashInstanceIds: [string, string] }
-  | { type: 'playDrive'; cardInstanceId: string; actorId: PieceId; targetId: PieceId }
-  | { type: 'playBreaker'; cardInstanceId: string; actorId: PieceId; targetId: PieceId }
-  | { type: 'playPress'; cardInstanceId: string; actorId: PieceId; targetId: PieceId }
-  | { type: 'playPull'; cardInstanceId: string; actorId: PieceId; targetId: PieceId }
-  | { type: 'playVault'; cardInstanceId: string; pieceId: PieceId; jumpedPieceId: PieceId }
-  | { type: 'playSweep'; cardInstanceId: string; actorId: PieceId; targetId: PieceId; destination: Coordinate }
-  | { type: 'playRelay'; cardInstanceId: string }
-  | { type: 'playBlock'; cardInstanceId: string; actorId: PieceId; destination: Coordinate; replaceBlockId?: string }
-  | { type: 'playPin'; cardInstanceId: string; actorId: PieceId; targetId: PieceId }
-  | { type: 'playCorner'; cardInstanceId: string; actorId: PieceId; targetId: PieceId }
-  | { type: 'pass' }
+  | { type: 'playMuster'; cardInstanceId: string }
+  | { type: 'playFeint'; cardInstanceId: string }
+  | { type: 'playDrive'; cardInstanceId: string }
+  | { type: 'playFlurry'; cardInstanceId: string }
+  | { type: 'playVault'; cardInstanceId: string }
+  | { type: 'playAim'; cardInstanceId: string }
+  | { type: 'playVolley'; cardInstanceId: string }
+  | { type: 'endActionPhase' }
   | { type: 'buyCard'; definitionId: string }
-  | { type: 'skipPurchase' };
+  | { type: 'endBuyPhase' };
 export interface LegalAction { id: string; label: string; command: GameCommand }
+export type DisabledReasonCode = 'NOT_YOUR_TURN' | 'WRONG_PHASE' | 'TREASURE_AUTOPLAYS' | 'NEEDS_CLOSE' | 'NEEDS_MID_OR_FAR' | 'NO_MOVEMENT' | 'NO_VAULT_LANDING' | 'CULL_NEEDS_TWO';
+export interface ActionAvailability {
+  cardInstanceId: string;
+  enabled: boolean;
+  reasonCode: DisabledReasonCode | null;
+  reason: string | null;
+  selection: 'none' | 'movement' | 'trashTwo';
+  eligibleCardInstanceIds: string[];
+  movements: MovementChoice[];
+}
 export interface ActionPreview { baseState: GameState; command: GameCommand | null; state: GameState }
-export interface SearchResult { points: number; actions: LegalAction[]; exploredStates: number }

@@ -1,682 +1,103 @@
-import { useEffect, useMemo, useState } from 'react';
-import { equal, key, onBoard } from '../game/hex';
-import type { Coordinate, LegalAction, PieceId } from '../game/types';
+import { useEffect, useState } from 'react';
+import type { LegalAction, PlayerId } from '../game';
 import type { SafeGameView, StrategyPreset } from '../shared/api';
-import {
-  actionsForCard, baselineActionsForPiece, commandActorId, commandDestination, commandTargetId,
-  uniqueActorIds, uniqueTargetIds
-} from './actionPresentation';
-import {
-  confirmAction, createGame, getAiTurnStatus, getStrategies, loadGame, startAiTurn, takeAction, undoAction
-} from './api';
+import { confirmAction, createGame, getAiTurnStatus, getStrategies, loadGame, startAiTurn, takeAction, undoAction, updateBuild } from './api';
 import { Board } from './Board';
-
 const ACTIVE_GAME_KEY = 'hexdeck.activeGameId';
-
 export function App() {
-  const [strategies, setStrategies] = useState<StrategyPreset[]>([]);
-  const [game, setGame] = useState<SafeGameView | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [strategies, setStrategies] = useState<StrategyPreset[]>([]); const [game, setGame] = useState<SafeGameView | null>(null);
+  const [loading, setLoading] = useState(true); const [error, setError] = useState<string | null>(null);
   useEffect(() => {
-    void getStrategies().then(setStrategies).catch((cause: unknown) => {
-      setError(cause instanceof Error ? cause.message : 'Could not load strategies.');
-    });
-    const savedId = localStorage.getItem(ACTIVE_GAME_KEY);
-    if (!savedId) {
-      setLoading(false);
-      return;
-    }
-    void loadGame(savedId).then(setGame).catch(() => {
-      localStorage.removeItem(ACTIVE_GAME_KEY);
-    }).finally(() => setLoading(false));
+    void getStrategies().then(setStrategies).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : 'Could not load strategies.'));
+    const id = localStorage.getItem(ACTIVE_GAME_KEY); if (!id) { setLoading(false); return; }
+    void loadGame(id).then(setGame).catch(() => localStorage.removeItem(ACTIVE_GAME_KEY)).finally(() => setLoading(false));
   }, []);
-
-  async function start(input: { strategyPresetId: string; strategyMarkdown: string; seed?: number | undefined }) {
-    setLoading(true);
-    setError(null);
-    try {
-      const created = await createGame(input);
-      localStorage.setItem(ACTIVE_GAME_KEY, created.id);
-      setGame(created);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not create the game.');
-    } finally {
-      setLoading(false);
-    }
+  async function start(input: { strategyPresetId: string; strategyMarkdown: string; seed?: number; firstPlayerId: PlayerId }) {
+    setLoading(true); setError(null);
+    try { const created = await createGame(input); localStorage.setItem(ACTIVE_GAME_KEY, created.id); setGame(created); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not create game.'); } finally { setLoading(false); }
   }
-
-  function leaveGame() {
-    localStorage.removeItem(ACTIVE_GAME_KEY);
-    setGame(null);
-    setError(null);
-  }
-
-  if (loading) return <main className="loading"><p>Loading Hexdeck…</p></main>;
+  if (loading) return <main className="loading">Loading Hexdeck…</main>;
   if (!game) return <Setup strategies={strategies} error={error} onStart={start} />;
-  return <Game game={game} error={error} onGame={setGame} onError={setError} onNew={leaveGame} />;
+  return <Match game={game} error={error} onGame={setGame} onError={setError} onNew={() => { localStorage.removeItem(ACTIVE_GAME_KEY); setGame(null); }} />;
 }
-
-function Setup({
-  strategies, error, onStart
-}: {
-  strategies: StrategyPreset[];
-  error: string | null;
-  onStart: (input: { strategyPresetId: string; strategyMarkdown: string; seed?: number | undefined }) => Promise<void>;
-}) {
-  const [selectedId, setSelectedId] = useState('direct-force');
-  const selected = strategies.find((strategy) => strategy.id === selectedId) ?? strategies[0];
-  const [markdown, setMarkdown] = useState('');
-  const [seed, setSeed] = useState('');
-
-  useEffect(() => {
-    if (selected && !markdown) setMarkdown(selected.markdown);
-  }, [selected, markdown]);
-
-  function selectStrategy(id: string) {
-    setSelectedId(id);
-    const strategy = strategies.find((candidate) => candidate.id === id);
-    if (strategy) setMarkdown(strategy.markdown);
-  }
-
-  return (
-    <main className="setup-shell">
-      <section className="setup-card">
-        <p className="eyebrow">Interactive prototype</p>
-        <h1>Hexdeck</h1>
-        <p className="lede">Build a deck. Control two pieces. Ring out the opponent five times.</p>
-        <label>
-          AI strategy
-          <select value={selected?.id ?? ''} onChange={(event) => selectStrategy(event.target.value)}>
-            {strategies.map((strategy) => <option key={strategy.id} value={strategy.id}>{strategy.name}</option>)}
-          </select>
-        </label>
-        <label>
-          Strategy instructions
-          <textarea value={markdown} onChange={(event) => setMarkdown(event.target.value)} rows={14} />
-        </label>
-        <label className="seed-field">
-          Seed <span>(optional)</span>
-          <input value={seed} onChange={(event) => setSeed(event.target.value)} inputMode="numeric" placeholder="Random" />
-        </label>
-        {error && <p className="error" role="alert">{error}</p>}
-        <button
-          className="primary"
-          disabled={!selected || !markdown.trim()}
-          onClick={() => onStart({
-            strategyPresetId: selected?.id ?? selectedId,
-            strategyMarkdown: markdown,
-            ...(seed.trim() ? { seed: Number.parseInt(seed, 10) } : {})
-          })}
-        >
-          Start match
-        </button>
-      </section>
-    </main>
-  );
+function Setup({ strategies, error, onStart }: { strategies: StrategyPreset[]; error: string | null; onStart: (input: { strategyPresetId: string; strategyMarkdown: string; seed?: number; firstPlayerId: PlayerId }) => Promise<void> }) {
+  const [id, setId] = useState('ranged-setup'); const selected = strategies.find((strategy) => strategy.id === id) ?? strategies[0];
+  const [markdown, setMarkdown] = useState(''); const [seed, setSeed] = useState(''); const [first, setFirst] = useState<PlayerId>('ochre');
+  useEffect(() => { if (selected && !markdown) setMarkdown(selected.markdown); }, [selected, markdown]);
+  return <main className="setup-shell"><section className="setup-card"><p className="eyebrow">Distance duel</p><h1>Hexdeck</h1><p className="lede">Build a deck, control distance, and reduce the opponent to 0 health.</p>
+    <label>AI strategy<select aria-label="AI strategy" value={selected?.id ?? ''} onChange={(event) => { const next = strategies.find((strategy) => strategy.id === event.target.value); setId(event.target.value); if (next) setMarkdown(next.markdown); }}>{strategies.map((strategy) => <option key={strategy.id} value={strategy.id}>{strategy.name}</option>)}</select></label>
+    <label>Strategy instructions<textarea aria-label="Strategy instructions" rows={12} value={markdown} onChange={(event) => setMarkdown(event.target.value)} /></label>
+    <fieldset><legend>First player</legend><label><input type="radio" checked={first === 'ochre'} onChange={() => setFirst('ochre')} /> Human</label><label><input type="radio" checked={first === 'indigo'} onChange={() => setFirst('indigo')} /> AI</label></fieldset>
+    <label>Seed (optional)<input aria-label="Seed" value={seed} onChange={(event) => setSeed(event.target.value)} /></label>{error && <p role="alert" className="error">{error}</p>}
+    <button className="primary" disabled={!selected || !markdown.trim()} onClick={() => void onStart({ strategyPresetId: selected?.id ?? id, strategyMarkdown: markdown, firstPlayerId: first, ...(seed ? { seed: Number(seed) } : {}) })}>Start game</button>
+  </section></main>;
 }
-
-function Game({
-  game, error, onGame, onError, onNew
-}: {
-  game: SafeGameView;
-  error: string | null;
-  onGame: (game: SafeGameView) => void;
-  onError: (error: string | null) => void;
-  onNew: () => void;
-}) {
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
-  const [selectedPieceId, setSelectedPieceId] = useState<PieceId | null>(null);
-  const [selectedTargetId, setSelectedTargetId] = useState<PieceId | null>(null);
-  const [selectedDestination, setSelectedDestination] = useState<Coordinate | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [aiStatus, setAiStatus] = useState<'idle' | 'running' | 'error'>('idle');
-  const [aiError, setAiError] = useState<string | null>(null);
-  const [aiAttempt, setAiAttempt] = useState(0);
-  const [aiElapsed, setAiElapsed] = useState(0);
-  const human = game.players[game.humanPlayerId];
-  const ai = game.players[game.aiPlayerId];
-  const awaitingConfirmation = game.previewCommand !== null;
-  const isHumanTurn = (game.activePlayerId === game.humanPlayerId || awaitingConfirmation) && !game.winner;
-  const isAiTurn = game.activePlayerId === game.aiPlayerId && !game.winner && !awaitingConfirmation;
-
+function Match({ game, error, onGame, onError, onNew }: { game: SafeGameView; error: string | null; onGame: (game: SafeGameView) => void; onError: (error: string | null) => void; onNew: () => void }) {
+  const [aiStatus, setAiStatus] = useState<'idle' | 'running' | 'error'>('idle'); const [aiError, setAiError] = useState<string | null>(null); const [attempt, setAttempt] = useState(0);
+  const aiActive = game.activePlayerId === game.aiPlayerId && !game.winner && !game.previewCommand;
   useEffect(() => {
-    if (!isAiTurn) {
-      setAiStatus('idle');
-      setAiError(null);
-      return;
-    }
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    setAiStatus('running');
-    setAiError(null);
-    setAiElapsed(0);
-    const elapsedTimer = setInterval(() => setAiElapsed((seconds) => seconds + 1), 1000);
-
-    async function poll(): Promise<void> {
+    if (!aiActive) { setAiStatus('idle'); return; }
+    let cancelled = false; let timer: ReturnType<typeof setTimeout>;
+    setAiStatus('running'); setAiError(null);
+    async function poll() {
       try {
-        let status = await getAiTurnStatus(game.id);
-        if (status.status === 'idle') {
-          status = await startAiTurn(game.id);
-        }
-        if (cancelled) return;
-        if (status.status === 'complete' && status.game) {
-          onGame(status.game);
-          return;
-        }
-        if (status.status === 'error') {
-          setAiStatus('error');
-          setAiError(status.error ?? 'AI action failed.');
-          return;
-        }
-        timer = setTimeout(() => void poll(), 800);
-      } catch (cause) {
-        if (cancelled) return;
-        setAiStatus('error');
-        setAiError(cause instanceof Error ? cause.message : 'AI action failed.');
-      }
+        let status = await getAiTurnStatus(game.id); if (status.status === 'idle') status = await startAiTurn(game.id); if (cancelled) return;
+        if (status.status === 'complete' && status.game) { onGame(status.game); return; }
+        if (status.status === 'error') { setAiStatus('error'); setAiError(status.error ?? 'AI failed.'); return; }
+        timer = setTimeout(() => void poll(), 250);
+      } catch (cause) { if (!cancelled) { setAiStatus('error'); setAiError(cause instanceof Error ? cause.message : 'AI failed.'); } }
     }
-
-    void poll();
-    return () => {
-      cancelled = true;
-      clearInterval(elapsedTimer);
-      if (timer) clearTimeout(timer);
-    };
-  }, [aiAttempt, game.id, game.revision, isAiTurn, onGame]);
-
-  const cardActions = useMemo(
-    () => selectedCardId ? actionsForCard(game.legalActions, selectedCardId) : [],
-    [game.legalActions, selectedCardId]
-  );
-  const actorActions = useMemo(
-    () => selectedPieceId
-      ? cardActions.filter((action) => commandActorId(action.command) === selectedPieceId)
-      : cardActions,
-    [cardActions, selectedPieceId]
-  );
-  const targetActions = useMemo(
-    () => selectedTargetId
-      ? actorActions.filter((action) => commandTargetId(action.command) === selectedTargetId)
-      : actorActions,
-    [actorActions, selectedTargetId]
-  );
-  const destinationActions = useMemo(
-    () => selectedDestination
-      ? targetActions.filter((action) => {
-        const destination = commandDestination(action.command);
-        return destination && equal(destination, selectedDestination);
-      })
-      : targetActions,
-    [selectedDestination, targetActions]
-  );
-
-  const actorIds = useMemo(() => {
-    if (!isHumanTurn) return new Set<PieceId>();
-    if (selectedCardId) return new Set(uniqueActorIds(cardActions));
-    if (game.phase === 'action') {
-      return new Set(game.legalActions.flatMap((action) =>
-        action.command.type === 'baselineMove' ? [action.command.pieceId] : []
-      ));
-    }
-    return new Set<PieceId>();
-  }, [cardActions, game.legalActions, game.phase, isHumanTurn, selectedCardId]);
-
-  const targetIds = useMemo(() => new Set(
-    selectedCardId && selectedPieceId ? uniqueTargetIds(actorActions) : []
-  ), [actorActions, selectedCardId, selectedPieceId]);
-
-  const destinations = useMemo(() => {
-    let actions: LegalAction[] = [];
-    if (!selectedCardId && selectedPieceId) actions = baselineActionsForPiece(game.legalActions, selectedPieceId);
-    else if (selectedCardId && selectedPieceId) {
-      const hasTargets = uniqueTargetIds(actorActions).length > 0;
-      if (!hasTargets) actions = actorActions;
-      else if (selectedTargetId) actions = targetActions;
-    }
-    return new Set(actions.flatMap((action) => {
-      const destination = commandDestination(action.command);
-      return destination ? [key(destination)] : [];
-    }));
-  }, [actorActions, game.legalActions, game.phase, selectedCardId, selectedPieceId, selectedTargetId, targetActions]);
-
-  const replacementBlockIds = useMemo(() => {
-    const selectedDefinition = selectedCardId
-      ? game.cards[human.hand?.find((card) => card.id === selectedCardId)?.definitionId ?? '']
-      : undefined;
-    if (selectedDefinition?.mechanic !== 'block' || !selectedPieceId || !selectedDestination) {
-      return new Set<string>();
-    }
-    return new Set(destinationActions.flatMap((action) =>
-      action.command.type === 'playBlock' && action.command.replaceBlockId
-        ? [action.command.replaceBlockId]
-        : []
-    ));
-  }, [destinationActions, game.cards, human.hand, selectedCardId, selectedDestination, selectedPieceId]);
-
-  const selectedCard = selectedCardId ? human.hand?.find((card) => card.id === selectedCardId) : null;
-  const selectedDefinition = selectedCard ? game.cards[selectedCard.definitionId] : null;
-
-  const instruction = useMemo(() => {
-    if (awaitingConfirmation) return 'Review the resolved action. Confirm it or undo it.';
-    if (!isHumanTurn) return 'Wait for the AI to finish its action.';
-    if (game.phase === 'purchase') return 'Buy one affordable card, or buy nothing.';
-    if (!selectedCardId && !selectedPieceId) return 'Choose a card, or choose one of your pieces for its baseline move.';
-    if (!selectedCardId) return `Choose a highlighted destination for piece ${selectedPieceId?.endsWith('a') ? 'A' : 'B'}.`;
-    const name = selectedDefinition?.name ?? 'card';
-    if (selectedDefinition?.mechanic === 'cull') return 'Choose one exact two-card combination in Legal choices.';
-    if (uniqueActorIds(cardActions).length === 0) return `Confirm ${name} in Legal choices.`;
-    if (!selectedPieceId) return `Choose a highlighted friendly piece to use ${name}.`;
-    if (selectedDefinition?.mechanic === 'vault' && actorActions.some((action) => {
-      const targetId = commandTargetId(action.command);
-      return targetId !== null && actorIds.has(targetId);
-    })) {
-      return 'Select another friendly piece to switch actors, or choose the friendly Vault target in Legal choices.';
-    }
-    if (uniqueTargetIds(actorActions).length > 0 && !selectedTargetId) return `Choose a highlighted target for piece ${selectedPieceId.endsWith('a') ? 'A' : 'B'}.`;
-    if (selectedTargetId && targetActions.some((action) => commandDestination(action.command))) return `Choose a highlighted destination for ${name}.`;
-    if (selectedTargetId || selectedDestination) return `Choose how to finish ${name}.`;
-    return `Choose a highlighted destination for ${name}.`;
-  }, [actorActions, actorIds, awaitingConfirmation, cardActions, game.phase, isHumanTurn, selectedCardId, selectedDefinition, selectedDestination, selectedPieceId, selectedTargetId, targetActions]);
-
-  async function act(action: LegalAction) {
-    if (busy) return;
-    setBusy(true);
-    onError(null);
-    try {
-      onGame(await takeAction(game, action.id));
-      clearSelection();
-    } catch (cause) {
-      onError(cause instanceof Error ? cause.message : 'Action failed.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function clearSelection() {
-    setSelectedCardId(null);
-    setSelectedPieceId(null);
-    setSelectedTargetId(null);
-    setSelectedDestination(null);
-  }
-
-  async function undo() {
-    setBusy(true);
-    onError(null);
-    try {
-      onGame(await undoAction(game));
-      clearSelection();
-    } catch (cause) {
-      onError(cause instanceof Error ? cause.message : 'Undo failed.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function confirm() {
-    setBusy(true);
-    onError(null);
-    try {
-      onGame(await confirmAction(game));
-      clearSelection();
-    } catch (cause) {
-      onError(cause instanceof Error ? cause.message : 'Confirmation failed.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  function onHexClick(destination: Coordinate) {
-    let source: LegalAction[] = [];
-    if (!selectedCardId && selectedPieceId) source = baselineActionsForPiece(game.legalActions, selectedPieceId);
-    else if (selectedCardId && selectedPieceId) source = selectedTargetId ? targetActions : actorActions;
-    const matching = source.filter((action) => {
-      const candidate = commandDestination(action.command);
-      return candidate && equal(candidate, destination);
-    });
-    if (matching.length === 1) void act(matching[0]!);
-    else if (matching.length > 1) setSelectedDestination(destination);
-  }
-
-  function onPieceClick(pieceId: PieceId) {
-    if (!isHumanTurn || busy) return;
-    if (selectedCardId) {
-      if (selectedPieceId === pieceId) {
-        setSelectedPieceId(null);
-        setSelectedTargetId(null);
-        setSelectedDestination(null);
-        return;
-      }
-      if (selectedPieceId && actorIds.has(pieceId)) {
-        setSelectedPieceId(pieceId);
-        setSelectedTargetId(null);
-        setSelectedDestination(null);
-        return;
-      }
-      if (selectedPieceId && targetIds.has(pieceId)) {
-        const matching = actorActions.filter((action) => commandTargetId(action.command) === pieceId);
-        const hasDestination = matching.some((action) => commandDestination(action.command));
-        if (matching.length === 1 && !hasDestination) void act(matching[0]!);
-        else {
-          setSelectedTargetId(pieceId);
-          setSelectedDestination(null);
-        }
-        return;
-      }
-      if (actorIds.has(pieceId)) {
-        const matching = cardActions.filter((action) => commandActorId(action.command) === pieceId);
-        const needsMore = matching.some((action) => commandTargetId(action.command) || commandDestination(action.command));
-        if (matching.length === 1 && !needsMore) void act(matching[0]!);
-        else {
-          setSelectedPieceId(pieceId);
-          setSelectedTargetId(null);
-          setSelectedDestination(null);
-        }
-      }
-      return;
-    }
-    if (actorIds.has(pieceId)) {
-      setSelectedPieceId(selectedPieceId === pieceId ? null : pieceId);
-      setSelectedTargetId(null);
-      setSelectedDestination(null);
-    }
-  }
-
-  function onBlockClick(blockId: string) {
-    const action = destinationActions.find((candidate) =>
-      candidate.command.type === 'playBlock' && candidate.command.replaceBlockId === blockId
-    );
-    if (action) void act(action);
-  }
-
-  const pass = game.legalActions.find((action) => action.command.type === 'pass');
-  const skipPurchase = game.legalActions.find((action) => action.command.type === 'skipPurchase');
-
-  async function retryAiTurn(): Promise<void> {
-    setAiStatus('running');
-    setAiError(null);
-    try {
-      await startAiTurn(game.id);
-      setAiAttempt((attempt) => attempt + 1);
-    } catch (cause) {
-      setAiStatus('error');
-      setAiError(cause instanceof Error ? cause.message : 'AI action failed.');
-    }
-  }
-
-  return (
-    <main className="game-shell">
-      <header className="game-header">
-        <div>
-          <p className="eyebrow">First to five ring-outs</p>
-          <h1>Hexdeck</h1>
-        </div>
-        <div className="score" aria-label="Score">
-          <span className="score__side score__side--ochre">You <strong>{game.scores[game.humanPlayerId]}</strong></span>
-          <span className="score__dash">—</span>
-          <span className="score__side score__side--indigo"><strong>{game.scores[game.aiPlayerId]}</strong> AI</span>
-        </div>
-        <div className="header-actions">
-          <a href={`/api/games/${game.id}/export?redacted=1`}>Share export</a>
-          <button className="quiet" onClick={onNew}>New match</button>
-        </div>
-      </header>
-
-      <section className="turn-banner">
-        {game.winner ? `${game.winner === game.humanPlayerId ? 'You win' : 'AI wins'} · ${game.elapsedSeconds}s`
-          : awaitingConfirmation ? `Round ${game.round.number} · action preview`
-          : isHumanTurn ? `Round ${game.round.number} · your ${game.phase} · started by ${game.round.startingPlayerId}`
-            : aiStatus === 'error' ? 'AI action stopped'
-              : `Round ${game.round.number} · AI ${game.phase} · ${game.aiRuntime.model} · ${aiElapsed}s`}
-      </section>
-      <section className="round-status" aria-label="Round status">
-        <span>Action step {game.round.actionStep}</span>
-        <span>Active: {game.activePlayerId === game.humanPlayerId ? 'you' : 'AI'}</span>
-        <span>Started: {game.round.startingPlayerId === game.humanPlayerId ? 'you' : 'AI'}</span>
-        <span>Passed: {game.round.passedPlayerIds.length ? game.round.passedPlayerIds.map((id) => id === game.humanPlayerId ? 'you' : 'AI').join(', ') : 'none'}</span>
-      </section>
-      {error && <p className="error game-error" role="alert">{error}</p>}
-      {aiError && (
-        <div className="error game-error ai-error" role="alert">
-          <span>{aiError}</span>
-          <button onClick={() => void retryAiTurn()}>Retry AI action</button>
-        </div>
-      )}
-
-      <div className="game-layout">
-        <section className="board-panel panel">
-          <div className="board-instruction" role="status">
-            <strong>{selectedDefinition ? `${selectedDefinition.name}: ` : ''}</strong>{instruction}
-            {selectedPieceId && <span> Selected actor: piece {selectedPieceId.endsWith('a') ? 'A' : 'B'}.</span>}
-          </div>
-          <Board
-            game={game}
-            actorIds={actorIds}
-            targetIds={targetIds}
-            destinations={destinations}
-            replacementBlockIds={replacementBlockIds}
-            selectedPieceId={selectedPieceId}
-            onPieceClick={onPieceClick}
-            onHexClick={onHexClick}
-            onBlockClick={onBlockClick}
-          />
-          <div className="board-legend">
-            <span><i className="dot dot--ochre" /> You</span>
-            <span><i className="dot dot--indigo" /> AI</span>
-            <span>◆ Braced</span>
-            <span>× Pinned</span>
-            <span>● Move ready</span>
-          </div>
-        </section>
-
-        <aside className="side-stack">
-          <section className="panel phase-panel">
-            <div className="panel-title"><h2>Action controls</h2><span>Revision {game.revision}</span></div>
-            <div className="control-row">
-              <button disabled={!game.canUndo || busy} onClick={() => void undo()}>Undo action</button>
-              <button className="primary" disabled={!game.canConfirm || busy} onClick={() => void confirm()}>Confirm action</button>
-              {pass && <button disabled={busy} onClick={() => void act(pass)}>Pass for this round</button>}
-              {skipPurchase && <button disabled={busy} onClick={() => void act(skipPurchase)}>Buy nothing</button>}
-            </div>
-            {game.previewCommand && <p className="action-preview" role="status">Preview: {previewLabel(game)}</p>}
-            {game.lastAiSummary && <p className="ai-summary"><strong>AI:</strong> {game.lastAiSummary}</p>}
-            {(() => {
-              let choices: LegalAction[] = [];
-              if (selectedDefinition?.mechanic === 'cull') {
-                choices = cardActions;
-              } else if (selectedCardId && uniqueActorIds(cardActions).length === 0) {
-                choices = cardActions;
-              } else if (selectedDefinition?.mechanic === 'vault' && selectedPieceId) {
-                choices = actorActions.filter((action) => {
-                  const targetId = commandTargetId(action.command);
-                  return targetId !== null && actorIds.has(targetId);
-                });
-              } else if (selectedTargetId && targetActions.length > 1 && !targetActions.some((action) => commandDestination(action.command))) {
-                choices = targetActions;
-              } else if (selectedTargetId) {
-                choices = targetActions.filter((action) => {
-                  const destination = commandDestination(action.command);
-                  return destination !== null && !onBoard(destination);
-                });
-              }
-              return choices.length > 0 && (
-              <div className="choice-list">
-                <p>Legal choices</p>
-                {choices.map((action) => (
-                  <button key={action.id} disabled={busy} onClick={() => void act(action)}>{choiceLabel(action)}</button>
-                ))}
-              </div>
-              );
-            })()}
-          </section>
-
-          <section className="panel zones">
-            <div><span>Draw</span><strong>{human.zoneCounts.draw}</strong></div>
-            <div><span>Discard</span><strong>{human.zoneCounts.discard}</strong></div>
-            <div><span>Played</span><strong>{human.zoneCounts.play}</strong></div>
-            <div><span>Money</span><strong>{human.money}</strong></div>
-            <p>AI zones: {ai.zoneCounts.draw} draw · {ai.zoneCounts.hand} hand · {ai.zoneCounts.discard} discard</p>
-          </section>
-        </aside>
-      </div>
-
-      <section className="panel hand-panel">
-        <div className="panel-title"><h2>Your hand</h2><span>{human.zoneCounts.hand} cards</span></div>
-        <div className="card-row">
-          {human.hand?.map((card) => {
-            const definition = game.cards[card.definitionId];
-            if (!definition) return null;
-            const available = actionsForCard(game.legalActions, card.id).length > 0;
-            const unavailableReason = cardUnavailableReason(game, definition);
-            return (
-              <button
-                key={card.id}
-                className={`card card--${definition.type}${selectedCardId === card.id ? ' card--selected' : ''}`}
-                data-card-instance-id={card.id}
-                data-card-name={definition.name}
-                disabled={busy || !available}
-                aria-label={`${definition.name}${available ? ', playable' : ', unavailable'}`}
-                title={!available ? unavailableReason : undefined}
-                onClick={() => {
-                  setSelectedCardId(selectedCardId === card.id ? null : card.id);
-                  setSelectedPieceId(null);
-                  setSelectedTargetId(null);
-                  setSelectedDestination(null);
-                }}
-              >
-                <span className="card__cost">{definition.cost}</span>
-                <strong>{definition.name}</strong>
-                <small>{definition.text}</small>
-                {!available && definition.type === 'action' && <em>{unavailableReason}</em>}
-              </button>
-            );
-          })}
-          {human.zoneCounts.hand === 0 && <p className="empty">No cards remain in hand.</p>}
-        </div>
-      </section>
-
-      <div className="lower-layout">
-        <Market game={game} busy={busy} onAction={act} />
-        <History game={game} />
-      </div>
-    </main>
-  );
+    void poll(); return () => { cancelled = true; clearTimeout(timer); };
+  }, [aiActive, attempt, game.id, game.revision, onGame]);
+  if (game.phase === 'startingBuild' && game.activePlayerId === game.humanPlayerId) return <StartingBuild game={game} error={error} onGame={onGame} onError={onError} onNew={onNew} />;
+  if (game.phase === 'startingBuild') return <main className="setup-shell"><section className="setup-card"><h1>AI is building…</h1><p>Your build is locked. The AI cannot see it.</p>{aiError && <p role="alert" className="error">{aiError}</p>}<button disabled={aiStatus !== 'error'} onClick={() => setAttempt((value) => value + 1)}>Retry AI</button></section></main>;
+  return <Game game={game} error={error} aiStatus={aiStatus} aiError={aiError} onGame={onGame} onError={onError} onNew={onNew} onRetry={() => setAttempt((value) => value + 1)} />;
 }
-
-function cardUnavailableReason(game: SafeGameView, definition: SafeGameView['cards'][string]): string {
-  if (definition.mechanic === 'relay' && game.round.relayUsed[game.humanPlayerId]) {
-    return 'Relay was already used this round.';
+function StartingBuild({ game, error, onGame, onError, onNew }: { game: SafeGameView; error: string | null; onGame: (game: SafeGameView) => void; onError: (value: string | null) => void; onNew: () => void }) {
+  const proposal = game.humanBuildProposal; const cost = proposal.reduce((sum, id) => sum + (game.cards[id]?.cost ?? 0), 0); const quantities = new Map<string, number>(); for (const id of proposal) quantities.set(id, (quantities.get(id) ?? 0) + 1);
+  async function save(next: string[], complete = false) { onError(null); try { onGame(await updateBuild(game, next, complete)); } catch (cause) { onError(cause instanceof Error ? cause.message : 'Build failed.'); } }
+  return <main className="build-shell"><header><div><p className="eyebrow">Starting build</p><h1>Spend up to 12</h1></div><div className="budget" data-testid="build-budget">{cost} spent · {12 - cost} carries</div><button onClick={onNew}>New game</button></header>{error && <p role="alert" className="error">{error}</p>}
+    <div className="market-grid">{Object.values(game.cards).map((card) => <article className="market-card" key={card.id} data-card-name={card.name}><span className="market-card__cost">{card.cost}</span><strong>{card.name}</strong><small>{card.text}</small><div className="quantity"><button aria-label={`Remove ${card.name}`} disabled={!quantities.get(card.id)} onClick={() => { const index = proposal.lastIndexOf(card.id); void save(proposal.filter((_, position) => position !== index)); }}>−</button><span aria-label={`${card.name} quantity`}>{quantities.get(card.id) ?? 0}</span><button aria-label={`Add ${card.name}`} onClick={() => void save([...proposal, card.id])}>+</button></div></article>)}</div>
+    <footer className="build-footer"><p>Base deck: 7 Copper. Chosen cards: {proposal.map((id) => game.cards[id]?.name).join(', ') || 'none'}.</p><button className="primary" disabled={cost > 12} onClick={() => void save(proposal, true)}>Finish starting build</button></footer>
+  </main>;
+}
+function Game({ game, error, aiStatus, aiError, onGame, onError, onNew, onRetry }: { game: SafeGameView; error: string | null; aiStatus: string; aiError: string | null; onGame: (game: SafeGameView) => void; onError: (value: string | null) => void; onNew: () => void; onRetry: () => void }) {
+  const [busy, setBusy] = useState(false); const [cullCard, setCullCard] = useState<string | null>(null); const [movementCard, setMovementCard] = useState<string | null>(null); const [trash, setTrash] = useState<string[]>([]);
+  const human = game.players[game.humanPlayerId]; const availability = new Map(game.actionAvailability.map((item) => [item.cardInstanceId, item]));
+  const humanTurn = game.activePlayerId === game.humanPlayerId && !game.winner; const preview = Boolean(game.previewCommand);
+  async function act(action: LegalAction) { setBusy(true); onError(null); try { onGame(await takeAction(game, action.id)); setCullCard(null); setMovementCard(null); setTrash([]); } catch (cause) { onError(cause instanceof Error ? cause.message : 'Action failed.'); } finally { setBusy(false); } }
+  async function revisionAction(kind: 'confirm' | 'undo') { setBusy(true); try { onGame(await (kind === 'confirm' ? confirmAction(game) : undoAction(game))); } catch (cause) { onError(cause instanceof Error ? cause.message : `${kind} failed.`); } finally { setBusy(false); } }
+  const cardActions = (id: string) => game.legalActions.filter((action) => 'cardInstanceId' in action.command && action.command.cardInstanceId === id);
+  function chooseCard(id: string) {
+    const info = availability.get(id); if (!info?.enabled) return;
+    if (info.selection === 'trashTwo') { setCullCard(id); setMovementCard(null); setTrash([]); return; }
+    if (info.selection === 'movement') { setMovementCard(id); setCullCard(null); return; }
+    const actions = cardActions(id); if (actions.length === 1) void act(actions[0]!);
   }
-  return 'No complete legal action is available for this card.';
+  function toggleTrash(id: string) { setTrash((current) => current.includes(id) ? current.filter((value) => value !== id) : current.length < 2 ? [...current, id] : current); }
+  const cullAction = cullCard && trash.length === 2 ? cardActions(cullCard).find((action) => action.command.type === 'playCull' && samePair(action.command.trashInstanceIds, trash)) : undefined;
+  const endAction = game.legalActions.find((action) => action.command.type === 'endActionPhase'); const endBuy = game.legalActions.find((action) => action.command.type === 'endBuyPhase');
+  return <main className="game-shell"><header className="game-header"><div><p className="eyebrow">First to reduce health to 0</p><h1>Hexdeck</h1></div><div className="health-score"><strong>You {game.fighters.ochre.health}</strong><span>—</span><strong>{game.fighters.indigo.health} AI</strong></div><button onClick={onNew}>New game</button></header>
+    <div className="turn-banner" role="status">{game.winner ? (game.winner === game.humanPlayerId ? 'You win' : 'AI wins') : preview ? `Turn ${game.turn} · action preview` : humanTurn ? `Turn ${game.turn} · your ${game.phase}` : `Turn ${game.turn} · AI ${game.phase} · ${aiStatus}`}</div>
+    {error && <p role="alert" className="error">{error}</p>}{aiError && <p role="alert" className="error">{aiError} <button onClick={onRetry}>Retry AI</button></p>}{game.lastAiSummary && <p className="panel"><strong>AI:</strong> {game.lastAiSummary}</p>}
+    <section className="panel arena-panel"><div className="range-label" data-testid="range">{game.range} range</div><Board game={game} /></section>
+    <section className="panel controls"><button disabled={!game.canUndo || busy} onClick={() => void revisionAction('undo')}>Undo</button><button className="primary" disabled={!game.canConfirm || busy} onClick={() => void revisionAction('confirm')}>Confirm</button>{endAction && <button onClick={() => void act(endAction)}>End Action phase</button>}{endBuy && <button onClick={() => void act(endBuy)}>End Buy phase</button>}{game.previewHidesDraws && <span data-testid="hidden-preview-draw">Drawn cards reveal after confirmation.</span>}</section>
+    <section className="panel zones"><div>Draw <strong>{human.zoneCounts.draw}</strong></div><div>Discard <strong>{human.zoneCounts.discard}</strong></div><div>Played <strong>{human.zoneCounts.play}</strong></div><div data-testid="zone-trash">Trash <strong>{game.trashCount}</strong></div><div data-testid="zone-money">Money <strong>{human.money}</strong></div></section>
+    <section className="panel hand-panel"><h2>Your hand</h2><div className="card-row">{human.hand?.map((card) => {
+      if (!card.definitionId) return <div className="card card--hidden" key={card.id} data-testid="hidden-card">Drawn card hidden</div>;
+      const definition = game.cards[card.definitionId]!; const info = availability.get(card.id); const selected = trash.includes(card.id);
+      return <button key={card.id} className={`card card--${definition.type}${selected ? ' card--target' : ''}${movementCard === card.id ? ' card--selected' : ''}`}  data-card-name={definition.name} data-card-instance-id={card.id} disabled={busy || preview || (!info?.enabled && !cullCard) || (Boolean(cullCard) && !availability.get(cullCard!)?.eligibleCardInstanceIds.includes(card.id))} title={info?.reason ?? undefined} onClick={() => cullCard ? toggleTrash(card.id) : chooseCard(card.id)}><span className="card__cost">{definition.cost}</span><strong>{definition.name}</strong><small>{definition.text}</small>{!info?.enabled && definition.type === 'action' && <em>{info?.reason}</em>}</button>;
+    })}</div>{cullCard && <div className="cull-controls"><p>Select exactly two cards. {trash.length}/2 selected.</p><button disabled={!cullAction} onClick={() => cullAction && void act(cullAction)}>Preview Cull</button><button onClick={() => { setCullCard(null); setTrash([]); }}>Cancel</button></div>}
+    {movementCard && <div className="movement-choices">{cardActions(movementCard).map((action) => <button key={action.id} disabled={preview} onClick={() => void act(action)}>{action.label}</button>)}<button onClick={() => setMovementCard(null)}>Cancel</button></div>}</section>
+    <Market game={game} busy={busy || preview} onAction={act} /><Builds game={game} /><History game={game} />
+  </main>;
 }
-
-function previewLabel(game: SafeGameView): string {
-  const command = game.previewCommand;
-  if (!command) return '';
-  if (command.type === 'pass') return 'Pass for this round.';
-  if (command.type === 'skipPurchase') return 'Buy nothing.';
-  if (command.type === 'buyCard') return `Buy ${game.cards[command.definitionId]?.name ?? command.definitionId}.`;
-  const definitionId = 'cardInstanceId' in command
-    ? [...game.events].reverse().find((event) => event.type === 'cardPlayed' && event.detail.cardInstanceId === command.cardInstanceId)?.detail.definitionId
-    : null;
-  if (typeof definitionId === 'string') return `Play ${game.cards[definitionId]?.name ?? definitionId}.`;
-  return command.type === 'baselineMove' ? `Move piece ${command.pieceId.endsWith('a') ? 'A' : 'B'}.` : command.type;
+function Market({ game, busy, onAction }: { game: SafeGameView; busy: boolean; onAction: (action: LegalAction) => Promise<void> }) {
+  const buys = new Map(game.legalActions.flatMap((action) => action.command.type === 'buyCard' ? [[action.command.definitionId, action] as const] : []));
+  return <section className="panel market-panel"><h2>Market</h2><div className="market-grid">{Object.values(game.cards).map((card) => { const action = buys.get(card.id); return <button key={card.id} data-market-card={card.name} className="market-card" disabled={busy || !action} onClick={() => action && void onAction(action)}><span className="market-card__cost">{card.cost}</span><strong>{card.name}</strong><small>{card.text}</small><span className="market-card__count">{card.type === 'action' ? `${game.supply[card.id]} left` : '∞'}</span></button>; })}</div></section>;
 }
-
-function choiceLabel(action: LegalAction): string {
-  if (action.command.type === 'playVault') {
-    const actor = action.command.pieceId.endsWith('-a') ? 'A' : 'B';
-    const target = action.command.jumpedPieceId.endsWith('-a') ? 'A' : 'B';
-    return `Vault over piece ${target} with piece ${actor}`;
-  }
-  return action.label;
-}
-
-function Market({ game, busy, onAction }: {
-  game: SafeGameView;
-  busy: boolean;
-  onAction: (action: LegalAction) => Promise<void>;
-}) {
-  const buyActions = new Map(game.legalActions.flatMap((action) =>
-    action.command.type === 'buyCard' ? [[action.command.definitionId, action] as const] : []
-  ));
-  return (
-    <section className="panel market-panel">
-      <div className="panel-title"><h2>Shared market</h2><span>One purchase per round</span></div>
-      <div className="market-grid">
-        {Object.entries(game.supply).map(([definitionId, count]) => {
-          const definition = game.cards[definitionId];
-          if (!definition) return null;
-          const action = buyActions.get(definitionId);
-          return (
-            <button
-              key={definitionId}
-              className={`market-card${action ? ' market-card--affordable' : ''}`}
-              disabled={!action || busy}
-              onClick={() => action && void onAction(action)}
-            >
-              <span className="market-card__cost">{definition.cost}</span>
-              <strong>{definition.name}</strong>
-              <small>{definition.text}</small>
-              <span className="market-card__count">{count} left</span>
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function History({ game }: { game: SafeGameView }) {
-  return (
-    <section className="panel history-panel">
-      <div className="panel-title"><h2>Action history</h2><span>{game.events.length} events</span></div>
-      <ol>
-        {game.events.slice(-24).reverse().map((event) => (
-          <li
-            key={event.sequence}
-            className={event.sequence >= game.draftEventStart ? 'history__draft' : ''}
-            data-event-sequence={event.sequence}
-            data-event-type={event.type}
-          >
-            <span>{event.playerId}{event.sequence >= game.draftEventStart ? ' · draft' : ''}</span>
-            <strong>{describeEvent(game, event)}</strong>
-          </li>
-        ))}
-      </ol>
-      {game.events.length === 0 && <p className="empty">The match has not started.</p>}
-    </section>
-  );
-}
-
-function describeEvent(game: SafeGameView, event: SafeGameView['events'][number]): string {
-  const text = (key: string): string | null => typeof event.detail[key] === 'string' ? event.detail[key] : null;
-  const coordinate = (key: string): string | null => {
-    const value = event.detail[key];
-    if (!value || typeof value !== 'object' || !('q' in value) || !('r' in value)) return null;
-    return `${String(value.q)},${String(value.r)}`;
-  };
-  const shortPiece = (id: string | null): string => id ? id.replace('ochre-', '').replace('indigo-', '').toUpperCase() : 'piece';
-  switch (event.type) {
-    case 'cardPlayed': {
-      const definitionId = text('definitionId');
-      return `Played ${definitionId ? game.cards[definitionId]?.name ?? definitionId : 'card'}`;
-    }
-    case 'baselineMove': return `Moved ${shortPiece(text('pieceId'))} to ${coordinate('to') ?? 'hex'}`;
-    case 'dash': return `Dashed ${shortPiece(text('pieceId'))} to ${coordinate('to') ?? 'hex'}`;
-    case 'displacement': return `Displaced ${shortPiece(text('pieceId'))} to ${coordinate('to') ?? 'hex'}`;
-    case 'ringOut': return `Rang out ${shortPiece(text('pieceId'))}`;
-    case 'purchase': {
-      const definitionId = text('definitionId');
-      return `Bought ${definitionId ? game.cards[definitionId]?.name ?? definitionId : 'card'}`;
-    }
-    case 'pass': return 'Passed for the round';
-    case 'skipPurchase': return 'Bought nothing';
-    case 'baselineMovePinned': return `Pin canceled ${shortPiece(text('pieceId'))}'s move`;
-    case 'respawn': return `Respawned ${shortPiece(text('pieceId'))}`;
-    case 'brace': return `Braced ${shortPiece(text('pieceId'))}`;
-    case 'pin': return `Pinned ${shortPiece(text('pieceId'))}`;
-    default: return event.type.replace(/([A-Z])/g, ' $1');
-  }
-}
+function Builds({ game }: { game: SafeGameView }) { if (!game.completedBuilds) return null; return <section className="panel builds"><h2>Starting builds</h2><p>You: {game.completedBuilds.ochre.map((id) => game.cards[id]?.name).join(', ') || 'No cards'}</p><p>AI: {game.completedBuilds.indigo.map((id) => game.cards[id]?.name).join(', ') || 'No cards'}</p></section>; }
+function History({ game }: { game: SafeGameView }) { return <section className="panel history-panel"><h2>History</h2><ol>{game.events.slice(-30).reverse().map((event) => <li key={event.sequence} data-event-type={event.type}><span>{event.playerId}</span><strong>{eventText(game, event.type, event.detail)}</strong></li>)}</ol></section>; }
+function eventText(game: SafeGameView, type: string, detail: Record<string, unknown>): string { if (type === 'cardPlayed') return `Played ${game.cards[String(detail.definitionId)]?.name ?? detail.definitionId}`; if (type === 'purchase') return `Bought ${game.cards[String(detail.definitionId)]?.name ?? detail.definitionId}`; if (type === 'damage') return `Dealt ${String(detail.amount)} damage`; if (type === 'move') return `Moved to space ${String(detail.to)}`; return type.replace(/([A-Z])/g, ' $1'); }
+function samePair(left: [string, string], right: string[]): boolean { return left.every((id) => right.includes(id)) && right.every((id) => left.includes(id)); }

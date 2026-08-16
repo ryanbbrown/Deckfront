@@ -2,9 +2,9 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { ZodError } from 'zod';
-import { GameService, ConflictError, ForbiddenActionError } from './gameService';
-import { GameNotFoundError, FileGameRepository } from './persistence';
-import { actionRequestSchema, createGameRequestSchema, revisionRequestSchema } from './schemas';
+import { GameService, BadBuildError, ConflictError, ForbiddenActionError } from './gameService';
+import { GameNotFoundError, FileGameRepository, UnsupportedSchemaError } from './persistence';
+import { actionRequestSchema, buildRequestSchema, createGameRequestSchema, revisionRequestSchema } from './schemas';
 import { loadStrategyPresets } from './strategies';
 import { ThinHarnessAiRunner, type AiRunnerConfig } from './aiRunner';
 import { AiTurnCoordinator } from './aiCoordinator';
@@ -72,12 +72,17 @@ async function handleApi(
     sendJson(response, 201, await service.create(input));
     return true;
   }
-  const match = url.pathname.match(/^\/api\/games\/([0-9a-f-]{36})(?:\/(actions|confirm|undo|export|ai-turn))?$/i);
+  const match = url.pathname.match(/^\/api\/games\/([0-9a-f-]{36})(?:\/(build|actions|confirm|undo|export|ai-turn))?$/i);
   if (!match?.[1]) throw new GameNotFoundError('Game not found.');
   const id = match[1];
   const operation = match[2];
   if (request.method === 'GET' && !operation) {
     sendJson(response, 200, await service.get(id));
+    return true;
+  }
+  if (request.method === 'POST' && operation === 'build') {
+    const input = buildRequestSchema.parse(await readJson(request));
+    sendJson(response, 200, await service.updateHumanBuild(id, input.expectedRevision, input.definitionIds, input.complete));
     return true;
   }
   if (request.method === 'POST' && operation === 'actions') {
@@ -96,10 +101,8 @@ async function handleApi(
     return true;
   }
   if (request.method === 'GET' && operation === 'export') {
-    const redacted = url.searchParams.get('redacted') === '1';
-    const exported = redacted ? await service.redactedExport(id) : await service.fullExport(id);
-    response.setHeader('content-disposition', `attachment; filename="hexdeck-${id}${redacted ? '-redacted' : ''}.json"`);
-    sendJson(response, 200, exported);
+    response.setHeader('content-disposition', `attachment; filename="hexdeck-${id}-redacted.json"`);
+    sendJson(response, 200, await service.redactedExport(id));
     return true;
   }
   if (request.method === 'POST' && operation === 'ai-turn') {
@@ -162,8 +165,12 @@ function sendJson(response: ServerResponse, status: number, value: unknown): voi
 }
 
 function handleError(response: ServerResponse, error: unknown): void {
-  if (error instanceof ZodError || error instanceof BadRequestError) {
+  if (error instanceof ZodError || error instanceof BadRequestError || error instanceof BadBuildError) {
     sendJson(response, 400, { error: error instanceof ZodError ? 'Invalid request.' : error.message });
+    return;
+  }
+  if (error instanceof UnsupportedSchemaError) {
+    sendJson(response, 409, { error: error.message });
     return;
   }
   if (error instanceof GameNotFoundError) {

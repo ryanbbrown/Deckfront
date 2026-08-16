@@ -1,37 +1,22 @@
 # Hexdeck
 
-Hexdeck is a deck-building tactics game on a 37-hex board. Two pieces on each side use movement and card effects to ring out opponents. The first player to score five points wins.
+Hexdeck is a Dominion-style deck builder with a five-space fighting arena. One human plays against a ThinHarness AI. Each player creates a private starting build, then uses complete turns to control range, combine cards, buy improvements, and reduce the opponent from 20 health to 0.
 
-The prototype includes seeded decks, the first shared market, all cards, action previews, undo, replay, and atomic tactical search. An authoritative local server stores each game. A ThinHarness opponent plays from editable Markdown strategy instructions.
+## Run
 
-## Run the client
-
-Use Node.js 22 or later. Install `uv` and Python 3.11 or later.
+Use Node.js 22 or later, Python 3.11 or later, `uv`, `cproxy`, and a Codex login.
 
 ```sh
 npm install
 uv sync
-export OPENAI_API_KEY='your-key'
+uv tool install git+ssh://git@github.com/ryanbbrown/cproxy.git
+codex login status
 npm run dev
 ```
 
-Open `http://localhost:4173`.
+Open `http://localhost:4173`. Set `HEXDECK_AI_FAKE=1` before `npm run dev` to use the deterministic local AI instead of the model bridge.
 
-Expose the running server when you use bb remotely:
-
-```sh
-bb connect expose 4173
-```
-
-Open the HTTPS URL that the command returns. The remote link uses your authenticated bb Connect session.
-
-Active games are stored under `.data/games`. Refresh the browser to restore the current game. AI traces are stored under `.data/ai-traces/<game-id>/<revision>.json`.
-
-Players alternate one action at a time. Each piece has one baseline move per round. Select a card or a piece, then select the highlighted actor, target, or destination. Review the resolved preview. Confirm it to give the opponent control, or undo it.
-
-Pass is final for the round. After both players pass, they each make one purchase in pass order. Remaining cards are discarded, both players draw five cards, and the other player starts the next round. Named action cards have no per-piece limit. Relay can be used once per player per round. Cull trashes exactly two cards.
-
-The default opponent uses `openai:gpt-5.6-luna` with low reasoning effort. It receives every legal atomic action and returns one opaque action ID. Set these optional environment variables before `npm run dev`:
+Optional settings:
 
 ```sh
 export HEXDECK_AI_MODEL='openai:gpt-5.6-luna'
@@ -43,41 +28,31 @@ export HEXDECK_DATA_DIR='.data/games'
 export HEXDECK_AI_TRACE_DIR='.data/ai-traces'
 ```
 
-Set `HEXDECK_AI_FAKE=1` to run the deterministic bridge fixture without a model request. This mode chooses one listed action for each AI action step or purchase.
+Saved games use schema version 3. Old ring-out saves are rejected and are not migrated.
 
-## Verify the prototype
+## Play
+
+1. Select and edit the AI strategy prompt.
+2. Select the first player.
+3. Spend up to 12 money on any starting cards. Unspent money carries into the first Buy phase.
+4. Play any number of Action cards during your complete turn.
+5. End the Action phase to play all Treasure cards.
+6. Buy any number of affordable cards, then end the Buy phase.
+
+The arena has five spaces. A difference of 1 is Close, 2 is Mid, and 3 or 4 is Far. Bought cards enter the discard pile. The browser saves previews, supports undo and confirmation, and restores the active game after refresh.
+
+## Verify
 
 ```sh
 npm test
+npm run test:e2e:manifest
 npm run test:e2e
+npm run test:ai:live
 npm run typecheck
 npm run lint
 npm run build
 ```
 
-Install `cproxy` and sign in through the Codex CLI before using the real opponent:
+The backend suite covers setup, privacy, arena rules, every card, complete turns, purchases, replay, persistence, and AI sequencing. Playwright drives every card and required selection through the production browser and real local server. `npm run test:ai:live` is the opt-in real ThinHarness build-and-turn check.
 
-```bash
-uv tool install git+ssh://git@github.com/ryanbbrown/cproxy.git
-codex login status
-```
-
-Each real ThinHarness action runs through an isolated `cproxy` process. It does not use OpenAI API credits.
-
-Run the opt-in live ThinHarness smoke test:
-
-```sh
-npm run test:ai:live
-```
-
-You can also run the live browser configuration directly:
-
-```sh
-npx playwright test --config playwright.live.config.ts
-```
-
-Each browser scenario starts a production server on an isolated port. It uses unique temporary game and trace directories. The suite attaches the saved game, server output, browser console, and page errors to every unexpected failure. Playwright also retains the trace, video, and screenshot.
-
-The real-server browser suite drives every card through visible controls. It also covers action preview, undo, confirmation, stale revisions, handoffs, pass, both purchase orders, buy nothing, cleanup timing, refresh recovery, and AI retry safety. Unit and integration tests cover round rules, every exact card ability and cost, deck conservation, redaction, concurrent writes, tactical search, replay, persistence, and the one-action AI contract.
-
-Card definitions and synergy tags live in `src/game-data/cards.json`. The first curated market lives in `src/game-data/first-market.json`.
+Card definitions live in `src/game-data/cards.json`. Strategy prompts live in `strategies/`. Saved AI traces live under `.data/ai-traces`.

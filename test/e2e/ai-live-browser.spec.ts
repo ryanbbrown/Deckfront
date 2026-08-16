@@ -1,19 +1,9 @@
-import { expect, test } from './fixture';
+import { test, expect } from './fixture';
 
-test('LIVE-AI-ALTERNATING: real cproxy completes several alternating action steps', async ({ page, openGame, repository }) => {
-  test.skip(process.env.HEXDECK_E2E_LIVE !== '1', 'Run through playwright.live.config.ts.');
-  const record = await openGame(page);
-  for (let step = 0; step < 2; step += 1) {
-    const actor = page.getByLabel(/Your piece [AB], legal actor/).first();
-    await expect(actor).toBeVisible();
-    await actor.click();
-    await page.getByLabel(/Hex .* legal destination/).first().click();
-    await page.getByRole('button', { name: 'Confirm action' }).click();
-    await expect.poll(async () => (await repository.load(record.id)).aiActions.length, { timeout: 260_000 }).toBe(step + 1);
-    await expect(page.getByText(/your action/)).toBeVisible({ timeout: 260_000 });
-  }
-  const saved = await repository.load(record.id);
-  expect(saved.aiActions).toHaveLength(2);
-  expect(saved.aiActions.every((action) => action.actionId.startsWith('v'))).toBe(true);
-  expect(saved.committedCommands).toHaveLength(4);
+test('LIVE-BROWSER-001: real AI independently builds and completes a full first turn in the browser', async ({ page, baseUrl }) => {
+  await page.goto(baseUrl); await page.getByLabel('AI strategy').selectOption('close-pressure');
+  await page.getByLabel('Strategy instructions').fill('# Close pressure\nChoose Footwork, Feint, and Drive. Play useful Actions, then end both phases.');
+  await page.getByText('AI', { exact: true }).click(); await page.getByRole('button', { name: 'Start game' }).click();
+  await page.getByLabel('Add Aim').click(); await page.getByLabel('Add Volley').click(); await page.getByRole('button', { name: 'Finish starting build' }).click();
+  await expect(page.getByText(/Turn 2 · your action/)).toBeVisible(); await expect(page.getByText('Starting builds')).toBeVisible(); await expect(page.getByText('AI:', { exact: true })).toBeVisible();
 });
