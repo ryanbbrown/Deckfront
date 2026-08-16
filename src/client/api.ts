@@ -10,6 +10,5 @@ export function loadGame(id: string): Promise<SafeGameView> { return request(`/a
 export function updateBuild(game: SafeGameView, definitionIds: string[], complete: boolean): Promise<SafeGameView> { return request(`/api/games/${game.id}/build`, { method: 'POST', body: JSON.stringify({ expectedRevision: game.revision, definitionIds, complete }) }); }
 export function takeAction(game: SafeGameView, actionId: string): Promise<SafeGameView> { return request(`/api/games/${game.id}/actions`, { method: 'POST', body: JSON.stringify({ expectedRevision: game.revision, actionId }) }); }
 export function undoAction(game: SafeGameView): Promise<SafeGameView> { return request(`/api/games/${game.id}/undo`, { method: 'POST', body: JSON.stringify({ expectedRevision: game.revision }) }); }
-export function confirmAction(game: SafeGameView): Promise<SafeGameView> { return request(`/api/games/${game.id}/confirm`, { method: 'POST', body: JSON.stringify({ expectedRevision: game.revision }) }); }
 export function startAiTurn(gameId: string): Promise<AiTurnStatus> { return request(`/api/games/${gameId}/ai-turn`, { method: 'POST' }); }
 export function getAiTurnStatus(gameId: string): Promise<AiTurnStatus> { return request(`/api/games/${gameId}/ai-turn`); }

@@ -1,8 +1,16 @@
 import type { GameCommand, GameState, Phase, PlayerId } from '../game/types';
-import type { DraftRecord, OpponentMode } from '../shared/api';
+import type { OpponentMode } from '../shared/api';
 
+export interface UndoCheckpoint {
+  state: GameState;
+  committedState: GameState;
+  committedCommandCount: number;
+  completedActions: number;
+  finishedAt: string | null;
+  durationSeconds: number | null;
+}
 export interface GameRecord {
-  schemaVersion: 4;
+  schemaVersion: 5;
   id: string; revision: number; createdAt: string; updatedAt: string; finishedAt: string | null;
   completedActions: number; durationSeconds: number | null; humanPlayerId: PlayerId; aiPlayerId: PlayerId;
   opponentMode: OpponentMode;
@@ -13,7 +21,7 @@ export interface GameRecord {
     actionId: string; summary: string; durationSeconds: number; fallback?: boolean;
   }>;
   initialState: GameState; committedCommands: GameCommand[]; committedState: GameState;
-  draft: DraftRecord; state: GameState;
+  undoCheckpoint: UndoCheckpoint | null; state: GameState;
 }
 export interface GameRepository {
   create(record: GameRecord): Promise<void>; load(id: string): Promise<GameRecord>; save(record: GameRecord): Promise<void>;

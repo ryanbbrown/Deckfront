@@ -19,7 +19,6 @@ export class AiTurnCoordinator {
     const record = await this.service.getRecord(id);
     if (record.opponentMode !== 'ai') throw new ForbiddenActionError('This game has no AI player.');
     if (record.state.activePlayerId !== record.aiPlayerId || record.state.winner) throw new ForbiddenActionError('There is no AI decision to run.');
-    if (record.draft.command) throw new ForbiddenActionError('Confirm or undo the human preview before starting the AI.');
     const existing = this.jobs.get(id); if (existing?.status === 'running') return { status: 'running' };
     const job: Job = { status: 'running' }; this.jobs.set(id, job); void this.run(id, job); return { status: 'running' };
   }

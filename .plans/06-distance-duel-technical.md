@@ -17,7 +17,7 @@ The application supports a complete human-versus-AI or two-player local distance
 5. Wait for the AI to submit its independent build.
 6. Reveal both completed builds.
 7. Play complete turns through visible controls.
-8. Save every confirmed decision and restore the game after refresh.
+8. Save every committed decision and restore the game after refresh.
 9. End immediately when one fighter reaches 0 health.
 
 The implementation replaces the existing hex ring-out game. It does not preserve old rules, saved games, fixtures, or compatibility paths.
@@ -29,7 +29,7 @@ Keep the useful application shell:
 - React and Vite client;
 - authoritative local HTTP server;
 - revision-locked persistence;
-- action preview, undo, and confirm;
+- immediate actions and one-step Undo;
 - deterministic shuffling and replay;
 - ThinHarness AI runner, status, retry, and traces;
 - production-build Playwright tests.
@@ -57,7 +57,7 @@ Keep deterministic seeded shuffling. Delete obsolete hex geometry, tactical sear
 
 Keep `GameRepository`. The file repository and in-memory test repository are two adapters at this seam.
 
-Use schema version 4 for game state, game record, persistence parsing, safe views, and shared transport. Use AI bridge protocol version 2 with separate starting-build and normal-action outputs. Reject old saves with a specific version error and preserve that message through HTTP error mapping. Do not migrate old saves.
+Use schema version 5 for game state, game record, persistence parsing, safe views, and shared transport. Use AI bridge protocol version 2 with separate starting-build and normal-action outputs. Reject old saves with a specific version error and preserve that message through HTTP error mapping. Do not migrate old saves.
 
 ## State model
 
@@ -129,9 +129,9 @@ Use opaque legal action IDs for:
 
 Treasures are not manually played. Ending the Action phase moves all Treasure cards from hand to play, adds their money, and adds unused starting money during that player's first buy phase.
 
-`listActionAvailability` returns one entry per human card instance with its enabled state, stable disabled-reason code, required selection kind, and eligible choices. React uses this result instead of repeating game rules. Complete opaque actions remain the only inputs accepted for preview, commit, and AI decisions. For Cull, the browser selects two eligible instances and then submits the matching complete action.
+`listActionAvailability` returns one entry per human card instance with its enabled state, stable disabled-reason code, required selection kind, and eligible choices. React uses this result instead of repeating game rules. Complete opaque actions remain the only inputs accepted for immediate commits and AI decisions. For Cull, the browser selects two eligible instances and then submits the matching complete action.
 
-A confirmed purchase leaves the player in the Buy phase. The player can buy any number of cards, including repeated free Copper, then explicitly end the Buy phase. Base Treasure piles never deplete. Action piles begin with ten copies and reject an 11th purchase.
+A committed purchase leaves the player in the Buy phase. The player can buy any number of cards, including repeated free Copper, then explicitly end the Buy phase. Base Treasure piles never deplete. Action piles begin with ten copies and reject an 11th purchase.
 
 Ending the Buy phase:
 
@@ -163,20 +163,13 @@ Damage clamps health at 0. Reaching 0 ends the game immediately. Do not resolve 
 
 This experiment has no stalemate rule or turn cap. A human can start a new game if a playtest cannot progress.
 
-## Preview, undo, confirm, and replay
+## Immediate actions, Undo, and replay
 
-Keep the saved preview model for normal actions:
+Normal player actions commit immediately under the revision lock. The record stores one checkpoint from before the latest player action. Undo restores that checkpoint, including command history, random state, zones, money, health, conditions, phase, turn, and winner, then clears the checkpoint. A new player action replaces the prior checkpoint. Refresh preserves an available checkpoint.
 
-1. Preview resolves the command against a saved base state.
-2. The safe preview view hides the identities of cards newly drawn by the preview, including a hand drawn by Buy completion. It can show changed counts and all other public results.
-3. Undo restores the exact base state, including random state and drawn cards.
-4. Confirm adds the command to replay history and reveals newly drawn human cards.
-5. Confirmation keeps control with the active player unless the preview ends the Buy phase or the game.
-6. Refresh restores the unresolved preview or the last confirmed state.
+An AI commit clears player Undo. Starting-build edits and completion are not undoable.
 
-Starting-build edits save directly without preview.
-
-Replay from the new initial state must reproduce every confirmed state exactly, including setup commands and shuffles.
+Replay from the new initial state must reproduce every committed state exactly, including setup commands and shuffles.
 
 ## Server and shared data
 
@@ -305,7 +298,7 @@ Show:
 - public starting builds and purchases;
 - market pile counts;
 - action history;
-- preview, undo, and confirm controls;
+- one global Undo control and immediate phase controls;
 - end Action and end Buy controls;
 - AI status, elapsed time, retry, and last summary;
 - victory and new-game controls.
@@ -315,10 +308,10 @@ Card interaction requirements:
 - Footwork shows separate Left and Right choices and only directions that stay on the board.
 - Drive shows separate Push Left and Push Right choices.
 - Cull changes eligible cards into a two-card selection interface. Cull itself is eligible. Other played cards are not.
-- A card with one complete legal resolution can preview from its card control.
+- A card with one complete legal resolution commits from its card control.
 - A card blocked by range, wall, landing space, or another rule stays visible but disabled with a specific reason.
-- Market cards remain available after each confirmed purchase while affordable.
-- A draw preview shows changed counts but hides new card identities until confirmation.
+- Market cards remain available after each committed purchase while affordable.
+- Drawn cards appear immediately.
 - Private opponent information never appears in the document.
 
 Use stable top-level React modules for setup, starting build, arena, hand, market, history, and AI status. Derive presentation state during render instead of mirroring it with effects.
@@ -344,7 +337,7 @@ Delete obsolete hex geometry, tactical search, `games/*.json`, ring-out strategi
 
 1. Make one compiling vertical replacement across game types, shared data, server, AI adapters, and a minimal client shell. Remove obsolete callers and tests in the same milestone.
 2. Implement setup, range, movement, drawing, damage, conditions, cards, phases, purchases, cleanup, victory, replay, and game-module tests.
-3. Complete safe views, availability reasons, setup persistence, preview orchestration, schema rejection, and persistence tests.
+3. Complete safe views, availability reasons, setup persistence, one-step Undo, schema rejection, and persistence tests.
 4. Complete AI starting builds, briefings, server-owned turns, both bridge schemas, trace allowlisting, retry behavior, and AI tests.
 5. Complete setup, starting-build, arena, hand, market, history, selection, and phase controls.
 6. Add card-by-card, combination, lifecycle, privacy, and AI browser tests.
@@ -419,7 +412,7 @@ Prove:
 - unspent normal money expires;
 - conditions expire at the approved times;
 - the opponent receives the next complete turn;
-- deterministic shuffle and exact preview undo;
+- deterministic shuffle and exact one-step Undo;
 - Action supply depletion without starting-build depletion;
 - health clamped at 0 and immediate victory;
 - replay equivalence after every command;
@@ -430,11 +423,11 @@ Prove:
 Prove:
 
 - stale revisions cannot change state;
-- preview, undo, confirm, and refresh work in each normal phase;
-- previewed draws hide identities, confirmation reveals them, and undo cannot become a draw-order oracle;
+- immediate actions, one-step Undo, and refresh work in each normal phase;
+- draws reveal immediately and Undo restores the exact prior random state;
 - availability reason codes agree across the game module and safe view;
-- schema version 4 round-trips and version 3 fails through HTTP with a specific message;
-- seeded fixture replay still succeeds after preview and confirmation;
+- schema version 5 round-trips and version 4 fails through HTTP with a specific message;
+- seeded fixture replay still succeeds after immediate actions and Undo;
 - concurrent writes serialize;
 - sentinel card IDs prove safe views, exports, traces, events, and HTML omit private data;
 - AI starting builds use the same domain validation;
@@ -451,7 +444,7 @@ Prove:
 
 ## Real-browser E2E verification
 
-Run Playwright against the production-built client and real local HTTP server. Tests may seed deterministic saved states before the browser opens. Every behavior under test must then be selected, completed, previewed, and confirmed through visible browser controls. Tests must not call action endpoints to perform the card behavior they claim to prove.
+Run Playwright against the production-built client and real local HTTP server. Tests may seed deterministic saved states before the browser opens. Every behavior under test must then be selected and completed through visible browser controls. Tests must not call action endpoints to perform the card behavior they claim to prove.
 
 Each test must assert exact visible results and identify the regression it catches. Do not use snapshot-only, truthiness-only, mock-only, or assertion-free tests.
 
@@ -507,8 +500,8 @@ Cover:
 - normal setup through one complete human and AI turn without test-time repository mutation;
 - one complete deterministic browser game from setup through victory with scripted fake AI and an explicit runtime limit;
 - both first-player paths;
-- refresh during starting build, Action preview, confirmed Action phase, AI wait or error, Buy phase, and ended game;
-- draw previews that hide identities, undo exactly, and reveal cards only after confirmation;
+- refresh during starting build, an undoable Action, AI wait or error, Buy phase, and ended game;
+- immediate draws and exact one-step Undo;
 - AI completing a turn while the browser is closed, then showing the persisted result after reopen;
 - AI failure, refresh, retry, and recovery without duplicate commands;
 - 10th Action purchase accepted and 11th rejected;
@@ -541,6 +534,6 @@ The implementation is not complete if a card has only backend coverage. Every ca
 
 - Free Copper can create intentional deck bloat and AI purchase loops. Keep the rule legal and test the AI completion guard.
 - Seeded browser fixtures can hide integration failures. Use fixtures only for state preparation and drive every claimed interaction through the browser, HTTP server, game service, persistence, and game module.
-- Previewing draw effects requires exact random-state rollback. Compare literal card identities and zones after preview, undo, confirm, replay, and refresh.
+- Undoing draw effects requires exact random-state rollback. Compare literal card identities and zones after action, Undo, replay, and refresh.
 - Starting-build privacy can leak through safe views, traces, exports, events, or HTML. Test each output.
 - Retained obsolete files can create conflicting rules. Remove them instead of adding compatibility paths.

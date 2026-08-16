@@ -23,14 +23,18 @@ const player = z.object({
 const fighter = z.object({ playerId, position: z.number().int().min(1).max(5), health: z.number().int().min(0).max(20), aimed: z.boolean(), exposed: z.boolean() });
 const event = z.object({ sequence: z.number().int().nonnegative(), type: z.string(), playerId, detail: z.record(z.string(), z.unknown()) });
 export const gameStateSchema = z.object({
-  schemaVersion: z.literal(4), seed: z.number().int(), rngState: z.number().int().nonnegative(), version: z.number().int().nonnegative(),
+  schemaVersion: z.literal(5), seed: z.number().int(), rngState: z.number().int().nonnegative(), version: z.number().int().nonnegative(),
   nextCardSerial: z.number().int().positive(), activePlayerId: playerId, selectedFirstPlayerId: playerId, phase,
   turn: z.number().int().nonnegative(), winner: playerId.nullable(), players: z.object({ ochre: player, indigo: player }),
   fighters: z.object({ ochre: fighter, indigo: fighter }), supply: z.record(z.string(), z.number().int().nonnegative()),
   trash: z.array(card), actionsThisTurn: z.array(z.string()), events: z.array(event)
 });
+const undoCheckpoint = z.object({
+  state: gameStateSchema, committedState: gameStateSchema, committedCommandCount: z.number().int().nonnegative(),
+  completedActions: z.number().int().nonnegative(), finishedAt: z.string().datetime().nullable(), durationSeconds: z.number().nonnegative().nullable()
+});
 export const gameRecordSchema = z.object({
-  schemaVersion: z.literal(4), id: z.string().uuid(), revision: z.number().int().nonnegative(),
+  schemaVersion: z.literal(5), id: z.string().uuid(), revision: z.number().int().nonnegative(),
   createdAt: z.string().datetime(), updatedAt: z.string().datetime(), finishedAt: z.string().datetime().nullable(),
   completedActions: z.number().int().nonnegative(), durationSeconds: z.number().nonnegative().nullable(),
   humanPlayerId: playerId, aiPlayerId: playerId, opponentMode, strategy: z.object({ presetId: z.string(), markdown: z.string() }),
@@ -41,8 +45,7 @@ export const gameRecordSchema = z.object({
     durationSeconds: z.number().nonnegative(), fallback: z.boolean().optional()
   })),
   initialState: gameStateSchema, committedCommands: z.array(gameCommandSchema), committedState: gameStateSchema,
-  draft: z.object({ baseVersion: z.number().int().nonnegative(), baseState: gameStateSchema, command: gameCommandSchema.nullable() }),
-  state: gameStateSchema
+  undoCheckpoint: undoCheckpoint.nullable(), state: gameStateSchema
 });
 export const createGameRequestSchema = z.object({
   seed: z.number().int().optional(), strategyPresetId: z.string().min(1), strategyMarkdown: z.string().min(1).max(50_000),

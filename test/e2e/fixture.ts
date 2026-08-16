@@ -30,7 +30,7 @@ export const test = base.extend<Fixtures>({
       const response = await fetch(`${baseUrl}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 7, strategyPresetId: 'ranged-setup', strategyMarkdown: '# Ranged', firstPlayerId: 'ochre' }) });
       if (!response.ok) throw new Error(await response.text()); const created = await response.json() as { id: string }; const record = await repository.load(created.id);
       completeSetup(record); mutate?.(record); resetRecord(record); await repository.save(record);
-      await page.goto(baseUrl); await page.evaluate((id) => localStorage.setItem('hexdeck.activeGameId', id), created.id); await page.reload(); await expect(page.getByText(/your action|your buy/)).toBeVisible(); return record;
+      await page.goto(baseUrl); await page.evaluate((id) => localStorage.setItem('hexdeck.activeGameId', id), created.id); await page.reload(); await expect(page.getByText(/your action|your buy|Player [12] (?:action|buy)/)).toBeVisible(); return record;
     });
   }
 });
@@ -38,5 +38,5 @@ export { expect };
 export function seedHand(record: GameRecord, definitions: string[], draw: string[] = []): void {
   const deck = record.state.players.ochre.deck; record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.draw = draw.map((id) => createCard(record.state, id)); deck.hand = definitions.map((id) => createCard(record.state, id)); deck.discard = []; deck.play = [];
 }
-export function resetRecord(record: GameRecord): void { record.initialState = cloneGame(record.state); record.committedState = cloneGame(record.state); record.committedCommands = []; record.draft = { baseVersion: record.state.version, baseState: cloneGame(record.state), command: null }; record.revision = 0; record.completedActions = 0; record.aiActions = []; }
+export function resetRecord(record: GameRecord): void { record.initialState = cloneGame(record.state); record.committedState = cloneGame(record.state); record.committedCommands = []; record.undoCheckpoint = null; record.revision = 0; record.completedActions = 0; record.aiActions = []; }
 export function completeSetup(record: GameRecord): void { record.state = applyCommand(record.state, { type: 'submitStartingBuild', playerId: 'ochre', definitionIds: [] }); record.state = applyCommand(record.state, { type: 'submitStartingBuild', playerId: 'indigo', definitionIds: [] }); }

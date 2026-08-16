@@ -30,9 +30,9 @@ describe('GameService setup and privacy', () => {
     expect(playerOne.phase).toBe('startingBuild'); expect(playerOne.activePlayerId).toBe('indigo'); expect(playerOne.viewPlayerId).toBe('indigo'); expect(playerOne.humanBuildProposal).toEqual([]);
     const playerTwo = await service.updateHumanBuild(game.id, playerOne.revision, ['aim', 'volley'], true);
     expect(playerTwo.phase).toBe('action'); expect(playerTwo.activePlayerId).toBe('indigo'); expect(playerTwo.viewPlayerId).toBe('indigo'); expect(playerTwo.completedBuilds).toEqual({ ochre: ['footwork'], indigo: ['aim', 'volley'] }); expect(playerTwo.players.ochre.hand).toHaveLength(5); expect(playerTwo.players.indigo.hand).toHaveLength(5);
-    const endAction = playerTwo.legalActions.find((action) => action.command.type === 'endActionPhase')!; const actionPreview = await service.previewHumanAction(game.id, playerTwo.revision, endAction.id); const buy = await service.confirmHumanAction(game.id, actionPreview.revision);
+    const endAction = playerTwo.legalActions.find((action) => action.command.type === 'endActionPhase')!; const buy = await service.commitHumanAction(game.id, playerTwo.revision, endAction.id);
     expect(buy.phase).toBe('buy'); expect(buy.viewPlayerId).toBe('indigo');
-    const endBuy = buy.legalActions.find((action) => action.command.type === 'endBuyPhase')!; const buyPreview = await service.previewHumanAction(game.id, buy.revision, endBuy.id); const nextTurn = await service.confirmHumanAction(game.id, buyPreview.revision);
+    const endBuy = buy.legalActions.find((action) => action.command.type === 'endBuyPhase')!; const nextTurn = await service.commitHumanAction(game.id, buy.revision, endBuy.id);
     expect(nextTurn.activePlayerId).toBe('ochre'); expect(nextTurn.viewPlayerId).toBe('ochre'); expect(nextTurn.phase).toBe('action');
     const coordinator = new AiTurnCoordinator(service, { async run() { throw new Error('must not run'); } }); await expect(coordinator.start(game.id)).rejects.toThrow('no AI player');
   });
@@ -57,40 +57,25 @@ describe('GameService setup and privacy', () => {
       [[1, 5], ['NEEDS_CLOSE', null, 'NEEDS_CLOSE']]
     ] as const) {
       const { repository, service, game } = await setup(); const humanBuild = await service.updateHumanBuild(game.id, 0, [], true); await service.commitAiBuild(game.id, humanBuild.revision, [], 'build', 0); const record = await repository.load(game.id); const deck = record.state.players.ochre.deck;
-      record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.draw = []; deck.discard = []; deck.play = []; deck.hand = ['feint', 'aim', 'drive'].map((id) => createCard(record.state, id)); record.state.fighters.ochre.position = positions[0]; record.state.fighters.indigo.position = positions[1]; record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.draft = { baseVersion: record.state.version, baseState: structuredClone(record.state), command: null }; await repository.save(record);
+      record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.draw = []; deck.discard = []; deck.play = []; deck.hand = ['feint', 'aim', 'drive'].map((id) => createCard(record.state, id)); record.state.fighters.ochre.position = positions[0]; record.state.fighters.indigo.position = positions[1]; record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.undoCheckpoint = null; await repository.save(record);
       const domain = listActionAvailability(record.state, 'ochre').map((entry) => entry.reasonCode); const safe = (await service.get(game.id)).actionAvailability.map((entry) => entry.reasonCode); expect(domain).toEqual(expected); expect(safe).toEqual(expected);
     }
   });
-  it('continues a seeded persisted fixture while redacting preview draws and preserving replay', async () => {
+  it('commits a draw immediately and one-step Undo restores the exact prior state', async () => {
     const { repository, service, game } = await setup(); const humanBuild = await service.updateHumanBuild(game.id, 0, ['footwork'], true); await service.commitAiBuild(game.id, humanBuild.revision, [], 'build', 0);
     const record = await repository.load(game.id); const human = record.state.players.ochre; record.state.trash.push(...human.deck.draw, ...human.deck.hand, ...human.deck.discard, ...human.deck.play); human.deck.draw = [createCard(record.state, 'volley')]; human.deck.hand = [createCard(record.state, 'footwork')]; human.deck.discard = []; human.deck.play = [];
-    record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.draft = { baseVersion: record.state.version, baseState: structuredClone(record.state), command: null }; await repository.save(record);
+    record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.undoCheckpoint = null; await repository.save(record);
     const loaded = await service.get(game.id); const footwork = loaded.legalActions.find((action) => action.command.type === 'playFootwork' && action.command.movement === 'right')!;
-    const realDrawId = record.state.players.ochre.deck.draw[0]!.id;
-    const preview = await service.previewHumanAction(game.id, loaded.revision, footwork.id); expect(preview.previewHidesDraws).toBe(true); expect(preview.players.ochre.hand).toEqual([{ id: 'hidden-1', definitionId: null }]);
-    expect(JSON.stringify(preview)).not.toContain(realDrawId); expect(JSON.stringify(preview.players.ochre.hand)).not.toContain('volley');
-    const undone = await service.undoHumanAction(game.id, preview.revision); expect(undone.players.ochre.hand?.[0]?.definitionId).toBe('footwork');
-    const previewAgain = await service.previewHumanAction(game.id, undone.revision, undone.legalActions.find((action) => action.command.type === 'playFootwork' && action.command.movement === 'right')!.id);
-    const confirmed = await service.confirmHumanAction(game.id, previewAgain.revision); expect(confirmed.players.ochre.hand?.[0]?.definitionId).toBe('volley');
+    const played = await service.commitHumanAction(game.id, loaded.revision, footwork.id); expect(played.players.ochre.hand?.map((card) => card.definitionId)).toEqual(['volley']); expect(played.canUndo).toBe(true);
+    const undone = await service.undoHumanAction(game.id, played.revision); expect(undone.players.ochre.hand?.map((card) => card.definitionId)).toEqual(['footwork']); expect(undone.canUndo).toBe(false);
   });
-  it('redacts every Buy-completion draw even when a base-hand card is discarded and redrawn', async () => {
-    const { repository, service, game } = await setup(); const humanBuild = await service.updateHumanBuild(game.id, 0, [], true); await service.commitAiBuild(game.id, humanBuild.revision, [], 'build', 0);
-    const record = await repository.load(game.id); const deck = record.state.players.ochre.deck; record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play);
-    deck.draw = []; deck.discard = []; deck.play = []; deck.hand = ['aim', 'volley'].map((definitionId, index) => ({ id: `REDRAW-SENTINEL-${index + 1}`, definitionId })); record.state.nextCardSerial += 2;
-    record.state.phase = 'buy'; record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.draft = { baseVersion: record.state.version, baseState: structuredClone(record.state), command: null }; await repository.save(record);
-    const loaded = await service.get(game.id); const end = loaded.legalActions.find((entry) => entry.command.type === 'endBuyPhase')!; const preview = await service.previewHumanAction(game.id, loaded.revision, end.id);
-    expect(preview.players.ochre.hand).toEqual([{ id: 'hidden-1', definitionId: null }, { id: 'hidden-2', definitionId: null }]); const serializedHand = JSON.stringify(preview.players.ochre.hand); expect(serializedHand).not.toContain('REDRAW-SENTINEL'); expect(serializedHand).not.toContain('aim'); expect(serializedHand).not.toContain('volley'); await expect(service.previewHumanAction(game.id, preview.revision, end.id)).rejects.toThrow('Confirm or undo');
-    const undone = await service.undoHumanAction(game.id, preview.revision); expect(undone.players.ochre.hand?.map((card) => card.id)).toEqual(['REDRAW-SENTINEL-1', 'REDRAW-SENTINEL-2']);
-    const previewAgain = await service.previewHumanAction(game.id, undone.revision, undone.legalActions.find((entry) => entry.command.type === 'endBuyPhase')!.id); const confirmed = await service.confirmHumanAction(game.id, previewAgain.revision); expect(confirmed.players.ochre.hand?.map((card) => card.definitionId).sort()).toEqual(['aim', 'volley']);
-  });
-  it('uses the same opaque placeholder shape for different underlying draws', async () => {
-    const placeholders: unknown[] = [];
-    for (const definitionId of ['aim', 'volley']) {
-      const { repository, service, game } = await setup(); const humanBuild = await service.updateHumanBuild(game.id, 0, ['footwork'], true); await service.commitAiBuild(game.id, humanBuild.revision, [], 'build', 0);
-      const record = await repository.load(game.id); const deck = record.state.players.ochre.deck; record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.draw = [createCard(record.state, definitionId)]; deck.hand = [createCard(record.state, 'footwork')]; deck.discard = []; deck.play = []; record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.draft = { baseVersion: record.state.version, baseState: structuredClone(record.state), command: null }; await repository.save(record);
-      const loaded = await service.get(game.id); const action = loaded.legalActions.find((entry) => entry.command.type === 'playFootwork' && entry.command.movement === 'right')!; placeholders.push((await service.previewHumanAction(game.id, loaded.revision, action.id)).players.ochre.hand);
-    }
-    expect(placeholders[0]).toEqual(placeholders[1]); expect(placeholders[0]).toEqual([{ id: 'hidden-1', definitionId: null }]);
+  it('undoes End Buy exactly and a new action replaces the one-step checkpoint', async () => {
+    const { repository, service, game } = await setup('ochre', 'local'); const one = await service.updateHumanBuild(game.id, 0, [], true); const ready = await service.updateHumanBuild(game.id, one.revision, [], true);
+    const record = await repository.load(game.id); record.state.phase = 'buy'; record.state.players.ochre.money = 7; record.state.players.ochre.firstBuyPending = false; record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.undoCheckpoint = null; await repository.save(record);
+    const before = await service.get(game.id); const end = before.legalActions.find((entry) => entry.command.type === 'endBuyPhase')!; const switched = await service.commitHumanAction(game.id, before.revision, end.id);
+    expect(switched).toMatchObject({ activePlayerId: 'indigo', phase: 'action', turn: 2, canUndo: true }); expect(switched.players.ochre.money).toBe(0);
+    const restored = await service.undoHumanAction(game.id, switched.revision); expect(restored).toMatchObject({ activePlayerId: 'ochre', phase: 'buy', turn: 1, canUndo: false }); expect(restored.players.ochre.money).toBe(7);
+    const switchedAgain = await service.commitHumanAction(game.id, restored.revision, restored.legalActions.find((entry) => entry.command.type === 'endBuyPhase')!.id); expect(switchedAgain).toMatchObject({ activePlayerId: 'indigo', turn: 2 }); expect(ready.phase).toBe('action');
   });
   it('public export omits sentinel private cards and ordered draw arrays', async () => {
     const { repository, service, game } = await setup(); const humanBuild = await service.updateHumanBuild(game.id, 0, [], true); await service.commitAiBuild(game.id, humanBuild.revision, [], 'build', 0);
@@ -100,6 +85,12 @@ describe('GameService setup and privacy', () => {
 });
 
 describe('server-owned AI sequence', () => {
+  it('clears human Undo when the AI commits its first decision', async () => {
+    const { service, game } = await setup(); const human = await service.updateHumanBuild(game.id, 0, [], true); let view = await service.commitAiBuild(game.id, human.revision, [], 'build', 0);
+    view = await service.commitHumanAction(game.id, view.revision, view.legalActions.find((entry) => entry.command.type === 'endActionPhase')!.id);
+    view = await service.commitHumanAction(game.id, view.revision, view.legalActions.find((entry) => entry.command.type === 'endBuyPhase')!.id); expect(view.canUndo).toBe(true); expect(view.activePlayerId).toBe('indigo');
+    const record = await service.getRecord(game.id); const aiEnd = listLegalActions(record.state).find((entry) => entry.command.type === 'endActionPhase')!; const afterAi = await service.commitAiAction(game.id, record.revision, aiEnd.id, 'end', 0, 0); expect(afterAi.canUndo).toBe(false);
+  });
   it('rejects invented and stale AI action IDs without changing committed state', async () => {
     const { service, game } = await setup('indigo'); const human = await service.updateHumanBuild(game.id, 0, [], true); await service.commitAiBuild(game.id, human.revision, [], 'build', 0);
     const beforeInvented = await service.getRecord(game.id); await expect(service.commitAiAction(game.id, beforeInvented.revision, 'invented-action', 'bad', 0, 0)).rejects.toThrow('unknown or stale'); const afterInvented = await service.getRecord(game.id);
@@ -109,7 +100,7 @@ describe('server-owned AI sequence', () => {
   });
   it('replans after a draw, plays another Action, buys several paid cards, and ends one server-owned turn', async () => {
     const { repository, service, game } = await setup('indigo'); const human = await service.updateHumanBuild(game.id, 0, [], true); await service.commitAiBuild(game.id, human.revision, [], 'build', 0); const record = await repository.load(game.id); const deck = record.state.players.indigo.deck;
-    record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.hand = ['muster', 'copper', 'copper', 'copper', 'copper', 'copper'].map((id) => createCard(record.state, id)); deck.draw = [createCard(record.state, 'aim')]; deck.discard = []; deck.play = []; record.state.players.indigo.firstBuyMoney = 0; record.state.players.indigo.firstBuyPending = false; record.state.players.indigo.purchases = []; record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.draft = { baseVersion: record.state.version, baseState: structuredClone(record.state), command: null }; record.aiActions = []; await repository.save(record);
+    record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.hand = ['muster', 'copper', 'copper', 'copper', 'copper', 'copper'].map((id) => createCard(record.state, id)); deck.draw = [createCard(record.state, 'aim')]; deck.discard = []; deck.play = []; record.state.players.indigo.firstBuyMoney = 0; record.state.players.indigo.firstBuyPending = false; record.state.players.indigo.purchases = []; record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.undoCheckpoint = null; record.aiActions = []; await repository.save(record);
     const observedHands: string[][] = []; const runner = { async run(current: GameRecord): Promise<AiRunResult> {
       observedHands.push(current.state.players.indigo.deck.hand.map((card) => card.definitionId)); const actions = listLegalActions(current.state); let selected;
       if (current.state.phase === 'action') selected = actions.find((entry) => entry.command.type === (current.state.players.indigo.deck.hand.some((card) => card.definitionId === 'muster') ? 'playMuster' : current.state.players.indigo.deck.hand.some((card) => card.definitionId === 'aim') ? 'playAim' : 'endActionPhase'));
@@ -133,7 +124,7 @@ describe('server-owned AI sequence', () => {
   });
   it('limits a free-Copper loop and deterministically ends the phase', async () => {
     const { repository, service, game } = await setup('indigo'); const humanBuild = await service.updateHumanBuild(game.id, 0, [], true); await service.commitAiBuild(game.id, humanBuild.revision, [], 'build', 0);
-    const record = await repository.load(game.id); record.state.phase = 'buy'; record.state.activePlayerId = 'indigo'; record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.draft = { baseVersion: record.state.version, baseState: structuredClone(record.state), command: null }; record.aiActions = []; await repository.save(record);
+    const record = await repository.load(game.id); record.state.phase = 'buy'; record.state.activePlayerId = 'indigo'; record.initialState = structuredClone(record.state); record.committedState = structuredClone(record.state); record.committedCommands = []; record.undoCheckpoint = null; record.aiActions = []; await repository.save(record);
     const runner = { async run(current: GameRecord): Promise<AiRunResult> { const copper = listLegalActions(current.state).find((action) => action.command.type === 'buyCard' && action.command.definitionId === 'copper')!; return { schemaVersion: 2, kind: 'action', baseRevision: current.revision, actionId: copper.id, summary: 'buy copper', durationSeconds: 0 }; } };
     const coordinator = new AiTurnCoordinator(service, runner); await coordinator.start(game.id); let status = await coordinator.status(game.id); for (let count = 0; status.status === 'running' && count < 100; count += 1) { await new Promise((resolve) => setTimeout(resolve, 2)); status = await coordinator.status(game.id); }
     expect(status.status).toBe('complete'); const saved = await service.getRecord(game.id); expect(saved.state.activePlayerId).toBe('ochre'); expect(saved.state.players.indigo.purchases.filter((id) => id === 'copper')).toHaveLength(30); expect(saved.aiActions.at(-1)?.fallback).toBe(true);
@@ -155,12 +146,12 @@ describe('persistence schema', () => {
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8, strategyPresetId: 'close-pressure', strategyMarkdown: '# close' });
       await Promise.all([1, 2].map((marker) => repository.withLock(created.id, async () => { const record = await repository.load(created.id); await new Promise((resolve) => setTimeout(resolve, marker === 1 ? 5 : 0)); record.revision += 1; record.updatedAt = new Date(Date.parse(record.updatedAt) + marker * 1000).toISOString(); await repository.save(record); })));
-      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(4); expect(saved.state.phase).toBe('startingBuild');
+      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(5); expect(saved.state.phase).toBe('startingBuild');
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it('rejects an old save with a specific version message', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-old-')); const id = '11111111-1111-4111-8111-111111111111';
-    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 3 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 3 is not supported'); }
+    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 4 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 4 is not supported'); }
     finally { await rm(directory, { recursive: true, force: true }); }
   });
 });

@@ -29,7 +29,7 @@ export interface FighterState { playerId: PlayerId; position: number; health: nu
 export type GameEventType = 'buildComplete' | 'cardPlayed' | 'move' | 'draw' | 'condition' | 'damage' | 'push' | 'wallCollision' | 'trash' | 'phase' | 'purchase' | 'turn' | 'victory';
 export interface GameEvent { sequence: number; type: GameEventType; playerId: PlayerId; detail: Record<string, unknown> }
 export interface GameState {
-  schemaVersion: 4;
+  schemaVersion: 5;
   seed: number;
   rngState: number;
   version: number;

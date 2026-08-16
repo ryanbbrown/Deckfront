@@ -72,7 +72,7 @@ async function handleApi(
     sendJson(response, 201, await service.create(input));
     return true;
   }
-  const match = url.pathname.match(/^\/api\/games\/([0-9a-f-]{36})(?:\/(build|actions|confirm|undo|export|ai-turn))?$/i);
+  const match = url.pathname.match(/^\/api\/games\/([0-9a-f-]{36})(?:\/(build|actions|undo|export|ai-turn))?$/i);
   if (!match?.[1]) throw new GameNotFoundError('Game not found.');
   const id = match[1];
   const operation = match[2];
@@ -87,12 +87,7 @@ async function handleApi(
   }
   if (request.method === 'POST' && operation === 'actions') {
     const input = actionRequestSchema.parse(await readJson(request));
-    sendJson(response, 200, await service.previewHumanAction(id, input.expectedRevision, input.actionId));
-    return true;
-  }
-  if (request.method === 'POST' && operation === 'confirm') {
-    const input = revisionRequestSchema.parse(await readJson(request));
-    sendJson(response, 200, await service.confirmHumanAction(id, input.expectedRevision));
+    sendJson(response, 200, await service.commitHumanAction(id, input.expectedRevision, input.actionId));
     return true;
   }
   if (request.method === 'POST' && operation === 'undo') {

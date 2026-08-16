@@ -18,7 +18,7 @@ export class FileGameRepository implements GameRepository {
   async load(id: string): Promise<GameRecord> {
     try {
       const raw = JSON.parse(await readFile(this.pathFor(id), 'utf8')) as { schemaVersion?: unknown };
-      if (raw.schemaVersion !== 4) throw new UnsupportedSchemaError(`Saved game schema ${String(raw.schemaVersion)} is not supported. Start a new game.`);
+      if (raw.schemaVersion !== 5) throw new UnsupportedSchemaError(`Saved game schema ${String(raw.schemaVersion)} is not supported. Start a new game.`);
       const record = gameRecordSchema.parse(raw) as GameRecord; assertInvariants(record.state); return record;
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') throw new GameNotFoundError(`Game not found: ${id}`);

@@ -12,5 +12,6 @@
 - The first experiment has Exposed and Aimed, but no Guard.
 - Flurry works at every range.
 - The AI uses an editable strategy prompt and chooses one server-validated decision at a time.
+- Player actions commit immediately. One global Undo control restores the latest player action.
 - The server owns a complete AI turn, so it continues without an open browser.
-- Saved games use schema version 4. Older saves and rules are not compatible.
+- Saved games use schema version 5. Older saves and rules are not compatible.

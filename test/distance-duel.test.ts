@@ -178,4 +178,16 @@ describe('complete turns and purchases', () => {
     let state = ready(); isolateHand(state, 'ochre', []); state = play(state, 'endActionPhase'); expect(state.players.ochre.money).toBe(12);
     state = play(state, 'endBuyPhase'); expect(state.players.ochre.firstBuyPending).toBe(false); expect(state.players.ochre.firstBuyMoney).toBe(0);
   });
+  it('expires normal money and alternates four complete local turns exactly once', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['gold']); isolateHand(state, 'indigo', []); state.players.ochre.firstBuyPending = false; state.players.ochre.firstBuyMoney = 0; state.players.indigo.firstBuyPending = false; state.players.indigo.firstBuyMoney = 0;
+    state = play(state, 'endActionPhase'); expect(state.players.ochre.money).toBe(3); state = play(state, 'endBuyPhase'); expect(state.players.ochre.money).toBe(0); expect([state.turn, state.activePlayerId]).toEqual([2, 'indigo']);
+    state = play(state, 'endActionPhase'); state = play(state, 'endBuyPhase'); expect([state.turn, state.activePlayerId]).toEqual([3, 'ochre']);
+    state = play(state, 'endActionPhase'); expect(state.players.ochre.money).toBe(3); state = play(state, 'endBuyPhase'); expect([state.turn, state.activePlayerId]).toEqual([4, 'indigo']);
+  });
+  it('keeps three bought Gold cards as Gold and each provides three money', () => {
+    let state = ready(); isolateHand(state, 'ochre', []); state.phase = 'buy'; state.players.ochre.money = 18; state.players.ochre.firstBuyPending = false;
+    for (let count = 0; count < 3; count += 1) state = applyAction(state, action(state, (command) => command.type === 'buyCard' && command.definitionId === 'gold').id);
+    expect(state.players.ochre.money).toBe(0); expect(state.players.ochre.deck.discard.map((card) => card.definitionId)).toEqual(['gold', 'gold', 'gold']); expect(CARDS.gold?.money).toBe(3);
+    state = play(state, 'endBuyPhase'); expect(state.players.ochre.deck.hand.map((card) => card.definitionId)).toEqual(['gold', 'gold', 'gold']);
+  });
 });
