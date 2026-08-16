@@ -17,6 +17,7 @@ export class AiTurnCoordinator {
   constructor(private readonly service: AiTurnService, private readonly runner: AiTurnRunner) {}
   async start(id: string): Promise<AiTurnStatus> {
     const record = await this.service.getRecord(id);
+    if (record.opponentMode !== 'ai') throw new ForbiddenActionError('This game has no AI player.');
     if (record.state.activePlayerId !== record.aiPlayerId || record.state.winner) throw new ForbiddenActionError('There is no AI decision to run.');
     if (record.draft.command) throw new ForbiddenActionError('Confirm or undo the human preview before starting the AI.');
     const existing = this.jobs.get(id); if (existing?.status === 'running') return { status: 'running' };

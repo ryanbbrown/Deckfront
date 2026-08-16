@@ -9,13 +9,22 @@ async function confirm(page: import('@playwright/test').Page) { await page.getBy
 test('DD-E2E-001: setup saves a private flexible build, free Copper, prompt, and first-player choice', async ({ page, baseUrl }) => {
   await page.goto(baseUrl); await expect(page.getByRole('heading', { name: 'Hexdeck' })).toBeVisible();
   await page.getByLabel('AI strategy').selectOption('close-pressure'); await page.getByLabel('Strategy instructions').fill('# Edited close prompt');
-  await page.getByText('AI', { exact: true }).click(); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByRole('heading', { name: 'Spend up to 12' })).toBeVisible();
+  await page.getByRole('group', { name: 'First player' }).getByText('AI', { exact: true }).click(); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByRole('heading', { name: 'Spend up to 12' })).toBeVisible();
   await page.getByLabel('Add Copper').click(); await page.getByLabel('Add Copper').click(); await page.getByLabel('Add Aim').click(); await expect(page.getByTestId('build-budget')).toHaveText('3 spent · 9 carries');
   await page.reload(); await expect(page.getByLabel('Copper quantity')).toHaveText('2'); await expect(page.getByLabel('Aim quantity')).toHaveText('1');
   await page.getByLabel('Add Gold').click(); await page.getByLabel('Add Gold').click(); await expect(page.getByRole('button', { name: 'Finish starting build' })).toBeDisabled();
   await page.getByLabel('Remove Gold').click(); await page.getByRole('button', { name: 'Finish starting build' }).click();
   await expect(page.getByText('Starting builds')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText(/Copper, Copper, Aim, Gold/)).toBeVisible(); await expect(page.getByText(/Turn 2 · your action/)).toBeVisible();
+});
+
+test('DD-E2E-035: two local players draft in sequence and take complete turns on one browser', async ({ page, baseUrl }) => {
+  await page.goto(baseUrl); await page.getByText('Local player', { exact: true }).click(); await page.getByRole('group', { name: 'First player' }).getByText('Player 2', { exact: true }).click(); await page.getByRole('button', { name: 'Start game' }).click();
+  await expect(page.getByText('Player 1 starting build')).toBeVisible(); await page.getByLabel('Add Footwork').click(); await page.getByRole('button', { name: 'Finish starting build' }).click();
+  await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.getByLabel('Add Aim').click(); await page.getByRole('button', { name: 'Finish starting build' }).click();
+  await expect(page.getByText(/Turn 1 · Player 2 action/)).toBeVisible(); await expect(page.getByRole('heading', { name: 'Player 2 hand' })).toBeVisible(); await expect(page.getByText('AI is building…')).toHaveCount(0);
+  await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'Confirm', exact: true }).click(); await expect(page.getByText(/Turn 1 · Player 2 buy/)).toBeVisible();
+  await page.getByRole('button', { name: 'End Buy phase' }).click(); await page.getByRole('button', { name: 'Confirm', exact: true }).click(); await expect(page.getByText(/Turn 2 · Player 1 action/)).toBeVisible(); await expect(page.getByRole('heading', { name: 'Player 1 hand' })).toBeVisible();
 });
 
 test('DD-E2E-002: repeated Copper Silver and Gold buys stay available and show public purchase names', async ({ page, openGame }) => {
@@ -177,7 +186,7 @@ test('DD-E2E-029: AI error survives refresh and retry completes without duplicat
 });
 
 test('DD-E2E-030: server finishes AI turn after page closes and reopened page shows persisted result', async ({ page, context, baseUrl }) => {
-  await page.goto(baseUrl); await page.getByText('AI', { exact: true }).click(); await page.getByRole('button', { name: 'Start game' }).click(); await page.getByRole('button', { name: 'Finish starting build' }).click(); const id = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId')); if (!id) throw new Error('Missing game id.'); await expect(page.getByText(/AI is building|AI action/)).toBeVisible(); await page.close();
+  await page.goto(baseUrl); await page.getByRole('group', { name: 'First player' }).getByText('AI', { exact: true }).click(); await page.getByRole('button', { name: 'Start game' }).click(); await page.getByRole('button', { name: 'Finish starting build' }).click(); const id = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId')); if (!id) throw new Error('Missing game id.'); await expect(page.getByText(/AI is building|AI action/)).toBeVisible(); await page.close();
   let complete = false; for (let count = 0; count < 100 && !complete; count += 1) { const status = await fetch(`${baseUrl}/api/games/${id}/ai-turn`).then((response) => response.json()) as { status: string }; complete = status.status === 'complete'; if (!complete) await new Promise((resolve) => setTimeout(resolve, 20)); } expect(complete).toBe(true);
   const reopened = await context.newPage(); await reopened.goto(baseUrl); await reopened.evaluate((gameId) => localStorage.setItem('hexdeck.activeGameId', gameId), id); await reopened.reload(); await expect(reopened.getByText(/Turn 2 · your action/)).toBeVisible();
 });

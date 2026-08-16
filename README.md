@@ -1,6 +1,6 @@
 # Hexdeck
 
-Hexdeck is a Dominion-style deck builder with a five-space fighting arena. One human plays against a ThinHarness AI. Each player creates a private starting build, then uses complete turns to control range, combine cards, buy improvements, and reduce the opponent from 20 health to 0.
+Hexdeck is a Dominion-style deck builder with a five-space fighting arena. Play against a ThinHarness AI or play a two-player local game on one laptop. Each player creates a starting build, then uses complete turns to control range, combine cards, buy improvements, and reduce the opponent from 20 health to 0.
 
 ## Run
 
@@ -32,9 +32,9 @@ Saved games use schema version 3. Old ring-out saves are rejected and are not mi
 
 ## Play
 
-1. Select and edit the AI strategy prompt.
+1. Select an AI or local opponent. For AI games, select and edit the strategy prompt.
 2. Select the first player.
-3. Spend up to 12 money on any starting cards. Unspent money carries into the first Buy phase.
+3. Spend up to 12 money on any starting cards. In a local game, Player 1 builds before Player 2. Unspent money carries into each player's first Buy phase.
 4. Play any number of Action cards during your complete turn.
 5. End the Action phase to play all Treasure cards.
 6. Buy any number of affordable cards, then end the Buy phase.

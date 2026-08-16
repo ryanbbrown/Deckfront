@@ -8,7 +8,7 @@ export function Board({ game }: { game: SafeGameView }) {
           <div key={space} className="arena-space" data-space={space}>
             <span className="arena-space__number">{space}</span>
             {fighter && <div className={`fighter fighter--${fighter.playerId}`} data-player-id={fighter.playerId} data-position={space}>
-              <strong>{fighter.playerId === game.humanPlayerId ? 'You' : 'AI'}</strong><span>{fighter.health} HP</span>
+              <strong>{game.opponentMode === 'local' ? (fighter.playerId === 'ochre' ? 'Player 1' : 'Player 2') : fighter.playerId === game.humanPlayerId ? 'You' : 'AI'}</strong><span>{fighter.health} HP</span>
               <small>{fighter.aimed ? 'Aimed' : ''}{fighter.exposed ? ' Exposed' : ''}</small>
             </div>}
           </div>

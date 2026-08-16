@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 const playerId = z.enum(['ochre', 'indigo']);
+const opponentMode = z.enum(['ai', 'local']);
 const card = z.object({ id: z.string(), definitionId: z.string() });
 const deck = z.object({ draw: z.array(card), hand: z.array(card), discard: z.array(card), play: z.array(card) });
 const phase = z.enum(['startingBuild', 'action', 'buy', 'ended']);
@@ -32,7 +33,7 @@ export const gameRecordSchema = z.object({
   schemaVersion: z.literal(3), id: z.string().uuid(), revision: z.number().int().nonnegative(),
   createdAt: z.string().datetime(), updatedAt: z.string().datetime(), finishedAt: z.string().datetime().nullable(),
   completedActions: z.number().int().nonnegative(), durationSeconds: z.number().nonnegative().nullable(),
-  humanPlayerId: playerId, aiPlayerId: playerId, strategy: z.object({ presetId: z.string(), markdown: z.string() }),
+  humanPlayerId: playerId, aiPlayerId: playerId, opponentMode, strategy: z.object({ presetId: z.string(), markdown: z.string() }),
   aiRuntime: z.object({ model: z.string(), effort: z.string() }), humanBuildProposal: z.array(z.string()),
   aiActions: z.array(z.object({
     committedRevision: z.number().int().nonnegative(), turn: z.number().int().nonnegative(), phase,
@@ -45,7 +46,7 @@ export const gameRecordSchema = z.object({
 });
 export const createGameRequestSchema = z.object({
   seed: z.number().int().optional(), strategyPresetId: z.string().min(1), strategyMarkdown: z.string().min(1).max(50_000),
-  firstPlayerId: playerId.default('ochre')
+  firstPlayerId: playerId.default('ochre'), opponentMode: opponentMode.default('ai')
 });
 export const buildRequestSchema = z.object({ expectedRevision: z.number().int().nonnegative(), definitionIds: z.array(z.string()).max(1000), complete: z.boolean() });
 export const actionRequestSchema = z.object({ expectedRevision: z.number().int().nonnegative(), actionId: z.string().min(1) });

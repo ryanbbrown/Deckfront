@@ -17,7 +17,7 @@ export const requiredCards = [
 ];
 
 export const requiredBrowserFlows = [
-  'startingBuild', 'zeroPaidBuild', 'buildAddRemoveRepeat', 'buildRefresh', 'buildRace', 'buildLocked',
+  'startingBuild', 'localTwoPlayer', 'zeroPaidBuild', 'buildAddRemoveRepeat', 'buildRefresh', 'buildRace', 'buildLocked',
   'freeCopper', 'overBudgetBuild', 'humanFirst', 'aiFirst', 'hiddenAiBuild', 'editedPrompt', 'promptCanClear',
   'carriedStartingMoney', 'treasureAutoPlay', 'footworkSelections', 'cullBothForms', 'cullNoPair',
   'disabledReasons', 'drawPreviewOpaque', 'buyDrawOpaque', 'previewUndoConfirm', 'multiplePurchases',

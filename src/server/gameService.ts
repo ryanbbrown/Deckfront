@@ -4,20 +4,20 @@ import {
   listActionAvailability, listLegalActions, marketCost, rangeBand, replayCommands
 } from '../game';
 import type { GameCommand, PlayerId } from '../game';
-import type { RedactedExport, SafeCardInstance, SafeGameView } from '../shared/api';
+import type { OpponentMode, RedactedExport, SafeCardInstance, SafeGameView } from '../shared/api';
 import type { GameRecord, GameRepository } from './types';
 
 export class ConflictError extends Error {}
 export class ForbiddenActionError extends Error {}
 export class BadBuildError extends Error {}
-export interface CreateGameInput { seed?: number | undefined; strategyPresetId: string; strategyMarkdown: string; firstPlayerId?: PlayerId | undefined }
+export interface CreateGameInput { seed?: number | undefined; strategyPresetId: string; strategyMarkdown: string; firstPlayerId?: PlayerId | undefined; opponentMode?: OpponentMode | undefined }
 export class GameService {
   constructor(private readonly repository: GameRepository, private readonly aiRuntime = { model: 'openai:gpt-5.6-luna', effort: 'low' }) {}
   async create(input: CreateGameInput): Promise<SafeGameView> {
     const now = new Date().toISOString(); const initialState = createGame({ seed: input.seed ?? Date.now(), firstPlayerId: input.firstPlayerId });
     const record: GameRecord = {
       schemaVersion: 3, id: randomUUID(), revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
-      completedActions: 0, durationSeconds: null, humanPlayerId: 'ochre', aiPlayerId: 'indigo',
+      completedActions: 0, durationSeconds: null, humanPlayerId: 'ochre', aiPlayerId: 'indigo', opponentMode: input.opponentMode ?? 'ai',
       strategy: { presetId: input.strategyPresetId, markdown: input.strategyMarkdown }, aiRuntime: { ...this.aiRuntime },
       humanBuildProposal: [], aiActions: [], initialState: cloneGame(initialState), committedCommands: [],
       committedState: cloneGame(initialState), draft: { baseVersion: 0, baseState: cloneGame(initialState), command: null }, state: initialState
@@ -29,18 +29,21 @@ export class GameService {
   async updateHumanBuild(id: string, expectedRevision: number, definitionIds: string[], complete: boolean): Promise<SafeGameView> {
     return this.repository.withLock(id, async () => {
       const record = await this.repository.load(id); this.assertRevision(record, expectedRevision);
-      if (record.state.phase !== 'startingBuild' || record.state.players[record.humanPlayerId].startingBuild) throw new ForbiddenActionError('The human starting build is already complete.');
+      const builderId = record.opponentMode === 'local' ? record.state.activePlayerId : record.humanPlayerId;
+      if (record.state.phase !== 'startingBuild' || record.state.players[builderId].startingBuild) throw new ForbiddenActionError('This starting build is already complete.');
+      if (record.opponentMode === 'ai' && builderId !== record.humanPlayerId) throw new ForbiddenActionError('The human starting build is already complete.');
       try { for (const definitionId of definitionIds) cardDefinition(definitionId); }
       catch { throw new BadBuildError('Starting build contains an unknown card.'); }
       if (complete && marketCost(definitionIds) > 12) throw new BadBuildError('Starting build costs more than 12 money.');
       record.humanBuildProposal = [...definitionIds];
-      if (complete) this.commitCommand(record, { type: 'submitStartingBuild', playerId: record.humanPlayerId, definitionIds });
+      if (complete) { this.commitCommand(record, { type: 'submitStartingBuild', playerId: builderId, definitionIds }); record.humanBuildProposal = []; }
       this.touch(record); this.assertRecordReplay(record); await this.repository.save(record); return this.safeView(record);
     });
   }
   async commitAiBuild(id: string, baseRevision: number, definitionIds: string[], summary: string, durationSeconds: number): Promise<SafeGameView> {
     return this.repository.withLock(id, async () => {
       const record = await this.repository.load(id); this.assertRevision(record, baseRevision);
+      if (record.opponentMode !== 'ai') throw new ForbiddenActionError('This game has no AI player.');
       if (record.state.phase !== 'startingBuild' || record.state.activePlayerId !== record.aiPlayerId) throw new ForbiddenActionError('There is no AI starting build to commit.');
       const turn = record.state.turn; const phase = record.state.phase;
       this.commitCommand(record, { type: 'submitStartingBuild', playerId: record.aiPlayerId, definitionIds });
@@ -80,6 +83,7 @@ export class GameService {
   async commitAiAction(id: string, baseRevision: number, actionId: string, summary: string, durationSeconds: number, decisionIndex: number, fallback = false): Promise<SafeGameView> {
     return this.repository.withLock(id, async () => {
       const record = await this.repository.load(id); this.assertRevision(record, baseRevision);
+      if (record.opponentMode !== 'ai') throw new ForbiddenActionError('This game has no AI player.');
       if (record.state.activePlayerId !== record.aiPlayerId || record.state.winner || record.state.phase === 'startingBuild') throw new ForbiddenActionError('There is no AI action to commit.');
       if (record.draft.command) throw new ConflictError('The AI action did not start at a confirmation boundary.');
       const selected = listLegalActions(record.state).find((action) => action.id === actionId);
@@ -96,7 +100,8 @@ export class GameService {
     record.draft = { baseVersion: record.state.version, baseState: cloneGame(record.state), command: null };
   }
   private assertHumanChoice(record: GameRecord): void {
-    if (record.state.activePlayerId !== record.humanPlayerId || record.state.winner || record.state.phase === 'startingBuild') throw new ForbiddenActionError('It is not the human player’s turn.');
+    const localTurn = record.opponentMode === 'local';
+    if ((!localTurn && record.state.activePlayerId !== record.humanPlayerId) || record.state.winner || record.state.phase === 'startingBuild') throw new ForbiddenActionError('It is not a local player’s turn.');
   }
   private touch(record: GameRecord): void { record.revision += 1; record.updatedAt = new Date().toISOString(); }
   private finish(record: GameRecord): void { record.finishedAt = record.updatedAt; record.durationSeconds = Math.max(0, Math.round((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 100) / 10); }
@@ -110,29 +115,31 @@ export class GameService {
     assertInvariants(record.state);
   }
   private safeView(record: GameRecord): SafeGameView {
-    const state = record.state; const preview = record.draft.command !== null;
-    const baseHandIds = new Set(record.draft.baseState.players[record.humanPlayerId].deck.hand.map((card) => card.id));
-    const hideEveryHumanHandCard = record.draft.command?.type === 'endBuyPhase';
+    const state = record.state; const preview = record.draft.command !== null; const local = record.opponentMode === 'local';
+    const viewPlayerId = local ? (preview ? record.draft.baseState.activePlayerId : state.activePlayerId) : record.humanPlayerId;
+    const baseHandIds = new Set(record.draft.baseState.players[viewPlayerId].deck.hand.map((card) => card.id));
+    const hideEveryViewedHandCard = record.draft.command?.type === 'endBuyPhase';
     const players = Object.fromEntries((['ochre', 'indigo'] as const).map((playerId) => {
-      const player = state.players[playerId]; let hiddenIndex = 0;
-      const hand: SafeCardInstance[] | null = playerId === record.humanPlayerId ? player.deck.hand.map((card) => {
-        if (preview && (hideEveryHumanHandCard || !baseHandIds.has(card.id))) { hiddenIndex += 1; return { id: `hidden-${hiddenIndex}`, definitionId: null }; }
+      const player = state.players[playerId]; let hiddenIndex = 0; const handIsVisible = local || playerId === record.humanPlayerId;
+      const hand: SafeCardInstance[] | null = handIsVisible ? player.deck.hand.map((card) => {
+        if (playerId === viewPlayerId && preview && (hideEveryViewedHandCard || !baseHandIds.has(card.id))) { hiddenIndex += 1; return { id: `hidden-${hiddenIndex}`, definitionId: null }; }
         return { ...card };
       }) : null;
       return [playerId, { id: playerId, hand, zoneCounts: { draw: player.deck.draw.length, hand: player.deck.hand.length, discard: player.deck.discard.length, play: player.deck.play.length }, money: player.money, firstBuyMoney: player.firstBuyMoney, firstBuyPending: player.firstBuyPending, purchases: [...player.purchases] }];
     })) as SafeGameView['players'];
-    const canChoose = state.activePlayerId === record.humanPlayerId && !state.winner && !record.draft.command && state.phase !== 'startingBuild';
+    const canChoose = (local || state.activePlayerId === record.humanPlayerId) && !state.winner && !record.draft.command && state.phase !== 'startingBuild';
     const completedBuilds = state.players.ochre.startingBuild && state.players.indigo.startingBuild ? { ochre: [...state.players.ochre.startingBuild], indigo: [...state.players.indigo.startingBuild] } : null;
     return {
       schemaVersion: 3, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
       elapsedSeconds: Math.max(0, Math.floor((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 1000)), completedActions: record.completedActions,
       durationSeconds: record.durationSeconds, humanPlayerId: record.humanPlayerId, aiPlayerId: record.aiPlayerId,
+      opponentMode: record.opponentMode, viewPlayerId,
       activePlayerId: state.activePlayerId, selectedFirstPlayerId: state.selectedFirstPlayerId, phase: state.phase, turn: state.turn, winner: state.winner,
       fighters: structuredClone(state.fighters), range: rangeBand(state), supply: { ...state.supply }, cards: structuredClone(CARDS), players,
       trashCount: state.trash.length, events: structuredClone(state.events), draftEventStart: record.draft.baseState.events.length,
-      legalActions: canChoose ? listLegalActions(record.draft.baseState) : [], actionAvailability: canChoose ? listActionAvailability(record.draft.baseState, record.humanPlayerId) : [],
+      legalActions: canChoose ? listLegalActions(record.draft.baseState) : [], actionAvailability: canChoose ? listActionAvailability(record.draft.baseState, viewPlayerId) : [],
       previewCommand: record.draft.command ? structuredClone(record.draft.command) : null, canUndo: preview, canConfirm: preview,
-      previewHidesDraws: preview && players[record.humanPlayerId].hand?.some((card) => card.definitionId === null) === true,
+      previewHidesDraws: preview && players[viewPlayerId].hand?.some((card) => card.definitionId === null) === true,
       humanBuildProposal: [...record.humanBuildProposal], completedBuilds, strategy: { ...record.strategy }, aiRuntime: { ...record.aiRuntime },
       lastAiSummary: record.aiActions.at(-1)?.summary ?? null
     };

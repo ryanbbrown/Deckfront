@@ -3,6 +3,7 @@ import type {
   Phase, PlayerId, RangeBand
 } from '../game/types';
 
+export type OpponentMode = 'ai' | 'local';
 export interface StrategyPreset { id: string; name: string; markdown: string }
 export interface SafeCardInstance { id: string; definitionId: string | null }
 export interface SafePlayer {
@@ -19,6 +20,7 @@ export interface SafeGameView {
   schemaVersion: 3;
   id: string; revision: number; createdAt: string; updatedAt: string; elapsedSeconds: number;
   completedActions: number; durationSeconds: number | null; humanPlayerId: PlayerId; aiPlayerId: PlayerId;
+  opponentMode: OpponentMode; viewPlayerId: PlayerId;
   activePlayerId: PlayerId; selectedFirstPlayerId: PlayerId; phase: Phase; turn: number; winner: PlayerId | null;
   fighters: Record<PlayerId, SafeFighter>; range: RangeBand; supply: Record<string, number>;
   cards: Record<string, CardDefinition>; players: Record<PlayerId, SafePlayer>; trashCount: number;

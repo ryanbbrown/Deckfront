@@ -15,6 +15,15 @@ async function server() {
   return { base: `http://127.0.0.1:${address.port}`, games };
 }
 describe('distance duel HTTP interface', () => {
+  it('creates a two-local-player game and accepts both sequential builds', async () => {
+    const { base } = await server(); const createdResponse = await fetch(`${base}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 2, strategyPresetId: 'close-pressure', strategyMarkdown: '# local', firstPlayerId: 'ochre', opponentMode: 'local' }) });
+    expect(createdResponse.status).toBe(201); const created = await createdResponse.json() as { id: string; revision: number; opponentMode: string; activePlayerId: string };
+    expect(created.opponentMode).toBe('local'); expect(created.activePlayerId).toBe('ochre');
+    const playerOne = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['footwork'], complete: true }) }).then((response) => response.json()) as { revision: number; activePlayerId: string; phase: string };
+    expect(playerOne.activePlayerId).toBe('indigo'); expect(playerOne.phase).toBe('startingBuild');
+    const playerTwo = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: playerOne.revision, definitionIds: ['aim'], complete: true }) }).then((response) => response.json()) as { phase: string; completedBuilds: Record<string, string[]> };
+    expect(playerTwo.phase).toBe('action'); expect(playerTwo.completedBuilds).toEqual({ ochre: ['footwork'], indigo: ['aim'] });
+  });
   it('returns a specific old-save schema error through HTTP', async () => {
     const { base, games } = await server(); const id = '11111111-1111-4111-8111-111111111111'; await mkdir(games, { recursive: true }); await writeFile(path.join(games, `${id}.json`), JSON.stringify({ schemaVersion: 2 }));
     const response = await fetch(`${base}/api/games/${id}`); expect(response.status).toBe(409); expect(await response.json()).toEqual({ error: 'Saved game schema 2 is not supported. Start a new game.' });

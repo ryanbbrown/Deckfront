@@ -7,6 +7,7 @@ import { AiTurnCoordinator } from '../src/server/aiCoordinator';
 import { GameService } from '../src/server/gameService';
 import { FileGameRepository, UnsupportedSchemaError } from '../src/server/persistence';
 import type { AiRunResult } from '../src/server/aiRunner';
+import type { OpponentMode } from '../src/shared/api';
 import type { GameRecord, GameRepository } from '../src/server/types';
 
 class MemoryRepository implements GameRepository {
@@ -16,12 +17,25 @@ class MemoryRepository implements GameRepository {
   async save(record: GameRecord) { this.record = structuredClone(record); }
   async withLock<T>(_id: string, work: () => Promise<T>) { return work(); }
 }
-async function setup(firstPlayerId: 'ochre' | 'indigo' = 'ochre') {
-  const repository = new MemoryRepository(); const service = new GameService(repository); const game = await service.create({ seed: 3, firstPlayerId, strategyPresetId: 'ranged-setup', strategyMarkdown: '# Ranged' });
+async function setup(firstPlayerId: 'ochre' | 'indigo' = 'ochre', opponentMode: OpponentMode = 'ai') {
+  const repository = new MemoryRepository(); const service = new GameService(repository); const game = await service.create({ seed: 3, firstPlayerId, opponentMode, strategyPresetId: 'ranged-setup', strategyMarkdown: '# Ranged' });
   return { repository, service, game };
 }
 
 describe('GameService setup and privacy', () => {
+  it('runs two sequential local builds and gives both local players complete turns', async () => {
+    const { service, game } = await setup('indigo', 'local');
+    expect(game.opponentMode).toBe('local'); expect(game.viewPlayerId).toBe('ochre');
+    const playerOne = await service.updateHumanBuild(game.id, game.revision, ['footwork'], true);
+    expect(playerOne.phase).toBe('startingBuild'); expect(playerOne.activePlayerId).toBe('indigo'); expect(playerOne.viewPlayerId).toBe('indigo'); expect(playerOne.humanBuildProposal).toEqual([]);
+    const playerTwo = await service.updateHumanBuild(game.id, playerOne.revision, ['aim', 'volley'], true);
+    expect(playerTwo.phase).toBe('action'); expect(playerTwo.activePlayerId).toBe('indigo'); expect(playerTwo.viewPlayerId).toBe('indigo'); expect(playerTwo.completedBuilds).toEqual({ ochre: ['footwork'], indigo: ['aim', 'volley'] }); expect(playerTwo.players.ochre.hand).toHaveLength(5); expect(playerTwo.players.indigo.hand).toHaveLength(5);
+    const endAction = playerTwo.legalActions.find((action) => action.command.type === 'endActionPhase')!; const actionPreview = await service.previewHumanAction(game.id, playerTwo.revision, endAction.id); const buy = await service.confirmHumanAction(game.id, actionPreview.revision);
+    expect(buy.phase).toBe('buy'); expect(buy.viewPlayerId).toBe('indigo');
+    const endBuy = buy.legalActions.find((action) => action.command.type === 'endBuyPhase')!; const buyPreview = await service.previewHumanAction(game.id, buy.revision, endBuy.id); const nextTurn = await service.confirmHumanAction(game.id, buyPreview.revision);
+    expect(nextTurn.activePlayerId).toBe('ochre'); expect(nextTurn.viewPlayerId).toBe('ochre'); expect(nextTurn.phase).toBe('action');
+    const coordinator = new AiTurnCoordinator(service, { async run() { throw new Error('must not run'); } }); await expect(coordinator.start(game.id)).rejects.toThrow('no AI player');
+  });
   it('persists a private proposal, rejects stale and post-completion edits, and reveals only after AI completion', async () => {
     const { service, game } = await setup();
     const edited = await service.updateHumanBuild(game.id, 0, ['aim', 'volley'], false); expect(edited.humanBuildProposal).toEqual(['aim', 'volley']); expect(edited.completedBuilds).toBeNull();

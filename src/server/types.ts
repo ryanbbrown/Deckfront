@@ -1,10 +1,11 @@
 import type { GameCommand, GameState, Phase, PlayerId } from '../game/types';
-import type { DraftRecord } from '../shared/api';
+import type { DraftRecord, OpponentMode } from '../shared/api';
 
 export interface GameRecord {
   schemaVersion: 3;
   id: string; revision: number; createdAt: string; updatedAt: string; finishedAt: string | null;
   completedActions: number; durationSeconds: number | null; humanPlayerId: PlayerId; aiPlayerId: PlayerId;
+  opponentMode: OpponentMode;
   strategy: { presetId: string; markdown: string }; aiRuntime: { model: string; effort: string };
   humanBuildProposal: string[];
   aiActions: Array<{

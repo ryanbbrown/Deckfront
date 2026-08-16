@@ -14,7 +14,8 @@
     "volley": ["pw:DD-E2E-009", "pw:DD-E2E-011", "pw:DD-E2E-015", "pw:DD-E2E-012"]
   },
   "browserFlows": {
-    "startingBuild": ["pw:DD-E2E-001", "pw:DD-E2E-026"],
+    "startingBuild": ["pw:DD-E2E-001", "pw:DD-E2E-026", "pw:DD-E2E-035"],
+    "localTwoPlayer": ["pw:DD-E2E-035", "vitest:GameService setup and privacy > runs two sequential local builds and gives both local players complete turns"],
     "zeroPaidBuild": ["pw:DD-E2E-026"],
     "buildAddRemoveRepeat": ["pw:DD-E2E-001"],
     "buildRefresh": ["pw:DD-E2E-001"],
