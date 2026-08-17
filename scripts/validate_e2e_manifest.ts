@@ -30,7 +30,7 @@ export const requiredBrowserFlows = [
 
 export const requiredAiFlows = [
   'independentBuild', 'strategyTrace', 'modelSummaryTrace', 'completeServerTurn', 'serverContinuesWithoutPage',
-  'aiErrorRetry', 'retryPreservesCommits', 'decisionGuard', 'validFakeBuild', 'liveBridgeBuildAndTurn'
+  'aiErrorRetry', 'retryPreservesCommits', 'undoAiRace', 'decisionGuard', 'validFakeBuild', 'liveBridgeBuildAndTurn'
 ];
 
 export function validateManifest(manifest: CoverageManifest, discoveredIds: Set<string>): { mappings: number; tests: number } {
@@ -38,8 +38,11 @@ export function validateManifest(manifest: CoverageManifest, discoveredIds: Set<
   validateSection('cards', manifest.cards, requiredCards, discoveredIds, errors);
   validateSection('browserFlows', manifest.browserFlows, requiredBrowserFlows, discoveredIds, errors);
   validateSection('aiFlows', manifest.aiFlows, requiredAiFlows, discoveredIds, errors);
-  if (errors.length) throw new Error(errors.join('\n'));
   const mapped = new Set(Object.values(manifest).flatMap((section) => Object.values(section).flat()));
+  for (const testId of discoveredIds) {
+    if (testId.startsWith('pw:DD-E2E-') && !mapped.has(testId)) errors.push(`${testId} is an orphaned distance-duel browser test.`);
+  }
+  if (errors.length) throw new Error(errors.join('\n'));
   return { mappings: Object.values(manifest).reduce((total, section) => total + Object.keys(section).length, 0), tests: mapped.size };
 }
 

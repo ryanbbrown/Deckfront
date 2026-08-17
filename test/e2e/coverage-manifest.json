@@ -37,7 +37,7 @@
     "cullNoPair": ["pw:DD-E2E-020"],
     "disabledReasons": ["pw:DD-E2E-013", "pw:DD-E2E-017", "pw:DD-E2E-018", "pw:DD-E2E-020"],
     "immediateActions": ["pw:DD-E2E-003", "pw:DD-E2E-004", "pw:DD-E2E-035"],
-    "globalUndo": ["pw:DD-E2E-002", "pw:DD-E2E-005", "pw:DD-E2E-006", "pw:DD-E2E-012", "pw:DD-E2E-035"],
+    "globalUndo": ["pw:DD-E2E-002", "pw:DD-E2E-005", "pw:DD-E2E-006", "pw:DD-E2E-012", "pw:DD-E2E-032", "pw:DD-E2E-035"],
     "undoRefresh": ["pw:DD-E2E-028"],
     "moneyExpires": ["pw:DD-E2E-036", "vitest:complete turns and purchases > expires normal money and alternates four complete local turns exactly once"],
     "treasureIdentity": ["pw:DD-E2E-037", "vitest:complete turns and purchases > keeps three bought Gold cards as Gold and each provides three money"],
@@ -74,6 +74,7 @@
     "serverContinuesWithoutPage": ["pw:DD-E2E-030"],
     "aiErrorRetry": ["pw:DD-E2E-029"],
     "retryPreservesCommits": ["vitest:server-owned AI sequence > preserves earlier commits and resumes a failed turn without duplicate commands"],
+    "undoAiRace": ["vitest:server-owned AI sequence > discards an in-flight AI result after Undo and starts the next AI turn fresh"],
     "decisionGuard": ["vitest:server-owned AI sequence > limits a free-Copper loop and deterministically ends the phase"],
     "validFakeBuild": ["pw:DD-E2E-026"],
     "liveBridgeBuildAndTurn": ["pw:LIVE-BROWSER-001"]

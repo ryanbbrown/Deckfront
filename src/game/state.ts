@@ -12,7 +12,7 @@ export function createGame(config: number | CreateGameConfig): GameState {
   const seed = typeof config === 'number' ? config : config.seed;
   const firstPlayer = typeof config === 'number' ? 'ochre' : config.firstPlayerId ?? 'ochre';
   return {
-    schemaVersion: 5, seed, rngState: seed >>> 0, version: 0, nextCardSerial: 1,
+    schemaVersion: 6, seed, rngState: seed >>> 0, version: 0, nextCardSerial: 1,
     activePlayerId: 'ochre', selectedFirstPlayerId: firstPlayer, phase: 'startingBuild', turn: 0, winner: null,
     players: { ochre: player('ochre'), indigo: player('indigo') },
     fighters: {

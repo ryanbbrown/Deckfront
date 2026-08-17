@@ -25,8 +25,8 @@ describe('distance duel HTTP interface', () => {
     expect(playerTwo.phase).toBe('action'); expect(playerTwo.completedBuilds).toEqual({ ochre: ['footwork'], indigo: ['aim'] });
   });
   it('returns a specific old-save schema error through HTTP', async () => {
-    const { base, games } = await server(); const id = '11111111-1111-4111-8111-111111111111'; await mkdir(games, { recursive: true }); await writeFile(path.join(games, `${id}.json`), JSON.stringify({ schemaVersion: 4 }));
-    const response = await fetch(`${base}/api/games/${id}`); expect(response.status).toBe(409); expect(await response.json()).toEqual({ error: 'Saved game schema 4 is not supported. Start a new game.' });
+    const { base, games } = await server(); const id = '11111111-1111-4111-8111-111111111111'; await mkdir(games, { recursive: true }); await writeFile(path.join(games, `${id}.json`), JSON.stringify({ schemaVersion: 5 }));
+    const response = await fetch(`${base}/api/games/${id}`); expect(response.status).toBe(409); expect(await response.json()).toEqual({ error: 'Saved game schema 5 is not supported. Start a new game.' });
   });
   it('returns HTTP 400 for an unknown build card without changing revision or proposal', async () => {
     const { base } = await server(); const created = await fetch(`${base}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 1, strategyPresetId: 'close-pressure', strategyMarkdown: '# close', firstPlayerId: 'ochre' }) }).then((response) => response.json()) as { id: string; revision: number; humanBuildProposal: string[] };
@@ -38,6 +38,6 @@ describe('distance duel HTTP interface', () => {
     const created = await createdResponse.json() as { id: string; revision: number };
     const edit = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['feint'], complete: false }) }); expect(edit.status).toBe(200);
     const stale = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: [], complete: false }) }); expect(stale.status).toBe(409);
-    const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(5); expect(JSON.stringify(exported)).not.toContain('committedState');
+    const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(6); expect(JSON.stringify(exported)).not.toContain('committedState');
   });
 });

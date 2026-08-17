@@ -8,10 +8,11 @@ interface AiTurnService {
   get(id: string): Promise<SafeGameView>;
   getRecord(id: string): Promise<GameRecord>;
   commitAiBuild(id: string, baseRevision: number, definitionIds: string[], summary: string, durationSeconds: number): Promise<SafeGameView>;
+  undoHumanAction(id: string, expectedRevision: number): Promise<SafeGameView>;
   commitAiAction(id: string, baseRevision: number, actionId: string, summary: string, durationSeconds: number, decisionIndex: number, fallback?: boolean): Promise<SafeGameView>;
 }
 interface AiTurnRunner { run(record: GameRecord): Promise<AiRunResult>; finalize?(result: AiRunResult, outcome: AiFinalOutcome): Promise<void> }
-interface Job { status: 'running' | 'complete' | 'error'; game?: SafeGameView; error?: string }
+interface Job { status: 'running' | 'complete' | 'error'; cancelled: boolean; game?: SafeGameView; error?: string }
 export class AiTurnCoordinator {
   private readonly jobs = new Map<string, Job>();
   constructor(private readonly service: AiTurnService, private readonly runner: AiTurnRunner) {}
@@ -20,7 +21,14 @@ export class AiTurnCoordinator {
     if (record.opponentMode !== 'ai') throw new ForbiddenActionError('This game has no AI player.');
     if (record.state.activePlayerId !== record.aiPlayerId || record.state.winner) throw new ForbiddenActionError('There is no AI decision to run.');
     const existing = this.jobs.get(id); if (existing?.status === 'running') return { status: 'running' };
-    const job: Job = { status: 'running' }; this.jobs.set(id, job); void this.run(id, job); return { status: 'running' };
+    const job: Job = { status: 'running', cancelled: false }; this.jobs.set(id, job); void this.run(id, job); return { status: 'running' };
+  }
+  async undoHumanAction(id: string, expectedRevision: number): Promise<SafeGameView> {
+    const game = await this.service.undoHumanAction(id, expectedRevision);
+    const job = this.jobs.get(id);
+    if (job) job.cancelled = true;
+    this.jobs.delete(id);
+    return game;
   }
   async status(id: string): Promise<AiTurnStatus> {
     const job = this.jobs.get(id); if (!job) return { status: 'idle' }; if (job.status === 'running') return { status: 'running' };
@@ -42,11 +50,12 @@ export class AiTurnCoordinator {
         }
         if (record.state.phase === 'startingBuild') {
           const result = await this.runner.run(record);
+          if (job.cancelled) return;
           if (result.kind !== 'build') throw new ConflictError('AI bridge returned an action during starting build.');
           try {
             job.game = await this.service.commitAiBuild(id, result.baseRevision, result.definitionIds, result.summary, result.durationSeconds);
             await this.runner.finalize?.(result, { status: 'complete', committedRevision: job.game.revision });
-          } catch (error) { await this.finishError(result, error); throw error; }
+          } catch (error) { if (job.cancelled) return; await this.finishError(result, error); throw error; }
           continue;
         }
         if (decisions >= 30) {
@@ -57,14 +66,16 @@ export class AiTurnCoordinator {
           continue;
         }
         const result = await this.runner.run(record);
+        if (job.cancelled) return;
         if (result.kind !== 'action') throw new ConflictError('AI bridge returned a build during a normal turn.');
         try {
           job.game = await this.service.commitAiAction(id, result.baseRevision, result.actionId, result.summary, result.durationSeconds, decisions);
           await this.runner.finalize?.(result, { status: 'complete', committedRevision: job.game.revision });
-        } catch (error) { await this.finishError(result, error); throw error; }
+        } catch (error) { if (job.cancelled) return; await this.finishError(result, error); throw error; }
         decisions += 1;
       }
     } catch (error) {
+      if (job.cancelled || this.jobs.get(id) !== job) return;
       job.status = 'error'; job.error = error instanceof Error ? error.message : 'AI decision failed.';
     }
   }

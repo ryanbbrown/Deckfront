@@ -21,7 +21,7 @@ test('DD-E2E-035: two local players draft in sequence and take complete turns on
   await page.goto(baseUrl); await page.getByText('Local player', { exact: true }).click(); await page.getByRole('group', { name: 'First player' }).getByText('Player 2', { exact: true }).click(); await page.getByRole('button', { name: 'Start game' }).click();
   await expect(page.getByText('Player 1 starting build')).toBeVisible(); await page.getByLabel('Add Footwork').click(); await page.getByRole('button', { name: 'Finish starting build' }).click();
   await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.getByLabel('Add Aim').click(); await page.getByRole('button', { name: 'Finish starting build' }).click();
-  await expect(page.getByText(/Turn 1 · Player 2 action/)).toBeVisible(); await expect(page.getByRole('heading', { name: 'Player 2 hand' })).toBeVisible(); await expect(page.getByText('AI is building…')).toHaveCount(0);
+  await expect(page.getByText(/Turn 1 · Player 2 action/)).toBeVisible(); await expect(page.getByRole('heading', { name: 'Player 2 hand' })).toBeVisible(); await expect(page.getByText('AI is building…')).toHaveCount(0); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('title', 'Player 1'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('title', 'Player 2');
   await page.getByRole('button', { name: 'End Action phase' }).click(); await expect(page.getByText(/Turn 1 · Player 2 buy/)).toBeVisible(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 1 · Player 2 action/)).toBeVisible();
   await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 2 · Player 1 action/)).toBeVisible(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 1 · Player 2 buy/)).toBeVisible();
   await page.getByRole('button', { name: 'End Buy phase' }).click(); await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 3 · Player 2 action/)).toBeVisible();
@@ -144,11 +144,11 @@ test('DD-E2E-020: Cull is disabled when no second eligible card exists', async (
   await expect(page.locator('[data-card-name="Cull"]')).toContainText('Cull needs exactly two eligible cards.'); await expect(page.locator('[data-card-name="Cull"]')).toBeDisabled();
 });
 
-test('DD-E2E-021: carried starting money funds two Gold purchases before explicit cleanup', async ({ page, openGame }) => {
-  await openGame(page, (record) => { seedHand(record, []); record.state.players.ochre.firstBuyMoney = 12; record.state.players.ochre.firstBuyPending = true; });
-  await page.getByRole('button', { name: 'End Action phase' }).click(); await expect(page.getByTestId('zone-money')).toContainText('12');
-  await page.locator('[data-market-card="Gold"]').click(); await page.locator('[data-market-card="Gold"]').click(); await expect(page.getByTestId('zone-money')).toContainText('0');
-  await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/AI action|AI buy|your action/)).toBeVisible();
+test('DD-E2E-021: starting-build carry appears in only the first local Buy phase', async ({ page, openGame }) => {
+  await openGame(page, (record) => { record.opponentMode = 'local'; seedHand(record, []); record.state.players.ochre.firstBuyMoney = 12; record.state.players.ochre.firstBuyPending = true; record.state.players.indigo.firstBuyMoney = 0; record.state.players.indigo.firstBuyPending = false; });
+  await page.getByRole('button', { name: 'End Action phase' }).click(); await expect(page.getByTestId('zone-money')).toHaveText('Player 1 money: 12');
+  await page.getByRole('button', { name: 'End Buy phase' }).click(); await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible();
+  await page.getByRole('button', { name: 'End Action phase' }).click(); await expect(page.getByTestId('zone-money')).toHaveText('Player 1 money: 0');
 });
 
 test('DD-E2E-022: normal browser setup completes one human and one fake AI turn', async ({ page, baseUrl }) => {
@@ -207,8 +207,8 @@ test('DD-E2E-032: Buy completion redraw reveals cards immediately and can be und
   await openGame(page, (record) => { seedHand(record, ['aim', 'volley']); record.state.phase = 'buy'; record.state.players.ochre.money = 0; }); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.locator('[data-card-name="Aim"]')).toBeVisible(); await expect(page.locator('[data-card-name="Volley"]')).toBeVisible(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 1 · your buy/)).toBeVisible();
 });
 
-test('DD-E2E-034: public purchase panel renders both human and AI card names', async ({ page, openGame }) => {
-  await openGame(page, (record) => { record.state.players.ochre.purchases = ['silver', 'footwork']; record.state.players.indigo.purchases = ['aim', 'volley']; }); await expect(page.getByTestId('human-purchases')).toHaveText('You: Silver, Footwork'); await expect(page.getByTestId('ai-purchases')).toHaveText('AI: Aim, Volley');
+test('DD-E2E-034: public labels and purchase panel use player-facing names', async ({ page, openGame }) => {
+  await openGame(page, (record) => { record.state.players.ochre.purchases = ['silver', 'footwork']; record.state.players.indigo.purchases = ['aim', 'volley']; }); await expect(page.getByTestId('zone-money')).toHaveText('Money: 0'); await expect(page.getByTestId('human-purchases')).toHaveText('You: Silver, Footwork'); await expect(page.getByTestId('ai-purchases')).toHaveText('AI: Aim, Volley'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('title', 'You'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('title', 'AI');
 });
 
 test('DD-E2E-036: unspent normal money expires before the same local player returns', async ({ page, openGame }) => {
@@ -218,19 +218,24 @@ test('DD-E2E-036: unspent normal money expires before the same local player retu
 });
 
 test('DD-E2E-037: three bought Gold stay Gold in the deck summary and later hand', async ({ page, openGame }) => {
-  await openGame(page, (record) => { record.opponentMode = 'local'; seedHand(record, Array<string>(6).fill('gold')); record.state.players.ochre.firstBuyMoney = 0; record.state.players.ochre.firstBuyPending = false; record.state.players.indigo.firstBuyPending = false; });
-  await expect(page.locator('[data-card-name="Gold"]').first()).toContainText('+3 money'); await page.getByRole('button', { name: 'End Action phase' }).click();
+  await openGame(page, (record) => { record.opponentMode = 'local'; seedHand(record, []); expect(Object.values(record.state.players).flatMap((player) => [...player.deck.draw, ...player.deck.hand, ...player.deck.discard, ...player.deck.play]).map((card) => card.definitionId)).not.toContain('gold'); record.state.phase = 'buy'; record.state.players.ochre.money = 18; record.state.players.ochre.firstBuyMoney = 0; record.state.players.ochre.firstBuyPending = false; record.state.players.indigo.firstBuyPending = false; });
+  await expect(page.locator('[data-card-name="Gold"]')).toHaveCount(0); await expect(page.getByTestId('deck-summary').locator('[data-deck-card="Gold"]')).toHaveCount(0); await expect(page.getByTestId('zone-money')).toHaveText('Player 1 money: 18');
   for (let count = 0; count < 3; count += 1) await page.locator('[data-market-card="Gold"]').click();
-  await expect(page.getByTestId('deck-summary').locator('[data-deck-card="Gold"]')).toHaveText('Gold ×9'); await page.getByRole('button', { name: 'End Buy phase' }).click();
-  await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible(); await expect(page.locator('[data-card-name="Gold"]').first()).toContainText('+3 money');
+  await expect(page.getByTestId('zone-money')).toHaveText('Player 1 money: 0'); await expect(page.getByTestId('deck-summary').locator('[data-deck-card="Gold"]')).toHaveText('Gold ×3'); await expect(page.locator('.zones div').filter({ hasText: 'Discard' }).locator('strong')).toHaveText('3'); await page.getByRole('button', { name: 'End Buy phase' }).click();
+  await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible(); await expect(page.locator('[data-card-name="Gold"]')).toHaveCount(3); await expect(page.locator('[data-card-name="Gold"]').first()).toContainText('+3 money');
 });
 
 test('DD-E2E-038: a 15-card hand wraps without horizontal overflow at laptop sizes', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, Array<string>(15).fill('muster')); record.state.fighters.ochre.position = 3; record.state.fighters.indigo.position = 3; });
   for (const size of [{ width: 1440, height: 900 }, { width: 1280, height: 720 }, { width: 1024, height: 768 }]) {
     await page.setViewportSize(size); await expect(page.locator('[data-card-name="Muster"]')).toHaveCount(15);
-    const layout = await page.evaluate(() => { const panel = document.querySelector('[data-testid="hand-grid"]')!.getBoundingClientRect(); const cards = Array.from(document.querySelectorAll('[data-card-name="Muster"]')).map((card) => card.getBoundingClientRect()); return { overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth, inside: cards.every((card) => card.left >= panel.left && card.right <= panel.right + 1) }; });
-    expect(layout).toEqual({ overflow: 0, inside: true });
+    const layout = await page.evaluate(() => {
+      const viewportWidth = document.documentElement.clientWidth; const hand = document.querySelector('[data-testid="hand-grid"]')!.getBoundingClientRect(); const market = document.querySelector('.market-panel')!.getBoundingClientRect();
+      const cards = Array.from(document.querySelectorAll('[data-card-name="Muster"]')).map((card) => card.getBoundingClientRect()); const marketCards = Array.from(document.querySelectorAll('[data-market-card]')).map((card) => card.getBoundingClientRect());
+      const regions = ['.arena-panel', '.health-score', '.play-bar', '.hand-panel', '.market-panel'].map((selector) => document.querySelector(selector)!.getBoundingClientRect());
+      return { overflow: document.documentElement.scrollWidth - viewportWidth, rootClips: getComputedStyle(document.documentElement).overflowX === 'hidden', regionsInside: regions.every((region) => region.left >= 0 && region.right <= viewportWidth + 1), handInside: cards.every((card) => card.left >= hand.left && card.right <= hand.right + 1), marketInside: marketCards.every((card) => card.left >= market.left && card.right <= market.right + 1) };
+    });
+    expect(layout).toEqual({ overflow: 0, rootClips: false, regionsInside: true, handInside: true, marketInside: true });
   }
   await expect(page.locator('[data-player-id="ochre"]')).toBeVisible(); await expect(page.locator('[data-player-id="indigo"]')).toBeVisible(); await page.locator('[data-card-name="Muster"]').last().click(); await expect(page.locator('[data-card-name="Muster"]')).toHaveCount(14);
 });

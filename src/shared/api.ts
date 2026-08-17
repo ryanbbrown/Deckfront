@@ -17,7 +17,7 @@ export interface SafePlayer {
 }
 export interface SafeFighter { playerId: PlayerId; position: number; health: number; aimed: boolean; exposed: boolean }
 export interface SafeGameView {
-  schemaVersion: 5;
+  schemaVersion: 6;
   id: string; revision: number; createdAt: string; updatedAt: string; elapsedSeconds: number;
   completedActions: number; durationSeconds: number | null; humanPlayerId: PlayerId; aiPlayerId: PlayerId;
   opponentMode: OpponentMode; viewPlayerId: PlayerId;
@@ -31,4 +31,4 @@ export interface SafeGameView {
   lastAiSummary: string | null;
 }
 export interface AiTurnStatus { status: 'idle' | 'running' | 'complete' | 'error'; game?: SafeGameView; error?: string }
-export interface RedactedExport { schemaVersion: 5; exportedAt: string; game: SafeGameView }
+export interface RedactedExport { schemaVersion: 6; exportedAt: string; game: SafeGameView }

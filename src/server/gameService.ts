@@ -16,11 +16,11 @@ export class GameService {
   async create(input: CreateGameInput): Promise<SafeGameView> {
     const now = new Date().toISOString(); const initialState = createGame({ seed: input.seed ?? Date.now(), firstPlayerId: input.firstPlayerId });
     const record: GameRecord = {
-      schemaVersion: 5, id: randomUUID(), revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
+      schemaVersion: 6, id: randomUUID(), revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
       completedActions: 0, durationSeconds: null, humanPlayerId: 'ochre', aiPlayerId: 'indigo', opponentMode: input.opponentMode ?? 'ai',
       strategy: { presetId: input.strategyPresetId, markdown: input.strategyMarkdown }, aiRuntime: { ...this.aiRuntime },
       humanBuildProposal: [], aiActions: [], initialState: cloneGame(initialState), committedCommands: [],
-      committedState: cloneGame(initialState), undoCheckpoint: null, state: initialState
+      undoCheckpoint: null, state: initialState
     };
     await this.repository.create(record); return this.safeView(record);
   }
@@ -65,8 +65,8 @@ export class GameService {
     return this.repository.withLock(id, async () => {
       const record = await this.repository.load(id); this.assertRevision(record, expectedRevision);
       const checkpoint = record.undoCheckpoint; if (!checkpoint) throw new ForbiddenActionError('There is no action to undo.');
-      record.state = cloneGame(checkpoint.state); record.committedState = cloneGame(checkpoint.committedState);
       record.committedCommands = record.committedCommands.slice(0, checkpoint.committedCommandCount);
+      record.state = replayCommands(record.initialState, record.committedCommands);
       record.completedActions = checkpoint.completedActions; record.finishedAt = checkpoint.finishedAt; record.durationSeconds = checkpoint.durationSeconds;
       record.undoCheckpoint = null; this.touch(record); this.assertRecordReplay(record); await this.repository.save(record); return this.safeView(record);
     });
@@ -84,15 +84,15 @@ export class GameService {
       this.assertRecordReplay(record); await this.repository.save(record); return this.safeView(record);
     });
   }
-  async redactedExport(id: string): Promise<RedactedExport> { return { schemaVersion: 5, exportedAt: new Date().toISOString(), game: this.safeView(await this.repository.load(id)) }; }
+  async redactedExport(id: string): Promise<RedactedExport> { return { schemaVersion: 6, exportedAt: new Date().toISOString(), game: this.safeView(await this.repository.load(id)) }; }
   private checkpoint(record: GameRecord): UndoCheckpoint {
     return {
-      state: cloneGame(record.state), committedState: cloneGame(record.committedState), committedCommandCount: record.committedCommands.length,
-      completedActions: record.completedActions, finishedAt: record.finishedAt, durationSeconds: record.durationSeconds
+      committedCommandCount: record.committedCommands.length, completedActions: record.completedActions,
+      finishedAt: record.finishedAt, durationSeconds: record.durationSeconds
     };
   }
   private commitCommand(record: GameRecord, command: GameCommand): void {
-    record.state = applyCommand(record.state, command); record.committedCommands.push(command); record.committedState = cloneGame(record.state);
+    record.state = applyCommand(record.state, command); record.committedCommands.push(command);
   }
   private assertHumanChoice(record: GameRecord): void {
     const localTurn = record.opponentMode === 'local';
@@ -102,12 +102,9 @@ export class GameService {
   private finish(record: GameRecord): void { record.finishedAt = record.updatedAt; record.durationSeconds = Math.max(0, Math.round((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 100) / 10); }
   private assertRevision(record: GameRecord, expected: number): void { if (record.revision !== expected) throw new ConflictError(`Expected revision ${expected}, but current revision is ${record.revision}.`); }
   private assertRecordReplay(record: GameRecord): void {
-    const committed = replayCommands(record.initialState, record.committedCommands);
-    if (JSON.stringify(committed) !== JSON.stringify(record.committedState) || JSON.stringify(record.committedState) !== JSON.stringify(record.state)) throw new Error('Committed command replay diverged from the saved state.');
-    if (record.undoCheckpoint) {
-      const checkpoint = replayCommands(record.initialState, record.committedCommands.slice(0, record.undoCheckpoint.committedCommandCount));
-      if (JSON.stringify(checkpoint) !== JSON.stringify(record.undoCheckpoint.committedState) || JSON.stringify(checkpoint) !== JSON.stringify(record.undoCheckpoint.state)) throw new Error('Undo checkpoint replay diverged from the saved state.');
-    }
+    const replayed = replayCommands(record.initialState, record.committedCommands);
+    if (JSON.stringify(replayed) !== JSON.stringify(record.state)) throw new Error('Committed command replay diverged from the saved state.');
+    if (record.undoCheckpoint && record.undoCheckpoint.committedCommandCount >= record.committedCommands.length) throw new Error('Undo checkpoint does not precede the saved state.');
     assertInvariants(record.state);
   }
   private safeView(record: GameRecord): SafeGameView {
@@ -125,7 +122,7 @@ export class GameService {
     const canChoose = (local || state.activePlayerId === record.humanPlayerId) && !state.winner && state.phase !== 'startingBuild';
     const completedBuilds = state.players.ochre.startingBuild && state.players.indigo.startingBuild ? { ochre: [...state.players.ochre.startingBuild], indigo: [...state.players.indigo.startingBuild] } : null;
     return {
-      schemaVersion: 5, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
+      schemaVersion: 6, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
       elapsedSeconds: Math.max(0, Math.floor((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 1000)), completedActions: record.completedActions,
       durationSeconds: record.durationSeconds, humanPlayerId: record.humanPlayerId, aiPlayerId: record.aiPlayerId,
       opponentMode: record.opponentMode, viewPlayerId,

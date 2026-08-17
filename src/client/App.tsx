@@ -42,7 +42,7 @@ function Match({ game, error, onGame, onError, onNew }: { game: SafeGameView; er
   const [aiStatus, setAiStatus] = useState<'idle' | 'running' | 'error'>('idle'); const [aiError, setAiError] = useState<string | null>(null); const [attempt, setAttempt] = useState(0); const [aiElapsed, setAiElapsed] = useState(0);
   const aiActive = game.opponentMode === 'ai' && game.activePlayerId === game.aiPlayerId && !game.winner;
   useEffect(() => {
-    if (!aiActive) { setAiStatus('idle'); setAiElapsed(0); return; }
+    if (!aiActive) { setAiStatus('idle'); setAiError(null); setAiElapsed(0); return; }
     let cancelled = false; let timer: ReturnType<typeof setTimeout>; const elapsedTimer = setInterval(() => setAiElapsed((value) => value + 1), 1000);
     setAiStatus('running'); setAiError(null); setAiElapsed(0);
     async function poll() {
@@ -88,7 +88,7 @@ function Game({ game, error, aiStatus, aiElapsed, aiError, onGame, onError, onNe
   const endAction = game.legalActions.find((action) => action.command.type === 'endActionPhase'); const endBuy = game.legalActions.find((action) => action.command.type === 'endBuyPhase');
   const turnText = game.winner ? (local ? `${playerName(game, game.winner)} wins` : game.winner === game.humanPlayerId ? 'You win' : 'AI wins') : local ? `Turn ${game.turn} · ${actorName} ${game.phase}` : game.activePlayerId === game.humanPlayerId ? `Turn ${game.turn} · your ${game.phase}` : `Turn ${game.turn} · AI ${game.phase} · ${aiStatus} · ${aiElapsed}s`;
   return <main className="game-shell"><header className="game-header"><div><p className="eyebrow">Distance duel</p><h1>Hexdeck</h1></div><FighterScore game={game} /><button onClick={onNew}>New game</button></header>
-    <div className="play-bar"><div className="turn-banner" role="status">{turnText}</div><div className="phase-controls"><strong data-testid="zone-money">{actorName} money: {actor.money}</strong><button disabled={!game.canUndo || busy} onClick={() => void undo()}>Undo last action</button>{endAction && <button className="primary" disabled={busy} onClick={() => void act(endAction)}>End Action phase</button>}{endBuy && <button className="primary" disabled={busy} onClick={() => void act(endBuy)}>End Buy phase</button>}</div></div>
+    <div className="play-bar"><div className="turn-banner" role="status">{turnText}</div><div className="phase-controls"><strong data-testid="zone-money">{local ? `${actorName} money` : 'Money'}: {actor.money}</strong><button disabled={!game.canUndo || busy} onClick={() => void undo()}>Undo last action</button>{endAction && <button className="primary" disabled={busy} onClick={() => void act(endAction)}>End Action phase</button>}{endBuy && <button className="primary" disabled={busy} onClick={() => void act(endBuy)}>End Buy phase</button>}</div></div>
     {error && <p role="alert" className="error">{error}</p>}{!local && aiError && <p role="alert" className="error">{aiError} <button onClick={() => void onRetry()}>Retry AI</button></p>}{!local && game.lastAiSummary && <p className="ai-summary"><strong>AI:</strong> {game.lastAiSummary}</p>}
     <section className="arena-panel"><div className="range-label" data-testid="range">{game.range} range</div><Board game={game} /></section>
     <section className="zones"><div>Draw <strong>{actor.zoneCounts.draw}</strong></div><div>Discard <strong>{actor.zoneCounts.discard}</strong></div><div>Played <strong>{actor.zoneCounts.play}</strong></div><div data-testid="zone-trash">Trash <strong>{game.trashCount}</strong></div></section>

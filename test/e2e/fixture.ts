@@ -38,5 +38,5 @@ export { expect };
 export function seedHand(record: GameRecord, definitions: string[], draw: string[] = []): void {
   const deck = record.state.players.ochre.deck; record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.draw = draw.map((id) => createCard(record.state, id)); deck.hand = definitions.map((id) => createCard(record.state, id)); deck.discard = []; deck.play = [];
 }
-export function resetRecord(record: GameRecord): void { record.initialState = cloneGame(record.state); record.committedState = cloneGame(record.state); record.committedCommands = []; record.undoCheckpoint = null; record.revision = 0; record.completedActions = 0; record.aiActions = []; }
+export function resetRecord(record: GameRecord): void { record.initialState = cloneGame(record.state); record.committedCommands = []; record.undoCheckpoint = null; record.revision = 0; record.completedActions = 0; record.aiActions = []; }
 export function completeSetup(record: GameRecord): void { record.state = applyCommand(record.state, { type: 'submitStartingBuild', playerId: 'ochre', definitionIds: [] }); record.state = applyCommand(record.state, { type: 'submitStartingBuild', playerId: 'indigo', definitionIds: [] }); }

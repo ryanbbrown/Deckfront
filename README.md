@@ -28,7 +28,7 @@ export HEXDECK_DATA_DIR='.data/games'
 export HEXDECK_AI_TRACE_DIR='.data/ai-traces'
 ```
 
-Saved games use schema version 5. Older saves are rejected and are not migrated.
+Saved games use schema version 6. Older saves are rejected and are not migrated.
 
 ## Play
 

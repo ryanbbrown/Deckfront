@@ -92,7 +92,7 @@ async function handleApi(
   }
   if (request.method === 'POST' && operation === 'undo') {
     const input = revisionRequestSchema.parse(await readJson(request));
-    sendJson(response, 200, await service.undoHumanAction(id, input.expectedRevision));
+    sendJson(response, 200, await ai.undoHumanAction(id, input.expectedRevision));
     return true;
   }
   if (request.method === 'GET' && operation === 'export') {

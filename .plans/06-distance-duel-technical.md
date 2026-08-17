@@ -57,7 +57,7 @@ Keep deterministic seeded shuffling. Delete obsolete hex geometry, tactical sear
 
 Keep `GameRepository`. The file repository and in-memory test repository are two adapters at this seam.
 
-Use schema version 5 for game state, game record, persistence parsing, safe views, and shared transport. Use AI bridge protocol version 2 with separate starting-build and normal-action outputs. Reject old saves with a specific version error and preserve that message through HTTP error mapping. Do not migrate old saves.
+Use schema version 6 for game state, game record, persistence parsing, safe views, and shared transport. Use AI bridge protocol version 2 with separate starting-build and normal-action outputs. Reject old saves with a specific version error and preserve that message through HTTP error mapping. Do not migrate old saves.
 
 ## State model
 
@@ -426,7 +426,7 @@ Prove:
 - immediate actions, one-step Undo, and refresh work in each normal phase;
 - draws reveal immediately and Undo restores the exact prior random state;
 - availability reason codes agree across the game module and safe view;
-- schema version 5 round-trips and version 4 fails through HTTP with a specific message;
+- schema version 6 round-trips and version 5 fails through HTTP with a specific message;
 - seeded fixture replay still succeeds after immediate actions and Undo;
 - concurrent writes serialize;
 - sentinel card IDs prove safe views, exports, traces, events, and HTML omit private data;
