@@ -1,0 +1,871 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Distance Duel — Table UI Mock</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --felt: #183d35;
+      --felt-deep: #0e2d28;
+      --paper: #f7f0df;
+      --paper-light: #fffaf0;
+      --paper-deep: #e8dcc3;
+      --ink: #222820;
+      --muted: #6c705f;
+      --line: #cfc2a7;
+      --ochre: #d99a32;
+      --ochre-deep: #9b5e15;
+      --indigo: #6673b8;
+      --indigo-deep: #3e477d;
+      --green: #2f7058;
+      --gold: #d4a93b;
+      --shadow: 0 12px 30px rgba(5, 20, 16, .22), 0 2px 5px rgba(5, 20, 16, .16);
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; background: var(--felt-deep); }
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at 18% 0, rgba(255, 255, 255, .055), transparent 28rem),
+        repeating-linear-gradient(102deg, transparent 0 8px, rgba(0, 0, 0, .012) 8px 9px),
+        var(--felt);
+    }
+
+    button { color: inherit; font: inherit; }
+    button:focus-visible { outline: 3px solid #f6cf6a; outline-offset: 2px; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; }
+
+    .app-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 306px;
+      width: min(1580px, 100%);
+      min-height: 100vh;
+      margin: 0 auto;
+      transition: grid-template-columns .22s ease;
+    }
+
+    .app-layout.drawer-closed { grid-template-columns: minmax(0, 1fr) 54px; }
+
+    .board-shell {
+      min-width: 0;
+      padding: 14px 18px 34px;
+    }
+
+    .turn-header {
+      position: sticky;
+      z-index: 10;
+      top: 10px;
+      display: grid;
+      grid-template-columns: auto minmax(290px, 1fr) auto;
+      align-items: center;
+      gap: 14px;
+      max-width: 1220px;
+      margin: 0 auto 12px;
+      padding: 9px 10px 9px 16px;
+      border: 1px solid rgba(255, 255, 255, .21);
+      border-radius: 13px;
+      background: rgba(247, 240, 223, .97);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand { display: flex; align-items: baseline; gap: 9px; white-space: nowrap; }
+    .brand h1 { margin: 0; font-size: 21px; letter-spacing: -.035em; }
+    .brand span {
+      color: var(--green);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .turn-status { min-width: 0; text-align: center; }
+    .turn-line { display: flex; align-items: center; justify-content: center; gap: 9px; }
+    .turn-line strong { font-family: Georgia, "Times New Roman", serif; font-size: 16px; }
+    .turn-line span { color: var(--muted); font-size: 12px; font-weight: 750; }
+    .phase-track { display: flex; align-items: center; justify-content: center; gap: 5px; margin-top: 4px; }
+    .phase {
+      padding: 3px 8px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .phase.active { background: var(--ochre); color: #2d210d; }
+    .phase-dot { width: 15px; height: 1px; background: var(--line); }
+
+    .turn-actions { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
+    .money-pill {
+      display: grid;
+      min-width: 48px;
+      min-height: 34px;
+      border: 1px solid #c79832;
+      border-radius: 8px;
+      background: #fae8a9;
+      font-size: 12px;
+      font-weight: 900;
+      place-items: center;
+    }
+    .quiet-button, .primary-button {
+      min-height: 34px;
+      padding: 7px 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 850;
+      cursor: pointer;
+    }
+    .quiet-button { border: 1px solid var(--line); background: #fffaf0; }
+    .primary-button { border: 1px solid #111d18; background: #1d3028; color: white; }
+
+    .content { max-width: 1220px; margin: 0 auto; }
+    .surface {
+      border: 1px solid rgba(78, 56, 27, .2);
+      border-radius: 14px;
+      background:
+        linear-gradient(rgba(255, 255, 255, .36), rgba(255, 255, 255, 0)),
+        var(--paper);
+      box-shadow: var(--shadow);
+    }
+
+    .arena-panel { padding: 11px 14px 13px; }
+    .arena-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+    .duelist-status { display: flex; align-items: center; gap: 9px; min-width: 145px; }
+    .duelist-status.ai { justify-content: flex-end; text-align: right; }
+    .portrait {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      flex: 0 0 auto;
+      border: 3px solid #fff8e9;
+      border-radius: 50%;
+      color: white;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 12px;
+      font-weight: 900;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, .22);
+      place-items: center;
+    }
+    .portrait.you { background: var(--ochre); }
+    .portrait.ai { background: var(--indigo); }
+    .duelist-copy strong { display: block; font-size: 12px; }
+    .duelist-copy .health { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 18px; line-height: 1.05; }
+    .duelist-copy small { color: var(--muted); font-size: 10px; font-weight: 750; }
+    .range-readout { text-align: center; }
+    .range-readout small {
+      display: block;
+      margin-bottom: 1px;
+      color: var(--muted);
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .range-readout strong { color: var(--green); font-family: Georgia, "Times New Roman", serif; font-size: 20px; }
+    .range-readout span { display: block; color: var(--muted); font-size: 10px; }
+
+    .arena {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(5, minmax(78px, 1fr));
+      gap: 5px;
+      padding: 4px;
+      border: 1px solid #a99979;
+      border-radius: 11px;
+      background: #c8b997;
+      box-shadow: inset 0 2px 8px rgba(72, 48, 18, .18);
+    }
+    .arena::before {
+      position: absolute;
+      z-index: 0;
+      top: 50%;
+      right: 20px;
+      left: 20px;
+      height: 2px;
+      background: rgba(94, 73, 41, .35);
+      content: "";
+    }
+    .space {
+      position: relative;
+      z-index: 1;
+      min-height: 60px;
+      border: 1px solid rgba(94, 73, 41, .32);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 50% 55%, rgba(255, 255, 255, .47), transparent 65%),
+        #e8dec8;
+    }
+    .space-number {
+      position: absolute;
+      top: 5px;
+      left: 7px;
+      color: #766a55;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 10px;
+      font-weight: 900;
+    }
+    .fighter-token {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      display: grid;
+      width: 33px;
+      height: 33px;
+      transform: translate(-50%, -45%);
+      border: 3px solid #fff8e9;
+      border-radius: 50%;
+      color: white;
+      font-size: 9px;
+      font-weight: 950;
+      letter-spacing: .03em;
+      box-shadow: 0 3px 5px rgba(50, 36, 17, .28);
+      place-items: center;
+    }
+    .fighter-token.you { background: var(--ochre-deep); }
+    .fighter-token.ai { background: var(--indigo-deep); }
+    .battle-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.8fr) minmax(310px, .86fr);
+      align-items: start;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .player-column { display: grid; min-width: 0; gap: 12px; }
+    .panel { padding: 13px; }
+    .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
+    .section-head h2 { margin: 0; font-size: 18px; letter-spacing: -.015em; }
+    .section-head p, .section-head span { margin: 0; color: var(--muted); font-size: 10px; font-weight: 700; }
+    .count-chip { padding: 3px 7px; border-radius: 999px; background: var(--paper-deep); }
+
+    .hand-play-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 248px;
+      gap: 13px;
+    }
+    .hand-area { min-width: 0; }
+    .hand {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(104px, 1fr));
+      gap: 8px;
+    }
+    .card {
+      position: relative;
+      min-width: 0;
+      min-height: 150px;
+      padding: 10px 9px 8px;
+      overflow: hidden;
+      border: 1px solid #aa9877;
+      border-radius: 9px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, .68), transparent 48%),
+        #e9deca;
+      box-shadow: 0 4px 8px rgba(58, 39, 14, .13);
+    }
+    button.card { width: 100%; text-align: left; cursor: pointer; }
+    .card.action::after {
+      position: absolute;
+      right: -14px;
+      bottom: -24px;
+      width: 62px;
+      height: 62px;
+      border: 10px solid rgba(47, 112, 88, .13);
+      border-radius: 50%;
+      content: "";
+    }
+    .card.treasure { border-color: #b99138; background: linear-gradient(145deg, #fff4c4, #e3c66e); }
+    .card.disabled { filter: saturate(.72); opacity: .68; }
+    .card-kicker { color: var(--green); font-size: 8px; font-weight: 950; letter-spacing: .11em; text-transform: uppercase; }
+    .card.treasure .card-kicker { color: #765414; }
+    .card h3 { margin: 4px 23px 6px 0; font-size: 16px; }
+    .card p { margin-bottom: 7px; color: #4f5248; font-size: 10px; line-height: 1.35; }
+    .card-result { position: absolute; right: 8px; bottom: 7px; left: 8px; font-size: 9px; font-weight: 850; }
+    .card.disabled .card-result { color: #8b463d; }
+    .cost {
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      display: grid;
+      width: 23px;
+      height: 23px;
+      border: 1px solid rgba(255, 255, 255, .62);
+      border-radius: 50%;
+      background: #26332d;
+      color: white;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 11px;
+      font-weight: 900;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .2);
+      place-items: center;
+    }
+
+    .played-area {
+      min-width: 0;
+      padding: 10px;
+      border: 2px solid #c58a2d;
+      border-radius: 11px;
+      background: #fff4ce;
+      box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .52);
+    }
+    .played-area .section-head { margin-bottom: 7px; }
+    .played-area .section-head h2 { font-size: 16px; }
+    .played-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; counter-reset: played; }
+    .played-item {
+      position: relative;
+      min-height: 55px;
+      padding: 7px 7px 7px 35px;
+      border: 1px solid #d7bb79;
+      border-radius: 8px;
+      background: rgba(255, 253, 244, .84);
+      counter-increment: played;
+    }
+    .played-item::before {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      display: grid;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: white;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 10px;
+      font-weight: 900;
+      content: counter(played);
+      place-items: center;
+    }
+    .played-item strong { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 12px; }
+    .plain-result { display: block; margin-top: 2px; color: #5b5548; font-size: 9px; line-height: 1.28; }
+    .plain-result b { color: var(--green); }
+
+    .market-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(100px, 1fr));
+      gap: 7px;
+    }
+    .market-card {
+      position: relative;
+      min-width: 0;
+      min-height: 92px;
+      padding: 9px 8px 7px;
+      border: 1px solid #b9aa8d;
+      border-radius: 8px;
+      background: #efe7d5;
+      text-align: left;
+      cursor: pointer;
+    }
+    .market-card.treasure { background: #f2dea0; }
+    .market-card:hover { transform: translateY(-1px); border-color: var(--green); }
+    .market-card h3 { margin: 1px 22px 3px 0; font-size: 13px; }
+    .market-card p { margin: 0 0 14px; color: #626253; font-size: 8px; line-height: 1.28; }
+    .supply { position: absolute; bottom: 6px; left: 8px; color: var(--muted); font-size: 8px; font-weight: 850; }
+    .market-card .cost { top: 6px; right: 6px; width: 20px; height: 20px; font-size: 9px; }
+
+    .ai-recap {
+      position: sticky;
+      top: 84px;
+      overflow: hidden;
+      border-color: rgba(71, 76, 127, .42);
+    }
+    .recap-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: -13px -13px 12px;
+      padding: 11px 13px;
+      background: #e1e1f0;
+      border-bottom: 1px solid #b9bad2;
+    }
+    .recap-banner h2 { margin: 0; font-size: 18px; }
+    .recap-banner span { color: var(--indigo-deep); font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .recap-intro { margin-bottom: 10px; color: #53564c; font-size: 10px; line-height: 1.4; }
+    .subhead {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 12px 0 6px;
+    }
+    .subhead h3 { margin: 0; font-size: 13px; }
+    .subhead span { color: var(--muted); font-size: 8px; font-weight: 800; }
+    .dealt-hand { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+    .mini-card {
+      position: relative;
+      min-width: 0;
+      min-height: 65px;
+      padding: 6px 3px 19px;
+      border: 1px solid #a7a7bd;
+      border-radius: 6px;
+      background: #edebf3;
+      text-align: center;
+    }
+    .mini-card strong { display: block; overflow: hidden; font-family: Georgia, "Times New Roman", serif; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+    .mini-card small { color: var(--muted); font-size: 7px; }
+    .use-state {
+      position: absolute;
+      right: 2px;
+      bottom: 3px;
+      left: 2px;
+      padding: 2px;
+      border-radius: 4px;
+      background: var(--indigo-deep);
+      color: white;
+      font-size: 6px;
+      font-weight: 950;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    .mini-card.not-used { background: #f0ede5; filter: saturate(.55); }
+    .mini-card.not-used .use-state { background: #817e74; }
+    .ai-sequence { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; counter-reset: ai-play; }
+    .ai-step {
+      position: relative;
+      padding: 6px 7px 6px 29px;
+      border-left: 2px solid var(--indigo);
+      border-radius: 0 6px 6px 0;
+      background: #eeeef5;
+      counter-increment: ai-play;
+    }
+    .ai-step::before {
+      position: absolute;
+      top: 7px;
+      left: 7px;
+      color: var(--indigo-deep);
+      font-size: 9px;
+      font-weight: 950;
+      content: counter(ai-play);
+    }
+    .ai-step strong { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 11px; }
+    .ai-step span { color: #5e5e69; font-size: 8px; line-height: 1.3; }
+    .recap-choice {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .choice-tile { padding: 7px; border: 1px solid var(--line); border-radius: 7px; background: var(--paper-light); }
+    .choice-tile small { display: block; margin-bottom: 2px; color: var(--muted); font-size: 7px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .choice-tile strong { display: block; font-size: 10px; }
+    .purchase-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 8px;
+      padding: 8px;
+      border-radius: 7px;
+      background: #e6dec9;
+      font-size: 9px;
+    }
+    .purchase-line span { color: var(--muted); font-weight: 800; }
+    .purchase-line strong { font-family: Georgia, "Times New Roman", serif; font-size: 12px; }
+
+    .deck-drawer {
+      position: sticky;
+      z-index: 20;
+      top: 0;
+      display: grid;
+      grid-template-columns: 54px minmax(0, 1fr);
+      height: 100vh;
+      min-width: 0;
+      border-left: 1px solid rgba(255, 255, 255, .14);
+      background: #112d27;
+      color: #f6efdf;
+      box-shadow: -8px 0 28px rgba(5, 20, 16, .2);
+    }
+    .drawer-rail {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border-right: 1px solid rgba(255, 255, 255, .11);
+      background: #0b2520;
+    }
+    .drawer-toggle {
+      display: grid;
+      width: 36px;
+      height: 36px;
+      margin-top: 13px;
+      border: 1px solid rgba(255, 255, 255, .25);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, .08);
+      color: white;
+      cursor: pointer;
+      place-items: center;
+    }
+    .drawer-toggle .close-icon { display: inline; }
+    .drawer-toggle .open-icon { display: none; }
+    .rail-label {
+      margin-top: 88px;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      transform: rotate(-90deg);
+      white-space: nowrap;
+    }
+    .drawer-body { min-width: 0; padding: 17px 15px 24px; overflow: auto; }
+    .drawer-head { margin-bottom: 15px; }
+    .drawer-head span { color: #9bc8b5; font-size: 8px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
+    .drawer-head h2 { margin: 3px 0 2px; color: #fffaf0; font-size: 21px; }
+    .drawer-head p { margin: 0; color: #abc0b6; font-size: 9px; line-height: 1.35; }
+    .drawer-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 13px; }
+    .drawer-tab {
+      padding: 7px;
+      border: 1px solid rgba(255, 255, 255, .18);
+      border-radius: 7px;
+      background: transparent;
+      color: #b8cbc2;
+      font-size: 9px;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .drawer-tab.active { border-color: #e4c77e; background: #f5e8c5; color: #243029; }
+    .zone-counts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .zone-count {
+      padding: 8px;
+      border: 1px solid rgba(255, 255, 255, .12);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, .055);
+    }
+    .zone-count small { display: block; color: #9fb7ac; font-size: 7px; font-weight: 850; text-transform: uppercase; }
+    .zone-count strong { display: block; margin-top: 1px; color: white; font-family: Georgia, "Times New Roman", serif; font-size: 17px; }
+    .composition-title { display: flex; justify-content: space-between; margin: 17px 0 7px; }
+    .composition-title strong { font-family: Georgia, "Times New Roman", serif; font-size: 13px; }
+    .composition-title span { color: #9fb7ac; font-size: 8px; }
+    .composition { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+    .composition li {
+      display: grid;
+      grid-template-columns: 9px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 7px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, .06);
+      font-size: 9px;
+    }
+    .card-color { width: 8px; height: 8px; border-radius: 2px; background: #d9c075; }
+    .card-color.action { background: #68a88c; }
+    .composition b { color: #fff; font-size: 10px; }
+    .composition-detail { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, .12); color: #a9bdb4; font-size: 8px; line-height: 1.5; }
+    .deck-pane[hidden] { display: none; }
+
+    .drawer-closed .deck-drawer { grid-template-columns: 54px 0; }
+    .drawer-closed .drawer-body { display: none; }
+    .drawer-closed .drawer-toggle .close-icon { display: none; }
+    .drawer-closed .drawer-toggle .open-icon { display: inline; }
+
+    .mock-note { margin: 13px 3px 0; color: rgba(255, 255, 255, .62); font-size: 9px; text-align: center; }
+
+    @media (max-width: 1400px) {
+      .hand-play-layout { grid-template-columns: 1fr; }
+      .played-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .played-item { min-height: 62px; }
+      .market-grid { grid-template-columns: repeat(4, minmax(100px, 1fr)); }
+    }
+
+    @media (max-width: 1120px) {
+      .app-layout:not(.drawer-closed) .battle-grid { grid-template-columns: 1fr; }
+      .app-layout:not(.drawer-closed) .ai-recap { position: static; }
+    }
+
+    @media (max-width: 1040px) {
+      .app-layout, .app-layout.drawer-closed { display: block; }
+      .board-shell { padding-right: 67px; }
+      .deck-drawer {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        width: min(306px, calc(100vw - 28px));
+        box-shadow: -12px 0 30px rgba(5, 20, 16, .4);
+      }
+      .drawer-closed .deck-drawer { width: 54px; }
+    }
+
+    @media (max-width: 780px) {
+      .board-shell { padding: 8px 62px 24px 8px; }
+      .turn-header { position: static; grid-template-columns: 1fr auto; top: 0; padding: 8px 9px; }
+      .turn-status { grid-column: 1 / -1; grid-row: 2; padding-top: 5px; border-top: 1px solid var(--line); }
+      .turn-actions .quiet-button { display: none; }
+      .battle-grid { grid-template-columns: 1fr; }
+      .ai-recap { position: static; }
+      .arena-topline { align-items: flex-start; }
+      .duelist-status { min-width: 0; }
+      .duelist-copy .health { font-size: 15px; }
+      .arena { grid-template-columns: repeat(5, minmax(45px, 1fr)); }
+      .hand { grid-template-columns: repeat(2, minmax(100px, 1fr)); }
+      .played-list { grid-template-columns: 1fr; }
+      .market-grid { grid-template-columns: repeat(3, minmax(88px, 1fr)); }
+    }
+
+    @media (max-width: 480px) {
+      .brand span { display: none; }
+      .turn-actions { gap: 4px; }
+      .primary-button { padding-inline: 7px; }
+      .arena-panel { padding-inline: 8px; }
+      .arena-topline { display: grid; grid-template-columns: 1fr 1fr; }
+      .range-readout { grid-row: 1; grid-column: 1 / -1; }
+      .duelist-status { grid-row: 2; }
+      .portrait { display: none; }
+      .range-readout strong { font-size: 17px; }
+      .arena { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .space { min-height: 54px; }
+      .fighter-token { width: 29px; height: 29px; }
+      .hand { grid-template-columns: 1fr 1fr; gap: 6px; }
+      .card { min-height: 150px; }
+      .market-grid { grid-template-columns: 1fr 1fr; }
+      .dealt-hand { grid-template-columns: repeat(5, minmax(45px, 1fr)); overflow-x: auto; padding-bottom: 3px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout" id="appLayout">
+    <main class="board-shell">
+      <header class="turn-header" aria-label="Current turn and controls">
+        <div class="brand">
+          <h1>Distance Duel</h1>
+          <span>Hexdeck</span>
+        </div>
+        <div class="turn-status">
+          <div class="turn-line"><strong>Turn 7 · Your turn</strong><span>Play any number of Actions</span></div>
+          <div class="phase-track" aria-label="Action phase, followed by Buy and Cleanup">
+            <span class="phase active">1 Action</span><i class="phase-dot"></i><span class="phase">2 Buy</span><i class="phase-dot"></i><span class="phase">3 Cleanup</span>
+          </div>
+        </div>
+        <div class="turn-actions">
+          <span class="money-pill" title="Available money">◎ 0</span>
+          <button class="quiet-button" type="button">↶ Undo</button>
+          <button class="primary-button" type="button">End Action →</button>
+        </div>
+      </header>
+
+      <div class="content">
+        <section class="arena-panel surface" aria-labelledby="arena-title">
+          <div class="arena-topline">
+            <div class="duelist-status">
+              <div class="portrait you" aria-hidden="true">YOU</div>
+              <div class="duelist-copy"><strong>You</strong><span class="health">13 / 20 HP</span><small>Ready · space 2</small></div>
+            </div>
+            <div class="range-readout">
+              <small id="arena-title">Current range</small>
+              <strong>FAR · 2 spaces</strong>
+              <span>Volley deals 5 · Aimed deals 7</span>
+            </div>
+            <div class="duelist-status ai">
+              <div class="duelist-copy"><strong>AI</strong><span class="health">13 / 20 HP</span><small>Ready · space 4</small></div>
+              <div class="portrait ai" aria-hidden="true">AI</div>
+            </div>
+          </div>
+          <div class="arena" role="img" aria-label="Five space arena. You are on space 2. AI is on space 4. The range is Far.">
+            <div class="space"><span class="space-number">1</span></div>
+            <div class="space"><span class="space-number">2</span><span class="fighter-token you">YOU</span></div>
+            <div class="space"><span class="space-number">3</span></div>
+            <div class="space"><span class="space-number">4</span><span class="fighter-token ai">AI</span></div>
+            <div class="space"><span class="space-number">5</span></div>
+          </div>
+        </section>
+
+        <div class="battle-grid">
+          <div class="player-column">
+            <section class="panel surface" aria-label="Your hand and cards played this turn">
+              <div class="hand-play-layout">
+                <div class="hand-area">
+                  <div class="section-head">
+                    <h2>Your hand</h2>
+                    <span class="count-chip">6 cards · click to play</span>
+                  </div>
+                  <div class="hand">
+                    <button class="card action disabled" type="button">
+                      <span class="card-kicker">Action · Close</span><span class="cost">4</span>
+                      <h3>Drive</h3><p>At Close, deal 2. Move both fighters 1 space left or right. If a wall blocks them, neither moves and the attack deals +2.</p>
+                      <span class="card-result">Needs Close range</span>
+                    </button>
+                    <button class="card action" type="button">
+                      <span class="card-kicker">Action · Any range</span><span class="cost">5</span>
+                      <h3>Flurry</h3><p>Deal 1 damage for each other Action played this turn, up to 5.</p>
+                      <span class="card-result">Would deal 3 damage</span>
+                    </button>
+                    <button class="card action disabled" type="button">
+                      <span class="card-kicker">Action · Close</span><span class="cost">3</span>
+                      <h3>Feint</h3><p>At Close range, the next Close-range attack this turn deals +2 damage.</p>
+                      <span class="card-result">Needs Close range</span>
+                    </button>
+                    <button class="card treasure" type="button">
+                      <span class="card-kicker">Treasure</span><span class="cost">0</span>
+                      <h3>Copper</h3><p>Provide 1 money.</p><span class="card-result">+1 money in Buy phase</span>
+                    </button>
+                    <button class="card treasure" type="button">
+                      <span class="card-kicker">Treasure</span><span class="cost">0</span>
+                      <h3>Copper</h3><p>Provide 1 money.</p><span class="card-result">+1 money in Buy phase</span>
+                    </button>
+                    <button class="card treasure" type="button">
+                      <span class="card-kicker">Treasure</span><span class="cost">6</span>
+                      <h3>Gold</h3><p>Provide 3 money.</p><span class="card-result">+3 money in Buy phase</span>
+                    </button>
+                  </div>
+                </div>
+
+                <aside class="played-area" aria-labelledby="played-heading">
+                  <div class="section-head"><h2 id="played-heading">Played this turn</h2><span>in order</span></div>
+                  <ol class="played-list">
+                    <li class="played-item"><strong>Footwork</strong><span class="plain-result"><b>Moved right</b> · space 1 → 2<br><b>Drew</b> 1 card</span></li>
+                    <li class="played-item"><strong>Aim</strong><span class="plain-result"><b>Became Aimed</b><br><b>Drew</b> 1 card</span></li>
+                    <li class="played-item"><strong>Volley</strong><span class="plain-result">Chose Far shot<br><b>Dealt 7 damage</b> to AI</span></li>
+                  </ol>
+                </aside>
+              </div>
+            </section>
+
+            <section class="panel surface" aria-labelledby="market-heading">
+              <div class="section-head">
+                <h2 id="market-heading">Market</h2>
+                <p>Cards you buy go to your discard pile.</p>
+              </div>
+              <div class="market-grid">
+                <button class="market-card treasure" type="button"><span class="cost">0</span><h3>Copper</h3><p>Provide 1 money.</p><span class="supply">10 left</span></button>
+                <button class="market-card treasure" type="button"><span class="cost">3</span><h3>Silver</h3><p>Provide 2 money.</p><span class="supply">8 left</span></button>
+                <button class="market-card treasure" type="button"><span class="cost">6</span><h3>Gold</h3><p>Provide 3 money.</p><span class="supply">5 left</span></button>
+                <button class="market-card" type="button"><span class="cost">2</span><h3>Footwork</h3><p>You may move 1 space left or right. Draw 1 card.</p><span class="supply">7 left</span></button>
+                <button class="market-card" type="button"><span class="cost">3</span><h3>Cull</h3><p>Trash exactly 1 or 2: Cull itself, cards in your hand, or both.</p><span class="supply">8 left</span></button>
+                <button class="market-card" type="button"><span class="cost">5</span><h3>Muster</h3><p>Draw 2 cards.</p><span class="supply">6 left</span></button>
+                <button class="market-card" type="button"><span class="cost">3</span><h3>Feint</h3><p>At Close, the next Close-range attack this turn deals +2 damage.</p><span class="supply">7 left</span></button>
+                <button class="market-card" type="button"><span class="cost">4</span><h3>Drive</h3><p>Deal 2 at Close. Move both fighters together. At a wall, neither moves and deal +2.</p><span class="supply">6 left</span></button>
+                <button class="market-card" type="button"><span class="cost">5</span><h3>Flurry</h3><p>Damage for Actions played.</p><span class="supply">7 left</span></button>
+                <button class="market-card" type="button"><span class="cost">3</span><h3>Aim</h3><p>Become Aimed, then draw 1.</p><span class="supply">6 left</span></button>
+                <button class="market-card" type="button"><span class="cost">5</span><h3>Volley</h3><p>Near or Far damage.</p><span class="supply">6 left</span></button>
+              </div>
+            </section>
+          </div>
+
+          <aside class="ai-recap panel surface" aria-labelledby="ai-recap-heading">
+            <div class="recap-banner">
+              <h2 id="ai-recap-heading">AI last turn</h2>
+              <span>Turn 6 · stays available</span>
+            </div>
+            <p class="recap-intro">The AI started at space 5, set up a Far attack, and spent 3 money. Here is its complete dealt hand and every choice.</p>
+
+            <div class="subhead"><h3>Full dealt hand</h3><span>5 cards · used and not used</span></div>
+            <div class="dealt-hand" aria-label="AI full dealt hand">
+              <div class="mini-card"><strong>Footwork</strong><small>Action</small><span class="use-state">Played #1</span></div>
+              <div class="mini-card"><strong>Aim</strong><small>Action</small><span class="use-state">Played #2</span></div>
+              <div class="mini-card"><strong>Volley</strong><small>Action</small><span class="use-state">Played #3</span></div>
+              <div class="mini-card not-used"><strong>Copper</strong><small>Treasure</small><span class="use-state">Not used</span></div>
+              <div class="mini-card not-used"><strong>Copper</strong><small>Treasure</small><span class="use-state">Not used</span></div>
+            </div>
+
+            <div class="subhead"><h3>Cards played in order</h3><span>resolved top to bottom</span></div>
+            <ol class="ai-sequence">
+              <li class="ai-step"><strong>Footwork</strong><span>Moved left · space 5 → 4 · drew Silver</span></li>
+              <li class="ai-step"><strong>Aim</strong><span>Became Aimed · drew Copper</span></li>
+              <li class="ai-step"><strong>Volley</strong><span>Chose Far + Aimed · dealt 7 damage to you</span></li>
+              <li class="ai-step"><strong>Silver + Copper</strong><span>Played treasures · gained 3 money</span></li>
+            </ol>
+
+            <div class="recap-choice">
+              <div class="choice-tile"><small>Movement choice</small><strong>Left · 5 → 4</strong></div>
+              <div class="choice-tile"><small>Damage choice</small><strong>Far shot · 7 to you</strong></div>
+            </div>
+            <div class="purchase-line"><span>Purchase this turn</span><strong>Silver · cost 3</strong></div>
+          </aside>
+        </div>
+        <p class="mock-note">Standalone visual mock · board history and starting-build details are intentionally not in the play area.</p>
+      </div>
+    </main>
+
+    <aside class="deck-drawer" aria-label="Deck composition drawer">
+      <div class="drawer-rail">
+        <button class="drawer-toggle" id="drawerToggle" type="button" aria-expanded="true" aria-controls="drawerBody" title="Open or close deck drawer">
+          <span class="close-icon" aria-hidden="true">›</span><span class="open-icon" aria-hidden="true">‹</span><span class="sr-only"></span>
+        </button>
+        <span class="rail-label">Deck &amp; zones</span>
+      </div>
+      <div class="drawer-body" id="drawerBody">
+        <div class="drawer-head"><span>Side drawer</span><h2>Deck composition</h2><p>Reference details stay close without taking space from the match.</p></div>
+        <div class="drawer-tabs" role="tablist" aria-label="Select deck">
+          <button class="drawer-tab active" type="button" role="tab" aria-selected="true" data-pane="yourDeck">Your deck</button>
+          <button class="drawer-tab" type="button" role="tab" aria-selected="false" data-pane="aiDeck">AI deck</button>
+        </div>
+
+        <div class="deck-pane" id="yourDeck" role="tabpanel">
+          <div class="zone-counts">
+            <div class="zone-count"><small>Draw pile</small><strong>7</strong></div>
+            <div class="zone-count"><small>Discard</small><strong>1</strong></div>
+            <div class="zone-count"><small>In hand</small><strong>6</strong></div>
+            <div class="zone-count"><small>Played</small><strong>3</strong></div>
+          </div>
+          <div class="composition-title"><strong>All cards</strong><span>17 total</span></div>
+          <ul class="composition">
+            <li><i class="card-color"></i><span>Copper</span><b>× 7</b></li>
+            <li><i class="card-color"></i><span>Gold</span><b>× 1</b></li>
+            <li><i class="card-color action"></i><span>Footwork</span><b>× 2</b></li>
+            <li><i class="card-color action"></i><span>Aim</span><b>× 2</b></li>
+            <li><i class="card-color action"></i><span>Volley</span><b>× 2</b></li>
+            <li><i class="card-color action"></i><span>Muster</span><b>× 1</b></li>
+            <li><i class="card-color action"></i><span>Flurry</span><b>× 1</b></li>
+            <li><i class="card-color action"></i><span>Drive</span><b>× 1</b></li>
+          </ul>
+          <p class="composition-detail">Treasure 8 · Action 9<br>Draw pile reshuffles when empty.</p>
+        </div>
+
+        <div class="deck-pane" id="aiDeck" role="tabpanel" hidden>
+          <div class="zone-counts">
+            <div class="zone-count"><small>Draw pile</small><strong>8</strong></div>
+            <div class="zone-count"><small>Discard</small><strong>6</strong></div>
+            <div class="zone-count"><small>In hand</small><strong>5</strong></div>
+            <div class="zone-count"><small>Played</small><strong>0</strong></div>
+          </div>
+          <div class="composition-title"><strong>Known composition</strong><span>19 total</span></div>
+          <ul class="composition">
+            <li><i class="card-color"></i><span>Copper</span><b>× 8</b></li>
+            <li><i class="card-color"></i><span>Silver</span><b>× 2</b></li>
+            <li><i class="card-color action"></i><span>Footwork</span><b>× 3</b></li>
+            <li><i class="card-color action"></i><span>Aim</span><b>× 3</b></li>
+            <li><i class="card-color action"></i><span>Volley</span><b>× 3</b></li>
+          </ul>
+          <p class="composition-detail">Treasure 10 · Action 9<br>The last-turn hand stays visible in the recap.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const appLayout = document.getElementById('appLayout');
+    const drawerToggle = document.getElementById('drawerToggle');
+    if (window.matchMedia('(max-width: 1040px)').matches) {
+      appLayout.classList.add('drawer-closed');
+      drawerToggle.setAttribute('aria-expanded', 'false');
+    }
+    drawerToggle.addEventListener('click', () => {
+      const closed = appLayout.classList.toggle('drawer-closed');
+      drawerToggle.setAttribute('aria-expanded', String(!closed));
+    });
+
+    const tabs = document.querySelectorAll('.drawer-tab');
+    tabs.forEach((tab) => tab.addEventListener('click', () => {
+      tabs.forEach((item) => {
+        const selected = item === tab;
+        item.classList.toggle('active', selected);
+        item.setAttribute('aria-selected', String(selected));
+      });
+      document.querySelectorAll('.deck-pane').forEach((pane) => {
+        pane.hidden = pane.id !== tab.dataset.pane;
+      });
+    }));
+  </script>
+</body>
+</html>
