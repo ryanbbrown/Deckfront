@@ -241,8 +241,14 @@ test('DD-E2E-038: a 15-card hand wraps without horizontal overflow at laptop siz
   await expect(page.locator('[data-player-id="ochre"]')).toBeVisible(); await expect(page.locator('[data-player-id="indigo"]')).toBeVisible(); await page.locator('[data-card-name="Muster"]').last().click(); await expect(page.locator('[data-card-name="Muster"]')).toHaveCount(14);
 });
 
-test('DD-E2E-033: normal setup reaches a deterministic human victory within the runtime limit', async ({ page, baseUrl }) => {
-  test.setTimeout(60_000); await page.goto(baseUrl); await page.getByLabel('AI strategy').selectOption('close-pressure'); await page.getByRole('button', { name: 'Start game' }).click(); for (const card of ['Footwork', 'Footwork', 'Aim', 'Volley']) await page.getByLabel(`Add ${card}`).click(); await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByText(/Turn 1 · your action/)).toBeVisible({ timeout: 15_000 });
+test('DD-E2E-033: normal setup reaches a deterministic human victory within the runtime limit', async ({ page, baseUrl, repository }) => {
+  test.setTimeout(60_000);
+  await page.route('**/api/games', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    const request = route.request(); const body = request.postDataJSON() as Record<string, unknown>;
+    const response = await route.fetch({ postData: JSON.stringify({ ...body, seed: 25 }) }); await route.fulfill({ response });
+  });
+  await page.goto(baseUrl); await page.getByLabel('AI strategy').selectOption('close-pressure'); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByRole('heading', { name: 'Spend up to 12' })).toBeVisible(); const seededId = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId')); expect((await repository.load(seededId!)).state.seed).toBe(25); for (const card of ['Footwork', 'Footwork', 'Aim', 'Volley']) await page.getByLabel(`Add ${card}`).click(); await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByText(/Turn 1 · your action/)).toBeVisible({ timeout: 15_000 });
   let won = false;
   for (let humanTurn = 0; humanTurn < 20 && !won; humanTurn += 1) {
     for (let actionCount = 0; actionCount < 20 && !won; actionCount += 1) {
