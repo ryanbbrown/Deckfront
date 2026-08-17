@@ -3,7 +3,8 @@ export type CardType = 'action' | 'treasure';
 export type CardMechanic = 'money' | 'footwork' | 'cull' | 'muster' | 'feint' | 'drive' | 'flurry' | 'aim' | 'volley';
 export type Phase = 'startingBuild' | 'action' | 'buy' | 'ended';
 export type RangeBand = 'Close' | 'Near' | 'Far';
-export type MovementChoice = 'left' | 'right';
+export type DirectionChoice = 'left' | 'right';
+export type MovementChoice = DirectionChoice | 'stay';
 
 export interface CardDefinition {
   id: string;
@@ -26,10 +27,10 @@ export interface PlayerState {
   purchases: string[];
 }
 export interface FighterState { playerId: PlayerId; position: number; health: number; aimed: boolean; exposed: boolean }
-export type GameEventType = 'buildComplete' | 'cardPlayed' | 'move' | 'draw' | 'condition' | 'damage' | 'push' | 'wallCollision' | 'trash' | 'phase' | 'purchase' | 'turn' | 'victory';
+export type GameEventType = 'buildComplete' | 'cardPlayed' | 'move' | 'draw' | 'condition' | 'damage' | 'wallCollision' | 'trash' | 'phase' | 'purchase' | 'turn' | 'victory';
 export interface GameEvent { sequence: number; type: GameEventType; playerId: PlayerId; detail: Record<string, unknown> }
 export interface GameState {
-  schemaVersion: 6;
+  schemaVersion: 7;
   seed: number;
   rngState: number;
   version: number;
@@ -49,10 +50,10 @@ export interface GameState {
 export type GameCommand =
   | { type: 'submitStartingBuild'; playerId: PlayerId; definitionIds: string[] }
   | { type: 'playFootwork'; cardInstanceId: string; movement: MovementChoice }
-  | { type: 'playCull'; cardInstanceId: string; trashInstanceIds: [string, string] }
+  | { type: 'playCull'; cardInstanceId: string; trashInstanceIds: [string] | [string, string] }
   | { type: 'playMuster'; cardInstanceId: string }
   | { type: 'playFeint'; cardInstanceId: string }
-  | { type: 'playDrive'; cardInstanceId: string; direction: MovementChoice }
+  | { type: 'playDrive'; cardInstanceId: string; direction: DirectionChoice }
   | { type: 'playFlurry'; cardInstanceId: string }
   | { type: 'playAim'; cardInstanceId: string }
   | { type: 'playVolley'; cardInstanceId: string }
@@ -60,13 +61,13 @@ export type GameCommand =
   | { type: 'buyCard'; definitionId: string }
   | { type: 'endBuyPhase' };
 export interface LegalAction { id: string; label: string; command: GameCommand }
-export type DisabledReasonCode = 'NOT_YOUR_TURN' | 'WRONG_PHASE' | 'TREASURE_AUTOPLAYS' | 'NEEDS_CLOSE' | 'NEEDS_NEAR_OR_FAR' | 'CULL_NEEDS_TWO';
+export type DisabledReasonCode = 'NOT_YOUR_TURN' | 'WRONG_PHASE' | 'TREASURE_AUTOPLAYS' | 'NEEDS_CLOSE' | 'NEEDS_NEAR_OR_FAR';
 export interface ActionAvailability {
   cardInstanceId: string;
   enabled: boolean;
   reasonCode: DisabledReasonCode | null;
   reason: string | null;
-  selection: 'none' | 'movement' | 'trashTwo';
+  selection: 'none' | 'movement' | 'trashOneOrTwo';
   eligibleCardInstanceIds: string[];
   movements: MovementChoice[];
 }

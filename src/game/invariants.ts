@@ -3,7 +3,7 @@ import type { GameState } from './types';
 
 export function checkInvariants(state: GameState): string[] {
   const errors: string[] = [];
-  if (state.schemaVersion !== 6) errors.push('Unsupported game schema version.');
+  if (state.schemaVersion !== 7) errors.push('Unsupported game schema version.');
   for (const fighter of Object.values(state.fighters)) {
     if (fighter.position < 1 || fighter.position > 5) errors.push(`${fighter.playerId} is outside the arena.`);
     if (fighter.health < 0 || fighter.health > 20) errors.push(`${fighter.playerId} has invalid health.`);

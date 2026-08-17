@@ -9,7 +9,7 @@ import type {
 const REASONS: Record<DisabledReasonCode, string> = {
   NOT_YOUR_TURN: 'It is not your turn.', WRONG_PHASE: 'This card cannot be played in this phase.',
   TREASURE_AUTOPLAYS: 'Treasure cards play when you end the Action phase.', NEEDS_CLOSE: 'Requires Close range.',
-  NEEDS_NEAR_OR_FAR: 'Requires Near or Far range.', CULL_NEEDS_TWO: 'Cull needs exactly two eligible cards.'
+  NEEDS_NEAR_OR_FAR: 'Requires Near or Far range.'
 };
 function stable(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stable);
@@ -30,6 +30,7 @@ function movements(state: GameState, playerId: PlayerId): MovementChoice[] {
   const position = state.fighters[playerId].position;
   const result: MovementChoice[] = [];
   if (position > 1) result.push('left');
+  result.push('stay');
   if (position < 5) result.push('right');
   return result;
 }
@@ -45,9 +46,8 @@ function cardAvailability(state: GameState, playerId: PlayerId, card: CardInstan
   else if (definition.mechanic === 'footwork') {
     selection = 'movement'; availableMovements = movements(state, playerId);
   } else if (definition.mechanic === 'cull') {
-    selection = 'trashTwo';
+    selection = 'trashOneOrTwo';
     eligibleCardInstanceIds = [card.id, ...state.players[playerId].deck.hand.filter((candidate) => candidate.id !== card.id).map((candidate) => candidate.id)];
-    if (eligibleCardInstanceIds.length < 2) reasonCode = 'CULL_NEEDS_TWO';
   } else if (['feint', 'drive'].includes(definition.mechanic) && rangeBand(state) !== 'Close') reasonCode = 'NEEDS_CLOSE';
   else if (definition.mechanic === 'drive') { selection = 'movement'; availableMovements = ['left', 'right']; }
   else if (['aim', 'volley'].includes(definition.mechanic) && rangeBand(state) === 'Close') reasonCode = 'NEEDS_NEAR_OR_FAR';
@@ -65,18 +65,18 @@ function cardActions(state: GameState): LegalAction[] {
     const definition = cardDefinition(card.definitionId);
     switch (definition.mechanic) {
       case 'money': return [];
-      case 'footwork': return available.movements.map((movement) => legal(`Play Footwork: ${movement === 'left' ? 'Left' : 'Right'}`, { type: 'playFootwork', cardInstanceId: card.id, movement }));
+      case 'footwork': return available.movements.map((movement) => legal(`Play Footwork: ${movement === 'left' ? 'Left' : movement === 'right' ? 'Right' : 'Stay'}`, { type: 'playFootwork', cardInstanceId: card.id, movement }));
       case 'cull': {
-        const other = hand.filter((candidate) => candidate.id !== card.id);
-        const actions: LegalAction[] = other.map((candidate) => legal(`Play Cull: trash Cull and ${cardDefinition(candidate.definitionId).name}`, { type: 'playCull', cardInstanceId: card.id, trashInstanceIds: [card.id, candidate.id] }));
-        for (let left = 0; left < other.length; left += 1) for (let right = left + 1; right < other.length; right += 1) {
-          actions.push(legal(`Play Cull: trash ${cardDefinition(other[left]!.definitionId).name} and ${cardDefinition(other[right]!.definitionId).name}`, { type: 'playCull', cardInstanceId: card.id, trashInstanceIds: [other[left]!.id, other[right]!.id] }));
+        const eligible = [card, ...hand.filter((candidate) => candidate.id !== card.id)];
+        const actions: LegalAction[] = eligible.map((candidate) => legal(`Play Cull: trash ${cardDefinition(candidate.definitionId).name}`, { type: 'playCull', cardInstanceId: card.id, trashInstanceIds: [candidate.id] }));
+        for (let left = 0; left < eligible.length; left += 1) for (let right = left + 1; right < eligible.length; right += 1) {
+          actions.push(legal(`Play Cull: trash ${cardDefinition(eligible[left]!.definitionId).name} and ${cardDefinition(eligible[right]!.definitionId).name}`, { type: 'playCull', cardInstanceId: card.id, trashInstanceIds: [eligible[left]!.id, eligible[right]!.id] }));
         }
         return actions;
       }
       case 'muster': return [legal('Play Muster', { type: 'playMuster', cardInstanceId: card.id })];
       case 'feint': return [legal('Play Feint', { type: 'playFeint', cardInstanceId: card.id })];
-      case 'drive': return available.movements.map((direction) => legal(`Play Drive: Push ${direction === 'left' ? 'Left' : 'Right'}`, { type: 'playDrive', cardInstanceId: card.id, direction }));
+      case 'drive': return available.movements.flatMap((direction) => direction === 'stay' ? [] : [legal(`Play Drive: Move Both ${direction === 'left' ? 'Left' : 'Right'}`, { type: 'playDrive', cardInstanceId: card.id, direction })]);
       case 'flurry': return [legal('Play Flurry', { type: 'playFlurry', cardInstanceId: card.id })];
       case 'aim': return [legal('Play Aim', { type: 'playAim', cardInstanceId: card.id })];
       case 'volley': return [legal('Play Volley', { type: 'playVolley', cardInstanceId: card.id })];
@@ -139,7 +139,7 @@ function playCard(state: GameState, command: Extract<GameCommand, { cardInstance
   switch (command.type) {
     case 'playFootwork': {
       const actor = state.fighters[actorId]; const from = actor.position;
-      actor.position += command.movement === 'left' ? -1 : 1;
+      if (command.movement !== 'stay') actor.position += command.movement === 'left' ? -1 : 1;
       record(state, 'move', { movement: command.movement, from, to: actor.position }); draw(state, actorId, 1); break;
     }
     case 'playCull': {
@@ -157,9 +157,13 @@ function playCard(state: GameState, command: Extract<GameCommand, { cardInstance
     case 'playFeint': state.fighters[targetId].exposed = true; record(state, 'condition', { condition: 'Exposed', change: 'set', targetId }); break;
     case 'playDrive': {
       dealDamage(state, targetId, 2, true); if (state.winner) break;
-      const target = state.fighters[targetId]; const destination = target.position + (command.direction === 'left' ? -1 : 1);
+      const actor = state.fighters[actorId]; const target = state.fighters[targetId]; const from = actor.position;
+      const destination = from + (command.direction === 'left' ? -1 : 1);
       if (destination < 1 || destination > 5) { record(state, 'wallCollision', { targetId, direction: command.direction }); dealDamage(state, targetId, 2, false); }
-      else { target.position = destination; record(state, 'push', { targetId, direction: command.direction, to: destination }); }
+      else {
+        actor.position = destination; target.position = destination;
+        record(state, 'move', { movement: command.direction, from, to: destination, fighters: [actorId, targetId], source: 'drive' });
+      }
       break;
     }
     case 'playFlurry': dealDamage(state, targetId, Math.min(5, previousActions), rangeBand(state) === 'Close'); break;

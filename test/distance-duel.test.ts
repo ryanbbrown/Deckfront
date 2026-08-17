@@ -4,6 +4,7 @@ import {
   listLegalActions, rangeBand, replayCommands, submitStartingBuild
 } from '../src/game';
 import type { GameCommand, GameState, PlayerId } from '../src/game';
+import { gameCommandSchema } from '../src/server/schemas';
 
 function ready(seed = 1, first: PlayerId = 'ochre', ochre: string[] = [], indigo: string[] = []): GameState {
   let state = createGame({ seed, firstPlayerId: first }); state = submitStartingBuild(state, 'ochre', ochre); return submitStartingBuild(state, 'indigo', indigo);
@@ -66,25 +67,33 @@ describe('arena and movement', () => {
       expect(() => assertInvariants(state)).not.toThrow();
     }
   });
-  it('Footwork moves left or right through occupied spaces, draws, and disables walls', () => {
+  it('Footwork can stay or move through occupied spaces, always draws, and keeps Stay at walls', () => {
     let state = ready(); isolateHand(state, 'ochre', ['footwork']); setDraw(state, 'ochre', ['aim']);
-    state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'right').id);
-    expect(state.fighters.ochre.position).toBe(3); expect(state.fighters.indigo.position).toBe(3); expect(rangeBand(state)).toBe('Close'); expect(state.players.ochre.deck.hand.map((card) => card.definitionId)).toEqual(['aim']);
+    state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'stay').id);
+    expect(state.fighters.ochre.position).toBe(2); expect(state.fighters.indigo.position).toBe(3); expect(rangeBand(state)).toBe('Near'); expect(state.players.ochre.deck.hand.map((card) => card.definitionId)).toEqual(['aim']);
+    isolateHand(state, 'ochre', ['footwork']); state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'right').id);
+    expect(state.fighters.ochre.position).toBe(3); expect(state.fighters.indigo.position).toBe(3); expect(rangeBand(state)).toBe('Close');
     isolateHand(state, 'ochre', ['footwork']); state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'right').id);
     expect(state.fighters.ochre.position).toBe(4); expect(state.fighters.indigo.position).toBe(3); expect(rangeBand(state)).toBe('Near');
-    state.fighters.ochre.position = 1; isolateHand(state, 'ochre', ['footwork']); expect(listActionAvailability(state, 'ochre')[0]).toMatchObject({ movements: ['right'] });
-    state.fighters.ochre.position = 5; expect(listActionAvailability(state, 'ochre')[0]).toMatchObject({ movements: ['left'] });
+    state.fighters.ochre.position = 1; isolateHand(state, 'ochre', ['footwork']); expect(listActionAvailability(state, 'ochre')[0]).toMatchObject({ movements: ['stay', 'right'] });
+    state.fighters.ochre.position = 5; expect(listActionAvailability(state, 'ochre')[0]).toMatchObject({ movements: ['left', 'stay'] });
   });
 });
 
 describe('cards and conditions', () => {
-  it('Cull supports both forms, counts after self-trash, and never offers another played card', () => {
-    let state = ready(); isolateHand(state, 'ochre', ['cull', 'copper']);
-    expect(listActionAvailability(state, 'ochre')[0]?.enabled).toBe(true);
-    state = applyAction(state, action(state, (command) => command.type === 'playCull').id); expect(state.trash.slice(-2).map((card) => card.definitionId).sort()).toEqual(['copper', 'cull']); expect(state.actionsThisTurn).toHaveLength(1);
-    isolateHand(state, 'ochre', ['cull', 'copper', 'silver']); state = applyAction(state, action(state, (command) => command.type === 'playCull' && !command.trashInstanceIds.includes(state.players.ochre.deck.hand[0]!.id)).id);
-    expect(state.players.ochre.deck.play.some((card) => card.definitionId === 'cull')).toBe(true); expect(state.trash.slice(-2).map((card) => card.definitionId).sort()).toEqual(['copper', 'silver']);
-    isolateHand(state, 'ochre', ['cull']); expect(listActionAvailability(state, 'ochre')[0]).toMatchObject({ enabled: false, reasonCode: 'CULL_NEEDS_TWO' });
+  it('Cull can trash itself alone, one remaining hand card, or two remaining hand cards', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['cull']); const self = state.players.ochre.deck.hand[0]!;
+    expect(listActionAvailability(state, 'ochre')[0]).toMatchObject({ enabled: true, reasonCode: null, selection: 'trashOneOrTwo', eligibleCardInstanceIds: [self.id] });
+    state = applyAction(state, action(state, (command) => command.type === 'playCull' && command.trashInstanceIds.length === 1 && command.trashInstanceIds[0] === self.id).id);
+    expect(state.trash.at(-1)?.definitionId).toBe('cull'); expect(state.actionsThisTurn).toHaveLength(1);
+
+    state = ready(); isolateHand(state, 'ochre', ['cull', 'copper']); const [cull, copper] = state.players.ochre.deck.hand;
+    state = applyAction(state, action(state, (command) => command.type === 'playCull' && command.trashInstanceIds.length === 1 && command.trashInstanceIds[0] === copper!.id).id);
+    expect(state.players.ochre.deck.play.map((card) => card.id)).toContain(cull!.id); expect(state.trash.at(-1)?.definitionId).toBe('copper');
+
+    state = ready(); isolateHand(state, 'ochre', ['cull', 'copper', 'silver']); const [playedCull, first, second] = state.players.ochre.deck.hand;
+    state = applyAction(state, action(state, (command) => command.type === 'playCull' && command.trashInstanceIds.includes(first!.id) && command.trashInstanceIds.includes(second!.id)).id);
+    expect(state.players.ochre.deck.play.map((card) => card.id)).toContain(playedCull!.id); expect(state.trash.slice(-2).map((card) => card.definitionId).sort()).toEqual(['copper', 'silver']);
   });
   it('Muster draws across a reshuffle and stops when only one card exists', () => {
     let state = ready(); isolateHand(state, 'ochre', ['muster']); state.players.ochre.deck.discard.push(createCard(state, 'copper'), createCard(state, 'aim'));
@@ -94,24 +103,28 @@ describe('cards and conditions', () => {
   it('Footwork draws across a reshuffle boundary', () => {
     let state = ready(); isolateHand(state, 'ochre', ['footwork']); state.players.ochre.deck.discard.push(createCard(state, 'aim')); state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'left').id); expect(state.players.ochre.deck.hand.map((card) => card.definitionId)).toEqual(['aim']);
   });
-  it('Cull rejects duplicate, one, three, missing, and already-played target IDs', () => {
+  it('Cull accepts one or two schema targets but rejects zero, duplicates, three, missing, and already-played targets', () => {
     let state = ready(); isolateHand(state, 'ochre', ['cull', 'copper', 'silver', 'muster']); const [cull, copper, silver, muster] = state.players.ochre.deck.hand;
+    expect(gameCommandSchema.safeParse({ type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id] }).success).toBe(true);
+    expect(gameCommandSchema.safeParse({ type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, silver!.id] }).success).toBe(true);
+    expect(gameCommandSchema.safeParse({ type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [] }).success).toBe(false);
     const invalid = [
+      { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [] },
       { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, copper!.id] },
-      { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id] },
       { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, silver!.id, muster!.id] },
       { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, 'missing-id'] }
     ];
     for (const command of invalid) expect(() => applyCommand(state, command as unknown as GameCommand)).toThrow('Illegal command');
     state = applyAction(state, action(state, (command) => command.type === 'playMuster').id); expect(() => applyCommand(state, { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, muster!.id] })).toThrow('Illegal command');
   });
-  it('Feint reapplies without stacking, while Drive chooses a push direction and can collide', () => {
+  it('Feint reapplies without stacking, while Drive moves both fighters or collides with a wall', () => {
     let state = ready(); state.fighters.ochre.position = 3; state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['feint', 'feint', 'drive']);
     state = play(state, 'playFeint'); state = play(state, 'playFeint'); expect(state.fighters.indigo.exposed).toBe(true);
     state = applyAction(state, action(state, (command) => command.type === 'playDrive' && command.direction === 'left').id);
-    expect(state.fighters.indigo.health).toBe(16); expect(state.fighters.indigo.position).toBe(2); expect(state.fighters.ochre.position).toBe(3); expect(state.fighters.indigo.exposed).toBe(false);
+    expect(state.fighters.indigo.health).toBe(16); expect(state.fighters.indigo.position).toBe(2); expect(state.fighters.ochre.position).toBe(2); expect(rangeBand(state)).toBe('Close'); expect(state.fighters.indigo.exposed).toBe(false);
+    expect(state.events.at(-1)).toMatchObject({ type: 'move', detail: { movement: 'left', from: 3, to: 2, fighters: ['ochre', 'indigo'], source: 'drive' } });
     state.fighters.ochre.position = 1; state.fighters.indigo.position = 1; isolateHand(state, 'ochre', ['feint', 'drive']); state = play(state, 'playFeint'); state = applyAction(state, action(state, (command) => command.type === 'playDrive' && command.direction === 'left').id);
-    expect(state.fighters.indigo.health).toBe(10); expect(state.fighters.indigo.position).toBe(1); expect(state.fighters.ochre.position).toBe(1);
+    expect(state.fighters.indigo.health).toBe(10); expect(state.fighters.indigo.position).toBe(1); expect(state.fighters.ochre.position).toBe(1); expect(state.events.some((event) => event.type === 'wallCollision' && event.detail.direction === 'left')).toBe(true);
   });
   it('Drive victory clamps at zero and stops before push', () => {
     let state = ready(); state.fighters.ochre.position = 3; state.fighters.indigo.position = 3; state.fighters.indigo.health = 1; isolateHand(state, 'ochre', ['drive']);

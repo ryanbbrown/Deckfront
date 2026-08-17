@@ -19,7 +19,7 @@ export const requiredCards = [
 export const requiredBrowserFlows = [
   'startingBuild', 'localTwoPlayer', 'zeroPaidBuild', 'buildAddRemoveRepeat', 'buildRefresh', 'buildRace', 'buildLocked',
   'freeCopper', 'overBudgetBuild', 'humanFirst', 'aiFirst', 'hiddenAiBuild', 'editedPrompt', 'promptCanClear',
-  'carriedStartingMoney', 'treasureAutoPlay', 'footworkSelections', 'sharedSpaces', 'passThrough', 'driveDirection', 'cullBothForms', 'cullNoPair',
+  'carriedStartingMoney', 'treasureAutoPlay', 'footworkSelections', 'sharedSpaces', 'passThrough', 'driveDirection', 'cullTargetCombinations', 'cullOneOrTwo',
   'disabledReasons', 'immediateActions', 'globalUndo', 'undoRefresh', 'moneyExpires', 'treasureIdentity',
   'largeHandLayout', 'responsiveLayout', 'multiplePurchases', 'baseTreasuresNondepleting', 'tenthActionSupply', 'turnCleanup', 'conditionDisplay', 'closeCombination',
   'rangedCombination', 'wallCollision', 'nearVolleyComparison', 'realFlurryShortChain', 'realFlurryCap',

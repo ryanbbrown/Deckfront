@@ -103,10 +103,10 @@ describe('GameService setup and privacy', () => {
       const before = await service.get(game.id); const selected = before.legalActions.find((entry) => entry.command.type === commandType && (entry.command.type !== 'playFootwork' || entry.command.movement === 'left') && (entry.command.type !== 'playDrive' || entry.command.direction === 'right') && (entry.command.type !== 'buyCard' || entry.command.definitionId === 'gold'))!;
       expect(selected, commandType).toBeDefined(); const after = await service.commitHumanAction(game.id, before.revision, selected.id); expect(after.revision, commandType).toBe(before.revision + 1); expect(after.canUndo, commandType).toBe(true);
       if (commandType === 'playFootwork') { expect(after.fighters.ochre.position).toBe(1); expect(after.players.ochre.hand?.map((card) => card.definitionId)).toEqual(['aim']); }
-      if (commandType === 'playCull') expect(after.trashCount).toBe(record.state.trash.length + 2);
+      if (commandType === 'playCull') expect(after.trashCount).toBe(record.state.trash.length + 1);
       if (commandType === 'playMuster') expect(after.players.ochre.hand?.map((card) => card.definitionId)).toEqual(['aim', 'volley']);
       if (commandType === 'playFeint') expect(after.fighters.indigo.exposed).toBe(true);
-      if (commandType === 'playDrive') { expect(after.fighters.indigo.health).toBe(18); expect(after.fighters.indigo.position).toBe(3); }
+      if (commandType === 'playDrive') { expect(after.fighters.indigo.health).toBe(18); expect(after.fighters.indigo.position).toBe(3); expect(after.fighters.ochre.position).toBe(3); }
       if (commandType === 'playFlurry') expect(after.fighters.indigo.health).toBe(18);
       if (commandType === 'playAim') { expect(after.fighters.ochre.aimed).toBe(true); expect(after.players.ochre.hand?.map((card) => card.definitionId)).toEqual(['copper']); }
       if (commandType === 'playVolley') expect(after.fighters.indigo.health).toBe(18);
@@ -227,12 +227,12 @@ describe('persistence schema', () => {
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8, strategyPresetId: 'close-pressure', strategyMarkdown: '# close' });
       await Promise.all([1, 2].map((marker) => repository.withLock(created.id, async () => { const record = await repository.load(created.id); await new Promise((resolve) => setTimeout(resolve, marker === 1 ? 5 : 0)); record.revision += 1; record.updatedAt = new Date(Date.parse(record.updatedAt) + marker * 1000).toISOString(); await repository.save(record); })));
-      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(6); expect(saved.state.phase).toBe('startingBuild');
+      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(7); expect(saved.state.phase).toBe('startingBuild');
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it('rejects an old save with a specific version message', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-old-')); const id = '11111111-1111-4111-8111-111111111111';
-    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 5 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 5 is not supported'); }
+    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 6 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 6 is not supported'); }
     finally { await rm(directory, { recursive: true, force: true }); }
   });
 });

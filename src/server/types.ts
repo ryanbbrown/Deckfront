@@ -8,7 +8,7 @@ export interface UndoCheckpoint {
   durationSeconds: number | null;
 }
 export interface GameRecord {
-  schemaVersion: 6;
+  schemaVersion: 7;
   id: string; revision: number; createdAt: string; updatedAt: string; finishedAt: string | null;
   completedActions: number; durationSeconds: number | null; humanPlayerId: PlayerId; aiPlayerId: PlayerId;
   opponentMode: OpponentMode;

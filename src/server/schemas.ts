@@ -8,8 +8,8 @@ const phase = z.enum(['startingBuild', 'action', 'buy', 'ended']);
 const commandCard = { cardInstanceId: z.string() };
 export const gameCommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('submitStartingBuild'), playerId, definitionIds: z.array(z.string()) }),
-  z.object({ type: z.literal('playFootwork'), ...commandCard, movement: z.enum(['left', 'right']) }),
-  z.object({ type: z.literal('playCull'), ...commandCard, trashInstanceIds: z.tuple([z.string(), z.string()]) }),
+  z.object({ type: z.literal('playFootwork'), ...commandCard, movement: z.enum(['left', 'right', 'stay']) }),
+  z.object({ type: z.literal('playCull'), ...commandCard, trashInstanceIds: z.union([z.tuple([z.string()]), z.tuple([z.string(), z.string()])]) }),
   z.object({ type: z.literal('playMuster'), ...commandCard }), z.object({ type: z.literal('playFeint'), ...commandCard }),
   z.object({ type: z.literal('playDrive'), ...commandCard, direction: z.enum(['left', 'right']) }), z.object({ type: z.literal('playFlurry'), ...commandCard }),
   z.object({ type: z.literal('playAim'), ...commandCard }),
@@ -23,7 +23,7 @@ const player = z.object({
 const fighter = z.object({ playerId, position: z.number().int().min(1).max(5), health: z.number().int().min(0).max(20), aimed: z.boolean(), exposed: z.boolean() });
 const event = z.object({ sequence: z.number().int().nonnegative(), type: z.string(), playerId, detail: z.record(z.string(), z.unknown()) });
 export const gameStateSchema = z.object({
-  schemaVersion: z.literal(6), seed: z.number().int(), rngState: z.number().int().nonnegative(), version: z.number().int().nonnegative(),
+  schemaVersion: z.literal(7), seed: z.number().int(), rngState: z.number().int().nonnegative(), version: z.number().int().nonnegative(),
   nextCardSerial: z.number().int().positive(), activePlayerId: playerId, selectedFirstPlayerId: playerId, phase,
   turn: z.number().int().nonnegative(), winner: playerId.nullable(), players: z.object({ ochre: player, indigo: player }),
   fighters: z.object({ ochre: fighter, indigo: fighter }), supply: z.record(z.string(), z.number().int().nonnegative()),
@@ -34,7 +34,7 @@ const undoCheckpoint = z.object({
   finishedAt: z.string().datetime().nullable(), durationSeconds: z.number().nonnegative().nullable()
 });
 export const gameRecordSchema = z.object({
-  schemaVersion: z.literal(6), id: z.string().uuid(), revision: z.number().int().nonnegative(),
+  schemaVersion: z.literal(7), id: z.string().uuid(), revision: z.number().int().nonnegative(),
   createdAt: z.string().datetime(), updatedAt: z.string().datetime(), finishedAt: z.string().datetime().nullable(),
   completedActions: z.number().int().nonnegative(), durationSeconds: z.number().nonnegative().nullable(),
   humanPlayerId: playerId, aiPlayerId: playerId, opponentMode, strategy: z.object({ presetId: z.string(), markdown: z.string() }),
