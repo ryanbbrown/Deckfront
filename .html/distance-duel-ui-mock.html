@@ -254,19 +254,21 @@
 
     .hand-play-layout {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 248px;
-      gap: 13px;
+      gap: 14px;
     }
     .hand-area { min-width: 0; }
-    .hand {
+    .hand, .played-list {
       display: grid;
-      grid-template-columns: repeat(3, minmax(104px, 1fr));
+      grid-template-columns: repeat(6, minmax(90px, 1fr));
       gap: 8px;
+      min-width: 0;
     }
+    .hand { padding-bottom: 2px; }
     .card {
       position: relative;
+      width: 100%;
       min-width: 0;
-      min-height: 150px;
+      aspect-ratio: 5 / 7;
       padding: 10px 9px 8px;
       overflow: hidden;
       border: 1px solid #aa9877;
@@ -275,8 +277,9 @@
         linear-gradient(145deg, rgba(255, 255, 255, .68), transparent 48%),
         #e9deca;
       box-shadow: 0 4px 8px rgba(58, 39, 14, .13);
+      text-align: left;
     }
-    button.card { width: 100%; text-align: left; cursor: pointer; }
+    button.card { cursor: pointer; }
     .card.action::after {
       position: absolute;
       right: -14px;
@@ -289,25 +292,25 @@
     }
     .card.treasure { border-color: #b99138; background: linear-gradient(145deg, #fff4c4, #e3c66e); }
     .card.disabled { filter: saturate(.72); opacity: .68; }
-    .card-kicker { color: var(--green); font-size: 8px; font-weight: 950; letter-spacing: .11em; text-transform: uppercase; }
+    .card-kicker { color: var(--green); font-size: 7px; font-weight: 950; letter-spacing: .1em; text-transform: uppercase; }
     .card.treasure .card-kicker { color: #765414; }
-    .card h3 { margin: 4px 23px 6px 0; font-size: 16px; }
-    .card p { margin-bottom: 7px; color: #4f5248; font-size: 10px; line-height: 1.35; }
-    .card-result { position: absolute; right: 8px; bottom: 7px; left: 8px; font-size: 9px; font-weight: 850; }
+    .card h3 { margin: 4px 22px 5px 0; font-size: 15px; }
+    .card p { margin-bottom: 7px; color: #4f5248; font-size: 8.5px; line-height: 1.28; }
+    .card-result { position: absolute; z-index: 1; right: 8px; bottom: 7px; left: 8px; font-size: 8px; font-weight: 850; line-height: 1.2; }
     .card.disabled .card-result { color: #8b463d; }
     .cost {
       position: absolute;
       top: 7px;
       right: 7px;
       display: grid;
-      width: 23px;
-      height: 23px;
+      width: 22px;
+      height: 22px;
       border: 1px solid rgba(255, 255, 255, .62);
       border-radius: 50%;
       background: #26332d;
       color: white;
       font-family: Georgia, "Times New Roman", serif;
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 900;
       box-shadow: 0 1px 2px rgba(0, 0, 0, .2);
       place-items: center;
@@ -321,37 +324,27 @@
       background: #fff4ce;
       box-shadow: inset 0 0 0 3px rgba(255, 255, 255, .52);
     }
-    .played-area .section-head { margin-bottom: 7px; }
-    .played-area .section-head h2 { font-size: 16px; }
-    .played-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; counter-reset: played; }
+    .played-area .section-head { margin-bottom: 8px; }
+    .played-area .section-head h2 { font-size: 17px; }
+    .played-list { margin: 0; padding: 0; list-style: none; }
     .played-item {
-      position: relative;
-      min-height: 55px;
-      padding: 7px 7px 7px 35px;
-      border: 1px solid #d7bb79;
-      border-radius: 8px;
-      background: rgba(255, 253, 244, .84);
-      counter-increment: played;
+      border-color: #cda958;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, .8), transparent 48%),
+        #f1e4c2;
+      transform: translateY(-1px);
     }
-    .played-item::before {
-      position: absolute;
-      top: 8px;
-      left: 8px;
-      display: grid;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--ink);
-      color: white;
-      font-family: Georgia, "Times New Roman", serif;
-      font-size: 10px;
-      font-weight: 900;
-      content: counter(played);
-      place-items: center;
+    .played-item .card-result {
+      right: 6px;
+      bottom: 6px;
+      left: 6px;
+      padding: 5px 6px;
+      border-radius: 6px;
+      background: rgba(255, 250, 231, .94);
+      color: #4e493f;
+      box-shadow: 0 1px 3px rgba(73, 53, 20, .12);
     }
-    .played-item strong { display: block; font-family: Georgia, "Times New Roman", serif; font-size: 12px; }
-    .plain-result { display: block; margin-top: 2px; color: #5b5548; font-size: 9px; line-height: 1.28; }
-    .plain-result b { color: var(--green); }
+    .played-item .card-result b { color: var(--green); }
 
     .market-grid {
       display: grid;
@@ -573,13 +566,10 @@
     .mock-note { margin: 13px 3px 0; color: rgba(255, 255, 255, .62); font-size: 9px; text-align: center; }
 
     @media (max-width: 1400px) {
-      .hand-play-layout { grid-template-columns: 1fr; }
-      .played-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-      .played-item { min-height: 62px; }
       .market-grid { grid-template-columns: repeat(4, minmax(100px, 1fr)); }
     }
 
-    @media (max-width: 1120px) {
+    @media (max-width: 1320px) {
       .app-layout:not(.drawer-closed) .battle-grid { grid-template-columns: 1fr; }
       .app-layout:not(.drawer-closed) .ai-recap { position: static; }
     }
@@ -608,8 +598,11 @@
       .duelist-status { min-width: 0; }
       .duelist-copy .health { font-size: 15px; }
       .arena { grid-template-columns: repeat(5, minmax(45px, 1fr)); }
-      .hand { grid-template-columns: repeat(2, minmax(100px, 1fr)); }
-      .played-list { grid-template-columns: 1fr; }
+      .hand, .played-list {
+        grid-template-columns: repeat(6, minmax(108px, 1fr));
+        overflow-x: auto;
+        padding-bottom: 6px;
+      }
       .market-grid { grid-template-columns: repeat(3, minmax(88px, 1fr)); }
     }
 
@@ -626,8 +619,7 @@
       .arena { grid-template-columns: repeat(5, minmax(0, 1fr)); }
       .space { min-height: 54px; }
       .fighter-token { width: 29px; height: 29px; }
-      .hand { grid-template-columns: 1fr 1fr; gap: 6px; }
-      .card { min-height: 150px; }
+      .hand, .played-list { grid-template-columns: repeat(6, minmax(104px, 1fr)); gap: 6px; }
       .market-grid { grid-template-columns: 1fr 1fr; }
       .dealt-hand { grid-template-columns: repeat(5, minmax(45px, 1fr)); overflow-x: auto; padding-bottom: 3px; }
     }
@@ -684,15 +676,36 @@
           <div class="player-column">
             <section class="panel surface" aria-label="Your hand and cards played this turn">
               <div class="hand-play-layout">
+                <section class="played-area" aria-labelledby="played-heading">
+                  <div class="section-head"><h2 id="played-heading">Played this turn</h2><span>Cards move here from your hand · left to right</span></div>
+                  <ol class="played-list">
+                    <li class="card action played-item">
+                      <span class="card-kicker">Played 1 · Action</span><span class="cost">2</span>
+                      <h3>Footwork</h3><p>You may move 1 space left or right. Draw 1 card.</p>
+                      <span class="card-result"><b>Moved right</b> · space 1 → 2<br><b>Drew</b> 1 card</span>
+                    </li>
+                    <li class="card action played-item">
+                      <span class="card-kicker">Played 2 · Action</span><span class="cost">3</span>
+                      <h3>Aim</h3><p>At Near or Far range, become Aimed, then draw 1 card.</p>
+                      <span class="card-result"><b>Became Aimed</b><br><b>Drew</b> 1 card</span>
+                    </li>
+                    <li class="card action played-item">
+                      <span class="card-kicker">Played 3 · Action</span><span class="cost">5</span>
+                      <h3>Volley</h3><p>Deal 5 damage at Far range. Aimed changes this to 7.</p>
+                      <span class="card-result">Far + Aimed<br><b>Dealt 7 damage</b> to AI</span>
+                    </li>
+                  </ol>
+                </section>
+
                 <div class="hand-area">
                   <div class="section-head">
                     <h2>Your hand</h2>
-                    <span class="count-chip">6 cards · click to play</span>
+                    <span class="count-chip">6 cards · click a card to move it above</span>
                   </div>
                   <div class="hand">
                     <button class="card action disabled" type="button">
                       <span class="card-kicker">Action · Close</span><span class="cost">4</span>
-                      <h3>Drive</h3><p>At Close, deal 2. Move both fighters 1 space left or right. If a wall blocks them, neither moves and the attack deals +2.</p>
+                      <h3>Drive</h3><p>At Close, deal 2. Move both fighters 1 space. At a wall, neither moves and deal +2.</p>
                       <span class="card-result">Needs Close range</span>
                     </button>
                     <button class="card action" type="button">
@@ -702,7 +715,7 @@
                     </button>
                     <button class="card action disabled" type="button">
                       <span class="card-kicker">Action · Close</span><span class="cost">3</span>
-                      <h3>Feint</h3><p>At Close range, the next Close-range attack this turn deals +2 damage.</p>
+                      <h3>Feint</h3><p>Your next Close-range attack this turn deals +2 damage.</p>
                       <span class="card-result">Needs Close range</span>
                     </button>
                     <button class="card treasure" type="button">
@@ -719,15 +732,6 @@
                     </button>
                   </div>
                 </div>
-
-                <aside class="played-area" aria-labelledby="played-heading">
-                  <div class="section-head"><h2 id="played-heading">Played this turn</h2><span>in order</span></div>
-                  <ol class="played-list">
-                    <li class="played-item"><strong>Footwork</strong><span class="plain-result"><b>Moved right</b> · space 1 → 2<br><b>Drew</b> 1 card</span></li>
-                    <li class="played-item"><strong>Aim</strong><span class="plain-result"><b>Became Aimed</b><br><b>Drew</b> 1 card</span></li>
-                    <li class="played-item"><strong>Volley</strong><span class="plain-result">Chose Far shot<br><b>Dealt 7 damage</b> to AI</span></li>
-                  </ol>
-                </aside>
               </div>
             </section>
 
