@@ -100,8 +100,6 @@ Width was cut in preference to depth. Generational depth is what the search exis
 
 100 turns per player before a draw. Partial populations and results are preserved at every limit.
 
-100 turns per player before a draw. Partial populations and results are preserved at every limit.
-
 The shared seeds are **fixed for the whole run**, so scores stay comparable across generations. Re-deriving them per generation would remove that comparability, which the report depends on. The cost is a risk of overfitting the leaders to those 8 shuffles; recorded rather than traded away, and sharper now that the measured run uses 8 seeds rather than 25.
 
 ## Interface

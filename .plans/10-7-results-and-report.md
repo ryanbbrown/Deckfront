@@ -27,6 +27,9 @@ The full defaults are **below** the maxima, because the measured throughput of 1
 | `--generations` | 5 | 32 | 32 |
 | `--seeds` | 5 | 8 | 25 |
 | `--deadline-minutes` | 30 | 240 | 420 |
+| `--state-limit` | 20000 | 20000 | 20000 |
+
+`--state-limit` is the Action-phase search's abort threshold, not a balance knob. It exists as an option because nothing else can exercise the abort path — the measured maximum is 297 visited states against the 20,000 default, so no real strategy overflows. Lowering it is a **recorded run limit** and belongs in `run.json` and the report header, because it changes which matches abort.
 
 `--kingdom` accepts only the five curated ids. `distance-duel` is registered by default but is the browser kingdom, not an experiment kingdom; reject it with the five valid ids in the message.
 
@@ -52,6 +55,8 @@ The **mode segment matters**: `GOAL.md` requires smoke results for all five king
 **Durability.** Clear stale artifacts when the run starts, so a second run cannot append to the previous run's `generations.jsonl`. Write `run.json` before the first generation and rewrite it at the end. Every JSON snapshot is written to a temporary file and renamed, so a kill never leaves invalid JSON. `generations.jsonl` is appended from the `onGeneration` callback; a reader must tolerate a truncated final line.
 
 **On error**, `run.json` records `stopReason: 'error'` with the message, `report.md` is still written with whatever is available, and the CLI exits non-zero.
+
+**The calibration gate throws when every final leader is a fixed baseline, and step 7 must catch it.** Step 5 defines the final leader set as excluding baselines and specifies that an empty list throws. That case is reachable: it means evolution never produced a leader better than the yardstick, which is a **result**, and an important one. Catch it, record it as a blocker in `run.json` and in the report header naming the leaders that survived, and keep the rest of the run's output. A full run must not crash because the search did not beat its own baselines.
 
 **When the generation count and the deadline are reached together**, the stop reason is `generations`: the run finished what it was asked to do.
 

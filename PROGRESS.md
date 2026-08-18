@@ -164,6 +164,7 @@ Also deferred: `src/client/Game.tsx:51` has no branch for the new `direction`, `
 - **Steps 1 and 2** at `2bf6d8c`, after the review fixes: `npm test` **89 passed, 1 skipped**. `npm run typecheck`, `npm run lint`, `npm run build` all clean.
 - **Steps 3 and 4** at `a6e5fd5`, before the implementation review: `npm test` **130 passed, 1 skipped**. `npm run typecheck`, `npm run lint`, `npm run build` all clean.
 - **Steps 3 and 4** at `e7918e8`, after the review fixes: `npm test` **148 passed, 1 skipped**. `npm run typecheck`, `npm run lint`, `npm run build` all clean.
+- **Steps 5 and 6** at `c110082`, before the implementation review: `npm test` **198 passed, 1 skipped**. `npm run typecheck`, `npm run lint`, `npm run build` all clean. `scripts/measure_search.ts` returns a byte-identical profile after the kingdom data moved out of `test/sim/kingdoms.ts` into `src/game-data/kingdoms.json` — same 26,712 decisions, same visited distribution, same 314/61/0 stop split — which proves the move changed no data.
 - Commits: `18ba526`, `7773705`, `084f57c` (writer), `2bf6d8c` (review fixes), `b21f465` (group 2 plan revisions), `f6fbe78`, `8fd6332` (group 3 and 4 plan revisions), `3583080` (step 3), `a6e5fd5` (step 4).
 - Review outputs and synthesis files under `.reviews/plans/` and `.reviews/implementations/`.
 
@@ -192,6 +193,42 @@ These are baseline strategies only. Evolved strategies may search wider, so trea
 **After the review fixes**, at `e7918e8`: decision ms mean 0.275, match ms mean 86.979, **11.5 matches per second**. The `visited states` row is byte-identical — same n of 26,712, same mean, p50, p95, and max — and the stop-reason split is unchanged at 314 victory, 61 turnLimit, 0 overflows. That identity is the useful part: gating the hot-loop clock reads, counting the turn-ending action against the cap, and resolving the canonical action by id changed **no decision the search makes**. The 1.4 percent wall-clock gain is inside noise and is not claimed as an improvement.
 
 `084f57c` repaired a literal NUL byte the writer left in `src/game/kingdom.ts`, which made the file binary to Git and would have hidden it from the review diff. Behaviour was unchanged.
+
+## Evolution readings of record
+
+The three readings `.plans/10-6-evolution.md` assigns to this document.
+
+**"Meaningfully different" leaders** means **exact-duplicate removal by canonical form, and nothing else**. No distance metric, no diversity quota, no minimum weight separation. `10-6:36` forbids inventing one, and a threshold would be an unapproved balance knob: it would decide which strategies survive, which is the result the search exists to produce.
+
+**The retained cap** is **one leader per generation** — that generation's best — deduped by canonical form against the rest of the tournament field. A leader retained unchanged across several generations enters the round robin once. Retaining the whole leader set instead would give ~165 entrants and ~1.35M tournament matches, nearly doubling the run.
+
+**The generation-1 leader set** is **all five fixed baselines, regardless of the `leaders` limit**, which governs generation 2 onward. This decides `matchCount`, so it is recorded rather than inferred: the five repaired baselines are also the first five candidates, and a strategy never plays itself, so
+
+```text
+generation 1 matches = (candidates × 5 − 5) × 4 × sharedSeeds
+```
+
+At the full-run limits — 30 candidates, 8 shared seeds — that is (150 − 5) × 4 × 8 = **4,640 matches**, against 3,840 for a later generation with 4 leaders.
+
+## Seed degradation, measured
+
+Baseline strategies are kingdom-agnostic, so a curated kingdom that does not sell a seed's cards repairs it down. Plan `10-4:155` allows this, so it is a property of the design, not a defect. It matters because it thins generation 1.
+
+`seedFindings(kingdomId)` in `src/sim/seedPopulation.ts` computes it, with tests pinning the per-kingdom counts, so a later kingdom edit that guts a seed cannot pass unnoticed. `treasure-only` never appears: its empty build is its design, not a loss.
+
+| Kingdom | Baselines degraded, of 4 non-trivial | Worst case |
+| --- | ---: | --- |
+| current-duel | 4 | **mage-standard: build 4→1 (`footwork` only), agenda 4→0 — the only degenerate seed in the set** |
+| three-way-open | 4 | engine-draw: build 3→2, agenda 4→1 |
+| three-way-engine | 3 | ranged-standard: build 3→1, agenda 4→2 |
+| range-rich-mixed | 3 | engine-draw: build 3→1, agenda 4→2 |
+| rigged-melee | 4 | engine-draw: build 3→2, agenda 4→1 |
+
+Flag `current-duel`, `three-way-open`, and `rigged-melee` for weak generation-1 signal. `current-duel` is the severe one: one of its five seeds enters with no attack card and nothing to buy.
+
+`rigged-melee` is in the flagged group and carries the calibration gate, so this was checked specifically: its `melee-rush` seed keeps its whole starting build and loses only `feint` from the agenda. The gate's own yardstick is intact.
+
+**This corrects an error I recorded earlier.** The group 2 synthesis claimed `engine-draw` in `three-way-open` loses its whole build *and* entire agenda, and I repeated it in the group 3 brief. It is false — that kingdom sells `stipend`. The writer measured every baseline against every kingdom rather than trusting the prose, which is how it was caught.
 
 ## Budget and schedule
 

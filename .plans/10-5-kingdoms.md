@@ -103,7 +103,9 @@ If the check fails on the full run after the repair cap in `GOAL.md`, record it 
 9. Override validation still rejects a value key the mechanic does not declare, for example a `heavyBlow` override naming `draw`.
 10. The calibration check passes a synthetic input whose top strategy acquired Heavy Blow; passes one where exactly 80 percent of leaders acquired it; fails one at 79 percent where the top strategy did not; and throws on an empty leader list.
 11. The calibration check reads acquisitions, not agendas: a leader whose agenda names Heavy Blow but who never acquired one does not count. A leader that acquired Heavy Blow **only in its starting build** does count.
-12. One short match per baseline pair per curated kingdom completes without throwing, and each repaired starting build is non-empty. Step 4's equivalent check cannot cover these kingdoms, because step 4 runs before they are registered.
+12. One short match per baseline pair per curated kingdom completes without throwing, and the exact repaired starting build is pinned for all 25 kingdom-and-baseline pairs. Step 4's equivalent check cannot cover these kingdoms, because step 4 runs before they are registered.
+
+    Pinning the exact build replaces an earlier "each repaired build is non-empty" wording, which was wrong: `treasure-only`'s build is **deliberately** empty, so that the whole 12 carries into the first Buy phase as `firstBuyMoney`. Pinning the exact list is also the stronger check, because it catches a build that repairs to the wrong cards, not only one that repairs to nothing.
 
 ## Completion criterion
 
