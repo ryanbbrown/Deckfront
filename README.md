@@ -53,6 +53,18 @@ npm run lint
 npm run build
 ```
 
-The backend suite covers setup, privacy, arena rules, every card, complete turns, purchases, replay, persistence, and AI sequencing. Playwright drives every card and required selection through the production browser and real local server. `npm run test:ai:live` sets `HEXDECK_LIVE_AI=1` for the live Vitest case and uses `playwright.live.config.ts`, which sets `HEXDECK_E2E_LIVE=1` for the real-browser bridge case. Both use `HEXDECK_AI_MODEL` and `HEXDECK_AI_EFFORT` when set.
+The backend suite covers setup, privacy, arena rules, every card, complete turns, purchases, replay, persistence, AI sequencing, and the balance simulator. Playwright drives every card and required selection through the production browser and real local server. `npm run test:ai:live` sets `HEXDECK_LIVE_AI=1` for the live Vitest case and uses `playwright.live.config.ts`, which sets `HEXDECK_E2E_LIVE=1` for the real-browser bridge case. Both use `HEXDECK_AI_MODEL` and `HEXDECK_AI_EFFORT` when set.
+
+## Balance simulator
+
+`src/sim/` plays headless matches to tune card values. It imports from `src/game/` only, which an ESLint rule enforces. `runMatch` plays one deterministic match between two agents. A strategy is plain data — a starting build, an ordered buy agenda, a preferred range, and scoring weights — and `strategyAgent` turns it into a player that searches the whole Action-phase tree for its best line.
+
+Measure search throughput before changing anything that runs inside that tree:
+
+```sh
+npx tsx scripts/measure_search.ts
+```
+
+It plays every baseline pairing in every curated kingdom and prints wall clock per decision and per match, states visited, and stop reasons.
 
 Card definitions live in `src/game-data/cards.json`. Strategy prompts live in `strategies/`. Saved AI traces live under `.data/ai-traces`.
