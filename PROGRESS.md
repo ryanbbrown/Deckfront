@@ -193,6 +193,29 @@ These are baseline strategies only. Evolved strategies may search wider, so trea
 
 `084f57c` repaired a literal NUL byte the writer left in `src/game/kingdom.ts`, which made the file binary to Git and would have hidden it from the review diff. Behaviour was unchanged.
 
+## Budget and schedule
+
+The goal was set at **00:43** on 2026-08-18. The `GOAL.md` budget is eight hours, so it ends at **08:43**, and at least 45 minutes are reserved for final verification and reporting. Working time therefore ends at about **07:58**.
+
+Remaining sequence, with the required order from `GOAL.md`:
+
+| Work | Estimate |
+| --- | ---: |
+| Steps 5 and 6: write, review, fix | ~60 min |
+| Steps 7 and 8: write, review, fix | ~60 min |
+| One implementation round over the complete search system, required by `GOAL.md:84` before the full run | ~15 min |
+| Smoke runs, all five kingdoms, at ~11 min each | ~55 min |
+| One capped full run | whatever remains |
+
+**The 220-minute full run does not fit.** It was sized against the 240-minute deadline default, not against the wall clock actually left, which will be roughly 120 to 150 minutes by the time the full run can start.
+
+This does not need a third resizing, because `--deadline-minutes` already makes the run self-limiting: it stops cleanly between pairings, records `stopReason: 'deadline'`, preserves every finished generation, and reserves 20 percent for the tournament. So the full run keeps the 30/4/32/8 configuration and is given a **deadline equal to the time actually remaining**, and it truncates generations rather than being mis-sized in advance. Record the generations actually completed as the real limit.
+
+Two things to re-measure before committing to that, rather than assume:
+
+- Throughput is measured on **baseline** strategies. Evolved strategies may search wider, so the smoke runs supply the real number and the full-run deadline is set from that, not from 11.5 per second.
+- `GOAL.md:33` asks for a capped full run "when measured throughput permits it", in the singular. One kingdom, not five. `rigged-melee` is the candidate, because it is the only kingdom carrying a pass-or-fail check.
+
 ## Blockers
 
 None. GLM failed to start on both group 1 implementation rounds; Codex and Claude both produced reports, so the round was not re-run.
