@@ -307,28 +307,43 @@ Two things follow, and both are recorded rather than acted on.
 
 `rigged-melee`, seed 1, at 30 candidates, 4 leaders, 32 generations, 8 shared seeds. It ran all 32 generations and finished the round robin in **2.9 minutes** — 213,344 matches at 1,209 per second, no aborted match and no search overflow — and it reported the calibration gate as **PASS**, 4 of 4 final leaders acquiring Heavy Blow.
 
-**This report is withdrawn and regenerated.** The final review round found that the tournament admitted every leader of every generation instead of the one-per-generation cap, so the entrant set, the ranking, and the acquisition counts the gate reads were all produced by code with a known defect. Evidence from defective code is withdrawn, not annotated. See [K1 and K2](.reviews/implementations/complete-balance-search-system/complete-balance-search-system-synthesis-v1.md).
+**That report was withdrawn and regenerated on the capped tournament** at `8a34e09`, after K1 and K2. The re-run is the evidence of record:
 
-Two readings survive the withdrawal, because neither depends on the entrant set.
+| Reading | Withdrawn | Regenerated |
+| --- | ---: | ---: |
+| Entrants | 77 | 29 |
+| Pairs | 2,926 | 406 |
+| Tournament matches | 93,632 | 12,992 |
+| Evolution matches | 119,712 | 119,712 |
+| Total matches | 213,344 | 132,704 |
+| Gate | PASS | **PASS** |
 
-- **Throughput is ~1,209 matches per second** after the clone work, measured over 213,344 matches.
-- **Generation 1 costs ten times a later generation**: 53.0 s against 2.5 to 5.0 s. The fixed baselines play long games, and evolved strategies win sooner.
+Evolution is untouched, so the entire 38 percent saving is the tournament. **The gate passes on the corrected code**: top final leader `sg-01b1ad661d8`, 3,584 Heavy Blow copies summed over its matches, 4 of 4 final leaders acquiring. Nothing was tuned, and the verdict was recomputed without knowing in advance which way it would go.
+
+No refusal path fired in any of the six regenerated runs: no all-baseline final leader set, no partial tournament, no aborted match, no search overflow.
+
+**Generation 1 still costs ten times a later generation** — 53.0 s against 2.5 to 5.0 s. The fixed baselines play long games, and evolved strategies win sooner.
 
 **My error, recorded because the reasoning is the reusable part.** I wrote that 32 generations produced 77 entrants from "one retained leader per generation, plus the final leaders, plus the baselines," and called the earlier 26,240-match estimate low by 3.6x. That arithmetic does not work — 32 + 4 + 5 is 41, not 77. The writer reported the 3.6x gap accurately and I explained it away instead of chasing it, so a plan-conformance defect survived as a sizing anecdote. **A number that does not add up is a defect to chase, not a constant to explain**, and the check is cheap: add the terms up before writing the sentence.
 
 **The final leaders are not the best strategies in the room.** They rank 43, 47, 48, and 49 of 77. Leaders retained from earlier generations rank above them. Selection measures a candidate against the current leader field, so late leaders are specialised against late leaders rather than against the whole history — the round robin is what says which strategy is actually strong, and the report already prints both.
 
-## The gate is evaluated on strategies that are not the best in the run
+## A "known property" that was really the defect, seen from the other side
 
-A property of the check, recorded and deliberately not fixed.
+Worth keeping as a reasoning failure, because it looked like a finding and was recorded as one.
 
-`checkRiggedMelee` reads `finalLeaders`, the last generation's leaders. In the capped full run those four strategies rank **43, 47, 48, and 49 of 77** in the round robin. Selection scores a candidate against the *current* leader field, so a late leader is specialised against late leaders rather than against the whole history, and leaders retained from earlier generations outrank them.
+In the withdrawn run the four final leaders ranked **43, 47, 48, and 49 of 77**. I read that as coevolutionary drift — a late leader is scored against the *current* leader field, so it specialises against late leaders rather than against the whole history — and recorded it as a property of the gate: the one hard check in this goal is computed over a mid-table sample. The wider review round looked for a scoring bug behind it and found none, which I took as confirmation.
 
-So the one hard pass-or-fail check in this goal is computed over a mid-table sample of the population. It passed anyway, 4 of 4 with 9,728 copies for the top leader, which is a stronger result than the sample deserves: even the strategies that are *not* the best in the run all found the rigged card.
+The reading was wrong, and the evidence was the problem. After K1 capped the entrant set the **same four strategies rank 1, 3, 6, and 8 of 29**. The 42 strategies that outranked them were non-best leaders from earlier generations that the plan never admitted to the tournament. There was no drift to explain.
 
-**It is not being changed.** Repointing the gate at the round-robin top would be tuning the check, and `GOAL.md` forbids that. It is also unnecessary, because the check passes as written.
+Two things this cost, both cheap only because the fix arrived first.
 
-One consequence for the report, adopted as a rule: **any claim of the form "the search found X" cites the round robin, not the final generation.** The final leaders are the search's most recent answer, not its best one, and the report already prints both.
+- **A defect was recorded as a property.** "Not a defect, a known characteristic" is the most expensive sentence in this file, because it stops the investigation. It should require the same evidence as a fix, and here it rested entirely on numbers from code no one had checked against the plan.
+- **A clean review is not a clean result.** The round confirmed the *scoring* path was correct, and it was. The fault was in which strategies reached the tournament, one layer up from where I pointed the reviewer.
+
+Scores are not comparable across the two fields, so the new ranks are not an improvement — they are the ranking the plan always specified.
+
+One rule survives from the wrong reading and is worth keeping on its own merits: **any claim of the form "the search found X" cites the round robin, not the final generation.** The final leaders are the search's most recent answer, not necessarily its best one, and the report prints both.
 
 ## Seed degradation, measured
 
@@ -362,15 +377,15 @@ Every earlier estimate in this file was made before the clone cost was removed a
 
 Evolution scales with candidates, leaders, and shared seeds together: `(100/30) x (5/4) x (25/8)` = 13.0x on the measured 119,712.
 
-**The tournament term is computed from the plan, not scaled from the withdrawn run**, because the run's 93,632 tournament matches came from an entrant set that K1 removes. With the one-per-generation cap the design limits give 32 retained + 5 final + 5 baselines ≈ **42 entrants**, so 861 pairs x 25 seeds x 4 orientations ≈ 86,100 — which is what `.plans/10-6-evolution.md:75` predicted before any of this was built.
+**The tournament term is measured from the capped re-run**, not scaled from the withdrawn one. The plan predicted ≈42 entrants at 32 generations; the re-run produced **29**, because dedup by canonical form collapses leaders retained unchanged across generations. So 406 pairs x 25 seeds x 4 orientations ≈ 40,600 — under half the plan's estimate, and far clear of the 20 percent `TOURNAMENT_RESERVE`.
 
 | Term | 100/5/32/25, projected |
 | --- | ---: |
 | Evolution matches | ~1,558,000 |
-| Tournament matches | ~86,000 |
-| Total | ~1,644,000 |
+| Tournament matches | ~41,000 |
+| Total | ~1,599,000 |
 
-Scaling the withdrawn run instead would have put the tournament at ~357,000, and leaving K1 unfixed would have put it at ≈1.35M — nearly doubling every run and truncating every tournament. The fix is what makes five design-maximum runs affordable.
+Three sizings for the same run, worth keeping side by side: leaving K1 unfixed gives ≈1.35M tournament matches, scaling the withdrawn run gives ~357,000, and the corrected measurement gives ~41,000. The middle number is the one I would have used, and it is wrong by 8.7x in the direction that hides a problem.
 
 Per-kingdom wall clock, taking each kingdom's post-clone rate from the profiling table and scaling by the 2.43x that evolved strategies run faster than the baseline pairings that table measures:
 
