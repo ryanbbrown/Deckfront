@@ -9,7 +9,7 @@ import {
   MAX_DESIRED_COUNT, MUTATION_NAMES, RANGE_BANDS, WEIGHT_LIMIT, applyMutation, mutate, mutationRandom, repairStrategy
 } from '../../src/sim/mutation';
 import { nextPopulation } from '../../src/sim/evolution';
-import { seedStrategies } from '../../src/sim/seedPopulation';
+import { seedFindings, seedStrategies } from '../../src/sim/seedPopulation';
 import { canonicalStrategy } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import { strategy } from './fixtures';
@@ -191,10 +191,57 @@ describe('seeded strategies', () => {
 
   // Recorded, not fixed. Plan 10-4 allows a baseline to repair away, and inventing a replacement
   // would be new strategy content that no approved document authorises.
-  it('records that engine-draw loses its whole build and agenda in three-way-open', () => {
+  it('records that engine-draw keeps only stipend and footwork in three-way-open', () => {
     const seeds = seedStrategies('three-way-open');
     const engine = seeds.find((seed) => seed.preferredRange === 'Near' && seed.weights.cardsDrawn === 2)!;
     expect(engine.startingBuild).toEqual(['stipend', 'footwork']);
     expect(engine.buyAgenda).toEqual([{ cardId: 'stipend', desiredCount: 2 }]);
+  });
+});
+
+describe('the seeding findings a run reports', () => {
+  it('counts exactly what each seed lost, and matches the seeds that actually play', () => {
+    for (const kingdomId of CURATED_KINGDOM_IDS) {
+      const findings = seedFindings(kingdomId);
+      const seeds = new Map(seedStrategies(kingdomId).map((seed) => [seed.id, seed]));
+      for (const finding of findings) {
+        const label = `${kingdomId}/${finding.baselineId}`;
+        const baseline = baselineStrategy(finding.baselineId);
+        const seed = seeds.get(finding.strategyId)!;
+        expect(seed, label).toBeDefined();
+        expect(finding.buildDropped, label).toBe(baseline.startingBuild.length - seed.startingBuild.length);
+        expect(finding.agendaDropped, label).toBe(baseline.buyAgenda.length - seed.buyAgenda.length);
+        expect(finding.buildDropped + finding.agendaDropped, label).toBeGreaterThan(0);
+        expect(finding.degenerate, label).toBe(seed.buyAgenda.length === 0);
+      }
+    }
+  });
+
+  it('leaves treasure-only out, because an empty build is its design and not a loss', () => {
+    for (const kingdomId of CURATED_KINGDOM_IDS) {
+      expect(seedFindings(kingdomId).map((finding) => finding.baselineId), kingdomId).not.toContain('treasure-only');
+    }
+  });
+
+  // The measured degenerate seeds, pinned so a kingdom edit that guts another one cannot pass
+  // unnoticed. Plan 10-6 names this exact case in its seeding section.
+  it('names the mage seed in current-duel as the one degenerate seed', () => {
+    const degenerate = CURATED_KINGDOM_IDS.flatMap((kingdomId) =>
+      seedFindings(kingdomId).filter((finding) => finding.degenerate).map((finding) => `${kingdomId}/${finding.baselineId}`)
+    );
+    expect(degenerate).toEqual(['current-duel/mage-standard']);
+    const mage = seedFindings('current-duel').find((finding) => finding.baselineId === 'mage-standard')!;
+    expect(mage.buildDropped).toBe(3);
+    expect(mage.agendaDropped).toBe(4);
+  });
+
+  // The count the report leans on when it says generation-1 scores in a kingdom carry little signal.
+  it('records how many seeds each kingdom degraded', () => {
+    const counts = Object.fromEntries(
+      CURATED_KINGDOM_IDS.map((kingdomId) => [kingdomId, seedFindings(kingdomId).length])
+    );
+    expect(counts).toEqual({
+      'current-duel': 4, 'three-way-open': 4, 'three-way-engine': 3, 'range-rich-mixed': 3, 'rigged-melee': 4
+    });
   });
 });

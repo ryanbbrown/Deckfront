@@ -69,6 +69,8 @@ It plays every baseline pairing in every curated kingdom and prints wall clock p
 
 `evolve` runs the search: each generation plays every candidate against every leader over a fixed set of shared seeds, four games per pairing per seed, then keeps the best few as the next leaders and mutates them into the next population. `roundRobin` plays the final tournament between the last leaders, one retained leader per generation, and the fixed baselines, and reports the complete pairwise table. A strategy's id is a hash of its behaviour, so duplicates collapse on their own.
 
+Generation 1 starts from the five fixed baselines, repaired into the kingdom. A kingdom that sells few of a baseline's cards cuts that baseline down, so generation-1 scores there say less. `seedFindings(kingdomId)` reports what each seed lost, so a run states it instead of leaving the reader to assume a fair first contest.
+
 The five curated experiment kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and `rigged-melee`. `rigged-melee` is a calibration fixture: it re-prices Heavy Blow to 3 for 6 damage, and `src/sim/calibration.ts` checks that the search finds it. Its threshold, kingdom, and strategies must never be tuned to make it pass.
 
 Card definitions live in `src/game-data/cards.json` and kingdoms in `src/game-data/kingdoms.json`. Strategy prompts live in `strategies/`. Saved AI traces live under `.data/ai-traces`.
