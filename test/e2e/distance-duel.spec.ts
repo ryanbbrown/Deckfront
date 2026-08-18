@@ -60,7 +60,7 @@ test('DD-E2E-002: repeated Copper Silver and Gold buys stay available and show p
 
 test('DD-E2E-003: Footwork offers Stay, draws without moving, then can move into a shared space', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['footwork'], ['aim']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 3; });
-  await page.locator('[data-card-name="Footwork"]').click(); await expect(page.getByRole('button', { name: 'Play Footwork: Left' })).toBeVisible(); await expect(page.getByRole('button', { name: 'Play Footwork: Stay' })).toBeVisible(); await expect(page.getByRole('button', { name: 'Play Footwork: Right' })).toBeVisible();
+  await page.locator('[data-card-name="Footwork"]').click(); await expect(page.getByRole('button', { name: 'Play Footwork: Left' })).toHaveText('Left'); await expect(page.getByRole('button', { name: 'Play Footwork: Stay' })).toHaveText('Stay'); await expect(page.getByRole('button', { name: 'Play Footwork: Right' })).toHaveText('Right');
   await page.getByRole('button', { name: 'Play Footwork: Stay' }).click(); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '2'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-card-name="Aim"]')).toBeVisible(); await expect(page.getByText('Stayed on space 2')).toBeVisible();
   await page.getByRole('button', { name: 'Undo last action' }).click(); await page.locator('[data-card-name="Footwork"]').click(); await page.getByRole('button', { name: 'Play Footwork: Right' }).click(); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3'); await expect(page.getByTestId('range')).toHaveText('Close · 0 spaces');
 });
@@ -274,6 +274,26 @@ test('DD-E2E-040: unique cards overlap in one row, lift on hover, and the deck d
   expect(before).toMatchObject({ count: 11, sameRow: true, overflow: 0 }); expect(before.delta).toBeLessThan(150); expect(before.delta).toBeGreaterThan(0);
   const footwork = page.locator('[data-testid="hand-grid"] [data-card-name="Footwork"]'); const resting = await footwork.evaluate((card) => getComputedStyle(card).transform); await footwork.hover(); const lifted = await footwork.evaluate((card) => getComputedStyle(card).transform); expect(lifted).not.toBe(resting); await page.mouse.move(0, 0); await footwork.focus(); const focused = await footwork.evaluate((card) => ({ transform: getComputedStyle(card).transform, zIndex: getComputedStyle(card.parentElement!).zIndex })); expect(focused.transform).not.toBe(resting); expect(Number(focused.zIndex)).toBe(200);
   const toggle = page.getByRole('button', { name: /Deck ·/ }); await expect(toggle).toHaveAttribute('aria-expanded', 'false'); await toggle.click(); await expect(toggle).toHaveAttribute('aria-expanded', 'true'); await expect(page.getByRole('complementary', { name: 'Deck and match details' })).toHaveClass(/deck-drawer--open/); await expect(page.getByTestId('deck-summary')).toContainText('Footwork ×1');
+});
+
+test('DD-E2E-042: grouped badges, played stacks, controls, and card headers stay clear on mobile', async ({ page, openGame }) => {
+  await openGame(page, (record) => { seedHand(record, ['copper', 'copper', 'copper', 'copper', 'copper']); });
+  await page.setViewportSize({ width: 320, height: 720 });
+  const badge = page.getByTestId('hand-count-copper'); await expect(badge).toHaveText('×5');
+  const handLayout = await badge.evaluate((element) => {
+    const badgeBox = element.getBoundingClientRect(); const panelBox = element.closest('.hand-panel')!.getBoundingClientRect();
+    return { width: badgeBox.width, height: badgeBox.height, insidePanel: badgeBox.left >= panelBox.left && badgeBox.top >= panelBox.top && badgeBox.right <= panelBox.right && badgeBox.bottom <= panelBox.bottom };
+  });
+  expect(handLayout.insidePanel).toBe(true); expect(handLayout.width).toBeGreaterThanOrEqual(30); expect(handLayout.height).toBe(30);
+  const undo = page.getByRole('button', { name: 'Undo last action' }); const endAction = page.getByRole('button', { name: 'End Action phase' });
+  const controlHeights = await Promise.all([undo, endAction].map((control) => control.evaluate((element) => element.getBoundingClientRect().height))); expect(controlHeights[0]).toBe(controlHeights[1]);
+  await endAction.click();
+  const copper = page.locator('[data-testid="played-row"] [data-played-card-name="Copper"]'); await expect(copper).toHaveCount(1); await expect(copper).toHaveAttribute('data-card-count', '5'); await expect(page.getByTestId('played-count-copper')).toHaveText('×5'); await expect(copper.locator('.play-order')).toHaveText('1–5'); await expect(copper.locator('.play-order')).toHaveAccessibleName('Play order 1 through 5');
+  const overlaps = await copper.evaluate((element) => {
+    const selectors = ['.play-order', '.quantity-badge--played', '.card__cost', '.card__title']; const boxes = selectors.map((selector) => element.querySelector(selector)!.getBoundingClientRect());
+    return boxes.flatMap((left, leftIndex) => boxes.slice(leftIndex + 1).map((right) => left.left < right.right && left.right > right.left && left.top < right.bottom && left.bottom > right.top));
+  });
+  expect(overlaps).not.toContain(true);
 });
 
 test('DD-E2E-041: completed AI recap expands full width, survives refresh, and is absent locally', async ({ page, openGame }) => {

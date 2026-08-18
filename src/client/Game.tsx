@@ -15,7 +15,8 @@ interface GameProps {
   onNew: () => void;
   onRetry: () => Promise<void>;
 }
-interface HandGroup { definitionId: string; instances: CardInstance[] }
+interface CardGroup { definitionId: string; instances: CardInstance[] }
+interface PlayedGroup extends CardGroup { firstOrder: number; lastOrder: number }
 
 export function Game({ game, error, aiStatus, aiElapsed, aiError, onGame, onError, onNew, onRetry }: GameProps) {
   const [busy, setBusy] = useState(false);
@@ -28,6 +29,7 @@ export function Game({ game, error, aiStatus, aiElapsed, aiError, onGame, onErro
   const actorName = playerName(game, game.viewPlayerId);
   const availability = new Map(game.actionAvailability.map((item) => [item.cardInstanceId, item]));
   const handGroups = groupCards(actor.hand ?? []);
+  const playedGroups = groupPlayedCards(actor.played ?? []);
   const distance = Math.abs(game.fighters.ochre.position - game.fighters.indigo.position);
 
   async function act(action: LegalAction) {
@@ -72,33 +74,37 @@ export function Game({ game, error, aiStatus, aiElapsed, aiError, onGame, onErro
     : game.activePlayerId === game.humanPlayerId ? `Turn ${game.turn} · your ${game.phase}` : `Turn ${game.turn} · AI ${game.phase} · ${aiStatus} · ${aiElapsed}s`;
 
   return <main className="game-shell">
-    <header className="game-header"><div><p className="eyebrow">Distance duel</p><h1>Hexdeck</h1></div><FighterScore game={game} /><button onClick={onNew}>New game</button></header>
-    <div className="play-bar"><div className="turn-banner" role="status">{turnText}</div><div className="phase-controls"><strong data-testid="zone-money">{local ? `${actorName} money` : 'Money'}: {actor.money}</strong><button disabled={!game.canUndo || busy} onClick={() => void undo()}>Undo last action</button>{endAction ? <button className="primary" disabled={busy} onClick={() => void act(endAction)}>End Action phase</button> : null}{endBuy ? <button className="primary" disabled={busy} onClick={() => void act(endBuy)}>End Buy phase</button> : null}</div></div>
+    <header className="game-header"><div><p className="eyebrow">Distance duel</p><h1>Hexdeck</h1></div><FighterScore game={game} /><button className="control-button control-button--secondary" onClick={onNew}>New game</button></header>
+    <div className="play-bar"><div className="turn-banner" role="status">{turnText}</div><div className="phase-controls"><strong data-testid="zone-money">{local ? `${actorName} money` : 'Money'}: {actor.money}</strong><button className="control-button control-button--quiet" disabled={!game.canUndo || busy} onClick={() => void undo()}>Undo last action</button>{endAction ? <button className="control-button primary" disabled={busy} onClick={() => void act(endAction)}>End Action phase</button> : null}{endBuy ? <button className="control-button primary" disabled={busy} onClick={() => void act(endBuy)}>End Buy phase</button> : null}</div></div>
     {error ? <p role="alert" className="error">{error}</p> : null}
     {!local && aiError ? <p role="alert" className="error">{aiError} <button onClick={() => void onRetry()}>Retry AI</button></p> : null}
     {!local && game.lastAiTurnRecap ? <AiTurnRecapPanel recap={game.lastAiTurnRecap} cards={game.cards} /> : null}
     {!local && !game.lastAiTurnRecap && game.lastAiSummary ? <p className="ai-summary"><strong>AI:</strong> {game.lastAiSummary}</p> : null}
     <section className="arena-panel"><div className="range-label" data-testid="range">{game.range} · {distance} {distance === 1 ? 'space' : 'spaces'}</div><Board game={game} /></section>
-    <section className="panel played-panel" aria-labelledby="played-heading"><div className="section-heading"><h2 id="played-heading">Played this turn</h2><span>Cards stay here until cleanup.</span></div><div className="played-row" data-testid="played-row">{actor.played?.length ? actor.played.map((card, index) => <PlayedCard key={card.id} card={game.cards[card.definitionId]!} order={index + 1} instanceId={card.id} />) : <p className="empty-row">Cards move here from your hand.</p>}</div></section>
+    <section className="panel played-panel" aria-labelledby="played-heading"><div className="section-heading"><h2 id="played-heading">Played this turn</h2><span>Consecutive copies share a stack. Numbers show play order.</span></div><div className="played-row" data-testid="played-row">{playedGroups.length ? playedGroups.map((group) => <PlayedCard key={group.instances[0]!.id} card={game.cards[group.definitionId]!} group={group} />) : <p className="empty-row">Cards move here from your hand.</p>}</div></section>
     <section className="panel hand-panel"><div className="section-heading"><h2>{local ? `${actorName} hand` : 'Your hand'}</h2><span>{actor.zoneCounts.hand} physical cards</span></div><div className="hand-row" data-testid="hand-grid">{handGroups.map((group, index) => {
       const enabledInstance = group.instances.find((card) => availability.get(card.id)?.enabled) ?? group.instances[0]!;
       const info = availability.get(enabledInstance.id);
       const targetIds = cullCard ? group.instances.filter((card) => availability.get(cullCard)?.eligibleCardInstanceIds.includes(card.id)).map((card) => card.id) : [];
       const selectedCount = group.instances.filter((card) => trash.includes(card.id)).length;
       const disabled = busy || (cullCard ? targetIds.length === 0 : !info?.enabled);
-      return <div className="hand-card-slot" key={group.definitionId} style={{ zIndex: index + 1 }}><button className={`card portrait-card card--${game.cards[group.definitionId]!.type}${selectedCount ? ' card--target' : ''}${movementCard === enabledInstance.id || cullCard === enabledInstance.id ? ' card--selected' : ''}`} data-card-name={game.cards[group.definitionId]!.name} data-card-instance-id={enabledInstance.id} data-card-count={group.instances.length} disabled={disabled} title={!cullCard ? info?.reason ?? undefined : undefined} onClick={() => cullCard ? toggleTrashGroup(targetIds) : chooseCard(enabledInstance.id)}>{group.instances.length > 1 ? <span className="quantity-badge" data-testid={`hand-count-${group.definitionId}`}>×{group.instances.length}</span> : null}<CardFace card={game.cards[group.definitionId]!} />{selectedCount ? <span className="selected-count">Selected ×{selectedCount}</span> : null}{!info?.enabled && !cullCard && game.cards[group.definitionId]!.type === 'action' ? <em>{info?.reason}</em> : null}</button></div>;
-    })}</div>{cullCard ? <div className="choice-bar"><p>Select 1 or 2 cards. Click a grouped card twice to select two physical copies. {trash.length} selected (maximum 2).</p><button className="primary" disabled={!cullAction} onClick={() => cullAction && void act(cullAction)}>{trash.length === 1 ? 'Trash selected card' : 'Trash selected cards'}</button><button onClick={clearChoice}>Cancel</button></div> : null}{movementCard ? <div className="choice-bar"><strong>Choose movement</strong>{cardActions(movementCard).map((action) => <button key={action.id} disabled={busy} onClick={() => void act(action)}>{action.label}</button>)}<button onClick={clearChoice}>Cancel</button></div> : null}</section>
+      return <div className="hand-card-slot" key={group.definitionId} style={{ zIndex: index + 1 }}>{group.instances.length > 1 ? <span className="quantity-badge" data-testid={`hand-count-${group.definitionId}`}>×{group.instances.length}</span> : null}<button className={`card portrait-card card--${game.cards[group.definitionId]!.type}${selectedCount ? ' card--target' : ''}${movementCard === enabledInstance.id || cullCard === enabledInstance.id ? ' card--selected' : ''}`} data-card-name={game.cards[group.definitionId]!.name} data-card-instance-id={enabledInstance.id} data-card-count={group.instances.length} disabled={disabled} title={!cullCard ? info?.reason ?? undefined : undefined} onClick={() => cullCard ? toggleTrashGroup(targetIds) : chooseCard(enabledInstance.id)}><CardFace card={game.cards[group.definitionId]!} />{selectedCount ? <span className="selected-count">Selected ×{selectedCount}</span> : null}{!info?.enabled && !cullCard && game.cards[group.definitionId]!.type === 'action' ? <em>{info?.reason}</em> : null}</button></div>;
+    })}</div>{cullCard ? <div className="choice-bar"><p>Select 1 or 2 cards. Click a grouped card twice to select two physical copies. {trash.length} selected (maximum 2).</p><div className="choice-bar__actions"><button className="control-button primary" disabled={!cullAction} onClick={() => cullAction && void act(cullAction)}>{trash.length === 1 ? 'Trash selected card' : 'Trash selected cards'}</button><button className="control-button control-button--cancel" onClick={clearChoice}>Cancel</button></div></div> : null}{movementCard ? <div className="choice-bar choice-bar--movement"><strong>Choose movement</strong><div className="choice-bar__actions">{cardActions(movementCard).map((action) => <button className="choice-button" key={action.id} aria-label={action.label} disabled={busy} onClick={() => void act(action)}>{movementChoiceText(action)}</button>)}<button className="control-button control-button--cancel" onClick={clearChoice}>Cancel</button></div></div> : null}</section>
     <Market game={game} busy={busy} onAction={act} />
     <button className="deck-toggle" type="button" aria-expanded={deckOpen} aria-controls="deck-drawer" onClick={() => setDeckOpen((open) => !open)}>Deck · {Object.values(actor.deckCounts ?? {}).reduce((total, count) => total + count, 0)}</button>
     <aside id="deck-drawer" className={`deck-drawer${deckOpen ? ' deck-drawer--open' : ''}`} aria-label="Deck and match details"><div className="drawer-heading"><div><p className="eyebrow">Reference</p><h2>Deck and zones</h2></div><button aria-label="Close deck drawer" onClick={() => setDeckOpen(false)}>×</button></div><Zones game={game} actor={actor} /><DeckSummary game={game} playerId={game.viewPlayerId} /><Builds game={game} /><Purchases game={game} /><History game={game} /></aside>
   </main>;
 }
 
-export function CardFace({ card }: { card: CardDefinition }) {
-  return <><span className="card__cost">{card.cost}</span><strong>{card.name}</strong>{card.money ? <span className="money-value">+{card.money} money</span> : null}<small>{card.text}</small></>;
+export function CardFace({ card, indicators }: { card: CardDefinition; indicators?: React.ReactNode }) {
+  return <><span className="card__header"><span className="card__meta">{indicators}<span className="card__cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span></span><strong className="card__title">{card.name}</strong></span>{card.money ? <span className="money-value">+{card.money} money</span> : null}<small>{card.text}</small></>;
 }
-function PlayedCard({ card, order, instanceId }: { card: CardDefinition; order: number; instanceId: string }) {
-  return <article className={`card portrait-card played-card card--${card.type}`} data-played-card-name={card.name} data-card-instance-id={instanceId}><span className="play-order">{order}</span><CardFace card={card} /></article>;
+function PlayedCard({ card, group }: { card: CardDefinition; group: PlayedGroup }) {
+  const count = group.instances.length;
+  const orderText = group.firstOrder === group.lastOrder ? String(group.firstOrder) : `${group.firstOrder}–${group.lastOrder}`;
+  const orderLabel = group.firstOrder === group.lastOrder ? `Play order ${group.firstOrder}` : `Play order ${group.firstOrder} through ${group.lastOrder}`;
+  const indicators = <><span className="play-order" aria-label={orderLabel}>{orderText}</span>{count > 1 ? <span className="quantity-badge quantity-badge--played" data-testid={`played-count-${card.id}`}>×{count}</span> : null}</>;
+  return <article className={`card portrait-card played-card card--${card.type}`} data-played-card-name={card.name} data-card-instance-id={group.instances[0]!.id} data-card-count={count}><CardFace card={card} indicators={indicators} /></article>;
 }
 function FighterScore({ game }: { game: SafeGameView }) {
   return <div className="health-score">{(['ochre', 'indigo'] as const).map((id) => { const fighter = game.fighters[id]; return <div key={id} className={`score score--${id}`} data-player-score={id}><strong>{playerName(game, id)}</strong><span>{fighter.health} HP</span><small>{[fighter.aimed ? 'Aimed' : '', fighter.exposed ? 'Next Close-range attack this turn: +2 damage' : ''].filter(Boolean).join(' · ') || 'Ready'}</small></div>; })}</div>;
@@ -144,10 +150,24 @@ function AiTurnRecapPanel({ recap, cards }: { recap: AiTurnRecap; cards: SafeGam
 function RecapCards({ title, cards, definitions, statusFor }: { title: string; cards: CardInstance[]; definitions: SafeGameView['cards']; statusFor: (card: CardInstance) => string }) {
   return <section><h3>{title}</h3>{cards.length ? <div className="recap-cards">{cards.map((card) => <div className="recap-card" key={card.id}><strong>{definitions[card.definitionId]?.name}</strong><span>{statusFor(card)}</span></div>)}</div> : <p>None</p>}</section>;
 }
-function groupCards(cards: CardInstance[]): HandGroup[] {
-  const groups = new Map<string, HandGroup>();
+function groupCards(cards: CardInstance[]): CardGroup[] {
+  const groups = new Map<string, CardGroup>();
   for (const card of cards) { const group = groups.get(card.definitionId); if (group) group.instances.push(card); else groups.set(card.definitionId, { definitionId: card.definitionId, instances: [card] }); }
   return [...groups.values()];
+}
+function groupPlayedCards(cards: CardInstance[]): PlayedGroup[] {
+  const groups: PlayedGroup[] = [];
+  for (const [index, card] of cards.entries()) {
+    const previous = groups.at(-1);
+    if (previous?.definitionId === card.definitionId) { previous.instances.push(card); previous.lastOrder = index + 1; }
+    else groups.push({ definitionId: card.definitionId, instances: [card], firstOrder: index + 1, lastOrder: index + 1 });
+  }
+  return groups;
+}
+function movementChoiceText(action: LegalAction): string {
+  if (action.command.type === 'playFootwork') return action.command.movement === 'left' ? 'Left' : action.command.movement === 'right' ? 'Right' : 'Stay';
+  if (action.command.type === 'playDrive') return action.command.direction === 'left' ? 'Move both left' : 'Move both right';
+  return action.label;
 }
 function playerName(game: SafeGameView, playerId: PlayerId): string { if (game.opponentMode === 'local') return playerId === 'ochre' ? 'Player 1' : 'Player 2'; return playerId === game.humanPlayerId ? 'You' : 'AI'; }
 function eventText(game: SafeGameView, type: string, detail: Record<string, unknown>): string { if (type === 'cardPlayed') return `Played ${game.cards[String(detail.definitionId)]?.name ?? detail.definitionId}`; if (type === 'purchase') return `Bought ${game.cards[String(detail.definitionId)]?.name ?? detail.definitionId}`; if (type === 'damage') return `Dealt ${String(detail.amount)} damage`; if (type === 'move' && detail.source === 'drive') return `Moved both fighters ${String(detail.movement)} to space ${String(detail.to)}`; if (type === 'move' && detail.movement === 'stay') return `Stayed on space ${String(detail.to)}`; if (type === 'move') return `Moved to space ${String(detail.to)}`; if (type === 'wallCollision') return `Wall blocked ${String(detail.direction)}; neither fighter moved`; return type.replace(/([A-Z])/g, ' $1'); }
