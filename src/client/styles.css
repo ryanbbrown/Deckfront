@@ -20,7 +20,7 @@ button, select, textarea, input { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .48; }
 .card:disabled, .market-card:disabled { opacity: .76; }
-button:focus-visible, summary:focus-visible { outline: 3px solid #f5c85c; outline-offset: 2px; }
+button:focus-visible { outline: 3px solid #f5c85c; outline-offset: 2px; }
 h1, h2, h3, p { margin-top: 0; }
 h1, h2, h3 { font-family: Georgia, "Times New Roman", serif; }
 h1 { margin-bottom: .2rem; font-size: clamp(1.65rem, 3vw, 2.35rem); letter-spacing: -.045em; }
@@ -48,7 +48,7 @@ h3 { margin-bottom: .45rem; font-size: .95rem; }
 .build-shell > header, .game-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .build-shell > header { padding: .7rem; border-radius: 12px; background: var(--paper); }
 .budget { font-size: 1.05rem; font-weight: 850; }
-.panel, .arena-panel, .game-header, .ai-recap { border: 1px solid #6c563633; border-radius: 13px; background: var(--paper); box-shadow: var(--shadow); }
+.panel, .arena-panel, .game-header { border: 1px solid #6c563633; border-radius: 13px; background: var(--paper); box-shadow: var(--shadow); }
 .panel { margin-top: .75rem; padding: .8rem; }
 .game-header { padding: .6rem .8rem; }
 .drawer-heading button { padding: .5rem .7rem; border: 1px solid var(--line); border-radius: 7px; background: #fff; }
@@ -64,21 +64,7 @@ h3 { margin-bottom: .45rem; font-size: .95rem; }
 .phase-controls { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
 .phase-controls strong { display: inline-flex; align-items: center; min-height: 40px; padding: .4rem .6rem; border-radius: 7px; background: #f2dfa1; }
 .phase-controls .control-button { height: 40px; }
-.ai-summary { margin: .6rem 0; padding: .6rem; border-radius: 8px; background: var(--paper); }
 
-.ai-recap { width: 100%; margin-top: .65rem; overflow: hidden; }
-.ai-recap summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem .9rem; background: #e4e3f1; color: #30365f; cursor: pointer; list-style: none; }
-.ai-recap summary::-webkit-details-marker { display: none; }
-.ai-recap summary span { font-size: .72rem; font-weight: 850; text-transform: uppercase; }
-.recap-body { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .65rem; padding: .8rem; }
-.recap-body section { min-width: 0; padding: .65rem; border: 1px solid #c8c7da; border-radius: 8px; background: #f7f5fb; }
-.recap-body section:nth-child(2), .recap-body section:nth-child(3) { grid-column: span 2; }
-.recap-body ol, .recap-body ul { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
-.recap-body li { display: grid; gap: .1rem; padding: .35rem; border-left: 2px solid var(--indigo); background: #ececf5; font-size: .73rem; }
-.recap-body li span, .recap-body p { margin: 0; color: var(--muted); font-size: .68rem; line-height: 1.35; }
-.recap-cards { display: grid; gap: .3rem; }
-.recap-card { display: flex; align-items: center; justify-content: space-between; gap: .3rem; padding: .35rem; border-radius: 6px; background: #ececf5; font-size: .7rem; }
-.recap-card span { color: var(--muted); text-align: right; }
 
 .arena-panel { margin-top: .65rem; padding: .5rem .75rem .7rem; }
 .range-label { text-align: center; font-family: Georgia, "Times New Roman", serif; font-size: 1rem; font-weight: 900; }
@@ -153,8 +139,6 @@ h3 { margin-bottom: .45rem; font-size: .95rem; }
   .market-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
-  .recap-body { grid-template-columns: 1fr 1fr; }
-  .recap-body section:nth-child(2), .recap-body section:nth-child(3) { grid-column: auto; }
 }
 @media (max-width: 760px) {
   .build-shell > header, .game-header, .build-footer { align-items: stretch; flex-direction: column; }
@@ -174,7 +158,6 @@ h3 { margin-bottom: .45rem; font-size: .95rem; }
   .portrait-card { width: 132px; height: 185px; padding: .6rem; }
   .played-card { flex-basis: 120px; width: 120px; height: 168px; }
   .card small { font-size: .62rem; }
-  .recap-body { grid-template-columns: 1fr; }
   .market-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .market-card { min-height: 106px; padding: .6rem; }
 }

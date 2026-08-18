@@ -10,17 +10,10 @@ build/
 coverage/
 *.tsbuildinfo
 
-__pycache__/
-.venv/
-
 .archive/
 .data/
-.e2e-data/
-.e2e-live-data/
 .e2e-report/
-.e2e-live-report/
 .e2e-results/
-.e2e-live-results/
 
 .reviews/
 

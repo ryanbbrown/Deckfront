@@ -1,45 +1,35 @@
 # Hexdeck
 
-Hexdeck is a Dominion-style deck builder with a five-space fighting arena. Play against a ThinHarness AI or play a two-player local game on one laptop. Each player creates a starting build, then uses complete turns to move through shared spaces, control range, combine cards, buy improvements, and reduce the opponent from 20 health to 0.
+Hexdeck is a local two-player deck-building game for one browser. Player 1 and Player 2 build decks, move on a five-space arena, combine cards, buy improvements, and try to reduce the other fighter from 20 health to 0.
 
-## Run
+The browser has no computer opponent. `src/sim/` has deterministic strategy players for balance experiments. Those simulator strategies are separate from browser play and are not a browser opponent.
 
-Use Node.js 22 or later, Python 3.11 or later, `uv`, `cproxy`, and a Codex login.
+## Requirements
+
+- Node.js 22 or later
+- npm
+
+Install and start the browser and local server:
 
 ```sh
 npm install
-uv sync
-uv tool install git+ssh://git@github.com/ryanbbrown/cproxy.git
-codex login status
 npm run dev
 ```
 
-Open `http://localhost:4173`. Set `HEXDECK_AI_FAKE=1` before `npm run dev` to use the deterministic local AI instead of the model bridge.
+Open `http://127.0.0.1:4173`.
 
-Optional settings:
-
-```sh
-export HEXDECK_AI_MODEL='openai:gpt-5.6-luna'
-export HEXDECK_AI_EFFORT='low'
-export HEXDECK_AI_TIMEOUT_MS='240000'
-export PORT='4173'
-export HOST='127.0.0.1'
-export HEXDECK_DATA_DIR='.data/games'
-export HEXDECK_AI_TRACE_DIR='.data/ai-traces'
-```
-
-Saved games use schema version 8. Older saves are rejected and are not migrated.
+The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records and browser game views use schema version 9. The server rejects older saves and does not migrate them.
 
 ## Play
 
-1. Select an AI or local opponent. For AI games, select and edit the strategy prompt.
-2. Select the first player.
-3. Spend up to 12 money on any starting cards. In a local game, Player 1 builds before Player 2. Unspent money carries into each player's first Buy phase.
-4. Play any number of Action cards during your complete turn.
+1. Choose Player 1 or Player 2 as the first player. You can also enter a seed to repeat the same shuffle.
+2. Player 1 spends up to 12 money on starting cards. Player 2 builds next.
+3. The chosen first player starts after both builds finish. Unspent starting money carries into that player's first Buy phase.
+4. Play any number of Action cards.
 5. End the Action phase to play all Treasure cards.
 6. Buy any number of affordable cards, then end the Buy phase.
 
-The arena has five spaces. Fighters can share a space and move through each other. A difference of 0 is Close, 1 is Near, and 2 or more is Far. Player 1 starts on space 2 and Player 2 starts on space 3. Bought cards enter the discard pile. Actions resolve immediately. Duplicate hand cards share one quantity-marked card, while played cards remain visible in order until cleanup. Completed AI turns have an expandable recap. One global Undo control restores the latest player action, and refresh restores the active game.
+Fighters can share a space and move through each other. Distance 0 is Close, 1 is Near, and 2 or more is Far. Bought cards enter the discard pile. Actions resolve at once. Undo restores the latest action. Reload restores the active game. New game clears the browser's active-game link.
 
 ## Verify
 
@@ -47,43 +37,60 @@ The arena has five spaces. Fighters can share a space and move through each othe
 npm test
 npm run test:e2e:manifest
 npm run test:e2e
-npm run test:ai:live
 npm run typecheck
 npm run lint
 npm run build
+npm run build:sim
 ```
 
-The backend suite covers setup, privacy, arena rules, every card, complete turns, purchases, replay, persistence, AI sequencing, and the balance simulator. Playwright drives every card and required selection through the production browser and real local server. `npm run test:ai:live` sets `HEXDECK_LIVE_AI=1` for the live Vitest case and uses `playwright.live.config.ts`, which sets `HEXDECK_E2E_LIVE=1` for the real-browser bridge case. Both use `HEXDECK_AI_MODEL` and `HEXDECK_AI_EFFORT` when set.
+Vitest checks the engine, server, persistence, replay, and simulator. Playwright uses the built browser and real local server to check setup, cards, turns, undo, reload, victory, and layout. The E2E manifest maps required behavior to exact test IDs.
 
 ## Balance simulator
 
-`src/sim/` plays headless matches to tune card values. It imports from `src/game/` only, which an ESLint rule enforces. `runMatch` plays one deterministic match between two agents. A strategy is plain data — a starting build, an ordered buy agenda, a preferred range, and scoring weights — and `strategyAgent` turns it into a player that searches the whole Action-phase tree for its best line.
+The simulator plays seeded headless matches between strategy players. A simulator strategy contains a starting build, buy order, preferred range, and scoring weights. The strategy player searches legal Action-phase lines and chooses the best scored result.
 
-Measure throughput before changing anything that runs inside a match:
+Build and run an experiment:
+
+```sh
+npm run build:sim
+npm run experiment -- --kingdom current-duel --mode smoke
+npm run experiment -- --kingdom current-duel --mode full
+```
+
+Measure search speed before changing match-search code:
 
 ```sh
 npx tsx scripts/measure_search.ts
 npx tsx scripts/measure_search.ts --kingdom rigged-melee --seeds 3 --repeats 5
-node --cpu-prof --cpu-prof-dir .experiments/profiles --import tsx scripts/measure_search.ts --kingdom rigged-melee --seeds 3
 ```
 
-It plays every kingdom-specific seed pairing for the kingdoms and match seeds it is given. It prints matches per second, wall clock per decision and per match, states visited, and stop reasons. Production matches stop after 30 turns per player.
+Experiment output goes to `.experiments/<kingdom>/<mode>/`. Reports are committed. Generated JSON inputs and results stay ignored but are not cleanup targets. The curated kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and `rigged-melee`.
 
-`cloneGame` copies the mutable zones and shares the card and event objects, which nothing edits in place, because a deep clone of the whole event log on every action made one game quadratic in its action count. `test/clone.test.ts` holds the aliasing checks that make the sharing safe, and `test/sim/identity.test.ts` replays seven fixed matches against `test/sim/fixtures/match-oracle.json` so a faster engine cannot quietly change a result.
+## Code boundaries
 
-`evolve` runs the search. Each generation plays every candidate against every leader over fixed shared seeds. A seed block contains four games that balance seat, first player, and arena side. A pairing stops after an exact sign test settles it, or after 25 blocks and 100 games. Scores are means of per-opponent pairing means, so an early-stopped pairing has the same weight as a 100-game pairing. `roundRobin` plays the final tournament between the last leaders, one retained leader per generation, and the fixed seeds. A strategy id is a hash of its behaviour, so duplicates collapse on their own.
+The arrows show import direction:
 
-Generation 1 starts from five complete strategies written for that kingdom. Every seed has a legal starting build and agenda and starts with or buys a damage card.
+```text
+src/sim ----------------> src/game -> src/game-data
+src/shared -------------> src/game
+src/client -------------> src/shared, src/game
+src/server -------------> src/shared, src/game
+```
 
-Run one experiment with `npm run experiment -- --kingdom <id> --mode smoke|full`. `--seed`,
-`--candidates`, `--leaders`, `--generations`, `--seeds`, `--deadline-minutes`, `--state-limit`, and `--workers` may
-lower a limit; none may raise one above the approved maximum. Output goes to
-`.experiments/<kingdom-id>/<mode>/`: `run.json`, `generations.jsonl`, `tournament.json`,
-`strategies.json`, `telemetry.json`, and `report.md`. Only `report.md` is committed. Partial output
-survives a deadline, and a run that hits a blocker still writes its report.
+Game data defines cards and kingdoms. The game module contains deterministic rules. The simulator imports only simulator modules and the game module. The browser and server do not import simulator code yet. ESLint enforces the game and simulator limits.
 
-`npm run experiment` first bundles the simulator to `dist-sim/experiment.mjs`, then runs that bundle. It uses 10 worker threads by default. The worker count can be 1 to 16. Pairings are folded in submission order, so a deadline-free run is deterministic at every worker count.
+## Repository tree
 
-The five curated experiment kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and `rigged-melee`. `rigged-melee` is a calibration fixture: it re-prices Heavy Blow to 3 for 6 damage, and `src/sim/calibration.ts` checks that the search finds it. Its threshold, kingdom, and strategies must never be tuned to make it pass.
-
-Card definitions live in `src/game-data/cards.json` and kingdoms in `src/game-data/kingdoms.json`. Strategy prompts live in `strategies/`. Saved AI traces live under `.data/ai-traces`.
+```text
+src/game-data/   Card and kingdom JSON
+src/game/        Deterministic rules, state, commands, and replay
+src/shared/      Browser-server API types
+src/client/      React local-game UI
+src/server/      HTTP routes, game service, and file persistence
+src/sim/         Deterministic balance strategies and experiment runner
+scripts/         E2E validation and simulator utilities
+test/            Vitest and Playwright behavior tests
+.plans/          Current plans and archived decision history
+.experiments/    Balance reports and ignored generated run data
+.html/           Kept HTML artifacts
+```

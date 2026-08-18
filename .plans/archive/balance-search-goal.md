@@ -1,3 +1,5 @@
+> **Superseded:** This balance-search goal is historical. Use [10-automated-balance-search.md](../10-automated-balance-search.md), [11-search-performance.md](../11-search-performance.md), and [12-repository-cleanup.md](../12-repository-cleanup.md).
+
 # Goal
 
 Build the first automated balance-search system for Hexdeck and run its five curated kingdoms.

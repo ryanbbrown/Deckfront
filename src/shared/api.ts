@@ -3,58 +3,27 @@ import type {
   Phase, PlayerId, RangeBand
 } from '../game/types';
 
-export type OpponentMode = 'ai' | 'local';
-export interface StrategyPreset { id: string; name: string; markdown: string }
-export interface SafePlayer {
+export interface GamePlayerView {
   id: PlayerId;
-  hand: CardInstance[] | null;
-  played: CardInstance[] | null;
+  hand: CardInstance[];
+  played: CardInstance[];
   zoneCounts: { draw: number; hand: number; discard: number; play: number };
-  deckCounts: Record<string, number> | null;
+  deckCounts: Record<string, number>;
   money: number;
   firstBuyMoney: number;
   firstBuyPending: boolean;
   purchases: string[];
 }
-export interface SafeFighter { playerId: PlayerId; position: number; health: number; aimed: boolean; exposed: boolean }
-export interface AiTurnDraw { card: CardInstance; sourceDefinitionId: string }
-export interface AiTurnAction {
-  card: CardInstance;
-  label: string;
-  damage: number;
-  movements: string[];
-  drawnCardIds: string[];
-  trashed: CardInstance[];
-}
-export interface AiTurnTreasure { card: CardInstance; money: number }
-export interface AiTurnPurchase { definitionId: string; cost: number }
-export interface AiTurnRecap {
-  turn: number;
-  startingHand: CardInstance[];
-  draws: AiTurnDraw[];
-  actions: AiTurnAction[];
-  treasures: AiTurnTreasure[];
-  unplayed: CardInstance[];
-  purchases: AiTurnPurchase[];
-  startingMoney: number;
-  moneyAvailable: number;
-  unspentMoney: number;
-  totalDamage: number;
-}
-export interface SafeGameView {
-  schemaVersion: 8;
+export interface FighterView { playerId: PlayerId; position: number; health: number; aimed: boolean; exposed: boolean }
+export interface GameView {
+  schemaVersion: 9;
   id: string; revision: number; createdAt: string; updatedAt: string; elapsedSeconds: number;
-  completedActions: number; durationSeconds: number | null; humanPlayerId: PlayerId; aiPlayerId: PlayerId;
-  opponentMode: OpponentMode; viewPlayerId: PlayerId;
+  completedActions: number; durationSeconds: number | null;
   activePlayerId: PlayerId; selectedFirstPlayerId: PlayerId; phase: Phase; turn: number; winner: PlayerId | null;
-  fighters: Record<PlayerId, SafeFighter>; range: RangeBand; supply: Record<string, number>;
-  cards: Record<string, CardDefinition>; players: Record<PlayerId, SafePlayer>; trashCount: number;
+  fighters: Record<PlayerId, FighterView>; range: RangeBand; supply: Record<string, number>;
+  cards: Record<string, CardDefinition>; players: Record<PlayerId, GamePlayerView>; trashCount: number;
   events: GameEvent[]; legalActions: LegalAction[]; actionAvailability: ActionAvailability[];
   canUndo: boolean;
-  humanBuildProposal: string[]; completedBuilds: Record<PlayerId, string[]> | null;
-  strategy: { presetId: string; markdown: string }; aiRuntime: { model: string; effort: string };
-  lastAiSummary: string | null;
-  lastAiTurnRecap: AiTurnRecap | null;
+  buildProposal: string[]; completedBuilds: Record<PlayerId, string[]> | null;
 }
-export interface AiTurnStatus { status: 'idle' | 'running' | 'complete' | 'error'; game?: SafeGameView; error?: string }
-export interface RedactedExport { schemaVersion: 8; exportedAt: string; game: SafeGameView }
+export interface GameExport { schemaVersion: 9; exportedAt: string; game: GameView }

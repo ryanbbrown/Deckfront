@@ -14,7 +14,6 @@
     "test:e2e:manifest": "tsx scripts/validate_e2e_manifest.ts",
     "test:e2e": "npm run test:e2e:manifest && npm run build && playwright test",
     "test:e2e:headed": "npm run build && playwright test --headed",
-    "test:ai:live": "HEXDECK_LIVE_AI=1 vitest run test/ai-live.test.ts && npm run build && playwright test --config playwright.live.config.ts",
     "test:watch": "vitest",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint ."
@@ -31,8 +30,8 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.2",
-    "eslint": "^9.0.0",
     "esbuild": "0.28.2",
+    "eslint": "^9.0.0",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.0.0",

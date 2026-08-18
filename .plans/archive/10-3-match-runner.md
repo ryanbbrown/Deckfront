@@ -1,3 +1,5 @@
+> **Superseded:** Use [12-repository-cleanup.md](../12-repository-cleanup.md) for the current repository and browser scope. Use [09-card-list.md](../09-card-list.md), [10-automated-balance-search.md](../10-automated-balance-search.md), and [11-search-performance.md](../11-search-performance.md) for current game and simulator decisions.
+
 # Step 3: deterministic match runner and telemetry
 
 Implements step 3 of [10-automated-balance-search.md](./10-automated-balance-search.md). It depends on steps 1 and 2.

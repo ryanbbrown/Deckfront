@@ -3,8 +3,8 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   { ignores: [
-    'dist/**', 'dist-sim/**', 'coverage/**', '.reviews/**', 'src/legacy/**',
-    '.e2e-report/**', '.e2e-live-report/**', '.e2e-results/**', '.e2e-live-results/**'
+    'dist/**', 'dist-sim/**', 'coverage/**', '.reviews/**',
+    '.e2e-report/**', '.e2e-results/**'
   ] },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
@@ -19,8 +19,19 @@ export default tseslint.config(
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [{
-          group: ['**/client', '**/client/**', '**/server', '**/server/**', '**/ai', '**/ai/**'],
-          message: 'Simulation code imports from src/game/ only.'
+          group: ['**/client', '**/client/**', '**/server', '**/server/**', '**/shared', '**/shared/**'],
+          message: 'Simulation code can import only simulator modules and src/game/.'
+        }]
+      }]
+    }
+  },
+  {
+    files: ['src/game/**'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['**/client', '**/client/**', '**/server', '**/server/**', '**/shared', '**/shared/**', '**/sim', '**/sim/**'],
+          message: 'Game code can import only game modules and src/game-data/.'
         }]
       }]
     }

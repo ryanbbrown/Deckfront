@@ -1,3 +1,5 @@
+> **Superseded:** Use [12-repository-cleanup.md](../12-repository-cleanup.md) for the current repository and browser scope. Use [09-card-list.md](../09-card-list.md), [10-automated-balance-search.md](../10-automated-balance-search.md), and [11-search-performance.md](../11-search-performance.md) for current game and simulator decisions.
+
 # Step 7: machine-readable results and the Markdown report
 
 Implements step 7 of [10-automated-balance-search.md](./10-automated-balance-search.md). It depends on step 6.

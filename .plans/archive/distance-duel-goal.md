@@ -1,6 +1,6 @@
 # Distance duel goal (archived)
 
-**Superseded by [GOAL.md](../../GOAL.md).** This was the product goal before the automated balance search.
+**Superseded by [10-automated-balance-search.md](../10-automated-balance-search.md), [11-search-performance.md](../11-search-performance.md), and [12-repository-cleanup.md](../12-repository-cleanup.md).** This was the product goal before the automated balance search.
 
 Hexdeck tests whether a Dominion-style fixed market can support distinct position strategies on a five-space line arena.
 

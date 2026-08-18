@@ -1,3 +1,5 @@
+> **Superseded:** This balance-search progress record is historical. Use [10-automated-balance-search.md](../10-automated-balance-search.md), [11-search-performance.md](../11-search-performance.md), and [12-repository-cleanup.md](../12-repository-cleanup.md).
+
 # Balance search progress
 
 ## Status

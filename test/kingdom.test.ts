@@ -439,10 +439,10 @@ describe('kingdom persistence and source hygiene', () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-kingdom-'));
     try {
       const service = new GameService(new FileGameRepository(directory));
-      const created = await service.create({ seed: 5, opponentMode: 'local', strategyPresetId: 'close-pressure', strategyMarkdown: '# close' });
-      const first = await service.updateHumanBuild(created.id, created.revision, [], true);
-      const both = await service.updateHumanBuild(created.id, first.revision, [], true);
-      const after = await service.commitHumanAction(created.id, both.revision, both.legalActions.find((entry) => entry.command.type === 'endActionPhase')!.id);
+      const created = await service.create({ seed: 5 });
+      const first = await service.updateBuild(created.id, created.revision, [], true);
+      const both = await service.updateBuild(created.id, first.revision, [], true);
+      const after = await service.commitAction(created.id, both.revision, both.legalActions.find((entry) => entry.command.type === 'endActionPhase')!.id);
       expect(after.phase).toBe('buy');
       const record = await service.getRecord(created.id);
       expect(record.state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(record.state.startingHealth).toBe(20);
