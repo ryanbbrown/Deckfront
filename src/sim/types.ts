@@ -108,11 +108,12 @@ export interface TournamentConfig {
   kingdomId: string; seed: number; sharedSeeds: number;
   turnLimitPerPlayer: number; actionCapPerTurn: number;
   stateLimit?: number | undefined;
+  // Required. The last generation's leaders, whose acquisitions the calibration gate reads.
+  // `entrants` also holds retained leaders from every generation and the fixed baselines, so the
+  // final leaders cannot be recovered from it, and inferring them would produce a wrong calibration
+  // result rather than an error.
+  finalLeaderIds: readonly string[];
   deadline?: number | undefined; now?: (() => number) | undefined;
-  // The last generation's leaders, whose acquisitions the calibration gate reads. The entrant list
-  // also holds retained leaders from every generation and the fixed baselines, and nothing in it
-  // says which generation an entrant came from. Defaults to every entrant that is not a baseline.
-  finalLeaderIds?: readonly string[] | undefined;
 }
 
 export interface TournamentResult {

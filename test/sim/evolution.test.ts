@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { resetKingdoms } from '../../src/game';
+import { createGame, resetKingdoms } from '../../src/game';
 import { baselineStrategy } from '../../src/sim/baselines';
 import {
   MIN_CANDIDATES, compareScored, evolve, retainedLeaders, selectLeaders, validateEvolutionConfig
@@ -27,14 +27,23 @@ function scoredWith(plan: Strategy, score: number, completedGames = 4): ScoredSt
 }
 
 describe('the four orientations of a pairing', () => {
-  it('covers both first-player orders, both arena sides, and each seat twice', () => {
+  it('balances seat, first player, and arena position two games each', () => {
     expect(ORIENTATIONS).toHaveLength(4);
+    expect(new Set(ORIENTATIONS.map((entry) => `${entry.firstPlayerId}:${entry.swapSides}`)).size).toBe(4);
     expect(ORIENTATIONS.filter((entry) => entry.firstPlayerId === 'ochre')).toHaveLength(2);
     expect(ORIENTATIONS.filter((entry) => entry.swapSides)).toHaveLength(2);
     expect(ORIENTATIONS.filter((entry) => entry.candidateSeat === 'ochre')).toHaveLength(2);
     // The candidate moves first in exactly half, so the pairing does not hand it the first turn.
     expect(ORIENTATIONS.filter((entry) => entry.candidateSeat === entry.firstPlayerId)).toHaveLength(2);
-    expect(new Set(ORIENTATIONS.map((entry) => `${entry.firstPlayerId}:${entry.swapSides}`)).size).toBe(4);
+    // And it starts at each arena position twice. Position 2 keeps one space of retreat behind the
+    // fighter and position 3 keeps two, so leaving the candidate on one of them would be an
+    // uncancelled advantage over every leader it plays.
+    const candidatePosition = (entry: (typeof ORIENTATIONS)[number]): number => {
+      const state = createGame({ seed: 1, kingdomId: KINGDOM, swapSides: entry.swapSides });
+      return state.fighters[entry.candidateSeat].position;
+    };
+    expect(ORIENTATIONS.filter((entry) => candidatePosition(entry) === 2)).toHaveLength(2);
+    expect(ORIENTATIONS.filter((entry) => candidatePosition(entry) === 3)).toHaveLength(2);
   });
 
   it('plays four games for each shared seed and fills each orientation cell', () => {

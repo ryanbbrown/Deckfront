@@ -83,18 +83,23 @@ export function roundRobin(entrants: readonly Strategy[], config: TournamentConf
 }
 
 /**
- * The gate reads the last generation's leaders only, in tournament rank order, with the fixed
- * baselines excluded from both the numerator and the denominator. Four of the five baselines can
- * never acquire Heavy Blow, and the entrant list also holds a retained leader from every generation,
- * so any wider reading makes the 80 percent branch arithmetically unreachable.
+ * Lists exactly the named final leaders, in tournament rank order, with the fixed baselines excluded
+ * from both the numerator and the denominator. Four of the five baselines can never acquire Heavy
+ * Blow, and the entrant list also holds a retained leader from every generation, so any wider
+ * reading makes the 80 percent branch arithmetically unreachable.
+ *
+ * A named leader that never entered the tournament throws. Dropping it silently would shrink the
+ * gate's denominator and turn a caller's mistake into a wrong pass.
  */
 function calibrationFrom(
   ranking: readonly ScoredStrategy[], telemetry: TournamentResult['telemetry'], config: TournamentConfig
 ): CalibrationInput {
   const baselines = baselineLabels(config.kingdomId);
-  const wanted = config.finalLeaderIds
-    ? new Set(config.finalLeaderIds)
-    : new Set(ranking.map((entry) => entry.strategy.id).filter((id) => !baselines.has(id)));
+  const ranked = new Set(ranking.map((entry) => entry.strategy.id));
+  for (const id of config.finalLeaderIds) {
+    if (!ranked.has(id)) throw new Error(`Final leader ${id} is not one of the tournament entrants.`);
+  }
+  const wanted = new Set(config.finalLeaderIds);
 
   const finalLeaders = ranking
     .filter((entry) => wanted.has(entry.strategy.id) && !baselines.has(entry.strategy.id))

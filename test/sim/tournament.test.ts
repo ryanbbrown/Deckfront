@@ -16,7 +16,8 @@ const KINGDOM = 'rigged-melee';
 
 function config(overrides: Partial<TournamentConfig> = {}): TournamentConfig {
   return {
-    kingdomId: KINGDOM, seed: 31, sharedSeeds: 1, turnLimitPerPlayer: 4, actionCapPerTurn: 200, ...overrides
+    kingdomId: KINGDOM, seed: 31, sharedSeeds: 1, turnLimitPerPlayer: 4, actionCapPerTurn: 200,
+    finalLeaderIds: [], ...overrides
   };
 }
 /** A strategy that acquires exactly its starting build: no agenda and no treasure fallback. */
@@ -27,7 +28,7 @@ function opener(build: string[]): Strategy {
 describe('the pairwise table', () => {
   it('balances every pair, holds no self entry, and lists unique entrants', () => {
     const entrants = seedStrategies(KINGDOM);
-    const result = roundRobin(entrants, config());
+    const result = roundRobin(entrants, config({ finalLeaderIds: entrants.map((entrant) => entrant.id) }));
     expect(result.entrants).toHaveLength(entrants.length);
     expect(new Set(result.entrants.map(canonicalStrategy)).size).toBe(entrants.length);
 
@@ -49,13 +50,14 @@ describe('the pairwise table', () => {
   it('enters a leader retained unchanged once, however many times it is offered', () => {
     const entrants = seedStrategies(KINGDOM);
     const repeated = [...entrants, entrants[0]!, { ...entrants[1]!, id: 'renamed' }];
-    const result = roundRobin(repeated, config());
+    const result = roundRobin(repeated, config({ finalLeaderIds: [entrants[0]!.id] }));
     expect(result.entrants.map((entrant) => entrant.id)).toEqual(entrants.map((entrant) => entrant.id));
   });
 
   it('stops between pairings when the injected clock passes the deadline', () => {
     let clock = 500;
-    const result = roundRobin(seedStrategies(KINGDOM), config({ deadline: 502, now: () => (clock += 1) }));
+    const seeds = seedStrategies(KINGDOM);
+    const result = roundRobin(seeds, config({ deadline: 502, now: () => (clock += 1), finalLeaderIds: [seeds[0]!.id] }));
     const played = Object.values(result.pairs).flatMap((row) => Object.values(row));
     expect(played.length).toBeLessThan(result.entrants.length * (result.entrants.length - 1));
     expect(result.entrants).toHaveLength(5);
@@ -68,7 +70,7 @@ describe('the calibration input the tournament builds', () => {
     // the four games a pairing plays.
     const melee = opener(['heavyBlow', 'heavyBlow']);
     const ranged = opener(['volley']);
-    const result = roundRobin([melee, ranged], config());
+    const result = roundRobin([melee, ranged], config({ finalLeaderIds: [melee.id] }));
     expect(result.telemetry.acquisitionsByStrategy[melee.id]).toEqual({ heavyBlow: 8 });
     expect(result.telemetry.acquisitionsByStrategy[ranged.id]).toEqual({ volley: 4 });
   });
@@ -99,32 +101,51 @@ describe('the calibration input the tournament builds', () => {
     expect(checkRiggedMelee(result.calibration)).toMatchObject({ passed: true, leaderCount: 1 });
   });
 
-  it('defaults the leader set to every entrant that is not a baseline', () => {
-    const evolved = opener(['heavyBlow']);
-    const result = roundRobin([evolved, ...seedStrategies(KINGDOM)], config());
-    expect(result.calibration.finalLeaders).toEqual([{ strategyId: evolved.id, rank: 1 }]);
+  it('throws when a named final leader never entered the tournament', () => {
+    const seeds = seedStrategies(KINGDOM);
+    expect(() => roundRobin(seeds, config({ finalLeaderIds: ['sg-never-played'] })))
+      .toThrow('Final leader sg-never-played is not one of the tournament entrants');
   });
 });
 
 describe('the whole search, end to end', () => {
-  it('evolves, retains one leader per generation, and reports a gate result', () => {
+  function search(seed: number): { finalLeaders: Strategy[]; entrants: Strategy[] } {
     const results = evolve({
-      kingdomId: KINGDOM, seed: 7, candidates: 6, leaders: 2, generations: 2, sharedSeeds: 1,
+      kingdomId: KINGDOM, seed, candidates: 6, leaders: 2, generations: 2, sharedSeeds: 1,
       turnLimitPerPlayer: 4, actionCapPerTurn: 200
     }, () => {});
     const finalLeaders = results.at(-1)!.leaders.map((entry) => entry.strategy);
-    const entrants = [...finalLeaders, ...retainedLeaders(results), ...seedStrategies(KINGDOM)];
+    return { finalLeaders, entrants: [...finalLeaders, ...retainedLeaders(results), ...seedStrategies(KINGDOM)] };
+  }
+
+  it('evolves, retains one leader per generation, and reports a gate result', () => {
+    const { finalLeaders, entrants } = search(3);
+    const labels = baselineLabels(KINGDOM);
+    expect(finalLeaders.every((leader) => !labels.has(leader.id))).toBe(true);
 
     const tournament = roundRobin(entrants, config({
-      seed: 7, finalLeaderIds: finalLeaders.map((leader) => leader.id)
+      seed: 3, finalLeaderIds: finalLeaders.map((leader) => leader.id)
     }));
     // Deduping is by canonical form, so a final leader that is also the retained leader enters once.
     expect(new Set(tournament.entrants.map(canonicalStrategy)).size).toBe(tournament.entrants.length);
     expect(tournament.entrants.length).toBeLessThan(entrants.length);
 
     const gate = checkRiggedMelee(tournament.calibration);
-    expect(gate.leaderCount).toBeGreaterThan(0);
-    expect(gate.leaderCount).toBeLessThanOrEqual(finalLeaders.length);
+    expect(gate.leaderCount).toBe(finalLeaders.length);
     expect(typeof gate.passed).toBe('boolean');
+  });
+
+  // Not a defect and not something to work around: if the search cannot beat the fixed baselines,
+  // the gate has nothing evolved to judge and must refuse rather than pass on a baseline's record.
+  it('refuses the gate when every final leader is a fixed baseline', () => {
+    const { finalLeaders, entrants } = search(7);
+    const labels = baselineLabels(KINGDOM);
+    expect(finalLeaders.every((leader) => labels.has(leader.id))).toBe(true);
+
+    const tournament = roundRobin(entrants, config({
+      seed: 7, finalLeaderIds: finalLeaders.map((leader) => leader.id)
+    }));
+    expect(tournament.calibration.finalLeaders).toEqual([]);
+    expect(() => checkRiggedMelee(tournament.calibration)).toThrow('needs at least one final leader');
   });
 });

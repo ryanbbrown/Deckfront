@@ -11,15 +11,24 @@ export interface Orientation {
 }
 
 /**
- * The four games a pairing plays for each shared seed: two first-player orders times two arena
- * sides. The candidate takes ochre in orientations 1 and 3 and indigo in 2 and 4, so it holds each
- * seat twice and moves first in exactly two of the four.
+ * The four games a pairing plays for each shared seed: two first-player orders times two arena sides.
+ *
+ * There are three binary factors to balance — seat, who moves first, and arena position — so four
+ * games need a half-fraction rather than the obvious assignment. `createGame` puts ochre at position
+ * 2 and indigo at 3 and exchanges them when `swapSides` is true, and those positions are not
+ * equivalent. Taking ochre in orientations 1 and 3 would leave the candidate at position 2 in all
+ * four games, so `swapSides` would cancel nothing for it. Ochre in 1 and 4 gives seat 2/2,
+ * moves-first 2/2, and position 2/2.
+ *
+ * This decides leader selection, not presentation. A leader plays both sides across its pairings,
+ * but a candidate that is not a leader only ever plays the candidate side, so a uniform
+ * candidate-side advantage would bias selection toward mutants over their parents.
  */
 export const ORIENTATIONS: readonly Orientation[] = Object.freeze([
   { firstPlayerId: 'ochre', swapSides: false, candidateSeat: 'ochre' },
   { firstPlayerId: 'ochre', swapSides: true, candidateSeat: 'indigo' },
-  { firstPlayerId: 'indigo', swapSides: false, candidateSeat: 'ochre' },
-  { firstPlayerId: 'indigo', swapSides: true, candidateSeat: 'indigo' }
+  { firstPlayerId: 'indigo', swapSides: false, candidateSeat: 'indigo' },
+  { firstPlayerId: 'indigo', swapSides: true, candidateSeat: 'ochre' }
 ] as const);
 
 function mix(left: number, right: number): number {
