@@ -26,7 +26,7 @@ export class ThinHarnessAiRunner {
     const isBuild = record.state.phase === 'startingBuild'; const started = performance.now();
     const working = await mkdtemp(path.join(tmpdir(), 'hexdeck-ai-')); const snapshotPath = path.join(working, 'snapshot.json');
     const strategyPath = path.join(working, 'strategy.md'); const outputPath = path.join(working, 'result.json');
-    const briefing = isBuild ? buildAiStartingBuildBriefing() : buildAiBriefing(record.state, record.aiPlayerId);
+    const briefing = isBuild ? buildAiStartingBuildBriefing(record.state.kingdomId) : buildAiBriefing(record.state, record.aiPlayerId);
     const recommended = this.config.fakeModel ? (isBuild ? chooseFakeBuild(record) : chooseFakeAction(record)) : null;
     const recommendedSummary = this.config.fakeModel ? (isBuild ? 'Built the requested strategy package.' : 'Selected the next deterministic strategy action.') : null;
     await writeFile(snapshotPath, JSON.stringify({ schemaVersion: 2, mode: isBuild ? 'build' : 'action', gameId: record.id, baseRevision: record.revision, turn: record.state.turn, phase: record.state.phase, recommended, recommendedSummary, briefing }), { mode: 0o600 });
@@ -49,11 +49,12 @@ export class ThinHarnessAiRunner {
   }
 }
 export function chooseFakeBuild(record: GameRecord): string[] {
-  return record.strategy.presetId.includes('ranged') ? ['footwork', 'footwork', 'aim', 'volley'] : ['footwork', 'feint', 'drive'];
+  return record.strategy.presetId.includes('ranged') ? ['footwork', 'aim', 'volley'] : ['footwork', 'feint', 'drive'];
 }
 export function chooseFakeAction(record: GameRecord): string {
   const actions = listLegalActions(record.state);
   if (record.state.phase === 'buy') return actions.find((action) => action.command.type === 'endBuyPhase')?.id ?? actions[0]?.id ?? fail();
+  if (record.state.pendingChoice) return actions[0]?.id ?? fail();
   const action = actions.find((candidate) => 'cardInstanceId' in candidate.command) ?? actions.find((candidate) => candidate.command.type === 'endActionPhase');
   return action?.id ?? fail();
 }

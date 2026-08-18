@@ -55,6 +55,7 @@ describe('GameService setup and privacy', () => {
   it('rejects an unknown build card without changing proposal, revision, or state', async () => {
     const { service, game } = await setup(); const before = await service.getRecord(game.id);
     await expect(service.updateHumanBuild(game.id, game.revision, ['invented-card'], false)).rejects.toThrow('unknown card');
+    await expect(service.updateHumanBuild(game.id, game.revision, ['starfire'], false)).rejects.toThrow('does not sell');
     const after = await service.getRecord(game.id); expect(after.revision).toBe(before.revision); expect(after.humanBuildProposal).toEqual([]); expect(after.state).toEqual(before.state);
   });
   it('exposes the same availability reason codes through the game module and safe view at every range', async () => {

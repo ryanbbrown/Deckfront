@@ -106,6 +106,16 @@ describe('kingdom registry', () => {
     expect(kingdomOf('frozen').actionPiles).toHaveLength(1);
     expect(createGame({ seed: 1, kingdomId: 'frozen' }).supply).toEqual({ aim: 10, cull: 10 });
   });
+  it('freezes the nested values a resolved card exposes, with and without an override', () => {
+    registerKingdom(kingdom('sharp', { actionPiles: piles(['aim', 'volley']), overrides: { volley: { values: { far: 9 } } } }));
+    const state = createGame({ seed: 1, kingdomId: 'sharp' });
+    // The type already forbids these writes, so the cast is what proves the runtime freeze.
+    const mutable = (id: string): Record<string, number> => resolveCard(state, id).values as Record<string, number>;
+    expect(() => { mutable('aim').draw = 99; }).toThrow();
+    expect(() => { mutable('volley').far = 99; }).toThrow();
+    expect(CARDS.aim!.values!.draw).toBe(cardDefinition('aim').values!.draw);
+    expect(resolveCard(state, 'volley').values!.far).toBe(9);
+  });
   it('rejects every malformed kingdom', () => {
     expect(() => registerKingdom(kingdom('bad', { actionPiles: piles(['invented']) }))).toThrow('Unknown card definition: invented');
     expect(() => registerKingdom(kingdom('bad', { actionPiles: [...piles(['aim']), ...piles(['aim'])] }))).toThrow('Duplicate market pile');
@@ -231,12 +241,35 @@ describe('override coverage', () => {
     state = playCard(state, 'aim'); expect(state.players.ochre.deck.hand.filter((card) => card.definitionId === 'copper')).toHaveLength(2);
     expect(playCard(state, 'volley').fighters.indigo.health).toBe(30);
 
+    state = tuned(5); isolateHand(state, 'ochre', ['volley']);
+    expect(playCard(state, 'volley').fighters.indigo.health).toBe(32);
+    state = tuned(3); isolateHand(state, 'ochre', ['volley']);
+    expect(playCard(state, 'volley').fighters.indigo.health).toBe(33);
+    state = tuned(3); isolateHand(state, 'ochre', ['aim', 'volley']); setDraw(state, 'ochre', ['copper', 'copper']);
+    expect(playCard(playCard(state, 'aim'), 'volley').fighters.indigo.health).toBe(31);
+
+    state = tuned(3); isolateHand(state, 'ochre', ['step', 'step', 'step', 'step', 'step', 'flurry']);
+    for (const direction of ['left', 'right', 'left', 'right', 'left']) {
+      state = playCard(state, 'step', (command) => command.type === 'playMoveAction' && command.direction === direction);
+    }
+    state.fighters.indigo.position = state.fighters.ochre.position;
+    expect(playCard(state, 'flurry').fighters.indigo.health).toBe(31);
+
     state = tuned(); isolateHand(state, 'ochre', ['stipend']); setDraw(state, 'ochre', ['gold', 'gold']);
     state = playCard(state, 'stipend');
     expect(state.players.ochre.deck.hand).toHaveLength(2); expect(state.players.ochre.money).toBe(5);
 
     state = tuned(); isolateHand(state, 'ochre', ['reclaim']); setDraw(state, 'ochre', ['copper', 'copper', 'copper']);
     expect(playCard(state, 'reclaim').players.ochre.deck.hand).toHaveLength(2);
+
+    state = tuned(); isolateHand(state, 'ochre', ['reclaim']); setDraw(state, 'ochre', ['copper', 'copper', 'copper']);
+    state.players.ochre.deck.discard.push(createCard(state, 'gold'));
+    state = playCard(state, 'reclaim');
+    expect(state.pendingChoice).toMatchObject({ type: 'recover', playerId: 'ochre' });
+    const recover = action(state, (command) => command.type === 'resolveRecover' && command.recoverInstanceId !== null);
+    state = applyAction(state, recover.id);
+    expect(state.pendingChoice).toBeNull();
+    expect(state.players.ochre.deck.draw[0]?.definitionId).toBe('gold');
 
     state = tuned(); isolateHand(state, 'ochre', ['adapt']); setDraw(state, 'ochre', ['copper', 'copper', 'copper', 'copper', 'copper']);
     expect(playCard(state, 'adapt').players.ochre.deck.hand).toHaveLength(2);

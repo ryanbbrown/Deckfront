@@ -1,4 +1,4 @@
-import { CARDS, DEFAULT_KINGDOM_ID, kingdomMarket, listLegalActions, rangeBand } from '../game';
+import { CARDS, kingdomMarket, listLegalActions, rangeBand } from '../game';
 import type { GameState, PlayerId } from '../game';
 
 function unordered(cards: Array<{ definitionId: string }>): string[] { return cards.map((card) => card.definitionId).sort(); }
@@ -18,6 +18,6 @@ export function buildAiBriefing(state: GameState, aiPlayerId: PlayerId) {
     publicEvents: state.events
   };
 }
-export function buildAiStartingBuildBriefing(kingdomId: string = DEFAULT_KINGDOM_ID) {
+export function buildAiStartingBuildBriefing(kingdomId: string) {
   return { budget: 12, baseDeck: Array<string>(7).fill('copper'), market: kingdomMarket(kingdomId).map(({ id, name, cost, text, type }) => ({ id, name, cost, text, type })) };
 }

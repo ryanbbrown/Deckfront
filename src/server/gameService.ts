@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
-  applyCommand, assertInvariants, cardDefinition, cloneGame, createGame, kingdomMarket,
-  listActionAvailability, listLegalActions, marketCost, rangeBand, replayCommands
+  applyCommand, assertInvariants, CARDS, cloneGame, createGame, kingdomMarket,
+  listActionAvailability, listLegalActions, marketCost, rangeBand, replayCommands, resolveCard
 } from '../game';
 import type { CardInstance, GameCommand, GameEvent, GameState, LegalAction, PlayerId } from '../game';
 import type { AiTurnRecap, OpponentMode, RedactedExport, SafeGameView } from '../shared/api';
@@ -32,8 +32,9 @@ export class GameService {
       const builderId = record.opponentMode === 'local' ? record.state.activePlayerId : record.humanPlayerId;
       if (record.state.phase !== 'startingBuild' || record.state.players[builderId].startingBuild) throw new ForbiddenActionError('This starting build is already complete.');
       if (record.opponentMode === 'ai' && builderId !== record.humanPlayerId) throw new ForbiddenActionError('The human starting build is already complete.');
-      try { for (const definitionId of definitionIds) cardDefinition(definitionId); }
-      catch { throw new BadBuildError('Starting build contains an unknown card.'); }
+      for (const definitionId of definitionIds) if (!CARDS[definitionId]) throw new BadBuildError('Starting build contains an unknown card.');
+      const forSale = new Set(kingdomMarket(record.state.kingdomId).map((card) => card.id));
+      for (const definitionId of definitionIds) if (!forSale.has(definitionId)) throw new BadBuildError('Starting build contains a card this kingdom does not sell.');
       if (complete && marketCost(record.state, definitionIds) > 12) throw new BadBuildError('Starting build costs more than 12 money.');
       record.humanBuildProposal = [...definitionIds]; record.undoCheckpoint = null;
       if (complete) { this.commitCommand(record, { type: 'submitStartingBuild', playerId: builderId, definitionIds }); record.humanBuildProposal = []; }
@@ -127,14 +128,14 @@ export class GameService {
       return;
     }
     if (command.type === 'endActionPhase') {
-      audit.treasures = beforePlayer.deck.hand.filter((card) => cardDefinition(card.definitionId).type === 'treasure').map((card) => ({ card: structuredClone(card), money: cardDefinition(card.definitionId).money ?? 0 }));
-      audit.unplayed = structuredClone(beforePlayer.deck.hand.filter((card) => cardDefinition(card.definitionId).type === 'action'));
+      audit.treasures = beforePlayer.deck.hand.filter((card) => resolveCard(before, card.definitionId).type === 'treasure').map((card) => ({ card: structuredClone(card), money: resolveCard(before, card.definitionId).money ?? 0 }));
+      audit.unplayed = structuredClone(beforePlayer.deck.hand.filter((card) => resolveCard(before, card.definitionId).type === 'action'));
       const treasureMoney = audit.treasures.reduce((total, treasure) => total + treasure.money, 0);
       audit.moneyAvailable = afterPlayer.money; audit.startingMoney = Math.max(0, afterPlayer.money - treasureMoney);
       return;
     }
     if (command.type === 'buyCard') {
-      audit.purchases.push({ definitionId: command.definitionId, cost: cardDefinition(command.definitionId).cost });
+      audit.purchases.push({ definitionId: command.definitionId, cost: resolveCard(before, command.definitionId).cost });
       return;
     }
     if (command.type === 'endBuyPhase') audit.unspentMoney = beforePlayer.money;

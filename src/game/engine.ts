@@ -220,7 +220,7 @@ function resolveRecover(state: GameState, command: Extract<GameCommand, { type: 
     const [card] = deck.discard.splice(index, 1); if (!card) throw new Error(`Card is not in the discard pile: ${command.recoverInstanceId}`);
     deck.draw.unshift(card); record(state, 'recover', { cardInstanceId: card.id, definitionId: card.definitionId }, pending.playerId);
   }
-  state.pendingChoice = null;
+  advanceChoice(state, pending);
 }
 function finishSetup(state: GameState): void {
   const random = new SeededRandom(state.rngState);

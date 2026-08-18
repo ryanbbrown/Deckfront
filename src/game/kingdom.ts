@@ -35,7 +35,7 @@ function validate(kingdom: Kingdom): void {
     if (piles.has(pile.cardId)) throw new Error(`Duplicate market pile: ${pile.cardId}`);
     piles.add(pile.cardId);
     if (definition.type !== 'action') throw new Error(`Market piles hold Action cards only: ${pile.cardId}`);
-    if (pile.cardId === ALWAYS_AVAILABLE_ACTION_ID || TREASURE_IDS.includes(pile.cardId)) throw new Error(`${definition.name} is available in every kingdom and needs no pile.`);
+    if (pile.cardId === ALWAYS_AVAILABLE_ACTION_ID) throw new Error(`${definition.name} is available in every kingdom and needs no pile.`);
     if (pile.count > MAX_PILE_COUNT) throw new Error(`${pile.cardId} may hold at most ${MAX_PILE_COUNT} cards.`);
   }
   for (const [definitionId, override] of Object.entries(kingdom.overrides ?? {})) {
