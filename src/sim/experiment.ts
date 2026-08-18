@@ -7,9 +7,11 @@ import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from './cli';
 import { evolve, retainedLeaders } from './evolution';
 import { CALIBRATION_KINGDOM_ID } from './kingdoms';
 import { emptyAggregate, mergeAggregate } from './pairing';
+import { InlinePairingRunner } from './pairingRunner';
+import type { PairingRunner } from './pairingRunner';
 import { renderReport } from './report';
 import type { GenerationLine, RunSummary } from './report';
-import { baselineLabels, seedFindings, seedStrategies } from './seedPopulation';
+import { seedLabels, seedStrategies } from './seedPopulation';
 import { formatStrategy } from './strategy';
 import type { Strategy } from './strategy';
 import { roundRobin } from './tournament';
@@ -26,6 +28,7 @@ export interface ExperimentDeps {
   now?: (() => number) | undefined;
   evolve?: typeof evolve | undefined;
   roundRobin?: typeof roundRobin | undefined;
+  pairingRunner?: PairingRunner | undefined;
 }
 
 /** Written to a temporary name and renamed, so a kill never leaves a half-written JSON file. */
@@ -57,10 +60,14 @@ function generationLine(result: GenerationResult): GenerationLine {
     leaders: result.leaders.map((entry) => ({
       strategyId: entry.strategy.id,
       score: entry.score,
+      completedPairings: entry.completedPairings,
       completedGames: entry.completedGames,
       abortedGames: entry.abortedGames
     })),
-    scores: result.scores
+    scores: result.scores,
+    pairingStops: result.pairingStops,
+    seedBlockCounts: result.seedBlockCounts,
+    pairingsPlayed: result.pairingsPlayed
   };
 }
 
@@ -92,7 +99,6 @@ function runRecord(summary: RunSummary, resolvedKingdom: unknown): unknown {
     tournamentComplete: summary.tournamentComplete,
     calibration: summary.calibration,
     blockers: summary.blockers,
-    seedFindings: summary.seedFindings,
     finalLeaderIds: summary.finalLeaderIds,
     // The resolved definitions, not the kingdom record and its override map: only the resolved form
     // keeps a committed report reproducible against a later change to a canonical card value.
@@ -106,10 +112,14 @@ function tournamentRecord(result: TournamentResult): unknown {
     partial: result.partial,
     pairsPlayed: result.pairsPlayed,
     pairsExpected: result.pairsExpected,
+    matches: result.matches,
+    pairingStops: result.pairingStops,
+    seedBlockCounts: result.seedBlockCounts,
     pairs: result.pairs,
     ranking: result.ranking.map((entry) => ({
       strategyId: entry.strategy.id,
       score: entry.score,
+      completedPairings: entry.completedPairings,
       completedGames: entry.completedGames,
       abortedGames: entry.abortedGames
     })),
@@ -131,7 +141,7 @@ function strategyRecord(strategies: readonly { source: string; strategy: Strateg
   return {
     strategies: strategies.map(({ source, strategy }) => ({
       id: strategy.id,
-      baseline: labels.get(strategy.id) ?? null,
+      seed: labels.get(strategy.id) ?? null,
       source,
       text: formatStrategy(strategy),
       strategy
@@ -147,7 +157,9 @@ function strategyRecord(strategies: readonly { source: string; strategy: Strateg
  * that hits a blocker still leaves a readable report. The caller decides the exit code from
  * `stopReason`.
  */
-export function runExperiment(options: ExperimentOptions, outDir: string, deps: ExperimentDeps = {}): RunSummary {
+export async function runExperiment(
+  options: ExperimentOptions, outDir: string, deps: ExperimentDeps = {}
+): Promise<RunSummary> {
   const now = deps.now ?? Date.now;
   const runEvolution = deps.evolve ?? evolve;
   const runTournament = deps.roundRobin ?? roundRobin;
@@ -156,7 +168,8 @@ export function runExperiment(options: ExperimentOptions, outDir: string, deps: 
   const budgetMs = options.deadlineMinutes * 60_000;
   const evolutionDeadline = startedAtMs + Math.round(budgetMs * (1 - TOURNAMENT_RESERVE));
   const tournamentDeadline = startedAtMs + budgetMs;
-  const labels = baselineLabels(options.kingdomId);
+  const labels = seedLabels(options.kingdomId);
+  const runner = deps.pairingRunner ?? new InlinePairingRunner();
 
   const summary: RunSummary = {
     kingdomId: options.kingdomId,
@@ -170,6 +183,7 @@ export function runExperiment(options: ExperimentOptions, outDir: string, deps: 
       sharedSeeds: options.sharedSeeds,
       deadlineMinutes: options.deadlineMinutes,
       stateLimit: options.stateLimit,
+      workers: options.workers,
       turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
       actionCapPerTurn: ACTION_CAP_PER_TURN
     },
@@ -183,7 +197,6 @@ export function runExperiment(options: ExperimentOptions, outDir: string, deps: 
     tournamentMatches: 0,
     tournamentAborted: 0,
     generations: [],
-    seedFindings: seedFindings(options.kingdomId),
     strategyLabels: Object.fromEntries(labels),
     finalLeaderIds: [],
     evolutionTelemetry: emptyAggregate(),
@@ -209,7 +222,7 @@ export function runExperiment(options: ExperimentOptions, outDir: string, deps: 
   };
 
   try {
-    const results = runEvolution({
+    const results = await runEvolution({
       kingdomId: options.kingdomId,
       seed: options.seed,
       candidates: options.candidates,
@@ -227,7 +240,7 @@ export function runExperiment(options: ExperimentOptions, outDir: string, deps: 
       summary.evolutionAborted += result.overflowCount;
       mergeAggregate(summary.evolutionTelemetry, result.telemetry);
       fs.appendFileSync(generationsFile, `${JSON.stringify(generationLine(result))}\n`);
-    });
+    }, runner);
 
     const finalLeaders = results.at(-1)?.leaders.map((entry) => entry.strategy) ?? [];
     summary.finalLeaderIds = finalLeaders.map((leader) => leader.id);
@@ -236,22 +249,22 @@ export function runExperiment(options: ExperimentOptions, outDir: string, deps: 
       : 'deadline';
 
     const retained = retainedLeaders(results);
-    const baselines = seedStrategies(options.kingdomId);
+    const seeds = seedStrategies(options.kingdomId);
 
     // Source precedence, so the label carries the strongest claim on a strategy that has several.
     for (const leader of finalLeaders) remember('final', leader);
     for (const leader of retained) remember('retained', leader);
     for (const result of results) for (const entry of result.leaders) remember('leader', entry.strategy);
-    for (const seed of baselines) remember('baseline', seed);
+    for (const seed of seeds) remember('seed', seed);
 
     // The tournament takes the final leaders, one best leader per generation, and the fixed
-    // baselines — not every leader of every generation, which grows quadratically with the
+    // seeds — not every leader of every generation, which grows quadratically with the
     // generation count. Final leaders come first because `roundRobin` walks pairs in this order and
     // stops at the deadline, and the calibration gate reads exactly the final leaders' matches: a
     // truncated tournament must cost precision, never the verdict.
-    const entrants = dedupeById([...finalLeaders, ...retained, ...baselines]);
+    const entrants = dedupeById([...finalLeaders, ...retained, ...seeds]);
 
-    const tournament = runTournament(entrants, {
+    const tournament = await runTournament(entrants, {
       kingdomId: options.kingdomId,
       seed: options.seed,
       sharedSeeds: options.sharedSeeds,
@@ -261,10 +274,10 @@ export function runExperiment(options: ExperimentOptions, outDir: string, deps: 
       finalLeaderIds: summary.finalLeaderIds,
       deadline: tournamentDeadline,
       now
-    });
+    }, runner);
     summary.tournament = tournament;
     summary.tournamentComplete = !tournament.partial;
-    summary.tournamentMatches = tournament.pairsPlayed * options.sharedSeeds * 4;
+    summary.tournamentMatches = tournament.matches;
     summary.tournamentAborted = abortedInTournament(tournament.telemetry);
     if (tournament.partial) {
       // The deadline stopped the run, whatever evolution managed. Reporting `generations` here would
@@ -276,7 +289,7 @@ export function runExperiment(options: ExperimentOptions, outDir: string, deps: 
     }
 
     if (options.kingdomId === CALIBRATION_KINGDOM_ID) {
-      // The gate throws when every final leader is a fixed baseline. That is a result — the search
+      // The gate throws when every final leader is a fixed seed. That is a result — the search
       // never beat its own yardstick — and an unattended run must record it, not die on it.
       try {
         summary.calibration = checkRiggedMelee(tournament.calibration);
@@ -297,6 +310,8 @@ export function runExperiment(options: ExperimentOptions, outDir: string, deps: 
   } catch (error) {
     summary.stopReason = 'error';
     summary.error = error instanceof Error ? error.message : String(error);
+  } finally {
+    await runner.close();
   }
 
   const finishedAtMs = now();

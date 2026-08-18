@@ -1,5 +1,4 @@
 import type { CalibrationResult } from './calibration';
-import type { SeedFinding } from './seedPopulation';
 import { formatStrategy } from './strategy';
 import type { PairRecord, TelemetryAggregate, TournamentResult } from './types';
 
@@ -13,6 +12,7 @@ export interface RunLimits {
   sharedSeeds: number;
   deadlineMinutes: number;
   stateLimit: number;
+  workers: number;
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
 }
@@ -23,8 +23,13 @@ export interface GenerationLine {
   matchCount: number;
   overflowCount: number;
   elapsedMs: number;
-  leaders: { strategyId: string; score: number; completedGames: number; abortedGames: number }[];
+  leaders: {
+    strategyId: string; score: number; completedPairings: number; completedGames: number; abortedGames: number
+  }[];
   scores: Record<string, number>;
+  pairingStops: Record<'significant' | 'maximum', number>;
+  seedBlockCounts: Record<string, number>;
+  pairingsPlayed: { candidateId: string; opponentId: string }[];
 }
 
 /**
@@ -47,8 +52,7 @@ export interface RunSummary {
   tournamentMatches: number;
   tournamentAborted: number;
   generations: GenerationLine[];
-  seedFindings: SeedFinding[];
-  /** Hash id to the baseline name it repaired from, for every fixed baseline in this kingdom. */
+  /** Hash id to the readable seed name for every fixed strategy in this kingdom. */
   strategyLabels: Record<string, string>;
   finalLeaderIds: string[];
   evolutionTelemetry: TelemetryAggregate;
@@ -142,8 +146,8 @@ function mergeTelemetry(left: TelemetryAggregate, right: TelemetryAggregate | nu
 }
 
 function label(summary: RunSummary, strategyId: string): string {
-  const baseline = summary.strategyLabels[strategyId];
-  return baseline ? `${strategyId} (${baseline})` : strategyId;
+  const seed = summary.strategyLabels[strategyId];
+  return seed ? `${strategyId} (${seed})` : strategyId;
 }
 
 function header(summary: RunSummary): string[] {
@@ -162,6 +166,7 @@ function header(summary: RunSummary): string[] {
     ['Turn limit per player', String(limits.turnLimitPerPlayer)],
     ['Action cap per turn', String(limits.actionCapPerTurn)],
     ['Action-search state limit', String(limits.stateLimit)],
+    ['Workers', String(limits.workers)],
     ['Deadline', `${limits.deadlineMinutes} minutes`],
     ['Started', summary.startedAt],
     ['Finished', summary.finishedAt],
@@ -212,45 +217,46 @@ function calibrationSection(summary: RunSummary): string[] {
   ];
 }
 
-function seedingSection(summary: RunSummary): string[] {
-  const findings = summary.seedFindings;
-  const lines = ['', '## Seeding', ''];
-  if (!findings.length) {
-    lines.push('Every fixed baseline seeded into this kingdom intact.');
-    return lines;
-  }
-  const degenerate = findings.filter((finding) => finding.degenerate);
-  lines.push(
-    `This kingdom sells only part of what ${findings.length} of the five fixed baselines were built`
-    + ' around, so those seeds enter generation 1 cut down. Generation-1 scores here carry less signal'
-    + ' than later generations, which are measured against evolved leaders.',
-    ''
-  );
-  lines.push(...table(['Baseline', 'Build cards lost', 'Agenda entries lost', 'Left with no agenda'],
-    findings.map((finding) => [
-      finding.baselineId, String(finding.buildDropped), String(finding.agendaDropped),
-      finding.degenerate ? 'yes' : 'no'
-    ])));
-  if (degenerate.length) {
-    lines.push('', `${degenerate.map((finding) => `\`${finding.baselineId}\``).join(', ')} seeded with no`
-      + ' agenda at all, so it began the run with nothing to buy.');
-  }
-  return lines;
-}
-
 function rankingSection(summary: RunSummary): string[] {
   const tournament = summary.tournament;
   if (!tournament) return ['', '## Final ranking', '', '_The tournament did not run._'];
   const finalLeaders = new Set(summary.finalLeaderIds);
   return [
     '', '## Final ranking', '',
-    'Mean score per completed game in the final round robin. Source: tournament.', '',
-    ...table(['Rank', 'Strategy', 'Final leader', 'Score', 'Completed', 'Aborted'],
+    'Mean of the per-opponent pairing means in the final round robin. Source: tournament.', '',
+    ...table(['Rank', 'Strategy', 'Final leader', 'Score', 'Pairings', 'Completed', 'Aborted'],
       tournament.ranking.map((entry, index) => [
         String(index + 1), label(summary, entry.strategy.id),
         finalLeaders.has(entry.strategy.id) ? 'yes' : 'no',
-        fixed(entry.score), String(entry.completedGames), String(entry.abortedGames)
+        fixed(entry.score), String(entry.completedPairings), String(entry.completedGames), String(entry.abortedGames)
       ]))
+  ];
+}
+
+function stoppingSection(summary: RunSummary): string[] {
+  const stops = { significant: 0, maximum: 0 };
+  const blocks: Record<string, number> = {};
+  const add = (
+    pairingStops: Record<'significant' | 'maximum', number>, seedBlockCounts: Record<string, number>
+  ): void => {
+    stops.significant += pairingStops.significant;
+    stops.maximum += pairingStops.maximum;
+    for (const [count, pairings] of Object.entries(seedBlockCounts)) {
+      blocks[count] = (blocks[count] ?? 0) + pairings;
+    }
+  };
+  for (const generation of summary.generations) add(generation.pairingStops, generation.seedBlockCounts);
+  if (summary.tournament) add(summary.tournament.pairingStops, summary.tournament.seedBlockCounts);
+  return [
+    '', '## Pairing stops', '',
+    'A pairing stops only after a complete four-orientation seed block. Source: all submitted pairings.', '',
+    ...table(['Reason', 'Pairings'], [
+      ['significant', String(stops.significant)], ['maximum', String(stops.maximum)]
+    ]),
+    '',
+    ...table(['Seed blocks played', 'Pairings'], Object.entries(blocks)
+      .sort(([left], [right]) => Number(left) - Number(right))
+      .map(([count, pairings]) => [count, String(pairings)]))
   ];
 }
 
@@ -417,8 +423,8 @@ export function renderReport(summary: RunSummary): string {
   return [
     ...header(summary),
     ...calibrationSection(summary),
-    ...seedingSection(summary),
     ...rankingSection(summary),
+    ...stoppingSection(summary),
     ...pairwiseSection(summary),
     ...cardSection(summary),
     ...matchSection(summary),

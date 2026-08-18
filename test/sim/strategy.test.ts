@@ -1,23 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { BASELINE_STRATEGIES, baselineStrategy } from '../../src/sim/baselines';
+import { SEED_STRATEGIES } from '../../src/sim/baselines';
+import { seedStrategies } from '../../src/sim/seedPopulation';
 import { formatStrategy, identify, registerIdentity } from '../../src/sim/strategy';
 import type { StateWeights } from '../../src/sim/strategy';
 import { strategy, weights } from './fixtures';
 
-describe('baseline immutability', () => {
-  it('gives every baseline its own weights object', () => {
+describe('seed immutability', () => {
+  const seeds = Object.values(SEED_STRATEGIES).flat();
+  it('gives every seed its own weights object', () => {
     const seen = new Set<StateWeights>();
-    for (const plan of BASELINE_STRATEGIES) {
+    for (const plan of seeds) {
       expect(seen.has(plan.weights), `${plan.id} shares a weights object`).toBe(false);
       seen.add(plan.weights);
     }
-    expect(seen.size).toBe(BASELINE_STRATEGIES.length);
+    expect(seen.size).toBe(seeds.length);
   });
 
   it('refuses every in-place write, so one baseline cannot reach another', () => {
-    const melee = baselineStrategy('melee-rush');
-    const ranged = baselineStrategy('ranged-standard');
-    const engine = baselineStrategy('engine-draw');
+    const melee = seedStrategies('current-duel')[0]!;
+    const ranged = seedStrategies('current-duel')[1]!;
+    const engine = seedStrategies('current-duel')[3]!;
 
     // The three baselines that share the default numbers are the ones a shared reference would join.
     expect(melee.weights.damage).toBe(10);
@@ -36,12 +38,12 @@ describe('baseline immutability', () => {
     }
 
     expect(() => { (melee as unknown as Record<string, string>).id = 'hijacked'; }).toThrow(TypeError);
-    expect(() => (BASELINE_STRATEGIES as unknown as unknown[]).push(melee)).toThrow(TypeError);
+    expect(() => (SEED_STRATEGIES['current-duel'] as unknown as unknown[]).push(melee)).toThrow(TypeError);
   });
 
   it('does not let two baselines share a priority list', () => {
-    const melee = baselineStrategy('melee-rush');
-    const ranged = baselineStrategy('ranged-standard');
+    const melee = seedStrategies('current-duel')[0]!;
+    const ranged = seedStrategies('current-duel')[1]!;
     expect(melee.trashPriority).not.toBe(ranged.trashPriority);
     expect(melee.treasureFallback).not.toBe(ranged.treasureFallback);
     expect(melee.trashPriority).toEqual(ranged.trashPriority);
@@ -77,8 +79,8 @@ describe('formatStrategy', () => {
     expect(lines.filter((line) => line.endsWith('none'))).toHaveLength(5);
   });
 
-  it('round trips every baseline through JSON without changing its text', () => {
-    for (const plan of BASELINE_STRATEGIES) {
+  it('round trips every seed through JSON without changing its text', () => {
+    for (const plan of Object.values(SEED_STRATEGIES).flat()) {
       expect(formatStrategy(JSON.parse(JSON.stringify(plan)))).toBe(formatStrategy(plan));
     }
   });

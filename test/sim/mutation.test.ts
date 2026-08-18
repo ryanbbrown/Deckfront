@@ -3,7 +3,6 @@ import {
   SeededRandom, createGame, kingdomMarket, marketCost, registerKingdom, resetKingdoms, submitStartingBuild
 } from '../../src/game';
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
-import { BASELINE_STRATEGIES, baselineStrategy } from '../../src/sim/baselines';
 import { repairBuildIn } from '../../src/sim/build';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
 import { runMatch } from '../../src/sim/match';
@@ -12,8 +11,9 @@ import {
   kingdomFacts, mutate, mutateUnique, mutationRandom, repairStrategy
 } from '../../src/sim/mutation';
 import { nextPopulation } from '../../src/sim/evolution';
-import { seedFindings, seedStrategies } from '../../src/sim/seedPopulation';
+import { seedLabels, seedStrategies } from '../../src/sim/seedPopulation';
 import { canonicalStrategy } from '../../src/sim/strategy';
+import { ATTACK_MECHANICS } from '../../src/sim/search';
 import type { Strategy } from '../../src/sim/strategy';
 import { strategy } from './fixtures';
 
@@ -40,6 +40,13 @@ function assertBounds(kingdomId: string, plan: Strategy): void {
   for (const cardId of named) expect(sold.has(cardId), `${label} names ${cardId}`).toBe(true);
 }
 
+function seedByLabel(kingdomId: string, label: string): Strategy {
+  const labels = seedLabels(kingdomId);
+  const found = seedStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);
+  if (!found) throw new Error(`No ${label} seed in ${kingdomId}.`);
+  return found;
+}
+
 describe('the shared build repair', () => {
   it('brings a build 30 money over budget inside 12 in one call', () => {
     const overspent = ['fireball', 'volley', 'heavyBlow', 'fireball', 'volley', 'heavyBlow', 'aim', 'aim', 'drive'];
@@ -55,7 +62,7 @@ describe('the shared build repair', () => {
 
   it('gives the same answer at mutation time as the agent gives at match time', () => {
     for (const kingdomId of CURATED_KINGDOM_IDS) {
-      for (const baseline of BASELINE_STRATEGIES) {
+      for (const baseline of seedStrategies(kingdomId)) {
         const mutated = mutate(kingdomId, baseline, mutationRandom(21, 1, 3));
         const state = createGame({ seed: 5, kingdomId });
         const atMatchTime = strategyAgent(mutated).chooseStartingBuild(state, 'ochre');
@@ -74,10 +81,11 @@ describe('the shared build repair', () => {
 describe('mutation bounds', () => {
   it('keeps every mutated strategy inside its bounds through long seeded chains', () => {
     for (const kingdomId of CURATED_KINGDOM_IDS) {
-      for (const baseline of BASELINE_STRATEGIES) {
-        let plan = repairStrategy(kingdomId, baseline);
+      const seeds = seedStrategies(kingdomId);
+      for (const baseline of seeds) {
+        let plan = baseline;
         for (let step = 0; step < 40; step += 1) {
-          plan = mutate(kingdomId, plan, mutationRandom(99, step, BASELINE_STRATEGIES.indexOf(baseline)));
+          plan = mutate(kingdomId, plan, mutationRandom(99, step, seeds.indexOf(baseline)));
           assertBounds(kingdomId, plan);
         }
         const state = createGame({ seed: 2, kingdomId });
@@ -85,7 +93,7 @@ describe('mutation bounds', () => {
         const result = runMatch({
           kingdomId, seed: 4, firstPlayerId: 'ochre', swapSides: false,
           turnLimitPerPlayer: 2, actionCapPerTurn: 200,
-          agents: { ochre: strategyAgent(plan), indigo: strategyAgent(baselineStrategy('treasure-only')) }
+          agents: { ochre: strategyAgent(plan), indigo: strategyAgent(strategy({ startingBuild: [], buyAgenda: [] })) }
         });
         expect(result.reason, `${kingdomId}/${baseline.id}`).not.toBe('actionSearchOverflow');
       }
@@ -137,7 +145,7 @@ describe('mutation reach', () => {
   }
 
   it('can change every field a strategy carries', () => {
-    const parent = repairStrategy(KINGDOM, baselineStrategy('ranged-standard'));
+    const parent = seedByLabel(KINGDOM, 'ranged-volley');
     const reached = new Set<string>();
     for (let index = 0; index < 400; index += 1) {
       for (const field of changes(parent, mutate(KINGDOM, parent, mutationRandom(5, 1, index)))) reached.add(field);
@@ -151,7 +159,7 @@ describe('mutation reach', () => {
   // The package mutation is the one that moves a related group: the band, the weight that rewards
   // holding it, and the attacks the deck buys.
   it('moves a related group together in the range package', () => {
-    const parent = repairStrategy(KINGDOM, baselineStrategy('ranged-standard'));
+    const parent = seedByLabel(KINGDOM, 'ranged-volley');
     expect(parent.preferredRange).toBe('Far');
     expect(parent.buyAgenda.map((entry) => entry.cardId)).toContain('volley');
     const pivoted = applyMutation('range-package', KINGDOM, parent, new SeededRandom(11));
@@ -165,7 +173,7 @@ describe('mutation reach', () => {
   });
 
   it('names one operator per behaviour and applies each without leaving the bounds', () => {
-    const parent = repairStrategy(KINGDOM, baselineStrategy('engine-draw'));
+    const parent = seedByLabel(KINGDOM, 'ranged-shot');
     for (const name of MUTATION_NAMES) {
       for (let draw = 0; draw < 12; draw += 1) {
         assertBounds(KINGDOM, applyMutation(name, KINGDOM, parent, new SeededRandom(draw + 1)));
@@ -183,22 +191,31 @@ describe('mutation reach', () => {
 });
 
 describe('seeded strategies', () => {
-  it('repairs each baseline into the kingdom it will play in and keeps the five apart', () => {
+  it('provides five complete distinct strategies in every curated kingdom', () => {
     for (const kingdomId of CURATED_KINGDOM_IDS) {
       const seeds = seedStrategies(kingdomId);
-      expect(seeds, kingdomId).toHaveLength(BASELINE_STRATEGIES.length);
+      expect(seeds, kingdomId).toHaveLength(5);
       expect(new Set(seeds.map((seed) => seed.id)).size, kingdomId).toBe(seeds.length);
-      for (const seed of seeds) assertBounds(kingdomId, seed);
+      const definitions = new Map(kingdomMarket(kingdomId).map((definition) => [definition.id, definition]));
+      const state = createGame({ seed: 1, kingdomId });
+      for (const seed of seeds) {
+        assertBounds(kingdomId, seed);
+        expect(marketCost(state, seed.startingBuild), `${kingdomId}/${seed.id} build cost`)
+          .toBeLessThanOrEqual(12);
+        const planned = [...seed.startingBuild, ...seed.buyAgenda.map((entry) => entry.cardId)];
+        expect(planned.some((cardId) => ATTACK_MECHANICS.has(definitions.get(cardId)!.mechanic)),
+          `${kingdomId}/${seed.id} needs a damage card`).toBe(true);
+      }
     }
   });
 
-  // Recorded, not fixed. Plan 10-4 allows a baseline to repair away, and inventing a replacement
-  // would be new strategy content that no approved document authorises.
-  it('records that engine-draw keeps only stipend and footwork in three-way-open', () => {
-    const seeds = seedStrategies('three-way-open');
-    const engine = seeds.find((seed) => seed.preferredRange === 'Near' && seed.weights.cardsDrawn === 2)!;
-    expect(engine.startingBuild).toEqual(['stipend', 'footwork']);
-    expect(engine.buyAgenda).toEqual([{ cardId: 'stipend', desiredCount: 2 }]);
+  it('uses the same canonical strategies where the two kingdoms have the same market', () => {
+    expect(seedStrategies('rigged-melee').map((seed) => seed.id))
+      .toEqual(seedStrategies('three-way-open').map((seed) => seed.id));
+  });
+
+  it('rejects a kingdom without an approved seed table', () => {
+    expect(() => seedStrategies('distance-duel')).toThrow('Unknown seed kingdom');
   });
 });
 
@@ -241,52 +258,5 @@ describe('the kingdom caches mutation keeps', () => {
     registerKingdom(kingdom(['volley', 'footwork']));
     expect(kingdomFacts('cache-probe').marketIds).not.toContain('heavyBlow');
     expect(repairBuildIn('cache-probe', ['heavyBlow', 'volley'])).toEqual(['volley']);
-  });
-});
-
-describe('the seeding findings a run reports', () => {
-  it('counts exactly what each seed lost, and matches the seeds that actually play', () => {
-    for (const kingdomId of CURATED_KINGDOM_IDS) {
-      const findings = seedFindings(kingdomId);
-      const seeds = new Map(seedStrategies(kingdomId).map((seed) => [seed.id, seed]));
-      for (const finding of findings) {
-        const label = `${kingdomId}/${finding.baselineId}`;
-        const baseline = baselineStrategy(finding.baselineId);
-        const seed = seeds.get(finding.strategyId)!;
-        expect(seed, label).toBeDefined();
-        expect(finding.buildDropped, label).toBe(baseline.startingBuild.length - seed.startingBuild.length);
-        expect(finding.agendaDropped, label).toBe(baseline.buyAgenda.length - seed.buyAgenda.length);
-        expect(finding.buildDropped + finding.agendaDropped, label).toBeGreaterThan(0);
-        expect(finding.degenerate, label).toBe(seed.buyAgenda.length === 0);
-      }
-    }
-  });
-
-  it('leaves treasure-only out, because an empty build is its design and not a loss', () => {
-    for (const kingdomId of CURATED_KINGDOM_IDS) {
-      expect(seedFindings(kingdomId).map((finding) => finding.baselineId), kingdomId).not.toContain('treasure-only');
-    }
-  });
-
-  // The measured degenerate seeds, pinned so a kingdom edit that guts another one cannot pass
-  // unnoticed. Plan 10-6 names this exact case in its seeding section.
-  it('names the mage seed in current-duel as the one degenerate seed', () => {
-    const degenerate = CURATED_KINGDOM_IDS.flatMap((kingdomId) =>
-      seedFindings(kingdomId).filter((finding) => finding.degenerate).map((finding) => `${kingdomId}/${finding.baselineId}`)
-    );
-    expect(degenerate).toEqual(['current-duel/mage-standard']);
-    const mage = seedFindings('current-duel').find((finding) => finding.baselineId === 'mage-standard')!;
-    expect(mage.buildDropped).toBe(3);
-    expect(mage.agendaDropped).toBe(4);
-  });
-
-  // The count the report leans on when it says generation-1 scores in a kingdom carry little signal.
-  it('records how many seeds each kingdom degraded', () => {
-    const counts = Object.fromEntries(
-      CURATED_KINGDOM_IDS.map((kingdomId) => [kingdomId, seedFindings(kingdomId).length])
-    );
-    expect(counts).toEqual({
-      'current-duel': 4, 'three-way-open': 4, 'three-way-engine': 3, 'range-rich-mixed': 3, 'rigged-melee': 4
-    });
   });
 });

@@ -67,20 +67,22 @@ npx tsx scripts/measure_search.ts --kingdom rigged-melee --seeds 3 --repeats 5
 node --cpu-prof --cpu-prof-dir .experiments/profiles --import tsx scripts/measure_search.ts --kingdom rigged-melee --seeds 3
 ```
 
-It plays every baseline pairing in the kingdoms and seeds it is given and prints matches per second, wall clock per decision and per match, states visited, and stop reasons. Use the options to bound the workload for a profile, so a before-and-after pair comes from one measurement path.
+It plays every kingdom-specific seed pairing for the kingdoms and match seeds it is given. It prints matches per second, wall clock per decision and per match, states visited, and stop reasons. Production matches stop after 30 turns per player.
 
 `cloneGame` copies the mutable zones and shares the card and event objects, which nothing edits in place, because a deep clone of the whole event log on every action made one game quadratic in its action count. `test/clone.test.ts` holds the aliasing checks that make the sharing safe, and `test/sim/identity.test.ts` replays seven fixed matches against `test/sim/fixtures/match-oracle.json` so a faster engine cannot quietly change a result.
 
-`evolve` runs the search: each generation plays every candidate against every leader over a fixed set of shared seeds, four games per pairing per seed, then keeps the best few as the next leaders and mutates them into the next population. `roundRobin` plays the final tournament between the last leaders, one retained leader per generation, and the fixed baselines, and reports the complete pairwise table. A strategy's id is a hash of its behaviour, so duplicates collapse on their own.
+`evolve` runs the search. Each generation plays every candidate against every leader over fixed shared seeds. A seed block contains four games that balance seat, first player, and arena side. A pairing stops after an exact sign test settles it, or after 25 blocks and 100 games. Scores are means of per-opponent pairing means, so an early-stopped pairing has the same weight as a 100-game pairing. `roundRobin` plays the final tournament between the last leaders, one retained leader per generation, and the fixed seeds. A strategy id is a hash of its behaviour, so duplicates collapse on their own.
 
-Generation 1 starts from the five fixed baselines, repaired into the kingdom. A kingdom that sells few of a baseline's cards cuts that baseline down, so generation-1 scores there say less. `seedFindings(kingdomId)` reports what each seed lost, so a run states it instead of leaving the reader to assume a fair first contest.
+Generation 1 starts from five complete strategies written for that kingdom. Every seed has a legal starting build and agenda and starts with or buys a damage card.
 
 Run one experiment with `npm run experiment -- --kingdom <id> --mode smoke|full`. `--seed`,
-`--candidates`, `--leaders`, `--generations`, `--seeds`, `--deadline-minutes`, and `--state-limit` may
+`--candidates`, `--leaders`, `--generations`, `--seeds`, `--deadline-minutes`, `--state-limit`, and `--workers` may
 lower a limit; none may raise one above the approved maximum. Output goes to
 `.experiments/<kingdom-id>/<mode>/`: `run.json`, `generations.jsonl`, `tournament.json`,
 `strategies.json`, `telemetry.json`, and `report.md`. Only `report.md` is committed. Partial output
 survives a deadline, and a run that hits a blocker still writes its report.
+
+`npm run experiment` first bundles the simulator to `dist-sim/experiment.mjs`, then runs that bundle. It uses 10 worker threads by default. The worker count can be 1 to 16. Pairings are folded in submission order, so a deadline-free run is deterministic at every worker count.
 
 The five curated experiment kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and `rigged-melee`. `rigged-melee` is a calibration fixture: it re-prices Heavy Blow to 3 for 6 damage, and `src/sim/calibration.ts` checks that the search finds it. Its threshold, kingdom, and strategies must never be tuned to make it pass.
 

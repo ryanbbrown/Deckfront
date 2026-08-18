@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createGame, resetKingdoms } from '../../src/game';
-import { baselineStrategy } from '../../src/sim/baselines';
 import {
   MIN_CANDIDATES, compareScored, evolve, retainedLeaders, selectLeaders, validateEvolutionConfig
 } from '../../src/sim/evolution';
@@ -23,7 +22,7 @@ function config(overrides: Partial<EvolutionConfig> = {}): EvolutionConfig {
   };
 }
 function scoredWith(plan: Strategy, score: number, completedGames = 4): ScoredStrategy {
-  return { strategy: plan, score, completedGames, abortedGames: 0 };
+  return { strategy: plan, score, completedPairings: 1, completedGames, abortedGames: 0 };
 }
 
 describe('the four orientations of a pairing', () => {
@@ -109,7 +108,7 @@ describe('leader selection', () => {
   });
 
   it('collapses two strategies that differ only by id, and keeps two that differ by agenda order', () => {
-    const base = repairStrategy(KINGDOM, baselineStrategy('ranged-standard'));
+    const base = seedStrategies(KINGDOM)[0]!;
     const renamed: Strategy = { ...base, id: 'a-different-name' };
     expect(canonicalStrategy(renamed)).toBe(canonicalStrategy(base));
     expect(selectLeaders([scoredWith(base, 1), scoredWith(renamed, 1)], 5)).toHaveLength(1);
@@ -121,7 +120,9 @@ describe('leader selection', () => {
 
   it('ranks a candidate with no completed game below one that lost everything', () => {
     const seeds = seedStrategies(KINGDOM);
-    const nothing: ScoredStrategy = { strategy: seeds[0]!, score: 0, completedGames: 0, abortedGames: 8 };
+    const nothing: ScoredStrategy = {
+      strategy: seeds[0]!, score: 0, completedPairings: 0, completedGames: 0, abortedGames: 8
+    };
     const loser = scoredWith(seeds[1]!, 0);
     expect([nothing, loser].sort(compareScored)).toEqual([loser, nothing]);
     expect(selectLeaders([nothing, loser], 2)[0]!.strategy.id).toBe(loser.strategy.id);
@@ -133,36 +134,39 @@ describe('running the generations', () => {
    * The invariant behind leader selection: a score is the candidate-side mean over the leader field
    * and over nothing else. Adding the opponent side too would give a leader a second record taken
    * against the mutants it is compared with, so incumbents would outrank mutants independent of merit
-   * and the population would stall on the fixed baselines. Re-derives every score from the leader
+   * and the population would stall on the fixed seeds. Re-derives every score from the leader
    * field alone rather than testing one built scenario, which could pass while the bias survived.
    */
-  it('scores every candidate over the same leader field and over nothing else', () => {
+  it('scores every candidate over the same leader field and over nothing else', async () => {
     const settings = config({ generations: 1, seed: 11 });
-    const result = evolve(settings, () => {})[0]!;
+    const result = (await evolve(settings, () => {}))[0]!;
     const leaders = seedStrategies(KINGDOM);
     const population = seedPopulation(KINGDOM, settings.seed, settings.candidates);
     const seeds = sharedSeedList(settings.seed, settings.sharedSeeds);
 
     expect(Object.keys(result.scores)).toHaveLength(population.length);
     for (const candidate of population) {
-      let score = 0;
-      let played = 0;
+      let pairingScore = 0;
+      let completedPairings = 0;
       for (const leader of leaders) {
         if (leader.id === candidate.id) continue;
         const outcome = playPairing(candidate, leader, {
           kingdomId: KINGDOM, seeds,
           turnLimitPerPlayer: settings.turnLimitPerPlayer, actionCapPerTurn: settings.actionCapPerTurn
         });
-        score += outcome.candidateScore;
-        played += outcome.record.played;
+        if (outcome.candidateMean !== null) {
+          pairingScore += outcome.candidateMean;
+          completedPairings += 1;
+        }
       }
-      expect(result.scores[candidate.id], candidate.id).toBe(played ? score / played : 0);
+      expect(result.scores[candidate.id], candidate.id)
+        .toBe(completedPairings ? pairingScore / completedPairings : 0);
     }
   });
 
-  it('scores every candidate, keeps the leader limit, and never pairs a strategy with itself', () => {
+  it('scores every candidate, keeps the leader limit, and never pairs a strategy with itself', async () => {
     const seen: GenerationResult[] = [];
-    const results = evolve(config(), (result) => seen.push(result));
+    const results = await evolve(config(), (result) => seen.push(result));
     expect(results).toHaveLength(2);
     expect(seen).toEqual(results);
     for (const result of results) {
@@ -172,15 +176,15 @@ describe('running the generations', () => {
       expect(result.overflowCount).toBe(0);
       expect(new Set(result.leaders.map((entry) => canonicalStrategy(entry.strategy))).size).toBe(2);
     }
-    // Generation 1 pairs 6 candidates against all five baselines, minus the five self-pairings the
+    // Generation 1 pairs 6 candidates against all five seeds, minus the five self-pairings the
     // seeds share with the leader set, four games each. Generation 2 pairs 6 against 2 leaders.
     expect(results[0]!.matchCount).toBe((6 * 5 - 5) * 4);
     expect(results[1]!.matchCount).toBe((6 * 2 - 2) * 4);
   });
 
-  it('counts every aborted game in overflowCount and leaves the ranking comparable', () => {
+  it('counts every aborted game in overflowCount and leaves the ranking comparable', async () => {
     // A one-state search limit overflows on the first decision, so no game in the generation completes.
-    const results = evolve(config({ generations: 1, stateLimit: 1 }), () => {});
+    const results = await evolve(config({ generations: 1, stateLimit: 1 }), () => {});
     const result = results[0]!;
     expect(result.overflowCount).toBe(result.matchCount);
     expect(Object.values(result.scores).every((score) => score === 0)).toBe(true);
@@ -191,20 +195,20 @@ describe('running the generations', () => {
     }
   });
 
-  it('repeats exactly, generation by generation, with no deadline', () => {
+  it('repeats exactly, generation by generation, with no deadline', async () => {
     // `elapsedMs` is wall clock and is the one field a repeat is not expected to reproduce.
     const withoutClock = (results: GenerationResult[]): unknown =>
       results.map(({ elapsedMs: _elapsedMs, ...rest }) => rest);
-    const first = evolve(config(), () => {});
-    const second = evolve(config(), () => {});
+    const first = await evolve(config(), () => {});
+    const second = await evolve(config(), () => {});
     expect(withoutClock(second)).toEqual(withoutClock(first));
     expect(first.every((result) => result.elapsedMs >= 0)).toBe(true);
   });
 
-  it('stops between pairings when the injected clock passes the deadline', () => {
+  it('stops between pairings when the injected clock passes the deadline', async () => {
     let clock = 1_000;
     const seen: GenerationResult[] = [];
-    const results = evolve(
+    const results = await evolve(
       config({ generations: 5, deadline: 1_000 + 12, now: () => (clock += 1) }),
       (result) => seen.push(result)
     );
@@ -217,8 +221,8 @@ describe('running the generations', () => {
     expect(results.at(-1)!.matchCount).toBeGreaterThan(0);
   });
 
-  it('retains the best leader of each generation, once each', () => {
-    const results = evolve(config({ generations: 3 }), () => {});
+  it('retains the best leader of each generation, once each', async () => {
+    const results = await evolve(config({ generations: 3 }), () => {});
     const retained = retainedLeaders(results);
     expect(retained.length).toBeLessThanOrEqual(results.length);
     expect(new Set(retained.map(canonicalStrategy)).size).toBe(retained.length);
@@ -244,8 +248,8 @@ describe('limit validation', () => {
     expect(() => validateEvolutionConfig(config())).not.toThrow();
   });
 
-  it('rejects the limit rather than clamping it, so the report cannot record a limit that never ran', () => {
-    expect(() => evolve(config({ candidates: 2 }), () => {})).toThrow('candidates must be at least');
+  it('rejects the limit rather than clamping it, so the report cannot record a limit that never ran', async () => {
+    await expect(evolve(config({ candidates: 2 }), () => {})).rejects.toThrow('candidates must be at least');
   });
 });
 

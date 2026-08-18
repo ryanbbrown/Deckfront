@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   { ignores: [
-    'dist/**', 'coverage/**', '.reviews/**', 'src/legacy/**',
+    'dist/**', 'dist-sim/**', 'coverage/**', '.reviews/**', 'src/legacy/**',
     '.e2e-report/**', '.e2e-live-report/**', '.e2e-results/**', '.e2e-live-results/**'
   ] },
   eslint.configs.recommended,

@@ -27,3 +27,4 @@ __pycache__/
 .experiments/**
 !.experiments/**/
 !.experiments/**/report.md
+dist-sim/

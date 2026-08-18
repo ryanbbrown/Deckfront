@@ -28,7 +28,7 @@ const alpha: Strategy = strategy({ id: 'sg-alpha', startingBuild: ['heavyBlow'],
 const beta: Strategy = strategy({ id: 'sg-beta', startingBuild: ['volley'], preferredRange: 'Far' });
 
 function scored(plan: Strategy, score: number, completed: number): ScoredStrategy {
-  return { strategy: plan, score, completedGames: completed, abortedGames: 0 };
+  return { strategy: plan, score, completedPairings: 1, completedGames: completed, abortedGames: 0 };
 }
 
 function tournament(over: Partial<TournamentResult> = {}): TournamentResult {
@@ -54,6 +54,9 @@ function tournament(over: Partial<TournamentResult> = {}): TournamentResult {
     partial: false,
     pairsPlayed: 1,
     pairsExpected: 1,
+    matches: 4,
+    pairingStops: { significant: 0, maximum: 1 },
+    seedBlockCounts: { '1': 1 },
     calibration: { finalLeaders: [], acquisitionsByStrategy: {} },
     ...over
   };
@@ -67,7 +70,7 @@ function summary(over: Partial<RunSummary> = {}): RunSummary {
     seed: 7,
     limits: {
       candidates: 6, leaders: 2, generations: 1, sharedSeeds: 1, deadlineMinutes: 30,
-      stateLimit: 20000, turnLimitPerPlayer: 100, actionCapPerTurn: 200
+      stateLimit: 20000, workers: 10, turnLimitPerPlayer: 30, actionCapPerTurn: 200
     },
     startedAt: '2026-08-18T09:00:00.000Z',
     finishedAt: '2026-08-18T09:01:00.000Z',
@@ -80,10 +83,11 @@ function summary(over: Partial<RunSummary> = {}): RunSummary {
     tournamentAborted: 0,
     generations: [{
       generation: 1, partial: false, matchCount: 40, overflowCount: 0, elapsedMs: 12_500,
-      leaders: [{ strategyId: 'sg-alpha', score: 0.75, completedGames: 4, abortedGames: 0 }],
-      scores: { 'sg-alpha': 0.75, 'sg-beta': 0.25 }
+      leaders: [{ strategyId: 'sg-alpha', score: 0.75, completedPairings: 1, completedGames: 4, abortedGames: 0 }],
+      scores: { 'sg-alpha': 0.75, 'sg-beta': 0.25 },
+      pairingStops: { significant: 0, maximum: 1 }, seedBlockCounts: { '1': 1 },
+      pairingsPlayed: [{ candidateId: 'sg-alpha', opponentId: 'sg-beta' }]
     }],
-    seedFindings: [],
     strategyLabels: { 'sg-beta': 'ranged-standard' },
     finalLeaderIds: ['sg-alpha'],
     evolutionTelemetry: telemetry({
@@ -112,9 +116,10 @@ const EXPECTED = `# Balance search: Current Duel (smoke)
 | Generations asked for | 1 |
 | Generations run | 1 |
 | Shared seeds | 1 |
-| Turn limit per player | 100 |
+| Turn limit per player | 30 |
 | Action cap per turn | 200 |
 | Action-search state limit | 20000 |
+| Workers | 10 |
 | Deadline | 30 minutes |
 | Started | 2026-08-18T09:00:00.000Z |
 | Finished | 2026-08-18T09:01:00.000Z |
@@ -126,18 +131,27 @@ const EXPECTED = `# Balance search: Current Duel (smoke)
 | Tournament complete | yes |
 | Throughput | 0.7 matches/s |
 
-## Seeding
-
-Every fixed baseline seeded into this kingdom intact.
-
 ## Final ranking
 
-Mean score per completed game in the final round robin. Source: tournament.
+Mean of the per-opponent pairing means in the final round robin. Source: tournament.
 
-| Rank | Strategy | Final leader | Score | Completed | Aborted |
-| --- | --- | --- | --- | --- | --- |
-| 1 | sg-alpha | yes | 0.750 | 4 | 0 |
-| 2 | sg-beta (ranged-standard) | no | 0.250 | 4 | 0 |
+| Rank | Strategy | Final leader | Score | Pairings | Completed | Aborted |
+| --- | --- | --- | --- | --- | --- | --- |
+| 1 | sg-alpha | yes | 0.750 | 1 | 4 | 0 |
+| 2 | sg-beta (ranged-standard) | no | 0.250 | 1 | 4 | 0 |
+
+## Pairing stops
+
+A pairing stops only after a complete four-orientation seed block. Source: all submitted pairings.
+
+| Reason | Pairings |
+| --- | --- |
+| significant | 0 |
+| maximum | 2 |
+
+| Seed blocks played | Pairings |
+| --- | --- |
+| 1 | 2 |
 
 ## Pairwise win rate
 
@@ -260,19 +274,6 @@ describe('rendering the report', () => {
     expect(gated).toContain('| Calibration (rigged melee) | PASS |');
     // The row says what it sums, because 8 copies over many matches is not an 8-card deck.
     expect(gated).toContain('| Heavy Blow copies the top leader acquired, summed over its matches | 8 |');
-  });
-
-  it('names the seeds a kingdom cut down, and says what it means for generation 1', () => {
-    const rendered = renderReport(summary({
-      seedFindings: [
-        { baselineId: 'mage-standard', strategyId: 'sg-mage', buildDropped: 3, agendaDropped: 4, degenerate: true },
-        { baselineId: 'engine-draw', strategyId: 'sg-engine', buildDropped: 1, agendaDropped: 2, degenerate: false }
-      ]
-    }));
-    expect(rendered).toContain('2 of the five fixed baselines');
-    expect(rendered).toContain('Generation-1 scores here carry less signal');
-    expect(rendered).toContain('| mage-standard | 3 | 4 | yes |');
-    expect(rendered).toContain('`mage-standard` seeded with no agenda at all');
   });
 
   it('says in the header when the tournament did not finish, and marks unplayed pairs', () => {

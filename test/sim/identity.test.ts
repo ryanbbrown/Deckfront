@@ -5,9 +5,10 @@ import { describe, expect, it } from 'vitest';
 import { assertInvariants } from '../../src/game';
 import type { GameState } from '../../src/game';
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
-import { baselineStrategy } from '../../src/sim/baselines';
 import { runMatch } from '../../src/sim/match';
-import { repairStrategy } from '../../src/sim/mutation';
+import { seedLabels, seedStrategies } from '../../src/sim/seedPopulation';
+import { identify } from '../../src/sim/strategy';
+import type { Strategy } from '../../src/sim/strategy';
 import type { MatchResult } from '../../src/sim/types';
 
 /**
@@ -34,10 +35,10 @@ const { cases } = JSON.parse(fs.readFileSync(oraclePath, 'utf8')) as { cases: Or
 
 /** Headline facts written by hand, so a shrunken or silently regenerated oracle fails here first. */
 const HEADLINES: Record<string, { outcome: string; reason: string; turns: number }> = {
-  'three-way-engine:11': { outcome: 'indigo', reason: 'victory', turns: 33 },
-  'three-way-engine:12': { outcome: 'ochre', reason: 'victory', turns: 29 },
+  'three-way-engine:11': { outcome: 'indigo', reason: 'victory', turns: 15 },
+  'three-way-engine:12': { outcome: 'ochre', reason: 'victory', turns: 13 },
   'rigged-melee:13': { outcome: 'indigo', reason: 'victory', turns: 9 },
-  'range-rich-mixed:14': { outcome: 'ochre', reason: 'victory', turns: 9 },
+  'range-rich-mixed:14': { outcome: 'ochre', reason: 'victory', turns: 11 },
   'current-duel:15': { outcome: 'draw', reason: 'turnLimit', turns: 200 },
   'three-way-open:16': { outcome: 'ochre', reason: 'victory', turns: 11 },
   'three-way-engine:17': { outcome: 'draw', reason: 'turnLimit', turns: 200 }
@@ -45,6 +46,20 @@ const HEADLINES: Record<string, { outcome: string; reason: string; turns: number
 
 function key(entry: { kingdomId: string; seed: number }): string {
   return `${entry.kingdomId}:${entry.seed}`;
+}
+
+function oracleStrategy(kingdomId: string, label: string): Strategy {
+  if (label === 'no-attack') return identify({
+    id: label, startingBuild: [], buyAgenda: [], treasureFallback: ['gold', 'silver'],
+    preferredRange: 'Near',
+    weights: { damage: 10, preferredRange: 0, cardsDrawn: 0, moneyGained: 4, trashed: 0,
+      reclaimed: 0, discarded: 0, unspentMana: 0, opponentOutOfAttackRange: 0 },
+    trashPriority: ['copper'], reclaimPriority: ['gold', 'silver'], discardPriority: ['copper', 'silver']
+  });
+  const labels = seedLabels(kingdomId);
+  const found = seedStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);
+  if (!found) throw new Error(`No ${label} seed in ${kingdomId}.`);
+  return found;
 }
 
 function play(entry: OracleCase): { result: MatchResult; state: GameState } {
@@ -57,8 +72,8 @@ function play(entry: OracleCase): { result: MatchResult; state: GameState } {
     turnLimitPerPlayer: 100,
     actionCapPerTurn: 200,
     agents: {
-      ochre: strategyAgent(repairStrategy(entry.kingdomId, baselineStrategy(entry.ochre))),
-      indigo: strategyAgent(repairStrategy(entry.kingdomId, baselineStrategy(entry.indigo)))
+      ochre: strategyAgent(oracleStrategy(entry.kingdomId, entry.ochre)),
+      indigo: strategyAgent(oracleStrategy(entry.kingdomId, entry.indigo))
     }
   }, (state) => { last = state; });
   return { result, state: last as unknown as GameState };

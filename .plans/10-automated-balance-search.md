@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved design for the first implementation. Card values are authoritative in [09-card-list.md](./09-card-list.md).
+Implemented design, amended by [11-search-performance.md](./11-search-performance.md). Card values are authoritative in [09-card-list.md](./09-card-list.md).
 
 ## Goal
 
@@ -66,7 +66,7 @@ Example:
 Volley ×2 -> Aim ×2 -> Footwork ×3 -> Gold -> Silver
 ```
 
-The starting build is a separate strategy field because the private 12-money build has a large effect before normal purchases. One baseline strategy may spend the starting budget through its buy agenda, but this is not a rule.
+The starting build is a separate strategy field because the private 12-money build has a large effect before normal purchases.
 
 ## Evolution and tournament
 
@@ -74,13 +74,13 @@ One generation:
 
 1. Test every candidate against every leader over shared seeds.
 2. Swap first player and arena side for each pairing.
-3. Score wins as 1, draws as 0.5, and losses as 0.
+3. Score wins as 1, draws as 0.5, and losses as 0. Keep each four-orientation seed block intact.
 4. Keep several strong, meaningfully different candidates as the next leaders.
 5. Create the next population by mutating those leaders.
 
 Mutations may change the starting build, agenda cards and order, desired counts, preferred range, state-scoring weights, and deck-change priorities. Some mutations change one part; some change a related package. Budget validity is the only hard coherence constraint.
 
-Leader selection must be deterministic. Rank by score, drop exact duplicate strategies, then keep the top leaders. Break an equal score by a stable hash of the strategy. Do not add a diversity or distance metric. The first run does not have enough data to define one, and an arbitrary threshold would hide real results.
+Leader selection must be deterministic. Rank by the mean of per-opponent pairing means, drop exact duplicate strategies, then keep the top leaders. An exact sign test may stop a settled pairing before its 100-game maximum. Break an equal score by a stable hash of the strategy. Do not add a diversity or distance metric. The first run does not have enough data to define one, and an arbitrary threshold would hide real results.
 
 Keep leaders from earlier generations. A final round-robin tournament between current and retained leaders reports the complete matchup table. Run independent searches from different populations when time permits.
 
@@ -130,7 +130,7 @@ Apply explicit card overrides in experiment configuration without changing canon
 1. Implement and verify the card batch in [09-card-list.md](./09-card-list.md).
 2. Make kingdoms, starting health, and card overrides explicit inputs. `src/game/state.ts` and `src/game/invariants.ts` both hard-code 20 health today. The invariant must use the configured starting health as its upper limit.
 3. Add the deterministic match runner and telemetry.
-4. Add readable strategies, fixed baselines, and action search.
+4. Add readable strategies, complete per-kingdom seeds, and action search.
 5. Add the five kingdoms and calibration checks.
 6. Add evolution, retained leaders, and tournaments.
 7. Write machine-readable results and a concise Markdown report.
@@ -143,8 +143,9 @@ Use a small smoke run before the full search:
 
 - smoke: 20 candidates, 3 leaders, 5 generations, 5 shared seeds;
 - full: at most 100 candidates, 5 leaders, and 32 generations;
-- 25 shared seeds with both seat orders per full pairing;
-- 100 turns per player before recording a draw;
+- 25 shared seeds with four balanced orientations per full pairing, for 100 games maximum;
+- 30 turns per player before recording a draw;
+- 1 to 16 deterministic pairing workers, with 10 by default;
 - partial populations and results preserved at every limit.
 
 The implementation may lower the full run size after measuring throughput, but it must record the actual limits used. It must not increase these limits during the unattended run.

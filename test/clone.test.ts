@@ -2,9 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { cloneGame } from '../src/game';
 import type { CardInstance, GameState } from '../src/game';
 import { strategyAgent } from '../src/sim/agents/strategyAgent';
-import { baselineStrategy } from '../src/sim/baselines';
 import { runMatch } from '../src/sim/match';
-import { repairStrategy } from '../src/sim/mutation';
+import { seedStrategies } from '../src/sim/seedPopulation';
 
 /**
  * `cloneGame` shares the frozen cards and events instead of deep-copying them, so these are the only
@@ -19,8 +18,8 @@ function statesOf(seed: number): GameState[] {
     kingdomId: KINGDOM, seed, firstPlayerId: 'ochre', swapSides: false,
     turnLimitPerPlayer: 100, actionCapPerTurn: 200,
     agents: {
-      ochre: strategyAgent(repairStrategy(KINGDOM, baselineStrategy('mage-standard'))),
-      indigo: strategyAgent(repairStrategy(KINGDOM, baselineStrategy('engine-draw')))
+      ochre: strategyAgent(seedStrategies(KINGDOM)[2]!),
+      indigo: strategyAgent(seedStrategies(KINGDOM)[3]!)
     }
   }, (state) => { seen.push(state); });
   return seen;

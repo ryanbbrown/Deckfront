@@ -51,7 +51,8 @@ export interface MatchResult {
 
 export interface ScoredStrategy {
   strategy: Strategy;
-  score: number;           // mean score per completed game; 0 when nothing completed
+  score: number;           // mean of completed opponent-pairing means; 0 when none completed
+  completedPairings: number;
   completedGames: number;
   abortedGames: number;
 }
@@ -102,6 +103,9 @@ export interface GenerationResult {
   overflowCount: number;
   elapsedMs: number;
   telemetry: TelemetryAggregate;
+  pairingStops: Record<'significant' | 'maximum', number>;
+  seedBlockCounts: Record<string, number>;
+  pairingsPlayed: { candidateId: string; opponentId: string }[];
 }
 
 export interface TournamentConfig {
@@ -109,7 +113,7 @@ export interface TournamentConfig {
   turnLimitPerPlayer: number; actionCapPerTurn: number;
   stateLimit?: number | undefined;
   // Required. The last generation's leaders, whose acquisitions the calibration gate reads.
-  // `entrants` also holds retained leaders from every generation and the fixed baselines, so the
+  // `entrants` also holds retained leaders from every generation and the fixed seeds, so the
   // final leaders cannot be recovered from it, and inferring them would produce a wrong calibration
   // result rather than an error.
   finalLeaderIds: readonly string[];
@@ -126,5 +130,8 @@ export interface TournamentResult {
   partial: boolean;
   pairsPlayed: number;
   pairsExpected: number;
+  matches: number;
+  pairingStops: Record<'significant' | 'maximum', number>;
+  seedBlockCounts: Record<string, number>;
   calibration: CalibrationInput;   // built here, consumed by checkRiggedMelee
 }

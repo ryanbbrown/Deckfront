@@ -20,8 +20,15 @@ function stable(value: unknown): unknown {
   return value;
 }
 function key(command: GameCommand): string { return JSON.stringify(stable(command)); }
-function legal(label: string, command: GameCommand): LegalAction { return { id: '', label, command }; }
-function ids(state: GameState, actions: LegalAction[]): LegalAction[] { return actions.map((action, index) => ({ ...action, id: `v${state.version}-action-${index + 1}` })); }
+function legal(label: () => string, command: GameCommand): LegalAction {
+  const action = { id: '', command } as LegalAction;
+  Object.defineProperty(action, 'label', { enumerable: true, get: label });
+  return action;
+}
+function ids(state: GameState, actions: LegalAction[]): LegalAction[] {
+  for (let index = 0; index < actions.length; index += 1) actions[index]!.id = `v${state.version}-action-${index + 1}`;
+  return actions;
+}
 function cardValues(definition: CardDefinition): CardValues { return definition.values ?? {}; }
 function movementText(movement: MovementChoice): string { return movement === 'left' ? 'Left' : movement === 'right' ? 'Right' : 'Stay'; }
 function record(state: GameState, type: GameEventType, detail: Record<string, unknown>, playerId = state.activePlayerId): void {
@@ -68,14 +75,20 @@ function cardActions(state: GameState): LegalAction[] {
     const effect = EFFECTS[definition.mechanic];
     const moveLabel = (movement: MovementChoice): string => `Play ${definition.name}: ${effect.movePrefix}${movementText(movement)}`;
     switch (effect.choice) {
-      case 'none': return [legal(`Play ${definition.name}`, effect.command(card.id, {}))];
-      case 'movement': return available.movements.map((movement) => legal(moveLabel(movement), effect.command(card.id, { movement })));
-      case 'direction': return available.movements.flatMap((movement) => movement === 'stay' ? [] : [legal(moveLabel(movement), effect.command(card.id, { direction: movement }))]);
+      case 'none': return [legal(() => `Play ${definition.name}`, effect.command(card.id, {}))];
+      case 'movement': return available.movements.map((movement) => legal(() => moveLabel(movement), effect.command(card.id, { movement })));
+      case 'direction': return available.movements.flatMap((movement) => movement === 'stay' ? [] : [legal(() => moveLabel(movement), effect.command(card.id, { direction: movement }))]);
       case 'trashOneOrTwo': {
         const eligible = [card, ...hand.filter((candidate) => candidate.id !== card.id)];
-        const actions: LegalAction[] = eligible.map((candidate) => legal(`Play ${definition.name}: trash ${resolveCard(state, candidate.definitionId).name}`, effect.command(card.id, { trashInstanceIds: [candidate.id] })));
+        const actions: LegalAction[] = eligible.map((candidate) => legal(
+          () => `Play ${definition.name}: trash ${resolveCard(state, candidate.definitionId).name}`,
+          effect.command(card.id, { trashInstanceIds: [candidate.id] })
+        ));
         for (let left = 0; left < eligible.length; left += 1) for (let right = left + 1; right < eligible.length; right += 1) {
-          actions.push(legal(`Play ${definition.name}: trash ${resolveCard(state, eligible[left]!.definitionId).name} and ${resolveCard(state, eligible[right]!.definitionId).name}`, effect.command(card.id, { trashInstanceIds: [eligible[left]!.id, eligible[right]!.id] })));
+          actions.push(legal(
+            () => `Play ${definition.name}: trash ${resolveCard(state, eligible[left]!.definitionId).name} and ${resolveCard(state, eligible[right]!.definitionId).name}`,
+            effect.command(card.id, { trashInstanceIds: [eligible[left]!.id, eligible[right]!.id] })
+          ));
         }
         return actions;
       }
@@ -84,25 +97,33 @@ function cardActions(state: GameState): LegalAction[] {
 }
 function resolveActions(state: GameState, pending: PendingChoice): LegalAction[] {
   const targets = choiceTargets(state, pending);
-  if (pending.type === 'discard') return targets.map((card) => legal(`Discard ${resolveCard(state, card.definitionId).name}`, { type: 'resolveDiscard', discardInstanceId: card.id }));
+  if (pending.type === 'discard') return targets.map((card) => legal(
+    () => `Discard ${resolveCard(state, card.definitionId).name}`,
+    { type: 'resolveDiscard', discardInstanceId: card.id }
+  ));
   return [
-    ...targets.map((card) => legal(`Recover ${resolveCard(state, card.definitionId).name}`, { type: 'resolveRecover', recoverInstanceId: card.id })),
-    legal('Recover nothing', { type: 'resolveRecover', recoverInstanceId: null })
+    ...targets.map((card) => legal(
+      () => `Recover ${resolveCard(state, card.definitionId).name}`,
+      { type: 'resolveRecover', recoverInstanceId: card.id }
+    )),
+    legal(() => 'Recover nothing', { type: 'resolveRecover', recoverInstanceId: null })
   ];
 }
 function buyActions(state: GameState): LegalAction[] {
   const money = state.players[state.activePlayerId].money;
   const actions = kingdomMarket(state.kingdomId).flatMap((definition) => {
     const available = definition.type === 'treasure' || (state.supply[definition.id] ?? 0) > 0;
-    return available && definition.cost <= money ? [legal(`Buy ${definition.name}`, { type: 'buyCard' as const, definitionId: definition.id })] : [];
+    return available && definition.cost <= money
+      ? [legal(() => `Buy ${definition.name}`, { type: 'buyCard' as const, definitionId: definition.id })]
+      : [];
   });
-  return [...actions, legal('End Buy phase', { type: 'endBuyPhase' })];
+  return [...actions, legal(() => 'End Buy phase', { type: 'endBuyPhase' })];
 }
 export function listLegalActions(state: GameState): LegalAction[] {
   if (state.phase === 'startingBuild' || state.phase === 'ended') return [];
   if (state.phase === 'buy') return ids(state, buyActions(state));
   if (state.pendingChoice) return ids(state, resolveActions(state, state.pendingChoice));
-  return ids(state, [...cardActions(state), legal('End Action phase', { type: 'endActionPhase' })]);
+  return ids(state, [...cardActions(state), legal(() => 'End Action phase', { type: 'endActionPhase' })]);
 }
 function takeCard(state: GameState, cardInstanceId: string): CardInstance {
   const deck = state.players[state.activePlayerId].deck;
@@ -290,7 +311,14 @@ function execute(state: GameState, command: GameCommand): void {
 export function applyAction(state: GameState, id: string): GameState {
   const selected = listLegalActions(state).find((action) => action.id === id);
   if (!selected) throw new Error(`Unknown or stale legal action: ${id}`);
-  const next = cloneGame(state); execute(next, selected.command); next.version += 1; return next;
+  return applyLegalAction(state, selected);
+}
+/** Applies an action already produced for this exact state without rebuilding the legal-action list. */
+export function applyLegalAction(state: GameState, action: LegalAction): GameState {
+  if (!action.id.startsWith(`v${state.version}-action-`)) {
+    throw new Error(`Unknown or stale legal action: ${action.id}`);
+  }
+  const next = cloneGame(state); execute(next, action.command); next.version += 1; return next;
 }
 export function applyCommand(state: GameState, command: GameCommand): GameState {
   const next = cloneGame(state);

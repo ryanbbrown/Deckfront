@@ -25,7 +25,7 @@ The repository must contain:
 - a deterministic headless match runner with a turn limit and useful telemetry;
 - readable strategies containing a starting build, buy agenda, and action preferences;
 - deterministic full Action-phase search with its programmatic behavior checks;
-- fixed baseline strategies;
+- five complete fixed strategies for each curated kingdom;
 - population evolution, several leaders, retained earlier leaders, and a final round-robin tournament;
 - the five approved kingdoms;
 - machine-readable experiment output and a concise Markdown report;
@@ -52,6 +52,7 @@ Run these commands, and only these:
 
 ```sh
 npm test
+npm run build:sim
 npm run typecheck
 npm run lint
 npm run build
@@ -106,7 +107,7 @@ The goal is complete when:
 - the required result exists;
 - Rigged melee passes its calibration check;
 - deterministic and action-search checks pass;
-- the four verification commands above pass;
+- the verification commands above pass;
 - `PROGRESS.md` links the final outputs and records actual experiment limits, verification commands, results, and residual risks.
 
 ## Budget

@@ -1,11 +1,13 @@
 import { MUTATION_ATTEMPTS, mutateUnique } from './mutation';
-import { emptyAggregate, mergeAggregate, playPairing, sharedSeedList } from './pairing';
+import { emptyAggregate, mergeAggregate, sharedSeedList } from './pairing';
+import { InlinePairingRunner } from './pairingRunner';
+import type { PairingJob, PairingRunner } from './pairingRunner';
 import { seedPopulation, seedStrategies } from './seedPopulation';
 import { canonicalStrategy, registerIdentity } from './strategy';
 import type { Strategy } from './strategy';
 import type { EvolutionConfig, GenerationResult, ScoredStrategy, TelemetryAggregate } from './types';
 
-/** The seed population must hold all five fixed baselines before it holds a single mutant. */
+/** The seed population must hold all five fixed strategies before it holds a single mutant. */
 export const MIN_CANDIDATES = 5;
 
 /**
@@ -22,20 +24,28 @@ export function validateEvolutionConfig(config: EvolutionConfig): void {
   positive('sharedSeeds', config.sharedSeeds);
   positive('turnLimitPerPlayer', config.turnLimitPerPlayer);
   positive('actionCapPerTurn', config.actionCapPerTurn);
+  if (config.sharedSeeds > 25) throw new Error(`sharedSeeds may be at most 25, not ${config.sharedSeeds}.`);
   if (config.candidates < MIN_CANDIDATES) {
-    throw new Error(`candidates must be at least ${MIN_CANDIDATES}, so the fixed baselines all fit, not ${config.candidates}.`);
+    throw new Error(`candidates must be at least ${MIN_CANDIDATES}, so the fixed seeds all fit, not ${config.candidates}.`);
   }
   if (config.leaders > config.candidates) {
     throw new Error(`leaders (${config.leaders}) cannot exceed candidates (${config.candidates}).`);
   }
 }
 
-interface Tally { strategy: Strategy; score: number; completedGames: number; abortedGames: number }
+interface Tally {
+  strategy: Strategy;
+  pairingScore: number;
+  completedPairings: number;
+  completedGames: number;
+  abortedGames: number;
+}
 
 function scored(tally: Tally): ScoredStrategy {
   return {
     strategy: tally.strategy,
-    score: tally.completedGames ? tally.score / tally.completedGames : 0,
+    score: tally.completedPairings ? tally.pairingScore / tally.completedPairings : 0,
+    completedPairings: tally.completedPairings,
     completedGames: tally.completedGames,
     abortedGames: tally.abortedGames
   };
@@ -47,7 +57,7 @@ function scored(tally: Tally): ScoredStrategy {
  * that finished one, however badly it did: ranking by mean over zero games has no meaning.
  */
 export function compareScored(left: ScoredStrategy, right: ScoredStrategy): number {
-  if ((left.completedGames === 0) !== (right.completedGames === 0)) return left.completedGames === 0 ? 1 : -1;
+  if ((left.completedPairings === 0) !== (right.completedPairings === 0)) return left.completedPairings === 0 ? 1 : -1;
   if (left.score !== right.score) return right.score - left.score;
   if (left.strategy.id !== right.strategy.id) return left.strategy.id < right.strategy.id ? -1 : 1;
   const leftForm = canonicalStrategy(left.strategy);
@@ -124,13 +134,17 @@ export function retainedLeaders(generations: readonly GenerationResult[]): Strat
  * generation cut short still reports through `onGeneration` with `partial: true` and keeps every
  * match it finished.
  */
-export function evolve(config: EvolutionConfig, onGeneration: (result: GenerationResult) => void): GenerationResult[] {
+export async function evolve(
+  config: EvolutionConfig,
+  onGeneration: (result: GenerationResult) => void,
+  runner: PairingRunner = new InlinePairingRunner()
+): Promise<GenerationResult[]> {
   validateEvolutionConfig(config);
   const now = config.now ?? Date.now;
   const expired = (): boolean => config.deadline !== undefined && now() >= config.deadline;
   const seeds = sharedSeedList(config.seed, config.sharedSeeds);
 
-  // Generation 1 has no previous leaders, so all five fixed baselines are the first leader set,
+  // Generation 1 has no previous leaders, so all five fixed seeds are the first leader set,
   // whatever `leaders` says. That limit governs generation 2 onward, and every generation-1 score
   // depends on this.
   let leaders: Strategy[] = seedStrategies(config.kingdomId);
@@ -144,7 +158,10 @@ export function evolve(config: EvolutionConfig, onGeneration: (result: Generatio
     const tally = (strategy: Strategy): Tally => {
       registerIdentity(known, strategy);
       let found = tallies.get(strategy.id);
-      if (!found) { found = { strategy, score: 0, completedGames: 0, abortedGames: 0 }; tallies.set(strategy.id, found); }
+      if (!found) {
+        found = { strategy, pairingScore: 0, completedPairings: 0, completedGames: 0, abortedGames: 0 };
+        tallies.set(strategy.id, found);
+      }
       return found;
     };
     for (const candidate of population) tally(candidate);
@@ -155,32 +172,49 @@ export function evolve(config: EvolutionConfig, onGeneration: (result: Generatio
     let matchCount = 0;
     let overflowCount = 0;
     let partial = false;
-
-    pairings: for (const candidate of population) {
+    const jobs: PairingJob[] = [];
+    const jobCandidates: Strategy[] = [];
+    for (const candidate of population) {
       for (const opponent of leaders) {
         // A strategy never plays itself. Identity is the canonical form, so a mutant that landed back
         // on its parent's shape is the same entrant, not a new one.
         if (candidate.id === opponent.id) continue;
-        if (expired()) { partial = true; break pairings; }
-
-        const outcome = playPairing(candidate, opponent, {
+        jobs.push({ candidate, opponent, options: {
           kingdomId: config.kingdomId, seeds, stateLimit: config.stateLimit,
           turnLimitPerPlayer: config.turnLimitPerPlayer, actionCapPerTurn: config.actionCapPerTurn
-        });
+        } });
+        jobCandidates.push(candidate);
+      }
+    }
+    const batch = await runner.run(jobs, { deadline: config.deadline, now });
+    partial = batch.submitted < jobs.length;
+    const pairingStops = { significant: 0, maximum: 0 };
+    const seedBlockCounts: Record<string, number> = {};
+    const pairingsPlayed: { candidateId: string; opponentId: string }[] = [];
+    for (let index = 0; index < batch.outcomes.length; index += 1) {
+      const outcome = batch.outcomes[index];
+      if (!outcome) continue;
+      const candidate = jobCandidates[index]!;
+        const job = jobs[index]!;
+        pairingsPlayed.push({ candidateId: candidate.id, opponentId: job.opponent.id });
         matchCount += outcome.matches;
         overflowCount += outcome.record.aborted;
         mergeAggregate(telemetry, outcome.telemetry);
+        pairingStops[outcome.stopReason] += 1;
+        seedBlockCounts[String(outcome.seedBlocks)] = (seedBlockCounts[String(outcome.seedBlocks)] ?? 0) + 1;
 
         // Only the candidate side is tallied. A leader is also a candidate, so scoring the opponent
         // side too would give it a second record taken against the mutants it is being compared with,
         // while a mutant's whole record is against the leaders. The means would then measure two
         // different fields, incumbents would outrank mutants independent of merit, and the population
-        // would stall on generation 1's leaders — the fixed baselines.
+        // would stall on generation 1's leaders — the fixed seeds.
         const candidateTally = tally(candidate);
-        candidateTally.score += outcome.candidateScore;
+        if (outcome.candidateMean !== null) {
+          candidateTally.pairingScore += outcome.candidateMean;
+          candidateTally.completedPairings += 1;
+        }
         candidateTally.completedGames += outcome.record.played;
         candidateTally.abortedGames += outcome.record.aborted;
-      }
     }
 
     const ranked = population.map((candidate) => scored(tally(candidate)));
@@ -190,11 +224,11 @@ export function evolve(config: EvolutionConfig, onGeneration: (result: Generatio
 
     const result: GenerationResult = {
       generation, partial, leaders: nextLeaders, scores, matchCount, overflowCount,
-      elapsedMs: now() - started, telemetry
+      elapsedMs: now() - started, telemetry, pairingStops, seedBlockCounts, pairingsPlayed
     };
     results.push(result);
     onGeneration(result);
-    if (partial) break;
+    if (partial || expired()) break;
 
     leaders = nextLeaders.map((entry) => entry.strategy);
     population = nextPopulation(config.kingdomId, leaders, config.candidates, config.seed, generation + 1);

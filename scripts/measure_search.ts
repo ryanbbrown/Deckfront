@@ -14,12 +14,12 @@
  */
 import os from 'node:os';
 import process from 'node:process';
-import { BASELINE_STRATEGIES } from '../src/sim/baselines';
 import { strategyAgent } from '../src/sim/agents/strategyAgent';
 import { CURATED_KINGDOM_IDS } from '../src/sim/kingdoms';
 import { runMatch } from '../src/sim/match';
+import { seedStrategies } from '../src/sim/seedPopulation';
 
-const TURN_LIMIT = 100;
+const TURN_LIMIT = 30;
 const ACTION_CAP = 200;
 
 function option(name: string): string | null {
@@ -67,9 +67,10 @@ for (let repeat = 0; repeat < repeats; repeat += 1) {
   const repeatStarted = performance.now();
   let matches = 0;
   for (const kingdomId of kingdoms) {
+    const strategies = seedStrategies(kingdomId);
     for (const seed of seeds) {
-      for (const ochre of BASELINE_STRATEGIES) {
-        for (const indigo of BASELINE_STRATEGIES) {
+      for (const ochre of strategies) {
+        for (const indigo of strategies) {
           const onSearch = (entry: { visited: number; milliseconds: number }): void => {
             decisionMilliseconds.push(entry.milliseconds);
             visitedCounts.push(entry.visited);
@@ -95,7 +96,7 @@ for (let repeat = 0; repeat < repeats; repeat += 1) {
 
 const sortedThroughput = [...throughput].sort((left, right) => left - right);
 console.log(`node=${process.version} arch=${os.arch()} cpu=${os.cpus()[0]?.model ?? 'unknown'}`);
-console.log(`kingdoms=${kingdoms.join(',')} seeds=${seeds.join(',')} strategies=${BASELINE_STRATEGIES.length}`);
+console.log(`kingdoms=${kingdoms.join(',')} seeds=${seeds.join(',')} strategies=5`);
 console.log(`matches=${matchMilliseconds.length} turnLimitPerPlayer=${TURN_LIMIT} actionCapPerTurn=${ACTION_CAP}`);
 console.log(`matches per second: median=${quantile(sortedThroughput, 0.5).toFixed(1)}`
   + ` min=${(sortedThroughput[0] ?? 0).toFixed(1)} max=${(sortedThroughput.at(-1) ?? 0).toFixed(1)}`);

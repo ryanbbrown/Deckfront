@@ -8,11 +8,13 @@ describe('the experiment command line', () => {
   it('takes the defaults of the mode it is given', () => {
     expect(parseExperimentOptions(base)).toEqual({
       kingdomId: 'rigged-melee', mode: 'smoke', seed: 1,
-      candidates: 20, leaders: 3, generations: 5, sharedSeeds: 5, deadlineMinutes: 30, stateLimit: 20000
+      candidates: 20, leaders: 3, generations: 5, sharedSeeds: 5, deadlineMinutes: 30, stateLimit: 20000,
+      workers: 10
     });
     expect(parseExperimentOptions(['--kingdom', 'current-duel', '--mode', 'full'])).toEqual({
       kingdomId: 'current-duel', mode: 'full', seed: 1,
-      candidates: 30, leaders: 4, generations: 32, sharedSeeds: 8, deadlineMinutes: 240, stateLimit: 20000
+      candidates: 30, leaders: 4, generations: 32, sharedSeeds: 8, deadlineMinutes: 240, stateLimit: 20000,
+      workers: 10
     });
   });
 
@@ -24,7 +26,8 @@ describe('the experiment command line', () => {
     { flag: '--generations', field: 'generations', accepted: 4, rejected: MAXIMA.generations + 1 },
     { flag: '--seeds', field: 'sharedSeeds', accepted: 3, rejected: MAXIMA.sharedSeeds + 1 },
     { flag: '--deadline-minutes', field: 'deadlineMinutes', accepted: 10, rejected: MAXIMA.deadlineMinutes + 1 },
-    { flag: '--state-limit', field: 'stateLimit', accepted: 500, rejected: MAXIMA.stateLimit + 1 }
+    { flag: '--state-limit', field: 'stateLimit', accepted: 500, rejected: MAXIMA.stateLimit + 1 },
+    { flag: '--workers', field: 'workers', accepted: 2, rejected: MAXIMA.workers + 1 }
   ] as const;
 
   for (const mode of ['smoke', 'full'] as const) {
@@ -66,7 +69,7 @@ describe('the experiment command line', () => {
   });
 
   // Rejected in the parser so the run fails before it writes anything, not after `run.json` exists.
-  it('rejects a population too small to hold the five fixed baselines', () => {
+  it('rejects a population too small to hold the five fixed seeds', () => {
     expect(() => parseExperimentOptions([...base, '--candidates', '4'])).toThrow('--candidates must be at least 5');
     expect(parseExperimentOptions([...base, '--candidates', '5', '--leaders', '5']).candidates).toBe(5);
   });

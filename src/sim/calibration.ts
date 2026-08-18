@@ -7,7 +7,7 @@
 export const CALIBRATION_CARD_ID = 'heavyBlow';
 
 export interface CalibrationInput {
-  // Last generation's leaders only, in rank order, excluding the fixed baselines.
+  // Last generation's leaders only, in rank order, excluding the fixed seeds.
   finalLeaders: readonly { strategyId: string; rank: number }[];
   // definition id -> copies acquired, summed over every match the strategy played.
   // Acquisition is starting build plus purchases. Agendas are not acquisitions.
@@ -32,8 +32,8 @@ export interface CalibrationResult {
  * behaviour this gate exists to confirm.
  *
  * The threshold is integer arithmetic, so the result cannot turn on float rounding. The caller owns
- * the leader set: it must hold the last generation's leaders only, with the fixed baselines excluded
- * from both the numerator and the denominator, because four of the five baselines can never acquire
+ * the leader set: it must hold the last generation's leaders only, with the fixed seeds excluded
+ * from both the numerator and the denominator, because most fixed seeds cannot acquire
  * Heavy Blow and any wider reading makes the 80 percent branch unreachable.
  */
 export function checkRiggedMelee(input: CalibrationInput): CalibrationResult {

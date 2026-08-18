@@ -1,6 +1,6 @@
+import { identify } from './strategy';
 import type { StateWeights, Strategy } from './strategy';
 
-/** The starting population's yardstick. Step 6 mutates these numbers; it does not invent them. */
 const DEFAULT_WEIGHTS: StateWeights = {
   damage: 10, preferredRange: 3, cardsDrawn: 2, moneyGained: 1, trashed: 2,
   reclaimed: 2, discarded: 1, unspentMana: -1, opponentOutOfAttackRange: -4
@@ -10,8 +10,13 @@ const NO_WEIGHTS: StateWeights = {
   reclaimed: 0, discarded: 0, unspentMana: 0, opponentOutOfAttackRange: 0
 };
 
-function agenda(entries: readonly [string, number][]): Strategy['buyAgenda'] {
-  return entries.map(([cardId, desiredCount]) => ({ cardId, desiredCount }));
+type Template = 'standard' | 'mage' | 'money';
+interface SeedSpec {
+  id: string;
+  template: Template;
+  preferredRange: Strategy['preferredRange'];
+  startingBuild: string[];
+  buyAgenda: readonly (readonly [string, number])[];
 }
 
 function deepFreeze<T>(value: T): T {
@@ -22,57 +27,64 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-/**
- * Copies every array and object into the baseline it belongs to, then freezes the whole tree. Step 6
- * mutates strategies, and a shared weights object or agenda entry would let one candidate's mutation
- * rewrite the yardstick the rest of the population is measured against.
- */
-function baseline(strategy: Omit<Strategy, 'treasureFallback' | 'trashPriority' | 'reclaimPriority' | 'discardPriority'>): Strategy {
-  return deepFreeze({
-    ...strategy,
-    startingBuild: [...strategy.startingBuild],
-    buyAgenda: strategy.buyAgenda.map((entry) => ({ ...entry })),
-    weights: { ...strategy.weights },
+function seed(spec: SeedSpec): Strategy {
+  const weights = spec.template === 'mage'
+    ? { ...DEFAULT_WEIGHTS, preferredRange: 0, unspentMana: -3 }
+    : spec.template === 'money'
+      ? { ...NO_WEIGHTS, damage: 10, moneyGained: 4 }
+      : { ...DEFAULT_WEIGHTS };
+  return deepFreeze(identify({
+    id: spec.id,
+    preferredRange: spec.preferredRange,
+    startingBuild: [...spec.startingBuild],
+    buyAgenda: spec.buyAgenda.map(([cardId, desiredCount]) => ({ cardId, desiredCount })),
+    weights,
     treasureFallback: ['gold', 'silver'],
     trashPriority: ['copper'],
     reclaimPriority: ['gold', 'silver'],
     discardPriority: ['copper', 'silver']
-  });
+  }));
 }
 
-export const BASELINE_STRATEGIES: readonly Strategy[] = Object.freeze([
-  // An empty build carries the whole 12 into the first Buy phase as firstBuyMoney, where the
-  // treasure fallback spends it.
-  baseline({
-    id: 'treasure-only', preferredRange: 'Near', startingBuild: [], buyAgenda: [],
-    weights: { ...NO_WEIGHTS, damage: 10, moneyGained: 4 }
-  }),
-  baseline({
-    id: 'melee-rush', preferredRange: 'Close', startingBuild: ['heavyBlow', 'drive', 'footwork'],
-    buyAgenda: agenda([['heavyBlow', 3], ['drive', 2], ['feint', 2], ['footwork', 2]]),
-    weights: DEFAULT_WEIGHTS
-  }),
-  baseline({
-    id: 'ranged-standard', preferredRange: 'Far', startingBuild: ['volley', 'aim', 'footwork'],
-    buyAgenda: agenda([['volley', 3], ['aim', 3], ['steadyShot', 2], ['footwork', 2]]),
-    weights: DEFAULT_WEIGHTS
-  }),
-  // `RangeBand` admits only Close, Near, and Far. This deck's spells are range-free, so the weight
-  // is 0 and the band never matters.
-  baseline({
-    id: 'mage-standard', preferredRange: 'Far', startingBuild: ['channel', 'arcBolt', 'leyStep', 'footwork'],
-    buyAgenda: agenda([['fireball', 2], ['arcBolt', 3], ['channel', 3], ['prism', 1]]),
-    weights: { ...DEFAULT_WEIGHTS, preferredRange: 0, unspentMana: -3 }
-  }),
-  baseline({
-    id: 'engine-draw', preferredRange: 'Near', startingBuild: ['muster', 'stipend', 'footwork'],
-    buyAgenda: agenda([['muster', 3], ['adapt', 2], ['stipend', 2], ['steadyShot', 2]]),
-    weights: DEFAULT_WEIGHTS
-  })
-]);
+const openSeeds: readonly SeedSpec[] = [
+  { id: 'melee', template: 'standard', preferredRange: 'Close', startingBuild: ['heavyBlow', 'drive', 'footwork'], buyAgenda: [['heavyBlow', 3], ['drive', 2], ['footwork', 2]] },
+  { id: 'ranged', template: 'standard', preferredRange: 'Far', startingBuild: ['volley', 'aim', 'footwork'], buyAgenda: [['volley', 3], ['aim', 3], ['footwork', 2]] },
+  { id: 'mage', template: 'mage', preferredRange: 'Far', startingBuild: ['channel', 'arcBolt', 'leyStep', 'footwork'], buyAgenda: [['fireball', 2], ['arcBolt', 3], ['channel', 3], ['leyStep', 2]] },
+  { id: 'money-drive', template: 'money', preferredRange: 'Close', startingBuild: ['drive'], buyAgenda: [['drive', 3], ['footwork', 2]] },
+  { id: 'tempo', template: 'standard', preferredRange: 'Far', startingBuild: ['stipend', 'aim', 'volley'], buyAgenda: [['volley', 3], ['aim', 2], ['stipend', 2]] }
+];
 
-export function baselineStrategy(id: string): Strategy {
-  const found = BASELINE_STRATEGIES.find((strategy) => strategy.id === id);
-  if (!found) throw new Error(`Unknown baseline strategy: ${id}`);
-  return found;
-}
+const SPECS: Readonly<Record<string, readonly SeedSpec[]>> = {
+  'current-duel': [
+    { id: 'ranged-aim', template: 'standard', preferredRange: 'Far', startingBuild: ['volley', 'aim', 'footwork'], buyAgenda: [['volley', 3], ['aim', 3], ['footwork', 2]] },
+    { id: 'melee-drive', template: 'standard', preferredRange: 'Close', startingBuild: ['drive', 'drive', 'footwork'], buyAgenda: [['drive', 4], ['feint', 2], ['footwork', 2]] },
+    { id: 'flurry-tempo', template: 'standard', preferredRange: 'Close', startingBuild: ['flurry', 'footwork', 'footwork'], buyAgenda: [['flurry', 3], ['feint', 2], ['footwork', 2]] },
+    { id: 'engine-draw', template: 'standard', preferredRange: 'Near', startingBuild: ['muster', 'volley'], buyAgenda: [['muster', 3], ['volley', 3], ['adapt', 2], ['footwork', 2]] },
+    { id: 'money-volley', template: 'money', preferredRange: 'Far', startingBuild: ['volley'], buyAgenda: [['volley', 3], ['aim', 2]] }
+  ],
+  'three-way-open': openSeeds,
+  'three-way-engine': [
+    { id: 'melee', template: 'standard', preferredRange: 'Close', startingBuild: ['heavyBlow', 'footwork', 'reclaim'], buyAgenda: [['heavyBlow', 3], ['footwork', 2], ['reclaim', 2]] },
+    { id: 'ranged', template: 'standard', preferredRange: 'Far', startingBuild: ['steadyShot', 'steadyShot', 'footwork'], buyAgenda: [['steadyShot', 4], ['footwork', 2]] },
+    { id: 'mage', template: 'mage', preferredRange: 'Far', startingBuild: ['channel', 'prism', 'channel'], buyAgenda: [['fireball', 3], ['channel', 3], ['prism', 2]] },
+    { id: 'engine', template: 'standard', preferredRange: 'Near', startingBuild: ['muster', 'stipend', 'reclaim'], buyAgenda: [['steadyShot', 3], ['muster', 3], ['stipend', 2], ['reclaim', 2]] },
+    { id: 'money', template: 'money', preferredRange: 'Far', startingBuild: ['steadyShot'], buyAgenda: [['steadyShot', 3], ['footwork', 2]] }
+  ],
+  'range-rich-mixed': [
+    { id: 'melee', template: 'standard', preferredRange: 'Close', startingBuild: ['heavyBlow', 'drive', 'footwork'], buyAgenda: [['heavyBlow', 3], ['drive', 2], ['footwork', 2]] },
+    { id: 'ranged-volley', template: 'standard', preferredRange: 'Far', startingBuild: ['volley', 'aim', 'footwork'], buyAgenda: [['volley', 3], ['aim', 3], ['footwork', 2]] },
+    { id: 'ranged-shot', template: 'standard', preferredRange: 'Near', startingBuild: ['steadyShot', 'quickShot', 'footwork'], buyAgenda: [['steadyShot', 3], ['quickShot', 3], ['footwork', 2]] },
+    { id: 'mage', template: 'mage', preferredRange: 'Far', startingBuild: ['channel', 'arcBolt', 'arcBolt', 'footwork'], buyAgenda: [['arcBolt', 4], ['channel', 3], ['footwork', 2]] },
+    { id: 'money-quick', template: 'money', preferredRange: 'Near', startingBuild: ['quickShot'], buyAgenda: [['quickShot', 3], ['footwork', 2]] }
+  ],
+  'rigged-melee': openSeeds
+};
+
+/** Five complete, immutable strategies for every curated experiment kingdom. */
+export const SEED_STRATEGIES: Readonly<Record<string, readonly Strategy[]>> = deepFreeze(
+  Object.fromEntries(Object.entries(SPECS).map(([kingdomId, specs]) => [kingdomId, specs.map(seed)]))
+);
+
+export const SEED_LABELS: Readonly<Record<string, readonly string[]>> = deepFreeze(
+  Object.fromEntries(Object.entries(SPECS).map(([kingdomId, specs]) => [kingdomId, specs.map((spec) => spec.id)]))
+);

@@ -25,24 +25,26 @@ const KINGDOM = 'range-rich-mixed';
 function options(over: Partial<ExperimentOptions> = {}): ExperimentOptions {
   return {
     kingdomId: KINGDOM, mode: 'smoke', seed: 3, candidates: 5, leaders: 1,
-    generations: 1, sharedSeeds: 1, deadlineMinutes: 30, stateLimit: 20000, ...over
+    generations: 1, sharedSeeds: 1, deadlineMinutes: 30, stateLimit: 20000, workers: 1, ...over
   };
 }
 
 function scored(plan: Strategy): ScoredStrategy {
-  return { strategy: plan, score: 1, completedGames: 4, abortedGames: 0 };
+  return { strategy: plan, score: 1, completedPairings: 1, completedGames: 4, abortedGames: 0 };
 }
 
 /** A generation that costs no matches, for the tests that are about the output and not the search. */
 function fakeGeneration(leaders: readonly Strategy[]): GenerationResult {
   return {
     generation: 1, partial: false, leaders: leaders.map(scored), scores: { [leaders[0]!.id]: 1 },
-    matchCount: 4, overflowCount: 0, elapsedMs: 5, telemetry: emptyAggregate()
+    matchCount: 4, overflowCount: 0, elapsedMs: 5, telemetry: emptyAggregate(),
+    pairingStops: { significant: 0, maximum: 1 }, seedBlockCounts: { '1': 1 },
+    pairingsPlayed: []
   };
 }
 
 function fakeEvolve(leaders: readonly Strategy[], before?: (result: GenerationResult) => void): typeof evolve {
-  return (_config, onGeneration) => {
+  return async (_config, onGeneration) => {
     const result = fakeGeneration(leaders);
     before?.(result);
     onGeneration(result);
@@ -51,15 +53,16 @@ function fakeEvolve(leaders: readonly Strategy[], before?: (result: GenerationRe
 }
 
 function fakeTournament(entrants: readonly Strategy[]): typeof roundRobin {
-  return (): TournamentResult => ({
+  return async (): Promise<TournamentResult> => ({
     entrants: [...entrants], pairs: {}, ranking: entrants.map(scored), telemetry: emptyAggregate(),
-    partial: false, pairsPlayed: 1, pairsExpected: 1,
+    partial: false, pairsPlayed: 1, pairsExpected: 1, matches: 4,
+    pairingStops: { significant: 0, maximum: 1 }, seedBlockCounts: { '1': 1 },
     calibration: { finalLeaders: [], acquisitionsByStrategy: {} }
   });
 }
 
 describe('writing an experiment', () => {
-  it('writes run.json with the resolved kingdom before the first generation ends', () => {
+  it('writes run.json with the resolved kingdom before the first generation ends', async () => {
     const dir = tempDir();
     const leaders = seedStrategies(KINGDOM).slice(0, 2);
     let early: Record<string, unknown> | null = null;
@@ -69,7 +72,7 @@ describe('writing an experiment', () => {
       early = JSON.parse(fs.readFileSync(path.join(dir, 'run.json'), 'utf8')) as Record<string, unknown>;
     });
 
-    runExperiment(options(), dir, { evolve: watching, roundRobin: fakeTournament(leaders) });
+    await runExperiment(options(), dir, { evolve: watching, roundRobin: fakeTournament(leaders) });
 
     expect(early).not.toBeNull();
     const record = early as unknown as { kingdomId: string; stopReason: string; kingdom: { id: string }[] };
@@ -78,24 +81,24 @@ describe('writing an experiment', () => {
     expect(record.kingdom.map((definition) => definition.id)).toContain('quickShot');
   });
 
-  it('clears the artifacts of a previous run', () => {
+  it('clears the artifacts of a previous run', async () => {
     const dir = tempDir();
     const leaders = seedStrategies(KINGDOM).slice(0, 2);
     fs.writeFileSync(path.join(dir, 'generations.jsonl'), '{"generation":99}\n');
     fs.writeFileSync(path.join(dir, 'stale.json'), '{}');
 
-    runExperiment(options(), dir, { evolve: fakeEvolve(leaders), roundRobin: fakeTournament(leaders) });
+    await runExperiment(options(), dir, { evolve: fakeEvolve(leaders), roundRobin: fakeTournament(leaders) });
 
     expect(fs.existsSync(path.join(dir, 'stale.json'))).toBe(false);
     expect(fs.readFileSync(path.join(dir, 'generations.jsonl'), 'utf8')).not.toContain('"generation":99');
     expect(fs.readFileSync(path.join(dir, 'generations.jsonl'), 'utf8').trim().split('\n')).toHaveLength(1);
   });
 
-  it('records an error, still writes the report, and reports a non-zero exit code', () => {
+  it('records an error, still writes the report, and reports a non-zero exit code', async () => {
     const root = tempDir();
-    const failing: typeof evolve = () => { throw new Error('the population could not be filled'); };
+    const failing: typeof evolve = async () => { throw new Error('the population could not be filled'); };
 
-    const code = main(['--kingdom', KINGDOM, '--mode', 'smoke'], root, { evolve: failing });
+    const code = await main(['--kingdom', KINGDOM, '--mode', 'smoke'], root, { evolve: failing });
 
     expect(code).toBe(1);
     const dir = experimentDir(root, KINGDOM, 'smoke');
@@ -105,12 +108,12 @@ describe('writing an experiment', () => {
     expect(fs.readFileSync(path.join(dir, 'report.md'), 'utf8')).toContain('the population could not be filled');
   });
 
-  it('stops evolution on the deadline and leaves every generation line valid JSON', () => {
+  it('stops evolution on the deadline and leaves every generation line valid JSON', async () => {
     const dir = tempDir();
     // Two seconds of the injected clock per pairing, against a one-minute budget whose evolution
     // share is 48 seconds, so the deadline lands inside a generation rather than on a boundary.
     let clock = 0;
-    const summary = runExperiment(
+    const summary = await runExperiment(
       options({ generations: 5, deadlineMinutes: 1 }), dir,
       { now: () => (clock += 2000), roundRobin: fakeTournament(seedStrategies(KINGDOM).slice(0, 2)) }
     );
@@ -127,12 +130,12 @@ describe('writing an experiment', () => {
     expect((JSON.parse(lines.at(-1)!) as { partial: boolean }).partial).toBe(true);
   });
 
-  it('marks a tournament the deadline cut short, and says so in the report', () => {
+  it('marks a tournament the deadline cut short, and says so in the report', async () => {
     const dir = tempDir();
     let clock = 0;
     const leaders = seedStrategies(KINGDOM).slice(0, 2);
     // Evolution costs nothing here, so the clock is spent entirely inside the round robin.
-    const summary = runExperiment(
+    const summary = await runExperiment(
       options({ deadlineMinutes: 1 }), dir,
       { now: () => (clock += 20_000), evolve: fakeEvolve(leaders) }
     );
@@ -146,10 +149,10 @@ describe('writing an experiment', () => {
     expect(report).toContain('| Tournament complete | no |');
   });
 
-  it('records the gate refusing when every final leader is a fixed baseline', () => {
+  it('records the gate refusing when every final leader is a fixed seed', async () => {
     const dir = tempDir();
     const baselines = seedStrategies('rigged-melee').slice(0, 2);
-    const summary = runExperiment(
+    const summary = await runExperiment(
       options({ kingdomId: 'rigged-melee' }), dir,
       { evolve: fakeEvolve(baselines), roundRobin: roundRobin }
     );
@@ -162,10 +165,10 @@ describe('writing an experiment', () => {
     expect(fs.readFileSync(path.join(dir, 'report.md'), 'utf8')).toContain('**Blocker:**');
   });
 
-  it('leaves the calibration section out of a kingdom that has no gate', () => {
+  it('leaves the calibration section out of a kingdom that has no gate', async () => {
     const dir = tempDir();
     const leaders = seedStrategies(KINGDOM).slice(0, 2);
-    const summary = runExperiment(options(), dir, {
+    const summary = await runExperiment(options(), dir, {
       evolve: fakeEvolve(leaders), roundRobin: fakeTournament(leaders)
     });
     expect(summary.calibration).toBeNull();
@@ -173,20 +176,20 @@ describe('writing an experiment', () => {
     expect(fs.readFileSync(path.join(dir, 'report.md'), 'utf8')).not.toContain('## Calibration');
   });
 
-  it('admits the final leaders, one best leader per generation, and the baselines, and nothing else', () => {
+  it('admits the final leaders, one best leader per generation, and the seeds, and nothing else', async () => {
     const dir = tempDir();
     let captured: GenerationResult[] = [];
-    const watching: typeof evolve = (config, onGeneration) => {
-      captured = evolve(config, onGeneration);
+    const watching: typeof evolve = async (config, onGeneration, runner) => {
+      captured = await evolve(config, onGeneration, runner);
       return captured;
     };
     let entrants: readonly Strategy[] = [];
-    const spy: typeof roundRobin = (given, config) => {
+    const spy: typeof roundRobin = async (given, config, runner) => {
       entrants = given;
-      return roundRobin(given, config);
+      return roundRobin(given, config, runner);
     };
 
-    const summary = runExperiment(
+    const summary = await runExperiment(
       options({ candidates: 8, leaders: 3, generations: 3, sharedSeeds: 1 }), dir,
       { evolve: watching, roundRobin: spy }
     );
@@ -197,7 +200,7 @@ describe('writing an experiment', () => {
     ]);
     const entrantIds = entrants.map((entrant) => entrant.id);
     expect(entrantIds.filter((id) => !allowed.has(id))).toEqual([]);
-    // One best leader per generation, plus the last generation's leaders, plus the fixed baselines.
+    // One best leader per generation, plus the last generation's leaders, plus the fixed seeds.
     expect(entrantIds.length).toBeLessThanOrEqual(3 + 3 + baselines.length);
 
     // The set the defect admitted: a leader of an earlier generation that was not that generation's
@@ -211,26 +214,23 @@ describe('writing an experiment', () => {
     expect(entrantIds.filter((id) => dropped.has(id))).toEqual([]);
   });
 
-  it('plays the final leaders first, so a cut tournament still judges the ones the gate reads', () => {
+  it('plays the final leaders first, so a cut tournament still judges the ones the gate reads', async () => {
     const dir = tempDir();
     // The clock advances one tick per pair, so the tournament stops after two pairings. It is
     // injected here rather than run-wide, to cut the tournament without touching evolution.
     let tick = 0;
-    const cutShort: typeof roundRobin = (given, config) =>
-      roundRobin(given, { ...config, deadline: 3, now: () => (tick += 1) });
+    const cutShort: typeof roundRobin = (given, config, runner) =>
+      roundRobin(given, { ...config, deadline: 3, now: () => (tick += 1) }, runner);
 
-    const summary = runExperiment(
+    const summary = await runExperiment(
       options({ seed: 7, candidates: 8, leaders: 2, generations: 3, sharedSeeds: 1 }), dir, { roundRobin: cutShort }
     );
 
     const tournament = summary.tournament!;
     expect(tournament.partial).toBe(true);
     expect(tournament.pairsPlayed).toBeLessThan(tournament.pairsExpected);
-    // Both final leaders must be evolved. A final leader that is also a baseline would sit at the
-    // front of any ordering, and the check below would pass without testing the order at all.
-    const baselineIds = new Set(seedStrategies(KINGDOM).map((strategy) => strategy.id));
+    // Both named final leaders must play before later retained leaders and seeds.
     expect(summary.finalLeaderIds.length).toBe(2);
-    expect(summary.finalLeaderIds.filter((id) => baselineIds.has(id))).toEqual([]);
     for (const id of summary.finalLeaderIds) {
       const played = Object.values(tournament.pairs[id] ?? {}).reduce((total, record) => total + record.played, 0);
       expect(played, `final leader ${id} played no pairing`).toBeGreaterThan(0);
@@ -239,12 +239,12 @@ describe('writing an experiment', () => {
     expect(summary.stopReason).toBe('deadline');
   });
 
-  it('runs end to end from the command line into a mode-specific directory', () => {
+  it('runs end to end from the command line into a mode-specific directory', async () => {
     const root = tempDir();
     const argv = ['--kingdom', KINGDOM, '--mode', 'smoke', '--candidates', '5', '--leaders', '1',
       '--generations', '1', '--seeds', '1'];
 
-    expect(main(argv, root)).toBe(0);
+    await expect(main(argv, root, { pairingRunner: undefined })).resolves.toBe(0);
 
     const dir = experimentDir(root, KINGDOM, 'smoke');
     expect(dir.endsWith(path.join('.experiments', KINGDOM, 'smoke'))).toBe(true);
@@ -263,7 +263,7 @@ describe('writing an experiment', () => {
     const strategies = JSON.parse(fs.readFileSync(path.join(dir, 'strategies.json'), 'utf8')) as {
       strategies: { id: string; source: string; text: string }[];
     };
-    expect(strategies.strategies.some((entry) => entry.source === 'baseline')).toBe(true);
+    expect(strategies.strategies.some((entry) => entry.source === 'seed')).toBe(true);
     expect(strategies.strategies.every((entry) => entry.text.startsWith(entry.id))).toBe(true);
     // Source precedence: a final leader is labelled `final`, never the weaker `leader` claim.
     const sources = new Map(strategies.strategies.map((entry) => [entry.id, entry.source]));

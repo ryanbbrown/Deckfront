@@ -152,7 +152,40 @@ export interface PairingOutcome {
   opponentScore: number;
   telemetry: TelemetryAggregate;
   matches: number;           // every game played, aborted ones included
+  seedBlocks: number;
+  stopReason: 'significant' | 'maximum';
+  candidateMean: number | null;
+  opponentMean: number | null;
 }
+
+export const SIGN_TEST_THRESHOLD = 0.0005;
+
+export function isSignificantSignTest(pValue: number): boolean {
+  return pValue <= SIGN_TEST_THRESHOLD;
+}
+
+/** Two-sided exact sign-test probability. Ties must be removed before calling this function. */
+export function exactSignTest(positive: number, negative: number): number {
+  const n = positive + negative;
+  if (n === 0) return 1;
+  const tail = Math.min(positive, negative);
+  let combinations = 1;
+  let sum = 1;
+  for (let k = 1; k <= tail; k += 1) {
+    combinations = combinations * (n - k + 1) / k;
+    sum += combinations;
+  }
+  return Math.min(1, (2 * sum) / 2 ** n);
+}
+
+export function shouldStopPairing(
+  completedBlocks: number, maximumBlocks: number, positive: number, negative: number
+): boolean {
+  return completedBlocks >= 5 && completedBlocks < maximumBlocks
+    && isSignificantSignTest(exactSignTest(positive, negative));
+}
+
+export type PairingMatchRunner = typeof runMatch;
 
 /**
  * Plays one pairing over every shared seed in every orientation. Agents are built per match: a
@@ -162,14 +195,25 @@ export interface PairingOutcome {
  * An aborted game scores for neither side and counts in neither `played` nor the mean, so a deep
  * search is not punished for overflowing the state limit.
  */
-export function playPairing(candidate: Strategy, opponent: Strategy, options: PairingOptions): PairingOutcome {
+export function playPairing(
+  candidate: Strategy, opponent: Strategy, options: PairingOptions, matchRunner: PairingMatchRunner = runMatch
+): PairingOutcome {
+  if (options.seeds.length < 1 || options.seeds.length > 25) {
+    throw new Error(`A pairing needs 1 to 25 shared seeds, not ${options.seeds.length}.`);
+  }
   const record = emptyPairRecord();
   const telemetry = emptyAggregate();
   let candidateScore = 0;
   let opponentScore = 0;
   let matches = 0;
+  let seedBlocks = 0;
+  let positiveBlocks = 0;
+  let negativeBlocks = 0;
+  let stopReason: PairingOutcome['stopReason'] = 'maximum';
 
   for (const seed of options.seeds) {
+    let blockScore = 0;
+    let blockCompleted = 0;
     for (let orientationIndex = 0; orientationIndex < ORIENTATIONS.length; orientationIndex += 1) {
       const orientation = ORIENTATIONS[orientationIndex]!;
       const candidateIsOchre = orientation.candidateSeat === 'ochre';
@@ -182,7 +226,7 @@ export function playPairing(candidate: Strategy, opponent: Strategy, options: Pa
         ? { ochre: candidate.id, indigo: opponent.id }
         : { ochre: opponent.id, indigo: candidate.id };
 
-      const result = runMatch({
+      const result = matchRunner({
         kingdomId: options.kingdomId,
         seed: matchSeed(seed, orientationIndex),
         firstPlayerId: orientation.firstPlayerId,
@@ -196,14 +240,29 @@ export function playPairing(candidate: Strategy, opponent: Strategy, options: Pa
 
       if (result.outcome === 'aborted') { record.aborted += 1; continue; }
       record.played += 1;
+      blockCompleted += 1;
       if (result.outcome === 'draw') {
-        record.draws += 1; candidateScore += 0.5; opponentScore += 0.5;
+        record.draws += 1; candidateScore += 0.5; opponentScore += 0.5; blockScore += 0.5;
       } else if (result.outcome === orientation.candidateSeat) {
-        record.wins += 1; candidateScore += 1;
+        record.wins += 1; candidateScore += 1; blockScore += 1;
       } else {
         record.losses += 1; opponentScore += 1;
       }
     }
+    seedBlocks += 1;
+    if (blockCompleted > 0) {
+      const mean = blockScore / blockCompleted;
+      if (mean > 0.5) positiveBlocks += 1;
+      else if (mean < 0.5) negativeBlocks += 1;
+    }
+    if (shouldStopPairing(seedBlocks, options.seeds.length, positiveBlocks, negativeBlocks)) {
+      stopReason = 'significant';
+      break;
+    }
   }
-  return { record, candidateScore, opponentScore, telemetry, matches };
+  return {
+    record, candidateScore, opponentScore, telemetry, matches, seedBlocks, stopReason,
+    candidateMean: record.played ? candidateScore / record.played : null,
+    opponentMean: record.played ? opponentScore / record.played : null
+  };
 }

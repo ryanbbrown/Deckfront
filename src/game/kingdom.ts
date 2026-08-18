@@ -12,7 +12,7 @@ export const TREASURE_IDS: readonly string[] = Object.freeze(Object.values(CARDS
 
 const BUILT_IN = kingdomLibrarySchema.parse(rawKingdoms).kingdoms;
 const registry = new Map<string, Kingdom>();
-const resolved = new Map<string, CardDefinition>();
+const resolved = new Map<string, Map<string, CardDefinition>>();
 let epoch = 0;
 
 /**
@@ -78,8 +78,12 @@ export function kingdomOf(id: string): Kingdom {
   return kingdom;
 }
 function resolveIn(kingdomId: string, definitionId: string): CardDefinition {
-  const memoKey = `${kingdomId}\u0000${definitionId}`;
-  const cached = resolved.get(memoKey);
+  let kingdomResolved = resolved.get(kingdomId);
+  if (!kingdomResolved) {
+    kingdomResolved = new Map();
+    resolved.set(kingdomId, kingdomResolved);
+  }
+  const cached = kingdomResolved.get(definitionId);
   if (cached) return cached;
   const base = cardDefinition(definitionId);
   const override = kingdomOf(kingdomId).overrides?.[definitionId];
@@ -91,7 +95,7 @@ function resolveIn(kingdomId: string, definitionId: string): CardDefinition {
     if (override.values) merged.values = { ...(base.values ?? {}), ...override.values };
     definition = deepFreeze(merged);
   }
-  resolved.set(memoKey, definition);
+  kingdomResolved.set(definitionId, definition);
   return definition;
 }
 export function resolveCard(state: GameState, definitionId: string): CardDefinition { return resolveIn(state.kingdomId, definitionId); }

@@ -343,7 +343,9 @@ Scores are not comparable across the two fields, so the new ranks are not an imp
 
 One rule survives from the wrong reading and is worth keeping on its own merits: **any claim of the form "the search found X" cites the round robin, not the final generation.** The final leaders are the search's most recent answer, not necessarily its best one, and the report prints both.
 
-## Seed degradation, measured
+## Seed degradation, measured — superseded by Plan 11
+
+This section records the old seed system. Plan 11 removed `seedFindings` and the repaired kingdom-agnostic baselines. Current runs use five complete strategies for each kingdom.
 
 Baseline strategies are kingdom-agnostic, so a curated kingdom that does not sell a seed's cards repairs it down. Plan `10-4:155` allows this, so it is a property of the design, not a defect. It matters because it thins generation 1.
 
@@ -408,10 +410,11 @@ Two residual risks in this plan, both accepted.
 
 ## Verification commands
 
-The four commands `GOAL.md:53-58` requires, run at every phase boundary and last at `35fd358`:
+Plan 11 verification on 2026-08-18:
 
 ```sh
-npm test          # 273 passed, 1 skipped, 20 files
+npm run build:sim # clean
+npm test          # 302 passed, 1 skipped, 24 files
 npm run typecheck # clean
 npm run lint      # clean
 npm run build     # clean
@@ -427,7 +430,7 @@ What is still true after everything above, in rough order of how much it could c
 2. **Every full result is one run seed per kingdom.** Seed 1, five kingdoms. The smoke gate is already known to be seed-sensitive at 2 of 4, so a per-kingdom balance reading from a single seed carries less weight than the match counts suggest. Replication across run seeds is the obvious next work and is not part of this goal.
 3. **Reviews were two models, not three.** GLM failed to start on every implementation round. Codex and Claude agreed on the high-severity findings each time, including independently on K1, but the panel was never at full strength.
 4. **Strategy identity is a 32-bit hash.** `stableHash` is FNV-1a plus canonical length. A collision merges two strategies' scores and telemetry. J3 added detection that throws when an id maps to a different canonical form, so the failure is loud rather than silent, but the hash is still narrow for a population of this size.
-5. **Generation 1 is thin in three kingdoms.** Baselines are kingdom-agnostic and repair down against a kingdom that does not sell their cards; `current-duel` is the severe case, where `mage-standard` enters with no attack card and nothing to buy. Generation-1 scores in those kingdoms carry less signal than later generations.
+5. **Sequential stopping has a controlled but non-zero error rate.** The fixed threshold bounds repeated looks within one pairing at 0.01. A full search runs many pairings, so it can still stop some pairings early by chance. Four-orientation blocks, equal pairing weighting, and deterministic seeds limit the effect, but do not remove it.
 6. **The calibration gate is only meaningful at full search depth.** It fails at smoke size on 2 of 4 seeds for reasons that are measured and understood. Anyone reading a smoke report should not treat its gate row as a balance verdict.
 
 ## Blockers
@@ -436,6 +439,4 @@ None. GLM failed to start on both group 1 implementation rounds; Codex and Claud
 
 ## Next action
 
-Synthesize the two running panel rounds, fix or record every finding, and re-run the four verification commands. Then launch all five kingdoms at 100/5/32/25 with `--deadline-minutes 150`, concurrently, and commit the five reports.
-
-Then finish the record: link the final outputs, replace every projected number in [Sizing the final runs](#sizing-the-final-runs) with what the runs actually did, and state the residual risks.
+Finish Plan 11 verification, then run `current-duel`, `three-way-engine`, and `rigged-melee` at 100 candidates, 5 leaders, 32 generations, 25 shared seeds, and 10 workers. Record actual match counts, early-stop counts, wall-clock speedups, and the profile-based Rust estimate.

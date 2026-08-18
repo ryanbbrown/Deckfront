@@ -3,7 +3,6 @@ import {
   applyAction, createGame, listLegalActions, marketCost, registerKingdom, resetKingdoms, submitStartingBuild
 } from '../../src/game';
 import type { GameCommand, GameState, PlayerId } from '../../src/game';
-import { BASELINE_STRATEGIES, baselineStrategy } from '../../src/sim/baselines';
 import { chooseBuyAction, ownedCount } from '../../src/sim/buy';
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
 import { repairBuild } from '../../src/sim/build';
@@ -11,6 +10,7 @@ import { runMatch } from '../../src/sim/match';
 import type { Strategy } from '../../src/sim/strategy';
 import type { Agent, MatchConfig, MatchResult } from '../../src/sim/types';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
+import { seedLabels, seedStrategies } from '../../src/sim/seedPopulation';
 import { strategy, weights } from './fixtures';
 
 function buyState(options: { kingdomId?: string; money: number }): GameState {
@@ -40,6 +40,13 @@ function bought(commands: readonly GameCommand[]): string[] {
 }
 
 afterEach(() => { resetKingdoms(); });
+
+function seedByLabel(kingdomId: string, label: string): Strategy {
+  const labels = seedLabels(kingdomId);
+  const found = seedStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);
+  if (!found) throw new Error(`No ${label} seed in ${kingdomId}.`);
+  return found;
+}
 
 describe('buy agenda', () => {
   it('buys down the agenda, stops at the desired count, and falls through to treasure', () => {
@@ -128,7 +135,7 @@ describe('strategy agent dispatch', () => {
   });
 
   it('repairs a starting build the kingdom cannot sell or cannot afford', () => {
-    const melee = baselineStrategy('melee-rush');
+    const melee = seedByLabel('three-way-open', 'melee');
     registerKingdom({
       id: 'no-blow', name: 'no-blow', startingHealth: 20,
       actionPiles: [{ cardId: 'drive', count: 10 }, { cardId: 'footwork', count: 10 }]
@@ -172,38 +179,13 @@ describe('strategy agent dispatch', () => {
   });
 });
 
-describe('baseline starting builds', () => {
-  // Pins what each baseline actually opens with per kingdom. Plan 10-4 allows a build to repair away
-  // to very little, so these are recorded rather than judged, and step 6 inherits the thin ones.
-  const expected: Record<string, Record<string, string[]>> = {
-    'current-duel': {
-      'treasure-only': [], 'melee-rush': ['drive', 'footwork'], 'ranged-standard': ['volley', 'aim', 'footwork'],
-      'mage-standard': ['footwork'], 'engine-draw': ['muster', 'footwork']
-    },
-    'three-way-open': {
-      'treasure-only': [], 'melee-rush': ['heavyBlow', 'drive', 'footwork'], 'ranged-standard': ['volley', 'aim', 'footwork'],
-      'mage-standard': ['channel', 'arcBolt', 'leyStep', 'footwork'], 'engine-draw': ['stipend', 'footwork']
-    },
-    'three-way-engine': {
-      'treasure-only': [], 'melee-rush': ['heavyBlow', 'footwork'], 'ranged-standard': ['footwork'],
-      'mage-standard': ['channel', 'footwork'], 'engine-draw': ['muster', 'stipend', 'footwork']
-    },
-    'range-rich-mixed': {
-      'treasure-only': [], 'melee-rush': ['heavyBlow', 'drive', 'footwork'], 'ranged-standard': ['volley', 'aim', 'footwork'],
-      'mage-standard': ['channel', 'arcBolt', 'footwork'], 'engine-draw': ['footwork']
-    },
-    'rigged-melee': {
-      'treasure-only': [], 'melee-rush': ['heavyBlow', 'drive', 'footwork'], 'ranged-standard': ['volley', 'aim', 'footwork'],
-      'mage-standard': ['channel', 'arcBolt', 'leyStep', 'footwork'], 'engine-draw': ['stipend', 'footwork']
-    }
-  };
-
-  it('repairs every baseline into a build each curated kingdom accepts', () => {
+describe('seed starting builds', () => {
+  it('submits every complete seed build without repair', () => {
     for (const kingdomId of CURATED_KINGDOM_IDS) {
-      for (const plan of BASELINE_STRATEGIES) {
+      for (const plan of seedStrategies(kingdomId)) {
         const state = createGame({ seed: 1, kingdomId });
         const build = repairBuild(state, plan.startingBuild);
-        expect(build, `${kingdomId}/${plan.id}`).toEqual(expected[kingdomId]![plan.id]);
+        expect(build, `${kingdomId}/${plan.id}`).toEqual(plan.startingBuild);
         expect(marketCost(state, build), `${kingdomId}/${plan.id}`).toBeLessThanOrEqual(12);
         expect(() => submitStartingBuild(state, 'ochre', build)).not.toThrow();
       }
@@ -213,7 +195,7 @@ describe('baseline starting builds', () => {
   it('keeps Heavy Blow in Rigged melee only because the override makes it affordable', () => {
     const rigged = createGame({ seed: 1, kingdomId: 'rigged-melee' });
     const open = createGame({ seed: 1, kingdomId: 'three-way-open' });
-    const melee = baselineStrategy('melee-rush').startingBuild;
+    const melee = seedByLabel('three-way-open', 'melee').startingBuild;
     expect(marketCost(rigged, melee)).toBe(10);
     expect(marketCost(open, melee)).toBe(12);
   });
@@ -228,12 +210,16 @@ describe('strategy agent match boundaries', () => {
   function playPair(reuse: boolean): { results: MatchResult[]; visited: number[][] } {
     const visited: number[][] = [[], []];
     let index = 0;
-    const make = (id: string): Agent =>
-      strategyAgent(baselineStrategy(id), { onSearch: (report) => visited[index]!.push(report.visited) });
-    const held: Record<PlayerId, Agent> = { ochre: make('ranged-standard'), indigo: make('melee-rush') };
+    const plans = [
+      strategy({ startingBuild: ['muster', 'footwork'], buyAgenda: [{ cardId: 'muster', desiredCount: 2 }] }),
+      strategy({ startingBuild: ['footwork'], buyAgenda: [{ cardId: 'footwork', desiredCount: 2 }] })
+    ];
+    const make = (position: number): Agent =>
+      strategyAgent(plans[position]!, { onSearch: (report) => visited[index]!.push(report.visited) });
+    const held: Record<PlayerId, Agent> = { ochre: make(0), indigo: make(1) };
     const results = SPECS.map(([kingdomId, turnLimitPerPlayer], position) => {
       index = position;
-      const agents = reuse ? held : { ochre: make('ranged-standard'), indigo: make('melee-rush') };
+      const agents = reuse ? held : { ochre: make(0), indigo: make(1) };
       const settings: MatchConfig = {
         kingdomId, seed: 3, firstPlayerId: 'ochre', swapSides: false,
         turnLimitPerPlayer, actionCapPerTurn: 200, agents
@@ -257,11 +243,11 @@ describe('strategy agent match boundaries', () => {
 
 describe('strategy agent search limits', () => {
   it('aborts the match when the search passes its state limit', () => {
-    const cramped = strategyAgent(baselineStrategy('ranged-standard'), { stateLimit: 1 });
+    const cramped = strategyAgent(seedByLabel('current-duel', 'ranged-aim'), { stateLimit: 1 });
     const result = runMatch({
       kingdomId: 'current-duel', seed: 6, firstPlayerId: 'ochre', swapSides: false,
       turnLimitPerPlayer: 20, actionCapPerTurn: 200,
-      agents: { ochre: cramped, indigo: strategyAgent(baselineStrategy('treasure-only')) }
+      agents: { ochre: cramped, indigo: strategyAgent(strategy({ startingBuild: [], buyAgenda: [] })) }
     });
     expect(result.outcome).toBe('aborted');
     expect(result.reason).toBe('actionSearchOverflow');
@@ -269,13 +255,14 @@ describe('strategy agent search limits', () => {
   });
 });
 
-describe('baseline coverage', () => {
-  it('plays every baseline pair in every curated kingdom without throwing', { timeout: 120_000 }, () => {
+describe('seed coverage', () => {
+  it('plays every seed pair in every curated kingdom without throwing', { timeout: 120_000 }, () => {
     const kingdomIds = CURATED_KINGDOM_IDS;
     let matches = 0;
     for (const kingdomId of kingdomIds) {
-      for (const ochre of BASELINE_STRATEGIES) {
-        for (const indigo of BASELINE_STRATEGIES) {
+      const seeds = seedStrategies(kingdomId);
+      for (const ochre of seeds) {
+        for (const indigo of seeds) {
           const result = runMatch({
             kingdomId, seed: 17, firstPlayerId: 'ochre', swapSides: matches % 2 === 1,
             turnLimitPerPlayer: 3, actionCapPerTurn: 200,
@@ -287,6 +274,6 @@ describe('baseline coverage', () => {
         }
       }
     }
-    expect(matches).toBe(kingdomIds.length * BASELINE_STRATEGIES.length ** 2);
+    expect(matches).toBe(kingdomIds.length * 5 ** 2);
   });
 });

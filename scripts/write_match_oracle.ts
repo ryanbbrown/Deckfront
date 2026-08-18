@@ -11,9 +11,10 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { strategyAgent } from '../src/sim/agents/strategyAgent';
-import { baselineStrategy } from '../src/sim/baselines';
 import { runMatch } from '../src/sim/match';
-import { repairStrategy } from '../src/sim/mutation';
+import { seedLabels, seedStrategies } from '../src/sim/seedPopulation';
+import { identify } from '../src/sim/strategy';
+import type { Strategy } from '../src/sim/strategy';
 import type { GameState } from '../src/game';
 import type { MatchResult } from '../src/sim/types';
 
@@ -30,14 +31,28 @@ interface OracleCase {
 }
 
 const CASES: readonly OracleCase[] = [
-  { name: 'mana and pending choices', kingdomId: 'three-way-engine', seed: 11, ochre: 'mage-standard', indigo: 'engine-draw', firstPlayerId: 'ochre', swapSides: false, storeState: true },
-  { name: 'engine against treasure', kingdomId: 'three-way-engine', seed: 12, ochre: 'engine-draw', indigo: 'treasure-only', firstPlayerId: 'indigo', swapSides: true, storeState: false },
-  { name: 'melee gate kingdom', kingdomId: 'rigged-melee', seed: 13, ochre: 'melee-rush', indigo: 'ranged-standard', firstPlayerId: 'ochre', swapSides: true, storeState: true },
-  { name: 'ranged against mage', kingdomId: 'range-rich-mixed', seed: 14, ochre: 'ranged-standard', indigo: 'mage-standard', firstPlayerId: 'indigo', swapSides: false, storeState: false },
-  { name: 'no attacks, turn limit', kingdomId: 'current-duel', seed: 15, ochre: 'treasure-only', indigo: 'treasure-only', firstPlayerId: 'ochre', swapSides: false, storeState: false },
-  { name: 'melee against mage', kingdomId: 'three-way-open', seed: 16, ochre: 'melee-rush', indigo: 'mage-standard', firstPlayerId: 'indigo', swapSides: true, storeState: false },
-  { name: 'mana kingdom at the turn limit', kingdomId: 'three-way-engine', seed: 17, ochre: 'treasure-only', indigo: 'treasure-only', firstPlayerId: 'ochre', swapSides: false, storeState: false }
+  { name: 'mana and pending choices', kingdomId: 'three-way-engine', seed: 11, ochre: 'mage', indigo: 'engine', firstPlayerId: 'ochre', swapSides: false, storeState: true },
+  { name: 'engine against money', kingdomId: 'three-way-engine', seed: 12, ochre: 'engine', indigo: 'money', firstPlayerId: 'indigo', swapSides: true, storeState: false },
+  { name: 'melee gate kingdom', kingdomId: 'rigged-melee', seed: 13, ochre: 'melee', indigo: 'ranged', firstPlayerId: 'ochre', swapSides: true, storeState: true },
+  { name: 'ranged against mage', kingdomId: 'range-rich-mixed', seed: 14, ochre: 'ranged-volley', indigo: 'mage', firstPlayerId: 'indigo', swapSides: false, storeState: false },
+  { name: 'no attacks, turn limit', kingdomId: 'current-duel', seed: 15, ochre: 'no-attack', indigo: 'no-attack', firstPlayerId: 'ochre', swapSides: false, storeState: false },
+  { name: 'melee against mage', kingdomId: 'three-way-open', seed: 16, ochre: 'melee', indigo: 'mage', firstPlayerId: 'indigo', swapSides: true, storeState: false },
+  { name: 'mana kingdom at the turn limit', kingdomId: 'three-way-engine', seed: 17, ochre: 'no-attack', indigo: 'no-attack', firstPlayerId: 'ochre', swapSides: false, storeState: false }
 ];
+
+function oracleStrategy(kingdomId: string, label: string): Strategy {
+  if (label === 'no-attack') return identify({
+    id: label, startingBuild: [], buyAgenda: [], treasureFallback: ['gold', 'silver'],
+    preferredRange: 'Near',
+    weights: { damage: 10, preferredRange: 0, cardsDrawn: 0, moneyGained: 4, trashed: 0,
+      reclaimed: 0, discarded: 0, unspentMana: 0, opponentOutOfAttackRange: 0 },
+    trashPriority: ['copper'], reclaimPriority: ['gold', 'silver'], discardPriority: ['copper', 'silver']
+  });
+  const labels = seedLabels(kingdomId);
+  const found = seedStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);
+  if (!found) throw new Error(`No ${label} seed in ${kingdomId}.`);
+  return found;
+}
 
 export const ORACLE_PATH = path.join(
   path.dirname(fileURLToPath(import.meta.url)), '..', 'test', 'sim', 'fixtures', 'match-oracle.json'
@@ -53,8 +68,8 @@ function play(entry: OracleCase): { result: MatchResult; state: GameState } {
     turnLimitPerPlayer: 100,
     actionCapPerTurn: 200,
     agents: {
-      ochre: strategyAgent(repairStrategy(entry.kingdomId, baselineStrategy(entry.ochre))),
-      indigo: strategyAgent(repairStrategy(entry.kingdomId, baselineStrategy(entry.indigo)))
+      ochre: strategyAgent(oracleStrategy(entry.kingdomId, entry.ochre)),
+      indigo: strategyAgent(oracleStrategy(entry.kingdomId, entry.indigo))
     }
   }, (state) => { last = state; });
   if (!last) throw new Error(`Match ${entry.kingdomId}/${entry.seed} produced no state.`);

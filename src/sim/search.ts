@@ -1,4 +1,5 @@
-import { EFFECTS, applyAction, listLegalActions, opponent, rangeBand, resolveCard } from '../game';
+import { EFFECTS, kingdomEpoch, kingdomMarket, listLegalActions, opponent, rangeBand, resolveCard } from '../game';
+import { applyLegalAction } from '../game/engine';
 import type { CardInstance, CardMechanic, GameEvent, GameState, LegalAction, PlayerId } from '../game';
 import { priorityRank } from './strategy';
 import type { Strategy } from './strategy';
@@ -20,6 +21,23 @@ export const DEFAULT_STATE_LIMIT = 20000;
 
 // Mechanics whose effect deals damage. No card value separates them from the rest, so the set is explicit.
 export const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set<CardMechanic>(['melee', 'ranged', 'spell', 'volley', 'drive', 'flurry']);
+
+let indexedEpoch = -1;
+const cardIndexes = new Map<string, ReadonlyMap<string, number>>();
+
+function cardIndex(kingdomId: string): ReadonlyMap<string, number> {
+  const currentEpoch = kingdomEpoch();
+  if (indexedEpoch !== currentEpoch) {
+    cardIndexes.clear();
+    indexedEpoch = currentEpoch;
+  }
+  let index = cardIndexes.get(kingdomId);
+  if (!index) {
+    index = new Map(kingdomMarket(kingdomId).map((definition, position) => [definition.id, position]));
+    cardIndexes.set(kingdomId, index);
+  }
+  return index;
+}
 
 export function createMemo(): SearchMemo { return new Map(); }
 
@@ -115,14 +133,24 @@ export function memoKey(state: GameState, playerId: PlayerId): string {
   const player = state.players[playerId];
   const mine = state.fighters[playerId];
   const foe = state.fighters[opponent(playerId)];
-  const sorted = (cards: readonly CardInstance[]): string => cards.map((card) => card.definitionId).sort().join(',');
-  const ordered = (cards: readonly CardInstance[]): string => cards.map((card) => card.definitionId).join(',');
+  const indexes = cardIndex(state.kingdomId);
+  const indexOf = (card: CardInstance): number => {
+    const index = indexes.get(card.definitionId);
+    if (index === undefined) throw new Error(`Card ${card.definitionId} is not in kingdom ${state.kingdomId}.`);
+    return index;
+  };
+  const counts = (cards: readonly CardInstance[]): string => {
+    const values = Array<number>(indexes.size).fill(0);
+    for (const card of cards) values[indexOf(card)]! += 1;
+    return values.join(',');
+  };
+  const ordered = (cards: readonly CardInstance[]): string => cards.map(indexOf).join(',');
   const tactical = state.actionsThisTurn.filter((id) => EFFECTS[resolveCard(state, id).mechanic].tactical).length;
   const pending = state.pendingChoice;
   return [
     mine.position, mine.health, mine.aimed ? 1 : 0, mine.exposed ? 1 : 0,
     foe.position, foe.health, foe.aimed ? 1 : 0, foe.exposed ? 1 : 0,
-    sorted(player.deck.hand), sorted(player.deck.play),
+    counts(player.deck.hand), counts(player.deck.play),
     ordered(player.deck.draw), ordered(player.deck.discard),
     player.mana, player.money, player.positionChanged ? 1 : 0, state.rngState,
     pending ? `${pending.type}:${pending.remaining}` : '-',
@@ -158,7 +186,7 @@ export function searchAction(
   function step(current: GameState, action: LegalAction): Branch {
     // `endActionPhase` is where a branch stops, so the state is scored before it applies.
     if (action.command.type === 'endActionPhase') return { ...terminal(current), suffix: 1 };
-    const child = visit(applyAction(current, action.id));
+    const child = visit(applyLegalAction(current, action));
     return { lethal: child.lethal, score: child.score, suffix: child.suffix + 1 };
   }
 
