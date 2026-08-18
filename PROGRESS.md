@@ -27,9 +27,11 @@ Step 9, the native-language port, is outside this goal.
 
 ## Current phase
 
-All eight implementation steps are written, and the five smoke runs plus one capped full run are done and committed. Two implementation-mode panel rounds are running: one over the complete search system, which `GOAL.md:84` requires before the full run, and one over steps 7 and 8, which had never had a round of their own.
+All eight implementation steps are written. Both final panel rounds have landed and both requested changes: the complete-system round that `GOAL.md:84` requires before the full run, and a steps 7 and 8 round, which had never had one. Nine fixes K1 to K9 are with the writer.
 
-Completion criterion for this phase: both rounds land, their findings are fixed or recorded, and the four verification commands pass. Then the final full runs start.
+**Every committed experiment report is withdrawn.** K1 found that the tournament admitted every leader of every generation instead of the one-per-generation cap `.plans/10-6-evolution.md:73` requires, so all six reports were produced by code with a known defect. They are regenerated after the fix rather than annotated.
+
+Completion criterion for this phase: K1 to K9 land with the tests that would have caught K1, the four verification commands pass, and the reports regenerate. Then the five design-maximum runs start.
 
 **A recorded deviation.** `GOAL.md:84` puts the complete-system round *before* the full run starts, and the capped `rigged-melee` full run was started by the writer as its default before that round ran. The run is evidence, not a decision, and it is being kept: it costs 2.9 minutes to reproduce if a finding invalidates it. The final five-kingdom runs wait for the round, as the guardrail intends.
 
@@ -75,8 +77,8 @@ Recorded under the `GOAL.md` ambiguity rule. Each is the conservative reading an
 | v1 | plan | `.plans/10-8-profiling.md` | Changes requested by all three. 8 decisions, plan rewritten. |
 | v1 | implementation | steps 3 and 4, base `b21f465` | Changes requested by both reviewers that ran. 13 findings fixed, 2 questions answered, 1 risk recorded. GLM failed to start on both rounds. |
 | v1 | implementation | steps 5 and 6, base `5f1d453`, snapshot `c110082` | Changes requested. 7 findings, including the J1 selection bug that would have invalidated the search. GLM failed to start. |
-| v1 | implementation | steps 7 and 8, base `f3a27df` | Running. |
-| v1 | implementation | the complete search system, base `b21f465` | Running. Required by `GOAL.md:84` before the full run. |
+| v1 | implementation | steps 7 and 8, base `f3a27df` | Changes requested by both. Folded into one synthesis with the round below. |
+| v1 | implementation | the complete search system, base `b21f465`, snapshot `35d43b2` | Changes requested by both. Required by `GOAL.md:84`. 9 decisions K1-K9, 2 declined, all committed reports withdrawn. GLM failed to start. |
 
 ### The group 2 implementation review
 
@@ -301,16 +303,18 @@ Two things follow, and both are recorded rather than acted on.
 1. **The gate is a valid check only at full size.** It says "a search of the configured depth finds a deliberately overpowered card." At smoke size it is measuring a population that has not finished searching, so a FAIL there is expected behaviour and not evidence of a defect.
 2. **The smoke FAIL stands in the record.** The full-size PASS does not erase it, and the committed `.experiments/rigged-melee/smoke/report.md` keeps saying FAIL. Any later change that makes the smoke run pass needs to explain itself.
 
-## The capped full run
+## The capped full run, withdrawn
 
-`rigged-melee`, seed 1, the full configuration unchanged: 30 candidates, 4 leaders, 32 generations, 8 shared seeds, a 240-minute deadline. It ran all 32 generations and finished the round robin in **2.9 minutes** — 213,344 matches at 1,209 per second, no aborted match and no search overflow. The deadline was never approached, so no generation was truncated and the recorded limits are the asked-for limits.
+`rigged-melee`, seed 1, at 30 candidates, 4 leaders, 32 generations, 8 shared seeds. It ran all 32 generations and finished the round robin in **2.9 minutes** — 213,344 matches at 1,209 per second, no aborted match and no search overflow — and it reported the calibration gate as **PASS**, 4 of 4 final leaders acquiring Heavy Blow.
 
-**The calibration gate PASSES**: all 4 final leaders are melee and all 4 acquire Heavy Blow, 9,728 copies for the top one.
+**This report is withdrawn and regenerated.** The final review round found that the tournament admitted every leader of every generation instead of the one-per-generation cap, so the entrant set, the ranking, and the acquisition counts the gate reads were all produced by code with a known defect. Evidence from defective code is withdrawn, not annotated. See [K1 and K2](.reviews/implementations/complete-balance-search-system/complete-balance-search-system-synthesis-v1.md).
 
-Two numbers worth keeping for the next sizing.
+Two readings survive the withdrawal, because neither depends on the entrant set.
 
-- **The tournament term is no longer small.** 93,632 tournament matches against 119,712 evolution matches. Entrants grow with generations — one retained leader per generation, plus the final leaders, plus the baselines — so 32 generations produced 77 entrants and 2,926 pairs. The earlier estimate of 26,240 tournament matches was low by 3.6x.
+- **Throughput is ~1,209 matches per second** after the clone work, measured over 213,344 matches.
 - **Generation 1 costs ten times a later generation**: 53.0 s against 2.5 to 5.0 s. The fixed baselines play long games, and evolved strategies win sooner.
+
+**My error, recorded because the reasoning is the reusable part.** I wrote that 32 generations produced 77 entrants from "one retained leader per generation, plus the final leaders, plus the baselines," and called the earlier 26,240-match estimate low by 3.6x. That arithmetic does not work — 32 + 4 + 5 is 41, not 77. The writer reported the 3.6x gap accurately and I explained it away instead of chasing it, so a plan-conformance defect survived as a sizing anecdote. **A number that does not add up is a defect to chase, not a constant to explain**, and the check is cheap: add the terms up before writing the sentence.
 
 **The final leaders are not the best strategies in the room.** They rank 43, 47, 48, and 49 of 77. Leaders retained from earlier generations rank above them. Selection measures a candidate against the current leader field, so late leaders are specialised against late leaders rather than against the whole history — the round robin is what says which strategy is actually strong, and the report already prints both.
 
@@ -356,13 +360,17 @@ One process note worth keeping. I mis-tracked the schedule for several phases by
 
 Every earlier estimate in this file was made before the clone cost was removed and is superseded. This one is scaled from the one full run that actually happened: `rigged-melee` at 30/4/32/8 produced 213,344 matches (119,712 evolution, 93,632 tournament) in 2.9 minutes at 1,209 matches per second.
 
-Scaling to the design limits of 100/5/32/25. Evolution scales with candidates, leaders, and shared seeds together: `(100/30) x (5/4) x (25/8)` = 13.0x. The tournament scales with shared seeds at 3.125x and only mildly with entrant count, because entrants come from retained leaders per generation rather than from population width.
+Evolution scales with candidates, leaders, and shared seeds together: `(100/30) x (5/4) x (25/8)` = 13.0x on the measured 119,712.
 
-| Term | 30/4/32/8, measured | 100/5/32/25, projected |
-| --- | ---: | ---: |
-| Evolution matches | 119,712 | ~1,558,000 |
-| Tournament matches | 93,632 | ~357,000 |
-| Total | 213,344 | ~1,915,000 |
+**The tournament term is computed from the plan, not scaled from the withdrawn run**, because the run's 93,632 tournament matches came from an entrant set that K1 removes. With the one-per-generation cap the design limits give 32 retained + 5 final + 5 baselines ≈ **42 entrants**, so 861 pairs x 25 seeds x 4 orientations ≈ 86,100 — which is what `.plans/10-6-evolution.md:75` predicted before any of this was built.
+
+| Term | 100/5/32/25, projected |
+| --- | ---: |
+| Evolution matches | ~1,558,000 |
+| Tournament matches | ~86,000 |
+| Total | ~1,644,000 |
+
+Scaling the withdrawn run instead would have put the tournament at ~357,000, and leaving K1 unfixed would have put it at ≈1.35M — nearly doubling every run and truncating every tournament. The fix is what makes five design-maximum runs affordable.
 
 Per-kingdom wall clock, taking each kingdom's post-clone rate from the profiling table and scaling by the 2.43x that evolved strategies run faster than the baseline pairings that table measures:
 
