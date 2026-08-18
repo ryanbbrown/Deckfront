@@ -29,7 +29,7 @@ describe('starting build', () => {
     expect(state.activePlayerId).toBe('indigo'); expect(state.players.ochre.deck.hand).toEqual([]); expect(state.nextCardSerial).toBe(1);
     state = submitStartingBuild(state, 'indigo', ['footwork', 'feint', 'drive']);
     expect(state.phase).toBe('action'); expect(state.activePlayerId).toBe('indigo'); expect(state.turn).toBe(1);
-    expect(state.players.ochre.firstBuyMoney).toBe(2); expect(state.players.indigo.firstBuyMoney).toBe(3);
+    expect(state.players.ochre.firstBuyMoney).toBe(1); expect(state.players.indigo.firstBuyMoney).toBe(2);
     expect(state.players.ochre.deck.hand).toHaveLength(5); expect(state.players.indigo.deck.hand).toHaveLength(5);
     expect(state.nextCardSerial).toBe(21); expect(state.fighters.ochre).toMatchObject({ position: 2, health: 20 }); expect(state.fighters.indigo).toMatchObject({ position: 3, health: 20 });
     assertInvariants(state);
@@ -130,18 +130,35 @@ describe('cards and conditions', () => {
     let state = ready(); state.fighters.ochre.position = 3; state.fighters.indigo.position = 3; state.fighters.indigo.health = 1; isolateHand(state, 'ochre', ['drive']);
     state = play(state, 'playDrive'); expect(state.fighters.indigo.health).toBe(0); expect(state.winner).toBe('ochre'); expect(state.phase).toBe('ended'); expect(state.fighters.indigo.position).toBe(3);
   });
-  it('Flurry deals 0 through capped 5 at every range and consumes Exposed at Close', () => {
-    for (const [position, expected] of [[2, 2], [3, 0], [5, 0]] as const) {
-      let state = ready(); state.fighters.ochre.position = 2; state.fighters.indigo.position = position; isolateHand(state, 'ochre', ['flurry']); if (position === 2) state.fighters.indigo.exposed = true;
-      state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(20 - expected);
+  it('Flurry needs Close, consumes Exposed, and counts only other Tactical Actions', () => {
+    for (const position of [3, 5]) {
+      const state = ready(); state.fighters.ochre.position = 2; state.fighters.indigo.position = position; isolateHand(state, 'ochre', ['flurry']);
+      expect(listActionAvailability(state, 'ochre')[0]).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
     }
-    let state = ready(); isolateHand(state, 'ochre', ['muster', 'muster', 'muster', 'muster', 'muster', 'muster', 'flurry']);
-    for (let index = 0; index < 6; index += 1) state = play(state, 'playMuster'); state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(15);
+    let state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['flurry']); state.fighters.indigo.exposed = true;
+    state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(18);
+
+    state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['channel', 'muster', 'flurry']);
+    state = play(state, 'playAction'); state = play(state, 'playMuster'); state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(20);
+
+    state = ready(); isolateHand(state, 'ochre', ['aim', 'footwork', 'flurry']);
+    state = play(state, 'playAim'); state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'right').id);
+    expect(rangeBand(state)).toBe('Close'); state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(18);
+  });
+  it('Flurry counts an earlier Flurry, never itself, and caps at 5', () => {
+    let state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['footwork', 'flurry', 'flurry']);
+    state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'stay').id);
+    state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(19);
+    state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(17);
+
+    state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['footwork', 'footwork', 'footwork', 'footwork', 'footwork', 'footwork', 'flurry']);
+    for (let index = 0; index < 6; index += 1) state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'stay').id);
+    state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(15);
   });
   it('Aim draws and refreshes, while Volley resolves literal Near and Far damage', () => {
     for (const test of [
-      { enemy: 3, aimed: false, damage: 2 }, { enemy: 5, aimed: false, damage: 5 },
-      { enemy: 3, aimed: true, damage: 5 }, { enemy: 5, aimed: true, damage: 7 }
+      { enemy: 3, aimed: false, damage: 2 }, { enemy: 5, aimed: false, damage: 4 },
+      { enemy: 3, aimed: true, damage: 5 }, { enemy: 5, aimed: true, damage: 6 }
     ]) {
       let state = ready(); state.fighters.ochre.position = 2; state.fighters.indigo.position = test.enemy; isolateHand(state, 'ochre', test.aimed ? ['aim', 'aim', 'volley'] : ['volley']);
       if (test.aimed) { state = play(state, 'playAim'); state = play(state, 'playAim'); expect(state.fighters.ochre.aimed).toBe(true); }
@@ -153,7 +170,7 @@ describe('cards and conditions', () => {
 
 describe('complete turns and purchases', () => {
   it('keeps control through actions, auto-plays Treasure, buys several cards, and cleans up', () => {
-    let state = ready(1, 'ochre', [], []); isolateHand(state, 'ochre', ['copper', 'silver', 'gold', 'flurry']);
+    let state = ready(1, 'ochre', [], []); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['copper', 'silver', 'gold', 'flurry']);
     state = play(state, 'playFlurry'); expect(state.activePlayerId).toBe('ochre'); state = play(state, 'endActionPhase');
     expect(state.phase).toBe('buy'); expect(state.players.ochre.money).toBe(18);
     state = applyAction(state, action(state, (command) => command.type === 'buyCard' && command.definitionId === 'muster').id);

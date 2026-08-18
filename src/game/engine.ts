@@ -1,15 +1,18 @@
 import { MARKET_CARD_IDS, cardDefinition } from './config';
+import { ARENA_MAX, ARENA_MIN, EFFECTS } from './effects';
+import type { Choice, EffectContext } from './effects';
 import { SeededRandom, shuffle } from './random';
 import { cloneGame, createCard, opponent } from './state';
 import type {
-  ActionAvailability, CardInstance, DisabledReasonCode, GameCommand, GameEventType,
-  GameState, LegalAction, MovementChoice, PlayerId, RangeBand
+  ActionAvailability, CardDefinition, CardInstance, CardValues, DisabledReasonCode, GameCommand, GameEventType,
+  GameState, LegalAction, MovementChoice, PendingChoice, PendingChoiceType, PlayCardCommand, PlayerId
 } from './types';
 
 const REASONS: Record<DisabledReasonCode, string> = {
   NOT_YOUR_TURN: 'It is not your turn.', WRONG_PHASE: 'This card cannot be played in this phase.',
   TREASURE_AUTOPLAYS: 'Treasure cards play when you end the Action phase.', NEEDS_CLOSE: 'Requires Close range.',
-  NEEDS_NEAR_OR_FAR: 'Requires Near or Far range.'
+  NEEDS_NEAR_OR_FAR: 'Requires Near or Far range.', NEEDS_MANA: 'Requires more mana.',
+  RESOLVE_CHOICE_FIRST: 'Resolve the pending choice first.'
 };
 function stable(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stable);
@@ -19,23 +22,19 @@ function stable(value: unknown): unknown {
 function key(command: GameCommand): string { return JSON.stringify(stable(command)); }
 function legal(label: string, command: GameCommand): LegalAction { return { id: '', label, command }; }
 function ids(state: GameState, actions: LegalAction[]): LegalAction[] { return actions.map((action, index) => ({ ...action, id: `v${state.version}-action-${index + 1}` })); }
-export function rangeBand(state: GameState): RangeBand {
-  const difference = Math.abs(state.fighters.ochre.position - state.fighters.indigo.position);
-  return difference === 0 ? 'Close' : difference === 1 ? 'Near' : 'Far';
-}
+function cardValues(definition: CardDefinition): CardValues { return definition.values ?? {}; }
+function movementText(movement: MovementChoice): string { return movement === 'left' ? 'Left' : movement === 'right' ? 'Right' : 'Stay'; }
 function record(state: GameState, type: GameEventType, detail: Record<string, unknown>, playerId = state.activePlayerId): void {
   state.events.push({ sequence: state.events.length, type, playerId, detail });
 }
-function movements(state: GameState, playerId: PlayerId): MovementChoice[] {
-  const position = state.fighters[playerId].position;
-  const result: MovementChoice[] = [];
-  if (position > 1) result.push('left');
-  result.push('stay');
-  if (position < 5) result.push('right');
-  return result;
+function choiceTargets(state: GameState, pending: PendingChoice): CardInstance[] {
+  const deck = state.players[pending.playerId].deck;
+  return pending.type === 'discard' ? deck.hand : deck.discard;
 }
 function cardAvailability(state: GameState, playerId: PlayerId, card: CardInstance): ActionAvailability {
   const definition = cardDefinition(card.definitionId);
+  const effect = EFFECTS[definition.mechanic];
+  const pending = state.pendingChoice;
   let reasonCode: DisabledReasonCode | null = null;
   let selection: ActionAvailability['selection'] = 'none';
   let eligibleCardInstanceIds: string[] = [];
@@ -43,14 +42,16 @@ function cardAvailability(state: GameState, playerId: PlayerId, card: CardInstan
   if (state.activePlayerId !== playerId) reasonCode = 'NOT_YOUR_TURN';
   else if (state.phase !== 'action') reasonCode = 'WRONG_PHASE';
   else if (definition.type === 'treasure') reasonCode = 'TREASURE_AUTOPLAYS';
-  else if (definition.mechanic === 'footwork') {
-    selection = 'movement'; availableMovements = movements(state, playerId);
-  } else if (definition.mechanic === 'cull') {
-    selection = 'trashOneOrTwo';
-    eligibleCardInstanceIds = [card.id, ...state.players[playerId].deck.hand.filter((candidate) => candidate.id !== card.id).map((candidate) => candidate.id)];
-  } else if (['feint', 'drive'].includes(definition.mechanic) && rangeBand(state) !== 'Close') reasonCode = 'NEEDS_CLOSE';
-  else if (definition.mechanic === 'drive') { selection = 'movement'; availableMovements = ['left', 'right']; }
-  else if (['aim', 'volley'].includes(definition.mechanic) && rangeBand(state) === 'Close') reasonCode = 'NEEDS_NEAR_OR_FAR';
+  else if (pending) {
+    reasonCode = 'RESOLVE_CHOICE_FIRST'; selection = pending.type;
+    eligibleCardInstanceIds = choiceTargets(state, pending).map((target) => target.id);
+  } else {
+    reasonCode = effect.gate(state, playerId, cardValues(definition));
+    if (!reasonCode) {
+      selection = effect.choice; availableMovements = effect.movements(state, playerId);
+      if (effect.choice === 'trashOneOrTwo') eligibleCardInstanceIds = [card.id, ...state.players[playerId].deck.hand.filter((candidate) => candidate.id !== card.id).map((candidate) => candidate.id)];
+    }
+  }
   return { cardInstanceId: card.id, enabled: reasonCode === null, reasonCode, reason: reasonCode ? REASONS[reasonCode] : null, selection, eligibleCardInstanceIds, movements: availableMovements };
 }
 export function listActionAvailability(state: GameState, playerId: PlayerId): ActionAvailability[] {
@@ -63,25 +64,30 @@ function cardActions(state: GameState): LegalAction[] {
     const available = cardAvailability(state, playerId, card);
     if (!available.enabled) return [];
     const definition = cardDefinition(card.definitionId);
-    switch (definition.mechanic) {
-      case 'money': return [];
-      case 'footwork': return available.movements.map((movement) => legal(`Play Footwork: ${movement === 'left' ? 'Left' : movement === 'right' ? 'Right' : 'Stay'}`, { type: 'playFootwork', cardInstanceId: card.id, movement }));
-      case 'cull': {
+    const effect = EFFECTS[definition.mechanic];
+    const moveLabel = (movement: MovementChoice): string => `Play ${definition.name}: ${effect.movePrefix}${movementText(movement)}`;
+    switch (effect.choice) {
+      case 'none': return [legal(`Play ${definition.name}`, effect.command(card.id, {}))];
+      case 'movement': return available.movements.map((movement) => legal(moveLabel(movement), effect.command(card.id, { movement })));
+      case 'direction': return available.movements.flatMap((movement) => movement === 'stay' ? [] : [legal(moveLabel(movement), effect.command(card.id, { direction: movement }))]);
+      case 'trashOneOrTwo': {
         const eligible = [card, ...hand.filter((candidate) => candidate.id !== card.id)];
-        const actions: LegalAction[] = eligible.map((candidate) => legal(`Play Cull: trash ${cardDefinition(candidate.definitionId).name}`, { type: 'playCull', cardInstanceId: card.id, trashInstanceIds: [candidate.id] }));
+        const actions: LegalAction[] = eligible.map((candidate) => legal(`Play ${definition.name}: trash ${cardDefinition(candidate.definitionId).name}`, effect.command(card.id, { trashInstanceIds: [candidate.id] })));
         for (let left = 0; left < eligible.length; left += 1) for (let right = left + 1; right < eligible.length; right += 1) {
-          actions.push(legal(`Play Cull: trash ${cardDefinition(eligible[left]!.definitionId).name} and ${cardDefinition(eligible[right]!.definitionId).name}`, { type: 'playCull', cardInstanceId: card.id, trashInstanceIds: [eligible[left]!.id, eligible[right]!.id] }));
+          actions.push(legal(`Play ${definition.name}: trash ${cardDefinition(eligible[left]!.definitionId).name} and ${cardDefinition(eligible[right]!.definitionId).name}`, effect.command(card.id, { trashInstanceIds: [eligible[left]!.id, eligible[right]!.id] })));
         }
         return actions;
       }
-      case 'muster': return [legal('Play Muster', { type: 'playMuster', cardInstanceId: card.id })];
-      case 'feint': return [legal('Play Feint', { type: 'playFeint', cardInstanceId: card.id })];
-      case 'drive': return available.movements.flatMap((direction) => direction === 'stay' ? [] : [legal(`Play Drive: Move Both ${direction === 'left' ? 'Left' : 'Right'}`, { type: 'playDrive', cardInstanceId: card.id, direction })]);
-      case 'flurry': return [legal('Play Flurry', { type: 'playFlurry', cardInstanceId: card.id })];
-      case 'aim': return [legal('Play Aim', { type: 'playAim', cardInstanceId: card.id })];
-      case 'volley': return [legal('Play Volley', { type: 'playVolley', cardInstanceId: card.id })];
     }
   });
+}
+function resolveActions(state: GameState, pending: PendingChoice): LegalAction[] {
+  const targets = choiceTargets(state, pending);
+  if (pending.type === 'discard') return targets.map((card) => legal(`Discard ${cardDefinition(card.definitionId).name}`, { type: 'resolveDiscard', discardInstanceId: card.id }));
+  return [
+    ...targets.map((card) => legal(`Recover ${cardDefinition(card.definitionId).name}`, { type: 'resolveRecover', recoverInstanceId: card.id })),
+    legal('Recover nothing', { type: 'resolveRecover', recoverInstanceId: null })
+  ];
 }
 function buyActions(state: GameState): LegalAction[] {
   const money = state.players[state.activePlayerId].money;
@@ -95,6 +101,7 @@ function buyActions(state: GameState): LegalAction[] {
 export function listLegalActions(state: GameState): LegalAction[] {
   if (state.phase === 'startingBuild' || state.phase === 'ended') return [];
   if (state.phase === 'buy') return ids(state, buyActions(state));
+  if (state.pendingChoice) return ids(state, resolveActions(state, state.pendingChoice));
   return ids(state, [...cardActions(state), legal('End Action phase', { type: 'endActionPhase' })]);
 }
 function takeCard(state: GameState, cardInstanceId: string): CardInstance {
@@ -124,57 +131,97 @@ function draw(state: GameState, playerId: PlayerId, count: number): void {
 function dealDamage(state: GameState, targetId: PlayerId, base: number, closeDamage: boolean): void {
   const target = state.fighters[targetId];
   let amount = base;
-  if (closeDamage && target.exposed) { amount += 2; target.exposed = false; record(state, 'condition', { condition: 'Exposed', change: 'consumed', targetId }); }
+  if (closeDamage && target.exposed) {
+    amount += cardValues(cardDefinition('feint')).bonus ?? 0; target.exposed = false;
+    record(state, 'condition', { condition: 'Exposed', change: 'consumed', targetId });
+  }
   target.health = Math.max(0, target.health - amount);
   record(state, 'damage', { targetId, amount, health: target.health });
   if (target.health === 0) { state.winner = opponent(targetId); state.phase = 'ended'; record(state, 'victory', { winner: state.winner }); }
 }
-function playCard(state: GameState, command: Extract<GameCommand, { cardInstanceId: string }>): void {
+function moveFighter(state: GameState, playerId: PlayerId, position: number): void {
+  const fighter = state.fighters[playerId];
+  if (position < ARENA_MIN || position > ARENA_MAX) throw new Error('A fighter cannot leave the arena.');
+  if (fighter.position === position) return;
+  fighter.position = position;
+  if (playerId === state.activePlayerId) state.players[playerId].positionChanged = true;
+}
+function gainMana(state: GameState, playerId: PlayerId, amount: number): void {
+  if (!amount) return;
+  const player = state.players[playerId];
+  if (player.mana + amount < 0) throw new Error('There is not enough mana.');
+  player.mana += amount;
+  record(state, 'mana', { amount, mana: player.mana }, playerId);
+}
+function trashCard(state: GameState, playedCard: CardInstance, cardInstanceId: string): void {
+  const deck = state.players[state.activePlayerId].deck;
+  let zone = deck.hand;
+  let index = zone.findIndex((candidate) => candidate.id === cardInstanceId);
+  if (index < 0 && cardInstanceId === playedCard.id) { zone = deck.play; index = zone.findIndex((candidate) => candidate.id === cardInstanceId); }
+  if (index < 0) throw new Error('Cull target is no longer eligible.');
+  const [trashed] = zone.splice(index, 1); if (!trashed) throw new Error('Cull target is no longer eligible.');
+  state.trash.push(trashed); record(state, 'trash', { cardInstanceId: trashed.id, definitionId: trashed.definitionId });
+}
+function requestChoice(state: GameState, type: PendingChoiceType, playerId: PlayerId, remaining: number): void {
+  if (remaining <= 0) return;
+  const pending: PendingChoice = { type, playerId, remaining };
+  if (!choiceTargets(state, pending).length) return;
+  state.pendingChoice = pending;
+}
+function advanceChoice(state: GameState, pending: PendingChoice): void {
+  state.pendingChoice = null;
+  requestChoice(state, pending.type, pending.playerId, pending.remaining - 1);
+}
+function takePendingChoice(state: GameState, type: PendingChoiceType): PendingChoice {
+  const pending = state.pendingChoice;
+  if (!pending || pending.type !== type) throw new Error(`There is no ${type} choice to resolve.`);
+  return pending;
+}
+function choiceOf(command: PlayCardCommand): Choice {
+  return {
+    movement: 'movement' in command ? command.movement : undefined,
+    direction: 'direction' in command ? command.direction : undefined,
+    trashInstanceIds: 'trashInstanceIds' in command ? command.trashInstanceIds : undefined
+  };
+}
+function playCard(state: GameState, command: PlayCardCommand): void {
   const actorId = state.activePlayerId;
-  const targetId = opponent(actorId);
-  const previousActions = state.actionsThisTurn.length;
+  const previousActions = [...state.actionsThisTurn];
   const card = takeCard(state, command.cardInstanceId);
-  state.actionsThisTurn.push(card.id);
+  state.actionsThisTurn.push(card.definitionId);
   record(state, 'cardPlayed', { cardInstanceId: card.id, definitionId: card.definitionId });
-  switch (command.type) {
-    case 'playFootwork': {
-      const actor = state.fighters[actorId]; const from = actor.position;
-      if (command.movement !== 'stay') actor.position += command.movement === 'left' ? -1 : 1;
-      record(state, 'move', { movement: command.movement, from, to: actor.position }); draw(state, actorId, 1); break;
-    }
-    case 'playCull': {
-      const deck = state.players[actorId].deck;
-      for (const id of command.trashInstanceIds) {
-        let index = deck.hand.findIndex((candidate) => candidate.id === id); let zone = deck.hand;
-        if (index < 0 && id === card.id) { zone = deck.play; index = zone.findIndex((candidate) => candidate.id === id); }
-        if (index < 0) throw new Error('Cull target is no longer eligible.');
-        const [trashed] = zone.splice(index, 1); if (!trashed) throw new Error('Cull target is no longer eligible.');
-        state.trash.push(trashed); record(state, 'trash', { cardInstanceId: trashed.id, definitionId: trashed.definitionId });
-      }
-      break;
-    }
-    case 'playMuster': draw(state, actorId, 2); break;
-    case 'playFeint': state.fighters[targetId].exposed = true; record(state, 'condition', { condition: 'Exposed', change: 'set', targetId }); break;
-    case 'playDrive': {
-      dealDamage(state, targetId, 2, true); if (state.winner) break;
-      const actor = state.fighters[actorId]; const target = state.fighters[targetId]; const from = actor.position;
-      const destination = from + (command.direction === 'left' ? -1 : 1);
-      if (destination < 1 || destination > 5) { record(state, 'wallCollision', { targetId, direction: command.direction }); dealDamage(state, targetId, 2, false); }
-      else {
-        actor.position = destination; target.position = destination;
-        record(state, 'move', { movement: command.direction, from, to: destination, fighters: [actorId, targetId], source: 'drive' });
-      }
-      break;
-    }
-    case 'playFlurry': dealDamage(state, targetId, Math.min(5, previousActions), rangeBand(state) === 'Close'); break;
-    case 'playAim': state.fighters[actorId].aimed = true; record(state, 'condition', { condition: 'Aimed', change: 'set', targetId: actorId }); draw(state, actorId, 1); break;
-    case 'playVolley': {
-      const aimed = state.fighters[actorId].aimed; const band = rangeBand(state);
-      const amount = aimed ? (band === 'Near' ? 5 : 7) : (band === 'Near' ? 2 : 5);
-      if (aimed) { state.fighters[actorId].aimed = false; record(state, 'condition', { condition: 'Aimed', change: 'consumed', targetId: actorId }); }
-      dealDamage(state, targetId, amount, false); break;
-    }
+  const definition = cardDefinition(card.definitionId);
+  const context: EffectContext = {
+    state, actorId, targetId: opponent(actorId), card, previousActions,
+    draw: (playerId, count) => draw(state, playerId, count),
+    damage: (targetId, amount, closeDamage) => dealDamage(state, targetId, amount, closeDamage),
+    move: (playerId, position) => moveFighter(state, playerId, position),
+    trash: (cardInstanceId) => trashCard(state, card, cardInstanceId),
+    gainMana: (amount) => gainMana(state, actorId, amount),
+    requestChoice: (type, remaining) => requestChoice(state, type, actorId, remaining),
+    record: (type, detail) => record(state, type, detail)
+  };
+  EFFECTS[definition.mechanic].resolve(context, cardValues(definition), choiceOf(command));
+}
+function resolveDiscard(state: GameState, command: Extract<GameCommand, { type: 'resolveDiscard' }>): void {
+  const pending = takePendingChoice(state, 'discard');
+  const deck = state.players[pending.playerId].deck;
+  const index = deck.hand.findIndex((card) => card.id === command.discardInstanceId);
+  if (index < 0) throw new Error(`Card is not in hand: ${command.discardInstanceId}`);
+  const [card] = deck.hand.splice(index, 1); if (!card) throw new Error(`Card is not in hand: ${command.discardInstanceId}`);
+  deck.discard.push(card); record(state, 'discard', { cardInstanceId: card.id, definitionId: card.definitionId }, pending.playerId);
+  advanceChoice(state, pending);
+}
+function resolveRecover(state: GameState, command: Extract<GameCommand, { type: 'resolveRecover' }>): void {
+  const pending = takePendingChoice(state, 'recover');
+  if (command.recoverInstanceId !== null) {
+    const deck = state.players[pending.playerId].deck;
+    const index = deck.discard.findIndex((card) => card.id === command.recoverInstanceId);
+    if (index < 0) throw new Error(`Card is not in the discard pile: ${command.recoverInstanceId}`);
+    const [card] = deck.discard.splice(index, 1); if (!card) throw new Error(`Card is not in the discard pile: ${command.recoverInstanceId}`);
+    deck.draw.unshift(card); record(state, 'recover', { cardInstanceId: card.id, definitionId: card.definitionId }, pending.playerId);
   }
+  state.pendingChoice = null;
 }
 function finishSetup(state: GameState): void {
   const random = new SeededRandom(state.rngState);
@@ -182,7 +229,8 @@ function finishSetup(state: GameState): void {
     const selected = state.players[playerId].startingBuild!;
     const definitions = [...Array<string>(7).fill('copper'), ...selected];
     state.players[playerId].deck.draw = definitions.map((definitionId) => createCard(state, definitionId));
-    state.players[playerId].firstBuyMoney = 12 - selected.reduce((total, id) => total + cardDefinition(id).cost, 0);
+    state.players[playerId].firstBuyMoney = 12 - marketCost(state, selected);
+    state.players[playerId].positionChanged = false;
   }
   state.players.ochre.deck.draw = shuffle(state.players.ochre.deck.draw, random);
   state.players.indigo.deck.draw = shuffle(state.players.indigo.deck.draw, random);
@@ -194,39 +242,46 @@ function finishSetup(state: GameState): void {
 function submitBuild(state: GameState, command: Extract<GameCommand, { type: 'submitStartingBuild' }>): void {
   if (state.phase !== 'startingBuild' || state.activePlayerId !== command.playerId) throw new Error('This starting build cannot be submitted now.');
   if (state.players[command.playerId].startingBuild) throw new Error('The starting build is already complete.');
-  let cost = 0;
-  for (const id of command.definitionIds) { cardDefinition(id); cost += cardDefinition(id).cost; }
+  const cost = marketCost(state, command.definitionIds);
   if (cost > 12) throw new Error('Starting build costs more than 12 money.');
   state.players[command.playerId].startingBuild = [...command.definitionIds];
   record(state, 'buildComplete', { playerId: command.playerId, count: command.definitionIds.length, cost }, command.playerId);
   if (command.playerId === 'ochre') state.activePlayerId = 'indigo'; else finishSetup(state);
 }
 function execute(state: GameState, command: GameCommand): void {
-  if (command.type === 'submitStartingBuild') { submitBuild(state, command); return; }
-  if ('cardInstanceId' in command) { playCard(state, command); return; }
-  const player = state.players[state.activePlayerId];
   switch (command.type) {
+    case 'submitStartingBuild': submitBuild(state, command); return;
+    case 'playFootwork': case 'playCull': case 'playMuster': case 'playFeint': case 'playDrive':
+    case 'playFlurry': case 'playAim': case 'playVolley': case 'playAction': case 'playMoveAction':
+      playCard(state, command); return;
+    case 'resolveDiscard': resolveDiscard(state, command); return;
+    case 'resolveRecover': resolveRecover(state, command); return;
     case 'endActionPhase': {
+      const player = state.players[state.activePlayerId];
       const treasures = player.deck.hand.filter((card) => cardDefinition(card.definitionId).type === 'treasure');
       player.deck.hand = player.deck.hand.filter((card) => cardDefinition(card.definitionId).type !== 'treasure');
       player.deck.play.push(...treasures);
-      player.money = treasures.reduce((total, card) => total + (cardDefinition(card.definitionId).money ?? 0), 0) + (player.firstBuyPending ? player.firstBuyMoney : 0);
-      state.phase = 'buy'; record(state, 'phase', { phase: 'buy', money: player.money }); break;
+      player.money += treasures.reduce((total, card) => total + (cardDefinition(card.definitionId).money ?? 0), 0) + (player.firstBuyPending ? player.firstBuyMoney : 0);
+      player.mana = 0;
+      state.phase = 'buy'; record(state, 'phase', { phase: 'buy', money: player.money }); return;
     }
     case 'buyCard': {
+      const player = state.players[state.activePlayerId];
       const definition = cardDefinition(command.definitionId);
       player.money -= definition.cost;
       if (definition.type === 'action') state.supply[command.definitionId]!--;
       const card = createCard(state, command.definitionId); player.deck.discard.push(card); player.purchases.push(command.definitionId);
-      record(state, 'purchase', { definitionId: command.definitionId, cost: definition.cost }); break;
+      record(state, 'purchase', { definitionId: command.definitionId, cost: definition.cost }); return;
     }
     case 'endBuyPhase': {
+      const player = state.players[state.activePlayerId];
       player.deck.discard.push(...player.deck.hand, ...player.deck.play); player.deck.hand = []; player.deck.play = [];
-      player.money = 0; player.firstBuyPending = false; player.firstBuyMoney = 0;
+      player.money = 0; player.mana = 0; player.firstBuyPending = false; player.firstBuyMoney = 0;
       state.fighters[state.activePlayerId].aimed = false; state.fighters[opponent(state.activePlayerId)].exposed = false;
       draw(state, state.activePlayerId, 5); state.actionsThisTurn = [];
       state.activePlayerId = opponent(state.activePlayerId); state.phase = 'action'; state.turn += 1;
-      record(state, 'turn', { turn: state.turn, activePlayerId: state.activePlayerId }); break;
+      state.players[state.activePlayerId].positionChanged = false;
+      record(state, 'turn', { turn: state.turn, activePlayerId: state.activePlayerId }); return;
     }
   }
 }
@@ -248,4 +303,6 @@ export function submitStartingBuild(state: GameState, playerId: PlayerId, defini
 export function replayCommands(initialState: GameState, commands: readonly GameCommand[]): GameState {
   return commands.reduce((state, command) => applyCommand(state, command), cloneGame(initialState));
 }
-export function marketCost(definitionIds: readonly string[]): number { return definitionIds.reduce((sum, id) => sum + cardDefinition(id).cost, 0); }
+export function marketCost(_state: GameState, definitionIds: readonly string[]): number {
+  return definitionIds.reduce((sum, id) => sum + cardDefinition(id).cost, 0);
+}

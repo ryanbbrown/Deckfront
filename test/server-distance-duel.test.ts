@@ -93,7 +93,7 @@ describe('GameService setup and privacy', () => {
       if (commandType === 'playCull') seedPlayerHand(record, ['cull', 'copper']);
       if (commandType === 'playMuster') seedPlayerHand(record, ['muster'], ['aim', 'volley']);
       if (commandType === 'playFeint' || commandType === 'playDrive') { seedPlayerHand(record, [commandType === 'playFeint' ? 'feint' : 'drive']); record.state.fighters.indigo.position = 2; }
-      if (commandType === 'playFlurry') { seedPlayerHand(record, ['flurry']); record.state.actionsThisTurn = ['muster', 'muster']; }
+      if (commandType === 'playFlurry') { seedPlayerHand(record, ['flurry']); record.state.actionsThisTurn = ['aim', 'footwork']; record.state.fighters.indigo.position = 2; }
       if (commandType === 'playAim') seedPlayerHand(record, ['aim'], ['copper']);
       if (commandType === 'playVolley') seedPlayerHand(record, ['volley']);
       if (commandType === 'endActionPhase') { seedPlayerHand(record, ['copper']); record.state.players.ochre.firstBuyPending = false; }
@@ -198,7 +198,7 @@ describe('server-owned AI sequence', () => {
   });
   it('replans after a draw, plays another Action, buys several paid cards, and ends one server-owned turn', async () => {
     const { repository, service, game } = await setup('indigo'); const human = await service.updateHumanBuild(game.id, 0, [], true); await service.commitAiBuild(game.id, human.revision, [], 'build', 0); const record = await repository.load(game.id); const deck = record.state.players.indigo.deck;
-    record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.hand = ['muster', 'copper', 'copper', 'copper', 'copper', 'copper'].map((id) => createCard(record.state, id)); deck.draw = [createCard(record.state, 'aim')]; deck.discard = []; deck.play = []; record.state.players.indigo.firstBuyMoney = 0; record.state.players.indigo.firstBuyPending = false; record.state.players.indigo.purchases = []; record.initialState = structuredClone(record.state); record.committedCommands = []; record.undoCheckpoint = null; record.aiActions = []; await repository.save(record);
+    record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.hand = ['muster', 'copper', 'copper', 'copper', 'copper', 'copper', 'copper'].map((id) => createCard(record.state, id)); deck.draw = [createCard(record.state, 'aim')]; deck.discard = []; deck.play = []; record.state.players.indigo.firstBuyMoney = 0; record.state.players.indigo.firstBuyPending = false; record.state.players.indigo.purchases = []; record.initialState = structuredClone(record.state); record.committedCommands = []; record.undoCheckpoint = null; record.aiActions = []; await repository.save(record);
     const observedHands: string[][] = []; const runner = { async run(current: GameRecord): Promise<AiRunResult> {
       observedHands.push(current.state.players.indigo.deck.hand.map((card) => card.definitionId)); const actions = listLegalActions(current.state); let selected;
       if (current.state.phase === 'action') selected = actions.find((entry) => entry.command.type === (current.state.players.indigo.deck.hand.some((card) => card.definitionId === 'muster') ? 'playMuster' : current.state.players.indigo.deck.hand.some((card) => card.definitionId === 'aim') ? 'playAim' : 'endActionPhase'));

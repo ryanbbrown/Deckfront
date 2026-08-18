@@ -13,14 +13,21 @@ export const gameCommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('playMuster'), ...commandCard }), z.object({ type: z.literal('playFeint'), ...commandCard }),
   z.object({ type: z.literal('playDrive'), ...commandCard, direction: z.enum(['left', 'right']) }), z.object({ type: z.literal('playFlurry'), ...commandCard }),
   z.object({ type: z.literal('playAim'), ...commandCard }),
-  z.object({ type: z.literal('playVolley'), ...commandCard }), z.object({ type: z.literal('endActionPhase') }),
+  z.object({ type: z.literal('playVolley'), ...commandCard }),
+  z.object({ type: z.literal('playAction'), ...commandCard }),
+  z.object({ type: z.literal('playMoveAction'), ...commandCard, direction: z.enum(['left', 'right']) }),
+  z.object({ type: z.literal('resolveDiscard'), discardInstanceId: z.string() }),
+  z.object({ type: z.literal('resolveRecover'), recoverInstanceId: z.string().nullable() }),
+  z.object({ type: z.literal('endActionPhase') }),
   z.object({ type: z.literal('buyCard'), definitionId: z.string() }), z.object({ type: z.literal('endBuyPhase') })
 ]);
 const player = z.object({
-  id: playerId, deck, money: z.number().int().nonnegative(), firstBuyMoney: z.number().int().nonnegative(),
+  id: playerId, deck, money: z.number().int().nonnegative(), mana: z.number().int().nonnegative(),
+  positionChanged: z.boolean(), firstBuyMoney: z.number().int().nonnegative(),
   firstBuyPending: z.boolean(), startingBuild: z.array(z.string()).nullable(), purchases: z.array(z.string())
 });
-const fighter = z.object({ playerId, position: z.number().int().min(1).max(5), health: z.number().int().min(0).max(20), aimed: z.boolean(), exposed: z.boolean() });
+const fighter = z.object({ playerId, position: z.number().int().min(1).max(5), health: z.number().int().min(0), aimed: z.boolean(), exposed: z.boolean() });
+const pendingChoice = z.object({ type: z.enum(['discard', 'recover']), playerId, remaining: z.number().int().positive() });
 const event = z.object({ sequence: z.number().int().nonnegative(), type: z.string(), playerId, detail: z.record(z.string(), z.unknown()) });
 const aiTurnRecap = z.object({
   turn: z.number().int().positive(),
@@ -38,10 +45,11 @@ const aiTurnRecap = z.object({
 });
 export const gameStateSchema = z.object({
   schemaVersion: z.literal(8), seed: z.number().int(), rngState: z.number().int().nonnegative(), version: z.number().int().nonnegative(),
-  nextCardSerial: z.number().int().positive(), activePlayerId: playerId, selectedFirstPlayerId: playerId, phase,
+  nextCardSerial: z.number().int().positive(), kingdomId: z.string().min(1), startingHealth: z.number().int().positive(),
+  activePlayerId: playerId, selectedFirstPlayerId: playerId, phase,
   turn: z.number().int().nonnegative(), winner: playerId.nullable(), players: z.object({ ochre: player, indigo: player }),
   fighters: z.object({ ochre: fighter, indigo: fighter }), supply: z.record(z.string(), z.number().int().nonnegative()),
-  trash: z.array(card), actionsThisTurn: z.array(z.string()), events: z.array(event)
+  trash: z.array(card), actionsThisTurn: z.array(z.string()), pendingChoice: pendingChoice.nullable(), events: z.array(event)
 });
 const undoCheckpoint = z.object({
   committedCommandCount: z.number().int().nonnegative(), completedActions: z.number().int().nonnegative(),

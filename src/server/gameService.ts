@@ -34,7 +34,7 @@ export class GameService {
       if (record.opponentMode === 'ai' && builderId !== record.humanPlayerId) throw new ForbiddenActionError('The human starting build is already complete.');
       try { for (const definitionId of definitionIds) cardDefinition(definitionId); }
       catch { throw new BadBuildError('Starting build contains an unknown card.'); }
-      if (complete && marketCost(definitionIds) > 12) throw new BadBuildError('Starting build costs more than 12 money.');
+      if (complete && marketCost(record.state, definitionIds) > 12) throw new BadBuildError('Starting build costs more than 12 money.');
       record.humanBuildProposal = [...definitionIds]; record.undoCheckpoint = null;
       if (complete) { this.commitCommand(record, { type: 'submitStartingBuild', playerId: builderId, definitionIds }); record.humanBuildProposal = []; }
       this.touch(record); this.assertRecordReplay(record); await this.repository.save(record); return this.safeView(record);

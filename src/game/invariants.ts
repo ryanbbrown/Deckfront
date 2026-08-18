@@ -6,7 +6,15 @@ export function checkInvariants(state: GameState): string[] {
   if (state.schemaVersion !== 8) errors.push('Unsupported game schema version.');
   for (const fighter of Object.values(state.fighters)) {
     if (fighter.position < 1 || fighter.position > 5) errors.push(`${fighter.playerId} is outside the arena.`);
-    if (fighter.health < 0 || fighter.health > 20) errors.push(`${fighter.playerId} has invalid health.`);
+    if (fighter.health < 0 || fighter.health > state.startingHealth) errors.push(`${fighter.playerId} has invalid health.`);
+  }
+  for (const player of Object.values(state.players)) {
+    if (!Number.isInteger(player.mana) || player.mana < 0) errors.push(`${player.id} has invalid mana.`);
+  }
+  if (state.pendingChoice) {
+    if (state.phase !== 'action') errors.push('A pending choice exists outside the Action phase.');
+    if (state.pendingChoice.playerId !== state.activePlayerId) errors.push('A pending choice belongs to the inactive player.');
+    if (!Number.isInteger(state.pendingChoice.remaining) || state.pendingChoice.remaining < 1) errors.push('A pending choice has an invalid remaining count.');
   }
   if (state.phase === 'startingBuild') {
     const cards = Object.values(state.players).flatMap((player) => [...player.deck.draw, ...player.deck.hand, ...player.deck.discard, ...player.deck.play]);
