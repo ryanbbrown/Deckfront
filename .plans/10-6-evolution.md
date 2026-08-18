@@ -15,7 +15,13 @@ This is load-bearing in three places. Exact duplicates collapse naturally, so le
 ## One generation
 
 1. Test every candidate against every leader over the shared seeds. The current leaders are themselves candidates, so a leader is re-scored rather than replaced wholesale by mutants. A strategy never plays itself; that pair is skipped.
-2. Swap first player and `swapSides` for each pairing. Each pairing therefore plays four games for each shared seed: two first-player orders times two arena sides. In each game the candidate takes `ochre` in orientations 1 and 3 and `indigo` in 2 and 4, so seat is balanced within the pairing.
+2. Swap first player and `swapSides` for each pairing. Each pairing therefore plays four games for each shared seed: two first-player orders times two arena sides.
+
+   The orientations are enumerated `(firstOchre, normal), (firstOchre, swapped), (firstIndigo, normal), (firstIndigo, swapped)`, and the candidate takes **`ochre` in orientations 1 and 4, `indigo` in 2 and 3**.
+
+   There are three binary factors to balance — seat, who moves first, and **arena position** — so four games need a half-fraction, not the obvious assignment. `createGame` puts ochre at position 2 and indigo at 3, exchanging them when `swapSides` is true (`src/game/state.ts:20-21`), and those positions are not equivalent: the fighter at 2 has one space of retreat behind it and the fighter at 3 has two. Assigning the candidate `ochre` in 1 and 3 leaves it at **position 2 in all four games**, so `swapSides` cancels nothing for the candidate — the exact defect `swapSides` was added to fix. The assignment above gives seat 2/2, moves-first 2/2, and position 2/2.
+
+   This is load-bearing for leader selection, not cosmetic. A leader plays both sides across its pairings, but a non-leader candidate only ever plays the candidate side, so a uniform candidate-side advantage would bias selection toward mutants over their parents.
 3. Score a win as 1, a draw as 0.5, and a loss as 0.
 4. **Aborted games are excluded from both the numerator and the denominator**, and ranking is by **mean score per completed game**. Ranking by total silently penalises overflow-prone candidates, which are exactly the strategies with the deepest search trees. `overflowCount` is the number of aborted games in the generation. A candidate with no completed games ranks last and is recorded, not dropped.
 5. Keep several strong, meaningfully different candidates as the next leaders.
@@ -149,6 +155,9 @@ export interface GenerationResult {
 export interface TournamentConfig {
   kingdomId: string; seed: number; sharedSeeds: number;
   turnLimitPerPlayer: number; actionCapPerTurn: number;
+  // Required. `entrants` also holds retained leaders from every generation and the baselines, so the
+  // final leaders cannot be recovered from it, and step 5's calibration input is defined over them.
+  finalLeaderIds: readonly string[];
   deadline?: number | undefined; now?: (() => number) | undefined;
 }
 
@@ -164,6 +173,8 @@ export function evolve(config: EvolutionConfig, onGeneration: (r: GenerationResu
 export function roundRobin(entrants: Strategy[], config: TournamentConfig): TournamentResult;
 ```
 
+`calibration.finalLeaders` lists exactly the `finalLeaderIds` strategies, in tournament rank order, with `rank` 1..n. The field is required rather than optional because the alternative — inferring the final leaders from the entrant list — is a silent guess that would produce a wrong calibration result rather than an error, and the caller always knows them.
+
 `PairRecord` carries `played` and `draws` so step 7 can render a win **rate**, not a bare count. Aggregated telemetry is on both result types because step 5's gate and six of step 7's nine report sections need it, and a summed score cannot recover the orientation split.
 
 `onGeneration` fires after every generation so step 7 can write partial output before a limit or deadline ends the run.
@@ -172,7 +183,9 @@ export function roundRobin(entrants: Strategy[], config: TournamentConfig): Tour
 
 **Determinism is claimed for deadline-free runs only.** Stated explicitly, because a wall-clock deadline and exact reproducibility cannot both hold. Tests inject `now()`.
 
-Per-match seeds derive deterministically from the run seed, the generation, the pairing index, the seed index, and the orientation.
+Per-match seeds derive deterministically from the run seed, the seed index, and the orientation — **and from nothing else**.
+
+The generation and the pairing index must not enter the derivation. If they did, no two pairings and no two generations would play the same shuffles, so the seeds would not be shared and the cross-generation score comparability the report depends on would be gone. Holding the shuffles fixed across every pairing and generation is the point: it is common random numbers, and it is what makes a generation-5 score comparable with a generation-1 score.
 
 ## Files expected to change
 

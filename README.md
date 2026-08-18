@@ -67,4 +67,6 @@ npx tsx scripts/measure_search.ts
 
 It plays every baseline pairing in every curated kingdom and prints wall clock per decision and per match, states visited, and stop reasons.
 
-Card definitions live in `src/game-data/cards.json`. Strategy prompts live in `strategies/`. Saved AI traces live under `.data/ai-traces`.
+The five curated experiment kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and `rigged-melee`. `rigged-melee` is a calibration fixture: it re-prices Heavy Blow to 3 for 6 damage, and `src/sim/calibration.ts` checks that the search finds it. Its threshold, kingdom, and strategies must never be tuned to make it pass.
+
+Card definitions live in `src/game-data/cards.json` and kingdoms in `src/game-data/kingdoms.json`. Strategy prompts live in `strategies/`. Saved AI traces live under `.data/ai-traces`.

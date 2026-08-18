@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   applyAction, createGame, listLegalActions, marketCost, registerKingdom, resetKingdoms, submitStartingBuild
 } from '../../src/game';
-import type { GameCommand, GameState, Kingdom, PlayerId } from '../../src/game';
+import type { GameCommand, GameState, PlayerId } from '../../src/game';
 import { BASELINE_STRATEGIES, baselineStrategy } from '../../src/sim/baselines';
 import { chooseBuyAction, ownedCount } from '../../src/sim/buy';
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
@@ -10,8 +10,8 @@ import { repairBuild } from '../../src/sim/build';
 import { runMatch } from '../../src/sim/match';
 import type { Strategy } from '../../src/sim/strategy';
 import type { Agent, MatchConfig, MatchResult } from '../../src/sim/types';
+import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
 import { strategy, weights } from './fixtures';
-import { CURATED_KINGDOMS, registerCuratedKingdoms } from './kingdoms';
 
 function buyState(options: { kingdomId?: string; money: number }): GameState {
   const empty = createGame({ seed: 1, kingdomId: options.kingdomId ?? 'distance-duel' });
@@ -173,8 +173,6 @@ describe('strategy agent dispatch', () => {
 });
 
 describe('baseline starting builds', () => {
-  beforeEach(() => { registerCuratedKingdoms(); });
-
   // Pins what each baseline actually opens with per kingdom. Plan 10-4 allows a build to repair away
   // to very little, so these are recorded rather than judged, and step 6 inherits the thin ones.
   const expected: Record<string, Record<string, string[]>> = {
@@ -201,12 +199,12 @@ describe('baseline starting builds', () => {
   };
 
   it('repairs every baseline into a build each curated kingdom accepts', () => {
-    for (const kingdom of CURATED_KINGDOMS) {
+    for (const kingdomId of CURATED_KINGDOM_IDS) {
       for (const plan of BASELINE_STRATEGIES) {
-        const state = createGame({ seed: 1, kingdomId: kingdom.id });
+        const state = createGame({ seed: 1, kingdomId });
         const build = repairBuild(state, plan.startingBuild);
-        expect(build, `${kingdom.id}/${plan.id}`).toEqual(expected[kingdom.id]![plan.id]);
-        expect(marketCost(state, build), `${kingdom.id}/${plan.id}`).toBeLessThanOrEqual(12);
+        expect(build, `${kingdomId}/${plan.id}`).toEqual(expected[kingdomId]![plan.id]);
+        expect(marketCost(state, build), `${kingdomId}/${plan.id}`).toBeLessThanOrEqual(12);
         expect(() => submitStartingBuild(state, 'ochre', build)).not.toThrow();
       }
     }
@@ -222,8 +220,6 @@ describe('baseline starting builds', () => {
 });
 
 describe('strategy agent match boundaries', () => {
-  beforeEach(() => { registerCuratedKingdoms(); });
-
   // The first match lasts one turn per player, so each agent's stored phase key is still turn 1 when
   // the second match asks about turn 1. That collision is the only way a phase key alone lets a
   // baseline and a memo survive into a different game.
@@ -260,8 +256,6 @@ describe('strategy agent match boundaries', () => {
 });
 
 describe('strategy agent search limits', () => {
-  beforeEach(() => { registerCuratedKingdoms(); });
-
   it('aborts the match when the search passes its state limit', () => {
     const cramped = strategyAgent(baselineStrategy('ranged-standard'), { stateLimit: 1 });
     const result = runMatch({
@@ -276,25 +270,23 @@ describe('strategy agent search limits', () => {
 });
 
 describe('baseline coverage', () => {
-  beforeEach(() => { registerCuratedKingdoms(); });
-
   it('plays every baseline pair in every curated kingdom without throwing', { timeout: 120_000 }, () => {
-    const kingdoms: readonly Kingdom[] = CURATED_KINGDOMS;
+    const kingdomIds = CURATED_KINGDOM_IDS;
     let matches = 0;
-    for (const kingdom of kingdoms) {
+    for (const kingdomId of kingdomIds) {
       for (const ochre of BASELINE_STRATEGIES) {
         for (const indigo of BASELINE_STRATEGIES) {
           const result = runMatch({
-            kingdomId: kingdom.id, seed: 17, firstPlayerId: 'ochre', swapSides: matches % 2 === 1,
+            kingdomId, seed: 17, firstPlayerId: 'ochre', swapSides: matches % 2 === 1,
             turnLimitPerPlayer: 3, actionCapPerTurn: 200,
             agents: { ochre: strategyAgent(ochre), indigo: strategyAgent(indigo) }
           });
-          expect(result.reason, `${kingdom.id} ${ochre.id} vs ${indigo.id}`).not.toBe('actionSearchOverflow');
-          expect(result.turns, `${kingdom.id} ${ochre.id} vs ${indigo.id}`).toBeGreaterThan(0);
+          expect(result.reason, `${kingdomId} ${ochre.id} vs ${indigo.id}`).not.toBe('actionSearchOverflow');
+          expect(result.turns, `${kingdomId} ${ochre.id} vs ${indigo.id}`).toBeGreaterThan(0);
           matches += 1;
         }
       }
     }
-    expect(matches).toBe(kingdoms.length * BASELINE_STRATEGIES.length ** 2);
+    expect(matches).toBe(kingdomIds.length * BASELINE_STRATEGIES.length ** 2);
   });
 });

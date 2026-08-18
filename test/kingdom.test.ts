@@ -4,10 +4,11 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
+import kingdomLibrary from '../src/game-data/kingdoms.json' with { type: 'json' };
 import {
   ALWAYS_AVAILABLE_COUNT, CARDS, DEFAULT_KINGDOM_ID, applyAction, assertInvariants, checkInvariants, cardDefinition,
-  createCard, createGame, kingdomMarket, kingdomOf, listLegalActions, registerKingdom, resetKingdoms, resolveCard,
-  submitStartingBuild
+  createCard, createGame, kingdomMarket, kingdomOf, listLegalActions, marketCost, registerKingdom, resetKingdoms,
+  resolveCard, submitStartingBuild
 } from '../src/game';
 import type { GameCommand, GameState, Kingdom, PlayerId } from '../src/game';
 import { GameService } from '../src/server/gameService';
@@ -18,6 +19,10 @@ const ACTION_IDS = Object.values(CARDS).filter((card) => card.type === 'action' 
 
 function piles(cardIds: readonly string[], count = 10): { cardId: string; count: number }[] {
   return cardIds.map((cardId) => ({ cardId, count }));
+}
+/** The committed library, so the registry is checked against the data rather than against a copy of it. */
+function kingdomIds(): string[] {
+  return kingdomLibrary.kingdoms.map((entry) => entry.id);
 }
 function kingdom(id: string, overrides: Partial<Kingdom> = {}): Kingdom {
   return { id, name: id, startingHealth: 20, actionPiles: piles(['footwork', 'muster']), ...overrides };
@@ -155,6 +160,113 @@ describe('kingdom registry', () => {
       return applyAction(state, action(state, (command) => command.type === 'endActionPhase').id);
     };
     expect(play()).toEqual(play());
+  });
+});
+
+describe('the curated kingdoms', () => {
+  const THREE_WAY_OPEN = ['footwork', 'stipend', 'drive', 'heavyBlow', 'aim', 'volley', 'channel', 'leyStep', 'arcBolt', 'fireball'];
+  const EXPECTED: readonly Kingdom[] = [
+    {
+      id: 'distance-duel', name: 'Distance Duel', startingHealth: 20,
+      actionPiles: piles(['footwork', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley'])
+    },
+    {
+      id: 'current-duel', name: 'Current Duel', startingHealth: 20,
+      actionPiles: piles(['footwork', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley', 'adapt'])
+    },
+    { id: 'three-way-open', name: 'Three-Way Open', startingHealth: 20, actionPiles: piles(THREE_WAY_OPEN) },
+    {
+      id: 'three-way-engine', name: 'Three-Way Engine', startingHealth: 30,
+      actionPiles: piles(['footwork', 'muster', 'stipend', 'reclaim', 'adapt', 'heavyBlow', 'steadyShot', 'channel', 'prism', 'fireball'])
+    },
+    {
+      id: 'range-rich-mixed', name: 'Range-Rich Mixed', startingHealth: 20,
+      actionPiles: piles(['footwork', 'adapt', 'quickShot', 'steadyShot', 'aim', 'volley', 'drive', 'heavyBlow', 'channel', 'arcBolt'])
+    },
+    {
+      id: 'rigged-melee', name: 'Rigged Melee', startingHealth: 20, actionPiles: piles(THREE_WAY_OPEN),
+      overrides: { heavyBlow: { cost: 3, values: { damage: 6 } } }
+    }
+  ];
+
+  it('registers exactly the six committed kingdoms, each with its approved content', () => {
+    expect(kingdomIds()).toEqual(EXPECTED.map((entry) => entry.id));
+    for (const expected of EXPECTED) {
+      const registered = kingdomOf(expected.id);
+      expect(registered.name, expected.id).toBe(expected.name);
+      expect(registered.startingHealth, expected.id).toBe(expected.startingHealth);
+      expect(registered.actionPiles, expected.id).toEqual(expected.actionPiles);
+      expect(registered.overrides ?? undefined, expected.id).toEqual(expected.overrides);
+      // Cull and the three treasures are available everywhere and are never listed as piles.
+      expect(kingdomMarket(expected.id).map((card) => card.id), expected.id)
+        .toEqual(expect.arrayContaining(['cull', 'copper', 'silver', 'gold']));
+    }
+  });
+
+  it('keeps distance-duel as the default with its shipped supply', () => {
+    const state = createGame({ seed: 1 });
+    expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID);
+    expect(state.supply).toEqual({ footwork: 10, muster: 10, feint: 10, drive: 10, flurry: 10, aim: 10, volley: 10, cull: 10 });
+  });
+
+  // Asserted on `actionPiles`, not on the supply or the market, because both also carry Cull and the
+  // treasures and would report eleven and fourteen.
+  it('gives current-duel eight action piles and the other four ten', () => {
+    expect(kingdomOf('current-duel').actionPiles).toHaveLength(8);
+    for (const id of ['three-way-open', 'three-way-engine', 'range-rich-mixed', 'rigged-melee']) {
+      expect(kingdomOf(id).actionPiles, id).toHaveLength(10);
+    }
+  });
+
+  it('starts three-way-engine at 30 health and every kingdom on a sound state', () => {
+    const engine = createGame({ seed: 1, kingdomId: 'three-way-engine' });
+    expect(engine.startingHealth).toBe(30);
+    expect(engine.fighters.ochre.health).toBe(30);
+    expect(engine.fighters.indigo.health).toBe(30);
+    for (const expected of EXPECTED) {
+      const state = createGame({ seed: 4, kingdomId: expected.id });
+      expect(() => assertInvariants(state), expected.id).not.toThrow();
+      expect(() => assertInvariants(ready(state)), expected.id).not.toThrow();
+    }
+  });
+
+  it('sells Heavy Blow for 3 and deals 6 with it in rigged-melee, leaving the card data alone', () => {
+    const state = ready(createGame({ seed: 1, kingdomId: 'rigged-melee' }), ['heavyBlow', 'heavyBlow', 'heavyBlow']);
+    expect(resolveCard(state, 'heavyBlow')).toMatchObject({ cost: 3, values: { damage: 6 } });
+    expect(CARDS.heavyBlow).toMatchObject({ cost: 5, values: { damage: 4 } });
+    expect(cardDefinition('heavyBlow')).toMatchObject({ cost: 5, values: { damage: 4 } });
+    // Three copies cost 9 of the 12, which is the acquisition the calibration gate exists to see.
+    expect(state.players.ochre.firstBuyMoney).toBe(3);
+    state.fighters.indigo.position = 2;
+    isolateHand(state, 'ochre', ['heavyBlow']);
+    expect(playCard(state, 'heavyBlow').fighters.indigo.health).toBe(14);
+  });
+
+  // These two kingdoms hold identical piles, so a memo keyed on the definition alone would serve
+  // one kingdom's Heavy Blow to the other and silently invalidate the whole calibration.
+  it('resolves Heavy Blow differently in rigged-melee and three-way-open in one process', () => {
+    const open = createGame({ seed: 1, kingdomId: 'three-way-open' });
+    const rigged = createGame({ seed: 1, kingdomId: 'rigged-melee' });
+    expect(resolveCard(open, 'heavyBlow')).toMatchObject({ cost: 5, values: { damage: 4 } });
+    expect(resolveCard(rigged, 'heavyBlow')).toMatchObject({ cost: 3, values: { damage: 6 } });
+    expect(resolveCard(open, 'heavyBlow')).toMatchObject({ cost: 5, values: { damage: 4 } });
+    expect(marketCost(open, ['heavyBlow', 'heavyBlow'])).toBe(10);
+    expect(marketCost(rigged, ['heavyBlow', 'heavyBlow'])).toBe(6);
+    expect(kingdomOf('rigged-melee').actionPiles).toEqual(kingdomOf('three-way-open').actionPiles);
+  });
+
+  it('leaves Step, Strike, Shot, and Starfire out of every kingdom', () => {
+    for (const id of kingdomIds()) {
+      const sold = new Set(kingdomOf(id).actionPiles.map((pile) => pile.cardId));
+      for (const excluded of ['step', 'strike', 'shot', 'starfire']) {
+        expect(sold.has(excluded), `${id} sells ${excluded}`).toBe(false);
+      }
+    }
+  });
+
+  it('still rejects an override naming a value the mechanic does not declare', () => {
+    expect(() => registerKingdom(kingdom('bad', { overrides: { heavyBlow: { values: { draw: 1 } } } })))
+      .toThrow('no draw value to override');
   });
 });
 
