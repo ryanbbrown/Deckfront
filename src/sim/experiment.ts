@@ -117,6 +117,16 @@ function tournamentRecord(result: TournamentResult): unknown {
   };
 }
 
+/** Keeps the first appearance of each strategy, so the caller's order decides precedence. */
+function dedupeById(strategies: readonly Strategy[]): Strategy[] {
+  const seen = new Set<string>();
+  return strategies.filter((strategy) => {
+    if (seen.has(strategy.id)) return false;
+    seen.add(strategy.id);
+    return true;
+  });
+}
+
 function strategyRecord(strategies: readonly { source: string; strategy: Strategy }[], labels: Map<string, string>): unknown {
   return {
     strategies: strategies.map(({ source, strategy }) => ({
@@ -189,6 +199,7 @@ export function runExperiment(options: ExperimentOptions, outDir: string, deps: 
   writeJson(runFile, runRecord(summary, resolvedKingdom));
 
   const generationsFile = path.join(outDir, 'generations.jsonl');
+  // Every leader of every generation, for `strategies.json`. The tournament takes a smaller set.
   const everyLeader: { source: string; strategy: Strategy }[] = [];
   const seen = new Set<string>();
   const remember = (source: string, strategy: Strategy): void => {
@@ -224,12 +235,23 @@ export function runExperiment(options: ExperimentOptions, outDir: string, deps: 
       ? 'generations'
       : 'deadline';
 
-    for (const result of results) for (const entry of result.leaders) remember('leader', entry.strategy);
-    for (const leader of finalLeaders) remember('final', leader);
-    for (const leader of retainedLeaders(results)) remember('retained', leader);
-    for (const seed of seedStrategies(options.kingdomId)) remember('baseline', seed);
+    const retained = retainedLeaders(results);
+    const baselines = seedStrategies(options.kingdomId);
 
-    const tournament = runTournament(everyLeader.map((entry) => entry.strategy), {
+    // Source precedence, so the label carries the strongest claim on a strategy that has several.
+    for (const leader of finalLeaders) remember('final', leader);
+    for (const leader of retained) remember('retained', leader);
+    for (const result of results) for (const entry of result.leaders) remember('leader', entry.strategy);
+    for (const seed of baselines) remember('baseline', seed);
+
+    // The tournament takes the final leaders, one best leader per generation, and the fixed
+    // baselines — not every leader of every generation, which grows quadratically with the
+    // generation count. Final leaders come first because `roundRobin` walks pairs in this order and
+    // stops at the deadline, and the calibration gate reads exactly the final leaders' matches: a
+    // truncated tournament must cost precision, never the verdict.
+    const entrants = dedupeById([...finalLeaders, ...retained, ...baselines]);
+
+    const tournament = runTournament(entrants, {
       kingdomId: options.kingdomId,
       seed: options.seed,
       sharedSeeds: options.sharedSeeds,
@@ -245,6 +267,9 @@ export function runExperiment(options: ExperimentOptions, outDir: string, deps: 
     summary.tournamentMatches = tournament.pairsPlayed * options.sharedSeeds * 4;
     summary.tournamentAborted = abortedInTournament(tournament.telemetry);
     if (tournament.partial) {
+      // The deadline stopped the run, whatever evolution managed. Reporting `generations` here would
+      // claim the run finished the work it was asked for.
+      summary.stopReason = 'deadline';
       summary.blockers.push(`The final tournament played ${tournament.pairsPlayed} of`
         + ` ${tournament.pairsExpected} pairs before the deadline, so the ranking and any calibration`
         + ' verdict below are not final.');

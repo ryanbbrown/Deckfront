@@ -258,7 +258,8 @@ describe('rendering the report', () => {
     }));
     expect(gated).toContain('## Calibration');
     expect(gated).toContain('| Calibration (rigged melee) | PASS |');
-    expect(gated).toContain('| Heavy Blow acquired by the top leader | 8 |');
+    // The row says what it sums, because 8 copies over many matches is not an 8-card deck.
+    expect(gated).toContain('| Heavy Blow copies the top leader acquired, summed over its matches | 8 |');
   });
 
   it('names the seeds a kingdom cut down, and says what it means for generation 1', () => {

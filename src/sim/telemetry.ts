@@ -48,6 +48,7 @@ export function createAccumulator(startingBuild: Record<PlayerId, readonly strin
       purchasesByCard: byPlayer<Record<string, number>>(() => ({})),
       startingBuild: { ochre: [...startingBuild.ochre], indigo: [...startingBuild.indigo] },
       deadDraws: byPlayer<DeadDrawCounts>(() => ({ range: 0, mana: 0, setup: 0, total: 0 })),
+      moneySpent: byPlayer(() => 0),
       unspentMoney: byPlayer(() => 0),
       finalHealth: byPlayer(() => 0)
     },
@@ -85,6 +86,7 @@ export function accumulate(accumulator: TelemetryAccumulator, slice: TelemetrySl
     playsByCard: { ...accumulator.telemetry.playsByCard },
     purchasesByCard: { ...accumulator.telemetry.purchasesByCard },
     deadDraws: { ...accumulator.telemetry.deadDraws },
+    moneySpent: { ...accumulator.telemetry.moneySpent },
     unspentMoney: { ...accumulator.telemetry.unspentMoney },
     eventCount: accumulator.telemetry.eventCount + slice.events.length
   };
@@ -110,6 +112,7 @@ export function accumulate(accumulator: TelemetryAccumulator, slice: TelemetrySl
         const definitionId = text(event.detail, 'definitionId');
         if (!definitionId) break;
         telemetry.purchasesByCard[actorId] = bump(telemetry.purchasesByCard[actorId], definitionId, 1);
+        telemetry.moneySpent[actorId] += number(event.detail, 'cost');
         break;
       }
       case 'victory':

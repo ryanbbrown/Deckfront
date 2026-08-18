@@ -28,11 +28,17 @@ function statesOf(seed: number): GameState[] {
 
 const states = statesOf(11);
 const midGame = states[Math.floor(states.length / 2)]!;
-const pending = states.find((state) => state.pendingChoice !== null) ?? midGame;
+const pending = states.find((state) => state.pendingChoice !== null);
 const final = states.at(-1)!;
 
 describe('cloning a game state', () => {
-  it.each([['mid game', midGame], ['a pending choice', pending], ['the final state', final]] as const)(
+  // `10-8:61` requires the mana-and-pending-choice case, which is where a cheap clone fails first.
+  // Without this the fixture could silently lose it and every check below would still pass.
+  it('has a state with a live pending choice to copy', () => {
+    expect(pending?.pendingChoice).toMatchObject({ playerId: expect.any(String), remaining: expect.any(Number) });
+  });
+
+  it.each([['mid game', midGame], ['a pending choice', pending!], ['the final state', final]] as const)(
     'copies %s exactly as structuredClone does',
     (_name, state) => {
       expect(cloneGame(state)).toEqual(structuredClone(state));

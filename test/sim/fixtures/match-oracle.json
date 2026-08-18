@@ -92,6 +92,10 @@
        "total": 0
       }
      },
+     "moneySpent": {
+      "ochre": 75,
+      "indigo": 140
+     },
      "unspentMoney": {
       "ochre": 15,
       "indigo": 13
@@ -3507,6 +3511,10 @@
        "total": 0
       }
      },
+     "moneySpent": {
+      "ochre": 128,
+      "indigo": 135
+     },
      "unspentMoney": {
       "ochre": 11,
       "indigo": 16
@@ -3602,6 +3610,10 @@
        "setup": 0,
        "total": 0
       }
+     },
+     "moneySpent": {
+      "ochre": 13,
+      "indigo": 16
      },
      "unspentMoney": {
       "ochre": 6,
@@ -4700,6 +4712,10 @@
        "total": 6
       }
      },
+     "moneySpent": {
+      "ochre": 15,
+      "indigo": 15
+     },
      "unspentMoney": {
       "ochre": 2,
       "indigo": 4
@@ -4773,6 +4789,10 @@
        "setup": 0,
        "total": 0
       }
+     },
+     "moneySpent": {
+      "ochre": 1119,
+      "indigo": 1170
      },
      "unspentMoney": {
       "ochre": 115,
@@ -4874,6 +4894,10 @@
        "total": 1
       }
      },
+     "moneySpent": {
+      "ochre": 18,
+      "indigo": 14
+     },
      "unspentMoney": {
       "ochre": 2,
       "indigo": 5
@@ -4947,6 +4971,10 @@
        "setup": 0,
        "total": 0
       }
+     },
+     "moneySpent": {
+      "ochre": 1164,
+      "indigo": 1164
      },
      "unspentMoney": {
       "ochre": 105,

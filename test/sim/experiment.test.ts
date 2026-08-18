@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { resetKingdoms } from '../../src/game';
 import { experimentDir, main } from '../../src/sim/cli';
 import type { ExperimentOptions } from '../../src/sim/cli';
-import { evolve } from '../../src/sim/evolution';
+import { evolve, retainedLeaders } from '../../src/sim/evolution';
 import { runExperiment } from '../../src/sim/experiment';
 import { emptyAggregate } from '../../src/sim/pairing';
 import { seedStrategies } from '../../src/sim/seedPopulation';
@@ -173,6 +173,72 @@ describe('writing an experiment', () => {
     expect(fs.readFileSync(path.join(dir, 'report.md'), 'utf8')).not.toContain('## Calibration');
   });
 
+  it('admits the final leaders, one best leader per generation, and the baselines, and nothing else', () => {
+    const dir = tempDir();
+    let captured: GenerationResult[] = [];
+    const watching: typeof evolve = (config, onGeneration) => {
+      captured = evolve(config, onGeneration);
+      return captured;
+    };
+    let entrants: readonly Strategy[] = [];
+    const spy: typeof roundRobin = (given, config) => {
+      entrants = given;
+      return roundRobin(given, config);
+    };
+
+    const summary = runExperiment(
+      options({ candidates: 8, leaders: 3, generations: 3, sharedSeeds: 1 }), dir,
+      { evolve: watching, roundRobin: spy }
+    );
+
+    const baselines = seedStrategies(KINGDOM).map((strategy) => strategy.id);
+    const allowed = new Set([
+      ...summary.finalLeaderIds, ...retainedLeaders(captured).map((leader) => leader.id), ...baselines
+    ]);
+    const entrantIds = entrants.map((entrant) => entrant.id);
+    expect(entrantIds.filter((id) => !allowed.has(id))).toEqual([]);
+    // One best leader per generation, plus the last generation's leaders, plus the fixed baselines.
+    expect(entrantIds.length).toBeLessThanOrEqual(3 + 3 + baselines.length);
+
+    // The set the defect admitted: a leader of an earlier generation that was not that generation's
+    // best. Without one of these the check would pass on an empty set and prove nothing.
+    const dropped = new Set<string>();
+    for (const generation of captured.slice(0, -1)) {
+      for (const entry of generation.leaders.slice(1)) dropped.add(entry.strategy.id);
+    }
+    for (const id of allowed) dropped.delete(id);
+    expect(dropped.size).toBeGreaterThan(0);
+    expect(entrantIds.filter((id) => dropped.has(id))).toEqual([]);
+  });
+
+  it('plays the final leaders first, so a cut tournament still judges the ones the gate reads', () => {
+    const dir = tempDir();
+    // The clock advances one tick per pair, so the tournament stops after two pairings. It is
+    // injected here rather than run-wide, to cut the tournament without touching evolution.
+    let tick = 0;
+    const cutShort: typeof roundRobin = (given, config) =>
+      roundRobin(given, { ...config, deadline: 3, now: () => (tick += 1) });
+
+    const summary = runExperiment(
+      options({ seed: 7, candidates: 8, leaders: 2, generations: 3, sharedSeeds: 1 }), dir, { roundRobin: cutShort }
+    );
+
+    const tournament = summary.tournament!;
+    expect(tournament.partial).toBe(true);
+    expect(tournament.pairsPlayed).toBeLessThan(tournament.pairsExpected);
+    // Both final leaders must be evolved. A final leader that is also a baseline would sit at the
+    // front of any ordering, and the check below would pass without testing the order at all.
+    const baselineIds = new Set(seedStrategies(KINGDOM).map((strategy) => strategy.id));
+    expect(summary.finalLeaderIds.length).toBe(2);
+    expect(summary.finalLeaderIds.filter((id) => baselineIds.has(id))).toEqual([]);
+    for (const id of summary.finalLeaderIds) {
+      const played = Object.values(tournament.pairs[id] ?? {}).reduce((total, record) => total + record.played, 0);
+      expect(played, `final leader ${id} played no pairing`).toBeGreaterThan(0);
+    }
+    // A tournament the deadline cut short did not finish the work it was asked for.
+    expect(summary.stopReason).toBe('deadline');
+  });
+
   it('runs end to end from the command line into a mode-specific directory', () => {
     const root = tempDir();
     const argv = ['--kingdom', KINGDOM, '--mode', 'smoke', '--candidates', '5', '--leaders', '1',
@@ -187,6 +253,7 @@ describe('writing an experiment', () => {
     }
     const record = JSON.parse(fs.readFileSync(path.join(dir, 'run.json'), 'utf8')) as {
       stopReason: string; mode: string; limits: { candidates: number }; tournamentComplete: boolean;
+      finalLeaderIds: string[];
     };
     expect(record.stopReason).toBe('generations');
     expect(record.mode).toBe('smoke');
@@ -198,6 +265,9 @@ describe('writing an experiment', () => {
     };
     expect(strategies.strategies.some((entry) => entry.source === 'baseline')).toBe(true);
     expect(strategies.strategies.every((entry) => entry.text.startsWith(entry.id))).toBe(true);
+    // Source precedence: a final leader is labelled `final`, never the weaker `leader` claim.
+    const sources = new Map(strategies.strategies.map((entry) => [entry.id, entry.source]));
+    for (const id of record.finalLeaderIds) expect(sources.get(id)).toBe('final');
 
     const telemetry = JSON.parse(fs.readFileSync(path.join(dir, 'telemetry.json'), 'utf8')) as Record<string, unknown>;
     expect(Object.keys(telemetry).sort()).toEqual(['evolution', 'tournament']);

@@ -33,6 +33,7 @@ export interface MatchTelemetry {
   purchasesByCard: Record<PlayerId, Record<string, number>>;
   startingBuild: Record<PlayerId, string[]>;
   deadDraws: Record<PlayerId, DeadDrawCounts>;
+  moneySpent: Record<PlayerId, number>;      // summed purchase costs, which carry kingdom overrides
   unspentMoney: Record<PlayerId, number>;
   finalHealth: Record<PlayerId, number>;
 }

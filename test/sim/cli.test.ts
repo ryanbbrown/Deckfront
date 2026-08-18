@@ -55,6 +55,8 @@ describe('the experiment command line', () => {
 
   it('rejects an unknown option, a missing value, and a missing required option', () => {
     expect(() => parseExperimentOptions([...base, '--out', 'somewhere'])).toThrow('Unknown option --out');
+    // A typo with nothing after it is still a typo, not a missing value.
+    expect(() => parseExperimentOptions([...base, '--kingdmo'])).toThrow('Unknown option --kingdmo');
     expect(() => parseExperimentOptions([...base, '--candidates'])).toThrow('--candidates needs a value');
     expect(() => parseExperimentOptions([...base, '--candidates', '--leaders', '2']))
       .toThrow('--candidates needs a value');

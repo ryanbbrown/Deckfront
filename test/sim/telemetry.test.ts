@@ -75,6 +75,7 @@ describe('telemetry accumulator', () => {
       ]
     });
     expect(telemetry.purchasesByCard.indigo).toEqual({ volley: 2, silver: 1 });
+    expect(telemetry.moneySpent).toEqual({ ochre: 0, indigo: 13 });
     expect(telemetry.unspentMoney).toEqual({ ochre: 0, indigo: 4 });
     expect(telemetry.turnsToWin).toBe(6);
   });

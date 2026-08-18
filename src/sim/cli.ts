@@ -49,6 +49,8 @@ const LIMIT_FLAGS: Record<string, LimitName> = {
   '--state-limit': 'stateLimit'
 };
 
+const KNOWN_FLAGS = new Set(['--kingdom', '--mode', '--seed', ...Object.keys(LIMIT_FLAGS)]);
+
 function positiveInteger(flag: string, raw: string): number {
   const value = Number(raw);
   if (!Number.isInteger(value) || value < 1) {
@@ -69,6 +71,8 @@ export function parseExperimentOptions(argv: readonly string[]): ExperimentOptio
 
   for (let index = 0; index < argv.length; index += 1) {
     const flag = argv[index]!;
+    // The name is checked first: `--kingdmo` with nothing after it is a typo, not a missing value.
+    if (!KNOWN_FLAGS.has(flag)) throw new Error(`Unknown option ${flag}.`);
     const raw = argv[index + 1];
     if (raw === undefined || raw.startsWith('--')) throw new Error(`${flag} needs a value.`);
     index += 1;
@@ -82,13 +86,11 @@ export function parseExperimentOptions(argv: readonly string[]): ExperimentOptio
       mode = raw;
     } else if (flag === '--seed') {
       seed = positiveInteger(flag, raw);
-    } else if (LIMIT_FLAGS[flag]) {
+    } else {
       const name = LIMIT_FLAGS[flag]!;
       const value = positiveInteger(flag, raw);
       if (value > MAXIMA[name]) throw new Error(`${flag} may be at most ${MAXIMA[name]}, not ${value}.`);
       limits[name] = value;
-    } else {
-      throw new Error(`Unknown option ${flag}.`);
     }
   }
 

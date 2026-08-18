@@ -184,7 +184,8 @@ function header(summary: RunSummary): string[] {
     ...table(['Field', 'Value'], rows)
   ];
   if (summary.error) lines.push('', `**The run stopped on an error:** ${summary.error}`);
-  if (!summary.tournamentComplete) {
+  // Only a tournament that started can have failed to finish. An error before it ran says so once.
+  if (summary.tournament && !summary.tournamentComplete) {
     lines.push('', '**The final tournament did not finish.** The ranking, the pairwise table, and any'
       + ' calibration verdict below are taken from an incomplete round robin and are not final.');
   }
@@ -205,7 +206,7 @@ function calibrationSection(summary: RunSummary): string[] {
     ...table(['Check', 'Value'], [
       ['Result', result.passed ? 'PASS' : 'FAIL'],
       ['Top final leader', label(summary, result.topStrategyId)],
-      ['Heavy Blow acquired by the top leader', String(result.topStrategyCopies)],
+      ['Heavy Blow copies the top leader acquired, summed over its matches', String(result.topStrategyCopies)],
       ['Final leaders that acquired Heavy Blow', `${result.leadersWhoAcquired} of ${result.leaderCount}`]
     ])
   ];
