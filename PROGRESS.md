@@ -2,7 +2,7 @@
 
 ## Status
 
-Group 1 planned and plan-reviewed. Both plans revised against the panel findings. Ready to launch the writer subagent for steps 1 and 2.
+Group 1 (steps 1 and 2) is implemented, reviewed, fixed, and green. Group 2 (steps 3 and 4) is plan-reviewed, revised, and delegated to a writer. Group 3 plan reviews are running.
 
 ## Authoritative inputs
 
@@ -16,28 +16,30 @@ Group 1 planned and plan-reviewed. Both plans revised against the panel findings
 
 | Group | Steps | Plan files | Status |
 | --- | --- | --- | --- |
-| 1 | 1, 2 | [10-1-card-batch.md](.plans/10-1-card-batch.md), [10-2-kingdom-config.md](.plans/10-2-kingdom-config.md) | Plan reviewed and revised |
-| 2 | 3, 4 | [10-3-match-runner.md](.plans/10-3-match-runner.md), [10-4-strategies-and-action-search.md](.plans/10-4-strategies-and-action-search.md) | Drafted, not reviewed |
-| 3 | 5, 6 | [10-5-kingdoms.md](.plans/10-5-kingdoms.md), [10-6-evolution.md](.plans/10-6-evolution.md) | Drafted, not reviewed |
-| 4 | 7, 8 | [10-7-results-and-report.md](.plans/10-7-results-and-report.md), [10-8-profiling.md](.plans/10-8-profiling.md) | Drafted, not reviewed |
+| 1 | 1, 2 | [10-1-card-batch.md](.plans/10-1-card-batch.md), [10-2-kingdom-config.md](.plans/10-2-kingdom-config.md) | **Done.** Implemented, reviewed, fixed, green. |
+| 2 | 3, 4 | [10-3-match-runner.md](.plans/10-3-match-runner.md), [10-4-strategies-and-action-search.md](.plans/10-4-strategies-and-action-search.md) | Plan reviewed and revised. Writer running. |
+| 3 | 5, 6 | [10-5-kingdoms.md](.plans/10-5-kingdoms.md), [10-6-evolution.md](.plans/10-6-evolution.md) | Plan review running. |
+| 4 | 7, 8 | [10-7-results-and-report.md](.plans/10-7-results-and-report.md), [10-8-profiling.md](.plans/10-8-profiling.md) | Drafted, not reviewed. |
 
 Step 9, the native-language port, is outside this goal.
 
 ## Current phase
 
-Group 1, steps 1 and 2, delegated to one writer subagent as a single unit. They are split across two plan files but are one change: step 1 needs `resolveCard` and `kingdomMarket` from step 2, and step 1 alone would leave the browser market showing every implemented card until step 2 fixes it.
+Group 2, steps 3 and 4, delegated to one writer subagent as a single unit against the two revised plans. Pre-implementation SHA for the review round: `b21f465c4fabb3dbf2fecbe1b95e18edbf830227`.
 
-Completion criterion: the 25 checks in the step 1 plan and the 17 checks in the step 2 plan pass, and `npm test`, `npm run typecheck`, `npm run lint`, and `npm run build` pass.
+Completion criterion: the 12 checks in the step 3 plan and the 20 checks in the step 4 plan pass, plan 10-4's wall-clock measurement is recorded, and the four verification commands pass.
 
 Retry count: 0.
 
 ## Scope exception
 
-`GOAL.md` puts client and server code out of scope. Three narrow edits are still required, because without them this work breaks the running browser game rather than only leaving it untested. All three were confirmed against the code, not assumed.
+`GOAL.md` puts client and server code out of scope. Narrow edits were still required, because without them this work breaks the running browser game rather than only leaving it untested. All were confirmed against the code, not assumed.
 
 1. `src/server/schemas.ts` — add `mana`, `positionChanged`, `pendingChoice`, `kingdomId`, and `startingHealth` to `gameStateSchema`, add the new command variants, and take the fighter health maximum from the state instead of the literal 20. `gameStateSchema` is a non-strict `z.object`, so it strips unknown keys on load, and `src/server/persistence.ts:22` then runs `assertInvariants` on the stripped state. Without this, every request after a reload throws.
-2. `src/server/gameService.ts` — line 188 sends `cards: structuredClone(CARDS)`, and `src/client/Game.tsx:114` and `src/client/App.tsx:98` render every entry. All fifteen new cards would appear as market and build-picker tiles reading `undefined left`, and the picker would let a player build one, whose command `gameCommandSchema` then rejects on save. Line 37 also needs the new `marketCost` signature.
-3. `src/ai/briefing.ts` lines 11 and 22 — same cause, same one-line fix.
+2. `src/server/gameService.ts` — line 188 sent `cards: structuredClone(CARDS)`, and `src/client/Game.tsx:114` and `src/client/App.tsx:98` render every entry. All fifteen new cards would have appeared as market and build-picker tiles reading `undefined left`, and the picker would have let a player build one whose command `gameCommandSchema` then rejects on save. Line 37 also needed the new `marketCost` signature.
+3. `src/ai/briefing.ts` — same cause, same one-line fix.
+
+Three further server lines were added after the implementation review, all in files the exception already covers: the AI turn recap and the starting-build briefing were reading canonical definitions instead of resolved ones, and `updateHumanBuild` returned HTTP 500 for an off-kingdom build. See [Group 1 review](#group-1-implementation-review).
 
 No redesign and no other client or server change. Recorded as a deliberate deviation from the stated scope.
 
@@ -50,27 +52,52 @@ Recorded under the `GOAL.md` ambiguity rule. Each is the conservative reading an
 3. **`schemaVersion` stays 8**, made safe by the scope exception above rather than by hoping the dropped fields are harmless.
 4. **The kingdom lives in a module registry, keyed by `GameState.kingdomId`.** Holding a resolved card library in `GameState` would make every clone in the action search copy it. Threading a kingdom argument through every engine function would change client and server call sites, which the scope forbids.
 5. **Starting builds are limited to the kingdom's cards.** `submitBuild` accepts any card in `CARDS` today. With twenty-six cards implemented, that would let a player build a card the kingdom does not sell.
+6. **The Exposed bonus stays tunable through the `feint` card.** `src/game/engine.ts:133` reads `feint.values.bonus` even in a kingdom with no Feint pile. That is the only tuning point for the bonus, and step 6 mutates overrides rather than piles, so it is deliberate. Removing Feint from a kingdom does not remove a Feint override's effect.
+7. **An overflowed match is excluded from scoring, not paid 0.5.** `MatchResult` gains a distinct `aborted` outcome rather than reusing `draw`, so a strategy cannot earn half a point for blowing the state limit.
 
 ## Review rounds
 
-| Round | Mode | Target | Output | Result |
-| --- | --- | --- | --- | --- |
-| v1 | plan | `.plans/10-1-card-batch.md` | `.reviews/plans/balance-search-card-batch/` | Changes requested by all three reviewers. 12 decisions, synthesis v1 written, plan revised. |
-| v1 | plan | `.plans/10-2-kingdom-config.md` | `.reviews/plans/balance-search-kingdom-config/` | Changes requested by all three reviewers. 10 decisions, synthesis v1 written, plan revised. |
+| Round | Mode | Target | Result |
+| --- | --- | --- | --- |
+| v1 | plan | `.plans/10-1-card-batch.md` | Changes requested by all three. 12 decisions, synthesis written, plan revised. |
+| v1 | plan | `.plans/10-2-kingdom-config.md` | Changes requested by all three. 10 decisions, synthesis written, plan revised. |
+| v1 | implementation | steps 1 and 2, base `d8e6ddb` | Changes requested by both reviewers that ran. 8 findings fixed, 2 recorded, 1 declined. GLM failed to start. |
+| v1 | plan | `.plans/10-3-match-runner.md` | Changes requested by all three. 13 decisions, plan rewritten. |
+| v1 | plan | `.plans/10-4-strategies-and-action-search.md` | Changes requested by all three. 16 decisions, plan rewritten. |
+| v1 | plan | `.plans/10-5-kingdoms.md`, `.plans/10-6-evolution.md` | Running. |
 
-Reviewers: Codex `gpt-5.6-sol`, Claude Opus 5, GLM 5p2. Snapshots `384365f` and `5aa2926`, base `2428e70`.
+Reviewers: Codex `gpt-5.6-sol`, Claude Opus 5, GLM 5p2. Synthesis files under `.reviews/`.
 
-### Findings that changed the plans
+### Findings that changed the group 1 plans
 
 Each was verified against the code before acceptance.
 
-- **Flurry needs a Close gate.** `.plans/09-card-list.md:19` says "At Close"; the engine has no gate. This breaks `test/server-distance-duel.test.ts:96,110`, which runs in `npm test`, and two cases in `test/distance-duel.test.ts`.
-- **`resolveDiscard` would have been misrouted.** `execute` dispatches on `'cardInstanceId' in command` (`src/game/engine.ts:206`), so a resolve command carrying that field would have gone through `playCard` and corrupted Flurry counts. Now it dispatches on `command.type`, and the resolve commands use distinct field names.
+- **Flurry needs a Close gate.** `.plans/09-card-list.md:19` says "At Close"; the engine had no gate. This breaks `test/server-distance-duel.test.ts:96,110`, which runs in `npm test`.
+- **`resolveDiscard` would have been misrouted.** `execute` dispatched on `'cardInstanceId' in command`, so a resolve command carrying that field would have gone through `playCard` and corrupted Flurry counts. It now dispatches on `command.type`, and the resolve commands use distinct field names.
 - **Reclaim's own draw can destroy its target.** `draw` reshuffles the whole discard pile when the draw pile is empty. Reclaim now resolves through `pendingChoice` like Prism, which removes the case instead of defining a rule for it.
-- **Feint's +2 was going to stay a literal.** The bonus is applied inside `dealDamage` (`src/game/engine.ts:127`), not in the Feint case, so `feint.values.bonus` would have been dead and a step 2 override of Feint a silent no-op.
-- **`marketCost` cannot see overrides.** It takes no state (`src/game/engine.ts:251`) and gates the 12-money build in `src/server/gameService.ts:37`.
+- **Feint's +2 was going to stay a literal.** The bonus is applied inside `dealDamage`, not in the Feint case, so `feint.values.bonus` would have been dead and a step 2 override of Feint a silent no-op.
+- **`marketCost` cannot see overrides.** It took no state and gates the 12-money build.
 - **A cycle risk** between `schema.ts` and `effects.ts` over the value-key map, resolved by the leaf module `src/game/values.ts`.
 - **The old check 18 was tautological.** `replayCommands` calls `applyCommand`, so comparing them has no independent oracle.
+
+### Group 1 implementation review
+
+Both reviewers verified the batch itself as correct — 15 cards, the 3 corrections, the effect table, mana, pending choices, the registry, overrides, the memo, and the freeze policy all match the plans. Every defect was in a caller. Fixed in `2bf6d8c`:
+
+| Finding | Fix |
+| --- | --- |
+| The `ranged-setup` fake AI build cost 14 after Footwork moved to cost 3, and `src/client/App.tsx:31` defaults to that preset, so the shipped default AI game threw. The test that caught it had been retargeted to another preset. | Build is `['footwork','aim','volley']` (11); preset text corrected; the test is back on `ranged-setup`. |
+| Canonical `values` was mutable — `config.ts` froze each card only at the top level, and `resolveCard` returns that object directly when no override exists, so one write changed every game. Raised by both reviewers on both plans. | `freezeCard` freezes `values` before the card. |
+| AI turn recaps read canonical definitions, so an overridden treasure or cost was reported wrong. | Three call sites route through `resolveCard`. |
+| `buildAiStartingBuildBriefing` defaulted its kingdom, and the only caller passed nothing, so a non-default kingdom briefed the AI with the wrong market. | Parameter is required; the caller passes `record.state.kingdomId`. |
+| An off-kingdom build reached `submitBuild` and surfaced as HTTP 500. | `updateHumanBuild` raises `BadBuildError`. |
+| `chooseFakeAction` deadlocked while a choice was pending. | Pending choices take the first legal action. |
+| `resolveRecover` bypassed `advanceChoice`. | It now uses it. |
+| An unreachable `TREASURE_IDS` branch made a kingdom test pass for the wrong reason. | Branch dropped. |
+
+Declined: making `values` an action/treasure discriminated union. It would touch every call site to replace a guard `src/game/schema.ts` already enforces at load and `test/cards.test.ts` already covers.
+
+Disputed and resolved against a reviewer: GLM called the `mirrored` reflection sound. It is not. Reflecting both fighters about centre space 3 yields an isomorphic board — ochre still sits one space from a back wall, indigo still on centre — so it cancels no seat advantage and only relabels directions. The option is now `swapSides`, which **exchanges** the positions.
 
 ## Known stale e2e assertions
 
@@ -81,27 +108,31 @@ Each was verified against the code before acceptance.
 | `DD-E2E-031` | `test/e2e/distance-duel.spec.ts:224` | Footwork costs 3, seeded money is 2 | Seed 3 money |
 | `DD-E2E-009` | `:103` | Aimed Far Volley is 6, not 7 | 14 health |
 | `DD-E2E-012` | `:121` | Far Volley is 4, not 5, so it no longer kills at 5 health | Seed 4 health |
+| `DD-E2E-007` | `:89-92` | Flurry now gates on Close and Muster is no longer Tactical, so the Far Flurry line is illegal | Rewrite the case at Close |
+
+Also deferred: `src/client/Game.tsx:51` has no branch for the new `direction`, `discard`, or `recover` selections. Unreachable while `distance-duel` sells none of those cards, and the client is out of scope.
 
 ## Completed
 
 - Product card decisions, five kingdoms, search design, run limits, and unattended guardrails recorded.
 - Superseded documents moved to [.plans/archive/](.plans/archive/).
-- Current code inspected. Client and server coupling is thin: the client is generic over `LegalAction` and special-cases only Footwork, Drive, and Cull.
 - Detailed plans written for all eight in-scope steps.
-- Baseline verification green before any change: `npm test` 49 passed, 1 skipped; `npm run typecheck`, `npm run lint`, and `npm run build` all clean.
-- Plan-mode panel run for group 1; both plans revised against the findings.
+- Group 1 plan review, revision, implementation, implementation review, and fixes. **Steps 1 and 2 are done.**
+- Group 2 plan review and revision. Both plans rewritten against 29 accepted decisions.
 
 ## Evidence
 
-- Baseline at `2428e70`: 49 tests passed, 1 skipped, across `test/distance-duel.test.ts`, `test/http-distance-duel.test.ts`, `test/server-distance-duel.test.ts`, and `test/ai-runner.test.ts`. Typecheck, lint, and build clean.
-- Plan review v1 outputs and synthesis files under `.reviews/plans/`.
+- **Baseline** at `2428e70`, before any change: `npm test` 49 passed, 1 skipped. Typecheck, lint, build clean.
+- **Steps 1 and 2** at `2bf6d8c`, after the review fixes: `npm test` **89 passed, 1 skipped**. `npm run typecheck`, `npm run lint`, `npm run build` all clean.
+- Commits: `18ba526`, `7773705`, `084f57c` (writer), `2bf6d8c` (review fixes), `b21f465` (group 2 plan revisions).
+- Review outputs and synthesis files under `.reviews/plans/` and `.reviews/implementations/`.
 
-No implementation evidence yet.
+`084f57c` repaired a literal NUL byte the writer left in `src/game/kingdom.ts`, which made the file binary to Git and would have hidden it from the review diff. Behaviour was unchanged.
 
 ## Blockers
 
-None.
+None. GLM failed to start on both group 1 implementation rounds; Codex and Claude both produced reports, so the round was not re-run.
 
 ## Next action
 
-Record the pre-implementation SHA, then launch one writer subagent for steps 1 and 2 against the two revised plans. Follow with an implementation-mode panel round against that SHA.
+Wait for the steps 3 and 4 writer, then run an implementation-mode panel round against base `b21f465c4fabb3dbf2fecbe1b95e18edbf830227`. Read the group 3 plan reports as they land and revise `.plans/10-5` and `.plans/10-6`.
