@@ -408,13 +408,29 @@ Two residual risks in this plan, both accepted.
 
 `GOAL.md:33` asks for a capped full run "when measured throughput permits it", in the singular. Throughput now permits five, so five is what runs.
 
+## Plan 11 completion measurements
+
+The full search uses 100 candidates, 5 leaders, 32 generations, 25 shared seeds, 10 workers, and a 30-turn limit per player. All three measured runs completed every generation and the final tournament. None aborted a match or overflowed the action search.
+
+| Kingdom | Matches | Wall time | Throughput | Significant early stops |
+| --- | ---: | ---: | ---: | ---: |
+| current-duel | 1,304,316 | 2.36 min | 9,210.4/s | 6,396 of 15,976 (40.0%) |
+| three-way-engine | 1,328,128 | 3.93 min | 5,628.8/s | 6,794 of 16,246 (41.8%) |
+| rigged-melee | 1,344,368 | 1.79 min | 12,521.2/s | 6,650 of 16,336 (40.7%) |
+
+The old current-duel run took 30.2 minutes for 1,599,300 matches at 883.4 matches per second. The new run is **12.78x faster by wall clock**. Throughput is 10.43x higher, and early stopping reduced the match count by 18.4%. At the new throughput, the old match count would take 2.89 minutes, so early stopping saves about another 32 seconds.
+
+A representative one-worker CPU profile attributes 72.5% of samples to simulator code, 27.1% to garbage collection, 0.2% to idle time, and 0.2% to runtime overhead. The main process was idle for 99.7% of its samples. A full current-duel run used 1,458 seconds of CPU in 142 seconds of wall time, or 10.28 effective cores, so more Node workers are not the next large gain.
+
+The Rust estimate is **2x to 4x additional end-to-end speedup** if Rust makes the simulator and search kernel 2x to 4x faster, including its allocation cost. Amdahl's law gives 1.99x to 3.95x because 99.6% of worker samples are simulator code or its garbage collection. That would reduce current-duel from 142 seconds to about 36 to 71 seconds. This is a profile-based estimate, not a measured Rust result. A smaller port that leaves state cloning and action search in TypeScript will gain less.
+
 ## Verification commands
 
 Plan 11 verification on 2026-08-18:
 
 ```sh
 npm run build:sim # clean
-npm test          # 302 passed, 1 skipped, 24 files
+npm test          # 304 passed, 1 skipped, 24 files
 npm run typecheck # clean
 npm run lint      # clean
 npm run build     # clean
@@ -435,8 +451,8 @@ What is still true after everything above, in rough order of how much it could c
 
 ## Blockers
 
-None. GLM failed to start on both group 1 implementation rounds; Codex and Claude both produced reports, so the round was not re-run.
+None.
 
 ## Next action
 
-Finish Plan 11 verification, then run `current-duel`, `three-way-engine`, and `rigged-melee` at 100 candidates, 5 leaders, 32 generations, 25 shared seeds, and 10 workers. Record actual match counts, early-stop counts, wall-clock speedups, and the profile-based Rust estimate.
+Use the completed reports to assess balance. Build a Rust prototype only if another 2x to 4x search speedup is worth the added implementation and maintenance cost.
