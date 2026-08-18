@@ -1,7 +1,7 @@
-import { mutateUnique } from './mutation';
+import { MUTATION_ATTEMPTS, mutateUnique } from './mutation';
 import { emptyAggregate, mergeAggregate, playPairing, sharedSeedList } from './pairing';
 import { seedPopulation, seedStrategies } from './seedPopulation';
-import { canonicalStrategy } from './strategy';
+import { canonicalStrategy, registerIdentity } from './strategy';
 import type { Strategy } from './strategy';
 import type { EvolutionConfig, GenerationResult, ScoredStrategy, TelemetryAggregate } from './types';
 
@@ -76,7 +76,11 @@ export function selectLeaders(candidates: readonly ScoredStrategy[], limit: numb
   return kept;
 }
 
-/** The next population: the leaders themselves, so a leader is re-scored, then mutations of them. */
+/**
+ * The next population: the leaders themselves, so a leader is re-scored, then mutations of them. Every
+ * slot is filled or the run fails. A population that quietly came back short would make `matchCount`,
+ * every score, and every runtime estimate derived from them wrong, with nothing in the output saying so.
+ */
 export function nextPopulation(
   kingdomId: string, leaders: readonly Strategy[], size: number, runSeed: number, generation: number
 ): Strategy[] {
@@ -85,9 +89,12 @@ export function nextPopulation(
   for (let index = population.length; index < size; index += 1) {
     const parent = leaders[(index - leaders.length) % leaders.length]!;
     const child = mutateUnique(kingdomId, parent, taken, runSeed, generation, index);
-    const form = canonicalStrategy(child);
-    if (taken.has(form)) continue;
-    taken.add(form);
+    if (!child) {
+      throw new Error(
+        `Generation ${generation} in ${kingdomId} found no new candidate for slot ${index + 1} of ${size} in ${MUTATION_ATTEMPTS} attempts.`
+      );
+    }
+    taken.add(canonicalStrategy(child));
     population.push(child);
   }
   return population;
@@ -133,12 +140,16 @@ export function evolve(config: EvolutionConfig, onGeneration: (result: Generatio
   for (let generation = 1; generation <= config.generations; generation += 1) {
     const started = now();
     const tallies = new Map<string, Tally>();
+    const known = new Map<string, string>();
     const tally = (strategy: Strategy): Tally => {
+      registerIdentity(known, strategy);
       let found = tallies.get(strategy.id);
       if (!found) { found = { strategy, score: 0, completedGames: 0, abortedGames: 0 }; tallies.set(strategy.id, found); }
       return found;
     };
     for (const candidate of population) tally(candidate);
+    // The leaders too: a leader that collided with a candidate would be skipped as a self-pair.
+    for (const leader of leaders) registerIdentity(known, leader);
 
     const telemetry: TelemetryAggregate = emptyAggregate();
     let matchCount = 0;
@@ -160,14 +171,15 @@ export function evolve(config: EvolutionConfig, onGeneration: (result: Generatio
         overflowCount += outcome.record.aborted;
         mergeAggregate(telemetry, outcome.telemetry);
 
+        // Only the candidate side is tallied. A leader is also a candidate, so scoring the opponent
+        // side too would give it a second record taken against the mutants it is being compared with,
+        // while a mutant's whole record is against the leaders. The means would then measure two
+        // different fields, incumbents would outrank mutants independent of merit, and the population
+        // would stall on generation 1's leaders — the fixed baselines.
         const candidateTally = tally(candidate);
         candidateTally.score += outcome.candidateScore;
         candidateTally.completedGames += outcome.record.played;
         candidateTally.abortedGames += outcome.record.aborted;
-        const opponentTally = tally(opponent);
-        opponentTally.score += outcome.opponentScore;
-        opponentTally.completedGames += outcome.record.played;
-        opponentTally.abortedGames += outcome.record.aborted;
       }
     }
 

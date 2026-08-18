@@ -1,12 +1,15 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { SeededRandom, createGame, kingdomMarket, marketCost, resetKingdoms, submitStartingBuild } from '../../src/game';
+import {
+  SeededRandom, createGame, kingdomMarket, marketCost, registerKingdom, resetKingdoms, submitStartingBuild
+} from '../../src/game';
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
 import { BASELINE_STRATEGIES, baselineStrategy } from '../../src/sim/baselines';
 import { repairBuildIn } from '../../src/sim/build';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
 import { runMatch } from '../../src/sim/match';
 import {
-  MAX_DESIRED_COUNT, MUTATION_NAMES, RANGE_BANDS, WEIGHT_LIMIT, applyMutation, mutate, mutationRandom, repairStrategy
+  MAX_DESIRED_COUNT, MUTATION_ATTEMPTS, MUTATION_NAMES, RANGE_BANDS, WEIGHT_LIMIT, applyMutation,
+  kingdomFacts, mutate, mutateUnique, mutationRandom, repairStrategy
 } from '../../src/sim/mutation';
 import { nextPopulation } from '../../src/sim/evolution';
 import { seedFindings, seedStrategies } from '../../src/sim/seedPopulation';
@@ -196,6 +199,48 @@ describe('seeded strategies', () => {
     const engine = seeds.find((seed) => seed.preferredRange === 'Near' && seed.weights.cardsDrawn === 2)!;
     expect(engine.startingBuild).toEqual(['stipend', 'footwork']);
     expect(engine.buyAgenda).toEqual([{ cardId: 'stipend', desiredCount: 2 }]);
+  });
+});
+
+describe('filling a population', () => {
+  it('gives every slot a strategy, in every kingdom', () => {
+    for (const kingdomId of CURATED_KINGDOM_IDS) {
+      const seeds = seedStrategies(kingdomId);
+      const population = nextPopulation(kingdomId, seeds, 12, 5, 2);
+      expect(population, kingdomId).toHaveLength(12);
+      expect(new Set(population.map(canonicalStrategy)).size, kingdomId).toBe(12);
+    }
+  });
+
+  // The signal the population loops turn into a thrown error. A slot that quietly stayed empty would
+  // make the match count, every score, and every runtime estimate wrong with nothing saying so.
+  it('reports no candidate when every attempt lands on a form already taken', () => {
+    const parent = seedStrategies('three-way-open')[1]!;
+    const taken = new Set<string>();
+    for (let salt = 0; salt < MUTATION_ATTEMPTS; salt += 1) {
+      taken.add(canonicalStrategy(mutate('three-way-open', parent, mutationRandom(5, 1, 0, salt))));
+    }
+    expect(mutateUnique('three-way-open', parent, taken, 5, 1, 0)).toBeNull();
+    expect(mutateUnique('three-way-open', parent, new Set(), 5, 1, 0)).not.toBeNull();
+  });
+});
+
+describe('the kingdom caches mutation keeps', () => {
+  // Both caches are keyed by kingdom id, and an id can come back from `resetKingdoms` with different
+  // piles. A stale market would mutate strategies toward cards the kingdom no longer sells.
+  it('drops the market and the build probe when the registry is cleared', () => {
+    const kingdom = (cardIds: readonly string[]) => ({
+      id: 'cache-probe', name: 'cache-probe', startingHealth: 20,
+      actionPiles: cardIds.map((cardId) => ({ cardId, count: 10 }))
+    });
+    registerKingdom(kingdom(['heavyBlow', 'footwork']));
+    expect(kingdomFacts('cache-probe').marketIds).toContain('heavyBlow');
+    expect(repairBuildIn('cache-probe', ['heavyBlow', 'volley'])).toEqual(['heavyBlow']);
+
+    resetKingdoms();
+    registerKingdom(kingdom(['volley', 'footwork']));
+    expect(kingdomFacts('cache-probe').marketIds).not.toContain('heavyBlow');
+    expect(repairBuildIn('cache-probe', ['heavyBlow', 'volley'])).toEqual(['volley']);
   });
 });
 

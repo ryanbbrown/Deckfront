@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BASELINE_STRATEGIES, baselineStrategy } from '../../src/sim/baselines';
-import { formatStrategy } from '../../src/sim/strategy';
+import { formatStrategy, identify, registerIdentity } from '../../src/sim/strategy';
 import type { StateWeights } from '../../src/sim/strategy';
 import { strategy, weights } from './fixtures';
 
@@ -81,5 +81,17 @@ describe('formatStrategy', () => {
     for (const plan of BASELINE_STRATEGIES) {
       expect(formatStrategy(JSON.parse(JSON.stringify(plan)))).toBe(formatStrategy(plan));
     }
+  });
+});
+
+describe('strategy identity', () => {
+  it('accepts the same behaviour under one id and rejects two behaviours under one id', () => {
+    const known = new Map<string, string>();
+    const plan = identify(strategy({ startingBuild: ['drive'] }));
+    registerIdentity(known, plan);
+    registerIdentity(known, { ...plan });
+    expect(known.size).toBe(1);
+    expect(() => registerIdentity(known, { ...strategy({ startingBuild: ['aim'] }), id: plan.id }))
+      .toThrow(`Two different strategies share the id ${plan.id}`);
   });
 });

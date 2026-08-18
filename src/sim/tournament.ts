@@ -1,7 +1,7 @@
 import { compareScored } from './evolution';
 import { emptyAggregate, emptyPairRecord, mergeAggregate, playPairing, sharedSeedList } from './pairing';
 import { baselineLabels } from './seedPopulation';
-import { canonicalStrategy } from './strategy';
+import { canonicalStrategy, registerIdentity } from './strategy';
 import type { Strategy } from './strategy';
 import type { CalibrationInput } from './calibration';
 import type { PairRecord, ScoredStrategy, TournamentConfig, TournamentResult } from './types';
@@ -38,7 +38,13 @@ export function roundRobin(entrants: readonly Strategy[], config: TournamentConf
   const seeds = sharedSeedList(config.seed, config.sharedSeeds);
 
   const pairs: Record<string, Record<string, PairRecord>> = {};
-  for (const entrant of unique) pairs[entrant.id] = {};
+  const known = new Map<string, string>();
+  for (const entrant of unique) {
+    registerIdentity(known, entrant);
+    pairs[entrant.id] = {};
+  }
+  const pairsExpected = (unique.length * (unique.length - 1)) / 2;
+  let pairsPlayed = 0;
   const telemetry = emptyAggregate();
   const totals = new Map<string, { score: number; completedGames: number; abortedGames: number }>();
   for (const entrant of unique) totals.set(entrant.id, { score: 0, completedGames: 0, abortedGames: 0 });
@@ -53,6 +59,7 @@ export function roundRobin(entrants: readonly Strategy[], config: TournamentConf
         turnLimitPerPlayer: config.turnLimitPerPlayer, actionCapPerTurn: config.actionCapPerTurn
       });
       mergeAggregate(telemetry, outcome.telemetry);
+      pairsPlayed += 1;
       pairs[candidate.id]![opponent.id] = outcome.record;
       pairs[opponent.id]![candidate.id] = mirror(outcome.record);
 
@@ -79,7 +86,15 @@ export function roundRobin(entrants: readonly Strategy[], config: TournamentConf
     })
     .sort(compareScored);
 
-  return { entrants: unique, pairs, ranking, telemetry, calibration: calibrationFrom(ranking, telemetry, config) };
+  // The calibration input is built even when the deadline cut the table short, and `partial` is what
+  // says so. The tournament reports; step 7 decides whether a partial table may answer the gate. A
+  // truncated table is still worth reporting, and it is not the tournament's place to set policy on
+  // the one pass-or-fail check in the goal.
+  return {
+    entrants: unique, pairs, ranking, telemetry, pairsPlayed, pairsExpected,
+    partial: pairsPlayed < pairsExpected,
+    calibration: calibrationFrom(ranking, telemetry, config)
+  };
 }
 
 /**

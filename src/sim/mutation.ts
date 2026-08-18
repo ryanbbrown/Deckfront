@@ -1,4 +1,4 @@
-import { EFFECTS, SeededRandom, createGame, kingdomMarket, rangeBand } from '../game';
+import { EFFECTS, SeededRandom, createGame, kingdomEpoch, kingdomMarket, rangeBand } from '../game';
 import type { CardDefinition, RangeBand } from '../game';
 import { repairBuildIn } from './build';
 import { ATTACK_MECHANICS } from './search';
@@ -24,6 +24,7 @@ interface KingdomFacts {
   attacksByBand: Readonly<Record<RangeBand, readonly string[]>>;
 }
 const facts = new Map<string, KingdomFacts>();
+let factsEpoch = kingdomEpoch();
 
 /**
  * Asks the engine which attacks a band allows rather than restating the gates here. A second copy of
@@ -46,6 +47,9 @@ function attacksInBand(market: readonly CardDefinition[], kingdomId: string, ban
 }
 
 export function kingdomFacts(kingdomId: string): KingdomFacts {
+  // Dropped whenever the registry is cleared: an id can come back with different piles, and a stale
+  // market or stale `attacksByBand` would mutate strategies toward cards the kingdom no longer sells.
+  if (factsEpoch !== kingdomEpoch()) { facts.clear(); factsEpoch = kingdomEpoch(); }
   const cached = facts.get(kingdomId);
   if (cached) return cached;
   const market = kingdomMarket(kingdomId);
@@ -282,18 +286,21 @@ export function mutate(kingdomId: string, strategy: Strategy, random: SeededRand
   return repairStrategy(kingdomId, mutated);
 }
 
+/** Attempts per population slot, each with its own mutation stream. */
+export const MUTATION_ATTEMPTS = 32;
+
 /**
- * Mutates until the result differs from every form already taken, then gives up and returns the last
- * attempt. A duplicate is not an error: the caller drops it, and the generation runs a candidate short.
+ * Mutates until the result differs from every form already taken, or returns `null` after
+ * `MUTATION_ATTEMPTS` salted attempts. The caller must fill the slot or fail: a population that
+ * silently runs short makes the match count, the scores, and every runtime estimate wrong.
  */
 export function mutateUnique(
   kingdomId: string, strategy: Strategy, taken: ReadonlySet<string>,
-  runSeed: number, generation: number, index: number, attempts = 8
-): Strategy {
-  let last = strategy;
+  runSeed: number, generation: number, index: number, attempts = MUTATION_ATTEMPTS
+): Strategy | null {
   for (let salt = 0; salt < attempts; salt += 1) {
-    last = mutate(kingdomId, strategy, mutationRandom(runSeed, generation, index, salt));
-    if (!taken.has(canonicalStrategy(last))) return last;
+    const mutated = mutate(kingdomId, strategy, mutationRandom(runSeed, generation, index, salt));
+    if (!taken.has(canonicalStrategy(mutated))) return mutated;
   }
-  return last;
+  return null;
 }

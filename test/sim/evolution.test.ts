@@ -6,7 +6,7 @@ import {
 } from '../../src/sim/evolution';
 import { repairStrategy } from '../../src/sim/mutation';
 import { ORIENTATIONS, playPairing, sharedSeedList } from '../../src/sim/pairing';
-import { seedStrategies } from '../../src/sim/seedPopulation';
+import { seedPopulation, seedStrategies } from '../../src/sim/seedPopulation';
 import { canonicalStrategy, identify } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import type { EvolutionConfig, GenerationResult, ScoredStrategy } from '../../src/sim/types';
@@ -129,6 +129,37 @@ describe('leader selection', () => {
 });
 
 describe('running the generations', () => {
+  /**
+   * The invariant behind leader selection: a score is the candidate-side mean over the leader field
+   * and over nothing else. Adding the opponent side too would give a leader a second record taken
+   * against the mutants it is compared with, so incumbents would outrank mutants independent of merit
+   * and the population would stall on the fixed baselines. Re-derives every score from the leader
+   * field alone rather than testing one built scenario, which could pass while the bias survived.
+   */
+  it('scores every candidate over the same leader field and over nothing else', () => {
+    const settings = config({ generations: 1, seed: 11 });
+    const result = evolve(settings, () => {})[0]!;
+    const leaders = seedStrategies(KINGDOM);
+    const population = seedPopulation(KINGDOM, settings.seed, settings.candidates);
+    const seeds = sharedSeedList(settings.seed, settings.sharedSeeds);
+
+    expect(Object.keys(result.scores)).toHaveLength(population.length);
+    for (const candidate of population) {
+      let score = 0;
+      let played = 0;
+      for (const leader of leaders) {
+        if (leader.id === candidate.id) continue;
+        const outcome = playPairing(candidate, leader, {
+          kingdomId: KINGDOM, seeds,
+          turnLimitPerPlayer: settings.turnLimitPerPlayer, actionCapPerTurn: settings.actionCapPerTurn
+        });
+        score += outcome.candidateScore;
+        played += outcome.record.played;
+      }
+      expect(result.scores[candidate.id], candidate.id).toBe(played ? score / played : 0);
+    }
+  });
+
   it('scores every candidate, keeps the leader limit, and never pairs a strategy with itself', () => {
     const seen: GenerationResult[] = [];
     const results = evolve(config(), (result) => seen.push(result));

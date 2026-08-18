@@ -75,6 +75,22 @@ export function identify(strategy: Strategy): Strategy {
   return { ...strategy, id: `${STRATEGY_ID_PREFIX}${stableHash(canonicalStrategy(strategy))}` };
 }
 
+/**
+ * Records an id against the behaviour it stands for and throws if the same id ever stands for two.
+ *
+ * The id is a 32-bit hash, so a collision between two live strategies is unlikely but possible. Every
+ * map keyed by id — the generation tallies, the tournament's pairwise rows — would then merge two
+ * strategies' scores and telemetry and skip their pairing as a self-pair, with no sign in the output.
+ * Failing is the only safe answer; widening the hash would cost the short readable id and still leave
+ * the failure silent.
+ */
+export function registerIdentity(known: Map<string, string>, strategy: Strategy): void {
+  const form = canonicalStrategy(strategy);
+  const seen = known.get(strategy.id);
+  if (seen === undefined) { known.set(strategy.id, form); return; }
+  if (seen !== form) throw new Error(`Two different strategies share the id ${strategy.id}: ${seen} and ${form}.`);
+}
+
 export function formatStrategy(strategy: Strategy): string {
   const agenda = strategy.buyAgenda.map((entry) => `${entry.cardId} x${entry.desiredCount}`).join(' -> ') || 'none';
   const weights = (Object.entries(strategy.weights) as [keyof StateWeights, number][])

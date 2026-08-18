@@ -13,6 +13,14 @@ export const TREASURE_IDS: readonly string[] = Object.freeze(Object.values(CARDS
 const BUILT_IN = kingdomLibrarySchema.parse(rawKingdoms).kingdoms;
 const registry = new Map<string, Kingdom>();
 const resolved = new Map<string, CardDefinition>();
+let epoch = 0;
+
+/**
+ * Counts how many times the registry was cleared. Anything caching per kingdom id outside this module
+ * compares it and drops its own cache, because an id can be re-registered with different piles and
+ * costs. The counter keeps that possible without this module knowing its callers.
+ */
+export function kingdomEpoch(): number { return epoch; }
 
 function deepFreeze<T>(value: T): T {
   if (value && typeof value === 'object') { for (const entry of Object.values(value)) deepFreeze(entry); Object.freeze(value); }
@@ -60,7 +68,7 @@ export function registerKingdom(kingdom: Kingdom): void {
   registry.set(parsed.id, deepFreeze(parsed));
 }
 export function resetKingdoms(): void {
-  registry.clear(); resolved.clear();
+  registry.clear(); resolved.clear(); epoch += 1;
   for (const kingdom of BUILT_IN) registerKingdom(structuredClone(kingdom) as Kingdom);
 }
 export function findKingdom(id: string): Kingdom | null { return registry.get(id) ?? null; }

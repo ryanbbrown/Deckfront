@@ -121,5 +121,10 @@ export interface TournamentResult {
   pairs: Record<string, Record<string, PairRecord>>;
   ranking: ScoredStrategy[];
   telemetry: TelemetryAggregate;
+  // A deadline can cut the table short. `partial` marks that, so a calibration verdict taken from an
+  // incomplete round robin cannot be read as a complete one.
+  partial: boolean;
+  pairsPlayed: number;
+  pairsExpected: number;
   calibration: CalibrationInput;   // built here, consumed by checkRiggedMelee
 }

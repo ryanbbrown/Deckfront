@@ -1,5 +1,5 @@
 import { BASELINE_STRATEGIES } from './baselines';
-import { mutateUnique, repairStrategy } from './mutation';
+import { MUTATION_ATTEMPTS, mutateUnique, repairStrategy } from './mutation';
 import { canonicalStrategy } from './strategy';
 import type { Strategy } from './strategy';
 
@@ -74,9 +74,9 @@ export function seedFindings(kingdomId: string): SeedFinding[] {
 }
 
 /**
- * The seeds first, then mutations of them, round robin over the seeds so no seed dominates. A slot
- * whose mutation keeps landing on a form the population already holds is left empty, so the
- * population can come back a little short of `size`; the generation records what it actually ran.
+ * The seeds first, then mutations of them, round robin over the seeds so no seed dominates. Every slot
+ * is filled or seeding fails: a population that came back short of `size` would misreport the match
+ * count and every score derived from it, and generation 1 is the run's whole starting point.
  */
 export function seedPopulation(kingdomId: string, runSeed: number, size: number): Strategy[] {
   const seeds = seedStrategies(kingdomId);
@@ -85,9 +85,12 @@ export function seedPopulation(kingdomId: string, runSeed: number, size: number)
   for (let index = population.length; index < size; index += 1) {
     const parent = seeds[(index - seeds.length) % seeds.length]!;
     const child = mutateUnique(kingdomId, parent, taken, runSeed, 0, index);
-    const form = canonicalStrategy(child);
-    if (taken.has(form)) continue;
-    taken.add(form);
+    if (!child) {
+      throw new Error(
+        `Seeding ${kingdomId} found no new candidate for slot ${index + 1} of ${size} in ${MUTATION_ATTEMPTS} attempts.`
+      );
+    }
+    taken.add(canonicalStrategy(child));
     population.push(child);
   }
   return population;

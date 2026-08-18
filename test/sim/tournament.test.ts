@@ -61,6 +61,28 @@ describe('the pairwise table', () => {
     const played = Object.values(result.pairs).flatMap((row) => Object.values(row));
     expect(played.length).toBeLessThan(result.entrants.length * (result.entrants.length - 1));
     expect(result.entrants).toHaveLength(5);
+    // The verdict is still built, and `partial` is what stops it being read as a complete one.
+    expect(result.partial).toBe(true);
+    expect(result.pairsExpected).toBe(10);
+    expect(result.pairsPlayed).toBeLessThan(result.pairsExpected);
+    expect(result.pairsPlayed).toBe(played.length / 2);
+  });
+
+  it('marks a table that played every pair as complete', () => {
+    const seeds = seedStrategies(KINGDOM);
+    const result = roundRobin(seeds, config({ finalLeaderIds: [seeds[0]!.id] }));
+    expect(result.partial).toBe(false);
+    expect(result.pairsPlayed).toBe(10);
+    expect(result.pairsPlayed).toBe(result.pairsExpected);
+  });
+
+  // The id is a 32-bit hash, so a collision is unlikely but not impossible, and it would merge two
+  // strategies' rows and scores with nothing in the output saying so.
+  it('throws when two different strategies arrive under one id', () => {
+    const seeds = seedStrategies(KINGDOM);
+    const collided = { ...seeds[1]!, id: seeds[0]!.id };
+    expect(() => roundRobin([seeds[0]!, collided], config({ finalLeaderIds: [seeds[0]!.id] })))
+      .toThrow(`Two different strategies share the id ${seeds[0]!.id}`);
   });
 });
 
@@ -119,12 +141,12 @@ describe('the whole search, end to end', () => {
   }
 
   it('evolves, retains one leader per generation, and reports a gate result', () => {
-    const { finalLeaders, entrants } = search(3);
+    const { finalLeaders, entrants } = search(6);
     const labels = baselineLabels(KINGDOM);
     expect(finalLeaders.every((leader) => !labels.has(leader.id))).toBe(true);
 
     const tournament = roundRobin(entrants, config({
-      seed: 3, finalLeaderIds: finalLeaders.map((leader) => leader.id)
+      seed: 6, finalLeaderIds: finalLeaders.map((leader) => leader.id)
     }));
     // Deduping is by canonical form, so a final leader that is also the retained leader enters once.
     expect(new Set(tournament.entrants.map(canonicalStrategy)).size).toBe(tournament.entrants.length);
