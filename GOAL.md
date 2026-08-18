@@ -61,16 +61,29 @@ Do not run `npm run test:e2e`, `npm run test:e2e:manifest`, or `npm run test:ai:
 
 ## Execution
 
-Act as the orchestrator. For each numbered implementation step in `.plans/10-automated-balance-search.md`:
+Act as the orchestrator. Run the `implement` skill workflow for each unit of work, and use the `review-panel` skill for every review.
 
-1. Inspect the current code and write a short phase brief in `PROGRESS.md` with its interface, files, checks, and completion criterion.
-2. Delegate substantial implementation to one writer subagent.
-3. Delegate independent review to a fresh subagent after the implementation snapshot is stable.
-4. Apply or delegate required fixes.
-5. Run the phase checks and relevant project verification.
-6. Update `PROGRESS.md` with exact evidence and the next step.
+For each numbered implementation step in `.plans/10-automated-balance-search.md`:
+
+1. Inspect the current code. Write the detailed phase plan to `.plans/10-<step>-<slug>.md`, then write a short brief in `PROGRESS.md` that links it and states its interface, files, checks, and completion criterion.
+2. Review the detailed plan with `review-panel` in plan mode. Apply the accepted findings to the plan before implementation.
+3. Record the clean pre-implementation SHA, then delegate the implementation to one writer subagent, as the `implement` skill describes.
+4. Review the writer's work with `review-panel` in implementation mode, using that SHA as `--base-ref`. Verify each finding against the frozen snapshot, then write the synthesis file that the `implement` skill requires.
+5. Apply the required fixes. Resume the same writer subagent for substantial fixes. Make small edits directly when a handoff costs more than the edit.
+6. Run the phase checks and the verification commands above.
+7. Update `PROGRESS.md` with exact evidence and the next step.
 
 Keep one writer for the same working tree at a time. Preserve unrelated existing changes. Prefer the smallest implementation that meets the approved design. Use existing project dependencies before adding one.
+
+### Review batching
+
+A panel round costs about 15 minutes of wall-clock time, so one plan round and one implementation round for each of the nine steps does not fit the budget. Group the work instead:
+
+- one plan-mode round over the detailed plans for a group of steps, before that group starts;
+- one implementation-mode round for each group, after its writer finishes;
+- one implementation-mode round over the complete search system before the full run starts.
+
+Record every panel round, its output directory, and every skipped round with its reason in `PROGRESS.md`.
 
 ## Guardrails
 

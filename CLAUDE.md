@@ -10,6 +10,11 @@
 - Multi-agent reviews live in `.reviews/`, which is ignored by Git.
 - Generated HTML artifacts live in `.html/` and should be committed when they capture useful design, planning, or review context.
 - Keep `README.md` current with the minimum context needed to run and understand the project.
+## Delegated work
+- Use the `implement` skill workflow for substantial changes: one writer subagent owns the working tree, and the main agent stays the decision-maker.
+- Use the `review-panel` skill for reviews, not an ad-hoc review subagent. Review a detailed implementation plan in plan mode before the work starts. Review the writer's output in implementation mode against the recorded pre-implementation SHA.
+- The main agent may edit files directly when the edit is small and a handoff to the writer costs more than the edit.
+
 ## Development
 - Prefer the simplest implementation that satisfies the current product intent.
 - Every implementation step must end with passing verification.
