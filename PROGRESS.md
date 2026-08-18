@@ -18,8 +18,10 @@ Group 1 (steps 1 and 2) is implemented, reviewed, fixed, and green. Group 2 (ste
 | --- | --- | --- | --- |
 | 1 | 1, 2 | [10-1-card-batch.md](.plans/10-1-card-batch.md), [10-2-kingdom-config.md](.plans/10-2-kingdom-config.md) | **Done.** Implemented, reviewed, fixed, green. |
 | 2 | 3, 4 | [10-3-match-runner.md](.plans/10-3-match-runner.md), [10-4-strategies-and-action-search.md](.plans/10-4-strategies-and-action-search.md) | Plan reviewed and revised. Writer running. |
-| 3 | 5, 6 | [10-5-kingdoms.md](.plans/10-5-kingdoms.md), [10-6-evolution.md](.plans/10-6-evolution.md) | Plan review running. |
-| 4 | 7, 8 | [10-7-results-and-report.md](.plans/10-7-results-and-report.md), [10-8-profiling.md](.plans/10-8-profiling.md) | Drafted, not reviewed. |
+| 3 | 5, 6 | [10-5-kingdoms.md](.plans/10-5-kingdoms.md), [10-6-evolution.md](.plans/10-6-evolution.md) | Plan reviewed and revised. |
+| 4 | 7, 8 | [10-7-results-and-report.md](.plans/10-7-results-and-report.md), [10-8-profiling.md](.plans/10-8-profiling.md) | Plan reviewed and revised. |
+
+All eight plans have now been through a three-model plan review and rewritten against the findings. 24 reports, 4 synthesis files, 8 revised plans.
 
 Step 9, the native-language port, is outside this goal.
 
@@ -64,7 +66,25 @@ Recorded under the `GOAL.md` ambiguity rule. Each is the conservative reading an
 | v1 | implementation | steps 1 and 2, base `d8e6ddb` | Changes requested by both reviewers that ran. 8 findings fixed, 2 recorded, 1 declined. GLM failed to start. |
 | v1 | plan | `.plans/10-3-match-runner.md` | Changes requested by all three. 13 decisions, plan rewritten. |
 | v1 | plan | `.plans/10-4-strategies-and-action-search.md` | Changes requested by all three. 16 decisions, plan rewritten. |
-| v1 | plan | `.plans/10-5-kingdoms.md`, `.plans/10-6-evolution.md` | Running. |
+| v1 | plan | `.plans/10-5-kingdoms.md` | Changes requested by all three. 11 decisions, plan rewritten. |
+| v1 | plan | `.plans/10-6-evolution.md` | Changes requested by all three. 13 decisions, plan rewritten. |
+| v1 | plan | `.plans/10-7-results-and-report.md` | Changes requested by all three. 14 decisions, plan rewritten. |
+| v1 | plan | `.plans/10-8-profiling.md` | Changes requested by all three. 8 decisions, plan rewritten. |
+
+### Findings that changed the group 3 and 4 plans
+
+Three would have cost the whole goal, and each was confirmed by arithmetic or by reading the code.
+
+- **The one hard gate could not be computed, and would then have failed for the right behaviour.** The rigged-melee check reads "actual purchases" from a tournament result that carried no purchase data, and nothing produced the seat-to-strategy mapping needed to build it. Worse, Heavy Blow costs 3 in that kingdom, so a strong melee leader can put three copies in its 12-money starting build and buy none — and a starting build is not a purchase. The gate would have reported a blocker for exactly the behaviour it exists to confirm, and `GOAL.md` forbids tuning it to pass. The check now counts **acquisition**, and "final leaders" is the last generation only, because the wider reading makes the 80 percent branch arithmetically unreachable.
+- **The final tournament nearly doubled the run.** Retaining every leader gives ~165 entrants — 13,530 pairs × 25 seeds × 4 games ≈ 1.35M matches, against ≈1.6M for all 32 generations. Now one retained leader per generation: ≈42 entrants, ≈86k matches, about 5 percent. `roundRobin` also gained a deadline, so a run that stops cleanly cannot then enter an unbounded tournament.
+- **Smoke and full runs shared an output directory**, so the full run would have overwritten the committed smoke `report.md` for that kingdom — the evidence `GOAL.md` asks for. Output is now `.experiments/<kingdom>/<mode>/`.
+
+Two more, both interactions between decisions made in different plans:
+
+- Suppressing events inside the action search would have zeroed `cardsDrawn`, which reads `draw` events, silently changing which actions the search picks. The search-mode apply keeps a counter.
+- Draining `events` is ruled out: `invariants.ts:46` requires `event.sequence === index`, and `record` derives the sequence from `events.length`.
+
+Also corrected: two step 4 baseline builds named `step`, which is deliberately in no kingdom, so they would have repaired away everywhere; and the starting-build repair rule differed between steps 4 and 6, so a mutated build would have been repaired one way at mutation time and another at match time — meaning the strategy recorded in the results was not the one that played.
 
 Reviewers: Codex `gpt-5.6-sol`, Claude Opus 5, GLM 5p2. Synthesis files under `.reviews/`.
 
