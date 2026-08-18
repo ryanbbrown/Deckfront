@@ -326,8 +326,6 @@ No refusal path fired in any of the six regenerated runs: no all-baseline final 
 
 **My error, recorded because the reasoning is the reusable part.** I wrote that 32 generations produced 77 entrants from "one retained leader per generation, plus the final leaders, plus the baselines," and called the earlier 26,240-match estimate low by 3.6x. That arithmetic does not work — 32 + 4 + 5 is 41, not 77. The writer reported the 3.6x gap accurately and I explained it away instead of chasing it, so a plan-conformance defect survived as a sizing anecdote. **A number that does not add up is a defect to chase, not a constant to explain**, and the check is cheap: add the terms up before writing the sentence.
 
-**The final leaders are not the best strategies in the room.** They rank 43, 47, 48, and 49 of 77. Leaders retained from earlier generations rank above them. Selection measures a candidate against the current leader field, so late leaders are specialised against late leaders rather than against the whole history — the round robin is what says which strategy is actually strong, and the report already prints both.
-
 ## A "known property" that was really the defect, seen from the other side
 
 Worth keeping as a reasoning failure, because it looked like a finding and was recorded as one.
@@ -386,6 +384,8 @@ Evolution scales with candidates, leaders, and shared seeds together: `(100/30) 
 | Total | ~1,599,000 |
 
 Three sizings for the same run, worth keeping side by side: leaving K1 unfixed gives ≈1.35M tournament matches, scaling the withdrawn run gives ~357,000, and the corrected measurement gives ~41,000. The middle number is the one I would have used, and it is wrong by 8.7x in the direction that hides a problem.
+
+**How to read a run that hits the 150-minute deadline.** K2 decides what survives, and it was written for exactly this. The final leaders play first, so a truncated tournament loses precision in the lower ranks and never loses the verdict: `stopReason` reads `deadline`, the report prints its "did not finish" sentence and `·` for unplayed pairs, and the blocker says the ranking is not final. **The calibration row in that case is still a real verdict**, because it is computed from a complete set of final-leader matches. Before K2 the same truncation would have produced a spurious hard FAIL.
 
 Per-kingdom wall clock, taking each kingdom's post-clone rate from the profiling table and scaling by the 2.43x that evolved strategies run faster than the baseline pairings that table measures:
 
