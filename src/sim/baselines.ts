@@ -31,7 +31,7 @@ export const BASELINE_STRATEGIES: readonly Strategy[] = Object.freeze([
     weights: { ...NO_WEIGHTS, damage: 10, moneyGained: 4 }
   }),
   baseline({
-    id: 'melee-rush', preferredRange: 'Close', startingBuild: ['heavyBlow', 'drive', 'step'],
+    id: 'melee-rush', preferredRange: 'Close', startingBuild: ['heavyBlow', 'drive', 'footwork'],
     buyAgenda: agenda([['heavyBlow', 3], ['drive', 2], ['feint', 2], ['footwork', 2]]),
     weights: DEFAULT_WEIGHTS
   }),
@@ -43,7 +43,7 @@ export const BASELINE_STRATEGIES: readonly Strategy[] = Object.freeze([
   // `RangeBand` admits only Close, Near, and Far. This deck's spells are range-free, so the weight
   // is 0 and the band never matters.
   baseline({
-    id: 'mage-standard', preferredRange: 'Far', startingBuild: ['channel', 'arcBolt', 'leyStep', 'step'],
+    id: 'mage-standard', preferredRange: 'Far', startingBuild: ['channel', 'arcBolt', 'leyStep', 'footwork'],
     buyAgenda: agenda([['fireball', 2], ['arcBolt', 3], ['channel', 3], ['prism', 1]]),
     weights: { ...DEFAULT_WEIGHTS, preferredRange: 0, unspentMana: -3 }
   }),

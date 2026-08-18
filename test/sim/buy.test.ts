@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
-  applyAction, createGame, listLegalActions, registerKingdom, resetKingdoms, submitStartingBuild
+  applyAction, createGame, listLegalActions, marketCost, registerKingdom, resetKingdoms, submitStartingBuild
 } from '../../src/game';
 import type { GameCommand, GameState, Kingdom } from '../../src/game';
 import { BASELINE_STRATEGIES, baselineStrategy } from '../../src/sim/baselines';
@@ -129,12 +129,12 @@ describe('strategy agent dispatch', () => {
     const melee = baselineStrategy('melee-rush');
     registerKingdom({
       id: 'no-blow', name: 'no-blow', startingHealth: 20,
-      actionPiles: [{ cardId: 'drive', count: 10 }, { cardId: 'step', count: 10 }]
+      actionPiles: [{ cardId: 'drive', count: 10 }, { cardId: 'footwork', count: 10 }]
     });
     registerKingdom({
       id: 'pricey', name: 'pricey', startingHealth: 20,
-      actionPiles: [{ cardId: 'heavyBlow', count: 10 }, { cardId: 'drive', count: 10 }, { cardId: 'step', count: 10 }],
-      overrides: { heavyBlow: { cost: 20 }, drive: { cost: 20 }, step: { cost: 20 } }
+      actionPiles: [{ cardId: 'heavyBlow', count: 10 }, { cardId: 'drive', count: 10 }, { cardId: 'footwork', count: 10 }],
+      overrides: { heavyBlow: { cost: 20 }, drive: { cost: 20 }, footwork: { cost: 20 } }
     });
     const agent = strategyAgent(melee);
 
@@ -143,8 +143,21 @@ describe('strategy agent dispatch', () => {
       const build = agent.chooseStartingBuild(state, 'ochre');
       expect(() => submitStartingBuild(state, 'ochre', build)).not.toThrow();
     }
-    expect(repairBuild(createGame({ seed: 1, kingdomId: 'no-blow' }), melee.startingBuild)).toEqual(['drive', 'step']);
+    expect(repairBuild(createGame({ seed: 1, kingdomId: 'no-blow' }), melee.startingBuild)).toEqual(['drive', 'footwork']);
     expect(repairBuild(createGame({ seed: 1, kingdomId: 'pricey' }), melee.startingBuild)).toEqual([]);
+  });
+
+  it('repairs a badly overrun build in one call, and breaks a cost tie the same way every time', () => {
+    const state = createGame({ seed: 1 });
+    // Seven Gold is 42, thirty over the budget of 12.
+    const overrun = repairBuild(state, Array<string>(7).fill('gold'));
+    expect(marketCost(state, overrun)).toBeLessThanOrEqual(12);
+    expect(overrun).toEqual(['gold', 'gold']);
+
+    // Flurry and Muster both cost 5, so the tie falls to the lower definition id.
+    const tied = ['flurry', 'muster', 'aim', 'aim'];
+    expect(repairBuild(state, tied)).toEqual(['muster', 'aim', 'aim']);
+    expect(repairBuild(state, tied)).toEqual(repairBuild(state, tied));
   });
 });
 

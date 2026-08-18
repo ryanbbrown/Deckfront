@@ -1,4 +1,4 @@
-import { kingdomMarket, marketCost } from '../../game';
+import { kingdomMarket, marketCost, resolveCard } from '../../game';
 import type { GameState } from '../../game';
 import { chooseBuyAction } from '../buy';
 import { DEFAULT_STATE_LIMIT, createMemo, searchAction, searchBaseline } from '../search';
@@ -16,14 +16,24 @@ export interface StrategyAgentOptions {
 }
 
 /**
- * Drops cards the market does not offer, then drops from the end until the resolved cost fits the
- * budget. Kingdom overrides re-price cards, so a build that fits one kingdom can overrun another.
- * Leftover money is not spent: it carries into the first Buy phase as `firstBuyMoney`.
+ * The single build-repair rule for the project. Drops cards the market does not offer, then
+ * repeatedly drops the most expensive card, ties broken by definition id ascending, until the
+ * resolved cost fits the budget. Kingdom overrides re-price cards, so a build that fits one kingdom
+ * can overrun another. Leftover money is not spent: it carries into the first Buy phase as
+ * `firstBuyMoney`.
  */
 export function repairBuild(state: GameState, build: readonly string[]): string[] {
   const offered = new Set(kingdomMarket(state.kingdomId).map((definition) => definition.id));
   const kept = build.filter((cardId) => offered.has(cardId));
-  while (kept.length && marketCost(state, kept) > STARTING_BUDGET) kept.pop();
+  while (kept.length && marketCost(state, kept) > STARTING_BUDGET) {
+    let worst = 0;
+    for (let index = 1; index < kept.length; index += 1) {
+      const cost = resolveCard(state, kept[index]!).cost;
+      const highest = resolveCard(state, kept[worst]!).cost;
+      if (cost > highest || (cost === highest && kept[index]! < kept[worst]!)) worst = index;
+    }
+    kept.splice(worst, 1);
+  }
   return kept;
 }
 
