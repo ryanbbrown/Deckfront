@@ -210,6 +210,27 @@ generation 1 matches = (candidates × 5 − 5) × 4 × sharedSeeds
 
 At the full-run limits — 30 candidates, 8 shared seeds — that is (150 − 5) × 4 × 8 = **4,640 matches**, against 3,840 for a later generation with 4 leaders.
 
+## Evolved-strategy throughput, measured per kingdom
+
+The 11.5 matches per second recorded above is measured on **baseline** strategies in the default kingdom, and the full-run deadline cannot be sized from it. A live probe — 8 candidates, 3 leaders, 3 generations, 2 shared seeds, 616 matches per kingdom — run against `c110082`, before the review fixes:
+
+| Kingdom | Matches | Elapsed | Rate | Overflows | Distinct retained leaders | Best mean score |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| current-duel | 616 | 39.2 s | 15.7/s | 0 | 3 | 0.681 |
+| three-way-open | 616 | 25.2 s | 24.5/s | 0 | **1** | 0.694 |
+| three-way-engine | 616 | 61.2 s | **10.1/s** | 0 | 3 | 1.000 |
+| range-rich-mixed | 616 | 8.9 s | **69.0/s** | 0 | 2 | 0.653 |
+| rigged-melee | 616 | 24.4 s | 25.2/s | 0 | 2 | 0.694 |
+
+Four things follow.
+
+- **Evolved strategies are faster than baselines, not slower.** 3,080 matches in 158.9 s is 19.4 per second overall, against 11.5 for baselines. The likely cause is that evolved strategies win sooner, so games are shorter — consistent with the 16 percent turn-limit rate seen in the baseline run.
+- **Throughput varies 6.8x across kingdoms**, from 10.1/s in `three-way-engine` to 69.0/s in `range-rich-mixed`. A single global matches-per-second figure would be misleading, so the full-run deadline is sized from the throughput of **the kingdom actually being run**. `three-way-engine` starts fighters at 30 health rather than 20, which is the obvious cause of its longer games.
+- **`rigged-melee` runs at 25.2/s.** At that rate the full run — 122,880 evolution plus 26,240 tournament matches — is about **99 minutes**, which fits the window comfortably. That is the main reason to run the full experiment on `rigged-melee` rather than a slower kingdom, on top of its carrying the one hard gate.
+- **Zero search overflows** in another 3,080 matches, on top of the 375 baseline matches. The abort path remains untriggered by any real strategy.
+
+**This is also independent evidence for the J1 selection bug.** The probe ran on pre-fix code, and `three-way-open` retained exactly **one** distinct leader across all three generations — the same strategy was best every time, which is the stalling signature the review predicted. Re-run this probe after the fix and compare the retained-leader counts: if J1 was real, selection should unstick and the counts should rise.
+
 ## Seed degradation, measured
 
 Baseline strategies are kingdom-agnostic, so a curated kingdom that does not sell a seed's cards repairs it down. Plan `10-4:155` allows this, so it is a property of the design, not a defect. It matters because it thins generation 1.
