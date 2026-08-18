@@ -1,4 +1,4 @@
-import { kingdomMarket, marketCost, resolveCard } from '../game';
+import { createGame, kingdomMarket, marketCost, resolveCard } from '../game';
 import type { GameState } from '../game';
 
 /** `submitBuild` and `finishSetup` both settle the starting build against this budget. */
@@ -27,4 +27,15 @@ export function repairBuild(state: GameState, build: readonly string[]): string[
     kept.splice(worst, 1);
   }
   return kept;
+}
+
+// One fresh game per kingdom. `resolveCard` and `marketCost` read nothing a played game changes, and
+// mutation repairs a build thousands of times in a run.
+const probes = new Map<string, GameState>();
+
+/** `repairBuild` where no game is in hand, for mutation and seeding. The same rule, not a second one. */
+export function repairBuildIn(kingdomId: string, build: readonly string[]): string[] {
+  let probe = probes.get(kingdomId);
+  if (!probe) { probe = createGame({ seed: 1, kingdomId }); probes.set(kingdomId, probe); }
+  return repairBuild(probe, build);
 }

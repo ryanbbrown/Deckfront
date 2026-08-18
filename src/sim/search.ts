@@ -19,7 +19,7 @@ export interface SearchOutcome { action: LegalAction; visited: number }
 export const DEFAULT_STATE_LIMIT = 20000;
 
 // Mechanics whose effect deals damage. No card value separates them from the rest, so the set is explicit.
-const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set<CardMechanic>(['melee', 'ranged', 'spell', 'volley', 'drive', 'flurry']);
+export const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set<CardMechanic>(['melee', 'ranged', 'spell', 'volley', 'drive', 'flurry']);
 
 export function createMemo(): SearchMemo { return new Map(); }
 

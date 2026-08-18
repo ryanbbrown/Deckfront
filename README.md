@@ -67,6 +67,8 @@ npx tsx scripts/measure_search.ts
 
 It plays every baseline pairing in every curated kingdom and prints wall clock per decision and per match, states visited, and stop reasons.
 
+`evolve` runs the search: each generation plays every candidate against every leader over a fixed set of shared seeds, four games per pairing per seed, then keeps the best few as the next leaders and mutates them into the next population. `roundRobin` plays the final tournament between the last leaders, one retained leader per generation, and the fixed baselines, and reports the complete pairwise table. A strategy's id is a hash of its behaviour, so duplicates collapse on their own.
+
 The five curated experiment kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and `rigged-melee`. `rigged-melee` is a calibration fixture: it re-prices Heavy Blow to 3 for 6 damage, and `src/sim/calibration.ts` checks that the search finds it. Its threshold, kingdom, and strategies must never be tuned to make it pass.
 
 Card definitions live in `src/game-data/cards.json` and kingdoms in `src/game-data/kingdoms.json`. Strategy prompts live in `strategies/`. Saved AI traces live under `.data/ai-traces`.

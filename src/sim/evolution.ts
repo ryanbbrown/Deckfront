@@ -1,0 +1,191 @@
+import { mutateUnique } from './mutation';
+import { emptyAggregate, mergeAggregate, playPairing, sharedSeedList } from './pairing';
+import { seedPopulation, seedStrategies } from './seedPopulation';
+import { canonicalStrategy } from './strategy';
+import type { Strategy } from './strategy';
+import type { EvolutionConfig, GenerationResult, ScoredStrategy, TelemetryAggregate } from './types';
+
+/** The seed population must hold all five fixed baselines before it holds a single mutant. */
+export const MIN_CANDIDATES = 5;
+
+/**
+ * Every limit is rejected, never clamped. A silently clamped limit would be recorded in the report as
+ * the limit the caller asked for, and `GOAL.md` requires the actual limits.
+ */
+export function validateEvolutionConfig(config: EvolutionConfig): void {
+  const positive = (name: string, value: number): void => {
+    if (!Number.isInteger(value) || value < 1) throw new Error(`${name} must be a positive integer, not ${value}.`);
+  };
+  positive('candidates', config.candidates);
+  positive('leaders', config.leaders);
+  positive('generations', config.generations);
+  positive('sharedSeeds', config.sharedSeeds);
+  positive('turnLimitPerPlayer', config.turnLimitPerPlayer);
+  positive('actionCapPerTurn', config.actionCapPerTurn);
+  if (config.candidates < MIN_CANDIDATES) {
+    throw new Error(`candidates must be at least ${MIN_CANDIDATES}, so the fixed baselines all fit, not ${config.candidates}.`);
+  }
+  if (config.leaders > config.candidates) {
+    throw new Error(`leaders (${config.leaders}) cannot exceed candidates (${config.candidates}).`);
+  }
+}
+
+interface Tally { strategy: Strategy; score: number; completedGames: number; abortedGames: number }
+
+function scored(tally: Tally): ScoredStrategy {
+  return {
+    strategy: tally.strategy,
+    score: tally.completedGames ? tally.score / tally.completedGames : 0,
+    completedGames: tally.completedGames,
+    abortedGames: tally.abortedGames
+  };
+}
+
+/**
+ * Score descending, then the stable hash of the canonical form, then the canonical form itself so a
+ * hash collision is still decided. A candidate with no completed game ranks below every candidate
+ * that finished one, however badly it did: ranking by mean over zero games has no meaning.
+ */
+export function compareScored(left: ScoredStrategy, right: ScoredStrategy): number {
+  if ((left.completedGames === 0) !== (right.completedGames === 0)) return left.completedGames === 0 ? 1 : -1;
+  if (left.score !== right.score) return right.score - left.score;
+  if (left.strategy.id !== right.strategy.id) return left.strategy.id < right.strategy.id ? -1 : 1;
+  const leftForm = canonicalStrategy(left.strategy);
+  const rightForm = canonicalStrategy(right.strategy);
+  return leftForm < rightForm ? -1 : leftForm > rightForm ? 1 : 0;
+}
+
+/**
+ * Sorts under one comparator, drops exact duplicates, then truncates. That order matters: truncating
+ * first would truncate an under-determined list, and the tiebreak could never decide anything.
+ *
+ * "Meaningfully different" is exact-duplicate removal and nothing more. The first run has no data to
+ * define a distance metric on, and an arbitrary threshold would hide real results.
+ */
+export function selectLeaders(candidates: readonly ScoredStrategy[], limit: number): ScoredStrategy[] {
+  const ordered = [...candidates].sort(compareScored);
+  const seen = new Set<string>();
+  const kept: ScoredStrategy[] = [];
+  for (const entry of ordered) {
+    const form = canonicalStrategy(entry.strategy);
+    if (seen.has(form)) continue;
+    seen.add(form);
+    kept.push(entry);
+    if (kept.length === limit) break;
+  }
+  return kept;
+}
+
+/** The next population: the leaders themselves, so a leader is re-scored, then mutations of them. */
+export function nextPopulation(
+  kingdomId: string, leaders: readonly Strategy[], size: number, runSeed: number, generation: number
+): Strategy[] {
+  const population = leaders.slice(0, size);
+  const taken = new Set(population.map(canonicalStrategy));
+  for (let index = population.length; index < size; index += 1) {
+    const parent = leaders[(index - leaders.length) % leaders.length]!;
+    const child = mutateUnique(kingdomId, parent, taken, runSeed, generation, index);
+    const form = canonicalStrategy(child);
+    if (taken.has(form)) continue;
+    taken.add(form);
+    population.push(child);
+  }
+  return population;
+}
+
+/** One entrant per generation for the final tournament: the generation's best leader. */
+export function retainedLeaders(generations: readonly GenerationResult[]): Strategy[] {
+  const kept: Strategy[] = [];
+  const seen = new Set<string>();
+  for (const generation of generations) {
+    const best = generation.leaders[0];
+    if (!best) continue;
+    const form = canonicalStrategy(best.strategy);
+    if (seen.has(form)) continue;
+    seen.add(form);
+    kept.push(best.strategy);
+  }
+  return kept;
+}
+
+/**
+ * Runs the generations. Determinism is claimed for deadline-free runs only: a wall-clock deadline and
+ * exact reproducibility cannot both hold, so tests inject `now`.
+ *
+ * The deadline is checked between pairings, not between generations. A full generation is thousands
+ * of matches, so a generation-boundary check could overshoot the reserve in `GOAL.md` by hours. A
+ * generation cut short still reports through `onGeneration` with `partial: true` and keeps every
+ * match it finished.
+ */
+export function evolve(config: EvolutionConfig, onGeneration: (result: GenerationResult) => void): GenerationResult[] {
+  validateEvolutionConfig(config);
+  const now = config.now ?? Date.now;
+  const expired = (): boolean => config.deadline !== undefined && now() >= config.deadline;
+  const seeds = sharedSeedList(config.seed, config.sharedSeeds);
+
+  // Generation 1 has no previous leaders, so all five fixed baselines are the first leader set,
+  // whatever `leaders` says. That limit governs generation 2 onward, and every generation-1 score
+  // depends on this.
+  let leaders: Strategy[] = seedStrategies(config.kingdomId);
+  let population = seedPopulation(config.kingdomId, config.seed, config.candidates);
+  const results: GenerationResult[] = [];
+
+  for (let generation = 1; generation <= config.generations; generation += 1) {
+    const started = now();
+    const tallies = new Map<string, Tally>();
+    const tally = (strategy: Strategy): Tally => {
+      let found = tallies.get(strategy.id);
+      if (!found) { found = { strategy, score: 0, completedGames: 0, abortedGames: 0 }; tallies.set(strategy.id, found); }
+      return found;
+    };
+    for (const candidate of population) tally(candidate);
+
+    const telemetry: TelemetryAggregate = emptyAggregate();
+    let matchCount = 0;
+    let overflowCount = 0;
+    let partial = false;
+
+    pairings: for (const candidate of population) {
+      for (const opponent of leaders) {
+        // A strategy never plays itself. Identity is the canonical form, so a mutant that landed back
+        // on its parent's shape is the same entrant, not a new one.
+        if (candidate.id === opponent.id) continue;
+        if (expired()) { partial = true; break pairings; }
+
+        const outcome = playPairing(candidate, opponent, {
+          kingdomId: config.kingdomId, seeds, stateLimit: config.stateLimit,
+          turnLimitPerPlayer: config.turnLimitPerPlayer, actionCapPerTurn: config.actionCapPerTurn
+        });
+        matchCount += outcome.matches;
+        overflowCount += outcome.record.aborted;
+        mergeAggregate(telemetry, outcome.telemetry);
+
+        const candidateTally = tally(candidate);
+        candidateTally.score += outcome.candidateScore;
+        candidateTally.completedGames += outcome.record.played;
+        candidateTally.abortedGames += outcome.record.aborted;
+        const opponentTally = tally(opponent);
+        opponentTally.score += outcome.opponentScore;
+        opponentTally.completedGames += outcome.record.played;
+        opponentTally.abortedGames += outcome.record.aborted;
+      }
+    }
+
+    const ranked = population.map((candidate) => scored(tally(candidate)));
+    const nextLeaders = selectLeaders(ranked, config.leaders);
+    const scores: Record<string, number> = {};
+    for (const entry of ranked) scores[entry.strategy.id] = entry.score;
+
+    const result: GenerationResult = {
+      generation, partial, leaders: nextLeaders, scores, matchCount, overflowCount,
+      elapsedMs: now() - started, telemetry
+    };
+    results.push(result);
+    onGeneration(result);
+    if (partial) break;
+
+    leaders = nextLeaders.map((entry) => entry.strategy);
+    population = nextPopulation(config.kingdomId, leaders, config.candidates, config.seed, generation + 1);
+  }
+  return results;
+}

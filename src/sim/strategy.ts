@@ -36,6 +36,45 @@ export function priorityRank(list: readonly string[], cardId: string | null): nu
   return index < 0 ? 0 : list.length - index;
 }
 
+/**
+ * Every behavioural field, with object keys in a fixed order and `id` excluded. Array order is kept
+ * wherever it is behaviour: the buy agenda is tried in order, and each priority list is best-first.
+ */
+export function canonicalStrategy(strategy: Strategy): string {
+  const weightKeys = Object.keys(strategy.weights).sort() as (keyof StateWeights)[];
+  return JSON.stringify({
+    buyAgenda: strategy.buyAgenda.map((entry) => [entry.cardId, entry.desiredCount]),
+    discardPriority: strategy.discardPriority,
+    preferredRange: strategy.preferredRange,
+    reclaimPriority: strategy.reclaimPriority,
+    startingBuild: strategy.startingBuild,
+    trashPriority: strategy.trashPriority,
+    treasureFallback: strategy.treasureFallback,
+    weights: weightKeys.map((key) => [key, strategy.weights[key]])
+  });
+}
+
+/** FNV-1a, 32 bit. Stable across processes and runs, which `Object` hashing and iteration order are not. */
+export function stableHash(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return `${hash.toString(16).padStart(8, '0')}${(text.length >>> 0).toString(16)}`;
+}
+
+export const STRATEGY_ID_PREFIX = 'sg-';
+
+/**
+ * Gives a strategy the id its behaviour earns. Exact duplicates then collapse on their own, a mutant
+ * can never inherit its parent's id and overwrite it in a score map, and a leader retained unchanged
+ * across generations enters the round robin once instead of several times under different ids.
+ */
+export function identify(strategy: Strategy): Strategy {
+  return { ...strategy, id: `${STRATEGY_ID_PREFIX}${stableHash(canonicalStrategy(strategy))}` };
+}
+
 export function formatStrategy(strategy: Strategy): string {
   const agenda = strategy.buyAgenda.map((entry) => `${entry.cardId} x${entry.desiredCount}`).join(' -> ') || 'none';
   const weights = (Object.entries(strategy.weights) as [keyof StateWeights, number][])
