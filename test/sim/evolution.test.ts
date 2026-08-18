@@ -4,7 +4,9 @@ import {
   MIN_CANDIDATES, compareScored, evolve, retainedLeaders, selectLeaders, validateEvolutionConfig
 } from '../../src/sim/evolution';
 import { repairStrategy } from '../../src/sim/mutation';
-import { ORIENTATIONS, playPairing, sharedSeedList } from '../../src/sim/pairing';
+import { ORIENTATIONS, emptyAggregate, playPairing, sharedSeedList } from '../../src/sim/pairing';
+import type { PairingOutcome } from '../../src/sim/pairing';
+import type { PairingRunner } from '../../src/sim/pairingRunner';
 import { seedPopulation, seedStrategies } from '../../src/sim/seedPopulation';
 import { canonicalStrategy, identify } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
@@ -130,6 +132,42 @@ describe('leader selection', () => {
 });
 
 describe('running the generations', () => {
+  it('weights unequal-length opponent pairings equally', async () => {
+    const seenByCandidate = new Map<string, number>();
+    const outcome = (mean: 0 | 1, games: number): PairingOutcome => ({
+      record: {
+        played: games, wins: mean ? games : 0, draws: 0, losses: mean ? 0 : games, aborted: 0
+      },
+      candidateScore: mean * games,
+      opponentScore: (1 - mean) * games,
+      candidateMean: mean,
+      opponentMean: 1 - mean,
+      telemetry: emptyAggregate(),
+      matches: games,
+      seedBlocks: games / 4,
+      stopReason: games === 48 ? 'significant' : 'maximum'
+    });
+    const runner: PairingRunner = {
+      run: async (jobs) => ({
+        outcomes: jobs.map((job) => {
+          const seen = seenByCandidate.get(job.candidate.id) ?? 0;
+          seenByCandidate.set(job.candidate.id, seen + 1);
+          return seen === 0 ? outcome(1, 48) : outcome(0, 100);
+        }),
+        submitted: jobs.length
+      }),
+      close: async () => {}
+    };
+    const settings = config({ generations: 1, candidates: 6 });
+    const target = seedPopulation(KINGDOM, settings.seed, settings.candidates)[5]!;
+    const result = (await evolve(settings, () => {}, runner))[0]!;
+
+    expect(seenByCandidate.get(target.id)).toBe(5);
+    expect(result.scores[target.id]).toBe(0.2);
+    expect(result.scores[target.id]).not.toBe(48 / (48 + 4 * 100));
+    expect(result.matchCount).toBe(6 * 48 + 19 * 100);
+  });
+
   /**
    * The invariant behind leader selection: a score is the candidate-side mean over the leader field
    * and over nothing else. Adding the opponent side too would give a leader a second record taken

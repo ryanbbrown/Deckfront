@@ -160,6 +160,17 @@ function strategyRecord(strategies: readonly { source: string; strategy: Strateg
 export async function runExperiment(
   options: ExperimentOptions, outDir: string, deps: ExperimentDeps = {}
 ): Promise<RunSummary> {
+  const runner = deps.pairingRunner ?? new InlinePairingRunner();
+  try {
+    return await runExperimentWithRunner(options, outDir, deps, runner);
+  } finally {
+    await runner.close();
+  }
+}
+
+async function runExperimentWithRunner(
+  options: ExperimentOptions, outDir: string, deps: ExperimentDeps, runner: PairingRunner
+): Promise<RunSummary> {
   const now = deps.now ?? Date.now;
   const runEvolution = deps.evolve ?? evolve;
   const runTournament = deps.roundRobin ?? roundRobin;
@@ -169,7 +180,6 @@ export async function runExperiment(
   const evolutionDeadline = startedAtMs + Math.round(budgetMs * (1 - TOURNAMENT_RESERVE));
   const tournamentDeadline = startedAtMs + budgetMs;
   const labels = seedLabels(options.kingdomId);
-  const runner = deps.pairingRunner ?? new InlinePairingRunner();
 
   const summary: RunSummary = {
     kingdomId: options.kingdomId,
@@ -310,8 +320,6 @@ export async function runExperiment(
   } catch (error) {
     summary.stopReason = 'error';
     summary.error = error instanceof Error ? error.message : String(error);
-  } finally {
-    await runner.close();
   }
 
   const finishedAtMs = now();

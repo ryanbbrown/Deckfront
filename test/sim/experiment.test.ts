@@ -8,6 +8,8 @@ import type { ExperimentOptions } from '../../src/sim/cli';
 import { evolve, retainedLeaders } from '../../src/sim/evolution';
 import { runExperiment } from '../../src/sim/experiment';
 import { emptyAggregate } from '../../src/sim/pairing';
+import { InlinePairingRunner } from '../../src/sim/pairingRunner';
+import type { PairingRunner } from '../../src/sim/pairingRunner';
 import { seedStrategies } from '../../src/sim/seedPopulation';
 import type { Strategy } from '../../src/sim/strategy';
 import { roundRobin } from '../../src/sim/tournament';
@@ -62,6 +64,18 @@ function fakeTournament(entrants: readonly Strategy[]): typeof roundRobin {
 }
 
 describe('writing an experiment', () => {
+  it('closes the injected runner once when experiment setup fails', async () => {
+    let closeCount = 0;
+    const runner: PairingRunner = {
+      run: async () => { throw new Error('pairing work must not start'); },
+      close: async () => { closeCount += 1; }
+    };
+    await expect(runExperiment(
+      options({ kingdomId: 'distance-duel' }), tempDir(), { pairingRunner: runner }
+    )).rejects.toThrow('Unknown seed kingdom: distance-duel');
+    expect(closeCount).toBe(1);
+  });
+
   it('writes run.json with the resolved kingdom before the first generation ends', async () => {
     const dir = tempDir();
     const leaders = seedStrategies(KINGDOM).slice(0, 2);
@@ -98,7 +112,9 @@ describe('writing an experiment', () => {
     const root = tempDir();
     const failing: typeof evolve = async () => { throw new Error('the population could not be filled'); };
 
-    const code = await main(['--kingdom', KINGDOM, '--mode', 'smoke'], root, { evolve: failing });
+    const code = await main(['--kingdom', KINGDOM, '--mode', 'smoke'], root, {
+      evolve: failing, pairingRunner: new InlinePairingRunner()
+    });
 
     expect(code).toBe(1);
     const dir = experimentDir(root, KINGDOM, 'smoke');
@@ -244,7 +260,7 @@ describe('writing an experiment', () => {
     const argv = ['--kingdom', KINGDOM, '--mode', 'smoke', '--candidates', '5', '--leaders', '1',
       '--generations', '1', '--seeds', '1'];
 
-    await expect(main(argv, root, { pairingRunner: undefined })).resolves.toBe(0);
+    await expect(main(argv, root, { pairingRunner: new InlinePairingRunner() })).resolves.toBe(0);
 
     const dir = experimentDir(root, KINGDOM, 'smoke');
     expect(dir.endsWith(path.join('.experiments', KINGDOM, 'smoke'))).toBe(true);

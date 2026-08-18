@@ -7,7 +7,7 @@ import { runExperiment } from './experiment';
 import type { ExperimentDeps } from './experiment';
 import { CURATED_KINGDOM_IDS } from './kingdoms';
 import type { ExperimentMode } from './report';
-import { InlinePairingRunner, WorkerPairingRunner, runPairingWorker } from './pairingRunner';
+import { WorkerPairingRunner, runPairingWorker } from './pairingRunner';
 
 export interface ExperimentOptions {
   kingdomId: string;
@@ -120,7 +120,7 @@ export function experimentDir(root: string, kingdomId: string, mode: ExperimentM
 export async function main(argv: readonly string[], root: string, deps: ExperimentDeps = {}): Promise<number> {
   const options = parseExperimentOptions(argv);
   const pairingRunner = deps.pairingRunner
-    ?? (Object.keys(deps).length ? new InlinePairingRunner() : new WorkerPairingRunner(options.workers, new URL(import.meta.url)));
+    ?? new WorkerPairingRunner(options.workers, new URL(import.meta.url));
   const summary = await runExperiment(
     options, experimentDir(root, options.kingdomId, options.mode), { ...deps, pairingRunner }
   );
