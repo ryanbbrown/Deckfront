@@ -1,4 +1,5 @@
 import { CARDS } from './config';
+import { ALWAYS_AVAILABLE_ACTION_ID, ALWAYS_AVAILABLE_COUNT, findKingdom } from './kingdom';
 import type { GameState } from './types';
 
 export function checkInvariants(state: GameState): string[] {
@@ -20,9 +21,17 @@ export function checkInvariants(state: GameState): string[] {
     const cards = Object.values(state.players).flatMap((player) => [...player.deck.draw, ...player.deck.hand, ...player.deck.discard, ...player.deck.play]);
     if (cards.length) errors.push('Card instances exist before both starting builds complete.');
   }
-  for (const [id, count] of Object.entries(state.supply)) {
-    if (!CARDS[id] || CARDS[id].type !== 'action') errors.push(`Supply has invalid card ${id}.`);
-    if (!Number.isInteger(count) || count < 0 || count > 10) errors.push(`${id} has invalid supply count.`);
+  const kingdom = findKingdom(state.kingdomId);
+  if (!kingdom) errors.push(`Unknown kingdom: ${state.kingdomId}`);
+  else {
+    if (state.startingHealth !== kingdom.startingHealth) errors.push('Starting health does not match the kingdom.');
+    const piles = new Map<string, number>([...kingdom.actionPiles.map((pile) => [pile.cardId, pile.count] as const), [ALWAYS_AVAILABLE_ACTION_ID, ALWAYS_AVAILABLE_COUNT]]);
+    for (const [id, count] of Object.entries(state.supply)) {
+      const declared = piles.get(id);
+      if (declared === undefined) { errors.push(`Supply has invalid card ${id}.`); continue; }
+      if (!Number.isInteger(count) || count < 0 || count > declared) errors.push(`${id} has invalid supply count.`);
+    }
+    for (const id of piles.keys()) if (!(id in state.supply)) errors.push(`Supply is missing ${id}.`);
   }
   const cards = [...state.trash, ...Object.values(state.players).flatMap((player) => [...player.deck.draw, ...player.deck.hand, ...player.deck.discard, ...player.deck.play])];
   const ids = new Set<string>();

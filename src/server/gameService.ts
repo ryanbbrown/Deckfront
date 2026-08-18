@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
-  CARDS, applyCommand, assertInvariants, cardDefinition, cloneGame, createGame,
+  applyCommand, assertInvariants, cardDefinition, cloneGame, createGame, kingdomMarket,
   listActionAvailability, listLegalActions, marketCost, rangeBand, replayCommands
 } from '../game';
 import type { CardInstance, GameCommand, GameEvent, GameState, LegalAction, PlayerId } from '../game';
@@ -185,7 +185,8 @@ export class GameService {
       durationSeconds: record.durationSeconds, humanPlayerId: record.humanPlayerId, aiPlayerId: record.aiPlayerId,
       opponentMode: record.opponentMode, viewPlayerId,
       activePlayerId: state.activePlayerId, selectedFirstPlayerId: state.selectedFirstPlayerId, phase: state.phase, turn: state.turn, winner: state.winner,
-      fighters: structuredClone(state.fighters), range: rangeBand(state), supply: { ...state.supply }, cards: structuredClone(CARDS), players,
+      fighters: structuredClone(state.fighters), range: rangeBand(state), supply: { ...state.supply },
+      cards: Object.fromEntries(kingdomMarket(state.kingdomId).map((card) => [card.id, card])), players,
       trashCount: state.trash.length, events: structuredClone(state.events), legalActions: canChoose ? listLegalActions(state) : [], actionAvailability: canChoose ? listActionAvailability(state, viewPlayerId) : [], canUndo: record.undoCheckpoint !== null,
       humanBuildProposal: [...record.humanBuildProposal], completedBuilds, strategy: { ...record.strategy }, aiRuntime: { ...record.aiRuntime },
       lastAiSummary: record.aiActions.at(-1)?.summary ?? null,

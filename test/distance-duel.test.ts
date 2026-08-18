@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  CARDS, FIRST_MARKET, applyAction, applyCommand, assertInvariants, createCard, createGame, listActionAvailability,
-  listLegalActions, rangeBand, replayCommands, submitStartingBuild
+  CARDS, applyAction, applyCommand, assertInvariants, createCard, createGame, listActionAvailability,
+  listLegalActions, rangeBand, replayCommands, submitStartingBuild, DEFAULT_KINGDOM_ID, kingdomOf
 } from '../src/game';
 import type { GameCommand, GameState, PlayerId } from '../src/game';
 import { gameCommandSchema } from '../src/server/schemas';
@@ -40,14 +40,14 @@ describe('starting build', () => {
     expect(state.players.indigo.deck.hand.map((card) => [card.id, card.definitionId])).toEqual([['card-18', 'drive'], ['card-15', 'copper'], ['card-11', 'copper'], ['card-14', 'copper'], ['card-12', 'copper']]); expect(state.fighters).toEqual({ ochre: { playerId: 'ochre', position: 2, health: 20, aimed: false, exposed: false }, indigo: { playerId: 'indigo', position: 3, health: 20, aimed: false, exposed: false } });
   });
   it('accepts no paid cards, repeats, and free Copper but rejects bad builds', () => {
-    const initial = createGame(2); expect(submitStartingBuild(initial, 'ochre', []).players.ochre.startingBuild).toEqual([]);
-    expect(() => submitStartingBuild(createGame(2), 'ochre', ['gold', 'gold', 'copper', 'copper'])).not.toThrow();
-    expect(() => submitStartingBuild(createGame(2), 'ochre', ['gold', 'gold', 'silver'])).toThrow('more than 12');
-    expect(() => submitStartingBuild(createGame(2), 'ochre', ['missing'])).toThrow('Unknown card');
+    const initial = createGame({ seed: 2 }); expect(submitStartingBuild(initial, 'ochre', []).players.ochre.startingBuild).toEqual([]);
+    expect(() => submitStartingBuild(createGame({ seed: 2 }), 'ochre', ['gold', 'gold', 'copper', 'copper'])).not.toThrow();
+    expect(() => submitStartingBuild(createGame({ seed: 2 }), 'ochre', ['gold', 'gold', 'silver'])).toThrow('more than 12');
+    expect(() => submitStartingBuild(createGame({ seed: 2 }), 'ochre', ['missing'])).toThrow('Unknown card');
   });
   it('removes Vault from card data, market piles, and starting builds', () => {
-    expect(CARDS.vault).toBeUndefined(); expect(FIRST_MARKET.actionPiles.map((pile) => pile.cardId)).not.toContain('vault');
-    expect(() => submitStartingBuild(createGame(2), 'ochre', ['vault'])).toThrow('Unknown card definition: vault');
+    expect(CARDS.vault).toBeUndefined(); expect(kingdomOf(DEFAULT_KINGDOM_ID).actionPiles.map((pile) => pile.cardId)).not.toContain('vault');
+    expect(() => submitStartingBuild(createGame({ seed: 2 }), 'ochre', ['vault'])).toThrow('Unknown card definition: vault');
   });
   it('replays setup and deterministic shuffle exactly', () => {
     const initial = createGame({ seed: 99, firstPlayerId: 'ochre' }); const commands: GameCommand[] = [

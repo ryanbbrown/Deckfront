@@ -29,10 +29,6 @@ export const cardLibrarySchema = z.object({ cards: z.array(cardDefinitionSchema)
     if (expected !== present) context.addIssue({ code: 'custom', message: `${card.id} must declare exactly these values: ${expected || 'none'}` });
   }
 });
-export const marketSchema = z.object({
-  id: z.string().min(1),
-  actionPiles: z.array(z.object({ cardId: z.string(), count: z.number().int().positive() })).length(8)
-});
 export const kingdomSchema = z.object({
   id: z.string().min(1), name: z.string().min(1), startingHealth: z.number().int().positive(),
   actionPiles: z.array(z.object({ cardId: z.string().min(1), count: z.number().int().positive() })).min(1),

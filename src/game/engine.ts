@@ -1,5 +1,5 @@
-import { MARKET_CARD_IDS, cardDefinition } from './config';
 import { ARENA_MAX, ARENA_MIN, EFFECTS } from './effects';
+import { kingdomMarket, resolveCard } from './kingdom';
 import type { Choice, EffectContext } from './effects';
 import { SeededRandom, shuffle } from './random';
 import { cloneGame, createCard, opponent } from './state';
@@ -32,7 +32,7 @@ function choiceTargets(state: GameState, pending: PendingChoice): CardInstance[]
   return pending.type === 'discard' ? deck.hand : deck.discard;
 }
 function cardAvailability(state: GameState, playerId: PlayerId, card: CardInstance): ActionAvailability {
-  const definition = cardDefinition(card.definitionId);
+  const definition = resolveCard(state, card.definitionId);
   const effect = EFFECTS[definition.mechanic];
   const pending = state.pendingChoice;
   let reasonCode: DisabledReasonCode | null = null;
@@ -63,7 +63,7 @@ function cardActions(state: GameState): LegalAction[] {
   return hand.flatMap((card) => {
     const available = cardAvailability(state, playerId, card);
     if (!available.enabled) return [];
-    const definition = cardDefinition(card.definitionId);
+    const definition = resolveCard(state, card.definitionId);
     const effect = EFFECTS[definition.mechanic];
     const moveLabel = (movement: MovementChoice): string => `Play ${definition.name}: ${effect.movePrefix}${movementText(movement)}`;
     switch (effect.choice) {
@@ -72,9 +72,9 @@ function cardActions(state: GameState): LegalAction[] {
       case 'direction': return available.movements.flatMap((movement) => movement === 'stay' ? [] : [legal(moveLabel(movement), effect.command(card.id, { direction: movement }))]);
       case 'trashOneOrTwo': {
         const eligible = [card, ...hand.filter((candidate) => candidate.id !== card.id)];
-        const actions: LegalAction[] = eligible.map((candidate) => legal(`Play ${definition.name}: trash ${cardDefinition(candidate.definitionId).name}`, effect.command(card.id, { trashInstanceIds: [candidate.id] })));
+        const actions: LegalAction[] = eligible.map((candidate) => legal(`Play ${definition.name}: trash ${resolveCard(state, candidate.definitionId).name}`, effect.command(card.id, { trashInstanceIds: [candidate.id] })));
         for (let left = 0; left < eligible.length; left += 1) for (let right = left + 1; right < eligible.length; right += 1) {
-          actions.push(legal(`Play ${definition.name}: trash ${cardDefinition(eligible[left]!.definitionId).name} and ${cardDefinition(eligible[right]!.definitionId).name}`, effect.command(card.id, { trashInstanceIds: [eligible[left]!.id, eligible[right]!.id] })));
+          actions.push(legal(`Play ${definition.name}: trash ${resolveCard(state, eligible[left]!.definitionId).name} and ${resolveCard(state, eligible[right]!.definitionId).name}`, effect.command(card.id, { trashInstanceIds: [eligible[left]!.id, eligible[right]!.id] })));
         }
         return actions;
       }
@@ -83,18 +83,17 @@ function cardActions(state: GameState): LegalAction[] {
 }
 function resolveActions(state: GameState, pending: PendingChoice): LegalAction[] {
   const targets = choiceTargets(state, pending);
-  if (pending.type === 'discard') return targets.map((card) => legal(`Discard ${cardDefinition(card.definitionId).name}`, { type: 'resolveDiscard', discardInstanceId: card.id }));
+  if (pending.type === 'discard') return targets.map((card) => legal(`Discard ${resolveCard(state, card.definitionId).name}`, { type: 'resolveDiscard', discardInstanceId: card.id }));
   return [
-    ...targets.map((card) => legal(`Recover ${cardDefinition(card.definitionId).name}`, { type: 'resolveRecover', recoverInstanceId: card.id })),
+    ...targets.map((card) => legal(`Recover ${resolveCard(state, card.definitionId).name}`, { type: 'resolveRecover', recoverInstanceId: card.id })),
     legal('Recover nothing', { type: 'resolveRecover', recoverInstanceId: null })
   ];
 }
 function buyActions(state: GameState): LegalAction[] {
   const money = state.players[state.activePlayerId].money;
-  const actions = MARKET_CARD_IDS.flatMap((definitionId) => {
-    const definition = cardDefinition(definitionId);
-    const available = definition.type === 'treasure' || (state.supply[definitionId] ?? 0) > 0;
-    return available && definition.cost <= money ? [legal(`Buy ${definition.name}`, { type: 'buyCard' as const, definitionId })] : [];
+  const actions = kingdomMarket(state.kingdomId).flatMap((definition) => {
+    const available = definition.type === 'treasure' || (state.supply[definition.id] ?? 0) > 0;
+    return available && definition.cost <= money ? [legal(`Buy ${definition.name}`, { type: 'buyCard' as const, definitionId: definition.id })] : [];
   });
   return [...actions, legal('End Buy phase', { type: 'endBuyPhase' })];
 }
@@ -132,7 +131,7 @@ function dealDamage(state: GameState, targetId: PlayerId, base: number, closeDam
   const target = state.fighters[targetId];
   let amount = base;
   if (closeDamage && target.exposed) {
-    amount += cardValues(cardDefinition('feint')).bonus ?? 0; target.exposed = false;
+    amount += cardValues(resolveCard(state, 'feint')).bonus ?? 0; target.exposed = false;
     record(state, 'condition', { condition: 'Exposed', change: 'consumed', targetId });
   }
   target.health = Math.max(0, target.health - amount);
@@ -190,7 +189,7 @@ function playCard(state: GameState, command: PlayCardCommand): void {
   const card = takeCard(state, command.cardInstanceId);
   state.actionsThisTurn.push(card.definitionId);
   record(state, 'cardPlayed', { cardInstanceId: card.id, definitionId: card.definitionId });
-  const definition = cardDefinition(card.definitionId);
+  const definition = resolveCard(state, card.definitionId);
   const context: EffectContext = {
     state, actorId, targetId: opponent(actorId), card, previousActions,
     draw: (playerId, count) => draw(state, playerId, count),
@@ -242,6 +241,8 @@ function finishSetup(state: GameState): void {
 function submitBuild(state: GameState, command: Extract<GameCommand, { type: 'submitStartingBuild' }>): void {
   if (state.phase !== 'startingBuild' || state.activePlayerId !== command.playerId) throw new Error('This starting build cannot be submitted now.');
   if (state.players[command.playerId].startingBuild) throw new Error('The starting build is already complete.');
+  const offered = new Set(kingdomMarket(state.kingdomId).map((definition) => definition.id));
+  for (const id of command.definitionIds) if (!offered.has(resolveCard(state, id).id)) throw new Error(`This kingdom does not sell ${id}.`);
   const cost = marketCost(state, command.definitionIds);
   if (cost > 12) throw new Error('Starting build costs more than 12 money.');
   state.players[command.playerId].startingBuild = [...command.definitionIds];
@@ -258,16 +259,16 @@ function execute(state: GameState, command: GameCommand): void {
     case 'resolveRecover': resolveRecover(state, command); return;
     case 'endActionPhase': {
       const player = state.players[state.activePlayerId];
-      const treasures = player.deck.hand.filter((card) => cardDefinition(card.definitionId).type === 'treasure');
-      player.deck.hand = player.deck.hand.filter((card) => cardDefinition(card.definitionId).type !== 'treasure');
+      const treasures = player.deck.hand.filter((card) => resolveCard(state, card.definitionId).type === 'treasure');
+      player.deck.hand = player.deck.hand.filter((card) => resolveCard(state, card.definitionId).type !== 'treasure');
       player.deck.play.push(...treasures);
-      player.money += treasures.reduce((total, card) => total + (cardDefinition(card.definitionId).money ?? 0), 0) + (player.firstBuyPending ? player.firstBuyMoney : 0);
+      player.money += treasures.reduce((total, card) => total + (resolveCard(state, card.definitionId).money ?? 0), 0) + (player.firstBuyPending ? player.firstBuyMoney : 0);
       player.mana = 0;
       state.phase = 'buy'; record(state, 'phase', { phase: 'buy', money: player.money }); return;
     }
     case 'buyCard': {
       const player = state.players[state.activePlayerId];
-      const definition = cardDefinition(command.definitionId);
+      const definition = resolveCard(state, command.definitionId);
       player.money -= definition.cost;
       if (definition.type === 'action') state.supply[command.definitionId]!--;
       const card = createCard(state, command.definitionId); player.deck.discard.push(card); player.purchases.push(command.definitionId);
@@ -303,6 +304,6 @@ export function submitStartingBuild(state: GameState, playerId: PlayerId, defini
 export function replayCommands(initialState: GameState, commands: readonly GameCommand[]): GameState {
   return commands.reduce((state, command) => applyCommand(state, command), cloneGame(initialState));
 }
-export function marketCost(_state: GameState, definitionIds: readonly string[]): number {
-  return definitionIds.reduce((sum, id) => sum + cardDefinition(id).cost, 0);
+export function marketCost(state: GameState, definitionIds: readonly string[]): number {
+  return definitionIds.reduce((sum, id) => sum + resolveCard(state, id).cost, 0);
 }

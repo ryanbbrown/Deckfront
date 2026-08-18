@@ -1,0 +1,18 @@
+{
+  "kingdoms": [
+    {
+      "id": "distance-duel",
+      "name": "Distance Duel",
+      "startingHealth": 20,
+      "actionPiles": [
+        { "cardId": "footwork", "count": 10 },
+        { "cardId": "muster", "count": 10 },
+        { "cardId": "feint", "count": 10 },
+        { "cardId": "drive", "count": 10 },
+        { "cardId": "flurry", "count": 10 },
+        { "cardId": "aim", "count": 10 },
+        { "cardId": "volley", "count": 10 }
+      ]
+    }
+  ]
+}
