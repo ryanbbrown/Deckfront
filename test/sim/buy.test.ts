@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   applyAction, createGame, listLegalActions, marketCost, registerKingdom, resetKingdoms, submitStartingBuild
 } from '../../src/game';
-import type { GameCommand, GameState, Kingdom } from '../../src/game';
+import type { GameCommand, GameState, Kingdom, PlayerId } from '../../src/game';
 import { BASELINE_STRATEGIES, baselineStrategy } from '../../src/sim/baselines';
 import { chooseBuyAction, ownedCount } from '../../src/sim/buy';
-import { repairBuild, strategyAgent } from '../../src/sim/agents/strategyAgent';
+import { strategyAgent } from '../../src/sim/agents/strategyAgent';
+import { repairBuild } from '../../src/sim/build';
 import { runMatch } from '../../src/sim/match';
 import type { Strategy } from '../../src/sim/strategy';
+import type { Agent, MatchConfig, MatchResult } from '../../src/sim/types';
 import { strategy, weights } from './fixtures';
 import { CURATED_KINGDOMS, registerCuratedKingdoms } from './kingdoms';
 
@@ -158,6 +160,102 @@ describe('strategy agent dispatch', () => {
     const tied = ['flurry', 'muster', 'aim', 'aim'];
     expect(repairBuild(state, tied)).toEqual(['muster', 'aim', 'aim']);
     expect(repairBuild(state, tied)).toEqual(repairBuild(state, tied));
+  });
+
+  it('drops the most expensive card, not the last one', () => {
+    const state = createGame({ seed: 1 });
+    // 6 + 6 + 6 + 0 is 18. Dropping one Gold reaches 12; dropping from the end would take the free
+    // Copper first and end at two Gold, keeping a strictly worse build for the same money.
+    expect(repairBuild(state, ['gold', 'gold', 'gold', 'copper'])).toEqual(['gold', 'gold', 'copper']);
+    // Expensive first, cheap last: an end-dropping rule never reaches the Gold at all.
+    expect(repairBuild(state, ['gold', 'gold', 'silver', 'silver'])).toEqual(['gold', 'silver', 'silver']);
+  });
+});
+
+describe('baseline starting builds', () => {
+  beforeEach(() => { registerCuratedKingdoms(); });
+
+  // Pins what each baseline actually opens with per kingdom. Plan 10-4 allows a build to repair away
+  // to very little, so these are recorded rather than judged, and step 6 inherits the thin ones.
+  const expected: Record<string, Record<string, string[]>> = {
+    'current-duel': {
+      'treasure-only': [], 'melee-rush': ['drive', 'footwork'], 'ranged-standard': ['volley', 'aim', 'footwork'],
+      'mage-standard': ['footwork'], 'engine-draw': ['muster', 'footwork']
+    },
+    'three-way-open': {
+      'treasure-only': [], 'melee-rush': ['heavyBlow', 'drive', 'footwork'], 'ranged-standard': ['volley', 'aim', 'footwork'],
+      'mage-standard': ['channel', 'arcBolt', 'leyStep', 'footwork'], 'engine-draw': ['stipend', 'footwork']
+    },
+    'three-way-engine': {
+      'treasure-only': [], 'melee-rush': ['heavyBlow', 'footwork'], 'ranged-standard': ['footwork'],
+      'mage-standard': ['channel', 'footwork'], 'engine-draw': ['muster', 'stipend', 'footwork']
+    },
+    'range-rich-mixed': {
+      'treasure-only': [], 'melee-rush': ['heavyBlow', 'drive', 'footwork'], 'ranged-standard': ['volley', 'aim', 'footwork'],
+      'mage-standard': ['channel', 'arcBolt', 'footwork'], 'engine-draw': ['footwork']
+    },
+    'rigged-melee': {
+      'treasure-only': [], 'melee-rush': ['heavyBlow', 'drive', 'footwork'], 'ranged-standard': ['volley', 'aim', 'footwork'],
+      'mage-standard': ['channel', 'arcBolt', 'leyStep', 'footwork'], 'engine-draw': ['stipend', 'footwork']
+    }
+  };
+
+  it('repairs every baseline into a build each curated kingdom accepts', () => {
+    for (const kingdom of CURATED_KINGDOMS) {
+      for (const plan of BASELINE_STRATEGIES) {
+        const state = createGame({ seed: 1, kingdomId: kingdom.id });
+        const build = repairBuild(state, plan.startingBuild);
+        expect(build, `${kingdom.id}/${plan.id}`).toEqual(expected[kingdom.id]![plan.id]);
+        expect(marketCost(state, build), `${kingdom.id}/${plan.id}`).toBeLessThanOrEqual(12);
+        expect(() => submitStartingBuild(state, 'ochre', build)).not.toThrow();
+      }
+    }
+  });
+
+  it('keeps Heavy Blow in Rigged melee only because the override makes it affordable', () => {
+    const rigged = createGame({ seed: 1, kingdomId: 'rigged-melee' });
+    const open = createGame({ seed: 1, kingdomId: 'three-way-open' });
+    const melee = baselineStrategy('melee-rush').startingBuild;
+    expect(marketCost(rigged, melee)).toBe(10);
+    expect(marketCost(open, melee)).toBe(12);
+  });
+});
+
+describe('strategy agent match boundaries', () => {
+  beforeEach(() => { registerCuratedKingdoms(); });
+
+  // The first match lasts one turn per player, so each agent's stored phase key is still turn 1 when
+  // the second match asks about turn 1. That collision is the only way a phase key alone lets a
+  // baseline and a memo survive into a different game.
+  const SPECS: readonly [string, number][] = [['current-duel', 1], ['three-way-engine', 4]];
+
+  function playPair(reuse: boolean): { results: MatchResult[]; visited: number[][] } {
+    const visited: number[][] = [[], []];
+    let index = 0;
+    const make = (id: string): Agent =>
+      strategyAgent(baselineStrategy(id), { onSearch: (report) => visited[index]!.push(report.visited) });
+    const held: Record<PlayerId, Agent> = { ochre: make('ranged-standard'), indigo: make('melee-rush') };
+    const results = SPECS.map(([kingdomId, turnLimitPerPlayer], position) => {
+      index = position;
+      const agents = reuse ? held : { ochre: make('ranged-standard'), indigo: make('melee-rush') };
+      const settings: MatchConfig = {
+        kingdomId, seed: 3, firstPlayerId: 'ochre', swapSides: false,
+        turnLimitPerPlayer, actionCapPerTurn: 200, agents
+      };
+      return runMatch(settings);
+    });
+    return { results, visited };
+  }
+
+  it('does not carry a baseline or memo from one match into the next', () => {
+    const fresh = playPair(false);
+    const reused = playPair(true);
+
+    // A leaked memo entry is served instead of being searched, so the second match expands fewer
+    // states than the same match played by an agent that has seen nothing.
+    expect(reused.visited).toEqual(fresh.visited);
+    expect(reused.results).toEqual(fresh.results);
+    expect(fresh.visited[1]!.length).toBeGreaterThan(0);
   });
 });
 

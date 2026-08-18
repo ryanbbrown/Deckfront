@@ -1,5 +1,5 @@
 import { applyAction, createGame, listActionAvailability, listLegalActions, submitStartingBuild } from '../game';
-import type { PlayerId } from '../game';
+import type { GameState, PlayerId } from '../game';
 import { accumulate, createAccumulator, finishTelemetry } from './telemetry';
 import type { DeadDrawSnapshot } from './telemetry';
 import { ActionSearchOverflowError } from './types';
@@ -9,7 +9,14 @@ import type { MatchConfig, MatchOutcome, MatchReason, MatchResult } from './type
 // ochre then indigo. `firstPlayerId` decides who acts on turn 1, not who builds first.
 const BUILD_ORDER: readonly PlayerId[] = ['ochre', 'indigo'];
 
-export function runMatch(config: MatchConfig): MatchResult {
+/**
+ * Called with every state an applied action produces, including the one that ends the match. It is a
+ * parameter rather than a `MatchConfig` field because `MatchResult.config` is stored and compared,
+ * and a function there would not survive that.
+ */
+export type MatchObserver = (state: GameState) => void;
+
+export function runMatch(config: MatchConfig, onState?: MatchObserver): MatchResult {
   let state = createGame({
     seed: config.seed, firstPlayerId: config.firstPlayerId,
     kingdomId: config.kingdomId, swapSides: config.swapSides
@@ -37,31 +44,35 @@ export function runMatch(config: MatchConfig): MatchResult {
       if (!actions.length) throw new Error(`No legal action is available in phase ${state.phase}.`);
 
       const chosen = agent.chooseAction(state, playerId, actions);
-      if (!actions.some((candidate) => candidate.id === chosen.id)) {
-        throw new Error(`Agent ${agent.id} returned an action it was not offered: ${chosen.id}`);
-      }
+      // The agent's own object is never read past its id. An offered id carrying a different command
+      // would otherwise pick the wrong snapshot while the engine applied the canonical command.
+      const action = actions.find((candidate) => candidate.id === chosen.id);
+      if (!action) throw new Error(`Agent ${agent.id} returned an action it was not offered: ${chosen.id}`);
 
       // Both snapshots must be read before the action applies: `endActionPhase` clears the reason
       // codes and `endBuyPhase` zeroes the money.
       let deadDraws: DeadDrawSnapshot | undefined;
       let unspentMoney: { playerId: PlayerId; amount: number } | undefined;
-      if (chosen.command.type === 'endActionPhase') {
+      if (action.command.type === 'endActionPhase') {
         deadDraws = { playerId, state, availability: listActionAvailability(state, playerId) };
-      } else if (chosen.command.type === 'endBuyPhase') {
+      } else if (action.command.type === 'endBuyPhase') {
         unspentMoney = { playerId, amount: state.players[playerId].money };
       }
 
       const eventsBefore = state.events.length;
       const turnBefore = state.turn;
-      state = applyAction(state, chosen.id);
+      state = applyAction(state, action.id);
       accumulator = accumulate(accumulator, {
         events: state.events.slice(eventsBefore), completedTurns: state.turn - 1, deadDraws, unspentMoney
       });
-      actionsInTurn = state.turn === turnBefore ? actionsInTurn + 1 : 0;
+      onState?.(state);
+      actionsInTurn += 1;
 
       if (state.winner || state.phase === 'ended') { outcome = state.winner ?? 'draw'; reason = 'victory'; break; }
       if (actionsInTurn > config.actionCapPerTurn) { outcome = 'draw'; reason = 'actionCap'; break; }
       if (state.turn > config.turnLimitPerPlayer * 2) { outcome = 'draw'; reason = 'turnLimit'; break; }
+      // Reset after the cap check, so the action that ends a turn counts toward the turn it ended.
+      if (state.turn !== turnBefore) actionsInTurn = 0;
     }
   } catch (error) {
     if (!(error instanceof ActionSearchOverflowError)) throw error;

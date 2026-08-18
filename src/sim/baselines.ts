@@ -13,14 +13,31 @@ const NO_WEIGHTS: StateWeights = {
 function agenda(entries: readonly [string, number][]): Strategy['buyAgenda'] {
   return entries.map(([cardId, desiredCount]) => ({ cardId, desiredCount }));
 }
+
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object') {
+    for (const inner of Object.values(value)) deepFreeze(inner);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+/**
+ * Copies every array and object into the baseline it belongs to, then freezes the whole tree. Step 6
+ * mutates strategies, and a shared weights object or agenda entry would let one candidate's mutation
+ * rewrite the yardstick the rest of the population is measured against.
+ */
 function baseline(strategy: Omit<Strategy, 'treasureFallback' | 'trashPriority' | 'reclaimPriority' | 'discardPriority'>): Strategy {
-  return {
+  return deepFreeze({
     ...strategy,
+    startingBuild: [...strategy.startingBuild],
+    buyAgenda: strategy.buyAgenda.map((entry) => ({ ...entry })),
+    weights: { ...strategy.weights },
     treasureFallback: ['gold', 'silver'],
     trashPriority: ['copper'],
     reclaimPriority: ['gold', 'silver'],
     discardPriority: ['copper', 'silver']
-  };
+  });
 }
 
 export const BASELINE_STRATEGIES: readonly Strategy[] = Object.freeze([

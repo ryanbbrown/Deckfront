@@ -178,6 +178,41 @@ describe('action search state limit', () => {
     const plan = strategy({ weights: weights({ cardsDrawn: 1 }) });
     expect(() => choose(state, plan, { stateLimit: 1 })).toThrow(ActionSearchOverflowError);
     expect(() => choose(state, plan, { stateLimit: 1 })).toThrow(/passed its limit of 1 states/);
-    expect(choose(state, plan).command).toBeDefined();
+
+    // The same state under a workable limit still returns the drawing line, so the overflow is the
+    // limit talking and not a state the search cannot answer.
+    const chosen = choose(state, plan);
+    expect('cardInstanceId' in chosen.command && definitionOf(state, chosen.command.cardInstanceId)).toBe('muster');
+  });
+});
+
+describe('opponent out of attack range', () => {
+  // The one renamed scoring term, weighted -4 in every baseline. It scores 1 when the owned deck
+  // holds no attack the current band allows, so a sign or gate error moves every baseline's play.
+  const plan = strategy({ weights: weights({ opponentOutOfAttackRange: -4 }) });
+  const score = (state: GameState): number => scoreState(state, 'ochre', plan, searchBaseline(state, 'ochre'));
+
+  it('scores nothing while an owned attack fits the band', () => {
+    // Positions 2 and 3 are Near, which Volley allows.
+    expect(score(arena({ hand: ['volley'], ochre: 2, indigo: 3 }))).toBe(0);
+  });
+
+  it('charges the weight when every owned attack is out of band', () => {
+    // Both fighters on 2 is Close, and Volley reports NEEDS_NEAR_OR_FAR there.
+    expect(score(arena({ hand: ['volley'], ochre: 2, indigo: 2 }))).toBe(-4);
+    // Heavy Blow is the mirror case: melee needs Close, so Near puts it out of band.
+    expect(score(arena({ hand: ['heavyBlow'], ochre: 2, indigo: 3 }))).toBe(-4);
+  });
+
+  it('counts a spell short of mana as in band, because mana is not a range problem', () => {
+    // Arc Bolt gates on mana alone. At Close, with no mana, it still answers the range question.
+    expect(score(arena({ hand: ['arcBolt'], ochre: 2, indigo: 2, mana: 0 }))).toBe(0);
+  });
+
+  it('reads the whole deck, so a card in the draw pile counts the same as one in hand', () => {
+    expect(score(arena({ hand: ['footwork'], draw: ['volley'], ochre: 2, indigo: 3 }))).toBe(0);
+    expect(score(arena({ hand: ['footwork'], discard: ['volley'], ochre: 2, indigo: 3 }))).toBe(0);
+    // Footwork alone is no attack at all, so the band can never be satisfied.
+    expect(score(arena({ hand: ['footwork'], ochre: 2, indigo: 3 }))).toBe(-4);
   });
 });

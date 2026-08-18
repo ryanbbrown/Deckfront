@@ -6,7 +6,7 @@ import {
 import type { GameEvent, GameState, LegalAction, PlayerId } from '../../src/game';
 import { runMatch } from '../../src/sim/match';
 import { ActionSearchOverflowError } from '../../src/sim/types';
-import type { Agent, MatchConfig } from '../../src/sim/types';
+import type { Agent, MatchConfig, MatchResult } from '../../src/sim/types';
 import { scriptedAgent } from './scripted';
 
 function config(overrides: Partial<MatchConfig> = {}): MatchConfig {
@@ -24,17 +24,24 @@ function passiveAgents(observe?: (state: GameState, playerId: PlayerId) => void)
   };
 }
 /** Agents that build, play, and buy, so the shuffle order reaches the event log. */
-function busyAgents(observe: (state: GameState, playerId: PlayerId) => void): Record<PlayerId, Agent> {
+function busyAgents(): Record<PlayerId, Agent> {
   return {
     ochre: scriptedAgent({
       id: 'ochre-agent', builds: { ochre: ['footwork', 'aim', 'volley'] },
-      play: ['aim', 'volley', 'footwork'], buy: ['footwork', 'silver'], observe
+      play: ['aim', 'volley', 'footwork'], buy: ['footwork', 'silver']
     }),
     indigo: scriptedAgent({
       id: 'indigo-agent', builds: { indigo: ['muster', 'feint', 'footwork'] },
-      play: ['muster', 'footwork', 'feint'], buy: ['muster', 'silver'], observe
+      play: ['muster', 'footwork', 'feint'], buy: ['muster', 'silver']
     })
   };
+}
+/** Runs a match and keeps the state its last applied action produced. */
+function play(overrides: Partial<MatchConfig> = {}): { result: MatchResult; final: GameState; log: GameEvent[] } {
+  let final: GameState | null = null;
+  const result = runMatch(config(overrides), (state) => { final = state; });
+  if (!final) throw new Error('The match applied no action.');
+  return { result, final, log: (final as GameState).events };
 }
 /** Registers a kingdom whose Steady Shot kills at the Near range both fighters start in. */
 function lethalKingdom(): void {
@@ -49,20 +56,19 @@ afterEach(() => { resetKingdoms(); });
 
 describe('runMatch determinism', () => {
   it('repeats a result exactly and produces a different event log for a different seed', () => {
-    const logs: GameEvent[][] = [];
-    const capture = (index: number) => (state: GameState): void => {
-      if (state.events.length > (logs[index]?.length ?? 0)) logs[index] = structuredClone(state.events);
-    };
+    const first = play({ agents: busyAgents() });
+    const second = play({ agents: busyAgents() });
+    expect(second.result).toEqual(first.result);
+    expect(second.log).toEqual(first.log);
 
-    const first = runMatch(config({ agents: busyAgents(capture(0)) }));
-    const second = runMatch(config({ agents: busyAgents(capture(1)) }));
-    expect(second).toEqual(first);
-    expect(logs[1]).toEqual(logs[0]);
+    // The log compared is the complete one. `sequence` is the event's own index, so a final event
+    // sitting at `length - 1` proves nothing was left off the end.
+    expect(first.log.length).toBeGreaterThan(0);
+    expect(first.log.at(-1)!.sequence).toBe(first.log.length - 1);
 
-    const other = runMatch(config({ seed: 99, agents: busyAgents(capture(2)) }));
-    expect(logs[2]!.length).toBeGreaterThan(0);
-    expect(logs[2]).not.toEqual(logs[0]);
-    expect(other.config.seed).toBe(99);
+    const other = play({ seed: 99, agents: busyAgents() });
+    expect(other.log).not.toEqual(first.log);
+    expect(other.result.config.seed).toBe(99);
   });
 });
 
@@ -109,6 +115,44 @@ describe('runMatch stop conditions', () => {
     expect(result.outcome).toBe('draw');
     expect(result.reason).toBe('actionCap');
     expect(result.telemetry.purchasesByCard.ochre.copper).toBeGreaterThanOrEqual(39);
+  });
+
+  it('counts the action that ends a turn against the cap of the turn it ended', () => {
+    // A passive agent spends exactly two actions per turn: end the Action phase, end the Buy phase.
+    // The second advances the turn, so a cap of 1 is only tripped if that action still counts.
+    const capped = runMatch(config({ actionCapPerTurn: 1, turnLimitPerPlayer: 5 }));
+    expect(capped.reason).toBe('actionCap');
+    expect(capped.outcome).toBe('draw');
+
+    // A cap of 2 is exactly enough, which pins the boundary from the other side.
+    const roomy = runMatch(config({ actionCapPerTurn: 2, turnLimitPerPlayer: 5 }));
+    expect(roomy.reason).toBe('turnLimit');
+    expect(roomy.turns).toBe(10);
+  });
+
+  it('reads the command from the offered action, not from the object the agent returned', () => {
+    // Same id, wrong command. The runner picks its telemetry snapshot from the command, so trusting
+    // the returned object would take the money branch on every action and never the dead-draw one.
+    const spoofing = (inner: Agent): Agent => ({
+      id: inner.id,
+      chooseStartingBuild: (state, playerId) => inner.chooseStartingBuild(state, playerId),
+      chooseAction: (state, playerId, actions) => ({
+        ...inner.chooseAction(state, playerId, actions), command: { type: 'endBuyPhase' }
+      })
+    });
+    // A melee build stuck at range produces real dead draws, so both snapshots carry a value the
+    // spoof would move. With all-zero telemetry the comparison below would prove nothing.
+    const agents = (wrap: boolean): Record<PlayerId, Agent> => {
+      const ochre = scriptedAgent({ id: 'melee', builds: { ochre: ['drive', 'feint', 'feint'] } });
+      const indigo = scriptedAgent({ id: 'idle', buy: ['silver'] });
+      return wrap ? { ochre: spoofing(ochre), indigo: spoofing(indigo) } : { ochre, indigo };
+    };
+    const settings = { seed: 3, turnLimitPerPlayer: 4 };
+    const reference = runMatch(config({ ...settings, agents: agents(false) }));
+    expect(reference.telemetry.deadDraws.ochre.total).toBeGreaterThan(0);
+    expect(reference.telemetry.moneySpent.indigo).toBeGreaterThan(0);
+
+    expect(runMatch(config({ ...settings, agents: agents(true) }))).toEqual(reference);
   });
 
   it('aborts on an action-search overflow and keeps the telemetry gathered so far', () => {
@@ -221,16 +265,43 @@ describe('runMatch telemetry', () => {
   it('holds the invariants after every applied action of a full match', () => {
     const checked: number[] = [];
     const check = (state: GameState): void => { assertInvariants(state); checked.push(state.version); };
-    // The observer sees every state except the one the last action produces, so the longer match
-    // covers the shorter match's final state as well.
-    const short = runMatch(config({ seed: 8, turnLimitPerPlayer: 3, agents: passiveAgents(check) }));
-    const shortVersions = [...checked];
-    checked.length = 0;
-    runMatch(config({ seed: 8, turnLimitPerPlayer: 4, agents: passiveAgents(check) }));
+    const result = runMatch(config({ seed: 8, turnLimitPerPlayer: 3 }), check);
 
-    expect(short.reason).toBe('turnLimit');
-    expect(shortVersions.length).toBeGreaterThan(6);
-    expect(checked.slice(0, shortVersions.length)).toEqual(shortVersions);
-    expect(checked[shortVersions.length]).toBe(shortVersions.at(-1)! + 1);
+    expect(result.reason).toBe('turnLimit');
+    expect(checked.length).toBeGreaterThan(6);
+    // One version per applied action, with no gap, so the run covers the final state too.
+    expect(checked).toEqual(checked.map((_, index) => checked[0]! + index));
+  });
+
+  it('holds the invariants on the state a lethal blow and an aborted search leave behind', () => {
+    lethalKingdom();
+    const killer = scriptedAgent({
+      id: 'killer', builds: { ochre: Array<string>(12).fill('steadyShot') }, play: ['steadyShot']
+    });
+    let lethalFinal: GameState | null = null;
+    const lethal = runMatch(config({
+      kingdomId: 'sim-lethal', seed: 4, firstPlayerId: 'indigo', turnLimitPerPlayer: 1,
+      agents: { ochre: killer, indigo: scriptedAgent({ id: 'idle' }) }
+    }), (state) => { lethalFinal = state; });
+    expect(lethal.outcome).toBe('ochre');
+    expect(() => assertInvariants(lethalFinal!)).not.toThrow();
+    expect((lethalFinal as unknown as GameState).phase).toBe('ended');
+
+    let decisions = 0;
+    const overflowing: Agent = {
+      id: 'overflowing',
+      chooseStartingBuild: () => ['footwork'],
+      chooseAction: (state, playerId, actions) => {
+        decisions += 1;
+        if (decisions > 5) throw new ActionSearchOverflowError('state limit reached');
+        return scriptedAgent({ buy: ['footwork'] }).chooseAction(state, playerId, actions);
+      }
+    };
+    let abortedFinal: GameState | null = null;
+    const aborted = runMatch(config({
+      turnLimitPerPlayer: 20, agents: { ochre: overflowing, indigo: scriptedAgent({ id: 'idle' }) }
+    }), (state) => { abortedFinal = state; });
+    expect(aborted.outcome).toBe('aborted');
+    expect(() => assertInvariants(abortedFinal!)).not.toThrow();
   });
 });

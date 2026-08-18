@@ -9,6 +9,11 @@ export interface Branch { lethal: boolean; score: number; suffix: number }
 export type SearchMemo = Map<string, Branch>;
 export interface SearchBaseline { eventIndex: number; opponentHealth: number }
 export interface SearchOptions { stateLimit: number; memo: SearchMemo | null }
+/**
+ * `visited` counts distinct states expanded, not memo hits, because a hit is O(1) and the real work
+ * of a phase is bounded by its distinct states. The memo is shared across the decisions of one
+ * Action phase, so the first decision reports most of the states and later ones report very few.
+ */
 export interface SearchOutcome { action: LegalAction; visited: number }
 
 export const DEFAULT_STATE_LIMIT = 20000;
@@ -98,6 +103,13 @@ export function scoreState(state: GameState, playerId: PlayerId, strategy: Strat
 /**
  * Keys the fields that change what the rest of the Action phase can reach. `events`, `version`, and
  * card instance ids are excluded because they differ without changing the game.
+ *
+ * The invariant a new card must not break: `Branch.score` is absolute from the phase baseline, so a
+ * cached entry is sound only while every scored quantity — draw count, and the trash, recover, and
+ * discard ranks — is recoverable from the keyed fields. That holds for the 26 cards today because
+ * each of those events moves a card between keyed zones. A card that trashed without changing a
+ * keyed zone would let two genuinely different branches share a key, and the search would take the
+ * wrong line with no error.
  */
 export function memoKey(state: GameState, playerId: PlayerId): string {
   const player = state.players[playerId];

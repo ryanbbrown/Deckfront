@@ -1,5 +1,5 @@
-import { applyAction, createCard, createGame, listLegalActions, submitStartingBuild } from '../../src/game';
-import type { GameState, LegalAction, RangeBand } from '../../src/game';
+import { applyAction, assertInvariants, createCard, createGame, listLegalActions, submitStartingBuild } from '../../src/game';
+import type { CardInstance, GameState, LegalAction, RangeBand } from '../../src/game';
 import { DEFAULT_STATE_LIMIT, createMemo, searchAction, searchBaseline } from '../../src/sim/search';
 import type { SearchMemo } from '../../src/sim/search';
 import type { StateWeights, Strategy } from '../../src/sim/strategy';
@@ -19,6 +19,25 @@ export interface ArenaOptions {
   firstBuyPending?: boolean;
 }
 
+function allCards(state: GameState): CardInstance[] {
+  return [
+    ...state.trash,
+    ...Object.values(state.players).flatMap((player) =>
+      [...player.deck.draw, ...player.deck.hand, ...player.deck.discard, ...player.deck.play])
+  ];
+}
+
+/**
+ * Replacing ochre's zones throws away cards `createCard` already counted, so the serial runs ahead of
+ * the cards that survive and `checkInvariants` rejects the state. Renumbering keeps the ids unique
+ * and restores the count the invariant compares against.
+ */
+function renumberCards(state: GameState): void {
+  const cards = allCards(state);
+  cards.forEach((card, index) => { card.id = `card-${index + 1}`; });
+  state.nextCardSerial = cards.length + 1;
+}
+
 /** A ready Action-phase state with ochre's zones, positions, and resources set by hand. */
 export function arena(options: ArenaOptions = {}): GameState {
   const empty = createGame({ seed: options.seed ?? 1, kingdomId: options.kingdomId ?? 'distance-duel' });
@@ -35,6 +54,9 @@ export function arena(options: ArenaOptions = {}): GameState {
   if (options.money !== undefined) state.players.ochre.money = options.money;
   if (options.aimed) state.fighters.ochre.aimed = true;
   if (options.firstBuyPending === false) state.players.ochre.firstBuyPending = false;
+  renumberCards(state);
+  // Every search test runs on a fixture state, so a malformed one would prove nothing.
+  assertInvariants(state);
   return state;
 }
 
