@@ -406,6 +406,30 @@ Two residual risks in this plan, both accepted.
 
 `GOAL.md:33` asks for a capped full run "when measured throughput permits it", in the singular. Throughput now permits five, so five is what runs.
 
+## Verification commands
+
+The four commands `GOAL.md:53-58` requires, run at every phase boundary and last at `35fd358`:
+
+```sh
+npm test          # 273 passed, 1 skipped, 20 files
+npm run typecheck # clean
+npm run lint      # clean
+npm run build     # clean
+```
+
+`GOAL.md:60` prohibits `npm run test:e2e`, `npm run test:e2e:manifest`, and `npm run test:ai:live`. They need a browser, a network model, or a Codex login, and none of them covers this goal. `npm run test:e2e` was run once, by the step 5-to-8 writer, when the clone change touched the product engine; it edited nothing and every failure was verified pre-existing. The prohibition stands and is recorded under [Known stale e2e assertions](#known-stale-e2e-assertions).
+
+## Residual risks
+
+What is still true after everything above, in rough order of how much it could cost.
+
+1. **The cheap clone rests on an invariant the type system does not carry.** `cloneGame` shares `CardInstance` and `GameEvent` objects because nothing in `src/game/` edits them in place. Freezing would enforce it and was tried, but `test/e2e/distance-duel.spec.ts:188` plants a privacy sentinel by editing a card id in place and `test/e2e/**` is out of scope. `test/clone.test.ts` and `test/sim/identity.test.ts` are the entire guard. Any future code that mutates a card or an event in place will silently corrupt a parent state, and only those two files will notice.
+2. **Every full result is one run seed per kingdom.** Seed 1, five kingdoms. The smoke gate is already known to be seed-sensitive at 2 of 4, so a per-kingdom balance reading from a single seed carries less weight than the match counts suggest. Replication across run seeds is the obvious next work and is not part of this goal.
+3. **Reviews were two models, not three.** GLM failed to start on every implementation round. Codex and Claude agreed on the high-severity findings each time, including independently on K1, but the panel was never at full strength.
+4. **Strategy identity is a 32-bit hash.** `stableHash` is FNV-1a plus canonical length. A collision merges two strategies' scores and telemetry. J3 added detection that throws when an id maps to a different canonical form, so the failure is loud rather than silent, but the hash is still narrow for a population of this size.
+5. **Generation 1 is thin in three kingdoms.** Baselines are kingdom-agnostic and repair down against a kingdom that does not sell their cards; `current-duel` is the severe case, where `mage-standard` enters with no attack card and nothing to buy. Generation-1 scores in those kingdoms carry less signal than later generations.
+6. **The calibration gate is only meaningful at full search depth.** It fails at smoke size on 2 of 4 seeds for reasons that are measured and understood. Anyone reading a smoke report should not treat its gate row as a balance verdict.
+
 ## Blockers
 
 None. GLM failed to start on both group 1 implementation rounds; Codex and Claude both produced reports, so the round was not re-run.
