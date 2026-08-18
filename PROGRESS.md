@@ -314,6 +314,18 @@ Two numbers worth keeping for the next sizing.
 
 **The final leaders are not the best strategies in the room.** They rank 43, 47, 48, and 49 of 77. Leaders retained from earlier generations rank above them. Selection measures a candidate against the current leader field, so late leaders are specialised against late leaders rather than against the whole history — the round robin is what says which strategy is actually strong, and the report already prints both.
 
+## The gate is evaluated on strategies that are not the best in the run
+
+A property of the check, recorded and deliberately not fixed.
+
+`checkRiggedMelee` reads `finalLeaders`, the last generation's leaders. In the capped full run those four strategies rank **43, 47, 48, and 49 of 77** in the round robin. Selection scores a candidate against the *current* leader field, so a late leader is specialised against late leaders rather than against the whole history, and leaders retained from earlier generations outrank them.
+
+So the one hard pass-or-fail check in this goal is computed over a mid-table sample of the population. It passed anyway, 4 of 4 with 9,728 copies for the top leader, which is a stronger result than the sample deserves: even the strategies that are *not* the best in the run all found the rigged card.
+
+**It is not being changed.** Repointing the gate at the round-robin top would be tuning the check, and `GOAL.md` forbids that. It is also unnecessary, because the check passes as written.
+
+One consequence for the report, adopted as a rule: **any claim of the form "the search found X" cites the round robin, not the final generation.** The final leaders are the search's most recent answer, not its best one, and the report already prints both.
+
 ## Seed degradation, measured
 
 Baseline strategies are kingdom-agnostic, so a curated kingdom that does not sell a seed's cards repairs it down. Plan `10-4:155` allows this, so it is a property of the design, not a defect. It matters because it thins generation 1.
