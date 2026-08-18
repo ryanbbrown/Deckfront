@@ -8,6 +8,7 @@ export interface StrategyPreset { id: string; name: string; markdown: string }
 export interface SafePlayer {
   id: PlayerId;
   hand: CardInstance[] | null;
+  played: CardInstance[] | null;
   zoneCounts: { draw: number; hand: number; discard: number; play: number };
   deckCounts: Record<string, number> | null;
   money: number;
@@ -16,8 +17,32 @@ export interface SafePlayer {
   purchases: string[];
 }
 export interface SafeFighter { playerId: PlayerId; position: number; health: number; aimed: boolean; exposed: boolean }
+export interface AiTurnDraw { card: CardInstance; sourceDefinitionId: string }
+export interface AiTurnAction {
+  card: CardInstance;
+  label: string;
+  damage: number;
+  movements: string[];
+  drawnCardIds: string[];
+  trashed: CardInstance[];
+}
+export interface AiTurnTreasure { card: CardInstance; money: number }
+export interface AiTurnPurchase { definitionId: string; cost: number }
+export interface AiTurnRecap {
+  turn: number;
+  startingHand: CardInstance[];
+  draws: AiTurnDraw[];
+  actions: AiTurnAction[];
+  treasures: AiTurnTreasure[];
+  unplayed: CardInstance[];
+  purchases: AiTurnPurchase[];
+  startingMoney: number;
+  moneyAvailable: number;
+  unspentMoney: number;
+  totalDamage: number;
+}
 export interface SafeGameView {
-  schemaVersion: 7;
+  schemaVersion: 8;
   id: string; revision: number; createdAt: string; updatedAt: string; elapsedSeconds: number;
   completedActions: number; durationSeconds: number | null; humanPlayerId: PlayerId; aiPlayerId: PlayerId;
   opponentMode: OpponentMode; viewPlayerId: PlayerId;
@@ -29,6 +54,7 @@ export interface SafeGameView {
   humanBuildProposal: string[]; completedBuilds: Record<PlayerId, string[]> | null;
   strategy: { presetId: string; markdown: string }; aiRuntime: { model: string; effort: string };
   lastAiSummary: string | null;
+  lastAiTurnRecap: AiTurnRecap | null;
 }
 export interface AiTurnStatus { status: 'idle' | 'running' | 'complete' | 'error'; game?: SafeGameView; error?: string }
-export interface RedactedExport { schemaVersion: 7; exportedAt: string; game: SafeGameView }
+export interface RedactedExport { schemaVersion: 8; exportedAt: string; game: SafeGameView }

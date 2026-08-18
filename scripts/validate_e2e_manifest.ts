@@ -21,7 +21,8 @@ export const requiredBrowserFlows = [
   'freeCopper', 'overBudgetBuild', 'humanFirst', 'aiFirst', 'hiddenAiBuild', 'editedPrompt', 'promptCanClear',
   'carriedStartingMoney', 'treasureAutoPlay', 'footworkSelections', 'sharedSpaces', 'passThrough', 'driveDirection', 'cullTargetCombinations', 'cullOneOrTwo',
   'disabledReasons', 'immediateActions', 'globalUndo', 'undoRefresh', 'moneyExpires', 'treasureIdentity',
-  'largeHandLayout', 'responsiveLayout', 'multiplePurchases', 'baseTreasuresNondepleting', 'tenthActionSupply', 'turnCleanup', 'conditionDisplay', 'closeCombination',
+  'largeHandLayout', 'responsiveLayout', 'handGrouping', 'portraitCardRows', 'overlapHand', 'deckDrawer', 'genericRange',
+  'aiTurnRecap', 'aiRecapRefresh', 'localNoAiRecap', 'groupedCull', 'multiplePurchases', 'baseTreasuresNondepleting', 'tenthActionSupply', 'turnCleanup', 'conditionDisplay', 'closeCombination',
   'rangedCombination', 'wallCollision', 'nearVolleyComparison', 'realFlurryShortChain', 'realFlurryCap',
   'refreshBuy', 'refreshAiWait', 'refreshAiError', 'refreshEnded',
   'victoryUndo', 'completeGame', 'victoryRefreshNewGame', 'privateHtml', 'publicPurchaseHistory',
@@ -30,7 +31,7 @@ export const requiredBrowserFlows = [
 
 export const requiredAiFlows = [
   'independentBuild', 'strategyTrace', 'modelSummaryTrace', 'completeServerTurn', 'serverContinuesWithoutPage',
-  'aiErrorRetry', 'retryPreservesCommits', 'undoAiRace', 'decisionGuard', 'validFakeBuild', 'liveBridgeBuildAndTurn'
+  'aiErrorRetry', 'retryPreservesCommits', 'undoAiRace', 'decisionGuard', 'completedTurnRecap', 'validFakeBuild', 'liveBridgeBuildAndTurn'
 ];
 
 export function validateManifest(manifest: CoverageManifest, discoveredIds: Set<string>): { mappings: number; tests: number } {

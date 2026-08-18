@@ -3,8 +3,8 @@ import {
   CARDS, applyCommand, assertInvariants, cardDefinition, cloneGame, createGame,
   listActionAvailability, listLegalActions, marketCost, rangeBand, replayCommands
 } from '../game';
-import type { GameCommand, PlayerId } from '../game';
-import type { OpponentMode, RedactedExport, SafeGameView } from '../shared/api';
+import type { CardInstance, GameCommand, GameEvent, GameState, LegalAction, PlayerId } from '../game';
+import type { AiTurnRecap, OpponentMode, RedactedExport, SafeGameView } from '../shared/api';
 import type { GameRecord, GameRepository, UndoCheckpoint } from './types';
 
 export class ConflictError extends Error {}
@@ -16,10 +16,10 @@ export class GameService {
   async create(input: CreateGameInput): Promise<SafeGameView> {
     const now = new Date().toISOString(); const initialState = createGame({ seed: input.seed ?? Date.now(), firstPlayerId: input.firstPlayerId });
     const record: GameRecord = {
-      schemaVersion: 7, id: randomUUID(), revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
+      schemaVersion: 8, id: randomUUID(), revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
       completedActions: 0, durationSeconds: null, humanPlayerId: 'ochre', aiPlayerId: 'indigo', opponentMode: input.opponentMode ?? 'ai',
       strategy: { presetId: input.strategyPresetId, markdown: input.strategyMarkdown }, aiRuntime: { ...this.aiRuntime },
-      humanBuildProposal: [], aiActions: [], initialState: cloneGame(initialState), committedCommands: [],
+      humanBuildProposal: [], activeAiTurn: null, lastAiTurnRecap: null, aiActions: [], initialState: cloneGame(initialState), committedCommands: [],
       undoCheckpoint: null, state: initialState
     };
     await this.repository.create(record); return this.safeView(record);
@@ -78,13 +78,70 @@ export class GameService {
       if (record.state.activePlayerId !== record.aiPlayerId || record.state.winner || record.state.phase === 'startingBuild') throw new ForbiddenActionError('There is no AI action to commit.');
       const selected = listLegalActions(record.state).find((action) => action.id === actionId);
       if (!selected) throw new ConflictError('The AI returned an unknown or stale action ID.');
-      const turn = record.state.turn; const phase = record.state.phase; record.undoCheckpoint = null; this.commitCommand(record, selected.command);
+      const turn = record.state.turn; const phase = record.state.phase; const before = cloneGame(record.state);
+      const audit = this.ensureAiTurn(record, before); const eventStart = before.events.length;
+      record.undoCheckpoint = null; this.commitCommand(record, selected.command);
+      this.captureAiAction(audit, before, record.state, selected, record.state.events.slice(eventStart));
+      if (selected.command.type === 'endBuyPhase' || record.state.winner) {
+        if (record.state.winner && !audit.unplayed.length) audit.unplayed = structuredClone(record.state.players[record.aiPlayerId].deck.hand);
+        record.lastAiTurnRecap = structuredClone(audit); record.activeAiTurn = null;
+      }
       record.completedActions += 1; this.touch(record); if (record.state.winner) this.finish(record);
       record.aiActions.push({ committedRevision: record.revision, turn, phase, decisionIndex, actionId, summary: summary.slice(0, 1000), durationSeconds, ...(fallback ? { fallback: true } : {}) });
       this.assertRecordReplay(record); await this.repository.save(record); return this.safeView(record);
     });
   }
-  async redactedExport(id: string): Promise<RedactedExport> { return { schemaVersion: 7, exportedAt: new Date().toISOString(), game: this.safeView(await this.repository.load(id)) }; }
+  async redactedExport(id: string): Promise<RedactedExport> { return { schemaVersion: 8, exportedAt: new Date().toISOString(), game: this.safeView(await this.repository.load(id)) }; }
+  private ensureAiTurn(record: GameRecord, state: GameState): AiTurnRecap {
+    if (record.activeAiTurn?.turn === state.turn) return record.activeAiTurn;
+    const player = state.players[record.aiPlayerId];
+    record.activeAiTurn = {
+      turn: state.turn,
+      startingHand: structuredClone(state.phase === 'action' ? player.deck.hand : [...player.deck.play, ...player.deck.hand]),
+      draws: [], actions: [], treasures: [], unplayed: [], purchases: [],
+      startingMoney: 0, moneyAvailable: player.money, unspentMoney: 0, totalDamage: 0
+    };
+    return record.activeAiTurn;
+  }
+  private captureAiAction(audit: AiTurnRecap, before: GameState, after: GameState, selected: LegalAction, events: GameEvent[]): void {
+    const playerId = before.activePlayerId; const beforePlayer = before.players[playerId]; const afterPlayer = after.players[playerId];
+    const command = selected.command;
+    if ('cardInstanceId' in command) {
+      const card = beforePlayer.deck.hand.find((candidate) => candidate.id === command.cardInstanceId);
+      if (!card) throw new Error('AI recap could not find its played card.');
+      const beforeHandIds = new Set(beforePlayer.deck.hand.map((candidate) => candidate.id));
+      const drawn = afterPlayer.deck.hand.filter((candidate) => !beforeHandIds.has(candidate.id));
+      audit.draws.push(...drawn.map((candidate) => ({ card: structuredClone(candidate), sourceDefinitionId: card.definitionId })));
+      const trashed = events.filter((event) => event.type === 'trash').map((event) => this.findCard(after, String(event.detail.cardInstanceId))).filter((candidate): candidate is CardInstance => candidate !== null);
+      const damage = events.filter((event) => event.type === 'damage').reduce((total, event) => total + Number(event.detail.amount ?? 0), 0);
+      const movements = events.flatMap((event) => {
+        if (event.type === 'move') return [`${String(event.detail.movement)} to space ${String(event.detail.to)}`];
+        if (event.type === 'wallCollision') return [`wall blocked ${String(event.detail.direction)}`];
+        return [];
+      });
+      audit.actions.push({
+        card: structuredClone(card), label: selected.label, damage, movements,
+        drawnCardIds: drawn.map((candidate) => candidate.id), trashed: structuredClone(trashed)
+      });
+      audit.totalDamage += damage;
+      return;
+    }
+    if (command.type === 'endActionPhase') {
+      audit.treasures = beforePlayer.deck.hand.filter((card) => cardDefinition(card.definitionId).type === 'treasure').map((card) => ({ card: structuredClone(card), money: cardDefinition(card.definitionId).money ?? 0 }));
+      audit.unplayed = structuredClone(beforePlayer.deck.hand.filter((card) => cardDefinition(card.definitionId).type === 'action'));
+      const treasureMoney = audit.treasures.reduce((total, treasure) => total + treasure.money, 0);
+      audit.moneyAvailable = afterPlayer.money; audit.startingMoney = Math.max(0, afterPlayer.money - treasureMoney);
+      return;
+    }
+    if (command.type === 'buyCard') {
+      audit.purchases.push({ definitionId: command.definitionId, cost: cardDefinition(command.definitionId).cost });
+      return;
+    }
+    if (command.type === 'endBuyPhase') audit.unspentMoney = beforePlayer.money;
+  }
+  private findCard(state: GameState, cardInstanceId: string): CardInstance | null {
+    return [...state.trash, ...Object.values(state.players).flatMap((player) => [...player.deck.draw, ...player.deck.hand, ...player.deck.discard, ...player.deck.play])].find((card) => card.id === cardInstanceId) ?? null;
+  }
   private checkpoint(record: GameRecord): UndoCheckpoint {
     return {
       committedCommandCount: record.committedCommands.length, completedActions: record.completedActions,
@@ -115,6 +172,7 @@ export class GameService {
       const deckCounts = privateVisible ? allCards.reduce<Record<string, number>>((counts, card) => { counts[card.definitionId] = (counts[card.definitionId] ?? 0) + 1; return counts; }, {}) : null;
       return [playerId, {
         id: playerId, hand: privateVisible ? structuredClone(player.deck.hand) : null,
+        played: privateVisible ? structuredClone(player.deck.play) : null,
         zoneCounts: { draw: player.deck.draw.length, hand: player.deck.hand.length, discard: player.deck.discard.length, play: player.deck.play.length }, deckCounts,
         money: player.money, firstBuyMoney: player.firstBuyMoney, firstBuyPending: player.firstBuyPending, purchases: [...player.purchases]
       }];
@@ -122,7 +180,7 @@ export class GameService {
     const canChoose = (local || state.activePlayerId === record.humanPlayerId) && !state.winner && state.phase !== 'startingBuild';
     const completedBuilds = state.players.ochre.startingBuild && state.players.indigo.startingBuild ? { ochre: [...state.players.ochre.startingBuild], indigo: [...state.players.indigo.startingBuild] } : null;
     return {
-      schemaVersion: 7, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
+      schemaVersion: 8, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
       elapsedSeconds: Math.max(0, Math.floor((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 1000)), completedActions: record.completedActions,
       durationSeconds: record.durationSeconds, humanPlayerId: record.humanPlayerId, aiPlayerId: record.aiPlayerId,
       opponentMode: record.opponentMode, viewPlayerId,
@@ -130,7 +188,8 @@ export class GameService {
       fighters: structuredClone(state.fighters), range: rangeBand(state), supply: { ...state.supply }, cards: structuredClone(CARDS), players,
       trashCount: state.trash.length, events: structuredClone(state.events), legalActions: canChoose ? listLegalActions(state) : [], actionAvailability: canChoose ? listActionAvailability(state, viewPlayerId) : [], canUndo: record.undoCheckpoint !== null,
       humanBuildProposal: [...record.humanBuildProposal], completedBuilds, strategy: { ...record.strategy }, aiRuntime: { ...record.aiRuntime },
-      lastAiSummary: record.aiActions.at(-1)?.summary ?? null
+      lastAiSummary: record.aiActions.at(-1)?.summary ?? null,
+      lastAiTurnRecap: record.opponentMode === 'ai' && record.lastAiTurnRecap ? structuredClone(record.lastAiTurnRecap) : null
     };
   }
 }

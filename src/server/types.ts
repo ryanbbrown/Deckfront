@@ -1,5 +1,5 @@
 import type { GameCommand, GameState, Phase, PlayerId } from '../game/types';
-import type { OpponentMode } from '../shared/api';
+import type { AiTurnRecap, OpponentMode } from '../shared/api';
 
 export interface UndoCheckpoint {
   committedCommandCount: number;
@@ -8,12 +8,14 @@ export interface UndoCheckpoint {
   durationSeconds: number | null;
 }
 export interface GameRecord {
-  schemaVersion: 7;
+  schemaVersion: 8;
   id: string; revision: number; createdAt: string; updatedAt: string; finishedAt: string | null;
   completedActions: number; durationSeconds: number | null; humanPlayerId: PlayerId; aiPlayerId: PlayerId;
   opponentMode: OpponentMode;
   strategy: { presetId: string; markdown: string }; aiRuntime: { model: string; effort: string };
   humanBuildProposal: string[];
+  activeAiTurn: AiTurnRecap | null;
+  lastAiTurnRecap: AiTurnRecap | null;
   aiActions: Array<{
     committedRevision: number; turn: number; phase: Phase; decisionIndex: number;
     actionId: string; summary: string; durationSeconds: number; fallback?: boolean;

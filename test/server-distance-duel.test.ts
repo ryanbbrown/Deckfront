@@ -171,6 +171,31 @@ describe('server-owned AI sequence', () => {
     const staleAction = listLegalActions(afterInvented.state).find((entry) => entry.command.type === 'endActionPhase')!; await service.commitAiAction(game.id, afterInvented.revision, staleAction.id, 'end', 0, 0); const beforeStale = await service.getRecord(game.id);
     await expect(service.commitAiAction(game.id, beforeStale.revision, staleAction.id, 'stale', 0, 1)).rejects.toThrow('unknown or stale'); const afterStale = await service.getRecord(game.id); expect(afterStale.revision).toBe(beforeStale.revision); expect(afterStale.state).toEqual(beforeStale.state); expect(afterStale.committedCommands).toEqual(beforeStale.committedCommands);
   });
+  it('persists an exact completed AI turn recap without exposing the live hand', async () => {
+    const { repository, service, game } = await setup('indigo'); const human = await service.updateHumanBuild(game.id, 0, [], true); await service.commitAiBuild(game.id, human.revision, [], 'build', 0);
+    const record = await repository.load(game.id); const deck = record.state.players.indigo.deck;
+    record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play);
+    deck.hand = ['muster', 'volley', 'copper', 'copper'].map((id) => createCard(record.state, id)); deck.draw = [createCard(record.state, 'aim')]; deck.discard = []; deck.play = [];
+    record.state.players.indigo.firstBuyMoney = 0; record.state.players.indigo.firstBuyPending = false; record.state.players.indigo.purchases = [];
+    record.activeAiTurn = null; record.lastAiTurnRecap = null; record.aiActions = []; resetReplay(record); await repository.save(record);
+    let current = await service.getRecord(game.id); const muster = listLegalActions(current.state).find((action) => action.command.type === 'playMuster')!;
+    let view = await service.commitAiAction(game.id, current.revision, muster.id, 'draw', 0, 0);
+    expect(view.lastAiTurnRecap).toBeNull(); expect(view.players.indigo.hand).toBeNull();
+    current = await service.getRecord(game.id); const endAction = listLegalActions(current.state).find((action) => action.command.type === 'endActionPhase')!;
+    view = await service.commitAiAction(game.id, current.revision, endAction.id, 'buy', 0, 1);
+    current = await service.getRecord(game.id); const buyCopper = listLegalActions(current.state).find((action) => action.command.type === 'buyCard' && action.command.definitionId === 'copper')!;
+    view = await service.commitAiAction(game.id, current.revision, buyCopper.id, 'free copper', 0, 2);
+    current = await service.getRecord(game.id); const endBuy = listLegalActions(current.state).find((action) => action.command.type === 'endBuyPhase')!;
+    view = await service.commitAiAction(game.id, current.revision, endBuy.id, 'done', 0, 3);
+    expect(view.lastAiTurnRecap).toMatchObject({ turn: 1, startingMoney: 0, moneyAvailable: 2, unspentMoney: 2, totalDamage: 0, purchases: [{ definitionId: 'copper', cost: 0 }] });
+    expect(view.lastAiTurnRecap?.startingHand.map((card) => card.definitionId)).toEqual(['muster', 'volley', 'copper', 'copper']);
+    expect(view.lastAiTurnRecap?.draws.map((draw) => [draw.card.definitionId, draw.sourceDefinitionId])).toEqual([['aim', 'muster']]);
+    expect(view.lastAiTurnRecap?.actions.map((action) => [action.card.definitionId, action.label, action.drawnCardIds.length])).toEqual([['muster', 'Play Muster', 1]]);
+    expect(view.lastAiTurnRecap?.treasures.map((treasure) => [treasure.card.definitionId, treasure.money])).toEqual([['copper', 1], ['copper', 1]]);
+    expect(view.lastAiTurnRecap?.unplayed.map((card) => card.definitionId)).toEqual(['volley', 'aim']);
+    expect((await service.get(game.id)).lastAiTurnRecap).toEqual(view.lastAiTurnRecap);
+    const saved = await repository.load(game.id); expect(saved.activeAiTurn).toBeNull(); expect(saved.lastAiTurnRecap).toEqual(view.lastAiTurnRecap);
+  });
   it('replans after a draw, plays another Action, buys several paid cards, and ends one server-owned turn', async () => {
     const { repository, service, game } = await setup('indigo'); const human = await service.updateHumanBuild(game.id, 0, [], true); await service.commitAiBuild(game.id, human.revision, [], 'build', 0); const record = await repository.load(game.id); const deck = record.state.players.indigo.deck;
     record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play); deck.hand = ['muster', 'copper', 'copper', 'copper', 'copper', 'copper'].map((id) => createCard(record.state, id)); deck.draw = [createCard(record.state, 'aim')]; deck.discard = []; deck.play = []; record.state.players.indigo.firstBuyMoney = 0; record.state.players.indigo.firstBuyPending = false; record.state.players.indigo.purchases = []; record.initialState = structuredClone(record.state); record.committedCommands = []; record.undoCheckpoint = null; record.aiActions = []; await repository.save(record);
@@ -227,12 +252,12 @@ describe('persistence schema', () => {
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8, strategyPresetId: 'close-pressure', strategyMarkdown: '# close' });
       await Promise.all([1, 2].map((marker) => repository.withLock(created.id, async () => { const record = await repository.load(created.id); await new Promise((resolve) => setTimeout(resolve, marker === 1 ? 5 : 0)); record.revision += 1; record.updatedAt = new Date(Date.parse(record.updatedAt) + marker * 1000).toISOString(); await repository.save(record); })));
-      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(7); expect(saved.state.phase).toBe('startingBuild');
+      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(8); expect(saved.state.phase).toBe('startingBuild');
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it('rejects an old save with a specific version message', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-old-')); const id = '11111111-1111-4111-8111-111111111111';
-    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 6 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 6 is not supported'); }
+    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 7 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 7 is not supported'); }
     finally { await rm(directory, { recursive: true, force: true }); }
   });
 });

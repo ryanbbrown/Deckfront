@@ -22,8 +22,22 @@ const player = z.object({
 });
 const fighter = z.object({ playerId, position: z.number().int().min(1).max(5), health: z.number().int().min(0).max(20), aimed: z.boolean(), exposed: z.boolean() });
 const event = z.object({ sequence: z.number().int().nonnegative(), type: z.string(), playerId, detail: z.record(z.string(), z.unknown()) });
+const aiTurnRecap = z.object({
+  turn: z.number().int().positive(),
+  startingHand: z.array(card),
+  draws: z.array(z.object({ card, sourceDefinitionId: z.string() })),
+  actions: z.array(z.object({
+    card, label: z.string(), damage: z.number().int().nonnegative(), movements: z.array(z.string()),
+    drawnCardIds: z.array(z.string()), trashed: z.array(card)
+  })),
+  treasures: z.array(z.object({ card, money: z.number().int().nonnegative() })),
+  unplayed: z.array(card),
+  purchases: z.array(z.object({ definitionId: z.string(), cost: z.number().int().nonnegative() })),
+  startingMoney: z.number().int().nonnegative(), moneyAvailable: z.number().int().nonnegative(),
+  unspentMoney: z.number().int().nonnegative(), totalDamage: z.number().int().nonnegative()
+});
 export const gameStateSchema = z.object({
-  schemaVersion: z.literal(7), seed: z.number().int(), rngState: z.number().int().nonnegative(), version: z.number().int().nonnegative(),
+  schemaVersion: z.literal(8), seed: z.number().int(), rngState: z.number().int().nonnegative(), version: z.number().int().nonnegative(),
   nextCardSerial: z.number().int().positive(), activePlayerId: playerId, selectedFirstPlayerId: playerId, phase,
   turn: z.number().int().nonnegative(), winner: playerId.nullable(), players: z.object({ ochre: player, indigo: player }),
   fighters: z.object({ ochre: fighter, indigo: fighter }), supply: z.record(z.string(), z.number().int().nonnegative()),
@@ -34,11 +48,12 @@ const undoCheckpoint = z.object({
   finishedAt: z.string().datetime().nullable(), durationSeconds: z.number().nonnegative().nullable()
 });
 export const gameRecordSchema = z.object({
-  schemaVersion: z.literal(7), id: z.string().uuid(), revision: z.number().int().nonnegative(),
+  schemaVersion: z.literal(8), id: z.string().uuid(), revision: z.number().int().nonnegative(),
   createdAt: z.string().datetime(), updatedAt: z.string().datetime(), finishedAt: z.string().datetime().nullable(),
   completedActions: z.number().int().nonnegative(), durationSeconds: z.number().nonnegative().nullable(),
   humanPlayerId: playerId, aiPlayerId: playerId, opponentMode, strategy: z.object({ presetId: z.string(), markdown: z.string() }),
   aiRuntime: z.object({ model: z.string(), effort: z.string() }), humanBuildProposal: z.array(z.string()),
+  activeAiTurn: aiTurnRecap.nullable(), lastAiTurnRecap: aiTurnRecap.nullable(),
   aiActions: z.array(z.object({
     committedRevision: z.number().int().nonnegative(), turn: z.number().int().nonnegative(), phase,
     decisionIndex: z.number().int().nonnegative(), actionId: z.string(), summary: z.string(),
