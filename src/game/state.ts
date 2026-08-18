@@ -32,7 +32,33 @@ export function createGame(config: CreateGameConfig): GameState {
     trash: [], actionsThisTurn: [], pendingChoice: null, events: []
   };
 }
-export function cloneGame(state: GameState): GameState { return structuredClone(state); }
+function cloneDeck(deck: DeckState): DeckState {
+  return { draw: [...deck.draw], hand: [...deck.hand], discard: [...deck.discard], play: [...deck.play] };
+}
+function clonePlayer(state: PlayerState): PlayerState {
+  return {
+    ...state, deck: cloneDeck(state.deck), purchases: [...state.purchases],
+    startingBuild: state.startingBuild ? [...state.startingBuild] : null
+  };
+}
+/**
+ * Copies every mutable zone and shares the frozen `CardInstance` and `GameEvent` objects, which are
+ * only ever moved between arrays. `structuredClone` deep-copies the whole event log on every action,
+ * which makes one game quadratic in its action count and costs 88% of a headless match.
+ */
+export function cloneGame(state: GameState): GameState {
+  return {
+    ...state,
+    players: { ochre: clonePlayer(state.players.ochre), indigo: clonePlayer(state.players.indigo) },
+    fighters: { ochre: { ...state.fighters.ochre }, indigo: { ...state.fighters.indigo } },
+    supply: { ...state.supply },
+    trash: [...state.trash],
+    actionsThisTurn: [...state.actionsThisTurn],
+    pendingChoice: state.pendingChoice ? { ...state.pendingChoice } : null,
+    events: [...state.events]
+  };
+}
 export function createCard(state: GameState, definitionId: string): CardInstance {
-  return { id: `card-${state.nextCardSerial++}`, definitionId };
+  // Frozen so `cloneGame` can share it: a card is moved between zones, never edited in place.
+  return Object.freeze({ id: `card-${state.nextCardSerial++}`, definitionId });
 }

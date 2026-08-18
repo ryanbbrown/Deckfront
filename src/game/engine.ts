@@ -25,7 +25,8 @@ function ids(state: GameState, actions: LegalAction[]): LegalAction[] { return a
 function cardValues(definition: CardDefinition): CardValues { return definition.values ?? {}; }
 function movementText(movement: MovementChoice): string { return movement === 'left' ? 'Left' : movement === 'right' ? 'Right' : 'Stay'; }
 function record(state: GameState, type: GameEventType, detail: Record<string, unknown>, playerId = state.activePlayerId): void {
-  state.events.push({ sequence: state.events.length, type, playerId, detail });
+  // Frozen so `cloneGame` can share it: an event is a record of the past and is never edited.
+  state.events.push(Object.freeze({ sequence: state.events.length, type, playerId, detail: Object.freeze(detail) }));
 }
 function choiceTargets(state: GameState, pending: PendingChoice): CardInstance[] {
   const deck = state.players[pending.playerId].deck;

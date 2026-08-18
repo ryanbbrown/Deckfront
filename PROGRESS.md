@@ -229,7 +229,47 @@ Four things follow.
 - **`rigged-melee` runs at 25.2/s.** At that rate the full run — 122,880 evolution plus 26,240 tournament matches — is about **99 minutes**, which fits the window comfortably. That is the main reason to run the full experiment on `rigged-melee` rather than a slower kingdom, on top of its carrying the one hard gate.
 - **Zero search overflows** in another 3,080 matches, on top of the 375 baseline matches. The abort path remains untriggered by any real strategy.
 
-**This is also independent evidence for the J1 selection bug.** The probe ran on pre-fix code, and `three-way-open` retained exactly **one** distinct leader across all three generations — the same strategy was best every time, which is the stalling signature the review predicted. Re-run this probe after the fix and compare the retained-leader counts: if J1 was real, selection should unstick and the counts should rise.
+**This is also independent evidence for the J1 selection bug.** The probe ran on pre-fix code, and `three-way-open` retained exactly **one** distinct leader across all three generations — the same strategy was best every time, which is the stalling signature the review predicted.
+
+### The J1 fix, verified by measurement
+
+The identical probe re-run at `94d3186`, after dropping the opponent-side tally:
+
+| Kingdom | Distinct retained leaders, before | After | Best mean score, before | After |
+| --- | ---: | ---: | ---: | ---: |
+| current-duel | 3 | 3 | 0.681 | 0.438 |
+| three-way-open | **1** | **3** | 0.694 | 0.563 |
+| three-way-engine | 3 | 3 | 1.000 | 1.000 |
+| range-rich-mixed | 2 | 3 | 0.653 | 0.542 |
+| rigged-melee | 2 | 1 | 0.694 | 0.500 |
+
+Selection is unstuck. `three-way-open` went from 1 distinct leader to 3 of a possible 3, and `range-rich-mixed` from 2 to 3. Four of the five kingdoms now churn their leader every generation.
+
+**Mean scores fell 0.15 to 0.25 everywhere, and that is the point.** A leader can no longer inflate its mean on a field of mutants; every candidate is now measured against the same elite leader field, so the numbers are lower and honest.
+
+`rigged-melee` moving from 2 to 1 is the one counter-direction result, and it is the expected one: that kingdom is deliberately rigged so a single answer dominates — Heavy Blow at cost 3 dealing 6 — so one strategy holding the top slot across every generation is the behaviour the fixture is built to produce. It is not a stall of the kind J1 caused, which appeared in a kingdom with no such dominant answer.
+
+This is the writer's test evidence too, from a different angle: over 12 seeds of the end-to-end config on `rigged-melee`, evolved strategies now take at least one final leader slot in 11 of 12 runs, where the old code returned two fixed baselines at seed 3.
+
+## Clone cost, profiled and removed
+
+Machine: Apple M4 Pro, arm64, Node v22.23.1. Workload: `scripts/measure_search.ts --kingdom <id> --seeds 3`, which is 25 baseline pairings per kingdom, median of 3 repeats, machine otherwise idle.
+
+A CPU profile of that workload on `rigged-melee` put **88.0 percent of all CPU time in `structuredClone`**, reached through `cloneGame` in `applyAction`. Everything else was under 2 percent. The Action-phase search is **not** the bottleneck: it visits a median of 1 and a mean of 1.96 states per decision, with a maximum of 49.
+
+`cloneGame` now copies the mutable zones and shares the frozen `CardInstance` and `GameEvent` objects. Matches per second, before and after:
+
+| Kingdom | Before | After | Factor |
+| --- | ---: | ---: | ---: |
+| current-duel | 6.0 | 274.3 | 45.7x |
+| three-way-open | 13.7 | 460.2 | 33.6x |
+| three-way-engine | 10.6 | 232.6 | 21.9x |
+| range-rich-mixed | 39.4 | 682.6 | 17.3x |
+| rigged-melee | 14.0 | 497.3 | 35.5x |
+
+Visited states per decision are unchanged at 1.96 mean, so the search itself is untouched: only the cost of each applied action moved. Every stored `MatchResult` in `test/sim/fixtures/match-oracle.json` is identical before and after, including two whole final states with their complete event logs.
+
+**No further optimisation is justified.** The re-profile puts the largest remaining cost at 28.5 percent in `resolveIn`, which is a memo-key string build, worth maybe 1.3x. Event recording is 3.3 percent, so the search-mode apply the plan lists as a candidate would buy almost nothing and is not implemented.
 
 ## Seed degradation, measured
 
@@ -251,7 +291,13 @@ Flag `current-duel`, `three-way-open`, and `rigged-melee` for weak generation-1 
 
 **This corrects an error I recorded earlier.** The group 2 synthesis claimed `engine-draw` in `three-way-open` loses its whole build *and* entire agenda, and I repeated it in the group 3 brief. It is false — that kingdom sells `stipend`. The writer measured every baseline against every kingdom rather than trusting the prose, which is how it was caught.
 
-## Budget and schedule
+## Budget
+
+The eight-hour budget measures **work**, not wall clock. Elapsed wall clock ran well past eight hours because a session limit stalled delegation for a long stretch; the user confirmed that the stall does not count and extended the time explicitly. Steps 8 and the capped full run are therefore in scope.
+
+One process note worth keeping. I mis-tracked the schedule for several phases by taking a clock reading once and extrapolating from it, which had me planning against hours that had already passed. The step 5 to 8 writer caught it by comparing my stated deadline against the machine clock and asking, rather than either stopping on its own or ignoring the discrepancy. Two cheap habits: read the clock at each phase boundary instead of extrapolating, and put the absolute deadline in every writer brief so a second party can check it.
+
+## Schedule
 
 The goal was set at **00:43** on 2026-08-18. The `GOAL.md` budget is eight hours, so it ends at **08:43**, and at least 45 minutes are reserved for final verification and reporting. Working time therefore ends at about **07:58**.
 
