@@ -6,7 +6,8 @@
 
 ## Workflow
 - Plans live in `.plans/`, should be committed, and should be named with implementation-order prefixes like `01-auth.md`, `02-billing.md`, and `03-dashboard.md`.
-- Multi-agent reviews live in `.reviews/`; the directory is kept with `.gitkeep`, but review outputs are ignored by default.
+- Superseded plans and decision records move to `.plans/archive/` with a banner naming the document that replaced them. Never use an archived document for a decision.
+- Multi-agent reviews live in `.reviews/`, which is ignored by Git.
 - Generated HTML artifacts live in `.html/` and should be committed when they capture useful design, planning, or review context.
 - Keep `README.md` current with the minimum context needed to run and understand the project.
 ## Development

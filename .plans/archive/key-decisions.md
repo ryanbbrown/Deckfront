@@ -1,4 +1,6 @@
-# Key decisions
+# Key decisions (archived)
+
+**Superseded. Do not use this document for any decision.** Several statements below are now wrong: starting health is configurable, Flurry works only at Close, and the save schema is version 8. The current sources are [09-card-list.md](../09-card-list.md), [10-automated-balance-search.md](../10-automated-balance-search.md), and [README.md](../../README.md).
 
 - The arena is one line with five spaces and one fighter per player.
 - Fighters start on spaces 2 and 3 with 20 health.

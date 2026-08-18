@@ -22,5 +22,8 @@ __pycache__/
 .e2e-results/
 .e2e-live-results/
 
-.reviews/*
-!.reviews/.gitkeep
+.reviews/
+
+.experiments/**
+!.experiments/**/
+!.experiments/**/report.md
