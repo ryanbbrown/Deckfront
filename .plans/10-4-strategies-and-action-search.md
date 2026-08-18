@@ -58,7 +58,11 @@ An agenda entry naming a card the kingdom does not sell is skipped, not an error
 
 `submitBuild` throws when a build names a card the kingdom does not sell and when the resolved cost exceeds 12 (`src/game/engine.ts:245-247`). Kingdom overrides re-price cards per kingdom, so a build that costs 12 in one kingdom costs more in another, and Rigged melee re-prices Heavy Blow deliberately.
 
-`chooseStartingBuild` therefore repairs before returning: drop cards the market does not offer, then drop from the end until the resolved cost is at most 12. Leftover money is not spent — it carries into the first Buy phase as `firstBuyMoney` (`src/game/engine.ts:231,265`), where the agenda uses it.
+`chooseStartingBuild` therefore repairs before returning: drop cards the market does not offer, then **repeatedly** drop the most expensive card — ties broken by definition id ascending — until the resolved cost is at most 12. Repeat until it fits; one drop is not always enough.
+
+This is the single repair rule for the whole project. Step 6 references it for mutation repair rather than defining its own. With two rules, a mutated build would be repaired one way at mutation time and another at match time, so the strategy recorded in `strategies.json` would not be the one that played.
+
+Leftover money is not spent — it carries into the first Buy phase as `firstBuyMoney` (`src/game/engine.ts:231,265`), where the agenda uses it.
 
 ## Action search
 
@@ -128,9 +132,9 @@ Fixed strategies, defined as data and committed. Definition ids come from `src/g
 | Id | `preferredRange` | `startingBuild` (base cost) | `buyAgenda` (cardId × desiredCount) |
 | --- | --- | --- | --- |
 | `treasure-only` | `Near` | `[]` (0) | none |
-| `melee-rush` | `Close` | `heavyBlow, drive, step` (11) | `heavyBlow×3, drive×2, feint×2, footwork×2` |
+| `melee-rush` | `Close` | `heavyBlow, drive, footwork` (12) | `heavyBlow×3, drive×2, feint×2, footwork×2` |
 | `ranged-standard` | `Far` | `volley, aim, footwork` (11) | `volley×3, aim×3, steadyShot×2, footwork×2` |
-| `mage-standard` | `Far` | `channel, arcBolt, leyStep, step` (11) | `fireball×2, arcBolt×3, channel×3, prism×1` |
+| `mage-standard` | `Far` | `channel, arcBolt, leyStep, footwork` (12) | `fireball×2, arcBolt×3, channel×3, prism×1` |
 | `engine-draw` | `Near` | `muster, stipend, footwork` (11) | `muster×3, adapt×2, stipend×2, steadyShot×2` |
 
 `treasure-only` has an **empty** starting build on purpose, so the whole 12 carries into the first Buy phase as `firstBuyMoney` and is spent through `treasureFallback`. The earlier description said both "spends the starting budget on treasure" and "spends it through the buy agenda"; those are different builds, and this is the one meant.
@@ -186,7 +190,7 @@ Buy checks:
 14. Buying a card up to `desiredCount` within one Buy phase stops there — no double count between `discard` and `purchases`. After Culling a bought card, the agenda buys it again.
 15. A strategy with `copper` in `treasureFallback` finishes its Buy phase. Give the test a timeout so a hang fails rather than blocks the suite.
 16. `chooseAction` in a Buy-phase state returns an agenda-driven `buyCard` or `endBuyPhase`, and always returns an element of the `actions` array it was given. Same assertion for the Action phase.
-17. `chooseStartingBuild` for `melee-rush` does not throw in a kingdom without Heavy Blow, nor in a kingdom whose overrides raise costs above 12.
+17. `chooseStartingBuild` for `melee-rush` does not throw in a kingdom without Heavy Blow, nor in a kingdom whose overrides raise costs above 12. A build 30 money over budget repairs to at most 12 in one call, and two equally expensive cards repair identically across repeated runs.
 
 Search-limit checks:
 

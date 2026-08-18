@@ -13,5 +13,16 @@ export default tseslint.config(
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }]
     }
+  },
+  {
+    files: ['src/sim/**'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{
+          group: ['**/client', '**/client/**', '**/server', '**/server/**', '**/ai', '**/ai/**'],
+          message: 'Simulation code imports from src/game/ only.'
+        }]
+      }]
+    }
   }
 );
