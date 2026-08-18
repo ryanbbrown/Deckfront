@@ -273,6 +273,19 @@ The sharing rests on an invariant that the type system does not carry: a card is
 
 **No further optimisation is justified.** The re-profile puts the largest remaining cost at 28.5 percent in `resolveIn`, which is a memo-key string build, worth maybe 1.3x. Event recording is 3.3 percent, so the search-mode apply the plan lists as a candidate would buy almost nothing and is not implemented.
 
+## The capped full run
+
+`rigged-melee`, seed 1, the full configuration unchanged: 30 candidates, 4 leaders, 32 generations, 8 shared seeds, a 240-minute deadline. It ran all 32 generations and finished the round robin in **2.9 minutes** — 213,344 matches at 1,209 per second, no aborted match and no search overflow. The deadline was never approached, so no generation was truncated and the recorded limits are the asked-for limits.
+
+**The calibration gate PASSES**: all 4 final leaders are melee and all 4 acquire Heavy Blow, 9,728 copies for the top one.
+
+Two numbers worth keeping for the next sizing.
+
+- **The tournament term is no longer small.** 93,632 tournament matches against 119,712 evolution matches. Entrants grow with generations — one retained leader per generation, plus the final leaders, plus the baselines — so 32 generations produced 77 entrants and 2,926 pairs. The earlier estimate of 26,240 tournament matches was low by 3.6x.
+- **Generation 1 costs ten times a later generation**: 53.0 s against 2.5 to 5.0 s. The fixed baselines play long games, and evolved strategies win sooner.
+
+**The final leaders are not the best strategies in the room.** They rank 43, 47, 48, and 49 of 77. Leaders retained from earlier generations rank above them. Selection measures a candidate against the current leader field, so late leaders are specialised against late leaders rather than against the whole history — the round robin is what says which strategy is actually strong, and the report already prints both.
+
 ## Seed degradation, measured
 
 Baseline strategies are kingdom-agnostic, so a curated kingdom that does not sell a seed's cards repairs it down. Plan `10-4:155` allows this, so it is a property of the design, not a defect. It matters because it thins generation 1.
