@@ -68,7 +68,7 @@ Retain the **best leader of each generation**, not the whole leader set. The fin
 
 The cap is forced by arithmetic, not by measurement. Retaining all leaders gives 5 × 32 = 160 retained plus 5 current plus baselines ≈ 165 entrants, so 13,530 pairs × 25 seeds × 4 games ≈ **1.35M matches** against ≈1.6M for all 32 generations — the tournament would nearly double the run. Retaining one per generation gives ≈42 entrants → 861 pairs × 25 × 4 ≈ **86k matches**, about 5 percent of the evolution. Record the cap actually used.
 
-Sizing formula, to be filled from the smoke measurement before the full run:
+Sizing formula:
 
 ```text
 evolution  = candidates × leaders × sharedSeeds × 4 × generations
@@ -78,16 +78,25 @@ total      = evolution + tournament
 
 ## Run limits
 
-From the design document. The implementation may lower the full run after measuring throughput, and must record the actual limits used. It must not raise them.
+Measured, not assumed. `scripts/measure_search.ts` on `a6e5fd5` gives **11.3 matches per second** single-threaded over 375 baseline matches; `PROGRESS.md` records the full table.
 
-| Mode | Candidates | Leaders | Generations | Shared seeds |
-| --- | ---: | ---: | ---: | ---: |
-| smoke | 20 | 3 | 5 | 5 |
-| full | at most 100 | 5 | at most 32 | 25 |
+The design document's full run does not fit. 100 × 5 × 25 × 4 × 32 = **1.6M** evolution matches plus ~86k tournament matches is **41 hours**, against a 240-minute deadline that affords about **163,000 matches** — roughly 10 percent. The parent plan allows lowering the full run after measuring throughput, so the full row below is the measured size. The design maxima stay as ceilings in step 7's option validation, so an explicit `--candidates 100` is still legal and the deadline remains the real guard.
+
+| Mode | Candidates | Leaders | Generations | Shared seeds | Matches | Projected |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| smoke | 20 | 3 | 5 | 5 | 7,560 | ~11 min |
+| full | 30 | 4 | 32 | 8 | 149,120 | ~220 min |
+| design maximum | 100 | 5 | 32 | 25 | 1,690,000 | ~41 h |
+
+Full: 30 × 4 × 8 × 4 = 3,840 per generation × 32 = 122,880 evolution, plus 41 entrants → 820 pairs × 8 × 4 = 26,240 tournament. That is 220 minutes against a 240-minute deadline, with the 20 percent tournament reserve step 7 sets aside covering the tournament term.
+
+Width was cut in preference to depth. Generational depth is what the search exists to produce, and 8 shared seeds × 4 orientations still gives 32 games per pairing for noise control. Re-measure after step 8: if throughput improves, raise `candidates` first, because population width is what thinned most.
 
 100 turns per player before a draw. Partial populations and results are preserved at every limit.
 
-The shared seeds are **fixed for the whole run**, so scores stay comparable across generations. Re-deriving them per generation would remove that comparability, which the report depends on. The cost is a risk of overfitting the leaders to those 25 shuffles; recorded rather than traded away.
+100 turns per player before a draw. Partial populations and results are preserved at every limit.
+
+The shared seeds are **fixed for the whole run**, so scores stay comparable across generations. Re-deriving them per generation would remove that comparability, which the report depends on. The cost is a risk of overfitting the leaders to those 8 shuffles; recorded rather than traded away, and sharper now that the measured run uses 8 seeds rather than 25.
 
 ## Interface
 

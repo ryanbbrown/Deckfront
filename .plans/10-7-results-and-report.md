@@ -16,14 +16,16 @@ Options: `--kingdom`, `--mode`, `--seed`, `--deadline-minutes`, `--generations`,
 
 `--out` is dropped. It escapes the `.gitignore` whitelist, nothing needs it, and the project rule is the simplest implementation that meets the requirement.
 
-**Limits.** The mode sets the defaults. The approved maxima are the `full` row of step 6's limits table and apply in **both** modes, so `--candidates 50` in smoke mode is legal and `--candidates 200` is rejected in either mode. Reject an out-of-range value with a message naming the maximum. This is the rule "an explicit option may only lower a limit, never raise it above the approved maximum", made implementable.
+**Limits.** The mode sets the defaults. The maxima are the `design maximum` row of step 6's limits table and apply in **both** modes, so `--candidates 50` in smoke mode is legal and `--candidates 200` is rejected in either mode. Reject an out-of-range value with a message naming the maximum. This is the rule "an explicit option may only lower a limit, never raise it above the approved maximum", made implementable.
+
+The full defaults are **below** the maxima, because the measured throughput of 11.3 matches per second makes the design-maximum run 41 hours. Step 6's limits table carries the arithmetic. The gap is deliberate: the maxima stay as approved ceilings, the defaults are what actually fits the deadline.
 
 | Option | smoke default | full default | Maximum |
 | --- | ---: | ---: | ---: |
-| `--candidates` | 20 | 100 | 100 |
-| `--leaders` | 3 | 5 | 5 |
+| `--candidates` | 20 | 30 | 100 |
+| `--leaders` | 3 | 4 | 5 |
 | `--generations` | 5 | 32 | 32 |
-| `--seeds` | 5 | 25 | 25 |
+| `--seeds` | 5 | 8 | 25 |
 | `--deadline-minutes` | 30 | 240 | 420 |
 
 `--kingdom` accepts only the five curated ids. `distance-duel` is registered by default but is the browser kingdom, not an experiment kingdom; reject it with the five valid ids in the message.

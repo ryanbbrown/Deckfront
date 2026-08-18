@@ -27,9 +27,11 @@ Step 9, the native-language port, is outside this goal.
 
 ## Current phase
 
-Group 2, steps 3 and 4, delegated to one writer subagent as a single unit against the two revised plans. Pre-implementation SHA for the review round: `b21f465c4fabb3dbf2fecbe1b95e18edbf830227`.
+Group 3, steps 5 and 6, to be delegated to one writer subagent as a single unit against the two revised plans. Pre-implementation SHA for the review round: to be captured immediately before the writer starts, after the working tree is committed clean.
 
-Completion criterion: the 12 checks in the step 3 plan and the 20 checks in the step 4 plan pass, plan 10-4's wall-clock measurement is recorded, and the four verification commands pass.
+Completion criterion: the 12 checks in the step 5 plan and the 13 checks in the step 6 plan pass, the curated kingdoms move out of `test/sim/kingdoms.ts` into `src/game-data/`, `scripts/measure_search.ts` is repointed at the real registration path, and the four verification commands pass.
+
+The rigged-melee calibration gate is defined in step 5 and filled by step 6. Its threshold, kingdom, and strategies must not be tuned to make it pass.
 
 Retry count: 0.
 
@@ -56,6 +58,7 @@ Recorded under the `GOAL.md` ambiguity rule. Each is the conservative reading an
 5. **Starting builds are limited to the kingdom's cards.** `submitBuild` accepts any card in `CARDS` today. With twenty-six cards implemented, that would let a player build a card the kingdom does not sell.
 6. **The Exposed bonus stays tunable through the `feint` card.** `src/game/engine.ts:133` reads `feint.values.bonus` even in a kingdom with no Feint pile. That is the only tuning point for the bonus, and step 6 mutates overrides rather than piles, so it is deliberate. Removing Feint from a kingdom does not remove a Feint override's effect.
 7. **An overflowed match is excluded from scoring, not paid 0.5.** `MatchResult` gains a distinct `aborted` outcome rather than reusing `draw`, so a strategy cannot earn half a point for blowing the state limit.
+8. **The full run is 30 candidates, 4 leaders, 32 generations, 8 shared seeds** — 149,120 matches, ~220 minutes — not the design document's 100/5/32/25, which measures at 41 hours. Width was cut in preference to depth, because generational depth is what the search exists to produce and 8 seeds x 4 orientations still gives 32 games per pairing. The design maxima stay as ceilings in step 7's option validation, so the reduction is a change of defaults, not of what is approved. Revisit after step 8: if throughput improves, raise `candidates` first.
 
 ## Review rounds
 
@@ -70,6 +73,19 @@ Recorded under the `GOAL.md` ambiguity rule. Each is the conservative reading an
 | v1 | plan | `.plans/10-6-evolution.md` | Changes requested by all three. 13 decisions, plan rewritten. |
 | v1 | plan | `.plans/10-7-results-and-report.md` | Changes requested by all three. 14 decisions, plan rewritten. |
 | v1 | plan | `.plans/10-8-profiling.md` | Changes requested by all three. 8 decisions, plan rewritten. |
+| v1 | implementation | steps 3 and 4, base `b21f465` | Changes requested by both reviewers that ran. 13 findings fixed, 2 questions answered, 1 risk recorded. GLM failed to start on both rounds. |
+
+### The group 2 implementation review
+
+All four reports led with the same two high findings, and **both were already fixed**. The writer landed my two mid-flight corrections in `47f7074`, after the review snapshot froze. Verified at the reviewed SHA rather than taken on trust: `git show a6e5fd5:src/sim/baselines.ts` does use `step`, and `git show a6e5fd5:src/sim/agents/strategyAgent.ts` does use `kept.pop()`. Stale, not wrong. The lesson for later groups is to freeze the snapshot only after the writer confirms it has stopped.
+
+Three of the thirteen were worth the round on their own:
+
+- **`strategyAgent` cached per-match state with no match boundary.** Its phase key was `${turn}:${playerId}`, so turn 1 of a second match collided with turn 1 of the first: the baseline was not recomputed, and `scoreState` then scanned events from the previous match's index and subtracted the previous match's opponent health. Nothing in `Agent` or `runMatch` said an agent serves one match, and steps 6 and 7 run round robins where reusing one agent per strategy is the obvious code. This would have silently corrupted every tournament score.
+- **Three baselines shared one `DEFAULT_WEIGHTS` object reference**, under an `Object.freeze` that protected only the array. Step 6 mutates strategies, so one in-place write would have changed three baselines at once. Same defect class as the card `values` freeze fixed in group 1.
+- **Every search fixture state failed `checkInvariants`.** `arena()` replaced ochre's zones with fresh cards but left `nextCardSerial` counting the discarded ones, so `invariants.ts:43` failed on all of them. The tests passed only because they never asserted invariants there, which means the Action-phase search had been proved solely on malformed states.
+
+Two questions answered rather than passed down: `visited` keeps counting distinct states, not memo hits, because a memo hit is O(1) so distinct states is the real work bound; and `test/sim/kingdoms.ts` stays as a placeholder because step 5 deletes it and repoints `scripts/measure_search.ts`.
 
 ### Findings that changed the group 3 and 4 plans
 
@@ -139,13 +155,41 @@ Also deferred: `src/client/Game.tsx:51` has no branch for the new `direction`, `
 - Detailed plans written for all eight in-scope steps.
 - Group 1 plan review, revision, implementation, implementation review, and fixes. **Steps 1 and 2 are done.**
 - Group 2 plan review and revision. Both plans rewritten against 29 accepted decisions.
+- Group 2 implementation, implementation review, and fixes. **Steps 3 and 4 are done.**
+- All eight plans plan-reviewed and revised. 24 reports, 4 synthesis files.
 
 ## Evidence
 
 - **Baseline** at `2428e70`, before any change: `npm test` 49 passed, 1 skipped. Typecheck, lint, build clean.
 - **Steps 1 and 2** at `2bf6d8c`, after the review fixes: `npm test` **89 passed, 1 skipped**. `npm run typecheck`, `npm run lint`, `npm run build` all clean.
-- Commits: `18ba526`, `7773705`, `084f57c` (writer), `2bf6d8c` (review fixes), `b21f465` (group 2 plan revisions).
+- **Steps 3 and 4** at `a6e5fd5`, before the implementation review: `npm test` **130 passed, 1 skipped**. `npm run typecheck`, `npm run lint`, `npm run build` all clean.
+- **Steps 3 and 4** at `e7918e8`, after the review fixes: `npm test` **148 passed, 1 skipped**. `npm run typecheck`, `npm run lint`, `npm run build` all clean.
+- Commits: `18ba526`, `7773705`, `084f57c` (writer), `2bf6d8c` (review fixes), `b21f465` (group 2 plan revisions), `f6fbe78`, `8fd6332` (group 3 and 4 plan revisions), `3583080` (step 3), `a6e5fd5` (step 4).
 - Review outputs and synthesis files under `.reviews/plans/` and `.reviews/implementations/`.
+
+`src/sim/match.ts`, `telemetry.ts`, `types.ts`, and `test/sim/scripted.ts` were swept into `8fd6332`, a plan-revision commit, instead of the writer's `3583080`. Nothing was lost. The consequence is that the group 2 review base must stay `b21f465`, because `8fd6332` already contains sim source.
+
+## Measured throughput
+
+`npx tsx scripts/measure_search.ts` on `a6e5fd5`: 5 kingdoms x 3 seeds x 25 baseline pairings = **375 matches**, `turnLimitPerPlayer` 100, `actionCapPerTurn` 200.
+
+| Measure | n | mean | p50 | p95 | max |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| decision ms | 26,712 | 0.279 | 0.006 | 0.928 | 104.283 |
+| match ms | 375 | 88.210 | 13.671 | 456.359 | 666.792 |
+| visited states | 26,712 | 2.373 | 1.000 | 8.000 | 297.000 |
+
+Stop reasons: 314 victory, 61 turnLimit, **0 search overflows**.
+
+Three consequences, all of which change later steps:
+
+- **Throughput is ~11.3 matches per second** single-threaded. The planned full run is ~1.6M evolution matches plus ~86k tournament matches, so it needs **~41 hours**. The 240-minute default deadline affords about **163,000 matches, roughly 10 percent of the planned size**. The full run must be sized down; step 7's limits table and step 8's fallback both anticipate this, and `GOAL.md` requires recording the actual limits used.
+- **The Action-phase search is not the bottleneck.** Max 297 visited states against a 20,000 limit, p50 of 1, and zero overflows across 375 matches. The per-phase memo is doing the work. Step 8 should therefore profile the plain match loop, not the search tree, and the overflow risk that shaped step 3's `aborted` outcome looks remote for baseline-shaped strategies.
+- **16 percent of matches reach the turn limit** without a kill. These are the expensive matches and they dominate wall clock. Worth watching once evolution runs: a population that drifts toward stalling gets slower as well as less informative.
+
+These are baseline strategies only. Evolved strategies may search wider, so treat 11.3 per second as an upper bound.
+
+**After the review fixes**, at `e7918e8`: decision ms mean 0.275, match ms mean 86.979, **11.5 matches per second**. The `visited states` row is byte-identical — same n of 26,712, same mean, p50, p95, and max — and the stop-reason split is unchanged at 314 victory, 61 turnLimit, 0 overflows. That identity is the useful part: gating the hot-loop clock reads, counting the turn-ending action against the cap, and resolving the canonical action by id changed **no decision the search makes**. The 1.4 percent wall-clock gain is inside noise and is not claimed as an improvement.
 
 `084f57c` repaired a literal NUL byte the writer left in `src/game/kingdom.ts`, which made the file binary to Git and would have hidden it from the review diff. Behaviour was unchanged.
 
@@ -155,4 +199,4 @@ None. GLM failed to start on both group 1 implementation rounds; Codex and Claud
 
 ## Next action
 
-Wait for the steps 3 and 4 writer, then run an implementation-mode panel round against base `b21f465c4fabb3dbf2fecbe1b95e18edbf830227`. Read the group 3 plan reports as they land and revise `.plans/10-5` and `.plans/10-6`.
+Commit the plan and progress changes, capture that SHA, then delegate steps 5 and 6 to one writer against `.plans/10-5-kingdoms.md` and `.plans/10-6-evolution.md`. Brief it on the two risks the group 2 review surfaced but did not close: baselines that repair away to almost nothing in three of the five kingdoms, which thins generation 1; and the calibration gate, which must count acquisition rather than purchases.
