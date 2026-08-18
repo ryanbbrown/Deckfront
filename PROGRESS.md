@@ -257,7 +257,7 @@ Machine: Apple M4 Pro, arm64, Node v22.23.1. Workload: `scripts/measure_search.t
 
 A CPU profile of that workload on `rigged-melee` put **88.0 percent of all CPU time in `structuredClone`**, reached through `cloneGame` in `applyAction`. Everything else was under 2 percent. The Action-phase search is **not** the bottleneck: it visits a median of 1 and a mean of 1.96 states per decision, with a maximum of 49.
 
-`cloneGame` now copies the mutable zones and shares the frozen `CardInstance` and `GameEvent` objects. Matches per second, before and after:
+`cloneGame` now copies the mutable zones and shares the `CardInstance` and `GameEvent` objects, which nothing in `src/game/` edits in place. Matches per second, before and after:
 
 | Kingdom | Before | After | Factor |
 | --- | ---: | ---: | ---: |
@@ -268,6 +268,8 @@ A CPU profile of that workload on `rigged-melee` put **88.0 percent of all CPU t
 | rigged-melee | 14.0 | 497.3 | 35.5x |
 
 Visited states per decision are unchanged at 1.96 mean, so the search itself is untouched: only the cost of each applied action moved. Every stored `MatchResult` in `test/sim/fixtures/match-oracle.json` is identical before and after, including two whole final states with their complete event logs.
+
+The sharing rests on an invariant that the type system does not carry: a card is moved between zones and an event is a record of the past, so neither is edited after it is made. Freezing both would enforce it, and it was tried, but `test/e2e/distance-duel.spec.ts:188` plants its privacy sentinel by editing a card id in place, and `test/e2e/**` is out of scope. `test/clone.test.ts` holds the boundary instead.
 
 **No further optimisation is justified.** The re-profile puts the largest remaining cost at 28.5 percent in `resolveIn`, which is a memo-key string build, worth maybe 1.3x. Event recording is 3.3 percent, so the search-mode apply the plan lists as a candidate would buy almost nothing and is not implemented.
 

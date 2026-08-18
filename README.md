@@ -69,7 +69,7 @@ node --cpu-prof --cpu-prof-dir .experiments/profiles --import tsx scripts/measur
 
 It plays every baseline pairing in the kingdoms and seeds it is given and prints matches per second, wall clock per decision and per match, states visited, and stop reasons. Use the options to bound the workload for a profile, so a before-and-after pair comes from one measurement path.
 
-`cloneGame` copies the mutable zones and shares the frozen cards and events, because a deep clone of the whole event log on every action made one game quadratic in its action count. `test/clone.test.ts` holds the aliasing checks that make the sharing safe, and `test/sim/identity.test.ts` replays seven fixed matches against `test/sim/fixtures/match-oracle.json` so a faster engine cannot quietly change a result.
+`cloneGame` copies the mutable zones and shares the card and event objects, which nothing edits in place, because a deep clone of the whole event log on every action made one game quadratic in its action count. `test/clone.test.ts` holds the aliasing checks that make the sharing safe, and `test/sim/identity.test.ts` replays seven fixed matches against `test/sim/fixtures/match-oracle.json` so a faster engine cannot quietly change a result.
 
 `evolve` runs the search: each generation plays every candidate against every leader over a fixed set of shared seeds, four games per pairing per seed, then keeps the best few as the next leaders and mutates them into the next population. `roundRobin` plays the final tournament between the last leaders, one retained leader per generation, and the fixed baselines, and reports the complete pairwise table. A strategy's id is a hash of its behaviour, so duplicates collapse on their own.
 

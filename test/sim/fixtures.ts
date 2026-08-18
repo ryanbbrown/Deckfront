@@ -19,25 +19,24 @@ export interface ArenaOptions {
   firstBuyPending?: boolean;
 }
 
+function allCards(state: GameState): CardInstance[] {
+  return [
+    ...state.trash,
+    ...Object.values(state.players).flatMap((player) =>
+      [...player.deck.draw, ...player.deck.hand, ...player.deck.discard, ...player.deck.play])
+  ];
+}
+
 /**
  * Replacing ochre's zones throws away cards `createCard` already counted, so the serial runs ahead of
  * the cards that survive and `checkInvariants` rejects the state. Renumbering keeps the ids unique
- * and restores the count the invariant compares against. A card is frozen, so each one is replaced
- * rather than edited.
+ * and restores the count the invariant compares against. It runs before any clone exists, so it is
+ * the one place that edits a card in place.
  */
 function renumberCards(state: GameState): void {
-  let serial = 0;
-  const renumber = (cards: readonly CardInstance[]): CardInstance[] =>
-    cards.map((card) => Object.freeze({ ...card, id: `card-${(serial += 1)}` }));
-  state.trash = renumber(state.trash);
-  for (const player of Object.values(state.players)) {
-    const deck = player.deck;
-    deck.draw = renumber(deck.draw);
-    deck.hand = renumber(deck.hand);
-    deck.discard = renumber(deck.discard);
-    deck.play = renumber(deck.play);
-  }
-  state.nextCardSerial = serial + 1;
+  const cards = allCards(state);
+  cards.forEach((card, index) => { card.id = `card-${index + 1}`; });
+  state.nextCardSerial = cards.length + 1;
 }
 
 /** A ready Action-phase state with ochre's zones, positions, and resources set by hand. */

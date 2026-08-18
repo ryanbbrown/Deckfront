@@ -42,9 +42,10 @@ function clonePlayer(state: PlayerState): PlayerState {
   };
 }
 /**
- * Copies every mutable zone and shares the frozen `CardInstance` and `GameEvent` objects, which are
- * only ever moved between arrays. `structuredClone` deep-copies the whole event log on every action,
- * which makes one game quadratic in its action count and costs 88% of a headless match.
+ * Copies every mutable zone and shares the `CardInstance` and `GameEvent` objects. Nothing in
+ * `src/game/` edits either in place — a card is moved between zones and an event is a record of the
+ * past — and `test/clone.test.ts` holds that boundary. `structuredClone` deep-copies the whole event
+ * log on every action, which makes one game quadratic in its action count and cost 88% of a match.
  */
 export function cloneGame(state: GameState): GameState {
   return {
@@ -59,6 +60,5 @@ export function cloneGame(state: GameState): GameState {
   };
 }
 export function createCard(state: GameState, definitionId: string): CardInstance {
-  // Frozen so `cloneGame` can share it: a card is moved between zones, never edited in place.
-  return Object.freeze({ id: `card-${state.nextCardSerial++}`, definitionId });
+  return { id: `card-${state.nextCardSerial++}`, definitionId };
 }

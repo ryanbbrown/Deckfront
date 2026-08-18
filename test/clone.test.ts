@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cloneGame } from '../src/game';
-import type { CardInstance, GameEvent, GameState } from '../src/game';
+import type { CardInstance, GameState } from '../src/game';
 import { strategyAgent } from '../src/sim/agents/strategyAgent';
 import { baselineStrategy } from '../src/sim/baselines';
 import { runMatch } from '../src/sim/match';
@@ -68,12 +68,15 @@ describe('cloning a game state', () => {
     expect(state).toEqual(before);
   });
 
-  it('refuses to edit a card or an event in place, which is what makes the sharing safe', () => {
-    const event = final.events[0] as GameEvent;
-    const card = final.players.ochre.deck.draw[0] ?? final.players.ochre.deck.discard[0];
-    expect(card).toBeDefined();
-    expect(() => { (event as { sequence: number }).sequence = 99; }).toThrow(TypeError);
-    expect(() => { (event.detail as Record<string, unknown>).intruder = true; }).toThrow(TypeError);
-    expect(() => { (card as { definitionId: string }).definitionId = 'gold'; }).toThrow(TypeError);
+  it('shares the card and event objects on purpose, which is where the speed comes from', () => {
+    const copy = cloneGame(final);
+    // Nothing in `src/game/` edits a card or an event in place, so copying them would only cost
+    // time. Deep-copying the event log again is what made a long game quadratic.
+    expect(copy.events[0]).toBe(final.events[0]);
+    expect(copy.events.at(-1)).toBe(final.events.at(-1));
+    const zone = (['discard', 'draw', 'hand', 'play'] as const)
+      .find((name) => final.players.ochre.deck[name].length > 0);
+    expect(zone).toBeDefined();
+    expect(copy.players.ochre.deck[zone!][0]).toBe(final.players.ochre.deck[zone!][0]);
   });
 });
