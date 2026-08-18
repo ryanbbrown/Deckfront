@@ -273,6 +273,30 @@ The sharing rests on an invariant that the type system does not carry: a card is
 
 **No further optimisation is justified.** The re-profile puts the largest remaining cost at 28.5 percent in `resolveIn`, which is a memo-key string build, worth maybe 1.3x. Event recording is 3.3 percent, so the search-mode apply the plan lists as a candidate would buy almost nothing and is not implemented.
 
+## The calibration gate failed at smoke size
+
+Recorded as a result, not repaired. The threshold, the kingdom, and its strategies were not touched.
+
+At the standard smoke configuration — 20 candidates, 3 leaders, 5 generations, 5 shared seeds, seed 1 — **`rigged-melee` FAILS**. All three final leaders are ranged, none acquires Heavy Blow, and the top-ranked strategy is a `volley`/`aim`/`footwork` line. Re-running seeds 2, 3, and 4 gave **PASS, FAIL, PASS**, so the outcome is seed-sensitive at that size: 2 failures in 4.
+
+The mechanism is visible in the smoke report itself. Heavy Blow is the better card per play, and the search still does not take it.
+
+| Reading | Smoke (8,560 matches) | Full (213,344 matches) |
+| --- | ---: | ---: |
+| Heavy Blow damage per play | 6.00 | 6.00 |
+| Volley damage per play | 4.59 | 4.33 |
+| Heavy Blow plays per match | 0.48 | 4.30 |
+| Volley plays per match | 5.59 | 1.78 |
+| Range dead draws per match | 0.89 | 2.69 |
+| Mean turns to win | 8.62 | 6.60 |
+
+**This is a statement about search width and depth, not about the fixture.** Heavy Blow needs the Close band, so a melee line pays a real cost — range dead draws per match nearly triple in the run where melee wins. Five generations from a seed population that is mostly ranged never pays that cost long enough to collect the reward, so the population settles on Volley, which is the local optimum reachable from the seeds. Thirty-two generations with 30 candidates find the melee line and it dominates: Heavy Blow plays rise ninefold per match and overtake Volley 2.4 to 1.
+
+Two things follow, and both are recorded rather than acted on.
+
+1. **The gate is a valid check only at full size.** It says "a search of the configured depth finds a deliberately overpowered card." At smoke size it is measuring a population that has not finished searching, so a FAIL there is expected behaviour and not evidence of a defect.
+2. **The smoke FAIL stands in the record.** The full-size PASS does not erase it, and the committed `.experiments/rigged-melee/smoke/report.md` keeps saying FAIL. Any later change that makes the smoke run pass needs to explain itself.
+
 ## The capped full run
 
 `rigged-melee`, seed 1, the full configuration unchanged: 30 candidates, 4 leaders, 32 generations, 8 shared seeds, a 240-minute deadline. It ran all 32 generations and finished the round robin in **2.9 minutes** — 213,344 matches at 1,209 per second, no aborted match and no search overflow. The deadline was never approached, so no generation was truncated and the recorded limits are the asked-for limits.
