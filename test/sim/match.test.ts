@@ -150,7 +150,7 @@ describe('runMatch stop conditions', () => {
     const settings = { seed: 3, turnLimitPerPlayer: 4 };
     const reference = runMatch(config({ ...settings, agents: agents(false) }));
     expect(reference.telemetry.deadDraws.ochre.total).toBeGreaterThan(0);
-    expect(reference.telemetry.moneySpent.indigo).toBeGreaterThan(0);
+    expect(Object.keys(reference.telemetry.purchasesByCard.indigo).length).toBeGreaterThan(0);
 
     expect(runMatch(config({ ...settings, agents: agents(true) }))).toEqual(reference);
   });
@@ -244,7 +244,6 @@ describe('runMatch telemetry', () => {
     const result = runMatch(config({ seed: 5, turnLimitPerPlayer: 1, agents: { ochre: oneFootwork, indigo: scriptedAgent({ id: 'idle' }) } }));
 
     // An empty build leaves the whole 12 as firstBuyMoney, and the opening hand is five Coppers.
-    expect(result.telemetry.moneySpent).toEqual({ ochre: 3, indigo: 0 });
     expect(result.telemetry.unspentMoney).toEqual({ ochre: 17 - 3, indigo: 17 });
     expect(result.telemetry.purchasesByCard.ochre).toEqual({ footwork: 1 });
     expect(result.telemetry.startingBuild).toEqual({ ochre: [], indigo: [] });

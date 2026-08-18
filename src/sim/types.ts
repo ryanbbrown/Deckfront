@@ -33,7 +33,6 @@ export interface MatchTelemetry {
   purchasesByCard: Record<PlayerId, Record<string, number>>;
   startingBuild: Record<PlayerId, string[]>;
   deadDraws: Record<PlayerId, DeadDrawCounts>;
-  moneySpent: Record<PlayerId, number>;
   unspentMoney: Record<PlayerId, number>;
   finalHealth: Record<PlayerId, number>;
 }

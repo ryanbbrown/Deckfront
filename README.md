@@ -71,6 +71,13 @@ It plays every baseline pairing in every curated kingdom and prints wall clock p
 
 Generation 1 starts from the five fixed baselines, repaired into the kingdom. A kingdom that sells few of a baseline's cards cuts that baseline down, so generation-1 scores there say less. `seedFindings(kingdomId)` reports what each seed lost, so a run states it instead of leaving the reader to assume a fair first contest.
 
+Run one experiment with `npm run experiment -- --kingdom <id> --mode smoke|full`. `--seed`,
+`--candidates`, `--leaders`, `--generations`, `--seeds`, `--deadline-minutes`, and `--state-limit` may
+lower a limit; none may raise one above the approved maximum. Output goes to
+`.experiments/<kingdom-id>/<mode>/`: `run.json`, `generations.jsonl`, `tournament.json`,
+`strategies.json`, `telemetry.json`, and `report.md`. Only `report.md` is committed. Partial output
+survives a deadline, and a run that hits a blocker still writes its report.
+
 The five curated experiment kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and `rigged-melee`. `rigged-melee` is a calibration fixture: it re-prices Heavy Blow to 3 for 6 damage, and `src/sim/calibration.ts` checks that the search finds it. Its threshold, kingdom, and strategies must never be tuned to make it pass.
 
 Card definitions live in `src/game-data/cards.json` and kingdoms in `src/game-data/kingdoms.json`. Strategy prompts live in `strategies/`. Saved AI traces live under `.data/ai-traces`.

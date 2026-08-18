@@ -9,6 +9,7 @@
     "start": "tsx src/server/main.ts",
     "build": "tsc -b && vite build",
     "test": "vitest run --exclude 'test/e2e/**'",
+    "experiment": "tsx src/sim/cli.ts",
     "test:e2e:manifest": "tsx scripts/validate_e2e_manifest.ts",
     "test:e2e": "npm run test:e2e:manifest && npm run build && playwright test",
     "test:e2e:headed": "npm run build && playwright test --headed",
