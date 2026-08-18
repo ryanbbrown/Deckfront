@@ -2,7 +2,7 @@
 
 ## Status
 
-Group 1 (steps 1 and 2) is implemented, reviewed, fixed, and green. Group 2 (steps 3 and 4) is plan-reviewed, revised, and delegated to a writer. Group 3 plan reviews are running.
+All eight implementation steps are written and green. The five smoke runs and one capped full run are done, reported, and committed. **The `rigged-melee` calibration gate fails at smoke size and passes at full size, with nothing tuned** — both results are recorded. The two final implementation-mode panel rounds are running; the five full runs start when they land.
 
 ## Authoritative inputs
 
@@ -27,11 +27,11 @@ Step 9, the native-language port, is outside this goal.
 
 ## Current phase
 
-Group 3, steps 5 and 6, to be delegated to one writer subagent as a single unit against the two revised plans. Pre-implementation SHA for the review round: to be captured immediately before the writer starts, after the working tree is committed clean.
+All eight implementation steps are written, and the five smoke runs plus one capped full run are done and committed. Two implementation-mode panel rounds are running: one over the complete search system, which `GOAL.md:84` requires before the full run, and one over steps 7 and 8, which had never had a round of their own.
 
-Completion criterion: the 12 checks in the step 5 plan and the 13 checks in the step 6 plan pass, the curated kingdoms move out of `test/sim/kingdoms.ts` into `src/game-data/`, `scripts/measure_search.ts` is repointed at the real registration path, and the four verification commands pass.
+Completion criterion for this phase: both rounds land, their findings are fixed or recorded, and the four verification commands pass. Then the final full runs start.
 
-The rigged-melee calibration gate is defined in step 5 and filled by step 6. Its threshold, kingdom, and strategies must not be tuned to make it pass.
+**A recorded deviation.** `GOAL.md:84` puts the complete-system round *before* the full run starts, and the capped `rigged-melee` full run was started by the writer as its default before that round ran. The run is evidence, not a decision, and it is being kept: it costs 2.9 minutes to reproduce if a finding invalidates it. The final five-kingdom runs wait for the round, as the guardrail intends.
 
 Retry count: 0.
 
@@ -58,7 +58,7 @@ Recorded under the `GOAL.md` ambiguity rule. Each is the conservative reading an
 5. **Starting builds are limited to the kingdom's cards.** `submitBuild` accepts any card in `CARDS` today. With twenty-six cards implemented, that would let a player build a card the kingdom does not sell.
 6. **The Exposed bonus stays tunable through the `feint` card.** `src/game/engine.ts:133` reads `feint.values.bonus` even in a kingdom with no Feint pile. That is the only tuning point for the bonus, and step 6 mutates overrides rather than piles, so it is deliberate. Removing Feint from a kingdom does not remove a Feint override's effect.
 7. **An overflowed match is excluded from scoring, not paid 0.5.** `MatchResult` gains a distinct `aborted` outcome rather than reusing `draw`, so a strategy cannot earn half a point for blowing the state limit.
-8. **The full run is 30 candidates, 4 leaders, 32 generations, 8 shared seeds** — 149,120 matches, ~220 minutes — not the design document's 100/5/32/25, which measures at 41 hours. Width was cut in preference to depth, because generational depth is what the search exists to produce and 8 seeds x 4 orientations still gives 32 games per pairing. The design maxima stay as ceilings in step 7's option validation, so the reduction is a change of defaults, not of what is approved. Revisit after step 8: if throughput improves, raise `candidates` first.
+8. ~~**The full run is 30 candidates, 4 leaders, 32 generations, 8 shared seeds.**~~ **Withdrawn after step 8.** It was sized against a 41-hour projection for the design document's 100/5/32/25. Removing the clone cost made that projection wrong by more than an order of magnitude, so the reduction is no longer needed and the final runs use the **full design limits: 100 candidates, 5 leaders, 32 generations, 25 shared seeds.** `GOAL.md:96` allows an unattended run to lower a measured workload but never to raise the approved limits, so restoring them is using the approved figure, not exceeding it. See [Sizing the final runs](#sizing-the-final-runs).
 
 ## Review rounds
 
@@ -74,6 +74,9 @@ Recorded under the `GOAL.md` ambiguity rule. Each is the conservative reading an
 | v1 | plan | `.plans/10-7-results-and-report.md` | Changes requested by all three. 14 decisions, plan rewritten. |
 | v1 | plan | `.plans/10-8-profiling.md` | Changes requested by all three. 8 decisions, plan rewritten. |
 | v1 | implementation | steps 3 and 4, base `b21f465` | Changes requested by both reviewers that ran. 13 findings fixed, 2 questions answered, 1 risk recorded. GLM failed to start on both rounds. |
+| v1 | implementation | steps 5 and 6, base `5f1d453`, snapshot `c110082` | Changes requested. 7 findings, including the J1 selection bug that would have invalidated the search. GLM failed to start. |
+| v1 | implementation | steps 7 and 8, base `f3a27df` | Running. |
+| v1 | implementation | the complete search system, base `b21f465` | Running. Required by `GOAL.md:84` before the full run. |
 
 ### The group 2 implementation review
 
@@ -165,7 +168,8 @@ Also deferred: `src/client/Game.tsx:51` has no branch for the new `direction`, `
 - **Steps 3 and 4** at `a6e5fd5`, before the implementation review: `npm test` **130 passed, 1 skipped**. `npm run typecheck`, `npm run lint`, `npm run build` all clean.
 - **Steps 3 and 4** at `e7918e8`, after the review fixes: `npm test` **148 passed, 1 skipped**. `npm run typecheck`, `npm run lint`, `npm run build` all clean.
 - **Steps 5 and 6** at `c110082`, before the implementation review: `npm test` **198 passed, 1 skipped**. `npm run typecheck`, `npm run lint`, `npm run build` all clean. `scripts/measure_search.ts` returns a byte-identical profile after the kingdom data moved out of `test/sim/kingdoms.ts` into `src/game-data/kingdoms.json` — same 26,712 decisions, same visited distribution, same 314/61/0 stop split — which proves the move changed no data.
-- Commits: `18ba526`, `7773705`, `084f57c` (writer), `2bf6d8c` (review fixes), `b21f465` (group 2 plan revisions), `f6fbe78`, `8fd6332` (group 3 and 4 plan revisions), `3583080` (step 3), `a6e5fd5` (step 4).
+- **Steps 7 and 8** at `c4e88c0`, the whole system built and both runs done: `npm test` **270 passed, 1 skipped**. `npm run typecheck`, `npm run lint`, `npm run build` all clean. Includes the J1 regression test, `test/sim/evolution.test.ts` "scores every candidate over the same leader field and over nothing else", and the seven-match oracle in `test/sim/identity.test.ts`.
+- Commits: `18ba526`, `7773705`, `084f57c` (writer), `2bf6d8c` (review fixes), `b21f465` (group 2 plan revisions), `f6fbe78`, `8fd6332` (group 3 and 4 plan revisions), `3583080` (step 3), `a6e5fd5` (step 4), `d82e471` (step 7 CLI), `25b053a` (oracle), `f42d55e` (structural clone), `2062c6a` (five smoke reports), `76913ef` (capped full run).
 - Review outputs and synthesis files under `.reviews/plans/` and `.reviews/implementations/`.
 
 `src/sim/match.ts`, `telemetry.ts`, `types.ts`, and `test/sim/scripted.ts` were swept into `8fd6332`, a plan-revision commit, instead of the writer's `3583080`. Nothing was lost. The consequence is that the group 2 review base must stay `b21f465`, because `8fd6332` already contains sim source.
@@ -336,28 +340,36 @@ The eight-hour budget measures **work**, not wall clock. Elapsed wall clock ran 
 
 One process note worth keeping. I mis-tracked the schedule for several phases by taking a clock reading once and extrapolating from it, which had me planning against hours that had already passed. The step 5 to 8 writer caught it by comparing my stated deadline against the machine clock and asking, rather than either stopping on its own or ignoring the discrepancy. Two cheap habits: read the clock at each phase boundary instead of extrapolating, and put the absolute deadline in every writer brief so a second party can check it.
 
-## Schedule
+## Sizing the final runs
 
-The goal was set at **00:43** on 2026-08-18. The `GOAL.md` budget is eight hours, so it ends at **08:43**, and at least 45 minutes are reserved for final verification and reporting. Working time therefore ends at about **07:58**.
+Every earlier estimate in this file was made before the clone cost was removed and is superseded. This one is scaled from the one full run that actually happened: `rigged-melee` at 30/4/32/8 produced 213,344 matches (119,712 evolution, 93,632 tournament) in 2.9 minutes at 1,209 matches per second.
 
-Remaining sequence, with the required order from `GOAL.md`:
+Scaling to the design limits of 100/5/32/25. Evolution scales with candidates, leaders, and shared seeds together: `(100/30) x (5/4) x (25/8)` = 13.0x. The tournament scales with shared seeds at 3.125x and only mildly with entrant count, because entrants come from retained leaders per generation rather than from population width.
 
-| Work | Estimate |
-| --- | ---: |
-| Steps 5 and 6: write, review, fix | ~60 min |
-| Steps 7 and 8: write, review, fix | ~60 min |
-| One implementation round over the complete search system, required by `GOAL.md:84` before the full run | ~15 min |
-| Smoke runs, all five kingdoms, at ~11 min each | ~55 min |
-| One capped full run | whatever remains |
+| Term | 30/4/32/8, measured | 100/5/32/25, projected |
+| --- | ---: | ---: |
+| Evolution matches | 119,712 | ~1,558,000 |
+| Tournament matches | 93,632 | ~357,000 |
+| Total | 213,344 | ~1,915,000 |
 
-**The 220-minute full run does not fit.** It was sized against the 240-minute deadline default, not against the wall clock actually left, which will be roughly 120 to 150 minutes by the time the full run can start.
+Per-kingdom wall clock, taking each kingdom's post-clone rate from the profiling table and scaling by the 2.43x that evolved strategies run faster than the baseline pairings that table measures:
 
-This does not need a third resizing, because `--deadline-minutes` already makes the run self-limiting: it stops cleanly between pairings, records `stopReason: 'deadline'`, preserves every finished generation, and reserves 20 percent for the tournament. So the full run keeps the 30/4/32/8 configuration and is given a **deadline equal to the time actually remaining**, and it truncates generations rather than being mis-sized in advance. Record the generations actually completed as the real limit.
+| Kingdom | Projected rate | Projected full run |
+| --- | ---: | ---: |
+| range-rich-mixed | ~1,660/s | ~19 min |
+| rigged-melee | 1,209/s (measured) | ~26 min |
+| three-way-open | ~1,120/s | ~29 min |
+| current-duel | ~670/s | ~48 min |
+| three-way-engine | ~570/s | ~57 min |
 
-Two things to re-measure before committing to that, rather than assume:
+**All five kingdoms get a full run at the design limits, launched concurrently**, so wall clock is the slowest kingdom rather than the sum. Each carries `--deadline-minutes 150`, which is well above every projection and exists only so a mis-projection truncates cleanly instead of overrunning: the run stops between pairings, records `stopReason: 'deadline'`, preserves every finished generation, and reserves 20 percent for the tournament. The generations actually completed are recorded as the real limit.
 
-- Throughput is measured on **baseline** strategies. Evolved strategies may search wider, so the smoke runs supply the real number and the full-run deadline is set from that, not from 11.5 per second.
-- `GOAL.md:33` asks for a capped full run "when measured throughput permits it", in the singular. One kingdom, not five. `rigged-melee` is the candidate, because it is the only kingdom carrying a pass-or-fail check.
+Two residual risks in this plan, both accepted.
+
+- **The projections are scaled, not measured.** Only `rigged-melee` has a real full-run number; the other four are extrapolated from a different workload. The deadline is the guard against that being wrong.
+- **Five concurrent Node processes contend for CPU**, so the real wall clock will exceed the slowest projection. The machine has enough cores for five single-threaded runs, and the deadline absorbs the rest.
+
+`GOAL.md:33` asks for a capped full run "when measured throughput permits it", in the singular. Throughput now permits five, so five is what runs.
 
 ## Blockers
 
@@ -365,4 +377,6 @@ None. GLM failed to start on both group 1 implementation rounds; Codex and Claud
 
 ## Next action
 
-Commit the plan and progress changes, capture that SHA, then delegate steps 5 and 6 to one writer against `.plans/10-5-kingdoms.md` and `.plans/10-6-evolution.md`. Brief it on the two risks the group 2 review surfaced but did not close: baselines that repair away to almost nothing in three of the five kingdoms, which thins generation 1; and the calibration gate, which must count acquisition rather than purchases.
+Synthesize the two running panel rounds, fix or record every finding, and re-run the four verification commands. Then launch all five kingdoms at 100/5/32/25 with `--deadline-minutes 150`, concurrently, and commit the five reports.
+
+Then finish the record: link the final outputs, replace every projected number in [Sizing the final runs](#sizing-the-final-runs) with what the runs actually did, and state the residual risks.
