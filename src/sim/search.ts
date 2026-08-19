@@ -1,4 +1,6 @@
-import { EFFECTS, kingdomEpoch, kingdomMarket, listLegalActions, opponent, rangeBand, resolveCard } from '../game';
+import {
+  isTacticalAction, kingdomEpoch, kingdomMarket, listLegalActions, opponent, rangeBand, resolveCard
+} from '../game';
 import { applyLegalAction } from '../game/engine';
 import type { CardInstance, CardMechanic, GameEvent, GameState, LegalAction, PlayerId } from '../game';
 import { projectPurchases } from './buy';
@@ -183,7 +185,7 @@ export function memoKey(state: GameState, playerId: PlayerId): string {
     return values.join(',');
   };
   const ordered = (cards: readonly CardInstance[]): string => cards.map(indexOf).join(',');
-  const tactical = state.actionsThisTurn.filter((id) => EFFECTS[resolveCard(state, id).mechanic].tactical).length;
+  const tactical = state.actionsThisTurn.filter(isTacticalAction).length;
   const pending = state.pendingChoice;
   return [
     mine.position, mine.health, mine.aimed ? 1 : 0, mine.exposed ? 1 : 0,

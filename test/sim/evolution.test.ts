@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { createGame, resetKingdoms } from '../../src/game';
 import {
-  MIN_CANDIDATES, compareScored, evolve, retainedLeaders, selectLeaders, validateEvolutionConfig
+  MIN_CANDIDATES, evolve, retainedLeaders, selectLeaders, validateEvolutionConfig
 } from '../../src/sim/evolution';
+import { compareScored } from '../../src/sim/scoring';
 import { repairStrategy } from '../../src/sim/mutation';
 import { ORIENTATIONS, emptyAggregate, playPairing, sharedSeedList } from '../../src/sim/pairing';
 import type { PairingOutcome } from '../../src/sim/pairing';

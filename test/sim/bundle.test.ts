@@ -7,7 +7,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { seedStrategies } from '../../src/sim/seedPopulation';
 import { runExperiment } from '../../src/sim/experiment';
 import { InlinePairingRunner, WorkerPairingRunner } from '../../src/sim/pairingRunner';
-import type { ExperimentOptions } from '../../src/sim/cli';
+import type { ExperimentOptions } from '../../src/sim/experimentConfig';
 
 const root = path.resolve(import.meta.dirname, '../..');
 const bundle = path.join(root, 'dist-sim', 'experiment.mjs');

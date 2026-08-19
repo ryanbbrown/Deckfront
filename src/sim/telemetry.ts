@@ -1,4 +1,4 @@
-import { EFFECTS, PLAYER_IDS, resolveCard } from '../game';
+import { isTacticalAction, PLAYER_IDS, resolveCard } from '../game';
 import type { ActionAvailability, GameEvent, GameState, PlayerId } from '../game';
 import type { DeadDrawCounts, MatchTelemetry } from './types';
 
@@ -59,7 +59,7 @@ export function createAccumulator(startingBuild: Record<PlayerId, readonly strin
 export function deadDrawCounts(snapshot: DeadDrawSnapshot): DeadDrawCounts {
   const { state, playerId, availability } = snapshot;
   const hand = new Map(state.players[playerId].deck.hand.map((card) => [card.id, card.definitionId]));
-  const tacticalPlayed = state.actionsThisTurn.filter((id) => EFFECTS[resolveCard(state, id).mechanic].tactical).length;
+  const tacticalPlayed = state.actionsThisTurn.filter(isTacticalAction).length;
   const counts: DeadDrawCounts = { range: 0, mana: 0, setup: 0, total: 0 };
   for (const entry of availability) {
     const definitionId = hand.get(entry.cardInstanceId);

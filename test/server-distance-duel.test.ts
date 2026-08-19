@@ -2,7 +2,7 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { createCard, listActionAvailability } from '../src/game';
+import { createCard } from '../src/game';
 import { GameService } from '../src/server/gameService';
 import { FileGameRepository, UnsupportedSchemaError } from '../src/server/persistence';
 import type { GameRecord, GameRepository } from '../src/server/types';
@@ -36,8 +36,8 @@ describe('local GameService', () => {
     expect(playerTwo).toMatchObject({ phase: 'action', activePlayerId: 'indigo' });
     expect(playerTwo.completedBuilds).toEqual({ ochre: ['footwork'], indigo: ['aim', 'volley'] });
     expect(playerTwo.players.ochre.hand).toHaveLength(5); expect(playerTwo.players.indigo.hand).toHaveLength(5);
-    const buy = await service.commitAction(game.id, playerTwo.revision, playerTwo.legalActions.find((action) => action.command.type === 'endActionPhase')!.id);
-    const next = await service.commitAction(game.id, buy.revision, buy.legalActions.find((action) => action.command.type === 'endBuyPhase')!.id);
+    const buy = await service.commitAction(game.id, playerTwo.revision, playerTwo.actions.phases.find((action) => action.kind === 'endAction')!.id);
+    const next = await service.commitAction(game.id, buy.revision, buy.actions.phases.find((action) => action.kind === 'endBuy')!.id);
     expect(next).toMatchObject({ activePlayerId: 'ochre', phase: 'action', turn: 2 });
   });
   it('persists build edits and rejects stale, unknown, unavailable, and completed edits', async () => {
@@ -50,25 +50,46 @@ describe('local GameService', () => {
     await service.updateBuild(game.id, completed.revision, [], true);
     await expect(service.updateBuild(game.id, completed.revision + 1, [], false)).rejects.toThrow('already complete');
   });
-  it('exposes complete local card zones and the same availability reasons as the engine', async () => {
+  it('projects disabled reasons and renderable movement choices without engine commands', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
-    const record = await repository.load(game.id); seedPlayerHand(record, ['feint', 'aim', 'drive']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 4; resetReplay(record); await repository.save(record);
-    const view = await service.get(game.id); expect(view.players.ochre.hand.map((card) => card.definitionId)).toEqual(['feint', 'aim', 'drive']);
+    const record = await repository.load(game.id); seedPlayerHand(record, ['feint', 'footwork', 'drive']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 4; resetReplay(record); await repository.save(record);
+    const view = await service.get(game.id); expect(view.players.ochre.hand.map((card) => card.definitionId)).toEqual(['feint', 'footwork', 'drive']);
     expect(view.players.indigo.hand).toHaveLength(5);
-    expect(view.actionAvailability.map((entry) => entry.reasonCode)).toEqual(listActionAvailability(record.state, 'ochre').map((entry) => entry.reasonCode));
+    expect(view.actions.cards[0]).toMatchObject({ enabled: false, reason: 'Requires Close range.', selection: 'none' });
+    expect(view.actions.cards[1]).toMatchObject({ enabled: true, selection: 'movement' });
+    expect(view.actions.cards[1]!.choices.map((choice) => ({ label: choice.label, text: choice.text }))).toEqual([
+      { label: 'Play Footwork: Left', text: 'Left' }, { label: 'Play Footwork: Stay', text: 'Stay' },
+      { label: 'Play Footwork: Right', text: 'Right' }
+    ]);
+    expect(JSON.stringify(view.actions)).not.toContain('command');
+  });
+  it('projects Cull target combinations, phase choices, and market buys by definition id', async () => {
+    const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
+    const record = await repository.load(game.id); seedPlayerHand(record, ['cull', 'copper', 'silver']); resetReplay(record); await repository.save(record);
+    const view = await service.get(game.id); const cull = view.actions.cards[0]!;
+    expect(cull).toMatchObject({ enabled: true, selection: 'trashOneOrTwo' });
+    expect(cull.eligibleCardInstanceIds).toEqual(record.state.players.ochre.deck.hand.map((card) => card.id));
+    expect(cull.choices.some((choice) => choice.targetCardInstanceIds.length === 1)).toBe(true);
+    expect(cull.choices.some((choice) => choice.targetCardInstanceIds.length === 2)).toBe(true);
+    const buy = await service.commitAction(game.id, view.revision, view.actions.phases.find((action) => action.kind === 'endAction')!.id);
+    expect(buy.actions.phases.map((action) => action.kind)).toEqual(['endBuy']);
+    expect(buy.actions.buys.map((action) => action.definitionId)).toContain('copper');
   });
   it('commits an action, persists replay data, and restores the exact state with one undo', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
     const record = await repository.load(game.id); seedPlayerHand(record, ['footwork'], ['aim']); resetReplay(record); await repository.save(record);
-    const before = await service.get(game.id); const played = await service.commitAction(game.id, before.revision, before.legalActions.find((action) => action.command.type === 'playFootwork' && action.command.movement === 'right')!.id);
+    const before = await service.get(game.id); const footwork = before.actions.cards[0]!;
+    const actionId = footwork.choices.find((action) => action.text === 'Right')!.id;
+    const played = await service.commitAction(game.id, before.revision, actionId);
     expect(played.players.ochre.hand.map((card) => card.definitionId)).toEqual(['aim']); expect(played.canUndo).toBe(true);
+    await expect(service.commitAction(game.id, played.revision, actionId)).rejects.toThrow('That action is no longer legal.');
     const undone = await service.undoAction(game.id, played.revision); expect(undone.players.ochre.hand.map((card) => card.definitionId)).toEqual(['footwork']); expect(undone.canUndo).toBe(false);
     await expect(service.undoAction(game.id, undone.revision)).rejects.toThrow('There is no action to undo.');
   });
-  it('exports the current local game view with schema 9', async () => {
+  it('exports the current local game view with schema 10', async () => {
     const { service, game } = await setup(); const exported = await service.exportGame(game.id);
-    expect(exported).toMatchObject({ schemaVersion: 9, game: { schemaVersion: 9, id: game.id } });
-    expect(JSON.stringify(exported)).not.toContain('committedCommands');
+    expect(exported).toMatchObject({ schemaVersion: 10, game: { schemaVersion: 10, id: game.id } });
+    expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
 });
 
@@ -77,7 +98,7 @@ describe('persistence schema', () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-checkpoint-'));
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8 }); const ready = await completeBuilds(service, created.id, created.revision);
-      const after = await service.commitAction(created.id, ready.revision, ready.legalActions.find((entry) => entry.command.type === 'endActionPhase')!.id);
+      const after = await service.commitAction(created.id, ready.revision, ready.actions.phases.find((entry) => entry.kind === 'endAction')!.id);
       const saved = await repository.load(created.id); expect(Object.keys(saved.undoCheckpoint!).sort()).toEqual(['committedCommandCount', 'completedActions', 'durationSeconds', 'finishedAt']); expect('state' in saved.undoCheckpoint!).toBe(false);
       expect((await service.undoAction(created.id, after.revision))).toMatchObject({ phase: 'action', canUndo: false });
     } finally { await rm(directory, { recursive: true, force: true }); }

@@ -18,7 +18,7 @@ npm run dev
 
 Open `http://127.0.0.1:4173`.
 
-The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records and browser game views use schema version 9. The server rejects older saves and does not migrate them.
+The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records use schema version 9. Browser game views and exports use schema version 10. The server rejects older saves and does not migrate them.
 
 ## Play
 

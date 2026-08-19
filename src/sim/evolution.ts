@@ -2,6 +2,8 @@ import { MUTATION_ATTEMPTS, mutateUnique } from './mutation';
 import { emptyAggregate, mergeAggregate, sharedSeedList } from './pairing';
 import { InlinePairingRunner } from './pairingRunner';
 import type { PairingJob, PairingRunner } from './pairingRunner';
+import { compareScored, scoredStrategy } from './scoring';
+import type { ScoringTally } from './scoring';
 import { seedPopulation, seedStrategies } from './seedPopulation';
 import { canonicalStrategy, registerIdentity } from './strategy';
 import type { Strategy } from './strategy';
@@ -31,38 +33,6 @@ export function validateEvolutionConfig(config: EvolutionConfig): void {
   if (config.leaders > config.candidates) {
     throw new Error(`leaders (${config.leaders}) cannot exceed candidates (${config.candidates}).`);
   }
-}
-
-interface Tally {
-  strategy: Strategy;
-  pairingScore: number;
-  completedPairings: number;
-  completedGames: number;
-  abortedGames: number;
-}
-
-function scored(tally: Tally): ScoredStrategy {
-  return {
-    strategy: tally.strategy,
-    score: tally.completedPairings ? tally.pairingScore / tally.completedPairings : 0,
-    completedPairings: tally.completedPairings,
-    completedGames: tally.completedGames,
-    abortedGames: tally.abortedGames
-  };
-}
-
-/**
- * Score descending, then the stable hash of the canonical form, then the canonical form itself so a
- * hash collision is still decided. A candidate with no completed game ranks below every candidate
- * that finished one, however badly it did: ranking by mean over zero games has no meaning.
- */
-export function compareScored(left: ScoredStrategy, right: ScoredStrategy): number {
-  if ((left.completedPairings === 0) !== (right.completedPairings === 0)) return left.completedPairings === 0 ? 1 : -1;
-  if (left.score !== right.score) return right.score - left.score;
-  if (left.strategy.id !== right.strategy.id) return left.strategy.id < right.strategy.id ? -1 : 1;
-  const leftForm = canonicalStrategy(left.strategy);
-  const rightForm = canonicalStrategy(right.strategy);
-  return leftForm < rightForm ? -1 : leftForm > rightForm ? 1 : 0;
 }
 
 /**
@@ -153,9 +123,9 @@ export async function evolve(
 
   for (let generation = 1; generation <= config.generations; generation += 1) {
     const started = now();
-    const tallies = new Map<string, Tally>();
+    const tallies = new Map<string, ScoringTally>();
     const known = new Map<string, string>();
-    const tally = (strategy: Strategy): Tally => {
+    const tally = (strategy: Strategy): ScoringTally => {
       registerIdentity(known, strategy);
       let found = tallies.get(strategy.id);
       if (!found) {
@@ -217,7 +187,7 @@ export async function evolve(
         candidateTally.abortedGames += outcome.record.aborted;
     }
 
-    const ranked = population.map((candidate) => scored(tally(candidate)));
+    const ranked = population.map((candidate) => scoredStrategy(tally(candidate)));
     const nextLeaders = selectLeaders(ranked, config.leaders);
     const scores: Record<string, number> = {};
     for (const entry of ranked) scores[entry.strategy.id] = entry.score;

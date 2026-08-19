@@ -21,7 +21,7 @@ describe('local game HTTP interface', () => {
   it('creates a game and accepts both sequential builds', async () => {
     const { base } = await server(); const createdResponse = await create(base); expect(createdResponse.status).toBe(201);
     const created = await createdResponse.json() as { id: string; revision: number; schemaVersion: number; activePlayerId: string };
-    expect(created).toMatchObject({ schemaVersion: 9, activePlayerId: 'ochre' });
+    expect(created).toMatchObject({ schemaVersion: 10, activePlayerId: 'ochre' });
     const playerOne = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['footwork'], complete: true }) }).then((response) => response.json()) as { revision: number; activePlayerId: string; phase: string };
     expect(playerOne).toMatchObject({ activePlayerId: 'indigo', phase: 'startingBuild' });
     const playerTwo = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: playerOne.revision, definitionIds: ['aim'], complete: true }) }).then((response) => response.json()) as { phase: string; completedBuilds: Record<string, string[]> };
@@ -44,6 +44,6 @@ describe('local game HTTP interface', () => {
     const { base } = await server(); const created = await (await create(base)).json() as { id: string; revision: number };
     const edit = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['feint'], complete: false }) }); expect(edit.status).toBe(200);
     const stale = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: [], complete: false }) }); expect(stale.status).toBe(409);
-    const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(9); expect(JSON.stringify(exported)).not.toContain('committedCommands');
+    const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(10); expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
 });

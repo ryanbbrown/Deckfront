@@ -1,7 +1,8 @@
-import { compareScored } from './evolution';
 import { emptyAggregate, emptyPairRecord, mergeAggregate, sharedSeedList } from './pairing';
 import { InlinePairingRunner } from './pairingRunner';
 import type { PairingJob, PairingRunner } from './pairingRunner';
+import { compareScored, scoredStrategy } from './scoring';
+import type { ScoringTally } from './scoring';
 import { seedLabels } from './seedPopulation';
 import { canonicalStrategy, registerIdentity } from './strategy';
 import type { Strategy } from './strategy';
@@ -52,11 +53,11 @@ export async function roundRobin(
   let matches = 0;
   const pairingStops = { significant: 0, maximum: 0 };
   const seedBlockCounts: Record<string, number> = {};
-  const totals = new Map<string, {
-    pairingScore: number; completedPairings: number; completedGames: number; abortedGames: number
-  }>();
+  const totals = new Map<string, ScoringTally>();
   for (const entrant of unique) {
-    totals.set(entrant.id, { pairingScore: 0, completedPairings: 0, completedGames: 0, abortedGames: 0 });
+    totals.set(entrant.id, {
+      strategy: entrant, pairingScore: 0, completedPairings: 0, completedGames: 0, abortedGames: 0
+    });
   }
   const jobs: PairingJob[] = [];
   const pairIndexes: [number, number][] = [];
@@ -86,6 +87,7 @@ export async function roundRobin(
       pairs[candidate.id]![opponent.id] = outcome.record;
       pairs[opponent.id]![candidate.id] = mirror(outcome.record);
 
+      // A tournament ranks one shared field, so each pairing contributes to both entrants.
       const candidateTotal = totals.get(candidate.id)!;
       if (outcome.candidateMean !== null) {
         candidateTotal.pairingScore += outcome.candidateMean;
@@ -103,16 +105,7 @@ export async function roundRobin(
   }
 
   const ranking: ScoredStrategy[] = unique
-    .map((strategy) => {
-      const total = totals.get(strategy.id)!;
-      return {
-        strategy,
-        score: total.completedPairings ? total.pairingScore / total.completedPairings : 0,
-        completedPairings: total.completedPairings,
-        completedGames: total.completedGames,
-        abortedGames: total.abortedGames
-      };
-    })
+    .map((strategy) => scoredStrategy(totals.get(strategy.id)!))
     .sort(compareScored);
 
   // The calibration input is built even when the deadline cut the table short, and `partial` is what

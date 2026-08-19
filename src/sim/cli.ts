@@ -6,25 +6,10 @@ import { MIN_CANDIDATES } from './evolution';
 import { runExperiment } from './experiment';
 import type { ExperimentDeps } from './experiment';
 import { CURATED_KINGDOM_IDS } from './kingdoms';
+import type { ExperimentOptions } from './experimentConfig';
 import type { ExperimentMode } from './report';
 import { WorkerPairingRunner, runPairingWorker } from './pairingRunner';
 
-export interface ExperimentOptions {
-  kingdomId: string;
-  mode: ExperimentMode;
-  seed: number;
-  candidates: number;
-  leaders: number;
-  generations: number;
-  sharedSeeds: number;
-  deadlineMinutes: number;
-  stateLimit: number;
-  workers: number;
-}
-
-/** 30 turns per player before a draw, and the action cap the match runner already uses. */
-export const TURN_LIMIT_PER_PLAYER = 30;
-export const ACTION_CAP_PER_TURN = 200;
 export const DEFAULT_SEED = 1;
 
 type LimitName = 'candidates' | 'leaders' | 'generations' | 'sharedSeeds' | 'deadlineMinutes' | 'stateLimit' | 'workers';

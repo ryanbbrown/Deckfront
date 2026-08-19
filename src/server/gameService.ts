@@ -4,7 +4,10 @@ import {
   listActionAvailability, listLegalActions, marketCost, rangeBand, replayCommands
 } from '../game';
 import type { GameCommand, PlayerId } from '../game';
-import type { GameExport, GameView } from '../shared/api';
+import type {
+  BrowserAction, CardActionChoice, CardActionPresentation, GameActionPresentation, GameExport, GameView,
+  PhaseActionPresentation
+} from '../shared/api';
 import type { GameRecord, GameRepository, UndoCheckpoint } from './types';
 
 export class ConflictError extends Error {}
@@ -84,7 +87,7 @@ export class GameService {
     });
   }
   async exportGame(id: string): Promise<GameExport> {
-    return { schemaVersion: 9, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
+    return { schemaVersion: 10, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
   }
   private checkpoint(record: GameRecord): UndoCheckpoint {
     return { committedCommandCount: record.committedCommands.length, completedActions: record.completedActions, finishedAt: record.finishedAt, durationSeconds: record.durationSeconds };
@@ -107,6 +110,73 @@ export class GameService {
     if (record.undoCheckpoint && record.undoCheckpoint.committedCommandCount >= record.committedCommands.length) throw new Error('Undo checkpoint does not precede the saved state.');
     assertInvariants(record.state);
   }
+  private projectActions(record: GameRecord): GameActionPresentation {
+    const state = record.state;
+    if (state.winner || state.phase === 'startingBuild') {
+      return { cards: [], phases: [], buys: [], selection: null };
+    }
+    const legalActions = listLegalActions(state);
+    const browserAction = (action: (typeof legalActions)[number], text = action.label): BrowserAction => ({
+      id: action.id, label: action.label, text
+    });
+    const cardActions = new Map<string, (typeof legalActions)[number][]>();
+    for (const action of legalActions) {
+      if (!('cardInstanceId' in action.command)) continue;
+      const actions = cardActions.get(action.command.cardInstanceId) ?? [];
+      actions.push(action);
+      cardActions.set(action.command.cardInstanceId, actions);
+    }
+    const cards: CardActionPresentation[] = listActionAvailability(state, state.activePlayerId).map((availability) => {
+      const legal = cardActions.get(availability.cardInstanceId) ?? [];
+      const selection: CardActionPresentation['selection'] = availability.selection === 'movement' || availability.selection === 'direction'
+        ? 'movement'
+        : availability.selection === 'trashOneOrTwo' ? 'trashOneOrTwo' : 'none';
+      const choices: CardActionChoice[] = legal.map((action) => {
+        let text = action.label;
+        let targetCardInstanceIds: string[] = [];
+        if (action.command.type === 'playFootwork') {
+          text = action.command.movement === 'left' ? 'Left' : action.command.movement === 'right' ? 'Right' : 'Stay';
+        } else if (action.command.type === 'playDrive') {
+          text = action.command.direction === 'left' ? 'Move both left' : 'Move both right';
+        } else if (action.command.type === 'playMoveAction') {
+          text = action.command.direction === 'left' ? 'Left' : 'Right';
+        } else if (action.command.type === 'playCull') {
+          targetCardInstanceIds = [...action.command.trashInstanceIds];
+        }
+        return { ...browserAction(action, text), targetCardInstanceIds };
+      });
+      return {
+        cardInstanceId: availability.cardInstanceId,
+        enabled: availability.enabled,
+        reason: availability.reason,
+        selection,
+        eligibleCardInstanceIds: [...availability.eligibleCardInstanceIds],
+        actionId: selection === 'none' && legal.length === 1 ? legal[0]!.id : null,
+        choices
+      };
+    });
+    const phases: PhaseActionPresentation[] = [];
+    for (const action of legalActions) {
+      if (action.command.type === 'endActionPhase') phases.push({ ...browserAction(action, 'End Action phase'), kind: 'endAction' });
+      if (action.command.type === 'endBuyPhase') phases.push({ ...browserAction(action, 'End Buy phase'), kind: 'endBuy' });
+    }
+    const buys = legalActions.flatMap((action) => action.command.type === 'buyCard'
+      ? [{ ...browserAction(action, action.label), definitionId: action.command.definitionId }]
+      : []);
+    const selection = state.pendingChoice ? {
+      kind: state.pendingChoice.type,
+      choices: legalActions.flatMap((action) => {
+        if (action.command.type === 'resolveDiscard') {
+          return [{ ...browserAction(action), cardInstanceId: action.command.discardInstanceId }];
+        }
+        if (action.command.type === 'resolveRecover') {
+          return [{ ...browserAction(action), cardInstanceId: action.command.recoverInstanceId }];
+        }
+        return [];
+      })
+    } : null;
+    return { cards, phases, buys, selection };
+  }
   private gameView(record: GameRecord): GameView {
     const state = record.state;
     const players = Object.fromEntries((['ochre', 'indigo'] as const).map((playerId) => {
@@ -128,15 +198,14 @@ export class GameService {
       ? { ochre: [...state.players.ochre.startingBuild], indigo: [...state.players.indigo.startingBuild] }
       : null;
     return {
-      schemaVersion: 9, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
+      schemaVersion: 10, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
       elapsedSeconds: Math.max(0, Math.floor((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 1000)),
       completedActions: record.completedActions, durationSeconds: record.durationSeconds,
       activePlayerId: state.activePlayerId, selectedFirstPlayerId: state.selectedFirstPlayerId, phase: state.phase,
       turn: state.turn, winner: state.winner, fighters: structuredClone(state.fighters), range: rangeBand(state),
       supply: { ...state.supply }, cards: Object.fromEntries(kingdomMarket(state.kingdomId).map((card) => [card.id, card])),
       players, trashCount: state.trash.length, events: structuredClone(state.events),
-      legalActions: canChoose ? listLegalActions(state) : [],
-      actionAvailability: canChoose ? listActionAvailability(state, state.activePlayerId) : [],
+      actions: canChoose ? this.projectActions(record) : { cards: [], phases: [], buys: [], selection: null },
       canUndo: record.undoCheckpoint !== null, buildProposal: [...record.buildProposal], completedBuilds
     };
   }

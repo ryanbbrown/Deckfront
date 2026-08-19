@@ -4,7 +4,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetKingdoms } from '../../src/game';
 import { experimentDir, main } from '../../src/sim/cli';
-import type { ExperimentOptions } from '../../src/sim/cli';
+import type { ExperimentOptions } from '../../src/sim/experimentConfig';
 import { evolve, retainedLeaders } from '../../src/sim/evolution';
 import { runExperiment } from '../../src/sim/experiment';
 import { emptyAggregate } from '../../src/sim/pairing';
