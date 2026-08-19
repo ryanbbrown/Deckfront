@@ -45,4 +45,13 @@ describe('maximum-support equilibrium', () => {
     const external = execFileSync(process.execPath, ['--import', 'tsx', '--eval', script], { encoding: 'utf8' });
     expect(external).toBe(JSON.stringify(second));
   });
+
+  it('keeps a non-uniform equilibrium stable under input order', () => {
+    const first = solveEquilibrium(['a', 'b', 'c'], [[0, -1, 2], [1, 0, -3], [-2, 3, 0]]);
+    const reordered = solveEquilibrium(['c', 'a', 'b'], [[0, -2, 3], [2, 0, -1], [-3, 1, 0]]);
+    expect(first.weights.a).toBeCloseTo(0.5, 6);
+    expect(first.weights.b).toBeCloseTo(1 / 3, 6);
+    expect(first.weights.c).toBeCloseTo(1 / 6, 6);
+    expect(reordered).toEqual(first);
+  });
 });

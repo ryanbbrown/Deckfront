@@ -3,7 +3,7 @@ import { emptyAggregate, mergeAggregate } from './pairing';
 import type { PairingRunner } from './pairingRunner';
 import type { Strategy } from './strategy';
 import type { TelemetryAggregate } from './types';
-import { InvalidEvaluationError } from './payoffMatrix';
+import { DeadlineInterruptionError, InvalidEvaluationError } from './payoffMatrix';
 
 export interface MixtureBlock { seed: number; opponentId: string }
 export interface MixtureSchedule {
@@ -74,7 +74,9 @@ export async function evaluateCandidates(
     } };
   }));
   const batch = await runner.run(jobs, { deadline: options.deadline });
-  if (batch.submitted !== jobs.length) throw new InvalidEvaluationError('Deadline interrupted a mixture evaluation.', {});
+  if (batch.submitted !== jobs.length) throw new DeadlineInterruptionError('Deadline interrupted a mixture evaluation.', {
+    submitted: batch.submitted, expected: jobs.length
+  });
   const evaluations: CandidateEvaluation[] = [];
   for (let candidateIndex = 0; candidateIndex < candidates.length; candidateIndex += 1) {
     const telemetry = emptyAggregate();
@@ -82,7 +84,9 @@ export async function evaluateCandidates(
     let matches = 0;
     for (let blockIndex = 0; blockIndex < schedule.blocks.length; blockIndex += 1) {
       const result = batch.outcomes[candidateIndex * schedule.blocks.length + blockIndex];
-      if (!result) throw new InvalidEvaluationError('Mixture evaluation returned no result.', {});
+      if (!result) throw new DeadlineInterruptionError('Mixture evaluation returned no result.', {
+        strategyId: candidates[candidateIndex]!.id, block: blockIndex
+      });
       if (result.record.aborted > 0 || result.blocks[0]?.played !== 4) {
         throw new InvalidEvaluationError('An aborted match invalidated a mixture evaluation.', {
           strategyId: candidates[candidateIndex]!.id, seed: schedule.blocks[blockIndex]!.seed,

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { diagnosticStrategies } from '../../src/sim/baselines';
 import { emptyAggregate } from '../../src/sim/pairing';
-import { InvalidEvaluationError, PayoffMatrix, matrixProtocol } from '../../src/sim/payoffMatrix';
+import {
+  createMatrixCellCache, InvalidEvaluationError, PayoffMatrix, matrixProtocol
+} from '../../src/sim/payoffMatrix';
 import type { PairingJob, PairingRunner } from '../../src/sim/pairingRunner';
 
 class RecordingRunner implements PairingRunner {
@@ -62,5 +64,30 @@ describe('protocol-keyed payoff matrix', () => {
       return JSON.stringify(matrix.snapshot());
     };
     expect(await build(strategies)).toBe(await build([...strategies].reverse()));
+  });
+
+  it('reuses cells only when the complete protocol is identical', async () => {
+    const runner = new RecordingRunner();
+    const cache = createMatrixCellCache();
+    const [a, b] = diagnosticStrategies('current-duel');
+    const fill = async (value: ReturnType<typeof protocol>) => {
+      const matrix = new PayoffMatrix(value, runner, cache);
+      await matrix.fillPair(a!, b!, false);
+      return matrix.snapshot();
+    };
+    await fill(protocol());
+    await fill(protocol());
+    expect(runner.jobs).toHaveLength(1);
+    const base = protocol();
+    const variants = [
+      { ...base, seeds: [1, 3] },
+      { ...base, turnLimitPerPlayer: 31 },
+      { ...base, actionCapPerTurn: 201 },
+      { ...base, stateLimit: 20001 },
+      { ...base, cards: [...base.cards as unknown[], { id: 'changed-card' }] },
+      { ...base, orientationProtocol: 'four-orientations-v2' }
+    ];
+    for (const variant of variants) await fill(variant);
+    expect(runner.jobs).toHaveLength(1 + variants.length);
   });
 });

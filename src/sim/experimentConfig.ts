@@ -24,7 +24,7 @@ export function conservativeGameBound(options: Pick<ExperimentOptions,
   'restarts' | 'initialStrategies' | 'iterations' | 'candidates' | 'seeds' | 'unionIterations'>): number {
   const maximumUnion = options.restarts * (options.initialStrategies + options.iterations) + options.unionIterations;
   const matrixGames = 4 * options.seeds * maximumUnion * (maximumUnion - 1) / 2;
-  const restartGames = 4 * options.seeds * options.restarts * options.iterations * 2 * (options.candidates + 1);
+  const restartGames = 4 * options.seeds * options.restarts * options.iterations * (2 * options.candidates + 3);
   const unionGames = 4 * options.seeds * options.unionIterations * (options.candidates + 1);
   return matrixGames + restartGames + unionGames;
 }

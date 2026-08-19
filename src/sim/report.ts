@@ -3,6 +3,7 @@ import type { Strategy } from './strategy';
 import type { EquilibriumResult } from './equilibrium';
 import type { MatrixSnapshot } from './payoffMatrix';
 import type { IterationEvent, RestartAgreement } from './psro';
+import type { RestartStatus } from './psro';
 import type { TelemetryAggregate } from './types';
 
 export type ExperimentMode = 'smoke' | 'full';
@@ -23,6 +24,11 @@ export interface RunSummary {
   strategies: Strategy[]; iterations: IterationEvent[]; restartAgreement: RestartAgreement[];
   calibration: CalibrationDiagnostic | null; telemetry: TelemetryAggregate;
   weightIntervals: Record<string, { lower: number; upper: number }>;
+  warnings: string[];
+  restartStatuses: RestartStatus[];
+  restartMixtures: { restart: number; stopReason: string; completed: boolean; weights: Record<string, number> | null }[];
+  finalFailures: { mean: number | null; interval: { lower: number; upper: number } | null;
+    blocks: number; reason: string | null }[];
 }
 
 function fixed(value: number, places = 3): string { return value.toFixed(places); }
@@ -53,6 +59,7 @@ export function renderReport(summary: RunSummary): string {
       ['Throughput', summary.elapsedMs ? `${fixed(summary.matches / (summary.elapsedMs / 1000), 1)} games/s` : '—']
     ])];
   if (summary.error) lines.push('', `**Invalid run:** ${summary.error}`);
+  for (const warning of summary.warnings) lines.push('', `**Diagnostic warning:** ${warning}`);
   lines.push('', '## Maximum-support equilibrium', '',
     'Weights are the canonical maximum-support equilibrium of the complete discovered-strategy matrix.'
       + ' They are not raw win rates. A zero weight does not prove that a strategy can never be useful.', '');
@@ -78,28 +85,51 @@ export function renderReport(summary: RunSummary): string {
   const niche = summary.iterations.filter((event) => event.response?.objective === 'niche');
   lines.push('', '## Response searches', '',
     ...table(['Restart', 'Attempt', 'Objective', 'Candidates', 'Local / random', 'Duplicate rejects',
-      'Candidate', 'Held-out mean', '95% interval', 'Admitted'],
+      'Candidate', 'Absolute mean', 'Paired improvement', 'Interval type', '95% interval', 'Blocks', 'Result'],
       summary.iterations.map((event) => [String(event.restart), String(event.attempt),
         event.response?.objective ?? 'empty', event.response
           ? `${event.response.sources.actual}/${event.response.sources.requested}` : '—',
         event.response ? `${event.response.sources.local} / ${event.response.sources.random}` : '—',
         event.response ? String(event.response.sources.duplicateRejections) : '—',
         event.response?.candidateId ?? '—',
-        event.response ? fixed(event.response.heldOutMean) : '—',
-        event.response ? `${fixed(event.response.interval.lower)}–${fixed(event.response.interval.upper)}` : '—',
-        event.admittedStrategyId ? 'yes' : 'no'])), '',
+        event.response?.heldOutMean === null || !event.response ? '—' : fixed(event.response.heldOutMean),
+        event.response?.improvement === null || !event.response ? '—' : fixed(event.response.improvement),
+        event.response ? (event.response.objective === 'niche' ? 'paired improvement' : 'absolute mean') : '—',
+        event.response?.interval ? `${fixed(event.response.interval.lower)}–${fixed(event.response.interval.upper)}` : '—',
+        event.response ? String(event.response.confirmSchedule.blocks.length) : '—',
+        event.admittedStrategyId ? 'admitted' : event.response?.failureReason ?? 'not admitted'])), '',
     `Niche searches are discovery only. ${niche.length} niche searches ran; the final weights always come from the global equilibrium.`);
   const unionGlobal = summary.iterations.filter((event) => event.restart === 'union'
     && event.response?.objective === 'global');
-  const trailingFailures = unionGlobal.filter((event) => !event.response!.admitted).slice(-2);
-  const gapEvidence = trailingFailures.length ? trailingFailures : unionGlobal.slice(-1);
-  if (gapEvidence.length) {
-    const largest = Math.max(...gapEvidence.map((event) => Math.max(0, event.response!.heldOutMean - 0.5)));
-    const intervals = gapEvidence.map((event) => `${fixed(event.response!.interval.lower)}–${fixed(event.response!.interval.upper)}`).join(', ');
-    lines.push('', `Final observed oracle gap: ${fixed(largest)} from ${gapEvidence.length} held-out search(es)`
-      + ` with interval(s) ${intervals}. This is observed search evidence, not exact exploitability.`);
+  let lastAdmission = -1;
+  for (let index = 0; index < unionGlobal.length; index += 1) {
+    if (unionGlobal[index]!.response?.admitted) lastAdmission = index;
   }
+  const afterAdmission = unionGlobal.slice(lastAdmission + 1);
+  const gapEvidence = [...afterAdmission].reverse().findIndex((event) => event.response?.admitted) === -1
+    ? afterAdmission.filter((event) => !event.response?.admitted) : [];
+  if (gapEvidence.length) {
+    const measured = gapEvidence.filter((event) => event.response?.heldOutMean !== null && event.response?.interval);
+    const largest = measured.length
+      ? Math.max(...measured.map((event) => Math.max(0, event.response!.heldOutMean! - 0.5))) : 0;
+    const intervals = measured.map((event) => `${fixed(event.response!.interval!.lower)}–${fixed(event.response!.interval!.upper)}`).join(', ') || 'none';
+    lines.push('', `Final observed oracle gap: ${fixed(largest)} from ${gapEvidence.length} held-out search(es)`
+      + ` with interval(s) ${intervals} and block count(s) ${gapEvidence.map((event) => event.response?.confirmSchedule.blocks.length ?? 0).join(', ')}.`
+      + ' This is observed search evidence, not exact exploitability.');
+  } else {
+    lines.push('', unionGlobal.length
+      ? 'No final oracle gap was measured after the latest union admission.'
+      : 'No union response search ran, so no final oracle gap was measured.');
+  }
+  lines.push('', '## Restart completion', '',
+    `Requested ${summary.restartStatuses.length}; started ${summary.restartStatuses.filter((status) => status.state !== 'skipped').length};`
+      + ` completed ${summary.restartStatuses.filter((status) => status.state === 'completed').length};`
+      + ` skipped ${summary.restartStatuses.filter((status) => status.state === 'skipped').length}.`, '',
+    ...table(['Restart', 'State', 'Stop reason', 'Matrix size'], summary.restartStatuses.map((status) => [
+      String(status.restart), status.state, status.stopReason, String(status.matrixSize)
+    ])));
   if (summary.restartAgreement.length) lines.push('', '## Restart agreement', '',
+    'Restart mixtures can use preliminary early-stopped cells. These values are diagnostic; the final union uses full cells.', '',
     ...table(['Restarts', 'Total-variation distance', 'Support overlap', 'Left worst counter', 'Right worst counter'],
       summary.restartAgreement.map((entry) => [`${entry.left}/${entry.right}`, fixed(entry.totalVariation),
         fixed(entry.supportOverlap), fixed(entry.leftWorstCounter), fixed(entry.rightWorstCounter)])));

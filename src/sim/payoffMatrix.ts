@@ -44,6 +44,10 @@ export class InvalidEvaluationError extends Error {
   constructor(message: string, readonly detail: Record<string, unknown>) { super(message); }
 }
 
+export class DeadlineInterruptionError extends Error {
+  constructor(message: string, readonly detail: Record<string, unknown>) { super(message); }
+}
+
 export function matrixProtocol(
   kingdomId: string, seeds: readonly number[], turnLimitPerPlayer: number, actionCapPerTurn: number,
   stateLimit: number
@@ -86,15 +90,16 @@ export class PayoffMatrix {
 
   entrants(): Strategy[] { return [...this.strategies.values()].sort((a, b) => a.id.localeCompare(b.id)); }
 
-  private cellId(leftId: string, rightId: string): string {
-    return leftId < rightId ? `${leftId}|${rightId}` : `${rightId}|${leftId}`;
+  private cellId(left: Strategy, right: Strategy): string {
+    const [first, second] = left.id < right.id ? [left, right] : [right, left];
+    return `${pairKey(this.protocol, first, second)}:${first.id}|${second.id}`;
   }
 
   async fillPair(leftInput: Strategy, rightInput: Strategy, allowEarlyStop: boolean, deadline?: number): Promise<void> {
     this.addStrategy(leftInput); this.addStrategy(rightInput);
     if (leftInput.id === rightInput.id) return;
     const [left, right] = leftInput.id < rightInput.id ? [leftInput, rightInput] : [rightInput, leftInput];
-    const id = this.cellId(left.id, right.id);
+    const id = this.cellId(left, right);
     const old = this.cells.get(id);
     const playedSeeds = new Set(old?.blocks.map((block) => block.seed) ?? []);
     const seeds = this.protocol.seeds.filter((seed) => !playedSeeds.has(seed));
@@ -107,7 +112,9 @@ export class PayoffMatrix {
       allowEarlyStop
     } }], { deadline });
     const result = batch.outcomes[0];
-    if (!result) throw new InvalidEvaluationError('Deadline interrupted a matrix cell.', { left: left.id, right: right.id });
+    if (!result) throw new DeadlineInterruptionError('Deadline interrupted a matrix cell.', {
+      left: left.id, right: right.id, phase: allowEarlyStop ? 'preliminary-matrix' : 'matrix-top-up'
+    });
     if (result.record.aborted > 0) {
       const bad = result.aborts[0];
       throw new InvalidEvaluationError('An aborted match invalidated a matrix cell.', {
@@ -149,12 +156,15 @@ export class PayoffMatrix {
     const strategies = this.entrants();
     const centeredPayoffs = strategies.map((row) => strategies.map((column) => {
       if (row.id === column.id) return 0;
-      const cell = this.cells.get(this.cellId(row.id, column.id));
+      const cell = this.cells.get(this.cellId(row, column));
       if (!cell) return Number.NaN;
       return row.id === cell.rowId ? cell.centeredPayoff : -cell.centeredPayoff;
     }));
-    const ids = new Set(strategies.map((strategy) => strategy.id));
-    const cells = [...this.cells.values()].filter((cell) => ids.has(cell.rowId) && ids.has(cell.columnId))
+    const byId = new Map(strategies.map((strategy) => [strategy.id, strategy]));
+    const cells = [...this.cells.values()].filter((cell) => {
+      const row = byId.get(cell.rowId), column = byId.get(cell.columnId);
+      return row && column && cell.key === pairKey(this.protocol, row, column);
+    })
       .sort((a, b) => a.rowId.localeCompare(b.rowId)
       || a.columnId.localeCompare(b.columnId));
     return {

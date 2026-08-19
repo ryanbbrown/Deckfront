@@ -29,15 +29,16 @@ export interface ResponseResult {
   screenSchedule: MixtureSchedule;
   confirmSchedule: MixtureSchedule;
   bestTrainingMean: number;
-  candidateId: string;
-  heldOutMean: number;
-  interval: BootstrapInterval;
+  candidateId: string | null;
+  heldOutMean: number | null;
+  interval: BootstrapInterval | null;
   improvement: number | null;
   admitted: boolean;
   matches: number;
   telemetry: TelemetryAggregate;
   screenTelemetry: TelemetryAggregate;
   confirmationTelemetry: TelemetryAggregate;
+  failureReason: 'empty-batch' | null;
 }
 
 export function globalAdmission(mean: number, interval: BootstrapInterval): boolean {
@@ -103,24 +104,35 @@ export async function runResponseSearch(options: {
   strategies: readonly Strategy[]; kingdomId: string; runSeed: number; restart: number; attempt: number;
   candidateCount: number; blocks: number; turnLimitPerPlayer: number; actionCapPerTurn: number;
   stateLimit: number; runner: PairingRunner; deadline?: number | undefined;
+  batchFactory?: typeof generateResponseBatch | undefined;
 }): Promise<{ result: ResponseResult | null; candidate: Strategy | null }> {
   const strategyMap = new Map(options.strategies.map((strategy) => [strategy.id, strategy]));
   const seed = namespaceSeeds(options.runSeed, options.objective === 'global' ? 'global-screen' : 'niche-screen',
     1, options.restart, options.attempt)[0]!;
-  const batch = generateResponseBatch({
+  const makeBatch = options.batchFactory ?? generateResponseBatch;
+  const batch = makeBatch({
     kingdomId: options.kingdomId, seed, count: options.candidateCount, parents: strategyMap,
     weights: options.targetWeights, existing: options.strategies, focalStrategyId: options.focal?.id
   });
-  if (!batch.candidates.length) return { result: null, candidate: null };
   const screenPhase = options.objective === 'global' ? 'global-screen' : 'niche-screen';
   const confirmPhase = options.objective === 'global' ? 'global-confirm' : 'niche-confirm';
   const screenSeeds = namespaceSeeds(options.runSeed, screenPhase, options.blocks, options.restart, options.attempt);
   const confirmSeeds = namespaceSeeds(options.runSeed, confirmPhase, options.blocks, options.restart, options.attempt);
   const screenSchedule = mixtureSchedule(options.targetWeights, screenSeeds, seed ^ 0x45d9f3b);
+  const confirmSchedule = mixtureSchedule(options.targetWeights, confirmSeeds, seed ^ 0x119de1f3);
+  if (!batch.candidates.length) {
+    return { candidate: null, result: {
+      objective: options.objective, focalStrategyId: options.focal?.id ?? null,
+      sources: batch.sources, screenSchedule, confirmSchedule, bestTrainingMean: 0,
+      candidateId: null, heldOutMean: null, interval: null, improvement: null,
+      admitted: false, matches: 0, telemetry: emptyAggregate(),
+      screenTelemetry: emptyAggregate(), confirmationTelemetry: emptyAggregate(),
+      failureReason: 'empty-batch'
+    } };
+  }
   const training = await evaluateCandidates(batch.candidates, strategyMap, screenSchedule, options.runner, options);
   training.sort((a, b) => b.mean - a.mean || a.strategy.id.localeCompare(b.strategy.id));
   const best = training[0]!;
-  const confirmSchedule = mixtureSchedule(options.targetWeights, confirmSeeds, seed ^ 0x119de1f3);
   const confirmed = await evaluateCandidates([best.strategy], strategyMap, confirmSchedule, options.runner, options);
   let values = confirmed[0]!.blockScores;
   let improvement: number | null = null;
@@ -147,7 +159,7 @@ export async function runResponseSearch(options: {
     objective: options.objective, focalStrategyId: options.focal?.id ?? null,
     sources: batch.sources, screenSchedule, confirmSchedule, bestTrainingMean: best.mean,
     candidateId: best.strategy.id, heldOutMean: confirmed[0]!.mean, interval, improvement,
-    admitted, matches, screenTelemetry, confirmationTelemetry,
+    admitted, matches, screenTelemetry, confirmationTelemetry, failureReason: null,
     telemetry: (() => {
       const total = emptyAggregate();
       mergeAggregate(total, screenTelemetry); mergeAggregate(total, confirmationTelemetry); return total;

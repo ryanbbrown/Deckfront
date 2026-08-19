@@ -18,13 +18,14 @@ import type { PsroResult } from './psro';
 import type { IterationEvent } from './psro';
 import { renderReport } from './report';
 import type { CalibrationDiagnostic, RunSummary } from './report';
-import { assertDisjointSeedNamespaces, namespaceSeeds } from './seedNamespaces';
+import { assertDisjointSeedNamespaces, configuredSeedNamespaces, namespaceSeeds } from './seedNamespaces';
 import type { TelemetryAggregate } from './types';
 
 export interface ExperimentDeps {
   now?: (() => number) | undefined;
   pairingRunner?: PairingRunner | undefined;
   runPsro?: typeof runPsro | undefined;
+  weightIntervals?: typeof calculateWeightIntervals | undefined;
 }
 
 function writeJson(file: string, value: unknown): void {
@@ -59,13 +60,27 @@ function aborts(telemetry: TelemetryAggregate): number {
   }
   return total;
 }
-function weightIntervals(result: PsroResult, seed: number): Record<string, { lower: number; upper: number }> {
-  if (!result.equilibrium || !result.matrix.complete) return {};
+export function calculateWeightIntervals(
+  result: PsroResult, seed: number, options: {
+    deadline?: number | undefined; now?: (() => number) | undefined;
+    solve?: typeof solveEquilibrium | undefined; samples?: number | undefined;
+  } = {}
+): { intervals: Record<string, { lower: number; upper: number }>; warnings: string[]; samplesCompleted: number } {
+  if (!result.equilibrium || !result.matrix.complete) return { intervals: {}, warnings: [], samplesCompleted: 0 };
   const ids = result.matrix.strategies.map((strategy) => strategy.id);
   const index = new Map(ids.map((id, position) => [id, position]));
   const random = new SeededRandom(seed);
   const samples: Record<string, number[]> = Object.fromEntries(ids.map((id) => [id, []]));
-  for (let sample = 0; sample < 200; sample += 1) {
+  const warnings: string[] = [];
+  const now = options.now ?? Date.now;
+  const solve = options.solve ?? solveEquilibrium;
+  const requestedSamples = options.samples ?? 200;
+  let samplesCompleted = 0;
+  for (let sample = 0; sample < requestedSamples; sample += 1) {
+    if (options.deadline !== undefined && now() >= options.deadline) {
+      warnings.push(`Weight-interval bootstrap stopped at ${samplesCompleted} of ${requestedSamples} samples at the deadline.`);
+      break;
+    }
     const payoff = ids.map(() => ids.map(() => 0));
     for (const cell of result.matrix.cells) {
       let total = 0;
@@ -76,13 +91,23 @@ function weightIntervals(result: PsroResult, seed: number): Record<string, { low
       const row = index.get(cell.rowId)!, column = index.get(cell.columnId)!;
       payoff[row]![column] = value; payoff[column]![row] = -value;
     }
-    const solved = solveEquilibrium(ids, payoff);
+    let solved: ReturnType<typeof solveEquilibrium>;
+    try { solved = solve(ids, payoff); }
+    catch (error) {
+      warnings.push(`Weight-interval bootstrap stopped after a solver failure: ${error instanceof Error ? error.message : String(error)}`);
+      break;
+    }
     for (const id of ids) samples[id]!.push(solved.weights[id] ?? 0);
+    samplesCompleted += 1;
   }
-  return Object.fromEntries(ids.map((id) => {
+  if (!samplesCompleted) return { intervals: {}, warnings, samplesCompleted };
+  const intervals = Object.fromEntries(ids.map((id) => {
     const values = samples[id]!.sort((a, b) => a - b);
-    return [id, { lower: values[5]!, upper: values[194]! }];
+    const lower = values[Math.floor(values.length * 0.025)]!;
+    const upper = values[Math.max(0, Math.ceil(values.length * 0.975) - 1)]!;
+    return [id, { lower, upper }];
   }));
+  return { intervals, warnings, samplesCompleted };
 }
 async function calibrationDiagnostic(
   options: ExperimentOptions, result: PsroResult, runner: PairingRunner
@@ -141,7 +166,8 @@ async function runWithRunner(
     startedAt: new Date(started).toISOString(), finishedAt: new Date(started).toISOString(), elapsedMs: 0,
     stopReason: 'running', error: null, matches: 0, aborted: 0, matrix: null, equilibrium: null,
     strategies: [], iterations: [], restartAgreement: [], calibration: null,
-    telemetry: emptyAggregate(), weightIntervals: {}
+    telemetry: emptyAggregate(), weightIntervals: {}, warnings: [], restartStatuses: [],
+    restartMixtures: [], finalFailures: []
   };
   const runPath = path.join(outDir, 'run.json');
   const iterationsPath = path.join(outDir, 'iterations.jsonl');
@@ -150,23 +176,7 @@ async function runWithRunner(
   let summary = base;
   const completedEvents: IterationEvent[] = [];
   try {
-    const phaseSeeds: Record<string, number[]> = { matrix: namespaceSeeds(options.seed, 'matrix', options.seeds) };
-    for (let restart = 0; restart < options.restarts; restart += 1) {
-      phaseSeeds[`initialization:${restart}`] = namespaceSeeds(options.seed, 'initialization', 1, restart, 0);
-    }
-    for (let restart = 0; restart <= options.restarts; restart += 1) for (let attempt = 0; attempt < Math.max(options.iterations, options.unionIterations); attempt += 1) {
-      for (const phase of ['global-screen', 'global-confirm', 'niche-screen', 'niche-confirm'] as const) {
-        phaseSeeds[`${phase}:${restart}:${attempt}`] = namespaceSeeds(options.seed, phase,
-          options.seeds, restart, attempt);
-      }
-      phaseSeeds[`bootstrap:global:${restart}:${attempt}`] = namespaceSeeds(options.seed, 'bootstrap', 1,
-        restart, attempt * 2);
-      phaseSeeds[`bootstrap:niche:${restart}:${attempt}`] = namespaceSeeds(options.seed, 'bootstrap', 1,
-        restart, attempt * 2 + 1);
-    }
-    phaseSeeds.diagnostic = namespaceSeeds(options.seed, 'diagnostic', options.seeds);
-    phaseSeeds['bootstrap:diagnostic'] = namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 1, 0);
-    phaseSeeds['bootstrap:weights'] = namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 2, 0);
+    const phaseSeeds = configuredSeedNamespaces(options);
     assertDisjointSeedNamespaces(phaseSeeds);
     const execute = deps.runPsro ?? runPsro;
     const result = await execute({
@@ -185,18 +195,27 @@ async function runWithRunner(
       throw new Error(`PSRO played ${result.matches} games, above its mechanical bound of ${gameBound}.`);
     }
     const telemetry = allTelemetry(result);
-    const calibrationResult = await calibrationDiagnostic(options, result, runner);
+    const calibrationResult = result.valid ? await calibrationDiagnostic(options, result, runner) : null;
     if (calibrationResult) mergeAggregate(telemetry, calibrationResult.telemetry);
-    const intervals = weightIntervals(result,
-      namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 2, 0)[0]!);
+    const weightDiagnostic = (deps.weightIntervals ?? calculateWeightIntervals)(result,
+      namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 2, 0)[0]!,
+      { deadline, now });
     const finished = now();
     summary = { ...base, valid: result.valid, finishedAt: new Date(finished).toISOString(),
       elapsedMs: finished - started, stopReason: result.stopReason,
+      error: result.failure ? `${result.failure.message} ${JSON.stringify(result.failure.detail)}` : null,
       matches: result.matches + (calibrationResult?.matches ?? 0),
       aborted: aborts(telemetry), matrix: result.matrix, equilibrium: result.equilibrium,
       strategies: result.strategies, iterations: result.events,
       restartAgreement: result.restartAgreement, calibration: calibrationResult?.diagnostic ?? null,
-      telemetry, weightIntervals: intervals };
+      telemetry, weightIntervals: weightDiagnostic.intervals, warnings: weightDiagnostic.warnings,
+      restartStatuses: result.restartStatuses,
+      restartMixtures: result.restarts.map((restart) => ({ restart: restart.restart,
+        stopReason: restart.stopReason, completed: restart.completed,
+        weights: restart.equilibrium?.weights ?? null })),
+      finalFailures: result.finalFailures.map((failure) => ({ mean: failure.heldOutMean,
+        interval: failure.interval, blocks: failure.confirmSchedule.blocks.length,
+        reason: failure.failureReason })) };
     writeText(iterationsPath, result.events.map((event) => JSON.stringify(iterationRecord(event))).join('\n')
       + (result.events.length ? '\n' : ''));
     writeJson(path.join(outDir, 'matrix.json'), { ...result.matrix, equilibrium: result.equilibrium });

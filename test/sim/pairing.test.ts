@@ -100,7 +100,7 @@ describe('the sequential sign-test rule', () => {
     expect(result.blocks).toHaveLength(25);
   });
 
-  it('removes tied and abort-only blocks from the sign-test sample', () => {
+  it('removes tied blocks from the sign-test sample and stops at the first abort', () => {
     const blocks: CandidateResult[] = [
       ...Array<CandidateResult>(11).fill('win'),
       ...Array<CandidateResult>(12).fill('draw'),
@@ -108,16 +108,17 @@ describe('the sequential sign-test rule', () => {
     ];
     const result = outcome(25, blocks);
     expect(result.stopReason).toBe('maximum');
-    expect(result.seedBlocks).toBe(25);
-    expect(result.record.aborted).toBe(4);
+    expect(result.seedBlocks).toBe(24);
+    expect(result.matches).toBe(93);
+    expect(result.record.aborted).toBe(1);
   });
 
   it('gives a fully aborted pairing no mean', () => {
     const result = outcome(8, Array<CandidateResult>(8).fill('abort'));
     expect(result).toMatchObject({
-      stopReason: 'maximum', seedBlocks: 8, matches: 32, candidateMean: null, opponentMean: null
+      stopReason: 'maximum', seedBlocks: 1, matches: 1, candidateMean: null, opponentMean: null
     });
-    expect(result.record).toMatchObject({ played: 0, aborted: 32 });
+    expect(result.record).toMatchObject({ played: 0, aborted: 1 });
   });
 });
 

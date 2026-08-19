@@ -19,9 +19,9 @@ describe('PSRO CLI', () => {
     expect(() => parseExperimentOptions([...base, '--workers', String(MAXIMA.workers + 1)])).toThrow('at most');
   });
   it('calculates the mechanical smoke and maximum bounds', () => {
-    expect(conservativeGameBound(parseExperimentOptions(base))).toBe(8480);
+    expect(conservativeGameBound(parseExperimentOptions(base))).toBe(8608);
     const maximum = parseExperimentOptions(['--kingdom', 'current-duel', '--mode', 'full',
       '--initial-strategies', '12', '--iterations', '16', '--deadline-minutes', '420', '--workers', '16']);
-    expect(conservativeGameBound(maximum)).toBe(1_469_000);
+    expect(conservativeGameBound(maximum)).toBe(1_473_800);
   });
 });

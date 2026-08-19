@@ -2,13 +2,16 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { registerKingdom, resetKingdoms } from '../../src/game';
 import { diagnosticStrategies } from '../../src/sim/baselines';
 import { mixtureSchedule, percentileBootstrapMean } from '../../src/sim/mixtureEvaluation';
+import { emptyAggregate } from '../../src/sim/pairing';
 import {
-  allocateLocalCandidates, generateResponseBatch, globalAdmission, nicheAdmission
+  allocateLocalCandidates, generateResponseBatch, globalAdmission, nicheAdmission, runResponseSearch
 } from '../../src/sim/responseOracle';
 import { randomUniqueStrategies, strategyIsLegal } from '../../src/sim/randomStrategy';
-import { assertDisjointSeedNamespaces, namespaceSeeds } from '../../src/sim/seedNamespaces';
+import {
+  assertDisjointSeedNamespaces, configuredSeedNamespaces, namespaceSeeds
+} from '../../src/sim/seedNamespaces';
 import { canonicalStrategy } from '../../src/sim/strategy';
-import { solveEquilibrium } from '../../src/sim/equilibrium';
+import { SUPPORT_TOLERANCE, solveEquilibrium } from '../../src/sim/equilibrium';
 import { rectifiedNiches } from '../../src/sim/psro';
 
 describe('automatic PSRO search inputs', () => {
@@ -74,6 +77,68 @@ describe('automatic PSRO search inputs', () => {
     expect(() => assertDisjointSeedNamespaces(namespaces)).not.toThrow();
   });
 
+  it('enumerates only configured restart, union-global, diagnostic, and weight namespaces', () => {
+    const inventory = configuredSeedNamespaces({ seed: 9, kingdomId: 'rigged-melee', restarts: 2,
+      iterations: 3, unionIterations: 2, seeds: 4 });
+    expect(Object.keys(inventory)).toHaveLength(1 + 2 * (1 + 3 * 6) + 2 * 3 + 3);
+    expect(Object.keys(inventory).some((key) => key.includes('niche:union'))).toBe(false);
+    expect(inventory).toHaveProperty('global-screen:union:1');
+    expect(inventory).toHaveProperty('bootstrap:diagnostic');
+    expect(inventory).toHaveProperty('bootstrap:weights');
+    expect(() => assertDisjointSeedNamespaces(inventory)).not.toThrow();
+  });
+
+  it('records an empty candidate batch as a failed complete-schedule response', async () => {
+    const strategies = diagnosticStrategies('current-duel').slice(0, 2);
+    const runner = { run: async () => { throw new Error('empty batches must not run games'); }, async close() {} };
+    const response = await runResponseSearch({ objective: 'global', targetWeights: {
+      [strategies[0]!.id]: 0.5, [strategies[1]!.id]: 0.5
+    }, strategies, kingdomId: 'current-duel', runSeed: 3, restart: 0, attempt: 0,
+    candidateCount: 10, blocks: 4, turnLimitPerPlayer: 30, actionCapPerTurn: 200,
+    stateLimit: 20000, runner, batchFactory: () => ({ candidates: [], sources: {
+      requested: 10, requestedLocal: 7, requestedRandom: 3, actual: 0, local: 0, random: 0,
+      duplicateRejections: 640, localShortfall: 7, randomShortfall: 3
+    } }) });
+    expect(response.candidate).toBeNull();
+    expect(response.result).toMatchObject({ admitted: false, failureReason: 'empty-batch',
+      matches: 0, sources: { requested: 10, actual: 0, localShortfall: 7, randomShortfall: 3 } });
+    expect(response.result?.screenSchedule.blocks).toHaveLength(4);
+    expect(response.result?.confirmSchedule.blocks).toHaveLength(4);
+    expect(response.result?.screenSchedule.blocks.map((block) => block.seed))
+      .not.toEqual(response.result?.confirmSchedule.blocks.map((block) => block.seed));
+  });
+
+  it('rejects a training winner when the disjoint held-out schedule is noisy', async () => {
+    const strategies = diagnosticStrategies('current-duel').slice(0, 3);
+    const calls: { seeds: number[]; allowEarlyStop: boolean | undefined }[][] = [];
+    let call = 0;
+    const runner = { run: async (jobs: readonly import('../../src/sim/pairingRunner').PairingJob[]) => {
+      const current = call++;
+      calls.push(jobs.map((job) => ({ seeds: [...job.options.seeds],
+        allowEarlyStop: job.options.allowEarlyStop })));
+      return { submitted: jobs.length, outcomes: jobs.map((job, index) => {
+        const score = current === 0 ? 1 : index % 2;
+        return { record: { played: 4, wins: score ? 4 : 0, draws: 0,
+          losses: score ? 0 : 4, aborted: 0 }, candidateScore: score * 4,
+        opponentScore: (1 - score) * 4, candidateMean: score, opponentMean: 1 - score,
+        telemetry: emptyAggregate(), matches: 4, seedBlocks: 1, stopReason: 'maximum' as const,
+        blocks: [{ seed: job.options.seeds[0]!, score, played: 4, aborted: 0 }], aborts: [] };
+      }) };
+    }, async close() {} };
+    const result = await runResponseSearch({ objective: 'global', targetWeights: {
+      [strategies[0]!.id]: 0.5, [strategies[1]!.id]: 0.5
+    }, strategies: strategies.slice(0, 2), kingdomId: 'current-duel', runSeed: 19,
+    restart: 0, attempt: 0, candidateCount: 1, blocks: 8,
+    turnLimitPerPlayer: 30, actionCapPerTurn: 200, stateLimit: 20000, runner,
+    batchFactory: () => ({ candidates: [strategies[2]!], sources: { requested: 1,
+      requestedLocal: 0, requestedRandom: 1, actual: 1, local: 0, random: 1,
+      duplicateRejections: 0, localShortfall: 0, randomShortfall: 0 } }) });
+    expect(result.result).toMatchObject({ bestTrainingMean: 1, heldOutMean: 0.5, admitted: false });
+    expect(calls).toHaveLength(2);
+    expect(calls.flat().every((job) => job.allowEarlyStop === false)).toBe(true);
+    expect(calls[0]!.map((job) => job.seeds[0])).not.toEqual(calls[1]!.map((job) => job.seeds[0]));
+  });
+
   it('derives rectified niches from matrix payoffs without manual strategy families', () => {
     const strategies = diagnosticStrategies('current-duel').slice(0, 3);
     const payoff = [[0, 1, -1], [-1, 0, 1], [1, -1, 0]];
@@ -91,5 +156,19 @@ describe('automatic PSRO search inputs', () => {
       const opponentIndex = strategies.findIndex((strategy) => strategy.id === Object.keys(niche.weights)[0]);
       expect(payoff[focalIndex]![opponentIndex]).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  it('does not create a niche from numerical residue below the support tolerance', () => {
+    const strategies = diagnosticStrategies('current-duel').slice(0, 2);
+    const equilibrium = solveEquilibrium(strategies.map((strategy) => strategy.id), [[0, 1], [-1, 0]]);
+    equilibrium.weights[strategies[1]!.id] = SUPPORT_TOLERANCE / 2;
+    equilibrium.weights[strategies[0]!.id] = 1 - SUPPORT_TOLERANCE / 2;
+    const niches = rectifiedNiches({
+      protocol: { kingdomId: 'current-duel', cards: [], seeds: [1], turnLimitPerPlayer: 30,
+        actionCapPerTurn: 200, stateLimit: 20000, orientationProtocol: 'test' },
+      strategies: [...strategies], cells: [], complete: true, centeredPayoffs: [[0, 1], [-1, 0]]
+    }, equilibrium);
+    expect(niches.map((niche) => niche.focal.id)).not.toContain(strategies[1]!.id);
+    expect(niches.flatMap((niche) => Object.keys(niche.weights))).not.toContain(strategies[1]!.id);
   });
 });

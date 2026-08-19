@@ -212,6 +212,7 @@ export function playPairing(
   let stopReason: PairingOutcome['stopReason'] = 'maximum';
   const blocks: PairingBlockResult[] = [];
   const aborts: PairingAbort[] = [];
+  let pairingAborted = false;
 
   for (const seed of options.seeds) {
     let blockScore = 0;
@@ -243,7 +244,8 @@ export function playPairing(
       if (result.outcome === 'aborted') {
         record.aborted += 1;
         aborts.push({ seed, orientationIndex, reason: result.reason });
-        continue;
+        pairingAborted = true;
+        break;
       }
       record.played += 1;
       blockCompleted += 1;
@@ -257,7 +259,8 @@ export function playPairing(
     }
     seedBlocks += 1;
     blocks.push({ seed, score: blockCompleted ? blockScore / blockCompleted : 0, played: blockCompleted,
-      aborted: ORIENTATIONS.length - blockCompleted });
+      aborted: pairingAborted ? 1 : 0 });
+    if (pairingAborted) break;
     if (blockCompleted > 0) {
       const mean = blockScore / blockCompleted;
       if (mean > 0.5) positiveBlocks += 1;
