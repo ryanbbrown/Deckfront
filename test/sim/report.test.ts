@@ -24,8 +24,8 @@ function telemetry(over: Partial<TelemetryAggregate> = {}): TelemetryAggregate {
   };
 }
 
-const alpha: Strategy = strategy({ id: 'sg-alpha', startingBuild: ['heavyBlow'], preferredRange: 'Close' });
-const beta: Strategy = strategy({ id: 'sg-beta', startingBuild: ['volley'], preferredRange: 'Far' });
+const alpha: Strategy = strategy({ id: 'sg-alpha', startingBuild: ['heavyBlow'] });
+const beta: Strategy = strategy({ id: 'sg-beta', startingBuild: ['volley'] });
 
 function scored(plan: Strategy, score: number, completed: number): ScoredStrategy {
   return { strategy: plan, score, completedPairings: 1, completedGames: completed, abortedGames: 0 };
@@ -233,24 +233,14 @@ Leader against leader is the fair comparison, so both come from the tournament. 
 sg-alpha
   build: heavyBlow
   agenda: none
-  treasure: gold -> silver
-  range: Close
-  weights: damage 0, preferredRange 0, cardsDrawn 0, moneyGained 0, trashed 0, reclaimed 0, discarded 0, unspentMana 0, opponentOutOfAttackRange 0
-  trash: none
-  reclaim: none
-  discard: none
+  repeat: footwork
 \`\`\`
 
 \`\`\`
 sg-beta
   build: volley
   agenda: none
-  treasure: gold -> silver
-  range: Far
-  weights: damage 0, preferredRange 0, cardsDrawn 0, moneyGained 0, trashed 0, reclaimed 0, discarded 0, unspentMana 0, opponentOutOfAttackRange 0
-  trash: none
-  reclaim: none
-  discard: none
+  repeat: footwork
 \`\`\`
 `;
 

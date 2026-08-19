@@ -47,7 +47,7 @@ Vitest checks the engine, server, persistence, replay, and simulator. Playwright
 
 ## Balance simulator
 
-The simulator plays seeded headless matches between strategy players. A simulator strategy contains a starting build, buy order, preferred range, and scoring weights. The strategy player searches legal Action-phase lines and chooses the best scored result.
+The simulator plays seeded headless matches between strategy players. A strategy contains a starting build, finite purchase targets, and one card to repeat after those targets are complete. Every strategy uses the same deterministic Action-phase pilot. The pilot searches legal lines without reading the hidden draw order, then compares wins, damage, purchases, Copper thinning, draws, and printed attack range in that order.
 
 Build and run an experiment:
 

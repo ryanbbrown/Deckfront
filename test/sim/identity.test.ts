@@ -36,11 +36,11 @@ const { cases } = JSON.parse(fs.readFileSync(oraclePath, 'utf8')) as { cases: Or
 /** Headline facts written by hand, so a shrunken or silently regenerated oracle fails here first. */
 const HEADLINES: Record<string, { outcome: string; reason: string; turns: number }> = {
   'three-way-engine:11': { outcome: 'indigo', reason: 'victory', turns: 15 },
-  'three-way-engine:12': { outcome: 'ochre', reason: 'victory', turns: 13 },
+  'three-way-engine:12': { outcome: 'indigo', reason: 'victory', turns: 12 },
   'rigged-melee:13': { outcome: 'indigo', reason: 'victory', turns: 9 },
-  'range-rich-mixed:14': { outcome: 'ochre', reason: 'victory', turns: 11 },
+  'range-rich-mixed:14': { outcome: 'indigo', reason: 'victory', turns: 14 },
   'current-duel:15': { outcome: 'draw', reason: 'turnLimit', turns: 200 },
-  'three-way-open:16': { outcome: 'ochre', reason: 'victory', turns: 11 },
+  'three-way-open:16': { outcome: 'ochre', reason: 'victory', turns: 13 },
   'three-way-engine:17': { outcome: 'draw', reason: 'turnLimit', turns: 200 }
 };
 
@@ -50,11 +50,7 @@ function key(entry: { kingdomId: string; seed: number }): string {
 
 function oracleStrategy(kingdomId: string, label: string): Strategy {
   if (label === 'no-attack') return identify({
-    id: label, startingBuild: [], buyAgenda: [], treasureFallback: ['gold', 'silver'],
-    preferredRange: 'Near',
-    weights: { damage: 10, preferredRange: 0, cardsDrawn: 0, moneyGained: 4, trashed: 0,
-      reclaimed: 0, discarded: 0, unspentMana: 0, opponentOutOfAttackRange: 0 },
-    trashPriority: ['copper'], reclaimPriority: ['gold', 'silver'], discardPriority: ['copper', 'silver']
+    id: label, startingBuild: [], buyAgenda: [], repeatPurchase: 'silver'
   });
   const labels = seedLabels(kingdomId);
   const found = seedStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);

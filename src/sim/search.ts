@@ -1,25 +1,28 @@
 import { EFFECTS, kingdomEpoch, kingdomMarket, listLegalActions, opponent, rangeBand, resolveCard } from '../game';
 import { applyLegalAction } from '../game/engine';
 import type { CardInstance, CardMechanic, GameEvent, GameState, LegalAction, PlayerId } from '../game';
-import { priorityRank } from './strategy';
+import { projectPurchases } from './buy';
+import type { PurchaseProjection } from './buy';
 import type { Strategy } from './strategy';
 import { ActionSearchOverflowError } from './types';
 
-/** The best result reachable from a state: lethality first, then score, then the shorter suffix. */
-export interface Branch { lethal: boolean; score: number; suffix: number }
+export interface Branch {
+  lethal: boolean;
+  damage: number;
+  purchases: PurchaseProjection;
+  copperTrashed: number;
+  obsoleteCullTrashed: number;
+  cardsDrawn: number;
+  attackPotential: number;
+  suffix: number;
+  tieBreak: string;
+}
 export type SearchMemo = Map<string, Branch>;
 export interface SearchBaseline { eventIndex: number; opponentHealth: number }
 export interface SearchOptions { stateLimit: number; memo: SearchMemo | null }
-/**
- * `visited` counts distinct states expanded, not memo hits, because a hit is O(1) and the real work
- * of a phase is bounded by its distinct states. The memo is shared across the decisions of one
- * Action phase, so the first decision reports most of the states and later ones report very few.
- */
 export interface SearchOutcome { action: LegalAction; visited: number }
 
 export const DEFAULT_STATE_LIMIT = 20000;
-
-// Mechanics whose effect deals damage. No card value separates them from the rest, so the set is explicit.
 export const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set<CardMechanic>(['melee', 'ranged', 'spell', 'volley', 'drive', 'flurry']);
 
 let indexedEpoch = -1;
@@ -27,10 +30,7 @@ const cardIndexes = new Map<string, ReadonlyMap<string, number>>();
 
 function cardIndex(kingdomId: string): ReadonlyMap<string, number> {
   const currentEpoch = kingdomEpoch();
-  if (indexedEpoch !== currentEpoch) {
-    cardIndexes.clear();
-    indexedEpoch = currentEpoch;
-  }
+  if (indexedEpoch !== currentEpoch) { cardIndexes.clear(); indexedEpoch = currentEpoch; }
   let index = cardIndexes.get(kingdomId);
   if (!index) {
     index = new Map(kingdomMarket(kingdomId).map((definition, position) => [definition.id, position]));
@@ -40,8 +40,6 @@ function cardIndex(kingdomId: string): ReadonlyMap<string, number> {
 }
 
 export function createMemo(): SearchMemo { return new Map(); }
-
-/** The state the Action phase started from. Fixed for the phase, so one memo serves every decision. */
 export function searchBaseline(state: GameState, playerId: PlayerId): SearchBaseline {
   return { eventIndex: state.events.length, opponentHealth: state.fighters[opponent(playerId)].health };
 }
@@ -59,27 +57,6 @@ function zones(state: GameState, playerId: PlayerId): readonly CardInstance[][] 
   return [deck.draw, deck.hand, deck.discard, deck.play];
 }
 
-/** True when the owned deck holds an attack the current range band allows. */
-function ownsAttackInBand(state: GameState, playerId: PlayerId): boolean {
-  const seen = new Set<string>();
-  for (const zone of zones(state, playerId)) {
-    for (const card of zone) {
-      if (seen.has(card.definitionId)) continue;
-      seen.add(card.definitionId);
-      const definition = resolveCard(state, card.definitionId);
-      if (!ATTACK_MECHANICS.has(definition.mechanic)) continue;
-      // A spell short of mana reports NEEDS_MANA, which is not a range problem.
-      const code = EFFECTS[definition.mechanic].gate(state, playerId, definition.values ?? {});
-      if (code !== 'NEEDS_CLOSE' && code !== 'NEEDS_NEAR_OR_FAR') return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Money the Buy phase would receive. `endActionPhase` moves treasures out of hand and adds their
- * money in one step, so the amount is computed by hand here and the state is scored before it applies.
- */
 export function actionPhaseMoney(state: GameState, playerId: PlayerId): number {
   const player = state.players[playerId];
   let money = player.money + (player.firstBuyPending ? player.firstBuyMoney : 0);
@@ -90,45 +67,104 @@ export function actionPhaseMoney(state: GameState, playerId: PlayerId): number {
   return money;
 }
 
-export function scoreState(state: GameState, playerId: PlayerId, strategy: Strategy, baseline: SearchBaseline): number {
-  const weights = strategy.weights;
-  let cardsDrawn = 0;
-  let trashed = 0;
-  let reclaimed = 0;
-  let discarded = 0;
-  for (let index = baseline.eventIndex; index < state.events.length; index += 1) {
-    const event = state.events[index]!;
-    if (event.playerId !== playerId) continue;
-    switch (event.type) {
-      case 'draw': cardsDrawn += detailNumber(event, 'count'); break;
-      case 'trash': trashed += priorityRank(strategy.trashPriority, detailText(event, 'definitionId')); break;
-      case 'recover': reclaimed += priorityRank(strategy.reclaimPriority, detailText(event, 'definitionId')); break;
-      case 'discard': discarded += priorityRank(strategy.discardPriority, detailText(event, 'definitionId')); break;
+function repeatableMoney(state: GameState, playerId: PlayerId): number {
+  let money = 0;
+  for (const zone of zones(state, playerId)) {
+    for (const card of zone) {
+      const definition = resolveCard(state, card.definitionId);
+      money += definition.type === 'treasure' ? definition.money ?? 0 : definition.values?.money ?? 0;
+    }
+  }
+  return money;
+}
+
+function ownedCount(state: GameState, playerId: PlayerId, definitionId: string): number {
+  let total = 0;
+  for (const zone of zones(state, playerId)) for (const card of zone) {
+    if (card.definitionId === definitionId) total += 1;
+  }
+  return total;
+}
+
+function printedAttackPotential(state: GameState, playerId: PlayerId): number {
+  const band = rangeBand(state);
+  let total = 0;
+  for (const zone of zones(state, playerId)) for (const card of zone) {
+    const definition = resolveCard(state, card.definitionId);
+    const values = definition.values ?? {};
+    switch (definition.mechanic) {
+      case 'melee': if (band === 'Close') total += values.damage ?? 0; break;
+      case 'drive': if (band === 'Close') total += (values.damage ?? 0) + (values.wallDamage ?? 0); break;
+      case 'flurry': if (band === 'Close') total += values.max ?? 0; break;
+      case 'ranged': if (band !== 'Close') total += values.damage ?? 0; break;
+      case 'volley':
+        if (band === 'Near') total += Math.max(values.near ?? 0, values.aimedNear ?? 0);
+        if (band === 'Far') total += Math.max(values.far ?? 0, values.aimedFar ?? 0);
+        break;
+      case 'spell': total += values.damage ?? 0; break;
       default: break;
     }
   }
-  return weights.damage * (baseline.opponentHealth - state.fighters[opponent(playerId)].health)
-    + weights.cardsDrawn * cardsDrawn
-    + weights.moneyGained * actionPhaseMoney(state, playerId)
-    + weights.trashed * trashed
-    + weights.reclaimed * reclaimed
-    + weights.discarded * discarded
-    + weights.preferredRange * (rangeBand(state) === strategy.preferredRange ? 1 : 0)
-    + weights.unspentMana * state.players[playerId].mana
-    + weights.opponentOutOfAttackRange * (ownsAttackInBand(state, playerId) ? 0 : 1);
+  return total;
 }
 
-/**
- * Keys the fields that change what the rest of the Action phase can reach. `events`, `version`, and
- * card instance ids are excluded because they differ without changing the game.
- *
- * The invariant a new card must not break: `Branch.score` is absolute from the phase baseline, so a
- * cached entry is sound only while every scored quantity — draw count, and the trash, recover, and
- * discard ranks — is recoverable from the keyed fields. That holds for the 26 cards today because
- * each of those events moves a card between keyed zones. A card that trashed without changing a
- * keyed zone would let two genuinely different branches share a key, and the search would take the
- * wrong line with no error.
- */
+function eventTotals(state: GameState, playerId: PlayerId, baseline: SearchBaseline): {
+  cardsDrawn: number; copperTrashed: number; cullTrashed: number;
+} {
+  let cardsDrawn = 0;
+  let copperTrashed = 0;
+  let cullTrashed = 0;
+  for (let index = baseline.eventIndex; index < state.events.length; index += 1) {
+    const event = state.events[index]!;
+    if (event.playerId !== playerId) continue;
+    if (event.type === 'draw') cardsDrawn += detailNumber(event, 'count');
+    if (event.type === 'trash' && detailText(event, 'definitionId') === 'copper') copperTrashed += 1;
+    if (event.type === 'trash' && detailText(event, 'definitionId') === 'cull') cullTrashed += 1;
+  }
+  return { cardsDrawn, copperTrashed, cullTrashed };
+}
+
+function branchAt(state: GameState, playerId: PlayerId, strategy: Strategy, baseline: SearchBaseline): Branch {
+  const events = eventTotals(state, playerId, baseline);
+  const floor = resolveCard(state, strategy.repeatPurchase).cost;
+  const cullIsObsolete = repeatableMoney(state, playerId) <= floor || ownedCount(state, playerId, 'copper') === 0;
+  return {
+    lethal: state.fighters[opponent(playerId)].health === 0,
+    damage: baseline.opponentHealth - state.fighters[opponent(playerId)].health,
+    purchases: projectPurchases(state, playerId, actionPhaseMoney(state, playerId), strategy),
+    copperTrashed: events.copperTrashed,
+    obsoleteCullTrashed: cullIsObsolete ? events.cullTrashed : 0,
+    cardsDrawn: events.cardsDrawn,
+    attackPotential: printedAttackPotential(state, playerId),
+    suffix: 0,
+    tieBreak: ''
+  };
+}
+
+function comparePurchases(left: PurchaseProjection, right: PurchaseProjection): number {
+  const length = Math.max(left.finite.length, right.finite.length);
+  for (let index = 0; index < length; index += 1) {
+    const difference = (left.finite[index] ?? 0) - (right.finite[index] ?? 0);
+    if (difference) return difference;
+  }
+  return left.repeated - right.repeated;
+}
+
+function isBetter(candidate: Branch, best: Branch | null): boolean {
+  if (!best) return true;
+  if (candidate.lethal !== best.lethal) return candidate.lethal;
+  if (candidate.damage !== best.damage) return candidate.damage > best.damage;
+  const purchaseDifference = comparePurchases(candidate.purchases, best.purchases);
+  if (purchaseDifference) return purchaseDifference > 0;
+  if (candidate.copperTrashed !== best.copperTrashed) return candidate.copperTrashed > best.copperTrashed;
+  if (candidate.obsoleteCullTrashed !== best.obsoleteCullTrashed) return candidate.obsoleteCullTrashed > best.obsoleteCullTrashed;
+  if (candidate.cardsDrawn !== best.cardsDrawn) return candidate.cardsDrawn > best.cardsDrawn;
+  if (candidate.attackPotential !== best.attackPotential) return candidate.attackPotential > best.attackPotential;
+  if (candidate.suffix !== best.suffix) return candidate.suffix < best.suffix;
+  return candidate.tieBreak < best.tieBreak;
+}
+
+/** The memo key contains observable card counts, not the hidden draw order. */
 export function memoKey(state: GameState, playerId: PlayerId): string {
   const player = state.players[playerId];
   const mine = state.fighters[playerId];
@@ -150,49 +186,91 @@ export function memoKey(state: GameState, playerId: PlayerId): string {
   return [
     mine.position, mine.health, mine.aimed ? 1 : 0, mine.exposed ? 1 : 0,
     foe.position, foe.health, foe.aimed ? 1 : 0, foe.exposed ? 1 : 0,
-    counts(player.deck.hand), counts(player.deck.play),
-    ordered(player.deck.draw), ordered(player.deck.discard),
+    counts(player.deck.hand), counts(player.deck.play), counts(player.deck.draw), ordered(player.deck.discard),
     player.mana, player.money, player.positionChanged ? 1 : 0, state.rngState,
-    pending ? `${pending.type}:${pending.remaining}` : '-',
-    tactical
+    pending ? `${pending.type}:${pending.remaining}` : '-', tactical
   ].join('|');
 }
 
-function isBetter(candidate: Branch, best: Branch | null): boolean {
-  if (!best) return true;
-  if (candidate.lethal !== best.lethal) return candidate.lethal;
-  if (candidate.score !== best.score) return candidate.score > best.score;
-  return candidate.suffix < best.suffix;
+function blindedState(state: GameState): GameState {
+  const copy = structuredClone(state);
+  const stable = (left: CardInstance, right: CardInstance): number =>
+    left.definitionId.localeCompare(right.definitionId) || left.id.localeCompare(right.id);
+  copy.players.ochre.deck.draw.sort(stable);
+  copy.players.indigo.deck.draw.sort(stable);
+  return copy;
 }
 
-/**
- * Searches the complete Action-phase tree and returns the first action of the best branch. Throws
- * `ActionSearchOverflowError` past the state limit rather than falling back to a weaker action.
- */
+function cardById(state: GameState, playerId: PlayerId, instanceId: string): CardInstance | undefined {
+  for (const zone of zones(state, playerId)) {
+    const found = zone.find((card) => card.id === instanceId);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+function allowedActions(
+  state: GameState, playerId: PlayerId, actions: readonly LegalAction[], strategy: Strategy
+): readonly LegalAction[] {
+  if (state.pendingChoice?.type === 'recover') {
+    const recoveries = actions.filter((action) => action.command.type === 'resolveRecover' && action.command.recoverInstanceId !== null);
+    if (!recoveries.length) return actions.filter((action) => action.command.type === 'resolveRecover');
+    return [[...recoveries].sort((left, right) => {
+      const leftId = (left.command as Extract<typeof left.command, { type: 'resolveRecover' }>).recoverInstanceId!;
+      const rightId = (right.command as Extract<typeof right.command, { type: 'resolveRecover' }>).recoverInstanceId!;
+      const leftCard = cardById(state, playerId, leftId)!;
+      const rightCard = cardById(state, playerId, rightId)!;
+      return resolveCard(state, rightCard.definitionId).cost - resolveCard(state, leftCard.definitionId).cost
+        || leftCard.definitionId.localeCompare(rightCard.definitionId)
+        || leftCard.id.localeCompare(rightCard.id);
+    })[0]!];
+  }
+
+  const floor = resolveCard(state, strategy.repeatPurchase).cost;
+  const availableMoney = repeatableMoney(state, playerId);
+  return actions.filter((action) => {
+    if (action.command.type !== 'playCull') return true;
+    let removedMoney = 0;
+    let removedCopper = 0;
+    let removesCull = false;
+    for (const targetId of action.command.trashInstanceIds) {
+      const card = cardById(state, playerId, targetId);
+      if (!card) return false;
+      if (card.definitionId !== 'copper' && !(card.definitionId === 'cull' && targetId === action.command.cardInstanceId)) return false;
+      const definition = resolveCard(state, card.definitionId);
+      if (card.definitionId === 'copper') removedCopper += 1;
+      if (targetId === action.command.cardInstanceId) removesCull = true;
+      removedMoney += definition.type === 'treasure' ? definition.money ?? 0 : definition.values?.money ?? 0;
+    }
+    const remainingMoney = availableMoney - removedMoney;
+    const remainingCopper = ownedCount(state, playerId, 'copper') - removedCopper;
+    if (removesCull && remainingMoney > floor && remainingCopper > 0) return false;
+    return remainingMoney >= floor;
+  });
+}
+
+function commandKey(action: LegalAction): string { return JSON.stringify(action.command); }
+
+/** Searches the shared, deterministic Action-phase policy over a canonical hidden-order state. */
 export function searchAction(
   state: GameState, playerId: PlayerId, actions: readonly LegalAction[],
   strategy: Strategy, baseline: SearchBaseline, options: SearchOptions
 ): SearchOutcome {
-  const foeId = opponent(playerId);
+  const root = blindedState(state);
   const memo = options.memo;
   let visited = 0;
 
-  const terminal = (current: GameState): Branch => ({
-    lethal: current.fighters[foeId].health === 0,
-    score: scoreState(current, playerId, strategy, baseline),
-    suffix: 0
-  });
-
   function step(current: GameState, action: LegalAction): Branch {
-    // `endActionPhase` is where a branch stops, so the state is scored before it applies.
-    if (action.command.type === 'endActionPhase') return { ...terminal(current), suffix: 1 };
+    if (action.command.type === 'endActionPhase') {
+      return { ...branchAt(current, playerId, strategy, baseline), suffix: 1, tieBreak: commandKey(action) };
+    }
     const child = visit(applyLegalAction(current, action));
-    return { lethal: child.lethal, score: child.score, suffix: child.suffix + 1 };
+    return { ...child, suffix: child.suffix + 1, tieBreak: `${commandKey(action)}>${child.tieBreak}` };
   }
 
   function expand(current: GameState, available: readonly LegalAction[]): Branch {
     let best: Branch | null = null;
-    for (const action of available) {
+    for (const action of allowedActions(current, playerId, available, strategy)) {
       const candidate = step(current, action);
       if (isBetter(candidate, best)) best = candidate;
     }
@@ -201,7 +279,7 @@ export function searchAction(
   }
 
   function visit(current: GameState): Branch {
-    if (current.winner || current.phase !== 'action') return terminal(current);
+    if (current.winner || current.phase !== 'action') return branchAt(current, playerId, strategy, baseline);
     const key = memo ? memoKey(current, playerId) : null;
     if (key !== null) {
       const cached = memo!.get(key);
@@ -222,8 +300,8 @@ export function searchAction(
   }
   let bestAction: LegalAction | null = null;
   let bestBranch: Branch | null = null;
-  for (const action of actions) {
-    const candidate = step(state, action);
+  for (const action of allowedActions(root, playerId, actions, strategy)) {
+    const candidate = step(root, action);
     if (isBetter(candidate, bestBranch)) { bestBranch = candidate; bestAction = action; }
   }
   if (!bestAction) throw new Error('The Action-phase search was given no legal action.');

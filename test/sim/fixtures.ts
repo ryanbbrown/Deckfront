@@ -1,8 +1,8 @@
 import { applyAction, assertInvariants, createCard, createGame, listLegalActions, submitStartingBuild } from '../../src/game';
-import type { CardInstance, GameState, LegalAction, RangeBand } from '../../src/game';
+import type { CardInstance, GameState, LegalAction } from '../../src/game';
 import { DEFAULT_STATE_LIMIT, createMemo, searchAction, searchBaseline } from '../../src/sim/search';
 import type { SearchMemo } from '../../src/sim/search';
-import type { StateWeights, Strategy } from '../../src/sim/strategy';
+import type { Strategy } from '../../src/sim/strategy';
 
 export interface ArenaOptions {
   kingdomId?: string;
@@ -17,6 +17,8 @@ export interface ArenaOptions {
   money?: number;
   aimed?: boolean;
   firstBuyPending?: boolean;
+  startingBuild?: readonly string[];
+  purchases?: readonly string[];
 }
 
 function allCards(state: GameState): CardInstance[] {
@@ -55,24 +57,17 @@ export function arena(options: ArenaOptions = {}): GameState {
   if (options.money !== undefined) state.players.ochre.money = options.money;
   if (options.aimed) state.fighters.ochre.aimed = true;
   if (options.firstBuyPending === false) state.players.ochre.firstBuyPending = false;
+  if (options.startingBuild) state.players.ochre.startingBuild = [...options.startingBuild];
+  if (options.purchases) state.players.ochre.purchases = [...options.purchases];
   renumberCards(state);
   // Every search test runs on a fixture state, so a malformed one would prove nothing.
   assertInvariants(state);
   return state;
 }
 
-export function weights(overrides: Partial<StateWeights> = {}): StateWeights {
-  return {
-    damage: 0, preferredRange: 0, cardsDrawn: 0, moneyGained: 0, trashed: 0,
-    reclaimed: 0, discarded: 0, unspentMana: 0, opponentOutOfAttackRange: 0, ...overrides
-  };
-}
-
 export function strategy(overrides: Partial<Strategy> = {}): Strategy {
-  const preferredRange: RangeBand = 'Near';
   return {
-    id: 'test-strategy', startingBuild: [], buyAgenda: [], treasureFallback: ['gold', 'silver'],
-    preferredRange, weights: weights(), trashPriority: [], reclaimPriority: [], discardPriority: [], ...overrides
+    id: 'test-strategy', startingBuild: [], buyAgenda: [], repeatPurchase: 'footwork', ...overrides
   };
 }
 

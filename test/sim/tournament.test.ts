@@ -23,9 +23,8 @@ function config(overrides: Partial<TournamentConfig> = {}): TournamentConfig {
     finalLeaderIds: [], ...overrides
   };
 }
-/** A strategy that acquires exactly its starting build: no agenda and no treasure fallback. */
 function opener(build: string[]): Strategy {
-  return repairStrategy(KINGDOM, strategy({ startingBuild: build, buyAgenda: [], treasureFallback: [] }));
+  return repairStrategy(KINGDOM, strategy({ startingBuild: build, buyAgenda: [], repeatPurchase: 'footwork' }));
 }
 
 function pairing(candidateMean: number | null, matches: number, aborted = 0): PairingOutcome {
@@ -143,8 +142,8 @@ describe('the calibration input the tournament builds', () => {
     const melee = opener(['heavyBlow', 'heavyBlow']);
     const ranged = opener(['volley']);
     const result = await roundRobin([melee, ranged], config({ finalLeaderIds: [melee.id] }));
-    expect(result.telemetry.acquisitionsByStrategy[melee.id]).toEqual({ heavyBlow: 8 });
-    expect(result.telemetry.acquisitionsByStrategy[ranged.id]).toEqual({ volley: 4 });
+    expect(result.telemetry.acquisitionsByStrategy[melee.id]).toEqual({ heavyBlow: 8, footwork: 20 });
+    expect(result.telemetry.acquisitionsByStrategy[ranged.id]).toEqual({ volley: 4, footwork: 20 });
   });
 
   it('feeds checkRiggedMelee unchanged, ranking the named final leaders in tournament order', async () => {

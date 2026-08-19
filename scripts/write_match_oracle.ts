@@ -42,11 +42,7 @@ const CASES: readonly OracleCase[] = [
 
 function oracleStrategy(kingdomId: string, label: string): Strategy {
   if (label === 'no-attack') return identify({
-    id: label, startingBuild: [], buyAgenda: [], treasureFallback: ['gold', 'silver'],
-    preferredRange: 'Near',
-    weights: { damage: 10, preferredRange: 0, cardsDrawn: 0, moneyGained: 4, trashed: 0,
-      reclaimed: 0, discarded: 0, unspentMana: 0, opponentOutOfAttackRange: 0 },
-    trashPriority: ['copper'], reclaimPriority: ['gold', 'silver'], discardPriority: ['copper', 'silver']
+    id: label, startingBuild: [], buyAgenda: [], repeatPurchase: 'silver'
   });
   const labels = seedLabels(kingdomId);
   const found = seedStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);

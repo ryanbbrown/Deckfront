@@ -3,7 +3,7 @@ import {
   applyAction, createGame, listLegalActions, marketCost, registerKingdom, resetKingdoms, submitStartingBuild
 } from '../../src/game';
 import type { GameCommand, GameState, PlayerId } from '../../src/game';
-import { chooseBuyAction, ownedCount } from '../../src/sim/buy';
+import { acquiredCount, chooseBuyAction } from '../../src/sim/buy';
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
 import { repairBuild } from '../../src/sim/build';
 import { runMatch } from '../../src/sim/match';
@@ -11,7 +11,7 @@ import type { Strategy } from '../../src/sim/strategy';
 import type { Agent, MatchConfig, MatchResult } from '../../src/sim/types';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
 import { seedLabels, seedStrategies } from '../../src/sim/seedPopulation';
-import { strategy, weights } from './fixtures';
+import { strategy } from './fixtures';
 
 function buyState(options: { kingdomId?: string; money: number }): GameState {
   const empty = createGame({ seed: 1, kingdomId: options.kingdomId ?? 'distance-duel' });
@@ -49,27 +49,23 @@ function seedByLabel(kingdomId: string, label: string): Strategy {
 }
 
 describe('buy agenda', () => {
-  it('buys down the agenda, stops at the desired count, and falls through to treasure', () => {
-    const plan = strategy({ buyAgenda: [{ cardId: 'footwork', desiredCount: 2 }], treasureFallback: ['gold', 'silver'] });
-    // 20 money: two Footwork at 3, then two Gold at 6, leaving 2 for nothing.
+  it('buys finite targets, then repeats the explicit final card', () => {
+    const plan = strategy({ buyAgenda: [{ cardId: 'footwork', desiredCount: 2 }], repeatPurchase: 'aim' });
     const commands = buyRun(buyState({ money: 20 }), plan);
-    expect(bought(commands)).toEqual(['footwork', 'footwork', 'gold', 'gold']);
+    expect(bought(commands)).toEqual(['footwork', 'footwork', 'aim', 'aim', 'aim', 'aim']);
     expect(commands.at(-1)!.type).toBe('endBuyPhase');
-
-    const tighter = buyRun(buyState({ money: 10 }), plan);
-    expect(bought(tighter)).toEqual(['footwork', 'footwork', 'silver']);
   });
 
-  it('skips an agenda entry the kingdom does not sell and one whose pile is exhausted', () => {
+  it('skips an unavailable finite entry', () => {
     const plan = strategy({
       buyAgenda: [{ cardId: 'heavyBlow', desiredCount: 2 }, { cardId: 'footwork', desiredCount: 1 }],
-      treasureFallback: ['silver']
+      repeatPurchase: 'aim'
     });
-    expect(bought(buyRun(buyState({ money: 6 }), plan))).toEqual(['footwork', 'silver']);
+    expect(bought(buyRun(buyState({ money: 6 }), plan))).toEqual(['footwork', 'aim']);
 
     const exhausted = buyState({ money: 6 });
     exhausted.supply.footwork = 0;
-    expect(bought(buyRun(exhausted, plan))).toEqual(['silver', 'silver']);
+    expect(bought(buyRun(exhausted, plan))).toEqual(['aim', 'aim']);
   });
 
   it('prices Heavy Blow through the kingdom override, not the card data', () => {
@@ -78,7 +74,7 @@ describe('buy agenda', () => {
       actionPiles: [{ cardId: 'heavyBlow', count: 10 }],
       overrides: { heavyBlow: { cost: 3 } }
     });
-    const plan = strategy({ buyAgenda: [{ cardId: 'heavyBlow', desiredCount: 1 }], treasureFallback: [] });
+    const plan = strategy({ buyAgenda: [{ cardId: 'heavyBlow', desiredCount: 1 }], repeatPurchase: 'footwork' });
 
     const atFive = step(buyState({ kingdomId: 'cheap-blow', money: 5 }), plan);
     expect(atFive.command).toEqual({ type: 'buyCard', definitionId: 'heavyBlow' });
@@ -89,27 +85,34 @@ describe('buy agenda', () => {
     expect(atThree.command).toEqual({ type: 'buyCard', definitionId: 'heavyBlow' });
   });
 
-  it('counts owned cards by zone, so a purchase counts once and a Cull frees the slot', () => {
-    const plan = strategy({ buyAgenda: [{ cardId: 'footwork', desiredCount: 1 }], treasureFallback: [] });
+  it('does not buy a finite target already acquired in the starting build', () => {
+    const state = buyState({ money: 3 });
+    state.players.ochre.startingBuild = ['footwork'];
+    const plan = strategy({ buyAgenda: [{ cardId: 'footwork', desiredCount: 1 }], repeatPurchase: 'aim' });
+    expect(bought(buyRun(state, plan))).toEqual(['aim']);
+  });
+
+  it('does not buy a trashed purchased card again', () => {
+    const plan = strategy({ buyAgenda: [{ cardId: 'footwork', desiredCount: 1 }], repeatPurchase: 'aim' });
     const first = step(buyState({ money: 20 }), plan);
     expect(first.command).toEqual({ type: 'buyCard', definitionId: 'footwork' });
-    expect(ownedCount(first.state, 'ochre', 'footwork')).toBe(1);
+    expect(acquiredCount(first.state, 'ochre', 'footwork')).toBe(1);
     expect(first.state.players.ochre.purchases).toEqual(['footwork']);
-    expect(step(first.state, plan).command.type).toBe('endBuyPhase');
 
     const culled = structuredClone(first.state);
     const deck = culled.players.ochre.deck;
     const index = deck.discard.findIndex((card) => card.definitionId === 'footwork');
     culled.trash.push(...deck.discard.splice(index, 1));
-    expect(ownedCount(culled, 'ochre', 'footwork')).toBe(0);
     expect(culled.players.ochre.purchases).toEqual(['footwork']);
-    expect(step(culled, plan).command).toEqual({ type: 'buyCard', definitionId: 'footwork' });
+    expect(step(culled, plan).command).toEqual({ type: 'buyCard', definitionId: 'aim' });
   });
 
-  it('finishes the Buy phase even when the treasure fallback names Copper', { timeout: 5000 }, () => {
-    const plan = strategy({ buyAgenda: [], treasureFallback: ['copper', 'silver'] });
+  it('never buys Copper even from an unnormalized plan', { timeout: 5000 }, () => {
+    const plan = strategy({
+      buyAgenda: [{ cardId: 'copper', desiredCount: 10 }], repeatPurchase: 'copper'
+    });
     const commands = buyRun(buyState({ money: 7 }), plan);
-    expect(bought(commands)).toEqual(['silver', 'silver']);
+    expect(bought(commands)).toEqual([]);
     expect(commands.at(-1)!.type).toBe('endBuyPhase');
   });
 });
@@ -117,8 +120,7 @@ describe('buy agenda', () => {
 describe('strategy agent dispatch', () => {
   it('answers a Buy-phase state from the agenda and an Action-phase state from the search', () => {
     const agent = strategyAgent(strategy({
-      id: 'dispatch', buyAgenda: [{ cardId: 'footwork', desiredCount: 1 }],
-      weights: weights({ moneyGained: 1 })
+      id: 'dispatch', buyAgenda: [{ cardId: 'footwork', desiredCount: 1 }]
     }));
 
     const buying = buyState({ money: 10 });
