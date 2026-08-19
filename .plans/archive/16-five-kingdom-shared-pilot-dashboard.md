@@ -1,5 +1,7 @@
 # Five-kingdom shared-pilot dashboard
 
+> Archived. [17-psro-balance-search.md](../17-psro-balance-search.md) replaces the evolutionary artifact and dashboard contract. The committed HTML remains a historical pre-PSRO baseline.
+
 ## Goal
 
 Run a fresh design-maximum balance search for all five curated kingdoms with the shared tactical
