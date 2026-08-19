@@ -1,435 +1,149 @@
-import type { CalibrationResult } from './calibration';
 import { formatStrategy } from './strategy';
-import type { PairRecord, TelemetryAggregate, TournamentResult } from './types';
+import type { Strategy } from './strategy';
+import type { EquilibriumResult } from './equilibrium';
+import type { MatrixSnapshot } from './payoffMatrix';
+import type { IterationEvent, RestartAgreement } from './psro';
+import type { TelemetryAggregate } from './types';
 
 export type ExperimentMode = 'smoke' | 'full';
-export type StopReason = 'generations' | 'deadline' | 'error' | 'running';
-
-export interface RunLimits {
-  candidates: number;
-  leaders: number;
-  generations: number;
-  sharedSeeds: number;
-  deadlineMinutes: number;
-  stateLimit: number;
-  workers: number;
-  turnLimitPerPlayer: number;
-  actionCapPerTurn: number;
+export interface CalibrationDiagnostic {
+  heavyBlowInPositiveWeightStrategy: boolean;
+  benchmarkId: string;
+  mean: number;
+  interval: { lower: number; upper: number };
+  observedAdvantage: number;
 }
-
-export interface GenerationLine {
-  generation: number;
-  partial: boolean;
-  matchCount: number;
-  overflowCount: number;
-  elapsedMs: number;
-  leaders: {
-    strategyId: string; score: number; completedPairings: number; completedGames: number; abortedGames: number
-  }[];
-  scores: Record<string, number>;
-  pairingStops: Record<'significant' | 'maximum', number>;
-  seedBlockCounts: Record<string, number>;
-  pairingsPlayed: { candidateId: string; opponentId: string }[];
-}
-
-/**
- * Everything the report says, as data. Times and elapsed are passed in rather than read from the
- * clock, so rendering the same run twice gives the same bytes and a table can be asserted inline.
- */
 export interface RunSummary {
-  kingdomId: string;
-  kingdomName: string;
-  mode: ExperimentMode;
-  seed: number;
-  limits: RunLimits;
-  startedAt: string;
-  finishedAt: string;
-  elapsedMs: number;
-  stopReason: StopReason;
-  error: string | null;
-  evolutionMatches: number;
-  evolutionAborted: number;
-  tournamentMatches: number;
-  tournamentAborted: number;
-  generations: GenerationLine[];
-  /** Hash id to the readable seed name for every fixed strategy in this kingdom. */
-  strategyLabels: Record<string, string>;
-  finalLeaderIds: string[];
-  evolutionTelemetry: TelemetryAggregate;
-  tournament: TournamentResult | null;
-  tournamentComplete: boolean;
-  calibration: CalibrationResult | null;
-  blockers: string[];
+  schemaVersion: 2;
+  valid: boolean;
+  kingdomId: string; kingdomName: string; mode: ExperimentMode; seed: number;
+  limits: Record<string, number>; startedAt: string; finishedAt: string; elapsedMs: number;
+  stopReason: string; error: string | null; matches: number; aborted: number;
+  matrix: MatrixSnapshot | null; equilibrium: EquilibriumResult | null;
+  strategies: Strategy[]; iterations: IterationEvent[]; restartAgreement: RestartAgreement[];
+  calibration: CalibrationDiagnostic | null; telemetry: TelemetryAggregate;
+  weightIntervals: Record<string, { lower: number; upper: number }>;
 }
 
-/**
- * Attack cards by family. Aim and Feint are deliberately absent: neither deals damage, and counting
- * setup cards made the families asymmetric, because the mage list has no setup card to count. A
- * leader with three Aim, one Volley, and two Heavy Blow would otherwise read as ranged though melee
- * dealt most of its damage.
- */
-export const ATTACK_FAMILIES = {
-  melee: ['drive', 'flurry', 'heavyBlow', 'strike'],
-  ranged: ['volley', 'quickShot', 'steadyShot', 'shot'],
-  mage: ['arcBolt', 'fireball', 'starfire']
-} as const;
-
-export type Family = keyof typeof ATTACK_FAMILIES | 'mixed' | 'none';
-
-/**
- * The family of the attack cards a leader **acquired** — starting build plus purchases, the same
- * definition the calibration gate uses. Counting purchases alone would label every leader that keeps
- * its attacks in the 12-money starting build as `none` while its deck is pure melee.
- *
- * One family holding more than half the attack cards names the leader. Anything else with an attack
- * is mixed, and a leader that acquired no attack is `none`.
- */
-export function classifyLeader(acquisitions: Readonly<Record<string, number>>): Family {
-  const counts = { melee: 0, ranged: 0, mage: 0 };
-  for (const family of ['melee', 'ranged', 'mage'] as const) {
-    for (const cardId of ATTACK_FAMILIES[family]) counts[family] += acquisitions[cardId] ?? 0;
-  }
-  const total = counts.melee + counts.ranged + counts.mage;
-  if (total === 0) return 'none';
-  for (const family of ['melee', 'ranged', 'mage'] as const) {
-    if (counts[family] * 2 > total) return family;
-  }
-  return 'mixed';
-}
-
-function fixed(value: number, places = 3): string {
-  return value.toFixed(places);
-}
-
-/** Percentages read as `—` rather than `0.0%` when nothing was played, so an empty cell is visible. */
-function percent(part: number, whole: number): string {
-  if (whole === 0) return '—';
-  return `${((part / whole) * 100).toFixed(1)}%`;
-}
-
-function sortedEntries(counts: Readonly<Record<string, number>>): [string, number][] {
-  return Object.entries(counts).sort(([left, leftCount], [right, rightCount]) =>
-    rightCount - leftCount || (left < right ? -1 : left > right ? 1 : 0));
-}
-
+function fixed(value: number, places = 3): string { return value.toFixed(places); }
 function table(headers: readonly string[], rows: readonly (readonly string[])[]): string[] {
-  if (!rows.length) return ['_No data._'];
-  return [
-    `| ${headers.join(' | ')} |`,
-    `| ${headers.map(() => '---').join(' | ')} |`,
-    ...rows.map((row) => `| ${row.join(' | ')} |`)
-  ];
+  return [`| ${headers.join(' | ')} |`, `| ${headers.map(() => '---').join(' | ')} |`,
+    ...rows.map((row) => `| ${row.join(' | ')} |`)];
 }
 
-function mergeTelemetry(left: TelemetryAggregate, right: TelemetryAggregate | null): TelemetryAggregate {
-  if (!right) return left;
-  const counts = (a: Record<string, number>, b: Record<string, number>): Record<string, number> => {
-    const into = { ...a };
-    for (const [key, amount] of Object.entries(b)) into[key] = (into[key] ?? 0) + amount;
-    return into;
-  };
-  return {
-    ...left,
-    damageByCard: counts(left.damageByCard, right.damageByCard),
-    playsByCard: counts(left.playsByCard, right.playsByCard),
-    deadDraws: {
-      range: left.deadDraws.range + right.deadDraws.range,
-      mana: left.deadDraws.mana + right.deadDraws.mana,
-      setup: left.deadDraws.setup + right.deadDraws.setup,
-      total: left.deadDraws.total + right.deadDraws.total
-    },
-    turnsToWin: {
-      total: left.turnsToWin.total + right.turnsToWin.total,
-      count: left.turnsToWin.count + right.turnsToWin.count
-    }
-  };
-}
-
-function label(summary: RunSummary, strategyId: string): string {
-  const seed = summary.strategyLabels[strategyId];
-  return seed ? `${strategyId} (${seed})` : strategyId;
-}
-
-function header(summary: RunSummary): string[] {
-  const { limits } = summary;
-  const matches = summary.evolutionMatches + summary.tournamentMatches;
-  const aborted = summary.evolutionAborted + summary.tournamentAborted;
-  const rows: string[][] = [
-    ['Kingdom', `${summary.kingdomName} (\`${summary.kingdomId}\`)`],
-    ['Mode', summary.mode],
-    ['Run seed', String(summary.seed)],
-    ['Candidates', String(limits.candidates)],
-    ['Leaders kept', String(limits.leaders)],
-    ['Generations asked for', String(limits.generations)],
-    ['Generations run', String(summary.generations.length)],
-    ['Shared seeds', String(limits.sharedSeeds)],
-    ['Turn limit per player', String(limits.turnLimitPerPlayer)],
-    ['Action cap per turn', String(limits.actionCapPerTurn)],
-    ['Action-search state limit', String(limits.stateLimit)],
-    ['Workers', String(limits.workers)],
-    ['Deadline', `${limits.deadlineMinutes} minutes`],
-    ['Started', summary.startedAt],
-    ['Finished', summary.finishedAt],
-    ['Elapsed', `${fixed(summary.elapsedMs / 60000, 1)} minutes`],
-    ['Stop reason', summary.stopReason],
-    ['Matches', `${matches} (${summary.evolutionMatches} evolution, ${summary.tournamentMatches} tournament)`],
-    ['Aborted matches', `${aborted}`],
-    // An action-search overflow is an explicit result: without it a run where most matches aborted
-    // renders as a normal, credible one.
-    ['Action-search overflow rate', percent(aborted, matches)],
-    ['Tournament complete', summary.tournamentComplete ? 'yes' : 'no'],
-    ['Throughput', matches && summary.elapsedMs ? `${fixed(matches / (summary.elapsedMs / 1000), 1)} matches/s` : '—']
-  ];
-  if (summary.calibration) {
-    rows.push(['Calibration (rigged melee)', summary.calibration.passed ? 'PASS' : 'FAIL']);
-  }
-  const lines = [
-    `# Balance search: ${summary.kingdomName} (${summary.mode})`,
-    '',
-    ...table(['Field', 'Value'], rows)
-  ];
-  if (summary.error) lines.push('', `**The run stopped on an error:** ${summary.error}`);
-  // Only a tournament that started can have failed to finish. An error before it ran says so once.
-  if (summary.tournament && !summary.tournamentComplete) {
-    lines.push('', '**The final tournament did not finish.** The ranking, the pairwise table, and any'
-      + ' calibration verdict below are taken from an incomplete round robin and are not final.');
-  }
-  for (const blocker of summary.blockers) lines.push('', `**Blocker:** ${blocker}`);
-  return lines;
-}
-
-function calibrationSection(summary: RunSummary): string[] {
-  if (!summary.calibration) return [];
-  const result = summary.calibration;
-  return [
-    '',
-    '## Calibration',
-    '',
-    'This kingdom re-prices Heavy Blow to 3 money for 6 damage. The search is expected to find it. The',
-    'threshold, the kingdom, and its strategies are never tuned to make this pass.',
-    '',
-    ...table(['Check', 'Value'], [
-      ['Result', result.passed ? 'PASS' : 'FAIL'],
-      ['Top final leader', label(summary, result.topStrategyId)],
-      ['Heavy Blow copies the top leader acquired, summed over its matches', String(result.topStrategyCopies)],
-      ['Final leaders that acquired Heavy Blow', `${result.leadersWhoAcquired} of ${result.leaderCount}`]
-    ])
-  ];
-}
-
-function rankingSection(summary: RunSummary): string[] {
-  const tournament = summary.tournament;
-  if (!tournament) return ['', '## Final ranking', '', '_The tournament did not run._'];
-  const finalLeaders = new Set(summary.finalLeaderIds);
-  return [
-    '', '## Final ranking', '',
-    'Mean of the per-opponent pairing means in the final round robin. Source: tournament.', '',
-    ...table(['Rank', 'Strategy', 'Final leader', 'Score', 'Pairings', 'Completed', 'Aborted'],
-      tournament.ranking.map((entry, index) => [
-        String(index + 1), label(summary, entry.strategy.id),
-        finalLeaders.has(entry.strategy.id) ? 'yes' : 'no',
-        fixed(entry.score), String(entry.completedPairings), String(entry.completedGames), String(entry.abortedGames)
-      ]))
-  ];
-}
-
-function stoppingSection(summary: RunSummary): string[] {
-  const stops = { significant: 0, maximum: 0 };
-  const blocks: Record<string, number> = {};
-  const add = (
-    pairingStops: Record<'significant' | 'maximum', number>, seedBlockCounts: Record<string, number>
-  ): void => {
-    stops.significant += pairingStops.significant;
-    stops.maximum += pairingStops.maximum;
-    for (const [count, pairings] of Object.entries(seedBlockCounts)) {
-      blocks[count] = (blocks[count] ?? 0) + pairings;
-    }
-  };
-  for (const generation of summary.generations) add(generation.pairingStops, generation.seedBlockCounts);
-  if (summary.tournament) add(summary.tournament.pairingStops, summary.tournament.seedBlockCounts);
-  return [
-    '', '## Pairing stops', '',
-    'A pairing stops only after a complete four-orientation seed block. Source: all submitted pairings.', '',
-    ...table(['Reason', 'Pairings'], [
-      ['significant', String(stops.significant)], ['maximum', String(stops.maximum)]
-    ]),
-    '',
-    ...table(['Seed blocks played', 'Pairings'], Object.entries(blocks)
-      .sort(([left], [right]) => Number(left) - Number(right))
-      .map(([count, pairings]) => [count, String(pairings)]))
-  ];
-}
-
-function pairwiseSection(summary: RunSummary): string[] {
-  const tournament = summary.tournament;
-  if (!tournament) return [];
-  const order = tournament.ranking.map((entry) => entry.strategy.id);
-  const short = (id: string): string => id.replace('sg-', '');
-  const rows = order.map((left) => [
-    short(left),
-    ...order.map((right) => {
-      if (left === right) return '—';
-      const record: PairRecord | undefined = tournament.pairs[left]?.[right];
-      if (!record || record.played === 0) return '·';
-      return percent(record.wins + record.draws * 0.5, record.played);
-    })
-  ]);
-  return [
-    '', '## Pairwise win rate', '',
-    'Row against column, counting a draw as half a win, over the games that completed. `·` is a pair'
-    + ' the deadline left unplayed. Source: tournament.', '',
-    ...table(['', ...order.map(short)], rows)
-  ];
-}
-
-function cardSection(summary: RunSummary): string[] {
-  const tournament = summary.tournament;
-  if (!tournament) return [];
-  const leaders = tournament.ranking.filter((entry) => summary.finalLeaderIds.includes(entry.strategy.id));
-  const chosen = leaders.length ? leaders : tournament.ranking.slice(0, summary.limits.leaders);
-  const inclusion: Record<string, number> = {};
-  const copies: Record<string, number> = {};
-  let games = 0;
-  for (const entry of chosen) {
-    const acquired = tournament.telemetry.acquisitionsByStrategy[entry.strategy.id] ?? {};
-    games += entry.completedGames + entry.abortedGames;
-    for (const [cardId, count] of Object.entries(acquired)) {
-      inclusion[cardId] = (inclusion[cardId] ?? 0) + 1;
-      copies[cardId] = (copies[cardId] ?? 0) + count;
-    }
-  }
-  const families = chosen.map((entry) =>
-    classifyLeader(tournament.telemetry.acquisitionsByStrategy[entry.strategy.id] ?? {}));
-  const familyCounts: Record<Family, number> = { melee: 0, ranged: 0, mage: 0, mixed: 0, none: 0 };
-  for (const family of families) familyCounts[family] += 1;
-
-  return [
-    '', '## Cards the leaders acquired', '',
-    `Acquisition is the starting build plus purchases, over ${games} leader games in the tournament.`
-    + ' Source: tournament.', '',
-    ...table(['Card', 'Leaders', 'Copies per game'],
-      sortedEntries(copies).map(([cardId, count]) => [
-        cardId, `${inclusion[cardId] ?? 0} of ${chosen.length}`, fixed(games ? count / games : 0, 2)
-      ])),
-    '', '## Family representation', '',
-    'A leader belongs to the family holding more than half its acquired attack cards; anything else'
-    + ' with an attack is mixed, and a leader with no attack is `none`. Aim and Feint are not counted,'
-    + ' because neither deals damage.', '',
-    ...table(['Family', 'Leaders'],
-      (['melee', 'ranged', 'mage', 'mixed', 'none'] as const).map((family) =>
-        [family, String(familyCounts[family])])),
-    '',
-    ...chosen.map((entry, index) => `- ${label(summary, entry.strategy.id)}: ${families[index]}`)
-  ];
-}
-
-function matchSection(summary: RunSummary): string[] {
-  const all = mergeTelemetry(summary.evolutionTelemetry, summary.tournament?.telemetry ?? null);
-  const dead = all.deadDraws;
-  const other = dead.total - dead.range - dead.mana;
-  return [
-    '', '## Turns to win and damage', '',
-    'Every match in the run, evolution and tournament together. Source: all matches.', '',
-    ...table(['Measure', 'Value'], [
-      ['Games with a winner', String(all.turnsToWin.count)],
-      ['Mean turns to win', all.turnsToWin.count ? fixed(all.turnsToWin.total / all.turnsToWin.count, 2) : '—']
-    ]),
-    '',
-    ...table(['Card', 'Damage', 'Plays', 'Damage per play'],
-      sortedEntries(all.damageByCard).map(([cardId, damage]) => {
-        const plays = all.playsByCard[cardId] ?? 0;
-        return [cardId, String(damage), String(plays), plays ? fixed(damage / plays, 2) : '—'];
-      })),
-    '', '## Dead draws', '',
-    'A dead draw is a card in hand that could not be played. `setup` counts legal-but-unsupported'
-    + ' plays — a Volley with no Aim, a Flurry with no Tactical Action — and is **not** part of'
-    + ' `total`, unlike the other causes. `other` is `total` minus `range` and `mana`. Source: all'
-    + ' matches.', '',
-    ...table(['Cause', 'Count'], [
-      ['range', String(dead.range)],
-      ['mana', String(dead.mana)],
-      ['other', String(other)],
-      ['total', String(dead.total)],
-      ['setup (not in total)', String(dead.setup)]
-    ])
-  ];
-}
-
-function orientationSection(summary: RunSummary): string[] {
-  const tournament = summary.tournament;
-  if (!tournament) return [];
-  const cells = tournament.telemetry.byOrientation;
-  const played = (record: PairRecord): number => record.played;
-  const firstOchre = cells.firstOchre.normal;
-  const firstOchreSwapped = cells.firstOchre.swapped;
-  const firstIndigo = cells.firstIndigo.normal;
-  const firstIndigoSwapped = cells.firstIndigo.swapped;
-
-  const moverWins = firstOchre.wins + firstOchreSwapped.wins + firstIndigo.losses + firstIndigoSwapped.losses;
-  const moverDraws = firstOchre.draws + firstOchreSwapped.draws + firstIndigo.draws + firstIndigoSwapped.draws;
-  const moverPlayed = played(firstOchre) + played(firstOchreSwapped) + played(firstIndigo) + played(firstIndigoSwapped);
-
-  const normalPlayed = played(firstOchre) + played(firstIndigo);
-  const normalWins = firstOchre.wins + firstIndigo.wins;
-  const normalDraws = firstOchre.draws + firstIndigo.draws;
-  const swappedPlayed = played(firstOchreSwapped) + played(firstIndigoSwapped);
-  const swappedWins = firstOchreSwapped.wins + firstIndigoSwapped.wins;
-  const swappedDraws = firstOchreSwapped.draws + firstIndigoSwapped.draws;
-
-  return [
-    '', '## First-player and arena-side advantage', '',
-    'Leader against leader is the fair comparison, so both come from the tournament. Arena-side'
-    + ' advantage is ochre\'s win rate with `swapSides: false` against `swapSides: true`; ochre starts'
-    + ' at position 2 when false and position 3 when true.', '',
-    ...table(['Measure', 'Games', 'Win rate'], [
-      ['Player who moved first', String(moverPlayed), percent(moverWins + moverDraws * 0.5, moverPlayed)],
-      ['Ochre, swapSides false', String(normalPlayed), percent(normalWins + normalDraws * 0.5, normalPlayed)],
-      ['Ochre, swapSides true', String(swappedPlayed), percent(swappedWins + swappedDraws * 0.5, swappedPlayed)]
-    ])
-  ];
-}
-
-function generationSection(summary: RunSummary): string[] {
-  return [
-    '', '## Generations', '',
-    ...table(['Generation', 'Matches', 'Aborted', 'Best score', 'Seconds', 'Partial'],
-      summary.generations.map((line) => [
-        String(line.generation), String(line.matchCount), String(line.overflowCount),
-        line.leaders[0] ? fixed(line.leaders[0].score) : '—',
-        fixed(line.elapsedMs / 1000, 1), line.partial ? 'yes' : 'no'
-      ]))
-  ];
-}
-
-function strategySection(summary: RunSummary): string[] {
-  const tournament = summary.tournament;
-  if (!tournament) return [];
-  const top = tournament.ranking.slice(0, 3);
-  if (!top.length) return [];
-  return [
-    '', '## The top leaders', '',
-    ...top.flatMap((entry) => ['```', formatStrategy(entry.strategy), '```', ''])
-  ];
-}
-
-/**
- * A pure function of the summary. Every table is ordered by a rule, never by object insertion, so two
- * renderings of one run are byte-equal.
- *
- * Findings are stated as measurements. Only rigged melee has a pass-or-fail check; no other kingdom's
- * result is described as a failure.
- */
 export function renderReport(summary: RunSummary): string {
-  return [
-    ...header(summary),
-    ...calibrationSection(summary),
-    ...rankingSection(summary),
-    ...stoppingSection(summary),
-    ...pairwiseSection(summary),
-    ...cardSection(summary),
-    ...matchSection(summary),
-    ...orientationSection(summary),
-    ...generationSection(summary),
-    ...strategySection(summary)
-  ].join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
+  const orientation = summary.telemetry.byOrientation;
+  const records = Object.values(orientation).flatMap((first) => Object.values(first));
+  const played = records.reduce((sum, record) => sum + record.played, 0);
+  const draws = records.reduce((sum, record) => sum + record.draws, 0);
+  const firstMoverWins = orientation.firstOchre.normal.wins + orientation.firstOchre.swapped.wins
+    + orientation.firstIndigo.normal.losses + orientation.firstIndigo.swapped.losses;
+  const firstMoverDraws = records.reduce((sum, record) => sum + record.draws, 0);
+  const firstMoverScore = played ? (firstMoverWins + firstMoverDraws * 0.5) / played : 0;
+  const ochreWins = records.reduce((sum, record) => sum + record.wins, 0);
+  const ochreScore = played ? (ochreWins + draws * 0.5) / played : 0;
+  const percent = (value: number): string => `${(value * 100).toFixed(2)}%`;
+  const lines = [`# PSRO balance search: ${summary.kingdomName} (${summary.mode})`, '',
+    ...table(['Field', 'Value'], [
+      ['Valid final union', summary.valid ? 'yes' : 'no'], ['Stop reason', summary.stopReason],
+      ['Discovered strategies', String(summary.strategies.length)], ['Matches', String(summary.matches)],
+      ['Aborted matches', String(summary.aborted)],
+      ['Mechanical game bound before diagnostics', String(summary.limits.gameBoundBeforeDiagnostics)],
+      ['Elapsed', `${fixed(summary.elapsedMs / 1000, 1)} seconds`],
+      ['Throughput', summary.elapsedMs ? `${fixed(summary.matches / (summary.elapsedMs / 1000), 1)} games/s` : '—']
+    ])];
+  if (summary.error) lines.push('', `**Invalid run:** ${summary.error}`);
+  lines.push('', '## Maximum-support equilibrium', '',
+    'Weights are the canonical maximum-support equilibrium of the complete discovered-strategy matrix.'
+      + ' They are not raw win rates. A zero weight does not prove that a strategy can never be useful.', '');
+  if (!summary.equilibrium) lines.push('_No final equilibrium exists because the union matrix is incomplete._');
+  else lines.push(...table(['Strategy', 'Weight', 'Maximum possible weight', 'Bootstrap 95% interval'],
+    summary.equilibrium.strategyIds.map((id) => {
+      const interval = summary.weightIntervals[id];
+      return [id, fixed(summary.equilibrium!.weights[id] ?? 0),
+        fixed(summary.equilibrium!.maximumEquilibriumWeight[id] ?? 0),
+        interval ? `${fixed(interval.lower)}–${fixed(interval.upper)}` : '—'];
+    })), '', ...table(['Solver measure', 'Value'], [
+      ['Matrix value', fixed(summary.equilibrium.value, 8)],
+      ['Maximum known pure-strategy advantage', fixed(summary.equilibrium.maximumKnownAdvantage, 8)],
+      ...Object.entries(summary.equilibrium.residuals).map(([name, value]) => [name, fixed(value, 10)])
+    ]));
+  if (summary.matrix) {
+    const ids = summary.matrix.strategies.map((strategy) => strategy.id);
+    lines.push('', '## Complete matchup matrix', '', 'Centered payoff for row against column. `+1` is all wins; `-1` is all losses.', '',
+      ...table(['', ...ids], ids.map((id, row) => [id, ...ids.map((_other, column) =>
+        Number.isFinite(summary.matrix!.centeredPayoffs[row]![column]!)
+          ? fixed(summary.matrix!.centeredPayoffs[row]![column]!) : '·')])));
+  }
+  const niche = summary.iterations.filter((event) => event.response?.objective === 'niche');
+  lines.push('', '## Response searches', '',
+    ...table(['Restart', 'Attempt', 'Objective', 'Candidates', 'Local / random', 'Duplicate rejects',
+      'Candidate', 'Held-out mean', '95% interval', 'Admitted'],
+      summary.iterations.map((event) => [String(event.restart), String(event.attempt),
+        event.response?.objective ?? 'empty', event.response
+          ? `${event.response.sources.actual}/${event.response.sources.requested}` : '—',
+        event.response ? `${event.response.sources.local} / ${event.response.sources.random}` : '—',
+        event.response ? String(event.response.sources.duplicateRejections) : '—',
+        event.response?.candidateId ?? '—',
+        event.response ? fixed(event.response.heldOutMean) : '—',
+        event.response ? `${fixed(event.response.interval.lower)}–${fixed(event.response.interval.upper)}` : '—',
+        event.admittedStrategyId ? 'yes' : 'no'])), '',
+    `Niche searches are discovery only. ${niche.length} niche searches ran; the final weights always come from the global equilibrium.`);
+  const unionGlobal = summary.iterations.filter((event) => event.restart === 'union'
+    && event.response?.objective === 'global');
+  const trailingFailures = unionGlobal.filter((event) => !event.response!.admitted).slice(-2);
+  const gapEvidence = trailingFailures.length ? trailingFailures : unionGlobal.slice(-1);
+  if (gapEvidence.length) {
+    const largest = Math.max(...gapEvidence.map((event) => Math.max(0, event.response!.heldOutMean - 0.5)));
+    const intervals = gapEvidence.map((event) => `${fixed(event.response!.interval.lower)}–${fixed(event.response!.interval.upper)}`).join(', ');
+    lines.push('', `Final observed oracle gap: ${fixed(largest)} from ${gapEvidence.length} held-out search(es)`
+      + ` with interval(s) ${intervals}. This is observed search evidence, not exact exploitability.`);
+  }
+  if (summary.restartAgreement.length) lines.push('', '## Restart agreement', '',
+    ...table(['Restarts', 'Total-variation distance', 'Support overlap', 'Left worst counter', 'Right worst counter'],
+      summary.restartAgreement.map((entry) => [`${entry.left}/${entry.right}`, fixed(entry.totalVariation),
+        fixed(entry.supportOverlap), fixed(entry.leftWorstCounter), fixed(entry.rightWorstCounter)])));
+  if (summary.matrix) {
+    const closeThreshold = 0.05;
+    const close: string[] = [];
+    for (let left = 0; left < summary.matrix.strategies.length; left += 1) {
+      for (let right = left + 1; right < summary.matrix.strategies.length; right += 1) {
+        const maximum = Math.max(...summary.matrix.centeredPayoffs[left]!.map((value, index) =>
+          Math.abs(value - summary.matrix!.centeredPayoffs[right]![index]!)));
+        if (maximum <= closeThreshold) close.push(`${summary.matrix.strategies[left]!.id}/${summary.matrix.strategies[right]!.id}`);
+      }
+    }
+    lines.push('', '## Payoff-row similarity flag', '',
+      `Threshold: maximum absolute centered-payoff difference ≤ ${fixed(closeThreshold, 2)}. This flag never removes a strategy.`, '',
+      close.length ? close.join(', ') : '_No close payoff rows._');
+  }
+  lines.push('', '## Match telemetry', '',
+    ...table(['Measure', 'Value'], [
+      ['Games with a winner', String(summary.telemetry.turnsToWin.count)],
+      ['Mean turns to win', summary.telemetry.turnsToWin.count
+        ? fixed(summary.telemetry.turnsToWin.total / summary.telemetry.turnsToWin.count) : '—'],
+      ['Range dead draws', String(summary.telemetry.deadDraws.range)],
+      ['Mana dead draws', String(summary.telemetry.deadDraws.mana)],
+      ['Draw / turn-limit rate', played ? percent(draws / played) : '—'],
+      ['First-mover score', played ? percent(firstMoverScore) : '—'],
+      ['Ochre-seat score', played ? percent(ochreScore) : '—']
+    ]), '', ...table(['Card', 'Damage', 'Plays'], Object.keys(summary.telemetry.damageByCard).sort()
+      .map((card) => [card, String(summary.telemetry.damageByCard[card]),
+        String(summary.telemetry.playsByCard[card] ?? 0)])));
+  const acquiredRows = Object.entries(summary.telemetry.acquisitionsByStrategy)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([strategyId, cards]) => Object.entries(cards).sort(([left], [right]) => left.localeCompare(right))
+      .map(([card, count]) => [strategyId, card, String(count)]));
+  lines.push('', '### Acquisitions by strategy', '', ...table(['Strategy', 'Card', 'Copies'], acquiredRows));
+  if (summary.calibration) lines.push('', '## Rigged-melee diagnostic', '',
+    ...table(['Measure', 'Value'], [
+      ['Positive-weight strategy acquired Heavy Blow', summary.calibration.heavyBlowInPositiveWeightStrategy ? 'yes' : 'no'],
+      ['Fixed melee benchmark', summary.calibration.benchmarkId],
+      ['Benchmark mean against final mixture', fixed(summary.calibration.mean)],
+      ['Benchmark 95% interval', `${fixed(summary.calibration.interval.lower)}–${fixed(summary.calibration.interval.upper)}`],
+      ['Observed advantage', fixed(summary.calibration.observedAdvantage)]
+    ]));
+  lines.push('', '## Strategies', '');
+  for (const strategy of summary.strategies) lines.push('```', formatStrategy(strategy), '```', '');
+  return `${lines.join('\n')}\n`;
 }

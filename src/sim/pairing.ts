@@ -20,9 +20,8 @@ export interface Orientation {
  * four games, so `swapSides` would cancel nothing for it. Ochre in 1 and 4 gives seat 2/2,
  * moves-first 2/2, and position 2/2.
  *
- * This decides leader selection, not presentation. A leader plays both sides across its pairings,
- * but a candidate that is not a leader only ever plays the candidate side, so a uniform
- * candidate-side advantage would bias selection toward mutants over their parents.
+ * A candidate plays both seats, moves first twice, and starts on each arena position twice. This
+ * prevents seat or arena advantages from biasing a payoff cell or response evaluation.
  */
 export const ORIENTATIONS: readonly Orientation[] = Object.freeze([
   { firstPlayerId: 'ochre', swapSides: false, candidateSeat: 'ochre' },
@@ -35,21 +34,6 @@ function mix(left: number, right: number): number {
   let value = (left ^ Math.imul(right + 0x9e3779b9, 0x85ebca6b)) >>> 0;
   value = Math.imul(value ^ (value >>> 15), 0x2545f491) >>> 0;
   return value >>> 0;
-}
-
-/**
- * Fixed for the whole run, so a score in generation 1 and a score in generation 32 are comparable.
- * Nothing about the generation or the pairing enters the seed: if it did, no two pairings would play
- * the same shuffles and the shared seeds would not be shared.
- */
-export function sharedSeedList(runSeed: number, count: number): number[] {
-  const seeds: number[] = [];
-  let value = runSeed >>> 0;
-  for (let index = 0; index < count; index += 1) {
-    value = mix(value, index + 1);
-    seeds.push(value);
-  }
-  return seeds;
 }
 
 export function matchSeed(sharedSeed: number, orientationIndex: number): number {
@@ -144,6 +128,20 @@ export interface PairingOptions {
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
   stateLimit?: number | undefined;
+  // Only preliminary payoff-matrix cells set this. Every other evaluation plays all seed blocks.
+  allowEarlyStop?: boolean | undefined;
+}
+
+export interface PairingBlockResult {
+  seed: number;
+  score: number;
+  played: number;
+  aborted: number;
+}
+export interface PairingAbort {
+  seed: number;
+  orientationIndex: number;
+  reason: MatchResult['reason'];
 }
 
 export interface PairingOutcome {
@@ -156,6 +154,8 @@ export interface PairingOutcome {
   stopReason: 'significant' | 'maximum';
   candidateMean: number | null;
   opponentMean: number | null;
+  blocks: PairingBlockResult[];
+  aborts: PairingAbort[];
 }
 
 export const SIGN_TEST_THRESHOLD = 0.0005;
@@ -192,8 +192,8 @@ export type PairingMatchRunner = typeof runMatch;
  * strategy agent caches an Action-phase baseline and a memo, and reusing one across matches is what
  * the group 2 review found corrupting scores.
  *
- * An aborted game scores for neither side and counts in neither `played` nor the mean, so a deep
- * search is not punished for overflowing the state limit.
+ * An aborted game is recorded outside `played` and the mean. PSRO callers reject the complete cell
+ * or evaluation when `aborted` is nonzero.
  */
 export function playPairing(
   candidate: Strategy, opponent: Strategy, options: PairingOptions, matchRunner: PairingMatchRunner = runMatch
@@ -210,6 +210,8 @@ export function playPairing(
   let positiveBlocks = 0;
   let negativeBlocks = 0;
   let stopReason: PairingOutcome['stopReason'] = 'maximum';
+  const blocks: PairingBlockResult[] = [];
+  const aborts: PairingAbort[] = [];
 
   for (const seed of options.seeds) {
     let blockScore = 0;
@@ -238,7 +240,11 @@ export function playPairing(
       matches += 1;
       recordMatch(telemetry, result, orientation, seatStrategyIds);
 
-      if (result.outcome === 'aborted') { record.aborted += 1; continue; }
+      if (result.outcome === 'aborted') {
+        record.aborted += 1;
+        aborts.push({ seed, orientationIndex, reason: result.reason });
+        continue;
+      }
       record.played += 1;
       blockCompleted += 1;
       if (result.outcome === 'draw') {
@@ -250,12 +256,15 @@ export function playPairing(
       }
     }
     seedBlocks += 1;
+    blocks.push({ seed, score: blockCompleted ? blockScore / blockCompleted : 0, played: blockCompleted,
+      aborted: ORIENTATIONS.length - blockCompleted });
     if (blockCompleted > 0) {
       const mean = blockScore / blockCompleted;
       if (mean > 0.5) positiveBlocks += 1;
       else if (mean < 0.5) negativeBlocks += 1;
     }
-    if (shouldStopPairing(seedBlocks, options.seeds.length, positiveBlocks, negativeBlocks)) {
+    if (options.allowEarlyStop === true
+      && shouldStopPairing(seedBlocks, options.seeds.length, positiveBlocks, negativeBlocks)) {
       stopReason = 'significant';
       break;
     }
@@ -263,6 +272,7 @@ export function playPairing(
   return {
     record, candidateScore, opponentScore, telemetry, matches, seedBlocks, stopReason,
     candidateMean: record.played ? candidateScore / record.played : null,
-    opponentMean: record.played ? opponentScore / record.played : null
+    opponentMean: record.played ? opponentScore / record.played : null,
+    blocks, aborts
   };
 }

@@ -5,7 +5,7 @@ import type { BuyAgendaEntry, Strategy } from './strategy';
 
 export const MAX_DESIRED_COUNT = 10;
 
-interface KingdomFacts {
+export interface KingdomFacts {
   marketIds: readonly string[];
   purchaseIds: readonly string[];
 }
@@ -29,7 +29,7 @@ function count(ids: readonly string[], wanted: string): number {
   return ids.reduce((total, id) => total + (id === wanted ? 1 : 0), 0);
 }
 
-/** Normalizes every strategy to the executable deck-plan shape used for identity and evolution. */
+/** Normalizes every strategy to the executable deck-plan shape used for identity and search. */
 export function repairStrategy(kingdomId: string, strategy: Strategy): Strategy {
   const { marketIds, purchaseIds } = kingdomFacts(kingdomId);
   const sold = new Set(purchaseIds);
@@ -137,9 +137,9 @@ export function applyMutation(
   return repairStrategy(kingdomId, OPERATORS[name](kingdomId, strategy, random));
 }
 
-export function mutationRandom(runSeed: number, generation: number, index: number, salt = 0): SeededRandom {
+export function mutationRandom(runSeed: number, attempt: number, index: number, salt = 0): SeededRandom {
   let mixed = runSeed >>> 0;
-  for (const term of [generation, index, salt]) {
+  for (const term of [attempt, index, salt]) {
     mixed = (Math.imul(mixed ^ (term + 0x9e3779b9), 0x85ebca6b) >>> 0) ^ (mixed >>> 13);
   }
   return new SeededRandom(mixed >>> 0);
@@ -159,10 +159,10 @@ export const MUTATION_ATTEMPTS = 32;
 
 export function mutateUnique(
   kingdomId: string, strategy: Strategy, taken: ReadonlySet<string>,
-  runSeed: number, generation: number, index: number, attempts = MUTATION_ATTEMPTS
+  runSeed: number, attempt: number, index: number, attempts = MUTATION_ATTEMPTS
 ): Strategy | null {
   for (let salt = 0; salt < attempts; salt += 1) {
-    const mutated = mutate(kingdomId, strategy, mutationRandom(runSeed, generation, index, salt));
+    const mutated = mutate(kingdomId, strategy, mutationRandom(runSeed, attempt, index, salt));
     if (!taken.has(canonicalStrategy(mutated))) return mutated;
   }
   return null;

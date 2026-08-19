@@ -12,7 +12,7 @@ import process from 'node:process';
 import { fileURLToPath } from 'node:url';
 import { strategyAgent } from '../src/sim/agents/strategyAgent';
 import { runMatch } from '../src/sim/match';
-import { seedLabels, seedStrategies } from '../src/sim/seedPopulation';
+import { diagnosticLabels, diagnosticStrategies } from '../src/sim/baselines';
 import { identify } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 import type { GameState } from '../src/game';
@@ -44,8 +44,8 @@ function oracleStrategy(kingdomId: string, label: string): Strategy {
   if (label === 'no-attack') return identify({
     id: label, startingBuild: [], buyAgenda: [], repeatPurchase: 'silver'
   });
-  const labels = seedLabels(kingdomId);
-  const found = seedStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);
+  const labels = diagnosticLabels(kingdomId);
+  const found = diagnosticStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);
   if (!found) throw new Error(`No ${label} seed in ${kingdomId}.`);
   return found;
 }

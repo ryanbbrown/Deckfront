@@ -1,333 +1,238 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { kingdomMarket, kingdomOf } from '../game';
-import { checkRiggedMelee } from './calibration';
-import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from './experimentConfig';
+import { SeededRandom, kingdomMarket, kingdomOf } from '../game';
+import { SEED_LABELS, SEED_STRATEGIES } from './baselines';
+import { solveEquilibrium } from './equilibrium';
+import {
+  ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER, UNION_DEADLINE_RESERVE, conservativeGameBound
+} from './experimentConfig';
 import type { ExperimentOptions } from './experimentConfig';
-import { evolve, retainedLeaders } from './evolution';
 import { CALIBRATION_KINGDOM_ID } from './kingdoms';
+import { evaluateCandidates, mixtureSchedule, percentileBootstrapMean } from './mixtureEvaluation';
+import { InvalidEvaluationError } from './payoffMatrix';
 import { emptyAggregate, mergeAggregate } from './pairing';
 import { InlinePairingRunner } from './pairingRunner';
 import type { PairingRunner } from './pairingRunner';
+import { runPsro } from './psro';
+import type { PsroResult } from './psro';
+import type { IterationEvent } from './psro';
 import { renderReport } from './report';
-import type { GenerationLine, RunSummary } from './report';
-import { seedLabels, seedStrategies } from './seedPopulation';
-import { formatStrategy } from './strategy';
-import type { Strategy } from './strategy';
-import { roundRobin } from './tournament';
-import type { GenerationResult, TelemetryAggregate, TournamentResult } from './types';
-
-/**
- * The share of the deadline held back for the final tournament. It is the single most expensive step,
- * and a run that reports no ranking, no pairwise table, and no calibration result is the worst
- * outcome for an unattended goal.
- */
-export const TOURNAMENT_RESERVE = 0.2;
+import type { CalibrationDiagnostic, RunSummary } from './report';
+import { assertDisjointSeedNamespaces, namespaceSeeds } from './seedNamespaces';
+import type { TelemetryAggregate } from './types';
 
 export interface ExperimentDeps {
   now?: (() => number) | undefined;
-  evolve?: typeof evolve | undefined;
-  roundRobin?: typeof roundRobin | undefined;
   pairingRunner?: PairingRunner | undefined;
+  runPsro?: typeof runPsro | undefined;
 }
 
-/** Written to a temporary name and renamed, so a kill never leaves a half-written JSON file. */
 function writeJson(file: string, value: unknown): void {
   const temporary = `${file}.tmp`;
   fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`);
   fs.renameSync(temporary, file);
 }
-
-function writeText(file: string, text: string): void {
-  const temporary = `${file}.tmp`;
-  fs.writeFileSync(temporary, text);
-  fs.renameSync(temporary, file);
+function writeText(file: string, value: string): void {
+  const temporary = `${file}.tmp`; fs.writeFileSync(temporary, value); fs.renameSync(temporary, file);
 }
-
-/** A second run must not append to the first run's `generations.jsonl` or leave its artifacts behind. */
-function prepareDirectory(outDir: string): void {
-  fs.rmSync(outDir, { recursive: true, force: true });
-  fs.mkdirSync(outDir, { recursive: true });
+function prepareDirectory(directory: string): void {
+  fs.rmSync(directory, { recursive: true, force: true }); fs.mkdirSync(directory, { recursive: true });
 }
-
-function generationLine(result: GenerationResult): GenerationLine {
-  return {
-    generation: result.generation,
-    partial: result.partial,
-    matchCount: result.matchCount,
-    overflowCount: result.overflowCount,
-    elapsedMs: result.elapsedMs,
-    leaders: result.leaders.map((entry) => ({
-      strategyId: entry.strategy.id,
-      score: entry.score,
-      completedPairings: entry.completedPairings,
-      completedGames: entry.completedGames,
-      abortedGames: entry.abortedGames
-    })),
-    scores: result.scores,
-    pairingStops: result.pairingStops,
-    seedBlockCounts: result.seedBlockCounts,
-    pairingsPlayed: result.pairingsPlayed
-  };
+function iterationRecord(event: IterationEvent): unknown {
+  if (!event.response) return event;
+  const response: Record<string, unknown> = { ...event.response };
+  delete response.telemetry;
+  delete response.screenTelemetry;
+  delete response.confirmationTelemetry;
+  return { ...event, response };
 }
-
-function abortedInTournament(telemetry: TelemetryAggregate): number {
-  let aborted = 0;
-  for (const first of ['firstOchre', 'firstIndigo'] as const) {
-    for (const side of ['normal', 'swapped'] as const) aborted += telemetry.byOrientation[first][side].aborted;
+function allTelemetry(result: PsroResult): TelemetryAggregate {
+  const aggregate = emptyAggregate();
+  for (const cell of result.matrix.cells) mergeAggregate(aggregate, cell.telemetry);
+  for (const event of result.events) if (event.response) mergeAggregate(aggregate, event.response.telemetry);
+  return aggregate;
+}
+function aborts(telemetry: TelemetryAggregate): number {
+  let total = 0;
+  for (const first of Object.values(telemetry.byOrientation)) {
+    for (const side of Object.values(first)) total += side.aborted;
   }
-  return aborted;
+  return total;
 }
-
-function runRecord(summary: RunSummary, resolvedKingdom: unknown): unknown {
-  return {
-    kingdomId: summary.kingdomId,
-    kingdomName: summary.kingdomName,
-    mode: summary.mode,
-    seed: summary.seed,
-    limits: summary.limits,
-    startedAt: summary.startedAt,
-    finishedAt: summary.finishedAt,
-    elapsedMs: summary.elapsedMs,
-    stopReason: summary.stopReason,
-    error: summary.error,
-    generationsRun: summary.generations.length,
-    evolutionMatches: summary.evolutionMatches,
-    evolutionAborted: summary.evolutionAborted,
-    tournamentMatches: summary.tournamentMatches,
-    tournamentAborted: summary.tournamentAborted,
-    tournamentComplete: summary.tournamentComplete,
-    calibration: summary.calibration,
-    blockers: summary.blockers,
-    finalLeaderIds: summary.finalLeaderIds,
-    // The resolved definitions, not the kingdom record and its override map: only the resolved form
-    // keeps a committed report reproducible against a later change to a canonical card value.
-    kingdom: resolvedKingdom
-  };
+function weightIntervals(result: PsroResult, seed: number): Record<string, { lower: number; upper: number }> {
+  if (!result.equilibrium || !result.matrix.complete) return {};
+  const ids = result.matrix.strategies.map((strategy) => strategy.id);
+  const index = new Map(ids.map((id, position) => [id, position]));
+  const random = new SeededRandom(seed);
+  const samples: Record<string, number[]> = Object.fromEntries(ids.map((id) => [id, []]));
+  for (let sample = 0; sample < 200; sample += 1) {
+    const payoff = ids.map(() => ids.map(() => 0));
+    for (const cell of result.matrix.cells) {
+      let total = 0;
+      for (let block = 0; block < cell.blocks.length; block += 1) {
+        total += 2 * cell.blocks[random.nextInt(cell.blocks.length)]!.score - 1;
+      }
+      const value = total / cell.blocks.length;
+      const row = index.get(cell.rowId)!, column = index.get(cell.columnId)!;
+      payoff[row]![column] = value; payoff[column]![row] = -value;
+    }
+    const solved = solveEquilibrium(ids, payoff);
+    for (const id of ids) samples[id]!.push(solved.weights[id] ?? 0);
+  }
+  return Object.fromEntries(ids.map((id) => {
+    const values = samples[id]!.sort((a, b) => a - b);
+    return [id, { lower: values[5]!, upper: values[194]! }];
+  }));
 }
-
-function tournamentRecord(result: TournamentResult): unknown {
-  return {
-    entrants: result.entrants.map((entrant) => entrant.id),
-    partial: result.partial,
-    pairsPlayed: result.pairsPlayed,
-    pairsExpected: result.pairsExpected,
-    matches: result.matches,
-    pairingStops: result.pairingStops,
-    seedBlockCounts: result.seedBlockCounts,
-    pairs: result.pairs,
-    ranking: result.ranking.map((entry) => ({
-      strategyId: entry.strategy.id,
-      score: entry.score,
-      completedPairings: entry.completedPairings,
-      completedGames: entry.completedGames,
-      abortedGames: entry.abortedGames
-    })),
-    calibration: result.calibration
-  };
-}
-
-/** Keeps the first appearance of each strategy, so the caller's order decides precedence. */
-function dedupeById(strategies: readonly Strategy[]): Strategy[] {
-  const seen = new Set<string>();
-  return strategies.filter((strategy) => {
-    if (seen.has(strategy.id)) return false;
-    seen.add(strategy.id);
-    return true;
+async function calibrationDiagnostic(
+  options: ExperimentOptions, result: PsroResult, runner: PairingRunner
+): Promise<{ diagnostic: CalibrationDiagnostic; telemetry: TelemetryAggregate; matches: number } | null> {
+  if (options.kingdomId !== CALIBRATION_KINGDOM_ID || !result.equilibrium) return null;
+  const labels = SEED_LABELS[CALIBRATION_KINGDOM_ID]!;
+  const meleeIndex = labels.indexOf('melee');
+  const benchmark = SEED_STRATEGIES[CALIBRATION_KINGDOM_ID]![meleeIndex]!;
+  const seeds = namespaceSeeds(options.seed, 'diagnostic', options.seeds);
+  const schedule = mixtureSchedule(result.equilibrium.weights, seeds, seeds[0]! ^ 0xc71f3a2d);
+  const strategies = new Map(result.strategies.map((strategy) => [strategy.id, strategy]));
+  const [evaluated] = await evaluateCandidates([benchmark], strategies, schedule, runner, {
+    kingdomId: options.kingdomId, turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
+    actionCapPerTurn: ACTION_CAP_PER_TURN, stateLimit: options.stateLimit
   });
+  const interval = percentileBootstrapMean(evaluated!.blockScores,
+    namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 1, 0)[0]!);
+  const telemetry = allTelemetry(result);
+  const heavyBlowInPositiveWeightStrategy = result.strategies.some((strategy) =>
+    (result.equilibrium!.weights[strategy.id] ?? 0) > 0
+      && (strategy.startingBuild.includes('heavyBlow')
+        || (telemetry.acquisitionsByStrategy[strategy.id]?.heavyBlow ?? 0) > 0));
+  return { diagnostic: { benchmarkId: benchmark.id, mean: evaluated!.mean, interval,
+    observedAdvantage: Math.max(0, evaluated!.mean - 0.5), heavyBlowInPositiveWeightStrategy },
+    telemetry: evaluated!.telemetry, matches: evaluated!.matches };
 }
 
-function strategyRecord(strategies: readonly { source: string; strategy: Strategy }[], labels: Map<string, string>): unknown {
-  return {
-    strategies: strategies.map(({ source, strategy }) => ({
-      id: strategy.id,
-      seed: labels.get(strategy.id) ?? null,
-      source,
-      text: formatStrategy(strategy),
-      strategy
-    }))
-  };
-}
-
-/**
- * Runs one experiment and writes every artifact under `outDir`.
- *
- * Output survives a limit: `run.json` is written before the first generation, `generations.jsonl` is
- * appended as each generation finishes, and an error is recorded rather than thrown, so a full run
- * that hits a blocker still leaves a readable report. The caller decides the exit code from
- * `stopReason`.
- */
 export async function runExperiment(
   options: ExperimentOptions, outDir: string, deps: ExperimentDeps = {}
 ): Promise<RunSummary> {
   const runner = deps.pairingRunner ?? new InlinePairingRunner();
-  try {
-    return await runExperimentWithRunner(options, outDir, deps, runner);
-  } finally {
-    await runner.close();
-  }
+  try { return await runWithRunner(options, outDir, deps, runner); }
+  finally { await runner.close(); }
 }
 
-async function runExperimentWithRunner(
+async function runWithRunner(
   options: ExperimentOptions, outDir: string, deps: ExperimentDeps, runner: PairingRunner
 ): Promise<RunSummary> {
   const now = deps.now ?? Date.now;
-  const runEvolution = deps.evolve ?? evolve;
-  const runTournament = deps.roundRobin ?? roundRobin;
-
-  const startedAtMs = now();
-  const budgetMs = options.deadlineMinutes * 60_000;
-  const evolutionDeadline = startedAtMs + Math.round(budgetMs * (1 - TOURNAMENT_RESERVE));
-  const tournamentDeadline = startedAtMs + budgetMs;
-  const labels = seedLabels(options.kingdomId);
-
-  const summary: RunSummary = {
-    kingdomId: options.kingdomId,
-    kingdomName: kingdomOf(options.kingdomId).name,
-    mode: options.mode,
-    seed: options.seed,
-    limits: {
-      candidates: options.candidates,
-      leaders: options.leaders,
-      generations: options.generations,
-      sharedSeeds: options.sharedSeeds,
-      deadlineMinutes: options.deadlineMinutes,
-      stateLimit: options.stateLimit,
-      workers: options.workers,
-      turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
-      actionCapPerTurn: ACTION_CAP_PER_TURN
-    },
-    startedAt: new Date(startedAtMs).toISOString(),
-    finishedAt: new Date(startedAtMs).toISOString(),
-    elapsedMs: 0,
-    stopReason: 'running',
-    error: null,
-    evolutionMatches: 0,
-    evolutionAborted: 0,
-    tournamentMatches: 0,
-    tournamentAborted: 0,
-    generations: [],
-    strategyLabels: Object.fromEntries(labels),
-    finalLeaderIds: [],
-    evolutionTelemetry: emptyAggregate(),
-    tournament: null,
-    tournamentComplete: false,
-    calibration: null,
-    blockers: []
-  };
-
-  const runFile = path.join(outDir, 'run.json');
-  const resolvedKingdom = kingdomMarket(options.kingdomId);
+  const started = now();
+  const deadline = started + options.deadlineMinutes * 60_000;
+  const searchDeadline = started + Math.round(options.deadlineMinutes * 60_000 * (1 - UNION_DEADLINE_RESERVE));
   prepareDirectory(outDir);
-  writeJson(runFile, runRecord(summary, resolvedKingdom));
-
-  const generationsFile = path.join(outDir, 'generations.jsonl');
-  // Every leader of every generation, for `strategies.json`. The tournament takes a smaller set.
-  const everyLeader: { source: string; strategy: Strategy }[] = [];
-  const seen = new Set<string>();
-  const remember = (source: string, strategy: Strategy): void => {
-    if (seen.has(strategy.id)) return;
-    seen.add(strategy.id);
-    everyLeader.push({ source, strategy });
+  const base: RunSummary = {
+    schemaVersion: 2, valid: false, kingdomId: options.kingdomId, kingdomName: kingdomOf(options.kingdomId).name,
+    mode: options.mode, seed: options.seed,
+    limits: {
+      restarts: options.restarts, initialStrategies: options.initialStrategies,
+      candidates: options.candidates, iterations: options.iterations,
+      nicheAdditions: options.nicheAdditions, seeds: options.seeds,
+      unionIterations: options.unionIterations, deadlineMinutes: options.deadlineMinutes,
+      stateLimit: options.stateLimit, workers: options.workers,
+      turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER, actionCapPerTurn: ACTION_CAP_PER_TURN,
+      gameBoundBeforeDiagnostics: conservativeGameBound(options)
+    },
+    startedAt: new Date(started).toISOString(), finishedAt: new Date(started).toISOString(), elapsedMs: 0,
+    stopReason: 'running', error: null, matches: 0, aborted: 0, matrix: null, equilibrium: null,
+    strategies: [], iterations: [], restartAgreement: [], calibration: null,
+    telemetry: emptyAggregate(), weightIntervals: {}
   };
-
+  const runPath = path.join(outDir, 'run.json');
+  const iterationsPath = path.join(outDir, 'iterations.jsonl');
+  writeText(iterationsPath, '');
+  writeJson(runPath, { ...base, kingdom: kingdomMarket(options.kingdomId), seedNamespaces: { derivation: 'run:phase:restart:attempt:block' } });
+  let summary = base;
+  const completedEvents: IterationEvent[] = [];
   try {
-    const results = await runEvolution({
-      kingdomId: options.kingdomId,
-      seed: options.seed,
-      candidates: options.candidates,
-      leaders: options.leaders,
-      generations: options.generations,
-      sharedSeeds: options.sharedSeeds,
-      turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
-      actionCapPerTurn: ACTION_CAP_PER_TURN,
-      stateLimit: options.stateLimit,
-      deadline: evolutionDeadline,
-      now
-    }, (result) => {
-      summary.generations.push(generationLine(result));
-      summary.evolutionMatches += result.matchCount;
-      summary.evolutionAborted += result.overflowCount;
-      mergeAggregate(summary.evolutionTelemetry, result.telemetry);
-      fs.appendFileSync(generationsFile, `${JSON.stringify(generationLine(result))}\n`);
-    }, runner);
-
-    const finalLeaders = results.at(-1)?.leaders.map((entry) => entry.strategy) ?? [];
-    summary.finalLeaderIds = finalLeaders.map((leader) => leader.id);
-    summary.stopReason = results.length === options.generations && !results.at(-1)?.partial
-      ? 'generations'
-      : 'deadline';
-
-    const retained = retainedLeaders(results);
-    const seeds = seedStrategies(options.kingdomId);
-
-    // Source precedence, so the label carries the strongest claim on a strategy that has several.
-    for (const leader of finalLeaders) remember('final', leader);
-    for (const leader of retained) remember('retained', leader);
-    for (const result of results) for (const entry of result.leaders) remember('leader', entry.strategy);
-    for (const seed of seeds) remember('seed', seed);
-
-    // The tournament takes the final leaders, one best leader per generation, and the fixed
-    // seeds — not every leader of every generation, which grows quadratically with the
-    // generation count. Final leaders come first because `roundRobin` walks pairs in this order and
-    // stops at the deadline, and the calibration gate reads exactly the final leaders' matches: a
-    // truncated tournament must cost precision, never the verdict.
-    const entrants = dedupeById([...finalLeaders, ...retained, ...seeds]);
-
-    const tournament = await runTournament(entrants, {
-      kingdomId: options.kingdomId,
-      seed: options.seed,
-      sharedSeeds: options.sharedSeeds,
-      turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
-      actionCapPerTurn: ACTION_CAP_PER_TURN,
-      stateLimit: options.stateLimit,
-      finalLeaderIds: summary.finalLeaderIds,
-      deadline: tournamentDeadline,
-      now
-    }, runner);
-    summary.tournament = tournament;
-    summary.tournamentComplete = !tournament.partial;
-    summary.tournamentMatches = tournament.matches;
-    summary.tournamentAborted = abortedInTournament(tournament.telemetry);
-    if (tournament.partial) {
-      // The deadline stopped the run, whatever evolution managed. Reporting `generations` here would
-      // claim the run finished the work it was asked for.
-      summary.stopReason = 'deadline';
-      summary.blockers.push(`The final tournament played ${tournament.pairsPlayed} of`
-        + ` ${tournament.pairsExpected} pairs before the deadline, so the ranking and any calibration`
-        + ' verdict below are not final.');
+    const phaseSeeds: Record<string, number[]> = { matrix: namespaceSeeds(options.seed, 'matrix', options.seeds) };
+    for (let restart = 0; restart < options.restarts; restart += 1) {
+      phaseSeeds[`initialization:${restart}`] = namespaceSeeds(options.seed, 'initialization', 1, restart, 0);
     }
-
-    if (options.kingdomId === CALIBRATION_KINGDOM_ID) {
-      // The gate throws when every final leader is a fixed seed. That is a result — the search
-      // never beat its own yardstick — and an unattended run must record it, not die on it.
-      try {
-        summary.calibration = checkRiggedMelee(tournament.calibration);
-      } catch (error) {
-        const survivors = summary.finalLeaderIds
-          .map((id) => summary.strategyLabels[id] ?? id).join(', ') || 'none';
-        summary.blockers.push('The calibration gate has no evolved final leader to judge:'
-          + ` ${error instanceof Error ? error.message : String(error)}`
-          + ` The leaders that survived were ${survivors}.`);
+    for (let restart = 0; restart <= options.restarts; restart += 1) for (let attempt = 0; attempt < Math.max(options.iterations, options.unionIterations); attempt += 1) {
+      for (const phase of ['global-screen', 'global-confirm', 'niche-screen', 'niche-confirm'] as const) {
+        phaseSeeds[`${phase}:${restart}:${attempt}`] = namespaceSeeds(options.seed, phase,
+          options.seeds, restart, attempt);
       }
+      phaseSeeds[`bootstrap:global:${restart}:${attempt}`] = namespaceSeeds(options.seed, 'bootstrap', 1,
+        restart, attempt * 2);
+      phaseSeeds[`bootstrap:niche:${restart}:${attempt}`] = namespaceSeeds(options.seed, 'bootstrap', 1,
+        restart, attempt * 2 + 1);
     }
-
-    writeJson(path.join(outDir, 'tournament.json'), tournamentRecord(tournament));
+    phaseSeeds.diagnostic = namespaceSeeds(options.seed, 'diagnostic', options.seeds);
+    phaseSeeds['bootstrap:diagnostic'] = namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 1, 0);
+    phaseSeeds['bootstrap:weights'] = namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 2, 0);
+    assertDisjointSeedNamespaces(phaseSeeds);
+    const execute = deps.runPsro ?? runPsro;
+    const result = await execute({
+      kingdomId: options.kingdomId, seed: options.seed, restarts: options.restarts,
+      initialStrategies: options.initialStrategies, candidates: options.candidates,
+      iterations: options.iterations, nicheAdditions: options.nicheAdditions, seeds: options.seeds,
+      unionIterations: options.unionIterations, turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
+      actionCapPerTurn: ACTION_CAP_PER_TURN, stateLimit: options.stateLimit, searchDeadline,
+      finalDeadline: deadline, onEvent: (event) => {
+        completedEvents.push(event);
+        fs.appendFileSync(iterationsPath, `${JSON.stringify(iterationRecord(event))}\n`);
+      }
+    }, runner, now);
+    const gameBound = conservativeGameBound(options);
+    if (result.matches > gameBound) {
+      throw new Error(`PSRO played ${result.matches} games, above its mechanical bound of ${gameBound}.`);
+    }
+    const telemetry = allTelemetry(result);
+    const calibrationResult = await calibrationDiagnostic(options, result, runner);
+    if (calibrationResult) mergeAggregate(telemetry, calibrationResult.telemetry);
+    const intervals = weightIntervals(result,
+      namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 2, 0)[0]!);
+    const finished = now();
+    summary = { ...base, valid: result.valid, finishedAt: new Date(finished).toISOString(),
+      elapsedMs: finished - started, stopReason: result.stopReason,
+      matches: result.matches + (calibrationResult?.matches ?? 0),
+      aborted: aborts(telemetry), matrix: result.matrix, equilibrium: result.equilibrium,
+      strategies: result.strategies, iterations: result.events,
+      restartAgreement: result.restartAgreement, calibration: calibrationResult?.diagnostic ?? null,
+      telemetry, weightIntervals: intervals };
+    writeText(iterationsPath, result.events.map((event) => JSON.stringify(iterationRecord(event))).join('\n')
+      + (result.events.length ? '\n' : ''));
+    writeJson(path.join(outDir, 'matrix.json'), { ...result.matrix, equilibrium: result.equilibrium });
+    const nicheIds = new Set(result.restarts.flatMap((restart) => restart.nicheDiscoveries));
+    const admitted = new Set(result.events.map((event) => event.admittedStrategyId).filter(Boolean));
+    writeJson(path.join(outDir, 'strategies.json'), { strategies: result.strategies.map((strategy) => ({
+      strategy, source: nicheIds.has(strategy.id) ? 'rectified-niche'
+        : admitted.has(strategy.id) ? 'global-response' : 'automatic-initialization'
+    })) });
+    const matrixTelemetry = emptyAggregate();
+    for (const cell of result.matrix.cells) mergeAggregate(matrixTelemetry, cell.telemetry);
+    const screenTelemetry = emptyAggregate();
+    const confirmationTelemetry = emptyAggregate();
+    for (const event of result.events) if (event.response) {
+      mergeAggregate(screenTelemetry, event.response.screenTelemetry);
+      mergeAggregate(confirmationTelemetry, event.response.confirmationTelemetry);
+    }
     writeJson(path.join(outDir, 'telemetry.json'), {
-      evolution: summary.evolutionTelemetry,
-      tournament: tournament.telemetry
+      matrix: matrixTelemetry, screening: screenTelemetry, confirmation: confirmationTelemetry,
+      diagnostic: calibrationResult?.telemetry ?? emptyAggregate(), total: telemetry
     });
+    writeJson(runPath, { ...summary, matrix: undefined, telemetry: undefined, iterations: undefined,
+      kingdom: kingdomMarket(options.kingdomId), seedNamespaces: phaseSeeds });
   } catch (error) {
-    summary.stopReason = 'error';
-    summary.error = error instanceof Error ? error.message : String(error);
+    const finished = now();
+    const message = error instanceof Error ? error.message : String(error);
+    const detail = error instanceof InvalidEvaluationError ? ` ${JSON.stringify(error.detail)}` : '';
+    summary = { ...base, finishedAt: new Date(finished).toISOString(), elapsedMs: finished - started,
+      stopReason: 'error', error: `${message}${detail}`,
+      iterations: completedEvents };
+    writeJson(path.join(outDir, 'matrix.json'), { complete: false, equilibrium: null });
+    writeJson(path.join(outDir, 'strategies.json'), { strategies: [] });
+    writeJson(path.join(outDir, 'telemetry.json'), summary.telemetry);
+    writeJson(runPath, { ...summary, matrix: undefined, telemetry: undefined, iterations: undefined,
+      kingdom: kingdomMarket(options.kingdomId) });
   }
-
-  const finishedAtMs = now();
-  summary.finishedAt = new Date(finishedAtMs).toISOString();
-  summary.elapsedMs = finishedAtMs - startedAtMs;
-
-  writeJson(path.join(outDir, 'strategies.json'), strategyRecord(everyLeader, labels));
   writeText(path.join(outDir, 'report.md'), renderReport(summary));
-  writeJson(runFile, runRecord(summary, resolvedKingdom));
   return summary;
 }

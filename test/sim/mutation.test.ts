@@ -2,13 +2,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { SeededRandom, createGame, kingdomMarket, marketCost, registerKingdom, resetKingdoms, submitStartingBuild } from '../../src/game';
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
 import { repairBuildIn } from '../../src/sim/build';
-import { nextPopulation } from '../../src/sim/evolution';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
 import {
   MAX_DESIRED_COUNT, MUTATION_ATTEMPTS, MUTATION_NAMES, applyMutation, kingdomFacts,
   mutate, mutateUnique, mutationRandom, repairStrategy
 } from '../../src/sim/mutation';
-import { seedLabels, seedStrategies } from '../../src/sim/seedPopulation';
+import { diagnosticLabels, diagnosticStrategies } from '../../src/sim/baselines';
 import { ATTACK_MECHANICS } from '../../src/sim/search';
 import { canonicalStrategy } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
@@ -33,8 +32,8 @@ function assertBounds(kingdomId: string, plan: Strategy): void {
 }
 
 function seedByLabel(kingdomId: string, label: string): Strategy {
-  const labels = seedLabels(kingdomId);
-  const found = seedStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);
+  const labels = diagnosticLabels(kingdomId);
+  const found = diagnosticStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);
   if (!found) throw new Error(`No ${label} seed in ${kingdomId}.`);
   return found;
 }
@@ -42,7 +41,7 @@ function seedByLabel(kingdomId: string, label: string): Strategy {
 describe('shared build repair', () => {
   it('uses the same legal build at mutation time and match time', () => {
     for (const kingdomId of CURATED_KINGDOM_IDS) {
-      for (const baseline of seedStrategies(kingdomId)) {
+      for (const baseline of diagnosticStrategies(kingdomId)) {
         const mutated = mutate(kingdomId, baseline, mutationRandom(21, 1, 3));
         const state = createGame({ seed: 5, kingdomId });
         expect(strategyAgent(mutated).chooseStartingBuild(state, 'ochre')).toEqual(mutated.startingBuild);
@@ -129,17 +128,8 @@ describe('mutation reach and bounds', () => {
     }
   });
 
-  it('fills a population with unique normalized strategies', () => {
-    for (const kingdomId of CURATED_KINGDOM_IDS) {
-      const population = nextPopulation(kingdomId, seedStrategies(kingdomId), 12, 5, 2);
-      expect(population).toHaveLength(12);
-      expect(new Set(population.map(canonicalStrategy)).size).toBe(12);
-      for (const plan of population) assertBounds(kingdomId, plan);
-    }
-  });
-
   it('reports no candidate when every attempted form is taken', () => {
-    const parent = seedStrategies('three-way-open')[1]!;
+    const parent = diagnosticStrategies('three-way-open')[1]!;
     const taken = new Set<string>();
     for (let salt = 0; salt < MUTATION_ATTEMPTS; salt += 1) {
       taken.add(canonicalStrategy(mutate('three-way-open', parent, mutationRandom(5, 1, 0, salt))));
@@ -151,7 +141,7 @@ describe('mutation reach and bounds', () => {
 describe('seeded strategies', () => {
   it('provides five distinct valid damage plans in every curated kingdom', () => {
     for (const kingdomId of CURATED_KINGDOM_IDS) {
-      const seeds = seedStrategies(kingdomId);
+      const seeds = diagnosticStrategies(kingdomId);
       expect(seeds).toHaveLength(5);
       expect(new Set(seeds.map((seed) => seed.id)).size).toBe(5);
       const definitions = new Map(kingdomMarket(kingdomId).map((definition) => [definition.id, definition]));
@@ -164,8 +154,8 @@ describe('seeded strategies', () => {
   });
 
   it('uses the same canonical seeds for equal markets', () => {
-    expect(seedStrategies('rigged-melee').map((seed) => seed.id))
-      .toEqual(seedStrategies('three-way-open').map((seed) => seed.id));
+    expect(diagnosticStrategies('rigged-melee').map((seed) => seed.id))
+      .toEqual(diagnosticStrategies('three-way-open').map((seed) => seed.id));
   });
 });
 

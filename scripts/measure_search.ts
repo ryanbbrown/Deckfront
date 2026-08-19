@@ -17,7 +17,7 @@ import process from 'node:process';
 import { strategyAgent } from '../src/sim/agents/strategyAgent';
 import { CURATED_KINGDOM_IDS } from '../src/sim/kingdoms';
 import { runMatch } from '../src/sim/match';
-import { seedStrategies } from '../src/sim/seedPopulation';
+import { diagnosticStrategies } from '../src/sim/baselines';
 
 const TURN_LIMIT = 30;
 const ACTION_CAP = 200;
@@ -67,7 +67,7 @@ for (let repeat = 0; repeat < repeats; repeat += 1) {
   const repeatStarted = performance.now();
   let matches = 0;
   for (const kingdomId of kingdoms) {
-    const strategies = seedStrategies(kingdomId);
+    const strategies = diagnosticStrategies(kingdomId);
     for (const seed of seeds) {
       for (const ochre of strategies) {
         for (const indigo of strategies) {

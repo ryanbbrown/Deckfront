@@ -67,3 +67,16 @@ export const SEED_STRATEGIES: Readonly<Record<string, readonly Strategy[]>> = de
 export const SEED_LABELS: Readonly<Record<string, readonly string[]>> = deepFreeze(
   Object.fromEntries(Object.entries(SPECS).map(([kingdomId, specs]) => [kingdomId, specs.map((spec) => spec.id)]))
 );
+
+export function diagnosticStrategies(kingdomId: string): readonly Strategy[] {
+  const strategies = SEED_STRATEGIES[kingdomId];
+  if (!strategies) throw new Error(`Unknown diagnostic kingdom: ${kingdomId}.`);
+  return strategies;
+}
+
+export function diagnosticLabels(kingdomId: string): Map<string, string> {
+  const strategies = diagnosticStrategies(kingdomId);
+  const labels = SEED_LABELS[kingdomId];
+  if (!labels) throw new Error(`Unknown diagnostic kingdom: ${kingdomId}.`);
+  return new Map(strategies.map((strategy, index) => [strategy.id, labels[index]!]));
+}

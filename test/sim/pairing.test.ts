@@ -5,7 +5,7 @@ import {
   shouldStopPairing
 } from '../../src/sim/pairing';
 import type { PairingMatchRunner } from '../../src/sim/pairing';
-import { seedStrategies } from '../../src/sim/seedPopulation';
+import { diagnosticStrategies } from '../../src/sim/baselines';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
 
 type CandidateResult = 'win' | 'loss' | 'draw' | 'abort';
@@ -48,10 +48,10 @@ function scripted(results: readonly CandidateResult[]): PairingMatchRunner {
 }
 
 function outcome(seedCount: number, blocks: readonly CandidateResult[]) {
-  const [candidate, opponent] = seedStrategies('current-duel');
+  const [candidate, opponent] = diagnosticStrategies('current-duel');
   return playPairing(candidate!, opponent!, {
     kingdomId: 'current-duel', seeds: Array.from({ length: seedCount }, (_, index) => index + 1),
-    turnLimitPerPlayer: 30, actionCapPerTurn: 200
+    turnLimitPerPlayer: 30, actionCapPerTurn: 200, allowEarlyStop: true
   }, scripted(blocks));
 }
 
@@ -90,6 +90,16 @@ describe('the sequential sign-test rule', () => {
     expect(result.record.wins).toBe(48);
   });
 
+  it('disables early stopping for screens, confirmations, and final top-ups', () => {
+    const [candidate, opponent] = diagnosticStrategies('current-duel');
+    const result = playPairing(candidate!, opponent!, {
+      kingdomId: 'current-duel', seeds: Array.from({ length: 25 }, (_, index) => index + 1),
+      turnLimitPerPlayer: 30, actionCapPerTurn: 200, allowEarlyStop: false
+    }, scripted(Array<CandidateResult>(25).fill('win')));
+    expect(result.seedBlocks).toBe(25);
+    expect(result.blocks).toHaveLength(25);
+  });
+
   it('removes tied and abort-only blocks from the sign-test sample', () => {
     const blocks: CandidateResult[] = [
       ...Array<CandidateResult>(11).fill('win'),
@@ -115,7 +125,7 @@ describe('the production seed gate', () => {
   it('finishes a fixed-seed round robin in every kingdom without draws or turn-limit games', { timeout: 120_000 }, () => {
     let games = 0;
     for (const kingdomId of CURATED_KINGDOM_IDS) {
-      const strategies = seedStrategies(kingdomId);
+      const strategies = diagnosticStrategies(kingdomId);
       expect(strategies).toHaveLength(5);
       expect(new Set(strategies.map((entry) => entry.id)).size).toBe(5);
       for (let left = 0; left < strategies.length; left += 1) {

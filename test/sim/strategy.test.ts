@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SEED_STRATEGIES } from '../../src/sim/baselines';
-import { seedStrategies } from '../../src/sim/seedPopulation';
+import { SEED_STRATEGIES, diagnosticStrategies } from '../../src/sim/baselines';
 import { formatStrategy, identify, registerIdentity } from '../../src/sim/strategy';
 import { strategy } from './fixtures';
 
@@ -13,7 +12,7 @@ describe('seed strategy model', () => {
   });
 
   it('refuses every in-place write', () => {
-    const plan = seedStrategies('current-duel')[0]!;
+    const plan = diagnosticStrategies('current-duel')[0]!;
     expect(() => { (plan.buyAgenda[0] as unknown as Record<string, number>).desiredCount = 99; }).toThrow(TypeError);
     expect(plan.buyAgenda[0]!.desiredCount).toBe(3);
     for (const list of [plan.startingBuild, plan.buyAgenda]) {

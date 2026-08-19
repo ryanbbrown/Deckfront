@@ -10,7 +10,7 @@ import { runMatch } from '../../src/sim/match';
 import type { Strategy } from '../../src/sim/strategy';
 import type { Agent, MatchConfig, MatchResult } from '../../src/sim/types';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
-import { seedLabels, seedStrategies } from '../../src/sim/seedPopulation';
+import { diagnosticLabels, diagnosticStrategies } from '../../src/sim/baselines';
 import { strategy } from './fixtures';
 
 function buyState(options: { kingdomId?: string; money: number }): GameState {
@@ -42,8 +42,8 @@ function bought(commands: readonly GameCommand[]): string[] {
 afterEach(() => { resetKingdoms(); });
 
 function seedByLabel(kingdomId: string, label: string): Strategy {
-  const labels = seedLabels(kingdomId);
-  const found = seedStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);
+  const labels = diagnosticLabels(kingdomId);
+  const found = diagnosticStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);
   if (!found) throw new Error(`No ${label} seed in ${kingdomId}.`);
   return found;
 }
@@ -193,7 +193,7 @@ describe('strategy agent dispatch', () => {
 describe('seed starting builds', () => {
   it('submits every complete seed build without repair', () => {
     for (const kingdomId of CURATED_KINGDOM_IDS) {
-      for (const plan of seedStrategies(kingdomId)) {
+      for (const plan of diagnosticStrategies(kingdomId)) {
         const state = createGame({ seed: 1, kingdomId });
         const build = repairBuild(state, plan.startingBuild);
         expect(build, `${kingdomId}/${plan.id}`).toEqual(plan.startingBuild);
@@ -271,7 +271,7 @@ describe('seed coverage', () => {
     const kingdomIds = CURATED_KINGDOM_IDS;
     let matches = 0;
     for (const kingdomId of kingdomIds) {
-      const seeds = seedStrategies(kingdomId);
+      const seeds = diagnosticStrategies(kingdomId);
       for (const ochre of seeds) {
         for (const indigo of seeds) {
           const result = runMatch({

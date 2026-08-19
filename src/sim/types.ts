@@ -1,6 +1,4 @@
 import type { GameState, LegalAction, PlayerId } from '../game';
-import type { CalibrationInput } from './calibration';
-import type { Strategy } from './strategy';
 
 /** Thrown by an agent whose Action-phase search passes its visited-state limit. */
 export class ActionSearchOverflowError extends Error {}
@@ -49,14 +47,6 @@ export interface MatchResult {
   telemetry: MatchTelemetry;
 }
 
-export interface ScoredStrategy {
-  strategy: Strategy;
-  score: number;           // mean of completed opponent-pairing means; 0 when none completed
-  completedPairings: number;
-  completedGames: number;
-  abortedGames: number;
-}
-
 export interface PairRecord {
   played: number; wins: number; draws: number; losses: number; aborted: number;
 }
@@ -76,62 +66,4 @@ export interface TelemetryAggregate {
   deadDraws: DeadDrawCounts;
   turnsToWin: { total: number; count: number };
   byOrientation: Record<OrientationKey, Record<SideKey, PairRecord>>;
-}
-
-export interface EvolutionConfig {
-  kingdomId: string;
-  seed: number;
-  candidates: number;
-  leaders: number;
-  generations: number;
-  sharedSeeds: number;
-  turnLimitPerPlayer: number;
-  actionCapPerTurn: number;
-  // Action-phase visited-state limit. A search that passes it aborts the match, which scores for
-  // neither side. Defaults to `DEFAULT_STATE_LIMIT`; lowering it makes matches abort.
-  stateLimit?: number | undefined;
-  deadline?: number | undefined;      // epoch milliseconds
-  now?: (() => number) | undefined;   // injectable clock, for tests
-}
-
-export interface GenerationResult {
-  generation: number;
-  partial: boolean;
-  leaders: ScoredStrategy[];
-  scores: Record<string, number>;
-  matchCount: number;
-  overflowCount: number;
-  elapsedMs: number;
-  telemetry: TelemetryAggregate;
-  pairingStops: Record<'significant' | 'maximum', number>;
-  seedBlockCounts: Record<string, number>;
-  pairingsPlayed: { candidateId: string; opponentId: string }[];
-}
-
-export interface TournamentConfig {
-  kingdomId: string; seed: number; sharedSeeds: number;
-  turnLimitPerPlayer: number; actionCapPerTurn: number;
-  stateLimit?: number | undefined;
-  // Required. The last generation's leaders, whose acquisitions the calibration gate reads.
-  // `entrants` also holds retained leaders from every generation and the fixed seeds, so the
-  // final leaders cannot be recovered from it, and inferring them would produce a wrong calibration
-  // result rather than an error.
-  finalLeaderIds: readonly string[];
-  deadline?: number | undefined; now?: (() => number) | undefined;
-}
-
-export interface TournamentResult {
-  entrants: Strategy[];
-  pairs: Record<string, Record<string, PairRecord>>;
-  ranking: ScoredStrategy[];
-  telemetry: TelemetryAggregate;
-  // A deadline can cut the table short. `partial` marks that, so a calibration verdict taken from an
-  // incomplete round robin cannot be read as a complete one.
-  partial: boolean;
-  pairsPlayed: number;
-  pairsExpected: number;
-  matches: number;
-  pairingStops: Record<'significant' | 'maximum', number>;
-  seedBlockCounts: Record<string, number>;
-  calibration: CalibrationInput;   // built here, consumed by checkRiggedMelee
 }

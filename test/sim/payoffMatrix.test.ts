@@ -1,0 +1,66 @@
+import { describe, expect, it } from 'vitest';
+import { diagnosticStrategies } from '../../src/sim/baselines';
+import { emptyAggregate } from '../../src/sim/pairing';
+import { InvalidEvaluationError, PayoffMatrix, matrixProtocol } from '../../src/sim/payoffMatrix';
+import type { PairingJob, PairingRunner } from '../../src/sim/pairingRunner';
+
+class RecordingRunner implements PairingRunner {
+  jobs: PairingJob[] = [];
+  constructor(private readonly abort = false) {}
+  async run(jobs: readonly PairingJob[]) {
+    this.jobs.push(...jobs);
+    return { submitted: jobs.length, outcomes: jobs.map((job) => ({
+      record: { played: this.abort ? 0 : job.options.seeds.length * 4, wins: this.abort ? 0 : job.options.seeds.length * 4,
+        draws: 0, losses: 0, aborted: this.abort ? 1 : 0 },
+      candidateScore: this.abort ? 0 : job.options.seeds.length * 4, opponentScore: 0,
+      candidateMean: this.abort ? null : 1, opponentMean: this.abort ? null : 0,
+      telemetry: emptyAggregate(), matches: job.options.seeds.length * 4,
+      seedBlocks: job.options.seeds.length, stopReason: 'maximum' as const,
+      blocks: job.options.seeds.map((seed) => ({ seed, score: this.abort ? 0 : 1,
+        played: this.abort ? 0 : 4, aborted: this.abort ? 4 : 0 })),
+      aborts: this.abort ? [{ seed: job.options.seeds[0]!, orientationIndex: 0,
+        reason: 'actionSearchOverflow' as const }] : []
+    })) };
+  }
+  async close() {}
+}
+
+describe('protocol-keyed payoff matrix', () => {
+  const protocol = () => matrixProtocol('current-duel', [1, 2], 30, 200, 20000);
+
+  it('runs each unordered pair once, mirrors it, and adds only a new row and column', async () => {
+    const runner = new RecordingRunner();
+    const [a, b, d] = diagnosticStrategies('current-duel');
+    const matrix = new PayoffMatrix(protocol(), runner);
+    matrix.addStrategy(a!); matrix.addStrategy(b!);
+    await matrix.fillAll(false);
+    expect(runner.jobs).toHaveLength(1);
+    const before = matrix.snapshot().cells[0]!.key;
+    await matrix.addRow(d!, false);
+    expect(runner.jobs).toHaveLength(3);
+    const snapshot = matrix.snapshot();
+    expect(snapshot.complete).toBe(true);
+    expect(snapshot.centeredPayoffs[0]![1]!).toBe(-snapshot.centeredPayoffs[1]![0]!);
+    expect(snapshot.cells.find((cell) => cell.key === before)?.blocks).toHaveLength(2);
+    expect(runner.jobs.every((job) => job.options.allowEarlyStop === false)).toBe(true);
+  });
+
+  it('invalidates a complete cell when any game aborts', async () => {
+    const runner = new RecordingRunner(true);
+    const [a, b] = diagnosticStrategies('current-duel');
+    const matrix = new PayoffMatrix(protocol(), runner);
+    await expect(matrix.fillPair(a!, b!, false)).rejects.toBeInstanceOf(InvalidEvaluationError);
+    expect(matrix.snapshot().complete).toBe(false);
+  });
+
+  it('produces the same protocol keys and bytes independent of entrant order', async () => {
+    const strategies = diagnosticStrategies('current-duel').slice(0, 3);
+    const build = async (order: readonly typeof strategies[number][]) => {
+      const matrix = new PayoffMatrix(protocol(), new RecordingRunner());
+      for (const strategy of order) matrix.addStrategy(strategy);
+      await matrix.fillAll(false);
+      return JSON.stringify(matrix.snapshot());
+    };
+    expect(await build(strategies)).toBe(await build([...strategies].reverse()));
+  });
+});
