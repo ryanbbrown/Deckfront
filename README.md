@@ -47,7 +47,7 @@ Vitest checks the engine, server, persistence, replay, and simulator. Playwright
 
 ## Balance simulator
 
-The simulator plays seeded headless matches between strategy players. A strategy contains a starting build, finite purchase targets, and one card to repeat after those targets are complete. Every strategy uses the same deterministic Action-phase pilot. The pilot searches legal lines without reading the hidden draw order, then compares wins, damage, purchases, Copper thinning, draws, and printed attack range in that order.
+The simulator plays seeded headless matches between strategy players. A strategy contains a starting build, finite purchase targets, and one card to repeat after those targets are complete. Every strategy uses the same deterministic Action-phase pilot. The pilot searches legal lines without reading the hidden draw order. It compares wins, damage, purchases, Copper thinning, obsolete Cull retirement, draws, and printed attack range in that order.
 
 Build and run an experiment:
 
@@ -64,7 +64,7 @@ npx tsx scripts/measure_search.ts
 npx tsx scripts/measure_search.ts --kingdom rigged-melee --seeds 3 --repeats 5
 ```
 
-Experiment output goes to `.experiments/<kingdom>/<mode>/`. Reports are committed. Generated JSON inputs and results stay ignored but are not cleanup targets. The curated kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and `rigged-melee`.
+Experiment output goes to `.experiments/<kingdom>/<mode>/`. Reports are committed. New runs use the shared-pilot strategy shape. The tracked full reports for `current-duel`, `three-way-engine`, and `rigged-melee` are historical performance evidence from the pre-shared-pilot implementation at `e1754fd`. Generated JSON inputs and results stay ignored but are not cleanup targets. The curated kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and `rigged-melee`.
 
 ## Code boundaries
 

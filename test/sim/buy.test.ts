@@ -3,7 +3,7 @@ import {
   applyAction, createGame, listLegalActions, marketCost, registerKingdom, resetKingdoms, submitStartingBuild
 } from '../../src/game';
 import type { GameCommand, GameState, PlayerId } from '../../src/game';
-import { acquiredCount, chooseBuyAction } from '../../src/sim/buy';
+import { acquiredCount, chooseBuyAction, projectPurchases } from '../../src/sim/buy';
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
 import { repairBuild } from '../../src/sim/build';
 import { runMatch } from '../../src/sim/match';
@@ -114,6 +114,15 @@ describe('buy agenda', () => {
     const commands = buyRun(buyState({ money: 7 }), plan);
     expect(bought(commands)).toEqual([]);
     expect(commands.at(-1)!.type).toBe('endBuyPhase');
+  });
+
+  it('projects the same 101 unlimited purchases the real Buy phase executes', () => {
+    const state = buyState({ money: 303 });
+    const plan = strategy({ buyAgenda: [], repeatPurchase: 'silver' });
+    expect(projectPurchases(state, 'ochre', 303, plan)).toEqual({ finite: [], repeated: 101 });
+    const actual = buyRun(state, plan, 102);
+    expect(bought(actual)).toEqual(Array<string>(101).fill('silver'));
+    expect(actual.at(-1)?.type).toBe('endBuyPhase');
   });
 });
 

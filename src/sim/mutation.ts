@@ -36,7 +36,7 @@ export function repairStrategy(kingdomId: string, strategy: Strategy): Strategy 
   const startingBuild = repairBuildIn(
     kingdomId,
     strategy.startingBuild.filter((cardId) => cardId !== 'copper' && marketIds.includes(cardId))
-  );
+  ).sort((left, right) => left.localeCompare(right));
   const buyAgenda: BuyAgendaEntry[] = [];
   for (const entry of strategy.buyAgenda) {
     if (!sold.has(entry.cardId) || buyAgenda.some((kept) => kept.cardId === entry.cardId)) continue;

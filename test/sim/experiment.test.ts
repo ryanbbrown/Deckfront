@@ -10,10 +10,12 @@ import { runExperiment } from '../../src/sim/experiment';
 import { emptyAggregate } from '../../src/sim/pairing';
 import { InlinePairingRunner } from '../../src/sim/pairingRunner';
 import type { PairingRunner } from '../../src/sim/pairingRunner';
+import { repairStrategy } from '../../src/sim/mutation';
 import { seedStrategies } from '../../src/sim/seedPopulation';
 import type { Strategy } from '../../src/sim/strategy';
 import { roundRobin } from '../../src/sim/tournament';
 import type { GenerationResult, ScoredStrategy, TournamentResult } from '../../src/sim/types';
+import { strategy } from './fixtures';
 
 afterEach(() => { resetKingdoms(); });
 
@@ -194,9 +196,20 @@ describe('writing an experiment', () => {
 
   it('admits the final leaders, one best leader per generation, and the seeds, and nothing else', async () => {
     const dir = tempDir();
-    let captured: GenerationResult[] = [];
-    const watching: typeof evolve = async (config, onGeneration, runner) => {
-      captured = await evolve(config, onGeneration, runner);
+    const plans = [
+      ['heavyBlow', 'aim'], ['volley', 'channel'], ['steadyShot', 'muster'],
+      ['quickShot', 'stipend'], ['arcBolt', 'footwork'], ['drive', 'prism']
+    ].map(([build, repeat], index) => repairStrategy(KINGDOM, strategy({
+      startingBuild: [build!], buyAgenda: [{ cardId: repeat!, desiredCount: index + 2 }],
+      repeatPurchase: repeat!
+    })));
+    const captured: GenerationResult[] = [
+      { ...fakeGeneration([plans[0]!, plans[1]!]), generation: 1 },
+      { ...fakeGeneration([plans[2]!, plans[3]!]), generation: 2 },
+      { ...fakeGeneration([plans[4]!, plans[5]!]), generation: 3 }
+    ];
+    const watching: typeof evolve = async (_config, onGeneration) => {
+      for (const generation of captured) onGeneration(generation);
       return captured;
     };
     let entrants: readonly Strategy[] = [];
@@ -206,7 +219,7 @@ describe('writing an experiment', () => {
     };
 
     const summary = await runExperiment(
-      options({ candidates: 8, leaders: 3, generations: 3, sharedSeeds: 1 }), dir,
+      options({ candidates: 8, leaders: 2, generations: 3, sharedSeeds: 1 }), dir,
       { evolve: watching, roundRobin: spy }
     );
 
@@ -217,7 +230,7 @@ describe('writing an experiment', () => {
     const entrantIds = entrants.map((entrant) => entrant.id);
     expect(entrantIds.filter((id) => !allowed.has(id))).toEqual([]);
     // One best leader per generation, plus the last generation's leaders, plus the fixed seeds.
-    expect(entrantIds.length).toBeLessThanOrEqual(3 + 3 + baselines.length);
+    expect(entrantIds.length).toBeLessThanOrEqual(3 + 2 + baselines.length);
 
     // The set the defect admitted: a leader of an earlier generation that was not that generation's
     // best. Without one of these the check would pass on an empty set and prove nothing.

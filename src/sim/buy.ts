@@ -21,6 +21,7 @@ function finiteStillAvailable(state: GameState, strategy: Strategy, acquired: re
   return strategy.buyAgenda.some((entry, index) =>
     entry.cardId !== 'copper'
     && acquired[index]! < entry.desiredCount
+    && resolveCard(state, entry.cardId).cost > 0
     && pileAvailable(state, entry.cardId, supply)
   );
 }
@@ -39,13 +40,13 @@ export function projectPurchases(
   const supply = { ...state.supply };
   let repeated = 0;
 
-  for (let guard = 0; guard < 100; guard += 1) {
+  while (true) {
     let bought = false;
     for (let index = 0; index < strategy.buyAgenda.length; index += 1) {
       const entry = strategy.buyAgenda[index]!;
       if (entry.cardId === 'copper' || acquired[index]! >= entry.desiredCount) continue;
       const definition = resolveCard(state, entry.cardId);
-      if (!pileAvailable(state, entry.cardId, supply) || definition.cost > money) continue;
+      if (definition.cost <= 0 || !pileAvailable(state, entry.cardId, supply) || definition.cost > money) continue;
       money -= definition.cost;
       acquired[index]! += 1;
       finite[index]! += 1;
@@ -74,7 +75,7 @@ export function chooseBuyAction(
     : actions.find((action) => action.command.type === 'buyCard' && action.command.definitionId === cardId);
 
   for (const entry of strategy.buyAgenda) {
-    if (entry.desiredCount <= 0 || entry.cardId === 'copper') continue;
+    if (entry.desiredCount <= 0 || entry.cardId === 'copper' || resolveCard(state, entry.cardId).cost <= 0) continue;
     if (acquiredCount(state, playerId, entry.cardId) >= entry.desiredCount) continue;
     const action = offered(entry.cardId);
     if (action) return action;
@@ -82,6 +83,7 @@ export function chooseBuyAction(
 
   const everyFiniteDoneOrUnavailable = strategy.buyAgenda.every((entry) =>
     entry.cardId === 'copper'
+    || resolveCard(state, entry.cardId).cost <= 0
     || acquiredCount(state, playerId, entry.cardId) >= entry.desiredCount
     || !pileAvailable(state, entry.cardId)
   );

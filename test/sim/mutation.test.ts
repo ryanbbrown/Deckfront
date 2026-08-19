@@ -87,6 +87,19 @@ describe('strategy normalization', () => {
     expect(canonicalStrategy(repairStrategy('current-duel', legacyA)))
       .toBe(canonicalStrategy(repairStrategy('current-duel', legacyB)));
   });
+
+  it('normalizes starting-build permutations to one population slot', () => {
+    const left = repairStrategy('current-duel', strategy({
+      startingBuild: ['volley', 'aim', 'aim'], repeatPurchase: 'footwork'
+    }));
+    const right = repairStrategy('current-duel', strategy({
+      startingBuild: ['aim', 'volley', 'aim'], repeatPurchase: 'footwork'
+    }));
+    expect(left.startingBuild).toEqual(['aim', 'aim', 'volley']);
+    expect(right.startingBuild).toEqual(left.startingBuild);
+    expect(right.id).toBe(left.id);
+    expect(new Set([canonicalStrategy(left), canonicalStrategy(right)]).size).toBe(1);
+  });
 });
 
 describe('mutation reach and bounds', () => {

@@ -15,7 +15,6 @@ export interface Branch {
   cardsDrawn: number;
   attackPotential: number;
   suffix: number;
-  tieBreak: string;
 }
 export type SearchMemo = Map<string, Branch>;
 export interface SearchBaseline { eventIndex: number; opponentHealth: number }
@@ -126,18 +125,21 @@ function eventTotals(state: GameState, playerId: PlayerId, baseline: SearchBasel
 
 function branchAt(state: GameState, playerId: PlayerId, strategy: Strategy, baseline: SearchBaseline): Branch {
   const events = eventTotals(state, playerId, baseline);
-  const floor = resolveCard(state, strategy.repeatPurchase).cost;
-  const cullIsObsolete = repeatableMoney(state, playerId) <= floor || ownedCount(state, playerId, 'copper') === 0;
+  let obsoleteCullTrashed = 0;
+  if (events.cullTrashed > 0) {
+    const floor = resolveCard(state, strategy.repeatPurchase).cost;
+    const cullIsObsolete = repeatableMoney(state, playerId) <= floor || ownedCount(state, playerId, 'copper') === 0;
+    obsoleteCullTrashed = cullIsObsolete ? events.cullTrashed : 0;
+  }
   return {
     lethal: state.fighters[opponent(playerId)].health === 0,
     damage: baseline.opponentHealth - state.fighters[opponent(playerId)].health,
     purchases: projectPurchases(state, playerId, actionPhaseMoney(state, playerId), strategy),
     copperTrashed: events.copperTrashed,
-    obsoleteCullTrashed: cullIsObsolete ? events.cullTrashed : 0,
+    obsoleteCullTrashed,
     cardsDrawn: events.cardsDrawn,
     attackPotential: printedAttackPotential(state, playerId),
-    suffix: 0,
-    tieBreak: ''
+    suffix: 0
   };
 }
 
@@ -161,10 +163,10 @@ function isBetter(candidate: Branch, best: Branch | null): boolean {
   if (candidate.cardsDrawn !== best.cardsDrawn) return candidate.cardsDrawn > best.cardsDrawn;
   if (candidate.attackPotential !== best.attackPotential) return candidate.attackPotential > best.attackPotential;
   if (candidate.suffix !== best.suffix) return candidate.suffix < best.suffix;
-  return candidate.tieBreak < best.tieBreak;
+  return false;
 }
 
-/** The memo key contains observable card counts, not the hidden draw order. */
+/** The memo key is exact for the current search state, including ordered draw and discard piles. */
 export function memoKey(state: GameState, playerId: PlayerId): string {
   const player = state.players[playerId];
   const mine = state.fighters[playerId];
@@ -186,7 +188,7 @@ export function memoKey(state: GameState, playerId: PlayerId): string {
   return [
     mine.position, mine.health, mine.aimed ? 1 : 0, mine.exposed ? 1 : 0,
     foe.position, foe.health, foe.aimed ? 1 : 0, foe.exposed ? 1 : 0,
-    counts(player.deck.hand), counts(player.deck.play), counts(player.deck.draw), ordered(player.deck.discard),
+    counts(player.deck.hand), counts(player.deck.play), ordered(player.deck.draw), ordered(player.deck.discard),
     player.mana, player.money, player.positionChanged ? 1 : 0, state.rngState,
     pending ? `${pending.type}:${pending.remaining}` : '-', tactical
   ].join('|');
@@ -196,8 +198,21 @@ function blindedState(state: GameState): GameState {
   const copy = structuredClone(state);
   const stable = (left: CardInstance, right: CardInstance): number =>
     left.definitionId.localeCompare(right.definitionId) || left.id.localeCompare(right.id);
-  copy.players.ochre.deck.draw.sort(stable);
-  copy.players.indigo.deck.draw.sort(stable);
+  for (const playerId of ['ochre', 'indigo'] as const) {
+    const draw = copy.players[playerId].deck.draw;
+    let latestRecovery: GameEvent | undefined;
+    for (let index = copy.events.length - 1; index >= 0; index -= 1) {
+      const event = copy.events[index]!;
+      if (event.playerId === playerId && event.type === 'recover') { latestRecovery = event; break; }
+    }
+    const knownTopId = typeof latestRecovery?.detail.cardInstanceId === 'string'
+      && draw[0]?.id === latestRecovery.detail.cardInstanceId
+      ? latestRecovery.detail.cardInstanceId
+      : null;
+    const hidden = knownTopId ? draw.slice(1) : draw;
+    hidden.sort(stable);
+    copy.players[playerId].deck.draw = knownTopId ? [draw[0]!, ...hidden] : hidden;
+  }
   return copy;
 }
 
@@ -226,6 +241,7 @@ function allowedActions(
     })[0]!];
   }
 
+  if (!actions.some((action) => action.command.type === 'playCull')) return actions;
   const floor = resolveCard(state, strategy.repeatPurchase).cost;
   const availableMoney = repeatableMoney(state, playerId);
   return actions.filter((action) => {
@@ -245,11 +261,9 @@ function allowedActions(
     const remainingMoney = availableMoney - removedMoney;
     const remainingCopper = ownedCount(state, playerId, 'copper') - removedCopper;
     if (removesCull && remainingMoney > floor && remainingCopper > 0) return false;
-    return remainingMoney >= floor;
+    return removedMoney === 0 || remainingMoney >= floor;
   });
 }
-
-function commandKey(action: LegalAction): string { return JSON.stringify(action.command); }
 
 /** Searches the shared, deterministic Action-phase policy over a canonical hidden-order state. */
 export function searchAction(
@@ -262,10 +276,10 @@ export function searchAction(
 
   function step(current: GameState, action: LegalAction): Branch {
     if (action.command.type === 'endActionPhase') {
-      return { ...branchAt(current, playerId, strategy, baseline), suffix: 1, tieBreak: commandKey(action) };
+      return { ...branchAt(current, playerId, strategy, baseline), suffix: 1 };
     }
     const child = visit(applyLegalAction(current, action));
-    return { ...child, suffix: child.suffix + 1, tieBreak: `${commandKey(action)}>${child.tieBreak}` };
+    return { ...child, suffix: child.suffix + 1 };
   }
 
   function expand(current: GameState, available: readonly LegalAction[]): Branch {

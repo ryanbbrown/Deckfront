@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { applyAction, listLegalActions, resetKingdoms } from '../../src/game';
-import type { GameState } from '../../src/game';
+import type { GameCommand, GameState } from '../../src/game';
 import { applyLegalAction } from '../../src/game/engine';
 import { createMemo, memoKey, searchAction, searchBaseline } from '../../src/sim/search';
 import { ActionSearchOverflowError } from '../../src/sim/types';
@@ -16,6 +16,23 @@ function firstPlayedDefinition(state: GameState, plan = strategy()): string | un
   return 'cardInstanceId' in action.command ? definitionOf(state, action.command.cardInstanceId) : undefined;
 }
 function trashed(state: GameState): string[] { return state.trash.map((card) => card.definitionId).sort(); }
+
+function actionPhaseCommands(
+  state: GameState, plan: ReturnType<typeof strategy>, memo: ReturnType<typeof createMemo> | null
+): { commands: GameCommand[]; state: GameState } {
+  const baseline = searchBaseline(state, 'ochre');
+  const commands: GameCommand[] = [];
+  let current = state;
+  for (let count = 0; count < 30; count += 1) {
+    const action = searchAction(current, 'ochre', listLegalActions(current), plan, baseline, {
+      stateLimit: 20000, memo
+    }).action;
+    commands.push(action.command);
+    if (action.command.type === 'endActionPhase') return { commands, state: current };
+    current = applyAction(current, action.id);
+  }
+  throw new Error('The test Action phase did not finish.');
+}
 
 describe('shared damage pilot', () => {
   it('takes a lethal line and moves to unlock it', () => {
@@ -55,6 +72,26 @@ describe('hidden draw order', () => {
     expect(afterMuster.players.ochre.deck.hand.map((card) => card.definitionId)).toContain('volley');
     expect(firstPlayedDefinition(afterMuster)).toBe('volley');
   });
+
+  it('keeps the publicly recovered top card while blinding only the hidden suffix', () => {
+    const state = arena({
+      kingdomId: 'three-way-engine', hand: ['reclaim', 'muster'],
+      draw: ['copper', 'silver', 'copper'], discard: ['gold']
+    });
+    const reclaim = listLegalActions(state).find((action) =>
+      'cardInstanceId' in action.command && definitionOf(state, action.command.cardInstanceId) === 'reclaim'
+    )!;
+    const pending = applyAction(state, reclaim.id);
+    const recovered = applyAction(pending, choose(pending, strategy()).id);
+    expect(recovered.players.ochre.deck.draw.map((card) => card.definitionId)).toEqual(['gold', 'silver', 'copper']);
+
+    const permuted = structuredClone(recovered);
+    permuted.players.ochre.deck.draw = [
+      permuted.players.ochre.deck.draw[0]!,
+      ...permuted.players.ochre.deck.draw.slice(1).reverse()
+    ];
+    expect(choose(permuted, strategy()).command).toEqual(choose(recovered, strategy()).command);
+  });
 });
 
 describe('Cull policy', () => {
@@ -76,16 +113,16 @@ describe('Cull policy', () => {
     expect(trashed(playPhase(state, strategy({ repeatPurchase: 'footwork' })))).toEqual(['copper', 'copper']);
   });
 
-  it('does not lower repeatable money below the repeated purchase cost', () => {
+  it('retires Cull but keeps Copper when repeatable money is exactly at the floor', () => {
     const state = arena({ hand: ['cull', 'copper', 'silver'], firstBuyPending: false });
     const finished = playPhase(state, strategy({ repeatPurchase: 'footwork' }));
     expect(trashed(finished)).toEqual(['cull']);
     expect(finished.players.ochre.deck.hand.map((card) => card.definitionId)).toContain('copper');
   });
 
-  it('trashes Cull itself after all Copper is gone', () => {
-    const state = arena({ hand: ['cull', 'gold'], firstBuyPending: false });
-    expect(trashed(playPhase(state, strategy({ repeatPurchase: 'footwork' })))).toEqual(['cull']);
+  it('retires obsolete Cull with no Copper even when money is already below the floor', () => {
+    const state = arena({ hand: ['cull', 'silver'], firstBuyPending: false });
+    expect(trashed(playPhase(state, strategy({ repeatPurchase: 'gold' })))).toEqual(['cull']);
   });
 });
 
@@ -93,6 +130,11 @@ describe('fixed choice policy', () => {
   it('Reclaim selects the highest-cost discarded card', () => {
     const state = arena({ kingdomId: 'three-way-engine', hand: ['reclaim'], draw: ['copper'], discard: ['silver', 'gold'] });
     expect(playPhase(state, strategy({ repeatPurchase: 'footwork' })).players.ochre.deck.draw[0]?.definitionId).toBe('gold');
+  });
+
+  it('breaks equal Reclaim costs by definition id', () => {
+    const state = arena({ kingdomId: 'three-way-engine', hand: ['reclaim'], draw: ['copper'], discard: ['silver', 'footwork'] });
+    expect(playPhase(state, strategy({ repeatPurchase: 'footwork' })).players.ochre.deck.draw[0]?.definitionId).toBe('footwork');
   });
 
   it('uses the revealed state after Prism to preserve the maximum damage line', () => {
@@ -111,6 +153,17 @@ describe('search mechanics', () => {
     expect(choose(state, plan, { memo: null }).command).toEqual(choose(state, plan).command);
   });
 
+  it('keeps exact memo results through Reclaim and a later draw', () => {
+    const state = arena({ kingdomId: 'three-way-engine', hand: ['reclaim'], draw: ['muster'], discard: ['gold', 'copper'] });
+    const plan = strategy({ repeatPurchase: 'footwork' });
+    const memoized = actionPhaseCommands(structuredClone(state), plan, createMemo());
+    const plain = actionPhaseCommands(structuredClone(state), plan, null);
+    expect(memoized.commands).toEqual(plain.commands);
+    expect(memoized.state).toEqual(plain.state);
+    expect(memoized.commands.map((command) => command.type)).toContain('resolveRecover');
+    expect(memoized.commands.filter((command) => 'cardInstanceId' in command)).toHaveLength(2);
+  });
+
   it('does not read labels while searching', () => {
     const state = arena({ hand: [] });
     const actions = listLegalActions(state).map((action) => ({
@@ -126,11 +179,11 @@ describe('search mechanics', () => {
     expect(applyLegalAction(state, action)).toEqual(applyAction(state, action.id));
   });
 
-  it('keys hidden draw piles by observable counts', () => {
+  it('keeps distinct current draw orders in distinct memo entries', () => {
     const forward = arena({ kingdomId: 'three-way-engine', draw: ['silver', 'gold'] });
     const backward = structuredClone(forward);
     backward.players.ochre.deck.draw.reverse();
-    expect(memoKey(forward, 'ochre')).toBe(memoKey(backward, 'ochre'));
+    expect(memoKey(forward, 'ochre')).not.toBe(memoKey(backward, 'ochre'));
   });
 
   it('throws instead of returning a weaker action past its state limit', () => {

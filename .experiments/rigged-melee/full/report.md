@@ -1,3 +1,5 @@
+> Historical performance evidence from the pre-shared-pilot model at implementation commit `e1754fd`; the strategy fields and results below are not current.
+
 # Balance search: Rigged Melee (full)
 
 | Field | Value |

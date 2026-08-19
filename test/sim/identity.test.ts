@@ -38,9 +38,9 @@ const HEADLINES: Record<string, { outcome: string; reason: string; turns: number
   'three-way-engine:11': { outcome: 'indigo', reason: 'victory', turns: 15 },
   'three-way-engine:12': { outcome: 'indigo', reason: 'victory', turns: 12 },
   'rigged-melee:13': { outcome: 'indigo', reason: 'victory', turns: 9 },
-  'range-rich-mixed:14': { outcome: 'indigo', reason: 'victory', turns: 14 },
+  'range-rich-mixed:14': { outcome: 'ochre', reason: 'victory', turns: 15 },
   'current-duel:15': { outcome: 'draw', reason: 'turnLimit', turns: 200 },
-  'three-way-open:16': { outcome: 'ochre', reason: 'victory', turns: 13 },
+  'three-way-open:16': { outcome: 'ochre', reason: 'victory', turns: 11 },
   'three-way-engine:17': { outcome: 'draw', reason: 'turnLimit', turns: 200 }
 };
 
