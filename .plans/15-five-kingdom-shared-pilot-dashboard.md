@@ -65,8 +65,11 @@ node dist-sim/experiment.mjs --kingdom <kingdom-id> --mode full --seed 1 \
 ```
 
 Stop before dashboard generation if any command exits with an error, stops at its deadline, has an
-incomplete generation or tournament, records a blocker, or records an action-search overflow. A
-failed kingdom must be rerun from a clean full-run directory; do not mix files from two attempts.
+incomplete generation or tournament, or records a blocker. A run may contain isolated evolution
+overflows only when every selected generation leader has zero aborted games, the final tournament has
+zero aborted games, and every tournament cell is complete. Show the evolution-abort rate in the
+dashboard. Reject any selected-leader or tournament abort. A failed kingdom must be rerun from a clean
+full-run directory; do not mix files from two attempts.
 
 The five raw JSON and JSONL artifact sets remain ignored. Commit the five newly written
 `.experiments/<kingdom-id>/full/report.md` files. These reports replace the three historical reports
@@ -86,7 +89,9 @@ Before rendering, require all five kingdom ids exactly once and require these fi
 Reject a run unless it has the exact limits in this plan, full mode, seed 1,
 `stopReason === 'generations'`, no error, no blockers, 32 ordered and complete generation rows, five distinct final
 leader ids, and a complete non-partial tournament with every expected pair played. Require the
-rigged-melee calibration to pass.
+rigged-melee calibration result to be present and internally consistent; a calibration failure is a
+result to display, not a reason to rerun. Require zero aborted games for every selected generation
+leader and for the final tournament. Allow other evolution overflows only as a displayed run metric.
 
 Validate all strategy records against the current executable shape:
 
@@ -117,7 +122,8 @@ Show one row per kingdom with:
 - first-player score from tournament orientation cells, with draws worth half a win;
 - aborted-match rate;
 - dominant kingdom-wide damage family and its damage share; and
-- generation and tournament completion.
+- generation and tournament completion; and
+- the rigged-melee calibration result.
 
 Use an em dash for a zero denominator. Do not show planned-family or acquired-family summaries.
 
@@ -157,6 +163,10 @@ leader.
 - Keep short, data-derived evidence text for game length, damage-family dominance, draws, and first
   player advantage. Do not hard-code claims such as ranged winning four kingdoms or mage having no
   leaders; compute the statements from the new runs or state the saved telemetry limit.
+- Show rigged-melee calibration PASS or FAIL prominently in its overview row and kingdom section.
+  State the saved top-final-leader Heavy Blow count and the number of final leaders that acquired
+  Heavy Blow. When the saved result is FAIL, show how the fixed melee seed ranked against the best
+  final leader so generation drift is visible.
 
 ## Focused tests
 
@@ -168,7 +178,10 @@ The tests must fail for these regressions:
 
 - a kingdom, artifact file, generation, final leader, tournament pair, or cross-file strategy id is
   missing or duplicated;
-- a run is incomplete, errored, blocked, uses a lower limit, or uses the old strategy fields;
+- a run is incomplete, errored, blocked, uses a lower limit, has a selected-leader or tournament
+  abort, or uses the old strategy fields;
+- the rigged-melee calibration is missing or inconsistent with the tournament ranking and acquisition
+  telemetry;
 - a finite or repeated purchase contains Copper;
 - a build or purchase refers to a card outside the saved kingdom market;
 - starting-build copies are not subtracted from a finite purchase step;

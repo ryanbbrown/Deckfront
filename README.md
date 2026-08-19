@@ -64,7 +64,25 @@ npx tsx scripts/measure_search.ts
 npx tsx scripts/measure_search.ts --kingdom rigged-melee --seeds 3 --repeats 5
 ```
 
-Experiment output goes to `.experiments/<kingdom>/<mode>/`. Reports are committed. New runs use the shared-pilot strategy shape. The tracked full reports for `current-duel`, `three-way-engine`, and `rigged-melee` are historical performance evidence from the pre-shared-pilot implementation at `e1754fd`. Generated JSON inputs and results stay ignored but are not cleanup targets. The curated kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and `rigged-melee`.
+Experiment output goes to `.experiments/<kingdom>/<mode>/`. Reports are committed. Generated JSON inputs and results stay ignored but are not cleanup targets. The curated kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and `rigged-melee`.
+
+The committed balance baseline uses run seed 1, 100 candidates, 5 leaders, 32 generations, 25 shared seeds, 10 workers, 30 turns per player, a 20,000-state search limit, and a 420-minute deadline. Run each curated kingdom with these limits before regenerating the dashboard:
+
+```sh
+npm run build:sim
+node dist-sim/experiment.mjs --kingdom current-duel --mode full --seed 1 --candidates 100 --leaders 5 --generations 32 --seeds 25 --workers 10 --deadline-minutes 420 --state-limit 20000
+```
+
+Repeat the experiment command for the other four curated kingdom ids. Each run replaces its own full-run directory.
+
+Generate and open the dashboard:
+
+```sh
+npx tsx scripts/write_balance_dashboard.ts
+open -a "Google Chrome" .html/balance-baseline.html
+```
+
+The generator reads `run.json`, `generations.jsonl`, `strategies.json`, `telemetry.json`, and `tournament.json` from each ignored `.experiments/<kingdom>/full/` directory. It rejects old strategy shapes, lower limits, incomplete runs, and missing cross-file data. It writes the committed `.html/balance-baseline.html` file.
 
 ## Code boundaries
 
