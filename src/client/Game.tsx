@@ -100,7 +100,7 @@ function PlayedCard({ card, group }: { card: CardDefinition; group: PlayedGroup 
 function FighterScore({ game }: { game: GameView }) {
   return <div className="health-score">{(['ochre', 'indigo'] as const).map((id) => { const fighter = game.fighters[id]; return <div key={id} className={`score score--${id}`} data-player-score={id}><strong>{playerName(id)}</strong><span>{fighter.health} HP</span><small>{[fighter.aimed ? 'Aimed' : '', fighter.exposed ? 'Next Close-range attack this turn: +2 damage' : ''].filter(Boolean).join(' · ') || 'Ready'}</small></div>; })}</div>;
 }
-function Market({ game, busy, onAction }: { game: GameView; busy: boolean; onAction: (action: BrowserAction) => Promise<void> }) {
+function Market({ game, busy, onAction }: { game: GameView; busy: boolean; onAction: (action: Pick<BrowserAction, 'id'>) => Promise<void> }) {
   const buys = new Map(game.actions.buys.map((action) => [action.definitionId, action]));
   return <section className="panel market-panel"><div className="section-heading"><h2>Market</h2><span>Bought cards go to discard.</span></div><div className="market-grid">{Object.values(game.cards).map((card) => { const action = buys.get(card.id); return <button key={card.id} data-market-card={card.name} className="market-card" disabled={busy || !action} onClick={() => action && void onAction(action)}><CardFace card={card} /><span className="market-card__count">{card.type === 'action' ? `${game.supply[card.id]} left` : '∞'}</span></button>; })}</div></section>;
 }

@@ -25,8 +25,8 @@ export interface CardActionPresentation {
   actionId: string | null;
   choices: CardActionChoice[];
 }
-export interface PhaseActionPresentation extends BrowserAction { kind: 'endAction' | 'endBuy' }
-export interface BuyActionPresentation extends BrowserAction { definitionId: string }
+export interface PhaseActionPresentation { id: string; kind: 'endAction' | 'endBuy' }
+export interface BuyActionPresentation { id: string; definitionId: string }
 export interface SelectionActionPresentation extends BrowserAction { cardInstanceId: string | null }
 export interface SelectionPresentation {
   kind: 'discard' | 'recover';

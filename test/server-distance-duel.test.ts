@@ -1,10 +1,13 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
-import { createCard } from '../src/game';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+  createCard, kingdomOf, kingdomSupply, registerKingdom, resetKingdoms
+} from '../src/game';
 import { GameService } from '../src/server/gameService';
 import { FileGameRepository, UnsupportedSchemaError } from '../src/server/persistence';
+import type { GameView } from '../src/shared/api';
 import type { GameRecord, GameRepository } from '../src/server/types';
 
 class MemoryRepository implements GameRepository {
@@ -26,6 +29,29 @@ function seedPlayerHand(record: GameRecord, definitions: string[], draw: string[
 async function completeBuilds(service: GameService, id: string, revision: number) {
   const one = await service.updateBuild(id, revision, [], true); return service.updateBuild(id, one.revision, [], true);
 }
+function registerProjectionKingdom(): void {
+  registerKingdom({
+    id: 'action-projection', name: 'Action Projection', startingHealth: 20,
+    actionPiles: [
+      { cardId: 'prism', count: 10 }, { cardId: 'reclaim', count: 10 }, { cardId: 'step', count: 10 }
+    ]
+  });
+}
+function useProjectionKingdom(record: GameRecord): void {
+  registerProjectionKingdom();
+  const kingdom = kingdomOf('action-projection');
+  record.state.kingdomId = kingdom.id;
+  record.state.startingHealth = kingdom.startingHealth;
+  record.state.supply = kingdomSupply(kingdom);
+}
+function projectedHandCard(view: GameView, record: GameRecord, definitionId: string) {
+  const instance = record.state.players.ochre.deck.hand.find((card) => card.definitionId === definitionId);
+  if (!instance) throw new Error(`Missing ${definitionId} from prepared hand.`);
+  const presentation = view.actions.cards.find((card) => card.cardInstanceId === instance.id);
+  if (!presentation) throw new Error(`Missing ${definitionId} action presentation.`);
+  return presentation;
+}
+afterEach(() => resetKingdoms());
 
 describe('local GameService', () => {
   it('runs two sequential builds and gives both players complete turns', async () => {
@@ -55,9 +81,12 @@ describe('local GameService', () => {
     const record = await repository.load(game.id); seedPlayerHand(record, ['feint', 'footwork', 'drive']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 4; resetReplay(record); await repository.save(record);
     const view = await service.get(game.id); expect(view.players.ochre.hand.map((card) => card.definitionId)).toEqual(['feint', 'footwork', 'drive']);
     expect(view.players.indigo.hand).toHaveLength(5);
-    expect(view.actions.cards[0]).toMatchObject({ enabled: false, reason: 'Requires Close range.', selection: 'none' });
-    expect(view.actions.cards[1]).toMatchObject({ enabled: true, selection: 'movement' });
-    expect(view.actions.cards[1]!.choices.map((choice) => ({ label: choice.label, text: choice.text }))).toEqual([
+    expect(projectedHandCard(view, record, 'feint')).toMatchObject({
+      enabled: false, reason: 'Requires Close range.', selection: 'none'
+    });
+    const footwork = projectedHandCard(view, record, 'footwork');
+    expect(footwork).toMatchObject({ enabled: true, selection: 'movement' });
+    expect(footwork.choices.map((choice) => ({ label: choice.label, text: choice.text }))).toEqual([
       { label: 'Play Footwork: Left', text: 'Left' }, { label: 'Play Footwork: Stay', text: 'Stay' },
       { label: 'Play Footwork: Right', text: 'Right' }
     ]);
@@ -66,7 +95,7 @@ describe('local GameService', () => {
   it('projects Cull target combinations, phase choices, and market buys by definition id', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
     const record = await repository.load(game.id); seedPlayerHand(record, ['cull', 'copper', 'silver']); resetReplay(record); await repository.save(record);
-    const view = await service.get(game.id); const cull = view.actions.cards[0]!;
+    const view = await service.get(game.id); const cull = projectedHandCard(view, record, 'cull');
     expect(cull).toMatchObject({ enabled: true, selection: 'trashOneOrTwo' });
     expect(cull.eligibleCardInstanceIds).toEqual(record.state.players.ochre.deck.hand.map((card) => card.id));
     expect(cull.choices.some((choice) => choice.targetCardInstanceIds.length === 1)).toBe(true);
@@ -75,10 +104,55 @@ describe('local GameService', () => {
     expect(buy.actions.phases.map((action) => action.kind)).toEqual(['endBuy']);
     expect(buy.actions.buys.map((action) => action.definitionId)).toContain('copper');
   });
+  it('projects direction-only movement with legal Left and Right choices and no Stay', async () => {
+    const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
+    const record = await repository.load(game.id); useProjectionKingdom(record); seedPlayerHand(record, ['step']);
+    record.state.fighters.ochre.position = 3; resetReplay(record); await repository.save(record);
+    const view = await service.get(game.id); const step = projectedHandCard(view, record, 'step');
+    expect(step).toMatchObject({ enabled: true, selection: 'movement', actionId: null });
+    expect(step.choices.map((choice) => ({ label: choice.label, text: choice.text }))).toEqual([
+      { label: 'Play Step: Left', text: 'Left' }, { label: 'Play Step: Right', text: 'Right' }
+    ]);
+    expect(step.choices.map((choice) => choice.text)).not.toContain('Stay');
+  });
+  it('projects each Prism discard and commits one to clear the pending choice', async () => {
+    const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
+    const record = await repository.load(game.id); useProjectionKingdom(record);
+    seedPlayerHand(record, ['prism', 'copper'], ['silver']); resetReplay(record); await repository.save(record);
+    const before = await service.get(game.id); const prism = projectedHandCard(before, record, 'prism');
+    const copperId = record.state.players.ochre.deck.hand.find((card) => card.definitionId === 'copper')!.id;
+    const silverId = record.state.players.ochre.deck.draw[0]!.id;
+    const pending = await service.commitAction(game.id, before.revision, prism.actionId!);
+    expect(pending.actions.phases).toEqual([]); expect(pending.actions.buys).toEqual([]);
+    expect(pending.actions.selection).toMatchObject({ kind: 'discard' });
+    expect(pending.actions.selection!.choices.map((choice) => choice.cardInstanceId).sort()).toEqual([copperId, silverId].sort());
+    const discard = pending.actions.selection!.choices.find((choice) => choice.cardInstanceId === copperId)!;
+    const resolved = await service.commitAction(game.id, pending.revision, discard.id);
+    expect(resolved.actions.selection).toBeNull();
+    expect((await service.getRecord(game.id)).state.players.ochre.deck.discard.map((card) => card.id)).toContain(copperId);
+  });
+  it('projects Reclaim targets and Recover nothing, then accepts the null choice', async () => {
+    const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
+    const record = await repository.load(game.id); useProjectionKingdom(record);
+    seedPlayerHand(record, ['reclaim'], ['copper']);
+    const discard = record.state.players.ochre.deck.discard;
+    discard.push(createCard(record.state, 'silver'), createCard(record.state, 'gold'));
+    const recoverIds = discard.map((card) => card.id); resetReplay(record); await repository.save(record);
+    const before = await service.get(game.id); const reclaim = projectedHandCard(before, record, 'reclaim');
+    const pending = await service.commitAction(game.id, before.revision, reclaim.actionId!);
+    expect(pending.actions.phases).toEqual([]); expect(pending.actions.buys).toEqual([]);
+    expect(pending.actions.selection).toMatchObject({ kind: 'recover' });
+    expect(pending.actions.selection!.choices.map((choice) => choice.cardInstanceId)).toEqual([...recoverIds, null]);
+    const recoverNothing = pending.actions.selection!.choices.find((choice) => choice.cardInstanceId === null)!;
+    expect(recoverNothing).toMatchObject({ label: 'Recover nothing', text: 'Recover nothing' });
+    const resolved = await service.commitAction(game.id, pending.revision, recoverNothing.id);
+    expect(resolved.actions.selection).toBeNull();
+    expect((await service.getRecord(game.id)).state.pendingChoice).toBeNull();
+  });
   it('commits an action, persists replay data, and restores the exact state with one undo', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
     const record = await repository.load(game.id); seedPlayerHand(record, ['footwork'], ['aim']); resetReplay(record); await repository.save(record);
-    const before = await service.get(game.id); const footwork = before.actions.cards[0]!;
+    const before = await service.get(game.id); const footwork = projectedHandCard(before, record, 'footwork');
     const actionId = footwork.choices.find((action) => action.text === 'Right')!.id;
     const played = await service.commitAction(game.id, before.revision, actionId);
     expect(played.players.ochre.hand.map((card) => card.definitionId)).toEqual(['aim']); expect(played.canUndo).toBe(true);

@@ -23,7 +23,7 @@
     "multiplePurchases": ["pw:DD-E2E-002", "pw:DD-E2E-037"],
     "actionSupply": ["pw:DD-E2E-031"],
     "turnCleanup": ["pw:DD-E2E-023", "pw:DD-E2E-036"],
-    "cardSelections": ["pw:DD-E2E-003", "pw:DD-E2E-004", "pw:DD-E2E-006", "pw:DD-E2E-014", "pw:DD-E2E-020", "pw:DD-E2E-039"],
+    "cardSelections": ["pw:DD-E2E-003", "pw:DD-E2E-004", "pw:DD-E2E-006", "pw:DD-E2E-014", "pw:DD-E2E-020", "pw:DD-E2E-039", "pw:DD-E2E-043"],
     "disabledReasons": ["pw:DD-E2E-013", "pw:DD-E2E-017", "pw:DD-E2E-018"],
     "sharedSpacesAndPassThrough": ["pw:DD-E2E-003", "pw:DD-E2E-008", "pw:DD-E2E-017"],
     "globalUndo": ["pw:DD-E2E-002", "pw:DD-E2E-005", "pw:DD-E2E-006", "pw:DD-E2E-012", "pw:DD-E2E-032", "pw:DD-E2E-035"],

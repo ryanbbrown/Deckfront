@@ -1,3 +1,4 @@
+import { kingdomOf, kingdomSupply } from '../../src/game';
 import { test, expect, seedHand } from './fixture';
 
 async function playCard(page: import('@playwright/test').Page, name: string) { await page.locator(`[data-card-name="${name}"]`).first().click(); }
@@ -217,6 +218,20 @@ test('DD-E2E-040: unique cards overlap in one row, lift on hover, and the deck d
   expect(before).toMatchObject({ count: 11, sameRow: true, overflow: 0 }); expect(before.delta).toBeLessThan(150); expect(before.delta).toBeGreaterThan(0);
   const footwork = page.locator('[data-testid="hand-grid"] [data-card-name="Footwork"]'); const resting = await footwork.evaluate((card) => getComputedStyle(card).transform); await footwork.hover(); const lifted = await footwork.evaluate((card) => getComputedStyle(card).transform); expect(lifted).not.toBe(resting); await page.mouse.move(0, 0); await footwork.focus(); const focused = await footwork.evaluate((card) => ({ transform: getComputedStyle(card).transform, zIndex: getComputedStyle(card.parentElement!).zIndex })); expect(focused.transform).not.toBe(resting); expect(Number(focused.zIndex)).toBe(200);
   const toggle = page.getByRole('button', { name: /Deck ·/ }); await expect(toggle).toHaveAttribute('aria-expanded', 'false'); await toggle.click(); await expect(toggle).toHaveAttribute('aria-expanded', 'true'); await expect(page.getByRole('complementary', { name: 'Deck and match details' })).toHaveClass(/deck-drawer--open/); await expect(page.getByTestId('deck-summary')).toContainText('Footwork ×1');
+});
+
+test('DD-E2E-043: a projected pending choice renders and clears after selection', async ({ page, openGame }) => {
+  await openGame(page, (record) => {
+    const kingdom = kingdomOf('three-way-engine'); record.state.kingdomId = kingdom.id;
+    record.state.startingHealth = kingdom.startingHealth; record.state.supply = kingdomSupply(kingdom);
+    seedHand(record, ['prism', 'copper'], ['silver']);
+  });
+  await page.locator('[data-card-name="Prism"]').click();
+  await expect(page.getByText('Choose a card to discard')).toBeVisible();
+  const discard = page.getByRole('button', { name: 'Discard Copper', exact: true });
+  await expect(discard).toBeVisible(); await discard.click();
+  await expect(page.getByText('Choose a card to discard')).toHaveCount(0);
+  await expect(page.locator('[data-card-name="Silver"]')).toBeVisible();
 });
 
 test('DD-E2E-042: grouped badges, played stacks, controls, and card headers stay clear on mobile', async ({ page, openGame }) => {

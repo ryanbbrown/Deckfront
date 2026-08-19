@@ -112,7 +112,7 @@ export class GameService {
   }
   private projectActions(record: GameRecord): GameActionPresentation {
     const state = record.state;
-    if (state.winner || state.phase === 'startingBuild') {
+    if (state.winner || state.phase === 'startingBuild' || state.phase === 'ended') {
       return { cards: [], phases: [], buys: [], selection: null };
     }
     const legalActions = listLegalActions(state);
@@ -157,11 +157,11 @@ export class GameService {
     });
     const phases: PhaseActionPresentation[] = [];
     for (const action of legalActions) {
-      if (action.command.type === 'endActionPhase') phases.push({ ...browserAction(action, 'End Action phase'), kind: 'endAction' });
-      if (action.command.type === 'endBuyPhase') phases.push({ ...browserAction(action, 'End Buy phase'), kind: 'endBuy' });
+      if (action.command.type === 'endActionPhase') phases.push({ id: action.id, kind: 'endAction' });
+      if (action.command.type === 'endBuyPhase') phases.push({ id: action.id, kind: 'endBuy' });
     }
     const buys = legalActions.flatMap((action) => action.command.type === 'buyCard'
-      ? [{ ...browserAction(action, action.label), definitionId: action.command.definitionId }]
+      ? [{ id: action.id, definitionId: action.command.definitionId }]
       : []);
     const selection = state.pendingChoice ? {
       kind: state.pendingChoice.type,
@@ -193,7 +193,6 @@ export class GameService {
         purchases: [...player.purchases]
       }];
     })) as GameView['players'];
-    const canChoose = !state.winner && state.phase !== 'startingBuild';
     const completedBuilds = state.players.ochre.startingBuild && state.players.indigo.startingBuild
       ? { ochre: [...state.players.ochre.startingBuild], indigo: [...state.players.indigo.startingBuild] }
       : null;
@@ -205,7 +204,7 @@ export class GameService {
       turn: state.turn, winner: state.winner, fighters: structuredClone(state.fighters), range: rangeBand(state),
       supply: { ...state.supply }, cards: Object.fromEntries(kingdomMarket(state.kingdomId).map((card) => [card.id, card])),
       players, trashCount: state.trash.length, events: structuredClone(state.events),
-      actions: canChoose ? this.projectActions(record) : { cards: [], phases: [], buys: [], selection: null },
+      actions: this.projectActions(record),
       canUndo: record.undoCheckpoint !== null, buildProposal: [...record.buildProposal], completedBuilds
     };
   }

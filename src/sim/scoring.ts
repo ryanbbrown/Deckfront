@@ -20,7 +20,7 @@ export function scoredStrategy(tally: ScoringTally): ScoredStrategy {
   };
 }
 
-/** Ranks completed records first, then score and canonical strategy identity. */
+/** A zero-pairing score has no competitive meaning, so it ranks below every completed record. */
 export function compareScored(left: ScoredStrategy, right: ScoredStrategy): number {
   if ((left.completedPairings === 0) !== (right.completedPairings === 0)) return left.completedPairings === 0 ? 1 : -1;
   if (left.score !== right.score) return right.score - left.score;
