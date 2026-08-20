@@ -7,7 +7,7 @@ import { BALANCE_SUITE_MANIFEST } from '../../src/sim/balanceSuite';
 
 function kingdom(
   id: string, split: 'tuning' | 'validation', effective: number, ranged: number,
-  viable = split === 'validation' ? 2 : 1
+  viable = split === 'validation' ? 2 : 1, drawRate = split === 'validation' ? 0.1 : 0
 ): CorpusKingdomReport {
   const strategies = Array.from({ length: viable }, (_, index) => ({
     id: `${id}-s${index}`, status: 'Lottery' as const, weight: 1 / viable, score: 0.5,
@@ -23,7 +23,7 @@ function kingdom(
     actionCapPerTurn: 200, materialCount: viable, nearCount: 0, effectiveLotterySize: effective,
     acquiredFamilyShares: { Engine: 1 - ranged, Melee: 0, Ranged: ranged, Mage: 0 }, strategies,
     matchupScores: strategies.map((_row, row) => strategies.map((_column, column) => row === column ? 0.5 : 0.6)),
-    lotteryTelemetry: { games: 100, drawRate: split === 'tuning' ? 0 : 0.1,
+    lotteryTelemetry: { games: 100, drawRate,
       firstPlayerWinRate: 0.5, firstPlayerScore: split === 'tuning' ? 0.6 : 0.4,
       winnerTurnsPerPlayer: split === 'tuning' ? 8 : 10, acquisitionsPerGame: {} } };
 }
@@ -65,11 +65,32 @@ describe('balance-corpus aggregation', () => {
     const input = [
       kingdom('a', 'tuning', 1, 0.5), kingdom('b', 'tuning', 1, 0.5),
       kingdom('c', 'tuning', 5, 1), kingdom('d', 'tuning', 4, 0),
-      kingdom('e', 'tuning', 3, 0.4), kingdom('f', 'tuning', 2, 0.6)
+      kingdom('e', 'tuning', 3, 0.4), kingdom('f', 'tuning', 2, 0.6),
+      kingdom('g', 'tuning', 2.5, 0.3, 1, 0.75), kingdom('h', 'tuning', 2.5, 0.3, 1, 0.75)
     ];
     const selected = selectCorpusKingdoms(input);
-    expect(selected.map((entry) => entry.kingdom.id)).toEqual(['a', 'c', 'f', 'd', 'e']);
+    expect(selected.map((entry) => entry.kingdom.id)).toEqual(['a', 'c', 'f', 'd', 'g']);
+    expect(selected[4]!.reason).toBe('Highest draw rate');
     expect(new Set(selected.map((entry) => entry.kingdom.id)).size).toBe(5);
+  });
+
+  it('surfaces kingdoms whose final lottery draws at least half its games', () => {
+    const reports = corpus();
+    const warned = reports.find((entry) => entry.id === 'balance-tuning-005')!;
+    warned.lotteryTelemetry.drawRate = 1;
+    warned.materialCount = 15;
+    warned.nearCount = 3;
+    warned.strategies = Array.from({ length: 18 }, (_entry, index) => ({ ...warned.strategies[0]!, id: `draw-${index}` }));
+    warned.matchupScores = warned.strategies.map((_row, row) =>
+      warned.strategies.map((_column, column) => row === column ? 0.5 : 0));
+    const model = buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, reports);
+    expect(model.playQualityWarnings.map((entry) => entry.id)).toEqual(['balance-tuning-005']);
+    const html = renderBalanceCorpus(model);
+    expect(html).toContain('Play quality needs investigation');
+    expect(html).toContain('balance-tuning-005');
+    expect(html).toContain('<td>100.0%</td><td>15</td><td>3</td><td>18</td>');
+    expect(html).toContain('stalled market');
+    expect(html).toContain('search or shared pilot did not discover a working strategy');
   });
 
   it('renders deterministic required sections without calibration language', () => {

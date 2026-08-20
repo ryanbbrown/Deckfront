@@ -49,12 +49,22 @@ export interface CorpusCardReport {
 
 export interface CorpusKingdomReport extends KingdomReport { split: BalanceSuiteSplit }
 export interface SelectedKingdom { reason: string; kingdom: CorpusKingdomReport }
+export interface PlayQualityWarning {
+  id: string;
+  split: BalanceSuiteSplit;
+  drawRate: number;
+  lotteryStrategies: number;
+  nearStrategies: number;
+  viableStrategies: number;
+  winnerTurnsPerPlayer: number | null;
+}
 export interface BalanceCorpusModel {
   manifest: BalanceSuiteManifest;
   summaries: { tuning: CorpusSummary; validation: CorpusSummary; combined: CorpusSummary };
   cards: CorpusCardReport[];
   kingdoms: CorpusKingdomReport[];
   selected: SelectedKingdom[];
+  playQualityWarnings: PlayQualityWarning[];
 }
 
 const ACTION_FAMILIES: readonly ActionFamily[] = ['Engine', 'Melee', 'Ranged', 'Mage'];
@@ -118,14 +128,13 @@ function cardMeasure(
 
 export function selectCorpusKingdoms(kingdoms: readonly CorpusKingdomReport[]): SelectedKingdom[] {
   const ordered = [...kingdoms].sort((left, right) => left.id.localeCompare(right.id));
-  const effectiveMedian = median(ordered.map((kingdom) => kingdom.effectiveLotterySize));
   const criteria: { reason: string; compare: (left: CorpusKingdomReport, right: CorpusKingdomReport) => number }[] = [
     { reason: 'Lowest effective lottery size', compare: (left, right) => left.effectiveLotterySize - right.effectiveLotterySize },
     { reason: 'Highest effective lottery size', compare: (left, right) => right.effectiveLotterySize - left.effectiveLotterySize },
     { reason: 'Highest ranged acquisition share', compare: (left, right) => right.acquiredFamilyShares.Ranged - left.acquiredFamilyShares.Ranged },
     { reason: 'Lowest ranged acquisition share', compare: (left, right) => left.acquiredFamilyShares.Ranged - right.acquiredFamilyShares.Ranged },
-    { reason: 'Closest to median effective lottery size', compare: (left, right) =>
-      Math.abs(left.effectiveLotterySize - effectiveMedian) - Math.abs(right.effectiveLotterySize - effectiveMedian) }
+    { reason: 'Highest draw rate', compare: (left, right) =>
+      right.lotteryTelemetry.drawRate - left.lotteryTelemetry.drawRate }
   ];
   const used = new Set<string>();
   return criteria.map((criterion) => {
@@ -154,10 +163,17 @@ export function buildBalanceCorpusModel(
       validation: cardMeasure(cardId, cardFamily, validation, manifest),
       combined: cardMeasure(cardId, cardFamily, kingdoms, manifest) };
   }).sort((left, right) => left.family.localeCompare(right.family) || left.name.localeCompare(right.name));
+  const playQualityWarnings = kingdoms.filter((kingdom) => kingdom.lotteryTelemetry.drawRate >= 0.5)
+    .sort((left, right) => left.id.localeCompare(right.id)).map((kingdom): PlayQualityWarning => ({
+      id: kingdom.id, split: kingdom.split, drawRate: kingdom.lotteryTelemetry.drawRate,
+      lotteryStrategies: kingdom.materialCount, nearStrategies: kingdom.nearCount,
+      viableStrategies: kingdom.strategies.length,
+      winnerTurnsPerPlayer: kingdom.lotteryTelemetry.winnerTurnsPerPlayer
+    }));
   return { manifest,
     summaries: { tuning: summarize('Tuning', tuning), validation: summarize('Validation', validation),
       combined: summarize('Combined', kingdoms) },
-    cards, kingdoms: [...kingdoms], selected: selectCorpusKingdoms(kingdoms) };
+    cards, kingdoms: [...kingdoms], selected: selectCorpusKingdoms(kingdoms), playQualityWarnings };
 }
 
 function escape(value: string): string { return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;')
@@ -221,9 +237,11 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
     fixed(kingdom.lotteryTelemetry.winnerTurnsPerPlayer ?? 0), percent(kingdom.lotteryTelemetry.firstPlayerScore),
     integer(kingdom.matches), fixed(kingdom.elapsedMs / 1000, 1)]);
   const measureHeaders = ['Available', 'Build', 'Finite', 'Repeat', 'Acquired', 'Lottery weight', 'Family share'];
+  const warning = model.playQualityWarnings.length ? `<section class="warning"><h2>Play quality needs investigation</h2><p>${model.playQualityWarnings.length} ${model.playQualityWarnings.length === 1 ? 'kingdom has' : 'kingdoms have'} a final-lottery draw rate of at least 50%. A high draw rate can mean a stalled market. It can also mean that the search or shared pilot did not discover a working strategy. ${model.playQualityWarnings.length === 1 ? 'This kingdom needs' : 'These kingdoms need'} investigation before card tuning.</p>${table(['Kingdom', 'Split', 'Draw rate', 'Lottery', 'Near 50%', 'Viable', 'Turns/player'], model.playQualityWarnings.map((entry) => [escape(entry.id), entry.split, percent(entry.drawRate), String(entry.lotteryStrategies), String(entry.nearStrategies), String(entry.viableStrategies), fixed(entry.winnerTurnsPerPlayer ?? 0)]))}</section>` : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>One-hundred-kingdom balance corpus</title><style>
-:root{--ink:#17231d;--muted:#56625c;--line:#ccd6d0;--paper:#f7f5ef;--panel:#fff;--accent:#096b4b;--soft:#e8f2ed}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.48 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1500px;margin:auto;padding:36px 28px 72px}h1{font-size:clamp(30px,4vw,52px);line-height:1.05;margin:0 0 12px}h2{font-size:28px;margin:0 0 8px}h3{font-size:18px;margin:24px 0 8px}p{max-width:90ch;color:var(--muted)}section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;margin:24px 0}.table-scroll{max-width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:8px}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:9px 11px;border-bottom:1px solid #e4e9e6;vertical-align:top}th{background:#edf3ef;font-size:12px;text-transform:uppercase;letter-spacing:.04em}tr:last-child td{border-bottom:0}.matrix td:not(:first-child),.matrix th:not(:first-child){text-align:right}.key{display:inline-block;background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-weight:700}.selection{color:var(--accent);font-weight:650}.callouts{display:grid;grid-template-columns:1fr 1fr;gap:12px}.callouts div{background:var(--soft);padding:14px;border-radius:9px}code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}@media(max-width:720px){main{padding:22px 12px 48px}section{padding:16px;margin:14px 0}.callouts{grid-template-columns:1fr}h2{font-size:23px}}
+:root{--ink:#17231d;--muted:#56625c;--line:#ccd6d0;--paper:#f7f5ef;--panel:#fff;--accent:#096b4b;--soft:#e8f2ed;--warn:#9a3f13;--warn-soft:#fff1e8}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.48 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1500px;margin:auto;padding:36px 28px 72px}h1{font-size:clamp(30px,4vw,52px);line-height:1.05;margin:0 0 12px}h2{font-size:28px;margin:0 0 8px}h3{font-size:18px;margin:24px 0 8px}p{max-width:90ch;color:var(--muted)}section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;margin:24px 0}.warning{border:2px solid var(--warn);background:var(--warn-soft)}.warning h2{color:var(--warn)}.table-scroll{max-width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:8px}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:9px 11px;border-bottom:1px solid #e4e9e6;vertical-align:top}th{background:#edf3ef;font-size:12px;text-transform:uppercase;letter-spacing:.04em}tr:last-child td{border-bottom:0}.matrix td:not(:first-child),.matrix th:not(:first-child){text-align:right}.key{display:inline-block;background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-weight:700}.selection{color:var(--accent);font-weight:650}.callouts{display:grid;grid-template-columns:1fr 1fr;gap:12px}.callouts div{background:var(--soft);padding:14px;border-radius:9px}code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}@media(max-width:720px){main{padding:22px 12px 48px}section{padding:16px;margin:14px 0}.callouts{grid-template-columns:1fr}h2{font-size:23px}}
 </style></head><body><main><header><h1>One-hundred-kingdom balance corpus</h1><p>This report measures 80 tuning kingdoms and 20 held-back validation kingdoms. Use tuning results for repeated card changes. Use validation only to confirm a proposed change.</p></header>
+${warning}
 <section><h2>Corpus design</h2>${table(['Split', 'Kingdoms', 'Card count range', 'Pair count range', 'Pair-count SD', 'Largest overlap'], [
     ['Tuning', '80', `${tuningDesign.cardCountMinimum}–${tuningDesign.cardCountMaximum}`, `${tuningDesign.pairCountMinimum}–${tuningDesign.pairCountMaximum}`, fixed(tuningDesign.pairCountStandardDeviation, 4), String(tuningDesign.largestOverlap)],
     ['Validation', '20', `${validationDesign.cardCountMinimum}–${validationDesign.cardCountMaximum}`, `${validationDesign.pairCountMinimum}–${validationDesign.pairCountMaximum}`, fixed(validationDesign.pairCountStandardDeviation, 4), String(validationDesign.largestOverlap)]
