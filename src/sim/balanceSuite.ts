@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import rawManifest from './balance-suite-manifest.json' with { type: 'json' };
-import { CARDS, findKingdom, registerKingdom } from '../game';
+import { CARDS, VARIABLE_ACTION_IDS, findKingdom, registerKingdom } from '../game';
 import type { Kingdom } from '../game';
 import { defaultExperimentOptions } from './experimentConfig';
 import { runExperiment } from './experiment';
@@ -62,9 +62,8 @@ export interface BalanceSuiteValidation {
 }
 
 export const BALANCE_SUITE_SPEC: BalanceSuiteSpec = Object.freeze({
-  suiteVersion: 'balance-suite-v1', generatorVersion: 'balanced-swaps-v1',
-  eligibleCardIds: Object.freeze(Object.values(CARDS).filter((card) => card.type === 'action'
-    && !['cull', 'focus', 'step', 'strike', 'shot'].includes(card.id)).map((card) => card.id).sort()),
+  suiteVersion: 'balance-suite-v2', generatorVersion: 'balanced-swaps-v1',
+  eligibleCardIds: Object.freeze([...VARIABLE_ACTION_IDS].sort()),
   kingdomSize: 10,
   splits: Object.freeze([
     Object.freeze({ name: 'tuning' as const, seed: 0x51a7c3d9, size: 80 }),

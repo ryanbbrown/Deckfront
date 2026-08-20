@@ -84,7 +84,8 @@ npm run balance:report
 The generator reads the ignored local `.experiments/` inputs, rejects stale rules fingerprints or
 incomplete runs, and writes `.html/balance-report.html`.
 
-The broad balance suite has 80 tuning kingdoms and 20 held-back validation kingdoms. Regenerate its
+The broad balance suite has 80 tuning kingdoms and 20 held-back validation kingdoms. Its variable
+card pool is the same `VARIABLE_ACTION_IDS` list used by playable random markets. Regenerate its
 committed manifest, resume its full searches, validate the artifacts, and build its report with:
 
 ```sh
@@ -96,7 +97,7 @@ npm run balance:suite:report
 
 The batch runs two kingdoms at once with four workers each, so it uses at most eight pairing workers.
 It keeps complete current results and reruns missing, failed, incomplete, or stale results. Raw output
-is ignored under `.experiments/balance-suite/balance-suite-v1/`. Use the tuning split for repeated card
+is ignored under `.experiments/balance-suite/balance-suite-v2/`. Use the tuning split for repeated card
 changes. Use the validation split only to confirm a proposed change.
 The search uses policy-space response oracles. It starts each restart from random legal strategies,
 solves a maximum-support equilibrium over the discovered payoff matrix, and searches for a response
@@ -114,7 +115,10 @@ node dist-sim/experiment.mjs --kingdom current-duel --mode smoke --seed 1 \
 Four workers are the measured default on an Apple M4 Pro. More workers remain available with `--workers`, but short simulation jobs become slower when process messaging and result transfer exceed the saved game time.
 
 The committed [.html/balance-report.html](.html/balance-report.html) reports the four diagnostic runs.
-The committed [.html/balance-corpus.html](.html/balance-corpus.html) reports the 100-kingdom suite.
+The committed [.html/balance-corpus-18-card.html](.html/balance-corpus-18-card.html) reports the latest
+completed 80-kingdom run. It is historical evidence because that run excluded Shot and Strike. The
+next `.html/balance-corpus.html` will be generated after the 20-card market issue is resolved and the
+version 2 suite runs.
 
 ## Code boundaries
 

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
-import { ALWAYS_AVAILABLE_ACTION_IDS, cardDefinition } from '../src/game';
+import { ALWAYS_AVAILABLE_ACTION_IDS, VARIABLE_ACTION_IDS, cardDefinition } from '../src/game';
 import { balanceSuite } from '../src/sim/balanceSuite';
 import type { BalanceSuiteManifest, BalanceSuiteSplit } from '../src/sim/balanceSuite';
 import {
@@ -30,10 +30,13 @@ export interface CorpusSummary {
 
 export interface CorpusCardMeasure {
   availability: number;
+  availableStrategies: number;
   buildPlans: number;
   finitePlans: number;
   repeatPlans: number;
+  planStrategies: number;
   acquiredStrategies: number;
+  averageCopiesWhenAcquired: number;
   averageMaterialWeight: number;
   familyAcquisitionShare: number;
 }
@@ -136,15 +139,18 @@ function cardMeasure(
   const definitions = manifest.kingdoms.filter((kingdom) => ids.has(kingdom.id));
   const availableIds = new Set(definitions.filter((kingdom) => ALWAYS_AVAILABLE_ACTION_IDS.includes(cardId)
     || kingdom.actionPiles.some((pile) => pile.cardId === cardId)).map((kingdom) => kingdom.id));
-  let buildPlans = 0, finitePlans = 0, repeatPlans = 0, acquiredStrategies = 0;
+  let availableStrategies = 0, buildPlans = 0, finitePlans = 0, repeatPlans = 0;
+  let planStrategies = 0, acquiredStrategies = 0;
   let materialWeight = 0, cardAcquisitions = 0, familyAcquisitions = 0;
   for (const kingdom of kingdoms) for (const strategy of kingdom.strategies) {
+    if (availableIds.has(kingdom.id)) availableStrategies += 1;
     const inBuild = strategy.startingBuild.includes(cardId);
     const inFinite = strategy.purchaseSteps.some((step) => step.cardId === cardId);
     const inRepeat = strategy.repeatPurchase === cardId;
     if (inBuild) buildPlans += 1;
     if (inFinite) finitePlans += 1;
     if (inRepeat) repeatPlans += 1;
+    if (inBuild || inFinite || inRepeat) planStrategies += 1;
     const acquired = strategy.acquisitionRates[cardId] ?? 0;
     if (acquired > 0) acquiredStrategies += 1;
     cardAcquisitions += acquired;
@@ -153,7 +159,9 @@ function cardMeasure(
     }
     if (strategy.status === 'Lottery' && (inBuild || inFinite || inRepeat)) materialWeight += strategy.weight;
   }
-  return { availability: availableIds.size, buildPlans, finitePlans, repeatPlans, acquiredStrategies,
+  return { availability: availableIds.size, availableStrategies, buildPlans, finitePlans, repeatPlans,
+    planStrategies, acquiredStrategies,
+    averageCopiesWhenAcquired: acquiredStrategies ? cardAcquisitions / acquiredStrategies : 0,
     averageMaterialWeight: availableIds.size ? materialWeight / availableIds.size : 0,
     familyAcquisitionShare: familyAcquisitions ? cardAcquisitions / familyAcquisitions : 0 };
 }
@@ -236,13 +244,22 @@ function formatDamageStrategies(counts: Record<string, number>): string {
     .map(([label, count]) => `${label}: ${count} (${percent(count / total)})`).join(' · ');
 }
 function summaryTable(summaries: readonly CorpusSummary[]): string {
-  return table(['Split', 'Kingdoms', 'Lottery count distribution', 'Near-50% distribution',
-    'Effective size min / median / mean / max', '2+ viable', 'Viable strategies by damage package',
+  return table(['Split', 'Kingdoms', 'Lottery count distribution', 'Additional ≥40% distribution',
+    'Effective size min / median / mean / max', '2+ at 40%', 'Viable strategies by damage type',
     'Draws', 'Turns/player', 'First-player score'], summaries.map((summary) => [summary.label,
     String(summary.kingdoms), formatDistribution(summary.lotteryDistribution), formatDistribution(summary.nearDistribution),
     `${fixed(summary.effectiveMinimum)} / ${fixed(summary.effectiveMedian)} / ${fixed(summary.effectiveMean)} / ${fixed(summary.effectiveMaximum)}`,
     percent(summary.multipleViableRate), formatDamageStrategies(summary.damageStrategyCounts), percent(summary.drawRate),
     fixed(summary.winnerTurnsPerPlayer), percent(summary.firstPlayerScore)]));
+}
+function strategySplit(summary: CorpusSummary): string {
+  const total = Object.values(summary.damageStrategyCounts).reduce((sum, count) => sum + count, 0);
+  const rows = Object.entries(summary.damageStrategyCounts).sort(([, left], [, right]) => right - left)
+    .map(([label, count]) => [escape(label), integer(count), percent(count / total)]);
+  return table(['Strategy type', 'Viable strategies', 'Share'], rows);
+}
+function useRate(measure: CorpusCardMeasure): number {
+  return measure.availableStrategies ? measure.acquiredStrategies / measure.availableStrategies : 0;
 }
 function strategyKey(index: number): string { return `S${index + 1}`; }
 function selectedDetail(selected: SelectedKingdom): string {
@@ -268,15 +285,16 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
   const unused = model.cards.filter((card) => card.combined.buildPlans + card.combined.finitePlans
     + card.combined.repeatPlans === 0).map((card) => card.name);
   const notAcquired = model.cards.filter((card) => card.combined.acquiredStrategies === 0).map((card) => card.name);
-  const measures = model.scope === 'full' ? ['tuning', 'validation', 'combined'] as const
-    : ['tuning'] as const;
-  const cardRows = model.cards.map((card) => [escape(card.name), card.family,
-    ...(measures.flatMap((name) => {
-      const measure = card[name]!;
-      return [String(measure.availability),
-      String(measure.buildPlans), String(measure.finitePlans), String(measure.repeatPlans),
-      String(measure.acquiredStrategies), percent(measure.averageMaterialWeight), percent(measure.familyAcquisitionShare)];
-    }))]);
+  const primaryMeasure = model.scope === 'full' ? 'combined' : 'tuning';
+  const cardRows = [...model.cards].sort((left, right) =>
+    useRate(right[primaryMeasure]) - useRate(left[primaryMeasure]) || left.name.localeCompare(right.name))
+    .map((card) => {
+      const measure = card[primaryMeasure];
+      return [escape(card.name), card.family, String(measure.availability),
+        `${integer(measure.acquiredStrategies)} of ${integer(measure.availableStrategies)} (${percent(useRate(measure))})`,
+        fixed(measure.averageCopiesWhenAcquired), String(measure.buildPlans),
+        String(measure.finitePlans), String(measure.repeatPlans)];
+    });
   const kingdomRows = model.kingdoms.map((kingdom) => [escape(kingdom.id), kingdom.split,
     String(kingdom.materialCount), String(kingdom.nearCount), String(kingdom.strategies.length),
     fixed(kingdom.effectiveLotterySize), formatDamageStrategies(kingdom.strategies.reduce<Record<string, number>>((counts, strategy) => {
@@ -284,7 +302,6 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
     }, {})), percent(kingdom.lotteryTelemetry.drawRate),
     fixed(kingdom.lotteryTelemetry.winnerTurnsPerPlayer ?? 0), percent(kingdom.lotteryTelemetry.firstPlayerScore),
     integer(kingdom.matches), fixed(kingdom.elapsedMs / 1000, 1)]);
-  const measureHeaders = ['Available', 'Build', 'Finite', 'Repeat', 'Acquired', 'Lottery weight', 'Family share'];
   const warning = model.playQualityWarnings.length ? `<section class="warning"><h2>Play quality needs investigation</h2><p>${model.playQualityWarnings.length} ${model.playQualityWarnings.length === 1 ? 'kingdom has' : 'kingdoms have'} a final-lottery draw rate of at least 50%. A high draw rate can mean a stalled market. It can also mean that the search or shared pilot did not discover a working strategy. ${model.playQualityWarnings.length === 1 ? 'This kingdom needs' : 'These kingdoms need'} investigation before card tuning.</p>${table(['Kingdom', 'Split', 'Draw rate', 'Lottery', 'Near 50%', 'Viable', 'Turns/player'], model.playQualityWarnings.map((entry) => [escape(entry.id), entry.split, percent(entry.drawRate), String(entry.lotteryStrategies), String(entry.nearStrategies), String(entry.viableStrategies), fixed(entry.winnerTurnsPerPlayer ?? 0)]))}</section>` : '';
   const summaryRows = model.scope === 'full'
     ? [model.summaries.tuning, model.summaries.validation!, model.summaries.combined]
@@ -301,14 +318,22 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
   const introduction = model.scope === 'full'
     ? 'This report measures 80 tuning kingdoms and 20 held-back validation kingdoms. Use tuning results for repeated card changes. Use validation only to confirm a proposed change.'
     : 'This report measures the 80 tuning kingdoms under the current card rules. The held-back validation kingdoms were not run for this tuning round.';
+  const missingVariableCards = VARIABLE_ACTION_IDS.filter((cardId) => !model.manifest.eligibleCardIds.includes(cardId));
+  const incompletePoolWarning = missingVariableCards.length
+    ? `<section class="warning"><h2>This is an incomplete historical card pool</h2><p>These runs excluded ${escape(missingVariableCards.map((cardId) => cardDefinition(cardId).name).join(' and '))}, even though the playable random market can include them. Use this report to understand the latest completed runs, but do not treat it as the final whole-game balance result.</p></section>` : '';
+  const primarySummary = model.scope === 'full' ? model.summaries.combined : model.summaries.tuning;
+  const strategyTotal = Object.values(primarySummary.damageStrategyCounts).reduce((sum, count) => sum + count, 0);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>
 :root{--ink:#17231d;--muted:#56625c;--line:#ccd6d0;--paper:#f7f5ef;--panel:#fff;--accent:#096b4b;--soft:#e8f2ed;--warn:#9a3f13;--warn-soft:#fff1e8}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.48 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1500px;margin:auto;padding:36px 28px 72px}h1{font-size:clamp(30px,4vw,52px);line-height:1.05;margin:0 0 12px}h2{font-size:28px;margin:0 0 8px}h3{font-size:18px;margin:24px 0 8px}p{max-width:90ch;color:var(--muted)}section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;margin:24px 0}.warning{border:2px solid var(--warn);background:var(--warn-soft)}.warning h2{color:var(--warn)}.table-scroll{max-width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:8px}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:9px 11px;border-bottom:1px solid #e4e9e6;vertical-align:top}th{background:#edf3ef;font-size:12px;text-transform:uppercase;letter-spacing:.04em}tr:last-child td{border-bottom:0}.matrix td:not(:first-child),.matrix th:not(:first-child){text-align:right}.key{display:inline-block;background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-weight:700}.selection{color:var(--accent);font-weight:650}.callouts{display:grid;grid-template-columns:1fr 1fr;gap:12px}.callouts div{background:var(--soft);padding:14px;border-radius:9px}code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}@media(max-width:720px){main{padding:22px 12px 48px}section{padding:16px;margin:14px 0}.callouts{grid-template-columns:1fr}h2{font-size:23px}}
 </style></head><body><main><header><h1>${title}</h1><p>${introduction}</p></header>
+${incompletePoolWarning}
 ${warning}
-<section><h2>Corpus design</h2>${table(['Split', 'Kingdoms', 'Card count range', 'Pair count range', 'Pair-count SD', 'Largest overlap'], designRows)}<p>Every kingdom has ten distinct piles, 40 health, no overrides, and at least one direct-damage card. Card counts differ by at most one within each split. No pair of kingdoms shares more than eight piles.</p></section>
-<section><h2>Strategy diversity and play diagnostics</h2>${summaryTable(summaryRows)}<p>Effective lottery size is 1 divided by the sum of squared lottery weights. A strategy's damage package uses its starting damage cards plus the damage cards it acquired against the final lottery. A second damage family makes the strategy mixed when it supplies at least 20% of those cards. Draw rate, turns, and first-player score are diagnostics, not balance targets.</p></section>
-<section><h2>Card health</h2><div class="callouts"><div><strong>No viable plan use</strong><br>${unused.length ? escape(unused.join(', ')) : 'None'}</div><div><strong>No acquired use</strong><br>${notAcquired.length ? escape(notAcquired.join(', ')) : 'None'}</div></div><p>The report shows kingdom availability; viable-strategy build, finite-plan, repeat-plan, and acquired presence; average material-lottery weight of plans using the card; and the card’s share of acquisitions within its family.</p>${table(['Card', 'Family', ...measures.flatMap((split) => measureHeaders.map((measure) => `${split[0]!.toUpperCase()}${split.slice(1)} ${measure}`))], cardRows)}</section>
-<section><h2>All ${model.kingdoms.length} kingdoms</h2>${table(['Kingdom', 'Split', 'Lottery', 'Near 50%', 'Viable', 'Effective size', 'Damage packages', 'Draws', 'Turns/player', 'First-player score', 'Search games', 'Seconds'], kingdomRows)}</section>
+<section><h2>Balance at a glance</h2><div class="callouts"><div><strong>${integer(strategyTotal)}</strong><br>strategies score at least 40% against the best discovered strategy mix</div><div><strong>${percent(primarySummary.multipleViableRate)}</strong><br>of kingdoms have at least two such strategies</div><div><strong>${fixed(primarySummary.winnerTurnsPerPlayer)}</strong><br>turns per player in games with a winner</div><div><strong>${percent(primarySummary.firstPlayerScore)}</strong><br>first-player score</div></div><p>A strategy counts as viable here if it is in the final lottery or scores at least 40% against that lottery. The 40% line represents a strategy that a human could reasonably play, not equal computer strength.</p></section>
+<section><h2>How viable strategies deal damage</h2>${strategySplit(primarySummary)}<p>A strategy is mixed when at least 20% of its damage cards come from a second damage type. Damage cards include the starting build and the cards acquired during evaluated games.</p></section>
+<section><h2>Which cards viable strategies use</h2><div class="callouts"><div><strong>No planned use</strong><br>${unused.length ? escape(unused.join(', ')) : 'None'}</div><div><strong>No actual acquisitions</strong><br>${notAcquired.length ? escape(notAcquired.join(', ')) : 'None'}</div></div><p>The table is sorted by actual use. “Acquired by” counts only viable strategies from kingdoms where the card was available. “Average copies” is the mean number acquired per game by strategies that acquired the card.</p>${table(['Card', 'Type', 'Available in kingdoms', 'Acquired by viable strategies', 'Average copies', 'Starting build', 'Purchase plan', 'Repeat purchase'], cardRows)}</section>
+<section><h2>Kingdom diversity</h2>${summaryTable(summaryRows)}<p>The lottery count shows strategies used by the best discovered mix. “Additional ≥40%” counts other discovered strategies that score at least 40% against that mix. Effective size measures how evenly the lottery is split; 1 means one strategy receives all weight.</p></section>
+<section><h2>All ${model.kingdoms.length} kingdoms</h2>${table(['Kingdom', 'Split', 'Lottery', 'Additional ≥40%', 'Viable at 40%', 'Effective size', 'Damage types', 'Draws', 'Turns/player', 'First-player score', 'Search games', 'Seconds'], kingdomRows)}</section>
+<section><h2>How the kingdoms were selected</h2>${table(['Split', 'Kingdoms', 'Card count range', 'Pair count range', 'Pair-count SD', 'Largest overlap'], designRows)}<p>Every kingdom has ten distinct piles, 40 health, no overrides, and at least one direct-damage card. Card counts differ by at most one within each split. No pair of kingdoms shares more than eight piles.</p></section>
 <div><h2>Five selected kingdom details</h2><p>Selection uses five fixed rules and an id tie-break. A kingdom can fill only one slot.</p>${model.selected.map(selectedDetail).join('\n')}</div>
 </main></body></html>\n`;
 }
@@ -328,7 +353,9 @@ export function generateBalanceCorpus(
   for (const definition of definitions) {
     const artifact = loadArtifactDirectory(balanceSuite.runDirectory(root, definition.id), definition.id);
     const selfPlay = selfPlayFor(artifact);
-    const report = buildBalanceReportModel([artifact], new Map([[definition.id, selfPlay]])).kingdoms[0]!;
+    const report = buildBalanceReportModel([artifact], new Map([[definition.id, selfPlay]]), {
+      competitiveScore: 0.4, competitiveStatus: '40% viable'
+    }).kingdoms[0]!;
     kingdoms.push({ ...report, split: splitById.get(definition.id)! });
   }
   const model = buildBalanceCorpusModel(balanceSuite.manifest, kingdoms);

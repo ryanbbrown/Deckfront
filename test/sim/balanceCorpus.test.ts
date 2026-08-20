@@ -80,6 +80,11 @@ describe('balance-corpus aggregation', () => {
     expect(model.summaries.combined.kingdoms).toBe(80);
     const html = renderBalanceCorpus(model);
     expect(html).toContain('Eighty-kingdom tuning report');
+    expect(html).toContain('Balance at a glance');
+    expect(html).toContain('How viable strategies deal damage');
+    expect(html).toContain('Which cards viable strategies use');
+    expect(html).toContain('Acquired by viable strategies');
+    expect(html).not.toContain('This is an incomplete historical card pool');
     expect(html).toContain('All 80 kingdoms');
     expect(html).toContain('The held-back validation kingdoms were not run');
     expect(html).not.toContain('<td>Validation</td><td>20</td>');
@@ -121,7 +126,7 @@ describe('balance-corpus aggregation', () => {
     const model = buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, corpus());
     const first = renderBalanceCorpus(model), second = renderBalanceCorpus(model);
     expect(first).toBe(second);
-    expect(first).toContain('Strategy diversity and play diagnostics');
+    expect(first).toContain('Kingdom diversity');
     expect(first).toContain('All 100 kingdoms');
     expect(first).toContain('Five selected kingdom details');
     expect(first).not.toMatch(/rigged|calibration/iu);

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { CARDS, findKingdom, resetKingdoms } from '../../src/game';
+import { CARDS, VARIABLE_ACTION_IDS, findKingdom, resetKingdoms } from '../../src/game';
 import {
   BALANCE_SUITE_MANIFEST, BALANCE_SUITE_SPEC, balanceSuite, generateBalanceSuite,
   measureBalanceSuiteDesign
@@ -29,7 +29,7 @@ describe('balance-suite design', () => {
 
   it('satisfies split balance, pile, damage, identity, and overlap constraints', () => {
     expect(BALANCE_SUITE_MANIFEST.kingdoms).toHaveLength(100);
-    expect(BALANCE_SUITE_MANIFEST.eligibleCardIds).toHaveLength(18);
+    expect(BALANCE_SUITE_MANIFEST.eligibleCardIds).toEqual([...VARIABLE_ACTION_IDS].sort());
     expect(BALANCE_SUITE_MANIFEST.splits.map((split) => [split.name, split.size]))
       .toEqual([['tuning', 80], ['validation', 20]]);
     const eligible = new Set(BALANCE_SUITE_MANIFEST.eligibleCardIds);

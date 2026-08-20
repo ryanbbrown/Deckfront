@@ -69,7 +69,7 @@ export interface ArtifactSet { run: ParsedRun; matrix: ParsedMatrix; strategies:
 
 export interface StrategyReport {
   id: string;
-  status: 'Lottery' | 'Near 50%';
+  status: 'Lottery' | 'Near 50%' | '40% viable';
   weight: number;
   score: number;
   startingBuild: string[];
@@ -341,14 +341,17 @@ function acquiredFamilyShares(strategies: readonly { acquisitionRates: Record<st
 }
 
 export function buildBalanceReportModel(
-  artifacts: readonly ArtifactSet[], selfPlayByKingdom: ReadonlyMap<string, ReadonlyMap<string, TelemetryAggregate>>
+  artifacts: readonly ArtifactSet[], selfPlayByKingdom: ReadonlyMap<string, ReadonlyMap<string, TelemetryAggregate>>,
+  options: { competitiveScore?: number; competitiveStatus?: 'Near 50%' | '40% viable' } = {}
 ): BalanceReportModel {
   assertExhaustiveCardFamilies();
+  const competitiveScore = options.competitiveScore ?? NEAR_COMPETITIVE_SCORE;
+  const competitiveStatus = options.competitiveStatus ?? 'Near 50%';
   const kingdoms: KingdomReport[] = artifacts.map((artifact) => {
     const weights = materialWeights(artifact);
     const scored = artifact.strategies.map((strategy, index) => ({ strategy, index,
       weight: weights.get(strategy.id) ?? 0, score: scoreAgainst(artifact, index, weights) }));
-    const viable = scored.filter((entry) => entry.weight > 0 || entry.score >= NEAR_COMPETITIVE_SCORE)
+    const viable = scored.filter((entry) => entry.weight > 0 || entry.score >= competitiveScore)
       .sort((left, right) => right.weight - left.weight || right.score - left.score || left.strategy.id.localeCompare(right.strategy.id));
     const material = scored.filter((entry) => entry.weight > 0);
     const selfPlay = selfPlayByKingdom.get(artifact.run.kingdomId);
@@ -356,7 +359,7 @@ export function buildBalanceReportModel(
     const strategies: StrategyReport[] = viable.map((entry) => {
       const acquisitionRates = strategyAcquisitionRates(artifact, entry.strategy.id, material, selfPlay);
       return {
-      id: entry.strategy.id, status: entry.weight > 0 ? 'Lottery' : 'Near 50%', weight: entry.weight,
+      id: entry.strategy.id, status: entry.weight > 0 ? 'Lottery' : competitiveStatus, weight: entry.weight,
       score: entry.score, startingBuild: entry.strategy.startingBuild,
       purchaseSteps: purchaseSteps(entry.strategy), repeatPurchase: entry.strategy.repeatPurchase,
       families: strategyFamilies(entry.strategy), acquiredCards: Object.keys(acquisitionRates), acquisitionRates
