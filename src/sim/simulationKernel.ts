@@ -5,6 +5,7 @@ import type { Strategy } from './strategy';
 import { chooseTacticalAction } from './tacticalPilot';
 import type { CullOption, PilotCard, TacticalView } from './tacticalPilot';
 import type { DeadDrawCounts, MatchResult, MatchTelemetry } from './types';
+export { SIMULATION_KERNEL_PROTOCOL_VERSION } from './protocolVersions';
 
 interface KernelCard {
   id: string;

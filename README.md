@@ -75,6 +75,15 @@ ignored by Git. Generated inputs and results are local experiment artifacts, not
 kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and
 `rigged-melee`.
 
+After all five full runs finish, generate the committed balance report:
+
+```sh
+npm run balance:report
+```
+
+The generator reads the ignored local `.experiments/` inputs, rejects stale rules fingerprints or
+incomplete runs, and writes `.html/balance-report.html`.
+
 The search uses policy-space response oracles. It starts each restart from random legal strategies,
 solves a maximum-support equilibrium over the discovered payoff matrix, and searches for a response
 to that weighted strategy mixture. Rectified-Nash niches help discovery but never define the final
@@ -91,8 +100,8 @@ node dist-sim/experiment.mjs --kingdom current-duel --mode smoke --seed 1 \
 Four workers are the measured default on an Apple M4 Pro. More workers remain available with `--workers`, but short simulation jobs become slower when process messaging and result transfer exceed the saved game time.
 
 The committed [.html/balance-baseline.html](.html/balance-baseline.html) is historical evidence from
-the removed evolutionary search. Its banner marks it as the pre-PSRO baseline. A later full-run plan
-will build a new dashboard from `matrix.json`.
+the removed evolutionary search. Its banner marks it as the pre-PSRO baseline. The current
+[.html/balance-report.html](.html/balance-report.html) reports the five full PSRO runs.
 
 ## Code boundaries
 

@@ -20,6 +20,7 @@ import { renderReport } from './report';
 import type { CalibrationDiagnostic, RunSummary } from './report';
 import { assertDisjointSeedNamespaces, configuredSeedNamespaces, namespaceSeeds } from './seedNamespaces';
 import type { TelemetryAggregate } from './types';
+import { rulesFingerprint } from './rulesFingerprint';
 
 export interface ExperimentDeps {
   now?: (() => number) | undefined;
@@ -152,7 +153,8 @@ async function runWithRunner(
   const searchDeadline = started + Math.round(options.deadlineMinutes * 60_000 * (1 - UNION_DEADLINE_RESERVE));
   prepareDirectory(outDir);
   const base: RunSummary = {
-    schemaVersion: 2, valid: false, kingdomId: options.kingdomId, kingdomName: kingdomOf(options.kingdomId).name,
+    schemaVersion: 3, rulesFingerprint: rulesFingerprint(options.kingdomId),
+    valid: false, kingdomId: options.kingdomId, kingdomName: kingdomOf(options.kingdomId).name,
     mode: options.mode, seed: options.seed,
     limits: {
       restarts: options.restarts, initialStrategies: options.initialStrategies,

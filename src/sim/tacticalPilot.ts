@@ -1,4 +1,5 @@
 import type { CardMechanic, CardValues, MovementChoice, PendingChoiceType } from '../game';
+export { TACTICAL_PILOT_PROTOCOL_VERSION } from './protocolVersions';
 
 export interface PilotCard {
   handIndex: number;

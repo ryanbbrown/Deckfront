@@ -145,7 +145,7 @@ describe('automatic PSRO search inputs', () => {
     const equilibrium = solveEquilibrium(strategies.map((strategy) => strategy.id), payoff);
     const niches = rectifiedNiches({
       protocol: { kingdomId: 'current-duel', cards: [], seeds: [1], turnLimitPerPlayer: 30,
-        actionCapPerTurn: 200, orientationProtocol: 'test' },
+        actionCapPerTurn: 200, orientationProtocol: 'test', rulesFingerprint: 'test' },
       strategies: [...strategies], cells: [], complete: true, centeredPayoffs: payoff
     }, equilibrium);
     expect(niches).toHaveLength(3);
@@ -165,7 +165,7 @@ describe('automatic PSRO search inputs', () => {
     equilibrium.weights[strategies[0]!.id] = 1 - SUPPORT_TOLERANCE / 2;
     const niches = rectifiedNiches({
       protocol: { kingdomId: 'current-duel', cards: [], seeds: [1], turnLimitPerPlayer: 30,
-        actionCapPerTurn: 200, orientationProtocol: 'test' },
+        actionCapPerTurn: 200, orientationProtocol: 'test', rulesFingerprint: 'test' },
       strategies: [...strategies], cells: [], complete: true, centeredPayoffs: [[0, 1], [-1, 0]]
     }, equilibrium);
     expect(niches.map((niche) => niche.focal.id)).not.toContain(strategies[1]!.id);

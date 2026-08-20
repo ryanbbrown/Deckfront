@@ -5,6 +5,7 @@ import type { MatrixSnapshot } from './payoffMatrix';
 import type { IterationEvent, RestartAgreement } from './psro';
 import type { RestartStatus } from './psro';
 import type { TelemetryAggregate } from './types';
+import type { RulesFingerprint } from './rulesFingerprint';
 
 export type ExperimentMode = 'smoke' | 'full';
 export interface CalibrationDiagnostic {
@@ -15,7 +16,8 @@ export interface CalibrationDiagnostic {
   observedAdvantage: number;
 }
 export interface RunSummary {
-  schemaVersion: 2;
+  schemaVersion: 3;
+  rulesFingerprint: RulesFingerprint;
   valid: boolean;
   kingdomId: string; kingdomName: string; mode: ExperimentMode; seed: number;
   limits: Record<string, number>; startedAt: string; finishedAt: string; elapsedMs: number;

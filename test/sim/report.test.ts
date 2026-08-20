@@ -5,6 +5,7 @@ import { emptyAggregate } from '../../src/sim/pairing';
 import { matrixProtocol } from '../../src/sim/payoffMatrix';
 import { renderReport } from '../../src/sim/report';
 import type { RunSummary } from '../../src/sim/report';
+import { rulesFingerprint } from '../../src/sim/rulesFingerprint';
 import type { IterationEvent } from '../../src/sim/psro';
 import type { ResponseResult } from '../../src/sim/responseOracle';
 
@@ -33,7 +34,8 @@ function event(restart: number | 'union', attempt: number, result: ResponseResul
 
 function summary(iterations: IterationEvent[]): RunSummary {
   const equilibrium = solveEquilibrium(strategies.map((strategy) => strategy.id), [[0, 0], [0, 0]]);
-  return { schemaVersion: 2, valid: true, kingdomId: 'current-duel', kingdomName: 'Current Duel',
+  return { schemaVersion: 3, rulesFingerprint: rulesFingerprint('current-duel'),
+    valid: true, kingdomId: 'current-duel', kingdomName: 'Current Duel',
     mode: 'smoke', seed: 1, limits: { gameBoundBeforeDiagnostics: 100 },
     startedAt: '', finishedAt: '', elapsedMs: 1000, stopReason: 'response-exhausted', error: null,
     matches: 32, aborted: 0, matrix: { protocol: matrixProtocol('current-duel', [1], 30, 200),

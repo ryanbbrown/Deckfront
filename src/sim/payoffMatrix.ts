@@ -5,8 +5,10 @@ import type { PairingJob, PairingRunner } from './pairingRunner';
 import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 import type { TelemetryAggregate } from './types';
+import { rulesFingerprint } from './rulesFingerprint';
+export { MATRIX_PROTOCOL_VERSION } from './protocolVersions';
+import { MATRIX_PROTOCOL_VERSION } from './protocolVersions';
 
-export const MATRIX_PROTOCOL_VERSION = 'four-orientations-v1';
 
 export interface MatrixProtocol {
   kingdomId: string;
@@ -15,6 +17,7 @@ export interface MatrixProtocol {
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
   orientationProtocol: string;
+  rulesFingerprint: string;
 }
 
 export interface MatrixCell {
@@ -58,11 +61,12 @@ export class DeadlineInterruptionError extends Error {
 export function matrixProtocol(
   kingdomId: string, seeds: readonly number[], turnLimitPerPlayer: number, actionCapPerTurn: number
 ): MatrixProtocol {
+  const fingerprint = rulesFingerprint(kingdomId, turnLimitPerPlayer, actionCapPerTurn);
   return {
     kingdomId,
     cards: kingdomMarket(kingdomId).map((card) => card),
     seeds: [...seeds], turnLimitPerPlayer, actionCapPerTurn,
-    orientationProtocol: MATRIX_PROTOCOL_VERSION
+    orientationProtocol: MATRIX_PROTOCOL_VERSION, rulesFingerprint: fingerprint.hash
   };
 }
 
