@@ -54,7 +54,7 @@ function immediateDamage(card: PilotCard, view: TacticalView): number {
       + ((view.actorPosition === 1 || view.actorPosition === 5) ? value(card, 'wallDamage') : 0);
     case 'flurry': return Math.min(value(card, 'max'), view.tacticalPlayed * value(card, 'perAction'))
       + (view.opponentExposed ? 2 : 0);
-    case 'ranged': return value(card, 'damage');
+    case 'ranged': case 'repellingShot': return value(card, 'damage');
     case 'spell': return value(card, 'damage');
     case 'volley': {
       const near = distance(view.actorPosition, view.opponentPosition) === 1;
@@ -70,7 +70,8 @@ function currentHandDamageAt(
   let total = 0;
   let spellDamage: Int16Array | null = null;
   for (const card of view.hand) {
-    if (!['melee', 'drive', 'flurry', 'ranged', 'spell', 'volley'].includes(card.mechanic)) continue;
+    if (!['melee', 'drive', 'flurry', 'ranged', 'repellingShot', 'spell', 'volley']
+      .includes(card.mechanic)) continue;
     if (card.mechanic === 'spell') {
       const cost = value(card, 'manaCost');
       if (cost > mana) continue;
@@ -151,6 +152,34 @@ function movementPreservesDamage(view: TacticalView, result: MovementResult): bo
   );
 }
 
+function repellingPositions(view: TacticalView): Pick<MovementResult, 'actorPosition' | 'opponentPosition'> {
+  const targetStep = view.opponentPosition > view.actorPosition ? 1 : -1;
+  const targetDestination = view.opponentPosition + targetStep;
+  if (targetDestination >= 1 && targetDestination <= 5) {
+    return { actorPosition: view.actorPosition, opponentPosition: targetDestination };
+  }
+  const actorDestination = view.actorPosition - targetStep;
+  return actorDestination >= 1 && actorDestination <= 5
+    ? { actorPosition: actorDestination, opponentPosition: view.opponentPosition }
+    : { actorPosition: view.actorPosition, opponentPosition: view.opponentPosition };
+}
+
+function repellingImproves(view: TacticalView): boolean {
+  const positions = repellingPositions(view);
+  const currentDamage = currentHandDamageAt(
+    view, view.actorPosition, view.opponentPosition, view.mana, view.tacticalPlayed
+  );
+  const nextDamage = currentHandDamageAt(
+    view, positions.actorPosition, positions.opponentPosition, view.mana, view.tacticalPlayed + 1
+  );
+  if (nextDamage !== currentDamage) return nextDamage > currentDamage;
+  return publicPositionAdvantage(
+    view.actorProfile, view.opponentProfile, positions.actorPosition, positions.opponentPosition
+  ) > publicPositionAdvantage(
+    view.actorProfile, view.opponentProfile, view.actorPosition, view.opponentPosition
+  );
+}
+
 function bestDriveDirection(card: PilotCard, view: TacticalView): MovementChoice {
   let best: MovementResult | null = null;
   for (const movement of card.movements) {
@@ -223,7 +252,8 @@ function bestDamage(view: TacticalView, omitFlurry: boolean): PilotCard | undefi
   let best: PilotCard | undefined;
   let bestDamage = -1;
   for (const card of view.hand) {
-    if (!card.enabled || !['melee', 'drive', 'flurry', 'ranged', 'spell', 'volley'].includes(card.mechanic)) continue;
+    if (!card.enabled || !['melee', 'drive', 'flurry', 'ranged', 'repellingShot', 'spell', 'volley']
+      .includes(card.mechanic)) continue;
     if (omitFlurry && card.mechanic === 'flurry') continue;
     const damage = immediateDamage(card, view);
     if (damage > bestDamage) { best = card; bestDamage = damage; }
@@ -271,6 +301,9 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
 
   const feint = first(view, 'feint');
   if (feint && !view.opponentExposed && hasCloseAttack(view)) return play(feint);
+
+  const repellingShot = first(view, 'repellingShot');
+  if (repellingShot && repellingImproves(view)) return play(repellingShot);
 
   const nonFlurryDamage = bestDamage(view, true);
   if (nonFlurryDamage) {

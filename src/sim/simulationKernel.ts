@@ -186,7 +186,7 @@ function positionAfter(position: number, movement: MovementChoice): number {
 function enabled(state: KernelState, actor: 0 | 1, card: KernelCard): boolean {
   const close = state.positions[actor] === state.positions[other(actor)];
   if (['melee', 'drive', 'flurry', 'feint'].includes(card.mechanic)) return close;
-  if (['ranged', 'volley', 'aim'].includes(card.mechanic)) return !close;
+  if (['ranged', 'repellingShot', 'volley', 'aim'].includes(card.mechanic)) return !close;
   if (card.mechanic === 'spell') return state.players[actor].mana >= cardValue(card, 'manaCost');
   return card.type === 'action';
 }
@@ -396,6 +396,21 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
     case 'ranged':
       if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true;
       draw(state, actor, cardValue(card, 'draw')); break;
+    case 'repellingShot': {
+      if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true;
+      const target = other(actor);
+      const targetStep = state.positions[target] > state.positions[actor] ? 1 : -1;
+      const targetDestination = state.positions[target] + targetStep;
+      if (targetDestination >= 1 && targetDestination <= 5) {
+        state.positions[target] = targetDestination; event(state);
+        break;
+      }
+      const actorDestination = state.positions[actor] - targetStep;
+      if (actorDestination >= 1 && actorDestination <= 5) {
+        state.positions[actor] = actorDestination; player.positionChanged = true; event(state);
+      }
+      break;
+    }
     case 'spell':
       player.mana -= cardValue(card, 'manaCost'); event(state);
       if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true; break;
@@ -421,7 +436,7 @@ function recordDeadDraws(state: KernelState, actor: 0 | 1): void {
     const card = state.kingdom.cards[index]!;
     if (card.type !== 'action') continue;
     if ((['melee', 'drive', 'flurry', 'feint'].includes(card.mechanic) && !close)
-      || (['ranged', 'volley', 'aim'].includes(card.mechanic) && close)) {
+      || (['ranged', 'repellingShot', 'volley', 'aim'].includes(card.mechanic) && close)) {
       counts.range += 1; counts.total += 1; continue;
     }
     if (card.mechanic === 'spell' && player.mana < cardValue(card, 'manaCost')) {

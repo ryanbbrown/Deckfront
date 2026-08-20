@@ -98,7 +98,7 @@ const MIXED_DAMAGE_MINIMUM = 0.2;
 function damageFamily(cardId: string): (typeof DAMAGE_FAMILIES)[number] | null {
   const mechanic = cardDefinition(cardId).mechanic;
   if (['melee', 'drive', 'flurry'].includes(mechanic)) return 'Melee';
-  if (['ranged', 'volley'].includes(mechanic)) return 'Ranged';
+  if (['ranged', 'repellingShot', 'volley'].includes(mechanic)) return 'Ranged';
   if (mechanic === 'spell') return 'Mage';
   return null;
 }

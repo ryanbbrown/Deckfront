@@ -196,12 +196,24 @@
       "id": "steadyShot",
       "name": "Steady Shot",
       "type": "action",
-      "cost": 4,
+      "cost": 3,
       "text": "At Near or Far range, deal 2 damage.",
       "mechanic": "ranged",
       "values": {
         "damage": 2,
         "draw": 0
+      },
+      "family": "ranged"
+    },
+    {
+      "id": "repellingShot",
+      "name": "Repelling Shot",
+      "type": "action",
+      "cost": 3,
+      "text": "At Near or Far range, deal 1 damage. Move the opponent 1 space farther away. If they cannot move, move yourself 1 space farther away instead.",
+      "mechanic": "repellingShot",
+      "values": {
+        "damage": 1
       },
       "family": "ranged"
     },
@@ -304,19 +316,6 @@
         "damage": 2
       },
       "family": "melee"
-    },
-    {
-      "id": "shot",
-      "name": "Shot",
-      "type": "action",
-      "cost": 3,
-      "text": "At Near or Far range, deal 2 damage.",
-      "mechanic": "ranged",
-      "values": {
-        "damage": 2,
-        "draw": 0
-      },
-      "family": "ranged"
     }
   ]
 }

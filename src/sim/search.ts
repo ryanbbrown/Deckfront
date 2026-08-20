@@ -26,7 +26,9 @@ export interface SearchOptions { stateLimit: number; memo: SearchMemo | null }
 export interface SearchOutcome { action: LegalAction; visited: number }
 
 export const DEFAULT_STATE_LIMIT = 20000;
-export const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set<CardMechanic>(['melee', 'ranged', 'spell', 'volley', 'drive', 'flurry']);
+export const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set<CardMechanic>([
+  'melee', 'ranged', 'repellingShot', 'spell', 'volley', 'drive', 'flurry'
+]);
 
 let indexedEpoch = -1;
 const cardIndexes = new Map<string, ReadonlyMap<string, number>>();

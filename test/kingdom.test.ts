@@ -232,10 +232,10 @@ describe('the curated kingdoms', () => {
     }
   });
 
-  it('leaves Step, Strike, Shot, and Starfire out of every kingdom', () => {
+  it('leaves Step, Strike, Repelling Shot, and Starfire out of every curated kingdom', () => {
     for (const id of kingdomIds()) {
       const sold = new Set(kingdomOf(id).actionPiles.map((pile) => pile.cardId));
-      for (const excluded of ['step', 'strike', 'shot', 'starfire']) {
+      for (const excluded of ['step', 'strike', 'repellingShot', 'starfire']) {
         expect(sold.has(excluded), `${id} sells ${excluded}`).toBe(false);
       }
     }
@@ -294,7 +294,7 @@ describe('override coverage', () => {
     starfire: { cost: 1, values: { damage: 11, manaCost: 1 } },
     step: { cost: 1 },
     strike: { cost: 1, values: { damage: 6 } },
-    shot: { cost: 1, values: { damage: 8, draw: 1 } }
+    repellingShot: { cost: 1, values: { damage: 8 } }
   };
   function tuned(position = 3, mana = 0): GameState {
     registerKingdom(kingdom('tuned', { startingHealth: 40, actionPiles: piles(ACTION_IDS), overrides: OVERRIDES }));
@@ -378,9 +378,9 @@ describe('override coverage', () => {
     state = playCard(state, 'steadyShot');
     expect(state.fighters.indigo.health).toBe(33); expect(state.players.ochre.deck.hand).toHaveLength(1);
 
-    state = tuned(); isolateHand(state, 'ochre', ['shot']); setDraw(state, 'ochre', ['copper', 'copper']);
-    state = playCard(state, 'shot');
-    expect(state.fighters.indigo.health).toBe(32); expect(state.players.ochre.deck.hand).toHaveLength(1);
+    state = tuned(); isolateHand(state, 'ochre', ['repellingShot']);
+    state = playCard(state, 'repellingShot');
+    expect(state.fighters.indigo.health).toBe(32); expect(state.fighters.indigo.position).toBe(4);
 
     state = tuned(); isolateHand(state, 'ochre', ['channel']); setDraw(state, 'ochre', ['copper', 'copper', 'copper']);
     state = playCard(state, 'channel');

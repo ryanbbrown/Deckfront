@@ -189,7 +189,7 @@ function eventText(game: GameView, event: PublicGameEvent): string {
     case 'cardPlayed': return `Played ${cardName()}`;
     case 'purchase': return `Bought ${cardName()}`;
     case 'damage': return `Dealt ${String(detail.amount)} damage to ${eventPlayerName(detail.targetId)}`;
-    case 'move': if (detail.source === 'drive') return `Moved both fighters ${String(detail.movement)} to space ${String(detail.to)}`; if (detail.movement === 'stay') return `Stayed on space ${String(detail.to)}`; return `Moved ${String(detail.movement)} to space ${String(detail.to)}`;
+    case 'move': if (detail.source === 'drive') return `Moved both fighters ${String(detail.movement)} to space ${String(detail.to)}`; if (detail.source === 'repellingShot') return `Repelling Shot increased the distance; one fighter moved ${String(detail.movement)} to space ${String(detail.to)}`; if (detail.movement === 'stay') return `Stayed on space ${String(detail.to)}`; return `Moved ${String(detail.movement)} to space ${String(detail.to)}`;
     case 'wallCollision': return `Wall blocked ${String(detail.direction)}; neither fighter moved`;
     case 'condition': return `${String(detail.condition)} ${detail.change === 'set' ? 'applied to' : 'consumed from'} ${eventPlayerName(detail.targetId)}`;
     case 'discard': return `Discarded ${cardName()}`;

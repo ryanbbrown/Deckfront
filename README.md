@@ -116,9 +116,8 @@ Four workers are the measured default on an Apple M4 Pro. More workers remain av
 
 The committed [.html/balance-report.html](.html/balance-report.html) reports the four diagnostic runs.
 The committed [.html/balance-corpus-18-card.html](.html/balance-corpus-18-card.html) reports the latest
-completed 80-kingdom run. It is historical evidence because that run excluded Shot and Strike. The
-next `.html/balance-corpus.html` will be generated after the 20-card market issue is resolved and the
-version 2 suite runs.
+completed 80-kingdom run. It is historical evidence because that run excluded Strike and predates
+Repelling Shot. The next `.html/balance-corpus.html` will be generated after the version 2 suite runs.
 
 ## Code boundaries
 

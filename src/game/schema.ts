@@ -7,7 +7,8 @@ export const cardDefinitionSchema = z.object({
   cost: z.number().int().nonnegative(), text: z.string(),
   mechanic: z.enum([
     'money', 'footwork', 'cull', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley',
-    'stipend', 'reclaim', 'adapt', 'melee', 'ranged', 'spell', 'channel', 'leyStep', 'prism', 'step'
+    'stipend', 'reclaim', 'adapt', 'melee', 'ranged', 'repellingShot', 'spell', 'channel',
+    'leyStep', 'prism', 'step'
   ]),
   money: z.number().int().positive().optional(),
   values: z.record(z.string(), z.number()).optional()

@@ -3,7 +3,8 @@ export type CardType = 'action' | 'treasure';
 export type CardFamily = 'treasure' | 'ranged' | 'mana' | 'melee' | 'engine';
 export type CardMechanic =
   | 'money' | 'footwork' | 'cull' | 'muster' | 'feint' | 'drive' | 'flurry' | 'aim' | 'volley'
-  | 'stipend' | 'reclaim' | 'adapt' | 'melee' | 'ranged' | 'spell' | 'channel' | 'leyStep' | 'prism' | 'step';
+  | 'stipend' | 'reclaim' | 'adapt' | 'melee' | 'ranged' | 'repellingShot' | 'spell' | 'channel'
+  | 'leyStep' | 'prism' | 'step';
 export type Phase = 'startingBuild' | 'action' | 'buy' | 'ended';
 export type RangeBand = 'Close' | 'Near' | 'Far';
 export type DirectionChoice = 'left' | 'right';

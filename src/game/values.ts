@@ -13,6 +13,7 @@ export const VALUE_KEYS: Readonly<Record<string, readonly string[]>> = Object.fr
   adapt: ['draw', 'movedDraw'],
   melee: ['damage'],
   ranged: ['damage', 'draw'],
+  repellingShot: ['damage'],
   spell: ['damage', 'manaCost'],
   channel: ['mana', 'draw'],
   leyStep: ['mana'],

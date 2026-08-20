@@ -34,6 +34,13 @@ describe('public position value', () => {
     expect(profilePositionValue(ranged, 1, 3)).toBe(10);
   });
 
+  it('values Repelling Shot as a ranged attack', () => {
+    const ranged = profile('repellingShot');
+    expect(profilePositionValue(ranged, 3, 3)).toBe(-1);
+    expect(profilePositionValue(ranged, 2, 3)).toBe(5);
+    expect(profilePositionValue(ranged, 1, 3)).toBe(5);
+  });
+
   it('uses current Aim only for the current hand and best printed Volley for public value', () => {
     const volley = cardDefinition('volley');
     const card = { mechanic: volley.mechanic, values: volley.values ?? {} };

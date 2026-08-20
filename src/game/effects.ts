@@ -183,6 +183,28 @@ export const EFFECTS: Readonly<Record<CardMechanic, CardEffect>> = Object.freeze
       if (!context.state.winner) context.draw(context.actorId, value(values, 'draw'));
     }
   },
+  repellingShot: {
+    ...BASE, tactical: true, gate: needsNearOrFar, command: playAction,
+    resolve: (context, values) => {
+      context.damage(context.targetId, value(values, 'damage'), false);
+      if (context.state.winner) return;
+      const actorPosition = context.state.fighters[context.actorId].position;
+      const targetPosition = context.state.fighters[context.targetId].position;
+      const targetStep = targetPosition > actorPosition ? 1 : -1;
+      const targetDestination = targetPosition + targetStep;
+      if (targetDestination >= ARENA_MIN && targetDestination <= ARENA_MAX) {
+        context.move(context.targetId, targetDestination);
+        context.record('move', { movement: targetStep === 1 ? 'right' : 'left', from: targetPosition, to: targetDestination,
+          playerId: context.targetId, source: 'repellingShot' });
+        return;
+      }
+      const actorDestination = actorPosition - targetStep;
+      if (actorDestination < ARENA_MIN || actorDestination > ARENA_MAX) return;
+      context.move(context.actorId, actorDestination);
+      context.record('move', { movement: targetStep === 1 ? 'left' : 'right', from: actorPosition, to: actorDestination,
+        playerId: context.actorId, source: 'repellingShot' });
+    }
+  },
   spell: {
     ...BASE, tactical: true, command: playAction,
     gate: (state, playerId, values) => state.players[playerId].mana < value(values, 'manaCost') ? 'NEEDS_MANA' : null,

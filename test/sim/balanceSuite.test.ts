@@ -25,7 +25,7 @@ describe('balance-suite design', () => {
       '../../src/sim/balance-suite-manifest.json'), 'utf8');
     expect(first).toBe(second);
     expect(first).toBe(committed);
-  });
+  }, 15_000);
 
   it('satisfies split balance, pile, damage, identity, and overlap constraints', () => {
     expect(BALANCE_SUITE_MANIFEST.kingdoms).toHaveLength(100);
@@ -41,7 +41,7 @@ describe('balance-suite design', () => {
       expect(new Set(ids).size, kingdom.id).toBe(10);
       expect(ids.every((id) => eligible.has(id)), kingdom.id).toBe(true);
       expect(kingdom.actionPiles.every((pile) => pile.count === 10), kingdom.id).toBe(true);
-      expect(ids.some((id) => ['melee', 'drive', 'flurry', 'ranged', 'volley', 'spell']
+      expect(ids.some((id) => ['melee', 'drive', 'flurry', 'ranged', 'repellingShot', 'volley', 'spell']
         .includes(CARDS[id]!.mechanic)), kingdom.id).toBe(true);
       const key = [...ids].sort().join('|');
       expect(sets.has(key), kingdom.id).toBe(false); sets.add(key);

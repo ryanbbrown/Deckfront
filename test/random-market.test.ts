@@ -24,6 +24,9 @@ describe('random markets', () => {
     expect([...TREASURE_IDS, ...ALWAYS_AVAILABLE_ACTION_IDS]).toEqual(['copper', 'silver', 'gold', 'step', 'cull', 'focus']);
     expect(VARIABLE_ACTION_IDS).toContain('footwork'); expect(ALWAYS_AVAILABLE_ACTION_IDS).not.toContain('footwork');
     expect(CARDS.step!.text).toBe('Move 1 space left or right.');
+    expect(VARIABLE_ACTION_IDS).toContain('repellingShot');
+    expect(VARIABLE_ACTION_IDS).not.toContain('shot');
+    expect(CARDS.shot).toBeUndefined();
   });
 
   it('loads a persisted generated kingdom after the registry is reset', async () => {

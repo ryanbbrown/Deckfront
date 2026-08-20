@@ -6,7 +6,7 @@ const ARENA_MAX = 5;
 const CURRENT_DAMAGE_WEIGHT = ARENA_MAX - ARENA_MIN + 1;
 
 const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set([
-  'melee', 'drive', 'flurry', 'ranged', 'spell', 'volley'
+  'melee', 'drive', 'flurry', 'ranged', 'repellingShot', 'spell', 'volley'
 ]);
 
 export interface ProfileCard {
@@ -48,7 +48,7 @@ export function printedAttackDamage(
         ? value(card.values, 'max')
         : Math.min(value(card.values, 'max'), state.tacticalPlayed * value(card.values, 'perAction')))
       : 0;
-    case 'ranged': return close ? 0 : value(card.values, 'damage');
+    case 'ranged': case 'repellingShot': return close ? 0 : value(card.values, 'damage');
     case 'spell': return value(card.values, 'damage');
     case 'volley': {
       if (close) return 0;

@@ -97,7 +97,8 @@ function overlap(left: readonly string[], right: readonly string[]): number {
   return left.reduce((count, card) => count + Number(rightSet.has(card)), 0);
 }
 function isDamage(cardId: string): boolean {
-  return ['melee', 'drive', 'flurry', 'ranged', 'volley', 'spell'].includes(CARDS[cardId]!.mechanic);
+  return ['melee', 'drive', 'flurry', 'ranged', 'repellingShot', 'volley', 'spell']
+    .includes(CARDS[cardId]!.mechanic);
 }
 function pairCounts(rows: readonly (readonly string[])[], eligible: readonly string[]): Map<string, number> {
   const counts = new Map<string, number>();

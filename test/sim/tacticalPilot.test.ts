@@ -52,6 +52,15 @@ describe('the shared tactical pilot', () => {
     expect(choose(state).command).toMatchObject({ type: 'playFootwork', movement: 'left' });
   });
 
+  it('uses Repelling Shot before Volley when it creates Far range', () => {
+    let state = arena({ hand: ['volley', 'repellingShot'], draw: [], ochre: 2, indigo: 3 });
+    const repelling = choose(state);
+    expect(playedDefinition(state, repelling)).toBe('repellingShot');
+    state = applyAction(state, repelling.id);
+    expect(state.fighters.indigo.position).toBe(4);
+    expect(playedDefinition(state, choose(state))).toBe('volley');
+  });
+
   it('keeps Footwork at Stay when current damage and public position value tie', () => {
     const state = arena({
       kingdomId: 'three-way-open', hand: ['footwork'], draw: ['arcBolt'], ochre: 2, indigo: 3,

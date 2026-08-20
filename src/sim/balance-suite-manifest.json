@@ -16,7 +16,7 @@
     "muster",
     "prism",
     "reclaim",
-    "shot",
+    "repellingShot",
     "starfire",
     "steadyShot",
     "stipend",
@@ -140,7 +140,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -220,7 +220,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -280,7 +280,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -428,7 +428,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -472,7 +472,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -612,7 +612,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -708,7 +708,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -756,7 +756,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -852,7 +852,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -948,7 +948,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -1048,7 +1048,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -1140,7 +1140,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -1236,7 +1236,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -1336,7 +1336,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -1428,7 +1428,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -1576,7 +1576,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -1668,7 +1668,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -1728,7 +1728,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         }
       ]
@@ -1864,7 +1864,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -1964,7 +1964,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -2012,7 +2012,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -2156,7 +2156,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -2240,7 +2240,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -2340,7 +2340,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -2392,7 +2392,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -2532,7 +2532,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -2584,7 +2584,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -2728,7 +2728,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -2784,7 +2784,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         }
       ]
@@ -2868,7 +2868,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -2964,7 +2964,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -3060,7 +3060,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -3204,7 +3204,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -3252,7 +3252,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -3348,7 +3348,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -3448,7 +3448,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -3596,7 +3596,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -3684,7 +3684,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -3780,7 +3780,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -3872,7 +3872,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -3928,7 +3928,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -4068,7 +4068,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -4168,7 +4168,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -4260,7 +4260,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -4452,7 +4452,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -4548,7 +4548,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -4604,7 +4604,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -4652,7 +4652,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -4740,7 +4740,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
@@ -4792,7 +4792,7 @@
           "count": 10
         },
         {
-          "cardId": "shot",
+          "cardId": "repellingShot",
           "count": 10
         },
         {
