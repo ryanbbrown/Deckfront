@@ -1,4 +1,6 @@
-import type { GameCommand, GameState } from '../game/types';
+import type { GameCommand, GameState, Kingdom, PlayerId } from '../game/types';
+import type { GameMode, TrainingSummary } from '../shared/api';
+import type { Strategy } from '../sim/strategy';
 
 export interface UndoCheckpoint {
   committedCommandCount: number;
@@ -7,10 +9,12 @@ export interface UndoCheckpoint {
   durationSeconds: number | null;
 }
 export interface GameRecord {
-  schemaVersion: 9;
+  schemaVersion: 10;
   id: string; revision: number; createdAt: string; updatedAt: string; finishedAt: string | null;
   completedActions: number; durationSeconds: number | null;
   buildProposal: string[];
+  kingdom: Kingdom; mode: GameMode; humanPlayerId: PlayerId | null;
+  aiStrategy: Strategy | null; training: TrainingSummary | null;
   initialState: GameState; committedCommands: GameCommand[];
   undoCheckpoint: UndoCheckpoint | null; state: GameState;
 }

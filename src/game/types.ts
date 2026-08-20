@@ -1,5 +1,6 @@
 export type PlayerId = 'ochre' | 'indigo';
 export type CardType = 'action' | 'treasure';
+export type CardFamily = 'treasure' | 'ranged' | 'mana' | 'melee' | 'engine';
 export type CardMechanic =
   | 'money' | 'footwork' | 'cull' | 'muster' | 'feint' | 'drive' | 'flurry' | 'aim' | 'volley'
   | 'stipend' | 'reclaim' | 'adapt' | 'melee' | 'ranged' | 'spell' | 'channel' | 'leyStep' | 'prism' | 'step';
@@ -13,6 +14,7 @@ export interface CardDefinition {
   id: string;
   name: string;
   type: CardType;
+  family: CardFamily;
   cost: number;
   text: string;
   mechanic: CardMechanic;

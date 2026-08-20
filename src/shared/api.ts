@@ -2,6 +2,14 @@ import type {
   CardDefinition, CardInstance, GameEvent, Phase, PlayerId, RangeBand
 } from '../game/types';
 
+export type GameMode = 'local' | 'ai';
+export interface TrainingSummary { elapsedMs: number; matches: number; strategyId: string }
+export interface SetupCatalog {
+  cards: Record<string, CardDefinition>;
+  fixedCardIds: string[];
+  variableCardIds: string[];
+}
+
 export interface GamePlayerView {
   id: PlayerId;
   hand: CardInstance[];
@@ -39,7 +47,7 @@ export interface GameActionPresentation {
   selection: SelectionPresentation | null;
 }
 export interface GameView {
-  schemaVersion: 10;
+  schemaVersion: 11;
   id: string; revision: number; createdAt: string; updatedAt: string; elapsedSeconds: number;
   completedActions: number; durationSeconds: number | null;
   activePlayerId: PlayerId; selectedFirstPlayerId: PlayerId; phase: Phase; turn: number; winner: PlayerId | null;
@@ -47,6 +55,9 @@ export interface GameView {
   cards: Record<string, CardDefinition>; players: Record<PlayerId, GamePlayerView>; trashCount: number;
   events: GameEvent[]; actions: GameActionPresentation;
   canUndo: boolean;
+  mode: GameMode; humanPlayerId: PlayerId | null; aiPlayerId: PlayerId | null;
+  training: TrainingSummary | null;
+  fixedCardIds: string[]; variableCardIds: string[];
   buildProposal: string[]; completedBuilds: Record<PlayerId, string[]> | null;
 }
-export interface GameExport { schemaVersion: 10; exportedAt: string; game: GameView }
+export interface GameExport { schemaVersion: 11; exportedAt: string; game: GameView }

@@ -55,12 +55,18 @@ export class WorkerPairingRunner implements PairingRunner {
   private readonly pool: PoolWorker[];
   private closed = false;
 
-  constructor(workerCount: number, workerUrl: URL) {
+  constructor(
+    workerCount: number, workerUrl: URL, extraWorkerData: Record<string, unknown> = {},
+    workerExecArgv?: string[]
+  ) {
     if (!Number.isInteger(workerCount) || workerCount < 1 || workerCount > 16) {
       throw new Error(`workers must be an integer from 1 to 16, not ${workerCount}.`);
     }
     this.pool = Array.from({ length: workerCount }, () => ({
-      worker: new Worker(workerUrl, { workerData: { kind: 'pairing-worker' } }),
+      worker: new Worker(workerUrl, {
+        workerData: { ...extraWorkerData, kind: 'pairing-worker' },
+        ...(workerExecArgv ? { execArgv: workerExecArgv } : {})
+      }),
       busy: false
     }));
   }

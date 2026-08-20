@@ -9,9 +9,10 @@ export {
 } from './engine';
 export { assertInvariants, checkInvariants } from './invariants';
 export {
-  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, DEFAULT_KINGDOM_ID, MAX_PILE_COUNT, TREASURE_IDS,
-  findKingdom, kingdomEpoch, kingdomMarket, kingdomOf, kingdomSupply, registerKingdom, resetKingdoms,
-  resolveCard
+  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, DEFAULT_KINGDOM_ID, MAX_PILE_COUNT,
+  RANDOM_KINGDOM_SIZE, TREASURE_IDS, VARIABLE_ACTION_IDS,
+  findKingdom, kingdomEpoch, kingdomMarket, kingdomOf, kingdomSupply, randomKingdom,
+  randomVariableCardIds, registerKingdom, resetKingdoms, resolveCard
 } from './kingdom';
 export { SeededRandom, shuffle } from './random';
 export { cloneGame, createCard, createGame, opponent, PLAYER_IDS } from './state';

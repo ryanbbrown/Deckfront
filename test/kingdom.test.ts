@@ -56,7 +56,7 @@ describe('kingdom registry', () => {
     const state = createGame({ seed: 1 });
     expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(state.startingHealth).toBe(40);
     expect(state.supply).toEqual({ footwork: 10, muster: 10, feint: 10, drive: 10, flurry: 10,
-      aim: 10, volley: 10, cull: 10, focus: 10 });
+      aim: 10, volley: 10, step: 10, cull: 10, focus: 10 });
     expect(state.fighters.ochre.health).toBe(37); expect(state.fighters.indigo.health).toBe(40);
     assertInvariants(state);
   });
@@ -68,10 +68,11 @@ describe('kingdom registry', () => {
     state.fighters.ochre.health = 31;
     expect(checkInvariants(state)).toContain('ochre has invalid health.');
   });
-  it('gives every kingdom Cull and Focus at ten without listing them', () => {
+  it('gives every kingdom Step, Cull, and Focus at ten without listing them', () => {
     registerKingdom(kingdom('cull-free', { actionPiles: piles(['aim']) }));
     const state = createGame({ seed: 1, kingdomId: 'cull-free' });
-    expect(state.supply).toEqual({ aim: 10, cull: ALWAYS_AVAILABLE_COUNT, focus: ALWAYS_AVAILABLE_COUNT });
+    expect(state.supply).toEqual({ aim: 10, step: ALWAYS_AVAILABLE_COUNT,
+      cull: ALWAYS_AVAILABLE_COUNT, focus: ALWAYS_AVAILABLE_COUNT });
     expect(kingdomOf('cull-free').actionPiles.map((pile) => pile.cardId)).toEqual(['aim']);
     assertInvariants(state);
   });
@@ -79,10 +80,10 @@ describe('kingdom registry', () => {
     const ten = ACTION_IDS.slice(0, 10);
     registerKingdom(kingdom('ten', { actionPiles: piles(ten) }));
     const state = ready(createGame({ seed: 1, kingdomId: 'ten' }));
-    expect(Object.keys(state.supply).sort()).toEqual([...ten, 'cull', 'focus'].sort());
+    expect(Object.keys(state.supply).sort()).toEqual([...ten, 'step', 'cull', 'focus'].sort());
     state.phase = 'buy'; state.players.ochre.money = 100;
     expect(listLegalActions(state).map((entry) => entry.label).sort()).toEqual([
-      ...[...ten, 'cull', 'focus', 'copper', 'silver', 'gold'].map((id) => `Buy ${cardDefinition(id).name}`),
+      ...[...ten, 'step', 'cull', 'focus', 'copper', 'silver', 'gold'].map((id) => `Buy ${cardDefinition(id).name}`),
       'End Buy phase'
     ].sort());
   });
@@ -113,7 +114,7 @@ describe('kingdom registry', () => {
     expect(kingdomOf('frozen').startingHealth).toBe(20); expect(kingdomOf('frozen').actionPiles).toHaveLength(1);
     expect(() => { kingdomOf('frozen').actionPiles.push({ cardId: 'volley', count: 10 }); }).toThrow();
     expect(kingdomOf('frozen').actionPiles).toHaveLength(1);
-    expect(createGame({ seed: 1, kingdomId: 'frozen' }).supply).toEqual({ aim: 10, cull: 10, focus: 10 });
+    expect(createGame({ seed: 1, kingdomId: 'frozen' }).supply).toEqual({ aim: 10, step: 10, cull: 10, focus: 10 });
   });
   it('freezes the nested values a resolved card exposes, with and without an override', () => {
     registerKingdom(kingdom('sharp', { actionPiles: piles(['aim', 'volley']), overrides: { volley: { values: { far: 9 } } } }));
@@ -155,7 +156,7 @@ describe('kingdom registry', () => {
   it('limits a starting build to the cards the kingdom sells', () => {
     registerKingdom(kingdom('narrow', { actionPiles: piles(['aim']) }));
     const state = createGame({ seed: 1, kingdomId: 'narrow' });
-    expect(() => submitStartingBuild(state, 'ochre', ['aim', 'cull', 'focus'])).not.toThrow();
+    expect(() => submitStartingBuild(state, 'ochre', ['aim', 'step', 'cull', 'focus'])).not.toThrow();
     expect(() => submitStartingBuild(state, 'ochre', ['volley'])).toThrow('does not sell volley');
     expect(() => submitStartingBuild(state, 'ochre', ['invented'])).toThrow('Unknown card definition: invented');
   });
@@ -200,7 +201,7 @@ describe('the curated kingdoms', () => {
       expect(registered.overrides ?? undefined, expected.id).toEqual(expected.overrides);
       // Universal actions and the three treasures are available everywhere and are never listed as piles.
       expect(kingdomMarket(expected.id).map((card) => card.id), expected.id)
-        .toEqual(expect.arrayContaining(['cull', 'focus', 'copper', 'silver', 'gold']));
+        .toEqual(expect.arrayContaining(['step', 'cull', 'focus', 'copper', 'silver', 'gold']));
     }
   });
 
@@ -208,11 +209,11 @@ describe('the curated kingdoms', () => {
     const state = createGame({ seed: 1 });
     expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID);
     expect(state.supply).toEqual({ footwork: 10, muster: 10, feint: 10, drive: 10, flurry: 10,
-      aim: 10, volley: 10, cull: 10, focus: 10 });
+      aim: 10, volley: 10, step: 10, cull: 10, focus: 10 });
   });
 
-  // Asserted on `actionPiles`, not on the supply or the market, because both also carry Cull and the
-  // treasures and would report eleven and fourteen.
+  // Asserted on `actionPiles`, not on the supply or market, because both also carry Step, Cull,
+  // Focus, and the treasures.
   it('gives current-duel eight action piles and the other three ten', () => {
     expect(kingdomOf('current-duel').actionPiles).toHaveLength(8);
     for (const id of ['three-way-open', 'three-way-engine', 'range-rich-mixed']) {
@@ -421,8 +422,8 @@ describe('kingdom persistence and source hygiene', () => {
       const after = await service.commitAction(created.id, both.revision, both.actions.phases.find((entry) => entry.kind === 'endAction')!.id);
       expect(after.phase).toBe('buy');
       const record = await service.getRecord(created.id);
-      expect(record.state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(record.state.startingHealth).toBe(40);
-      expect(Object.keys(after.cards).sort()).toEqual([...kingdomMarket(DEFAULT_KINGDOM_ID).map((card) => card.id)].sort());
+      expect(record.state.kingdomId).toBe(record.kingdom.id); expect(record.state.startingHealth).toBe(40);
+      expect(Object.keys(after.cards).sort()).toEqual([...kingdomMarket(record.kingdom.id).map((card) => card.id)].sort());
       assertInvariants(record.state);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });

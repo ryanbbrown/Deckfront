@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { MAX_FIRST_BUY_CARRY } from '../game';
+import { MAX_FIRST_BUY_CARRY, RANDOM_KINGDOM_SIZE, VARIABLE_ACTION_IDS } from '../game';
+import { kingdomSchema } from '../game/schema';
 
 const playerId = z.enum(['ochre', 'indigo']);
 const card = z.object({ id: z.string(), definitionId: z.string() });
@@ -40,14 +41,47 @@ const undoCheckpoint = z.object({
   committedCommandCount: z.number().int().nonnegative(), completedActions: z.number().int().nonnegative(),
   finishedAt: z.string().datetime().nullable(), durationSeconds: z.number().nonnegative().nullable()
 });
+const strategySchema = z.object({
+  id: z.string().min(1), startingBuild: z.array(z.string()),
+  buyAgenda: z.array(z.object({ cardId: z.string(), desiredCount: z.number().int().positive() })),
+  repeatPurchase: z.string().min(1)
+});
+const trainingSchema = z.object({
+  elapsedMs: z.number().nonnegative(), matches: z.number().int().nonnegative(), strategyId: z.string().min(1)
+});
 export const gameRecordSchema = z.object({
-  schemaVersion: z.literal(9), id: z.string().uuid(), revision: z.number().int().nonnegative(),
+  schemaVersion: z.literal(10), id: z.string().uuid(), revision: z.number().int().nonnegative(),
   createdAt: z.string().datetime(), updatedAt: z.string().datetime(), finishedAt: z.string().datetime().nullable(),
   completedActions: z.number().int().nonnegative(), durationSeconds: z.number().nonnegative().nullable(),
-  buildProposal: z.array(z.string()), initialState: gameStateSchema, committedCommands: z.array(gameCommandSchema),
+  buildProposal: z.array(z.string()), kingdom: kingdomSchema, mode: z.enum(['local', 'ai']),
+  humanPlayerId: playerId.nullable(), aiStrategy: strategySchema.nullable(), training: trainingSchema.nullable(),
+  initialState: gameStateSchema, committedCommands: z.array(gameCommandSchema),
   undoCheckpoint: undoCheckpoint.nullable(), state: gameStateSchema
+}).superRefine((record, context) => {
+  const metadata = [record.humanPlayerId, record.aiStrategy, record.training];
+  if ((record.mode === 'ai' && metadata.some((value) => value === null))
+    || (record.mode === 'local' && metadata.some((value) => value !== null))) {
+    context.addIssue({ code: 'custom', message: 'Game mode metadata is inconsistent.' });
+  }
+  if (record.state.kingdomId !== record.kingdom.id || record.initialState.kingdomId !== record.kingdom.id) {
+    context.addIssue({ code: 'custom', message: 'Saved states do not use the persisted kingdom.' });
+  }
+  if (record.aiStrategy && record.training?.strategyId !== record.aiStrategy.id) {
+    context.addIssue({ code: 'custom', message: 'Training metadata does not match the selected strategy.' });
+  }
 });
-export const createGameRequestSchema = z.object({ seed: z.number().int().optional(), firstPlayerId: playerId.default('ochre') }).strict();
+export const createGameRequestSchema = z.object({
+  seed: z.number().int().optional(), mode: z.enum(['local', 'ai']),
+  humanPlayerId: playerId.optional(), variableCardIds: z.array(z.string())
+}).strict().superRefine((input, context) => {
+  if (input.variableCardIds.length !== RANDOM_KINGDOM_SIZE || new Set(input.variableCardIds).size !== RANDOM_KINGDOM_SIZE
+    || input.variableCardIds.some((id) => !VARIABLE_ACTION_IDS.includes(id))) {
+    context.addIssue({ code: 'custom', message: `variableCardIds must contain ${RANDOM_KINGDOM_SIZE} unique variable actions.` });
+  }
+  if ((input.mode === 'ai') !== (input.humanPlayerId !== undefined)) {
+    context.addIssue({ code: 'custom', message: 'humanPlayerId is required only for AI games.' });
+  }
+});
 export const buildRequestSchema = z.object({ expectedRevision: z.number().int().nonnegative(), definitionIds: z.array(z.string()).max(1000), complete: z.boolean() });
 export const actionRequestSchema = z.object({ expectedRevision: z.number().int().nonnegative(), actionId: z.string().min(1) });
 export const revisionRequestSchema = z.object({ expectedRevision: z.number().int().nonnegative() });

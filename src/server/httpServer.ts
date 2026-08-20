@@ -2,18 +2,21 @@ import { createServer, type IncomingMessage, type Server, type ServerResponse } 
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import { ZodError } from 'zod';
-import { GameService, BadBuildError, ConflictError, ForbiddenActionError } from './gameService';
+import { ALWAYS_AVAILABLE_ACTION_IDS, CARDS, TREASURE_IDS, VARIABLE_ACTION_IDS } from '../game';
+import { GameService, AiAdvanceError, BadBuildError, ConflictError, ForbiddenActionError } from './gameService';
+import { AiTrainingError } from './aiTrainer';
+import type { AiTrainer } from './aiTrainer';
 import { GameNotFoundError, FileGameRepository, UnsupportedSchemaError } from './persistence';
 import { actionRequestSchema, buildRequestSchema, createGameRequestSchema, revisionRequestSchema } from './schemas';
 
-export interface ServerOptions { dataDirectory: string; distDirectory: string }
+export interface ServerOptions { dataDirectory: string; distDirectory: string; aiTrainer?: AiTrainer | undefined }
 export interface HexdeckServer { server: Server; service: GameService }
 const MIME_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png'
 };
 export function createHexdeckServer(options: ServerOptions): HexdeckServer {
-  const service = new GameService(new FileGameRepository(options.dataDirectory));
+  const service = new GameService(new FileGameRepository(options.dataDirectory), options.aiTrainer);
   const server = createServer(async (request, response) => {
     try {
       if (await handleApi(request, response, service)) return;
@@ -26,6 +29,13 @@ async function handleApi(request: IncomingMessage, response: ServerResponse, ser
   const url = new URL(request.url ?? '/', 'http://localhost');
   if (!url.pathname.startsWith('/api/')) return false;
   if (request.method === 'GET' && url.pathname === '/api/health') { sendJson(response, 200, { ok: true }); return true; }
+  if (request.method === 'GET' && url.pathname === '/api/setup') {
+    sendJson(response, 200, {
+      cards: CARDS, fixedCardIds: [...TREASURE_IDS, ...ALWAYS_AVAILABLE_ACTION_IDS],
+      variableCardIds: [...VARIABLE_ACTION_IDS]
+    });
+    return true;
+  }
   if (request.method === 'POST' && url.pathname === '/api/games') {
     sendJson(response, 201, await service.create(createGameRequestSchema.parse(await readJson(request))));
     return true;
@@ -87,6 +97,7 @@ function sendJson(response: ServerResponse, status: number, value: unknown): voi
 function handleError(response: ServerResponse, error: unknown): void {
   if (error instanceof ZodError || error instanceof BadRequestError || error instanceof BadBuildError) { sendJson(response, 400, { error: error instanceof ZodError ? 'Invalid request.' : error.message }); return; }
   if (error instanceof UnsupportedSchemaError || error instanceof ConflictError) { sendJson(response, 409, { error: error.message }); return; }
+  if (error instanceof AiTrainingError || error instanceof AiAdvanceError) { sendJson(response, 503, { error: error.message }); return; }
   if (error instanceof GameNotFoundError) { sendJson(response, 404, { error: error.message }); return; }
   if (error instanceof ForbiddenActionError) { sendJson(response, 403, { error: error.message }); return; }
   console.error(error); sendJson(response, 500, { error: 'Internal server error.' });

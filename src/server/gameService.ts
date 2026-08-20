@@ -1,30 +1,51 @@
 import { randomUUID } from 'node:crypto';
 import {
-  STARTING_BUDGET,
+  ALWAYS_AVAILABLE_ACTION_IDS, STARTING_BUDGET, TREASURE_IDS, VARIABLE_ACTION_IDS,
   applyCommand, assertInvariants, CARDS, cloneGame, createGame, kingdomMarket,
-  listActionAvailability, listLegalActions, marketCost, rangeBand, replayCommands
+  listActionAvailability, listLegalActions, marketCost, opponent, randomKingdom, rangeBand,
+  registerKingdom, replayCommands
 } from '../game';
 import type { GameCommand, PlayerId } from '../game';
+import { strategyAgent } from '../sim/agents/strategyAgent';
 import type {
   BrowserAction, CardActionChoice, CardActionPresentation, GameActionPresentation, GameExport, GameView,
   PhaseActionPresentation
 } from '../shared/api';
 import type { GameRecord, GameRepository, UndoCheckpoint } from './types';
+import { ProductionAiTrainer } from './aiTrainer';
+import type { AiTrainer } from './aiTrainer';
 
 export class ConflictError extends Error {}
 export class ForbiddenActionError extends Error {}
 export class BadBuildError extends Error {}
-export interface CreateGameInput { seed?: number | undefined; firstPlayerId?: PlayerId | undefined }
+export class AiAdvanceError extends Error {}
+export interface CreateGameInput {
+  seed?: number | undefined;
+  mode?: 'local' | 'ai' | undefined;
+  humanPlayerId?: PlayerId | undefined;
+  variableCardIds?: string[] | undefined;
+}
 export class GameService {
-  constructor(private readonly repository: GameRepository) {}
+  constructor(private readonly repository: GameRepository, private readonly aiTrainer: AiTrainer = new ProductionAiTrainer()) {}
   async create(input: CreateGameInput): Promise<GameView> {
     const now = new Date().toISOString();
-    const initialState = createGame({ seed: input.seed ?? Date.now(), firstPlayerId: input.firstPlayerId });
+    const id = randomUUID();
+    const seed = input.seed ?? Date.now();
+    const mode = input.mode ?? 'local';
+    const variableCardIds = input.variableCardIds ?? VARIABLE_ACTION_IDS.slice(0, 10);
+    const kingdom = randomKingdom(`random-${id}`, variableCardIds);
+    registerKingdom(kingdom);
+    const humanPlayerId = mode === 'ai' ? input.humanPlayerId ?? 'ochre' : null;
+    const aiPlayerId = humanPlayerId ? opponent(humanPlayerId) : null;
+    const trained = mode === 'ai' ? await this.aiTrainer.train(kingdom, seed) : null;
+    const initialState = createGame({ seed, firstPlayerId: 'ochre', kingdomId: kingdom.id });
     const record: GameRecord = {
-      schemaVersion: 9, id: randomUUID(), revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
-      completedActions: 0, durationSeconds: null, buildProposal: [], initialState: cloneGame(initialState),
-      committedCommands: [], undoCheckpoint: null, state: initialState
+      schemaVersion: 10, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
+      completedActions: 0, durationSeconds: null, buildProposal: [], kingdom, mode, humanPlayerId,
+      aiStrategy: trained?.strategy ?? null, training: trained?.summary ?? null,
+      initialState: cloneGame(initialState), committedCommands: [], undoCheckpoint: null, state: initialState
     };
+    if (aiPlayerId === 'ochre') this.advanceComputer(record);
     await this.repository.create(record);
     return this.gameView(record);
   }
@@ -35,6 +56,7 @@ export class GameService {
       const record = await this.repository.load(id);
       this.assertRevision(record, expectedRevision);
       const builderId = record.state.activePlayerId;
+      if (record.mode === 'ai' && builderId !== record.humanPlayerId) throw new ForbiddenActionError('The AI controls this starting build.');
       if (record.state.phase !== 'startingBuild' || record.state.players[builderId].startingBuild) throw new ForbiddenActionError('This starting build is already complete.');
       for (const definitionId of definitionIds) if (!CARDS[definitionId]) throw new BadBuildError('Starting build contains an unknown card.');
       const forSale = new Set(kingdomMarket(record.state.kingdomId).map((card) => card.id));
@@ -45,6 +67,7 @@ export class GameService {
       if (complete) {
         this.commitCommand(record, { type: 'submitStartingBuild', playerId: builderId, definitionIds });
         record.buildProposal = [];
+        this.advanceComputer(record);
       }
       this.touch(record);
       this.assertRecordReplay(record);
@@ -57,11 +80,13 @@ export class GameService {
       const record = await this.repository.load(id);
       this.assertRevision(record, expectedRevision);
       if (record.state.winner || record.state.phase === 'startingBuild') throw new ForbiddenActionError('It is not a local player’s turn.');
+      if (record.mode === 'ai' && record.state.activePlayerId !== record.humanPlayerId) throw new ForbiddenActionError('The AI controls this turn.');
       const selected = listLegalActions(record.state).find((action) => action.id === actionId);
       if (!selected) throw new ConflictError('That action is no longer legal.');
       record.undoCheckpoint = this.checkpoint(record);
       this.commitCommand(record, selected.command);
       record.completedActions += 1;
+      this.advanceComputer(record);
       this.touch(record);
       if (record.state.winner) this.finish(record);
       this.assertRecordReplay(record);
@@ -88,7 +113,28 @@ export class GameService {
     });
   }
   async exportGame(id: string): Promise<GameExport> {
-    return { schemaVersion: 10, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
+    return { schemaVersion: 11, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
+  }
+  private advanceComputer(record: GameRecord): void {
+    if (record.mode !== 'ai' || !record.aiStrategy || !record.humanPlayerId) return;
+    const aiPlayerId = opponent(record.humanPlayerId);
+    const agent = strategyAgent(record.aiStrategy);
+    let actions = 0;
+    while (!record.state.winner && record.state.activePlayerId === aiPlayerId) {
+      if (actions >= 1_000) throw new AiAdvanceError('The AI exceeded its turn action limit.');
+      if (record.state.phase === 'startingBuild') {
+        this.commitCommand(record, {
+          type: 'submitStartingBuild', playerId: aiPlayerId,
+          definitionIds: agent.chooseStartingBuild(record.state, aiPlayerId)
+        });
+      } else {
+        const legal = listLegalActions(record.state);
+        const selected = agent.chooseAction(record.state, aiPlayerId, legal);
+        this.commitCommand(record, selected.command);
+        record.completedActions += 1;
+      }
+      actions += 1;
+    }
   }
   private checkpoint(record: GameRecord): UndoCheckpoint {
     return { committedCommandCount: record.committedCommands.length, completedActions: record.completedActions, finishedAt: record.finishedAt, durationSeconds: record.durationSeconds };
@@ -198,7 +244,7 @@ export class GameService {
       ? { ochre: [...state.players.ochre.startingBuild], indigo: [...state.players.indigo.startingBuild] }
       : null;
     return {
-      schemaVersion: 10, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
+      schemaVersion: 11, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
       elapsedSeconds: Math.max(0, Math.floor((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 1000)),
       completedActions: record.completedActions, durationSeconds: record.durationSeconds,
       activePlayerId: state.activePlayerId, selectedFirstPlayerId: state.selectedFirstPlayerId, phase: state.phase,
@@ -206,7 +252,13 @@ export class GameService {
       supply: { ...state.supply }, cards: Object.fromEntries(kingdomMarket(state.kingdomId).map((card) => [card.id, card])),
       players, trashCount: state.trash.length, events: structuredClone(state.events),
       actions: this.projectActions(record),
-      canUndo: record.undoCheckpoint !== null, buildProposal: [...record.buildProposal], completedBuilds
+      canUndo: record.undoCheckpoint !== null,
+      mode: record.mode, humanPlayerId: record.humanPlayerId,
+      aiPlayerId: record.humanPlayerId ? opponent(record.humanPlayerId) : null,
+      training: record.training ? { ...record.training } : null,
+      fixedCardIds: [...TREASURE_IDS, ...ALWAYS_AVAILABLE_ACTION_IDS],
+      variableCardIds: record.kingdom.actionPiles.map((pile) => pile.cardId),
+      buildProposal: [...record.buildProposal], completedBuilds
     };
   }
 }

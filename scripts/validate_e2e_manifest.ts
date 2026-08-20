@@ -5,12 +5,14 @@ import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 const executeFile = promisify(execFile);
 export interface CoverageManifest { cards: Record<string, string[]>; browserFlows: Record<string, string[]> }
-export const requiredCards = ['copper', 'silver', 'gold', 'footwork', 'cull', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley'];
+export const requiredCards = ['copper', 'silver', 'gold', 'step', 'focus', 'footwork', 'cull', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley'];
 export const requiredBrowserFlows = [
-  'sequentialBuilds', 'firstPlayerAndSeed', 'zeroPaidBuild', 'buildAddRemoveRefresh', 'buildRace',
-  'completeLocalTurns', 'carriedStartingMoney', 'multiplePurchases', 'actionSupply', 'turnCleanup',
-  'cardSelections', 'disabledReasons', 'sharedSpacesAndPassThrough', 'globalUndo', 'undoAndReload',
-  'victoryUndoReloadNewGame', 'localLabels', 'deckSummary', 'handGrouping', 'responsiveLayout', 'deckDrawer'
+  'fullTablePreview', 'randomMarketRefresh', 'marketReferenceDialog', 'fixedAndVariableMarket',
+  'sequentialBuilds', 'zeroPaidBuild', 'buildAddRemoveRefresh', 'buildLock', 'completeLocalTurns',
+  'aiTrainingAndHiddenTurns', 'aiSafeUndo', 'carriedStartingMoney', 'multiplePurchases', 'actionSupply',
+  'turnCleanup', 'cardSelections', 'disabledReasons', 'sharedSpacesAndPassThrough', 'globalUndo',
+  'undoAndReload', 'victoryUndoReloadNewGame', 'localLabelsAndRules', 'deckSummary', 'handGrouping',
+  'fullScreenLayout', 'overlappingHand', 'deckDrawer'
 ];
 export function validateManifest(manifest: CoverageManifest, discoveredIds: Set<string>): { mappings: number; tests: number } {
   const errors: string[] = [];

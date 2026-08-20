@@ -3,6 +3,7 @@ import { VALUE_KEYS } from './values';
 
 export const cardDefinitionSchema = z.object({
   id: z.string().min(1), name: z.string().min(1), type: z.enum(['action', 'treasure']),
+  family: z.enum(['treasure', 'ranged', 'mana', 'melee', 'engine']),
   cost: z.number().int().nonnegative(), text: z.string(),
   mechanic: z.enum([
     'money', 'footwork', 'cull', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley',

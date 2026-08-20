@@ -1,8 +1,8 @@
 # Hexdeck
 
-Hexdeck is a local two-player deck-building game for one browser. Player 1 and Player 2 build decks, move on a five-space arena, combine cards, buy improvements, and try to reduce the other fighter from 40 health to 0.
+Hexdeck is a full-screen desktop deck-building game for two local players or one player against an AI opponent. Players build decks, move on a five-space arena, combine cards, buy improvements, and try to reduce the other fighter from 40 health to 0.
 
-The browser has no computer opponent. `src/sim/` has deterministic strategy players for balance experiments. Those simulator strategies are separate from browser play and are not a browser opponent.
+The table is designed for a 1920×1080 screen. Mobile and smaller desktop layouts are not supported.
 
 ## Requirements
 
@@ -18,18 +18,19 @@ npm run dev
 
 Open `http://127.0.0.1:4173`.
 
-The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records use schema version 9. Browser game views and exports use schema version 10. The server rejects older saves and does not migrate them.
+The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records use schema version 10. Browser game views and exports use schema version 11. The server rejects older saves and does not migrate them.
 
 ## Play
 
-1. Choose Player 1 or Player 2 as the first player. You can also enter a seed to repeat the same shuffle.
-2. Player 1 spends up to 12 money on starting cards. Player 2 builds next.
-3. The chosen first player starts after both builds finish. Up to 3 unspent starting money carries into that player's first Buy phase.
-4. Play any number of Action cards.
-5. End the Action phase to play all Treasure cards.
-6. Buy any number of affordable cards, then end the Buy phase.
+1. Refresh until the 10 unique variable cards make an interesting kingdom. Copper, Silver, Gold, Step, Cull, and Focus are in every market.
+2. Choose two local players or the AI opponent. In an AI game, choose whether you or the AI goes first.
+3. Start the game. AI training can take several seconds because the server simulates strategies for the chosen kingdom.
+4. Player 1 spends up to 12 money on starting cards in the compact market. Player 2 builds next. The AI submits its own build automatically.
+5. Play any number of Action cards, end the Action phase to play Treasure cards, buy affordable cards, and end the Buy phase.
 
-Fighters can share a space and move through each other. Distance 0 is Close, 1 is Near, and 2 or more is Far. Bought cards enter the discard pile. Actions resolve at once. Undo restores the latest action. Reload restores the active game. New game clears the browser's active-game link.
+Every deck starts with 7 Copper. Up to 3 unspent starting money carries into that player's first Buy phase. Starting-build cards do not reduce market piles.
+
+Fighters can share a space and move through each other. Distance 0 is Close, 1 is Near, and 2 or more is Far. Bought cards enter the discard pile. Actions resolve at once. In an AI game, a complete AI turn resolves before the server returns the next human state; the UI does not show intermediate AI actions. Undo rolls back the latest human action and every AI action it caused. Reload restores the active game. New game clears the browser's active-game link.
 
 ## Verify
 
@@ -43,7 +44,7 @@ npm run build
 npm run build:sim
 ```
 
-Vitest checks the engine, server, persistence, replay, and simulator. Playwright uses the built browser and real local server to check setup, cards, turns, undo, reload, victory, and layout. The E2E manifest maps required behavior to exact test IDs.
+Vitest checks the engine, random kingdoms, AI training, server, persistence, replay, and simulator. Playwright uses the built browser and real local server to check the full-table preview, starting builds, AI turns, cards, undo, reload, victory, and the 1920×1080 layout. The E2E manifest maps required behavior to exact test IDs.
 
 ## Balance simulator
 
@@ -120,13 +121,13 @@ The committed [.html/balance-corpus.html](.html/balance-corpus.html) reports the
 The arrows show import direction:
 
 ```text
-src/sim ----------------> src/game -> src/game-data
+src/server -------------> src/sim -------------> src/game -> src/game-data
+src/server -------------> src/shared, src/game
 src/shared -------------> src/game
 src/client -------------> src/shared, src/game
-src/server -------------> src/shared, src/game
 ```
 
-Game data defines cards and kingdoms. The game module contains deterministic rules. The simulator imports only simulator modules and the game module. The browser and server do not import simulator code yet. ESLint enforces the game and simulator limits.
+Game data defines cards and kingdoms. The game module contains deterministic rules. The simulator imports only simulator modules and the game module. The server uses simulator strategies to train and run the AI opponent. The client does not import simulator code. ESLint enforces the game and simulator limits.
 
 ## Repository tree
 

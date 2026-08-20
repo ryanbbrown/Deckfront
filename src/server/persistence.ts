@@ -1,6 +1,8 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { assertInvariants } from '../game/invariants';
+import { registerKingdom } from '../game/kingdom';
+import { kingdomSchema } from '../game/schema';
 import { gameRecordSchema } from './schemas';
 import type { GameRecord, GameRepository } from './types';
 
@@ -17,8 +19,9 @@ export class FileGameRepository implements GameRepository {
   }
   async load(id: string): Promise<GameRecord> {
     try {
-      const raw = JSON.parse(await readFile(this.pathFor(id), 'utf8')) as { schemaVersion?: unknown };
-      if (raw.schemaVersion !== 9) throw new UnsupportedSchemaError(`Saved game schema ${String(raw.schemaVersion)} is not supported. Start a new game.`);
+      const raw = JSON.parse(await readFile(this.pathFor(id), 'utf8')) as { schemaVersion?: unknown; kingdom?: unknown };
+      if (raw.schemaVersion !== 10) throw new UnsupportedSchemaError(`Saved game schema ${String(raw.schemaVersion)} is not supported. Start a new game.`);
+      registerKingdom(kingdomSchema.parse(raw.kingdom));
       const record = gameRecordSchema.parse(raw) as GameRecord; assertInvariants(record.state); return record;
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'ENOENT') throw new GameNotFoundError(`Game not found: ${id}`);
@@ -26,7 +29,7 @@ export class FileGameRepository implements GameRepository {
     }
   }
   async save(record: GameRecord): Promise<void> {
-    await mkdir(this.dataDirectory, { recursive: true }); gameRecordSchema.parse(record); assertInvariants(record.state);
+    await mkdir(this.dataDirectory, { recursive: true }); registerKingdom(record.kingdom); gameRecordSchema.parse(record); assertInvariants(record.state);
     const target = this.pathFor(record.id); const temporary = `${target}.${process.pid}.${crypto.randomUUID()}.tmp`;
     await writeFile(temporary, `${JSON.stringify(record, null, 2)}\n`, { encoding: 'utf8', flag: 'wx' }); await rename(temporary, target);
   }

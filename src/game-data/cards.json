@@ -1,30 +1,322 @@
 {
   "cards": [
-    { "id": "copper", "name": "Copper", "type": "treasure", "cost": 0, "text": "Provide 1 money.", "mechanic": "money", "money": 1 },
-    { "id": "silver", "name": "Silver", "type": "treasure", "cost": 3, "text": "Provide 2 money.", "mechanic": "money", "money": 2 },
-    { "id": "gold", "name": "Gold", "type": "treasure", "cost": 6, "text": "Provide 3 money.", "mechanic": "money", "money": 3 },
-    { "id": "footwork", "name": "Footwork", "type": "action", "cost": 3, "text": "You may move 1 space left or right. Draw 1 card.", "mechanic": "footwork", "values": { "draw": 1 } },
-    { "id": "cull", "name": "Cull", "type": "action", "cost": 3, "text": "Trash 1 or 2 cards. Choose Cull itself, cards remaining in your hand, or both.", "mechanic": "cull", "values": {} },
-    { "id": "focus", "name": "Focus", "type": "action", "cost": 1, "text": "Gain 1 mana.", "mechanic": "channel", "values": { "mana": 1, "draw": 0 } },
-    { "id": "muster", "name": "Muster", "type": "action", "cost": 5, "text": "Draw two cards.", "mechanic": "muster", "values": { "draw": 2 } },
-    { "id": "feint", "name": "Feint", "type": "action", "cost": 3, "text": "At Close range, the next Close-range attack this turn deals 2 additional damage.", "mechanic": "feint", "values": { "bonus": 2 } },
-    { "id": "drive", "name": "Drive", "type": "action", "cost": 4, "text": "At Close range, deal 3 damage. Then move both fighters 1 space left or right so they remain Close. If a wall blocks the move, neither fighter moves, and the attack deals 2 additional damage.", "mechanic": "drive", "values": { "damage": 3, "wallDamage": 2 } },
-    { "id": "flurry", "name": "Flurry", "type": "action", "cost": 5, "text": "At Close range, deal 1 damage for each other Tactical Action played this turn, to a maximum of 5.", "mechanic": "flurry", "values": { "perAction": 1, "max": 5 } },
-    { "id": "aim", "name": "Aim", "type": "action", "cost": 3, "text": "At Near or Far range, become Aimed, then draw one card.", "mechanic": "aim", "values": { "draw": 1 } },
-    { "id": "volley", "name": "Volley", "type": "action", "cost": 5, "text": "Deal 1 damage at Near range or 4 damage at Far range. Aimed changes this to 4 or 5.", "mechanic": "volley", "values": { "near": 1, "far": 4, "aimedNear": 4, "aimedFar": 5 } },
-    { "id": "stipend", "name": "Stipend", "type": "action", "cost": 3, "text": "Draw 1 card. Provide 1 money.", "mechanic": "stipend", "values": { "draw": 1, "money": 1 } },
-    { "id": "reclaim", "name": "Reclaim", "type": "action", "cost": 3, "text": "Draw 1 card. You may put one card from your discard pile on top of your deck.", "mechanic": "reclaim", "values": { "draw": 1 } },
-    { "id": "adapt", "name": "Adapt", "type": "action", "cost": 4, "text": "Draw 1 card. If your position changed during your turn, draw 1 more.", "mechanic": "adapt", "values": { "draw": 1, "movedDraw": 1 } },
-    { "id": "heavyBlow", "name": "Heavy Blow", "type": "action", "cost": 5, "text": "At Close range, deal 4 damage.", "mechanic": "melee", "values": { "damage": 4 } },
-    { "id": "steadyShot", "name": "Steady Shot", "type": "action", "cost": 4, "text": "At Near or Far range, deal 2 damage.", "mechanic": "ranged", "values": { "damage": 2, "draw": 0 } },
-    { "id": "channel", "name": "Channel", "type": "action", "cost": 3, "text": "Gain 1 mana. Draw 1 card.", "mechanic": "channel", "values": { "mana": 1, "draw": 1 } },
-    { "id": "leyStep", "name": "Ley Step", "type": "action", "cost": 2, "text": "Move 1 space left or right. Gain 1 mana.", "mechanic": "leyStep", "values": { "mana": 1 } },
-    { "id": "prism", "name": "Prism", "type": "action", "cost": 5, "text": "Gain 2 mana. Draw 1 card, then discard 1 card.", "mechanic": "prism", "values": { "mana": 2, "draw": 1, "discard": 1 } },
-    { "id": "arcBolt", "name": "Arc Bolt", "type": "action", "cost": 3, "text": "Spend 1 mana. Deal 4 damage at any range.", "mechanic": "spell", "values": { "damage": 4, "manaCost": 1 } },
-    { "id": "fireball", "name": "Fireball", "type": "action", "cost": 5, "text": "Spend 2 mana. Deal 7 damage at any range.", "mechanic": "spell", "values": { "damage": 7, "manaCost": 2 } },
-    { "id": "starfire", "name": "Starfire", "type": "action", "cost": 6, "text": "Spend 3 mana. Deal 10 damage at any range.", "mechanic": "spell", "values": { "damage": 10, "manaCost": 3 } },
-    { "id": "step", "name": "Step", "type": "action", "cost": 2, "text": "Move 1 space left or right.", "mechanic": "step", "values": {} },
-    { "id": "strike", "name": "Strike", "type": "action", "cost": 3, "text": "At Close range, deal 2 damage.", "mechanic": "melee", "values": { "damage": 2 } },
-    { "id": "shot", "name": "Shot", "type": "action", "cost": 3, "text": "At Near or Far range, deal 2 damage.", "mechanic": "ranged", "values": { "damage": 2, "draw": 0 } }
+    {
+      "id": "copper",
+      "name": "Copper",
+      "type": "treasure",
+      "cost": 0,
+      "text": "Provide 1 money.",
+      "mechanic": "money",
+      "money": 1,
+      "family": "treasure"
+    },
+    {
+      "id": "silver",
+      "name": "Silver",
+      "type": "treasure",
+      "cost": 3,
+      "text": "Provide 2 money.",
+      "mechanic": "money",
+      "money": 2,
+      "family": "treasure"
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "type": "treasure",
+      "cost": 6,
+      "text": "Provide 3 money.",
+      "mechanic": "money",
+      "money": 3,
+      "family": "treasure"
+    },
+    {
+      "id": "footwork",
+      "name": "Footwork",
+      "type": "action",
+      "cost": 3,
+      "text": "You may move 1 space left or right. Draw 1 card.",
+      "mechanic": "footwork",
+      "values": {
+        "draw": 1
+      },
+      "family": "engine"
+    },
+    {
+      "id": "cull",
+      "name": "Cull",
+      "type": "action",
+      "cost": 3,
+      "text": "Trash 1 or 2 cards. Choose Cull itself, cards remaining in your hand, or both.",
+      "mechanic": "cull",
+      "values": {},
+      "family": "engine"
+    },
+    {
+      "id": "focus",
+      "name": "Focus",
+      "type": "action",
+      "cost": 1,
+      "text": "Gain 1 mana.",
+      "mechanic": "channel",
+      "values": {
+        "mana": 1,
+        "draw": 0
+      },
+      "family": "mana"
+    },
+    {
+      "id": "muster",
+      "name": "Muster",
+      "type": "action",
+      "cost": 5,
+      "text": "Draw two cards.",
+      "mechanic": "muster",
+      "values": {
+        "draw": 2
+      },
+      "family": "engine"
+    },
+    {
+      "id": "feint",
+      "name": "Feint",
+      "type": "action",
+      "cost": 3,
+      "text": "At Close range, the next Close-range attack this turn deals 2 additional damage.",
+      "mechanic": "feint",
+      "values": {
+        "bonus": 2
+      },
+      "family": "melee"
+    },
+    {
+      "id": "drive",
+      "name": "Drive",
+      "type": "action",
+      "cost": 4,
+      "text": "At Close range, deal 3 damage. Then move both fighters 1 space left or right so they remain Close. If a wall blocks the move, neither fighter moves, and the attack deals 2 additional damage.",
+      "mechanic": "drive",
+      "values": {
+        "damage": 3,
+        "wallDamage": 2
+      },
+      "family": "melee"
+    },
+    {
+      "id": "flurry",
+      "name": "Flurry",
+      "type": "action",
+      "cost": 5,
+      "text": "At Close range, deal 1 damage for each other Tactical Action played this turn, to a maximum of 5.",
+      "mechanic": "flurry",
+      "values": {
+        "perAction": 1,
+        "max": 5
+      },
+      "family": "melee"
+    },
+    {
+      "id": "aim",
+      "name": "Aim",
+      "type": "action",
+      "cost": 3,
+      "text": "At Near or Far range, become Aimed, then draw one card.",
+      "mechanic": "aim",
+      "values": {
+        "draw": 1
+      },
+      "family": "ranged"
+    },
+    {
+      "id": "volley",
+      "name": "Volley",
+      "type": "action",
+      "cost": 5,
+      "text": "Deal 1 damage at Near range or 4 damage at Far range. Aimed changes this to 4 or 5.",
+      "mechanic": "volley",
+      "values": {
+        "near": 1,
+        "far": 4,
+        "aimedNear": 4,
+        "aimedFar": 5
+      },
+      "family": "ranged"
+    },
+    {
+      "id": "stipend",
+      "name": "Stipend",
+      "type": "action",
+      "cost": 3,
+      "text": "Draw 1 card. Provide 1 money.",
+      "mechanic": "stipend",
+      "values": {
+        "draw": 1,
+        "money": 1
+      },
+      "family": "engine"
+    },
+    {
+      "id": "reclaim",
+      "name": "Reclaim",
+      "type": "action",
+      "cost": 3,
+      "text": "Draw 1 card. You may put one card from your discard pile on top of your deck.",
+      "mechanic": "reclaim",
+      "values": {
+        "draw": 1
+      },
+      "family": "engine"
+    },
+    {
+      "id": "adapt",
+      "name": "Adapt",
+      "type": "action",
+      "cost": 4,
+      "text": "Draw 1 card. If your position changed during your turn, draw 1 more.",
+      "mechanic": "adapt",
+      "values": {
+        "draw": 1,
+        "movedDraw": 1
+      },
+      "family": "engine"
+    },
+    {
+      "id": "heavyBlow",
+      "name": "Heavy Blow",
+      "type": "action",
+      "cost": 5,
+      "text": "At Close range, deal 4 damage.",
+      "mechanic": "melee",
+      "values": {
+        "damage": 4
+      },
+      "family": "melee"
+    },
+    {
+      "id": "steadyShot",
+      "name": "Steady Shot",
+      "type": "action",
+      "cost": 4,
+      "text": "At Near or Far range, deal 2 damage.",
+      "mechanic": "ranged",
+      "values": {
+        "damage": 2,
+        "draw": 0
+      },
+      "family": "ranged"
+    },
+    {
+      "id": "channel",
+      "name": "Channel",
+      "type": "action",
+      "cost": 3,
+      "text": "Gain 1 mana. Draw 1 card.",
+      "mechanic": "channel",
+      "values": {
+        "mana": 1,
+        "draw": 1
+      },
+      "family": "mana"
+    },
+    {
+      "id": "leyStep",
+      "name": "Ley Step",
+      "type": "action",
+      "cost": 2,
+      "text": "Move 1 space left or right. Gain 1 mana.",
+      "mechanic": "leyStep",
+      "values": {
+        "mana": 1
+      },
+      "family": "mana"
+    },
+    {
+      "id": "prism",
+      "name": "Prism",
+      "type": "action",
+      "cost": 5,
+      "text": "Gain 2 mana. Draw 1 card, then discard 1 card.",
+      "mechanic": "prism",
+      "values": {
+        "mana": 2,
+        "draw": 1,
+        "discard": 1
+      },
+      "family": "mana"
+    },
+    {
+      "id": "arcBolt",
+      "name": "Arc Bolt",
+      "type": "action",
+      "cost": 3,
+      "text": "Spend 1 mana. Deal 4 damage at any range.",
+      "mechanic": "spell",
+      "values": {
+        "damage": 4,
+        "manaCost": 1
+      },
+      "family": "mana"
+    },
+    {
+      "id": "fireball",
+      "name": "Fireball",
+      "type": "action",
+      "cost": 5,
+      "text": "Spend 2 mana. Deal 7 damage at any range.",
+      "mechanic": "spell",
+      "values": {
+        "damage": 7,
+        "manaCost": 2
+      },
+      "family": "mana"
+    },
+    {
+      "id": "starfire",
+      "name": "Starfire",
+      "type": "action",
+      "cost": 6,
+      "text": "Spend 3 mana. Deal 10 damage at any range.",
+      "mechanic": "spell",
+      "values": {
+        "damage": 10,
+        "manaCost": 3
+      },
+      "family": "mana"
+    },
+    {
+      "id": "step",
+      "name": "Step",
+      "type": "action",
+      "cost": 2,
+      "text": "Move 1 space left or right.",
+      "mechanic": "step",
+      "values": {},
+      "family": "engine"
+    },
+    {
+      "id": "strike",
+      "name": "Strike",
+      "type": "action",
+      "cost": 3,
+      "text": "At Close range, deal 2 damage.",
+      "mechanic": "melee",
+      "values": {
+        "damage": 2
+      },
+      "family": "melee"
+    },
+    {
+      "id": "shot",
+      "name": "Shot",
+      "type": "action",
+      "cost": 3,
+      "text": "At Near or Far range, deal 2 damage.",
+      "mechanic": "ranged",
+      "values": {
+        "damage": 2,
+        "draw": 0
+      },
+      "family": "ranged"
+    }
   ]
 }

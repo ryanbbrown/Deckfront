@@ -5,10 +5,24 @@ import type { CardDefinition, GameState, Kingdom } from './types';
 import { VALUE_KEYS } from './values';
 
 export const DEFAULT_KINGDOM_ID = 'distance-duel';
-export const ALWAYS_AVAILABLE_ACTION_IDS: readonly string[] = Object.freeze(['cull', 'focus']);
+export const ALWAYS_AVAILABLE_ACTION_IDS: readonly string[] = Object.freeze(['step', 'cull', 'focus']);
 export const ALWAYS_AVAILABLE_COUNT = 10;
 export const MAX_PILE_COUNT = 10;
+export const RANDOM_KINGDOM_SIZE = 10;
 export const TREASURE_IDS: readonly string[] = Object.freeze(Object.values(CARDS).filter((card) => card.type === 'treasure').map((card) => card.id));
+export const VARIABLE_ACTION_IDS: readonly string[] = Object.freeze(Object.values(CARDS)
+  .filter((card) => card.type === 'action' && !ALWAYS_AVAILABLE_ACTION_IDS.includes(card.id)).map((card) => card.id));
+
+export interface RandomIndexSource { nextInt(maxExclusive: number): number }
+export function randomVariableCardIds(random: RandomIndexSource): string[] {
+  const available = [...VARIABLE_ACTION_IDS];
+  const selected: string[] = [];
+  while (selected.length < RANDOM_KINGDOM_SIZE) {
+    const index = random.nextInt(available.length);
+    selected.push(available.splice(index, 1)[0]!);
+  }
+  return selected;
+}
 
 const BUILT_IN = kingdomLibrarySchema.parse(rawKingdoms).kingdoms;
 const registry = new Map<string, Kingdom>();
@@ -105,6 +119,16 @@ export function kingdomMarket(kingdomId: string): CardDefinition[] {
   const kingdom = kingdomOf(kingdomId);
   return [...TREASURE_IDS, ...kingdom.actionPiles.map((pile) => pile.cardId), ...ALWAYS_AVAILABLE_ACTION_IDS]
     .map((id) => resolveIn(kingdomId, id));
+}
+export function randomKingdom(id: string, variableCardIds: readonly string[]): Kingdom {
+  if (variableCardIds.length !== RANDOM_KINGDOM_SIZE || new Set(variableCardIds).size !== RANDOM_KINGDOM_SIZE
+    || variableCardIds.some((cardId) => !VARIABLE_ACTION_IDS.includes(cardId))) {
+    throw new Error(`A random kingdom needs ${RANDOM_KINGDOM_SIZE} unique variable action cards.`);
+  }
+  return {
+    id, name: 'Random Kingdom', startingHealth: 40,
+    actionPiles: variableCardIds.map((cardId) => ({ cardId, count: MAX_PILE_COUNT }))
+  };
 }
 export function kingdomSupply(kingdom: Kingdom): Record<string, number> {
   return Object.fromEntries([...kingdom.actionPiles.map((pile) => [pile.cardId, pile.count] as const),

@@ -1,8 +1,10 @@
 {
   "cards": {
-    "copper": ["pw:DD-E2E-002", "pw:DD-E2E-037"],
+    "copper": ["pw:DD-E2E-001", "pw:DD-E2E-002", "pw:DD-E2E-037"],
     "silver": ["pw:DD-E2E-002"],
     "gold": ["pw:DD-E2E-002", "pw:DD-E2E-037"],
+    "step": ["pw:DD-E2E-001", "pw:DD-E2E-035"],
+    "focus": ["pw:DD-E2E-035"],
     "footwork": ["pw:DD-E2E-003", "pw:DD-E2E-007", "pw:DD-E2E-008", "pw:DD-E2E-010", "pw:DD-E2E-011", "pw:DD-E2E-019"],
     "cull": ["pw:DD-E2E-004", "pw:DD-E2E-016", "pw:DD-E2E-020", "pw:DD-E2E-023", "pw:DD-E2E-039"],
     "muster": ["pw:DD-E2E-005"],
@@ -13,12 +15,17 @@
     "volley": ["pw:DD-E2E-009", "pw:DD-E2E-011", "pw:DD-E2E-012", "pw:DD-E2E-015"]
   },
   "browserFlows": {
+    "fullTablePreview": ["pw:DD-E2E-001"],
+    "randomMarketRefresh": ["pw:DD-E2E-001"],
+    "marketReferenceDialog": ["pw:DD-E2E-001", "pw:DD-E2E-034"],
+    "fixedAndVariableMarket": ["pw:DD-E2E-001"],
     "sequentialBuilds": ["pw:DD-E2E-001", "pw:DD-E2E-035"],
-    "firstPlayerAndSeed": ["pw:DD-E2E-001"],
     "zeroPaidBuild": ["pw:DD-E2E-026"],
     "buildAddRemoveRefresh": ["pw:DD-E2E-001"],
-    "buildRace": ["pw:DD-E2E-025"],
+    "buildLock": ["pw:DD-E2E-025"],
     "completeLocalTurns": ["pw:DD-E2E-035", "pw:DD-E2E-036"],
+    "aiTrainingAndHiddenTurns": ["pw:DD-E2E-042"],
+    "aiSafeUndo": ["pw:DD-E2E-042"],
     "carriedStartingMoney": ["pw:DD-E2E-021"],
     "multiplePurchases": ["pw:DD-E2E-002", "pw:DD-E2E-037"],
     "actionSupply": ["pw:DD-E2E-031"],
@@ -29,10 +36,11 @@
     "globalUndo": ["pw:DD-E2E-002", "pw:DD-E2E-005", "pw:DD-E2E-006", "pw:DD-E2E-012", "pw:DD-E2E-032", "pw:DD-E2E-035"],
     "undoAndReload": ["pw:DD-E2E-028"],
     "victoryUndoReloadNewGame": ["pw:DD-E2E-012"],
-    "localLabels": ["pw:DD-E2E-034"],
+    "localLabelsAndRules": ["pw:DD-E2E-034"],
     "deckSummary": ["pw:DD-E2E-037", "pw:DD-E2E-040"],
-    "handGrouping": ["pw:DD-E2E-037", "pw:DD-E2E-038", "pw:DD-E2E-039", "pw:DD-E2E-042"],
-    "responsiveLayout": ["pw:DD-E2E-038", "pw:DD-E2E-040", "pw:DD-E2E-042"],
+    "handGrouping": ["pw:DD-E2E-037", "pw:DD-E2E-038", "pw:DD-E2E-039"],
+    "fullScreenLayout": ["pw:DD-E2E-038", "pw:DD-E2E-040"],
+    "overlappingHand": ["pw:DD-E2E-040"],
     "deckDrawer": ["pw:DD-E2E-040"]
   }
 }

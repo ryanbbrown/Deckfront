@@ -17,9 +17,9 @@ class MemoryRepository implements GameRepository {
   async save(record: GameRecord) { this.record = structuredClone(record); }
   async withLock<T>(_id: string, work: () => Promise<T>) { return work(); }
 }
-async function setup(firstPlayerId: 'ochre' | 'indigo' = 'ochre') {
+async function setup() {
   const repository = new MemoryRepository(); const service = new GameService(repository);
-  const game = await service.create({ seed: 3, firstPlayerId }); return { repository, service, game };
+  const game = await service.create({ seed: 3 }); return { repository, service, game };
 }
 function resetReplay(record: GameRecord): void { record.initialState = structuredClone(record.state); record.committedCommands = []; record.undoCheckpoint = null; }
 function seedPlayerHand(record: GameRecord, definitions: string[], draw: string[] = []): void {
@@ -33,7 +33,7 @@ function registerProjectionKingdom(): void {
   registerKingdom({
     id: 'action-projection', name: 'Action Projection', startingHealth: 20,
     actionPiles: [
-      { cardId: 'prism', count: 10 }, { cardId: 'reclaim', count: 10 }, { cardId: 'step', count: 10 }
+      { cardId: 'prism', count: 10 }, { cardId: 'reclaim', count: 10 }
     ]
   });
 }
@@ -57,16 +57,16 @@ afterEach(() => resetKingdoms());
 
 describe('local GameService', () => {
   it('runs two sequential builds and gives both players complete turns', async () => {
-    const { service, game } = await setup('indigo'); expect(game.activePlayerId).toBe('ochre');
+    const { service, game } = await setup(); expect(game.activePlayerId).toBe('ochre');
     const playerOne = await service.updateBuild(game.id, game.revision, ['footwork'], true);
     expect(playerOne).toMatchObject({ phase: 'startingBuild', activePlayerId: 'indigo', buildProposal: [] });
     const playerTwo = await service.updateBuild(game.id, playerOne.revision, ['aim', 'volley'], true);
-    expect(playerTwo).toMatchObject({ phase: 'action', activePlayerId: 'indigo' });
+    expect(playerTwo).toMatchObject({ phase: 'action', activePlayerId: 'ochre' });
     expect(playerTwo.completedBuilds).toEqual({ ochre: ['footwork'], indigo: ['aim', 'volley'] });
     expect(playerTwo.players.ochre.hand).toHaveLength(5); expect(playerTwo.players.indigo.hand).toHaveLength(5);
     const buy = await service.commitAction(game.id, playerTwo.revision, playerTwo.actions.phases.find((action) => action.kind === 'endAction')!.id);
     const next = await service.commitAction(game.id, buy.revision, buy.actions.phases.find((action) => action.kind === 'endBuy')!.id);
-    expect(next).toMatchObject({ activePlayerId: 'ochre', phase: 'action', turn: 2 });
+    expect(next).toMatchObject({ activePlayerId: 'indigo', phase: 'action', turn: 2 });
   });
   it('persists build edits and rejects stale, unknown, unavailable, and completed edits', async () => {
     const { service, game } = await setup(); const edited = await service.updateBuild(game.id, 0, ['aim', 'volley'], false);
@@ -162,9 +162,9 @@ describe('local GameService', () => {
     const undone = await service.undoAction(game.id, played.revision); expect(undone.players.ochre.hand.map((card) => card.definitionId)).toEqual(['footwork']); expect(undone.canUndo).toBe(false);
     await expect(service.undoAction(game.id, undone.revision)).rejects.toThrow('There is no action to undo.');
   });
-  it('exports the current local game view with schema 10', async () => {
+  it('exports the current local game view with schema 11', async () => {
     const { service, game } = await setup(); const exported = await service.exportGame(game.id);
-    expect(exported).toMatchObject({ schemaVersion: 10, game: { schemaVersion: 10, id: game.id } });
+    expect(exported).toMatchObject({ schemaVersion: 11, game: { schemaVersion: 11, id: game.id } });
     expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
 });
@@ -179,12 +179,12 @@ describe('persistence schema', () => {
       expect((await service.undoAction(created.id, after.revision))).toMatchObject({ phase: 'action', canUndo: false });
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
-  it('serializes concurrent file writes and leaves valid schema 9 state', async () => {
+  it('serializes concurrent file writes and leaves valid schema 10 state', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-lock-'));
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8 });
       await Promise.all([1, 2].map((marker) => repository.withLock(created.id, async () => { const record = await repository.load(created.id); await new Promise((resolve) => setTimeout(resolve, marker === 1 ? 5 : 0)); record.revision += 1; await repository.save(record); })));
-      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(9);
+      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(10);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it('rejects an older save with a specific message', async () => {

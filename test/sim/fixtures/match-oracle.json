@@ -367,6 +367,7 @@
      "channel": 9,
      "prism": 10,
      "fireball": 7,
+     "step": 10,
      "cull": 10,
      "focus": 10
     },
