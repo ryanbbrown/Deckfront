@@ -91,6 +91,7 @@ committed manifest, resume its full searches, validate the artifacts, and build 
 ```sh
 npm run balance:suite:manifest
 npm run balance:suite:run
+npm run balance:suite:run -- --tuning-only
 npm run balance:suite:validate
 npm run balance:suite:report
 ```
