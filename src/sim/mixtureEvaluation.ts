@@ -60,7 +60,7 @@ export function percentileBootstrapMean(
 export async function evaluateCandidates(
   candidates: readonly Strategy[], opponents: ReadonlyMap<string, Strategy>, schedule: MixtureSchedule,
   runner: PairingRunner, options: {
-    kingdomId: string; turnLimitPerPlayer: number; actionCapPerTurn: number; stateLimit: number;
+    kingdomId: string; turnLimitPerPlayer: number; actionCapPerTurn: number;
     deadline?: number | undefined;
   }
 ): Promise<CandidateEvaluation[]> {
@@ -70,7 +70,7 @@ export async function evaluateCandidates(
     return { candidate, opponent, options: {
       kingdomId: options.kingdomId, seeds: [block.seed],
       turnLimitPerPlayer: options.turnLimitPerPlayer, actionCapPerTurn: options.actionCapPerTurn,
-      stateLimit: options.stateLimit, allowEarlyStop: false
+      allowEarlyStop: false
     } };
   }));
   const batch = await runner.run(jobs, { deadline: options.deadline });

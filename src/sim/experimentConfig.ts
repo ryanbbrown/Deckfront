@@ -12,7 +12,6 @@ export interface ExperimentOptions {
   seeds: number;
   unionIterations: number;
   deadlineMinutes: number;
-  stateLimit: number;
   workers: number;
 }
 

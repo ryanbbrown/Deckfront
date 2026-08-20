@@ -1,8 +1,7 @@
 import type { PlayerId } from '../game';
-import { strategyAgent } from './agents/strategyAgent';
-import { runMatch } from './match';
+import { runSimulationMatch } from './simulationKernel';
 import type { Strategy } from './strategy';
-import type { Agent, MatchResult, OrientationKey, PairRecord, SideKey, TelemetryAggregate } from './types';
+import type { MatchResult, OrientationKey, PairRecord, SideKey, TelemetryAggregate } from './types';
 
 export interface Orientation {
   firstPlayerId: PlayerId;
@@ -127,7 +126,6 @@ export interface PairingOptions {
   seeds: readonly number[];
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
-  stateLimit?: number | undefined;
   // Only preliminary payoff-matrix cells set this. Every other evaluation plays all seed blocks.
   allowEarlyStop?: boolean | undefined;
 }
@@ -185,18 +183,17 @@ export function shouldStopPairing(
     && isSignificantSignTest(exactSignTest(positive, negative));
 }
 
-export type PairingMatchRunner = typeof runMatch;
+export type PairingMatchRunner = typeof runSimulationMatch;
 
 /**
- * Plays one pairing over every shared seed in every orientation. Agents are built per match: a
- * strategy agent caches an Action-phase baseline and a memo, and reusing one across matches is what
- * the group 2 review found corrupting scores.
+ * Plays one pairing over every shared seed in every orientation. Production pairings use the compact
+ * simulation kernel. An injected match runner keeps the immutable engine available as a test seam.
  *
  * An aborted game is recorded outside `played` and the mean. PSRO callers reject the complete cell
  * or evaluation when `aborted` is nonzero.
  */
 export function playPairing(
-  candidate: Strategy, opponent: Strategy, options: PairingOptions, matchRunner: PairingMatchRunner = runMatch
+  candidate: Strategy, opponent: Strategy, options: PairingOptions, matchRunner?: PairingMatchRunner
 ): PairingOutcome {
   if (options.seeds.length < 1 || options.seeds.length > 25) {
     throw new Error(`A pairing needs 1 to 25 shared seeds, not ${options.seeds.length}.`);
@@ -220,24 +217,21 @@ export function playPairing(
     for (let orientationIndex = 0; orientationIndex < ORIENTATIONS.length; orientationIndex += 1) {
       const orientation = ORIENTATIONS[orientationIndex]!;
       const candidateIsOchre = orientation.candidateSeat === 'ochre';
-      const agent = (strategy: Strategy): Agent =>
-        strategyAgent(strategy, options.stateLimit === undefined ? {} : { stateLimit: options.stateLimit });
-      const agents: Record<PlayerId, Agent> = candidateIsOchre
-        ? { ochre: agent(candidate), indigo: agent(opponent) }
-        : { ochre: agent(opponent), indigo: agent(candidate) };
       const seatStrategyIds: Record<PlayerId, string> = candidateIsOchre
         ? { ochre: candidate.id, indigo: opponent.id }
         : { ochre: opponent.id, indigo: candidate.id };
 
-      const result = matchRunner({
-        kingdomId: options.kingdomId,
-        seed: matchSeed(seed, orientationIndex),
-        firstPlayerId: orientation.firstPlayerId,
-        swapSides: orientation.swapSides,
-        turnLimitPerPlayer: options.turnLimitPerPlayer,
-        actionCapPerTurn: options.actionCapPerTurn,
-        agents
-      });
+      const result = (matchRunner ?? runSimulationMatch)({
+          kingdomId: options.kingdomId,
+          seed: matchSeed(seed, orientationIndex),
+          firstPlayerId: orientation.firstPlayerId,
+          swapSides: orientation.swapSides,
+          turnLimitPerPlayer: options.turnLimitPerPlayer,
+          actionCapPerTurn: options.actionCapPerTurn,
+          strategies: candidateIsOchre
+            ? { ochre: candidate, indigo: opponent }
+            : { ochre: opponent, indigo: candidate }
+        });
       matches += 1;
       recordMatch(telemetry, result, orientation, seatStrategyIds);
 

@@ -47,7 +47,9 @@ Vitest checks the engine, server, persistence, replay, and simulator. Playwright
 
 ## Balance simulator
 
-The simulator plays seeded headless matches between strategy players. A strategy contains a starting build, finite purchase targets, and one card to repeat after those targets are complete. Every strategy uses the same deterministic Action-phase pilot. The pilot searches legal lines without reading the hidden draw order. It compares wins, damage, purchases, Copper thinning, obsolete Cull retirement, draws, and printed attack range in that order.
+The simulator plays seeded headless matches between strategy players. A strategy contains a starting build, finite purchase targets, and one card to repeat after those targets are complete. Every strategy uses the same deterministic Action-phase pilot. The pilot chooses from visible state with bounded rules for movement, setup cards, attacks, spells, draw, Cull, Prism, and Reclaim. It does not read the hidden draw order.
+
+Production experiments run through a compact mutable kernel that stores cards as numeric indexes and counts telemetry directly. The browser keeps the immutable event-producing game engine. Tests compare complete match results from both implementations. The old full-tree pilot remains only as a behavior and speed reference.
 
 Build and run an experiment:
 
@@ -57,11 +59,14 @@ npm run experiment -- --kingdom current-duel --mode smoke
 npm run experiment -- --kingdom current-duel --mode full
 ```
 
-Measure search speed before changing match-search code:
+Measure the full-tree reference, the shared pilot on the immutable engine, and the production kernel:
 
 ```sh
-npx tsx scripts/measure_search.ts
-npx tsx scripts/measure_search.ts --kingdom rigged-melee --seeds 3 --repeats 5
+npx tsx scripts/measure_search.ts --kingdom current-duel --pilot full
+npx tsx scripts/measure_search.ts --kingdom current-duel --pilot tactical
+npx tsx scripts/measure_search.ts --kingdom current-duel --pilot kernel --repeats 20
+npm run compare:pilots
+npm run measure:workers -- --workers 4 --jobs 500 --seeds 25
 ```
 
 Experiment output goes to `.experiments/<kingdom>/<mode>/`. Each run writes `run.json`,
@@ -80,8 +85,10 @@ Useful limits can be lowered for a quick run:
 ```sh
 node dist-sim/experiment.mjs --kingdom current-duel --mode smoke --seed 1 \
   --restarts 1 --initial-strategies 5 --candidates 20 --iterations 4 \
-  --niche-additions 1 --seeds 8 --union-iterations 2 --workers 10
+  --niche-additions 1 --seeds 8 --union-iterations 2 --workers 4
 ```
+
+Four workers are the measured default on an Apple M4 Pro. More workers remain available with `--workers`, but short simulation jobs become slower when process messaging and result transfer exceed the saved game time.
 
 The committed [.html/balance-baseline.html](.html/balance-baseline.html) is historical evidence from
 the removed evolutionary search. Its banner marks it as the pre-PSRO baseline. A later full-run plan

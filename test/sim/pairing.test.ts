@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { MatchConfig, MatchResult } from '../../src/sim/types';
+import type { MatchResult } from '../../src/sim/types';
+import type { SimulationMatchConfig } from '../../src/sim/simulationKernel';
 import {
   ORIENTATIONS, SIGN_TEST_THRESHOLD, exactSignTest, isSignificantSignTest, matchSeed, playPairing,
   shouldStopPairing
@@ -12,7 +13,7 @@ type CandidateResult = 'win' | 'loss' | 'draw' | 'abort';
 
 function scripted(results: readonly CandidateResult[]): PairingMatchRunner {
   let call = 0;
-  return ((config: MatchConfig): MatchResult => {
+  return ((config: SimulationMatchConfig): MatchResult => {
     const orientation = ORIENTATIONS[call % 4]!;
     const result = results[Math.floor(call / 4)] ?? 'draw';
     call += 1;
@@ -26,7 +27,7 @@ function scripted(results: readonly CandidateResult[]): PairingMatchRunner {
         kingdomId: config.kingdomId, seed: config.seed, firstPlayerId: config.firstPlayerId,
         swapSides: config.swapSides, turnLimitPerPlayer: config.turnLimitPerPlayer,
         actionCapPerTurn: config.actionCapPerTurn,
-        agentIds: { ochre: config.agents.ochre.id, indigo: config.agents.indigo.id }
+        agentIds: { ochre: config.strategies.ochre.id, indigo: config.strategies.indigo.id }
       },
       outcome,
       reason: result === 'abort' ? 'actionSearchOverflow' : result === 'draw' ? 'turnLimit' : 'victory',

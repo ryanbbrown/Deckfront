@@ -42,9 +42,10 @@ export class InlinePairingRunner implements PairingRunner {
   async close(): Promise<void> {}
 }
 
-interface WorkerRequest { kind: 'pairing-job'; id: number; job: PairingJob }
-interface WorkerSuccess { kind: 'pairing-result'; id: number; outcome: PairingOutcome }
-interface WorkerFailure { kind: 'pairing-error'; id: number; name: string; message: string; stack?: string | undefined }
+interface WorkerItem { id: number; job: PairingJob }
+interface WorkerRequest { kind: 'pairing-batch'; items: readonly WorkerItem[] }
+interface WorkerSuccess { kind: 'pairing-results'; outcomes: readonly { id: number; outcome: PairingOutcome }[] }
+interface WorkerFailure { kind: 'pairing-error'; name: string; message: string; stack?: string | undefined }
 type WorkerResponse = WorkerSuccess | WorkerFailure;
 
 interface PoolWorker { worker: Worker; busy: boolean }
@@ -100,12 +101,20 @@ export class WorkerPairingRunner implements PairingRunner {
           finish();
           return;
         }
-        const id = next;
-        next += 1;
-        submitted += 1;
+        const items: WorkerItem[] = [];
+        let estimatedGames = 0;
+        const targetGames = options.now ? 1 : 32;
+        while (next < jobs.length && items.length < 8 && estimatedGames < targetGames) {
+          const id = next;
+          const job = jobs[id]!;
+          items.push({ id, job });
+          estimatedGames += job.options.seeds.length * 4;
+          next += 1;
+        }
+        submitted += items.length;
         active += 1;
         entry.busy = true;
-        entry.worker.postMessage({ kind: 'pairing-job', id, job: jobs[id]! } satisfies WorkerRequest);
+        entry.worker.postMessage({ kind: 'pairing-batch', items } satisfies WorkerRequest);
       };
 
       for (const entry of this.pool) {
@@ -120,7 +129,7 @@ export class WorkerPairingRunner implements PairingRunner {
             fail(error);
             return;
           }
-          outcomes[response.id] = response.outcome;
+          for (const result of response.outcomes) outcomes[result.id] = result.outcome;
           dispatch(entry);
           finish();
         };
@@ -156,14 +165,16 @@ export class WorkerPairingRunner implements PairingRunner {
 export function runPairingWorker(): void {
   if (isMainThread || !parentPort) throw new Error('The pairing worker handler needs a worker thread.');
   parentPort.on('message', (request: WorkerRequest) => {
-    if (request.kind !== 'pairing-job') return;
+    if (request.kind !== 'pairing-batch') return;
     try {
-      const outcome = playPairing(request.job.candidate, request.job.opponent, request.job.options);
-      parentPort!.postMessage({ kind: 'pairing-result', id: request.id, outcome } satisfies WorkerSuccess);
+      const outcomes = request.items.map(({ id, job }) => ({
+        id, outcome: playPairing(job.candidate, job.opponent, job.options)
+      }));
+      parentPort!.postMessage({ kind: 'pairing-results', outcomes } satisfies WorkerSuccess);
     } catch (error) {
       const value = error instanceof Error ? error : new Error(String(error));
       parentPort!.postMessage({
-        kind: 'pairing-error', id: request.id, name: value.name, message: value.message, stack: value.stack
+        kind: 'pairing-error', name: value.name, message: value.message, stack: value.stack
       } satisfies WorkerFailure);
     }
   });

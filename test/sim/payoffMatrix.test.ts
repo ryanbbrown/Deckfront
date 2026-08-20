@@ -30,7 +30,7 @@ class RecordingRunner implements PairingRunner {
 }
 
 describe('protocol-keyed payoff matrix', () => {
-  const protocol = () => matrixProtocol('current-duel', [1, 2], 30, 200, 20000);
+  const protocol = () => matrixProtocol('current-duel', [1, 2], 30, 200);
 
   it('runs each unordered pair once, mirrors it, and adds only a new row and column', async () => {
     const runner = new RecordingRunner();
@@ -97,7 +97,6 @@ describe('protocol-keyed payoff matrix', () => {
       { ...base, seeds: [1, 3] },
       { ...base, turnLimitPerPlayer: 31 },
       { ...base, actionCapPerTurn: 201 },
-      { ...base, stateLimit: 20001 },
       { ...base, cards: [...base.cards as unknown[], { id: 'changed-card' }] },
       { ...base, orientationProtocol: 'four-orientations-v2' }
     ];

@@ -13,19 +13,18 @@ const telemetry = () => ({
 });
 
 parentPort.on('message', (request) => {
-  if (request.job.candidate.id === 'fail') {
+  if (request.items.some((item) => item.job.candidate.id === 'fail')) {
     parentPort.postMessage({
-      kind: 'pairing-error', id: request.id, name: 'Error', message: 'worker exploded'
+      kind: 'pairing-error', name: 'Error', message: 'worker exploded'
     });
     return;
   }
-  const delay = Math.max(0, 20 - request.id * 5);
+  const delay = Math.max(0, 20 - request.items[0].id * 5);
   setTimeout(() => parentPort.postMessage({
-    kind: 'pairing-result', id: request.id,
-    outcome: {
+    kind: 'pairing-results', outcomes: request.items.map(({ id }) => ({ id, outcome: {
       record: record(), candidateScore: 0, opponentScore: 0, telemetry: telemetry(),
-      matches: request.id, seedBlocks: 0, stopReason: 'maximum',
+      matches: id, seedBlocks: 0, stopReason: 'maximum',
       candidateMean: null, opponentMean: null
-    }
+    } }))
   }), delay);
 });

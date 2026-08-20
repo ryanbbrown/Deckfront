@@ -15,7 +15,7 @@ import type { Strategy } from './strategy';
 export interface PsroConfig {
   kingdomId: string; seed: number; restarts: number; initialStrategies: number; candidates: number;
   iterations: number; nicheAdditions: number; seeds: number; unionIterations: number;
-  turnLimitPerPlayer: number; actionCapPerTurn: number; stateLimit: number;
+  turnLimitPerPlayer: number; actionCapPerTurn: number;
   searchDeadline?: number | undefined; finalDeadline?: number | undefined;
   onEvent?: ((event: IterationEvent) => void) | undefined;
   responseSearch?: typeof runResponseSearch | undefined;
@@ -112,7 +112,7 @@ async function runRestart(
       kingdomId: config.kingdomId, runSeed: config.seed, restart, attempt,
       candidateCount: config.candidates, blocks: config.seeds,
       turnLimitPerPlayer: config.turnLimitPerPlayer, actionCapPerTurn: config.actionCapPerTurn,
-      stateLimit: config.stateLimit, runner, deadline: config.searchDeadline
+      runner, deadline: config.searchDeadline
     });
     let admitted: Strategy | null = null;
     if (global.result?.admitted && global.candidate) admitted = global.candidate;
@@ -138,7 +138,7 @@ async function runRestart(
             strategies: snapshot.strategies, kingdomId: config.kingdomId, runSeed: config.seed,
             restart, attempt, candidateCount: config.candidates, blocks: config.seeds,
             turnLimitPerPlayer: config.turnLimitPerPlayer, actionCapPerTurn: config.actionCapPerTurn,
-            stateLimit: config.stateLimit, runner, deadline: config.searchDeadline
+            runner, deadline: config.searchDeadline
           });
           if (nicheResult.result?.admitted && nicheResult.candidate) {
             admitted = nicheResult.candidate;
@@ -203,7 +203,7 @@ function agreement(restarts: readonly RestartResult[], union: MatrixSnapshot): R
 export async function runPsro(config: PsroConfig, runner: PairingRunner, now = Date.now): Promise<PsroResult> {
   const matrixSeeds = namespaceSeeds(config.seed, 'matrix', config.seeds);
   const protocol = matrixProtocol(config.kingdomId, matrixSeeds, config.turnLimitPerPlayer,
-    config.actionCapPerTurn, config.stateLimit);
+    config.actionCapPerTurn);
   const cache = createMatrixCellCache();
   const restarts: RestartResult[] = [];
   const restartStatuses: RestartStatus[] = [];
@@ -301,7 +301,7 @@ export async function runPsro(config: PsroConfig, runner: PairingRunner, now = D
         kingdomId: config.kingdomId, runSeed: config.seed, restart: config.restarts, attempt,
         candidateCount: config.candidates, blocks: config.seeds,
         turnLimitPerPlayer: config.turnLimitPerPlayer, actionCapPerTurn: config.actionCapPerTurn,
-        stateLimit: config.stateLimit, runner, deadline: config.finalDeadline
+        runner, deadline: config.finalDeadline
       });
     } catch (error) {
       if (error instanceof DeadlineInterruptionError) {

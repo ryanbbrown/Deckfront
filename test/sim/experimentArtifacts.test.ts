@@ -13,13 +13,13 @@ import type { PsroResult, runPsro } from '../../src/sim/psro';
 const options: ExperimentOptions = {
   kingdomId: 'current-duel', mode: 'smoke', seed: 1, restarts: 1, initialStrategies: 2,
   candidates: 2, iterations: 1, nicheAdditions: 1, seeds: 1, unionIterations: 1,
-  deadlineMinutes: 1, stateLimit: 20000, workers: 1
+  deadlineMinutes: 1, workers: 1
 };
 
 function completedResult(): PsroResult {
   const strategies = diagnosticStrategies('current-duel').slice(0, 2);
   const telemetry = emptyAggregate();
-  const matrix = { protocol: matrixProtocol('current-duel', [1], 30, 200, 20000), strategies,
+  const matrix = { protocol: matrixProtocol('current-duel', [1], 30, 200), strategies,
     cells: [{ rowId: strategies[0]!.id, columnId: strategies[1]!.id, key: 'fixture',
       blocks: [{ seed: 1, score: 0.5, played: 4, aborted: 0 }], complete: true,
       centeredPayoff: 0, matches: 4, telemetry }], complete: true,

@@ -18,7 +18,7 @@ describe('compiled PSRO bundle', () => {
     const rootOut = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-psro-determinism-'));
     const options: ExperimentOptions = { kingdomId: 'current-duel', mode: 'smoke', seed: 3,
       restarts: 1, initialStrategies: 2, candidates: 2, iterations: 1, nicheAdditions: 1,
-      seeds: 1, unionIterations: 1, deadlineMinutes: 1, stateLimit: 20000, workers: 1 };
+      seeds: 1, unionIterations: 1, deadlineMinutes: 1, workers: 1 };
     await runExperiment(options, path.join(rootOut, 'a'), { now: () => 1000,
       pairingRunner: new InlinePairingRunner() });
     await runExperiment(options, path.join(rootOut, 'b'), { now: () => 1000,
@@ -50,11 +50,11 @@ describe('compiled PSRO bundle', () => {
     const worker = new Worker(bundle, { workerData: { kind: 'pairing-worker' } });
     const response = await new Promise<{ kind: string; outcome: { matches: number } }>((resolve, reject) => {
       worker.once('message', resolve); worker.once('error', reject);
-      worker.postMessage({ kind: 'pairing-job', id: 0, job: { candidate, opponent,
+      worker.postMessage({ kind: 'pairing-batch', items: [{ id: 0, job: { candidate, opponent,
         options: { kingdomId: 'current-duel', seeds: [1], turnLimitPerPlayer: 30,
-          actionCapPerTurn: 200, allowEarlyStop: false } } });
+          actionCapPerTurn: 200, allowEarlyStop: false } } }] });
     });
-    expect(response).toMatchObject({ kind: 'pairing-result', outcome: { matches: 4 } });
+    expect(response).toMatchObject({ kind: 'pairing-results', outcomes: [{ id: 0, outcome: { matches: 4 } }] });
     await worker.terminate();
   });
 });

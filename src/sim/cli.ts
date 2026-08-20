@@ -11,22 +11,21 @@ import { WorkerPairingRunner, runPairingWorker } from './pairingRunner';
 
 export const DEFAULT_SEED = 1;
 type LimitName = 'restarts' | 'initialStrategies' | 'candidates' | 'iterations' | 'nicheAdditions'
-  | 'seeds' | 'unionIterations' | 'deadlineMinutes' | 'stateLimit' | 'workers';
+  | 'seeds' | 'unionIterations' | 'deadlineMinutes' | 'workers';
 const DEFAULTS: Record<ExperimentMode, Record<LimitName, number>> = {
   smoke: { restarts: 1, initialStrategies: 5, candidates: 20, iterations: 4, nicheAdditions: 1,
-    seeds: 8, unionIterations: 2, deadlineMinutes: 30, stateLimit: 20000, workers: 10 },
+    seeds: 8, unionIterations: 2, deadlineMinutes: 30, workers: 4 },
   full: { restarts: 3, initialStrategies: 8, candidates: 100, iterations: 12, nicheAdditions: 4,
-    seeds: 25, unionIterations: 8, deadlineMinutes: 240, stateLimit: 20000, workers: 10 }
+    seeds: 25, unionIterations: 8, deadlineMinutes: 240, workers: 4 }
 };
 export const MAXIMA: Record<LimitName, number> = {
   restarts: 3, initialStrategies: 12, candidates: 100, iterations: 16, nicheAdditions: 4,
-  seeds: 25, unionIterations: 8, deadlineMinutes: 420, stateLimit: 20000, workers: 16
+  seeds: 25, unionIterations: 8, deadlineMinutes: 420, workers: 16
 };
 const FLAGS: Record<string, LimitName> = {
   '--restarts': 'restarts', '--initial-strategies': 'initialStrategies', '--candidates': 'candidates',
   '--iterations': 'iterations', '--niche-additions': 'nicheAdditions', '--seeds': 'seeds',
-  '--union-iterations': 'unionIterations', '--deadline-minutes': 'deadlineMinutes',
-  '--state-limit': 'stateLimit', '--workers': 'workers'
+  '--union-iterations': 'unionIterations', '--deadline-minutes': 'deadlineMinutes', '--workers': 'workers'
 };
 const KNOWN = new Set(['--kingdom', '--mode', '--seed', ...Object.keys(FLAGS)]);
 function positive(flag: string, raw: string): number {

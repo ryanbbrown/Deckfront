@@ -95,7 +95,7 @@ describe('automatic PSRO search inputs', () => {
       [strategies[0]!.id]: 0.5, [strategies[1]!.id]: 0.5
     }, strategies, kingdomId: 'current-duel', runSeed: 3, restart: 0, attempt: 0,
     candidateCount: 10, blocks: 4, turnLimitPerPlayer: 30, actionCapPerTurn: 200,
-    stateLimit: 20000, runner, batchFactory: () => ({ candidates: [], sources: {
+    runner, batchFactory: () => ({ candidates: [], sources: {
       requested: 10, requestedLocal: 7, requestedRandom: 3, actual: 0, local: 0, random: 0,
       duplicateRejections: 640, localShortfall: 7, randomShortfall: 3
     } }) });
@@ -129,7 +129,7 @@ describe('automatic PSRO search inputs', () => {
       [strategies[0]!.id]: 0.5, [strategies[1]!.id]: 0.5
     }, strategies: strategies.slice(0, 2), kingdomId: 'current-duel', runSeed: 19,
     restart: 0, attempt: 0, candidateCount: 1, blocks: 8,
-    turnLimitPerPlayer: 30, actionCapPerTurn: 200, stateLimit: 20000, runner,
+    turnLimitPerPlayer: 30, actionCapPerTurn: 200, runner,
     batchFactory: () => ({ candidates: [strategies[2]!], sources: { requested: 1,
       requestedLocal: 0, requestedRandom: 1, actual: 1, local: 0, random: 1,
       duplicateRejections: 0, localShortfall: 0, randomShortfall: 0 } }) });
@@ -145,7 +145,7 @@ describe('automatic PSRO search inputs', () => {
     const equilibrium = solveEquilibrium(strategies.map((strategy) => strategy.id), payoff);
     const niches = rectifiedNiches({
       protocol: { kingdomId: 'current-duel', cards: [], seeds: [1], turnLimitPerPlayer: 30,
-        actionCapPerTurn: 200, stateLimit: 20000, orientationProtocol: 'test' },
+        actionCapPerTurn: 200, orientationProtocol: 'test' },
       strategies: [...strategies], cells: [], complete: true, centeredPayoffs: payoff
     }, equilibrium);
     expect(niches).toHaveLength(3);
@@ -165,7 +165,7 @@ describe('automatic PSRO search inputs', () => {
     equilibrium.weights[strategies[0]!.id] = 1 - SUPPORT_TOLERANCE / 2;
     const niches = rectifiedNiches({
       protocol: { kingdomId: 'current-duel', cards: [], seeds: [1], turnLimitPerPlayer: 30,
-        actionCapPerTurn: 200, stateLimit: 20000, orientationProtocol: 'test' },
+        actionCapPerTurn: 200, orientationProtocol: 'test' },
       strategies: [...strategies], cells: [], complete: true, centeredPayoffs: [[0, 1], [-1, 0]]
     }, equilibrium);
     expect(niches.map((niche) => niche.focal.id)).not.toContain(strategies[1]!.id);

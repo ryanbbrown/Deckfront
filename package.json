@@ -11,6 +11,8 @@
     "build:sim": "esbuild src/sim/cli.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist-sim/experiment.mjs",
     "test": "vitest run --exclude 'test/e2e/**'",
     "experiment": "npm run build:sim && node dist-sim/experiment.mjs",
+    "compare:pilots": "tsx scripts/compare_pilots.ts",
+    "measure:workers": "tsx scripts/measure_workers.ts",
     "test:e2e:manifest": "tsx scripts/validate_e2e_manifest.ts",
     "test:e2e": "npm run test:e2e:manifest && npm run build && playwright test",
     "test:e2e:headed": "npm run build && playwright test --headed",

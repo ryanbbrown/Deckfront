@@ -38,7 +38,7 @@ class ControlledRunner implements PairingRunner {
 const config = {
   kingdomId: 'current-duel', seed: 71, restarts: 2, initialStrategies: 2,
   candidates: 1, iterations: 1, nicheAdditions: 0, seeds: 1, unionIterations: 1,
-  turnLimitPerPlayer: 30, actionCapPerTurn: 200, stateLimit: 20000
+  turnLimitPerPlayer: 30, actionCapPerTurn: 200
 };
 
 const emptySearch: typeof runResponseSearch = async (options) => runResponseSearch({

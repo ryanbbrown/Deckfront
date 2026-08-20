@@ -103,7 +103,7 @@ export async function runResponseSearch(options: {
   objective: 'global' | 'niche'; focal?: Strategy | undefined; targetWeights: Readonly<Record<string, number>>;
   strategies: readonly Strategy[]; kingdomId: string; runSeed: number; restart: number; attempt: number;
   candidateCount: number; blocks: number; turnLimitPerPlayer: number; actionCapPerTurn: number;
-  stateLimit: number; runner: PairingRunner; deadline?: number | undefined;
+  runner: PairingRunner; deadline?: number | undefined;
   batchFactory?: typeof generateResponseBatch | undefined;
 }): Promise<{ result: ResponseResult | null; candidate: Strategy | null }> {
   const strategyMap = new Map(options.strategies.map((strategy) => [strategy.id, strategy]));

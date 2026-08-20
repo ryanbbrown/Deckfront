@@ -36,7 +36,7 @@ function summary(iterations: IterationEvent[]): RunSummary {
   return { schemaVersion: 2, valid: true, kingdomId: 'current-duel', kingdomName: 'Current Duel',
     mode: 'smoke', seed: 1, limits: { gameBoundBeforeDiagnostics: 100 },
     startedAt: '', finishedAt: '', elapsedMs: 1000, stopReason: 'response-exhausted', error: null,
-    matches: 32, aborted: 0, matrix: { protocol: matrixProtocol('current-duel', [1], 30, 200, 20000),
+    matches: 32, aborted: 0, matrix: { protocol: matrixProtocol('current-duel', [1], 30, 200),
       strategies, cells: [], complete: true, centeredPayoffs: [[0, 0], [0, 0]] },
     equilibrium, strategies, iterations, restartAgreement: [{ left: 0, right: 1,
       totalVariation: 0.2, supportOverlap: 0.5, leftWorstCounter: 0.1, rightWorstCounter: 0.2 }],

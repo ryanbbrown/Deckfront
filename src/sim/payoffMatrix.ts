@@ -14,7 +14,6 @@ export interface MatrixProtocol {
   seeds: number[];
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
-  stateLimit: number;
   orientationProtocol: string;
 }
 
@@ -57,13 +56,12 @@ export class DeadlineInterruptionError extends Error {
 }
 
 export function matrixProtocol(
-  kingdomId: string, seeds: readonly number[], turnLimitPerPlayer: number, actionCapPerTurn: number,
-  stateLimit: number
+  kingdomId: string, seeds: readonly number[], turnLimitPerPlayer: number, actionCapPerTurn: number
 ): MatrixProtocol {
   return {
     kingdomId,
     cards: kingdomMarket(kingdomId).map((card) => card),
-    seeds: [...seeds], turnLimitPerPlayer, actionCapPerTurn, stateLimit,
+    seeds: [...seeds], turnLimitPerPlayer, actionCapPerTurn,
     orientationProtocol: MATRIX_PROTOCOL_VERSION
   };
 }
@@ -116,7 +114,6 @@ export class PayoffMatrix {
       kingdomId: this.protocol.kingdomId, seeds,
       turnLimitPerPlayer: this.protocol.turnLimitPerPlayer,
       actionCapPerTurn: this.protocol.actionCapPerTurn,
-      stateLimit: this.protocol.stateLimit,
       allowEarlyStop
     } } };
   }

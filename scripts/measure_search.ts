@@ -15,9 +15,11 @@
 import os from 'node:os';
 import process from 'node:process';
 import { strategyAgent } from '../src/sim/agents/strategyAgent';
+import { tacticalAgent } from '../src/sim/tacticalAgent';
 import { CURATED_KINGDOM_IDS } from '../src/sim/kingdoms';
 import { runMatch } from '../src/sim/match';
 import { diagnosticStrategies } from '../src/sim/baselines';
+import { runSimulationMatch } from '../src/sim/simulationKernel';
 
 const TURN_LIMIT = 30;
 const ACTION_CAP = 200;
@@ -42,6 +44,8 @@ const seeds = (option('seeds') ?? '3,17,41').split(',').map((raw) => {
 });
 const repeats = Number(option('repeats') ?? '1');
 if (!Number.isInteger(repeats) || repeats < 1) throw new Error('--repeats takes a positive whole number.');
+const pilot = option('pilot') ?? 'full';
+if (!['full', 'tactical', 'kernel'].includes(pilot)) throw new Error('--pilot must be full, tactical, or kernel.');
 
 function quantile(sorted: readonly number[], fraction: number): number {
   if (!sorted.length) return 0;
@@ -76,11 +80,18 @@ for (let repeat = 0; repeat < repeats; repeat += 1) {
             visitedCounts.push(entry.visited);
           };
           const started = performance.now();
-          const result = runMatch({
-            kingdomId, seed, firstPlayerId: 'ochre', swapSides: false,
-            turnLimitPerPlayer: TURN_LIMIT, actionCapPerTurn: ACTION_CAP,
-            agents: { ochre: strategyAgent(ochre, { onSearch }), indigo: strategyAgent(indigo, { onSearch }) }
-          });
+          const shared = {
+            kingdomId, seed, firstPlayerId: 'ochre' as const, swapSides: false,
+            turnLimitPerPlayer: TURN_LIMIT, actionCapPerTurn: ACTION_CAP
+          };
+          const result = pilot === 'kernel'
+            ? runSimulationMatch({ ...shared, strategies: { ochre, indigo } })
+            : runMatch({
+              ...shared,
+              agents: pilot === 'tactical'
+                ? { ochre: tacticalAgent(ochre), indigo: tacticalAgent(indigo) }
+                : { ochre: strategyAgent(ochre, { onSearch }), indigo: strategyAgent(indigo, { onSearch }) }
+            });
           matchMilliseconds.push(performance.now() - started);
           matches += 1;
           outcomes.set(result.reason, (outcomes.get(result.reason) ?? 0) + 1);
@@ -96,7 +107,7 @@ for (let repeat = 0; repeat < repeats; repeat += 1) {
 
 const sortedThroughput = [...throughput].sort((left, right) => left - right);
 console.log(`node=${process.version} arch=${os.arch()} cpu=${os.cpus()[0]?.model ?? 'unknown'}`);
-console.log(`kingdoms=${kingdoms.join(',')} seeds=${seeds.join(',')} strategies=5`);
+console.log(`pilot=${pilot} kingdoms=${kingdoms.join(',')} seeds=${seeds.join(',')} strategies=5`);
 console.log(`matches=${matchMilliseconds.length} turnLimitPerPlayer=${TURN_LIMIT} actionCapPerTurn=${ACTION_CAP}`);
 console.log(`matches per second: median=${quantile(sortedThroughput, 0.5).toFixed(1)}`
   + ` min=${(sortedThroughput[0] ?? 0).toFixed(1)} max=${(sortedThroughput.at(-1) ?? 0).toFixed(1)}`);

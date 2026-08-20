@@ -121,7 +121,7 @@ async function calibrationDiagnostic(
   const strategies = new Map(result.strategies.map((strategy) => [strategy.id, strategy]));
   const [evaluated] = await evaluateCandidates([benchmark], strategies, schedule, runner, {
     kingdomId: options.kingdomId, turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
-    actionCapPerTurn: ACTION_CAP_PER_TURN, stateLimit: options.stateLimit
+    actionCapPerTurn: ACTION_CAP_PER_TURN
   });
   const interval = percentileBootstrapMean(evaluated!.blockScores,
     namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 1, 0)[0]!);
@@ -159,7 +159,7 @@ async function runWithRunner(
       candidates: options.candidates, iterations: options.iterations,
       nicheAdditions: options.nicheAdditions, seeds: options.seeds,
       unionIterations: options.unionIterations, deadlineMinutes: options.deadlineMinutes,
-      stateLimit: options.stateLimit, workers: options.workers,
+      workers: options.workers,
       turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER, actionCapPerTurn: ACTION_CAP_PER_TURN,
       gameBoundBeforeDiagnostics: conservativeGameBound(options)
     },
@@ -184,7 +184,7 @@ async function runWithRunner(
       initialStrategies: options.initialStrategies, candidates: options.candidates,
       iterations: options.iterations, nicheAdditions: options.nicheAdditions, seeds: options.seeds,
       unionIterations: options.unionIterations, turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
-      actionCapPerTurn: ACTION_CAP_PER_TURN, stateLimit: options.stateLimit, searchDeadline,
+      actionCapPerTurn: ACTION_CAP_PER_TURN, searchDeadline,
       finalDeadline: deadline, onEvent: (event) => {
         completedEvents.push(event);
         fs.appendFileSync(iterationsPath, `${JSON.stringify(iterationRecord(event))}\n`);
