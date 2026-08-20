@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildBalanceCorpusModel, renderBalanceCorpus, selectCorpusKingdoms
+  buildBalanceCorpusModel, classifyStrategyDamage, renderBalanceCorpus, selectCorpusKingdoms
 } from '../../scripts/generate_balance_corpus';
 import type { CorpusKingdomReport } from '../../scripts/generate_balance_corpus';
 import { BALANCE_SUITE_MANIFEST } from '../../src/sim/balanceSuite';
@@ -38,15 +38,15 @@ describe('balance-corpus aggregation', () => {
     const model = buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, corpus());
     expect(model.summaries.tuning).toMatchObject({ kingdoms: 80, lotteryDistribution: { 1: 80 },
       effectiveMinimum: 1, effectiveMedian: 1, effectiveMean: 1, effectiveMaximum: 1,
-      multipleViableRate: 0, familyShares: { Engine: 1, Melee: 0, Ranged: 0, Mage: 0 },
+      multipleViableRate: 0, damageStrategyCounts: { 'No damage package': 80 },
       drawRate: 0, winnerTurnsPerPlayer: 8 });
     expect(model.summaries.validation).toMatchObject({ kingdoms: 20, lotteryDistribution: { 2: 20 },
       effectiveMinimum: 2, effectiveMedian: 2, effectiveMean: 2, effectiveMaximum: 2,
-      multipleViableRate: 1, familyShares: { Engine: 0, Melee: 0, Ranged: 1, Mage: 0 },
+      multipleViableRate: 1, damageStrategyCounts: { Ranged: 40 },
       winnerTurnsPerPlayer: 10 });
     expect(model.summaries.combined).toMatchObject({ kingdoms: 100, effectiveMedian: 1,
       effectiveMean: 1.2, multipleViableRate: 0.2,
-      familyShares: { Engine: 0.8, Melee: 0, Ranged: 0.2, Mage: 0 },
+      damageStrategyCounts: { 'No damage package': 80, Ranged: 40 },
       winnerTurnsPerPlayer: 8.4 });
     expect(model.summaries.tuning.firstPlayerScore).toBeCloseTo(0.6, 12);
     expect(model.summaries.validation!.drawRate).toBeCloseTo(0.1, 12);
@@ -59,6 +59,17 @@ describe('balance-corpus aggregation', () => {
       acquiredStrategies: 80, familyAcquisitionShare: 1 });
     expect(volley.validation).toMatchObject({ buildPlans: 40, repeatPlans: 40,
       acquiredStrategies: 40, familyAcquisitionShare: 1 });
+  });
+
+  it('classifies strategy damage from its starting deck and evaluated acquisitions', () => {
+    expect(classifyStrategyDamage({ startingBuild: ['drive'], acquisitionRates: { drive: 2, footwork: 3 } }))
+      .toBe('Melee');
+    expect(classifyStrategyDamage({ startingBuild: ['focus'], acquisitionRates: { arcBolt: 2, channel: 4 } }))
+      .toBe('Mage');
+    expect(classifyStrategyDamage({ startingBuild: ['steadyShot'], acquisitionRates: { steadyShot: 3, drive: 1 } }))
+      .toBe('Melee + Ranged');
+    expect(classifyStrategyDamage({ startingBuild: ['footwork'], acquisitionRates: { footwork: 5 } }))
+      .toBe('No damage package');
   });
 
   it('renders the complete tuning split without stale validation results', () => {
@@ -82,7 +93,7 @@ describe('balance-corpus aggregation', () => {
       kingdom('g', 'tuning', 2.5, 0.3, 1, 0.75), kingdom('h', 'tuning', 2.5, 0.3, 1, 0.75)
     ];
     const selected = selectCorpusKingdoms(input);
-    expect(selected.map((entry) => entry.kingdom.id)).toEqual(['a', 'c', 'f', 'd', 'g']);
+    expect(selected.map((entry) => entry.kingdom.id)).toEqual(['a', 'c', 'b', 'd', 'g']);
     expect(selected[4]!.reason).toBe('Highest draw rate');
     expect(new Set(selected.map((entry) => entry.kingdom.id)).size).toBe(5);
   });

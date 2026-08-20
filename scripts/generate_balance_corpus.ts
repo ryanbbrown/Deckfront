@@ -8,7 +8,7 @@ import type { BalanceSuiteManifest, BalanceSuiteSplit } from '../src/sim/balance
 import {
   buildBalanceReportModel, family, loadArtifactDirectory, selfPlayFor
 } from './generate_balance_report';
-import type { CardFamily, KingdomReport } from './generate_balance_report';
+import type { CardFamily, KingdomReport, StrategyReport } from './generate_balance_report';
 
 type ActionFamily = Exclude<CardFamily, 'Treasure'>;
 
@@ -22,7 +22,7 @@ export interface CorpusSummary {
   effectiveMean: number;
   effectiveMaximum: number;
   multipleViableRate: number;
-  familyShares: Record<ActionFamily, number>;
+  damageStrategyCounts: Record<string, number>;
   drawRate: number;
   winnerTurnsPerPlayer: number;
   firstPlayerScore: number;
@@ -68,7 +68,35 @@ export interface BalanceCorpusModel {
   playQualityWarnings: PlayQualityWarning[];
 }
 
-const ACTION_FAMILIES: readonly ActionFamily[] = ['Engine', 'Melee', 'Ranged', 'Mage'];
+const DAMAGE_FAMILIES = ['Melee', 'Ranged', 'Mage'] as const;
+const MIXED_DAMAGE_MINIMUM = 0.2;
+
+function damageFamily(cardId: string): (typeof DAMAGE_FAMILIES)[number] | null {
+  const mechanic = cardDefinition(cardId).mechanic;
+  if (['melee', 'drive', 'flurry'].includes(mechanic)) return 'Melee';
+  if (['ranged', 'volley'].includes(mechanic)) return 'Ranged';
+  if (mechanic === 'spell') return 'Mage';
+  return null;
+}
+
+export function classifyStrategyDamage(
+  strategy: Pick<StrategyReport, 'startingBuild' | 'acquisitionRates'>
+): string {
+  const amounts = Object.fromEntries(DAMAGE_FAMILIES.map((name) => [name, 0])) as Record<(typeof DAMAGE_FAMILIES)[number], number>;
+  for (const cardId of strategy.startingBuild) {
+    const cardFamily = damageFamily(cardId);
+    if (cardFamily) amounts[cardFamily] += 1;
+  }
+  for (const [cardId, amount] of Object.entries(strategy.acquisitionRates)) {
+    const cardFamily = damageFamily(cardId);
+    if (cardFamily) amounts[cardFamily] += amount;
+  }
+  const total = Object.values(amounts).reduce((sum, amount) => sum + amount, 0);
+  if (!total) return 'No damage package';
+  const material = DAMAGE_FAMILIES.filter((name) => amounts[name] / total >= MIXED_DAMAGE_MINIMUM);
+  return material.length ? material.join(' + ') : DAMAGE_FAMILIES
+    .reduce((best, name) => amounts[name] > amounts[best] ? name : best);
+}
 
 function mean(values: readonly number[]): number { return values.reduce((sum, value) => sum + value, 0) / values.length; }
 function median(values: readonly number[]): number {
@@ -84,15 +112,18 @@ function distribution(values: readonly number[]): Record<string, number> {
 function summarize(label: string, kingdoms: readonly CorpusKingdomReport[]): CorpusSummary {
   if (!kingdoms.length) throw new Error(`Cannot summarize an empty ${label} corpus.`);
   const effective = kingdoms.map((kingdom) => kingdom.effectiveLotterySize);
-  const familyShares = Object.fromEntries(ACTION_FAMILIES.map((cardFamily) => [cardFamily,
-    mean(kingdoms.map((kingdom) => kingdom.acquiredFamilyShares[cardFamily]))])) as Record<ActionFamily, number>;
+  const damageStrategyCounts: Record<string, number> = {};
+  for (const strategy of kingdoms.flatMap((kingdom) => kingdom.strategies)) {
+    const identity = classifyStrategyDamage(strategy);
+    damageStrategyCounts[identity] = (damageStrategyCounts[identity] ?? 0) + 1;
+  }
   return { label, kingdoms: kingdoms.length,
     lotteryDistribution: distribution(kingdoms.map((kingdom) => kingdom.materialCount)),
     nearDistribution: distribution(kingdoms.map((kingdom) => kingdom.nearCount)),
     effectiveMinimum: Math.min(...effective), effectiveMedian: median(effective),
     effectiveMean: mean(effective), effectiveMaximum: Math.max(...effective),
     multipleViableRate: kingdoms.filter((kingdom) => kingdom.strategies.length >= 2).length / kingdoms.length,
-    familyShares, drawRate: mean(kingdoms.map((kingdom) => kingdom.lotteryTelemetry.drawRate)),
+    damageStrategyCounts, drawRate: mean(kingdoms.map((kingdom) => kingdom.lotteryTelemetry.drawRate)),
     winnerTurnsPerPlayer: mean(kingdoms.map((kingdom) => kingdom.lotteryTelemetry.winnerTurnsPerPlayer ?? 0)),
     firstPlayerScore: mean(kingdoms.map((kingdom) => kingdom.lotteryTelemetry.firstPlayerScore)) };
 }
@@ -132,8 +163,12 @@ export function selectCorpusKingdoms(kingdoms: readonly CorpusKingdomReport[]): 
   const criteria: { reason: string; compare: (left: CorpusKingdomReport, right: CorpusKingdomReport) => number }[] = [
     { reason: 'Lowest effective lottery size', compare: (left, right) => left.effectiveLotterySize - right.effectiveLotterySize },
     { reason: 'Highest effective lottery size', compare: (left, right) => right.effectiveLotterySize - left.effectiveLotterySize },
-    { reason: 'Highest ranged acquisition share', compare: (left, right) => right.acquiredFamilyShares.Ranged - left.acquiredFamilyShares.Ranged },
-    { reason: 'Lowest ranged acquisition share', compare: (left, right) => left.acquiredFamilyShares.Ranged - right.acquiredFamilyShares.Ranged },
+    { reason: 'Highest ranged-strategy share', compare: (left, right) =>
+      right.strategies.filter((strategy) => classifyStrategyDamage(strategy).includes('Ranged')).length / right.strategies.length
+      - left.strategies.filter((strategy) => classifyStrategyDamage(strategy).includes('Ranged')).length / left.strategies.length },
+    { reason: 'Lowest ranged-strategy share', compare: (left, right) =>
+      left.strategies.filter((strategy) => classifyStrategyDamage(strategy).includes('Ranged')).length / left.strategies.length
+      - right.strategies.filter((strategy) => classifyStrategyDamage(strategy).includes('Ranged')).length / right.strategies.length },
     { reason: 'Highest draw rate', compare: (left, right) =>
       right.lotteryTelemetry.drawRate - left.lotteryTelemetry.drawRate }
   ];
@@ -195,14 +230,18 @@ function table(headers: readonly string[], rows: readonly (readonly string[])[],
 function formatDistribution(values: Record<string, number>): string {
   return Object.entries(values).map(([count, kingdoms]) => `${count}: ${kingdoms}`).join(' · ');
 }
+function formatDamageStrategies(counts: Record<string, number>): string {
+  const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  return Object.entries(counts).sort(([left], [right]) => left.localeCompare(right))
+    .map(([label, count]) => `${label}: ${count} (${percent(count / total)})`).join(' · ');
+}
 function summaryTable(summaries: readonly CorpusSummary[]): string {
   return table(['Split', 'Kingdoms', 'Lottery count distribution', 'Near-50% distribution',
-    'Effective size min / median / mean / max', '2+ viable', 'Engine', 'Melee', 'Ranged', 'Mage',
+    'Effective size min / median / mean / max', '2+ viable', 'Viable strategies by damage package',
     'Draws', 'Turns/player', 'First-player score'], summaries.map((summary) => [summary.label,
     String(summary.kingdoms), formatDistribution(summary.lotteryDistribution), formatDistribution(summary.nearDistribution),
     `${fixed(summary.effectiveMinimum)} / ${fixed(summary.effectiveMedian)} / ${fixed(summary.effectiveMean)} / ${fixed(summary.effectiveMaximum)}`,
-    percent(summary.multipleViableRate), percent(summary.familyShares.Engine), percent(summary.familyShares.Melee),
-    percent(summary.familyShares.Ranged), percent(summary.familyShares.Mage), percent(summary.drawRate),
+    percent(summary.multipleViableRate), formatDamageStrategies(summary.damageStrategyCounts), percent(summary.drawRate),
     fixed(summary.winnerTurnsPerPlayer), percent(summary.firstPlayerScore)]));
 }
 function strategyKey(index: number): string { return `S${index + 1}`; }
@@ -214,16 +253,12 @@ function selectedDetail(selected: SelectedKingdom): string {
     strategy.startingBuild.map((id) => escape(cardDefinition(id).name)).join(', ') || 'None',
     ...Array.from({ length: maxSteps }, (_, step) => strategy.purchaseSteps[step]
       ? `${escape(cardDefinition(strategy.purchaseSteps[step]!.cardId).name)} ×${strategy.purchaseSteps[step]!.remaining}` : '—'),
-    escape(cardDefinition(strategy.repeatPurchase).name),
-    ACTION_FAMILIES.map((cardFamily) => `${cardFamily} ${percent(Object.entries(strategy.acquisitionRates)
-      .filter(([id]) => family(id) === cardFamily).reduce((sum, [, rate]) => sum + rate, 0)
-      / Math.max(0.000001, Object.entries(strategy.acquisitionRates).filter(([id]) => family(id) !== 'Treasure')
-        .reduce((sum, [, rate]) => sum + rate, 0)))}`).join(' · ')]);
+    escape(cardDefinition(strategy.repeatPurchase).name), classifyStrategyDamage(strategy)]);
   const matchupRows = kingdom.strategies.map((_strategy, row) => [`<span class="key">${strategyKey(row)}</span>`,
     ...kingdom.matchupScores[row]!.map((score, column) => row === column ? '50.0% mirror' : percent(score))]);
   return `<section><h2>${escape(kingdom.name)}</h2><p class="selection">${escape(selected.reason)} · ${kingdom.split} · effective lottery size ${fixed(kingdom.effectiveLotterySize)}</p>
   <h3>Viable strategy plans</h3>${table(['Key', 'Status', 'Lottery weight', 'Score vs lottery', 'Starting build',
-    ...Array.from({ length: maxSteps }, (_, index) => `Purchase ${index + 1}`), 'Repeat', 'Acquired family profile'], planRows)}
+    ...Array.from({ length: maxSteps }, (_, index) => `Purchase ${index + 1}`), 'Repeat', 'Damage package'], planRows)}
   <h3>Viable-strategy matchups</h3>${table(['Row', ...kingdom.strategies.map((_entry, index) => strategyKey(index))], matchupRows, 'matrix')}</section>`;
 }
 
@@ -244,9 +279,9 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
     }))]);
   const kingdomRows = model.kingdoms.map((kingdom) => [escape(kingdom.id), kingdom.split,
     String(kingdom.materialCount), String(kingdom.nearCount), String(kingdom.strategies.length),
-    fixed(kingdom.effectiveLotterySize), percent(kingdom.acquiredFamilyShares.Engine),
-    percent(kingdom.acquiredFamilyShares.Melee), percent(kingdom.acquiredFamilyShares.Ranged),
-    percent(kingdom.acquiredFamilyShares.Mage), percent(kingdom.lotteryTelemetry.drawRate),
+    fixed(kingdom.effectiveLotterySize), formatDamageStrategies(kingdom.strategies.reduce<Record<string, number>>((counts, strategy) => {
+      const identity = classifyStrategyDamage(strategy); counts[identity] = (counts[identity] ?? 0) + 1; return counts;
+    }, {})), percent(kingdom.lotteryTelemetry.drawRate),
     fixed(kingdom.lotteryTelemetry.winnerTurnsPerPlayer ?? 0), percent(kingdom.lotteryTelemetry.firstPlayerScore),
     integer(kingdom.matches), fixed(kingdom.elapsedMs / 1000, 1)]);
   const measureHeaders = ['Available', 'Build', 'Finite', 'Repeat', 'Acquired', 'Lottery weight', 'Family share'];
@@ -271,9 +306,9 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
 </style></head><body><main><header><h1>${title}</h1><p>${introduction}</p></header>
 ${warning}
 <section><h2>Corpus design</h2>${table(['Split', 'Kingdoms', 'Card count range', 'Pair count range', 'Pair-count SD', 'Largest overlap'], designRows)}<p>Every kingdom has ten distinct piles, 40 health, no overrides, and at least one direct-damage card. Card counts differ by at most one within each split. No pair of kingdoms shares more than eight piles.</p></section>
-<section><h2>Strategy diversity and play diagnostics</h2>${summaryTable(summaryRows)}<p>Effective lottery size is 1 divided by the sum of squared lottery weights. Acquired family shares use actual acquisition rates from each viable strategy against the final material lottery. Draw rate, turns, and first-player score are diagnostics, not balance targets.</p></section>
+<section><h2>Strategy diversity and play diagnostics</h2>${summaryTable(summaryRows)}<p>Effective lottery size is 1 divided by the sum of squared lottery weights. A strategy's damage package uses its starting damage cards plus the damage cards it acquired against the final lottery. A second damage family makes the strategy mixed when it supplies at least 20% of those cards. Draw rate, turns, and first-player score are diagnostics, not balance targets.</p></section>
 <section><h2>Card health</h2><div class="callouts"><div><strong>No viable plan use</strong><br>${unused.length ? escape(unused.join(', ')) : 'None'}</div><div><strong>No acquired use</strong><br>${notAcquired.length ? escape(notAcquired.join(', ')) : 'None'}</div></div><p>The report shows kingdom availability; viable-strategy build, finite-plan, repeat-plan, and acquired presence; average material-lottery weight of plans using the card; and the card’s share of acquisitions within its family.</p>${table(['Card', 'Family', ...measures.flatMap((split) => measureHeaders.map((measure) => `${split[0]!.toUpperCase()}${split.slice(1)} ${measure}`))], cardRows)}</section>
-<section><h2>All ${model.kingdoms.length} kingdoms</h2>${table(['Kingdom', 'Split', 'Lottery', 'Near 50%', 'Viable', 'Effective size', 'Engine', 'Melee', 'Ranged', 'Mage', 'Draws', 'Turns/player', 'First-player score', 'Search games', 'Seconds'], kingdomRows)}</section>
+<section><h2>All ${model.kingdoms.length} kingdoms</h2>${table(['Kingdom', 'Split', 'Lottery', 'Near 50%', 'Viable', 'Effective size', 'Damage packages', 'Draws', 'Turns/player', 'First-player score', 'Search games', 'Seconds'], kingdomRows)}</section>
 <div><h2>Five selected kingdom details</h2><p>Selection uses five fixed rules and an id tie-break. A kingdom can fill only one slot.</p>${model.selected.map(selectedDetail).join('\n')}</div>
 </main></body></html>\n`;
 }
