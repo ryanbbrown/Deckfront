@@ -148,11 +148,16 @@ export function loadArtifactSet(root: string, kingdomId: string): ArtifactSet {
     throw new Error(`Artifact kingdom mismatch for ${kingdomId}.`);
   }
   const expected = rulesFingerprint(kingdomId, matrix.protocol.turnLimitPerPlayer, matrix.protocol.actionCapPerTurn);
-  if (run.rulesFingerprint.hash !== expected.hash || matrix.protocol.rulesFingerprint !== expected.hash) {
+  if (run.rulesFingerprint.hash !== expected.hash || matrix.protocol.rulesFingerprint !== expected.hash
+    || JSON.stringify(run.rulesFingerprint.rules) !== JSON.stringify(expected.rules)) {
     throw new Error(`Rules fingerprint mismatch for ${kingdomId}: expected ${expected.hash}, run has ${run.rulesFingerprint.hash}, matrix has ${matrix.protocol.rulesFingerprint}.`);
   }
   if (run.rulesFingerprint.hash !== rulesFingerprint(kingdomId).hash) {
     throw new Error(`The ${kingdomId} run does not use the current turn and action limits.`);
+  }
+  if (run.limits.turnLimitPerPlayer !== matrix.protocol.turnLimitPerPlayer
+    || run.limits.actionCapPerTurn !== matrix.protocol.actionCapPerTurn) {
+    throw new Error(`Run limits do not match the matrix protocol for ${kingdomId}.`);
   }
   const matrixIds = matrix.strategies.map((strategy) => strategy.id);
   if (new Set(matrixIds).size !== matrixIds.length) throw new Error(`Duplicate strategy id in ${kingdomId} matrix.`);
@@ -296,7 +301,8 @@ function finalLotteryTelemetry(
     drawRate: weighted.gameWeight ? weighted.draws / weighted.gameWeight : 0,
     firstPlayerWinRate: weighted.gameWeight ? weighted.firstWins / weighted.gameWeight : 0,
     firstPlayerScore: weighted.gameWeight ? (weighted.firstWins + weighted.firstDraws / 2) / weighted.gameWeight : 0,
-    winnerTurnsPerPlayer: weighted.winningTurnCount ? weighted.winningTurnTotal / weighted.winningTurnCount / 2 : null,
+    winnerTurnsPerPlayer: weighted.winningTurnCount
+      ? (weighted.winningTurnTotal + weighted.winningTurnCount) / weighted.winningTurnCount / 2 : null,
     acquisitionsPerGame: Object.fromEntries(Object.entries(weighted.acquisitions)
       .map(([id, amount]) => [id, weighted.acquisitionGameWeight ? amount / weighted.acquisitionGameWeight : 0]))
   };

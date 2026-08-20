@@ -95,8 +95,15 @@ describe('balance report calculations', () => {
     expect(kingdom.matchupScores).toEqual([[0.5, 0.4], [0.6, 0.5]]);
     expect(kingdom.lotteryTelemetry).toMatchObject({ games: 100, drawRate: 0.08125,
       firstPlayerWinRate: 0.48125, firstPlayerScore: 0.521875 });
-    expect(kingdom.lotteryTelemetry.winnerTurnsPerPlayer).toBeCloseTo(837.5 / 91.875 / 2, 10);
+    expect(kingdom.lotteryTelemetry.winnerTurnsPerPlayer).toBeCloseTo((837.5 + 91.875) / 91.875 / 2, 10);
     expect(kingdom.lotteryTelemetry.acquisitionsPerGame).toEqual({ footwork: 0.5, volley: 2.25 });
+    const changedMirrors = buildBalanceReportModel([input], selfPlay('current-duel', [
+      [left, telemetry({ games: 100, draws: 100, firstWins: 0, winningTurns: 0, wins: 0 })],
+      [right, telemetry({ games: 100, draws: 100, firstWins: 0, winningTurns: 0, wins: 0 })]
+    ])).kingdoms[0]!;
+    expect(changedMirrors.strategies.map((entry) => [entry.id, entry.weight, entry.score]))
+      .toEqual(kingdom.strategies.map((entry) => [entry.id, entry.weight, entry.score]));
+    expect(changedMirrors.matchupScores).toEqual(kingdom.matchupScores);
   });
 
   it('includes exact threshold values and excludes values just below them', () => {
