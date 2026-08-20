@@ -37,7 +37,11 @@ export interface PlayerState {
 export interface FighterState { playerId: PlayerId; position: number; health: number; aimed: boolean; exposed: boolean }
 export type PendingChoiceType = 'discard' | 'recover';
 export interface PendingChoice { type: PendingChoiceType; playerId: PlayerId; remaining: number }
-export type GameEventType = 'buildComplete' | 'cardPlayed' | 'move' | 'draw' | 'condition' | 'damage' | 'wallCollision' | 'trash' | 'phase' | 'purchase' | 'turn' | 'victory' | 'mana' | 'discard' | 'recover';
+export const GAME_EVENT_TYPES = [
+  'buildComplete', 'cardPlayed', 'move', 'draw', 'condition', 'damage', 'wallCollision', 'trash',
+  'phase', 'purchase', 'turn', 'victory', 'mana', 'discard', 'recover'
+] as const;
+export type GameEventType = (typeof GAME_EVENT_TYPES)[number];
 export interface GameEvent { sequence: number; type: GameEventType; playerId: PlayerId; detail: Record<string, unknown> }
 export interface GameState {
   schemaVersion: 8;

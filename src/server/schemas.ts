@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { MAX_FIRST_BUY_CARRY, RANDOM_KINGDOM_SIZE, VARIABLE_ACTION_IDS } from '../game';
+import { GAME_EVENT_TYPES, MAX_FIRST_BUY_CARRY, RANDOM_KINGDOM_SIZE, VARIABLE_ACTION_IDS } from '../game';
+import type { GameEventType } from '../game';
 import { kingdomSchema } from '../game/schema';
 
 const playerId = z.enum(['ochre', 'indigo']);
@@ -28,7 +29,22 @@ const player = z.object({
 });
 const fighter = z.object({ playerId, position: z.number().int().min(1).max(5), health: z.number().int().nonnegative(), aimed: z.boolean(), exposed: z.boolean() });
 const pendingChoice = z.object({ type: z.enum(['discard', 'recover']), playerId, remaining: z.number().int().positive() });
-const event = z.object({ sequence: z.number().int().nonnegative(), type: z.string(), playerId, detail: z.record(z.string(), z.unknown()) });
+const eventPlayerDetailKeys: Partial<Record<GameEventType, string>> = {
+  buildComplete: 'playerId', condition: 'targetId', damage: 'targetId', wallCollision: 'targetId',
+  turn: 'activePlayerId', victory: 'winner'
+};
+const event = z.object({
+  sequence: z.number().int().nonnegative(), type: z.enum(GAME_EVENT_TYPES), playerId,
+  detail: z.record(z.string(), z.unknown())
+}).superRefine((value, context) => {
+  const detailPlayerKey = eventPlayerDetailKeys[value.type];
+  if (detailPlayerKey && !playerId.safeParse(value.detail[detailPlayerKey]).success) {
+    context.addIssue({ code: 'custom', path: ['detail', detailPlayerKey], message: 'Event detail contains an invalid player id.' });
+  }
+  if (value.type === 'move' && value.detail.fighters !== undefined && !z.array(playerId).safeParse(value.detail.fighters).success) {
+    context.addIssue({ code: 'custom', path: ['detail', 'fighters'], message: 'Event detail contains invalid fighter ids.' });
+  }
+});
 export const gameStateSchema = z.object({
   schemaVersion: z.literal(8), seed: z.number().int(), rngState: z.number().int().nonnegative(), version: z.number().int().nonnegative(),
   nextCardSerial: z.number().int().positive(), kingdomId: z.string().min(1), startingHealth: z.number().int().positive(),

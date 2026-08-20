@@ -6,6 +6,7 @@ import {
   createCard, kingdomOf, kingdomSupply, registerKingdom, resetKingdoms
 } from '../src/game';
 import { GameService } from '../src/server/gameService';
+import { gameStateSchema } from '../src/server/schemas';
 import { FileGameRepository, UnsupportedSchemaError } from '../src/server/persistence';
 import type { GameView } from '../src/shared/api';
 import type { GameRecord, GameRepository } from '../src/server/types';
@@ -70,6 +71,24 @@ describe('local GameService', () => {
     const buy = await service.commitAction(game.id, playerTwo.revision, playerTwo.actions.phases.find((action) => action.kind === 'endAction')!.id);
     const next = await service.commitAction(game.id, buy.revision, buy.actions.phases.find((action) => action.kind === 'endBuy')!.id);
     expect(next).toMatchObject({ activePlayerId: 'indigo', phase: 'action', turn: 2 });
+  });
+  it('keeps both starting builds private until setup is complete', async () => {
+    const { service, game } = await setup();
+    expect(game.players.ochre.deckCounts).toEqual({ copper: 7 }); expect(game.players.indigo.deckCounts).toEqual({ copper: 7 });
+    const playerOne = await service.updateBuild(game.id, game.revision, ['footwork'], true);
+    expect(playerOne.players.ochre.deckCounts).toEqual({ copper: 7 }); expect(playerOne.players.indigo.deckCounts).toEqual({ copper: 7 });
+    expect(playerOne.players.ochre.deckCounts).not.toHaveProperty('footwork');
+    const ready = await service.updateBuild(game.id, playerOne.revision, ['aim', 'volley'], true);
+    expect(ready.players.ochre.deckCounts).toEqual({ copper: 7, footwork: 1 });
+    expect(ready.players.indigo.deckCounts).toEqual({ copper: 7, aim: 1, volley: 1 });
+  });
+  it('keeps undo unavailable throughout incomplete starting setup', async () => {
+    const { service, game } = await setup(); expect(game.canUndo).toBe(false);
+    await expect(service.undoAction(game.id, game.revision)).rejects.toThrow('There is no action to undo.');
+    const edited = await service.updateBuild(game.id, game.revision, ['footwork'], false); expect(edited.canUndo).toBe(false);
+    await expect(service.undoAction(game.id, edited.revision)).rejects.toThrow('There is no action to undo.');
+    const submitted = await service.updateBuild(game.id, edited.revision, ['footwork'], true); expect(submitted.canUndo).toBe(false);
+    await expect(service.undoAction(game.id, submitted.revision)).rejects.toThrow('There is no action to undo.');
   });
   it('persists build edits and rejects stale, unknown, unavailable, and completed edits', async () => {
     const { service, game } = await setup(); const edited = await service.updateBuild(game.id, 0, ['aim', 'volley'], false);
@@ -172,6 +191,20 @@ describe('local GameService', () => {
     undone = await service.undoAction(game.id, undone.revision);
     expect((await service.getRecord(game.id)).state).toEqual(states[0]); expect(undone.canUndo).toBe(false);
   });
+  it('undoes local actions across Player 2 and Player 1 turn boundaries', async () => {
+    const { service, game } = await setup(); const ready = await completeBuilds(service, game.id, game.revision);
+    const playerOneBoundary = structuredClone((await service.getRecord(game.id)).state);
+    const playerOneBuy = await service.commitAction(game.id, ready.revision, phaseAction(ready, 'endAction'));
+    const playerTwoAction = await service.commitAction(game.id, playerOneBuy.revision, phaseAction(playerOneBuy, 'endBuy'));
+    const playerTwoBoundary = structuredClone((await service.getRecord(game.id)).state);
+    const playerTwoBuy = await service.commitAction(game.id, playerTwoAction.revision, phaseAction(playerTwoAction, 'endAction'));
+    let current = await service.commitAction(game.id, playerTwoBuy.revision, phaseAction(playerTwoBuy, 'endBuy'));
+    expect(current).toMatchObject({ activePlayerId: 'ochre', phase: 'action', turn: 3 });
+    current = await service.undoAction(game.id, current.revision); expect(current).toMatchObject({ activePlayerId: 'indigo', phase: 'buy', turn: 2, canUndo: true });
+    current = await service.undoAction(game.id, current.revision); expect((await service.getRecord(game.id)).state).toEqual(playerTwoBoundary);
+    current = await service.undoAction(game.id, current.revision); expect(current).toMatchObject({ activePlayerId: 'ochre', phase: 'buy', turn: 1, canUndo: true });
+    current = await service.undoAction(game.id, current.revision); expect((await service.getRecord(game.id)).state).toEqual(playerOneBoundary); expect(current.canUndo).toBe(false);
+  });
   it('stops undo at the completed-setup boundary', async () => {
     const { service, game } = await setup(); const ready = await completeBuilds(service, game.id, game.revision);
     const boundary = structuredClone((await service.getRecord(game.id)).state);
@@ -189,6 +222,21 @@ describe('local GameService', () => {
 });
 
 describe('persistence schema', () => {
+  it('rejects unknown persisted event types', async () => {
+    const { service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
+    const state = (await service.getRecord(game.id)).state;
+    const events = state.events as unknown as Array<{ sequence: number; type: string; playerId: string; detail: Record<string, unknown> }>;
+    events.push({ sequence: events.length, type: 'inventedEvent', playerId: 'ochre', detail: {} });
+    const result = gameStateSchema.safeParse(state); expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues.some((issue) => issue.path.join('.') === `events.${events.length - 1}.type`)).toBe(true);
+  });
+  it('rejects malformed player references in persisted event details', async () => {
+    const { service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
+    const state = (await service.getRecord(game.id)).state;
+    const turn = state.events.find((event) => event.type === 'turn')!; turn.detail.activePlayerId = 'observer';
+    const result = gameStateSchema.safeParse(state); expect(result.success).toBe(false);
+    if (!result.success) expect(result.error.issues.some((issue) => issue.path.join('.').endsWith('detail.activePlayerId'))).toBe(true);
+  });
   it('reloads several replay-based undo entries and continues undoing exact states', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-history-'));
     try {

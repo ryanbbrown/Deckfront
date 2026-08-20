@@ -19,6 +19,8 @@ class MemoryRepository implements GameRepository {
 }
 const strategy = identify({ id: '', startingBuild: [], buyAgenda: [], repeatPurchase: 'silver' });
 const trainer: AiTrainer = { train: async () => ({ strategy, summary: { elapsedMs: 1, matches: 4, strategyId: strategy.id } }) };
+const privateBuildStrategy = identify({ id: '', startingBuild: ['step'], buyAgenda: [], repeatPurchase: 'silver' });
+const privateBuildTrainer: AiTrainer = { train: async () => ({ strategy: privateBuildStrategy, summary: { elapsedMs: 1, matches: 4, strategyId: privateBuildStrategy.id } }) };
 const market = VARIABLE_ACTION_IDS.slice(0, 10);
 
 function phaseAction(game: Awaited<ReturnType<GameService['create']>>, kind: 'endAction' | 'endBuy') {
@@ -34,6 +36,17 @@ describe('AI games', () => {
     const ready = await service.updateBuild(created.id, created.revision, [], true);
     expect(ready).toMatchObject({ phase: 'action', activePlayerId: 'indigo', turn: 2 });
     expect(ready.completedBuilds).toEqual({ ochre: [], indigo: [] });
+  });
+
+  it('keeps an AI-first starting build private until the human finishes setup', async () => {
+    const service = new GameService(new MemoryRepository(), privateBuildTrainer);
+    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'indigo', variableCardIds: market });
+    expect(created).toMatchObject({ phase: 'startingBuild', activePlayerId: 'indigo' });
+    expect(created.players.ochre.deckCounts).toEqual({ copper: 7 }); expect(created.players.indigo.deckCounts).toEqual({ copper: 7 });
+    expect(created.players.ochre.deckCounts).not.toHaveProperty('step');
+    const ready = await service.updateBuild(created.id, created.revision, ['aim'], true);
+    expect(ready.players.ochre.deckCounts).toMatchObject({ copper: 7, step: 1 });
+    expect(ready.players.indigo.deckCounts).toEqual({ copper: 7, aim: 1 });
   });
 
   it('puts an AI-second game in the correct seats and penalizes the first human player', async () => {

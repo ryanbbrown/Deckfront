@@ -3,6 +3,7 @@ import { cardLibrarySchema } from './schema';
 import type { CardDefinition } from './types';
 
 export const STARTING_BUDGET = 12;
+export const STARTING_DECK_COPPER_COUNT = 7;
 export const MAX_FIRST_BUY_CARRY = 3;
 export const FIRST_PLAYER_HEALTH_PENALTY = 3;
 export function firstBuyCarry(buildCost: number): number {

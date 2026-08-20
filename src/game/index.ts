@@ -1,5 +1,5 @@
 export {
-  CARDS, FIRST_PLAYER_HEALTH_PENALTY, MAX_FIRST_BUY_CARRY, STARTING_BUDGET,
+  CARDS, FIRST_PLAYER_HEALTH_PENALTY, MAX_FIRST_BUY_CARRY, STARTING_BUDGET, STARTING_DECK_COPPER_COUNT,
   cardDefinition, firstBuyCarry, playerStartingHealth
 } from './config';
 export { EFFECTS, TACTICAL_ACTIONS, isTacticalAction, rangeBand } from './effects';
@@ -18,4 +18,5 @@ export { SeededRandom, shuffle } from './random';
 export { cloneGame, createCard, createGame, opponent, PLAYER_IDS } from './state';
 export { VALUE_KEYS, valueKeys } from './values';
 export type { RandomIndexSource } from './kingdom';
+export { GAME_EVENT_TYPES } from './types';
 export type * from './types';

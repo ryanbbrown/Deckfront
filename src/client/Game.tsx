@@ -166,7 +166,9 @@ export function CardFace({ card, indicators }: { card: CardDefinition; indicator
 function PlayedCard({ card, group }: { card: CardDefinition; group: PlayedGroup }) { const count = group.instances.length; return <article className={`card full-card played-card card--${card.family}`} data-played-card-name={card.name} data-card-count={count}><CardFace card={card} indicators={count > 1 ? <span className="quantity-badge quantity-badge--played" data-testid={`played-count-${card.id}`}>×{count}</span> : undefined} /></article>; }
 function ActionRail({ game }: { game: GameView }) {
   const log = useRef<HTMLOListElement>(null);
-  useEffect(() => { const element = log.current; if (element) element.scrollTop = element.scrollHeight; }, [game.events.length]);
+  const newestEvent = game.events.at(-1);
+  const newestEventIdentity = newestEvent ? `${newestEvent.sequence}:${newestEvent.type}:${newestEvent.playerId}:${JSON.stringify(newestEvent.detail)}` : '';
+  useEffect(() => { const element = log.current; if (element) element.scrollTop = element.scrollHeight; }, [newestEventIdentity]);
   return <aside className="action-rail" aria-label="Action history and deck compositions">
     <section className="action-log"><header><span>Public record</span><h2>Actions</h2></header><ol ref={log} data-testid="action-log">{game.events.map((event) => <li key={event.sequence} className={event.type === 'turn' ? 'action-log__turn' : undefined}><span>{playerName(event.playerId)}</span><strong>{eventText(game, event)}</strong></li>)}</ol></section>
     <section className="rail-decks"><h2>Deck compositions</h2><div><DeckSummary game={game} playerId="ochre" /><DeckSummary game={game} playerId="indigo" /></div></section>
@@ -176,6 +178,7 @@ function DeckSummary({ game, playerId }: { game: GameView; playerId: PlayerId })
 function groupCards(cards: CardInstance[]): CardGroup[] { const groups = new Map<string, CardGroup>(); for (const card of cards) { const group = groups.get(card.definitionId); if (group) group.instances.push(card); else groups.set(card.definitionId, { definitionId: card.definitionId, instances: [card] }); } return [...groups.values()]; }
 function groupPlayedCards(cards: CardInstance[]): PlayedGroup[] { const groups: PlayedGroup[] = []; for (const card of cards) { const previous = groups.at(-1); if (previous?.definitionId === card.definitionId) previous.instances.push(card); else groups.push({ definitionId: card.definitionId, instances: [card] }); } return groups; }
 function playerName(playerId: PlayerId): string { return playerId === 'ochre' ? 'Player 1' : 'Player 2'; }
+function eventPlayerName(value: unknown): string { return value === 'ochre' || value === 'indigo' ? playerName(value) : 'Unknown player'; }
 function eventText(game: GameView, event: PublicGameEvent): string {
   const detail = event.detail;
   const cardName = (): string => game.cards[String(detail.definitionId)]?.name ?? String(detail.definitionId);
@@ -183,10 +186,10 @@ function eventText(game: GameView, event: PublicGameEvent): string {
     case 'buildComplete': return `Completed a ${String(detail.count)}-card starting build`;
     case 'cardPlayed': return `Played ${cardName()}`;
     case 'purchase': return `Bought ${cardName()}`;
-    case 'damage': return `Dealt ${String(detail.amount)} damage to ${playerName(String(detail.targetId) as PlayerId)}`;
+    case 'damage': return `Dealt ${String(detail.amount)} damage to ${eventPlayerName(detail.targetId)}`;
     case 'move': if (detail.source === 'drive') return `Moved both fighters ${String(detail.movement)} to space ${String(detail.to)}`; if (detail.movement === 'stay') return `Stayed on space ${String(detail.to)}`; return `Moved ${String(detail.movement)} to space ${String(detail.to)}`;
     case 'wallCollision': return `Wall blocked ${String(detail.direction)}; neither fighter moved`;
-    case 'condition': return `${String(detail.condition)} ${detail.change === 'set' ? 'applied to' : 'consumed from'} ${playerName(String(detail.targetId) as PlayerId)}`;
+    case 'condition': return `${String(detail.condition)} ${detail.change === 'set' ? 'applied to' : 'consumed from'} ${eventPlayerName(detail.targetId)}`;
     case 'discard': return `Discarded ${cardName()}`;
     case 'recover': return 'Recovered a card to the top of the deck';
     case 'trash': return `Trashed ${cardName()}`;

@@ -43,6 +43,6 @@
     "overlappingHand": ["pw:DD-E2E-040"],
     "multiLevelUndo": ["pw:DD-E2E-044"],
     "actionRail": ["pw:DD-E2E-040", "pw:DD-E2E-045", "pw:DD-E2E-046"],
-    "actionLogScroll": ["pw:DD-E2E-046"]
+    "actionLogScroll": ["pw:DD-E2E-046", "pw:DD-E2E-047"]
   }
 }

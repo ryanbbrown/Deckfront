@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
-  ALWAYS_AVAILABLE_ACTION_IDS, STARTING_BUDGET, TREASURE_IDS, VARIABLE_ACTION_IDS,
+  ALWAYS_AVAILABLE_ACTION_IDS, STARTING_BUDGET, STARTING_DECK_COPPER_COUNT, TREASURE_IDS, VARIABLE_ACTION_IDS,
   applyCommand, assertInvariants, CARDS, cloneGame, createGame, kingdomMarket,
   listActionAvailability, listLegalActions, marketCost, opponent, randomKingdom, rangeBand,
   registerKingdom, replayCommands
@@ -253,7 +253,7 @@ export class GameService {
     const players = Object.fromEntries((['ochre', 'indigo'] as const).map((playerId) => {
       const player = state.players[playerId];
       const ownedDefinitionIds = state.phase === 'startingBuild'
-        ? [...Array<string>(7).fill('copper'), ...(player.startingBuild ?? [])]
+        ? Array<string>(STARTING_DECK_COPPER_COUNT).fill('copper')
         : [...player.deck.draw, ...player.deck.hand, ...player.deck.discard, ...player.deck.play].map((card) => card.definitionId);
       const deckCounts = ownedDefinitionIds.reduce<Record<string, number>>((counts, definitionId) => {
         counts[definitionId] = (counts[definitionId] ?? 0) + 1;

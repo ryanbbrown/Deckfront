@@ -1,5 +1,5 @@
 import { ARENA_MAX, ARENA_MIN, EFFECTS } from './effects';
-import { STARTING_BUDGET, firstBuyCarry } from './config';
+import { STARTING_BUDGET, STARTING_DECK_COPPER_COUNT, firstBuyCarry } from './config';
 import { kingdomMarket, resolveCard } from './kingdom';
 import type { Choice, EffectContext } from './effects';
 import { SeededRandom, shuffle } from './random';
@@ -249,7 +249,7 @@ function finishSetup(state: GameState): void {
   const random = new SeededRandom(state.rngState);
   for (const playerId of ['ochre', 'indigo'] as const) {
     const selected = state.players[playerId].startingBuild!;
-    const definitions = [...Array<string>(7).fill('copper'), ...selected];
+    const definitions = [...Array<string>(STARTING_DECK_COPPER_COUNT).fill('copper'), ...selected];
     state.players[playerId].deck.draw = definitions.map((definitionId) => createCard(state, definitionId));
     state.players[playerId].firstBuyMoney = firstBuyCarry(marketCost(state, selected));
     state.players[playerId].positionChanged = false;

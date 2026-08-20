@@ -36,7 +36,9 @@ test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local b
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.getByRole('button', { name: 'Start game' }).click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Step"]').click(); await expect(page.getByTestId('build-budget')).toHaveText('2 / 12 · 3 carries');
   await page.reload(); await expect(page.getByRole('button', { name: 'Remove Copper' })).toHaveCount(2); await page.getByRole('button', { name: 'Remove Copper' }).first().click();
-  await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.getByRole('button', { name: 'Finish starting build' }).click();
+  await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByText('Player 2 starting build')).toBeVisible();
+  await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Copper"]')).toHaveText('Copper×7'); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Step"]')).toHaveCount(0); await expect(page.getByTestId('deck-summary-indigo').locator('[data-deck-card="Copper"]')).toHaveText('Copper×7');
+  await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Copper"]')).toHaveText('Copper×8'); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Step"]')).toHaveText('Step×1');
   await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible();
 });
 test('DD-E2E-035: two local players draft in sequence and take complete turns on one browser', async ({ page, baseUrl }) => {
@@ -299,4 +301,20 @@ test('DD-E2E-046: only the long log scrolls while exact deck summaries stay fixe
     return { horizontal: root.scrollWidth - root.clientWidth, vertical: root.scrollHeight - root.clientHeight, logScrolls: log.scrollHeight > log.clientHeight, newestVisible: log.scrollTop + log.clientHeight >= log.scrollHeight - 1, logOverflow: getComputedStyle(log).overflowY, decksBelowLog: logRect.bottom <= decksRect.top + 1, decksVisible: decksRect.bottom <= innerHeight && decksRect.top >= 0, railVisible: railRect.right <= innerWidth && railRect.left >= 0, marketClear: pileRect.right <= railRect.left };
   });
   expect(layout).toEqual({ horizontal: 0, vertical: 0, logScrolls: true, newestVisible: true, logOverflow: 'auto', decksBelowLog: true, decksVisible: true, railVisible: true, marketClear: true });
+});
+
+test('DD-E2E-047: replacing the latest event at the same count scrolls it into view without moving focus', async ({ page, openGame }) => {
+  await openGame(page, (record) => {
+    for (let index = 0; index < 80; index += 1) record.state.events.push({ sequence: record.state.events.length, type: 'turn', playerId: index % 2 ? 'indigo' : 'ochre', detail: { turn: index + 2, activePlayerId: index % 2 ? 'indigo' : 'ochre' } });
+  });
+  const eventCount = await page.getByTestId('action-log').locator('li').count();
+  await page.route('**/actions', async (route) => {
+    const response = await route.fetch(); const view = await response.json() as { events: Array<{ sequence: number; type: string; playerId: string; detail: Record<string, unknown> }> };
+    view.events = view.events.slice(0, eventCount); const latest = view.events.at(-1)!;
+    view.events[eventCount - 1] = { ...latest, type: 'turn', playerId: 'indigo', detail: { turn: 999, activePlayerId: 'indigo' } };
+    await route.fulfill({ response, json: view });
+  });
+  await page.getByTestId('action-log').evaluate((log) => { log.scrollTop = 0; }); const newGame = page.getByRole('button', { name: 'New game' }); await newGame.focus();
+  await page.getByRole('button', { name: 'End Action phase' }).evaluate((button: HTMLButtonElement) => button.click()); await expect(page.getByTestId('action-log').getByText('Turn 999 started')).toBeVisible(); await expect(newGame).toBeFocused();
+  expect(await page.getByTestId('action-log').evaluate((log) => log.scrollTop + log.clientHeight >= log.scrollHeight - 1)).toBe(true);
 });
