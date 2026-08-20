@@ -1,14 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { SeededRandom, kingdomMarket, kingdomOf } from '../game';
-import { SEED_LABELS, SEED_STRATEGIES } from './baselines';
 import { solveEquilibrium } from './equilibrium';
 import {
   ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER, UNION_DEADLINE_RESERVE, conservativeGameBound
 } from './experimentConfig';
 import type { ExperimentOptions } from './experimentConfig';
-import { CALIBRATION_KINGDOM_ID } from './kingdoms';
-import { evaluateCandidates, mixtureSchedule, percentileBootstrapMean } from './mixtureEvaluation';
 import { InvalidEvaluationError } from './payoffMatrix';
 import { emptyAggregate, mergeAggregate } from './pairing';
 import { InlinePairingRunner } from './pairingRunner';
@@ -17,7 +14,7 @@ import { runPsro } from './psro';
 import type { PsroResult } from './psro';
 import type { IterationEvent } from './psro';
 import { renderReport } from './report';
-import type { CalibrationDiagnostic, RunSummary } from './report';
+import type { RunSummary } from './report';
 import { assertDisjointSeedNamespaces, configuredSeedNamespaces, namespaceSeeds } from './seedNamespaces';
 import type { TelemetryAggregate } from './types';
 import { rulesFingerprint } from './rulesFingerprint';
@@ -110,32 +107,6 @@ export function calculateWeightIntervals(
   }));
   return { intervals, warnings, samplesCompleted };
 }
-async function calibrationDiagnostic(
-  options: ExperimentOptions, result: PsroResult, runner: PairingRunner
-): Promise<{ diagnostic: CalibrationDiagnostic; telemetry: TelemetryAggregate; matches: number } | null> {
-  if (options.kingdomId !== CALIBRATION_KINGDOM_ID || !result.equilibrium) return null;
-  const labels = SEED_LABELS[CALIBRATION_KINGDOM_ID]!;
-  const meleeIndex = labels.indexOf('melee');
-  const benchmark = SEED_STRATEGIES[CALIBRATION_KINGDOM_ID]![meleeIndex]!;
-  const seeds = namespaceSeeds(options.seed, 'diagnostic', options.seeds);
-  const schedule = mixtureSchedule(result.equilibrium.weights, seeds, seeds[0]! ^ 0xc71f3a2d);
-  const strategies = new Map(result.strategies.map((strategy) => [strategy.id, strategy]));
-  const [evaluated] = await evaluateCandidates([benchmark], strategies, schedule, runner, {
-    kingdomId: options.kingdomId, turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
-    actionCapPerTurn: ACTION_CAP_PER_TURN
-  });
-  const interval = percentileBootstrapMean(evaluated!.blockScores,
-    namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 1, 0)[0]!);
-  const telemetry = allTelemetry(result);
-  const heavyBlowInPositiveWeightStrategy = result.strategies.some((strategy) =>
-    (result.equilibrium!.weights[strategy.id] ?? 0) > 0
-      && (strategy.startingBuild.includes('heavyBlow')
-        || (telemetry.acquisitionsByStrategy[strategy.id]?.heavyBlow ?? 0) > 0));
-  return { diagnostic: { benchmarkId: benchmark.id, mean: evaluated!.mean, interval,
-    observedAdvantage: Math.max(0, evaluated!.mean - 0.5), heavyBlowInPositiveWeightStrategy },
-    telemetry: evaluated!.telemetry, matches: evaluated!.matches };
-}
-
 export async function runExperiment(
   options: ExperimentOptions, outDir: string, deps: ExperimentDeps = {}
 ): Promise<RunSummary> {
@@ -153,7 +124,7 @@ async function runWithRunner(
   const searchDeadline = started + Math.round(options.deadlineMinutes * 60_000 * (1 - UNION_DEADLINE_RESERVE));
   prepareDirectory(outDir);
   const base: RunSummary = {
-    schemaVersion: 3, rulesFingerprint: rulesFingerprint(options.kingdomId),
+    schemaVersion: 4, rulesFingerprint: rulesFingerprint(options.kingdomId),
     valid: false, kingdomId: options.kingdomId, kingdomName: kingdomOf(options.kingdomId).name,
     mode: options.mode, seed: options.seed,
     limits: {
@@ -167,7 +138,7 @@ async function runWithRunner(
     },
     startedAt: new Date(started).toISOString(), finishedAt: new Date(started).toISOString(), elapsedMs: 0,
     stopReason: 'running', error: null, matches: 0, aborted: 0, matrix: null, equilibrium: null,
-    strategies: [], iterations: [], restartAgreement: [], calibration: null,
+    strategies: [], iterations: [], restartAgreement: [],
     telemetry: emptyAggregate(), weightIntervals: {}, warnings: [], restartStatuses: [],
     restartMixtures: [], finalFailures: []
   };
@@ -197,8 +168,6 @@ async function runWithRunner(
       throw new Error(`PSRO played ${result.matches} games, above its mechanical bound of ${gameBound}.`);
     }
     const telemetry = allTelemetry(result);
-    const calibrationResult = result.valid ? await calibrationDiagnostic(options, result, runner) : null;
-    if (calibrationResult) mergeAggregate(telemetry, calibrationResult.telemetry);
     const weightDiagnostic = (deps.weightIntervals ?? calculateWeightIntervals)(result,
       namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 2, 0)[0]!,
       { deadline, now });
@@ -206,10 +175,10 @@ async function runWithRunner(
     summary = { ...base, valid: result.valid, finishedAt: new Date(finished).toISOString(),
       elapsedMs: finished - started, stopReason: result.stopReason,
       error: result.failure ? `${result.failure.message} ${JSON.stringify(result.failure.detail)}` : null,
-      matches: result.matches + (calibrationResult?.matches ?? 0),
+      matches: result.matches,
       aborted: aborts(telemetry), matrix: result.matrix, equilibrium: result.equilibrium,
       strategies: result.strategies, iterations: result.events,
-      restartAgreement: result.restartAgreement, calibration: calibrationResult?.diagnostic ?? null,
+      restartAgreement: result.restartAgreement,
       telemetry, weightIntervals: weightDiagnostic.intervals, warnings: weightDiagnostic.warnings,
       restartStatuses: result.restartStatuses,
       restartMixtures: result.restarts.map((restart) => ({ restart: restart.restart,
@@ -237,7 +206,7 @@ async function runWithRunner(
     }
     writeJson(path.join(outDir, 'telemetry.json'), {
       matrix: matrixTelemetry, screening: screenTelemetry, confirmation: confirmationTelemetry,
-      diagnostic: calibrationResult?.telemetry ?? emptyAggregate(), total: telemetry
+      total: telemetry
     });
     writeJson(runPath, { ...summary, matrix: undefined, telemetry: undefined, iterations: undefined,
       kingdom: kingdomMarket(options.kingdomId), seedNamespaces: phaseSeeds });

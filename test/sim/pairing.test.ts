@@ -142,6 +142,6 @@ describe('the production seed gate', () => {
         }
       }
     }
-    expect(games).toBe(200);
+    expect(games).toBe(160);
   });
 });

@@ -56,8 +56,7 @@ const SPECS: Readonly<Record<string, readonly SeedSpec[]>> = {
     { id: 'ranged-shot', startingBuild: ['steadyShot', 'quickShot', 'footwork'], buyAgenda: [['steadyShot', 3], ['quickShot', 3], ['footwork', 2]], repeatPurchase: 'footwork' },
     { id: 'mage', startingBuild: ['channel', 'arcBolt', 'arcBolt', 'footwork'], buyAgenda: [['arcBolt', 4], ['channel', 3], ['footwork', 2]], repeatPurchase: 'channel' },
     { id: 'money-quick', startingBuild: ['quickShot'], buyAgenda: [['quickShot', 3], ['footwork', 2]], repeatPurchase: 'footwork' }
-  ],
-  'rigged-melee': openSeeds
+  ]
 };
 
 export const SEED_STRATEGIES: Readonly<Record<string, readonly Strategy[]>> = deepFreeze(

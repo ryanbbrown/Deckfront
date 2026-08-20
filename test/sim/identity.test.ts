@@ -37,7 +37,6 @@ const { cases } = JSON.parse(fs.readFileSync(oraclePath, 'utf8')) as { cases: Or
 const HEADLINES: Record<string, { outcome: string; reason: string; turns: number }> = {
   'three-way-engine:11': { outcome: 'indigo', reason: 'victory', turns: 19 },
   'three-way-engine:12': { outcome: 'ochre', reason: 'victory', turns: 17 },
-  'rigged-melee:13': { outcome: 'indigo', reason: 'victory', turns: 13 },
   'range-rich-mixed:14': { outcome: 'ochre', reason: 'victory', turns: 21 },
   'current-duel:15': { outcome: 'draw', reason: 'turnLimit', turns: 200 },
   'three-way-open:16': { outcome: 'ochre', reason: 'victory', turns: 17 },
@@ -84,7 +83,7 @@ describe('match result identity', () => {
     // sells, and the quadratic clone cost only shows in a match that reaches the turn limit.
     const nearLimit = cases.filter((entry) => entry.result.turns >= 200);
     expect(nearLimit.some((entry) => entry.kingdomId === 'three-way-engine')).toBe(true);
-    expect(cases.filter((entry) => entry.state).length).toBe(2);
+    expect(cases.filter((entry) => entry.state).length).toBe(1);
   });
 
   it.each(cases.map((entry) => [key(entry), entry] as const))(

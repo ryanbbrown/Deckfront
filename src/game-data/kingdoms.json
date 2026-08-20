@@ -79,26 +79,6 @@
         { "cardId": "channel", "count": 10 },
         { "cardId": "arcBolt", "count": 10 }
       ]
-    },
-    {
-      "id": "rigged-melee",
-      "name": "Rigged Melee",
-      "startingHealth": 40,
-      "actionPiles": [
-        { "cardId": "footwork", "count": 10 },
-        { "cardId": "stipend", "count": 10 },
-        { "cardId": "drive", "count": 10 },
-        { "cardId": "heavyBlow", "count": 10 },
-        { "cardId": "aim", "count": 10 },
-        { "cardId": "volley", "count": 10 },
-        { "cardId": "channel", "count": 10 },
-        { "cardId": "leyStep", "count": 10 },
-        { "cardId": "arcBolt", "count": 10 },
-        { "cardId": "fireball", "count": 10 }
-      ],
-      "overrides": {
-        "heavyBlow": { "cost": 3, "values": { "damage": 6 } }
-      }
     }
   ]
 }

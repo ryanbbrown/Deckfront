@@ -8,9 +8,9 @@
  * profile it in one process:
  *
  *   npx tsx scripts/measure_search.ts
- *   npx tsx scripts/measure_search.ts --kingdom rigged-melee --seeds 3 --repeats 5
+ *   npx tsx scripts/measure_search.ts --kingdom current-duel --seeds 3 --repeats 5
  *   node --cpu-prof --cpu-prof-dir .experiments/profiles --import tsx scripts/measure_search.ts \
- *     --kingdom rigged-melee --seeds 3
+ *     --kingdom current-duel --seeds 3
  */
 import os from 'node:os';
 import process from 'node:process';

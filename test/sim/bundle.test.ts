@@ -8,6 +8,9 @@ import { diagnosticStrategies } from '../../src/sim/baselines';
 import { runExperiment } from '../../src/sim/experiment';
 import { InlinePairingRunner } from '../../src/sim/pairingRunner';
 import type { ExperimentOptions } from '../../src/sim/experimentConfig';
+import { balanceSuite } from '../../src/sim/balanceSuite';
+import { randomUniqueStrategies } from '../../src/sim/randomStrategy';
+import { resetKingdoms } from '../../src/game';
 
 const root = path.resolve(import.meta.dirname, '../..');
 const bundle = path.join(root, 'dist-sim', 'experiment.mjs');
@@ -45,6 +48,18 @@ describe('compiled PSRO bundle', () => {
     expect(matrix.equilibrium).not.toBeNull();
   });
 
+  it('runs a generated kingdom through the compiled simulator entry point', { timeout: 60_000 }, () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-balance-suite-bundle-'));
+    const kingdomId = balanceSuite.manifest.kingdoms[0]!.id;
+    const result = spawnSync(process.execPath, [bundle, '--kingdom', kingdomId, '--mode', 'smoke',
+      '--initial-strategies', '2', '--candidates', '2', '--iterations', '1', '--niche-additions', '1',
+      '--seeds', '1', '--union-iterations', '1', '--restarts', '1', '--workers', '2', '--deadline-minutes', '1'],
+    { cwd, encoding: 'utf8', timeout: 55_000 });
+    expect(result.status, result.stderr).toBe(0);
+    const run = JSON.parse(fs.readFileSync(path.join(cwd, '.experiments', kingdomId, 'smoke', 'run.json'), 'utf8'));
+    expect(run).toMatchObject({ schemaVersion: 4, valid: true, kingdomId });
+  });
+
   it('runs only pairing jobs in worker mode', async () => {
     const [candidate, opponent] = diagnosticStrategies('current-duel');
     const worker = new Worker(bundle, { workerData: { kind: 'pairing-worker' } });
@@ -56,5 +71,21 @@ describe('compiled PSRO bundle', () => {
     });
     expect(response).toMatchObject({ kind: 'pairing-results', outcomes: [{ id: 0, outcome: { matches: 4 } }] });
     await worker.terminate();
+  });
+
+  it('registers the committed balance-suite manifest in a compiled pairing worker', async () => {
+    balanceSuite.register();
+    const kingdomId = balanceSuite.manifest.kingdoms[0]!.id;
+    const [candidate, opponent] = randomUniqueStrategies(kingdomId, 7, 2).strategies;
+    const worker = new Worker(bundle, { workerData: { kind: 'pairing-worker' } });
+    const response = await new Promise<{ kind: string; outcome: { matches: number } }>((resolve, reject) => {
+      worker.once('message', resolve); worker.once('error', reject);
+      worker.postMessage({ kind: 'pairing-batch', items: [{ id: 0, job: { candidate, opponent,
+        options: { kingdomId, seeds: [1], turnLimitPerPlayer: 30,
+          actionCapPerTurn: 200, allowEarlyStop: false } } }] });
+    });
+    expect(response).toMatchObject({ kind: 'pairing-results', outcomes: [{ id: 0, outcome: { matches: 4 } }] });
+    await worker.terminate();
+    resetKingdoms();
   });
 });

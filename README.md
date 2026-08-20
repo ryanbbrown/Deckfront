@@ -72,10 +72,9 @@ npm run measure:workers -- --workers 4 --jobs 500 --seeds 25
 Experiment output goes to `.experiments/<kingdom>/<mode>/`. Each run writes `run.json`,
 `iterations.jsonl`, `matrix.json`, `strategies.json`, `telemetry.json`, and `report.md`. Reports are
 ignored by Git. Generated inputs and results are local experiment artifacts, not cleanup targets. The curated
-kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and
-`rigged-melee`.
+kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, and `range-rich-mixed`.
 
-After all five full runs finish, generate the committed balance report:
+After all four full runs finish, generate the committed diagnostic report:
 
 ```sh
 npm run balance:report
@@ -83,6 +82,21 @@ npm run balance:report
 
 The generator reads the ignored local `.experiments/` inputs, rejects stale rules fingerprints or
 incomplete runs, and writes `.html/balance-report.html`.
+
+The broad balance suite has 80 tuning kingdoms and 20 held-back validation kingdoms. Regenerate its
+committed manifest, resume its full searches, validate the artifacts, and build its report with:
+
+```sh
+npm run balance:suite:manifest
+npm run balance:suite:run
+npm run balance:suite:validate
+npm run balance:suite:report
+```
+
+The batch runs two kingdoms at once with four workers each, so it uses at most eight pairing workers.
+It keeps complete current results and reruns missing, failed, incomplete, or stale results. Raw output
+is ignored under `.experiments/balance-suite/balance-suite-v1/`. Use the tuning split for repeated card
+changes. Use the validation split only to confirm a proposed change.
 
 The search uses policy-space response oracles. It starts each restart from random legal strategies,
 solves a maximum-support equilibrium over the discovered payoff matrix, and searches for a response
@@ -99,9 +113,8 @@ node dist-sim/experiment.mjs --kingdom current-duel --mode smoke --seed 1 \
 
 Four workers are the measured default on an Apple M4 Pro. More workers remain available with `--workers`, but short simulation jobs become slower when process messaging and result transfer exceed the saved game time.
 
-The committed [.html/balance-baseline.html](.html/balance-baseline.html) is historical evidence from
-the removed evolutionary search. Its banner marks it as the pre-PSRO baseline. The current
-[.html/balance-report.html](.html/balance-report.html) reports the five full PSRO runs.
+The committed [.html/balance-report.html](.html/balance-report.html) reports the four diagnostic runs.
+The committed [.html/balance-corpus.html](.html/balance-corpus.html) reports the 100-kingdom suite.
 
 ## Code boundaries
 

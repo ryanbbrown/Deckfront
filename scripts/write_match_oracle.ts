@@ -33,7 +33,6 @@ interface OracleCase {
 const CASES: readonly OracleCase[] = [
   { name: 'mana and pending choices', kingdomId: 'three-way-engine', seed: 11, ochre: 'mage', indigo: 'engine', firstPlayerId: 'ochre', swapSides: false, storeState: true },
   { name: 'engine against money', kingdomId: 'three-way-engine', seed: 12, ochre: 'engine', indigo: 'money', firstPlayerId: 'indigo', swapSides: true, storeState: false },
-  { name: 'melee gate kingdom', kingdomId: 'rigged-melee', seed: 13, ochre: 'melee', indigo: 'ranged', firstPlayerId: 'ochre', swapSides: true, storeState: true },
   { name: 'ranged against mage', kingdomId: 'range-rich-mixed', seed: 14, ochre: 'ranged-volley', indigo: 'mage', firstPlayerId: 'indigo', swapSides: false, storeState: false },
   { name: 'no attacks, turn limit', kingdomId: 'current-duel', seed: 15, ochre: 'no-attack', indigo: 'no-attack', firstPlayerId: 'ochre', swapSides: false, storeState: false },
   { name: 'melee against mage', kingdomId: 'three-way-open', seed: 16, ochre: 'melee', indigo: 'mage', firstPlayerId: 'indigo', swapSides: true, storeState: false },

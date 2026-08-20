@@ -203,13 +203,6 @@ describe('seed starting builds', () => {
     }
   });
 
-  it('keeps Heavy Blow in Rigged melee only because the override makes it affordable', () => {
-    const rigged = createGame({ seed: 1, kingdomId: 'rigged-melee' });
-    const open = createGame({ seed: 1, kingdomId: 'three-way-open' });
-    const melee = seedByLabel('three-way-open', 'melee').startingBuild;
-    expect(marketCost(rigged, melee)).toBe(10);
-    expect(marketCost(open, melee)).toBe(12);
-  });
 });
 
 describe('strategy agent match boundaries', () => {

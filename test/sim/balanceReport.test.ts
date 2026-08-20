@@ -59,8 +59,8 @@ function artifact(options: {
   }
   const weights = Object.fromEntries(options.strategies.map((entry, index) => [entry.id, options.weights[index]!]));
   return {
-    run: { schemaVersion: 3, rulesFingerprint: rulesFingerprint(kingdomId), valid: true, kingdomId,
-      kingdomName: kingdomId === 'rigged-melee' ? 'Rigged Melee' : 'Current Duel', mode: 'full', seed: 1,
+    run: { schemaVersion: 4, rulesFingerprint: rulesFingerprint(kingdomId), valid: true, kingdomId,
+      kingdomName: 'Current Duel', mode: 'full', seed: 1,
       limits: { turnLimitPerPlayer: 30, actionCapPerTurn: 200 }, finishedAt: '2026-08-19T00:00:00.000Z',
       elapsedMs: 1000, stopReason: 'response-exhausted', matches: 100, aborted: 0 },
     matrix: { protocol, strategies: options.strategies, cells, complete: true,
@@ -93,6 +93,10 @@ describe('balance report calculations', () => {
       [right.id, 0.75, 0.475], [left.id, 0.25, 0.575]
     ]);
     expect(kingdom.matchupScores).toEqual([[0.5, 0.4], [0.6, 0.5]]);
+    expect(kingdom.strategies[0]!.acquisitionRates).toEqual({ volley: 1.5 });
+    expect(kingdom.strategies[1]!.acquisitionRates).toEqual({ footwork: 1 });
+    expect(kingdom.acquiredFamilyShares).toEqual({ Engine: 0.4, Melee: 0, Ranged: 0.6, Mage: 0 });
+    expect(kingdom.effectiveLotterySize).toBe(1.6);
     expect(kingdom.lotteryTelemetry).toMatchObject({ games: 100, drawRate: 0.08125,
       firstPlayerWinRate: 0.48125, firstPlayerScore: 0.521875 });
     expect(kingdom.lotteryTelemetry.winnerTurnsPerPlayer).toBeCloseTo((837.5 + 91.875) / 91.875 / 2, 10);
@@ -128,21 +132,16 @@ describe('balance report calculations', () => {
     expect(model.kingdoms[0]!.strategies[2]!.score).toBeCloseTo(0.48, 12);
   });
 
-  it('excludes calibration card use and keeps plan use separate from acquired evidence', () => {
+  it('keeps plan use separate from acquired evidence', () => {
     const planned = strategy(['footwork'], [], 'footwork');
     const normal = artifact({ strategies: [planned], weights: [1], payoffs: [[0]] });
-    const calibrationPlan = strategy(['heavyBlow'], [], 'heavyBlow');
-    const calibration = artifact({ kingdomId: 'rigged-melee', strategies: [calibrationPlan], weights: [1], payoffs: [[0]] });
-    const model = buildBalanceReportModel([normal, calibration], new Map([
-      ['current-duel', new Map([[planned.id, telemetry({ acquisitions: { [planned.id]: { volley: 2 } } })]])],
-      ['rigged-melee', new Map([[calibrationPlan.id, telemetry({ acquisitions: { [calibrationPlan.id]: { heavyBlow: 2 } } })]])]
+    const model = buildBalanceReportModel([normal], new Map([
+      ['current-duel', new Map([[planned.id, telemetry({ acquisitions: { [planned.id]: { volley: 2 } } })]])]
     ]));
     const footwork = model.cards.find((entry) => entry.cardId === 'footwork')!;
     const volley = model.cards.find((entry) => entry.cardId === 'volley')!;
-    const heavyBlow = model.cards.find((entry) => entry.cardId === 'heavyBlow')!;
     expect(footwork).toMatchObject({ buildPlans: 1, agendaPlans: 0, repeatPlans: 1, acquiredStrategies: 0 });
     expect(volley).toMatchObject({ buildPlans: 0, agendaPlans: 0, repeatPlans: 0, acquiredStrategies: 1 });
-    expect(heavyBlow).toMatchObject({ buildPlans: 0, agendaPlans: 0, repeatPlans: 0, acquiredStrategies: 0 });
   });
 
   it('renders required labels and is byte-identical in this and a fresh process', () => {
@@ -152,7 +151,7 @@ describe('balance report calculations', () => {
     const html = renderBalanceReport(model);
     expect(html).toContain('What the current runs show');
     expect(html).toContain('Near 50%');
-    expect(html).toContain('Action-card use across normal kingdoms');
+    expect(html).toContain('Action-card use across diagnostic kingdoms');
     expect(html).toContain('Purchase 1');
     const script = `import {renderBalanceReport} from './scripts/generate_balance_report.ts';process.stdout.write(renderBalanceReport(JSON.parse(process.argv[1])))`;
     const fresh = execFileSync(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval', script,
@@ -172,7 +171,7 @@ describe('balance artifact validation', () => {
     fs.writeFileSync(path.join(directory, 'strategies.json'), JSON.stringify({ strategies: [{ strategy: one, source: 'test' }] }));
     const aggregate = emptyAggregate();
     fs.writeFileSync(path.join(directory, 'telemetry.json'), JSON.stringify({ matrix: aggregate, screening: aggregate,
-      confirmation: aggregate, diagnostic: aggregate, total: aggregate }));
+      confirmation: aggregate, total: aggregate }));
     return directory;
   }
 
@@ -183,7 +182,7 @@ describe('balance artifact validation', () => {
   });
 
   it.each([
-    ['unsupported schema', (value: Record<string, unknown>) => { value.schemaVersion = 2; }, 'schemaVersion'],
+    ['unsupported schema', (value: Record<string, unknown>) => { value.schemaVersion = 3; }, 'schemaVersion'],
     ['non-full mode', (value: Record<string, unknown>) => { value.mode = 'smoke'; }, 'mode'],
     ['invalid run', (value: Record<string, unknown>) => { value.valid = false; }, 'valid'],
     ['missing fingerprint', (value: Record<string, unknown>) => { delete value.rulesFingerprint; }, 'rulesFingerprint'],

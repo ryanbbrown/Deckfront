@@ -8,15 +8,8 @@ import type { TelemetryAggregate } from './types';
 import type { RulesFingerprint } from './rulesFingerprint';
 
 export type ExperimentMode = 'smoke' | 'full';
-export interface CalibrationDiagnostic {
-  heavyBlowInPositiveWeightStrategy: boolean;
-  benchmarkId: string;
-  mean: number;
-  interval: { lower: number; upper: number };
-  observedAdvantage: number;
-}
 export interface RunSummary {
-  schemaVersion: 3;
+  schemaVersion: 4;
   rulesFingerprint: RulesFingerprint;
   valid: boolean;
   kingdomId: string; kingdomName: string; mode: ExperimentMode; seed: number;
@@ -24,7 +17,7 @@ export interface RunSummary {
   stopReason: string; error: string | null; matches: number; aborted: number;
   matrix: MatrixSnapshot | null; equilibrium: EquilibriumResult | null;
   strategies: Strategy[]; iterations: IterationEvent[]; restartAgreement: RestartAgreement[];
-  calibration: CalibrationDiagnostic | null; telemetry: TelemetryAggregate;
+  telemetry: TelemetryAggregate;
   weightIntervals: Record<string, { lower: number; upper: number }>;
   warnings: string[];
   restartStatuses: RestartStatus[];
@@ -167,14 +160,6 @@ export function renderReport(summary: RunSummary): string {
     .flatMap(([strategyId, cards]) => Object.entries(cards).sort(([left], [right]) => left.localeCompare(right))
       .map(([card, count]) => [strategyId, card, String(count)]));
   lines.push('', '### Acquisitions by strategy', '', ...table(['Strategy', 'Card', 'Copies'], acquiredRows));
-  if (summary.calibration) lines.push('', '## Rigged-melee diagnostic', '',
-    ...table(['Measure', 'Value'], [
-      ['Positive-weight strategy acquired Heavy Blow', summary.calibration.heavyBlowInPositiveWeightStrategy ? 'yes' : 'no'],
-      ['Fixed melee benchmark', summary.calibration.benchmarkId],
-      ['Benchmark mean against final mixture', fixed(summary.calibration.mean)],
-      ['Benchmark 95% interval', `${fixed(summary.calibration.interval.lower)}–${fixed(summary.calibration.interval.upper)}`],
-      ['Observed advantage', fixed(summary.calibration.observedAdvantage)]
-    ]));
   lines.push('', '## Strategies', '');
   for (const strategy of summary.strategies) lines.push('```', formatStrategy(strategy), '```', '');
   return `${lines.join('\n')}\n`;

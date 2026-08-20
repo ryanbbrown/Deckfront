@@ -152,11 +152,6 @@ describe('seeded strategies', () => {
       }
     }
   });
-
-  it('uses the same canonical seeds for equal markets', () => {
-    expect(diagnosticStrategies('rigged-melee').map((seed) => seed.id))
-      .toEqual(diagnosticStrategies('three-way-open').map((seed) => seed.id));
-  });
 });
 
 describe('kingdom fact cache', () => {

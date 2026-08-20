@@ -43,7 +43,7 @@ describe('PSRO experiment evidence artifacts', () => {
     expect(summary.equilibrium).toEqual(result.equilibrium);
     const run = JSON.parse(fs.readFileSync(path.join(directory, 'run.json'), 'utf8'));
     const matrix = JSON.parse(fs.readFileSync(path.join(directory, 'matrix.json'), 'utf8'));
-    expect(run).toMatchObject({ schemaVersion: 3, rulesFingerprint: { version: 1 } });
+    expect(run).toMatchObject({ schemaVersion: 4, rulesFingerprint: { version: 1 } });
     expect(matrix.protocol.rulesFingerprint).toBe(run.rulesFingerprint.hash);
     expect(fs.readFileSync(path.join(directory, 'report.md'), 'utf8')).toContain('Diagnostic warning');
   });

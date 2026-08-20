@@ -34,7 +34,7 @@ function event(restart: number | 'union', attempt: number, result: ResponseResul
 
 function summary(iterations: IterationEvent[]): RunSummary {
   const equilibrium = solveEquilibrium(strategies.map((strategy) => strategy.id), [[0, 0], [0, 0]]);
-  return { schemaVersion: 3, rulesFingerprint: rulesFingerprint('current-duel'),
+  return { schemaVersion: 4, rulesFingerprint: rulesFingerprint('current-duel'),
     valid: true, kingdomId: 'current-duel', kingdomName: 'Current Duel',
     mode: 'smoke', seed: 1, limits: { gameBoundBeforeDiagnostics: 100 },
     startedAt: '', finishedAt: '', elapsedMs: 1000, stopReason: 'response-exhausted', error: null,
@@ -42,8 +42,6 @@ function summary(iterations: IterationEvent[]): RunSummary {
       strategies, cells: [], complete: true, centeredPayoffs: [[0, 0], [0, 0]] },
     equilibrium, strategies, iterations, restartAgreement: [{ left: 0, right: 1,
       totalVariation: 0.2, supportOverlap: 0.5, leftWorstCounter: 0.1, rightWorstCounter: 0.2 }],
-    calibration: { heavyBlowInPositiveWeightStrategy: true, benchmarkId: 'melee', mean: 0.7,
-      interval: { lower: 0.6, upper: 0.8 }, observedAdvantage: 0.2 },
     telemetry: emptyAggregate(), weightIntervals: {}, warnings: [], restartStatuses: [
       { restart: 0, state: 'completed', stopReason: 'response-exhausted', matrixSize: 2 },
       { restart: 1, state: 'skipped', stopReason: 'search-deadline', matrixSize: 0 }
@@ -62,7 +60,7 @@ describe('PSRO report semantics', () => {
     expect(report).toContain('block count(s) 2');
     expect(report).toContain('Requested 2; started 1; completed 1; skipped 1.');
     expect(report).toContain('Restart mixtures can use preliminary early-stopped cells');
-    expect(report).toContain('Benchmark mean against final mixture');
+    expect(report).not.toContain('Rigged');
     expect(report).not.toMatch(/generation|leader rank|Copper/iu);
   });
 

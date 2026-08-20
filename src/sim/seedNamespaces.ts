@@ -1,7 +1,7 @@
 import { stableHash } from './strategy';
 
 export type SeedPhase = 'initialization' | 'matrix' | 'global-screen' | 'global-confirm' | 'niche-screen'
-  | 'niche-confirm' | 'bootstrap' | 'diagnostic';
+  | 'niche-confirm' | 'bootstrap';
 
 function hashToSeed(text: string): number {
   return Number.parseInt(stableHash(text).slice(0, 8), 16) >>> 0;
@@ -49,10 +49,6 @@ export function configuredSeedNamespaces(options: {
     }
     inventory[`bootstrap:global:union:${attempt}`] = namespaceSeeds(options.seed, 'bootstrap', 1,
       options.restarts, attempt * 2);
-  }
-  if (options.kingdomId === 'rigged-melee') {
-    inventory.diagnostic = namespaceSeeds(options.seed, 'diagnostic', options.seeds);
-    inventory['bootstrap:diagnostic'] = namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 1, 0);
   }
   inventory['bootstrap:weights'] = namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 2, 0);
   return inventory;

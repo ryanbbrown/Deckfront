@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import kingdomLibrary from '../src/game-data/kingdoms.json' with { type: 'json' };
 import {
   ALWAYS_AVAILABLE_COUNT, CARDS, DEFAULT_KINGDOM_ID, applyAction, assertInvariants, checkInvariants, cardDefinition,
-  createCard, createGame, kingdomMarket, kingdomOf, listLegalActions, marketCost, registerKingdom, resetKingdoms,
+  createCard, createGame, kingdomMarket, kingdomOf, listLegalActions, registerKingdom, resetKingdoms,
   resolveCard, submitStartingBuild
 } from '../src/game';
 import type { GameCommand, GameState, Kingdom, PlayerId } from '../src/game';
@@ -182,14 +182,10 @@ describe('the curated kingdoms', () => {
     {
       id: 'range-rich-mixed', name: 'Range-Rich Mixed', startingHealth: 40,
       actionPiles: piles(['footwork', 'adapt', 'quickShot', 'steadyShot', 'aim', 'volley', 'drive', 'heavyBlow', 'channel', 'arcBolt'])
-    },
-    {
-      id: 'rigged-melee', name: 'Rigged Melee', startingHealth: 40, actionPiles: piles(THREE_WAY_OPEN),
-      overrides: { heavyBlow: { cost: 3, values: { damage: 6 } } }
     }
   ];
 
-  it('registers exactly the six committed kingdoms, each with its approved content', () => {
+  it('registers exactly the five committed kingdoms, each with its approved content', () => {
     expect(kingdomIds()).toEqual(EXPECTED.map((entry) => entry.id));
     for (const expected of EXPECTED) {
       const registered = kingdomOf(expected.id);
@@ -211,9 +207,9 @@ describe('the curated kingdoms', () => {
 
   // Asserted on `actionPiles`, not on the supply or the market, because both also carry Cull and the
   // treasures and would report eleven and fourteen.
-  it('gives current-duel eight action piles and the other four ten', () => {
+  it('gives current-duel eight action piles and the other three ten', () => {
     expect(kingdomOf('current-duel').actionPiles).toHaveLength(8);
-    for (const id of ['three-way-open', 'three-way-engine', 'range-rich-mixed', 'rigged-melee']) {
+    for (const id of ['three-way-open', 'three-way-engine', 'range-rich-mixed']) {
       expect(kingdomOf(id).actionPiles, id).toHaveLength(10);
     }
   });
@@ -227,31 +223,6 @@ describe('the curated kingdoms', () => {
       expect(() => assertInvariants(state), expected.id).not.toThrow();
       expect(() => assertInvariants(ready(state)), expected.id).not.toThrow();
     }
-  });
-
-  it('sells Heavy Blow for 3 and deals 6 with it in rigged-melee, leaving the card data alone', () => {
-    const state = ready(createGame({ seed: 1, kingdomId: 'rigged-melee' }), ['heavyBlow', 'heavyBlow', 'heavyBlow']);
-    expect(resolveCard(state, 'heavyBlow')).toMatchObject({ cost: 3, values: { damage: 6 } });
-    expect(CARDS.heavyBlow).toMatchObject({ cost: 5, values: { damage: 4 } });
-    expect(cardDefinition('heavyBlow')).toMatchObject({ cost: 5, values: { damage: 4 } });
-    // Three copies cost 9 of the 12, which is the acquisition the calibration gate exists to see.
-    expect(state.players.ochre.firstBuyMoney).toBe(3);
-    state.fighters.indigo.position = 2;
-    isolateHand(state, 'ochre', ['heavyBlow']);
-    expect(playCard(state, 'heavyBlow').fighters.indigo.health).toBe(34);
-  });
-
-  // These two kingdoms hold identical piles, so a memo keyed on the definition alone would serve
-  // one kingdom's Heavy Blow to the other and silently invalidate the whole calibration.
-  it('resolves Heavy Blow differently in rigged-melee and three-way-open in one process', () => {
-    const open = createGame({ seed: 1, kingdomId: 'three-way-open' });
-    const rigged = createGame({ seed: 1, kingdomId: 'rigged-melee' });
-    expect(resolveCard(open, 'heavyBlow')).toMatchObject({ cost: 5, values: { damage: 4 } });
-    expect(resolveCard(rigged, 'heavyBlow')).toMatchObject({ cost: 3, values: { damage: 6 } });
-    expect(resolveCard(open, 'heavyBlow')).toMatchObject({ cost: 5, values: { damage: 4 } });
-    expect(marketCost(open, ['heavyBlow', 'heavyBlow'])).toBe(10);
-    expect(marketCost(rigged, ['heavyBlow', 'heavyBlow'])).toBe(6);
-    expect(kingdomOf('rigged-melee').actionPiles).toEqual(kingdomOf('three-way-open').actionPiles);
   });
 
   it('leaves Step, Strike, Shot, and Starfire out of every kingdom', () => {

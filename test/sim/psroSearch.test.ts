@@ -72,18 +72,17 @@ describe('automatic PSRO search inputs', () => {
   });
 
   it('keeps all seed namespaces disjoint', () => {
-    const namespaces = Object.fromEntries(['matrix', 'global-screen', 'global-confirm', 'bootstrap', 'diagnostic']
+    const namespaces = Object.fromEntries(['matrix', 'global-screen', 'global-confirm', 'bootstrap']
       .map((phase) => [phase, namespaceSeeds(1, phase as Parameters<typeof namespaceSeeds>[1], 25)]));
     expect(() => assertDisjointSeedNamespaces(namespaces)).not.toThrow();
   });
 
-  it('enumerates only configured restart, union-global, diagnostic, and weight namespaces', () => {
-    const inventory = configuredSeedNamespaces({ seed: 9, kingdomId: 'rigged-melee', restarts: 2,
+  it('enumerates only configured restart, union-global, and weight namespaces', () => {
+    const inventory = configuredSeedNamespaces({ seed: 9, kingdomId: 'current-duel', restarts: 2,
       iterations: 3, unionIterations: 2, seeds: 4 });
-    expect(Object.keys(inventory)).toHaveLength(1 + 2 * (1 + 3 * 6) + 2 * 3 + 3);
+    expect(Object.keys(inventory)).toHaveLength(1 + 2 * (1 + 3 * 6) + 2 * 3 + 1);
     expect(Object.keys(inventory).some((key) => key.includes('niche:union'))).toBe(false);
     expect(inventory).toHaveProperty('global-screen:union:1');
-    expect(inventory).toHaveProperty('bootstrap:diagnostic');
     expect(inventory).toHaveProperty('bootstrap:weights');
     expect(() => assertDisjointSeedNamespaces(inventory)).not.toThrow();
   });
