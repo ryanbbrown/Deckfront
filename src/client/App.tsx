@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { randomVariableCardIds } from '../game';
 import type { PlayerId, RandomIndexSource } from '../game';
-import type { GameMode, GameView, SetupCatalog } from '../shared/api';
+import type { AiDifficulty, GameMode, GameView, SetupCatalog } from '../shared/api';
 import { createGame, loadGame, loadSetup } from './api';
 import { Game, PreviewTable } from './Game';
 
@@ -33,10 +33,11 @@ export function App() {
       catch { localStorage.removeItem(ACTIVE_GAME_KEY); }
     }).catch((cause) => setError(cause instanceof Error ? cause.message : 'Could not load setup.')).finally(() => setLoading(false));
   }, []);
-  async function start(mode: GameMode, humanPlayerId?: PlayerId) {
+  async function start(mode: GameMode, humanPlayerId?: PlayerId, aiDifficulty?: AiDifficulty) {
     setTraining(mode === 'ai'); setLoading(mode !== 'ai'); setError(null);
     try {
-      const created = await createGame({ mode, variableCardIds: market, ...(mode === 'ai' ? { humanPlayerId } : {}) });
+      const created = await createGame({ mode, variableCardIds: market,
+        ...(mode === 'ai' ? { humanPlayerId, aiDifficulty } : {}) });
       localStorage.setItem(ACTIVE_GAME_KEY, created.id); setGame(created);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not create game.'); }
     finally { setLoading(false); setTraining(false); }

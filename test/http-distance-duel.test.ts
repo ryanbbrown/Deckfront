@@ -34,20 +34,22 @@ describe('local game HTTP interface', () => {
   it('creates a game and accepts both sequential builds', async () => {
     const { base } = await server(); const createdResponse = await create(base); expect(createdResponse.status).toBe(201);
     const created = await createdResponse.json() as { id: string; revision: number; schemaVersion: number; activePlayerId: string };
-    expect(created).toMatchObject({ schemaVersion: 11, activePlayerId: 'ochre' });
+    expect(created).toMatchObject({ schemaVersion: 12, activePlayerId: 'ochre', aiDifficulty: null });
     const playerOne = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['footwork'], complete: true }) }).then((response) => response.json()) as { revision: number; activePlayerId: string; phase: string };
     expect(playerOne).toMatchObject({ activePlayerId: 'indigo', phase: 'startingBuild' });
     const playerTwo = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: playerOne.revision, definitionIds: ['aim'], complete: true }) }).then((response) => response.json()) as { phase: string; completedBuilds: Record<string, string[]> };
     expect(playerTwo.phase).toBe('action'); expect(playerTwo.completedBuilds).toEqual({ ochre: ['footwork'], indigo: ['aim'] });
   });
   it('returns a specific old-save schema error', async () => {
-    const { base, games } = await server(); const id = '11111111-1111-4111-8111-111111111111'; await mkdir(games, { recursive: true }); await writeFile(path.join(games, `${id}.json`), JSON.stringify({ schemaVersion: 10 }));
-    const response = await fetch(`${base}/api/games/${id}`); expect(response.status).toBe(409); expect(await response.json()).toEqual({ error: 'Saved game schema 10 is not supported. Start a new game.' });
+    const { base, games } = await server(); const id = '11111111-1111-4111-8111-111111111111'; await mkdir(games, { recursive: true }); await writeFile(path.join(games, `${id}.json`), JSON.stringify({ schemaVersion: 11 }));
+    const response = await fetch(`${base}/api/games/${id}`); expect(response.status).toBe(409); expect(await response.json()).toEqual({ error: 'Saved game schema 11 is not supported. Start a new game.' });
   });
   it('rejects malformed random markets and unknown create-game fields', async () => {
     const { base } = await server();
     for (const body of [
       { removedField: true },
+      { mode: 'ai', humanPlayerId: 'ochre', aiDifficulty: 'impossible' },
+      { aiDifficulty: 'easy' },
       { variableCardIds: VARIABLE_ACTION_IDS.slice(0, 9) },
       { variableCardIds: [...VARIABLE_ACTION_IDS.slice(0, 9), VARIABLE_ACTION_IDS[0]] },
       { variableCardIds: [...VARIABLE_ACTION_IDS.slice(0, 9), 'step'] },
@@ -62,7 +64,8 @@ describe('local game HTTP interface', () => {
     const strategy = { id: 'http-ai', startingBuild: [], buyAgenda: [], repeatPurchase: 'silver' };
     const aiTrainer: AiTrainer = { train: async () => ({ strategy, summary: { elapsedMs: 1, matches: 1, strategyId: strategy.id } }) };
     const { base } = await server(aiTrainer);
-    const created = await (await create(base, { mode: 'ai', humanPlayerId: 'ochre' })).json() as GameView;
+    const created = await (await create(base, { mode: 'ai', humanPlayerId: 'ochre', aiDifficulty: 'normal' })).json() as GameView;
+    expect(created.aiDifficulty).toBe('normal');
     let view = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: [], complete: true }) }).then((response) => response.json()) as GameView;
     for (const kind of ['endAction', 'endBuy'] as const) {
       const actionId = view.actions.phases.find((action) => action.kind === kind)!.id;
@@ -102,6 +105,6 @@ describe('local game HTTP interface', () => {
     const { base } = await server(); const created = await (await create(base)).json() as { id: string; revision: number };
     const edit = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['feint'], complete: false }) }); expect(edit.status).toBe(200);
     const stale = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: [], complete: false }) }); expect(stale.status).toBe(409);
-    const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(11); expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
+    const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(12); expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
 });

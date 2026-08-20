@@ -8,7 +8,7 @@ import {
 import type { GameCommand, PlayerId } from '../game';
 import { strategyAgent } from '../sim/agents/strategyAgent';
 import type {
-  BrowserAction, CardActionChoice, CardActionPresentation, GameActionPresentation, GameExport, GameView,
+  AiDifficulty, BrowserAction, CardActionChoice, CardActionPresentation, GameActionPresentation, GameExport, GameView,
   PhaseActionPresentation, PublicGameEvent
 } from '../shared/api';
 import type { GameRecord, GameRepository, UndoHistoryEntry } from './types';
@@ -23,6 +23,7 @@ export interface CreateGameInput {
   seed?: number | undefined;
   mode?: 'local' | 'ai' | undefined;
   humanPlayerId?: PlayerId | undefined;
+  aiDifficulty?: AiDifficulty | undefined;
   variableCardIds?: string[] | undefined;
 }
 export class GameService {
@@ -37,11 +38,13 @@ export class GameService {
     registerKingdom(kingdom);
     const humanPlayerId = mode === 'ai' ? input.humanPlayerId ?? 'ochre' : null;
     const aiPlayerId = humanPlayerId ? opponent(humanPlayerId) : null;
-    const trained = mode === 'ai' ? await this.aiTrainer.train(kingdom, seed) : null;
+    const aiDifficulty = mode === 'ai' ? input.aiDifficulty ?? 'expert' : null;
+    const trained = aiDifficulty ? await this.aiTrainer.train(kingdom, seed, aiDifficulty) : null;
     const initialState = createGame({ seed, firstPlayerId: 'ochre', kingdomId: kingdom.id });
     const record: GameRecord = {
-      schemaVersion: 11, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
+      schemaVersion: 12, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
       completedActions: 0, durationSeconds: null, buildProposal: [], kingdom, mode, humanPlayerId,
+      aiDifficulty,
       aiStrategy: trained?.strategy ?? null, training: trained?.summary ?? null,
       initialState: cloneGame(initialState), committedCommands: [], undoHistory: [], state: initialState
     };
@@ -112,7 +115,7 @@ export class GameService {
     });
   }
   async exportGame(id: string): Promise<GameExport> {
-    return { schemaVersion: 11, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
+    return { schemaVersion: 12, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
   }
   private advanceComputer(record: GameRecord): void {
     if (record.mode !== 'ai' || !record.aiStrategy || !record.humanPlayerId) return;
@@ -270,7 +273,7 @@ export class GameService {
       ? { ochre: [...state.players.ochre.startingBuild], indigo: [...state.players.indigo.startingBuild] }
       : null;
     return {
-      schemaVersion: 11, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
+      schemaVersion: 12, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
       elapsedSeconds: Math.max(0, Math.floor((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 1000)),
       completedActions: record.completedActions, durationSeconds: record.durationSeconds,
       activePlayerId: state.activePlayerId, selectedFirstPlayerId: state.selectedFirstPlayerId, phase: state.phase,
@@ -280,7 +283,7 @@ export class GameService {
       events: this.publicEvents(record),
       actions: this.projectActions(record),
       canUndo: record.undoHistory.length > 0,
-      mode: record.mode, humanPlayerId: record.humanPlayerId,
+      mode: record.mode, humanPlayerId: record.humanPlayerId, aiDifficulty: record.aiDifficulty,
       aiPlayerId: record.humanPlayerId ? opponent(record.humanPlayerId) : null,
       training: record.training ? { ...record.training } : null,
       fixedCardIds: [...TREASURE_IDS, ...ALWAYS_AVAILABLE_ACTION_IDS],

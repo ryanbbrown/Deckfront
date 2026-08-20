@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { GAME_EVENT_TYPES, MAX_FIRST_BUY_CARRY, RANDOM_KINGDOM_SIZE, VARIABLE_ACTION_IDS } from '../game';
 import type { GameEventType } from '../game';
 import { kingdomSchema } from '../game/schema';
+import { AI_DIFFICULTIES } from '../shared/api';
 
 const playerId = z.enum(['ochre', 'indigo']);
 const card = z.object({ id: z.string(), definitionId: z.string() });
@@ -66,15 +67,16 @@ const trainingSchema = z.object({
   elapsedMs: z.number().nonnegative(), matches: z.number().int().nonnegative(), strategyId: z.string().min(1)
 });
 export const gameRecordSchema = z.object({
-  schemaVersion: z.literal(11), id: z.string().uuid(), revision: z.number().int().nonnegative(),
+  schemaVersion: z.literal(12), id: z.string().uuid(), revision: z.number().int().nonnegative(),
   createdAt: z.string().datetime(), updatedAt: z.string().datetime(), finishedAt: z.string().datetime().nullable(),
   completedActions: z.number().int().nonnegative(), durationSeconds: z.number().nonnegative().nullable(),
   buildProposal: z.array(z.string()), kingdom: kingdomSchema, mode: z.enum(['local', 'ai']),
+  aiDifficulty: z.enum(AI_DIFFICULTIES).nullable(),
   humanPlayerId: playerId.nullable(), aiStrategy: strategySchema.nullable(), training: trainingSchema.nullable(),
   initialState: gameStateSchema, committedCommands: z.array(gameCommandSchema),
   undoHistory: z.array(undoHistoryEntry), state: gameStateSchema
 }).superRefine((record, context) => {
-  const metadata = [record.humanPlayerId, record.aiStrategy, record.training];
+  const metadata = [record.humanPlayerId, record.aiDifficulty, record.aiStrategy, record.training];
   if ((record.mode === 'ai' && metadata.some((value) => value === null))
     || (record.mode === 'local' && metadata.some((value) => value !== null))) {
     context.addIssue({ code: 'custom', message: 'Game mode metadata is inconsistent.' });
@@ -88,7 +90,8 @@ export const gameRecordSchema = z.object({
 });
 export const createGameRequestSchema = z.object({
   seed: z.number().int().optional(), mode: z.enum(['local', 'ai']),
-  humanPlayerId: playerId.optional(), variableCardIds: z.array(z.string())
+  humanPlayerId: playerId.optional(), aiDifficulty: z.enum(AI_DIFFICULTIES).optional(),
+  variableCardIds: z.array(z.string())
 }).strict().superRefine((input, context) => {
   if (input.variableCardIds.length !== RANDOM_KINGDOM_SIZE || new Set(input.variableCardIds).size !== RANDOM_KINGDOM_SIZE
     || input.variableCardIds.some((id) => !VARIABLE_ACTION_IDS.includes(id))) {
@@ -96,6 +99,9 @@ export const createGameRequestSchema = z.object({
   }
   if ((input.mode === 'ai') !== (input.humanPlayerId !== undefined)) {
     context.addIssue({ code: 'custom', message: 'humanPlayerId is required only for AI games.' });
+  }
+  if (input.mode === 'local' && input.aiDifficulty !== undefined) {
+    context.addIssue({ code: 'custom', message: 'aiDifficulty is allowed only for AI games.' });
   }
 });
 export const buildRequestSchema = z.object({ expectedRevision: z.number().int().nonnegative(), definitionIds: z.array(z.string()).max(1000), complete: z.boolean() });

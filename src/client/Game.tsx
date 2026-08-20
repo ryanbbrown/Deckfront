@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { STARTING_BUDGET, firstBuyCarry } from '../game';
 import type { CardDefinition, CardInstance, PlayerId } from '../game';
-import type { BrowserAction, GameMode, GameView, PublicGameEvent, SetupCatalog } from '../shared/api';
+import { AI_DIFFICULTIES } from '../shared/api';
+import type { AiDifficulty, BrowserAction, GameMode, GameView, PublicGameEvent, SetupCatalog } from '../shared/api';
 import { takeAction, undoAction, updateBuild } from './api';
 import { Board } from './Board';
 
@@ -11,20 +12,21 @@ type PlayedGroup = CardGroup;
 
 export function PreviewTable({ catalog, market, error, onRefresh, onStart }: {
   catalog: SetupCatalog; market: string[]; error: string | null; onRefresh: () => void;
-  onStart: (mode: GameMode, humanPlayerId?: PlayerId) => Promise<void>;
+  onStart: (mode: GameMode, humanPlayerId?: PlayerId, aiDifficulty?: AiDifficulty) => Promise<void>;
 }) {
   const [mode, setMode] = useState<GameMode>('local');
   const [human, setHuman] = useState<PlayerId>('ochre');
+  const [difficulty, setDifficulty] = useState<AiDifficulty>('expert');
   const [marketOpen, setMarketOpen] = useState(false);
   const cards = Object.fromEntries([...catalog.fixedCardIds, ...market].map((id) => [id, catalog.cards[id]!]));
   return <main className="table-shell table-shell--preview">
     <TableHeader title="Choose a kingdom" controls={<div className="setup-controls">
       <label><input type="radio" checked={mode === 'local'} onChange={() => setMode('local')} /> Local players</label>
       <label><input type="radio" checked={mode === 'ai'} onChange={() => setMode('ai')} /> Play against AI</label>
-      {mode === 'ai' ? <fieldset><legend>Turn order</legend><label><input type="radio" checked={human === 'ochre'} onChange={() => setHuman('ochre')} /> I go first</label><label><input type="radio" checked={human === 'indigo'} onChange={() => setHuman('indigo')} /> AI goes first</label></fieldset> : null}
+      {mode === 'ai' ? <><fieldset><legend>Turn order</legend><label><input type="radio" checked={human === 'ochre'} onChange={() => setHuman('ochre')} /> I go first</label><label><input type="radio" checked={human === 'indigo'} onChange={() => setHuman('indigo')} /> AI goes first</label></fieldset><label>AI strength<select aria-label="AI strength" value={difficulty} onChange={(event) => setDifficulty(event.target.value as AiDifficulty)}>{AI_DIFFICULTIES.map((value) => <option key={value} value={value}>{value[0]!.toUpperCase() + value.slice(1)}</option>)}</select></label></> : null}
       <button className="control-button" onClick={onRefresh}>Refresh market</button>
       <button className="control-button" onClick={() => setMarketOpen(true)}>View cards</button>
-      <button className="control-button primary" onClick={() => void onStart(mode, mode === 'ai' ? human : undefined)}>Start game</button>
+      <button className="control-button primary" onClick={() => void onStart(mode, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)}>Start game</button>
     </div>} />
     {error ? <p role="alert" className="error">{error}</p> : null}
     <PreviewArena />

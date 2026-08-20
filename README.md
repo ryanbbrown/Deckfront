@@ -18,12 +18,12 @@ npm run dev
 
 Open `http://127.0.0.1:4173`.
 
-The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records, browser game views, and exports use schema version 11. The server rejects older saves and does not migrate them.
+The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records, browser game views, and exports use schema version 12. The server rejects older saves and does not migrate them.
 
 ## Play
 
 1. Refresh until the 10 unique variable cards make an interesting kingdom. Copper, Silver, Gold, Step, Cull, and Focus are in every market.
-2. Choose two local players or the AI opponent. In an AI game, choose whether you or the AI goes first.
+2. Choose two local players or the AI opponent. In an AI game, choose whether you or the AI goes first and select Easy, Normal, Hard, or Expert strength.
 3. Start the game. AI training can take several seconds because the server simulates strategies for the chosen kingdom.
 4. Player 1 spends up to 12 money on starting cards in the compact market. Player 2 builds next. The AI submits its own build automatically.
 5. Play any number of Action cards, end the Action phase to play Treasure cards, buy affordable cards, and end the Buy phase.

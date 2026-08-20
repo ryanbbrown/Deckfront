@@ -214,9 +214,9 @@ describe('local GameService', () => {
     expect(restored).toMatchObject({ phase: 'action', turn: 1, completedBuilds: { ochre: [], indigo: [] }, canUndo: false });
     await expect(service.undoAction(game.id, restored.revision)).rejects.toThrow('There is no action to undo.');
   });
-  it('exports the current local game view with schema 11', async () => {
+  it('exports the current local game view with schema 12', async () => {
     const { service, game } = await setup(); const exported = await service.exportGame(game.id);
-    expect(exported).toMatchObject({ schemaVersion: 11, game: { schemaVersion: 11, id: game.id } });
+    expect(exported).toMatchObject({ schemaVersion: 12, game: { schemaVersion: 12, id: game.id } });
     expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
 });
@@ -254,12 +254,12 @@ describe('persistence schema', () => {
       undone = await restarted.undoAction(created.id, undone.revision); expect((await restarted.getRecord(created.id)).state).toEqual(states[0]); expect(undone.canUndo).toBe(false);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
-  it('serializes concurrent file writes and leaves valid schema 11 state', async () => {
+  it('serializes concurrent file writes and leaves valid schema 12 state', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-lock-'));
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8 });
       await Promise.all([1, 2].map((marker) => repository.withLock(created.id, async () => { const record = await repository.load(created.id); await new Promise((resolve) => setTimeout(resolve, marker === 1 ? 5 : 0)); record.revision += 1; await repository.save(record); })));
-      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(11);
+      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(12);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it('rejects an older save with a specific message', async () => {

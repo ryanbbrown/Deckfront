@@ -1,5 +1,5 @@
 import type { GameCommand, GameState, Kingdom, PlayerId } from '../game/types';
-import type { GameMode, TrainingSummary } from '../shared/api';
+import type { AiDifficulty, GameMode, TrainingSummary } from '../shared/api';
 import type { Strategy } from '../sim/strategy';
 
 export interface UndoHistoryEntry {
@@ -9,11 +9,11 @@ export interface UndoHistoryEntry {
   durationSeconds: number | null;
 }
 export interface GameRecord {
-  schemaVersion: 11;
+  schemaVersion: 12;
   id: string; revision: number; createdAt: string; updatedAt: string; finishedAt: string | null;
   completedActions: number; durationSeconds: number | null;
   buildProposal: string[];
-  kingdom: Kingdom; mode: GameMode; humanPlayerId: PlayerId | null;
+  kingdom: Kingdom; mode: GameMode; humanPlayerId: PlayerId | null; aiDifficulty: AiDifficulty | null;
   aiStrategy: Strategy | null; training: TrainingSummary | null;
   initialState: GameState; committedCommands: GameCommand[];
   undoHistory: UndoHistoryEntry[]; state: GameState;

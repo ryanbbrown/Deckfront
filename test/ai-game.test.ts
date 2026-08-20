@@ -30,15 +30,28 @@ function phaseAction(game: Awaited<ReturnType<GameService['create']>>, kind: 'en
 describe('AI games', () => {
   it('trains before saving, builds automatically, and returns only human turns', async () => {
     const repository = new MemoryRepository(); const service = new GameService(repository, trainer);
-    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'indigo', variableCardIds: market });
-    expect(created).toMatchObject({ mode: 'ai', humanPlayerId: 'indigo', aiPlayerId: 'ochre', phase: 'startingBuild', activePlayerId: 'indigo' });
+    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard', variableCardIds: market });
+    expect(created).toMatchObject({ mode: 'ai', humanPlayerId: 'indigo', aiPlayerId: 'ochre',
+      aiDifficulty: 'hard', phase: 'startingBuild', activePlayerId: 'indigo' });
+    expect(repository.record?.aiDifficulty).toBe('hard');
     expect(created.fighters.ochre.health).toBe(37); expect(created.training?.strategyId).toBe(strategy.id);
     const ready = await service.updateBuild(created.id, created.revision, [], true);
     expect(ready).toMatchObject({ phase: 'action', activePlayerId: 'indigo', turn: 2 });
     expect(ready.completedBuilds).toEqual({ ochre: [], indigo: [] });
   });
 
-  it('keeps an AI-first starting build private until the human finishes setup', async () => {
+  it('defaults an AI game to Expert and leaves local games without AI difficulty', async () => {
+    const ai = await new GameService(new MemoryRepository(), trainer).create({
+      seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market
+    });
+    const local = await new GameService(new MemoryRepository(), trainer).create({
+      seed: 3, mode: 'local', variableCardIds: market
+    });
+    expect(ai.aiDifficulty).toBe('expert');
+    expect(local.aiDifficulty).toBeNull();
+  });
+
+  it('uses the selected AI strategy for its private starting build and later turns', async () => {
     const service = new GameService(new MemoryRepository(), privateBuildTrainer);
     const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'indigo', variableCardIds: market });
     expect(created).toMatchObject({ phase: 'startingBuild', activePlayerId: 'indigo' });
@@ -47,6 +60,19 @@ describe('AI games', () => {
     const ready = await service.updateBuild(created.id, created.revision, ['aim'], true);
     expect(ready.players.ochre.deckCounts).toMatchObject({ copper: 7, step: 1 });
     expect(ready.players.indigo.deckCounts).toEqual({ copper: 7, aim: 1 });
+    expect(ready.events.some((event) => event.playerId === 'ochre' && event.type === 'purchase'
+      && event.detail.definitionId === 'silver')).toBe(true);
+  });
+
+  it('passes the chosen difficulty into training', async () => {
+    let received = '';
+    const recording: AiTrainer = { train: async (_kingdom, _seed, difficulty) => {
+      received = difficulty; return { strategy, summary: { elapsedMs: 1, matches: 4, strategyId: strategy.id } };
+    } };
+    await new GameService(new MemoryRepository(), recording).create({
+      seed: 3, mode: 'ai', humanPlayerId: 'ochre', aiDifficulty: 'easy', variableCardIds: market
+    });
+    expect(received).toBe('easy');
   });
 
   it('puts an AI-second game in the correct seats and penalizes the first human player', async () => {

@@ -1,5 +1,5 @@
 import type { PlayerId } from '../game';
-import type { GameMode, GameView, SetupCatalog } from '../shared/api';
+import type { AiDifficulty, GameMode, GameView, SetupCatalog } from '../shared/api';
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, { ...options, headers: { 'content-type': 'application/json', ...options?.headers } });
@@ -9,7 +9,8 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 export function loadSetup(): Promise<SetupCatalog> { return request('/api/setup'); }
 export function createGame(input: {
-  seed?: number | undefined; mode: GameMode; humanPlayerId?: PlayerId | undefined; variableCardIds: string[];
+  seed?: number | undefined; mode: GameMode; humanPlayerId?: PlayerId | undefined;
+  aiDifficulty?: AiDifficulty | undefined; variableCardIds: string[];
 }): Promise<GameView> { return request('/api/games', { method: 'POST', body: JSON.stringify(input) }); }
 export function loadGame(id: string): Promise<GameView> { return request(`/api/games/${id}`); }
 export function updateBuild(game: GameView, definitionIds: string[], complete: boolean): Promise<GameView> { return request(`/api/games/${game.id}/build`, { method: 'POST', body: JSON.stringify({ expectedRevision: game.revision, definitionIds, complete }) }); }
