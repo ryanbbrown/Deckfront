@@ -1,18 +1,21 @@
 import { useEffect, useState } from 'react';
-import type { PlayerId } from '../game';
+import { randomVariableCardIds } from '../game';
+import type { PlayerId, RandomIndexSource } from '../game';
 import type { GameMode, GameView, SetupCatalog } from '../shared/api';
 import { createGame, loadGame, loadSetup } from './api';
 import { Game, PreviewTable } from './Game';
 
 const ACTIVE_GAME_KEY = 'hexdeck.activeGameId';
-function refreshed(ids: readonly string[]): string[] {
-  const values = [...ids];
-  crypto.getRandomValues(new Uint32Array(values.length)).forEach((value, index) => {
-    const swap = index + value % (values.length - index);
-    [values[index], values[swap]] = [values[swap]!, values[index]!];
-  });
-  return values.slice(0, 10);
-}
+const cryptoRandom: RandomIndexSource = {
+  nextInt(maxExclusive) {
+    const range = 0x1_0000_0000;
+    const limit = range - range % maxExclusive;
+    let value = 0;
+    do { value = crypto.getRandomValues(new Uint32Array(1))[0]!; } while (value >= limit);
+    return value % maxExclusive;
+  }
+};
+function refreshed(ids: readonly string[]): string[] { return randomVariableCardIds(cryptoRandom, ids); }
 
 export function App() {
   const [catalog, setCatalog] = useState<SetupCatalog | null>(null);

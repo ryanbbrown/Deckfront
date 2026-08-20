@@ -1,16 +1,19 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { VARIABLE_ACTION_IDS } from '../src/game';
+import { ProductionAiTrainer } from '../src/server/aiTrainer';
+import type { AiTrainer } from '../src/server/aiTrainer';
 import { createHexdeckServer } from '../src/server/httpServer';
+import type { PairingRunner } from '../src/sim/pairingRunner';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cleanups: Array<() => Promise<void>> = [];
 afterEach(async () => { while (cleanups.length) await cleanups.pop()?.(); });
-async function server() {
+async function server(aiTrainer?: AiTrainer) {
   const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-http-')); const games = path.join(directory, 'games');
-  const app = createHexdeckServer({ dataDirectory: games, distDirectory: path.join(root, 'dist') });
+  const app = createHexdeckServer({ dataDirectory: games, distDirectory: path.join(root, 'dist'), aiTrainer });
   await new Promise<void>((resolve) => app.server.listen(0, '127.0.0.1', resolve)); const address = app.server.address(); if (!address || typeof address === 'string') throw new Error('No address');
   cleanups.push(async () => { await new Promise<void>((resolve) => app.server.close(() => resolve())); await rm(directory, { recursive: true, force: true }); });
   return { base: `http://127.0.0.1:${address.port}`, games };
@@ -47,11 +50,34 @@ describe('local game HTTP interface', () => {
       { variableCardIds: VARIABLE_ACTION_IDS.slice(0, 9) },
       { variableCardIds: [...VARIABLE_ACTION_IDS.slice(0, 9), VARIABLE_ACTION_IDS[0]] },
       { variableCardIds: [...VARIABLE_ACTION_IDS.slice(0, 9), 'step'] },
-      { variableCardIds: [...VARIABLE_ACTION_IDS.slice(0, 9), 'copper'] }
+      { variableCardIds: [...VARIABLE_ACTION_IDS.slice(0, 9), 'copper'] },
+      { variableCardIds: [...VARIABLE_ACTION_IDS.slice(0, 9), 'invented-card'] }
     ]) {
       const response = await create(base, body); expect(response.status).toBe(400);
       expect(await response.json()).toEqual({ error: 'Invalid request.' });
     }
+  });
+  it('returns a training-specific 503 and saves nothing after an unexpected production search failure', async () => {
+    let closed = false;
+    const runner: PairingRunner = {
+      run: async () => { throw new Error('runner should not receive work'); },
+      close: async () => { closed = true; }
+    };
+    const trainer = new ProductionAiTrainer({
+      restarts: 1, initialStrategies: 2, candidates: 2, iterations: 1,
+      seeds: 1, unionIterations: 1, workers: 1, deadlineMinutes: 1, finalSearch: 'none'
+    }, {
+      createRunner: () => runner,
+      runSearch: async () => { throw new Error('unexpected search failure'); }
+    });
+    const { base, games } = await server(trainer);
+    const response = await fetch(`${base}/api/games`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ seed: 2, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10) })
+    });
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: 'AI training failed: unexpected search failure' });
+    expect(closed).toBe(true); expect(await readdir(games).catch(() => [])).toEqual([]);
   });
   it('returns 400 for an unknown build card without changing revision or proposal', async () => {
     const { base } = await server(); const created = await (await create(base)).json() as { id: string; revision: number; buildProposal: string[] };

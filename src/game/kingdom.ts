@@ -14,8 +14,14 @@ export const VARIABLE_ACTION_IDS: readonly string[] = Object.freeze(Object.value
   .filter((card) => card.type === 'action' && !ALWAYS_AVAILABLE_ACTION_IDS.includes(card.id)).map((card) => card.id));
 
 export interface RandomIndexSource { nextInt(maxExclusive: number): number }
-export function randomVariableCardIds(random: RandomIndexSource): string[] {
-  const available = [...VARIABLE_ACTION_IDS];
+export function randomVariableCardIds(
+  random: RandomIndexSource, eligible: readonly string[] = VARIABLE_ACTION_IDS
+): string[] {
+  const available = [...eligible];
+  if (available.length < RANDOM_KINGDOM_SIZE || new Set(available).size !== available.length
+    || available.some((cardId) => !VARIABLE_ACTION_IDS.includes(cardId))) {
+    throw new Error(`Random market candidates need at least ${RANDOM_KINGDOM_SIZE} unique variable action cards.`);
+  }
   const selected: string[] = [];
   while (selected.length < RANDOM_KINGDOM_SIZE) {
     const index = random.nextInt(available.length);

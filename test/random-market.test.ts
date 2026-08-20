@@ -33,9 +33,12 @@ describe('random markets', () => {
         seed: 2, mode: 'local', variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10)
       });
       resetKingdoms();
-      const loaded = await new GameService(new FileGameRepository(directory)).get(created.id);
+      const restarted = new GameService(new FileGameRepository(directory));
+      const loaded = await restarted.get(created.id);
       expect(loaded.variableCardIds).toEqual(VARIABLE_ACTION_IDS.slice(0, 10));
       expect(loaded.fixedCardIds).toEqual(['copper', 'silver', 'gold', 'step', 'cull', 'focus']);
+      const exported = await restarted.exportGame(created.id);
+      expect(exported).toMatchObject({ schemaVersion: 11, game: { id: created.id, variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10) } });
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
 });

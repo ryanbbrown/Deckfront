@@ -250,7 +250,10 @@ export class GameService {
       activePlayerId: state.activePlayerId, selectedFirstPlayerId: state.selectedFirstPlayerId, phase: state.phase,
       turn: state.turn, winner: state.winner, fighters: structuredClone(state.fighters), range: rangeBand(state),
       supply: { ...state.supply }, cards: Object.fromEntries(kingdomMarket(state.kingdomId).map((card) => [card.id, card])),
-      players, trashCount: state.trash.length, events: structuredClone(state.events),
+      players, trashCount: state.trash.length,
+      events: structuredClone(record.mode === 'ai'
+        ? state.events.filter((event) => event.playerId === record.humanPlayerId)
+        : state.events),
       actions: this.projectActions(record),
       canUndo: record.undoCheckpoint !== null,
       mode: record.mode, humanPlayerId: record.humanPlayerId,

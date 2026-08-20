@@ -4,6 +4,7 @@ import { EXPERIMENT_DEFAULTS, ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from 
 import { mixtureSchedule } from '../sim/mixtureEvaluation';
 import { emptyAggregate } from '../sim/pairing';
 import { WorkerPairingRunner } from '../sim/pairingRunner';
+import type { PairingRunner } from '../sim/pairingRunner';
 import { runPsro } from '../sim/psro';
 import type { FinalSearchOutcome, FinalSearchOptions } from '../sim/finalSearch';
 import type { Strategy } from '../sim/strategy';
@@ -30,19 +31,29 @@ async function noFinalChallenger(options: FinalSearchOptions): Promise<FinalSear
 }
 
 export class AiTrainingError extends Error {}
+export interface AiTrainerDependencies {
+  runSearch?: typeof runPsro | undefined;
+  createRunner?: ((kingdom: Kingdom, workers: number) => PairingRunner) | undefined;
+}
 
 export class ProductionAiTrainer implements AiTrainer {
-  constructor(private readonly limits: AiTrainingLimits = EXPERIMENT_DEFAULTS.full) {}
+  constructor(
+    private readonly limits: AiTrainingLimits = EXPERIMENT_DEFAULTS.full,
+    private readonly dependencies: AiTrainerDependencies = {}
+  ) {}
 
   async train(kingdom: Kingdom, seed: number): Promise<AiTrainingResult> {
-    registerKingdom(kingdom);
     const started = Date.now();
     const deadline = started + this.limits.deadlineMinutes * 60_000;
-    const runner = new WorkerPairingRunner(
-      this.limits.workers, new URL('./aiWorker.ts', import.meta.url), { kingdom }, ['--import', 'tsx']
-    );
+    let runner: PairingRunner | null = null;
+    let output: AiTrainingResult | null = null;
+    let failure: AiTrainingError | null = null;
     try {
-      const result = await runPsro({
+      registerKingdom(kingdom);
+      runner = this.dependencies.createRunner?.(kingdom, this.limits.workers) ?? new WorkerPairingRunner(
+        this.limits.workers, new URL('./aiWorker.ts', import.meta.url), { kingdom }, ['--import', 'tsx']
+      );
+      const result = await (this.dependencies.runSearch ?? runPsro)({
         kingdomId: kingdom.id, seed, restarts: this.limits.restarts,
         initialStrategies: this.limits.initialStrategies, candidates: this.limits.candidates,
         iterations: this.limits.iterations, seeds: this.limits.seeds,
@@ -66,11 +77,21 @@ export class ProductionAiTrainer implements AiTrainer {
         cumulative += entry.weight;
         if (target <= cumulative) { strategy = entry.strategy; break; }
       }
-      return { strategy, summary: {
+      output = { strategy, summary: {
         elapsedMs: Date.now() - started, matches: result.matches, strategyId: strategy.id
       } };
-    } finally {
-      await runner.close();
+    } catch (error) {
+      failure = error instanceof AiTrainingError ? error
+        : new AiTrainingError(`AI training failed: ${error instanceof Error ? error.message : String(error)}`);
     }
+    if (runner) {
+      try { await runner.close(); }
+      catch (error) {
+        failure = new AiTrainingError(`AI training cleanup failed: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    if (failure) throw failure;
+    if (!output) throw new AiTrainingError('AI training did not return a strategy.');
+    return output;
   }
 }

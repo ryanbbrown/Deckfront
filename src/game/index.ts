@@ -17,4 +17,5 @@ export {
 export { SeededRandom, shuffle } from './random';
 export { cloneGame, createCard, createGame, opponent, PLAYER_IDS } from './state';
 export { VALUE_KEYS, valueKeys } from './values';
+export type { RandomIndexSource } from './kingdom';
 export type * from './types';

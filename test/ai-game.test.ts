@@ -1,8 +1,12 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { VARIABLE_ACTION_IDS, resetKingdoms } from '../src/game';
 import { ProductionAiTrainer } from '../src/server/aiTrainer';
 import type { AiTrainer } from '../src/server/aiTrainer';
 import { GameService } from '../src/server/gameService';
+import { FileGameRepository } from '../src/server/persistence';
 import type { GameRecord, GameRepository } from '../src/server/types';
 import { identify } from '../src/sim/strategy';
 
@@ -32,6 +36,24 @@ describe('AI games', () => {
     expect(ready.completedBuilds).toEqual({ ochre: [], indigo: [] });
   });
 
+  it('puts an AI-second game in the correct seats and penalizes the first human player', async () => {
+    const service = new GameService(new MemoryRepository(), trainer);
+    const created = await service.create({ seed: 9, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
+    expect(created).toMatchObject({ humanPlayerId: 'ochre', aiPlayerId: 'indigo', selectedFirstPlayerId: 'ochre', activePlayerId: 'ochre' });
+    expect(created.fighters.ochre.health).toBe(37); expect(created.fighters.indigo.health).toBe(40);
+  });
+
+  it('omits a non-empty AI turn from browser events while keeping it in the saved record', async () => {
+    const repository = new MemoryRepository(); const service = new GameService(repository, trainer);
+    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
+    const ready = await service.updateBuild(created.id, created.revision, [], true);
+    const buy = await service.commitAction(created.id, ready.revision, phaseAction(ready, 'endAction'));
+    const returned = await service.commitAction(created.id, buy.revision, phaseAction(buy, 'endBuy'));
+    expect(repository.record?.state.events.some((event) => event.playerId === 'indigo' && event.type === 'purchase' && event.detail.definitionId === 'silver')).toBe(true);
+    expect(returned.events.some((event) => event.playerId === 'indigo')).toBe(false);
+    expect(returned.events.some((event) => event.type === 'purchase' && event.detail.definitionId === 'silver')).toBe(false);
+  });
+
   it('rolls a complete automatic AI turn into the human Undo checkpoint', async () => {
     const service = new GameService(new MemoryRepository(), trainer);
     const created = await service.create({ seed: 4, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
@@ -41,6 +63,26 @@ describe('AI games', () => {
     expect(returned).toMatchObject({ activePlayerId: 'ochre', phase: 'action', turn: 3, canUndo: true });
     const undone = await service.undoAction(created.id, returned.revision);
     expect(undone).toMatchObject({ activePlayerId: 'ochre', phase: 'buy', turn: 1, canUndo: false });
+  });
+
+  it('reloads an AI game after a registry reset, advances again, and keeps Undo human-safe', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-ai-reload-'));
+    try {
+      const first = new GameService(new FileGameRepository(directory), trainer);
+      const created = await first.create({ seed: 12, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
+      const ready = await first.updateBuild(created.id, created.revision, [], true);
+      const buy = await first.commitAction(created.id, ready.revision, phaseAction(ready, 'endAction'));
+      const returned = await first.commitAction(created.id, buy.revision, phaseAction(buy, 'endBuy'));
+      expect(returned).toMatchObject({ activePlayerId: 'ochre', phase: 'action', turn: 3 });
+      resetKingdoms();
+      const restarted = new GameService(new FileGameRepository(directory), trainer);
+      const loaded = await restarted.get(created.id);
+      const secondBuy = await restarted.commitAction(created.id, loaded.revision, phaseAction(loaded, 'endAction'));
+      const secondReturn = await restarted.commitAction(created.id, secondBuy.revision, phaseAction(secondBuy, 'endBuy'));
+      expect(secondReturn).toMatchObject({ activePlayerId: 'ochre', phase: 'action', turn: 5 });
+      const undone = await restarted.undoAction(created.id, secondReturn.revision);
+      expect(undone).toMatchObject({ activePlayerId: 'ochre', phase: 'buy', turn: 3, canUndo: false });
+    } finally { await rm(directory, { recursive: true, force: true }); }
   });
 
   it('does not save a game when training fails', async () => {
