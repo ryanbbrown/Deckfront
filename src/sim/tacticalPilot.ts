@@ -1,4 +1,6 @@
 import type { CardMechanic, CardValues, MovementChoice, PendingChoiceType } from '../game';
+import { printedAttackDamage, publicPositionAdvantage } from './positionValue';
+import type { AttackProfile } from './positionValue';
 export { TACTICAL_PILOT_PROTOCOL_VERSION } from './protocolVersions';
 
 export interface PilotCard {
@@ -32,6 +34,8 @@ export interface TacticalView {
   positionChanged: boolean;
   tacticalPlayed: number;
   cullOptions: readonly CullOption[];
+  actorProfile: AttackProfile;
+  opponentProfile: AttackProfile;
 }
 
 export type TacticalDecision =
@@ -42,7 +46,6 @@ export type TacticalDecision =
 
 function value(card: PilotCard, key: string): number { return card.values[key] ?? 0; }
 function distance(left: number, right: number): number { return Math.abs(left - right); }
-function isClose(left: number, right: number): boolean { return distance(left, right) === 0; }
 
 function immediateDamage(card: PilotCard, view: TacticalView): number {
   switch (card.mechanic) {
@@ -61,31 +64,93 @@ function immediateDamage(card: PilotCard, view: TacticalView): number {
   }
 }
 
-function potentialAt(view: TacticalView, actorPosition: number): number {
-  const close = isClose(actorPosition, view.opponentPosition);
+function currentHandDamageAt(
+  view: TacticalView, actorPosition: number, opponentPosition: number, mana: number, tacticalPlayed: number
+): number {
   let total = 0;
   for (const card of view.hand) {
-    if (card.mechanic === 'melee' && close) total += value(card, 'damage');
-    else if (card.mechanic === 'drive' && close) total += value(card, 'damage');
-    else if (card.mechanic === 'flurry' && close) total += Math.min(value(card, 'max'), (view.tacticalPlayed + 1) * value(card, 'perAction'));
-    else if (card.mechanic === 'ranged' && !close) total += value(card, 'damage');
-    else if (card.mechanic === 'volley' && !close) {
-      const near = distance(actorPosition, view.opponentPosition) === 1;
-      total += value(card, view.aimed ? (near ? 'aimedNear' : 'aimedFar') : (near ? 'near' : 'far'));
-    } else if (card.mechanic === 'spell' && view.mana >= value(card, 'manaCost')) total += value(card, 'damage');
+    if (!['melee', 'drive', 'flurry', 'ranged', 'spell', 'volley'].includes(card.mechanic)) continue;
+    if (card.mechanic === 'spell' && mana < value(card, 'manaCost')) continue;
+    total += printedAttackDamage(card, actorPosition, opponentPosition, {
+      aimed: view.aimed, tacticalPlayed, publicFuture: false
+    });
   }
   return total;
 }
 
-function bestMovement(card: PilotCard, view: TacticalView): MovementChoice {
-  let best = card.movements[0] ?? 'stay';
-  let bestPotential = -1;
+interface MovementResult {
+  movement: MovementChoice;
+  actorPosition: number;
+  opponentPosition: number;
+  damage: number;
+  positionValue: number;
+}
+
+function winsFinalTie(candidate: MovementResult, best: MovementResult): boolean {
+  if (candidate.movement === 'stay' || best.movement === 'stay') return candidate.movement === 'stay';
+  const candidateDistance = distance(candidate.actorPosition, candidate.opponentPosition);
+  const bestDistance = distance(best.actorPosition, best.opponentPosition);
+  if (candidateDistance !== bestDistance) return candidateDistance > bestDistance;
+  return candidate.movement === 'left' && best.movement !== 'left';
+}
+
+function betterMovement(candidate: MovementResult, best: MovementResult | null): boolean {
+  if (!best) return true;
+  if (candidate.damage !== best.damage) return candidate.damage > best.damage;
+  if (candidate.positionValue !== best.positionValue) return candidate.positionValue > best.positionValue;
+  return winsFinalTie(candidate, best);
+}
+
+function movementResult(card: PilotCard, view: TacticalView, movement: MovementChoice): MovementResult {
+  const actorPosition = view.actorPosition + (movement === 'left' ? -1 : movement === 'right' ? 1 : 0);
+  const mana = view.mana + (card.mechanic === 'leyStep' ? value(card, 'mana') : 0);
+  return {
+    movement, actorPosition, opponentPosition: view.opponentPosition,
+    damage: currentHandDamageAt(view, actorPosition, view.opponentPosition, mana, view.tacticalPlayed + 1),
+    positionValue: publicPositionAdvantage(
+      view.actorProfile, view.opponentProfile, actorPosition, view.opponentPosition
+    )
+  };
+}
+
+function bestMovement(card: PilotCard, view: TacticalView): MovementResult {
+  let best: MovementResult | null = null;
   for (const movement of card.movements) {
-    const next = view.actorPosition + (movement === 'left' ? -1 : movement === 'right' ? 1 : 0);
-    const potential = potentialAt(view, next);
-    if (potential > bestPotential) { best = movement; bestPotential = potential; continue; }
+    const candidate = movementResult(card, view, movement);
+    if (betterMovement(candidate, best)) best = candidate;
   }
-  return best;
+  return best ?? movementResult(card, view, 'stay');
+}
+
+function movementImproves(card: PilotCard, view: TacticalView, result: MovementResult): boolean {
+  const currentDamage = currentHandDamageAt(
+    view, view.actorPosition, view.opponentPosition, view.mana, view.tacticalPlayed
+  );
+  if (result.damage !== currentDamage) return result.damage > currentDamage;
+  const currentPositionValue = publicPositionAdvantage(
+    view.actorProfile, view.opponentProfile, view.actorPosition, view.opponentPosition
+  );
+  return result.positionValue > currentPositionValue;
+}
+
+function bestDriveDirection(card: PilotCard, view: TacticalView): MovementChoice {
+  let best: MovementResult | null = null;
+  for (const movement of card.movements) {
+    const destination = view.actorPosition + (movement === 'left' ? -1 : 1);
+    const collision = destination < 1 || destination > 5;
+    const actorPosition = collision ? view.actorPosition : destination;
+    const opponentPosition = collision ? view.opponentPosition : destination;
+    const candidate: MovementResult = {
+      movement, actorPosition, opponentPosition,
+      damage: value(card, 'damage') + (view.opponentExposed ? 2 : 0)
+        + (collision ? value(card, 'wallDamage') : 0),
+      positionValue: publicPositionAdvantage(
+        view.actorProfile, view.opponentProfile, actorPosition, opponentPosition
+      )
+    };
+    if (betterMovement(candidate, best)) best = candidate;
+  }
+  return best?.movement ?? 'left';
 }
 
 function compareProjection(left: readonly number[], right: readonly number[]): number {
@@ -164,7 +229,7 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
   if (reclaim && view.discard.length > 0) return play(reclaim);
 
   const footwork = first(view, 'footwork');
-  if (footwork) return play(footwork, bestMovement(footwork, view));
+  if (footwork) return play(footwork, bestMovement(footwork, view).movement);
 
   const channel = first(view, 'channel');
   if (channel) return play(channel);
@@ -177,7 +242,10 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
 
   const adapt = first(view, 'adapt');
   const move = first(view, 'leyStep') ?? first(view, 'step');
-  if (adapt && move && !view.positionChanged) return play(move, bestMovement(move, view));
+  if (adapt && move && !view.positionChanged) {
+    const movement = bestMovement(move, view);
+    if (movementImproves(move, view, movement)) return play(move, movement.movement);
+  }
   if (adapt) return play(adapt);
 
   const prism = first(view, 'prism');
@@ -189,9 +257,7 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
   const nonFlurryDamage = bestDamage(view, true);
   if (nonFlurryDamage) {
     if (nonFlurryDamage.mechanic === 'drive') {
-      const direction: MovementChoice = view.actorPosition === 1 ? 'left' : view.actorPosition === 5 ? 'right'
-        : view.actorPosition <= 3 ? 'left' : 'right';
-      return play(nonFlurryDamage, direction);
+      return play(nonFlurryDamage, bestDriveDirection(nonFlurryDamage, view));
     }
     return play(nonFlurryDamage);
   }
@@ -201,12 +267,7 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
 
   if (move) {
     const movement = bestMovement(move, view);
-    const next = view.actorPosition + (movement === 'left' ? -1 : movement === 'right' ? 1 : 0);
-    const gainsPosition = potentialAt(view, next) > potentialAt(view, view.actorPosition);
-    const gainsMana = move.mechanic === 'leyStep'
-      && view.hand.some((card) => card.mechanic === 'spell' && value(card, 'manaCost') > view.mana
-        && value(card, 'manaCost') <= view.mana + value(move, 'mana'));
-    if (gainsPosition || gainsMana) return play(move, movement);
+    if (movementImproves(move, view, movement)) return play(move, movement.movement);
   }
 
   const cull = first(view, 'cull');

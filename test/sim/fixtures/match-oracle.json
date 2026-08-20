@@ -3349,10 +3349,10 @@
     "turns": 20,
     "telemetry": {
      "turnsToWin": 20,
-     "eventCount": 254,
+     "eventCount": 236,
      "damageByCard": {
       "ochre": {
-       "volley": 26
+       "volley": 21
       },
       "indigo": {
        "arcBolt": 40
@@ -3360,13 +3360,13 @@
      },
      "playsByCard": {
       "ochre": {
-       "footwork": 8,
-       "aim": 10,
+       "footwork": 5,
+       "aim": 8,
        "volley": 6
       },
       "indigo": {
        "footwork": 8,
-       "channel": 15,
+       "channel": 14,
        "arcBolt": 10
       }
      },
@@ -3374,7 +3374,7 @@
       "ochre": {
        "aim": 2,
        "volley": 2,
-       "footwork": 5
+       "footwork": 4
       },
       "indigo": {
        "arcBolt": 2,
@@ -3397,29 +3397,29 @@
      },
      "deadDraws": {
       "ochre": {
-       "range": 6,
+       "range": 10,
        "mana": 0,
        "setup": 0,
-       "total": 6
+       "total": 10
       },
       "indigo": {
        "range": 0,
-       "mana": 7,
+       "mana": 6,
        "setup": 0,
-       "total": 7
+       "total": 6
       }
      },
      "moneySpent": {
-      "ochre": 31,
+      "ochre": 28,
       "indigo": 30
      },
      "unspentMoney": {
-      "ochre": 8,
-      "indigo": 4
+      "ochre": 7,
+      "indigo": 5
      },
      "finalHealth": {
       "ochre": 0,
-      "indigo": 11
+      "indigo": 16
      }
     }
    }
@@ -3521,38 +3521,40 @@
       "indigo": "sg-f02ddf329e"
      }
     },
-    "outcome": "ochre",
+    "outcome": "indigo",
     "reason": "victory",
-    "turns": 19,
+    "turns": 18,
     "telemetry": {
-     "turnsToWin": 19,
-     "eventCount": 189,
+     "turnsToWin": 18,
+     "eventCount": 178,
      "damageByCard": {
       "ochre": {
-       "drive": 14,
-       "heavyBlow": 24
+       "drive": 4,
+       "heavyBlow": 8
       },
       "indigo": {
-       "arcBolt": 28
+       "arcBolt": 36,
+       "fireball": 7
       }
      },
      "playsByCard": {
       "ochre": {
-       "footwork": 8,
-       "drive": 5,
-       "heavyBlow": 6
+       "footwork": 7,
+       "drive": 2,
+       "heavyBlow": 2
       },
       "indigo": {
+       "leyStep": 7,
+       "arcBolt": 9,
        "channel": 6,
-       "arcBolt": 7,
-       "footwork": 4,
-       "leyStep": 4
+       "footwork": 3,
+       "fireball": 1
       }
      },
      "purchasesByCard": {
       "ochre": {
        "footwork": 1,
-       "heavyBlow": 2,
+       "heavyBlow": 1,
        "drive": 1
       },
       "indigo": {
@@ -3577,29 +3579,29 @@
      },
      "deadDraws": {
       "ochre": {
-       "range": 2,
+       "range": 9,
        "mana": 0,
        "setup": 0,
-       "total": 2
+       "total": 9
       },
       "indigo": {
        "range": 0,
-       "mana": 5,
+       "mana": 3,
        "setup": 0,
-       "total": 5
+       "total": 3
       }
      },
      "moneySpent": {
-      "ochre": 17,
+      "ochre": 12,
       "indigo": 19
      },
      "unspentMoney": {
-      "ochre": 16,
-      "indigo": 13
+      "ochre": 20,
+      "indigo": 8
      },
      "finalHealth": {
-      "ochre": 12,
-      "indigo": 0
+      "ochre": 0,
+      "indigo": 25
      }
     }
    }

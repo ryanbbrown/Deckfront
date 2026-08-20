@@ -7,6 +7,8 @@ import { repairBuildIn } from './build';
 import type { Strategy } from './strategy';
 import { chooseTacticalAction } from './tacticalPilot';
 import type { CullOption, PilotCard, TacticalView } from './tacticalPilot';
+import { addProfileCard, buildAttackProfile, removeProfileCard } from './positionValue';
+import type { AttackProfile, ProfileCard } from './positionValue';
 import type { DeadDrawCounts, MatchResult, MatchTelemetry } from './types';
 export { SIMULATION_KERNEL_PROTOCOL_VERSION } from './protocolVersions';
 
@@ -43,6 +45,7 @@ interface KernelPlayer {
   positionChanged: boolean;
   purchases: number[];
   acquired: Int16Array;
+  attackProfile: AttackProfile;
 }
 
 interface KernelState {
@@ -113,7 +116,8 @@ function makePlayer(kingdom: KernelKingdom, strategy: Strategy): KernelPlayer {
   const buildCost = build.reduce((total, index) => total + kingdom.cards[index]!.cost, 0);
   return {
     strategy, build, draw: [], drawHead: 0, hand: [], discard: [], play: [], money: 0, mana: 0,
-    firstBuyMoney: firstBuyCarry(buildCost), firstBuyPending: true, positionChanged: false, purchases: [], acquired
+    firstBuyMoney: firstBuyCarry(buildCost), firstBuyPending: true, positionChanged: false, purchases: [], acquired,
+    attackProfile: buildAttackProfile([])
   };
 }
 
@@ -243,6 +247,25 @@ function purchaseProjection(state: KernelState, actor: 0 | 1, copperTrashed: num
   return [...finite, repeated];
 }
 
+function attackProfile(state: KernelState, actor: 0 | 1): AttackProfile {
+  const player = state.players[actor];
+  function* definitions(): Iterable<ProfileCard> {
+    for (let offset = player.drawHead; offset < player.draw.length; offset += 1) {
+      const card = state.kingdom.cards[player.draw[offset]!]!;
+      yield { definitionId: card.id, mechanic: card.mechanic, values: card.values };
+    }
+    for (const zone of [player.hand, player.discard, player.play]) for (const index of zone) {
+      const card = state.kingdom.cards[index]!;
+      yield { definitionId: card.id, mechanic: card.mechanic, values: card.values };
+    }
+  }
+  return buildAttackProfile(definitions());
+}
+
+function profileCard(card: KernelCard): ProfileCard {
+  return { definitionId: card.id, mechanic: card.mechanic, values: card.values };
+}
+
 function pilotView(state: KernelState, actor: 0 | 1, pending: 'discard' | 'recover' | null): TacticalView {
   const player = state.players[actor];
   const hand: PilotCard[] = player.hand.map((index, handIndex) => {
@@ -278,7 +301,8 @@ function pilotView(state: KernelState, actor: 0 | 1, pending: 'discard' | 'recov
     pendingChoice: pending,
     actorPosition: state.positions[actor], opponentPosition: state.positions[other(actor)],
     opponentHealth: state.health[other(actor)], aimed: state.aimed[actor], opponentExposed: state.exposed[other(actor)],
-    mana: player.mana, positionChanged: player.positionChanged, tacticalPlayed: state.tacticalPlayed, cullOptions
+    mana: player.mana, positionChanged: player.positionChanged, tacticalPlayed: state.tacticalPlayed, cullOptions,
+    actorProfile: player.attackProfile, opponentProfile: state.players[other(actor)].attackProfile
   };
 }
 
@@ -326,9 +350,15 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       const copperCount = decision.trashHandIndexes?.length ?? 0;
       for (let count = 0; count < copperCount; count += 1) {
         const index = player.hand.findIndex((candidate) => state.kingdom.cards[candidate]!.id === 'copper');
-        if (index >= 0) { player.hand.splice(index, 1); event(state); }
+        if (index >= 0) {
+          const [trashed] = player.hand.splice(index, 1);
+          removeProfileCard(player.attackProfile, profileCard(state.kingdom.cards[trashed!]!));
+          event(state);
+        }
       }
-      if (decision.trashCull) { player.play.pop(); event(state); }
+      if (decision.trashCull) {
+        player.play.pop(); removeProfileCard(player.attackProfile, profileCard(card)); event(state);
+      }
       break;
     }
     case 'muster': draw(state, actor, cardValue(card, 'draw')); break;
@@ -447,6 +477,7 @@ function buy(state: KernelState, actor: 0 | 1, cardIndex: number): void {
   const player = state.players[actor]; const card = state.kingdom.cards[cardIndex]!;
   player.money -= card.cost; if (card.type === 'action') state.supply[cardIndex]!--;
   player.discard.push(cardIndex); player.purchases.push(cardIndex); player.acquired[cardIndex]! += 1;
+  addProfileCard(player.attackProfile, profileCard(card));
   bump(state.telemetry.purchasesByCard[playerId(actor)], card.id, 1);
   state.telemetry.moneySpent[playerId(actor)] += card.cost; event(state);
 }
@@ -478,6 +509,8 @@ function createState(config: SimulationMatchConfig): KernelState {
   players[0].draw = shuffle(state, [...Array<number>(7).fill(copper), ...players[0].build]);
   players[1].draw = shuffle(state, [...Array<number>(7).fill(copper), ...players[1].build]);
   draw(state, 0, 5); draw(state, 1, 5); event(state);
+  players[0].attackProfile = attackProfile(state, 0);
+  players[1].attackProfile = attackProfile(state, 1);
   state.telemetry = createTelemetry(players, kingdom);
   return state;
 }

@@ -10,6 +10,9 @@ export interface ArenaOptions {
   hand?: readonly string[];
   draw?: readonly string[];
   discard?: readonly string[];
+  indigoHand?: readonly string[];
+  indigoDraw?: readonly string[];
+  indigoDiscard?: readonly string[];
   ochre?: number;
   indigo?: number;
   health?: number;
@@ -50,6 +53,11 @@ export function arena(options: ArenaOptions = {}): GameState {
   deck.draw = (options.draw ?? []).map((id) => createCard(state, id));
   deck.discard = (options.discard ?? []).map((id) => createCard(state, id));
   deck.play = [];
+  const indigoDeck = state.players.indigo.deck;
+  if (options.indigoHand) indigoDeck.hand = options.indigoHand.map((id) => createCard(state, id));
+  if (options.indigoDraw) indigoDeck.draw = options.indigoDraw.map((id) => createCard(state, id));
+  if (options.indigoDiscard) indigoDeck.discard = options.indigoDiscard.map((id) => createCard(state, id));
+  if (options.indigoHand || options.indigoDraw || options.indigoDiscard) indigoDeck.play = [];
   state.fighters.ochre.position = options.ochre ?? 2;
   state.fighters.indigo.position = options.indigo ?? 3;
   if (options.health !== undefined) state.fighters.indigo.health = options.health;

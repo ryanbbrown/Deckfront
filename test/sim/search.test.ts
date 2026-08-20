@@ -54,6 +54,31 @@ describe('shared damage pilot', () => {
     expect(finished.fighters.indigo.health).toBe(16);
     expect(finished.actionsThisTurn.at(-1)).toBe('flurry');
   });
+
+  it('moves a Mage deck away from a public Melee deck', () => {
+    const state = arena({
+      kingdomId: 'three-way-open', hand: ['step'], draw: ['arcBolt'], ochre: 2, indigo: 3,
+      indigoHand: ['heavyBlow'], indigoDraw: [], indigoDiscard: []
+    });
+    expect(choose(state, strategy()).command).toMatchObject({ type: 'playMoveAction', direction: 'left' });
+  });
+
+  it('uses the public opponent deck to break a Near and Far damage tie', () => {
+    const state = arena({
+      kingdomId: 'range-rich-mixed', hand: ['footwork', 'steadyShot'], draw: [], ochre: 2, indigo: 3,
+      indigoHand: ['heavyBlow'], indigoDraw: [], indigoDiscard: []
+    });
+    expect(choose(state, strategy()).command).toMatchObject({ type: 'playFootwork', movement: 'left' });
+  });
+
+  it('still moves Close when that preserves the largest damage line', () => {
+    const state = arena({
+      kingdomId: 'range-rich-mixed', hand: ['step', 'heavyBlow'], draw: [], ochre: 2, indigo: 3,
+      health: 20, indigoHand: ['steadyShot'], indigoDraw: [], indigoDiscard: []
+    });
+    expect(choose(state, strategy()).command).toMatchObject({ type: 'playMoveAction', direction: 'right' });
+    expect(playPhase(state, strategy()).fighters.indigo.health).toBe(16);
+  });
 });
 
 describe('hidden draw order', () => {

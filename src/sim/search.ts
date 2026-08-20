@@ -1,5 +1,5 @@
 import {
-  isTacticalAction, kingdomEpoch, kingdomMarket, listLegalActions, opponent, rangeBand, resolveCard
+  isTacticalAction, kingdomEpoch, kingdomMarket, listLegalActions, opponent, resolveCard
 } from '../game';
 import { applyLegalAction } from '../game/engine';
 import type { CardInstance, CardMechanic, GameEvent, GameState, LegalAction, PlayerId } from '../game';
@@ -7,6 +7,8 @@ import { projectPurchases } from './buy';
 import type { PurchaseProjection } from './buy';
 import type { Strategy } from './strategy';
 import { ActionSearchOverflowError } from './types';
+import { buildAttackProfile, publicPositionAdvantage } from './positionValue';
+import type { AttackProfile, ProfileCard } from './positionValue';
 
 export interface Branch {
   lethal: boolean;
@@ -15,7 +17,7 @@ export interface Branch {
   copperTrashed: number;
   obsoleteCullTrashed: number;
   cardsDrawn: number;
-  attackPotential: number;
+  positionValue: number;
   suffix: number;
 }
 export type SearchMemo = Map<string, Branch>;
@@ -87,26 +89,14 @@ function ownedCount(state: GameState, playerId: PlayerId, definitionId: string):
   return total;
 }
 
-function printedAttackPotential(state: GameState, playerId: PlayerId): number {
-  const band = rangeBand(state);
-  let total = 0;
-  for (const zone of zones(state, playerId)) for (const card of zone) {
-    const definition = resolveCard(state, card.definitionId);
-    const values = definition.values ?? {};
-    switch (definition.mechanic) {
-      case 'melee': if (band === 'Close') total += values.damage ?? 0; break;
-      case 'drive': if (band === 'Close') total += (values.damage ?? 0) + (values.wallDamage ?? 0); break;
-      case 'flurry': if (band === 'Close') total += values.max ?? 0; break;
-      case 'ranged': if (band !== 'Close') total += values.damage ?? 0; break;
-      case 'volley':
-        if (band === 'Near') total += Math.max(values.near ?? 0, values.aimedNear ?? 0);
-        if (band === 'Far') total += Math.max(values.far ?? 0, values.aimedFar ?? 0);
-        break;
-      case 'spell': total += values.damage ?? 0; break;
-      default: break;
+function attackProfile(state: GameState, playerId: PlayerId): AttackProfile {
+  function* definitions(): Iterable<ProfileCard> {
+    for (const zone of zones(state, playerId)) for (const card of zone) {
+      const definition = resolveCard(state, card.definitionId);
+      yield { definitionId: definition.id, mechanic: definition.mechanic, values: definition.values ?? {} };
     }
   }
-  return total;
+  return buildAttackProfile(definitions());
 }
 
 function eventTotals(state: GameState, playerId: PlayerId, baseline: SearchBaseline): {
@@ -125,7 +115,10 @@ function eventTotals(state: GameState, playerId: PlayerId, baseline: SearchBasel
   return { cardsDrawn, copperTrashed, cullTrashed };
 }
 
-function branchAt(state: GameState, playerId: PlayerId, strategy: Strategy, baseline: SearchBaseline): Branch {
+function branchAt(
+  state: GameState, playerId: PlayerId, strategy: Strategy, baseline: SearchBaseline,
+  opponentProfile: AttackProfile
+): Branch {
   const events = eventTotals(state, playerId, baseline);
   let obsoleteCullTrashed = 0;
   if (events.cullTrashed > 0) {
@@ -140,7 +133,10 @@ function branchAt(state: GameState, playerId: PlayerId, strategy: Strategy, base
     copperTrashed: events.copperTrashed,
     obsoleteCullTrashed,
     cardsDrawn: events.cardsDrawn,
-    attackPotential: printedAttackPotential(state, playerId),
+    positionValue: publicPositionAdvantage(
+      attackProfile(state, playerId), opponentProfile,
+      state.fighters[playerId].position, state.fighters[opponent(playerId)].position
+    ),
     suffix: 0
   };
 }
@@ -163,7 +159,7 @@ function isBetter(candidate: Branch, best: Branch | null): boolean {
   if (candidate.copperTrashed !== best.copperTrashed) return candidate.copperTrashed > best.copperTrashed;
   if (candidate.obsoleteCullTrashed !== best.obsoleteCullTrashed) return candidate.obsoleteCullTrashed > best.obsoleteCullTrashed;
   if (candidate.cardsDrawn !== best.cardsDrawn) return candidate.cardsDrawn > best.cardsDrawn;
-  if (candidate.attackPotential !== best.attackPotential) return candidate.attackPotential > best.attackPotential;
+  if (candidate.positionValue !== best.positionValue) return candidate.positionValue > best.positionValue;
   if (candidate.suffix !== best.suffix) return candidate.suffix < best.suffix;
   return false;
 }
@@ -279,12 +275,13 @@ export function searchAction(
   strategy: Strategy, baseline: SearchBaseline, options: SearchOptions
 ): SearchOutcome {
   const root = blindedState(state);
+  const opponentProfile = attackProfile(root, opponent(playerId));
   const memo = options.memo;
   let visited = 0;
 
   function step(current: GameState, action: LegalAction): Branch {
     if (action.command.type === 'endActionPhase') {
-      return { ...branchAt(current, playerId, strategy, baseline), suffix: 1 };
+      return { ...branchAt(current, playerId, strategy, baseline, opponentProfile), suffix: 1 };
     }
     const child = visit(applyLegalAction(current, action));
     return { ...child, suffix: child.suffix + 1 };
@@ -301,7 +298,9 @@ export function searchAction(
   }
 
   function visit(current: GameState): Branch {
-    if (current.winner || current.phase !== 'action') return branchAt(current, playerId, strategy, baseline);
+    if (current.winner || current.phase !== 'action') {
+      return branchAt(current, playerId, strategy, baseline, opponentProfile);
+    }
     const key = memo ? memoKey(current, playerId) : null;
     if (key !== null) {
       const cached = memo!.get(key);

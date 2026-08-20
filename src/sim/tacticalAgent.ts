@@ -1,4 +1,4 @@
-import { isTacticalAction, resolveCard } from '../game';
+import { isTacticalAction, opponent, resolveCard } from '../game';
 import type { CardInstance, GameState, LegalAction, MovementChoice, PlayerId } from '../game';
 import { repairBuild } from './build';
 import { actionPhaseMoney } from './search';
@@ -6,6 +6,8 @@ import { chooseBuyAction, projectPurchases } from './buy';
 import type { Strategy } from './strategy';
 import { chooseTacticalAction } from './tacticalPilot';
 import type { CullOption, PilotCard, TacticalDecision, TacticalView } from './tacticalPilot';
+import { buildAttackProfile } from './positionValue';
+import type { AttackProfile, ProfileCard } from './positionValue';
 import type { Agent } from './types';
 
 function movementOf(action: LegalAction): MovementChoice | undefined {
@@ -54,10 +56,22 @@ function cullOptions(state: GameState, playerId: PlayerId, strategy: Strategy, h
   return options;
 }
 
+function attackProfile(state: GameState, playerId: PlayerId): AttackProfile {
+  const deck = state.players[playerId].deck;
+  function* definitions(): Iterable<ProfileCard> {
+    for (const zone of [deck.draw, deck.hand, deck.discard, deck.play]) for (const instance of zone) {
+      const card = resolveCard(state, instance.definitionId);
+      yield { definitionId: card.id, mechanic: card.mechanic, values: card.values ?? {} };
+    }
+  }
+  return buildAttackProfile(definitions());
+}
+
 export function tacticalView(
   state: GameState, playerId: PlayerId, actions: readonly LegalAction[], strategy: Strategy
 ): TacticalView {
   const hand = state.players[playerId].deck.hand.map((card, index) => availableCard(state, actions, card, index));
+  const opponentId = opponent(playerId);
   return {
     hand,
     discard: state.players[playerId].deck.discard.map((card, index) => ({
@@ -65,14 +79,15 @@ export function tacticalView(
     })),
     pendingChoice: state.pendingChoice?.type ?? null,
     actorPosition: state.fighters[playerId].position,
-    opponentPosition: state.fighters[playerId === 'ochre' ? 'indigo' : 'ochre'].position,
-    opponentHealth: state.fighters[playerId === 'ochre' ? 'indigo' : 'ochre'].health,
+    opponentPosition: state.fighters[opponentId].position,
+    opponentHealth: state.fighters[opponentId].health,
     aimed: state.fighters[playerId].aimed,
-    opponentExposed: state.fighters[playerId === 'ochre' ? 'indigo' : 'ochre'].exposed,
+    opponentExposed: state.fighters[opponentId].exposed,
     mana: state.players[playerId].mana,
     positionChanged: state.players[playerId].positionChanged,
     tacticalPlayed: state.actionsThisTurn.filter(isTacticalAction).length,
-    cullOptions: cullOptions(state, playerId, strategy, hand)
+    cullOptions: cullOptions(state, playerId, strategy, hand),
+    actorProfile: attackProfile(state, playerId), opponentProfile: attackProfile(state, opponentId)
   };
 }
 

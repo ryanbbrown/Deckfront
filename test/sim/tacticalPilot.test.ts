@@ -21,6 +21,77 @@ describe('the shared tactical pilot', () => {
     expect(action.command).toMatchObject({ type: 'playFootwork', movement: 'left' });
   });
 
+  it('uses Step to move a Mage deck away from a Melee deck', () => {
+    const state = arena({
+      kingdomId: 'three-way-open', hand: ['step'], draw: ['arcBolt'], ochre: 2, indigo: 3,
+      indigoHand: ['heavyBlow'], indigoDraw: [], indigoDiscard: []
+    });
+    expect(choose(state).command).toMatchObject({ type: 'playMoveAction', direction: 'left' });
+  });
+
+  it('uses the opponent deck to prefer Far over Near when Steady Shot damage ties', () => {
+    const state = arena({
+      kingdomId: 'range-rich-mixed', hand: ['footwork', 'steadyShot'], draw: [], ochre: 2, indigo: 3,
+      indigoHand: ['heavyBlow'], indigoDraw: [], indigoDiscard: []
+    });
+    expect(choose(state).command).toMatchObject({ type: 'playFootwork', movement: 'left' });
+  });
+
+  it('prefers Far when Volley deals more current damage there', () => {
+    const state = arena({
+      kingdomId: 'current-duel', hand: ['footwork', 'volley'], draw: [], ochre: 2, indigo: 3,
+      indigoHand: ['heavyBlow'], indigoDraw: [], indigoDiscard: []
+    });
+    expect(choose(state).command).toMatchObject({ type: 'playFootwork', movement: 'left' });
+  });
+
+  it('keeps Footwork at Stay when current damage and public position value tie', () => {
+    const state = arena({
+      kingdomId: 'three-way-open', hand: ['footwork'], draw: ['arcBolt'], ochre: 2, indigo: 3,
+      indigoHand: ['arcBolt'], indigoDraw: [], indigoDiscard: []
+    });
+    expect(choose(state).command).toMatchObject({ type: 'playFootwork', movement: 'stay' });
+  });
+
+  it('does not spend Step in a deck with no attacks', () => {
+    const state = arena({ hand: ['step'], draw: ['copper'], indigoHand: [], indigoDraw: [], indigoDiscard: [] });
+    expect(choose(state).command.type).toBe('endActionPhase');
+  });
+
+  it('moves before Adapt only when the move improves combat position', () => {
+    const useful = arena({
+      kingdomId: 'three-way-open', hand: ['adapt', 'step'], draw: ['arcBolt'], ochre: 2, indigo: 3,
+      indigoHand: ['heavyBlow'], indigoDraw: [], indigoDiscard: []
+    });
+    expect(choose(useful).command).toMatchObject({ type: 'playMoveAction', direction: 'left' });
+
+    const idle = arena({
+      kingdomId: 'three-way-open', hand: ['adapt', 'step'], draw: ['copper'], ochre: 2, indigo: 3,
+      indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    expect(choose(idle).command.type).toBe('playAction');
+  });
+
+  it('does not trade away current Melee damage to enable one spell with Ley Step', () => {
+    const state = arena({
+      kingdomId: 'three-way-open', hand: ['leyStep', 'heavyBlow', 'heavyBlow', 'arcBolt'],
+      mana: 0, ochre: 2, indigo: 2, indigoHand: ['steadyShot'], indigoDraw: [], indigoDiscard: []
+    });
+    const action = choose(state);
+    const command = action.command;
+    expect(command.type).toBe('playAction');
+    if (command.type !== 'playAction') throw new Error('Expected Heavy Blow to use playAction.');
+    expect(state.players.ochre.deck.hand.find((card) => card.id === command.cardInstanceId)?.definitionId)
+      .toBe('heavyBlow');
+  });
+
+  it('chooses Drive wall damage at both arena walls', () => {
+    const left = arena({ hand: ['drive'], ochre: 1, indigo: 1 });
+    const right = arena({ hand: ['drive'], ochre: 5, indigo: 5 });
+    expect(choose(left).command).toMatchObject({ type: 'playDrive', direction: 'left' });
+    expect(choose(right).command).toMatchObject({ type: 'playDrive', direction: 'right' });
+  });
+
   it('sets Feint before it uses a Close attack', () => {
     const state = arena({ kingdomId: 'current-duel', hand: ['heavyBlow', 'feint'], ochre: 2, indigo: 2 });
     expect(choose(state).command.type).toBe('playFeint');
