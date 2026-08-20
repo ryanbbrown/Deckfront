@@ -17,7 +17,5 @@ coverage/
 
 .reviews/
 
-.experiments/**
-!.experiments/**/
-!.experiments/**/report.md
+.experiments/
 dist-sim/
