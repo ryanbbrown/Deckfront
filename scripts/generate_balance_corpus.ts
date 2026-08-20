@@ -64,11 +64,31 @@ export interface StrategyGroupCardUse {
   repeatPlans: number;
 }
 
+export interface StrategyGroupCardPair {
+  firstCardId: string;
+  secondCardId: string;
+  offeredTogether: number;
+  acquiredTogether: number;
+  firstOnly: number;
+  secondOnly: number;
+  neither: number;
+}
+
+export interface StrategyGroupAvailability {
+  cardId: string;
+  offeredKingdoms: number;
+  offeredWithStrategy: number;
+  absentKingdoms: number;
+  absentWithStrategy: number;
+}
+
 export interface StrategyGroupReport {
   label: string;
   strategies: number;
   share: number;
   cards: StrategyGroupCardUse[];
+  pairs: StrategyGroupCardPair[];
+  availability: StrategyGroupAvailability[];
 }
 
 export interface CorpusKingdomReport extends KingdomReport { split: BalanceSuiteSplit }
@@ -287,7 +307,42 @@ export function buildStrategyGroups(model: BalanceCorpusModel): StrategyGroupRep
         return rightRate - leftRate || right.acquiredStrategies - left.acquiredStrategies
           || left.name.localeCompare(right.name);
       });
-    return { label, strategies: group.length, share: group.length / entries.length, cards };
+    const definingFamilies = new Set(label.split(' + '));
+    const definingCards = cards.filter((card) => definingFamilies.has(card.family));
+    const pairs: StrategyGroupCardPair[] = [];
+    for (let first = 0; first < definingCards.length; first += 1) {
+      for (let second = first + 1; second < definingCards.length; second += 1) {
+        const firstCardId = definingCards[first]!.cardId, secondCardId = definingCards[second]!.cardId;
+        let offeredTogether = 0, acquiredTogether = 0, firstOnly = 0, secondOnly = 0, neither = 0;
+        for (const { kingdom, strategy } of group) {
+          const market = marketByKingdom.get(kingdom.id)!;
+          if (!market.has(firstCardId) || !market.has(secondCardId)) continue;
+          offeredTogether += 1;
+          const acquiredFirst = (strategy.acquisitionRates[firstCardId] ?? 0) > 0;
+          const acquiredSecond = (strategy.acquisitionRates[secondCardId] ?? 0) > 0;
+          if (acquiredFirst && acquiredSecond) acquiredTogether += 1;
+          else if (acquiredFirst) firstOnly += 1;
+          else if (acquiredSecond) secondOnly += 1;
+          else neither += 1;
+        }
+        if (offeredTogether) pairs.push({ firstCardId, secondCardId, offeredTogether, acquiredTogether,
+          firstOnly, secondOnly, neither });
+      }
+    }
+    pairs.sort((left, right) => right.offeredTogether - left.offeredTogether
+      || left.firstCardId.localeCompare(right.firstCardId) || left.secondCardId.localeCompare(right.secondCardId));
+    const groupKingdoms = new Set(group.map((entry) => entry.kingdom.id));
+    const availability = definingCards.map((card): StrategyGroupAvailability => {
+      let offeredKingdoms = 0, offeredWithStrategy = 0, absentKingdoms = 0, absentWithStrategy = 0;
+      for (const kingdom of model.kingdoms) {
+        const offered = marketByKingdom.get(kingdom.id)!.has(card.cardId);
+        const hasStrategy = groupKingdoms.has(kingdom.id);
+        if (offered) { offeredKingdoms += 1; if (hasStrategy) offeredWithStrategy += 1; }
+        else { absentKingdoms += 1; if (hasStrategy) absentWithStrategy += 1; }
+      }
+      return { cardId: card.cardId, offeredKingdoms, offeredWithStrategy, absentKingdoms, absentWithStrategy };
+    });
+    return { label, strategies: group.length, share: group.length / entries.length, cards, pairs, availability };
   }).sort((left, right) => right.strategies - left.strategies || left.label.localeCompare(right.label));
 }
 
@@ -323,13 +378,28 @@ function strategySplit(summary: CorpusSummary): string {
   return table(['Strategy type', 'Viable strategies', 'Share'], rows);
 }
 function strategyGroupCardTable(cards: readonly StrategyGroupCardUse[]): string {
-  return table(['Card', 'Cost and effect', 'Actually acquired', 'Average copies', 'Starting deck',
-    'Purchase plan', 'Repeat purchase'], cards.map((card) => [escape(card.name),
+  return table(['Card', 'Cost and effect', 'Used when offered', 'Copies when used'], cards.map((card) => [escape(card.name),
     `${card.cost} coins · ${escape(card.effect)}`,
-    `${integer(card.acquiredStrategies)} of ${integer(card.availableStrategies)} (${percent(card.availableStrategies
-      ? card.acquiredStrategies / card.availableStrategies : 0)})`,
-    fixed(card.averageCopiesWhenAcquired), integer(card.buildPlans), integer(card.finitePlans),
-    integer(card.repeatPlans)]));
+    `<strong>${percent(card.availableStrategies ? card.acquiredStrategies / card.availableStrategies : 0)}</strong><br>${integer(card.acquiredStrategies)} of ${integer(card.availableStrategies)} eligible strategies`,
+    fixed(card.averageCopiesWhenAcquired)]), 'card-use');
+}
+function strategyGroupPairTable(group: StrategyGroupReport): string {
+  return table(['Cards offered together', 'Eligible strategies', 'Used both', 'Used only first',
+    'Used only second', 'Used neither'], group.pairs.map((pair) => {
+    const first = cardDefinition(pair.firstCardId).name, second = cardDefinition(pair.secondCardId).name;
+    const result = (count: number) => `${percent(count / pair.offeredTogether)} (${integer(count)})`;
+    return [`${escape(first)} + ${escape(second)}`, integer(pair.offeredTogether), result(pair.acquiredTogether),
+      result(pair.firstOnly), result(pair.secondOnly), result(pair.neither)];
+  }), 'pair-use');
+}
+function strategyGroupAvailabilityTable(group: StrategyGroupReport): string {
+  return table(['Card', 'Kingdoms that offered it', 'Kingdoms without it'], group.availability.map((entry) => {
+    const rate = (count: number, total: number) => total
+      ? `<strong>${percent(count / total)}</strong><br>${integer(count)} of ${integer(total)} had ${escape(group.label)} strategies`
+      : 'Always offered';
+    return [escape(cardDefinition(entry.cardId).name), rate(entry.offeredWithStrategy, entry.offeredKingdoms),
+      rate(entry.absentWithStrategy, entry.absentKingdoms)];
+  }), 'availability-use');
 }
 function strategyGroupSections(model: BalanceCorpusModel): string {
   return buildStrategyGroups(model).map((group) => {
@@ -342,7 +412,7 @@ function strategyGroupSections(model: BalanceCorpusModel): string {
     const definition = group.label === 'No damage package'
       ? 'These strategies did not acquire enough Melee, Ranged, or Mage cards to form a damage package.'
       : `These strategies get their damage from ${escape(group.label)} cards. A damage type appears in the name when it supplies at least 20% of the strategy’s damage-card weight.`;
-    return `<section class="strategy-group"><h2>${escape(group.label)} strategies</h2><p class="group-share"><strong>${integer(group.strategies)} strategies · ${percent(group.share)} of all viable strategies</strong></p><p>${definition}</p><div class="callouts">${common}</div>${damageCards.length ? `<h3>Cards that define this strategy type</h3>${strategyGroupCardTable(damageCards)}` : ''}${otherDamageCards.length ? `<h3>Other damage cards used in smaller amounts</h3>${strategyGroupCardTable(otherDamageCards)}` : ''}${supportCards.length ? `<h3>Movement, drawing, money, and other support</h3>${strategyGroupCardTable(supportCards)}` : ''}</section>`;
+    return `<section class="strategy-group"><h2>${escape(group.label)} strategies</h2><p class="group-share"><strong>${integer(group.strategies)} strategies · ${percent(group.share)} of all viable strategies</strong></p><p>${definition}</p><div class="callouts">${common}</div>${damageCards.length ? `<h3>Cards that define this strategy type</h3><p>“Used when offered” counts only viable ${escape(group.label)} strategies from kingdoms that included the card. “Copies when used” is the average acquired per game among strategies that acquired at least one copy.</p>${strategyGroupCardTable(damageCards)}` : ''}${group.pairs.length ? `<h3>When defining cards were offered together</h3><p>Every percentage in a row uses the same eligible strategies: ${escape(group.label)} strategies from kingdoms that offered both named cards.</p>${strategyGroupPairTable(group)}` : ''}${group.availability.length ? `<h3>Does this strategy type depend on a card?</h3><p>Each cell counts kingdoms with at least one viable ${escape(group.label)} strategy. Compare the offered and absent columns to see whether the card changes how often this strategy type appears.</p>${strategyGroupAvailabilityTable(group)}` : ''}${otherDamageCards.length ? `<h3>Other damage cards used in smaller amounts</h3>${strategyGroupCardTable(otherDamageCards)}` : ''}${supportCards.length ? `<h3>Movement, drawing, money, and other support</h3>${strategyGroupCardTable(supportCards)}` : ''}</section>`;
   }).join('\n');
 }
 function strategyKey(index: number): string { return `S${index + 1}`; }
@@ -398,7 +468,7 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
   const primarySummary = model.scope === 'full' ? model.summaries.combined : model.summaries.tuning;
   const strategyTotal = Object.values(primarySummary.damageStrategyCounts).reduce((sum, count) => sum + count, 0);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>
-:root{--ink:#17231d;--muted:#56625c;--line:#ccd6d0;--paper:#f7f5ef;--panel:#fff;--accent:#096b4b;--soft:#e8f2ed;--warn:#9a3f13;--warn-soft:#fff1e8}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.48 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1500px;margin:auto;padding:36px 28px 72px}h1{font-size:clamp(30px,4vw,52px);line-height:1.05;margin:0 0 12px}h2{font-size:28px;margin:0 0 8px}h3{font-size:18px;margin:24px 0 8px}p{max-width:90ch;color:var(--muted)}section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;margin:24px 0}.warning{border:2px solid var(--warn);background:var(--warn-soft)}.warning h2{color:var(--warn)}.table-scroll{max-width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:8px}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:9px 11px;border-bottom:1px solid #e4e9e6;vertical-align:top}th{background:#edf3ef;font-size:12px;text-transform:uppercase;letter-spacing:.04em}tr:last-child td{border-bottom:0}.matrix td:not(:first-child),.matrix th:not(:first-child){text-align:right}.key{display:inline-block;background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-weight:700}.selection{color:var(--accent);font-weight:650}.callouts{display:grid;grid-template-columns:1fr 1fr;gap:12px}.callouts div{background:var(--soft);padding:14px;border-radius:9px}code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}@media(max-width:720px){main{padding:22px 12px 48px}section{padding:16px;margin:14px 0}.callouts{grid-template-columns:1fr}h2{font-size:23px}}
+:root{--ink:#17231d;--muted:#56625c;--line:#ccd6d0;--paper:#f7f5ef;--panel:#fff;--accent:#096b4b;--soft:#e8f2ed;--warn:#9a3f13;--warn-soft:#fff1e8}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.48 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1500px;margin:auto;padding:36px 28px 72px}h1{font-size:clamp(30px,4vw,52px);line-height:1.05;margin:0 0 12px}h2{font-size:28px;margin:0 0 8px}h3{font-size:18px;margin:24px 0 8px}p{max-width:90ch;color:var(--muted)}section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;margin:24px 0}.warning{border:2px solid var(--warn);background:var(--warn-soft)}.warning h2{color:var(--warn)}.table-scroll{max-width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:8px}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:9px 11px;border-bottom:1px solid #e4e9e6;vertical-align:top}th{background:#edf3ef;font-size:12px;text-transform:uppercase;letter-spacing:.04em}tr:last-child td{border-bottom:0}.card-use{white-space:normal;table-layout:fixed;min-width:760px}.card-use th:nth-child(1){width:15%}.card-use th:nth-child(2){width:49%}.card-use th:nth-child(3){width:24%}.card-use th:nth-child(4){width:12%}.pair-use td:not(:first-child),.pair-use th:not(:first-child),.availability-use td:not(:first-child),.availability-use th:not(:first-child){text-align:right}.matrix td:not(:first-child),.matrix th:not(:first-child){text-align:right}.key{display:inline-block;background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-weight:700}.selection{color:var(--accent);font-weight:650}.callouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.callouts div{background:var(--soft);padding:14px;border-radius:9px}code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}@media(max-width:720px){main{padding:22px 12px 48px}section{padding:16px;margin:14px 0}.callouts{grid-template-columns:1fr}h2{font-size:23px}}
 </style></head><body><main><header><h1>${title}</h1><p>${introduction}</p></header>
 ${incompletePoolWarning}
 ${warning}

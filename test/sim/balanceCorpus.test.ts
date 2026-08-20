@@ -89,6 +89,27 @@ describe('balance-corpus aggregation', () => {
     });
   });
 
+  it('shows co-use only among strategies offered both cards', () => {
+    const tuning = corpus().filter((entry) => entry.split === 'tuning');
+    const definitions = BALANCE_SUITE_MANIFEST.kingdoms.filter((entry) => entry.split === 'tuning'
+      && ['drive', 'heavyBlow'].every((cardId) => entry.actionPiles.some((pile) => pile.cardId === cardId)));
+    expect(definitions.length).toBeGreaterThanOrEqual(2);
+    const first = tuning.find((entry) => entry.id === definitions[0]!.id)!;
+    first.strategies[0] = { ...first.strategies[0]!, startingBuild: ['drive'], repeatPurchase: 'drive',
+      acquisitionRates: { drive: 2, heavyBlow: 1 } };
+    const second = tuning.find((entry) => entry.id === definitions[1]!.id)!;
+    second.strategies[0] = { ...second.strategies[0]!, startingBuild: ['drive'], repeatPurchase: 'drive',
+      acquisitionRates: { drive: 2 } };
+    const melee = buildStrategyGroups(buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, tuning))
+      .find((group) => group.label === 'Melee')!;
+    const pair = melee.pairs.find((entry) => new Set([entry.firstCardId, entry.secondCardId]).has('drive')
+      && new Set([entry.firstCardId, entry.secondCardId]).has('heavyBlow'))!;
+    expect(pair).toMatchObject({ offeredTogether: 2, acquiredTogether: 1, firstOnly: 1,
+      secondOnly: 0, neither: 0 });
+    expect(renderBalanceCorpus(buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, tuning)))
+      .toContain('When defining cards were offered together');
+  });
+
   it('renders the complete tuning split without stale validation results', () => {
     const tuning = corpus().filter((entry) => entry.split === 'tuning');
     const rangedDefinition = BALANCE_SUITE_MANIFEST.kingdoms.find((entry) => entry.split === 'tuning'
@@ -107,8 +128,10 @@ describe('balance-corpus aggregation', () => {
     expect(html).toContain('No damage package strategies');
     expect(html).toContain('Ranged strategies');
     expect(html).toContain('Cards that define this strategy type');
+    expect(html).toContain('Does this strategy type depend on a card?');
+    expect(html).toContain('Used when offered');
+    expect(html).toContain('Copies when used');
     expect(html).toContain('Movement, drawing, money, and other support');
-    expect(html).toContain('Actually acquired');
     expect(html).not.toContain('This is an incomplete historical card pool');
     expect(html).toContain('All 80 kingdoms');
     expect(html).toContain('The held-back validation kingdoms were not run');
