@@ -94,10 +94,10 @@
       "name": "Drive",
       "type": "action",
       "cost": 4,
-      "text": "At Close range, deal 3 damage. Then move both fighters 1 space left or right so they remain Close. If a wall blocks the move, neither fighter moves, and the attack deals 2 additional damage.",
+      "text": "At Close range, deal 2 damage. Then move both fighters 1 space left or right so they remain Close. If a wall blocks the move, neither fighter moves, and the attack deals 2 additional damage.",
       "mechanic": "drive",
       "values": {
-        "damage": 3,
+        "damage": 2,
         "wallDamage": 2
       },
       "family": "melee"

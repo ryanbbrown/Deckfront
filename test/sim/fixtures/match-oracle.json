@@ -3523,36 +3523,36 @@
     },
     "outcome": "ochre",
     "reason": "victory",
-    "turns": 15,
+    "turns": 19,
     "telemetry": {
-     "turnsToWin": 15,
-     "eventCount": 159,
+     "turnsToWin": 19,
+     "eventCount": 189,
      "damageByCard": {
       "ochre": {
-       "drive": 19,
-       "heavyBlow": 20
+       "drive": 14,
+       "heavyBlow": 24
       },
       "indigo": {
-       "arcBolt": 24
+       "arcBolt": 28
       }
      },
      "playsByCard": {
       "ochre": {
-       "footwork": 7,
+       "footwork": 8,
        "drive": 5,
-       "heavyBlow": 5
+       "heavyBlow": 6
       },
       "indigo": {
-       "channel": 4,
-       "arcBolt": 6,
-       "footwork": 3,
+       "channel": 6,
+       "arcBolt": 7,
+       "footwork": 4,
        "leyStep": 4
       }
      },
      "purchasesByCard": {
       "ochre": {
        "footwork": 1,
-       "heavyBlow": 1,
+       "heavyBlow": 2,
        "drive": 1
       },
       "indigo": {
@@ -3584,21 +3584,21 @@
       },
       "indigo": {
        "range": 0,
-       "mana": 3,
+       "mana": 5,
        "setup": 0,
-       "total": 3
+       "total": 5
       }
      },
      "moneySpent": {
-      "ochre": 12,
+      "ochre": 17,
       "indigo": 19
      },
      "unspentMoney": {
-      "ochre": 13,
-      "indigo": 7
+      "ochre": 16,
+      "indigo": 13
      },
      "finalHealth": {
-      "ochre": 16,
+      "ochre": 12,
       "indigo": 0
      }
     }
