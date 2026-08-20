@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildBalanceCorpusModel, classifyStrategyDamage, renderBalanceCorpus, selectCorpusKingdoms
+  buildBalanceCorpusModel, buildStrategyGroups, classifyStrategyDamage, renderBalanceCorpus,
+  selectCorpusKingdoms
 } from '../../scripts/generate_balance_corpus';
 import type { CorpusKingdomReport } from '../../scripts/generate_balance_corpus';
 import { BALANCE_SUITE_MANIFEST } from '../../src/sim/balanceSuite';
@@ -72,8 +73,29 @@ describe('balance-corpus aggregation', () => {
       .toBe('No damage package');
   });
 
+  it('calculates card use separately inside each strategy type', () => {
+    const reports = corpus();
+    const tuning = reports.filter((entry) => entry.split === 'tuning');
+    tuning[0]!.strategies[0] = { ...tuning[0]!.strategies[0]!, startingBuild: ['drive'],
+      acquisitionRates: { drive: 2, footwork: 1 }, acquiredCards: ['drive', 'footwork'] };
+    const groups = buildStrategyGroups(buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, tuning));
+    const melee = groups.find((group) => group.label === 'Melee')!;
+    expect(melee).toMatchObject({ strategies: 1, share: 1 / 80 });
+    expect(melee.cards.find((card) => card.cardId === 'drive')).toMatchObject({
+      acquiredStrategies: 1, averageCopiesWhenAcquired: 2, buildPlans: 1
+    });
+    expect(melee.cards.find((card) => card.cardId === 'footwork')).toMatchObject({
+      acquiredStrategies: 1, averageCopiesWhenAcquired: 1
+    });
+  });
+
   it('renders the complete tuning split without stale validation results', () => {
     const tuning = corpus().filter((entry) => entry.split === 'tuning');
+    const rangedDefinition = BALANCE_SUITE_MANIFEST.kingdoms.find((entry) => entry.split === 'tuning'
+      && entry.actionPiles.some((pile) => pile.cardId === 'volley'))!;
+    const ranged = tuning.find((entry) => entry.id === rangedDefinition.id)!;
+    ranged.strategies[0] = { ...ranged.strategies[0]!, startingBuild: ['volley'], repeatPurchase: 'volley',
+      families: ['Ranged'], acquiredCards: ['volley'], acquisitionRates: { volley: 1 } };
     const model = buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, tuning);
     expect(model.scope).toBe('tuning');
     expect(model.summaries.validation).toBeNull();
@@ -81,9 +103,12 @@ describe('balance-corpus aggregation', () => {
     const html = renderBalanceCorpus(model);
     expect(html).toContain('Eighty-kingdom tuning report');
     expect(html).toContain('Balance at a glance');
-    expect(html).toContain('How viable strategies deal damage');
-    expect(html).toContain('Which cards viable strategies use');
-    expect(html).toContain('Acquired by viable strategies');
+    expect(html).toContain('Strategy types');
+    expect(html).toContain('No damage package strategies');
+    expect(html).toContain('Ranged strategies');
+    expect(html).toContain('Cards that define this strategy type');
+    expect(html).toContain('Movement, drawing, money, and other support');
+    expect(html).toContain('Actually acquired');
     expect(html).not.toContain('This is an incomplete historical card pool');
     expect(html).toContain('All 80 kingdoms');
     expect(html).toContain('The held-back validation kingdoms were not run');

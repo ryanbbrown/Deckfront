@@ -50,6 +50,27 @@ export interface CorpusCardReport {
   combined: CorpusCardMeasure;
 }
 
+export interface StrategyGroupCardUse {
+  cardId: string;
+  name: string;
+  family: ActionFamily;
+  cost: number;
+  effect: string;
+  availableStrategies: number;
+  acquiredStrategies: number;
+  averageCopiesWhenAcquired: number;
+  buildPlans: number;
+  finitePlans: number;
+  repeatPlans: number;
+}
+
+export interface StrategyGroupReport {
+  label: string;
+  strategies: number;
+  share: number;
+  cards: StrategyGroupCardUse[];
+}
+
 export interface CorpusKingdomReport extends KingdomReport { split: BalanceSuiteSplit }
 export interface SelectedKingdom { reason: string; kingdom: CorpusKingdomReport }
 export interface PlayQualityWarning {
@@ -227,6 +248,49 @@ export function buildBalanceCorpusModel(
     cards, kingdoms: [...kingdoms], selected: selectCorpusKingdoms(kingdoms), playQualityWarnings };
 }
 
+export function buildStrategyGroups(model: BalanceCorpusModel): StrategyGroupReport[] {
+  const entries = model.kingdoms.flatMap((kingdom) => kingdom.strategies.map((strategy) => ({ kingdom, strategy })));
+  const labels = new Map<string, typeof entries>();
+  for (const entry of entries) {
+    const label = classifyStrategyDamage(entry.strategy);
+    const group = labels.get(label) ?? [];
+    group.push(entry);
+    labels.set(label, group);
+  }
+  const marketByKingdom = new Map(model.manifest.kingdoms.map((kingdom) => [kingdom.id,
+    new Set([...ALWAYS_AVAILABLE_ACTION_IDS, ...kingdom.actionPiles.map((pile) => pile.cardId)])]));
+  const cardIds = [...ALWAYS_AVAILABLE_ACTION_IDS, ...model.manifest.eligibleCardIds];
+  return [...labels.entries()].map(([label, group]): StrategyGroupReport => {
+    const cards = cardIds.map((cardId): StrategyGroupCardUse => {
+      let availableStrategies = 0, acquiredStrategies = 0, acquisitions = 0;
+      let buildPlans = 0, finitePlans = 0, repeatPlans = 0;
+      for (const { kingdom, strategy } of group) {
+        if (marketByKingdom.get(kingdom.id)?.has(cardId)) availableStrategies += 1;
+        const acquired = strategy.acquisitionRates[cardId] ?? 0;
+        if (acquired > 0) acquiredStrategies += 1;
+        acquisitions += acquired;
+        if (strategy.startingBuild.includes(cardId)) buildPlans += 1;
+        if (strategy.purchaseSteps.some((step) => step.cardId === cardId)) finitePlans += 1;
+        if (strategy.repeatPurchase === cardId) repeatPlans += 1;
+      }
+      const definition = cardDefinition(cardId);
+      const cardFamily = family(cardId);
+      if (cardFamily === 'Treasure') throw new Error(`Strategy group cannot include treasure ${cardId}.`);
+      return { cardId, name: definition.name, family: cardFamily, cost: definition.cost, effect: definition.text,
+        availableStrategies, acquiredStrategies,
+        averageCopiesWhenAcquired: acquiredStrategies ? acquisitions / acquiredStrategies : 0,
+        buildPlans, finitePlans, repeatPlans };
+    }).filter((card) => card.acquiredStrategies + card.buildPlans + card.finitePlans + card.repeatPlans > 0)
+      .sort((left, right) => {
+        const leftRate = left.availableStrategies ? left.acquiredStrategies / left.availableStrategies : 0;
+        const rightRate = right.availableStrategies ? right.acquiredStrategies / right.availableStrategies : 0;
+        return rightRate - leftRate || right.acquiredStrategies - left.acquiredStrategies
+          || left.name.localeCompare(right.name);
+      });
+    return { label, strategies: group.length, share: group.length / entries.length, cards };
+  }).sort((left, right) => right.strategies - left.strategies || left.label.localeCompare(right.label));
+}
+
 function escape(value: string): string { return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;')
   .replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;'); }
 function percent(value: number, places = 1): string { return `${(value * 100).toFixed(places)}%`; }
@@ -258,8 +322,28 @@ function strategySplit(summary: CorpusSummary): string {
     .map(([label, count]) => [escape(label), integer(count), percent(count / total)]);
   return table(['Strategy type', 'Viable strategies', 'Share'], rows);
 }
-function useRate(measure: CorpusCardMeasure): number {
-  return measure.availableStrategies ? measure.acquiredStrategies / measure.availableStrategies : 0;
+function strategyGroupCardTable(cards: readonly StrategyGroupCardUse[]): string {
+  return table(['Card', 'Cost and effect', 'Actually acquired', 'Average copies', 'Starting deck',
+    'Purchase plan', 'Repeat purchase'], cards.map((card) => [escape(card.name),
+    `${card.cost} coins · ${escape(card.effect)}`,
+    `${integer(card.acquiredStrategies)} of ${integer(card.availableStrategies)} (${percent(card.availableStrategies
+      ? card.acquiredStrategies / card.availableStrategies : 0)})`,
+    fixed(card.averageCopiesWhenAcquired), integer(card.buildPlans), integer(card.finitePlans),
+    integer(card.repeatPlans)]));
+}
+function strategyGroupSections(model: BalanceCorpusModel): string {
+  return buildStrategyGroups(model).map((group) => {
+    const damageFamilies = new Set(group.label.split(' + '));
+    const damageCards = group.cards.filter((card) => damageFamilies.has(card.family));
+    const otherDamageCards = group.cards.filter((card) => !damageFamilies.has(card.family)
+      && damageFamily(card.cardId));
+    const supportCards = group.cards.filter((card) => !damageFamily(card.cardId));
+    const common = group.cards.slice(0, 3).map((card) => `<div><strong>${escape(card.name)}</strong><br>${integer(card.acquiredStrategies)} of ${integer(card.availableStrategies)} strategies acquired it when it was available</div>`).join('');
+    const definition = group.label === 'No damage package'
+      ? 'These strategies did not acquire enough Melee, Ranged, or Mage cards to form a damage package.'
+      : `These strategies get their damage from ${escape(group.label)} cards. A damage type appears in the name when it supplies at least 20% of the strategy’s damage-card weight.`;
+    return `<section class="strategy-group"><h2>${escape(group.label)} strategies</h2><p class="group-share"><strong>${integer(group.strategies)} strategies · ${percent(group.share)} of all viable strategies</strong></p><p>${definition}</p><div class="callouts">${common}</div>${damageCards.length ? `<h3>Cards that define this strategy type</h3>${strategyGroupCardTable(damageCards)}` : ''}${otherDamageCards.length ? `<h3>Other damage cards used in smaller amounts</h3>${strategyGroupCardTable(otherDamageCards)}` : ''}${supportCards.length ? `<h3>Movement, drawing, money, and other support</h3>${strategyGroupCardTable(supportCards)}` : ''}</section>`;
+  }).join('\n');
 }
 function strategyKey(index: number): string { return `S${index + 1}`; }
 function selectedDetail(selected: SelectedKingdom): string {
@@ -285,16 +369,6 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
   const unused = model.cards.filter((card) => card.combined.buildPlans + card.combined.finitePlans
     + card.combined.repeatPlans === 0).map((card) => card.name);
   const notAcquired = model.cards.filter((card) => card.combined.acquiredStrategies === 0).map((card) => card.name);
-  const primaryMeasure = model.scope === 'full' ? 'combined' : 'tuning';
-  const cardRows = [...model.cards].sort((left, right) =>
-    useRate(right[primaryMeasure]) - useRate(left[primaryMeasure]) || left.name.localeCompare(right.name))
-    .map((card) => {
-      const measure = card[primaryMeasure];
-      return [escape(card.name), card.family, String(measure.availability),
-        `${integer(measure.acquiredStrategies)} of ${integer(measure.availableStrategies)} (${percent(useRate(measure))})`,
-        fixed(measure.averageCopiesWhenAcquired), String(measure.buildPlans),
-        String(measure.finitePlans), String(measure.repeatPlans)];
-    });
   const kingdomRows = model.kingdoms.map((kingdom) => [escape(kingdom.id), kingdom.split,
     String(kingdom.materialCount), String(kingdom.nearCount), String(kingdom.strategies.length),
     fixed(kingdom.effectiveLotterySize), formatDamageStrategies(kingdom.strategies.reduce<Record<string, number>>((counts, strategy) => {
@@ -329,8 +403,9 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
 ${incompletePoolWarning}
 ${warning}
 <section><h2>Balance at a glance</h2><div class="callouts"><div><strong>${integer(strategyTotal)}</strong><br>strategies score at least 40% against the best discovered strategy mix</div><div><strong>${percent(primarySummary.multipleViableRate)}</strong><br>of kingdoms have at least two such strategies</div><div><strong>${fixed(primarySummary.winnerTurnsPerPlayer)}</strong><br>turns per player in games with a winner</div><div><strong>${percent(primarySummary.firstPlayerScore)}</strong><br>first-player score</div></div><p>A strategy counts as viable here if it is in the final lottery or scores at least 40% against that lottery. The 40% line represents a strategy that a human could reasonably play, not equal computer strength.</p></section>
-<section><h2>How viable strategies deal damage</h2>${strategySplit(primarySummary)}<p>A strategy is mixed when at least 20% of its damage cards come from a second damage type. Damage cards include the starting build and the cards acquired during evaluated games.</p></section>
-<section><h2>Which cards viable strategies use</h2><div class="callouts"><div><strong>No planned use</strong><br>${unused.length ? escape(unused.join(', ')) : 'None'}</div><div><strong>No actual acquisitions</strong><br>${notAcquired.length ? escape(notAcquired.join(', ')) : 'None'}</div></div><p>The table is sorted by actual use. “Acquired by” counts only viable strategies from kingdoms where the card was available. “Average copies” is the mean number acquired per game by strategies that acquired the card.</p>${table(['Card', 'Type', 'Available in kingdoms', 'Acquired by viable strategies', 'Average copies', 'Starting build', 'Purchase plan', 'Repeat purchase'], cardRows)}</section>
+<section><h2>Strategy types</h2>${strategySplit(primarySummary)}<p>A strategy is mixed when at least 20% of its damage-card weight comes from a second damage type. The sections that follow show which cards each strategy type actually uses.</p></section>
+${strategyGroupSections(model)}
+<section><h2>Cards with no use in any strategy type</h2><div class="callouts"><div><strong>No planned use</strong><br>${unused.length ? escape(unused.join(', ')) : 'None'}</div><div><strong>No actual acquisitions</strong><br>${notAcquired.length ? escape(notAcquired.join(', ')) : 'None'}</div></div></section>
 <section><h2>Kingdom diversity</h2>${summaryTable(summaryRows)}<p>The lottery count shows strategies used by the best discovered mix. “Additional ≥40%” counts other discovered strategies that score at least 40% against that mix. Effective size measures how evenly the lottery is split; 1 means one strategy receives all weight.</p></section>
 <section><h2>All ${model.kingdoms.length} kingdoms</h2>${table(['Kingdom', 'Split', 'Lottery', 'Additional ≥40%', 'Viable at 40%', 'Effective size', 'Damage types', 'Draws', 'Turns/player', 'First-player score', 'Search games', 'Seconds'], kingdomRows)}</section>
 <section><h2>How the kingdoms were selected</h2>${table(['Split', 'Kingdoms', 'Card count range', 'Pair count range', 'Pair-count SD', 'Largest overlap'], designRows)}<p>Every kingdom has ten distinct piles, 40 health, no overrides, and at least one direct-damage card. Card counts differ by at most one within each split. No pair of kingdoms shares more than eight piles.</p></section>
