@@ -106,9 +106,9 @@ test('DD-E2E-014: chosen Drive direction into a wall deals exact seven damage an
   await playCard(page, 'Feint'); await page.locator('[data-card-name="Drive"]').click(); await page.getByRole('button', { name: 'Play Drive: Move Both Right' }).click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('33 HP'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '5'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '5');
 });
 
-test('DD-E2E-015: two unprepared Near Volleys deal four and Aim plus Near Volley deals four', async ({ page, openGame }) => {
+test('DD-E2E-015: two unprepared Near Volleys deal two and Aim plus Near Volley deals four', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['volley', 'volley']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 3; });
-  await page.locator('[data-card-name="Volley"]').first().click(); await playCard(page, 'Volley'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('36 HP');
+  await page.locator('[data-card-name="Volley"]').first().click(); await playCard(page, 'Volley'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('38 HP');
   await openGame(page, (record) => { seedHand(record, ['aim', 'volley']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 3; }); await playCard(page, 'Aim'); await playCard(page, 'Volley'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('36 HP');
 });
 

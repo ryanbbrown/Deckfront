@@ -123,10 +123,10 @@ describe('attacks', () => {
       expect(availability(near, 'heavyBlow')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
     }
   });
-  it('Steady Shot deals 3 at Near and Far and is illegal at Close', () => {
+  it('Steady Shot deals 2 at Near and Far and is illegal at Close', () => {
     for (const position of [3, 5]) {
       let state = ready(); state.fighters.indigo.position = position; isolateHand(state, 'ochre', ['steadyShot']);
-      state = playCard(state, 'steadyShot'); expect(state.fighters.indigo.health).toBe(37); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
+      state = playCard(state, 'steadyShot'); expect(state.fighters.indigo.health).toBe(38); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
     }
     const close = ready(); close.fighters.indigo.position = 2; isolateHand(close, 'ochre', ['steadyShot']);
     expect(availability(close, 'steadyShot')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_NEAR_OR_FAR' });

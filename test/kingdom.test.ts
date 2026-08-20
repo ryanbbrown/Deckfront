@@ -57,13 +57,13 @@ describe('kingdom registry', () => {
     expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(state.startingHealth).toBe(40);
     expect(state.supply).toEqual({ footwork: 10, muster: 10, feint: 10, drive: 10, flurry: 10,
       aim: 10, volley: 10, cull: 10, focus: 10 });
-    expect(state.fighters.ochre.health).toBe(36); expect(state.fighters.indigo.health).toBe(40);
+    expect(state.fighters.ochre.health).toBe(37); expect(state.fighters.indigo.health).toBe(40);
     assertInvariants(state);
   });
-  it('subtracts four health from the selected first player and bounds both fighters by kingdom health', () => {
+  it('subtracts three health from the selected first player and bounds both fighters by kingdom health', () => {
     registerKingdom(kingdom('tall', { startingHealth: 30 }));
     const state = createGame({ seed: 1, kingdomId: 'tall', firstPlayerId: 'indigo' });
-    expect(state.startingHealth).toBe(30); expect(state.fighters.ochre.health).toBe(30); expect(state.fighters.indigo.health).toBe(26);
+    expect(state.startingHealth).toBe(30); expect(state.fighters.ochre.health).toBe(30); expect(state.fighters.indigo.health).toBe(27);
     expect(checkInvariants(state)).toEqual([]);
     state.fighters.ochre.health = 31;
     expect(checkInvariants(state)).toContain('ochre has invalid health.');
@@ -220,11 +220,11 @@ describe('the curated kingdoms', () => {
     }
   });
 
-  it('starts every curated kingdom with the first player at 36 health and the second at 40', () => {
+  it('starts every curated kingdom with the first player at 37 health and the second at 40', () => {
     for (const expected of EXPECTED) {
       const state = createGame({ seed: 4, kingdomId: expected.id });
       expect(state.startingHealth, expected.id).toBe(40);
-      expect(state.fighters.ochre.health, expected.id).toBe(36);
+      expect(state.fighters.ochre.health, expected.id).toBe(37);
       expect(state.fighters.indigo.health, expected.id).toBe(40);
       expect(() => assertInvariants(state), expected.id).not.toThrow();
       expect(() => assertInvariants(ready(state)), expected.id).not.toThrow();
