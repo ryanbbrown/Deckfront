@@ -49,8 +49,8 @@ describe('balance-corpus aggregation', () => {
       familyShares: { Engine: 0.8, Melee: 0, Ranged: 0.2, Mage: 0 },
       winnerTurnsPerPlayer: 8.4 });
     expect(model.summaries.tuning.firstPlayerScore).toBeCloseTo(0.6, 12);
-    expect(model.summaries.validation.drawRate).toBeCloseTo(0.1, 12);
-    expect(model.summaries.validation.firstPlayerScore).toBeCloseTo(0.4, 12);
+    expect(model.summaries.validation!.drawRate).toBeCloseTo(0.1, 12);
+    expect(model.summaries.validation!.firstPlayerScore).toBeCloseTo(0.4, 12);
     expect(model.summaries.combined.drawRate).toBeCloseTo(0.02, 12);
     expect(model.summaries.combined.firstPlayerScore).toBeCloseTo(0.56, 12);
     const footwork = model.cards.find((card) => card.cardId === 'footwork')!;
@@ -59,6 +59,19 @@ describe('balance-corpus aggregation', () => {
       acquiredStrategies: 80, familyAcquisitionShare: 1 });
     expect(volley.validation).toMatchObject({ buildPlans: 40, repeatPlans: 40,
       acquiredStrategies: 40, familyAcquisitionShare: 1 });
+  });
+
+  it('renders the complete tuning split without stale validation results', () => {
+    const tuning = corpus().filter((entry) => entry.split === 'tuning');
+    const model = buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, tuning);
+    expect(model.scope).toBe('tuning');
+    expect(model.summaries.validation).toBeNull();
+    expect(model.summaries.combined.kingdoms).toBe(80);
+    const html = renderBalanceCorpus(model);
+    expect(html).toContain('Eighty-kingdom tuning report');
+    expect(html).toContain('All 80 kingdoms');
+    expect(html).toContain('The held-back validation kingdoms were not run');
+    expect(html).not.toContain('<td>Validation</td><td>20</td>');
   });
 
   it('selects five unique kingdoms with stable id tie breaks', () => {
