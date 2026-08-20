@@ -1,5 +1,7 @@
-import { SUPPORT_TOLERANCE, solveEquilibrium } from './equilibrium';
+import { solveEquilibrium } from './equilibrium';
 import type { EquilibriumResult } from './equilibrium';
+import { runFinalSearch } from './finalSearch';
+import type { FinalSearchOutcome } from './finalSearch';
 import {
   DeadlineInterruptionError, InvalidEvaluationError, createMatrixCellCache, matrixProtocol, PayoffMatrix
 } from './payoffMatrix';
@@ -8,26 +10,29 @@ import type { PairingRunner } from './pairingRunner';
 import { randomUniqueStrategies } from './randomStrategy';
 import { runResponseSearch } from './responseOracle';
 import type { ResponseResult } from './responseOracle';
-import { namespaceSeeds } from './seedNamespaces';
+import {
+  assertDisjointSeedNamespaces, finalSearchSeedNamespaces, namespaceSeeds
+} from './seedNamespaces';
 import { canonicalStrategy } from './strategy';
 import type { Strategy } from './strategy';
 
 export interface PsroConfig {
   kingdomId: string; seed: number; restarts: number; initialStrategies: number; candidates: number;
-  iterations: number; nicheAdditions: number; seeds: number; unionIterations: number;
+  iterations: number; seeds: number; unionIterations: number;
   turnLimitPerPlayer: number; actionCapPerTurn: number;
   searchDeadline?: number | undefined; finalDeadline?: number | undefined;
   onEvent?: ((event: IterationEvent) => void) | undefined;
   responseSearch?: typeof runResponseSearch | undefined;
+  finalSearch?: typeof runFinalSearch | undefined;
 }
 export interface IterationEvent {
-  restart: number | 'union'; attempt: number; matrixSize: number;
+  restart: number | 'union' | 'final'; attempt: number; matrixSize: number;
   mixtureBefore: Record<string, number>; response: ResponseResult | null;
   admittedStrategyId: string | null; elapsedMs: number;
 }
 export interface RestartResult {
   restart: number; strategies: Strategy[]; matrix: MatrixSnapshot; equilibrium: EquilibriumResult | null;
-  events: IterationEvent[]; stopReason: string; globalFailures: number; nicheDiscoveries: string[];
+  events: IterationEvent[]; stopReason: string; globalFailures: number;
   completed: boolean;
 }
 export interface RestartStatus {
@@ -42,7 +47,7 @@ export interface PsroResult {
   valid: boolean; restarts: RestartResult[]; strategies: Strategy[]; matrix: MatrixSnapshot;
   equilibrium: EquilibriumResult | null; events: IterationEvent[]; finalFailures: ResponseResult[];
   restartAgreement: RestartAgreement[]; matches: number; stopReason: string;
-  restartStatuses: RestartStatus[]; failure: PsroFailure | null;
+  restartStatuses: RestartStatus[]; failure: PsroFailure | null; seedNamespaces: Record<string, number[]>;
 }
 
 class RestartFailureError extends Error {
@@ -56,38 +61,19 @@ function solveSnapshot(snapshot: MatrixSnapshot): EquilibriumResult {
   return solveEquilibrium(snapshot.strategies.map((strategy) => strategy.id), snapshot.centeredPayoffs);
 }
 
-export function rectifiedNiches(snapshot: MatrixSnapshot, equilibrium: EquilibriumResult): { focal: Strategy; weights: Record<string, number> }[] {
-  return snapshot.strategies.flatMap((focal, focalIndex) => {
-    if ((equilibrium.weights[focal.id] ?? 0) <= SUPPORT_TOLERANCE) return [];
-    const weights: Record<string, number> = {};
-    for (let opponentIndex = 0; opponentIndex < snapshot.strategies.length; opponentIndex += 1) {
-      const opponent = snapshot.strategies[opponentIndex]!;
-      if (opponent.id !== focal.id && (equilibrium.weights[opponent.id] ?? 0) > SUPPORT_TOLERANCE
-        && snapshot.centeredPayoffs[focalIndex]![opponentIndex]! >= -1e-7) {
-        weights[opponent.id] = equilibrium.weights[opponent.id]!;
-      }
-    }
-    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-    if (!(total > 0)) return [];
-    for (const id of Object.keys(weights)) weights[id] = weights[id]! / total;
-    return [{ focal, weights }];
-  }).sort((a, b) => a.focal.id.localeCompare(b.focal.id));
-}
-
 async function runRestart(
   config: PsroConfig, restart: number, runner: PairingRunner, cache: ReturnType<typeof createMatrixCellCache>,
-  protocol: ReturnType<typeof matrixProtocol>, now: () => number
+  protocol: ReturnType<typeof matrixProtocol>, now: () => number,
+  reserveSeeds: (label: string, seeds: readonly number[]) => void
 ): Promise<RestartResult> {
   const initialSeed = namespaceSeeds(config.seed, 'initialization', 1, restart, 0)[0]!;
+  reserveSeeds(`initialization:${restart}`, [initialSeed]);
   const initial = randomUniqueStrategies(config.kingdomId, initialSeed, config.initialStrategies);
   if (!initial.strategies.length) throw new Error(`Restart ${restart} generated no initial strategies.`);
   const matrix = new PayoffMatrix(protocol, runner, cache);
   for (const strategy of initial.strategies) matrix.addStrategy(strategy);
   const events: IterationEvent[] = [];
-  const nicheDiscoveries: string[] = [];
   let failures = 0;
-  let nicheAdmissions = 0;
-  let triedNiches = new Set<string>();
   let stopReason = 'iteration-limit';
   let lastEquilibrium: EquilibriumResult | null = null;
   const partial = (reason: string): RestartResult => {
@@ -96,7 +82,7 @@ async function runRestart(
       && lastEquilibrium.strategyIds.length === snapshot.strategies.length ? lastEquilibrium : null;
     return { restart, strategies: snapshot.strategies, matrix: snapshot,
       equilibrium, events, stopReason: reason,
-      globalFailures: failures, nicheDiscoveries, completed: equilibrium !== null };
+      globalFailures: failures, completed: equilibrium !== null };
   };
   try {
     await matrix.fillAll(true, config.searchDeadline);
@@ -107,6 +93,12 @@ async function runRestart(
     const equilibrium = solveSnapshot(snapshot);
     lastEquilibrium = equilibrium;
     const search = config.responseSearch ?? runResponseSearch;
+    reserveSeeds(`global-screen:${restart}:${attempt}`, namespaceSeeds(config.seed, 'global-screen',
+      config.seeds, restart, attempt));
+    reserveSeeds(`global-confirm:${restart}:${attempt}`, namespaceSeeds(config.seed, 'global-confirm',
+      config.seeds, restart, attempt));
+    reserveSeeds(`bootstrap:global:${restart}:${attempt}`, namespaceSeeds(config.seed, 'bootstrap',
+      1, restart, attempt));
     const global = await search({
       objective: 'global', targetWeights: equilibrium.weights, strategies: snapshot.strategies,
       kingdomId: config.kingdomId, runSeed: config.seed, restart, attempt,
@@ -122,52 +114,19 @@ async function runRestart(
         admittedStrategyId: admitted.id, elapsedMs: now() - started } satisfies IterationEvent;
       events.push(event); config.onEvent?.(event);
       await matrix.addRow(admitted, true, config.searchDeadline);
-      failures = 0; triedNiches = new Set();
+      failures = 0;
     } else {
       failures += 1;
       const globalEvent = { restart, attempt, matrixSize: matrix.entrants().length,
         mixtureBefore: equilibrium.weights, response: global.result,
         admittedStrategyId: null, elapsedMs: now() - started } satisfies IterationEvent;
       events.push(globalEvent); config.onEvent?.(globalEvent);
-      if (nicheAdmissions < config.nicheAdditions) {
-        const niche = rectifiedNiches(snapshot, equilibrium).find((entry) => !triedNiches.has(entry.focal.id));
-        if (niche) {
-          triedNiches.add(niche.focal.id);
-          const nicheResult = await search({
-            objective: 'niche', focal: niche.focal, targetWeights: niche.weights,
-            strategies: snapshot.strategies, kingdomId: config.kingdomId, runSeed: config.seed,
-            restart, attempt, candidateCount: config.candidates, blocks: config.seeds,
-            turnLimitPerPlayer: config.turnLimitPerPlayer, actionCapPerTurn: config.actionCapPerTurn,
-            runner, deadline: config.searchDeadline
-          });
-          if (nicheResult.result?.admitted && nicheResult.candidate) {
-            admitted = nicheResult.candidate;
-            const nicheEvent = { restart, attempt, matrixSize: matrix.entrants().length + 1,
-              mixtureBefore: equilibrium.weights, response: nicheResult.result,
-              admittedStrategyId: admitted.id, elapsedMs: now() - started } satisfies IterationEvent;
-            events.push(nicheEvent); config.onEvent?.(nicheEvent);
-            await matrix.addRow(admitted, true, config.searchDeadline);
-            nicheDiscoveries.push(admitted.id); nicheAdmissions += 1; failures = 0; triedNiches = new Set();
-          } else {
-            const nicheEvent = { restart, attempt, matrixSize: matrix.entrants().length,
-              mixtureBefore: equilibrium.weights, response: nicheResult.result,
-              admittedStrategyId: null, elapsedMs: now() - started } satisfies IterationEvent;
-            events.push(nicheEvent); config.onEvent?.(nicheEvent);
-          }
-        }
-      }
     }
-    if (!admitted && failures >= 2) {
-      const stopSnapshot = matrix.snapshot();
-      const stopEquilibrium = solveSnapshot(stopSnapshot);
-      const remaining = rectifiedNiches(stopSnapshot, stopEquilibrium)
-        .some((entry) => !triedNiches.has(entry.focal.id));
-      if (!remaining || nicheAdmissions >= config.nicheAdditions) { stopReason = 'response-exhausted'; break; }
-    }
+    if (!admitted && failures >= 4) { stopReason = 'response-exhausted'; break; }
   }
   const snapshot = matrix.snapshot();
   return { restart, strategies: snapshot.strategies, matrix: snapshot, equilibrium: solveSnapshot(snapshot),
-    events, stopReason, globalFailures: failures, nicheDiscoveries, completed: true };
+    events, stopReason, globalFailures: failures, completed: true };
   } catch (error) {
     if (error instanceof DeadlineInterruptionError) return partial('search-deadline');
     const result = partial(error instanceof InvalidEvaluationError ? 'simulator-abort' : 'solver-error');
@@ -205,6 +164,11 @@ export async function runPsro(config: PsroConfig, runner: PairingRunner, now = D
   const protocol = matrixProtocol(config.kingdomId, matrixSeeds, config.turnLimitPerPlayer,
     config.actionCapPerTurn);
   const cache = createMatrixCellCache();
+  const seedNamespaces: Record<string, number[]> = { matrix: [...matrixSeeds] };
+  const reserveSeeds = (label: string, seeds: readonly number[]): void => {
+    seedNamespaces[label] = [...seeds];
+    assertDisjointSeedNamespaces(seedNamespaces);
+  };
   const restarts: RestartResult[] = [];
   const restartStatuses: RestartStatus[] = [];
   const allEvents = (): IterationEvent[] => restarts.flatMap((restart) => restart.events);
@@ -228,7 +192,7 @@ export async function runPsro(config: PsroConfig, runner: PairingRunner, now = D
     const snapshot = matrix.snapshot();
     return { valid: false, restarts, strategies: snapshot.strategies, matrix: snapshot,
       equilibrium: null, events, finalFailures: [...finalFailures], restartAgreement: [],
-      matches: matches(events), stopReason, restartStatuses, failure };
+      matches: matches(events), stopReason, restartStatuses, failure, seedNamespaces };
   };
 
   for (let restart = 0; restart < config.restarts; restart += 1) {
@@ -239,7 +203,7 @@ export async function runPsro(config: PsroConfig, runner: PairingRunner, now = D
       break;
     }
     try {
-      const result = await runRestart(config, restart, runner, cache, protocol, now);
+      const result = await runRestart(config, restart, runner, cache, protocol, now, reserveSeeds);
       restarts.push(result);
       restartStatuses.push({ restart, state: result.stopReason === 'search-deadline' ? 'interrupted' : 'completed',
         stopReason: result.stopReason, matrixSize: result.strategies.length });
@@ -289,17 +253,95 @@ export async function runPsro(config: PsroConfig, runner: PairingRunner, now = D
   const beforeUnion = agreement(restarts, snapshot);
   const unionEvents: IterationEvent[] = [];
   const finalFailures: ResponseResult[] = [];
-  for (let attempt = 0; attempt < config.unionIterations; attempt += 1) {
-    if (config.finalDeadline !== undefined && now() >= config.finalDeadline) break;
+  const addToMatrix = async (strategy: Strategy): Promise<PsroResult | null> => {
+    try { await matrix.addRow(strategy, false, config.finalDeadline); }
+    catch (error) {
+      if (error instanceof DeadlineInterruptionError) {
+        return invalid(matrix, 'partial-union', null, unionEvents, finalFailures);
+      }
+      if (error instanceof InvalidEvaluationError) {
+        return invalid(matrix, 'simulator-abort', {
+          kind: 'simulator-abort', message: error.message, detail: error.detail
+        }, unionEvents, finalFailures);
+      }
+      return invalid(matrix, 'solver-error', {
+        kind: 'solver-error', message: error instanceof Error ? error.message : String(error), detail: {}
+      }, unionEvents, finalFailures);
+    }
+    snapshot = matrix.snapshot();
+    if (!snapshot.complete) return invalid(matrix, 'partial-union', null, unionEvents, finalFailures);
+    try { equilibrium = solveSnapshot(snapshot); }
+    catch (error) {
+      return invalid(matrix, 'solver-error', {
+        kind: 'solver-error', message: error instanceof Error ? error.message : String(error), detail: {}
+      }, unionEvents, finalFailures);
+    }
+    return null;
+  };
+  let unionAttempt = 0;
+  let finalAttempt = 0;
+  const stopReason = 'final-search-passed';
+  while (true) {
+    let consecutiveFailures = 0;
+    for (let pass = 0; pass < config.unionIterations && consecutiveFailures < 2; pass += 1) {
+      if (config.finalDeadline !== undefined && now() >= config.finalDeadline) {
+        return invalid(matrix, 'search-deadline', null, unionEvents, finalFailures);
+      }
+      const attempt = unionAttempt++;
+      reserveSeeds(`global-screen:union:${attempt}`, namespaceSeeds(config.seed, 'global-screen',
+        config.seeds, config.restarts, attempt));
+      reserveSeeds(`global-confirm:union:${attempt}`, namespaceSeeds(config.seed, 'global-confirm',
+        config.seeds, config.restarts, attempt));
+      reserveSeeds(`bootstrap:global:union:${attempt}`, namespaceSeeds(config.seed, 'bootstrap',
+        1, config.restarts, attempt));
+      const started = now();
+      const mixtureBefore = equilibrium.weights;
+      let response: Awaited<ReturnType<typeof runResponseSearch>>;
+      try {
+        const search = config.responseSearch ?? runResponseSearch;
+        response = await search({
+          objective: 'global', targetWeights: equilibrium.weights, strategies: snapshot.strategies,
+          kingdomId: config.kingdomId, runSeed: config.seed, restart: config.restarts, attempt,
+          candidateCount: config.candidates, blocks: config.seeds,
+          turnLimitPerPlayer: config.turnLimitPerPlayer, actionCapPerTurn: config.actionCapPerTurn,
+          runner, deadline: config.finalDeadline
+        });
+      } catch (error) {
+        if (error instanceof DeadlineInterruptionError) {
+          return invalid(matrix, 'partial-union', null, unionEvents, finalFailures);
+        }
+        if (error instanceof InvalidEvaluationError) {
+          return invalid(matrix, 'simulator-abort', {
+            kind: 'simulator-abort', message: error.message, detail: error.detail
+          }, unionEvents, finalFailures);
+        }
+        return invalid(matrix, 'solver-error', {
+          kind: 'solver-error', message: error instanceof Error ? error.message : String(error), detail: {}
+        }, unionEvents, finalFailures);
+      }
+      const admitted = response.result?.admitted && response.candidate ? response.candidate : null;
+      const event = { restart: 'union', attempt,
+        matrixSize: matrix.entrants().length + (admitted ? 1 : 0),
+        mixtureBefore, response: response.result,
+        admittedStrategyId: admitted?.id ?? null, elapsedMs: now() - started } satisfies IterationEvent;
+      unionEvents.push(event); config.onEvent?.(event);
+      if (!admitted) { consecutiveFailures += 1; continue; }
+      const failed = await addToMatrix(admitted);
+      if (failed) return failed;
+      consecutiveFailures = 0;
+    }
+    if (config.finalDeadline !== undefined && now() >= config.finalDeadline) {
+      return invalid(matrix, 'search-deadline', null, unionEvents, finalFailures);
+    }
+    const finalSeeds = finalSearchSeedNamespaces(config.seed, finalAttempt);
+    for (const [name, seeds] of Object.entries(finalSeeds)) reserveSeeds(`final:${finalAttempt}:${name}`, seeds);
     const started = now();
     const mixtureBefore = equilibrium.weights;
-    let response: Awaited<ReturnType<typeof runResponseSearch>>;
+    let response: FinalSearchOutcome;
     try {
-      const search = config.responseSearch ?? runResponseSearch;
-      response = await search({
-        objective: 'global', targetWeights: equilibrium.weights, strategies: snapshot.strategies,
-        kingdomId: config.kingdomId, runSeed: config.seed, restart: config.restarts, attempt,
-        candidateCount: config.candidates, blocks: config.seeds,
+      response = await (config.finalSearch ?? runFinalSearch)({
+        targetWeights: equilibrium.weights, strategies: snapshot.strategies,
+        kingdomId: config.kingdomId, seeds: finalSeeds,
         turnLimitPerPlayer: config.turnLimitPerPlayer, actionCapPerTurn: config.actionCapPerTurn,
         runner, deadline: config.finalDeadline
       });
@@ -316,42 +358,15 @@ export async function runPsro(config: PsroConfig, runner: PairingRunner, now = D
         kind: 'solver-error', message: error instanceof Error ? error.message : String(error), detail: {}
       }, unionEvents, finalFailures);
     }
-    if (response.result && !response.result.admitted) finalFailures.push(response.result);
-    let admitted: Strategy | null = null;
-    if (response.result?.admitted && response.candidate) {
-      admitted = response.candidate;
-    }
-    const event = { restart: 'union', attempt,
-      matrixSize: matrix.entrants().length + (admitted ? 1 : 0),
-      mixtureBefore, response: response.result,
-      admittedStrategyId: admitted?.id ?? null, elapsedMs: now() - started } satisfies IterationEvent;
+    const admitted = response.result.admitted && response.candidate ? response.candidate : null;
+    const event = { restart: 'final', attempt: finalAttempt++,
+      matrixSize: matrix.entrants().length + (admitted ? 1 : 0), mixtureBefore,
+      response: response.result, admittedStrategyId: admitted?.id ?? null,
+      elapsedMs: now() - started } satisfies IterationEvent;
     unionEvents.push(event); config.onEvent?.(event);
-    if (admitted) {
-      try { await matrix.addRow(admitted, false, config.finalDeadline); }
-      catch (error) {
-        if (error instanceof DeadlineInterruptionError) {
-          return invalid(matrix, 'partial-union', null, unionEvents, finalFailures);
-        }
-        if (error instanceof InvalidEvaluationError) {
-          return invalid(matrix, 'simulator-abort', {
-            kind: 'simulator-abort', message: error.message, detail: error.detail
-          }, unionEvents, finalFailures);
-        }
-        return invalid(matrix, 'solver-error', {
-          kind: 'solver-error', message: error instanceof Error ? error.message : String(error), detail: {}
-        }, unionEvents, finalFailures);
-      }
-      snapshot = matrix.snapshot();
-      if (!snapshot.complete) return invalid(matrix, 'partial-union', null, unionEvents, finalFailures);
-      try { equilibrium = solveSnapshot(snapshot); }
-      catch (error) {
-        return invalid(matrix, 'solver-error', {
-          kind: 'solver-error', message: error instanceof Error ? error.message : String(error), detail: {}
-        }, unionEvents, finalFailures);
-      }
-      finalFailures.length = 0;
-    }
-    if (finalFailures.length >= 2) break;
+    if (!admitted) { finalFailures.push(response.result); break; }
+    const failed = await addToMatrix(admitted);
+    if (failed) return failed;
   }
   snapshot = matrix.snapshot();
   const valid = snapshot.complete;
@@ -360,6 +375,6 @@ export async function runPsro(config: PsroConfig, runner: PairingRunner, now = D
     equilibrium: valid ? equilibrium : null,
     events, finalFailures,
     restartAgreement: beforeUnion,
-    matches: matches(events), restartStatuses, failure: null,
-    stopReason: valid ? (finalFailures.length >= 2 ? 'response-exhausted' : 'limit') : 'partial-union' };
+    matches: matches(events), restartStatuses, failure: null, seedNamespaces,
+    stopReason: valid ? stopReason : 'partial-union' };
 }

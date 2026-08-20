@@ -75,7 +75,7 @@ describe('balance-suite batch resume', () => {
     const directory = balanceSuite.runDirectory(root, kingdomId);
     fs.mkdirSync(directory, { recursive: true });
     const fingerprint = rulesFingerprint(kingdomId).hash;
-    fs.writeFileSync(path.join(directory, 'run.json'), JSON.stringify({ schemaVersion: 4,
+    fs.writeFileSync(path.join(directory, 'run.json'), JSON.stringify({ schemaVersion: 5,
       rulesFingerprint: { hash: kind === 'stale' ? 'old' : fingerprint }, valid: kind !== 'invalid',
       mode: 'full', kingdomId, matches: 4, aborted: kind === 'aborted' ? 1 : 0, elapsedMs: 2 }));
     fs.writeFileSync(path.join(directory, 'matrix.json'), JSON.stringify({

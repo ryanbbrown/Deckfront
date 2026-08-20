@@ -2,9 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { SeededRandom, kingdomMarket, kingdomOf } from '../game';
 import { solveEquilibrium } from './equilibrium';
-import {
-  ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER, UNION_DEADLINE_RESERVE, conservativeGameBound
-} from './experimentConfig';
+import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER, UNION_DEADLINE_RESERVE } from './experimentConfig';
 import type { ExperimentOptions } from './experimentConfig';
 import { InvalidEvaluationError } from './payoffMatrix';
 import { emptyAggregate, mergeAggregate } from './pairing';
@@ -15,7 +13,7 @@ import type { PsroResult } from './psro';
 import type { IterationEvent } from './psro';
 import { renderReport } from './report';
 import type { RunSummary } from './report';
-import { assertDisjointSeedNamespaces, configuredSeedNamespaces, namespaceSeeds } from './seedNamespaces';
+import { assertDisjointSeedNamespaces, namespaceSeeds } from './seedNamespaces';
 import type { TelemetryAggregate } from './types';
 import { rulesFingerprint } from './rulesFingerprint';
 
@@ -124,17 +122,15 @@ async function runWithRunner(
   const searchDeadline = started + Math.round(options.deadlineMinutes * 60_000 * (1 - UNION_DEADLINE_RESERVE));
   prepareDirectory(outDir);
   const base: RunSummary = {
-    schemaVersion: 4, rulesFingerprint: rulesFingerprint(options.kingdomId),
+    schemaVersion: 5, rulesFingerprint: rulesFingerprint(options.kingdomId),
     valid: false, kingdomId: options.kingdomId, kingdomName: kingdomOf(options.kingdomId).name,
     mode: options.mode, seed: options.seed,
     limits: {
       restarts: options.restarts, initialStrategies: options.initialStrategies,
       candidates: options.candidates, iterations: options.iterations,
-      nicheAdditions: options.nicheAdditions, seeds: options.seeds,
-      unionIterations: options.unionIterations, deadlineMinutes: options.deadlineMinutes,
+      seeds: options.seeds, unionIterations: options.unionIterations, deadlineMinutes: options.deadlineMinutes,
       workers: options.workers,
-      turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER, actionCapPerTurn: ACTION_CAP_PER_TURN,
-      gameBoundBeforeDiagnostics: conservativeGameBound(options)
+      turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER, actionCapPerTurn: ACTION_CAP_PER_TURN
     },
     startedAt: new Date(started).toISOString(), finishedAt: new Date(started).toISOString(), elapsedMs: 0,
     stopReason: 'running', error: null, matches: 0, aborted: 0, matrix: null, equilibrium: null,
@@ -149,13 +145,11 @@ async function runWithRunner(
   let summary = base;
   const completedEvents: IterationEvent[] = [];
   try {
-    const phaseSeeds = configuredSeedNamespaces(options);
-    assertDisjointSeedNamespaces(phaseSeeds);
     const execute = deps.runPsro ?? runPsro;
     const result = await execute({
       kingdomId: options.kingdomId, seed: options.seed, restarts: options.restarts,
       initialStrategies: options.initialStrategies, candidates: options.candidates,
-      iterations: options.iterations, nicheAdditions: options.nicheAdditions, seeds: options.seeds,
+      iterations: options.iterations, seeds: options.seeds,
       unionIterations: options.unionIterations, turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
       actionCapPerTurn: ACTION_CAP_PER_TURN, searchDeadline,
       finalDeadline: deadline, onEvent: (event) => {
@@ -163,13 +157,11 @@ async function runWithRunner(
         fs.appendFileSync(iterationsPath, `${JSON.stringify(iterationRecord(event))}\n`);
       }
     }, runner, now);
-    const gameBound = conservativeGameBound(options);
-    if (result.matches > gameBound) {
-      throw new Error(`PSRO played ${result.matches} games, above its mechanical bound of ${gameBound}.`);
-    }
     const telemetry = allTelemetry(result);
-    const weightDiagnostic = (deps.weightIntervals ?? calculateWeightIntervals)(result,
-      namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 2, 0)[0]!,
+    const weightSeed = namespaceSeeds(options.seed, 'bootstrap', 1, options.restarts + 2, 0)[0]!;
+    const artifactSeeds = { ...result.seedNamespaces, 'bootstrap:weights': [weightSeed] };
+    assertDisjointSeedNamespaces(artifactSeeds);
+    const weightDiagnostic = (deps.weightIntervals ?? calculateWeightIntervals)(result, weightSeed,
       { deadline, now });
     const finished = now();
     summary = { ...base, valid: result.valid, finishedAt: new Date(finished).toISOString(),
@@ -190,10 +182,11 @@ async function runWithRunner(
     writeText(iterationsPath, result.events.map((event) => JSON.stringify(iterationRecord(event))).join('\n')
       + (result.events.length ? '\n' : ''));
     writeJson(path.join(outDir, 'matrix.json'), { ...result.matrix, equilibrium: result.equilibrium });
-    const nicheIds = new Set(result.restarts.flatMap((restart) => restart.nicheDiscoveries));
     const admitted = new Set(result.events.map((event) => event.admittedStrategyId).filter(Boolean));
+    const final = new Set(result.events.filter((event) => event.restart === 'final')
+      .map((event) => event.admittedStrategyId).filter(Boolean));
     writeJson(path.join(outDir, 'strategies.json'), { strategies: result.strategies.map((strategy) => ({
-      strategy, source: nicheIds.has(strategy.id) ? 'rectified-niche'
+      strategy, source: final.has(strategy.id) ? 'final-search'
         : admitted.has(strategy.id) ? 'global-response' : 'automatic-initialization'
     })) });
     const matrixTelemetry = emptyAggregate();
@@ -209,7 +202,7 @@ async function runWithRunner(
       total: telemetry
     });
     writeJson(runPath, { ...summary, matrix: undefined, telemetry: undefined, iterations: undefined,
-      kingdom: kingdomMarket(options.kingdomId), seedNamespaces: phaseSeeds });
+      kingdom: kingdomMarket(options.kingdomId), seedNamespaces: artifactSeeds });
   } catch (error) {
     const finished = now();
     const message = error instanceof Error ? error.message : String(error);

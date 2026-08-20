@@ -8,7 +8,7 @@ describe('PSRO restart union', () => {
     const runner = new InlinePairingRunner();
     const result = await runPsro({
       kingdomId: 'current-duel', seed: 77, restarts: 2, initialStrategies: 2,
-      candidates: 1, iterations: 1, nicheAdditions: 1, seeds: 1, unionIterations: 1,
+      candidates: 1, iterations: 1, seeds: 1, unionIterations: 1,
       turnLimitPerPlayer: 30, actionCapPerTurn: 200
     }, runner, () => 1000);
     await runner.close();

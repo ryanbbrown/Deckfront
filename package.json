@@ -18,7 +18,6 @@
     "balance:suite:run": "npm run build:sim && tsx scripts/run_balance_suite.ts",
     "balance:suite:report": "tsx scripts/generate_balance_corpus.ts",
     "balance:suite:validate": "tsx scripts/validate_balance_suite.ts",
-    "balance:audit": "npm run build:sim && tsx scripts/run_challenger_audit.ts",
     "test:e2e:manifest": "tsx scripts/validate_e2e_manifest.ts",
     "test:e2e": "npm run test:e2e:manifest && npm run build && playwright test",
     "test:e2e:headed": "npm run build && playwright test --headed",

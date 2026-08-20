@@ -9,7 +9,7 @@ import type { RulesFingerprint } from './rulesFingerprint';
 
 export type ExperimentMode = 'smoke' | 'full';
 export interface RunSummary {
-  schemaVersion: 4;
+  schemaVersion: 5;
   rulesFingerprint: RulesFingerprint;
   valid: boolean;
   kingdomId: string; kingdomName: string; mode: ExperimentMode; seed: number;
@@ -49,7 +49,6 @@ export function renderReport(summary: RunSummary): string {
       ['Valid final union', summary.valid ? 'yes' : 'no'], ['Stop reason', summary.stopReason],
       ['Discovered strategies', String(summary.strategies.length)], ['Matches', String(summary.matches)],
       ['Aborted matches', String(summary.aborted)],
-      ['Mechanical game bound before diagnostics', String(summary.limits.gameBoundBeforeDiagnostics)],
       ['Elapsed', `${fixed(summary.elapsedMs / 1000, 1)} seconds`],
       ['Throughput', summary.elapsedMs ? `${fixed(summary.matches / (summary.elapsedMs / 1000), 1)} games/s` : '—']
     ])];
@@ -77,10 +76,9 @@ export function renderReport(summary: RunSummary): string {
         Number.isFinite(summary.matrix!.centeredPayoffs[row]![column]!)
           ? fixed(summary.matrix!.centeredPayoffs[row]![column]!) : '·')])));
   }
-  const niche = summary.iterations.filter((event) => event.response?.objective === 'niche');
   lines.push('', '## Response searches', '',
     ...table(['Restart', 'Attempt', 'Objective', 'Candidates', 'Local / random', 'Duplicate rejects',
-      'Candidate', 'Absolute mean', 'Paired improvement', 'Interval type', '95% interval', 'Blocks', 'Result'],
+      'Candidate', 'Confirmed mean', '95% interval', 'Blocks', 'Result'],
       summary.iterations.map((event) => [String(event.restart), String(event.attempt),
         event.response?.objective ?? 'empty', event.response
           ? `${event.response.sources.actual}/${event.response.sources.requested}` : '—',
@@ -88,34 +86,15 @@ export function renderReport(summary: RunSummary): string {
         event.response ? String(event.response.sources.duplicateRejections) : '—',
         event.response?.candidateId ?? '—',
         event.response?.heldOutMean === null || !event.response ? '—' : fixed(event.response.heldOutMean),
-        event.response?.improvement === null || !event.response ? '—' : fixed(event.response.improvement),
-        event.response ? (event.response.objective === 'niche' ? 'paired improvement' : 'absolute mean') : '—',
         event.response?.interval ? `${fixed(event.response.interval.lower)}–${fixed(event.response.interval.upper)}` : '—',
         event.response ? String(event.response.confirmSchedule.blocks.length) : '—',
-        event.admittedStrategyId ? 'admitted' : event.response?.failureReason ?? 'not admitted'])), '',
-    `Niche searches are discovery only. ${niche.length} niche searches ran; the final weights always come from the global equilibrium.`);
-  const unionGlobal = summary.iterations.filter((event) => event.restart === 'union'
-    && event.response?.objective === 'global');
-  let lastAdmission = -1;
-  for (let index = 0; index < unionGlobal.length; index += 1) {
-    if (unionGlobal[index]!.response?.admitted) lastAdmission = index;
-  }
-  const afterAdmission = unionGlobal.slice(lastAdmission + 1);
-  const gapEvidence = [...afterAdmission].reverse().findIndex((event) => event.response?.admitted) === -1
-    ? afterAdmission.filter((event) => !event.response?.admitted) : [];
-  if (gapEvidence.length) {
-    const measured = gapEvidence.filter((event) => event.response?.heldOutMean !== null && event.response?.interval);
-    const largest = measured.length
-      ? Math.max(...measured.map((event) => Math.max(0, event.response!.heldOutMean! - 0.5))) : 0;
-    const intervals = measured.map((event) => `${fixed(event.response!.interval!.lower)}–${fixed(event.response!.interval!.upper)}`).join(', ') || 'none';
-    lines.push('', `Final observed oracle gap: ${fixed(largest)} from ${gapEvidence.length} held-out search(es)`
-      + ` with interval(s) ${intervals} and block count(s) ${gapEvidence.map((event) => event.response?.confirmSchedule.blocks.length ?? 0).join(', ')}.`
-      + ' This is observed search evidence, not exact exploitability.');
-  } else {
-    lines.push('', unionGlobal.length
-      ? 'No final oracle gap was measured after the latest union admission.'
-      : 'No union response search ran, so no final oracle gap was measured.');
-  }
+        event.admittedStrategyId ? 'admitted' : event.response?.failureReason ?? 'not admitted'])));
+  const finalSearch = [...summary.iterations].reverse().find((event) => event.restart === 'final');
+  lines.push('', finalSearch?.response
+    ? `The final random search stopped with a confirmed score of ${fixed(finalSearch.response.heldOutMean ?? 0)}`
+      + ` and a 95% interval of ${finalSearch.response.interval
+        ? `${fixed(finalSearch.response.interval.lower)}–${fixed(finalSearch.response.interval.upper)}` : '—'}.`
+    : 'The run did not complete a final random search.');
   lines.push('', '## Restart completion', '',
     `Requested ${summary.restartStatuses.length}; started ${summary.restartStatuses.filter((status) => status.state !== 'skipped').length};`
       + ` completed ${summary.restartStatuses.filter((status) => status.state === 'completed').length};`

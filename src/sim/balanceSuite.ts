@@ -301,7 +301,7 @@ function inspectRun(root: string, kingdomId: string): RunEvidence {
     const fingerprint = rulesFingerprint(kingdomId).hash;
     const runFingerprint = (run.rulesFingerprint as { hash?: unknown } | undefined)?.hash;
     const protocolFingerprint = (matrix.protocol as { rulesFingerprint?: unknown } | undefined)?.rulesFingerprint;
-    const valid = run.schemaVersion === 4 && run.valid === true && run.mode === 'full'
+    const valid = run.schemaVersion === 5 && run.valid === true && run.mode === 'full'
       && run.kingdomId === kingdomId && runFingerprint === fingerprint && protocolFingerprint === fingerprint
       && run.aborted === 0
       && matrix.complete === true && matrix.equilibrium !== null && Array.isArray(matrix.strategies)

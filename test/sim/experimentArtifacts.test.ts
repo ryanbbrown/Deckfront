@@ -12,7 +12,7 @@ import type { PsroResult, runPsro } from '../../src/sim/psro';
 
 const options: ExperimentOptions = {
   kingdomId: 'current-duel', mode: 'smoke', seed: 1, restarts: 1, initialStrategies: 2,
-  candidates: 2, iterations: 1, nicheAdditions: 1, seeds: 1, unionIterations: 1,
+  candidates: 2, iterations: 1, seeds: 1, unionIterations: 1,
   deadlineMinutes: 1, workers: 1
 };
 
@@ -28,7 +28,7 @@ function completedResult(): PsroResult {
   return { valid: true, restarts: [], strategies, matrix, equilibrium, events: [], finalFailures: [],
     restartAgreement: [], matches: 4, stopReason: 'limit', restartStatuses: [
       { restart: 0, state: 'completed', stopReason: 'iteration-limit', matrixSize: 2 }
-    ], failure: null };
+    ], failure: null, seedNamespaces: { matrix: [1] } };
 }
 
 describe('PSRO experiment evidence artifacts', () => {
@@ -43,7 +43,7 @@ describe('PSRO experiment evidence artifacts', () => {
     expect(summary.equilibrium).toEqual(result.equilibrium);
     const run = JSON.parse(fs.readFileSync(path.join(directory, 'run.json'), 'utf8'));
     const matrix = JSON.parse(fs.readFileSync(path.join(directory, 'matrix.json'), 'utf8'));
-    expect(run).toMatchObject({ schemaVersion: 4, rulesFingerprint: { version: 1 } });
+    expect(run).toMatchObject({ schemaVersion: 5, rulesFingerprint: { version: 1 } });
     expect(matrix.protocol.rulesFingerprint).toBe(run.rulesFingerprint.hash);
     expect(fs.readFileSync(path.join(directory, 'report.md'), 'utf8')).toContain('Diagnostic warning');
   });

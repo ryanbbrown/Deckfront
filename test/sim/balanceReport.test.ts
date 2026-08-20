@@ -59,7 +59,7 @@ function artifact(options: {
   }
   const weights = Object.fromEntries(options.strategies.map((entry, index) => [entry.id, options.weights[index]!]));
   return {
-    run: { schemaVersion: 4, rulesFingerprint: rulesFingerprint(kingdomId), valid: true, kingdomId,
+    run: { schemaVersion: 5, rulesFingerprint: rulesFingerprint(kingdomId), valid: true, kingdomId,
       kingdomName: 'Current Duel', mode: 'full', seed: 1,
       limits: { turnLimitPerPlayer: 30, actionCapPerTurn: 200 }, finishedAt: '2026-08-19T00:00:00.000Z',
       elapsedMs: 1000, stopReason: 'response-exhausted', matches: 100, aborted: 0 },

@@ -14,19 +14,18 @@ const schedule = { targetWeights: { [strategies[0]!.id]: 1 },
   blocks: [{ seed: 1, opponentId: strategies[0]!.id }, { seed: 2, opponentId: strategies[0]!.id }],
   realizedOpponentCounts: { [strategies[0]!.id]: 2 }, unsampledPositiveWeightStrategies: [] };
 
-function response(objective: 'global' | 'niche', admitted: boolean): ResponseResult {
-  return { objective, focalStrategyId: objective === 'niche' ? strategies[0]!.id : null,
+function response(objective: 'global' | 'final', admitted: boolean): ResponseResult {
+  return { objective,
     sources: { requested: 10, requestedLocal: 7, requestedRandom: 3, actual: 8,
       local: 5, random: 3, duplicateRejections: 4, localShortfall: 2, randomShortfall: 0 },
     screenSchedule: schedule, confirmSchedule: schedule, bestTrainingMean: 0.7,
     candidateId: strategies[1]!.id, heldOutMean: 0.56,
-    interval: objective === 'niche' ? { lower: 0.01, upper: 0.09 } : { lower: 0.51, upper: 0.61 },
-    improvement: objective === 'niche' ? 0.04 : null, admitted, matches: 16,
+    interval: { lower: 0.51, upper: 0.61 }, admitted, matches: 16,
     telemetry: emptyAggregate(), screenTelemetry: emptyAggregate(), confirmationTelemetry: emptyAggregate(),
     failureReason: null };
 }
 
-function event(restart: number | 'union', attempt: number, result: ResponseResult): IterationEvent {
+function event(restart: number | 'union' | 'final', attempt: number, result: ResponseResult): IterationEvent {
   return { restart, attempt, matrixSize: 2, mixtureBefore: { [strategies[0]!.id]: 0.5,
     [strategies[1]!.id]: 0.5 }, response: result,
   admittedStrategyId: result.admitted ? result.candidateId : null, elapsedMs: 1 };
@@ -34,9 +33,9 @@ function event(restart: number | 'union', attempt: number, result: ResponseResul
 
 function summary(iterations: IterationEvent[]): RunSummary {
   const equilibrium = solveEquilibrium(strategies.map((strategy) => strategy.id), [[0, 0], [0, 0]]);
-  return { schemaVersion: 4, rulesFingerprint: rulesFingerprint('current-duel'),
+  return { schemaVersion: 5, rulesFingerprint: rulesFingerprint('current-duel'),
     valid: true, kingdomId: 'current-duel', kingdomName: 'Current Duel',
-    mode: 'smoke', seed: 1, limits: { gameBoundBeforeDiagnostics: 100 },
+    mode: 'smoke', seed: 1, limits: {},
     startedAt: '', finishedAt: '', elapsedMs: 1000, stopReason: 'response-exhausted', error: null,
     matches: 32, aborted: 0, matrix: { protocol: matrixProtocol('current-duel', [1], 30, 200),
       strategies, cells: [], complete: true, centeredPayoffs: [[0, 0], [0, 0]] },
@@ -49,26 +48,19 @@ function summary(iterations: IterationEvent[]): RunSummary {
 }
 
 describe('PSRO report semantics', () => {
-  it('separates niche absolute and paired values and resets gap evidence after admission', () => {
+  it('reports the automatic final search and restart completion', () => {
     const report = renderReport(summary([
-      event(0, 0, response('niche', false)), event('union', 0, response('global', false)),
-      event('union', 1, response('global', true)), event('union', 2, response('global', false))
+      event('union', 0, response('global', true)), event('final', 0, response('final', false))
     ]));
-    expect(report).toContain('Absolute mean | Paired improvement | Interval type');
-    expect(report).toContain('paired improvement');
-    expect(report).toContain('Final observed oracle gap: 0.060 from 1 held-out search(es)');
-    expect(report).toContain('block count(s) 2');
+    expect(report).toContain('Candidate | Confirmed mean | 95% interval');
+    expect(report).toContain('The final random search stopped with a confirmed score of 0.560');
     expect(report).toContain('Requested 2; started 1; completed 1; skipped 1.');
     expect(report).toContain('Restart mixtures can use preliminary early-stopped cells');
     expect(report).not.toContain('Rigged');
     expect(report).not.toMatch(/generation|leader rank|Copper/iu);
   });
 
-  it('reports a true trailing two-failure stop and names absent union evidence', () => {
-    const two = renderReport(summary([
-      event('union', 0, response('global', false)), event('union', 1, response('global', false))
-    ]));
-    expect(two).toContain('from 2 held-out search(es)');
-    expect(renderReport(summary([]))).toContain('No union response search ran');
+  it('names absent final-search evidence', () => {
+    expect(renderReport(summary([]))).toContain('did not complete a final random search');
   });
 });

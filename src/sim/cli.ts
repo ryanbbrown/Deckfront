@@ -12,15 +12,15 @@ import { WorkerPairingRunner, runPairingWorker } from './pairingRunner';
 import { balanceSuite } from './balanceSuite';
 
 export const DEFAULT_SEED = 1;
-type LimitName = 'restarts' | 'initialStrategies' | 'candidates' | 'iterations' | 'nicheAdditions'
+type LimitName = 'restarts' | 'initialStrategies' | 'candidates' | 'iterations'
   | 'seeds' | 'unionIterations' | 'deadlineMinutes' | 'workers';
 export const MAXIMA: Record<LimitName, number> = {
-  restarts: 3, initialStrategies: 12, candidates: 100, iterations: 16, nicheAdditions: 4,
+  restarts: 3, initialStrategies: 12, candidates: 100, iterations: 12,
   seeds: 25, unionIterations: 8, deadlineMinutes: 420, workers: 16
 };
 const FLAGS: Record<string, LimitName> = {
   '--restarts': 'restarts', '--initial-strategies': 'initialStrategies', '--candidates': 'candidates',
-  '--iterations': 'iterations', '--niche-additions': 'nicheAdditions', '--seeds': 'seeds',
+  '--iterations': 'iterations', '--seeds': 'seeds',
   '--union-iterations': 'unionIterations', '--deadline-minutes': 'deadlineMinutes', '--workers': 'workers'
 };
 const KNOWN = new Set(['--kingdom', '--mode', '--seed', ...Object.keys(FLAGS)]);

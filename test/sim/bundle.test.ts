@@ -20,7 +20,7 @@ describe('compiled PSRO bundle', () => {
   it('renders byte-identical artifacts when time is injected', async () => {
     const rootOut = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-psro-determinism-'));
     const options: ExperimentOptions = { kingdomId: 'current-duel', mode: 'smoke', seed: 3,
-      restarts: 1, initialStrategies: 2, candidates: 2, iterations: 1, nicheAdditions: 1,
+      restarts: 1, initialStrategies: 2, candidates: 2, iterations: 1,
       seeds: 1, unionIterations: 1, deadlineMinutes: 1, workers: 1 };
     await runExperiment(options, path.join(rootOut, 'a'), { now: () => 1000,
       pairingRunner: new InlinePairingRunner() });
@@ -35,7 +35,7 @@ describe('compiled PSRO bundle', () => {
   it('runs a minimal pooled experiment and writes only the PSRO artifact contract', { timeout: 60_000 }, () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-psro-bundle-'));
     const result = spawnSync(process.execPath, [bundle, '--kingdom', 'current-duel', '--mode', 'smoke',
-      '--initial-strategies', '2', '--candidates', '2', '--iterations', '1', '--niche-additions', '1',
+      '--initial-strategies', '2', '--candidates', '2', '--iterations', '1',
       '--seeds', '1', '--union-iterations', '1', '--restarts', '1', '--workers', '2', '--deadline-minutes', '1'],
     { cwd, encoding: 'utf8', timeout: 55_000 });
     expect(result.status, result.stderr).toBe(0);
@@ -44,20 +44,25 @@ describe('compiled PSRO bundle', () => {
       'iterations.jsonl', 'matrix.json', 'report.md', 'run.json', 'strategies.json', 'telemetry.json'
     ]);
     const matrix = JSON.parse(fs.readFileSync(path.join(directory, 'matrix.json'), 'utf8'));
+    const run = JSON.parse(fs.readFileSync(path.join(directory, 'run.json'), 'utf8'));
     expect(matrix.complete).toBe(true);
     expect(matrix.equilibrium).not.toBeNull();
+    expect(run.seedNamespaces).toHaveProperty('final:0:candidate');
+    expect(run.seedNamespaces).toHaveProperty('final:0:confirmation');
+    const usedSeeds = Object.values(run.seedNamespaces).flat() as number[];
+    expect(new Set(usedSeeds).size).toBe(usedSeeds.length);
   });
 
   it('runs a generated kingdom through the compiled simulator entry point', { timeout: 60_000 }, () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-balance-suite-bundle-'));
     const kingdomId = balanceSuite.manifest.kingdoms[0]!.id;
     const result = spawnSync(process.execPath, [bundle, '--kingdom', kingdomId, '--mode', 'smoke',
-      '--initial-strategies', '2', '--candidates', '2', '--iterations', '1', '--niche-additions', '1',
+      '--initial-strategies', '2', '--candidates', '2', '--iterations', '1',
       '--seeds', '1', '--union-iterations', '1', '--restarts', '1', '--workers', '2', '--deadline-minutes', '1'],
     { cwd, encoding: 'utf8', timeout: 55_000 });
     expect(result.status, result.stderr).toBe(0);
     const run = JSON.parse(fs.readFileSync(path.join(cwd, '.experiments', kingdomId, 'smoke', 'run.json'), 'utf8'));
-    expect(run).toMatchObject({ schemaVersion: 4, valid: true, kingdomId });
+    expect(run).toMatchObject({ schemaVersion: 5, valid: true, kingdomId });
   });
 
   it('runs only pairing jobs in worker mode', async () => {

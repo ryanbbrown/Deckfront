@@ -23,8 +23,7 @@ export interface CandidateSources {
 }
 export interface ResponseBatch { candidates: Strategy[]; sources: CandidateSources }
 export interface ResponseResult {
-  objective: 'global' | 'niche';
-  focalStrategyId: string | null;
+  objective: 'global' | 'final';
   sources: CandidateSources;
   screenSchedule: MixtureSchedule;
   confirmSchedule: MixtureSchedule;
@@ -32,7 +31,6 @@ export interface ResponseResult {
   candidateId: string | null;
   heldOutMean: number | null;
   interval: BootstrapInterval | null;
-  improvement: number | null;
   admitted: boolean;
   matches: number;
   telemetry: TelemetryAggregate;
@@ -43,10 +41,6 @@ export interface ResponseResult {
 
 export function globalAdmission(mean: number, interval: BootstrapInterval): boolean {
   return mean >= 0.52 && interval.lower > 0.5;
-}
-
-export function nicheAdmission(improvement: number, interval: BootstrapInterval): boolean {
-  return improvement >= 0.02 && interval.lower > 0;
 }
 
 export function allocateLocalCandidates(weights: Readonly<Record<string, number>>, count: number): [string, number][] {
@@ -66,15 +60,14 @@ export function allocateLocalCandidates(weights: Readonly<Record<string, number>
 
 export function generateResponseBatch(options: {
   kingdomId: string; seed: number; count: number; parents: ReadonlyMap<string, Strategy>;
-  weights: Readonly<Record<string, number>>; existing: readonly Strategy[]; focalStrategyId?: string | undefined;
+  weights: Readonly<Record<string, number>>; existing: readonly Strategy[];
 }): ResponseBatch {
   const requestedLocal = Math.floor(options.count * 0.7);
   const requestedRandom = options.count - requestedLocal;
   const taken = new Set(options.existing.map(canonicalStrategy));
   const candidates: Strategy[] = [];
   let duplicateRejections = 0;
-  const weights = options.focalStrategyId ? { [options.focalStrategyId]: 1 } : options.weights;
-  for (const [parentId, target] of allocateLocalCandidates(weights, requestedLocal)) {
+  for (const [parentId, target] of allocateLocalCandidates(options.weights, requestedLocal)) {
     const parent = options.parents.get(parentId);
     if (!parent) continue;
     const random = new SeededRandom(Number.parseInt(parent.id.slice(3, 11), 16) ^ options.seed);
@@ -100,31 +93,28 @@ export function generateResponseBatch(options: {
 }
 
 export async function runResponseSearch(options: {
-  objective: 'global' | 'niche'; focal?: Strategy | undefined; targetWeights: Readonly<Record<string, number>>;
+  objective: 'global'; targetWeights: Readonly<Record<string, number>>;
   strategies: readonly Strategy[]; kingdomId: string; runSeed: number; restart: number; attempt: number;
   candidateCount: number; blocks: number; turnLimitPerPlayer: number; actionCapPerTurn: number;
   runner: PairingRunner; deadline?: number | undefined;
   batchFactory?: typeof generateResponseBatch | undefined;
 }): Promise<{ result: ResponseResult | null; candidate: Strategy | null }> {
   const strategyMap = new Map(options.strategies.map((strategy) => [strategy.id, strategy]));
-  const seed = namespaceSeeds(options.runSeed, options.objective === 'global' ? 'global-screen' : 'niche-screen',
-    1, options.restart, options.attempt)[0]!;
+  const seed = namespaceSeeds(options.runSeed, 'global-screen', 1, options.restart, options.attempt)[0]!;
   const makeBatch = options.batchFactory ?? generateResponseBatch;
   const batch = makeBatch({
     kingdomId: options.kingdomId, seed, count: options.candidateCount, parents: strategyMap,
-    weights: options.targetWeights, existing: options.strategies, focalStrategyId: options.focal?.id
+    weights: options.targetWeights, existing: options.strategies
   });
-  const screenPhase = options.objective === 'global' ? 'global-screen' : 'niche-screen';
-  const confirmPhase = options.objective === 'global' ? 'global-confirm' : 'niche-confirm';
-  const screenSeeds = namespaceSeeds(options.runSeed, screenPhase, options.blocks, options.restart, options.attempt);
-  const confirmSeeds = namespaceSeeds(options.runSeed, confirmPhase, options.blocks, options.restart, options.attempt);
+  const screenSeeds = namespaceSeeds(options.runSeed, 'global-screen', options.blocks, options.restart, options.attempt);
+  const confirmSeeds = namespaceSeeds(options.runSeed, 'global-confirm', options.blocks, options.restart, options.attempt);
   const screenSchedule = mixtureSchedule(options.targetWeights, screenSeeds, seed ^ 0x45d9f3b);
   const confirmSchedule = mixtureSchedule(options.targetWeights, confirmSeeds, seed ^ 0x119de1f3);
   if (!batch.candidates.length) {
     return { candidate: null, result: {
-      objective: options.objective, focalStrategyId: options.focal?.id ?? null,
+      objective: 'global',
       sources: batch.sources, screenSchedule, confirmSchedule, bestTrainingMean: 0,
-      candidateId: null, heldOutMean: null, interval: null, improvement: null,
+      candidateId: null, heldOutMean: null, interval: null,
       admitted: false, matches: 0, telemetry: emptyAggregate(),
       screenTelemetry: emptyAggregate(), confirmationTelemetry: emptyAggregate(),
       failureReason: 'empty-batch'
@@ -134,31 +124,19 @@ export async function runResponseSearch(options: {
   training.sort((a, b) => b.mean - a.mean || a.strategy.id.localeCompare(b.strategy.id));
   const best = training[0]!;
   const confirmed = await evaluateCandidates([best.strategy], strategyMap, confirmSchedule, options.runner, options);
-  let values = confirmed[0]!.blockScores;
-  let improvement: number | null = null;
-  let matches = training.reduce((sum, entry) => sum + entry.matches, 0) + confirmed[0]!.matches;
+  const values = confirmed[0]!.blockScores;
+  const matches = training.reduce((sum, entry) => sum + entry.matches, 0) + confirmed[0]!.matches;
   const screenTelemetry = emptyAggregate();
   for (const evaluation of training) mergeAggregate(screenTelemetry, evaluation.telemetry);
   const confirmationTelemetry = emptyAggregate();
   mergeAggregate(confirmationTelemetry, confirmed[0]!.telemetry);
-  if (options.objective === 'niche') {
-    if (!options.focal) throw new Error('A niche response needs a focal strategy.');
-    const focal = await evaluateCandidates([options.focal], strategyMap, confirmSchedule, options.runner, options);
-    values = values.map((value, index) => value - focal[0]!.blockScores[index]!);
-    improvement = values.reduce((sum, value) => sum + value, 0) / values.length;
-    matches += focal[0]!.matches;
-    mergeAggregate(confirmationTelemetry, focal[0]!.telemetry);
-  }
-  const bootstrapAttempt = options.attempt * 2 + (options.objective === 'niche' ? 1 : 0);
-  const bootstrapSeed = namespaceSeeds(options.runSeed, 'bootstrap', 1, options.restart, bootstrapAttempt)[0]!;
+  const bootstrapSeed = namespaceSeeds(options.runSeed, 'bootstrap', 1, options.restart, options.attempt)[0]!;
   const interval = percentileBootstrapMean(values, bootstrapSeed);
-  const admitted = options.objective === 'global'
-    ? globalAdmission(confirmed[0]!.mean, interval)
-    : nicheAdmission(improvement!, interval);
+  const admitted = globalAdmission(confirmed[0]!.mean, interval);
   return { candidate: best.strategy, result: {
-    objective: options.objective, focalStrategyId: options.focal?.id ?? null,
+    objective: 'global',
     sources: batch.sources, screenSchedule, confirmSchedule, bestTrainingMean: best.mean,
-    candidateId: best.strategy.id, heldOutMean: confirmed[0]!.mean, interval, improvement,
+    candidateId: best.strategy.id, heldOutMean: confirmed[0]!.mean, interval,
     admitted, matches, screenTelemetry, confirmationTelemetry, failureReason: null,
     telemetry: (() => {
       const total = emptyAggregate();
