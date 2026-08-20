@@ -140,7 +140,7 @@ describe('fixed choice policy', () => {
   it('uses the revealed state after Prism to preserve the maximum damage line', () => {
     const state = arena({ kingdomId: 'three-way-engine', hand: ['prism', 'fireball', 'copper'], draw: ['channel'], firstBuyPending: false });
     const finished = playPhase(state, strategy({ repeatPurchase: 'footwork' }));
-    expect(finished.fighters.indigo.health).toBe(25);
+    expect(finished.fighters.indigo.health).toBe(35);
     expect(finished.events.some((event) => event.type === 'discard')).toBe(true);
   });
 });

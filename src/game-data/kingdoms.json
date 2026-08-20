@@ -3,7 +3,7 @@
     {
       "id": "distance-duel",
       "name": "Distance Duel",
-      "startingHealth": 30,
+      "startingHealth": 40,
       "actionPiles": [
         { "cardId": "footwork", "count": 10 },
         { "cardId": "muster", "count": 10 },
@@ -17,7 +17,7 @@
     {
       "id": "current-duel",
       "name": "Current Duel",
-      "startingHealth": 30,
+      "startingHealth": 40,
       "actionPiles": [
         { "cardId": "footwork", "count": 10 },
         { "cardId": "muster", "count": 10 },
@@ -32,7 +32,7 @@
     {
       "id": "three-way-open",
       "name": "Three-Way Open",
-      "startingHealth": 30,
+      "startingHealth": 40,
       "actionPiles": [
         { "cardId": "footwork", "count": 10 },
         { "cardId": "stipend", "count": 10 },
@@ -49,7 +49,7 @@
     {
       "id": "three-way-engine",
       "name": "Three-Way Engine",
-      "startingHealth": 30,
+      "startingHealth": 40,
       "actionPiles": [
         { "cardId": "footwork", "count": 10 },
         { "cardId": "muster", "count": 10 },
@@ -66,7 +66,7 @@
     {
       "id": "range-rich-mixed",
       "name": "Range-Rich Mixed",
-      "startingHealth": 30,
+      "startingHealth": 40,
       "actionPiles": [
         { "cardId": "footwork", "count": 10 },
         { "cardId": "adapt", "count": 10 },
@@ -83,7 +83,7 @@
     {
       "id": "rigged-melee",
       "name": "Rigged Melee",
-      "startingHealth": 30,
+      "startingHealth": 40,
       "actionPiles": [
         { "cardId": "footwork", "count": 10 },
         { "cardId": "stipend", "count": 10 },
