@@ -1,4 +1,7 @@
-export { CARDS, MAX_FIRST_BUY_CARRY, STARTING_BUDGET, cardDefinition, firstBuyCarry } from './config';
+export {
+  CARDS, FIRST_PLAYER_HEALTH_PENALTY, MAX_FIRST_BUY_CARRY, STARTING_BUDGET,
+  cardDefinition, firstBuyCarry, playerStartingHealth
+} from './config';
 export { EFFECTS, TACTICAL_ACTIONS, isTacticalAction, rangeBand } from './effects';
 export {
   applyAction, applyCommand, listActionAvailability, listLegalActions, marketCost,

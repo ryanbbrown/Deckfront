@@ -23,30 +23,30 @@
     },
     "outcome": "indigo",
     "reason": "victory",
-    "turns": 19,
+    "turns": 23,
     "telemetry": {
-     "turnsToWin": 19,
-     "eventCount": 253,
+     "turnsToWin": 23,
+     "eventCount": 339,
      "damageByCard": {
       "ochre": {
-       "fireball": 20
+       "fireball": 36
       },
       "indigo": {
-       "steadyShot": 42
+       "steadyShot": 38
       }
      },
      "playsByCard": {
       "ochre": {
-       "channel": 14,
-       "prism": 4,
-       "fireball": 4
+       "channel": 17,
+       "prism": 5,
+       "fireball": 6
       },
       "indigo": {
-       "reclaim": 8,
-       "stipend": 12,
-       "muster": 10,
-       "steadyShot": 14,
-       "footwork": 5
+       "reclaim": 10,
+       "stipend": 14,
+       "muster": 14,
+       "steadyShot": 19,
+       "footwork": 13
       }
      },
      "purchasesByCard": {
@@ -59,7 +59,7 @@
        "stipend": 1,
        "muster": 2,
        "reclaim": 1,
-       "footwork": 5
+       "footwork": 8
       }
      },
      "startingBuild": {
@@ -90,30 +90,30 @@
      },
      "moneySpent": {
       "ochre": 18,
-      "indigo": 43
+      "indigo": 52
      },
      "unspentMoney": {
-      "ochre": 21,
-      "indigo": 8
+      "ochre": 28,
+      "indigo": 12
      },
      "finalHealth": {
       "ochre": 0,
-      "indigo": 20
+      "indigo": 4
      }
     }
    },
    "state": {
     "schemaVersion": 8,
     "seed": 11,
-    "rngState": 2977150332,
-    "version": 132,
-    "nextCardSerial": 37,
+    "rngState": 2803279031,
+    "version": 173,
+    "nextCardSerial": 40,
     "kingdomId": "three-way-engine",
     "startingHealth": 40,
     "activePlayerId": "indigo",
     "selectedFirstPlayerId": "ochre",
     "phase": "ended",
-    "turn": 20,
+    "turn": 24,
     "winner": "indigo",
     "players": {
      "ochre": {
@@ -121,33 +121,25 @@
       "deck": {
        "draw": [
         {
-         "id": "card-4",
-         "definitionId": "copper"
-        },
-        {
-         "id": "card-21",
-         "definitionId": "fireball"
-        },
-        {
          "id": "card-7",
          "definitionId": "copper"
         },
         {
-         "id": "card-10",
-         "definitionId": "prism"
-        }
-       ],
-       "hand": [
-        {
-         "id": "card-23",
-         "definitionId": "channel"
+         "id": "card-35",
+         "definitionId": "fireball"
         },
         {
          "id": "card-5",
          "definitionId": "copper"
+        }
+       ],
+       "hand": [
+        {
+         "id": "card-4",
+         "definitionId": "copper"
         },
         {
-         "id": "card-8",
+         "id": "card-23",
          "definitionId": "channel"
         },
         {
@@ -155,17 +147,25 @@
          "definitionId": "channel"
         },
         {
-         "id": "card-2",
-         "definitionId": "copper"
+         "id": "card-8",
+         "definitionId": "channel"
+        },
+        {
+         "id": "card-28",
+         "definitionId": "fireball"
         }
        ],
        "discard": [
         {
-         "id": "card-35",
-         "definitionId": "fireball"
+         "id": "card-2",
+         "definitionId": "copper"
         },
         {
-         "id": "card-28",
+         "id": "card-10",
+         "definitionId": "prism"
+        },
+        {
+         "id": "card-21",
          "definitionId": "fireball"
         },
         {
@@ -205,11 +205,23 @@
       "deck": {
        "draw": [
         {
-         "id": "card-29",
-         "definitionId": "reclaim"
+         "id": "card-24",
+         "definitionId": "steadyShot"
         },
         {
-         "id": "card-33",
+         "id": "card-22",
+         "definitionId": "steadyShot"
+        },
+        {
+         "id": "card-20",
+         "definitionId": "stipend"
+        },
+        {
+         "id": "card-18",
+         "definitionId": "muster"
+        },
+        {
+         "id": "card-39",
          "definitionId": "footwork"
         },
         {
@@ -217,45 +229,53 @@
          "definitionId": "footwork"
         },
         {
-         "id": "card-31",
+         "id": "card-33",
          "definitionId": "footwork"
         },
         {
-         "id": "card-20",
-         "definitionId": "stipend"
+         "id": "card-29",
+         "definitionId": "reclaim"
         },
-        {
-         "id": "card-13",
-         "definitionId": "copper"
-        },
-        {
-         "id": "card-22",
-         "definitionId": "steadyShot"
-        }
-       ],
-       "hand": [
         {
          "id": "card-11",
          "definitionId": "copper"
         },
         {
-         "id": "card-12",
-         "definitionId": "copper"
+         "id": "card-27",
+         "definitionId": "muster"
         },
         {
          "id": "card-15",
          "definitionId": "copper"
         },
         {
+         "id": "card-38",
+         "definitionId": "footwork"
+        },
+        {
+         "id": "card-34",
+         "definitionId": "footwork"
+        },
+        {
+         "id": "card-31",
+         "definitionId": "footwork"
+        }
+       ],
+       "hand": [
+        {
          "id": "card-14",
          "definitionId": "copper"
         },
         {
-         "id": "card-24",
-         "definitionId": "steadyShot"
+         "id": "card-13",
+         "definitionId": "copper"
         },
         {
          "id": "card-16",
+         "definitionId": "copper"
+        },
+        {
+         "id": "card-12",
          "definitionId": "copper"
         },
         {
@@ -266,28 +286,20 @@
        "discard": [],
        "play": [
         {
-         "id": "card-18",
-         "definitionId": "muster"
-        },
-        {
-         "id": "card-27",
-         "definitionId": "muster"
-        },
-        {
-         "id": "card-34",
+         "id": "card-32",
          "definitionId": "footwork"
-        },
-        {
-         "id": "card-30",
-         "definitionId": "muster"
         },
         {
          "id": "card-19",
          "definitionId": "reclaim"
         },
         {
-         "id": "card-32",
+         "id": "card-37",
          "definitionId": "footwork"
+        },
+        {
+         "id": "card-30",
+         "definitionId": "muster"
         },
         {
          "id": "card-25",
@@ -321,6 +333,9 @@
        "footwork",
        "footwork",
        "footwork",
+       "footwork",
+       "footwork",
+       "footwork",
        "footwork"
       ]
      }
@@ -336,13 +351,13 @@
      "indigo": {
       "playerId": "indigo",
       "position": 1,
-      "health": 20,
+      "health": 4,
       "aimed": false,
       "exposed": false
      }
     },
     "supply": {
-     "footwork": 5,
+     "footwork": 2,
      "muster": 8,
      "stipend": 9,
      "reclaim": 9,
@@ -356,12 +371,10 @@
     },
     "trash": [],
     "actionsThisTurn": [
-     "muster",
-     "muster",
      "footwork",
-     "muster",
      "reclaim",
      "footwork",
+     "muster",
      "stipend",
      "steadyShot"
     ],
@@ -766,8 +779,8 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
-       "health": 37
+       "amount": 2,
+       "health": 35
       }
      },
      {
@@ -802,8 +815,8 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
-       "health": 34
+       "amount": 2,
+       "health": 33
       }
      },
      {
@@ -978,8 +991,8 @@
       "playerId": "ochre",
       "detail": {
        "targetId": "indigo",
-       "amount": 5,
-       "health": 35
+       "amount": 6,
+       "health": 34
       }
      },
      {
@@ -1091,7 +1104,7 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
+       "amount": 2,
        "health": 31
       }
      },
@@ -1232,8 +1245,8 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
-       "health": 28
+       "amount": 2,
+       "health": 29
       }
      },
      {
@@ -1251,8 +1264,8 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
-       "health": 25
+       "amount": 2,
+       "health": 27
       }
      },
      {
@@ -1392,8 +1405,8 @@
       "playerId": "ochre",
       "detail": {
        "targetId": "indigo",
-       "amount": 5,
-       "health": 30
+       "amount": 6,
+       "health": 28
       }
      },
      {
@@ -1540,8 +1553,8 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
-       "health": 22
+       "amount": 2,
+       "health": 25
       }
      },
      {
@@ -1559,8 +1572,8 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
-       "health": 19
+       "amount": 2,
+       "health": 23
       }
      },
      {
@@ -1699,8 +1712,8 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
-       "health": 16
+       "amount": 2,
+       "health": 21
       }
      },
      {
@@ -1840,8 +1853,8 @@
       "playerId": "ochre",
       "detail": {
        "targetId": "indigo",
-       "amount": 5,
-       "health": 25
+       "amount": 6,
+       "health": 22
       }
      },
      {
@@ -1920,8 +1933,8 @@
       "playerId": "ochre",
       "detail": {
        "targetId": "indigo",
-       "amount": 5,
-       "health": 20
+       "amount": 6,
+       "health": 16
       }
      },
      {
@@ -1965,8 +1978,8 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
-       "health": 13
+       "amount": 2,
+       "health": 19
       }
      },
      {
@@ -2035,8 +2048,8 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
-       "health": 10
+       "amount": 2,
+       "health": 17
       }
      },
      {
@@ -2088,8 +2101,8 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
-       "health": 7
+       "amount": 2,
+       "health": 15
       }
      },
      {
@@ -2327,8 +2340,8 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
-       "health": 4
+       "amount": 2,
+       "health": 13
       }
      },
      {
@@ -2363,8 +2376,8 @@
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
-       "health": 1
+       "amount": 2,
+       "health": 11
       }
      },
      {
@@ -2450,12 +2463,31 @@
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
+       "cardInstanceId": "card-26",
+       "definitionId": "steadyShot"
+      }
+     },
+     {
+      "sequence": 237,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 9
+      }
+     },
+     {
+      "sequence": 238,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
        "cardInstanceId": "card-27",
        "definitionId": "muster"
       }
      },
      {
-      "sequence": 237,
+      "sequence": 239,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
@@ -2463,7 +2495,7 @@
       }
      },
      {
-      "sequence": 238,
+      "sequence": 240,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
@@ -2472,7 +2504,7 @@
       }
      },
      {
-      "sequence": 239,
+      "sequence": 241,
       "type": "move",
       "playerId": "indigo",
       "detail": {
@@ -2482,28 +2514,11 @@
       }
      },
      {
-      "sequence": 240,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 241,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-30",
-       "definitionId": "muster"
-      }
-     },
-     {
       "sequence": 242,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
-       "count": 2
+       "count": 1
       }
      },
      {
@@ -2525,6 +2540,32 @@
      },
      {
       "sequence": 245,
+      "type": "recover",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "steadyShot"
+      }
+     },
+     {
+      "sequence": 246,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-30",
+       "definitionId": "muster"
+      }
+     },
+     {
+      "sequence": 247,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 248,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
@@ -2533,7 +2574,7 @@
       }
      },
      {
-      "sequence": 246,
+      "sequence": 249,
       "type": "move",
       "playerId": "indigo",
       "detail": {
@@ -2543,7 +2584,7 @@
       }
      },
      {
-      "sequence": 247,
+      "sequence": 250,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
@@ -2551,7 +2592,319 @@
       }
      },
      {
-      "sequence": 248,
+      "sequence": 251,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "steadyShot"
+      }
+     },
+     {
+      "sequence": 252,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 7
+      }
+     },
+     {
+      "sequence": 253,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-33",
+       "definitionId": "footwork"
+      }
+     },
+     {
+      "sequence": 254,
+      "type": "move",
+      "playerId": "indigo",
+      "detail": {
+       "movement": "stay",
+       "from": 1,
+       "to": 1
+      }
+     },
+     {
+      "sequence": 255,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 256,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-24",
+       "definitionId": "steadyShot"
+      }
+     },
+     {
+      "sequence": 257,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 5
+      }
+     },
+     {
+      "sequence": 258,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 5
+      }
+     },
+     {
+      "sequence": 259,
+      "type": "purchase",
+      "playerId": "indigo",
+      "detail": {
+       "definitionId": "footwork",
+       "cost": 3
+      }
+     },
+     {
+      "sequence": 260,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 261,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 21,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 262,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 263,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 264,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 265,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-8",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 266,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 2
+      }
+     },
+     {
+      "sequence": 267,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 268,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-9",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 269,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 3
+      }
+     },
+     {
+      "sequence": 270,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 271,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-21",
+       "definitionId": "fireball"
+      }
+     },
+     {
+      "sequence": 272,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": -2,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 273,
+      "type": "damage",
+      "playerId": "ochre",
+      "detail": {
+       "targetId": "indigo",
+       "amount": 6,
+       "health": 10
+      }
+     },
+     {
+      "sequence": 274,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 4
+      }
+     },
+     {
+      "sequence": 275,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 276,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 22,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 277,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-31",
+       "definitionId": "footwork"
+      }
+     },
+     {
+      "sequence": 278,
+      "type": "move",
+      "playerId": "indigo",
+      "detail": {
+       "movement": "stay",
+       "from": 1,
+       "to": 1
+      }
+     },
+     {
+      "sequence": 279,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 280,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-29",
+       "definitionId": "reclaim"
+      }
+     },
+     {
+      "sequence": 281,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 282,
+      "type": "recover",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-18",
+       "definitionId": "muster"
+      }
+     },
+     {
+      "sequence": 283,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-36",
+       "definitionId": "footwork"
+      }
+     },
+     {
+      "sequence": 284,
+      "type": "move",
+      "playerId": "indigo",
+      "detail": {
+       "movement": "stay",
+       "from": 1,
+       "to": 1
+      }
+     },
+     {
+      "sequence": 285,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 286,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
@@ -2560,7 +2913,7 @@
       }
      },
      {
-      "sequence": 249,
+      "sequence": 287,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
@@ -2568,7 +2921,432 @@
       }
      },
      {
-      "sequence": 250,
+      "sequence": 288,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "stipend"
+      }
+     },
+     {
+      "sequence": 289,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 290,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-18",
+       "definitionId": "muster"
+      }
+     },
+     {
+      "sequence": 291,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 292,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-34",
+       "definitionId": "footwork"
+      }
+     },
+     {
+      "sequence": 293,
+      "type": "move",
+      "playerId": "indigo",
+      "detail": {
+       "movement": "stay",
+       "from": 1,
+       "to": 1
+      }
+     },
+     {
+      "sequence": 294,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 295,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "muster"
+      }
+     },
+     {
+      "sequence": 296,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 297,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-30",
+       "definitionId": "muster"
+      }
+     },
+     {
+      "sequence": 298,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 299,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-24",
+       "definitionId": "steadyShot"
+      }
+     },
+     {
+      "sequence": 300,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 3
+      }
+     },
+     {
+      "sequence": 301,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "steadyShot"
+      }
+     },
+     {
+      "sequence": 302,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 1
+      }
+     },
+     {
+      "sequence": 303,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-37",
+       "definitionId": "footwork"
+      }
+     },
+     {
+      "sequence": 304,
+      "type": "move",
+      "playerId": "indigo",
+      "detail": {
+       "movement": "stay",
+       "from": 1,
+       "to": 1
+      }
+     },
+     {
+      "sequence": 305,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 306,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-33",
+       "definitionId": "footwork"
+      }
+     },
+     {
+      "sequence": 307,
+      "type": "move",
+      "playerId": "indigo",
+      "detail": {
+       "movement": "stay",
+       "from": 1,
+       "to": 1
+      }
+     },
+     {
+      "sequence": 308,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 309,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 8
+      }
+     },
+     {
+      "sequence": 310,
+      "type": "purchase",
+      "playerId": "indigo",
+      "detail": {
+       "definitionId": "footwork",
+       "cost": 3
+      }
+     },
+     {
+      "sequence": 311,
+      "type": "purchase",
+      "playerId": "indigo",
+      "detail": {
+       "definitionId": "footwork",
+       "cost": 3
+      }
+     },
+     {
+      "sequence": 312,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 313,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 23,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 314,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-10",
+       "definitionId": "prism"
+      }
+     },
+     {
+      "sequence": 315,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 2,
+       "mana": 2
+      }
+     },
+     {
+      "sequence": 316,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 317,
+      "type": "discard",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-2",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 318,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-21",
+       "definitionId": "fireball"
+      }
+     },
+     {
+      "sequence": 319,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": -2,
+       "mana": 0
+      }
+     },
+     {
+      "sequence": 320,
+      "type": "damage",
+      "playerId": "ochre",
+      "detail": {
+       "targetId": "indigo",
+       "amount": 6,
+       "health": 4
+      }
+     },
+     {
+      "sequence": 321,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 322,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 323,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 24,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 324,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-32",
+       "definitionId": "footwork"
+      }
+     },
+     {
+      "sequence": 325,
+      "type": "move",
+      "playerId": "indigo",
+      "detail": {
+       "movement": "stay",
+       "from": 1,
+       "to": 1
+      }
+     },
+     {
+      "sequence": 326,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 327,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "reclaim"
+      }
+     },
+     {
+      "sequence": 328,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 329,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-37",
+       "definitionId": "footwork"
+      }
+     },
+     {
+      "sequence": 330,
+      "type": "move",
+      "playerId": "indigo",
+      "detail": {
+       "movement": "stay",
+       "from": 1,
+       "to": 1
+      }
+     },
+     {
+      "sequence": 331,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 332,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-30",
+       "definitionId": "muster"
+      }
+     },
+     {
+      "sequence": 333,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 334,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "stipend"
+      }
+     },
+     {
+      "sequence": 335,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 336,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
@@ -2577,17 +3355,17 @@
       }
      },
      {
-      "sequence": 251,
+      "sequence": 337,
       "type": "damage",
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
-       "amount": 3,
+       "amount": 2,
        "health": 0
       }
      },
      {
-      "sequence": 252,
+      "sequence": 338,
       "type": "victory",
       "playerId": "indigo",
       "detail": {
@@ -2620,28 +3398,29 @@
     },
     "outcome": "ochre",
     "reason": "victory",
-    "turns": 17,
+    "turns": 21,
     "telemetry": {
-     "turnsToWin": 17,
-     "eventCount": 219,
+     "turnsToWin": 21,
+     "eventCount": 289,
      "damageByCard": {
       "ochre": {
-       "steadyShot": 42
+       "steadyShot": 38
       },
       "indigo": {
-       "steadyShot": 36
+       "steadyShot": 30
       }
      },
      "playsByCard": {
       "ochre": {
-       "reclaim": 7,
-       "stipend": 7,
-       "muster": 10,
-       "steadyShot": 14
+       "reclaim": 9,
+       "stipend": 9,
+       "muster": 13,
+       "steadyShot": 19,
+       "footwork": 2
       },
       "indigo": {
-       "steadyShot": 12,
-       "footwork": 14
+       "steadyShot": 15,
+       "footwork": 21
       }
      },
      "purchasesByCard": {
@@ -2650,7 +3429,7 @@
        "muster": 2,
        "stipend": 1,
        "reclaim": 1,
-       "footwork": 1
+       "footwork": 2
       },
       "indigo": {
        "steadyShot": 2,
@@ -2682,15 +3461,15 @@
       }
      },
      "moneySpent": {
-      "ochre": 31,
+      "ochre": 34,
       "indigo": 32
      },
      "unspentMoney": {
-      "ochre": 9,
-      "indigo": 4
+      "ochre": 17,
+      "indigo": 11
      },
      "finalHealth": {
-      "ochre": 4,
+      "ochre": 10,
       "indigo": 0
      }
     }
@@ -2719,28 +3498,28 @@
     },
     "outcome": "ochre",
     "reason": "victory",
-    "turns": 21,
+    "turns": 23,
     "telemetry": {
-     "turnsToWin": 21,
-     "eventCount": 272,
+     "turnsToWin": 23,
+     "eventCount": 334,
      "damageByCard": {
       "ochre": {
        "volley": 40
       },
       "indigo": {
-       "arcBolt": 30
+       "arcBolt": 39
       }
      },
      "playsByCard": {
       "ochre": {
-       "footwork": 10,
-       "aim": 11,
-       "volley": 8
+       "footwork": 15,
+       "aim": 13,
+       "volley": 10
       },
       "indigo": {
-       "footwork": 8,
-       "channel": 15,
-       "arcBolt": 10
+       "footwork": 9,
+       "channel": 21,
+       "arcBolt": 13
       }
      },
      "purchasesByCard": {
@@ -2787,11 +3566,11 @@
       "indigo": 33
      },
      "unspentMoney": {
-      "ochre": 8,
-      "indigo": 4
+      "ochre": 10,
+      "indigo": 6
      },
      "finalHealth": {
-      "ochre": 10,
+      "ochre": 1,
       "indigo": 0
      }
     }
@@ -2867,7 +3646,7 @@
       "indigo": 85
      },
      "finalHealth": {
-      "ochre": 40,
+      "ochre": 37,
       "indigo": 40
      }
     }
@@ -2896,29 +3675,29 @@
     },
     "outcome": "ochre",
     "reason": "victory",
-    "turns": 17,
+    "turns": 15,
     "telemetry": {
-     "turnsToWin": 17,
-     "eventCount": 169,
+     "turnsToWin": 15,
+     "eventCount": 152,
      "damageByCard": {
       "ochre": {
        "drive": 18,
-       "heavyBlow": 24
+       "heavyBlow": 20
       },
       "indigo": {
-       "arcBolt": 21
+       "arcBolt": 18
       }
      },
      "playsByCard": {
       "ochre": {
        "footwork": 6,
        "drive": 5,
-       "heavyBlow": 6
+       "heavyBlow": 5
       },
       "indigo": {
-       "channel": 6,
-       "arcBolt": 7,
-       "footwork": 4,
+       "channel": 5,
+       "arcBolt": 6,
+       "footwork": 3,
        "leyStep": 1
       }
      },
@@ -2957,9 +3736,9 @@
       },
       "indigo": {
        "range": 0,
-       "mana": 5,
+       "mana": 4,
        "setup": 0,
-       "total": 5
+       "total": 4
       }
      },
      "moneySpent": {
@@ -2967,11 +3746,11 @@
       "indigo": 20
      },
      "unspentMoney": {
-      "ochre": 16,
-      "indigo": 9
+      "ochre": 12,
+      "indigo": 6
      },
      "finalHealth": {
-      "ochre": 19,
+      "ochre": 22,
       "indigo": 0
      }
     }
@@ -3047,7 +3826,7 @@
       "indigo": 86
      },
      "finalHealth": {
-      "ochre": 40,
+      "ochre": 37,
       "indigo": 40
      }
     }

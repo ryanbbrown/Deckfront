@@ -1,4 +1,6 @@
-import { firstBuyCarry, isTacticalAction, kingdomEpoch, kingdomMarket, kingdomOf } from '../game';
+import {
+  firstBuyCarry, isTacticalAction, kingdomEpoch, kingdomMarket, kingdomOf, playerStartingHealth
+} from '../game';
 import type { CardMechanic, CardValues, MovementChoice, PlayerId } from '../game';
 import { repairBuildIn } from './build';
 import type { Strategy } from './strategy';
@@ -464,7 +466,9 @@ function createState(config: SimulationMatchConfig): KernelState {
     makePlayer(kingdom, config.strategies.ochre), makePlayer(kingdom, config.strategies.indigo)
   ];
   const state: KernelState = {
-    kingdom, players, positions: config.swapSides ? [3, 2] : [2, 3], health: [kingdom.health, kingdom.health],
+    kingdom, players, positions: config.swapSides ? [3, 2] : [2, 3],
+    health: [playerStartingHealth(kingdom.health, config.firstPlayerId === 'ochre'),
+      playerStartingHealth(kingdom.health, config.firstPlayerId === 'indigo')],
     aimed: [false, false], exposed: [false, false], supply: new Int16Array(kingdom.initialSupply),
     active: seat(config.firstPlayerId), turn: 1, rng: config.seed >>> 0, tacticalPlayed: 0, eventCount: 2,
     telemetry: undefined as unknown as MatchTelemetry

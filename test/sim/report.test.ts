@@ -63,4 +63,13 @@ describe('PSRO report semantics', () => {
   it('names absent final-search evidence', () => {
     expect(renderReport(summary([]))).toContain('did not complete a final random search');
   });
+
+  it('renders large screening acquisition tables without overflowing the call stack', () => {
+    const large = summary([]);
+    for (let index = 0; index < 30_000; index += 1) {
+      large.telemetry.acquisitionsByStrategy[`screen-${index}`] = { volley: 1 };
+    }
+    const report = renderReport(large);
+    expect(report).toContain('| screen-29999 | volley | 1 |');
+  });
 });

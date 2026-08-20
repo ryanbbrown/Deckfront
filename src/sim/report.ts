@@ -28,8 +28,9 @@ export interface RunSummary {
 
 function fixed(value: number, places = 3): string { return value.toFixed(places); }
 function table(headers: readonly string[], rows: readonly (readonly string[])[]): string[] {
-  return [`| ${headers.join(' | ')} |`, `| ${headers.map(() => '---').join(' | ')} |`,
-    ...rows.map((row) => `| ${row.join(' | ')} |`)];
+  const lines = [`| ${headers.join(' | ')} |`, `| ${headers.map(() => '---').join(' | ')} |`];
+  for (const row of rows) lines.push(`| ${row.join(' | ')} |`);
+  return lines;
 }
 
 export function renderReport(summary: RunSummary): string {
@@ -138,7 +139,8 @@ export function renderReport(summary: RunSummary): string {
     .sort(([left], [right]) => left.localeCompare(right))
     .flatMap(([strategyId, cards]) => Object.entries(cards).sort(([left], [right]) => left.localeCompare(right))
       .map(([card, count]) => [strategyId, card, String(count)]));
-  lines.push('', '### Acquisitions by strategy', '', ...table(['Strategy', 'Card', 'Copies'], acquiredRows));
+  lines.push('', '### Acquisitions by strategy', '');
+  for (const line of table(['Strategy', 'Card', 'Copies'], acquiredRows)) lines.push(line);
   lines.push('', '## Strategies', '');
   for (const strategy of summary.strategies) lines.push('```', formatStrategy(strategy), '```', '');
   return `${lines.join('\n')}\n`;
