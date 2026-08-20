@@ -42,6 +42,8 @@ function useProjectionKingdom(record: GameRecord): void {
   const kingdom = kingdomOf('action-projection');
   record.state.kingdomId = kingdom.id;
   record.state.startingHealth = kingdom.startingHealth;
+  record.state.fighters.ochre.health = kingdom.startingHealth;
+  record.state.fighters.indigo.health = kingdom.startingHealth;
   record.state.supply = kingdomSupply(kingdom);
 }
 function projectedHandCard(view: GameView, record: GameRecord, definitionId: string) {

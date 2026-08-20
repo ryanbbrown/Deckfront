@@ -243,9 +243,9 @@ describe('runMatch telemetry', () => {
     };
     const result = runMatch(config({ seed: 5, turnLimitPerPlayer: 1, agents: { ochre: oneFootwork, indigo: scriptedAgent({ id: 'idle' }) } }));
 
-    // An empty build leaves the whole 12 as firstBuyMoney, and the opening hand is five Coppers.
+    // An empty build carries the maximum 3 money, and the opening hand is five Coppers.
     expect(result.telemetry.moneySpent).toEqual({ ochre: 3, indigo: 0 });
-    expect(result.telemetry.unspentMoney).toEqual({ ochre: 17 - 3, indigo: 17 });
+    expect(result.telemetry.unspentMoney).toEqual({ ochre: 8 - 3, indigo: 8 });
     expect(result.telemetry.purchasesByCard.ochre).toEqual({ footwork: 1 });
     expect(result.telemetry.startingBuild).toEqual({ ochre: [], indigo: [] });
   });

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MAX_FIRST_BUY_CARRY } from '../game';
 
 const playerId = z.enum(['ochre', 'indigo']);
 const card = z.object({ id: z.string(), definitionId: z.string() });
@@ -21,7 +22,7 @@ export const gameCommandSchema = z.discriminatedUnion('type', [
 ]);
 const player = z.object({
   id: playerId, deck, money: z.number().int().nonnegative(), mana: z.number().int().nonnegative(),
-  positionChanged: z.boolean(), firstBuyMoney: z.number().int().nonnegative(),
+  positionChanged: z.boolean(), firstBuyMoney: z.number().int().min(0).max(MAX_FIRST_BUY_CARRY),
   firstBuyPending: z.boolean(), startingBuild: z.array(z.string()).nullable(), purchases: z.array(z.string())
 });
 const fighter = z.object({ playerId, position: z.number().int().min(1).max(5), health: z.number().int().nonnegative(), aimed: z.boolean(), exposed: z.boolean() });

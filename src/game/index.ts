@@ -1,4 +1,4 @@
-export { CARDS, cardDefinition } from './config';
+export { CARDS, MAX_FIRST_BUY_CARRY, STARTING_BUDGET, cardDefinition, firstBuyCarry } from './config';
 export { EFFECTS, TACTICAL_ACTIONS, isTacticalAction, rangeBand } from './effects';
 export {
   applyAction, applyCommand, listActionAvailability, listLegalActions, marketCost,

@@ -52,9 +52,9 @@ afterEach(() => { resetKingdoms(); });
 describe('kingdom registry', () => {
   it('uses distance-duel by default and reproduces the shipped supply exactly', () => {
     const state = createGame({ seed: 1 });
-    expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(state.startingHealth).toBe(20);
+    expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(state.startingHealth).toBe(30);
     expect(state.supply).toEqual({ footwork: 10, muster: 10, feint: 10, drive: 10, flurry: 10, aim: 10, volley: 10, cull: 10 });
-    expect(state.fighters.ochre.health).toBe(20); expect(state.fighters.indigo.health).toBe(20);
+    expect(state.fighters.ochre.health).toBe(30); expect(state.fighters.indigo.health).toBe(30);
     assertInvariants(state);
   });
   it('sets both fighters from the kingdom health and bounds the invariant by it', () => {
@@ -167,24 +167,24 @@ describe('the curated kingdoms', () => {
   const THREE_WAY_OPEN = ['footwork', 'stipend', 'drive', 'heavyBlow', 'aim', 'volley', 'channel', 'leyStep', 'arcBolt', 'fireball'];
   const EXPECTED: readonly Kingdom[] = [
     {
-      id: 'distance-duel', name: 'Distance Duel', startingHealth: 20,
+      id: 'distance-duel', name: 'Distance Duel', startingHealth: 30,
       actionPiles: piles(['footwork', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley'])
     },
     {
-      id: 'current-duel', name: 'Current Duel', startingHealth: 20,
+      id: 'current-duel', name: 'Current Duel', startingHealth: 30,
       actionPiles: piles(['footwork', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley', 'adapt'])
     },
-    { id: 'three-way-open', name: 'Three-Way Open', startingHealth: 20, actionPiles: piles(THREE_WAY_OPEN) },
+    { id: 'three-way-open', name: 'Three-Way Open', startingHealth: 30, actionPiles: piles(THREE_WAY_OPEN) },
     {
       id: 'three-way-engine', name: 'Three-Way Engine', startingHealth: 30,
       actionPiles: piles(['footwork', 'muster', 'stipend', 'reclaim', 'adapt', 'heavyBlow', 'steadyShot', 'channel', 'prism', 'fireball'])
     },
     {
-      id: 'range-rich-mixed', name: 'Range-Rich Mixed', startingHealth: 20,
+      id: 'range-rich-mixed', name: 'Range-Rich Mixed', startingHealth: 30,
       actionPiles: piles(['footwork', 'adapt', 'quickShot', 'steadyShot', 'aim', 'volley', 'drive', 'heavyBlow', 'channel', 'arcBolt'])
     },
     {
-      id: 'rigged-melee', name: 'Rigged Melee', startingHealth: 20, actionPiles: piles(THREE_WAY_OPEN),
+      id: 'rigged-melee', name: 'Rigged Melee', startingHealth: 30, actionPiles: piles(THREE_WAY_OPEN),
       overrides: { heavyBlow: { cost: 3, values: { damage: 6 } } }
     }
   ];
@@ -218,13 +218,12 @@ describe('the curated kingdoms', () => {
     }
   });
 
-  it('starts three-way-engine at 30 health and every kingdom on a sound state', () => {
-    const engine = createGame({ seed: 1, kingdomId: 'three-way-engine' });
-    expect(engine.startingHealth).toBe(30);
-    expect(engine.fighters.ochre.health).toBe(30);
-    expect(engine.fighters.indigo.health).toBe(30);
+  it('starts every curated kingdom at 30 health and on a sound state', () => {
     for (const expected of EXPECTED) {
       const state = createGame({ seed: 4, kingdomId: expected.id });
+      expect(state.startingHealth, expected.id).toBe(30);
+      expect(state.fighters.ochre.health, expected.id).toBe(30);
+      expect(state.fighters.indigo.health, expected.id).toBe(30);
       expect(() => assertInvariants(state), expected.id).not.toThrow();
       expect(() => assertInvariants(ready(state)), expected.id).not.toThrow();
     }
@@ -239,7 +238,7 @@ describe('the curated kingdoms', () => {
     expect(state.players.ochre.firstBuyMoney).toBe(3);
     state.fighters.indigo.position = 2;
     isolateHand(state, 'ochre', ['heavyBlow']);
-    expect(playCard(state, 'heavyBlow').fighters.indigo.health).toBe(14);
+    expect(playCard(state, 'heavyBlow').fighters.indigo.health).toBe(24);
   });
 
   // These two kingdoms hold identical piles, so a memo keyed on the definition alone would serve
@@ -274,7 +273,7 @@ describe('card overrides', () => {
   it('changes the buy cost, the build budget, and the damage without touching the card data', () => {
     registerKingdom(kingdom('heavy', { actionPiles: piles(['heavyBlow']), overrides: { heavyBlow: { cost: 3, values: { damage: 6 } } } }));
     let state = ready(createGame({ seed: 1, kingdomId: 'heavy' }), ['heavyBlow', 'heavyBlow']);
-    expect(state.players.ochre.firstBuyMoney).toBe(6);
+    expect(state.players.ochre.firstBuyMoney).toBe(3);
     expect(CARDS.heavyBlow).toMatchObject({ cost: 5, values: { damage: 4 } });
     expect(resolveCard(state, 'heavyBlow')).toMatchObject({ cost: 3, values: { damage: 6 } });
     state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['heavyBlow']);
@@ -445,7 +444,7 @@ describe('kingdom persistence and source hygiene', () => {
       const after = await service.commitAction(created.id, both.revision, both.actions.phases.find((entry) => entry.kind === 'endAction')!.id);
       expect(after.phase).toBe('buy');
       const record = await service.getRecord(created.id);
-      expect(record.state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(record.state.startingHealth).toBe(20);
+      expect(record.state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(record.state.startingHealth).toBe(30);
       expect(Object.keys(after.cards).sort()).toEqual([...kingdomMarket(DEFAULT_KINGDOM_ID).map((card) => card.id)].sort());
       assertInvariants(record.state);
     } finally { await rm(directory, { recursive: true, force: true }); }

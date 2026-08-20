@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { STARTING_BUDGET, firstBuyCarry } from '../game';
 import type { PlayerId } from '../game';
 import type { GameView } from '../shared/api';
 import { createGame, loadGame, updateBuild } from './api';
@@ -49,8 +50,8 @@ function StartingBuild({ game, error, onGame, onError, onNew }: { game: GameView
     finally { setSaving(false); }
   }
   const builderName = game.activePlayerId === 'ochre' ? 'Player 1' : 'Player 2';
-  return <main className="build-shell"><header><div><p className="eyebrow">{builderName} starting build</p><h1>Spend up to 12</h1></div><div className="budget" data-testid="build-budget">{cost} spent · {12 - cost} carries</div><button className="control-button control-button--secondary" onClick={onNew}>New game</button></header>{error ? <p role="alert" className="error">{error}</p> : null}
+  return <main className="build-shell"><header><div><p className="eyebrow">{builderName} starting build</p><h1>Spend up to {STARTING_BUDGET}</h1></div><div className="budget" data-testid="build-budget">{cost} spent · {firstBuyCarry(cost)} carries</div><button className="control-button control-button--secondary" onClick={onNew}>New game</button></header>{error ? <p role="alert" className="error">{error}</p> : null}
     <div className="market-grid">{Object.values(game.cards).map((card) => <article className="market-card" key={card.id} data-card-name={card.name}><CardFace card={card} /><div className="quantity"><button aria-label={`Remove ${card.name}`} disabled={saving || !quantities.get(card.id)} onClick={() => { const index = proposal.lastIndexOf(card.id); void save(proposal.filter((_, position) => position !== index)); }}>−</button><span aria-label={`${card.name} quantity`}>{quantities.get(card.id) ?? 0}</span><button aria-label={`Add ${card.name}`} disabled={saving} onClick={() => void save([...proposal, card.id])}>+</button></div></article>)}</div>
-    <footer className="build-footer"><p>Base deck: 7 Copper. Chosen cards: {proposal.map((id) => game.cards[id]?.name).join(', ') || 'none'}.{saving ? ' Saving…' : ''}</p><button className="primary" disabled={saving || cost > 12} onClick={() => void save(proposal, true)}>Finish starting build</button></footer>
+    <footer className="build-footer"><p>Base deck: 7 Copper. Chosen cards: {proposal.map((id) => game.cards[id]?.name).join(', ') || 'none'}.{saving ? ' Saving…' : ''}</p><button className="primary" disabled={saving || cost > STARTING_BUDGET} onClick={() => void save(proposal, true)}>Finish starting build</button></footer>
   </main>;
 }

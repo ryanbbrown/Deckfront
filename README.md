@@ -1,6 +1,6 @@
 # Hexdeck
 
-Hexdeck is a local two-player deck-building game for one browser. Player 1 and Player 2 build decks, move on a five-space arena, combine cards, buy improvements, and try to reduce the other fighter from 20 health to 0.
+Hexdeck is a local two-player deck-building game for one browser. Player 1 and Player 2 build decks, move on a five-space arena, combine cards, buy improvements, and try to reduce the other fighter from 30 health to 0.
 
 The browser has no computer opponent. `src/sim/` has deterministic strategy players for balance experiments. Those simulator strategies are separate from browser play and are not a browser opponent.
 
@@ -24,7 +24,7 @@ The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, 
 
 1. Choose Player 1 or Player 2 as the first player. You can also enter a seed to repeat the same shuffle.
 2. Player 1 spends up to 12 money on starting cards. Player 2 builds next.
-3. The chosen first player starts after both builds finish. Unspent starting money carries into that player's first Buy phase.
+3. The chosen first player starts after both builds finish. Up to 3 unspent starting money carries into that player's first Buy phase.
 4. Play any number of Action cards.
 5. End the Action phase to play all Treasure cards.
 6. Buy any number of affordable cards, then end the Buy phase.
@@ -71,7 +71,7 @@ npm run measure:workers -- --workers 4 --jobs 500 --seeds 25
 
 Experiment output goes to `.experiments/<kingdom>/<mode>/`. Each run writes `run.json`,
 `iterations.jsonl`, `matrix.json`, `strategies.json`, `telemetry.json`, and `report.md`. Reports are
-committed. Generated JSON inputs and results stay ignored but are not cleanup targets. The curated
+ignored by Git. Generated inputs and results are local experiment artifacts, not cleanup targets. The curated
 kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, `range-rich-mixed`, and
 `rigged-melee`.
 

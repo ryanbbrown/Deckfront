@@ -1,4 +1,4 @@
-import { isTacticalAction, kingdomEpoch, kingdomMarket, kingdomOf } from '../game';
+import { firstBuyCarry, isTacticalAction, kingdomEpoch, kingdomMarket, kingdomOf } from '../game';
 import type { CardMechanic, CardValues, MovementChoice, PlayerId } from '../game';
 import { repairBuildIn } from './build';
 import type { Strategy } from './strategy';
@@ -109,7 +109,7 @@ function makePlayer(kingdom: KernelKingdom, strategy: Strategy): KernelPlayer {
   const buildCost = build.reduce((total, index) => total + kingdom.cards[index]!.cost, 0);
   return {
     strategy, build, draw: [], drawHead: 0, hand: [], discard: [], play: [], money: 0, mana: 0,
-    firstBuyMoney: 12 - buildCost, firstBuyPending: true, positionChanged: false, purchases: [], acquired
+    firstBuyMoney: firstBuyCarry(buildCost), firstBuyPending: true, positionChanged: false, purchases: [], acquired
   };
 }
 

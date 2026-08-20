@@ -1,4 +1,4 @@
-import { CARDS } from './config';
+import { CARDS, MAX_FIRST_BUY_CARRY } from './config';
 import { ALWAYS_AVAILABLE_ACTION_ID, ALWAYS_AVAILABLE_COUNT, findKingdom } from './kingdom';
 import type { GameState } from './types';
 
@@ -11,6 +11,9 @@ export function checkInvariants(state: GameState): string[] {
   }
   for (const player of Object.values(state.players)) {
     if (!Number.isInteger(player.mana) || player.mana < 0) errors.push(`${player.id} has invalid mana.`);
+    if (!Number.isInteger(player.firstBuyMoney) || player.firstBuyMoney < 0 || player.firstBuyMoney > MAX_FIRST_BUY_CARRY) {
+      errors.push(`${player.id} has invalid first-buy money.`);
+    }
   }
   if (state.pendingChoice) {
     if (state.phase !== 'action') errors.push('A pending choice exists outside the Action phase.');

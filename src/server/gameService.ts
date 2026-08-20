@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
+  STARTING_BUDGET,
   applyCommand, assertInvariants, CARDS, cloneGame, createGame, kingdomMarket,
   listActionAvailability, listLegalActions, marketCost, rangeBand, replayCommands
 } from '../game';
@@ -38,7 +39,7 @@ export class GameService {
       for (const definitionId of definitionIds) if (!CARDS[definitionId]) throw new BadBuildError('Starting build contains an unknown card.');
       const forSale = new Set(kingdomMarket(record.state.kingdomId).map((card) => card.id));
       for (const definitionId of definitionIds) if (!forSale.has(definitionId)) throw new BadBuildError('Starting build contains a card this kingdom does not sell.');
-      if (complete && marketCost(record.state, definitionIds) > 12) throw new BadBuildError('Starting build costs more than 12 money.');
+      if (complete && marketCost(record.state, definitionIds) > STARTING_BUDGET) throw new BadBuildError(`Starting build costs more than ${STARTING_BUDGET} money.`);
       record.buildProposal = [...definitionIds];
       record.undoCheckpoint = null;
       if (complete) {

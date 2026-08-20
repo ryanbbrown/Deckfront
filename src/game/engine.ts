@@ -1,4 +1,5 @@
 import { ARENA_MAX, ARENA_MIN, EFFECTS } from './effects';
+import { STARTING_BUDGET, firstBuyCarry } from './config';
 import { kingdomMarket, resolveCard } from './kingdom';
 import type { Choice, EffectContext } from './effects';
 import { SeededRandom, shuffle } from './random';
@@ -250,7 +251,7 @@ function finishSetup(state: GameState): void {
     const selected = state.players[playerId].startingBuild!;
     const definitions = [...Array<string>(7).fill('copper'), ...selected];
     state.players[playerId].deck.draw = definitions.map((definitionId) => createCard(state, definitionId));
-    state.players[playerId].firstBuyMoney = 12 - marketCost(state, selected);
+    state.players[playerId].firstBuyMoney = firstBuyCarry(marketCost(state, selected));
     state.players[playerId].positionChanged = false;
   }
   state.players.ochre.deck.draw = shuffle(state.players.ochre.deck.draw, random);
@@ -266,7 +267,7 @@ function submitBuild(state: GameState, command: Extract<GameCommand, { type: 'su
   const offered = new Set(kingdomMarket(state.kingdomId).map((definition) => definition.id));
   for (const id of command.definitionIds) if (!offered.has(resolveCard(state, id).id)) throw new Error(`This kingdom does not sell ${id}.`);
   const cost = marketCost(state, command.definitionIds);
-  if (cost > 12) throw new Error('Starting build costs more than 12 money.');
+  if (cost > STARTING_BUDGET) throw new Error(`Starting build costs more than ${STARTING_BUDGET} money.`);
   state.players[command.playerId].startingBuild = [...command.definitionIds];
   record(state, 'buildComplete', { playerId: command.playerId, count: command.definitionIds.length, cost }, command.playerId);
   if (command.playerId === 'ochre') state.activePlayerId = 'indigo'; else finishSetup(state);

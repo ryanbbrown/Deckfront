@@ -1,8 +1,5 @@
-import { createGame, kingdomEpoch, kingdomMarket, marketCost, resolveCard } from '../game';
+import { STARTING_BUDGET, createGame, kingdomEpoch, kingdomMarket, marketCost, resolveCard } from '../game';
 import type { GameState } from '../game';
-
-/** `submitBuild` and `finishSetup` both settle the starting build against this budget. */
-export const STARTING_BUDGET = 12;
 
 /**
  * The single build-repair rule for the project. Drops cards the market does not offer, then
@@ -12,7 +9,7 @@ export const STARTING_BUDGET = 12;
  * would be repaired one way at mutation time and another at match time, so the recorded strategy
  * would not be the one that played.
  *
- * Leftover money is not spent. It carries into the first Buy phase as `firstBuyMoney`.
+ * Up to three leftover money carries into the first Buy phase as `firstBuyMoney`.
  */
 export function repairBuild(state: GameState, build: readonly string[]): string[] {
   const offered = new Set(kingdomMarket(state.kingdomId).map((definition) => definition.id));
