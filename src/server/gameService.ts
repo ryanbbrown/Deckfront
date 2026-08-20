@@ -9,9 +9,9 @@ import type { GameCommand, PlayerId } from '../game';
 import { strategyAgent } from '../sim/agents/strategyAgent';
 import type {
   BrowserAction, CardActionChoice, CardActionPresentation, GameActionPresentation, GameExport, GameView,
-  PhaseActionPresentation
+  PhaseActionPresentation, PublicGameEvent
 } from '../shared/api';
-import type { GameRecord, GameRepository, UndoCheckpoint } from './types';
+import type { GameRecord, GameRepository, UndoHistoryEntry } from './types';
 import { ProductionAiTrainer } from './aiTrainer';
 import type { AiTrainer } from './aiTrainer';
 
@@ -40,10 +40,10 @@ export class GameService {
     const trained = mode === 'ai' ? await this.aiTrainer.train(kingdom, seed) : null;
     const initialState = createGame({ seed, firstPlayerId: 'ochre', kingdomId: kingdom.id });
     const record: GameRecord = {
-      schemaVersion: 10, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
+      schemaVersion: 11, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
       completedActions: 0, durationSeconds: null, buildProposal: [], kingdom, mode, humanPlayerId,
       aiStrategy: trained?.strategy ?? null, training: trained?.summary ?? null,
-      initialState: cloneGame(initialState), committedCommands: [], undoCheckpoint: null, state: initialState
+      initialState: cloneGame(initialState), committedCommands: [], undoHistory: [], state: initialState
     };
     if (aiPlayerId === 'ochre') this.advanceComputer(record);
     await this.repository.create(record);
@@ -63,7 +63,7 @@ export class GameService {
       for (const definitionId of definitionIds) if (!forSale.has(definitionId)) throw new BadBuildError('Starting build contains a card this kingdom does not sell.');
       if (complete && marketCost(record.state, definitionIds) > STARTING_BUDGET) throw new BadBuildError(`Starting build costs more than ${STARTING_BUDGET} money.`);
       record.buildProposal = [...definitionIds];
-      record.undoCheckpoint = null;
+      record.undoHistory = [];
       if (complete) {
         this.commitCommand(record, { type: 'submitStartingBuild', playerId: builderId, definitionIds });
         record.buildProposal = [];
@@ -83,7 +83,7 @@ export class GameService {
       if (record.mode === 'ai' && record.state.activePlayerId !== record.humanPlayerId) throw new ForbiddenActionError('The AI controls this turn.');
       const selected = listLegalActions(record.state).find((action) => action.id === actionId);
       if (!selected) throw new ConflictError('That action is no longer legal.');
-      record.undoCheckpoint = this.checkpoint(record);
+      record.undoHistory.push(this.historyEntry(record));
       this.commitCommand(record, selected.command);
       record.completedActions += 1;
       this.advanceComputer(record);
@@ -98,14 +98,13 @@ export class GameService {
     return this.repository.withLock(id, async () => {
       const record = await this.repository.load(id);
       this.assertRevision(record, expectedRevision);
-      const checkpoint = record.undoCheckpoint;
-      if (!checkpoint) throw new ForbiddenActionError('There is no action to undo.');
-      record.committedCommands = record.committedCommands.slice(0, checkpoint.committedCommandCount);
+      const entry = record.undoHistory.pop();
+      if (!entry) throw new ForbiddenActionError('There is no action to undo.');
+      record.committedCommands = record.committedCommands.slice(0, entry.committedCommandCount);
       record.state = replayCommands(record.initialState, record.committedCommands);
-      record.completedActions = checkpoint.completedActions;
-      record.finishedAt = checkpoint.finishedAt;
-      record.durationSeconds = checkpoint.durationSeconds;
-      record.undoCheckpoint = null;
+      record.completedActions = entry.completedActions;
+      record.finishedAt = entry.finishedAt;
+      record.durationSeconds = entry.durationSeconds;
       this.touch(record);
       this.assertRecordReplay(record);
       await this.repository.save(record);
@@ -136,7 +135,7 @@ export class GameService {
       actions += 1;
     }
   }
-  private checkpoint(record: GameRecord): UndoCheckpoint {
+  private historyEntry(record: GameRecord): UndoHistoryEntry {
     return { committedCommandCount: record.committedCommands.length, completedActions: record.completedActions, finishedAt: record.finishedAt, durationSeconds: record.durationSeconds };
   }
   private commitCommand(record: GameRecord, command: GameCommand): void {
@@ -154,8 +153,33 @@ export class GameService {
   private assertRecordReplay(record: GameRecord): void {
     const replayed = replayCommands(record.initialState, record.committedCommands);
     if (JSON.stringify(replayed) !== JSON.stringify(record.state)) throw new Error('Committed command replay diverged from the saved state.');
-    if (record.undoCheckpoint && record.undoCheckpoint.committedCommandCount >= record.committedCommands.length) throw new Error('Undo checkpoint does not precede the saved state.');
+    for (let index = 0; index < record.undoHistory.length; index += 1) {
+      const entry = record.undoHistory[index]!;
+      if (entry.committedCommandCount >= record.committedCommands.length) throw new Error('Undo history does not precede the saved state.');
+      if (index > 0 && record.undoHistory[index - 1]!.committedCommandCount >= entry.committedCommandCount) throw new Error('Undo history is not ordered.');
+    }
     assertInvariants(record.state);
+  }
+  private publicEvents(record: GameRecord): PublicGameEvent[] {
+    return record.state.events.map((event) => {
+      const detail = event.detail;
+      switch (event.type) {
+        case 'buildComplete': return { ...event, detail: { count: detail.count, cost: detail.cost } };
+        case 'cardPlayed': return { ...event, detail: { definitionId: detail.definitionId } };
+        case 'move': return { ...event, detail: { movement: detail.movement, from: detail.from, to: detail.to, source: detail.source } };
+        case 'draw': return { ...event, detail: { count: detail.count } };
+        case 'condition': return { ...event, detail: { condition: detail.condition, change: detail.change, targetId: detail.targetId } };
+        case 'damage': return { ...event, detail: { targetId: detail.targetId, amount: detail.amount, health: detail.health } };
+        case 'wallCollision': return { ...event, detail: { direction: detail.direction } };
+        case 'trash': case 'discard': return { ...event, detail: { definitionId: detail.definitionId } };
+        case 'recover': return { ...event, detail: {} };
+        case 'phase': return { ...event, detail: { phase: detail.phase, money: detail.money } };
+        case 'purchase': return { ...event, detail: { definitionId: detail.definitionId, cost: detail.cost } };
+        case 'turn': return { ...event, detail: { turn: detail.turn, activePlayerId: detail.activePlayerId } };
+        case 'victory': return { ...event, detail: { winner: detail.winner } };
+        case 'mana': return { ...event, detail: { amount: detail.amount, mana: detail.mana } };
+      }
+    });
   }
   private projectActions(record: GameRecord): GameActionPresentation {
     const state = record.state;
@@ -228,9 +252,11 @@ export class GameService {
     const state = record.state;
     const players = Object.fromEntries((['ochre', 'indigo'] as const).map((playerId) => {
       const player = state.players[playerId];
-      const allCards = [...player.deck.draw, ...player.deck.hand, ...player.deck.discard, ...player.deck.play];
-      const deckCounts = allCards.reduce<Record<string, number>>((counts, card) => {
-        counts[card.definitionId] = (counts[card.definitionId] ?? 0) + 1;
+      const ownedDefinitionIds = state.phase === 'startingBuild'
+        ? [...Array<string>(7).fill('copper'), ...(player.startingBuild ?? [])]
+        : [...player.deck.draw, ...player.deck.hand, ...player.deck.discard, ...player.deck.play].map((card) => card.definitionId);
+      const deckCounts = ownedDefinitionIds.reduce<Record<string, number>>((counts, definitionId) => {
+        counts[definitionId] = (counts[definitionId] ?? 0) + 1;
         return counts;
       }, {});
       return [playerId, {
@@ -251,11 +277,9 @@ export class GameService {
       turn: state.turn, winner: state.winner, fighters: structuredClone(state.fighters), range: rangeBand(state),
       supply: { ...state.supply }, cards: Object.fromEntries(kingdomMarket(state.kingdomId).map((card) => [card.id, card])),
       players, trashCount: state.trash.length,
-      events: structuredClone(record.mode === 'ai'
-        ? state.events.filter((event) => event.playerId === record.humanPlayerId)
-        : state.events),
+      events: this.publicEvents(record),
       actions: this.projectActions(record),
-      canUndo: record.undoCheckpoint !== null,
+      canUndo: record.undoHistory.length > 0,
       mode: record.mode, humanPlayerId: record.humanPlayerId,
       aiPlayerId: record.humanPlayerId ? opponent(record.humanPlayerId) : null,
       training: record.training ? { ...record.training } : null,

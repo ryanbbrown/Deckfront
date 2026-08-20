@@ -37,7 +37,7 @@ export const gameStateSchema = z.object({
   fighters: z.object({ ochre: fighter, indigo: fighter }), supply: z.record(z.string(), z.number().int().nonnegative()),
   trash: z.array(card), actionsThisTurn: z.array(z.string()), pendingChoice: pendingChoice.nullable(), events: z.array(event)
 });
-const undoCheckpoint = z.object({
+const undoHistoryEntry = z.object({
   committedCommandCount: z.number().int().nonnegative(), completedActions: z.number().int().nonnegative(),
   finishedAt: z.string().datetime().nullable(), durationSeconds: z.number().nonnegative().nullable()
 });
@@ -50,13 +50,13 @@ const trainingSchema = z.object({
   elapsedMs: z.number().nonnegative(), matches: z.number().int().nonnegative(), strategyId: z.string().min(1)
 });
 export const gameRecordSchema = z.object({
-  schemaVersion: z.literal(10), id: z.string().uuid(), revision: z.number().int().nonnegative(),
+  schemaVersion: z.literal(11), id: z.string().uuid(), revision: z.number().int().nonnegative(),
   createdAt: z.string().datetime(), updatedAt: z.string().datetime(), finishedAt: z.string().datetime().nullable(),
   completedActions: z.number().int().nonnegative(), durationSeconds: z.number().nonnegative().nullable(),
   buildProposal: z.array(z.string()), kingdom: kingdomSchema, mode: z.enum(['local', 'ai']),
   humanPlayerId: playerId.nullable(), aiStrategy: strategySchema.nullable(), training: trainingSchema.nullable(),
   initialState: gameStateSchema, committedCommands: z.array(gameCommandSchema),
-  undoCheckpoint: undoCheckpoint.nullable(), state: gameStateSchema
+  undoHistory: z.array(undoHistoryEntry), state: gameStateSchema
 }).superRefine((record, context) => {
   const metadata = [record.humanPlayerId, record.aiStrategy, record.training];
   if ((record.mode === 'ai' && metadata.some((value) => value === null))

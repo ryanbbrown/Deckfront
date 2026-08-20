@@ -1,5 +1,5 @@
 import type {
-  CardDefinition, CardInstance, GameEvent, Phase, PlayerId, RangeBand
+  CardDefinition, CardInstance, GameEventType, Phase, PlayerId, RangeBand
 } from '../game/types';
 
 export type GameMode = 'local' | 'ai';
@@ -22,6 +22,7 @@ export interface GamePlayerView {
   purchases: string[];
 }
 export interface FighterView { playerId: PlayerId; position: number; health: number; aimed: boolean; exposed: boolean }
+export interface PublicGameEvent { sequence: number; type: GameEventType; playerId: PlayerId; detail: Record<string, unknown> }
 export interface BrowserAction { id: string; label: string; text: string }
 export interface CardActionChoice extends BrowserAction { targetCardInstanceIds: string[] }
 export interface CardActionPresentation {
@@ -53,7 +54,7 @@ export interface GameView {
   activePlayerId: PlayerId; selectedFirstPlayerId: PlayerId; phase: Phase; turn: number; winner: PlayerId | null;
   fighters: Record<PlayerId, FighterView>; range: RangeBand; supply: Record<string, number>;
   cards: Record<string, CardDefinition>; players: Record<PlayerId, GamePlayerView>; trashCount: number;
-  events: GameEvent[]; actions: GameActionPresentation;
+  events: PublicGameEvent[]; actions: GameActionPresentation;
   canUndo: boolean;
   mode: GameMode; humanPlayerId: PlayerId | null; aiPlayerId: PlayerId | null;
   training: TrainingSummary | null;

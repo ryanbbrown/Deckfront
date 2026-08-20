@@ -2,21 +2,21 @@ import type { GameCommand, GameState, Kingdom, PlayerId } from '../game/types';
 import type { GameMode, TrainingSummary } from '../shared/api';
 import type { Strategy } from '../sim/strategy';
 
-export interface UndoCheckpoint {
+export interface UndoHistoryEntry {
   committedCommandCount: number;
   completedActions: number;
   finishedAt: string | null;
   durationSeconds: number | null;
 }
 export interface GameRecord {
-  schemaVersion: 10;
+  schemaVersion: 11;
   id: string; revision: number; createdAt: string; updatedAt: string; finishedAt: string | null;
   completedActions: number; durationSeconds: number | null;
   buildProposal: string[];
   kingdom: Kingdom; mode: GameMode; humanPlayerId: PlayerId | null;
   aiStrategy: Strategy | null; training: TrainingSummary | null;
   initialState: GameState; committedCommands: GameCommand[];
-  undoCheckpoint: UndoCheckpoint | null; state: GameState;
+  undoHistory: UndoHistoryEntry[]; state: GameState;
 }
 export interface GameRepository {
   create(record: GameRecord): Promise<void>; load(id: string): Promise<GameRecord>; save(record: GameRecord): Promise<void>;

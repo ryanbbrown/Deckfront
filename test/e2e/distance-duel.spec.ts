@@ -26,7 +26,7 @@ test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local b
   await expect(page.getByRole('heading', { name: 'Hexdeck' })).toBeVisible(); await expect(page.getByText('Choose a kingdom')).toBeVisible(); await expect(page.getByText('I go first', { exact: true })).toHaveCount(0); await expect(page.getByText('AI goes first', { exact: true })).toHaveCount(0);
   await expect(page.locator('[data-market-card="Step"]')).toBeVisible(); await expect(page.locator('[data-market-card="Cull"]')).toBeVisible(); await expect(page.locator('[data-market-card="Focus"]')).toBeVisible(); await expect(page.locator('[data-market-card]')).toHaveCount(16); await expect(page.locator('[data-market-card][aria-disabled="true"]')).toHaveCount(16);
   const compactWidths = await page.locator('[data-market-card]').evaluateAll((cards) => cards.map((card) => Math.round(card.getBoundingClientRect().width)));
-  expect([...new Set(compactWidths)]).toEqual([148]);
+  expect([...new Set(compactWidths)]).toEqual([137]);
   await page.locator('[data-market-card="Step"]').locator('..').click({ button: 'right' }); const cardPopup = page.getByRole('dialog', { name: 'Step details' }); await expect(cardPopup).toBeVisible(); await expect(cardPopup).toContainText('Move 1 space left or right.'); await expect(cardPopup.getByLabel('Cost 2')).toBeVisible(); expect(await cardPopup.evaluate((element) => element.matches(':modal'))).toBe(false); expect(await cardPopup.locator('.card__rules').evaluate((element) => getComputedStyle(element).fontSize)).toBe('10px'); await page.keyboard.press('Escape'); await expect(cardPopup).toHaveCount(0);
   const before = await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents(); await page.getByRole('button', { name: 'Refresh market' }).click(); const after = await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents(); expect(after).not.toEqual(before);
   for (const viewport of [{ width: 1920, height: 1080 }, { width: 3840, height: 2160 }]) {
@@ -52,22 +52,22 @@ test('DD-E2E-035: two local players draft in sequence and take complete turns on
 test('DD-E2E-002: repeated Copper Silver and Gold buys stay available and show public purchase names', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, Array<string>(10).fill('gold')); record.state.players.ochre.firstBuyMoney = 0; });
   await page.getByRole('button', { name: 'End Action phase' }).click(); await expect(page.getByTestId('zone-money')).toContainText('30');
-  await page.locator('[data-market-card="Copper"]').click(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByTestId('player-one-purchases')).toContainText('None');
+  await page.locator('[data-market-card="Copper"]').click(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByTestId('action-log').getByText('Bought Copper')).toHaveCount(0);
   for (const name of ['Copper', 'Copper', 'Silver', 'Silver', 'Gold', 'Gold']) { await page.locator(`[data-market-card="${name}"]`).click(); }
-  await expect(page.getByTestId('zone-money')).toContainText('12'); await expect(page.getByTestId('player-one-purchases')).toContainText('Copper, Copper, Silver, Silver, Gold, Gold'); await expect(page.locator('[data-market-card="Copper"]')).toBeEnabled(); await expect(page.locator('[data-market-card="Silver"]')).toBeEnabled(); await expect(page.locator('[data-market-card="Gold"]')).toBeEnabled();
+  await expect(page.getByTestId('zone-money')).toContainText('12'); await expect(page.getByTestId('action-log').getByText(/^Bought /)).toHaveCount(6); await expect(page.locator('[data-market-card="Copper"]')).toBeEnabled(); await expect(page.locator('[data-market-card="Silver"]')).toBeEnabled(); await expect(page.locator('[data-market-card="Gold"]')).toBeEnabled();
 });
 
 test('DD-E2E-003: Footwork offers Stay, draws without moving, then can move into a shared space', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['footwork'], ['aim']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 3; });
   await page.locator('[data-card-name="Footwork"]').click(); await expect(page.getByRole('button', { name: 'Play Footwork: Left' })).toHaveText('Left'); await expect(page.getByRole('button', { name: 'Play Footwork: Stay' })).toHaveText('Stay'); await expect(page.getByRole('button', { name: 'Play Footwork: Right' })).toHaveText('Right');
-  await page.getByRole('button', { name: 'Play Footwork: Stay' }).click(); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '2'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-card-name="Aim"]')).toBeVisible(); await page.getByRole('button', { name: /Deck ·/ }).click(); await expect(page.getByText('Stayed on space 2')).toBeVisible(); await page.getByRole('button', { name: 'Close Deck and zones' }).click();
+  await page.getByRole('button', { name: 'Play Footwork: Stay' }).click(); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '2'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-card-name="Aim"]')).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Stayed on space 2')).toBeVisible();
   await page.getByRole('button', { name: 'Undo last action' }).click(); await page.locator('[data-card-name="Footwork"]').click(); await page.getByRole('button', { name: 'Play Footwork: Right' }).click(); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3'); await expect(page.getByTestId('range')).toHaveText('Close · 0 spaces');
 });
 
 test('DD-E2E-004: Cull selects itself plus one hand card and trashes both', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['cull', 'copper', 'silver']); });
   await page.locator('[data-card-name="Cull"]').click(); await page.locator('[data-card-name="Cull"]').click(); await page.locator('[data-card-name="Copper"]').click(); await expect(page.getByText('2 selected (maximum 2).')).toBeVisible();
-  await page.getByRole('button', { name: 'Trash selected cards' }).click(); await expect(page.getByTestId('zone-trash')).toContainText('9');
+  await page.getByRole('button', { name: 'Trash selected cards' }).click(); await expect(page.getByTestId('action-log').getByText('Trashed Cull')).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Trashed Copper')).toBeVisible();
   await expect(page.locator('[data-card-name="Silver"]')).toBeVisible(); await expect(page.locator('[data-card-name="Cull"]')).toHaveCount(0);
 });
 
@@ -82,7 +82,7 @@ test('DD-E2E-006: Close Feint states its damage bonus and Drive moves both fight
   expect(await page.locator('[data-card-name="Feint"] .card__rules').evaluate((element) => getComputedStyle(element).fontSize)).toBe('10px'); expect(await page.locator('[data-card-name="Drive"] .card__rules').evaluate((element) => getComputedStyle(element).fontSize)).toBe('8px');
   await playCard(page, 'Feint'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('Next Close-range attack this turn: +2 damage'); await expect(page.locator('[data-player-score="indigo"]')).not.toContainText('Exposed');
   await page.locator('[data-card-name="Drive"]').click(); await expect(page.getByRole('button', { name: 'Play Drive: Move Both Left' })).toBeVisible(); await expect(page.getByRole('button', { name: 'Play Drive: Move Both Right' })).toBeVisible(); await page.getByRole('button', { name: 'Play Drive: Move Both Right' }).click();
-  await expect(page.locator('[data-player-score="indigo"]')).toContainText('36 HP'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '4'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '4'); await expect(page.getByTestId('range')).toHaveText('Close · 0 spaces'); await expect(page.locator('.play-order')).toHaveCount(0); await expect(page.getByText('Numbers show play order.')).toHaveCount(0); await page.getByRole('button', { name: /Deck ·/ }).click(); await expect(page.getByText('Moved both fighters right to space 4')).toBeVisible(); await page.getByRole('button', { name: 'Close Deck and zones' }).click();
+  await expect(page.locator('[data-player-score="indigo"]')).toContainText('36 HP'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '4'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '4'); await expect(page.getByTestId('range')).toHaveText('Close · 0 spaces'); await expect(page.locator('.play-order')).toHaveCount(0); await expect(page.getByText('Numbers show play order.')).toHaveCount(0); await expect(page.getByTestId('action-log').getByText('Moved both fighters right to space 4')).toBeVisible();
   await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('40 HP'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('Next Close-range attack this turn: +2 damage'); await page.locator('[data-card-name="Drive"]').click(); await page.getByRole('button', { name: 'Play Drive: Move Both Right' }).click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('36 HP');
 });
 
@@ -130,7 +130,7 @@ test('DD-E2E-013: wall-blocked direction is absent and Close blocks Aim and Voll
 
 test('DD-E2E-014: chosen Drive direction into a wall deals exact six damage and moves neither fighter', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['feint', 'drive']); record.state.fighters.ochre.position = 5; record.state.fighters.indigo.position = 5; });
-  await playCard(page, 'Feint'); await page.locator('[data-card-name="Drive"]').click(); await page.getByRole('button', { name: 'Play Drive: Move Both Right' }).click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('34 HP'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '5'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '5'); await page.getByRole('button', { name: /Deck ·/ }).click(); await expect(page.getByText('Wall blocked right; neither fighter moved')).toBeVisible();
+  await playCard(page, 'Feint'); await page.locator('[data-card-name="Drive"]').click(); await page.getByRole('button', { name: 'Play Drive: Move Both Right' }).click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('34 HP'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '5'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '5'); await expect(page.getByTestId('action-log').getByText('Wall blocked right; neither fighter moved')).toBeVisible();
 });
 
 test('DD-E2E-015: two unprepared Near Volleys deal two and Aim plus Near Volley deals four', async ({ page, openGame }) => {
@@ -142,7 +142,7 @@ test('DD-E2E-015: two unprepared Near Volleys deal two and Aim plus Near Volley 
 test('DD-E2E-016: Cull trashes two other hand cards and never offers an already played card', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['muster', 'cull', 'copper', 'silver']); });
   await playCard(page, 'Muster'); await page.locator('[data-card-name="Cull"]').click(); await page.locator('[data-card-name="Copper"]').click(); await page.locator('[data-card-name="Silver"]').click();
-  await expect(page.locator('[data-card-name="Muster"]')).toHaveCount(0); await page.getByRole('button', { name: 'Trash selected cards' }).click(); await expect(page.locator('[data-card-name="Cull"]')).toHaveCount(0); await expect(page.getByTestId('zone-trash')).toContainText('9');
+  await expect(page.locator('[data-card-name="Muster"]')).toHaveCount(0); await page.getByRole('button', { name: 'Trash selected cards' }).click(); await expect(page.locator('[data-card-name="Cull"]')).toHaveCount(0); await expect(page.getByTestId('action-log').getByText('Trashed Copper')).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Trashed Silver')).toBeVisible();
 });
 
 test('DD-E2E-017: Vault is absent and close cards are enabled in a shared space', async ({ page, openGame }) => {
@@ -162,7 +162,7 @@ test('DD-E2E-019: two visible Footwork plays make Close Flurry deal two', async 
 
 test('DD-E2E-020: Cull can select and trash itself when it is the only card', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['cull']); });
-  await expect(page.locator('[data-card-name="Cull"]')).toBeEnabled(); await page.locator('[data-card-name="Cull"]').click(); await expect(page.getByText('Select 1 or 2 cards. Click a grouped card twice to select two physical copies.')).toBeVisible(); await page.locator('[data-card-name="Cull"]').click(); await expect(page.getByText('1 selected (maximum 2).')).toBeVisible(); await page.getByRole('button', { name: 'Trash selected card' }).click(); await expect(page.locator('[data-card-name="Cull"]')).toHaveCount(0); await expect(page.getByTestId('zone-trash')).toContainText('8');
+  await expect(page.locator('[data-card-name="Cull"]')).toBeEnabled(); await page.locator('[data-card-name="Cull"]').click(); await expect(page.getByText('Select 1 or 2 cards. Click a grouped card twice to select two physical copies.')).toBeVisible(); await page.locator('[data-card-name="Cull"]').click(); await expect(page.getByText('1 selected (maximum 2).')).toBeVisible(); await page.getByRole('button', { name: 'Trash selected card' }).click(); await expect(page.locator('[data-card-name="Cull"]')).toHaveCount(0); await expect(page.getByTestId('action-log').getByText('Trashed Cull')).toBeVisible();
 });
 
 test('DD-E2E-021: starting-build carry appears in only the first local Buy phase', async ({ page, openGame }) => {
@@ -174,8 +174,8 @@ test('DD-E2E-021: starting-build carry appears in only the first local Buy phase
 
 test('DD-E2E-023: Cull can trash one remaining hand card and it stays absent after cleanup', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['cull', 'copper']); }); await page.locator('[data-card-name="Cull"]').click(); await page.locator('[data-card-name="Copper"]').click(); await expect(page.getByText('1 selected (maximum 2).')).toBeVisible(); await page.getByRole('button', { name: 'Trash selected card' }).click();
-  await expect(page.locator('[data-card-name="Cull"]')).toHaveCount(0); await expect(page.getByTestId('zone-trash')).toContainText('8'); await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click();
-  await expect(page.getByTestId('zone-trash')).toContainText('8');
+  await expect(page.locator('[data-card-name="Cull"]')).toHaveCount(0); await expect(page.getByTestId('action-log').getByText('Trashed Copper')).toBeVisible(); await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click();
+  await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Copper"]')).toHaveCount(0);
 });
 
 test('DD-E2E-025: delayed build updates keep the market dialog stable through every close path', async ({ page, baseUrl }) => {
@@ -185,7 +185,7 @@ test('DD-E2E-025: delayed build updates keep the market dialog stable through ev
 });
 test('DD-E2E-026: a zero-paid build locks after completion and passes to Player 2', async ({ page, baseUrl }) => {
   await page.goto(baseUrl); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByTestId('build-budget')).toHaveText('0 / 12 · 3 carries');
-  await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.locator('[data-market-card="Copper"]')).toBeVisible(); await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.getByRole('button', { name: 'Finish starting build' }).click(); await page.getByRole('button', { name: /Deck ·/ }).click(); await expect(page.getByText('Starting builds')).toBeVisible(); await expect(page.getByText('Player 1: No cards')).toBeVisible();
+  await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.locator('[data-market-card="Copper"]')).toBeVisible(); await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Copper"]')).toHaveText('Copper×7'); await expect(page.getByTestId('deck-summary-indigo').locator('[data-deck-card="Copper"]')).toHaveText('Copper×7');
 });
 test('DD-E2E-028: immediate Action, global Undo, and Buy phase restore after refresh', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['muster', 'copper'], ['aim', 'volley']); record.state.players.ochre.firstBuyMoney = 0; }); await playCard(page, 'Muster'); await expect(page.locator('[data-card-name="Aim"]')).toBeVisible(); await page.reload(); await expect(page.getByRole('button', { name: 'Undo last action' })).toBeEnabled(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.locator('[data-card-name="Muster"]')).toBeVisible();
@@ -193,7 +193,7 @@ test('DD-E2E-028: immediate Action, global Undo, and Buy phase restore after ref
 });
 
 test('DD-E2E-031: visible market accepts the 10th Footwork and disables the unavailable 11th', async ({ page, openGame }) => {
-  await openGame(page, (record) => { seedHand(record, []); record.state.phase = 'buy'; record.state.players.ochre.money = 3; record.state.players.ochre.firstBuyPending = false; record.state.supply.footwork = 1; record.state.players.ochre.purchases = Array<string>(9).fill('footwork'); }); const footwork = page.locator('[data-market-card="Footwork"]'); await expect(footwork).toContainText('1 left'); await footwork.click(); await expect(footwork).toContainText('0 left'); await expect(footwork).toBeDisabled(); await expect(page.getByTestId('player-one-purchases')).toContainText('Footwork, Footwork');
+  await openGame(page, (record) => { seedHand(record, []); record.state.phase = 'buy'; record.state.players.ochre.money = 3; record.state.players.ochre.firstBuyPending = false; record.state.supply.footwork = 1; record.state.players.ochre.purchases = Array<string>(9).fill('footwork'); }); const footwork = page.locator('[data-market-card="Footwork"]'); await expect(footwork).toContainText('1 left'); await footwork.click(); await expect(footwork).toContainText('0 left'); await expect(footwork).toBeDisabled(); await expect(page.getByTestId('action-log').getByText('Bought Footwork')).toBeVisible();
 });
 
 test('DD-E2E-032: Buy completion switches players immediately and can be undone', async ({ page, openGame }) => {
@@ -201,7 +201,7 @@ test('DD-E2E-032: Buy completion switches players immediately and can be undone'
 });
 
 test('DD-E2E-034: public labels and card rules use explicit player-facing text', async ({ page, openGame }) => {
-  await openGame(page, (record) => { record.state.players.ochre.purchases = ['silver', 'footwork']; record.state.players.indigo.purchases = ['aim', 'volley']; }); await expect(page.getByTestId('zone-money')).toHaveText('Player 1 money: 0'); await expect(page.getByTestId('player-one-purchases')).toHaveText('Player 1: Silver, Footwork'); await expect(page.getByTestId('player-two-purchases')).toHaveText('Player 2: Aim, Volley'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('title', 'Player 1'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('title', 'Player 2');
+  await openGame(page); await expect(page.getByTestId('zone-money')).toHaveText('Player 1 money: 0'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('title', 'Player 1'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('title', 'Player 2');
   await page.getByRole('button', { name: 'View all cards' }).click(); const dialog = page.getByRole('dialog');
   await expect(dialog.locator('[data-card-name="Footwork"]')).toContainText('You may move 1 space left or right. Draw 1 card.'); await expect(dialog.locator('[data-card-name="Cull"]')).toContainText('Trash 1 or 2 cards. Choose Cull itself, cards remaining in your hand, or both.'); await expect(dialog.locator('[data-card-name="Feint"]')).toContainText('At Close range, the next Close-range attack this turn deals 2 additional damage.'); await expect(dialog.locator('[data-card-name="Drive"]')).toContainText('Then move both fighters 1 space left or right so they remain Close.');
   await expect(dialog.locator('[data-card-name="Gold"]')).toHaveClass(/card--treasure/); await expect(dialog.locator('[data-card-name="Footwork"]')).toHaveClass(/card--engine/); await expect(dialog.locator('[data-card-name="Volley"]')).toHaveClass(/card--ranged/); await expect(dialog.locator('[data-card-name="Focus"]')).toHaveClass(/card--mana/); await expect(dialog.locator('[data-card-name="Drive"]')).toHaveClass(/card--melee/);
@@ -215,9 +215,9 @@ test('DD-E2E-036: unspent normal money expires before the same local player retu
 
 test('DD-E2E-037: three bought Gold stay Gold in the deck summary and later hand', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, []); expect(Object.values(record.state.players).flatMap((player) => [...player.deck.draw, ...player.deck.hand, ...player.deck.discard, ...player.deck.play]).map((card) => card.definitionId)).not.toContain('gold'); record.state.phase = 'buy'; record.state.players.ochre.money = 18; record.state.players.ochre.firstBuyMoney = 0; record.state.players.ochre.firstBuyPending = false; record.state.players.indigo.firstBuyPending = false; });
-  await expect(page.locator('[data-card-name="Gold"]')).toHaveCount(0); await expect(page.getByTestId('deck-summary').locator('[data-deck-card="Gold"]')).toHaveCount(0); await expect(page.getByTestId('zone-money')).toHaveText('Player 1 money: 18');
+  await expect(page.locator('[data-card-name="Gold"]')).toHaveCount(0); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Gold"]')).toHaveCount(0); await expect(page.getByTestId('zone-money')).toHaveText('Player 1 money: 18');
   for (let count = 0; count < 3; count += 1) await page.locator('[data-market-card="Gold"]').click();
-  await expect(page.getByTestId('zone-money')).toHaveText('Player 1 money: 0'); await expect(page.getByTestId('deck-summary').locator('[data-deck-card="Gold"]')).toHaveText('Gold ×3'); await expect(page.locator('.zones div').filter({ hasText: 'Discard' }).locator('strong')).toHaveText('3'); await page.getByRole('button', { name: 'End Buy phase' }).click();
+  await expect(page.getByTestId('zone-money')).toHaveText('Player 1 money: 0'); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Gold"]')).toHaveText('Gold×3'); await page.getByRole('button', { name: 'End Buy phase' }).click();
   await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible(); await expect(page.locator('[data-testid="hand-grid"] [data-card-name="Gold"]')).toHaveCount(1); await expect(page.locator('[data-testid="hand-grid"] [data-card-name="Gold"]')).toHaveAttribute('data-card-count', '3'); await expect(page.getByTestId('hand-count-gold')).toHaveText('×3'); await expect(page.locator('[data-testid="hand-grid"] [data-card-name="Gold"]')).toContainText('+3 money');
 });
 
@@ -236,13 +236,13 @@ test('DD-E2E-039: grouped Cull selects two physical copies from one card group',
   await page.getByRole('button', { name: 'Trash selected cards' }).click(); await expect(copper).toHaveCount(0); await expect(page.locator('[data-testid="played-row"] [data-played-card-name="Cull"]')).toHaveCount(1);
 });
 
-test('DD-E2E-040: large unique hands overlap, lift on hover, and keep drawers collapsed', async ({ page, openGame }) => {
+test('DD-E2E-040: large unique hands overlap and the action rail stays visible', async ({ page, openGame }) => {
   await page.setViewportSize({ width: 1920, height: 1080 }); await openGame(page, (record) => { seedHand(record, ['copper', 'silver', 'gold', 'step', 'cull', 'focus', 'footwork', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley', 'stipend', 'reclaim', 'adapt']); });
   const before = await page.evaluate(() => { const cards = Array.from(document.querySelectorAll<HTMLElement>('.hand-card-slot')); const first = cards[0]!.getBoundingClientRect(); const second = cards[1]!.getBoundingClientRect(); return { count: cards.length, sameRow: cards.every((card) => Math.abs(card.getBoundingClientRect().top - first.top) < 1), delta: second.left - first.left, width: document.querySelector<HTMLElement>('.full-card')!.getBoundingClientRect().width, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth }; });
   expect(before).toMatchObject({ count: 16, sameRow: true, overflow: 0 }); expect(before.delta).toBeLessThan(before.width); expect(before.delta).toBeGreaterThan(0);
   const footwork = page.locator('[data-testid="hand-grid"] [data-card-name="Footwork"]'); const resting = await footwork.evaluate((card) => getComputedStyle(card).transform); await footwork.hover(); const lifted = await footwork.evaluate((card) => getComputedStyle(card).transform); expect(lifted).not.toBe(resting); await page.mouse.move(0, 0); await footwork.focus(); const focused = await footwork.evaluate((card) => ({ transform: getComputedStyle(card).transform, zIndex: getComputedStyle(card.parentElement!).zIndex })); expect(focused.transform).not.toBe(resting); expect(Number(focused.zIndex)).toBe(250);
   for (const name of ['Copper', 'Drive']) { const card = page.locator(`[data-testid="hand-grid"] [data-card-name="${name}"]`); await expect(card).toHaveAttribute('aria-disabled', 'true'); const beforeFocus = await card.evaluate((element) => getComputedStyle(element).transform); await card.focus(); await expect(card).toBeFocused(); const afterFocus = await card.evaluate((element) => ({ transform: getComputedStyle(element).transform, zIndex: getComputedStyle(element.parentElement!).zIndex })); expect(afterFocus.transform).not.toBe(beforeFocus); expect(Number(afterFocus.zIndex)).toBe(250); await page.keyboard.press('Enter'); await expect(card).toBeVisible(); } await expect(page.locator('[data-testid="played-row"] [data-played-card-name]')).toHaveCount(0);
-  const toggle = page.getByRole('button', { name: /Deck ·/ }); await expect(toggle).toHaveAttribute('aria-expanded', 'false'); await toggle.click(); await expect(toggle).toHaveAttribute('aria-expanded', 'true'); await expect(page.getByRole('complementary', { name: 'Deck and match details' })).toHaveClass(/side-drawer--open/); await expect(page.getByTestId('deck-summary')).toContainText('Footwork ×1');
+  await expect(page.getByRole('complementary', { name: 'Action history and deck compositions' })).toBeVisible(); await expect(page.locator('.side-drawer,.edge-toggle')).toHaveCount(0); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Footwork"]')).toHaveText('Footwork×1');
 });
 
 test('DD-E2E-043: a projected pending choice renders and clears after selection', async ({ page, openGame }) => {
@@ -259,9 +259,44 @@ test('DD-E2E-043: a projected pending choice renders and clears after selection'
   await expect(page.locator('[data-card-name="Silver"]')).toBeVisible();
 });
 
-test('DD-E2E-042: AI-first games train, hide automatic turns, and undo to a human state', async ({ page, baseUrl }) => {
+test('DD-E2E-042: AI-first games show public automatic turns and undo to a human state', async ({ page, baseUrl }) => {
   await page.setViewportSize({ width: 1920, height: 1080 }); await page.goto(baseUrl); await page.getByText('Play against AI', { exact: true }).click(); await expect(page.getByText('AI goes first', { exact: true })).toBeVisible(); await page.getByText('AI goes first', { exact: true }).click();
   await page.route('**/api/games', async (route) => { await new Promise((resolve) => setTimeout(resolve, 100)); await route.continue(); }); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByText('Training opponent…')).toBeVisible();
-  await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByText(/Turn 2 · Player 2 action/)).toBeVisible(); await page.getByRole('button', { name: /Deck ·/ }).click(); await expect(page.getByText('Bought Silver')).toHaveCount(0); await page.getByRole('button', { name: 'Close Deck and zones' }).click();
+  await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByText(/Turn 2 · Player 2 action/)).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Bought Silver').last()).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Turn 1 started')).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Turn 2 started')).toBeVisible();
   await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 4 · Player 2 action/)).toBeVisible(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 2 · Player 2 buy/)).toBeVisible(); await page.reload(); await expect(page.getByText(/Turn 2 · Player 2 buy/)).toBeVisible();
+});
+
+test('DD-E2E-044: every action undoes to setup and Step can take a different direction', async ({ page, openGame }) => {
+  await openGame(page, (record) => { seedHand(record, ['step', 'muster']); record.state.fighters.ochre.position = 3; record.state.fighters.indigo.position = 5; });
+  await page.locator('[data-card-name="Step"]').click(); await page.getByRole('button', { name: 'Play Step: Right' }).click(); await playCard(page, 'Muster'); await page.getByRole('button', { name: 'End Action phase' }).click();
+  await expect(page.getByText(/Turn 1 · Player 1 buy/)).toBeVisible();
+  await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible();
+  await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.locator('[data-card-name="Muster"]')).toBeVisible(); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '4');
+  await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.locator('[data-card-name="Step"]')).toBeVisible(); await expect(page.getByRole('button', { name: 'Undo last action' })).toBeDisabled();
+  await page.locator('[data-card-name="Step"]').click(); await page.getByRole('button', { name: 'Play Step: Left' }).click(); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '2');
+});
+
+test('DD-E2E-045: the fixed action rail shows public actions from both local players', async ({ page, openGame }) => {
+  await openGame(page); const rail = page.getByRole('complementary', { name: 'Action history and deck compositions' }); await expect(rail).toBeVisible();
+  await expect(page.locator('.side-drawer,.edge-toggle')).toHaveCount(0);
+  await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await page.getByRole('button', { name: 'End Action phase' }).click();
+  await expect(page.getByTestId('action-log').locator('li').filter({ hasText: 'Player 1' }).filter({ hasText: 'Started Buy phase' })).toHaveCount(1);
+  await expect(page.getByTestId('action-log').locator('li').filter({ hasText: 'Player 2' }).filter({ hasText: 'Started Buy phase' })).toHaveCount(1);
+  await expect(page.getByTestId('action-log').getByText('Turn 1 started')).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Turn 2 started')).toBeVisible();
+});
+
+test('DD-E2E-046: only the long log scrolls while exact deck summaries stay fixed at 1920 by 1080', async ({ page, openGame }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await openGame(page, (record) => {
+    seedHand(record, ['copper', 'copper', 'step']);
+    for (let index = 0; index < 80; index += 1) record.state.events.push({ sequence: record.state.events.length, type: 'turn', playerId: index % 2 ? 'indigo' : 'ochre', detail: { turn: index + 2, activePlayerId: index % 2 ? 'indigo' : 'ochre' } });
+  });
+  await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card]')).toHaveCount(2); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Copper"]')).toHaveText('Copper×2'); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Step"]')).toHaveText('Step×1');
+  await expect(page.getByTestId('deck-summary-indigo').locator('[data-deck-card]')).toHaveCount(1); await expect(page.getByTestId('deck-summary-indigo').locator('[data-deck-card="Copper"]')).toHaveText('Copper×7'); await expect(page.getByRole('heading', { name: 'Zones' })).toHaveCount(0);
+  const layout = await page.evaluate(() => {
+    const root = document.documentElement; const log = document.querySelector<HTMLElement>('[data-testid="action-log"]')!; const decks = document.querySelector<HTMLElement>('.rail-decks')!; const rail = document.querySelector<HTMLElement>('.action-rail')!; const lastPile = [...document.querySelectorAll<HTMLElement>('.market-group:nth-of-type(2) [data-market-card]')].at(-1)!;
+    const logRect = log.getBoundingClientRect(); const decksRect = decks.getBoundingClientRect(); const railRect = rail.getBoundingClientRect(); const pileRect = lastPile.getBoundingClientRect();
+    return { horizontal: root.scrollWidth - root.clientWidth, vertical: root.scrollHeight - root.clientHeight, logScrolls: log.scrollHeight > log.clientHeight, newestVisible: log.scrollTop + log.clientHeight >= log.scrollHeight - 1, logOverflow: getComputedStyle(log).overflowY, decksBelowLog: logRect.bottom <= decksRect.top + 1, decksVisible: decksRect.bottom <= innerHeight && decksRect.top >= 0, railVisible: railRect.right <= innerWidth && railRect.left >= 0, marketClear: pileRect.right <= railRect.left };
+  });
+  expect(layout).toEqual({ horizontal: 0, vertical: 0, logScrolls: true, newestVisible: true, logOverflow: 'auto', decksBelowLog: true, decksVisible: true, railVisible: true, marketClear: true });
 });

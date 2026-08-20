@@ -18,7 +18,7 @@ npm run dev
 
 Open `http://127.0.0.1:4173`.
 
-The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records use schema version 10. Browser game views and exports use schema version 11. The server rejects older saves and does not migrate them.
+The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records, browser game views, and exports use schema version 11. The server rejects older saves and does not migrate them.
 
 ## Play
 
@@ -30,7 +30,7 @@ The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, 
 
 Every deck starts with 7 Copper. Up to 3 unspent starting money carries into that player's first Buy phase. Starting-build cards do not reduce market piles.
 
-Fighters can share a space and move through each other. Distance 0 is Close, 1 is Near, and 2 or more is Far. Bought cards enter the discard pile. Actions resolve at once. In an AI game, a complete AI turn resolves before the server returns the next human state; the UI does not show intermediate AI actions. Undo rolls back the latest human action and every AI action it caused. Reload restores the active game. New game clears the browser's active-game link.
+Fighters can share a space and move through each other. Distance 0 is Close, 1 is Near, and 2 or more is Far. Bought cards enter the discard pile. Actions resolve at once. The right rail keeps the public action record visible and shows both full deck compositions without zone counts. In an AI game, a complete AI turn resolves before the server returns the next human state. Its public actions appear in the rail. Undo can roll back every submitted action to the completed-setup boundary. Each undo of a turn-ending human action also removes the full AI response that it caused. Reload restores the active game and its undo history. New game clears the browser's active-game link.
 
 ## Verify
 

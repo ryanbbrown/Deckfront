@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { STARTING_BUDGET, firstBuyCarry } from '../game';
 import type { CardDefinition, CardInstance, PlayerId } from '../game';
-import type { BrowserAction, GameMode, GameView, SetupCatalog } from '../shared/api';
+import type { BrowserAction, GameMode, GameView, PublicGameEvent, SetupCatalog } from '../shared/api';
 import { takeAction, undoAction, updateBuild } from './api';
 import { Board } from './Board';
 
@@ -31,7 +31,6 @@ export function PreviewTable({ catalog, market, error, onRefresh, onStart }: {
     <CompactMarket cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} onView={() => setMarketOpen(true)} />
     <EmptyPlayed />
     <section className="hand-panel table-zone"><div className="zone-title"><h2>Your hand</h2><span>Cards appear here after both starting builds.</span></div><div className="hand-row"><p className="empty-row">Start the game to build your deck.</p></div></section>
-    <EdgeButtons />
     {marketOpen ? <MarketDialog cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} onClose={() => setMarketOpen(false)} /> : null}
   </main>;
 }
@@ -41,8 +40,6 @@ export function Game({ game, error, onGame, onError, onNew }: GameProps) {
   const [cullCard, setCullCard] = useState<string | null>(null);
   const [movementCard, setMovementCard] = useState<string | null>(null);
   const [trash, setTrash] = useState<string[]>([]);
-  const [deckOpen, setDeckOpen] = useState(false);
-  const [opponentOpen, setOpponentOpen] = useState(false);
   const [marketOpen, setMarketOpen] = useState(false);
   const actor = game.players[game.activePlayerId];
   const actorName = playerName(game.activePlayerId);
@@ -122,10 +119,7 @@ export function Game({ game, error, onGame, onError, onNew }: GameProps) {
       const unavailable = cullCard ? targetIds.length === 0 : !info?.enabled;
       return <div className="hand-card-slot" key={group.definitionId} style={{ zIndex: index + 1 }}>{group.instances.length > 1 ? <span className="quantity-badge" data-testid={`hand-count-${group.definitionId}`}>×{group.instances.length}</span> : null}<button className={`card full-card card--${game.cards[group.definitionId]!.family}${unavailable ? ' card--unavailable' : ''}${selectedCount ? ' card--target' : ''}${movementCard === enabledInstance.id || cullCard === enabledInstance.id ? ' card--selected' : ''}`} data-card-name={game.cards[group.definitionId]!.name} data-card-instance-id={enabledInstance.id} data-card-count={group.instances.length} disabled={busy} aria-disabled={unavailable} title={!cullCard ? info?.reason ?? undefined : undefined} onClick={() => { if (unavailable) return; if (cullCard) toggleTrashGroup(targetIds); else chooseCard(enabledInstance.id); }}><CardFace card={game.cards[group.definitionId]!} />{selectedCount ? <span className="selected-count">Selected ×{selectedCount}</span> : null}{!info?.enabled && !cullCard && game.cards[group.definitionId]!.type === 'action' ? <em>{info?.reason}</em> : null}</button></div>;
     })}</div>{cullCard ? <div className="choice-bar choice-bar--overlay"><p>Select 1 or 2 cards. Click a grouped card twice to select two physical copies. {trash.length} selected (maximum 2).</p><div><button className="control-button primary" disabled={!cullAction} onClick={() => cullAction && void act(cullAction)}>{trash.length === 1 ? 'Trash selected card' : 'Trash selected cards'}</button><button className="control-button" onClick={clearChoice}>Cancel</button></div></div> : null}{movementCard ? <div className="choice-bar choice-bar--overlay"><strong>Choose movement</strong><div>{(availability.get(movementCard)?.choices ?? []).map((action) => <button className="choice-button" key={action.id} aria-label={action.label} disabled={busy} onClick={() => void act(action)}>{action.text}</button>)}<button className="control-button" onClick={clearChoice}>Cancel</button></div></div> : null}</section>
-    <button className="edge-toggle edge-toggle--deck" aria-expanded={deckOpen} onClick={() => setDeckOpen((open) => !open)}>Deck · {Object.values(actor.deckCounts).reduce((total, count) => total + count, 0)}</button>
-    <button className="edge-toggle edge-toggle--opponent" aria-expanded={opponentOpen} onClick={() => setOpponentOpen((open) => !open)}>{game.mode === 'ai' ? 'AI' : 'Opponent'}</button>
-    <aside className={`side-drawer side-drawer--deck${deckOpen ? ' side-drawer--open' : ''}`} aria-label="Deck and match details"><DrawerHeader title="Deck and zones" onClose={() => setDeckOpen(false)} /><Zones game={game} actor={actor} /><DeckSummary game={game} playerId={game.activePlayerId} /><Builds game={game} /><Purchases game={game} /><History game={game} /></aside>
-    <aside className={`side-drawer side-drawer--opponent${opponentOpen ? ' side-drawer--open' : ''}`} aria-label="Opponent details"><DrawerHeader title={game.mode === 'ai' ? 'AI opponent' : 'Opponent'} onClose={() => setOpponentOpen(false)} /><section className="drawer-section"><p>{game.mode === 'ai' ? 'AI turns resolve automatically.' : 'Pass the screen to the other local player.'}</p>{game.training ? <p>Strategy {game.training.strategyId}</p> : null}</section></aside>
+    <ActionRail game={game} />
     {marketOpen ? <MarketDialog cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} onClose={() => setMarketOpen(false)} /> : null}
   </main>;
 }
@@ -133,8 +127,6 @@ export function Game({ game, error, onGame, onError, onNew }: GameProps) {
 function TableHeader({ title, controls }: { title: string; controls: React.ReactNode }) { return <header className="table-header"><div className="brand"><span>Distance duel</span><h1>Hexdeck</h1></div><div className="turn-banner" role="status">{title}</div>{controls}</header>; }
 function PreviewArena() { return <section className="arena-zone table-zone"><div className="range-label">Near · 1 space</div><div className="arena" role="img" aria-label="Five space line arena">{[1,2,3,4,5].map((space) => <div className="arena-space" key={space}><span>{space}</span>{space === 2 ? <div className="fighter fighter--ochre">P1<small>37 HP</small></div> : null}{space === 3 ? <div className="fighter fighter--indigo">P2<small>40 HP</small></div> : null}</div>)}</div></section>; }
 function EmptyPlayed() { return <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2></div><div className="played-row"><p className="empty-row">Cards move here from your hand.</p></div></section>; }
-function EdgeButtons() { return <><button className="edge-toggle edge-toggle--deck" disabled>Deck</button><button className="edge-toggle edge-toggle--opponent" disabled>Opponent</button></>; }
-
 function CompactMarket({ cards, fixedIds, variableIds, supply, onView, onCard, enabled }: {
   cards: Record<string, CardDefinition>; fixedIds: readonly string[]; variableIds: readonly string[];
   supply?: Record<string, number>; onView: () => void; onCard?: (id: string) => void; enabled?: (id: string) => boolean;
@@ -172,14 +164,37 @@ function MarketDialog({ cards, fixedIds, variableIds, onClose }: { cards: Record
 
 export function CardFace({ card, indicators }: { card: CardDefinition; indicators?: React.ReactNode }) { const dense = card.text.length > 140; return <><span className="card__header"><strong className="card__title">{card.name}</strong><span className="card__meta">{indicators}<span className="card__cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span></span></span><span className="card__image" aria-hidden="true" /><span className={`card__rules${dense ? ' card__rules--dense' : ''}`}>{card.money ? <b>+{card.money} money</b> : null}<small>{card.text}</small></span></>; }
 function PlayedCard({ card, group }: { card: CardDefinition; group: PlayedGroup }) { const count = group.instances.length; return <article className={`card full-card played-card card--${card.family}`} data-played-card-name={card.name} data-card-count={count}><CardFace card={card} indicators={count > 1 ? <span className="quantity-badge quantity-badge--played" data-testid={`played-count-${card.id}`}>×{count}</span> : undefined} /></article>; }
-function DrawerHeader({ title, onClose }: { title: string; onClose: () => void }) { return <div className="drawer-heading"><h2>{title}</h2><button aria-label={`Close ${title}`} onClick={onClose}>×</button></div>; }
-function Zones({ game, actor }: { game: GameView; actor: GameView['players'][PlayerId] }) { return <section className="drawer-section zones"><h3>Zones</h3><div>Draw <strong>{actor.zoneCounts.draw}</strong></div><div>Hand <strong>{actor.zoneCounts.hand}</strong></div><div>Discard <strong>{actor.zoneCounts.discard}</strong></div><div>Played <strong>{actor.zoneCounts.play}</strong></div><div data-testid="zone-trash">Trash <strong>{game.trashCount}</strong></div></section>; }
-function DeckSummary({ game, playerId }: { game: GameView; playerId: PlayerId }) { const entries = Object.entries(game.players[playerId].deckCounts).sort(([left], [right]) => (game.cards[left]?.name ?? left).localeCompare(game.cards[right]?.name ?? right)); return <section className="drawer-section deck-summary" data-testid="deck-summary"><h3>Composition</h3><div>{entries.map(([id, count]) => <span key={id} data-deck-card={game.cards[id]?.name}>{game.cards[id]?.name ?? id} ×{count}</span>)}</div></section>; }
-function Builds({ game }: { game: GameView }) { if (!game.completedBuilds) return null; return <section className="drawer-section builds"><h3>Starting builds</h3><p>Player 1: {game.completedBuilds.ochre.map((id) => game.cards[id]?.name).join(', ') || 'No cards'}</p><p>Player 2: {game.completedBuilds.indigo.map((id) => game.cards[id]?.name).join(', ') || 'No cards'}</p></section>; }
-function Purchases({ game }: { game: GameView }) { return <section className="drawer-section purchases"><h3>Purchases</h3><p data-testid="player-one-purchases">Player 1: {game.players.ochre.purchases.map((id) => game.cards[id]?.name).join(', ') || 'None'}</p><p data-testid="player-two-purchases">Player 2: {game.players.indigo.purchases.map((id) => game.cards[id]?.name).join(', ') || 'None'}</p></section>; }
-function History({ game }: { game: GameView }) { return <section className="drawer-section history-panel"><h3>Recent events</h3><ol>{game.events.slice(-20).reverse().map((event) => <li key={event.sequence}><span>{playerName(event.playerId)}</span><strong>{eventText(game, event.type, event.detail)}</strong></li>)}</ol></section>; }
+function ActionRail({ game }: { game: GameView }) {
+  const log = useRef<HTMLOListElement>(null);
+  useEffect(() => { const element = log.current; if (element) element.scrollTop = element.scrollHeight; }, [game.events.length]);
+  return <aside className="action-rail" aria-label="Action history and deck compositions">
+    <section className="action-log"><header><span>Public record</span><h2>Actions</h2></header><ol ref={log} data-testid="action-log">{game.events.map((event) => <li key={event.sequence} className={event.type === 'turn' ? 'action-log__turn' : undefined}><span>{playerName(event.playerId)}</span><strong>{eventText(game, event)}</strong></li>)}</ol></section>
+    <section className="rail-decks"><h2>Deck compositions</h2><div><DeckSummary game={game} playerId="ochre" /><DeckSummary game={game} playerId="indigo" /></div></section>
+  </aside>;
+}
+function DeckSummary({ game, playerId }: { game: GameView; playerId: PlayerId }) { const entries = Object.entries(game.players[playerId].deckCounts).sort(([left], [right]) => (game.cards[left]?.name ?? left).localeCompare(game.cards[right]?.name ?? right)); return <section className={`deck-summary deck-summary--${playerId}`} data-testid={`deck-summary-${playerId}`}><h3>{playerName(playerId)}</h3><div>{entries.map(([id, count]) => <span key={id} data-deck-card={game.cards[id]?.name}><span>{game.cards[id]?.name ?? id}</span><strong>×{count}</strong></span>)}</div></section>; }
 function groupCards(cards: CardInstance[]): CardGroup[] { const groups = new Map<string, CardGroup>(); for (const card of cards) { const group = groups.get(card.definitionId); if (group) group.instances.push(card); else groups.set(card.definitionId, { definitionId: card.definitionId, instances: [card] }); } return [...groups.values()]; }
 function groupPlayedCards(cards: CardInstance[]): PlayedGroup[] { const groups: PlayedGroup[] = []; for (const card of cards) { const previous = groups.at(-1); if (previous?.definitionId === card.definitionId) previous.instances.push(card); else groups.push({ definitionId: card.definitionId, instances: [card] }); } return groups; }
 function playerName(playerId: PlayerId): string { return playerId === 'ochre' ? 'Player 1' : 'Player 2'; }
-function eventText(game: GameView, type: string, detail: Record<string, unknown>): string { if (type === 'cardPlayed') return `Played ${game.cards[String(detail.definitionId)]?.name ?? detail.definitionId}`; if (type === 'purchase') return `Bought ${game.cards[String(detail.definitionId)]?.name ?? detail.definitionId}`; if (type === 'damage') return `Dealt ${String(detail.amount)} damage`; if (type === 'move' && detail.source === 'drive') return `Moved both fighters ${String(detail.movement)} to space ${String(detail.to)}`; if (type === 'move' && detail.movement === 'stay') return `Stayed on space ${String(detail.to)}`; if (type === 'move') return `Moved to space ${String(detail.to)}`; if (type === 'wallCollision') return `Wall blocked ${String(detail.direction)}; neither fighter moved`; return type.replace(/([A-Z])/g, ' $1'); }
+function eventText(game: GameView, event: PublicGameEvent): string {
+  const detail = event.detail;
+  const cardName = (): string => game.cards[String(detail.definitionId)]?.name ?? String(detail.definitionId);
+  switch (event.type) {
+    case 'buildComplete': return `Completed a ${String(detail.count)}-card starting build`;
+    case 'cardPlayed': return `Played ${cardName()}`;
+    case 'purchase': return `Bought ${cardName()}`;
+    case 'damage': return `Dealt ${String(detail.amount)} damage to ${playerName(String(detail.targetId) as PlayerId)}`;
+    case 'move': if (detail.source === 'drive') return `Moved both fighters ${String(detail.movement)} to space ${String(detail.to)}`; if (detail.movement === 'stay') return `Stayed on space ${String(detail.to)}`; return `Moved ${String(detail.movement)} to space ${String(detail.to)}`;
+    case 'wallCollision': return `Wall blocked ${String(detail.direction)}; neither fighter moved`;
+    case 'condition': return `${String(detail.condition)} ${detail.change === 'set' ? 'applied to' : 'consumed from'} ${playerName(String(detail.targetId) as PlayerId)}`;
+    case 'discard': return `Discarded ${cardName()}`;
+    case 'recover': return 'Recovered a card to the top of the deck';
+    case 'trash': return `Trashed ${cardName()}`;
+    case 'draw': return `Drew ${String(detail.count)} ${detail.count === 1 ? 'card' : 'cards'}`;
+    case 'phase': return `Started Buy phase with ${String(detail.money)} money`;
+    case 'turn': return `Turn ${String(detail.turn)} started`;
+    case 'victory': return 'Won the game';
+    case 'mana': return `${Number(detail.amount) >= 0 ? 'Gained' : 'Spent'} ${String(Math.abs(Number(detail.amount)))} mana`;
+  }
+}
 function sameSelection(left: readonly string[], right: readonly string[]): boolean { return left.length === right.length && left.every((id) => right.includes(id)); }

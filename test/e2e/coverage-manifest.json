@@ -24,7 +24,7 @@
     "buildAddRemoveRefresh": ["pw:DD-E2E-001"],
     "buildLock": ["pw:DD-E2E-025"],
     "completeLocalTurns": ["pw:DD-E2E-035", "pw:DD-E2E-036"],
-    "aiTrainingAndHiddenTurns": ["pw:DD-E2E-042"],
+    "aiTrainingAndPublicTurns": ["pw:DD-E2E-042"],
     "aiSafeUndo": ["pw:DD-E2E-042"],
     "carriedStartingMoney": ["pw:DD-E2E-021"],
     "multiplePurchases": ["pw:DD-E2E-002", "pw:DD-E2E-037"],
@@ -33,14 +33,16 @@
     "cardSelections": ["pw:DD-E2E-003", "pw:DD-E2E-004", "pw:DD-E2E-006", "pw:DD-E2E-014", "pw:DD-E2E-020", "pw:DD-E2E-039", "pw:DD-E2E-043"],
     "disabledReasons": ["pw:DD-E2E-013", "pw:DD-E2E-017", "pw:DD-E2E-018"],
     "sharedSpacesAndPassThrough": ["pw:DD-E2E-003", "pw:DD-E2E-008", "pw:DD-E2E-017"],
-    "globalUndo": ["pw:DD-E2E-002", "pw:DD-E2E-005", "pw:DD-E2E-006", "pw:DD-E2E-012", "pw:DD-E2E-032", "pw:DD-E2E-035"],
+    "globalUndo": ["pw:DD-E2E-002", "pw:DD-E2E-005", "pw:DD-E2E-006", "pw:DD-E2E-012", "pw:DD-E2E-032", "pw:DD-E2E-035", "pw:DD-E2E-044"],
     "undoAndReload": ["pw:DD-E2E-028"],
     "victoryUndoReloadNewGame": ["pw:DD-E2E-012"],
     "localLabelsAndRules": ["pw:DD-E2E-034"],
-    "deckSummary": ["pw:DD-E2E-037", "pw:DD-E2E-040"],
+    "deckSummary": ["pw:DD-E2E-037", "pw:DD-E2E-040", "pw:DD-E2E-046"],
     "handGrouping": ["pw:DD-E2E-037", "pw:DD-E2E-038", "pw:DD-E2E-039"],
-    "fullScreenLayout": ["pw:DD-E2E-038", "pw:DD-E2E-040"],
+    "fullScreenLayout": ["pw:DD-E2E-038", "pw:DD-E2E-040", "pw:DD-E2E-046"],
     "overlappingHand": ["pw:DD-E2E-040"],
-    "deckDrawer": ["pw:DD-E2E-040"]
+    "multiLevelUndo": ["pw:DD-E2E-044"],
+    "actionRail": ["pw:DD-E2E-040", "pw:DD-E2E-045", "pw:DD-E2E-046"],
+    "actionLogScroll": ["pw:DD-E2E-046"]
   }
 }

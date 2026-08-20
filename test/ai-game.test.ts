@@ -43,26 +43,38 @@ describe('AI games', () => {
     expect(created.fighters.ochre.health).toBe(37); expect(created.fighters.indigo.health).toBe(40);
   });
 
-  it('omits a non-empty AI turn from browser events while keeping it in the saved record', async () => {
+  it('returns public AI events without hidden hand or draw-order details', async () => {
     const repository = new MemoryRepository(); const service = new GameService(repository, trainer);
     const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
     const ready = await service.updateBuild(created.id, created.revision, [], true);
     const buy = await service.commitAction(created.id, ready.revision, phaseAction(ready, 'endAction'));
     const returned = await service.commitAction(created.id, buy.revision, phaseAction(buy, 'endBuy'));
     expect(repository.record?.state.events.some((event) => event.playerId === 'indigo' && event.type === 'purchase' && event.detail.definitionId === 'silver')).toBe(true);
-    expect(returned.events.some((event) => event.playerId === 'indigo')).toBe(false);
-    expect(returned.events.some((event) => event.type === 'purchase' && event.detail.definitionId === 'silver')).toBe(false);
+    expect(returned.events.some((event) => event.playerId === 'indigo' && event.type === 'turn')).toBe(true);
+    expect(returned.events.some((event) => event.playerId === 'indigo' && event.type === 'purchase' && event.detail.definitionId === 'silver')).toBe(true);
+    const logData = JSON.stringify(returned.events);
+    expect(logData).not.toMatch(/cardInstanceId|recoverInstanceId|discardInstanceId|drawOrder|"hand"/);
+    expect(returned.events.filter((event) => event.type === 'recover').every((event) => Object.keys(event.detail).length === 0)).toBe(true);
   });
 
-  it('rolls a complete automatic AI turn into the human Undo checkpoint', async () => {
+  it('undoes multiple human turns in order and never returns an intermediate AI state', async () => {
     const service = new GameService(new MemoryRepository(), trainer);
     const created = await service.create({ seed: 4, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
     const ready = await service.updateBuild(created.id, created.revision, [], true);
-    const buy = await service.commitAction(created.id, ready.revision, phaseAction(ready, 'endAction'));
-    const returned = await service.commitAction(created.id, buy.revision, phaseAction(buy, 'endBuy'));
-    expect(returned).toMatchObject({ activePlayerId: 'ochre', phase: 'action', turn: 3, canUndo: true });
-    const undone = await service.undoAction(created.id, returned.revision);
-    expect(undone).toMatchObject({ activePlayerId: 'ochre', phase: 'buy', turn: 1, canUndo: false });
+    const firstBuy = await service.commitAction(created.id, ready.revision, phaseAction(ready, 'endAction'));
+    const firstReturn = await service.commitAction(created.id, firstBuy.revision, phaseAction(firstBuy, 'endBuy'));
+    const secondBuy = await service.commitAction(created.id, firstReturn.revision, phaseAction(firstReturn, 'endAction'));
+    const secondReturn = await service.commitAction(created.id, secondBuy.revision, phaseAction(secondBuy, 'endBuy'));
+    expect(secondReturn).toMatchObject({ activePlayerId: 'ochre', phase: 'action', turn: 5, canUndo: true });
+    const expected = [
+      { phase: 'buy', turn: 3, canUndo: true }, { phase: 'action', turn: 3, canUndo: true },
+      { phase: 'buy', turn: 1, canUndo: true }, { phase: 'action', turn: 1, canUndo: false }
+    ];
+    let current = secondReturn;
+    for (const state of expected) {
+      current = await service.undoAction(created.id, current.revision);
+      expect(current).toMatchObject({ activePlayerId: 'ochre', ...state });
+    }
   });
 
   it('reloads an AI game after a registry reset, advances again, and keeps Undo human-safe', async () => {
@@ -80,8 +92,10 @@ describe('AI games', () => {
       const secondBuy = await restarted.commitAction(created.id, loaded.revision, phaseAction(loaded, 'endAction'));
       const secondReturn = await restarted.commitAction(created.id, secondBuy.revision, phaseAction(secondBuy, 'endBuy'));
       expect(secondReturn).toMatchObject({ activePlayerId: 'ochre', phase: 'action', turn: 5 });
-      const undone = await restarted.undoAction(created.id, secondReturn.revision);
-      expect(undone).toMatchObject({ activePlayerId: 'ochre', phase: 'buy', turn: 3, canUndo: false });
+      let undone = await restarted.undoAction(created.id, secondReturn.revision);
+      expect(undone).toMatchObject({ activePlayerId: 'ochre', phase: 'buy', turn: 3, canUndo: true });
+      undone = await restarted.undoAction(created.id, undone.revision);
+      expect(undone).toMatchObject({ activePlayerId: 'ochre', phase: 'action', turn: 3, canUndo: true });
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
 

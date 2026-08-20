@@ -21,13 +21,16 @@ async function setup() {
   const repository = new MemoryRepository(); const service = new GameService(repository);
   const game = await service.create({ seed: 3 }); return { repository, service, game };
 }
-function resetReplay(record: GameRecord): void { record.initialState = structuredClone(record.state); record.committedCommands = []; record.undoCheckpoint = null; }
+function resetReplay(record: GameRecord): void { record.initialState = structuredClone(record.state); record.committedCommands = []; record.undoHistory = []; }
 function seedPlayerHand(record: GameRecord, definitions: string[], draw: string[] = []): void {
   const deck = record.state.players.ochre.deck; record.state.trash.push(...deck.draw, ...deck.hand, ...deck.discard, ...deck.play);
   deck.draw = draw.map((id) => createCard(record.state, id)); deck.hand = definitions.map((id) => createCard(record.state, id)); deck.discard = []; deck.play = [];
 }
 async function completeBuilds(service: GameService, id: string, revision: number) {
   const one = await service.updateBuild(id, revision, [], true); return service.updateBuild(id, one.revision, [], true);
+}
+function phaseAction(game: GameView, kind: 'endAction' | 'endBuy'): string {
+  return game.actions.phases.find((action) => action.kind === kind)!.id;
 }
 function registerProjectionKingdom(): void {
   registerKingdom({
@@ -151,16 +154,32 @@ describe('local GameService', () => {
     expect(resolved.actions.selection).toBeNull();
     expect((await service.getRecord(game.id)).state.pendingChoice).toBeNull();
   });
-  it('commits an action, persists replay data, and restores the exact state with one undo', async () => {
+  it('undoes three committed actions in order and restores each exact replayed state', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
-    const record = await repository.load(game.id); seedPlayerHand(record, ['footwork'], ['aim']); resetReplay(record); await repository.save(record);
-    const before = await service.get(game.id); const footwork = projectedHandCard(before, record, 'footwork');
-    const actionId = footwork.choices.find((action) => action.text === 'Right')!.id;
-    const played = await service.commitAction(game.id, before.revision, actionId);
-    expect(played.players.ochre.hand.map((card) => card.definitionId)).toEqual(['aim']); expect(played.canUndo).toBe(true);
-    await expect(service.commitAction(game.id, played.revision, actionId)).rejects.toThrow('That action is no longer legal.');
-    const undone = await service.undoAction(game.id, played.revision); expect(undone.players.ochre.hand.map((card) => card.definitionId)).toEqual(['footwork']); expect(undone.canUndo).toBe(false);
-    await expect(service.undoAction(game.id, undone.revision)).rejects.toThrow('There is no action to undo.');
+    const record = await repository.load(game.id); seedPlayerHand(record, ['footwork', 'copper'], ['aim']); resetReplay(record); await repository.save(record);
+    const ready = await service.get(game.id); const states = [structuredClone((await service.getRecord(game.id)).state)];
+    const footwork = projectedHandCard(ready, record, 'footwork');
+    const played = await service.commitAction(game.id, ready.revision, footwork.choices.find((action) => action.text === 'Right')!.id);
+    states.push(structuredClone((await service.getRecord(game.id)).state));
+    const buy = await service.commitAction(game.id, played.revision, phaseAction(played, 'endAction'));
+    states.push(structuredClone((await service.getRecord(game.id)).state));
+    const bought = await service.commitAction(game.id, buy.revision, buy.actions.buys.find((action) => action.definitionId === 'copper')!.id);
+    expect((await service.getRecord(game.id)).undoHistory).toHaveLength(3);
+    let undone = await service.undoAction(game.id, bought.revision);
+    expect((await service.getRecord(game.id)).state).toEqual(states[2]); expect(undone.canUndo).toBe(true);
+    undone = await service.undoAction(game.id, undone.revision);
+    expect((await service.getRecord(game.id)).state).toEqual(states[1]); expect(undone.canUndo).toBe(true);
+    undone = await service.undoAction(game.id, undone.revision);
+    expect((await service.getRecord(game.id)).state).toEqual(states[0]); expect(undone.canUndo).toBe(false);
+  });
+  it('stops undo at the completed-setup boundary', async () => {
+    const { service, game } = await setup(); const ready = await completeBuilds(service, game.id, game.revision);
+    const boundary = structuredClone((await service.getRecord(game.id)).state);
+    const buy = await service.commitAction(game.id, ready.revision, phaseAction(ready, 'endAction'));
+    const restored = await service.undoAction(game.id, buy.revision);
+    expect((await service.getRecord(game.id)).state).toEqual(boundary);
+    expect(restored).toMatchObject({ phase: 'action', turn: 1, completedBuilds: { ochre: [], indigo: [] }, canUndo: false });
+    await expect(service.undoAction(game.id, restored.revision)).rejects.toThrow('There is no action to undo.');
   });
   it('exports the current local game view with schema 11', async () => {
     const { service, game } = await setup(); const exported = await service.exportGame(game.id);
@@ -170,26 +189,34 @@ describe('local GameService', () => {
 });
 
 describe('persistence schema', () => {
-  it('round-trips a replay-based undo checkpoint without a redundant state copy', async () => {
-    const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-checkpoint-'));
+  it('reloads several replay-based undo entries and continues undoing exact states', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-history-'));
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8 }); const ready = await completeBuilds(service, created.id, created.revision);
-      const after = await service.commitAction(created.id, ready.revision, ready.actions.phases.find((entry) => entry.kind === 'endAction')!.id);
-      const saved = await repository.load(created.id); expect(Object.keys(saved.undoCheckpoint!).sort()).toEqual(['committedCommandCount', 'completedActions', 'durationSeconds', 'finishedAt']); expect('state' in saved.undoCheckpoint!).toBe(false);
-      expect((await service.undoAction(created.id, after.revision))).toMatchObject({ phase: 'action', canUndo: false });
+      const states = [structuredClone((await service.getRecord(created.id)).state)];
+      const buy = await service.commitAction(created.id, ready.revision, phaseAction(ready, 'endAction')); states.push(structuredClone((await service.getRecord(created.id)).state));
+      const bought = await service.commitAction(created.id, buy.revision, buy.actions.buys.find((entry) => entry.definitionId === 'copper')!.id); states.push(structuredClone((await service.getRecord(created.id)).state));
+      const next = await service.commitAction(created.id, bought.revision, phaseAction(bought, 'endBuy'));
+      const saved = await repository.load(created.id); expect(saved.undoHistory).toHaveLength(3);
+      expect(Object.keys(saved.undoHistory[0]!).sort()).toEqual(['committedCommandCount', 'completedActions', 'durationSeconds', 'finishedAt']);
+      expect(saved.undoHistory.some((entry) => 'state' in entry)).toBe(false);
+      const restarted = new GameService(new FileGameRepository(directory));
+      let undone = await restarted.undoAction(created.id, next.revision); expect((await restarted.getRecord(created.id)).state).toEqual(states[2]); expect(undone.canUndo).toBe(true);
+      undone = await restarted.undoAction(created.id, undone.revision); expect((await restarted.getRecord(created.id)).state).toEqual(states[1]); expect(undone.canUndo).toBe(true);
+      undone = await restarted.undoAction(created.id, undone.revision); expect((await restarted.getRecord(created.id)).state).toEqual(states[0]); expect(undone.canUndo).toBe(false);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
-  it('serializes concurrent file writes and leaves valid schema 10 state', async () => {
+  it('serializes concurrent file writes and leaves valid schema 11 state', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-lock-'));
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8 });
       await Promise.all([1, 2].map((marker) => repository.withLock(created.id, async () => { const record = await repository.load(created.id); await new Promise((resolve) => setTimeout(resolve, marker === 1 ? 5 : 0)); record.revision += 1; await repository.save(record); })));
-      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(10);
+      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(11);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it('rejects an older save with a specific message', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-old-')); const id = '11111111-1111-4111-8111-111111111111';
-    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 8 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 8 is not supported'); }
+    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 10 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 10 is not supported'); }
     finally { await rm(directory, { recursive: true, force: true }); }
   });
 });

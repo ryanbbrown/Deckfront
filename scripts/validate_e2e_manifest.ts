@@ -9,10 +9,10 @@ export const requiredCards = ['copper', 'silver', 'gold', 'step', 'focus', 'foot
 export const requiredBrowserFlows = [
   'fullTablePreview', 'randomMarketRefresh', 'marketReferenceDialog', 'fixedAndVariableMarket',
   'sequentialBuilds', 'zeroPaidBuild', 'buildAddRemoveRefresh', 'buildLock', 'completeLocalTurns',
-  'aiTrainingAndHiddenTurns', 'aiSafeUndo', 'carriedStartingMoney', 'multiplePurchases', 'actionSupply',
+  'aiTrainingAndPublicTurns', 'aiSafeUndo', 'carriedStartingMoney', 'multiplePurchases', 'actionSupply',
   'turnCleanup', 'cardSelections', 'disabledReasons', 'sharedSpacesAndPassThrough', 'globalUndo',
   'undoAndReload', 'victoryUndoReloadNewGame', 'localLabelsAndRules', 'deckSummary', 'handGrouping',
-  'fullScreenLayout', 'overlappingHand', 'deckDrawer'
+  'fullScreenLayout', 'overlappingHand', 'multiLevelUndo', 'actionRail', 'actionLogScroll'
 ];
 export function validateManifest(manifest: CoverageManifest, discoveredIds: Set<string>): { mappings: number; tests: number } {
   const errors: string[] = [];

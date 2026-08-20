@@ -7,6 +7,7 @@ import { VARIABLE_ACTION_IDS } from '../src/game';
 import { ProductionAiTrainer } from '../src/server/aiTrainer';
 import type { AiTrainer } from '../src/server/aiTrainer';
 import { createHexdeckServer } from '../src/server/httpServer';
+import type { GameView } from '../src/shared/api';
 import type { PairingRunner } from '../src/sim/pairingRunner';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cleanups: Array<() => Promise<void>> = [];
@@ -40,8 +41,8 @@ describe('local game HTTP interface', () => {
     expect(playerTwo.phase).toBe('action'); expect(playerTwo.completedBuilds).toEqual({ ochre: ['footwork'], indigo: ['aim'] });
   });
   it('returns a specific old-save schema error', async () => {
-    const { base, games } = await server(); const id = '11111111-1111-4111-8111-111111111111'; await mkdir(games, { recursive: true }); await writeFile(path.join(games, `${id}.json`), JSON.stringify({ schemaVersion: 8 }));
-    const response = await fetch(`${base}/api/games/${id}`); expect(response.status).toBe(409); expect(await response.json()).toEqual({ error: 'Saved game schema 8 is not supported. Start a new game.' });
+    const { base, games } = await server(); const id = '11111111-1111-4111-8111-111111111111'; await mkdir(games, { recursive: true }); await writeFile(path.join(games, `${id}.json`), JSON.stringify({ schemaVersion: 10 }));
+    const response = await fetch(`${base}/api/games/${id}`); expect(response.status).toBe(409); expect(await response.json()).toEqual({ error: 'Saved game schema 10 is not supported. Start a new game.' });
   });
   it('rejects malformed random markets and unknown create-game fields', async () => {
     const { base } = await server();
@@ -56,6 +57,19 @@ describe('local game HTTP interface', () => {
       const response = await create(base, body); expect(response.status).toBe(400);
       expect(await response.json()).toEqual({ error: 'Invalid request.' });
     }
+  });
+  it('returns public AI action events without hidden log details', async () => {
+    const strategy = { id: 'http-ai', startingBuild: [], buyAgenda: [], repeatPurchase: 'silver' };
+    const aiTrainer: AiTrainer = { train: async () => ({ strategy, summary: { elapsedMs: 1, matches: 1, strategyId: strategy.id } }) };
+    const { base } = await server(aiTrainer);
+    const created = await (await create(base, { mode: 'ai', humanPlayerId: 'ochre' })).json() as GameView;
+    let view = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: [], complete: true }) }).then((response) => response.json()) as GameView;
+    for (const kind of ['endAction', 'endBuy'] as const) {
+      const actionId = view.actions.phases.find((action) => action.kind === kind)!.id;
+      view = await fetch(`${base}/api/games/${created.id}/actions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: view.revision, actionId }) }).then((response) => response.json()) as GameView;
+    }
+    expect(view.events.some((event) => event.playerId === 'indigo' && event.type === 'purchase' && event.detail.definitionId === 'silver')).toBe(true);
+    expect(JSON.stringify(view.events)).not.toMatch(/cardInstanceId|recoverInstanceId|discardInstanceId|drawOrder|"hand"/);
   });
   it('returns a training-specific 503 and saves nothing after an unexpected production search failure', async () => {
     let closed = false;
