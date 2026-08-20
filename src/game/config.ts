@@ -4,7 +4,7 @@ import type { CardDefinition } from './types';
 
 export const STARTING_BUDGET = 12;
 export const MAX_FIRST_BUY_CARRY = 3;
-export const FIRST_PLAYER_HEALTH_PENALTY = 3;
+export const FIRST_PLAYER_HEALTH_PENALTY = 4;
 export function firstBuyCarry(buildCost: number): number {
   return Math.max(0, Math.min(MAX_FIRST_BUY_CARRY, STARTING_BUDGET - buildCost));
 }

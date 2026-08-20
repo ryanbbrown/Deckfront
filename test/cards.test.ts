@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  applyAction, assertInvariants, createCard, createGame, listActionAvailability,
+  applyAction, assertInvariants, cardDefinition, createCard, createGame, listActionAvailability,
   listLegalActions, replayCommands, submitStartingBuild
 } from '../src/game';
 import type { GameCommand, GameState, PlayerId } from '../src/game';
@@ -123,10 +123,10 @@ describe('attacks', () => {
       expect(availability(near, 'heavyBlow')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
     }
   });
-  it('Steady Shot deals 2 at Near and Far and is illegal at Close', () => {
+  it('Steady Shot deals 3 at Near and Far and is illegal at Close', () => {
     for (const position of [3, 5]) {
       let state = ready(); state.fighters.indigo.position = position; isolateHand(state, 'ochre', ['steadyShot']);
-      state = playCard(state, 'steadyShot'); expect(state.fighters.indigo.health).toBe(38); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
+      state = playCard(state, 'steadyShot'); expect(state.fighters.indigo.health).toBe(37); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
     }
     const close = ready(); close.fighters.indigo.position = 2; isolateHand(close, 'ochre', ['steadyShot']);
     expect(availability(close, 'steadyShot')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_NEAR_OR_FAR' });
@@ -157,7 +157,8 @@ describe('attacks', () => {
 });
 
 describe('mage cards', () => {
-  it('Focus is always available, costs 2, and gains 1 mana without drawing', () => {
+  it('Focus is always available, costs 1, and gains 1 mana without drawing', () => {
+    expect(cardDefinition('focus').cost).toBe(1);
     let state = ready(); isolateHand(state, 'ochre', ['focus']); setDraw(state, 'ochre', ['gold']);
     state = playCard(state, 'focus');
     expect(state.players.ochre.mana).toBe(1);
@@ -173,6 +174,7 @@ describe('mage cards', () => {
     expect(state.players.ochre.mana).toBe(0); expect(state.players.indigo.mana).toBe(2); assertInvariants(state);
   });
   it('Ley Step moves exactly one space, gains mana, and offers no move into a wall', () => {
+    expect(cardDefinition('leyStep').cost).toBe(2);
     let state = ready(); isolateHand(state, 'ochre', ['leyStep', 'leyStep']);
     state = playCard(state, 'leyStep', (command) => command.type === 'playMoveAction' && command.direction === 'left');
     expect(state.fighters.ochre.position).toBe(1); expect(state.players.ochre.mana).toBe(1); assertInvariants(state);
