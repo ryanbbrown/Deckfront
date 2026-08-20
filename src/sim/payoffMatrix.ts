@@ -1,7 +1,7 @@
 import { kingdomMarket } from '../game';
 import { emptyAggregate, mergeAggregate } from './pairing';
-import type { PairingBlockResult } from './pairing';
-import type { PairingRunner } from './pairingRunner';
+import type { PairingBlockResult, PairingOutcome } from './pairing';
+import type { PairingJob, PairingRunner } from './pairingRunner';
 import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 import type { TelemetryAggregate } from './types';
@@ -39,6 +39,14 @@ export interface MatrixSnapshot {
 
 export type MatrixCellCache = Map<string, MatrixCell>;
 export function createMatrixCellCache(): MatrixCellCache { return new Map(); }
+
+interface PendingCell {
+  left: Strategy;
+  right: Strategy;
+  id: string;
+  old: MatrixCell | undefined;
+  job: PairingJob;
+}
 
 export class InvalidEvaluationError extends Error {
   constructor(message: string, readonly detail: Record<string, unknown>) { super(message); }
@@ -95,26 +103,26 @@ export class PayoffMatrix {
     return `${pairKey(this.protocol, first, second)}:${first.id}|${second.id}`;
   }
 
-  async fillPair(leftInput: Strategy, rightInput: Strategy, allowEarlyStop: boolean, deadline?: number): Promise<void> {
+  private pendingCell(leftInput: Strategy, rightInput: Strategy, allowEarlyStop: boolean): PendingCell | null {
     this.addStrategy(leftInput); this.addStrategy(rightInput);
-    if (leftInput.id === rightInput.id) return;
+    if (leftInput.id === rightInput.id) return null;
     const [left, right] = leftInput.id < rightInput.id ? [leftInput, rightInput] : [rightInput, leftInput];
     const id = this.cellId(left, right);
     const old = this.cells.get(id);
     const playedSeeds = new Set(old?.blocks.map((block) => block.seed) ?? []);
     const seeds = this.protocol.seeds.filter((seed) => !playedSeeds.has(seed));
-    if (!seeds.length) return;
-    const batch = await this.runner.run([{ candidate: left, opponent: right, options: {
+    if (!seeds.length) return null;
+    return { left, right, id, old, job: { candidate: left, opponent: right, options: {
       kingdomId: this.protocol.kingdomId, seeds,
       turnLimitPerPlayer: this.protocol.turnLimitPerPlayer,
       actionCapPerTurn: this.protocol.actionCapPerTurn,
       stateLimit: this.protocol.stateLimit,
       allowEarlyStop
-    } }], { deadline });
-    const result = batch.outcomes[0];
-    if (!result) throw new DeadlineInterruptionError('Deadline interrupted a matrix cell.', {
-      left: left.id, right: right.id, phase: allowEarlyStop ? 'preliminary-matrix' : 'matrix-top-up'
-    });
+    } } };
+  }
+
+  private storeResult(pending: PendingCell, result: PairingOutcome): void {
+    const { left, right, id, old } = pending;
     if (result.record.aborted > 0) {
       const bad = result.aborts[0];
       throw new InvalidEvaluationError('An aborted match invalidated a matrix cell.', {
@@ -135,19 +143,45 @@ export class PayoffMatrix {
     });
   }
 
+  private async fillPending(pending: readonly PendingCell[], deadline?: number): Promise<void> {
+    if (!pending.length) return;
+    const batch = await this.runner.run(pending.map((entry) => entry.job), { deadline });
+    for (let index = 0; index < pending.length; index += 1) {
+      const entry = pending[index]!;
+      const result = batch.outcomes[index];
+      if (!result) throw new DeadlineInterruptionError('Deadline interrupted a matrix cell.', {
+        left: entry.left.id, right: entry.right.id,
+        phase: entry.job.options.allowEarlyStop ? 'preliminary-matrix' : 'matrix-top-up'
+      });
+      this.storeResult(entry, result);
+    }
+  }
+
+  async fillPair(left: Strategy, right: Strategy, allowEarlyStop: boolean, deadline?: number): Promise<void> {
+    const pending = this.pendingCell(left, right, allowEarlyStop);
+    await this.fillPending(pending ? [pending] : [], deadline);
+  }
+
   async fillAll(allowEarlyStop: boolean, deadline?: number): Promise<void> {
     const entrants = this.entrants();
+    const pending: PendingCell[] = [];
     for (let row = 0; row < entrants.length; row += 1) {
       for (let column = row + 1; column < entrants.length; column += 1) {
-        await this.fillPair(entrants[row]!, entrants[column]!, allowEarlyStop, deadline);
+        const cell = this.pendingCell(entrants[row]!, entrants[column]!, allowEarlyStop);
+        if (cell) pending.push(cell);
       }
     }
+    await this.fillPending(pending, deadline);
   }
 
   async addRow(strategy: Strategy, allowEarlyStop: boolean, deadline?: number): Promise<void> {
     const previous = this.entrants();
     this.addStrategy(strategy);
-    for (const opponent of previous) await this.fillPair(strategy, opponent, allowEarlyStop, deadline);
+    const pending = previous.flatMap((opponent) => {
+      const cell = this.pendingCell(strategy, opponent, allowEarlyStop);
+      return cell ? [cell] : [];
+    });
+    await this.fillPending(pending, deadline);
   }
 
   async topUpAll(deadline?: number): Promise<void> { await this.fillAll(false, deadline); }

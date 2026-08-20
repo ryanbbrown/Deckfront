@@ -153,6 +153,18 @@ describe('search mechanics', () => {
     expect(choose(state, plan, { memo: null }).command).toEqual(choose(state, plan).command);
   });
 
+  it('blinds hidden draw order without changing the live game state', () => {
+    const state = arena({
+      kingdomId: 'current-duel', hand: ['footwork', 'aim'], draw: ['gold', 'copper', 'silver'],
+      ochre: 2, indigo: 3
+    });
+    const before = structuredClone(state);
+
+    choose(state, strategy());
+
+    expect(state).toEqual(before);
+  });
+
   it('keeps exact memo results through Reclaim and a later draw', () => {
     const state = arena({ kingdomId: 'three-way-engine', hand: ['reclaim'], draw: ['muster'], discard: ['gold', 'copper'] });
     const plan = strategy({ repeatPurchase: 'footwork' });

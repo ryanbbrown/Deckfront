@@ -8,8 +8,10 @@ import type { PairingJob, PairingRunner } from '../../src/sim/pairingRunner';
 
 class RecordingRunner implements PairingRunner {
   jobs: PairingJob[] = [];
+  batches: number[] = [];
   constructor(private readonly abort = false) {}
   async run(jobs: readonly PairingJob[]) {
+    this.batches.push(jobs.length);
     this.jobs.push(...jobs);
     return { submitted: jobs.length, outcomes: jobs.map((job) => ({
       record: { played: this.abort ? 0 : job.options.seeds.length * 4, wins: this.abort ? 0 : job.options.seeds.length * 4,
@@ -45,6 +47,18 @@ describe('protocol-keyed payoff matrix', () => {
     expect(snapshot.centeredPayoffs[0]![1]!).toBe(-snapshot.centeredPayoffs[1]![0]!);
     expect(snapshot.cells.find((cell) => cell.key === before)?.blocks).toHaveLength(2);
     expect(runner.jobs.every((job) => job.options.allowEarlyStop === false)).toBe(true);
+  });
+
+  it('submits every missing matrix pair as one worker-pool batch', async () => {
+    const runner = new RecordingRunner();
+    const strategies = diagnosticStrategies('current-duel').slice(0, 3);
+    const matrix = new PayoffMatrix(protocol(), runner);
+    for (const strategy of strategies) matrix.addStrategy(strategy);
+
+    await matrix.fillAll(false);
+
+    expect(runner.batches).toEqual([3]);
+    expect(matrix.snapshot().complete).toBe(true);
   });
 
   it('invalidates a complete cell when any game aborts', async () => {

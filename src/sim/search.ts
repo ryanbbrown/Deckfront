@@ -197,7 +197,13 @@ export function memoKey(state: GameState, playerId: PlayerId): string {
 }
 
 function blindedState(state: GameState): GameState {
-  const copy = structuredClone(state);
+  const copy: GameState = {
+    ...state,
+    players: {
+      ochre: { ...state.players.ochre, deck: { ...state.players.ochre.deck, draw: [...state.players.ochre.deck.draw] } },
+      indigo: { ...state.players.indigo, deck: { ...state.players.indigo.deck, draw: [...state.players.indigo.deck.draw] } }
+    }
+  };
   const stable = (left: CardInstance, right: CardInstance): number =>
     left.definitionId.localeCompare(right.definitionId) || left.id.localeCompare(right.id);
   for (const playerId of ['ochre', 'indigo'] as const) {

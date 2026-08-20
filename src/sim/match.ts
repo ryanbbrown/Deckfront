@@ -1,4 +1,5 @@
-import { applyAction, createGame, listActionAvailability, listLegalActions, submitStartingBuild } from '../game';
+import { createGame, listActionAvailability, listLegalActions, submitStartingBuild } from '../game';
+import { applyLegalAction } from '../game/engine';
 import type { GameState, PlayerId } from '../game';
 import { accumulate, createAccumulator, finishTelemetry } from './telemetry';
 import type { DeadDrawSnapshot } from './telemetry';
@@ -61,7 +62,7 @@ export function runMatch(config: MatchConfig, onState?: MatchObserver): MatchRes
 
       const eventsBefore = state.events.length;
       const turnBefore = state.turn;
-      state = applyAction(state, action.id);
+      state = applyLegalAction(state, action);
       accumulator = accumulate(accumulator, {
         events: state.events.slice(eventsBefore), completedTurns: state.turn - 1, deadDraws, unspentMoney
       });
