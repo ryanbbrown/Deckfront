@@ -1,5 +1,6 @@
 import {
-  firstBuyCarry, isTacticalAction, kingdomEpoch, kingdomMarket, kingdomOf, playerStartingHealth
+  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, firstBuyCarry, isTacticalAction, kingdomEpoch,
+  kingdomMarket, kingdomOf, playerStartingHealth
 } from '../game';
 import type { CardMechanic, CardValues, MovementChoice, PlayerId } from '../game';
 import { repairBuildIn } from './build';
@@ -89,7 +90,7 @@ function kernelKingdom(kingdomId: string): KernelKingdom {
   const initialSupply = new Int16Array(cards.length);
   initialSupply.fill(-1);
   for (const pile of kingdom.actionPiles) initialSupply[index.get(pile.cardId)!] = pile.count;
-  initialSupply[index.get('cull')!] = 10;
+  for (const id of ALWAYS_AVAILABLE_ACTION_IDS) initialSupply[index.get(id)!] = ALWAYS_AVAILABLE_COUNT;
   const result = { id: kingdomId, health: kingdom.startingHealth, cards, index, initialSupply };
   kingdomCache.set(kingdomId, result);
   return result;

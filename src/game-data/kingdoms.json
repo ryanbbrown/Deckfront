@@ -70,7 +70,7 @@
       "actionPiles": [
         { "cardId": "footwork", "count": 10 },
         { "cardId": "adapt", "count": 10 },
-        { "cardId": "quickShot", "count": 10 },
+        { "cardId": "fireball", "count": 10 },
         { "cardId": "steadyShot", "count": 10 },
         { "cardId": "aim", "count": 10 },
         { "cardId": "volley", "count": 10 },

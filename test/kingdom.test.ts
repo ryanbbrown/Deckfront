@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import kingdomLibrary from '../src/game-data/kingdoms.json' with { type: 'json' };
 import {
-  ALWAYS_AVAILABLE_COUNT, CARDS, DEFAULT_KINGDOM_ID, applyAction, assertInvariants, checkInvariants, cardDefinition,
+  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, CARDS, DEFAULT_KINGDOM_ID,
+  applyAction, assertInvariants, checkInvariants, cardDefinition,
   createCard, createGame, kingdomMarket, kingdomOf, listLegalActions, registerKingdom, resetKingdoms,
   resolveCard, submitStartingBuild
 } from '../src/game';
@@ -15,7 +16,8 @@ import { GameService } from '../src/server/gameService';
 import { FileGameRepository } from '../src/server/persistence';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const ACTION_IDS = Object.values(CARDS).filter((card) => card.type === 'action' && card.id !== 'cull').map((card) => card.id);
+const ACTION_IDS = Object.values(CARDS).filter((card) => card.type === 'action'
+  && !ALWAYS_AVAILABLE_ACTION_IDS.includes(card.id)).map((card) => card.id);
 
 function piles(cardIds: readonly string[], count = 10): { cardId: string; count: number }[] {
   return cardIds.map((cardId) => ({ cardId, count }));
@@ -53,7 +55,8 @@ describe('kingdom registry', () => {
   it('uses distance-duel by default and reproduces the shipped supply exactly', () => {
     const state = createGame({ seed: 1 });
     expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(state.startingHealth).toBe(40);
-    expect(state.supply).toEqual({ footwork: 10, muster: 10, feint: 10, drive: 10, flurry: 10, aim: 10, volley: 10, cull: 10 });
+    expect(state.supply).toEqual({ footwork: 10, muster: 10, feint: 10, drive: 10, flurry: 10,
+      aim: 10, volley: 10, cull: 10, focus: 10 });
     expect(state.fighters.ochre.health).toBe(37); expect(state.fighters.indigo.health).toBe(40);
     assertInvariants(state);
   });
@@ -65,21 +68,22 @@ describe('kingdom registry', () => {
     state.fighters.ochre.health = 31;
     expect(checkInvariants(state)).toContain('ochre has invalid health.');
   });
-  it('gives every kingdom Cull at ten without listing it', () => {
+  it('gives every kingdom Cull and Focus at ten without listing them', () => {
     registerKingdom(kingdom('cull-free', { actionPiles: piles(['aim']) }));
     const state = createGame({ seed: 1, kingdomId: 'cull-free' });
-    expect(state.supply).toEqual({ aim: 10, cull: ALWAYS_AVAILABLE_COUNT });
+    expect(state.supply).toEqual({ aim: 10, cull: ALWAYS_AVAILABLE_COUNT, focus: ALWAYS_AVAILABLE_COUNT });
     expect(kingdomOf('cull-free').actionPiles.map((pile) => pile.cardId)).toEqual(['aim']);
     assertInvariants(state);
   });
-  it('offers exactly the kingdom piles, Cull, the treasures, and End Buy phase', () => {
+  it('offers exactly the kingdom piles, universal actions, treasures, and End Buy phase', () => {
     const ten = ACTION_IDS.slice(0, 10);
     registerKingdom(kingdom('ten', { actionPiles: piles(ten) }));
     const state = ready(createGame({ seed: 1, kingdomId: 'ten' }));
-    expect(Object.keys(state.supply).sort()).toEqual([...ten, 'cull'].sort());
+    expect(Object.keys(state.supply).sort()).toEqual([...ten, 'cull', 'focus'].sort());
     state.phase = 'buy'; state.players.ochre.money = 100;
     expect(listLegalActions(state).map((entry) => entry.label).sort()).toEqual([
-      ...[...ten, 'cull', 'copper', 'silver', 'gold'].map((id) => `Buy ${cardDefinition(id).name}`), 'End Buy phase'
+      ...[...ten, 'cull', 'focus', 'copper', 'silver', 'gold'].map((id) => `Buy ${cardDefinition(id).name}`),
+      'End Buy phase'
     ].sort());
   });
   it('removes an exhausted pile from the buy list, including Cull', () => {
@@ -109,7 +113,7 @@ describe('kingdom registry', () => {
     expect(kingdomOf('frozen').startingHealth).toBe(20); expect(kingdomOf('frozen').actionPiles).toHaveLength(1);
     expect(() => { kingdomOf('frozen').actionPiles.push({ cardId: 'volley', count: 10 }); }).toThrow();
     expect(kingdomOf('frozen').actionPiles).toHaveLength(1);
-    expect(createGame({ seed: 1, kingdomId: 'frozen' }).supply).toEqual({ aim: 10, cull: 10 });
+    expect(createGame({ seed: 1, kingdomId: 'frozen' }).supply).toEqual({ aim: 10, cull: 10, focus: 10 });
   });
   it('freezes the nested values a resolved card exposes, with and without an override', () => {
     registerKingdom(kingdom('sharp', { actionPiles: piles(['aim', 'volley']), overrides: { volley: { values: { far: 9 } } } }));
@@ -126,6 +130,7 @@ describe('kingdom registry', () => {
     expect(() => registerKingdom(kingdom('bad', { actionPiles: [...piles(['aim']), ...piles(['aim'])] }))).toThrow('Duplicate market pile');
     expect(() => registerKingdom(kingdom('bad', { actionPiles: piles(['silver']) }))).toThrow('Action cards only');
     expect(() => registerKingdom(kingdom('bad', { actionPiles: piles(['cull']) }))).toThrow('available in every kingdom');
+    expect(() => registerKingdom(kingdom('bad', { actionPiles: piles(['focus']) }))).toThrow('available in every kingdom');
     expect(() => registerKingdom(kingdom('bad', { overrides: { aim: { nonsense: 1 } as never } }))).toThrow();
     expect(() => registerKingdom(kingdom('bad', { overrides: { aim: { values: { damage: 1 } } } }))).toThrow('no damage value to override');
     expect(() => registerKingdom(kingdom('bad', { overrides: { aim: { values: { draw: Number.POSITIVE_INFINITY } } } }))).toThrow();
@@ -150,7 +155,7 @@ describe('kingdom registry', () => {
   it('limits a starting build to the cards the kingdom sells', () => {
     registerKingdom(kingdom('narrow', { actionPiles: piles(['aim']) }));
     const state = createGame({ seed: 1, kingdomId: 'narrow' });
-    expect(() => submitStartingBuild(state, 'ochre', ['aim', 'cull', 'gold'])).not.toThrow();
+    expect(() => submitStartingBuild(state, 'ochre', ['aim', 'cull', 'focus'])).not.toThrow();
     expect(() => submitStartingBuild(state, 'ochre', ['volley'])).toThrow('does not sell volley');
     expect(() => submitStartingBuild(state, 'ochre', ['invented'])).toThrow('Unknown card definition: invented');
   });
@@ -181,7 +186,7 @@ describe('the curated kingdoms', () => {
     },
     {
       id: 'range-rich-mixed', name: 'Range-Rich Mixed', startingHealth: 40,
-      actionPiles: piles(['footwork', 'adapt', 'quickShot', 'steadyShot', 'aim', 'volley', 'drive', 'heavyBlow', 'channel', 'arcBolt'])
+      actionPiles: piles(['footwork', 'adapt', 'fireball', 'steadyShot', 'aim', 'volley', 'drive', 'heavyBlow', 'channel', 'arcBolt'])
     }
   ];
 
@@ -193,16 +198,17 @@ describe('the curated kingdoms', () => {
       expect(registered.startingHealth, expected.id).toBe(expected.startingHealth);
       expect(registered.actionPiles, expected.id).toEqual(expected.actionPiles);
       expect(registered.overrides ?? undefined, expected.id).toEqual(expected.overrides);
-      // Cull and the three treasures are available everywhere and are never listed as piles.
+      // Universal actions and the three treasures are available everywhere and are never listed as piles.
       expect(kingdomMarket(expected.id).map((card) => card.id), expected.id)
-        .toEqual(expect.arrayContaining(['cull', 'copper', 'silver', 'gold']));
+        .toEqual(expect.arrayContaining(['cull', 'focus', 'copper', 'silver', 'gold']));
     }
   });
 
   it('keeps distance-duel as the default with its shipped supply', () => {
     const state = createGame({ seed: 1 });
     expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID);
-    expect(state.supply).toEqual({ footwork: 10, muster: 10, feint: 10, drive: 10, flurry: 10, aim: 10, volley: 10, cull: 10 });
+    expect(state.supply).toEqual({ footwork: 10, muster: 10, feint: 10, drive: 10, flurry: 10,
+      aim: 10, volley: 10, cull: 10, focus: 10 });
   });
 
   // Asserted on `actionPiles`, not on the supply or the market, because both also carry Cull and the
@@ -267,6 +273,7 @@ describe('override coverage', () => {
     copper: { cost: 1, money: 4 }, silver: { cost: 1, money: 5 }, gold: { cost: 1, money: 6 },
     footwork: { cost: 1, values: { draw: 2 } },
     cull: { cost: 1 },
+    focus: { cost: 1, values: { mana: 2, draw: 0 } },
     muster: { cost: 1, values: { draw: 3 } },
     feint: { cost: 1, values: { bonus: 4 } },
     drive: { cost: 1, values: { damage: 5, wallDamage: 6 } },
@@ -277,7 +284,6 @@ describe('override coverage', () => {
     reclaim: { cost: 1, values: { draw: 2 } },
     adapt: { cost: 1, values: { draw: 2, movedDraw: 3 } },
     heavyBlow: { cost: 1, values: { damage: 7 } },
-    quickShot: { cost: 1, values: { damage: 6, draw: 2 } },
     steadyShot: { cost: 1, values: { damage: 7, draw: 1 } },
     channel: { cost: 1, values: { mana: 3, draw: 2 } },
     leyStep: { cost: 1, values: { mana: 4 } },
@@ -363,9 +369,9 @@ describe('override coverage', () => {
     state = tuned(2); isolateHand(state, 'ochre', ['heavyBlow']);
     expect(playCard(state, 'heavyBlow').fighters.indigo.health).toBe(33);
 
-    state = tuned(); isolateHand(state, 'ochre', ['quickShot']); setDraw(state, 'ochre', ['copper', 'copper', 'copper']);
-    state = playCard(state, 'quickShot');
-    expect(state.fighters.indigo.health).toBe(34); expect(state.players.ochre.deck.hand).toHaveLength(2);
+    state = tuned(); isolateHand(state, 'ochre', ['focus']);
+    state = playCard(state, 'focus');
+    expect(state.players.ochre.mana).toBe(2); expect(state.players.ochre.deck.hand).toHaveLength(0);
 
     state = tuned(); isolateHand(state, 'ochre', ['steadyShot']); setDraw(state, 'ochre', ['copper', 'copper']);
     state = playCard(state, 'steadyShot');

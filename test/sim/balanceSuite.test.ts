@@ -29,7 +29,7 @@ describe('balance-suite design', () => {
 
   it('satisfies split balance, pile, damage, identity, and overlap constraints', () => {
     expect(BALANCE_SUITE_MANIFEST.kingdoms).toHaveLength(100);
-    expect(BALANCE_SUITE_MANIFEST.eligibleCardIds).toHaveLength(19);
+    expect(BALANCE_SUITE_MANIFEST.eligibleCardIds).toHaveLength(18);
     expect(BALANCE_SUITE_MANIFEST.splits.map((split) => [split.name, split.size]))
       .toEqual([['tuning', 80], ['validation', 20]]);
     const eligible = new Set(BALANCE_SUITE_MANIFEST.eligibleCardIds);

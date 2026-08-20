@@ -123,19 +123,7 @@ describe('attacks', () => {
       expect(availability(near, 'heavyBlow')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
     }
   });
-  it('Quick Shot deals 1 and draws 1 at range, is illegal at Close, and skips its draw on a win', () => {
-    for (const position of [3, 5]) {
-      let state = ready(); state.fighters.indigo.position = position; isolateHand(state, 'ochre', ['quickShot']); setDraw(state, 'ochre', ['gold']);
-      state = playCard(state, 'quickShot');
-      expect(state.fighters.indigo.health).toBe(39); expect(definitions(state.players.ochre.deck.hand)).toEqual(['gold']); assertInvariants(state);
-    }
-    const close = ready(); close.fighters.indigo.position = 2; isolateHand(close, 'ochre', ['quickShot']);
-    expect(availability(close, 'quickShot')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_NEAR_OR_FAR' });
-    let lethal = ready(); lethal.fighters.indigo.health = 1; isolateHand(lethal, 'ochre', ['quickShot']); setDraw(lethal, 'ochre', ['gold']);
-    lethal = playCard(lethal, 'quickShot');
-    expect(lethal.winner).toBe('ochre'); expect(lethal.players.ochre.deck.hand).toEqual([]); assertInvariants(lethal);
-  });
-  it('Steady Shot deals 3 at Near and Far and is illegal at Close', () => {
+  it('Steady Shot deals 2 at Near and Far and is illegal at Close', () => {
     for (const position of [3, 5]) {
       let state = ready(); state.fighters.indigo.position = position; isolateHand(state, 'ochre', ['steadyShot']);
       state = playCard(state, 'steadyShot'); expect(state.fighters.indigo.health).toBe(38); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
@@ -162,13 +150,21 @@ describe('attacks', () => {
   });
   it('a spell leaves Exposed alone while a melee attack consumes it', () => {
     let spell = ready(); spell.fighters.indigo.position = 2; spell.fighters.indigo.exposed = true; spell.players.ochre.mana = 1; isolateHand(spell, 'ochre', ['arcBolt']);
-    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(37); expect(spell.fighters.indigo.exposed).toBe(true);
+    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(36); expect(spell.fighters.indigo.exposed).toBe(true);
     let melee = ready(); melee.fighters.indigo.position = 2; melee.fighters.indigo.exposed = true; isolateHand(melee, 'ochre', ['strike']);
     melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(36); expect(melee.fighters.indigo.exposed).toBe(false);
   });
 });
 
 describe('mage cards', () => {
+  it('Focus is always available, costs 2, and gains 1 mana without drawing', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['focus']); setDraw(state, 'ochre', ['gold']);
+    state = playCard(state, 'focus');
+    expect(state.players.ochre.mana).toBe(1);
+    expect(state.players.ochre.deck.hand).toEqual([]);
+    expect(state.players.ochre.deck.draw.map((card) => card.definitionId)).toEqual(['gold']);
+    assertInvariants(state);
+  });
   it('Channel gains 1 mana per player and the Action phase reset touches only the player who ended it', () => {
     let state = ready(); isolateHand(state, 'ochre', ['channel']); setDraw(state, 'ochre', ['gold']); state.players.indigo.mana = 2;
     state = playCard(state, 'channel');
@@ -207,7 +203,7 @@ describe('mage cards', () => {
     expect(availability(state, 'muster')).toMatchObject({ enabled: false, reasonCode: 'RESOLVE_CHOICE_FIRST', selection: 'discard' });
   });
   it('spells spend their mana cost and are illegal without it', () => {
-    for (const [definitionId, mana, damage] of [['arcBolt', 1, 3], ['fireball', 2, 6], ['starfire', 3, 9]] as const) {
+    for (const [definitionId, mana, damage] of [['arcBolt', 1, 4], ['fireball', 2, 7], ['starfire', 3, 10]] as const) {
       for (const position of [2, 3, 5]) {
         let state = ready(); state.fighters.indigo.position = position; state.players.ochre.mana = mana; isolateHand(state, 'ochre', [definitionId]);
         state = playCard(state, definitionId);
@@ -222,8 +218,9 @@ describe('mage cards', () => {
 describe('batch integrity', () => {
   const PLAYABLE: readonly { id: string; position: number; mana: number }[] = [
     { id: 'stipend', position: 3, mana: 0 }, { id: 'reclaim', position: 3, mana: 0 }, { id: 'adapt', position: 3, mana: 0 },
-    { id: 'heavyBlow', position: 2, mana: 0 }, { id: 'quickShot', position: 3, mana: 0 }, { id: 'steadyShot', position: 3, mana: 0 },
-    { id: 'channel', position: 3, mana: 0 }, { id: 'leyStep', position: 3, mana: 0 }, { id: 'prism', position: 3, mana: 0 },
+    { id: 'heavyBlow', position: 2, mana: 0 }, { id: 'steadyShot', position: 3, mana: 0 },
+    { id: 'focus', position: 3, mana: 0 }, { id: 'channel', position: 3, mana: 0 },
+    { id: 'leyStep', position: 3, mana: 0 }, { id: 'prism', position: 3, mana: 0 },
     { id: 'arcBolt', position: 3, mana: 1 }, { id: 'fireball', position: 3, mana: 2 }, { id: 'starfire', position: 3, mana: 3 },
     { id: 'step', position: 3, mana: 0 }, { id: 'strike', position: 2, mana: 0 }, { id: 'shot', position: 3, mana: 0 }
   ];

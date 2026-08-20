@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
-import { cardDefinition } from '../src/game';
+import { ALWAYS_AVAILABLE_ACTION_IDS, cardDefinition } from '../src/game';
 import { balanceSuite } from '../src/sim/balanceSuite';
 import type { BalanceSuiteManifest, BalanceSuiteSplit } from '../src/sim/balanceSuite';
 import {
@@ -102,7 +102,7 @@ function cardMeasure(
 ): CorpusCardMeasure {
   const ids = new Set(kingdoms.map((kingdom) => kingdom.id));
   const definitions = manifest.kingdoms.filter((kingdom) => ids.has(kingdom.id));
-  const availableIds = new Set(definitions.filter((kingdom) => cardId === 'cull'
+  const availableIds = new Set(definitions.filter((kingdom) => ALWAYS_AVAILABLE_ACTION_IDS.includes(cardId)
     || kingdom.actionPiles.some((pile) => pile.cardId === cardId)).map((kingdom) => kingdom.id));
   let buildPlans = 0, finitePlans = 0, repeatPlans = 0, acquiredStrategies = 0;
   let materialWeight = 0, cardAcquisitions = 0, familyAcquisitions = 0;
@@ -154,7 +154,7 @@ export function buildBalanceCorpusModel(
   const tuning = kingdoms.filter((kingdom) => kingdom.split === 'tuning');
   const validation = kingdoms.filter((kingdom) => kingdom.split === 'validation');
   if (tuning.length !== 80 || validation.length !== 20) throw new Error('Corpus reports do not preserve the 80/20 split.');
-  const availableCards = ['cull', ...manifest.eligibleCardIds];
+  const availableCards = [...ALWAYS_AVAILABLE_ACTION_IDS, ...manifest.eligibleCardIds];
   const cards = availableCards.map((cardId): CorpusCardReport => {
     const cardFamily = family(cardId);
     if (cardFamily === 'Treasure') throw new Error(`Corpus action-card table cannot include ${cardId}.`);

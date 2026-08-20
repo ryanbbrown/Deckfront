@@ -5,7 +5,7 @@ import type { CardDefinition, GameState, Kingdom } from './types';
 import { VALUE_KEYS } from './values';
 
 export const DEFAULT_KINGDOM_ID = 'distance-duel';
-export const ALWAYS_AVAILABLE_ACTION_ID = 'cull';
+export const ALWAYS_AVAILABLE_ACTION_IDS: readonly string[] = Object.freeze(['cull', 'focus']);
 export const ALWAYS_AVAILABLE_COUNT = 10;
 export const MAX_PILE_COUNT = 10;
 export const TREASURE_IDS: readonly string[] = Object.freeze(Object.values(CARDS).filter((card) => card.type === 'treasure').map((card) => card.id));
@@ -43,7 +43,9 @@ function validate(kingdom: Kingdom): void {
     if (piles.has(pile.cardId)) throw new Error(`Duplicate market pile: ${pile.cardId}`);
     piles.add(pile.cardId);
     if (definition.type !== 'action') throw new Error(`Market piles hold Action cards only: ${pile.cardId}`);
-    if (pile.cardId === ALWAYS_AVAILABLE_ACTION_ID) throw new Error(`${definition.name} is available in every kingdom and needs no pile.`);
+    if (ALWAYS_AVAILABLE_ACTION_IDS.includes(pile.cardId)) {
+      throw new Error(`${definition.name} is available in every kingdom and needs no pile.`);
+    }
     if (pile.count > MAX_PILE_COUNT) throw new Error(`${pile.cardId} may hold at most ${MAX_PILE_COUNT} cards.`);
   }
   for (const [definitionId, override] of Object.entries(kingdom.overrides ?? {})) {
@@ -101,9 +103,11 @@ function resolveIn(kingdomId: string, definitionId: string): CardDefinition {
 export function resolveCard(state: GameState, definitionId: string): CardDefinition { return resolveIn(state.kingdomId, definitionId); }
 export function kingdomMarket(kingdomId: string): CardDefinition[] {
   const kingdom = kingdomOf(kingdomId);
-  return [...TREASURE_IDS, ...kingdom.actionPiles.map((pile) => pile.cardId), ALWAYS_AVAILABLE_ACTION_ID].map((id) => resolveIn(kingdomId, id));
+  return [...TREASURE_IDS, ...kingdom.actionPiles.map((pile) => pile.cardId), ...ALWAYS_AVAILABLE_ACTION_IDS]
+    .map((id) => resolveIn(kingdomId, id));
 }
 export function kingdomSupply(kingdom: Kingdom): Record<string, number> {
-  return Object.fromEntries([...kingdom.actionPiles.map((pile) => [pile.cardId, pile.count] as const), [ALWAYS_AVAILABLE_ACTION_ID, ALWAYS_AVAILABLE_COUNT] as const]);
+  return Object.fromEntries([...kingdom.actionPiles.map((pile) => [pile.cardId, pile.count] as const),
+    ...ALWAYS_AVAILABLE_ACTION_IDS.map((id) => [id, ALWAYS_AVAILABLE_COUNT] as const)]);
 }
 resetKingdoms();

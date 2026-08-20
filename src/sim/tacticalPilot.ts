@@ -172,9 +172,6 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
   if (muster) return play(muster);
   const stipend = first(view, 'stipend');
   if (stipend) return play(stipend);
-  const quickShot = view.hand.find((card) => card.enabled && card.mechanic === 'ranged' && value(card, 'draw') > 0);
-  if (quickShot) return play(quickShot);
-
   const aim = first(view, 'aim');
   if (aim) return play(aim);
 

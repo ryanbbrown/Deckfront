@@ -15,7 +15,6 @@
     "leyStep",
     "muster",
     "prism",
-    "quickShot",
     "reclaim",
     "starfire",
     "steadyShot",
@@ -29,11 +28,11 @@
       "seed": 1369949145,
       "size": 80,
       "design": {
-        "cardCountMinimum": 42,
-        "cardCountMaximum": 43,
-        "pairCountMinimum": 19,
-        "pairCountMaximum": 25,
-        "pairCountStandardDeviation": 0.8183792133116199,
+        "cardCountMinimum": 44,
+        "cardCountMaximum": 45,
+        "pairCountMinimum": 22,
+        "pairCountMaximum": 27,
+        "pairCountStandardDeviation": 0.9362616773579086,
         "largestOverlap": 8
       }
     },
@@ -42,11 +41,11 @@
       "seed": 3226436273,
       "size": 20,
       "design": {
-        "cardCountMinimum": 10,
-        "cardCountMaximum": 11,
-        "pairCountMinimum": 3,
-        "pairCountMaximum": 8,
-        "pairCountStandardDeviation": 0.9339530985407835,
+        "cardCountMinimum": 11,
+        "cardCountMaximum": 12,
+        "pairCountMinimum": 4,
+        "pairCountMaximum": 9,
+        "pairCountStandardDeviation": 0.8160255704582274,
         "largestOverlap": 7
       }
     }
@@ -71,15 +70,19 @@
           "count": 10
         },
         {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
           "cardId": "drive",
           "count": 10
         },
         {
-          "cardId": "footwork",
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
           "count": 10
         },
         {
@@ -87,11 +90,7 @@
           "count": 10
         },
         {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
+          "cardId": "stipend",
           "count": 10
         },
         {
@@ -107,19 +106,15 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "arcBolt",
+          "cardId": "adapt",
           "count": 10
         },
         {
-          "cardId": "feint",
+          "cardId": "aim",
           "count": 10
         },
         {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
+          "cardId": "footwork",
           "count": 10
         },
         {
@@ -135,7 +130,11 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
           "count": 10
         },
         {
@@ -143,7 +142,7 @@
           "count": 10
         },
         {
-          "cardId": "stipend",
+          "cardId": "steadyShot",
           "count": 10
         }
       ]
@@ -155,53 +154,13 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
-          "cardId": "aim",
+          "cardId": "arcBolt",
           "count": 10
         },
         {
           "cardId": "channel",
           "count": 10
         },
-        {
-          "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-004",
-      "name": "Balance Tuning 004",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
         {
           "cardId": "drive",
           "count": 10
@@ -227,19 +186,59 @@
           "count": 10
         },
         {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        },
-        {
           "cardId": "stipend",
           "count": 10
         },
         {
           "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-004",
+      "name": "Balance Tuning 004",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
           "count": 10
         }
       ]
@@ -263,63 +262,15 @@
           "count": 10
         },
         {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
           "cardId": "feint",
           "count": 10
         },
         {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-006",
-      "name": "Balance Tuning 006",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
+          "cardId": "fireball",
           "count": 10
         },
         {
           "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
           "count": 10
         },
         {
@@ -331,7 +282,55 @@
           "count": 10
         },
         {
+          "cardId": "stipend",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-006",
+      "name": "Balance Tuning 006",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
           "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
           "count": 10
         },
         {
@@ -351,54 +350,6 @@
           "count": 10
         },
         {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-008",
-      "name": "Balance Tuning 008",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
           "cardId": "channel",
           "count": 10
         },
@@ -415,11 +366,107 @@
           "count": 10
         },
         {
-          "cardId": "flurry",
+          "cardId": "footwork",
           "count": 10
         },
         {
           "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-008",
+      "name": "Balance Tuning 008",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-009",
+      "name": "Balance Tuning 009",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
           "count": 10
         },
         {
@@ -432,54 +479,6 @@
         },
         {
           "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-009",
-      "name": "Balance Tuning 009",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
           "count": 10
         }
       ]
@@ -495,50 +494,6 @@
           "count": 10
         },
         {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-011",
-      "name": "Balance Tuning 011",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
           "cardId": "aim",
           "count": 10
         },
@@ -548,10 +503,6 @@
         },
         {
           "cardId": "drive",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
           "count": 10
         },
         {
@@ -567,11 +518,11 @@
           "count": 10
         },
         {
-          "cardId": "starfire",
+          "cardId": "prism",
           "count": 10
         },
         {
-          "cardId": "steadyShot",
+          "cardId": "starfire",
           "count": 10
         },
         {
@@ -581,56 +532,8 @@
       ]
     },
     {
-      "id": "balance-tuning-012",
-      "name": "Balance Tuning 012",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-013",
-      "name": "Balance Tuning 013",
+      "id": "balance-tuning-011",
+      "name": "Balance Tuning 011",
       "split": "tuning",
       "startingHealth": 40,
       "actionPiles": [
@@ -639,15 +542,11 @@
           "count": 10
         },
         {
-          "cardId": "drive",
+          "cardId": "channel",
           "count": 10
         },
         {
           "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
           "count": 10
         },
         {
@@ -663,7 +562,107 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-012",
+      "name": "Balance Tuning 012",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-013",
+      "name": "Balance Tuning 013",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
           "count": 10
         },
         {
@@ -683,15 +682,11 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "aim",
+          "cardId": "adapt",
           "count": 10
         },
         {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
+          "cardId": "channel",
           "count": 10
         },
         {
@@ -699,15 +694,19 @@
           "count": 10
         },
         {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
           "cardId": "heavyBlow",
           "count": 10
         },
         {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
+          "cardId": "muster",
           "count": 10
         },
         {
@@ -715,11 +714,11 @@
           "count": 10
         },
         {
-          "cardId": "starfire",
+          "cardId": "steadyShot",
           "count": 10
         },
         {
-          "cardId": "stipend",
+          "cardId": "volley",
           "count": 10
         }
       ]
@@ -743,55 +742,11 @@
           "count": 10
         },
         {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-016",
-      "name": "Balance Tuning 016",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
           "cardId": "feint",
           "count": 10
         },
         {
-          "cardId": "flurry",
+          "cardId": "fireball",
           "count": 10
         },
         {
@@ -807,6 +762,46 @@
           "count": 10
         },
         {
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-016",
+      "name": "Balance Tuning 016",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
           "cardId": "reclaim",
           "count": 10
         },
@@ -816,6 +811,10 @@
         },
         {
           "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
           "count": 10
         }
       ]
@@ -827,6 +826,10 @@
       "startingHealth": 40,
       "actionPiles": [
         {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
           "cardId": "aim",
           "count": 10
         },
@@ -835,11 +838,7 @@
           "count": 10
         },
         {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
+          "cardId": "drive",
           "count": 10
         },
         {
@@ -847,19 +846,19 @@
           "count": 10
         },
         {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
           "cardId": "footwork",
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "prism",
           "count": 10
         },
         {
-          "cardId": "steadyShot",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
+          "cardId": "starfire",
           "count": 10
         },
         {
@@ -875,7 +874,15 @@
       "startingHealth": 40,
       "actionPiles": [
         {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
           "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
           "count": 10
         },
         {
@@ -883,7 +890,7 @@
           "count": 10
         },
         {
-          "cardId": "footwork",
+          "cardId": "flurry",
           "count": 10
         },
         {
@@ -899,19 +906,11 @@
           "count": 10
         },
         {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
           "cardId": "reclaim",
           "count": 10
         },
         {
-          "cardId": "volley",
+          "cardId": "stipend",
           "count": 10
         }
       ]
@@ -923,7 +922,7 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
+          "cardId": "aim",
           "count": 10
         },
         {
@@ -935,19 +934,15 @@
           "count": 10
         },
         {
-          "cardId": "drive",
+          "cardId": "feint",
           "count": 10
         },
         {
-          "cardId": "fireball",
+          "cardId": "footwork",
           "count": 10
         },
         {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
+          "cardId": "heavyBlow",
           "count": 10
         },
         {
@@ -961,6 +956,10 @@
         {
           "cardId": "stipend",
           "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
         }
       ]
     },
@@ -971,10 +970,6 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
           "cardId": "aim",
           "count": 10
         },
@@ -983,7 +978,19 @@
           "count": 10
         },
         {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
           "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
           "count": 10
         },
         {
@@ -1001,14 +1008,6 @@
         {
           "cardId": "starfire",
           "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
         }
       ]
     },
@@ -1019,7 +1018,7 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "channel",
+          "cardId": "adapt",
           "count": 10
         },
         {
@@ -1028,6 +1027,46 @@
         },
         {
           "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-022",
+      "name": "Balance Tuning 022",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "fireball",
           "count": 10
         },
         {
@@ -1043,7 +1082,11 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "prism",
           "count": 10
         },
         {
@@ -1052,50 +1095,6 @@
         },
         {
           "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-022",
-      "name": "Balance Tuning 022",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
           "count": 10
         },
         {
@@ -1115,6 +1114,14 @@
       "startingHealth": 40,
       "actionPiles": [
         {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
           "cardId": "arcBolt",
           "count": 10
         },
@@ -1127,7 +1134,7 @@
           "count": 10
         },
         {
-          "cardId": "fireball",
+          "cardId": "flurry",
           "count": 10
         },
         {
@@ -1139,19 +1146,11 @@
           "count": 10
         },
         {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
           "cardId": "prism",
           "count": 10
         },
         {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
+          "cardId": "steadyShot",
           "count": 10
         }
       ]
@@ -1171,15 +1170,19 @@
           "count": 10
         },
         {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
           "cardId": "drive",
           "count": 10
         },
         {
-          "cardId": "fireball",
+          "cardId": "feint",
           "count": 10
         },
         {
-          "cardId": "flurry",
+          "cardId": "fireball",
           "count": 10
         },
         {
@@ -1191,15 +1194,11 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
           "cardId": "reclaim",
           "count": 10
         },
         {
-          "cardId": "volley",
+          "cardId": "steadyShot",
           "count": 10
         }
       ]
@@ -1215,11 +1214,11 @@
           "count": 10
         },
         {
-          "cardId": "feint",
+          "cardId": "drive",
           "count": 10
         },
         {
-          "cardId": "fireball",
+          "cardId": "flurry",
           "count": 10
         },
         {
@@ -1227,7 +1226,7 @@
           "count": 10
         },
         {
-          "cardId": "leyStep",
+          "cardId": "muster",
           "count": 10
         },
         {
@@ -1243,11 +1242,11 @@
           "count": 10
         },
         {
-          "cardId": "steadyShot",
+          "cardId": "stipend",
           "count": 10
         },
         {
-          "cardId": "stipend",
+          "cardId": "volley",
           "count": 10
         }
       ]
@@ -1263,11 +1262,23 @@
           "count": 10
         },
         {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
           "cardId": "channel",
           "count": 10
         },
         {
-          "cardId": "drive",
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
           "count": 10
         },
         {
@@ -1276,18 +1287,6 @@
         },
         {
           "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
           "count": 10
         },
         {
@@ -1307,15 +1306,7 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
           "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
           "count": 10
         },
         {
@@ -1323,11 +1314,15 @@
           "count": 10
         },
         {
-          "cardId": "flurry",
+          "cardId": "fireball",
           "count": 10
         },
         {
           "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
           "count": 10
         },
         {
@@ -1343,7 +1338,11 @@
           "count": 10
         },
         {
-          "cardId": "reclaim",
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
           "count": 10
         }
       ]
@@ -1355,7 +1354,11 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "aim",
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
           "count": 10
         },
         {
@@ -1363,11 +1366,7 @@
           "count": 10
         },
         {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
+          "cardId": "drive",
           "count": 10
         },
         {
@@ -1379,11 +1378,11 @@
           "count": 10
         },
         {
-          "cardId": "muster",
+          "cardId": "leyStep",
           "count": 10
         },
         {
-          "cardId": "starfire",
+          "cardId": "reclaim",
           "count": 10
         },
         {
@@ -1403,11 +1402,7 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
-          "cardId": "arcBolt",
+          "cardId": "aim",
           "count": 10
         },
         {
@@ -1419,7 +1414,11 @@
           "count": 10
         },
         {
-          "cardId": "heavyBlow",
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
           "count": 10
         },
         {
@@ -1431,15 +1430,15 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
           "cardId": "reclaim",
           "count": 10
         },
         {
           "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
           "count": 10
         }
       ]
@@ -1450,6 +1449,10 @@
       "split": "tuning",
       "startingHealth": 40,
       "actionPiles": [
+        {
+          "cardId": "adapt",
+          "count": 10
+        },
         {
           "cardId": "aim",
           "count": 10
@@ -1475,15 +1478,11 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "reclaim",
           "count": 10
         },
         {
           "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
           "count": 10
         },
         {
@@ -1499,15 +1498,11 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
           "cardId": "aim",
           "count": 10
         },
         {
-          "cardId": "fireball",
+          "cardId": "drive",
           "count": 10
         },
         {
@@ -1523,7 +1518,7 @@
           "count": 10
         },
         {
-          "cardId": "leyStep",
+          "cardId": "muster",
           "count": 10
         },
         {
@@ -1531,7 +1526,11 @@
           "count": 10
         },
         {
-          "cardId": "reclaim",
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
           "count": 10
         },
         {
@@ -1547,7 +1546,7 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
+          "cardId": "aim",
           "count": 10
         },
         {
@@ -1555,7 +1554,7 @@
           "count": 10
         },
         {
-          "cardId": "drive",
+          "cardId": "channel",
           "count": 10
         },
         {
@@ -1567,55 +1566,11 @@
           "count": 10
         },
         {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-033",
-      "name": "Balance Tuning 033",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
           "cardId": "muster",
           "count": 10
         },
         {
           "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
           "count": 10
         },
         {
@@ -1627,7 +1582,51 @@
           "count": 10
         },
         {
-          "cardId": "stipend",
+          "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-033",
+      "name": "Balance Tuning 033",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
           "count": 10
         },
         {
@@ -1643,7 +1642,7 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "aim",
+          "cardId": "adapt",
           "count": 10
         },
         {
@@ -1651,19 +1650,7 @@
           "count": 10
         },
         {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
           "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
           "count": 10
         },
         {
@@ -1671,7 +1658,19 @@
           "count": 10
         },
         {
-          "cardId": "heavyBlow",
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
           "count": 10
         },
         {
@@ -1691,15 +1690,19 @@
       "startingHealth": 40,
       "actionPiles": [
         {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
           "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
           "count": 10
         },
         {
@@ -1707,23 +1710,19 @@
           "count": 10
         },
         {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
           "cardId": "muster",
           "count": 10
         },
         {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
           "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
           "count": 10
         },
         {
@@ -1739,15 +1738,11 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
           "cardId": "aim",
           "count": 10
         },
         {
-          "cardId": "arcBolt",
+          "cardId": "drive",
           "count": 10
         },
         {
@@ -1759,6 +1754,14 @@
           "count": 10
         },
         {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
           "cardId": "heavyBlow",
           "count": 10
         },
@@ -1767,15 +1770,11 @@
           "count": 10
         },
         {
-          "cardId": "starfire",
+          "cardId": "prism",
           "count": 10
         },
         {
-          "cardId": "stipend",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
+          "cardId": "reclaim",
           "count": 10
         }
       ]
@@ -1791,7 +1790,7 @@
           "count": 10
         },
         {
-          "cardId": "aim",
+          "cardId": "arcBolt",
           "count": 10
         },
         {
@@ -1807,11 +1806,11 @@
           "count": 10
         },
         {
-          "cardId": "footwork",
+          "cardId": "leyStep",
           "count": 10
         },
         {
-          "cardId": "heavyBlow",
+          "cardId": "muster",
           "count": 10
         },
         {
@@ -1819,11 +1818,11 @@
           "count": 10
         },
         {
-          "cardId": "reclaim",
+          "cardId": "starfire",
           "count": 10
         },
         {
-          "cardId": "starfire",
+          "cardId": "stipend",
           "count": 10
         }
       ]
@@ -1839,6 +1838,18 @@
           "count": 10
         },
         {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
           "cardId": "flurry",
           "count": 10
         },
@@ -1847,15 +1858,7 @@
           "count": 10
         },
         {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
+          "cardId": "heavyBlow",
           "count": 10
         },
         {
@@ -1864,10 +1867,6 @@
         },
         {
           "cardId": "steadyShot",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
           "count": 10
         },
         {
@@ -1887,55 +1886,7 @@
           "count": 10
         },
         {
-          "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-040",
-      "name": "Balance Tuning 040",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
           "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "arcBolt",
           "count": 10
         },
         {
@@ -1951,7 +1902,7 @@
           "count": 10
         },
         {
-          "cardId": "leyStep",
+          "cardId": "footwork",
           "count": 10
         },
         {
@@ -1959,11 +1910,59 @@
           "count": 10
         },
         {
-          "cardId": "starfire",
+          "cardId": "reclaim",
           "count": 10
         },
         {
           "cardId": "stipend",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-040",
+      "name": "Balance Tuning 040",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
           "count": 10
         },
         {
@@ -1979,7 +1978,7 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
+          "cardId": "aim",
           "count": 10
         },
         {
@@ -1987,55 +1986,7 @@
           "count": 10
         },
         {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
           "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-042",
-      "name": "Balance Tuning 042",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
           "count": 10
         },
         {
@@ -2047,7 +1998,7 @@
           "count": 10
         },
         {
-          "cardId": "leyStep",
+          "cardId": "heavyBlow",
           "count": 10
         },
         {
@@ -2063,7 +2014,55 @@
           "count": 10
         },
         {
+          "cardId": "stipend",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-042",
+      "name": "Balance Tuning 042",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "prism",
+          "count": 10
+        },
+        {
           "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
           "count": 10
         }
       ]
@@ -2083,7 +2082,7 @@
           "count": 10
         },
         {
-          "cardId": "drive",
+          "cardId": "channel",
           "count": 10
         },
         {
@@ -2092,46 +2091,6 @@
         },
         {
           "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-044",
-      "name": "Balance Tuning 044",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
           "count": 10
         },
         {
@@ -2147,15 +2106,55 @@
           "count": 10
         },
         {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
           "cardId": "starfire",
           "count": 10
         },
         {
           "cardId": "steadyShot",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-044",
+      "name": "Balance Tuning 044",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
           "count": 10
         },
         {
@@ -2175,19 +2174,7 @@
           "count": 10
         },
         {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
           "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
           "count": 10
         },
         {
@@ -2203,11 +2190,23 @@
           "count": 10
         },
         {
-          "cardId": "leyStep",
+          "cardId": "muster",
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
           "count": 10
         }
       ]
@@ -2219,7 +2218,11 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "arcBolt",
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
           "count": 10
         },
         {
@@ -2231,10 +2234,6 @@
           "count": 10
         },
         {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
           "cardId": "heavyBlow",
           "count": 10
         },
@@ -2243,7 +2242,7 @@
           "count": 10
         },
         {
-          "cardId": "reclaim",
+          "cardId": "prism",
           "count": 10
         },
         {
@@ -2251,7 +2250,7 @@
           "count": 10
         },
         {
-          "cardId": "steadyShot",
+          "cardId": "stipend",
           "count": 10
         },
         {
@@ -2271,7 +2270,11 @@
           "count": 10
         },
         {
-          "cardId": "aim",
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
           "count": 10
         },
         {
@@ -2283,19 +2286,15 @@
           "count": 10
         },
         {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
           "cardId": "leyStep",
           "count": 10
         },
         {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
+          "cardId": "reclaim",
           "count": 10
         },
         {
@@ -2303,7 +2302,7 @@
           "count": 10
         },
         {
-          "cardId": "volley",
+          "cardId": "stipend",
           "count": 10
         }
       ]
@@ -2319,6 +2318,10 @@
           "count": 10
         },
         {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
           "cardId": "arcBolt",
           "count": 10
         },
@@ -2327,103 +2330,11 @@
           "count": 10
         },
         {
-          "cardId": "feint",
-          "count": 10
-        },
-        {
           "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-049",
-      "name": "Balance Tuning 049",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
           "count": 10
         },
         {
           "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-050",
-      "name": "Balance Tuning 050",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
           "count": 10
         },
         {
@@ -2435,26 +2346,18 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "prism",
           "count": 10
         },
         {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
+          "cardId": "volley",
           "count": 10
         }
       ]
     },
     {
-      "id": "balance-tuning-051",
-      "name": "Balance Tuning 051",
+      "id": "balance-tuning-049",
+      "name": "Balance Tuning 049",
       "split": "tuning",
       "startingHealth": 40,
       "actionPiles": [
@@ -2475,7 +2378,55 @@
           "count": 10
         },
         {
-          "cardId": "flurry",
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-050",
+      "name": "Balance Tuning 050",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
           "count": 10
         },
         {
@@ -2484,6 +2435,54 @@
         },
         {
           "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-051",
+      "name": "Balance Tuning 051",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "prism",
           "count": 10
         },
         {
@@ -2507,11 +2506,11 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
+          "cardId": "arcBolt",
           "count": 10
         },
         {
-          "cardId": "drive",
+          "cardId": "channel",
           "count": 10
         },
         {
@@ -2519,11 +2518,7 @@
           "count": 10
         },
         {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
+          "cardId": "flurry",
           "count": 10
         },
         {
@@ -2536,6 +2531,10 @@
         },
         {
           "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
           "count": 10
         },
         {
@@ -2555,11 +2554,55 @@
       "startingHealth": 40,
       "actionPiles": [
         {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
           "cardId": "aim",
           "count": 10
         },
         {
           "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-054",
+      "name": "Balance Tuning 054",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "adapt",
           "count": 10
         },
         {
@@ -2579,51 +2622,7 @@
           "count": 10
         },
         {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-054",
-      "name": "Balance Tuning 054",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
           "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
           "count": 10
         },
         {
@@ -2631,7 +2630,7 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "reclaim",
           "count": 10
         },
         {
@@ -2655,23 +2654,15 @@
           "count": 10
         },
         {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
           "cardId": "channel",
           "count": 10
         },
         {
-          "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
+          "cardId": "footwork",
           "count": 10
         },
         {
@@ -2679,11 +2670,19 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "muster",
           "count": 10
         },
         {
-          "cardId": "reclaim",
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
           "count": 10
         },
         {
@@ -2703,11 +2702,15 @@
           "count": 10
         },
         {
-          "cardId": "arcBolt",
+          "cardId": "drive",
           "count": 10
         },
         {
-          "cardId": "channel",
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
           "count": 10
         },
         {
@@ -2727,15 +2730,11 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
           "cardId": "reclaim",
           "count": 10
         },
         {
-          "cardId": "steadyShot",
+          "cardId": "volley",
           "count": 10
         }
       ]
@@ -2751,6 +2750,14 @@
           "count": 10
         },
         {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
           "cardId": "drive",
           "count": 10
         },
@@ -2759,11 +2766,51 @@
           "count": 10
         },
         {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
           "cardId": "flurry",
           "count": 10
         },
         {
           "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-058",
+      "name": "Balance Tuning 058",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "prism",
           "count": 10
         },
         {
@@ -2789,8 +2836,8 @@
       ]
     },
     {
-      "id": "balance-tuning-058",
-      "name": "Balance Tuning 058",
+      "id": "balance-tuning-059",
+      "name": "Balance Tuning 059",
       "split": "tuning",
       "startingHealth": 40,
       "actionPiles": [
@@ -2803,15 +2850,7 @@
           "count": 10
         },
         {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
+          "cardId": "channel",
           "count": 10
         },
         {
@@ -2833,53 +2872,13 @@
         {
           "cardId": "prism",
           "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-059",
-      "name": "Balance Tuning 059",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "channel",
-          "count": 10
         },
         {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
+          "cardId": "reclaim",
           "count": 10
         },
         {
           "cardId": "steadyShot",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
           "count": 10
         }
       ]
@@ -2903,19 +2902,63 @@
           "count": 10
         },
         {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
           "cardId": "feint",
           "count": 10
         },
         {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-061",
+      "name": "Balance Tuning 061",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
           "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
           "count": 10
         },
         {
@@ -2929,12 +2972,16 @@
         {
           "cardId": "stipend",
           "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
         }
       ]
     },
     {
-      "id": "balance-tuning-061",
-      "name": "Balance Tuning 061",
+      "id": "balance-tuning-062",
+      "name": "Balance Tuning 062",
       "split": "tuning",
       "startingHealth": 40,
       "actionPiles": [
@@ -2955,63 +3002,15 @@
           "count": 10
         },
         {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
           "cardId": "footwork",
           "count": 10
         },
         {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "leyStep",
+          "cardId": "prism",
           "count": 10
         },
         {
           "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-062",
-      "name": "Balance Tuning 062",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
           "count": 10
         },
         {
@@ -3035,7 +3034,7 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
+          "cardId": "aim",
           "count": 10
         },
         {
@@ -3043,11 +3042,11 @@
           "count": 10
         },
         {
-          "cardId": "channel",
+          "cardId": "feint",
           "count": 10
         },
         {
-          "cardId": "feint",
+          "cardId": "flurry",
           "count": 10
         },
         {
@@ -3059,11 +3058,11 @@
           "count": 10
         },
         {
-          "cardId": "prism",
+          "cardId": "muster",
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "prism",
           "count": 10
         },
         {
@@ -3071,7 +3070,7 @@
           "count": 10
         },
         {
-          "cardId": "volley",
+          "cardId": "stipend",
           "count": 10
         }
       ]
@@ -3091,6 +3090,14 @@
           "count": 10
         },
         {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
           "cardId": "fireball",
           "count": 10
         },
@@ -3107,19 +3114,11 @@
           "count": 10
         },
         {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
           "cardId": "reclaim",
           "count": 10
         },
         {
-          "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
+          "cardId": "volley",
           "count": 10
         }
       ]
@@ -3135,10 +3134,6 @@
           "count": 10
         },
         {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
           "cardId": "feint",
           "count": 10
         },
@@ -3151,15 +3146,15 @@
           "count": 10
         },
         {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
           "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
           "count": 10
         },
         {
@@ -3167,7 +3162,11 @@
           "count": 10
         },
         {
-          "cardId": "stipend",
+          "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
           "count": 10
         }
       ]
@@ -3183,23 +3182,15 @@
           "count": 10
         },
         {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
           "cardId": "arcBolt",
           "count": 10
         },
         {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
+          "cardId": "drive",
           "count": 10
         },
         {
@@ -3207,11 +3198,19 @@
           "count": 10
         },
         {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
           "cardId": "muster",
           "count": 10
         },
         {
-          "cardId": "steadyShot",
+          "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
           "count": 10
         },
         {
@@ -3227,54 +3226,6 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-068",
-      "name": "Balance Tuning 068",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
           "cardId": "aim",
           "count": 10
         },
@@ -3291,7 +3242,7 @@
           "count": 10
         },
         {
-          "cardId": "fireball",
+          "cardId": "flurry",
           "count": 10
         },
         {
@@ -3299,15 +3250,63 @@
           "count": 10
         },
         {
-          "cardId": "leyStep",
+          "cardId": "reclaim",
           "count": 10
         },
         {
-          "cardId": "muster",
+          "cardId": "starfire",
           "count": 10
         },
         {
           "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-068",
+      "name": "Balance Tuning 068",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
           "count": 10
         },
         {
@@ -3323,6 +3322,14 @@
       "startingHealth": 40,
       "actionPiles": [
         {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
           "cardId": "arcBolt",
           "count": 10
         },
@@ -3331,15 +3338,11 @@
           "count": 10
         },
         {
-          "cardId": "flurry",
+          "cardId": "fireball",
           "count": 10
         },
         {
           "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
           "count": 10
         },
         {
@@ -3351,15 +3354,11 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
           "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
           "count": 10
         }
       ]
@@ -3370,10 +3369,6 @@
       "split": "tuning",
       "startingHealth": 40,
       "actionPiles": [
-        {
-          "cardId": "adapt",
-          "count": 10
-        },
         {
           "cardId": "aim",
           "count": 10
@@ -3387,7 +3382,7 @@
           "count": 10
         },
         {
-          "cardId": "fireball",
+          "cardId": "footwork",
           "count": 10
         },
         {
@@ -3399,7 +3394,11 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "prism",
           "count": 10
         },
         {
@@ -3419,59 +3418,15 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
           "cardId": "aim",
           "count": 10
         },
-        {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-072",
-      "name": "Balance Tuning 072",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
         {
           "cardId": "arcBolt",
           "count": 10
         },
         {
-          "cardId": "feint",
+          "cardId": "channel",
           "count": 10
         },
         {
@@ -3487,11 +3442,55 @@
           "count": 10
         },
         {
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-072",
+      "name": "Balance Tuning 072",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
           "cardId": "muster",
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "prism",
           "count": 10
         },
         {
@@ -3499,7 +3498,7 @@
           "count": 10
         },
         {
-          "cardId": "stipend",
+          "cardId": "starfire",
           "count": 10
         },
         {
@@ -3519,27 +3518,31 @@
           "count": 10
         },
         {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
           "cardId": "channel",
           "count": 10
         },
         {
-          "cardId": "drive",
+          "cardId": "feint",
           "count": 10
         },
         {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
+          "cardId": "fireball",
           "count": 10
         },
         {
           "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
           "count": 10
         },
         {
@@ -3548,10 +3551,6 @@
         },
         {
           "cardId": "stipend",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
           "count": 10
         }
       ]
@@ -3562,10 +3561,6 @@
       "split": "tuning",
       "startingHealth": 40,
       "actionPiles": [
-        {
-          "cardId": "aim",
-          "count": 10
-        },
         {
           "cardId": "arcBolt",
           "count": 10
@@ -3591,15 +3586,19 @@
           "count": 10
         },
         {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
           "cardId": "leyStep",
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "muster",
           "count": 10
         },
         {
-          "cardId": "starfire",
+          "cardId": "steadyShot",
           "count": 10
         }
       ]
@@ -3615,7 +3614,11 @@
           "count": 10
         },
         {
-          "cardId": "arcBolt",
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
           "count": 10
         },
         {
@@ -3627,47 +3630,7 @@
           "count": 10
         },
         {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-076",
-      "name": "Balance Tuning 076",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
           "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
           "count": 10
         },
         {
@@ -3679,11 +3642,47 @@
           "count": 10
         },
         {
+          "cardId": "stipend",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-076",
+      "name": "Balance Tuning 076",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
           "cardId": "prism",
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
           "count": 10
         },
         {
@@ -3707,14 +3706,6 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
           "cardId": "arcBolt",
           "count": 10
         },
@@ -3727,43 +3718,11 @@
           "count": 10
         },
         {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-078",
-      "name": "Balance Tuning 078",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
           "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
           "count": 10
         },
         {
@@ -3779,6 +3738,42 @@
           "count": 10
         },
         {
+          "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-078",
+      "name": "Balance Tuning 078",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
           "cardId": "muster",
           "count": 10
         },
@@ -3788,6 +3783,10 @@
         },
         {
           "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
           "count": 10
         },
         {
@@ -3807,50 +3806,6 @@
           "count": 10
         },
         {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-tuning-080",
-      "name": "Balance Tuning 080",
-      "split": "tuning",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
           "cardId": "channel",
           "count": 10
         },
@@ -3859,7 +3814,7 @@
           "count": 10
         },
         {
-          "cardId": "fireball",
+          "cardId": "flurry",
           "count": 10
         },
         {
@@ -3875,15 +3830,59 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
           "cardId": "reclaim",
           "count": 10
         },
         {
           "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-tuning-080",
+      "name": "Balance Tuning 080",
+      "split": "tuning",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
           "count": 10
         },
         {
@@ -3903,6 +3902,54 @@
           "count": 10
         },
         {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-validation-002",
+      "name": "Balance Validation 002",
+      "split": "validation",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
           "cardId": "arcBolt",
           "count": 10
         },
@@ -3915,59 +3962,11 @@
           "count": 10
         },
         {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
           "cardId": "heavyBlow",
           "count": 10
         },
         {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-validation-002",
-      "name": "Balance Validation 002",
-      "split": "validation",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
           "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
           "count": 10
         },
         {
@@ -3995,15 +3994,67 @@
       "startingHealth": 40,
       "actionPiles": [
         {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
           "cardId": "aim",
           "count": 10
         },
         {
-          "cardId": "arcBolt",
+          "cardId": "channel",
           "count": 10
         },
         {
           "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-validation-004",
+      "name": "Balance Validation 004",
+      "split": "validation",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
           "count": 10
         },
         {
@@ -4023,27 +4074,23 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "reclaim",
           "count": 10
         },
         {
           "cardId": "steadyShot",
           "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
         }
       ]
     },
     {
-      "id": "balance-validation-004",
-      "name": "Balance Validation 004",
+      "id": "balance-validation-005",
+      "name": "Balance Validation 005",
       "split": "validation",
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "arcBolt",
+          "cardId": "aim",
           "count": 10
         },
         {
@@ -4056,50 +4103,6 @@
         },
         {
           "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-validation-005",
-      "name": "Balance Validation 005",
-      "split": "validation",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
           "count": 10
         },
         {
@@ -4119,15 +4122,11 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "steadyShot",
           "count": 10
         },
         {
-          "cardId": "starfire",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
+          "cardId": "volley",
           "count": 10
         }
       ]
@@ -4143,6 +4142,10 @@
           "count": 10
         },
         {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
           "cardId": "feint",
           "count": 10
         },
@@ -4151,11 +4154,55 @@
           "count": 10
         },
         {
-          "cardId": "heavyBlow",
+          "cardId": "flurry",
           "count": 10
         },
         {
           "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-validation-007",
+      "name": "Balance Validation 007",
+      "split": "validation",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
           "count": 10
         },
         {
@@ -4175,54 +4222,6 @@
           "count": 10
         },
         {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-validation-007",
-      "name": "Balance Validation 007",
-      "split": "validation",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "adapt",
-          "count": 10
-        },
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
           "cardId": "stipend",
           "count": 10
         }
@@ -4235,15 +4234,11 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "adapt",
+          "cardId": "aim",
           "count": 10
         },
         {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
+          "cardId": "arcBolt",
           "count": 10
         },
         {
@@ -4251,11 +4246,15 @@
           "count": 10
         },
         {
-          "cardId": "muster",
+          "cardId": "flurry",
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
           "count": 10
         },
         {
@@ -4283,111 +4282,11 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-validation-010",
-      "name": "Balance Validation 010",
-      "split": "validation",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
           "cardId": "adapt",
           "count": 10
         },
         {
-          "cardId": "channel",
-          "count": 10
-        },
-        {
           "cardId": "drive",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-validation-011",
-      "name": "Balance Validation 011",
-      "split": "validation",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
-          "cardId": "channel",
           "count": 10
         },
         {
@@ -4407,11 +4306,111 @@
           "count": 10
         },
         {
-          "cardId": "starfire",
+          "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
           "count": 10
         },
         {
           "cardId": "stipend",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-validation-010",
+      "name": "Balance Validation 010",
+      "split": "validation",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "adapt",
+          "count": 10
+        },
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-validation-011",
+      "name": "Balance Validation 011",
+      "split": "validation",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "fireball",
+          "count": 10
+        },
+        {
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "starfire",
           "count": 10
         },
         {
@@ -4435,7 +4434,11 @@
           "count": 10
         },
         {
-          "cardId": "drive",
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
           "count": 10
         },
         {
@@ -4443,7 +4446,11 @@
           "count": 10
         },
         {
-          "cardId": "muster",
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
           "count": 10
         },
         {
@@ -4451,15 +4458,7 @@
           "count": 10
         },
         {
-          "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "steadyShot",
-          "count": 10
-        },
-        {
-          "cardId": "stipend",
+          "cardId": "starfire",
           "count": 10
         },
         {
@@ -4483,15 +4482,11 @@
           "count": 10
         },
         {
-          "cardId": "arcBolt",
-          "count": 10
-        },
-        {
           "cardId": "channel",
           "count": 10
         },
         {
-          "cardId": "drive",
+          "cardId": "fireball",
           "count": 10
         },
         {
@@ -4499,11 +4494,7 @@
           "count": 10
         },
         {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "prism",
+          "cardId": "muster",
           "count": 10
         },
         {
@@ -4511,7 +4502,15 @@
           "count": 10
         },
         {
-          "cardId": "starfire",
+          "cardId": "steadyShot",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
+          "count": 10
+        },
+        {
+          "cardId": "volley",
           "count": 10
         }
       ]
@@ -4522,10 +4521,6 @@
       "split": "validation",
       "startingHealth": 40,
       "actionPiles": [
-        {
-          "cardId": "adapt",
-          "count": 10
-        },
         {
           "cardId": "aim",
           "count": 10
@@ -4547,7 +4542,11 @@
           "count": 10
         },
         {
-          "cardId": "fireball",
+          "cardId": "footwork",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
           "count": 10
         },
         {
@@ -4579,7 +4578,7 @@
           "count": 10
         },
         {
-          "cardId": "feint",
+          "cardId": "fireball",
           "count": 10
         },
         {
@@ -4591,10 +4590,6 @@
           "count": 10
         },
         {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
           "cardId": "leyStep",
           "count": 10
         },
@@ -4603,11 +4598,15 @@
           "count": 10
         },
         {
+          "cardId": "prism",
+          "count": 10
+        },
+        {
           "cardId": "starfire",
           "count": 10
         },
         {
-          "cardId": "steadyShot",
+          "cardId": "stipend",
           "count": 10
         }
       ]
@@ -4623,15 +4622,15 @@
           "count": 10
         },
         {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
           "cardId": "channel",
           "count": 10
         },
         {
-          "cardId": "flurry",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
+          "cardId": "feint",
           "count": 10
         },
         {
@@ -4643,15 +4642,15 @@
           "count": 10
         },
         {
-          "cardId": "prism",
-          "count": 10
-        },
-        {
           "cardId": "reclaim",
           "count": 10
         },
         {
-          "cardId": "stipend",
+          "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
           "count": 10
         },
         {
@@ -4667,11 +4666,15 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "aim",
+          "cardId": "arcBolt",
           "count": 10
         },
         {
-          "cardId": "arcBolt",
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "drive",
           "count": 10
         },
         {
@@ -4683,7 +4686,11 @@
           "count": 10
         },
         {
-          "cardId": "footwork",
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "leyStep",
           "count": 10
         },
         {
@@ -4691,15 +4698,7 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
           "cardId": "reclaim",
-          "count": 10
-        },
-        {
-          "cardId": "starfire",
           "count": 10
         },
         {
@@ -4715,19 +4714,15 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "arcBolt",
+          "cardId": "adapt",
           "count": 10
         },
         {
-          "cardId": "feint",
+          "cardId": "aim",
           "count": 10
         },
         {
           "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "flurry",
           "count": 10
         },
         {
@@ -4739,15 +4734,19 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
+          "cardId": "muster",
           "count": 10
         },
         {
-          "cardId": "reclaim",
+          "cardId": "prism",
           "count": 10
         },
         {
           "cardId": "starfire",
+          "count": 10
+        },
+        {
+          "cardId": "steadyShot",
           "count": 10
         },
         {
@@ -4763,59 +4762,11 @@
       "startingHealth": 40,
       "actionPiles": [
         {
-          "cardId": "aim",
-          "count": 10
-        },
-        {
-          "cardId": "drive",
-          "count": 10
-        },
-        {
-          "cardId": "feint",
-          "count": 10
-        },
-        {
-          "cardId": "fireball",
-          "count": 10
-        },
-        {
-          "cardId": "footwork",
-          "count": 10
-        },
-        {
-          "cardId": "heavyBlow",
-          "count": 10
-        },
-        {
-          "cardId": "leyStep",
-          "count": 10
-        },
-        {
-          "cardId": "muster",
-          "count": 10
-        },
-        {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
-          "cardId": "volley",
-          "count": 10
-        }
-      ]
-    },
-    {
-      "id": "balance-validation-020",
-      "name": "Balance Validation 020",
-      "split": "validation",
-      "startingHealth": 40,
-      "actionPiles": [
-        {
           "cardId": "adapt",
           "count": 10
         },
         {
-          "cardId": "arcBolt",
+          "cardId": "feint",
           "count": 10
         },
         {
@@ -4835,10 +4786,6 @@
           "count": 10
         },
         {
-          "cardId": "quickShot",
-          "count": 10
-        },
-        {
           "cardId": "starfire",
           "count": 10
         },
@@ -4847,7 +4794,59 @@
           "count": 10
         },
         {
+          "cardId": "stipend",
+          "count": 10
+        },
+        {
           "cardId": "volley",
+          "count": 10
+        }
+      ]
+    },
+    {
+      "id": "balance-validation-020",
+      "name": "Balance Validation 020",
+      "split": "validation",
+      "startingHealth": 40,
+      "actionPiles": [
+        {
+          "cardId": "aim",
+          "count": 10
+        },
+        {
+          "cardId": "arcBolt",
+          "count": 10
+        },
+        {
+          "cardId": "channel",
+          "count": 10
+        },
+        {
+          "cardId": "feint",
+          "count": 10
+        },
+        {
+          "cardId": "flurry",
+          "count": 10
+        },
+        {
+          "cardId": "heavyBlow",
+          "count": 10
+        },
+        {
+          "cardId": "muster",
+          "count": 10
+        },
+        {
+          "cardId": "prism",
+          "count": 10
+        },
+        {
+          "cardId": "reclaim",
+          "count": 10
+        },
+        {
+          "cardId": "stipend",
           "count": 10
         }
       ]

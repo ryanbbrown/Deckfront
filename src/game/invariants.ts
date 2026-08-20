@@ -1,5 +1,5 @@
 import { CARDS, MAX_FIRST_BUY_CARRY } from './config';
-import { ALWAYS_AVAILABLE_ACTION_ID, ALWAYS_AVAILABLE_COUNT, findKingdom } from './kingdom';
+import { ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, findKingdom } from './kingdom';
 import type { GameState } from './types';
 
 export function checkInvariants(state: GameState): string[] {
@@ -28,7 +28,8 @@ export function checkInvariants(state: GameState): string[] {
   if (!kingdom) errors.push(`Unknown kingdom: ${state.kingdomId}`);
   else {
     if (state.startingHealth !== kingdom.startingHealth) errors.push('Starting health does not match the kingdom.');
-    const piles = new Map<string, number>([...kingdom.actionPiles.map((pile) => [pile.cardId, pile.count] as const), [ALWAYS_AVAILABLE_ACTION_ID, ALWAYS_AVAILABLE_COUNT]]);
+    const piles = new Map<string, number>([...kingdom.actionPiles.map((pile) => [pile.cardId, pile.count] as const),
+      ...ALWAYS_AVAILABLE_ACTION_IDS.map((id) => [id, ALWAYS_AVAILABLE_COUNT] as const)]);
     for (const [id, count] of Object.entries(state.supply)) {
       const declared = piles.get(id);
       if (declared === undefined) { errors.push(`Supply has invalid card ${id}.`); continue; }

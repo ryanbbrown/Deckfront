@@ -64,7 +64,7 @@ export interface BalanceSuiteValidation {
 export const BALANCE_SUITE_SPEC: BalanceSuiteSpec = Object.freeze({
   suiteVersion: 'balance-suite-v1', generatorVersion: 'balanced-swaps-v1',
   eligibleCardIds: Object.freeze(Object.values(CARDS).filter((card) => card.type === 'action'
-    && !['cull', 'step', 'strike', 'shot'].includes(card.id)).map((card) => card.id).sort()),
+    && !['cull', 'focus', 'step', 'strike', 'shot'].includes(card.id)).map((card) => card.id).sort()),
   kingdomSize: 10,
   splits: Object.freeze([
     Object.freeze({ name: 'tuning' as const, seed: 0x51a7c3d9, size: 80 }),

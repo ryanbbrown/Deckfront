@@ -17,9 +17,9 @@ export const NEAR_COMPETITIVE_SCORE = 0.48;
 const FAMILY_BY_CARD = {
   footwork: 'Engine', cull: 'Engine', muster: 'Engine', stipend: 'Engine', reclaim: 'Engine',
   adapt: 'Engine', step: 'Engine', feint: 'Melee', drive: 'Melee', flurry: 'Melee',
-  heavyBlow: 'Melee', strike: 'Melee', aim: 'Ranged', volley: 'Ranged', quickShot: 'Ranged',
+  heavyBlow: 'Melee', strike: 'Melee', aim: 'Ranged', volley: 'Ranged',
   steadyShot: 'Ranged', shot: 'Ranged', channel: 'Mage', leyStep: 'Mage', prism: 'Mage',
-  arcBolt: 'Mage', fireball: 'Mage', starfire: 'Mage'
+  focus: 'Mage', arcBolt: 'Mage', fireball: 'Mage', starfire: 'Mage'
 } as const satisfies Record<string, 'Engine' | 'Melee' | 'Ranged' | 'Mage'>;
 export type CardFamily = (typeof FAMILY_BY_CARD)[keyof typeof FAMILY_BY_CARD] | 'Treasure';
 

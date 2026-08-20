@@ -53,9 +53,9 @@ const SPECS: Readonly<Record<string, readonly SeedSpec[]>> = {
   'range-rich-mixed': [
     { id: 'melee', startingBuild: ['heavyBlow', 'drive', 'footwork'], buyAgenda: [['heavyBlow', 3], ['drive', 2], ['footwork', 2]], repeatPurchase: 'footwork' },
     { id: 'ranged-volley', startingBuild: ['volley', 'aim', 'footwork'], buyAgenda: [['volley', 3], ['aim', 3], ['footwork', 2]], repeatPurchase: 'footwork' },
-    { id: 'ranged-shot', startingBuild: ['steadyShot', 'quickShot', 'footwork'], buyAgenda: [['steadyShot', 3], ['quickShot', 3], ['footwork', 2]], repeatPurchase: 'footwork' },
+    { id: 'ranged-shot', startingBuild: ['steadyShot', 'steadyShot', 'footwork'], buyAgenda: [['steadyShot', 4], ['footwork', 2]], repeatPurchase: 'footwork' },
     { id: 'mage', startingBuild: ['channel', 'arcBolt', 'arcBolt', 'footwork'], buyAgenda: [['arcBolt', 4], ['channel', 3], ['footwork', 2]], repeatPurchase: 'channel' },
-    { id: 'money-quick', startingBuild: ['quickShot'], buyAgenda: [['quickShot', 3], ['footwork', 2]], repeatPurchase: 'footwork' }
+    { id: 'money-shot', startingBuild: ['steadyShot'], buyAgenda: [['steadyShot', 3], ['footwork', 2]], repeatPurchase: 'footwork' }
   ]
 };
 
