@@ -48,7 +48,9 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .market-group { display: grid; grid-template-columns: 60px 1fr; align-items: center; min-height: 72px; padding: 2px 8px; border-top: 1px solid #ffffff16; }
 .market-group > span { color: #aebdb7; font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
 .compact-market__row { display: flex; gap: 5px; }
-.compact-pile { position: relative; flex: 0 0 148px; width: 148px; height: 64px; padding: 8px 25px 7px 8px; overflow: hidden; border: 2px solid; border-radius: 5px; color: #fff; text-align: left; }
+.compact-pile-slot { flex: 0 0 148px; width: 148px; }
+.compact-pile { position: relative; width: 148px; height: 64px; padding: 8px 25px 7px 8px; overflow: hidden; border: 2px solid; border-radius: 5px; color: #fff; text-align: left; }
+.compact-pile[aria-disabled="true"] { cursor: default; opacity: .72; }
 .compact-pile strong { display: block; overflow: hidden; font-family: Georgia,serif; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
 .compact-pile small { display: block; margin-top: 7px; font-size: 9px; }
 .compact-pile__cost { position: absolute; top: 6px; right: 6px; display: grid; width: 20px; height: 20px; border-radius: 50%; background: #15201c; font-size: 10px; place-items: center; }
@@ -71,8 +73,9 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .card__meta { display: flex; align-items: center; gap: 3px; }
 .card__cost { display: grid; width: 23px; height: 23px; border-radius: 50%; background: #15201c; color: #fff; font-size: 10px; place-items: center; }
 .card__image { display: block; height: 92px; margin: 7px; border: 1px solid #0003; background: linear-gradient(135deg,#ffffff52,#0000000c); }
-.card__rules { display: block; margin: 0 7px 7px; padding: 6px; border: 1px solid #0002; background: #fffffff0; font-size: 9px; line-height: 1.25; }
-.card__rules b,.card__rules small { display: block; }
+.card__rules { display: block; margin: 0 7px 7px; padding: 6px; border: 1px solid #0002; background: #fffffff0; font-size: 10px; line-height: 1.2; }
+.card__rules--dense { font-size: 8px; line-height: 1.15; }
+.card__rules b,.card__rules small { display: block; font-size: inherit; }
 .card--treasure { border-color: var(--treasure); } .card--treasure .card__header { background: #9b771b; }
 .card--ranged { border-color: var(--ranged); } .card--ranged .card__header { background: #326c46; }
 .card--mana { border-color: var(--mana); } .card--mana .card__header { background: #39578f; }
@@ -82,10 +85,10 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .played-card { flex: 0 0 106px; width: 106px; height: 150px; margin-right: 6px; }
 .played-card .card__header { min-height: 28px; } .played-card .card__title { font-size: 11px; }
 .played-card .card__cost { width: 19px; height: 19px; } .played-card .card__image { height: 55px; margin: 4px; }
-.played-card .card__rules { margin: 0 4px 4px; padding: 3px; font-size: 7px; }
+.played-card .card__rules { margin: 0 4px 4px; padding: 3px; font-size: 8px; }
+.played-card .card__rules--dense { font-size: 6.5px; }
 .quantity-badge { position: absolute; z-index: 3; top: -3px; left: -5px; display: grid; min-width: 28px; height: 28px; padding: 0 4px; border: 2px solid #fff; border-radius: 20px; background: var(--danger); color: #fff; font-size: 11px; font-weight: 900; place-items: center; }
 .quantity-badge--played { position: static; min-width: 20px; height: 20px; border-width: 1px; font-size: 8px; }
-.play-order { display: grid; min-width: 20px; height: 20px; padding: 0 3px; border-radius: 12px; background: #2c6a56; color: #fff; font-size: 8px; place-items: center; }
 .selected-count { position: absolute; right: 6px; bottom: 6px; left: 6px; padding: 4px; background: var(--danger); color: #fff; font-size: 9px; text-align: center; }
 .card--target,.card--selected { border-color: #ff6258; }
 .choice-bar { position: fixed; z-index: 270; left: 50%; bottom: 285px; display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #917a50; background: #f5edda; color: var(--ink); transform: translateX(-50%); }
@@ -99,6 +102,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .market-dialog__surface > header button,.drawer-heading button { width: 34px; height: 34px; border: 1px solid #ffffff45; border-radius: 5px; background: #fff; color: var(--ink); font-size: 22px; }
 .market-dialog__grid { display: grid; grid-template-columns: repeat(8,148px); grid-template-rows: repeat(2,220px); justify-content: center; gap: 10px; height: 450px; }
 .reference-card { width: 148px; height: 220px; }
+.market-card-popover { position: fixed; z-index: 280; width: 148px; height: 220px; border: 0; background: transparent; filter: drop-shadow(0 14px 24px #000b); }
 .edge-toggle { position: fixed; z-index: 290; top: 48%; padding: 10px 6px; border: 1px solid #ffffff3d; background: #0a201b; color: #fff; font-size: 10px; font-weight: 900; writing-mode: vertical-rl; }
 .edge-toggle--deck { right: 0; border-radius: 7px 0 0 7px; } .edge-toggle--opponent { left: 0; border-radius: 0 7px 7px 0; transform: rotate(180deg); }
 .side-drawer { position: fixed; z-index: 300; top: 0; width: 330px; height: 100vh; padding: 14px; overflow-y: auto; background: #0a201b; color: #fff; box-shadow: 0 0 30px #0008; transition: transform .2s ease; }
