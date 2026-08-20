@@ -2,13 +2,37 @@ import { kingdomOf, kingdomSupply } from '../../src/game';
 import { test, expect, seedHand } from './fixture';
 
 async function playCard(page: import('@playwright/test').Page, name: string) { await page.locator(`[data-card-name="${name}"]`).first().click(); }
+async function marketLayout(page: import('@playwright/test').Page) {
+  return page.evaluate(() => {
+    const rect = (selector: string) => document.querySelector<HTMLElement>(selector)!.getBoundingClientRect();
+    const cardRects = [...document.querySelectorAll<HTMLElement>('.reference-card')].map((card) => card.getBoundingClientRect());
+    const imageRects = [...document.querySelectorAll<HTMLElement>('.reference-card .card__image')].map((image) => image.getBoundingClientRect());
+    const surface = rect('.market-dialog__surface');
+    return {
+      surface: { left: surface.left, top: surface.top, right: surface.right, bottom: surface.bottom, width: surface.width, height: surface.height },
+      cardWidths: [...new Set(cardRects.map((card) => Math.round(card.width)))],
+      cardHeights: [...new Set(cardRects.map((card) => Math.round(card.height)))],
+      rows: new Set(cardRects.map((card) => Math.round(card.top))).size,
+      columns: new Set(cardRects.map((card) => Math.round(card.left))).size,
+      imageHeights: [...new Set(imageRects.map((image) => Math.round(image.height)))],
+      overflow: { horizontal: document.documentElement.scrollWidth - innerWidth, vertical: document.documentElement.scrollHeight - innerHeight },
+      viewport: { width: innerWidth, height: innerHeight }
+    };
+  });
+}
 
 test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local builds', async ({ page, baseUrl }) => {
   await page.setViewportSize({ width: 1920, height: 1080 }); await page.goto(baseUrl);
   await expect(page.getByRole('heading', { name: 'Hexdeck' })).toBeVisible(); await expect(page.getByText('Choose a kingdom')).toBeVisible(); await expect(page.getByText('I go first', { exact: true })).toHaveCount(0); await expect(page.getByText('AI goes first', { exact: true })).toHaveCount(0);
   await expect(page.locator('[data-market-card="Step"]')).toBeVisible(); await expect(page.locator('[data-market-card="Cull"]')).toBeVisible(); await expect(page.locator('[data-market-card="Focus"]')).toBeVisible(); await expect(page.locator('[data-market-card]')).toHaveCount(16); await expect(page.locator('[data-market-card]:disabled')).toHaveCount(16);
+  const compactWidths = await page.locator('[data-market-card]').evaluateAll((cards) => cards.map((card) => Math.round(card.getBoundingClientRect().width)));
+  expect([...new Set(compactWidths)]).toEqual([148]);
   const before = await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents(); await page.getByRole('button', { name: 'Refresh market' }).click(); const after = await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents(); expect(after).not.toEqual(before);
-  await page.getByRole('button', { name: 'View cards' }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.locator('.market-dialog .reference-card')).toHaveCount(16); await expect(page.locator('.market-dialog .card__image')).toHaveCount(16); const dialogOverflow = await page.locator('.market-dialog__surface').evaluate((element) => ({ horizontal: element.scrollWidth - element.clientWidth, vertical: element.scrollHeight - element.clientHeight })); expect(dialogOverflow).toEqual({ horizontal: 0, vertical: 0 }); await page.getByRole('button', { name: 'Close market' }).click();
+  for (const viewport of [{ width: 1920, height: 1080 }, { width: 3840, height: 2160 }]) {
+    await page.setViewportSize(viewport); await page.getByRole('button', { name: 'View cards' }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.locator('.market-dialog .reference-card')).toHaveCount(16); await expect(page.locator('.market-dialog .card__image')).toHaveCount(16);
+    const layout = await marketLayout(page); expect(layout.cardWidths).toEqual([148]); expect(layout.cardHeights).toEqual([220]); expect(layout.imageHeights).toEqual([92]); expect(layout.rows).toBe(2); expect(layout.columns).toBe(8); expect(layout.surface.width).toBeLessThanOrEqual(1320); expect(layout.surface.height).toBeLessThanOrEqual(540); expect(layout.surface.left).toBeGreaterThanOrEqual(0); expect(layout.surface.top).toBeGreaterThanOrEqual(0); expect(layout.surface.right).toBeLessThanOrEqual(layout.viewport.width); expect(layout.surface.bottom).toBeLessThanOrEqual(layout.viewport.height); expect(layout.overflow).toEqual({ horizontal: 0, vertical: 0 }); await page.getByRole('button', { name: 'Close market' }).click();
+  }
+  await page.setViewportSize({ width: 1920, height: 1080 });
   await page.getByRole('button', { name: 'Start game' }).click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Step"]').click(); await expect(page.getByTestId('build-budget')).toHaveText('2 / 12 · 3 carries');
   await page.reload(); await expect(page.getByRole('button', { name: 'Remove Copper' })).toHaveCount(2); await page.getByRole('button', { name: 'Remove Copper' }).first().click();
   await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.getByRole('button', { name: 'Finish starting build' }).click();
