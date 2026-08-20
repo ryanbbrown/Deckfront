@@ -9,6 +9,13 @@ function choose(state: GameState, plan = strategy()): LegalAction {
   return tacticalAgent(plan).chooseAction(state, 'ochre', actions);
 }
 
+function playedDefinition(state: GameState, action: LegalAction): string | null {
+  const command = action.command;
+  return 'cardInstanceId' in command
+    ? state.players.ochre.deck.hand.find((card) => card.id === command.cardInstanceId)?.definitionId ?? null
+    : null;
+}
+
 describe('the shared tactical pilot', () => {
   it('uses an existing Aim on Volley before it draws or aims again', () => {
     const state = arena({ kingdomId: 'current-duel', hand: ['muster', 'aim', 'volley'], aimed: true });
@@ -58,18 +65,35 @@ describe('the shared tactical pilot', () => {
     expect(choose(state).command.type).toBe('endActionPhase');
   });
 
-  it('moves before Adapt only when the move improves combat position', () => {
-    const useful = arena({
-      kingdomId: 'three-way-open', hand: ['adapt', 'step'], draw: ['arcBolt'], ochre: 2, indigo: 3,
-      indigoHand: ['heavyBlow'], indigoDraw: [], indigoDiscard: []
-    });
-    expect(choose(useful).command).toMatchObject({ type: 'playMoveAction', direction: 'left' });
-
-    const idle = arena({
-      kingdomId: 'three-way-open', hand: ['adapt', 'step'], draw: ['copper'], ochre: 2, indigo: 3,
+  it('moves before Adapt to earn its extra draw when current damage ties', () => {
+    let state = arena({
+      kingdomId: 'three-way-open', hand: ['adapt', 'step'], draw: ['copper', 'copper'], ochre: 2, indigo: 3,
       indigoHand: [], indigoDraw: [], indigoDiscard: []
     });
-    expect(choose(idle).command.type).toBe('playAction');
+    const movement = choose(state);
+    expect(movement.command).toMatchObject({ type: 'playMoveAction', direction: 'left' });
+    state = applyAction(state, movement.id);
+    const adapt = choose(state);
+    expect(playedDefinition(state, adapt)).toBe('adapt');
+    state = applyAction(state, adapt.id);
+    expect(state.players.ochre.deck.hand.map((card) => card.definitionId)).toEqual(['copper', 'copper']);
+  });
+
+  it('does not move before Adapt when every direction reduces current damage', () => {
+    const state = arena({
+      kingdomId: 'three-way-open', hand: ['adapt', 'step', 'heavyBlow'], draw: [], ochre: 2, indigo: 2,
+      indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    expect(playedDefinition(state, choose(state))).toBe('adapt');
+  });
+
+  it('spends Ley Step mana only once while deciding whether to move before Adapt', () => {
+    const state = arena({
+      kingdomId: 'three-way-open', hand: ['adapt', 'leyStep', 'flurry', 'arcBolt', 'arcBolt'],
+      draw: [], mana: 0, ochre: 2, indigo: 2, indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    state.actionsThisTurn = ['footwork', 'footwork', 'footwork', 'footwork', 'footwork'];
+    expect(playedDefinition(state, choose(state))).toBe('adapt');
   });
 
   it('does not trade away current Melee damage to enable one spell with Ley Step', () => {
@@ -90,6 +114,19 @@ describe('the shared tactical pilot', () => {
     const right = arena({ hand: ['drive'], ochre: 5, indigo: 5 });
     expect(choose(left).command).toMatchObject({ type: 'playDrive', direction: 'left' });
     expect(choose(right).command).toMatchObject({ type: 'playDrive', direction: 'right' });
+  });
+
+  it('uses Cull-updated live deck size for a later Step decision', () => {
+    let state = arena({
+      kingdomId: 'range-rich-mixed', hand: ['cull', 'copper', 'step'], draw: ['heavyBlow'],
+      discard: ['gold'], ochre: 1, indigo: 2,
+      indigoHand: ['heavyBlow', 'copper', 'copper', 'copper', 'copper'],
+      indigoDraw: [], indigoDiscard: [], firstBuyPending: false
+    });
+    const cull = choose(state);
+    expect(cull.command.type).toBe('playCull');
+    state = applyAction(state, cull.id);
+    expect(choose(state).command).toMatchObject({ type: 'playMoveAction', direction: 'right' });
   });
 
   it('sets Feint before it uses a Close attack', () => {

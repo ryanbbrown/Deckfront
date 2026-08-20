@@ -149,6 +149,18 @@ describe('Cull policy', () => {
     const state = arena({ hand: ['cull', 'silver'], firstBuyPending: false });
     expect(trashed(playPhase(state, strategy({ repeatPurchase: 'gold' })))).toEqual(['cull']);
   });
+
+  it('uses the smaller live deck after Cull when it evaluates a later Step', () => {
+    const state = arena({
+      kingdomId: 'range-rich-mixed', hand: ['cull', 'copper', 'step'], draw: ['heavyBlow'],
+      discard: ['gold'], ochre: 1, indigo: 2,
+      indigoHand: ['heavyBlow', 'copper', 'copper', 'copper', 'copper'],
+      indigoDraw: [], indigoDiscard: [], firstBuyPending: false
+    });
+    const finished = playPhase(state, strategy({ repeatPurchase: 'footwork' }));
+    expect(trashed(finished)).toContain('copper');
+    expect(finished.fighters.ochre.position).toBe(2);
+  });
 });
 
 describe('fixed choice policy', () => {

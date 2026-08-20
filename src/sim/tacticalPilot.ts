@@ -68,14 +68,26 @@ function currentHandDamageAt(
   view: TacticalView, actorPosition: number, opponentPosition: number, mana: number, tacticalPlayed: number
 ): number {
   let total = 0;
+  let spellDamage: Int16Array | null = null;
   for (const card of view.hand) {
     if (!['melee', 'drive', 'flurry', 'ranged', 'spell', 'volley'].includes(card.mechanic)) continue;
-    if (card.mechanic === 'spell' && mana < value(card, 'manaCost')) continue;
+    if (card.mechanic === 'spell') {
+      const cost = value(card, 'manaCost');
+      if (cost > mana) continue;
+      spellDamage ??= new Int16Array(Math.floor(mana) + 1);
+      const damage = printedAttackDamage(card, actorPosition, opponentPosition, {
+        aimed: view.aimed, tacticalPlayed, publicFuture: false
+      });
+      for (let available = spellDamage.length - 1; available >= cost; available -= 1) {
+        spellDamage[available] = Math.max(spellDamage[available]!, spellDamage[available - cost]! + damage);
+      }
+      continue;
+    }
     total += printedAttackDamage(card, actorPosition, opponentPosition, {
       aimed: view.aimed, tacticalPlayed, publicFuture: false
     });
   }
-  return total;
+  return total + (spellDamage?.at(-1) ?? 0);
 }
 
 interface MovementResult {
@@ -131,6 +143,12 @@ function movementImproves(card: PilotCard, view: TacticalView, result: MovementR
     view.actorProfile, view.opponentProfile, view.actorPosition, view.opponentPosition
   );
   return result.positionValue > currentPositionValue;
+}
+
+function movementPreservesDamage(view: TacticalView, result: MovementResult): boolean {
+  return result.damage >= currentHandDamageAt(
+    view, view.actorPosition, view.opponentPosition, view.mana, view.tacticalPlayed
+  );
 }
 
 function bestDriveDirection(card: PilotCard, view: TacticalView): MovementChoice {
@@ -244,7 +262,7 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
   const move = first(view, 'leyStep') ?? first(view, 'step');
   if (adapt && move && !view.positionChanged) {
     const movement = bestMovement(move, view);
-    if (movementImproves(move, view, movement)) return play(move, movement.movement);
+    if (movementPreservesDamage(view, movement)) return play(move, movement.movement);
   }
   if (adapt) return play(adapt);
 
