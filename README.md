@@ -91,12 +91,16 @@ npm run balance:suite:manifest
 npm run balance:suite:run
 npm run balance:suite:validate
 npm run balance:suite:report
+npm run balance:audit
 ```
 
 The batch runs two kingdoms at once with four workers each, so it uses at most eight pairing workers.
 It keeps complete current results and reruns missing, failed, incomplete, or stale results. Raw output
 is ignored under `.experiments/balance-suite/balance-suite-v1/`. Use the tuning split for repeated card
 changes. Use the validation split only to confirm a proposed change.
+The challenger audit resumes its fixed ten-kingdom tuning sample. Use `--kingdom <id>` to run one
+tuning kingdom and `--force` to replace a completed audit result. Audit output is ignored under
+`.experiments/balance-audit/`.
 
 The search uses policy-space response oracles. It starts each restart from random legal strategies,
 solves a maximum-support equilibrium over the discovered payoff matrix, and searches for a response
