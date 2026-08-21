@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { VARIABLE_ACTION_IDS, resetKingdoms } from '../src/game';
+import { VARIABLE_ACTION_IDS, createCard, resetKingdoms } from '../src/game';
 import { ProductionAiTrainer } from '../src/server/aiTrainer';
 import type { AiTrainer } from '../src/server/aiTrainer';
 import { GameService } from '../src/server/gameService';
@@ -62,6 +62,24 @@ describe('AI games', () => {
     expect(ready.players.indigo.deckCounts).toEqual({ copper: 7, aim: 1 });
     expect(ready.events.some((event) => event.playerId === 'ochre' && event.type === 'purchase'
       && event.detail.definitionId === 'silver')).toBe(true);
+  });
+
+  it('executes trained strategies with the simulator tactical policy', async () => {
+    const repository = new MemoryRepository(); const service = new GameService(repository, trainer);
+    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
+    await service.updateBuild(created.id, created.revision, [], true);
+    const record = repository.record!; const aiDeck = record.state.players.indigo.deck;
+    record.state.trash.push(...aiDeck.draw, ...aiDeck.hand, ...aiDeck.discard, ...aiDeck.play);
+    aiDeck.hand = [createCard(record.state, 'volley'), createCard(record.state, 'muster')];
+    aiDeck.draw = [createCard(record.state, 'copper')]; aiDeck.discard = []; aiDeck.play = [];
+    record.state.activePlayerId = 'ochre'; record.state.phase = 'buy'; record.state.pendingChoice = null;
+    record.state.events = []; record.state.actionsThisTurn = []; record.state.players.ochre.money = 0;
+    record.initialState = structuredClone(record.state); record.committedCommands = []; record.undoHistory = []; record.completedActions = 0;
+    const buy = await service.get(created.id);
+    const returned = await service.commitAction(created.id, buy.revision, phaseAction(buy, 'endBuy'));
+    const played = returned.events.filter((event) => event.playerId === 'indigo' && event.type === 'cardPlayed')
+      .map((event) => event.detail.definitionId);
+    expect(played.slice(0, 2)).toEqual(['muster', 'volley']);
   });
 
   it('passes the chosen difficulty into training', async () => {

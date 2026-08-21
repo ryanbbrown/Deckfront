@@ -6,7 +6,7 @@ import {
   registerKingdom, replayCommands
 } from '../game';
 import type { GameCommand, PlayerId } from '../game';
-import { strategyAgent } from '../sim/agents/strategyAgent';
+import { tacticalAgent } from '../sim/tacticalAgent';
 import type {
   AiDifficulty, BrowserAction, CardActionChoice, CardActionPresentation, GameActionPresentation, GameExport, GameView,
   PhaseActionPresentation, PublicGameEvent
@@ -120,7 +120,7 @@ export class GameService {
   private advanceComputer(record: GameRecord): void {
     if (record.mode !== 'ai' || !record.aiStrategy || !record.humanPlayerId) return;
     const aiPlayerId = opponent(record.humanPlayerId);
-    const agent = strategyAgent(record.aiStrategy);
+    const agent = tacticalAgent(record.aiStrategy);
     let actions = 0;
     while (!record.state.winner && record.state.activePlayerId === aiPlayerId) {
       if (actions >= 1_000) throw new AiAdvanceError('The AI exceeded its turn action limit.');
