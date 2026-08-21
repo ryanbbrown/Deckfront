@@ -94,6 +94,7 @@ npm run balance:suite:run
 npm run balance:suite:run -- --tuning-only
 npm run balance:suite:validate
 npm run balance:suite:report
+npm run strategy:report
 ```
 
 The batch runs two kingdoms at once with four workers each, so it uses at most eight pairing workers.
@@ -115,10 +116,9 @@ node dist-sim/experiment.mjs --kingdom current-duel --mode smoke --seed 1 \
 
 Four workers are the measured default on an Apple M4 Pro. More workers remain available with `--workers`, but short simulation jobs become slower when process messaging and result transfer exceed the saved game time.
 
-The committed [.html/balance-report.html](.html/balance-report.html) reports the four diagnostic runs.
-The committed [.html/balance-corpus-18-card.html](.html/balance-corpus-18-card.html) reports the latest
-completed 80-kingdom run. It is historical evidence because that run excluded Strike and predates
-Repelling Shot. The next `.html/balance-corpus.html` will be generated after the version 2 suite runs.
+`npm run strategy:report` writes the exploratory `.html/strategy-report.html` from the completed
+80-kingdom version 2 tuning corpus. The report shows equilibrium-weighted strategy types, pure-family
+competitive depth and card relationships, and equilibrium-weighted card use.
 
 ## Code boundaries
 
