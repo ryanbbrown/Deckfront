@@ -3581,18 +3581,18 @@
      "actionCapPerTurn": 200,
      "agentIds": {
       "ochre": "sg-bcf33b067d",
-      "indigo": "sg-9cd8eb9c90"
+      "indigo": "sg-848a4ae786"
      }
     },
     "outcome": "indigo",
     "reason": "victory",
-    "turns": 20,
+    "turns": 24,
     "telemetry": {
-     "turnsToWin": 20,
-     "eventCount": 236,
+     "turnsToWin": 24,
+     "eventCount": 285,
      "damageByCard": {
       "ochre": {
-       "volley": 21
+       "volley": 34
       },
       "indigo": {
        "arcBolt": 40
@@ -3600,25 +3600,25 @@
      },
      "playsByCard": {
       "ochre": {
-       "footwork": 5,
-       "aim": 8,
-       "volley": 6
+       "footwork": 10,
+       "aim": 13,
+       "volley": 9
       },
       "indigo": {
-       "footwork": 8,
-       "channel": 14,
+       "footwork": 10,
+       "channel": 13,
        "arcBolt": 10
       }
      },
      "purchasesByCard": {
       "ochre": {
        "aim": 2,
-       "volley": 2,
-       "footwork": 4
+       "volley": 1,
+       "footwork": 1
       },
       "indigo": {
-       "arcBolt": 2,
-       "channel": 7,
+       "arcBolt": 3,
+       "channel": 5,
        "footwork": 1
       }
      },
@@ -3630,36 +3630,35 @@
       ],
       "indigo": [
        "arcBolt",
-       "arcBolt",
        "channel",
        "footwork"
       ]
      },
      "deadDraws": {
       "ochre": {
-       "range": 10,
+       "range": 6,
        "mana": 0,
        "setup": 0,
-       "total": 10
+       "total": 6
       },
       "indigo": {
        "range": 0,
-       "mana": 6,
+       "mana": 10,
        "setup": 0,
-       "total": 6
+       "total": 10
       }
      },
      "moneySpent": {
-      "ochre": 28,
+      "ochre": 14,
       "indigo": 30
      },
      "unspentMoney": {
-      "ochre": 7,
-      "indigo": 5
+      "ochre": 32,
+      "indigo": 13
      },
      "finalHealth": {
       "ochre": 0,
-      "indigo": 16
+      "indigo": 3
      }
     }
    }
@@ -3761,34 +3760,34 @@
       "indigo": "sg-f02ddf329e"
      }
     },
-    "outcome": "indigo",
+    "outcome": "ochre",
     "reason": "victory",
-    "turns": 18,
+    "turns": 19,
     "telemetry": {
-     "turnsToWin": 18,
-     "eventCount": 178,
+     "turnsToWin": 19,
+     "eventCount": 199,
      "damageByCard": {
       "ochre": {
-       "drive": 4,
-       "heavyBlow": 8
+       "drive": 10,
+       "heavyBlow": 28
       },
       "indigo": {
-       "arcBolt": 36,
-       "fireball": 7
+       "arcBolt": 20,
+       "fireball": 14
       }
      },
      "playsByCard": {
       "ochre": {
-       "footwork": 7,
-       "drive": 2,
-       "heavyBlow": 2
+       "footwork": 9,
+       "drive": 4,
+       "heavyBlow": 7
       },
       "indigo": {
-       "leyStep": 7,
-       "arcBolt": 9,
-       "channel": 6,
-       "footwork": 3,
-       "fireball": 1
+       "leyStep": 4,
+       "arcBolt": 5,
+       "channel": 9,
+       "footwork": 4,
+       "fireball": 2
       }
      },
      "purchasesByCard": {
@@ -3798,10 +3797,10 @@
        "drive": 1
       },
       "indigo": {
+       "channel": 3,
+       "fireball": 2,
        "arcBolt": 2,
-       "fireball": 1,
-       "leyStep": 1,
-       "channel": 2
+       "leyStep": 1
       }
      },
      "startingBuild": {
@@ -3819,29 +3818,29 @@
      },
      "deadDraws": {
       "ochre": {
-       "range": 9,
+       "range": 4,
        "mana": 0,
        "setup": 0,
-       "total": 9
+       "total": 4
       },
       "indigo": {
        "range": 0,
-       "mana": 3,
+       "mana": 4,
        "setup": 0,
-       "total": 3
+       "total": 4
       }
      },
      "moneySpent": {
       "ochre": 12,
-      "indigo": 19
+      "indigo": 29
      },
      "unspentMoney": {
-      "ochre": 20,
-      "indigo": 8
+      "ochre": 19,
+      "indigo": 5
      },
      "finalHealth": {
-      "ochre": 0,
-      "indigo": 25
+      "ochre": 6,
+      "indigo": 0
      }
     }
    }

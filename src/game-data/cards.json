@@ -260,7 +260,7 @@
       "id": "arcBolt",
       "name": "Arc Bolt",
       "type": "action",
-      "cost": 3,
+      "cost": 4,
       "text": "Spend 1 mana. Deal 4 damage at any range.",
       "mechanic": "spell",
       "values": {
