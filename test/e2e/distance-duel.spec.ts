@@ -321,3 +321,18 @@ test('DD-E2E-047: replacing the latest event at the same count scrolls it into v
   await page.getByRole('button', { name: 'End Action phase' }).evaluate((button: HTMLButtonElement) => button.click()); await expect(page.getByTestId('action-log').getByText('Turn 999 started')).toBeVisible(); await expect(newGame).toBeFocused();
   expect(await page.getByTestId('action-log').evaluate((log) => log.scrollTop + log.clientHeight >= log.scrollHeight - 1)).toBe(true);
 });
+
+test('DD-E2E-048: kingdom piles wrap before the action rail at a narrower desktop width', async ({ page, openGame }) => {
+  await page.setViewportSize({ width: 1600, height: 1080 }); await openGame(page);
+  const layout = await page.evaluate(() => {
+    const root = document.documentElement; const market = document.querySelector<HTMLElement>('.market-zone')!; const rail = document.querySelector<HTMLElement>('.action-rail')!;
+    const piles = [...document.querySelectorAll<HTMLElement>('.market-group:last-of-type [data-market-card]')];
+    const rects = piles.map((pile) => pile.getBoundingClientRect()); const marketRect = market.getBoundingClientRect(); const railRect = rail.getBoundingClientRect();
+    return {
+      count: piles.length, rows: new Set(rects.map((rect) => Math.round(rect.top))).size,
+      clearOfRail: rects.every((rect) => rect.right <= railRect.left), insideMarket: rects.every((rect) => rect.bottom <= marketRect.bottom),
+      horizontal: root.scrollWidth - root.clientWidth, vertical: root.scrollHeight - root.clientHeight
+    };
+  });
+  expect(layout).toEqual({ count: 10, rows: 2, clearOfRail: true, insideMarket: true, horizontal: 0, vertical: 0 });
+});

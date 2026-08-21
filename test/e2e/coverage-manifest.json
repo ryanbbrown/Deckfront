@@ -42,7 +42,7 @@
     "fullScreenLayout": ["pw:DD-E2E-038", "pw:DD-E2E-040", "pw:DD-E2E-046"],
     "overlappingHand": ["pw:DD-E2E-040"],
     "multiLevelUndo": ["pw:DD-E2E-044"],
-    "actionRail": ["pw:DD-E2E-040", "pw:DD-E2E-045", "pw:DD-E2E-046"],
+    "actionRail": ["pw:DD-E2E-040", "pw:DD-E2E-045", "pw:DD-E2E-046", "pw:DD-E2E-048"],
     "actionLogScroll": ["pw:DD-E2E-046", "pw:DD-E2E-047"]
   }
 }
