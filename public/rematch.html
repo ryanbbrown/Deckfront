@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hexdeck rematch</title>
+  </head>
+  <body>
+    <p>Loading the rematch…</p>
+    <script>
+      // The app picks its game up from localStorage, so point it at the seeded rematch and go.
+      var id = new URLSearchParams(location.search).get('game');
+      if (id) {
+        localStorage.setItem('hexdeck.activeGameId', id);
+        location.replace('/');
+      } else {
+        document.body.textContent = 'Add ?game=<id> to this URL.';
+      }
+    </script>
+  </body>
+</html>
