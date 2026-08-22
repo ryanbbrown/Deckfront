@@ -117,9 +117,9 @@ const MIXED_DAMAGE_MINIMUM = 0.2;
 
 function damageFamily(cardId: string): (typeof DAMAGE_FAMILIES)[number] | null {
   const mechanic = cardDefinition(cardId).mechanic;
-  if (['melee', 'drive', 'flurry'].includes(mechanic)) return 'Melee';
-  if (['ranged', 'repellingShot', 'volley'].includes(mechanic)) return 'Ranged';
-  if (mechanic === 'spell') return 'Mage';
+  if (['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush'].includes(mechanic)) return 'Melee';
+  if (['ranged', 'repellingShot', 'volley', 'longshot', 'salvageShot', 'precisionShot'].includes(mechanic)) return 'Ranged';
+  if (['spell', 'discharge', 'cascade', 'overload'].includes(mechanic)) return 'Mage';
   return null;
 }
 
@@ -134,6 +134,17 @@ export function classifyStrategyDamage(
   for (const [cardId, amount] of Object.entries(strategy.acquisitionRates)) {
     const cardFamily = damageFamily(cardId);
     if (cardFamily) amounts[cardFamily] += amount;
+  }
+  const improviseAmount = strategy.startingBuild.filter((cardId) => cardId === 'improvise').length
+    + (strategy.acquisitionRates.improvise ?? 0);
+  if (improviseAmount > 0) {
+    const ownedFamilies = new Set([...strategy.startingBuild, ...Object.entries(strategy.acquisitionRates)
+      .filter(([, amount]) => amount > 0).map(([cardId]) => cardId)].flatMap((cardId) => {
+      const cardFamily = cardDefinition(cardId).family;
+      return cardFamily === 'melee' ? ['Melee' as const] : cardFamily === 'ranged' ? ['Ranged' as const]
+        : cardFamily === 'mana' ? ['Mage' as const] : [];
+    }));
+    for (const cardFamily of ownedFamilies) amounts[cardFamily] += improviseAmount;
   }
   const total = Object.values(amounts).reduce((sum, amount) => sum + amount, 0);
   if (!total) return 'No damage package';

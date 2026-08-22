@@ -71,6 +71,20 @@ describe('balance-corpus aggregation', () => {
       .toBe('Melee + Ranged');
     expect(classifyStrategyDamage({ startingBuild: ['footwork'], acquisitionRates: { footwork: 5 } }))
       .toBe('No damage package');
+    expect(classifyStrategyDamage({ startingBuild: [],
+      acquisitionRates: { openingStrike: 1, rally: 1, bullRush: 1 } })).toBe('Melee');
+    expect(classifyStrategyDamage({ startingBuild: [],
+      acquisitionRates: { longshot: 1, salvageShot: 1, precisionShot: 1 } })).toBe('Ranged');
+    expect(classifyStrategyDamage({ startingBuild: [],
+      acquisitionRates: { discharge: 1, cascade: 1, overload: 1 } })).toBe('Mage');
+    expect(classifyStrategyDamage({ startingBuild: [],
+      acquisitionRates: { openingStrike: 2, precisionShot: 2, cascade: 1 } }))
+      .toBe('Melee + Ranged + Mage');
+    expect(classifyStrategyDamage({ startingBuild: [], acquisitionRates: { improvise: 3, channel: 1 } }))
+      .toBe('Mage');
+    expect(classifyStrategyDamage({ startingBuild: [],
+      acquisitionRates: { improvise: 3, feint: 1, aim: 1, channel: 1 } }))
+      .toBe('Melee + Ranged + Mage');
   });
 
   it('calculates card use separately inside each strategy type', () => {
