@@ -116,7 +116,7 @@ describe('overrides and persistence', () => {
     registerKingdom(kingdom('tuned', { actionPiles:piles(['heavyBlow']), overrides:{ heavyBlow:{ cost:3, values:{ damage:6 } }, silver:{ money:5 } } }));
     const state = createGame({ seed:1, kingdomId:'tuned' });
     expect(resolveCard(state,'heavyBlow')).toMatchObject({ cost:3, values:{ damage:6, draw:0 } });
-    expect(resolveCard(state,'silver').money).toBe(5); expect(CARDS.heavyBlow).toMatchObject({ cost:5, values:{ damage:4, draw:0 } });
+    expect(resolveCard(state,'silver').money).toBe(5); expect(CARDS.heavyBlow).toMatchObject({ cost:5, values:{ damage:6, draw:0 } });
   });
 
   it('accepts every declared mechanic value key in a registered override', () => {

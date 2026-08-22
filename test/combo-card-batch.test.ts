@@ -80,7 +80,7 @@ describe('combo card batch', () => {
       state = submitStartingBuild(state,'ochre',[]); return submitStartingBuild(state,'indigo',[]);
     };
     let close = setup(); close.fighters.indigo.position = close.fighters.ochre.position; hand(close,['feint','strike']);
-    close = play(close,'feint'); close = play(close,'strike'); expect(close.fighters.indigo.health).toBe(35);
+    close = play(close,'feint'); close = play(close,'strike'); expect(close.fighters.indigo.health).toBe(34);
     let ranged = setup(); hand(ranged,['aim','steadyShot']); ranged = play(ranged,'aim'); ranged = play(ranged,'steadyShot');
     expect(ranged.fighters.indigo.health).toBe(33);
   });
@@ -88,7 +88,7 @@ describe('combo card batch', () => {
   it('applies persistent Feint and one-shot Aim through shared attack paths', () => {
     let state = ready(); state.fighters.ochre.position = state.fighters.indigo.position = 2; hand(state, ['feint','strike','rally']);
     state = play(state, 'feint'); state = play(state, 'strike'); state = play(state, 'rally');
-    expect(state.fighters.indigo.health).toBe(35); expect(state.fighters.indigo.exposed).toBe(true);
+    expect(state.fighters.indigo.health).toBe(34); expect(state.fighters.indigo.exposed).toBe(true);
     state = applyAction(state, listLegalActions(state).find((a) => a.command.type === 'endActionPhase')!.id);
     state = applyAction(state, listLegalActions(state).find((a) => a.command.type === 'endBuyPhase')!.id);
     expect(state.fighters.indigo.exposed).toBe(false);
@@ -109,7 +109,7 @@ describe('combo card batch', () => {
   it('resolves mana and family combos', () => {
     let state = ready(); state.players.ochre.mana = 4; hand(state, ['arcBolt','cascade','overload','discharge']);
     state = play(state, 'arcBolt'); state = play(state, 'cascade'); state = play(state, 'overload'); state = play(state, 'discharge');
-    expect(state.fighters.indigo.health).toBe(24); expect(state.players.ochre.mana).toBe(0); expect(state.turnState.manaSpent).toBe(2);
+    expect(state.fighters.indigo.health).toBe(22); expect(state.players.ochre.mana).toBe(0); expect(state.turnState.manaSpent).toBe(2);
     state = ready(); hand(state, ['footwork','improvise']); state = play(state, 'footwork'); state = play(state, 'improvise');
     expect(state.fighters.indigo.health).toBe(40);
   });
@@ -206,7 +206,7 @@ describe('complete public card coverage', () => {
   });
 
   it.each([
-    ['jab',2],['strike',3],['drive',3],['heavyBlow',5],['openingStrike',2],['rally',2],['bullRush',6],['flurry',2]
+    ['jab',3],['strike',4],['drive',4],['heavyBlow',7],['openingStrike',2],['rally',2],['bullRush',6],['flurry',2]
   ] as const)('Feint routes persistent Close bonus through %s', (attackId, damage) => {
     let state = ready(); state.fighters.indigo.position = 3;
     hand(state,['feint',attackId,...(attackId === 'bullRush' ? ['strike'] : [])]); state = play(state,'feint');

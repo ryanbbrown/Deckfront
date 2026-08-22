@@ -37,9 +37,9 @@ const { cases } = JSON.parse(fs.readFileSync(oraclePath, 'utf8')) as { cases: Or
 const HEADLINES: Record<string, { outcome: string; reason: string; turns: number }> = {
   'three-way-engine:3': { outcome: 'aborted', reason: 'actionSearchOverflow', turns: 31 },
   'three-way-engine:12': { outcome: 'indigo', reason: 'victory', turns: 16 },
-  'range-rich-mixed:14': { outcome: 'indigo', reason: 'victory', turns: 30 },
+  'range-rich-mixed:14': { outcome: 'indigo', reason: 'victory', turns: 28 },
   'current-duel:15': { outcome: 'draw', reason: 'turnLimit', turns: 200 },
-  'three-way-open:16': { outcome: 'ochre', reason: 'victory', turns: 29 },
+  'three-way-open:16': { outcome: 'ochre', reason: 'victory', turns: 27 },
   'three-way-engine:17': { outcome: 'draw', reason: 'turnLimit', turns: 200 }
 };
 

@@ -15,16 +15,16 @@ function profile(...ids: string[]): ReturnType<typeof buildAttackProfile> {
 describe('public position value', () => {
   it('discounts a Close attack by each step needed to reach Close', () => {
     const melee = profile('heavyBlow');
-    expect(profilePositionValue(melee, 3, 3)).toBe(24);
+    expect(profilePositionValue(melee, 3, 3)).toBe(36);
     expect(profilePositionValue(melee, 2, 3)).toBe(-1);
     expect(profilePositionValue(melee, 1, 3)).toBe(-2);
   });
 
   it('includes Drive wall damage only while Close at either wall', () => {
     const drive = profile('drive');
-    expect(profilePositionValue(drive, 1, 1)).toBe(24);
-    expect(profilePositionValue(drive, 6, 6)).toBe(24);
-    expect(profilePositionValue(drive, 3, 3)).toBe(12);
+    expect(profilePositionValue(drive, 1, 1)).toBe(30);
+    expect(profilePositionValue(drive, 6, 6)).toBe(30);
+    expect(profilePositionValue(drive, 3, 3)).toBe(18);
     expect(profilePositionValue(drive, 1, 3)).toBe(-2);
   });
 
@@ -75,7 +75,7 @@ describe('public position value', () => {
       { ...base, definitionId: 'precisionShot', copiesPlayed: {} })).toBe(4);
     expect(printedAttackDamage(precision, 2, 4,
       { ...base, definitionId: 'precisionShot', copiesPlayed: { precisionShot: 1 } })).toBe(2);
-    expect(printedAttackDamage(cascade, 2, 4, { ...base, spellsPlayed: 2 })).toBe(7);
+    expect(printedAttackDamage(cascade, 2, 4, { ...base, spellsPlayed: 2 })).toBe(8);
   });
 
   it('gives public-future Flurry one nominal prior Tactical Action at Close range', () => {
@@ -103,23 +103,23 @@ describe('public position value', () => {
 
   it('keeps Mage damage position-neutral', () => {
     const mage = profile('arcBolt');
-    expect(profilePositionValue(mage, 3, 3)).toBe(18);
-    expect(profilePositionValue(mage, 2, 3)).toBe(18);
-    expect(profilePositionValue(mage, 1, 3)).toBe(18);
+    expect(profilePositionValue(mage, 3, 3)).toBe(24);
+    expect(profilePositionValue(mage, 2, 3)).toBe(24);
+    expect(profilePositionValue(mage, 1, 3)).toBe(24);
   });
 
   it('normalizes unequal live deck sizes with exact integer arithmetic', () => {
     const smallMage = profile('arcBolt');
     const largeMage = profile('arcBolt', 'copper');
-    expect(publicPositionAdvantage(smallMage, largeMage, 1, 3)).toBe(18);
-    expect(publicPositionAdvantage(largeMage, smallMage, 1, 3)).toBe(-18);
+    expect(publicPositionAdvantage(smallMage, largeMage, 1, 3)).toBe(24);
+    expect(publicPositionAdvantage(largeMage, smallMage, 1, 3)).toBe(-24);
   });
 
   it('updates normalization when Cull removes a live non-attack card', () => {
     const card = cardDefinition('copper');
     const mageWithCopper = profile('arcBolt', 'copper');
     const mage = profile('arcBolt');
-    expect(publicPositionAdvantage(mageWithCopper, mage, 1, 3)).toBe(-18);
+    expect(publicPositionAdvantage(mageWithCopper, mage, 1, 3)).toBe(-24);
     removeProfileCard(mageWithCopper, {
       definitionId: card.id, mechanic: card.mechanic, values: card.values ?? {}
     });

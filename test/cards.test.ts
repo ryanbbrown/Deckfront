@@ -114,11 +114,11 @@ describe('deck tools', () => {
 });
 
 describe('attacks', () => {
-  it('Heavy Blow deals 4 at Close and gains the persistent Feint bonus at Close', () => {
+  it('Heavy Blow deals 6 at Close and gains the persistent Feint bonus at Close', () => {
     let state = ready(); state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['heavyBlow']);
-    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(36); assertInvariants(state);
+    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(34); assertInvariants(state);
     state = ready(); state.fighters.indigo.position = 3; state.fighters.indigo.exposed = true; isolateHand(state, 'ochre', ['heavyBlow']);
-    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(35); expect(state.fighters.indigo.exposed).toBe(true);
+    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(33); expect(state.fighters.indigo.exposed).toBe(true);
     for (const position of [4, 6]) {
       const near = ready(); near.fighters.indigo.position = position; isolateHand(near, 'ochre', ['heavyBlow']);
       expect(availability(near, 'heavyBlow')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
@@ -139,7 +139,7 @@ describe('attacks', () => {
     expect(state.fighters.ochre.position).toBe(4); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
 
     state = ready(); state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['strike']);
-    state = playCard(state, 'strike'); expect(state.fighters.indigo.health).toBe(38);
+    state = playCard(state, 'strike'); expect(state.fighters.indigo.health).toBe(37);
     const strikeFar = ready(); strikeFar.fighters.indigo.position = 6; isolateHand(strikeFar, 'ochre', ['strike']);
     expect(availability(strikeFar, 'strike')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
 
@@ -180,9 +180,9 @@ describe('attacks', () => {
   });
   it('a spell leaves Exposed alone while Close attacks use it without consuming it', () => {
     let spell = ready(); spell.fighters.indigo.position = 3; spell.fighters.indigo.exposed = true; spell.players.ochre.mana = 1; isolateHand(spell, 'ochre', ['arcBolt']);
-    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(37); expect(spell.fighters.indigo.exposed).toBe(true);
+    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(36); expect(spell.fighters.indigo.exposed).toBe(true);
     let melee = ready(); melee.fighters.indigo.position = 3; melee.fighters.indigo.exposed = true; isolateHand(melee, 'ochre', ['strike']);
-    melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(37); expect(melee.fighters.indigo.exposed).toBe(true);
+    melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(36); expect(melee.fighters.indigo.exposed).toBe(true);
   });
 });
 
@@ -245,7 +245,7 @@ describe('mage cards', () => {
     expect(availability(state, 'muster')).toMatchObject({ enabled: false, reasonCode: 'RESOLVE_CHOICE_FIRST', selection: 'discard' });
   });
   it('spells spend their mana cost and are illegal without it', () => {
-    for (const [definitionId, mana, damage] of [['arcBolt', 1, 3], ['fireball', 2, 7], ['starfire', 3, 12]] as const) {
+    for (const [definitionId, mana, damage] of [['arcBolt', 1, 4], ['fireball', 2, 8], ['starfire', 3, 12]] as const) {
       for (const position of [2, 3, 5]) {
         let state = ready(); state.fighters.indigo.position = position; state.players.ochre.mana = mana; isolateHand(state, 'ochre', [definitionId]);
         state = playCard(state, definitionId);
