@@ -103,6 +103,21 @@ The batch runs two kingdoms at once with four workers each, so it uses at most e
 It keeps complete current results and reruns missing, failed, incomplete, or stale results. Raw output
 is ignored under `.experiments/balance-suite/balance-suite-v3/`. Use the tuning split for repeated card
 changes. Use the validation split only to confirm a proposed change.
+
+The 50-health, draft-off deep-beam suite reuses the same 100 ten-pile card sets. Each player starts
+with 7 Copper and 3 Scrap. It runs one kingdom at a time with 10 workers, 3 iterations, beam width 32,
+4 confirmations, and at most 8 active purchase
+slots. Run or resume it and check its status with:
+
+```sh
+npm run deep-beam:suite:run
+npm run deep-beam:suite:status
+```
+
+At 330 seconds per kingdom, the serial search takes about 9.2 hours before overhead. Complete results
+survive interruption. Inputs, results, and atomic status are ignored under
+`.experiments/deep-beam-suite/deep-beam-v1/`.
+
 The search uses policy-space response oracles. It starts each restart from random legal strategies,
 solves a maximum-support equilibrium over the discovered payoff matrix, and searches for a response
 to that weighted strategy mixture. Full mode uses three independent restarts, solves their completed

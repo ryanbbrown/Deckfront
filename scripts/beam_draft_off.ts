@@ -20,6 +20,7 @@ import { matrixProtocol, PayoffMatrix } from '../src/sim/payoffMatrix';
 import type { MatrixSnapshot } from '../src/sim/payoffMatrix';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import type { PairingRunner } from '../src/sim/pairingRunner';
+import { rulesFingerprint } from '../src/sim/rulesFingerprint';
 import {
   BUY_PLAN_SLOTS, INFINITE_COUNT, canonicalStrategy, fixedBuyPlan, formatStrategy
 } from '../src/sim/strategy';
@@ -36,6 +37,7 @@ const DEFAULT_MATRIX_SEEDS = 8;
 const DEFAULT_BEAM_WIDTH = 64;
 const DEFAULT_CONFIRM_COUNT = 8;
 const DEFAULT_ITERATIONS = 3;
+const DEFAULT_MAX_ACTIVE_SLOTS = 8;
 const DEFAULT_EARLY_STOP_DELTA = 0.002;
 const DEFAULT_EARLY_STOP_PATIENCE = 2;
 
@@ -230,10 +232,17 @@ async function main(): Promise<void> {
   const iterations = positiveInteger('iterations', DEFAULT_ITERATIONS);
   const width = positiveInteger('beam-width', DEFAULT_BEAM_WIDTH);
   const confirmCount = positiveInteger('confirm-count', DEFAULT_CONFIRM_COUNT);
-  const maxSlots = positiveInteger('max-slots', BUY_PLAN_SLOTS);
+  const maxSlots = positiveInteger('max-slots', DEFAULT_MAX_ACTIVE_SLOTS);
   if (maxSlots > BUY_PLAN_SLOTS) throw new Error(`--max-slots cannot exceed ${BUY_PLAN_SLOTS}.`);
   const runSweep = process.argv.includes('--sweep');
-  const record = JSON.parse(fs.readFileSync(gameFile, 'utf8')) as { kingdom: Kingdom };
+  const record = JSON.parse(fs.readFileSync(gameFile, 'utf8')) as {
+    kingdom: Kingdom;
+    suiteVersion?: unknown;
+    startingDraftEnabled?: unknown;
+  };
+  if (record.startingDraftEnabled !== undefined && record.startingDraftEnabled !== false) {
+    throw new Error('The draft-off beam search requires startingDraftEnabled: false.');
+  }
   registerKingdom(record.kingdom);
   const kingdomId = record.kingdom.id;
   const floorCount = beamFloors(kingdomId).length;
@@ -246,6 +255,17 @@ async function main(): Promise<void> {
   );
   const report = (message: string): void => console.log(`  ${message}`);
   const started = Date.now();
+  let terminating = false;
+  const terminate = (signal: 'SIGINT' | 'SIGTERM'): void => {
+    if (terminating) return;
+    terminating = true;
+    process.stderr.write(`Stopping beam workers after ${signal}.\n`);
+    void runner.close().finally(() => process.exit(signal === 'SIGINT' ? 130 : 143));
+  };
+  const onInterrupt = (): void => terminate('SIGINT');
+  const onTerminate = (): void => terminate('SIGTERM');
+  process.once('SIGINT', onInterrupt);
+  process.once('SIGTERM', onTerminate);
   try {
     const matrix = new PayoffMatrix(matrixProtocol(
       kingdomId, seedRange(40_000, DEFAULT_MATRIX_SEEDS), TURN_LIMIT_PER_PLAYER,
@@ -289,11 +309,15 @@ async function main(): Promise<void> {
     const output = {
       schemaVersion: 1,
       experiment: 'draft-off-diverse-beam-double-oracle',
+      ...(typeof record.suiteVersion === 'string' ? { suiteVersion: record.suiteVersion } : {}),
       kingdom: record.kingdom,
-      config: { startingDraftEnabled: false, iterations, width, confirmCount, maxSlots,
+      rulesFingerprint: rulesFingerprint(
+        kingdomId, TURN_LIMIT_PER_PLAYER, ACTION_CAP_PER_TURN, false
+      ),
+      config: { startingDraftEnabled: false, workers, iterations, width, confirmCount, maxSlots,
         stageSeeds: DEFAULT_STAGE_SEEDS, confirmationSeeds: DEFAULT_CONFIRM_SEEDS,
         matrixSeeds: DEFAULT_MATRIX_SEEDS, earlyStopDelta: DEFAULT_EARLY_STOP_DELTA,
-        earlyStopPatience: DEFAULT_EARLY_STOP_PATIENCE },
+        earlyStopPatience: DEFAULT_EARLY_STOP_PATIENCE, sweep: runSweep },
       elapsedMs: Date.now() - started,
       iterations: iterationResults,
       matrix: snapshot,
@@ -304,6 +328,8 @@ async function main(): Promise<void> {
     fs.writeFileSync(outFile, `${JSON.stringify(output, null, 2)}\n`);
     console.log(`written: ${outFile}`);
   } finally {
+    process.off('SIGINT', onInterrupt);
+    process.off('SIGTERM', onTerminate);
     await runner.close();
   }
 }
