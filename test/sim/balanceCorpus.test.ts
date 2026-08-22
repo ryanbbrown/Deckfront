@@ -12,8 +12,8 @@ function kingdom(
 ): CorpusKingdomReport {
   const strategies = Array.from({ length: viable }, (_, index) => ({
     id: `${id}-s${index}`, status: 'Lottery' as const, weight: 1 / viable, score: 0.5,
-    startingBuild: [split === 'tuning' ? 'footwork' : 'volley'], purchaseSteps: [],
-    repeatPurchase: split === 'tuning' ? 'footwork' : 'volley',
+    startingBuild: [split === 'tuning' ? 'footwork' : 'volley'],
+    purchaseSteps: [{ cardId: split === 'tuning' ? 'footwork' : 'volley', remaining: 0, infinite: true }],
     families: [split === 'tuning' ? 'Engine' as const : 'Ranged' as const],
     acquiredCards: [split === 'tuning' ? 'footwork' : 'volley'],
     acquisitionRates: split === 'tuning' ? { footwork: 1 } : { volley: 1 }
@@ -56,9 +56,9 @@ describe('balance-corpus aggregation', () => {
     expect(model.summaries.combined.firstPlayerScore).toBeCloseTo(0.56, 12);
     const footwork = model.cards.find((card) => card.cardId === 'footwork')!;
     const volley = model.cards.find((card) => card.cardId === 'volley')!;
-    expect(footwork.tuning).toMatchObject({ buildPlans: 80, repeatPlans: 80,
+    expect(footwork.tuning).toMatchObject({ buildPlans: 80, infinitePlans: 80,
       acquiredStrategies: 80, familyAcquisitionShare: 1 });
-    expect(volley.validation).toMatchObject({ buildPlans: 40, repeatPlans: 40,
+    expect(volley.validation).toMatchObject({ buildPlans: 40, infinitePlans: 40,
       acquiredStrategies: 40, familyAcquisitionShare: 1 });
   });
 
@@ -95,10 +95,10 @@ describe('balance-corpus aggregation', () => {
       && ['drive', 'heavyBlow'].every((cardId) => entry.actionPiles.some((pile) => pile.cardId === cardId)));
     expect(definitions.length).toBeGreaterThanOrEqual(2);
     const first = tuning.find((entry) => entry.id === definitions[0]!.id)!;
-    first.strategies[0] = { ...first.strategies[0]!, startingBuild: ['drive'], repeatPurchase: 'drive',
+    first.strategies[0] = { ...first.strategies[0]!, startingBuild: ['drive'], purchaseSteps: [{ cardId: 'drive', remaining: 0, infinite: true }],
       acquisitionRates: { drive: 2, heavyBlow: 1 } };
     const second = tuning.find((entry) => entry.id === definitions[1]!.id)!;
-    second.strategies[0] = { ...second.strategies[0]!, startingBuild: ['drive'], repeatPurchase: 'drive',
+    second.strategies[0] = { ...second.strategies[0]!, startingBuild: ['drive'], purchaseSteps: [{ cardId: 'drive', remaining: 0, infinite: true }],
       acquisitionRates: { drive: 2 } };
     const melee = buildStrategyGroups(buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, tuning))
       .find((group) => group.label === 'Melee')!;
@@ -115,7 +115,7 @@ describe('balance-corpus aggregation', () => {
     const rangedDefinition = BALANCE_SUITE_MANIFEST.kingdoms.find((entry) => entry.split === 'tuning'
       && entry.actionPiles.some((pile) => pile.cardId === 'volley'))!;
     const ranged = tuning.find((entry) => entry.id === rangedDefinition.id)!;
-    ranged.strategies[0] = { ...ranged.strategies[0]!, startingBuild: ['volley'], repeatPurchase: 'volley',
+    ranged.strategies[0] = { ...ranged.strategies[0]!, startingBuild: ['volley'], purchaseSteps: [{ cardId: 'volley', remaining: 0, infinite: true }],
       families: ['Ranged'], acquiredCards: ['volley'], acquisitionRates: { volley: 1 } };
     const model = buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, tuning);
     expect(model.scope).toBe('tuning');

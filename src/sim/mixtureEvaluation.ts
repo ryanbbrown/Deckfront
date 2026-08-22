@@ -106,3 +106,52 @@ export async function evaluateCandidates(
   }
   return evaluations;
 }
+
+export interface RaceRound { seeds: readonly number[]; entered: number; survivors: number }
+export interface RaceResult {
+  best: CandidateEvaluation | null;
+  rounds: RaceRound[];
+  matches: number;
+  telemetry: TelemetryAggregate;
+}
+
+/** Survivors per round. A third keeps the race short without discarding a whole tier at once. */
+export const RACE_SURVIVOR_SHARE = 3;
+export const RACE_FLOOR = 3;
+
+/**
+ * Successive halving. Every candidate gets a cheap look, and only the ones still standing pay for
+ * more games, so the same match budget buys about ten times the evidence behind the winner.
+ *
+ * One-shot argmax over noisy means is biased upward: the winner is usually a weak candidate that
+ * got lucky, it then fails its confirmation, and the search concludes nothing better exists. A race
+ * makes that outcome rare, because surviving four rounds on four disjoint seed sets is not luck.
+ */
+export async function raceCandidates(
+  candidates: readonly Strategy[], opponents: ReadonlyMap<string, Strategy>,
+  weights: Readonly<Record<string, number>>, roundSeeds: readonly (readonly number[])[],
+  samplingSeed: number, runner: PairingRunner, options: {
+    kingdomId: string; turnLimitPerPlayer: number; actionCapPerTurn: number;
+    deadline?: number | undefined;
+  }
+): Promise<RaceResult> {
+  const telemetry = emptyAggregate();
+  const rounds: RaceRound[] = [];
+  let matches = 0;
+  let field = [...candidates];
+  let best: CandidateEvaluation | null = null;
+  for (let round = 0; round < roundSeeds.length && field.length; round += 1) {
+    const seeds = roundSeeds[round]!;
+    const schedule = mixtureSchedule(weights, seeds, samplingSeed ^ (round + 1));
+    const evaluations = await evaluateCandidates(field, opponents, schedule, runner, options);
+    evaluations.sort((left, right) => right.mean - left.mean
+      || left.strategy.id.localeCompare(right.strategy.id));
+    for (const evaluation of evaluations) { matches += evaluation.matches; mergeAggregate(telemetry, evaluation.telemetry); }
+    best = evaluations[0]!;
+    const survivors = Math.max(RACE_FLOOR, Math.ceil(field.length / RACE_SURVIVOR_SHARE));
+    rounds.push({ seeds, entered: field.length, survivors: Math.min(survivors, evaluations.length) });
+    if (evaluations.length <= RACE_FLOOR) break;
+    field = evaluations.slice(0, survivors).map((evaluation) => evaluation.strategy);
+  }
+  return { best, rounds, matches, telemetry };
+}

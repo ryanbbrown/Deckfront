@@ -10,13 +10,14 @@ import type { ArtifactSet } from '../../scripts/generate_balance_report';
 import { matrixProtocol } from '../../src/sim/payoffMatrix';
 import { emptyAggregate } from '../../src/sim/pairing';
 import { rulesFingerprint } from '../../src/sim/rulesFingerprint';
-import { identify } from '../../src/sim/strategy';
+import { INFINITE_COUNT, fixedBuyPlan, identify } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import type { TelemetryAggregate } from '../../src/sim/types';
 
-function strategy(build: string[], agenda: [string, number][], repeat: string): Strategy {
+function strategy(build: string[], rungs: [string, number][], floor: string): Strategy {
   return identify({ id: '', startingBuild: build,
-    buyAgenda: agenda.map(([cardId, desiredCount]) => ({ cardId, desiredCount })), repeatPurchase: repeat });
+    buyPlan: fixedBuyPlan([...rungs.map(([cardId, desiredCount]) => ({ kind: 'buy' as const, cardId, desiredCount })),
+      { kind: 'buy', cardId: floor, desiredCount: INFINITE_COUNT }]) });
 }
 
 function telemetry(options: {
@@ -140,8 +141,8 @@ describe('balance report calculations', () => {
     ]));
     const footwork = model.cards.find((entry) => entry.cardId === 'footwork')!;
     const volley = model.cards.find((entry) => entry.cardId === 'volley')!;
-    expect(footwork).toMatchObject({ buildPlans: 1, agendaPlans: 0, repeatPlans: 1, acquiredStrategies: 0 });
-    expect(volley).toMatchObject({ buildPlans: 0, agendaPlans: 0, repeatPlans: 0, acquiredStrategies: 1 });
+    expect(footwork).toMatchObject({ buildPlans: 1, buyPlans: 1, infinitePlans: 1, acquiredStrategies: 0 });
+    expect(volley).toMatchObject({ buildPlans: 0, buyPlans: 0, infinitePlans: 0, acquiredStrategies: 1 });
   });
 
   it('renders required labels and is byte-identical in this and a fresh process', () => {

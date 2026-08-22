@@ -3,6 +3,7 @@ import type { GameState, LegalAction } from '../../src/game';
 import { tacticalAgent } from '../../src/sim/tacticalAgent';
 import { describe, expect, it } from 'vitest';
 import { arena, strategy } from './fixtures';
+import { INFINITE_COUNT } from '../../src/sim/strategy';
 
 function choose(state: GameState, plan = strategy()): LegalAction {
   const actions = listLegalActions(state);
@@ -210,7 +211,10 @@ describe('the shared tactical pilot', () => {
       kingdomId: 'current-duel', hand: ['cull', 'copper', 'copper'], money: 5, firstBuyPending: false
     });
     const action = choose(state, strategy({
-      buyAgenda: [{ cardId: 'precisionShot', desiredCount: 1 }], repeatPurchase: 'footwork'
+      buyPlan: [
+        { kind: 'buy', cardId: 'precisionShot', desiredCount: 1 },
+        { kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }
+      ]
     }));
     expect(action.command.type).toBe('playTargetedAction');
     expect(action.command.type === 'playTargetedAction' ? action.command.targetCardInstanceIds : []).toHaveLength(2);
@@ -221,7 +225,10 @@ describe('the shared tactical pilot', () => {
       kingdomId: 'current-duel', hand: ['cull', 'copper', 'copper'], money: 3, firstBuyPending: false
     });
     expect(choose(state, strategy({
-      buyAgenda: [{ cardId: 'precisionShot', desiredCount: 1 }], repeatPurchase: 'footwork'
+      buyPlan: [
+        { kind: 'buy', cardId: 'precisionShot', desiredCount: 1 },
+        { kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }
+      ]
     })).command.type).toBe('endActionPhase');
   });
 });

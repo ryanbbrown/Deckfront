@@ -24,7 +24,7 @@ async function noFinalChallenger(options: FinalSearchOptions): Promise<FinalSear
     duplicateRejections: 0, localShortfall: 0, randomShortfall: 0 };
   return { candidate: null, result: {
     objective: 'final', sources, screenSchedule: schedule, confirmSchedule: schedule,
-    bestTrainingMean: 0, candidateId: null, heldOutMean: null, interval: null,
+    bestTrainingMean: 0, candidateId: null, heldOutMean: null, interval: null, rounds: [],
     admitted: false, matches: 0, telemetry: emptyAggregate(), screenTelemetry: emptyAggregate(),
     confirmationTelemetry: emptyAggregate(), failureReason: null
   } };

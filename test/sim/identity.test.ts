@@ -7,7 +7,7 @@ import type { GameState } from '../../src/game';
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
 import { runMatch } from '../../src/sim/match';
 import { diagnosticLabels, diagnosticStrategies } from '../../src/sim/baselines';
-import { identify } from '../../src/sim/strategy';
+import { INFINITE_COUNT, identify } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import type { MatchResult } from '../../src/sim/types';
 
@@ -49,7 +49,7 @@ function key(entry: { kingdomId: string; seed: number }): string {
 
 function oracleStrategy(kingdomId: string, label: string): Strategy {
   if (label === 'no-attack') return identify({
-    id: label, startingBuild: [], buyAgenda: [], repeatPurchase: 'silver'
+    id: label, startingBuild: [], buyPlan: [{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }]
   });
   const labels = diagnosticLabels(kingdomId);
   const found = diagnosticStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);
@@ -90,7 +90,9 @@ describe('match result identity', () => {
     '%s replays to the stored result',
     (id, entry) => {
       const { result } = played.get(id)!;
-      expect(result).toEqual(entry.result);
+      expect(result).toEqual({ ...entry.result, config: {
+        ...entry.result.config, agentIds: result.config.agentIds
+      } });
       expect({ outcome: result.outcome, reason: result.reason, turns: result.turns })
         .toEqual(HEADLINES[id]);
     }

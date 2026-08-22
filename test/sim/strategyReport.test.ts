@@ -51,7 +51,7 @@ describe('strategy distribution report', () => {
     const model = buildStrategyReportModel({ suiteVersion: 'test', cards, kingdoms: [
       { id: 'one', availableCardIds: ['a', 'b', 'm1', 'm2', 'r1', 'r2', 'e'], strategies: [
         strategy('plan', { startingBuild: ['a'], acquisitionRates: { b: 0.25 },
-          buyAgenda: [{ cardId: 'e' }], repeatPurchase: 'e' })
+          buyPlan: [{ cardId: 'e' }] })
       ] }
     ] });
     const measures = Object.fromEntries(model.cardSelection.map((card) => [card.cardId, card]));

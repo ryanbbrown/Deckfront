@@ -8,7 +8,7 @@ import type { AiTrainer } from '../src/server/aiTrainer';
 import { GameService } from '../src/server/gameService';
 import { FileGameRepository } from '../src/server/persistence';
 import type { GameRecord, GameRepository } from '../src/server/types';
-import { identify } from '../src/sim/strategy';
+import { INFINITE_COUNT, fixedBuyPlan, identify } from '../src/sim/strategy';
 
 class MemoryRepository implements GameRepository {
   record: GameRecord | null = null;
@@ -17,9 +17,13 @@ class MemoryRepository implements GameRepository {
   async save(record: GameRecord) { this.record = structuredClone(record); }
   async withLock<T>(_id: string, work: () => Promise<T>) { return work(); }
 }
-const strategy = identify({ id: '', startingBuild: [], buyAgenda: [], repeatPurchase: 'silver' });
+const strategy = identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([
+  { kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }
+]) });
 const trainer: AiTrainer = { train: async () => ({ strategy, summary: { elapsedMs: 1, matches: 4, strategyId: strategy.id } }) };
-const privateBuildStrategy = identify({ id: '', startingBuild: ['step'], buyAgenda: [], repeatPurchase: 'silver' });
+const privateBuildStrategy = identify({ id: '', startingBuild: ['step'], buyPlan: fixedBuyPlan([
+  { kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }
+]) });
 const privateBuildTrainer: AiTrainer = { train: async () => ({ strategy: privateBuildStrategy, summary: { elapsedMs: 1, matches: 4, strategyId: privateBuildStrategy.id } }) };
 const market = ['cull','footwork','aim','volley','muster','feint','drive','channel','arcBolt','reclaim'];
 

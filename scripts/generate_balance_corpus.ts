@@ -33,7 +33,7 @@ export interface CorpusCardMeasure {
   availableStrategies: number;
   buildPlans: number;
   finitePlans: number;
-  repeatPlans: number;
+  infinitePlans: number;
   planStrategies: number;
   acquiredStrategies: number;
   averageCopiesWhenAcquired: number;
@@ -61,7 +61,7 @@ export interface StrategyGroupCardUse {
   averageCopiesWhenAcquired: number;
   buildPlans: number;
   finitePlans: number;
-  repeatPlans: number;
+  infinitePlans: number;
 }
 
 export interface StrategyGroupCardPair {
@@ -180,27 +180,27 @@ function cardMeasure(
   const definitions = manifest.kingdoms.filter((kingdom) => ids.has(kingdom.id));
   const availableIds = new Set(definitions.filter((kingdom) => ALWAYS_AVAILABLE_ACTION_IDS.includes(cardId)
     || kingdom.actionPiles.some((pile) => pile.cardId === cardId)).map((kingdom) => kingdom.id));
-  let availableStrategies = 0, buildPlans = 0, finitePlans = 0, repeatPlans = 0;
+  let availableStrategies = 0, buildPlans = 0, finitePlans = 0, infinitePlans = 0;
   let planStrategies = 0, acquiredStrategies = 0;
   let materialWeight = 0, cardAcquisitions = 0, familyAcquisitions = 0;
   for (const kingdom of kingdoms) for (const strategy of kingdom.strategies) {
     if (availableIds.has(kingdom.id)) availableStrategies += 1;
     const inBuild = strategy.startingBuild.includes(cardId);
     const inFinite = strategy.purchaseSteps.some((step) => step.cardId === cardId);
-    const inRepeat = strategy.repeatPurchase === cardId;
+    const inInfinite = strategy.purchaseSteps.some((step) => step.infinite && step.cardId === cardId);
     if (inBuild) buildPlans += 1;
     if (inFinite) finitePlans += 1;
-    if (inRepeat) repeatPlans += 1;
-    if (inBuild || inFinite || inRepeat) planStrategies += 1;
+    if (inInfinite) infinitePlans += 1;
+    if (inBuild || inFinite || inInfinite) planStrategies += 1;
     const acquired = strategy.acquisitionRates[cardId] ?? 0;
     if (acquired > 0) acquiredStrategies += 1;
     cardAcquisitions += acquired;
     for (const [acquiredId, rate] of Object.entries(strategy.acquisitionRates)) {
       if (family(acquiredId) === cardFamily) familyAcquisitions += rate;
     }
-    if (strategy.status === 'Lottery' && (inBuild || inFinite || inRepeat)) materialWeight += strategy.weight;
+    if (strategy.status === 'Lottery' && (inBuild || inFinite || inInfinite)) materialWeight += strategy.weight;
   }
-  return { availability: availableIds.size, availableStrategies, buildPlans, finitePlans, repeatPlans,
+  return { availability: availableIds.size, availableStrategies, buildPlans, finitePlans, infinitePlans,
     planStrategies, acquiredStrategies,
     averageCopiesWhenAcquired: acquiredStrategies ? cardAcquisitions / acquiredStrategies : 0,
     averageMaterialWeight: availableIds.size ? materialWeight / availableIds.size : 0,
@@ -283,7 +283,7 @@ export function buildStrategyGroups(model: BalanceCorpusModel): StrategyGroupRep
   return [...labels.entries()].map(([label, group]): StrategyGroupReport => {
     const cards = cardIds.map((cardId): StrategyGroupCardUse => {
       let availableStrategies = 0, acquiredStrategies = 0, acquisitions = 0;
-      let buildPlans = 0, finitePlans = 0, repeatPlans = 0;
+      let buildPlans = 0, finitePlans = 0, infinitePlans = 0;
       for (const { kingdom, strategy } of group) {
         if (marketByKingdom.get(kingdom.id)?.has(cardId)) availableStrategies += 1;
         const acquired = strategy.acquisitionRates[cardId] ?? 0;
@@ -291,7 +291,7 @@ export function buildStrategyGroups(model: BalanceCorpusModel): StrategyGroupRep
         acquisitions += acquired;
         if (strategy.startingBuild.includes(cardId)) buildPlans += 1;
         if (strategy.purchaseSteps.some((step) => step.cardId === cardId)) finitePlans += 1;
-        if (strategy.repeatPurchase === cardId) repeatPlans += 1;
+        if (strategy.purchaseSteps.some((step) => step.infinite && step.cardId === cardId)) infinitePlans += 1;
       }
       const definition = cardDefinition(cardId);
       const cardFamily = family(cardId);
@@ -299,8 +299,8 @@ export function buildStrategyGroups(model: BalanceCorpusModel): StrategyGroupRep
       return { cardId, name: definition.name, family: cardFamily, cost: definition.cost, effect: definition.text,
         availableStrategies, acquiredStrategies,
         averageCopiesWhenAcquired: acquiredStrategies ? acquisitions / acquiredStrategies : 0,
-        buildPlans, finitePlans, repeatPlans };
-    }).filter((card) => card.acquiredStrategies + card.buildPlans + card.finitePlans + card.repeatPlans > 0)
+        buildPlans, finitePlans, infinitePlans };
+    }).filter((card) => card.acquiredStrategies + card.buildPlans + card.finitePlans + card.infinitePlans > 0)
       .sort((left, right) => {
         const leftRate = left.availableStrategies ? left.acquiredStrategies / left.availableStrategies : 0;
         const rightRate = right.availableStrategies ? right.acquiredStrategies / right.availableStrategies : 0;
@@ -423,8 +423,8 @@ function selectedDetail(selected: SelectedKingdom): string {
     strategy.status, strategy.status === 'Lottery' ? percent(strategy.weight, 2) : '—', percent(strategy.score),
     strategy.startingBuild.map((id) => escape(cardDefinition(id).name)).join(', ') || 'None',
     ...Array.from({ length: maxSteps }, (_, step) => strategy.purchaseSteps[step]
-      ? `${escape(cardDefinition(strategy.purchaseSteps[step]!.cardId).name)} ×${strategy.purchaseSteps[step]!.remaining}` : '—'),
-    escape(cardDefinition(strategy.repeatPurchase).name), classifyStrategyDamage(strategy)]);
+      ? `${escape(cardDefinition(strategy.purchaseSteps[step]!.cardId).name)} ×${strategy.purchaseSteps[step]!.infinite ? '∞' : strategy.purchaseSteps[step]!.remaining}` : '—'),
+    classifyStrategyDamage(strategy)]);
   const matchupRows = kingdom.strategies.map((_strategy, row) => [`<span class="key">${strategyKey(row)}</span>`,
     ...kingdom.matchupScores[row]!.map((score, column) => row === column ? '50.0% mirror' : percent(score))]);
   return `<section><h2>${escape(kingdom.name)}</h2><p class="selection">${escape(selected.reason)} · ${kingdom.split} · effective lottery size ${fixed(kingdom.effectiveLotterySize)}</p>
@@ -437,7 +437,7 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
   const tuningDesign = model.manifest.splits.find((split) => split.name === 'tuning')!.design;
   const validationDesign = model.manifest.splits.find((split) => split.name === 'validation')!.design;
   const unused = model.cards.filter((card) => card.combined.buildPlans + card.combined.finitePlans
-    + card.combined.repeatPlans === 0).map((card) => card.name);
+    + card.combined.infinitePlans === 0).map((card) => card.name);
   const notAcquired = model.cards.filter((card) => card.combined.acquiredStrategies === 0).map((card) => card.name);
   const kingdomRows = model.kingdoms.map((kingdom) => [escape(kingdom.id), kingdom.split,
     String(kingdom.materialCount), String(kingdom.nearCount), String(kingdom.strategies.length),

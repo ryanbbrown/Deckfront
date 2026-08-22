@@ -11,7 +11,7 @@ import { randomUniqueStrategies } from './randomStrategy';
 import { runResponseSearch } from './responseOracle';
 import type { ResponseResult } from './responseOracle';
 import {
-  assertDisjointSeedNamespaces, finalSearchSeedNamespaces, namespaceSeeds
+  RACE_TOTAL_SEEDS, assertDisjointSeedNamespaces, finalSearchSeedNamespaces, namespaceSeeds
 } from './seedNamespaces';
 import { canonicalStrategy } from './strategy';
 import type { Strategy } from './strategy';
@@ -93,8 +93,8 @@ async function runRestart(
     const equilibrium = solveSnapshot(snapshot);
     lastEquilibrium = equilibrium;
     const search = config.responseSearch ?? runResponseSearch;
-    reserveSeeds(`global-screen:${restart}:${attempt}`, namespaceSeeds(config.seed, 'global-screen',
-      config.seeds, restart, attempt));
+    reserveSeeds(`global-race:${restart}:${attempt}`, namespaceSeeds(config.seed, 'global-race',
+      RACE_TOTAL_SEEDS, restart, attempt));
     reserveSeeds(`global-confirm:${restart}:${attempt}`, namespaceSeeds(config.seed, 'global-confirm',
       config.seeds, restart, attempt));
     reserveSeeds(`bootstrap:global:${restart}:${attempt}`, namespaceSeeds(config.seed, 'bootstrap',
@@ -288,8 +288,8 @@ export async function runPsro(config: PsroConfig, runner: PairingRunner, now = D
         return invalid(matrix, 'search-deadline', null, unionEvents, finalFailures);
       }
       const attempt = unionAttempt++;
-      reserveSeeds(`global-screen:union:${attempt}`, namespaceSeeds(config.seed, 'global-screen',
-        config.seeds, config.restarts, attempt));
+      reserveSeeds(`global-race:union:${attempt}`, namespaceSeeds(config.seed, 'global-race',
+        RACE_TOTAL_SEEDS, config.restarts, attempt));
       reserveSeeds(`global-confirm:union:${attempt}`, namespaceSeeds(config.seed, 'global-confirm',
         config.seeds, config.restarts, attempt));
       reserveSeeds(`bootstrap:global:union:${attempt}`, namespaceSeeds(config.seed, 'bootstrap',

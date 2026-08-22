@@ -3,8 +3,9 @@ import {
 } from '../game';
 import { applyLegalAction } from '../game/engine';
 import type { CardInstance, CardMechanic, GameEvent, GameState, LegalAction, PlayerId } from '../game';
-import { projectPurchases } from './buy';
+import { acquiredCount, projectPurchases } from './buy';
 import type { PurchaseProjection } from './buy';
+import { slotWantsMore } from './strategy';
 import type { Strategy } from './strategy';
 import { ActionSearchOverflowError } from './types';
 import { buildAttackProfile, publicPositionAdvantage } from './positionValue';
@@ -87,6 +88,19 @@ function repeatableMoney(state: GameState, playerId: PlayerId): number {
   return money;
 }
 
+/**
+ * The cheapest card the plan still wants. Culling below this leaves money that can buy nothing, so a
+ * Cull that drops permanent money under it has stopped paying for itself.
+ */
+function remainingPlanFloor(state: GameState, playerId: PlayerId, strategy: Strategy): number {
+  let floor = Number.POSITIVE_INFINITY;
+  for (const slot of strategy.buyPlan) {
+    if (slot.kind !== 'buy' || !slotWantsMore(slot, acquiredCount(state, playerId, slot.cardId))) continue;
+    floor = Math.min(floor, resolveCard(state, slot.cardId).cost);
+  }
+  return floor;
+}
+
 function ownedCount(state: GameState, playerId: PlayerId, definitionId: string): number {
   let total = 0;
   for (const zone of zones(state, playerId)) for (const card of zone) {
@@ -128,8 +142,8 @@ function branchAt(
   const events = eventTotals(state, playerId, baseline);
   let obsoleteCullTrashed = 0;
   if (events.cullTrashed > 0) {
-    const floor = resolveCard(state, strategy.repeatPurchase).cost;
-    const cullIsObsolete = repeatableMoney(state, playerId) <= floor || ownedCount(state, playerId, 'copper') === 0;
+    const cullIsObsolete = repeatableMoney(state, playerId) <= remainingPlanFloor(state, playerId, strategy)
+      || ownedCount(state, playerId, 'copper') === 0;
     obsoleteCullTrashed = cullIsObsolete ? events.cullTrashed : 0;
   }
   return {
@@ -148,12 +162,12 @@ function branchAt(
 }
 
 function comparePurchases(left: PurchaseProjection, right: PurchaseProjection): number {
-  const length = Math.max(left.finite.length, right.finite.length);
+  const length = Math.max(left.bought.length, right.bought.length);
   for (let index = 0; index < length; index += 1) {
-    const difference = (left.finite[index] ?? 0) - (right.finite[index] ?? 0);
+    const difference = (left.bought[index] ?? 0) - (right.bought[index] ?? 0);
     if (difference) return difference;
   }
-  return left.repeated - right.repeated;
+  return 0;
 }
 
 function isBetter(candidate: Branch, best: Branch | null): boolean {
@@ -256,7 +270,7 @@ function allowedActions(
   }
 
   if (!actions.some((action) => action.command.type === 'playTargetedAction')) return actions;
-  const floor = resolveCard(state, strategy.repeatPurchase).cost;
+  const floor = remainingPlanFloor(state, playerId, strategy);
   const availableMoney = repeatableMoney(state, playerId);
   const hand = state.players[playerId].deck.hand.map((instance, handIndex): PilotCard => {
     const definition = resolveCard(state, instance.definitionId);

@@ -1,4 +1,4 @@
-import { evaluateCandidates, mixtureSchedule, percentileBootstrapMean } from './mixtureEvaluation';
+import { evaluateCandidates, mixtureSchedule, percentileBootstrapMean, raceCandidates } from './mixtureEvaluation';
 import { emptyAggregate, mergeAggregate } from './pairing';
 import type { PairingRunner } from './pairingRunner';
 import { randomUniqueStrategies } from './randomStrategy';
@@ -6,11 +6,11 @@ import { globalAdmission } from './responseOracle';
 import { canonicalStrategy } from './strategy';
 import type { Strategy } from './strategy';
 import type { ResponseResult } from './responseOracle';
+import { RACE_TOTAL_SEEDS, raceRoundSeeds } from './seedNamespaces';
 import type { FinalSearchSeeds } from './seedNamespaces';
 
 export const FINAL_SEARCH_CANDIDATES = 3_000;
-export const FINAL_SEARCH_SCREEN_BLOCKS = 5;
-export const FINAL_SEARCH_FINALISTS = 20;
+export const FINAL_SEARCH_SCREEN_BLOCKS = RACE_TOTAL_SEEDS;
 export const FINAL_SEARCH_CONFIRM_BLOCKS = 25;
 
 export interface FinalSearchOptions {
@@ -32,7 +32,7 @@ export interface FinalSearchOutcome {
 export async function runFinalSearch(options: FinalSearchOptions): Promise<FinalSearchOutcome> {
   if (options.seeds.screen.length !== FINAL_SEARCH_SCREEN_BLOCKS
     || options.seeds.confirmation.length !== FINAL_SEARCH_CONFIRM_BLOCKS
-    || options.seeds.bootstrap.length !== FINAL_SEARCH_FINALISTS) {
+    || options.seeds.bootstrap.length !== 1) {
     throw new Error('The final search received an incomplete seed schedule.');
   }
   const opponents = new Map(options.strategies.map((strategy) => [strategy.id, strategy]));
@@ -54,20 +54,19 @@ export async function runFinalSearch(options: FinalSearchOptions): Promise<Final
   if (!generated.strategies.length) {
     return { candidate: null, result: {
       objective: 'final', sources, screenSchedule, confirmSchedule,
-      bestTrainingMean: 0, candidateId: null, heldOutMean: null, interval: null,
+      bestTrainingMean: 0, candidateId: null, heldOutMean: null, interval: null, rounds: [],
       admitted: false, matches: 0, telemetry: emptyAggregate(),
       screenTelemetry: emptyAggregate(), confirmationTelemetry: emptyAggregate(),
       failureReason: 'empty-batch'
     } };
   }
-  const screened = await evaluateCandidates(generated.strategies, opponents, screenSchedule,
-    options.runner, options);
-  screened.sort((left, right) => right.mean - left.mean
-    || left.strategy.id.localeCompare(right.strategy.id));
-  const finalists = screened.slice(0, FINAL_SEARCH_FINALISTS);
+  const race = await raceCandidates(generated.strategies, opponents, options.targetWeights,
+    raceRoundSeeds(options.seeds.screen), options.seeds.screenSampling[0]!, options.runner, options);
+  const finalists = race.best ? [race.best] : [];
   const confirmed = await evaluateCandidates(finalists.map((entry) => entry.strategy), opponents,
     confirmSchedule, options.runner, options);
   const screenMeans = new Map(finalists.map((entry) => [entry.strategy.id, entry.mean]));
+  const raceRounds = race.rounds;
   const ranked = confirmed.map((entry, index) => ({
     ...entry,
     interval: percentileBootstrapMean(entry.blockScores, options.seeds.bootstrap[index]!)
@@ -76,8 +75,7 @@ export async function runFinalSearch(options: FinalSearchOptions): Promise<Final
     || left.strategy.id.localeCompare(right.strategy.id));
   const best = ranked[0]!;
   const admitted = ranked.find((entry) => globalAdmission(entry.mean, entry.interval)) ?? null;
-  const screenTelemetry = emptyAggregate();
-  for (const entry of screened) mergeAggregate(screenTelemetry, entry.telemetry);
+  const screenTelemetry = race.telemetry;
   const confirmationTelemetry = emptyAggregate();
   for (const entry of confirmed) mergeAggregate(confirmationTelemetry, entry.telemetry);
   const telemetry = emptyAggregate();
@@ -86,9 +84,8 @@ export async function runFinalSearch(options: FinalSearchOptions): Promise<Final
     objective: 'final', sources, screenSchedule, confirmSchedule,
     bestTrainingMean: screenMeans.get((admitted ?? best).strategy.id)!,
     candidateId: (admitted ?? best).strategy.id, heldOutMean: (admitted ?? best).mean,
-    interval: (admitted ?? best).interval, admitted: admitted !== null,
-    matches: screened.reduce((sum, entry) => sum + entry.matches, 0)
-      + confirmed.reduce((sum, entry) => sum + entry.matches, 0),
+    interval: (admitted ?? best).interval, admitted: admitted !== null, rounds: raceRounds,
+    matches: race.matches + confirmed.reduce((sum, entry) => sum + entry.matches, 0),
     telemetry, screenTelemetry, confirmationTelemetry, failureReason: null
   } };
 }

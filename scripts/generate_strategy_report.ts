@@ -28,8 +28,7 @@ export interface StrategyReportStrategyInput {
   damageType: string;
   startingBuild: string[];
   acquisitionRates: Record<string, number>;
-  buyAgenda?: readonly { cardId: string }[];
-  repeatPurchase?: string;
+  buyPlan?: readonly { cardId: string }[];
 }
 
 export interface StrategyReportKingdomInput {
@@ -328,8 +327,7 @@ export function loadStrategyReportInput(root: string): StrategyReportInput {
       strategies: kingdom.strategies.map((strategy) => ({ id: strategy.id, status: strategy.status,
         weight: strategy.weight, score: strategy.score, damageType: classifyStrategyDamage(strategy),
         startingBuild: strategy.startingBuild, acquisitionRates: strategy.acquisitionRates,
-        buyAgenda: strategy.purchaseSteps.map((step) => ({ cardId: step.cardId })),
-        repeatPurchase: strategy.repeatPurchase })) };
+        buyPlan: strategy.purchaseSteps.map((step) => ({ cardId: step.cardId })) })) };
   });
   const cards = Object.values(CARDS).filter((card) => card.type === 'action').map((card): StrategyReportCardInput => ({
     id: card.id, name: card.name, family: family(card.id), cost: card.cost, text: card.text,

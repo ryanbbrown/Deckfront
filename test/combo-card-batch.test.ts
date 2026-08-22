@@ -7,6 +7,7 @@ import type { GameState, LegalAction } from '../src/game';
 import { gameStateSchema } from '../src/server/schemas';
 import { rulesFingerprint } from '../src/sim/rulesFingerprint';
 import { runSimulationMatch } from '../src/sim/simulationKernel';
+import { INFINITE_COUNT, fixedBuyPlan } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 
 function ready(): GameState {
@@ -144,7 +145,10 @@ describe('combo card batch', () => {
   });
 
   it('separates direct compact draft identities and rules fingerprints', () => {
-    const strategy: Strategy = { id: 'simple', startingBuild: [], buyAgenda: [], repeatPurchase: 'silver' };
+    const strategy: Strategy = {
+      id: 'simple', startingBuild: [],
+      buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }])
+    };
     const base = { kingdomId: 'distance-duel', seed: 2, firstPlayerId: 'ochre' as const, swapSides: false, turnLimitPerPlayer: 1, actionCapPerTurn: 100, strategies: { ochre: strategy, indigo: strategy } };
     const on = runSimulationMatch({ ...base, startingDraftEnabled: true }); const off = runSimulationMatch({ ...base, startingDraftEnabled: false });
     expect(on.config.startingDraftEnabled).toBe(true); expect(off.config.startingDraftEnabled).toBe(false);

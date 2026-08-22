@@ -12,7 +12,7 @@
  *   npx tsx scripts/compare_strategies.ts --kingdom <id> --left left.json --right right.json
  *   npx tsx scripts/compare_strategies.ts --game .data/games/<id>.json --left mine.json
  *
- * A strategy file is `{ startingBuild, buyAgenda, repeatPurchase }`. With `--game`, the saved game
+ * A strategy file is `{ startingBuild, buyPlan }`, with exactly ten discriminated ladder slots. With `--game`, the saved game
  * supplies the kingdom and its stored `aiStrategy` becomes the right-hand side.
  */
 import fs from 'node:fs';

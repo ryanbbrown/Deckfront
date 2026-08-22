@@ -6,6 +6,7 @@ import type { EquilibriumResult } from '../src/sim/equilibrium';
 import type { MatrixSnapshot } from '../src/sim/payoffMatrix';
 import type { PairingRunner } from '../src/sim/pairingRunner';
 import type { PsroResult } from '../src/sim/psro';
+import { INFINITE_COUNT } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 
 const limits: AiTrainingLimits = {
@@ -18,7 +19,7 @@ const runner: PairingRunner = {
   close: async () => undefined
 };
 function strategy(id: string): Strategy {
-  return { id, startingBuild: [], buyAgenda: [], repeatPurchase: 'silver' };
+  return { id, startingBuild: [], buyPlan: [{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }] };
 }
 function result(strategies: Strategy[], payoffs: number[][], weights: number[]): PsroResult {
   const weightMap = Object.fromEntries(strategies.map((entry, index) => [entry.id, weights[index]!]));

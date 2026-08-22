@@ -7,7 +7,7 @@ import { CARDS, cardDefinition, kingdomMarket } from '../src/game';
 import { CURATED_KINGDOM_IDS } from '../src/sim/kingdoms';
 import { playPairing } from '../src/sim/pairing';
 import { rulesFingerprint } from '../src/sim/rulesFingerprint';
-import { canonicalStrategy, identify } from '../src/sim/strategy';
+import { canonicalStrategy, identify, isInfinite } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 import type { TelemetryAggregate } from '../src/sim/types';
 
@@ -29,9 +29,13 @@ const telemetrySchema = z.object({
     firstIndigo: z.object({ normal: pairRecordSchema, swapped: pairRecordSchema })
   })
 });
+const buyPlanSlotSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('inactive') }),
+  z.object({ kind: z.literal('buy'), cardId: z.string(), desiredCount: z.number().int().positive() }),
+  z.object({ kind: z.literal('stop'), threshold: z.number().int().nonnegative() })
+]);
 const strategySchema = z.object({ id: z.string(), startingBuild: z.array(z.string()),
-  buyAgenda: z.array(z.object({ cardId: z.string(), desiredCount: z.number().int().nonnegative() })),
-  repeatPurchase: z.string() });
+  buyPlan: z.array(buyPlanSlotSchema).length(10) });
 const runSchema = z.looseObject({
   schemaVersion: z.literal(5), rulesFingerprint: z.object({ version: z.literal(1), hash: z.string(), rules: z.unknown() }),
   valid: z.literal(true), kingdomId: z.string(), kingdomName: z.string(), mode: z.literal('full'),
@@ -66,8 +70,7 @@ export interface StrategyReport {
   weight: number;
   score: number;
   startingBuild: string[];
-  purchaseSteps: { cardId: string; remaining: number }[];
-  repeatPurchase: string;
+  purchaseSteps: { cardId: string; remaining: number; infinite: boolean }[];
   families: CardFamily[];
   acquiredCards: string[];
   acquisitionRates: Record<string, number>;
@@ -110,8 +113,8 @@ export interface CardUseReport {
   family: CardFamily;
   availableKingdoms: number;
   buildPlans: number;
-  agendaPlans: number;
-  repeatPlans: number;
+  buyPlans: number;
+  infinitePlans: number;
   acquiredStrategies: number;
   averageMaterialWeight: number;
   usedKingdoms: string[];
@@ -207,16 +210,19 @@ export function family(cardId: string): CardFamily {
 
 function strategyFamilies(strategy: Strategy): CardFamily[] {
   const order: CardFamily[] = ['Engine', 'Melee', 'Ranged', 'Mage', 'Treasure'];
-  const cards = [...strategy.startingBuild, ...strategy.buyAgenda.map((entry) => entry.cardId), strategy.repeatPurchase];
+  const cards = [...strategy.startingBuild,
+    ...strategy.buyPlan.flatMap((slot) => slot.kind === 'buy' ? [slot.cardId] : [])];
   const found = new Set(cards.map(family));
   return order.filter((entry) => found.has(entry));
 }
 
-function purchaseSteps(strategy: Strategy): { cardId: string; remaining: number }[] {
+function purchaseSteps(strategy: Strategy): { cardId: string; remaining: number; infinite: boolean }[] {
   const inBuild: Record<string, number> = {};
   for (const cardId of strategy.startingBuild) inBuild[cardId] = (inBuild[cardId] ?? 0) + 1;
-  return strategy.buyAgenda.map((entry) => ({ cardId: entry.cardId,
-    remaining: Math.max(0, entry.desiredCount - (inBuild[entry.cardId] ?? 0)) }));
+  return strategy.buyPlan.flatMap((slot) => slot.kind === 'buy' ? [{
+    cardId: slot.cardId, infinite: isInfinite(slot),
+    remaining: Math.max(0, slot.desiredCount - (inBuild[slot.cardId] ?? 0))
+  }] : []);
 }
 
 function cellFor(artifact: ArtifactSet, leftId: string, rightId: string): z.infer<typeof matrixCellSchema> {
@@ -348,7 +354,7 @@ export function buildBalanceReportModel(
       return {
       id: entry.strategy.id, status: entry.weight > 0 ? 'Lottery' : competitiveStatus, weight: entry.weight,
       score: entry.score, startingBuild: entry.strategy.startingBuild,
-      purchaseSteps: purchaseSteps(entry.strategy), repeatPurchase: entry.strategy.repeatPurchase,
+      purchaseSteps: purchaseSteps(entry.strategy),
       families: strategyFamilies(entry.strategy), acquiredCards: Object.keys(acquisitionRates), acquisitionRates
     }; });
     const indexById = new Map(artifact.strategies.map((strategy, index) => [strategy.id, index]));
@@ -374,7 +380,7 @@ export function buildBalanceReportModel(
 
   const normal = kingdoms;
   const cards = Object.values(CARDS).filter((card) => card.type === 'action').map((card): CardUseReport => {
-    let availableKingdoms = 0, buildPlans = 0, agendaPlans = 0, repeatPlans = 0, acquiredStrategies = 0;
+    let availableKingdoms = 0, buildPlans = 0, buyPlans = 0, infinitePlans = 0, acquiredStrategies = 0;
     let materialWeight = 0;
     const usedKingdoms: string[] = [];
     for (const kingdom of normal) {
@@ -383,13 +389,13 @@ export function buildBalanceReportModel(
       let used = false;
       for (const strategy of kingdom.strategies) {
         const inBuild = strategy.startingBuild.includes(card.id);
-        const inAgenda = strategy.purchaseSteps.some((entry) => entry.cardId === card.id);
-        const inRepeat = strategy.repeatPurchase === card.id;
+        const inPlan = strategy.purchaseSteps.some((entry) => entry.cardId === card.id);
+        const inInfinite = strategy.purchaseSteps.some((entry) => entry.infinite && entry.cardId === card.id);
         if (inBuild) buildPlans += 1;
-        if (inAgenda) agendaPlans += 1;
-        if (inRepeat) repeatPlans += 1;
+        if (inPlan) buyPlans += 1;
+        if (inInfinite) infinitePlans += 1;
         if (strategy.acquiredCards.includes(card.id)) acquiredStrategies += 1;
-        if (inBuild || inAgenda || inRepeat) {
+        if (inBuild || inPlan || inInfinite) {
           used = true;
           if (strategy.status === 'Lottery') materialWeight += strategy.weight;
         }
@@ -397,7 +403,7 @@ export function buildBalanceReportModel(
       if (used) usedKingdoms.push(kingdom.name);
     }
     return { cardId: card.id, name: card.name, family: family(card.id), availableKingdoms,
-      buildPlans, agendaPlans, repeatPlans, acquiredStrategies,
+      buildPlans, buyPlans, infinitePlans, acquiredStrategies,
       averageMaterialWeight: availableKingdoms ? materialWeight / availableKingdoms : 0, usedKingdoms };
   }).sort((left, right) => left.family.localeCompare(right.family) || left.name.localeCompare(right.name));
   return { kingdoms, cards };
@@ -421,7 +427,7 @@ export function renderBalanceReport(model: BalanceReportModel): string {
   const multiple = normal.filter((kingdom) => kingdom.strategies.length >= 2).length;
   const multipleFamilies = normal.filter((kingdom) => new Set(kingdom.strategies.map((strategy) => strategy.families.join(' + '))).size >= 2).length;
   const availableUnused = model.cards.filter((card) => card.availableKingdoms > 0
-    && card.buildPlans + card.agendaPlans + card.repeatPlans === 0).map((card) => card.name);
+    && card.buildPlans + card.buyPlans + card.infinitePlans === 0).map((card) => card.name);
   const summaryRows = model.kingdoms.map((kingdom) => [escape(kingdom.name),
     String(kingdom.materialCount), String(kingdom.nearCount), String(kingdom.strategies.length),
     number(kingdom.lotteryTelemetry.winnerTurnsPerPlayer ?? 0), percent(kingdom.lotteryTelemetry.drawRate),
@@ -431,12 +437,12 @@ export function renderBalanceReport(model: BalanceReportModel): string {
     const strategyRows = kingdom.strategies.map((strategy, index) => {
       const steps = Array.from({ length: maxSteps }, (_, step) => {
         const entry = strategy.purchaseSteps[step];
-        return entry ? `${escape(cardName(entry.cardId))} ×${entry.remaining}` : '—';
+        return entry ? `${escape(cardName(entry.cardId))} ×${entry.infinite ? '∞' : entry.remaining}` : '—';
       });
       return [`<span class="key">${strategyLabel(index)}</span><br><code>${escape(strategy.id)}</code>`,
         strategy.status, strategy.status === 'Lottery' ? percent(strategy.weight, 2) : '—', percent(strategy.score, 1),
         strategy.startingBuild.length ? strategy.startingBuild.map((id) => escape(cardName(id))).join(', ') : 'None',
-        ...steps, escape(cardName(strategy.repeatPurchase)), escape(strategy.families.join(' + ')),
+        ...steps, escape(strategy.families.join(' + ')),
         strategy.acquiredCards.length ? strategy.acquiredCards.map((id) => escape(cardName(id))).join(', ') : 'None'];
     });
     const matchupRows = kingdom.strategies.map((strategy, row) => [
@@ -451,13 +457,13 @@ export function renderBalanceReport(model: BalanceReportModel): string {
       <div class="metrics"><div><strong>${kingdom.materialCount}</strong><span>lottery strategies</span></div><div><strong>${kingdom.nearCount}</strong><span>other near-50% strategies</span></div><div><strong>${number(kingdom.lotteryTelemetry.winnerTurnsPerPlayer ?? 0)}</strong><span>turns/player in wins</span></div><div><strong>${percent(kingdom.lotteryTelemetry.firstPlayerScore)}</strong><span>first-player score</span></div></div>
       <h3>Viable strategy plans</h3>
       ${table(['Key', 'Status', 'Lottery weight', 'Score vs lottery', 'Starting build',
-        ...Array.from({ length: maxSteps }, (_, index) => `Purchase ${index + 1}`), 'Repeat purchase', 'Plan families', 'Acquired in evaluation'], strategyRows)}
+        ...Array.from({ length: maxSteps }, (_, index) => `Purchase ${index + 1}`), 'Plan families', 'Acquired in evaluation'], strategyRows)}
       <h3>Viable-strategy matchups</h3><p>Each cell is the row strategy’s score against the column strategy. A draw counts as half a win.</p>
       ${table(['Row', ...kingdom.strategies.map((_strategy, index) => strategyLabel(index))], matchupRows, 'matrix')}
       <h3>Final-lottery play</h3><p>Draws: ${percent(kingdom.lotteryTelemetry.drawRate)}. First-player wins: ${percent(kingdom.lotteryTelemetry.firstPlayerWinRate)}. First-player score including half credit for draws: ${percent(kingdom.lotteryTelemetry.firstPlayerScore)}. Mean winner turn: ${number(kingdom.lotteryTelemetry.winnerTurnsPerPlayer ?? 0)} turns per player. Weighted evaluated games: ${number(kingdom.lotteryTelemetry.games, 1)}.</p><p>Mean cards acquired per game: ${acquisitions}.</p></section>`;
   }).join('\n');
   const cardRows = model.cards.map((card) => [escape(card.name), card.family, String(card.availableKingdoms),
-    String(card.buildPlans), String(card.agendaPlans), String(card.repeatPlans), String(card.acquiredStrategies),
+    String(card.buildPlans), String(card.buyPlans), String(card.infinitePlans), String(card.acquiredStrategies),
     percent(card.averageMaterialWeight), card.usedKingdoms.length ? escape(card.usedKingdoms.join(', ')) : '—']);
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -467,7 +473,7 @@ export function renderBalanceReport(model: BalanceReportModel): string {
 <section><h2>What the current runs show</h2><div class="findings"><div class="finding"><strong>${multiple} of ${normal.length}</strong><span>diagnostic kingdoms have at least two viable strategies</span></div><div class="finding"><strong>${multipleFamilies} of ${normal.length}</strong><span>diagnostic kingdoms have at least two distinct plan-family combinations</span></div><div class="finding"><strong>${availableUnused.length}</strong><span>available action cards appear in no viable plan</span></div></div><p>${availableUnused.length ? `Available cards with no viable plan: ${escape(availableUnused.join(', '))}.` : 'Every available action card appears in at least one viable plan in this sample.'}</p>${table(['Kingdom', 'Lottery', 'Near 50%', 'Viable total', 'Win turns/player', 'Draws', 'First-player score'], summaryRows)}</section>
 <section class="definitions"><h2>How to read this report</h2><ul><li><strong>Lottery strategy:</strong> at least 0.1% of the final equilibrium after smaller weights are removed and the remaining weights are normalized.</li><li><strong>Near-50% strategy:</strong> less than 0.1% lottery weight and at least 48% score against the material lottery. This two-point band is a provisional screen, not proof of equal strength.</li><li><strong>Viable strategy:</strong> either a lottery strategy or a near-50% strategy.</li><li><strong>Final lottery:</strong> the hardest discovered mix for one strategy to beat. The report scores all discovered strategies against the material part of that mix.</li><li><strong>Plan use:</strong> a card in the starting build, finite purchase plan, or repeat purchase. Acquired use is separate and comes from evaluated games.</li></ul><p>Four normal curated kingdoms are an initial sample. They cannot establish card health across a broad kingdom corpus.</p></section>
 ${kingdomSections}
-<section><h2>Action-card use across diagnostic kingdoms</h2><p>Counts cover viable strategies only. Each card counts once per strategy in each plan field. Average lottery weight is the share of material lottery plans that use the card, averaged over kingdoms where the card is available.</p>${table(['Card', 'Family', 'Available kingdoms', 'Build plans', 'Agenda plans', 'Repeat plans', 'Acquired strategies', 'Average lottery weight', 'Used in viable plans'], cardRows)}</section>
+<section><h2>Action-card use across diagnostic kingdoms</h2><p>Counts cover viable strategies only. Each card counts once per strategy in each plan field. Average lottery weight is the share of material lottery plans that use the card, averaged over kingdoms where the card is available.</p>${table(['Card', 'Family', 'Available kingdoms', 'Build plans', 'Rung plans', 'Repeating rungs', 'Acquired strategies', 'Average lottery weight', 'Used in viable plans'], cardRows)}</section>
 </main></body></html>\n`;
 }
 

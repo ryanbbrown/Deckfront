@@ -30,14 +30,18 @@ describe('automatic PSRO search inputs', () => {
     expect(generated.strategies.every((strategy) => strategyIsLegal('synthetic-psro', strategy))).toBe(true);
   });
 
-  it('uses the 70/30 target and fills local shortfalls with fresh random strategies', () => {
+  it('adds the intentional random tail after the complete local neighborhoods', () => {
     const parents = new Map(diagnosticStrategies('current-duel').slice(0, 2).map((strategy) => [strategy.id, strategy]));
     const batch = generateResponseBatch({ kingdomId: 'current-duel', seed: 12, count: 20, parents,
       weights: Object.fromEntries([...parents.keys()].map((id) => [id, 0.5])), existing: [] });
-    expect(batch.sources.requestedLocal).toBe(14);
-    expect(batch.sources.requestedRandom).toBe(6);
-    expect(batch.sources.actual).toBe(20);
-    expect(new Set(batch.candidates.map(canonicalStrategy)).size).toBe(20);
+    expect(batch.sources.local).toBeGreaterThan(1_000);
+    expect(batch.sources.local).toBeLessThan(2_000);
+    expect(batch.sources.requestedLocal).toBe(batch.sources.local);
+    expect(batch.sources.requestedRandom).toBe(20);
+    expect(batch.sources.random).toBe(20);
+    expect(batch.sources.requested).toBe(batch.sources.local + 20);
+    expect(batch.sources.actual).toBe(batch.sources.local + 20);
+    expect(new Set(batch.candidates.map(canonicalStrategy)).size).toBe(batch.sources.actual);
   });
 
   it('allocates equal-weight local remainders by stable strategy id', () => {
@@ -68,7 +72,7 @@ describe('automatic PSRO search inputs', () => {
   });
 
   it('keeps all seed namespaces disjoint', () => {
-    const namespaces = Object.fromEntries(['matrix', 'global-screen', 'global-confirm', 'bootstrap']
+    const namespaces = Object.fromEntries(['matrix', 'global-race', 'global-confirm', 'bootstrap']
       .map((phase) => [phase, namespaceSeeds(1, phase as Parameters<typeof namespaceSeeds>[1], 25)]));
     expect(() => assertDisjointSeedNamespaces(namespaces)).not.toThrow();
   });
@@ -76,9 +80,9 @@ describe('automatic PSRO search inputs', () => {
   it('uses fresh final-search namespaces on every pass', () => {
     const first = finalSearchSeedNamespaces(9, 0);
     const second = finalSearchSeedNamespaces(9, 1);
-    expect(first.screen).toHaveLength(5);
+    expect(first.screen).toHaveLength(15);
     expect(first.confirmation).toHaveLength(25);
-    expect(first.bootstrap).toHaveLength(20);
+    expect(first.bootstrap).toHaveLength(1);
     expect(() => assertDisjointSeedNamespaces({ ...Object.fromEntries(Object.entries(first)
       .map(([name, seeds]) => [`first:${name}`, seeds])), ...Object.fromEntries(Object.entries(second)
       .map(([name, seeds]) => [`second:${name}`, seeds])) })).not.toThrow();
@@ -98,7 +102,7 @@ describe('automatic PSRO search inputs', () => {
     expect(response.candidate).toBeNull();
     expect(response.result).toMatchObject({ admitted: false, failureReason: 'empty-batch',
       matches: 0, sources: { requested: 10, actual: 0, localShortfall: 7, randomShortfall: 3 } });
-    expect(response.result?.screenSchedule.blocks).toHaveLength(4);
+    expect(response.result?.screenSchedule.blocks).toHaveLength(15);
     expect(response.result?.confirmSchedule.blocks).toHaveLength(4);
     expect(response.result?.screenSchedule.blocks.map((block) => block.seed))
       .not.toEqual(response.result?.confirmSchedule.blocks.map((block) => block.seed));

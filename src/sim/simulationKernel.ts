@@ -4,6 +4,7 @@ import {
 } from '../game';
 import type { CardFamily, CardMechanic, CardValues, MovementChoice, PlayerId } from '../game';
 import { repairBuildIn } from './build';
+import { slotWantsMore } from './strategy';
 import type { Strategy } from './strategy';
 import { chooseTacticalAction } from './tacticalPilot';
 import type { CullOption, PilotCard, TacticalView } from './tacticalPilot';
@@ -238,43 +239,34 @@ function moneyInActionPhase(state: KernelState, actor: 0 | 1): number {
   return money;
 }
 
-function finiteStillAvailable(state: KernelState, player: KernelPlayer, acquired: Int16Array, supply: Int16Array): boolean {
-  return player.strategy.buyAgenda.some((entry) => {
-    const index = state.kingdom.index.get(entry.cardId);
-    if (index === undefined || entry.cardId === 'copper') return false;
-    const card = state.kingdom.cards[index]!;
-    return acquired[index]! < entry.desiredCount && card.cost > 0 && (card.type === 'treasure' || supply[index]! > 0);
-  });
-}
-
 function purchaseProjection(state: KernelState, actor: 0 | 1, copperTrashed: number): readonly number[] {
   const player = state.players[actor];
   const acquired = new Int16Array(player.acquired);
   const supply = new Int16Array(state.supply);
-  const finite = player.strategy.buyAgenda.map(() => 0);
-  let repeated = 0;
+  const bought = player.strategy.buyPlan.map(() => 0);
   let money = moneyInActionPhase(state, actor) - copperTrashed;
+  // Every rung costs at least one money, so a finite purse always ends this loop.
   while (true) {
-    let bought = false;
-    for (let agendaIndex = 0; agendaIndex < player.strategy.buyAgenda.length; agendaIndex += 1) {
-      const entry = player.strategy.buyAgenda[agendaIndex]!;
-      const index = state.kingdom.index.get(entry.cardId);
-      if (index === undefined || entry.cardId === 'copper' || acquired[index]! >= entry.desiredCount) continue;
+    let purchased = false;
+    let stopped = false;
+    for (let slotIndex = 0; slotIndex < player.strategy.buyPlan.length; slotIndex += 1) {
+      const slot = player.strategy.buyPlan[slotIndex]!;
+      if (slot.kind === 'inactive') continue;
+      if (slot.kind === 'stop') {
+        if (money >= slot.threshold) { stopped = true; break; }
+        continue;
+      }
+      const index = state.kingdom.index.get(slot.cardId);
+      if (index === undefined || slot.cardId === 'copper' || !slotWantsMore(slot, acquired[index]!)) continue;
       const card = state.kingdom.cards[index]!;
       if (card.cost <= 0 || card.cost > money || (card.type === 'action' && supply[index]! <= 0)) continue;
-      money -= card.cost; acquired[index]! += 1; finite[agendaIndex]! += 1;
+      money -= card.cost; acquired[index]! += 1; bought[slotIndex]! += 1;
       if (card.type === 'action') supply[index]!--;
-      bought = true; break;
+      purchased = true; break;
     }
-    if (bought) continue;
-    if (finiteStillAvailable(state, player, acquired, supply)) break;
-    const repeatIndex = state.kingdom.index.get(player.strategy.repeatPurchase);
-    if (repeatIndex === undefined || player.strategy.repeatPurchase === 'copper') break;
-    const repeat = state.kingdom.cards[repeatIndex]!;
-    if (repeat.cost <= 0 || repeat.cost > money || (repeat.type === 'action' && supply[repeatIndex]! <= 0)) break;
-    money -= repeat.cost; repeated += 1; if (repeat.type === 'action') supply[repeatIndex]!--;
+    if (stopped || !purchased) break;
   }
-  return [...finite, repeated];
+  return bought;
 }
 
 function attackProfile(state: KernelState, actor: 0 | 1): AttackProfile {
@@ -546,24 +538,19 @@ function pileAvailable(state: KernelState, cardIndex: number): boolean {
 
 function choosePurchase(state: KernelState, actor: 0 | 1): number | null {
   const player = state.players[actor];
-  for (const entry of player.strategy.buyAgenda) {
-    const index = state.kingdom.index.get(entry.cardId);
-    if (index === undefined || entry.cardId === 'copper' || entry.desiredCount <= 0) continue;
+  for (const slot of player.strategy.buyPlan) {
+    if (slot.kind === 'inactive') continue;
+    if (slot.kind === 'stop') {
+      if (player.money >= slot.threshold) return null;
+      continue;
+    }
+    const index = state.kingdom.index.get(slot.cardId);
+    if (index === undefined || slot.cardId === 'copper') continue;
     const card = state.kingdom.cards[index]!;
-    if (card.cost <= 0 || player.acquired[index]! >= entry.desiredCount) continue;
+    if (card.cost <= 0 || !slotWantsMore(slot, player.acquired[index]!)) continue;
     if (card.cost <= player.money && pileAvailable(state, index)) return index;
   }
-  const finiteDone = player.strategy.buyAgenda.every((entry) => {
-    const index = state.kingdom.index.get(entry.cardId);
-    if (index === undefined || entry.cardId === 'copper') return true;
-    const card = state.kingdom.cards[index]!;
-    return card.cost <= 0 || player.acquired[index]! >= entry.desiredCount || !pileAvailable(state, index);
-  });
-  if (!finiteDone || player.strategy.repeatPurchase === 'copper') return null;
-  const repeat = state.kingdom.index.get(player.strategy.repeatPurchase);
-  if (repeat === undefined) return null;
-  const card = state.kingdom.cards[repeat]!;
-  return card.cost > 0 && card.cost <= player.money && pileAvailable(state, repeat) ? repeat : null;
+  return null;
 }
 
 function buy(state: KernelState, actor: 0 | 1, cardIndex: number): void {

@@ -18,7 +18,7 @@ const noFinalStrategy: typeof runFinalSearch = async (options) => ({
     confirmSchedule: mixtureSchedule(options.targetWeights, options.seeds.confirmation,
       options.seeds.confirmationSampling[0]!),
     bestTrainingMean: 0.5, candidateId: null, heldOutMean: 0.5,
-    interval: { lower: 0.4, upper: 0.6 }, admitted: false, matches: 0,
+    interval: { lower: 0.4, upper: 0.6 }, rounds: [], admitted: false, matches: 0,
     telemetry: emptyAggregate(), screenTelemetry: emptyAggregate(),
     confirmationTelemetry: emptyAggregate(), failureReason: null
   }

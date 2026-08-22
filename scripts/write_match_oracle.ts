@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { strategyAgent } from '../src/sim/agents/strategyAgent';
 import { runMatch } from '../src/sim/match';
 import { diagnosticLabels, diagnosticStrategies } from '../src/sim/baselines';
-import { identify } from '../src/sim/strategy';
+import { INFINITE_COUNT, identify } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 import type { GameState } from '../src/game';
 import type { MatchResult } from '../src/sim/types';
@@ -41,7 +41,7 @@ const CASES: readonly OracleCase[] = [
 
 function oracleStrategy(kingdomId: string, label: string): Strategy {
   if (label === 'no-attack') return identify({
-    id: label, startingBuild: [], buyAgenda: [], repeatPurchase: 'silver'
+    id: label, startingBuild: [], buyPlan: [{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }]
   });
   const labels = diagnosticLabels(kingdomId);
   const found = diagnosticStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);

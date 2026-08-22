@@ -23,10 +23,10 @@ class RecordingRunner implements PairingRunner {
   readonly batches: PairingJob[][] = [];
   async run(jobs: readonly PairingJob[]) {
     this.batches.push([...jobs]);
-    const blockCount = this.batches.length === 1 ? 5 : 25;
+    const blockCount = [1, 2, 4, 8, 25][this.batches.length - 1]!;
     return { submitted: jobs.length, outcomes: jobs.map((job, index) => {
       const candidateIndex = Math.floor(index / blockCount);
-      return outcome(job, this.batches.length === 1 ? 0.45 + (candidateIndex % 100) / 1_000 : 0.51);
+      return outcome(job, this.batches.length < 5 ? 0.45 + (candidateIndex % 100) / 1_000 : 0.51);
     }) };
   }
   async close(): Promise<void> {}
@@ -35,7 +35,7 @@ class RecordingRunner implements PairingRunner {
 describe('automatic final search', () => {
   afterEach(() => { resetKingdoms(); });
 
-  it('screens 3,000 random strategies and confirms 20 on fresh shared games', async () => {
+  it('races 3,000 random strategies and confirms the winner on fresh shared games', async () => {
     balanceSuite.register();
     const kingdomId = 'balance-tuning-005';
     const opponent = randomUniqueStrategies(kingdomId, 1, 1).strategies[0]!;
@@ -45,14 +45,13 @@ describe('automatic final search', () => {
       actionCapPerTurn: 200, runner });
     expect(result.result).toMatchObject({ objective: 'final', admitted: false,
       sources: { requested: 3_000, actual: 3_000, local: 0, random: 3_000 },
-      matches: 62_000 });
-    expect(runner.batches.map((batch) => batch.length)).toEqual([15_000, 500]);
-    const screen = runner.batches[0]!;
-    const candidates = Array.from({ length: 3_000 }, (_entry, index) => screen[index * 5]!.candidate);
-    expect(new Set(candidates.map(canonicalStrategy)).size).toBe(3_000);
-    expect(screen.slice(0, 5).map((job) => job.options.seeds[0]))
-      .toEqual(screen.slice(5, 10).map((job) => job.options.seeds[0]));
-    expect(runner.batches[1]!.slice(0, 25).map((job) => job.options.seeds[0]))
-      .not.toEqual(screen.slice(0, 5).map((job) => job.options.seeds[0]));
+      matches: 29_028 });
+    expect(runner.batches.map((batch) => batch.length)).toEqual([3_000, 2_000, 1_336, 896, 25]);
+    const firstRound = runner.batches[0]!;
+    expect(new Set(firstRound.map((job) => canonicalStrategy(job.candidate))).size).toBe(3_000);
+    const usedSeeds = runner.batches.map((batch) => new Set(batch.map((job) => job.options.seeds[0])));
+    for (let left = 0; left < usedSeeds.length; left += 1) for (let right = left + 1; right < usedSeeds.length; right += 1) {
+      expect([...usedSeeds[left]!].some((seed) => usedSeeds[right]!.has(seed))).toBe(false);
+    }
   });
 });

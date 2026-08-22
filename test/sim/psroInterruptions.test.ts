@@ -69,7 +69,7 @@ function finalResult(options: Parameters<typeof runFinalSearch>[0], admitted: bo
       localShortfall: 0, randomShortfall: 0 }, screenSchedule, confirmSchedule,
     bestTrainingMean: admitted ? 0.7 : 0.5, candidateId: candidate.id,
     heldOutMean: admitted ? 0.7 : 0.5,
-    interval: admitted ? { lower: 0.6, upper: 0.8 } : { lower: 0.4, upper: 0.6 },
+    interval: admitted ? { lower: 0.6, upper: 0.8 } : { lower: 0.4, upper: 0.6 }, rounds: [],
     admitted, matches: 0, telemetry: emptyAggregate(),
     screenTelemetry: emptyAggregate(), confirmationTelemetry: emptyAggregate(), failureReason: null
   };
@@ -123,7 +123,7 @@ describe('PSRO interruption evidence', () => {
     expect(result.matrix.strategies.map((strategy) => strategy.id))
       .toContain(diagnosticStrategies('current-duel')[2]!.id);
     expect(result.matrix.complete).toBe(true);
-    expect(result.seedNamespaces).toHaveProperty('global-screen:union:3');
+    expect(result.seedNamespaces).toHaveProperty('global-race:union:3');
     expect(result.seedNamespaces).toHaveProperty('final:0:candidate');
     expect(result.seedNamespaces).toHaveProperty('final:1:confirmation');
     expect(() => assertDisjointSeedNamespaces(result.seedNamespaces)).not.toThrow();

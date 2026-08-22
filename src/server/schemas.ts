@@ -127,11 +127,15 @@ const undoHistoryEntry = z.object({
   finishedAt: z.string().datetime().nullable(),
   durationSeconds: z.number().nonnegative().nullable()
 });
+const buyPlanSlotSchema = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('inactive') }),
+  z.object({ kind: z.literal('buy'), cardId: z.string(), desiredCount: z.number().int().positive() }),
+  z.object({ kind: z.literal('stop'), threshold: z.number().int().nonnegative() })
+]);
 const strategySchema = z.object({
   id: z.string().min(1),
   startingBuild: z.array(z.string()),
-  buyAgenda: z.array(z.object({ cardId: z.string(), desiredCount: z.number().int().positive() })),
-  repeatPurchase: z.string().min(1)
+  buyPlan: z.array(buyPlanSlotSchema).length(10)
 });
 const trainingSchema = z.object({
   elapsedMs: z.number().nonnegative(),

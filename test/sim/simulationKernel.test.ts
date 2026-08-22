@@ -6,6 +6,7 @@ import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
 import { runMatch } from '../../src/sim/match';
 import { randomUniqueStrategies } from '../../src/sim/randomStrategy';
 import { runSimulationMatch } from '../../src/sim/simulationKernel';
+import { INFINITE_COUNT, fixedBuyPlan } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 
 afterEach(() => { resetKingdoms(); });
@@ -44,13 +45,15 @@ describe('the compact simulation kernel', () => {
     });
     const ranged: Strategy = {
       id: 'repelling', startingBuild: ['repellingShot', 'repellingShot', 'volley'],
-      buyAgenda: [{ cardId: 'repellingShot', desiredCount: 5 }, { cardId: 'volley', desiredCount: 3 }],
-      repeatPurchase: 'repellingShot'
+      buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'repellingShot', desiredCount: 5 },
+        { kind: 'stop', threshold: 4 }, { kind: 'buy', cardId: 'volley', desiredCount: 3 },
+        { kind: 'buy', cardId: 'repellingShot', desiredCount: INFINITE_COUNT }])
     };
     const melee: Strategy = {
       id: 'melee', startingBuild: ['heavyBlow', 'heavyBlow'],
-      buyAgenda: [{ cardId: 'heavyBlow', desiredCount: 4 }, { cardId: 'footwork', desiredCount: 3 }],
-      repeatPurchase: 'footwork'
+      buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'heavyBlow', desiredCount: 4 },
+        { kind: 'buy', cardId: 'footwork', desiredCount: 3 },
+        { kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }])
     };
     for (const seed of [2, 7, 19]) {
       const shared = {
@@ -71,9 +74,9 @@ describe('the compact simulation kernel', () => {
       'reclaim','muster','pepperingShot','adapt','footwork','drive','repellingShot','heavyBlow','aim','volley'
     ].map((cardId) => ({ cardId, count:10 })) });
     const recovery: Strategy = { id:'recovery', startingBuild:['reclaim','muster','pepperingShot'],
-      buyAgenda:[{ cardId:'reclaim', desiredCount:4 },{ cardId:'pepperingShot', desiredCount:5 }], repeatPurchase:'muster' };
+      buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'reclaim', desiredCount:4 },{ kind:'buy' as const, cardId:'pepperingShot', desiredCount:5 },{ kind:'buy' as const, cardId:'muster', desiredCount:INFINITE_COUNT }]) };
     const movement: Strategy = { id:'movement', startingBuild:['footwork','adapt','repellingShot'],
-      buyAgenda:[{ cardId:'adapt', desiredCount:4 },{ cardId:'repellingShot', desiredCount:5 }], repeatPurchase:'footwork' };
+      buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'adapt', desiredCount:4 },{ kind:'buy' as const, cardId:'repellingShot', desiredCount:5 },{ kind:'buy' as const, cardId:'footwork', desiredCount:INFINITE_COUNT }]) };
     let reclaimPlays = 0; let recoveredActionPlays = 0;
     for (const seed of [1,2,3,4,5,6,7,8]) {
       const shared = { kingdomId:'reclaim-parity', seed, firstPlayerId:'ochre' as const, swapSides:false,
@@ -92,9 +95,9 @@ describe('the compact simulation kernel', () => {
       'adapt','footwork','drive','repellingShot','pepperingShot','heavyBlow','muster','stipend','aim','volley'
     ].map((cardId) => ({ cardId, count:10 })) });
     const close: Strategy = { id:'close-movement', startingBuild:['footwork','drive','adapt'],
-      buyAgenda:[{ cardId:'drive', desiredCount:5 },{ cardId:'adapt', desiredCount:5 }], repeatPurchase:'footwork' };
+      buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'drive', desiredCount:5 },{ kind:'buy' as const, cardId:'adapt', desiredCount:5 },{ kind:'buy' as const, cardId:'footwork', desiredCount:INFINITE_COUNT }]) };
     const ranged: Strategy = { id:'ranged-movement', startingBuild:['repellingShot','adapt','footwork'],
-      buyAgenda:[{ cardId:'repellingShot', desiredCount:5 },{ cardId:'adapt', desiredCount:5 }], repeatPurchase:'footwork' };
+      buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'repellingShot', desiredCount:5 },{ kind:'buy' as const, cardId:'adapt', desiredCount:5 },{ kind:'buy' as const, cardId:'footwork', desiredCount:INFINITE_COUNT }]) };
     const totals = { drive:0, repellingShot:0, adapt:0 };
     for (const seed of [9,10,11,12,13,14,15,16]) {
       const shared = { kingdomId:'movement-counter-parity', seed, firstPlayerId:'ochre' as const,
@@ -114,9 +117,9 @@ describe('the compact simulation kernel', () => {
       actionPiles:['footwork','feint','strike','aim','steadyShot'].map((cardId) => ({ cardId, count:10 })),
       overrides:{ feint:{ values:{ bonus:3 } }, aim:{ values:{ bonus:5 } } } });
     const melee: Strategy = { id:'override-melee', startingBuild:['footwork','feint','strike'],
-      buyAgenda:[{ cardId:'feint', desiredCount:4 },{ cardId:'strike', desiredCount:5 }], repeatPurchase:'footwork' };
+      buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'feint', desiredCount:4 },{ kind:'buy' as const, cardId:'strike', desiredCount:5 },{ kind:'buy' as const, cardId:'footwork', desiredCount:INFINITE_COUNT }]) };
     const ranged: Strategy = { id:'override-ranged', startingBuild:['aim','steadyShot'],
-      buyAgenda:[{ cardId:'aim', desiredCount:4 },{ cardId:'steadyShot', desiredCount:5 }], repeatPurchase:'aim' };
+      buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'aim', desiredCount:4 },{ kind:'buy' as const, cardId:'steadyShot', desiredCount:5 },{ kind:'buy' as const, cardId:'aim', desiredCount:INFINITE_COUNT }]) };
     for (const seed of [3,8,13]) {
       const shared = { kingdomId:'sim-bonus-overrides', seed, firstPlayerId:'ochre' as const,
         swapSides:false, turnLimitPerPlayer:20, actionCapPerTurn:200 };
@@ -130,7 +133,7 @@ describe('the compact simulation kernel', () => {
       'footwork','bullRush','strike','salvageShot','steadyShot','discipline','scour','sharpen','longshot',
       'improvise','openingStrike','rally','leyStep','adapt','feint','aim','channel','discharge','regroup'
     ].map((cardId) => ({ cardId, count:10 })) });
-    const passive: Strategy = { id:'passive', startingBuild:[], buyAgenda:[], repeatPurchase:'gold' };
+    const passive: Strategy = { id:'passive', startingBuild:[], buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'gold', desiredCount:INFINITE_COUNT }]) };
     const cases: Array<{ mechanic:string; build:string[]; played:string }> = [
       { mechanic:'Bull Rush', build:['footwork','bullRush','strike'], played:'bullRush' },
       { mechanic:'Salvage Shot', build:['salvageShot','steadyShot'], played:'salvageShot' },
@@ -149,7 +152,7 @@ describe('the compact simulation kernel', () => {
     ];
     for (const entry of cases) {
       const plan: Strategy = { id:`controlled-${entry.played}`, startingBuild:entry.build,
-        buyAgenda:[{ cardId:entry.played, desiredCount:4 }], repeatPurchase:entry.played };
+        buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:entry.played, desiredCount:4 },{ kind:'buy' as const, cardId:entry.played, desiredCount:INFINITE_COUNT }]) };
       let plays = 0;
       for (const seed of [2,7]) {
         const shared = { kingdomId:'controlled-mechanics', seed, firstPlayerId:'ochre' as const,
@@ -167,8 +170,8 @@ describe('the compact simulation kernel', () => {
     registerKingdom({ id:'empty-regroup', name:'Empty Regroup', startingHealth:80,
       actionPiles:[{ cardId:'regroup', count:10 }], overrides:{ regroup:{ cost:0, values:{ draw:0 } } } });
     const regroup: Strategy = { id:'empty-regroup-plan', startingBuild:Array<string>(5).fill('regroup'),
-      buyAgenda:[], repeatPurchase:'regroup' };
-    const passive: Strategy = { id:'empty-regroup-passive', startingBuild:[], buyAgenda:[], repeatPurchase:'gold' };
+      buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'regroup', desiredCount:INFINITE_COUNT }]) };
+    const passive: Strategy = { id:'empty-regroup-passive', startingBuild:[], buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'gold', desiredCount:INFINITE_COUNT }]) };
     const shared = { kingdomId:'empty-regroup', seed:125, firstPlayerId:'ochre' as const,
       swapSides:false, turnLimitPerPlayer:2, actionCapPerTurn:20 };
     const product = runMatch({ ...shared, agents:{ ochre:tacticalAgent(regroup), indigo:tacticalAgent(passive) } });
@@ -182,8 +185,8 @@ describe('the compact simulation kernel', () => {
       actionPiles:['channel','discharge'].map((cardId) => ({ cardId, count:10 })),
       overrides:{ discharge:{ values:{ perMana:20 } } } });
     const lethal: Strategy = { id:'lethal', startingBuild:['channel','discharge'],
-      buyAgenda:[{ cardId:'channel', desiredCount:4 },{ cardId:'discharge', desiredCount:4 }], repeatPurchase:'channel' };
-    const passive: Strategy = { id:'passive-lethal', startingBuild:[], buyAgenda:[], repeatPurchase:'gold' };
+      buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'channel', desiredCount:4 },{ kind:'buy' as const, cardId:'discharge', desiredCount:4 },{ kind:'buy' as const, cardId:'channel', desiredCount:INFINITE_COUNT }]) };
+    const passive: Strategy = { id:'passive-lethal', startingBuild:[], buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'gold', desiredCount:INFINITE_COUNT }]) };
     let victories = 0;
     for (const seed of [1,2,3,4,5,6]) {
       const shared = { kingdomId:'lethal-discharge', seed, firstPlayerId:'ochre' as const,
@@ -199,8 +202,8 @@ describe('the compact simulation kernel', () => {
   it('does not charge pending continuations against a low action cap', () => {
     registerKingdom({ id:'continuation-cap', name:'Continuation cap', startingHealth:80,
       actionPiles:[{ cardId:'regroup', count:10 }] });
-    const regroup: Strategy = { id:'regroup-cap', startingBuild:['regroup'], buyAgenda:[], repeatPurchase:'gold' };
-    const passive: Strategy = { id:'passive-cap', startingBuild:[], buyAgenda:[], repeatPurchase:'gold' };
+    const regroup: Strategy = { id:'regroup-cap', startingBuild:['regroup'], buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'gold', desiredCount:INFINITE_COUNT }]) };
+    const passive: Strategy = { id:'passive-cap', startingBuild:[], buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'gold', desiredCount:INFINITE_COUNT }]) };
     let plays = 0;
     for (const seed of [1,2,3,4,5,6]) {
       const shared = { kingdomId:'continuation-cap', seed, firstPlayerId:'ochre' as const,
@@ -218,9 +221,9 @@ describe('the compact simulation kernel', () => {
       'cull','channel','attune','cascade','discharge','overload','flurry','precisionShot','reforge','footwork'
     ].map((cardId) => ({ cardId, count:10 })) });
     const combo: Strategy = { id:'combo', startingBuild:['channel','attune','cascade'],
-      buyAgenda:[{ cardId:'discharge', desiredCount:4 },{ cardId:'overload', desiredCount:4 },{ cardId:'attune', desiredCount:4 }], repeatPurchase:'channel' };
+      buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'discharge', desiredCount:4 },{ kind:'buy' as const, cardId:'overload', desiredCount:4 },{ kind:'buy' as const, cardId:'attune', desiredCount:4 },{ kind:'buy' as const, cardId:'channel', desiredCount:INFINITE_COUNT }]) };
     const engine: Strategy = { id:'engine', startingBuild:['reforge','cull','footwork'],
-      buyAgenda:[{ cardId:'reforge', desiredCount:4 },{ cardId:'flurry', desiredCount:4 },{ cardId:'precisionShot', desiredCount:4 }], repeatPurchase:'footwork' };
+      buyPlan:fixedBuyPlan([{ kind:'buy' as const, cardId:'reforge', desiredCount:4 },{ kind:'buy' as const, cardId:'flurry', desiredCount:4 },{ kind:'buy' as const, cardId:'precisionShot', desiredCount:4 },{ kind:'buy' as const, cardId:'footwork', desiredCount:INFINITE_COUNT }]) };
     for (const startingDraftEnabled of [true,false]) for (const seed of [5,13]) {
       const shared = { kingdomId:'combo-parity', seed, firstPlayerId:'ochre' as const, swapSides:false,
         turnLimitPerPlayer:12, actionCapPerTurn:200, startingDraftEnabled };

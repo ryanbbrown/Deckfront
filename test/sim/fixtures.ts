@@ -2,6 +2,7 @@ import { applyAction, assertInvariants, createCard, createGame, listLegalActions
 import type { CardInstance, GameState, LegalAction } from '../../src/game';
 import { DEFAULT_STATE_LIMIT, createMemo, searchAction, searchBaseline } from '../../src/sim/search';
 import type { SearchMemo } from '../../src/sim/search';
+import { INFINITE_COUNT, fixedBuyPlan } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 
 export interface ArenaOptions {
@@ -75,7 +76,10 @@ export function arena(options: ArenaOptions = {}): GameState {
 
 export function strategy(overrides: Partial<Strategy> = {}): Strategy {
   return {
-    id: 'test-strategy', startingBuild: [], buyAgenda: [], repeatPurchase: 'footwork', ...overrides
+    id: overrides.id ?? 'test-strategy', startingBuild: overrides.startingBuild ?? [],
+    buyPlan: fixedBuyPlan(overrides.buyPlan ?? [
+      { kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }
+    ])
   };
 }
 

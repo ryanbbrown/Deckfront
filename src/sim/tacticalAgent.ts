@@ -29,7 +29,7 @@ function availableCard(state: GameState, actions: readonly LegalAction[], card: 
 
 function projectionVector(state: GameState, playerId: PlayerId, strategy: Strategy, copperTrashed: number): readonly number[] {
   const projection = projectPurchases(state, playerId, actionPhaseMoney(state, playerId) - copperTrashed, strategy);
-  return [...projection.finite, projection.repeated];
+  return projection.bought;
 }
 
 function cullOptions(state: GameState, playerId: PlayerId, strategy: Strategy, hand: readonly PilotCard[]): CullOption[] {

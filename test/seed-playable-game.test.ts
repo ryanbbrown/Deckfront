@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import { describe, expect, it } from 'vitest';
 import { kingdomOf } from '../src/game';
 import { FileGameRepository } from '../src/server/persistence';
-import { identify } from '../src/sim/strategy';
+import { INFINITE_COUNT, fixedBuyPlan, identify } from '../src/sim/strategy';
 
 const execute = promisify(execFile);
 
@@ -16,7 +16,10 @@ describe('playable-game seed script', () => {
     try {
       const games = path.join(directory, 'games');
       const source = path.join(directory, 'source.json');
-      const aiStrategy = identify({ id: '', startingBuild: [], buyAgenda: [], repeatPurchase: 'silver' });
+      const aiStrategy = identify({
+        id: '', startingBuild: [],
+        buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }])
+      });
       await writeFile(source, JSON.stringify({
         kingdom: kingdomOf('current-duel'), aiStrategy,
         training: { elapsedMs: 1, matches: 2, strategyId: aiStrategy.id }

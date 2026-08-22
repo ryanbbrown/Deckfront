@@ -20,7 +20,7 @@ function response(objective: 'global' | 'final', admitted: boolean): ResponseRes
       local: 5, random: 3, duplicateRejections: 4, localShortfall: 2, randomShortfall: 0 },
     screenSchedule: schedule, confirmSchedule: schedule, bestTrainingMean: 0.7,
     candidateId: strategies[1]!.id, heldOutMean: 0.56,
-    interval: { lower: 0.51, upper: 0.61 }, admitted, matches: 16,
+    interval: { lower: 0.51, upper: 0.61 }, rounds: [], admitted, matches: 16,
     telemetry: emptyAggregate(), screenTelemetry: emptyAggregate(), confirmationTelemetry: emptyAggregate(),
     failureReason: null };
 }
