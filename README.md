@@ -111,10 +111,11 @@ slots. Run or resume it and check its status with:
 
 ```sh
 npm run deep-beam:suite:run
+npm run deep-beam:suite:run -- --limit 10
 npm run deep-beam:suite:status
 ```
 
-At 330 seconds per kingdom, the serial search takes about 9.2 hours before overhead. Complete results
+Use `--limit 10` for a resumable ten-kingdom balance pilot. At 330 seconds per kingdom, the serial search takes about 9.2 hours before overhead. Complete results
 survive interruption. Inputs, results, and atomic status are ignored under
 `.experiments/deep-beam-suite/deep-beam-v1/`.
 

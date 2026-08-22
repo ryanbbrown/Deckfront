@@ -1,6 +1,16 @@
 import process from 'node:process';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 
+function optionInteger(name: string): number | null {
+  const index = process.argv.indexOf(`--${name}`);
+  if (index < 0) return null;
+  const value = Number(process.argv[index + 1]);
+  if (!Number.isInteger(value) || value < 1 || value > deepBeamSuite.kingdoms.length) {
+    throw new Error(`--${name} needs a whole number from 1 to ${deepBeamSuite.kingdoms.length}.`);
+  }
+  return value;
+}
+
 function duration(milliseconds: number | null): string {
   if (milliseconds === null) return 'unknown';
   const seconds = Math.max(0, Math.round(milliseconds / 1_000));
@@ -33,8 +43,12 @@ if (process.argv.includes('--status')) {
   process.once('SIGINT', onInterrupt);
   process.once('SIGTERM', onTerminate);
   try {
+    const limit = optionInteger('limit');
+    const kingdomIds = limit === null
+      ? undefined : deepBeamSuite.kingdoms.slice(0, limit).map((kingdom) => kingdom.id);
     const result = await deepBeamSuite.runBatch({
       root: process.cwd(),
+      ...(kingdomIds ? { kingdomIds } : {}),
       signal: controller.signal,
       onProgress: ({ kingdomId, status, finished, total, elapsedMs, etaMs }) => {
         process.stdout.write(`[${finished}/${total}] ${kingdomId}: ${status}; elapsed ${duration(elapsedMs)}; ETA ${duration(etaMs)}\n`);
