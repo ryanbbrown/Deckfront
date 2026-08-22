@@ -22,8 +22,7 @@ export interface CorpusSummary {
   effectiveMean: number;
   effectiveMaximum: number;
   multipleViableRate: number;
-  viableStrategies: number;
-  damageStrategyWeights: Record<string, number>;
+  damageStrategyCounts: Record<string, number>;
   drawRate: number;
   winnerTurnsPerPlayer: number;
   firstPlayerScore: number;
@@ -168,11 +167,10 @@ function distribution(values: readonly number[]): Record<string, number> {
 function summarize(label: string, kingdoms: readonly CorpusKingdomReport[]): CorpusSummary {
   if (!kingdoms.length) throw new Error(`Cannot summarize an empty ${label} corpus.`);
   const effective = kingdoms.map((kingdom) => kingdom.effectiveLotterySize);
-  const damageStrategyWeights: Record<string, number> = {};
+  const damageStrategyCounts: Record<string, number> = {};
   for (const strategy of kingdoms.flatMap((kingdom) => kingdom.strategies)) {
-    if (strategy.status !== 'Lottery') continue;
     const identity = classifyStrategyDamage(strategy);
-    damageStrategyWeights[identity] = (damageStrategyWeights[identity] ?? 0) + strategy.weight;
+    damageStrategyCounts[identity] = (damageStrategyCounts[identity] ?? 0) + 1;
   }
   return { label, kingdoms: kingdoms.length,
     lotteryDistribution: distribution(kingdoms.map((kingdom) => kingdom.materialCount)),
@@ -180,8 +178,7 @@ function summarize(label: string, kingdoms: readonly CorpusKingdomReport[]): Cor
     effectiveMinimum: Math.min(...effective), effectiveMedian: median(effective),
     effectiveMean: mean(effective), effectiveMaximum: Math.max(...effective),
     multipleViableRate: kingdoms.filter((kingdom) => kingdom.strategies.length >= 2).length / kingdoms.length,
-    viableStrategies: kingdoms.reduce((sum, kingdom) => sum + kingdom.strategies.length, 0),
-    damageStrategyWeights, drawRate: mean(kingdoms.map((kingdom) => kingdom.lotteryTelemetry.drawRate)),
+    damageStrategyCounts, drawRate: mean(kingdoms.map((kingdom) => kingdom.lotteryTelemetry.drawRate)),
     winnerTurnsPerPlayer: mean(kingdoms.map((kingdom) => kingdom.lotteryTelemetry.winnerTurnsPerPlayer ?? 0)),
     firstPlayerScore: mean(kingdoms.map((kingdom) => kingdom.lotteryTelemetry.firstPlayerScore)) };
 }
@@ -371,25 +368,25 @@ function table(headers: readonly string[], rows: readonly (readonly string[])[],
 function formatDistribution(values: Record<string, number>): string {
   return Object.entries(values).map(([count, kingdoms]) => `${count}: ${kingdoms}`).join(' · ');
 }
-function formatDamageStrategies(weights: Record<string, number>): string {
-  const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-  return Object.entries(weights).sort(([left], [right]) => left.localeCompare(right))
-    .map(([label, weight]) => `${label}: ${percent(weight / total)}`).join(' · ');
+function formatDamageStrategies(counts: Record<string, number>): string {
+  const total = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  return Object.entries(counts).sort(([left], [right]) => left.localeCompare(right))
+    .map(([label, count]) => `${label}: ${count} (${percent(count / total)})`).join(' · ');
 }
 function summaryTable(summaries: readonly CorpusSummary[]): string {
   return table(['Split', 'Kingdoms', 'Lottery count distribution', 'Additional ≥40% distribution',
-    'Effective size min / median / mean / max', '2+ at 40%', 'Final lottery by damage type',
+    'Effective size min / median / mean / max', '2+ at 40%', 'Viable strategies by damage type',
     'Draws', 'Turns/player', 'First-player score'], summaries.map((summary) => [summary.label,
     String(summary.kingdoms), formatDistribution(summary.lotteryDistribution), formatDistribution(summary.nearDistribution),
     `${fixed(summary.effectiveMinimum)} / ${fixed(summary.effectiveMedian)} / ${fixed(summary.effectiveMean)} / ${fixed(summary.effectiveMaximum)}`,
-    percent(summary.multipleViableRate), formatDamageStrategies(summary.damageStrategyWeights), percent(summary.drawRate),
+    percent(summary.multipleViableRate), formatDamageStrategies(summary.damageStrategyCounts), percent(summary.drawRate),
     fixed(summary.winnerTurnsPerPlayer), percent(summary.firstPlayerScore)]));
 }
 function strategySplit(summary: CorpusSummary): string {
-  const total = Object.values(summary.damageStrategyWeights).reduce((sum, weight) => sum + weight, 0);
-  const rows = Object.entries(summary.damageStrategyWeights).sort(([, left], [, right]) => right - left)
-    .map(([label, weight]) => [escape(label), percent(weight / total)]);
-  return table(['Strategy type', 'Metagame share'], rows);
+  const total = Object.values(summary.damageStrategyCounts).reduce((sum, count) => sum + count, 0);
+  const rows = Object.entries(summary.damageStrategyCounts).sort(([, left], [, right]) => right - left)
+    .map(([label, count]) => [escape(label), integer(count), percent(count / total)]);
+  return table(['Strategy type', 'Viable strategies', 'Share'], rows);
 }
 function strategyGroupCardTable(cards: readonly StrategyGroupCardUse[]): string {
   return table(['Card', 'Cost and effect', 'Used when offered', 'Copies when used'], cards.map((card) => [escape(card.name),
@@ -455,11 +452,8 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
   const notAcquired = model.cards.filter((card) => card.combined.acquiredStrategies === 0).map((card) => card.name);
   const kingdomRows = model.kingdoms.map((kingdom) => [escape(kingdom.id), kingdom.split,
     String(kingdom.materialCount), String(kingdom.nearCount), String(kingdom.strategies.length),
-    fixed(kingdom.effectiveLotterySize), formatDamageStrategies(kingdom.strategies.reduce<Record<string, number>>((weights, strategy) => {
-      if (strategy.status !== 'Lottery') return weights;
-      const identity = classifyStrategyDamage(strategy);
-      weights[identity] = (weights[identity] ?? 0) + strategy.weight;
-      return weights;
+    fixed(kingdom.effectiveLotterySize), formatDamageStrategies(kingdom.strategies.reduce<Record<string, number>>((counts, strategy) => {
+      const identity = classifyStrategyDamage(strategy); counts[identity] = (counts[identity] ?? 0) + 1; return counts;
     }, {})), percent(kingdom.lotteryTelemetry.drawRate),
     fixed(kingdom.lotteryTelemetry.winnerTurnsPerPlayer ?? 0), percent(kingdom.lotteryTelemetry.firstPlayerScore),
     integer(kingdom.matches), fixed(kingdom.elapsedMs / 1000, 1)]);
@@ -483,14 +477,14 @@ export function renderBalanceCorpus(model: BalanceCorpusModel): string {
   const incompletePoolWarning = missingVariableCards.length
     ? `<section class="warning"><h2>This is an incomplete historical card pool</h2><p>These runs excluded ${escape(missingVariableCards.map((cardId) => cardDefinition(cardId).name).join(' and '))}, even though the playable random market can include them. Use this report to understand the latest completed runs, but do not treat it as the final whole-game balance result.</p></section>` : '';
   const primarySummary = model.scope === 'full' ? model.summaries.combined : model.summaries.tuning;
-  const strategyTotal = primarySummary.viableStrategies;
+  const strategyTotal = Object.values(primarySummary.damageStrategyCounts).reduce((sum, count) => sum + count, 0);
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><style>
 :root{--ink:#17231d;--muted:#56625c;--line:#ccd6d0;--paper:#f7f5ef;--panel:#fff;--accent:#096b4b;--soft:#e8f2ed;--warn:#9a3f13;--warn-soft:#fff1e8}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.48 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1500px;margin:auto;padding:36px 28px 72px}h1{font-size:clamp(30px,4vw,52px);line-height:1.05;margin:0 0 12px}h2{font-size:28px;margin:0 0 8px}h3{font-size:18px;margin:24px 0 8px}p{max-width:90ch;color:var(--muted)}section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:24px;margin:24px 0}.warning{border:2px solid var(--warn);background:var(--warn-soft)}.warning h2{color:var(--warn)}.table-scroll{max-width:100%;overflow-x:auto;border:1px solid var(--line);border-radius:8px}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:9px 11px;border-bottom:1px solid #e4e9e6;vertical-align:top}th{background:#edf3ef;font-size:12px;text-transform:uppercase;letter-spacing:.04em}tr:last-child td{border-bottom:0}.card-use{white-space:normal;table-layout:fixed;min-width:760px}.card-use th:nth-child(1){width:15%}.card-use th:nth-child(2){width:49%}.card-use th:nth-child(3){width:24%}.card-use th:nth-child(4){width:12%}.pair-use td:not(:first-child),.pair-use th:not(:first-child),.availability-use td:not(:first-child),.availability-use th:not(:first-child){text-align:right}.matrix td:not(:first-child),.matrix th:not(:first-child){text-align:right}.key{display:inline-block;background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-weight:700}.selection{color:var(--accent);font-weight:650}.callouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}.callouts div{background:var(--soft);padding:14px;border-radius:9px}code{font:12px ui-monospace,SFMono-Regular,Menlo,monospace}@media(max-width:720px){main{padding:22px 12px 48px}section{padding:16px;margin:14px 0}.callouts{grid-template-columns:1fr}h2{font-size:23px}}
 </style></head><body><main><header><h1>${title}</h1><p>${introduction}</p></header>
 ${incompletePoolWarning}
 ${warning}
 <section><h2>Balance at a glance</h2><div class="callouts"><div><strong>${integer(strategyTotal)}</strong><br>strategies score at least 40% against the best discovered strategy mix</div><div><strong>${percent(primarySummary.multipleViableRate)}</strong><br>of kingdoms have at least two such strategies</div><div><strong>${fixed(primarySummary.winnerTurnsPerPlayer)}</strong><br>turns per player in games with a winner</div><div><strong>${percent(primarySummary.firstPlayerScore)}</strong><br>first-player score</div></div><p>A strategy counts as viable here if it is in the final lottery or scores at least 40% against that lottery. The 40% line represents a strategy that a human could reasonably play, not equal computer strength.</p></section>
-<section><h2>Strategy types</h2>${strategySplit(primarySummary)}<p>Metagame share averages each kingdom’s final equilibrium weights, giving every kingdom equal total weight. Additional strategies that only clear the 40% viability line have no metagame weight. A strategy is mixed when at least 20% of its damage-card weight comes from a second damage type. The sections that follow show which cards each strategy type actually uses.</p></section>
+<section><h2>Strategy types</h2>${strategySplit(primarySummary)}<p>A strategy is mixed when at least 20% of its damage-card weight comes from a second damage type. The sections that follow show which cards each strategy type actually uses.</p></section>
 ${strategyGroupSections(model)}
 <section><h2>Cards with no use in any strategy type</h2><div class="callouts"><div><strong>No planned use</strong><br>${unused.length ? escape(unused.join(', ')) : 'None'}</div><div><strong>No actual acquisitions</strong><br>${notAcquired.length ? escape(notAcquired.join(', ')) : 'None'}</div></div></section>
 <section><h2>Kingdom diversity</h2>${summaryTable(summaryRows)}<p>The lottery count shows strategies used by the best discovered mix. “Additional ≥40%” counts other discovered strategies that score at least 40% against that mix. Effective size measures how evenly the lottery is split; 1 means one strategy receives all weight.</p></section>

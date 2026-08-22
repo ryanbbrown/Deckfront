@@ -39,15 +39,15 @@ describe('balance-corpus aggregation', () => {
     const model = buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, corpus());
     expect(model.summaries.tuning).toMatchObject({ kingdoms: 80, lotteryDistribution: { 1: 80 },
       effectiveMinimum: 1, effectiveMedian: 1, effectiveMean: 1, effectiveMaximum: 1,
-      multipleViableRate: 0, viableStrategies: 80,
-      damageStrategyWeights: { 'No damage package': 80 }, drawRate: 0, winnerTurnsPerPlayer: 8 });
+      multipleViableRate: 0, damageStrategyCounts: { 'No damage package': 80 },
+      drawRate: 0, winnerTurnsPerPlayer: 8 });
     expect(model.summaries.validation).toMatchObject({ kingdoms: 20, lotteryDistribution: { 2: 20 },
       effectiveMinimum: 2, effectiveMedian: 2, effectiveMean: 2, effectiveMaximum: 2,
-      multipleViableRate: 1, viableStrategies: 40, damageStrategyWeights: { Ranged: 20 },
+      multipleViableRate: 1, damageStrategyCounts: { Ranged: 40 },
       winnerTurnsPerPlayer: 10 });
     expect(model.summaries.combined).toMatchObject({ kingdoms: 100, effectiveMedian: 1,
       effectiveMean: 1.2, multipleViableRate: 0.2,
-      viableStrategies: 120, damageStrategyWeights: { 'No damage package': 80, Ranged: 20 },
+      damageStrategyCounts: { 'No damage package': 80, Ranged: 40 },
       winnerTurnsPerPlayer: 8.4 });
     expect(model.summaries.tuning.firstPlayerScore).toBeCloseTo(0.6, 12);
     expect(model.summaries.validation!.drawRate).toBeCloseTo(0.1, 12);
@@ -60,17 +60,6 @@ describe('balance-corpus aggregation', () => {
       acquiredStrategies: 80, familyAcquisitionShare: 1 });
     expect(volley.validation).toMatchObject({ buildPlans: 40, infinitePlans: 40,
       acquiredStrategies: 40, familyAcquisitionShare: 1 });
-  });
-
-  it('excludes zero-weight viable strategies from the metagame split', () => {
-    const tuning = corpus().filter((entry) => entry.split === 'tuning');
-    const extra = { ...tuning[0]!.strategies[0]!, id: 'extra-ranged', status: '40% viable' as const,
-      weight: 0, startingBuild: ['volley'], acquisitionRates: { volley: 2 } };
-    tuning[0]!.strategies.push(extra);
-    tuning[0]!.matchupScores.push(tuning[0]!.strategies.map(() => 0.5));
-    const summary = buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, tuning).summaries.tuning;
-    expect(summary.viableStrategies).toBe(81);
-    expect(summary.damageStrategyWeights).toEqual({ 'No damage package': 80 });
   });
 
   it('classifies strategy damage from its starting deck and evaluated acquisitions', () => {
@@ -150,8 +139,6 @@ describe('balance-corpus aggregation', () => {
     expect(html).toContain('Eighty-kingdom tuning report');
     expect(html).toContain('Balance at a glance');
     expect(html).toContain('Strategy types');
-    expect(html).toContain('Metagame share');
-    expect(html).toContain('Additional strategies that only clear the 40% viability line have no metagame weight');
     expect(html).toContain('No damage package strategies');
     expect(html).toContain('Ranged strategies');
     expect(html).toContain('Cards that define this strategy type');
