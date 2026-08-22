@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { applyAction, listLegalActions, resetKingdoms } from '../../src/game';
+import { applyAction, listLegalActions, registerKingdom, resetKingdoms } from '../../src/game';
 import type { GameCommand, GameState } from '../../src/game';
 import { applyLegalAction } from '../../src/game/engine';
 import { createMemo, memoKey, searchAction, searchBaseline } from '../../src/sim/search';
+import { tacticalAgent } from '../../src/sim/tacticalAgent';
 import { ActionSearchOverflowError } from '../../src/sim/types';
 import { arena, choose, playPhase, strategy } from './fixtures';
 
@@ -45,14 +46,14 @@ describe('shared damage pilot', () => {
   it('plays Aim before Volley when that deals more damage', () => {
     const state = arena({ hand: ['aim', 'volley'], draw: ['copper'], ochre: 2, indigo: 3, health: 20 });
     expect(firstPlayedDefinition(state)).toBe('aim');
-    expect(playPhase(state, strategy()).fighters.indigo.health).toBe(16);
+    expect(playPhase(state, strategy()).fighters.indigo.health).toBe(17);
   });
 
   it('orders tactical actions before Flurry', () => {
     const state = arena({ hand: ['footwork', 'feint', 'flurry'], draw: ['copper', 'copper'], ochre: 3, indigo: 3, health: 20 });
     const finished = playPhase(state, strategy());
-    expect(finished.fighters.indigo.health).toBe(16);
-    expect(finished.actionsThisTurn.at(-1)).toBe('flurry');
+    expect(finished.fighters.indigo.health).toBe(17);
+    expect(finished.turnState.cardsPlayed.at(-1)).toBe('flurry');
   });
 
   it('moves a Mage deck away from a public Melee deck', () => {
@@ -108,13 +109,11 @@ describe('hidden draw order', () => {
     )!;
     const pending = applyAction(state, reclaim.id);
     const recovered = applyAction(pending, choose(pending, strategy()).id);
-    expect(recovered.players.ochre.deck.draw.map((card) => card.definitionId)).toEqual(['gold', 'silver', 'copper']);
+    expect(recovered.players.ochre.deck.draw.map((card) => card.definitionId)).toEqual(['copper', 'silver', 'copper']);
+    expect(recovered.players.ochre.deck.hand.map((card) => card.definitionId)).toContain('gold');
 
     const permuted = structuredClone(recovered);
-    permuted.players.ochre.deck.draw = [
-      permuted.players.ochre.deck.draw[0]!,
-      ...permuted.players.ochre.deck.draw.slice(1).reverse()
-    ];
+    permuted.players.ochre.deck.draw.reverse();
     expect(choose(permuted, strategy()).command).toEqual(choose(recovered, strategy()).command);
   });
 });
@@ -166,12 +165,21 @@ describe('Cull policy', () => {
 describe('fixed choice policy', () => {
   it('Reclaim selects the highest-cost discarded card', () => {
     const state = arena({ kingdomId: 'three-way-engine', hand: ['reclaim'], draw: ['copper'], discard: ['silver', 'gold'] });
-    expect(playPhase(state, strategy({ repeatPurchase: 'footwork' })).players.ochre.deck.draw[0]?.definitionId).toBe('gold');
+    const reclaim = listLegalActions(state).find((entry) => 'cardInstanceId' in entry.command)!;
+    const pending = applyAction(state, reclaim.id); const agent = tacticalAgent(strategy({ repeatPurchase: 'channel' }));
+    const selected = agent.chooseAction(pending, 'ochre', listLegalActions(pending));
+    expect(selected.command.type).toBe('resolveRecover');
+    const recoveredId = selected.command.type === 'resolveRecover' ? selected.command.recoverInstanceId : '';
+    expect(pending.players.ochre.deck.discard.find((card) => card.id === recoveredId)?.definitionId).toBe('gold');
   });
 
   it('breaks equal Reclaim costs by definition id', () => {
     const state = arena({ kingdomId: 'three-way-engine', hand: ['reclaim'], draw: ['copper'], discard: ['silver', 'footwork'] });
-    expect(playPhase(state, strategy({ repeatPurchase: 'footwork' })).players.ochre.deck.draw[0]?.definitionId).toBe('footwork');
+    const reclaim = listLegalActions(state).find((entry) => 'cardInstanceId' in entry.command)!;
+    const pending = applyAction(state, reclaim.id); const agent = tacticalAgent(strategy({ repeatPurchase: 'channel' }));
+    const selected = agent.chooseAction(pending, 'ochre', listLegalActions(pending));
+    const recoveredId = selected.command.type === 'resolveRecover' ? selected.command.recoverInstanceId : '';
+    expect(pending.players.ochre.deck.discard.find((card) => card.id === recoveredId)?.definitionId).toBe('footwork');
   });
 
   it('uses the revealed state after Prism to preserve the maximum damage line', () => {
@@ -203,7 +211,7 @@ describe('search mechanics', () => {
   });
 
   it('keeps exact memo results through Reclaim and a later draw', () => {
-    const state = arena({ kingdomId: 'three-way-engine', hand: ['reclaim'], draw: ['muster'], discard: ['gold', 'copper'] });
+    const state = arena({ kingdomId: 'three-way-engine', hand: ['reclaim'], draw: [], discard: ['pepperingShot'] });
     const plan = strategy({ repeatPurchase: 'footwork' });
     const memoized = actionPhaseCommands(structuredClone(state), plan, createMemo());
     const plain = actionPhaseCommands(structuredClone(state), plan, null);
@@ -211,6 +219,7 @@ describe('search mechanics', () => {
     expect(memoized.state).toEqual(plain.state);
     expect(memoized.commands.map((command) => command.type)).toContain('resolveRecover');
     expect(memoized.commands.filter((command) => 'cardInstanceId' in command)).toHaveLength(2);
+    expect(memoized.state.fighters.indigo.health).toBe(39);
   });
 
   it('does not read labels while searching', () => {
@@ -233,6 +242,39 @@ describe('search mechanics', () => {
     const backward = structuredClone(forward);
     backward.players.ochre.deck.draw.reverse();
     expect(memoKey(forward, 'ochre')).not.toBe(memoKey(backward, 'ochre'));
+  });
+
+  it.each([
+    ['spaces moved', (state: GameState) => { state.turnState.spacesMoved = 2; }],
+    ['mana spent', (state: GameState) => { state.turnState.manaSpent = 2; }],
+    ['spells played', (state: GameState) => { state.turnState.spellsPlayed = 2; }],
+    ['copies by definition', (state: GameState) => { state.turnState.copiesPlayed = { rally: 2 }; }],
+    ['distinct families', (state: GameState) => { state.turnState.familiesPlayed = ['mana', 'melee']; }],
+    ['ordered card history', (state: GameState) => { state.turnState.cardsPlayed = ['channel', 'openingStrike']; }]
+  ] as const)('includes %s in memo identity', (_name, mutate) => {
+    const baseline = arena({ kingdomId: 'current-duel', hand: ['rally'] });
+    const changed = structuredClone(baseline);
+    mutate(changed);
+    expect(memoKey(changed, 'ochre')).not.toBe(memoKey(baseline, 'ochre'));
+  });
+
+  it('distinguishes the first-card boundary even at the same tactical count', () => {
+    const first = arena({ kingdomId: 'current-duel', hand: ['rally'] });
+    const later = structuredClone(first);
+    first.turnState.cardsPlayed = [];
+    later.turnState.cardsPlayed = ['channel'];
+    expect(memoKey(first, 'ochre')).not.toBe(memoKey(later, 'ochre'));
+  });
+
+  it('prunes Scour target combinations to the pilot-selected Copper cards', () => {
+    registerKingdom({ id:'search-scour', name:'Search Scour', startingHealth:40,
+      actionPiles:[{ cardId:'scour', count:10 }] });
+    const state = arena({ kingdomId:'search-scour', hand:['scour','copper','copper','copper','silver','gold'] });
+    const selected = choose(state, strategy({ repeatPurchase:'gold' }), { stateLimit:20 });
+    expect(selected.command.type).toBe('playTargetedAction');
+    const targets = selected.command.type === 'playTargetedAction' ? selected.command.targetCardInstanceIds : [];
+    expect(targets.map((id) => state.players.ochre.deck.hand.find((card) => card.id === id)?.definitionId))
+      .toEqual(['copper','copper']);
   });
 
   it('throws instead of returning a weaker action past its state limit', () => {

@@ -5,13 +5,13 @@ import type { CardDefinition, GameState, Kingdom } from './types';
 import { VALUE_KEYS } from './values';
 
 export const DEFAULT_KINGDOM_ID = 'distance-duel';
-export const ALWAYS_AVAILABLE_ACTION_IDS: readonly string[] = Object.freeze(['step', 'cull', 'focus']);
+export const ALWAYS_AVAILABLE_ACTION_IDS: readonly string[] = Object.freeze(['step', 'focus']);
 export const ALWAYS_AVAILABLE_COUNT = 10;
 export const MAX_PILE_COUNT = 10;
 export const RANDOM_KINGDOM_SIZE = 10;
 export const TREASURE_IDS: readonly string[] = Object.freeze(Object.values(CARDS).filter((card) => card.type === 'treasure').map((card) => card.id));
 export const VARIABLE_ACTION_IDS: readonly string[] = Object.freeze(Object.values(CARDS)
-  .filter((card) => card.type === 'action' && !ALWAYS_AVAILABLE_ACTION_IDS.includes(card.id)).map((card) => card.id));
+  .filter((card) => card.type === 'action' && card.id !== 'scrap' && !ALWAYS_AVAILABLE_ACTION_IDS.includes(card.id)).map((card) => card.id));
 
 export interface RandomIndexSource { nextInt(maxExclusive: number): number }
 export function randomVariableCardIds(

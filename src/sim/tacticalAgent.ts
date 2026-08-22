@@ -21,7 +21,7 @@ function availableCard(state: GameState, actions: readonly LegalAction[], card: 
   const definition = resolveCard(state, card.definitionId);
   const cardActions = actions.filter((action) => 'cardInstanceId' in action.command && action.command.cardInstanceId === card.id);
   return {
-    handIndex, definitionId: definition.id, mechanic: definition.mechanic, cost: definition.cost,
+    handIndex, definitionId: definition.id, mechanic: definition.mechanic, family: definition.family, cost: definition.cost,
     money: definition.money ?? 0, values: definition.values ?? {}, enabled: cardActions.length > 0,
     movements: cardActions.map(movementOf).filter((movement): movement is MovementChoice => movement !== undefined)
   };
@@ -64,7 +64,7 @@ function attackProfile(state: GameState, playerId: PlayerId): AttackProfile {
       yield { definitionId: card.id, mechanic: card.mechanic, values: card.values ?? {} };
     }
   }
-  return buildAttackProfile(definitions());
+  return buildAttackProfile(definitions(), resolveCard(state, 'aim').values?.bonus ?? 0);
 }
 
 export function tacticalView(
@@ -82,10 +82,14 @@ export function tacticalView(
     opponentPosition: state.fighters[opponentId].position,
     opponentHealth: state.fighters[opponentId].health,
     aimed: state.fighters[playerId].aimed,
+    aimBonus: state.fighters[playerId].aimed ? resolveCard(state, 'aim').values?.bonus ?? 0 : 0,
     opponentExposed: state.fighters[opponentId].exposed,
-    mana: state.players[playerId].mana,
+    opponentExposedBonus: state.fighters[opponentId].exposed ? resolveCard(state, 'feint').values?.bonus ?? 0 : 0,
+    mana: state.players[playerId].mana, manaSpent: state.turnState.manaSpent, spellsPlayed: state.turnState.spellsPlayed,
+    cardsPlayed: state.turnState.cardsPlayed.length, copiesPlayed: state.turnState.copiesPlayed,
+    familiesPlayed: state.turnState.familiesPlayed,
     positionChanged: state.players[playerId].positionChanged,
-    tacticalPlayed: state.actionsThisTurn.filter(isTacticalAction).length,
+    tacticalPlayed: state.turnState.cardsPlayed.filter(isTacticalAction).length,
     cullOptions: cullOptions(state, playerId, strategy, hand),
     actorProfile: attackProfile(state, playerId), opponentProfile: attackProfile(state, opponentId)
   };
@@ -96,9 +100,8 @@ function actionForDecision(
 ): LegalAction | undefined {
   if (decision.type === 'end') return actions.find((action) => action.command.type === 'endActionPhase');
   if (decision.type === 'recover') {
-    const card = decision.discardIndex === null ? null : state.players[playerId].deck.discard[decision.discardIndex];
-    return actions.find((action) => action.command.type === 'resolveRecover'
-      && action.command.recoverInstanceId === (card?.id ?? null));
+    const card = decision.discardIndex === null ? undefined : state.players[playerId].deck.discard[decision.discardIndex];
+    return actions.find((action) => action.command.type === 'resolveRecover' && action.command.recoverInstanceId === card?.id);
   }
   if (decision.type === 'discard') {
     const card = state.players[playerId].deck.hand[decision.handIndex];
@@ -110,13 +113,14 @@ function actionForDecision(
     const command = action.command;
     if (!('cardInstanceId' in command) || command.cardInstanceId !== card.id) return false;
     if (decision.movement !== undefined && movementOf(action) !== decision.movement) return false;
-    if (command.type !== 'playCull') return decision.trashHandIndexes === undefined;
+    if (command.type !== 'playTargetedAction') return decision.targetHandIndexes === undefined;
+    if (decision.targetHandIndexes === undefined) return false;
     const targetIds = [
-      ...(decision.trashCull ? [card.id] : []),
-      ...(decision.trashHandIndexes ?? []).map((index) => state.players[playerId].deck.hand[index]?.id)
+      ...(decision.targetSelf ? [card.id] : []),
+      ...decision.targetHandIndexes.map((index) => state.players[playerId].deck.hand[index]?.id)
     ].filter((id): id is string => id !== undefined);
-    return command.trashInstanceIds.length === targetIds.length
-      && command.trashInstanceIds.every((id) => targetIds.includes(id));
+    return command.targetCardInstanceIds.length === targetIds.length
+      && command.targetCardInstanceIds.every((id) => targetIds.includes(id));
   });
 }
 
@@ -126,6 +130,17 @@ export function tacticalAgent(strategy: Strategy): Agent {
     chooseStartingBuild(state) { return repairBuild(state, strategy.startingBuild); },
     chooseAction(state, playerId, actions) {
       if (state.phase === 'buy') return chooseBuyAction(state, playerId, actions, strategy);
+      if (state.pendingChoice?.type === 'optionalTrash') {
+        return actions.find((action) => action.command.type === 'resolveOptionalTrash' && action.command.trashInstanceId === null)!;
+      }
+      if (state.pendingChoice?.type === 'gain') {
+        const gains = actions.filter((action): action is LegalAction & {
+          command: Extract<LegalAction['command'], { type: 'resolveGain' }>
+        } => action.command.type === 'resolveGain');
+        return [...gains].sort((left, right) =>
+          resolveCard(state, right.command.definitionId).cost - resolveCard(state, left.command.definitionId).cost
+          || left.command.definitionId.localeCompare(right.command.definitionId))[0]!;
+      }
       const decision = chooseTacticalAction(tacticalView(state, playerId, actions, strategy));
       const action = actionForDecision(state, playerId, actions, decision);
       if (action) return action;

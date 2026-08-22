@@ -23,6 +23,7 @@ import { randomUUID } from 'node:crypto';
 import { SeededRandom, VARIABLE_ACTION_IDS, createGame, randomKingdom, registerKingdom } from '../src/game';
 import { cloneGame } from '../src/game/state';
 import type { Kingdom, PlayerId } from '../src/game';
+import { FileGameRepository } from '../src/server/persistence';
 import { ACTION_CAP_PER_TURN, EXPERIMENT_DEFAULTS, TURN_LIMIT_PER_PLAYER } from '../src/sim/experimentConfig';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import { runPsro } from '../src/sim/psro';
@@ -42,18 +43,18 @@ const humanPlayerId = (option('seat') ?? 'ochre') as PlayerId;
 const baseUrl = option('url') ?? 'http://127.0.0.1:4173';
 const limits = EXPERIMENT_DEFAULTS.full;
 
-function writeGame(kingdom: Kingdom, strategy: Strategy, training: unknown, seed: number): string {
+async function writeGame(kingdom: Kingdom, strategy: Strategy, training: unknown, seed: number): Promise<string> {
   const id = randomUUID();
   const now = new Date().toISOString();
-  const initialState = createGame({ seed, firstPlayerId: 'ochre', kingdomId: kingdom.id });
-  fs.mkdirSync(dataDirectory, { recursive: true });
-  fs.writeFileSync(path.join(dataDirectory, `${id}.json`), `${JSON.stringify({
-    schemaVersion: 12, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
+  const startingDraftEnabled = true;
+  const initialState = createGame({ seed, firstPlayerId: 'ochre', kingdomId: kingdom.id, startingDraftEnabled });
+  await new FileGameRepository(dataDirectory).create({
+    schemaVersion: 13, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
     completedActions: 0, durationSeconds: null, buildProposal: [],
-    kingdom, mode: 'ai', humanPlayerId, aiDifficulty: 'expert',
-    aiStrategy: strategy, training,
+    kingdom, startingDraftEnabled, mode: 'ai', humanPlayerId, aiDifficulty: 'expert',
+    aiStrategy: strategy, training: training as { elapsedMs: number; matches: number; strategyId: string },
     initialState: cloneGame(initialState), committedCommands: [], undoHistory: [], state: initialState
-  }, null, 2)}\n`);
+  });
   return id;
 }
 
@@ -74,7 +75,7 @@ if (fromFile) {
     kingdom: Kingdom; aiStrategy: Strategy; training: unknown;
   };
   registerKingdom(record.kingdom);
-  const id = writeGame(record.kingdom, record.aiStrategy, record.training, Date.now());
+  const id = await writeGame(record.kingdom, record.aiStrategy, record.training, Date.now());
   console.log(`market: ${record.kingdom.actionPiles.map((pile) => pile.cardId).join(', ')}`);
   console.log(formatStrategy(record.aiStrategy));
   links.push(`${baseUrl}/rematch.html?game=${id}`);
@@ -109,7 +110,7 @@ if (fromFile) {
       .sort((left, right) => right.weight - left.weight || left.strategy.id.localeCompare(right.strategy.id));
     const top = ranked[0]!;
     const elapsed = Date.now() - started;
-    const id = writeGame(kingdom, top.strategy,
+    const id = await writeGame(kingdom, top.strategy,
       { elapsedMs: elapsed, matches: result.matches, strategyId: top.strategy.id }, Date.now() + index);
 
     console.log(`\n=== kingdom ${index + 1} ===`);

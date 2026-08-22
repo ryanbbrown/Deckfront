@@ -16,294 +16,190 @@
      "swapSides": false,
      "turnLimitPerPlayer": 100,
      "actionCapPerTurn": 200,
+     "startingDraftEnabled": true,
      "agentIds": {
-      "ochre": "sg-d0bd852e81",
-      "indigo": "sg-acc2720e94"
+      "ochre": "sg-a45620ed83",
+      "indigo": "sg-58dea9267b"
      }
     },
-    "outcome": "ochre",
+    "outcome": "indigo",
     "reason": "victory",
-    "turns": 22,
+    "turns": 45,
     "telemetry": {
-     "turnsToWin": 22,
-     "eventCount": 349,
+     "turnsToWin": 45,
+     "eventCount": 594,
      "damageByCard": {
-      "ochre": {
-       "fireball": 42
-      },
+      "ochre": {},
       "indigo": {
-       "steadyShot": 36
+       "improvise": 38
       }
      },
      "playsByCard": {
       "ochre": {
-       "channel": 20,
-       "prism": 7,
-       "fireball": 6
+       "attune": 41,
+       "channel": 24
       },
       "indigo": {
-       "reclaim": 11,
-       "stipend": 12,
-       "muster": 14,
-       "steadyShot": 18,
-       "footwork": 13
+       "regroup": 65,
+       "cull": 3,
+       "improvise": 19
       }
      },
      "purchasesByCard": {
       "ochre": {
-       "fireball": 2,
-       "channel": 1
+       "overload": 3,
+       "attune": 6,
+       "channel": 2
       },
       "indigo": {
-       "steadyShot": 3,
-       "stipend": 1,
-       "reclaim": 1,
-       "muster": 2,
-       "footwork": 9
+       "regroup": 3,
+       "improvise": 1,
+       "jab": 2
       }
      },
      "startingBuild": {
       "ochre": [
+       "attune",
        "channel",
-       "channel",
-       "prism"
+       "overload"
       ],
       "indigo": [
-       "muster",
-       "reclaim",
-       "stipend"
+       "cull",
+       "jab",
+       "regroup"
       ]
      },
      "deadDraws": {
       "ochre": {
        "range": 0,
-       "mana": 3,
-       "setup": 0,
-       "total": 3
-      },
-      "indigo": {
-       "range": 0,
        "mana": 0,
        "setup": 0,
        "total": 0
+      },
+      "indigo": {
+       "range": 35,
+       "mana": 0,
+       "setup": 0,
+       "total": 35
       }
      },
      "moneySpent": {
-      "ochre": 13,
-      "indigo": 52
+      "ochre": 45,
+      "indigo": 20
      },
      "unspentMoney": {
-      "ochre": 30,
-      "indigo": 12
+      "ochre": 33,
+      "indigo": 32
      },
      "finalHealth": {
-      "ochre": 1,
-      "indigo": 0
+      "ochre": 0,
+      "indigo": 40
      }
     }
    },
    "state": {
-    "schemaVersion": 8,
+    "schemaVersion": 9,
     "seed": 11,
-    "rngState": 2806575998,
-    "version": 176,
-    "nextCardSerial": 40,
+    "rngState": 3842710316,
+    "version": 326,
+    "nextCardSerial": 38,
     "kingdomId": "three-way-engine",
     "startingHealth": 40,
-    "activePlayerId": "ochre",
+    "startingDraftEnabled": true,
+    "activePlayerId": "indigo",
     "selectedFirstPlayerId": "ochre",
     "phase": "ended",
-    "turn": 23,
-    "winner": "ochre",
+    "turn": 46,
+    "winner": "indigo",
     "players": {
      "ochre": {
       "id": "ochre",
       "deck": {
        "draw": [
         {
-         "id": "card-7",
-         "definitionId": "copper"
+         "id": "card-24",
+         "definitionId": "attune"
         },
         {
          "id": "card-1",
          "definitionId": "copper"
         },
         {
-         "id": "card-3",
+         "id": "card-7",
          "definitionId": "copper"
         },
-        {
-         "id": "card-4",
-         "definitionId": "copper"
-        }
-       ],
-       "hand": [
         {
          "id": "card-6",
          "definitionId": "copper"
         },
         {
-         "id": "card-2",
-         "definitionId": "copper"
-        }
-       ],
-       "discard": [
-        {
-         "id": "card-5",
-         "definitionId": "copper"
-        }
-       ],
-       "play": [
-        {
-         "id": "card-24",
+         "id": "card-32",
          "definitionId": "channel"
-        },
-        {
-         "id": "card-8",
-         "definitionId": "channel"
-        },
-        {
-         "id": "card-21",
-         "definitionId": "fireball"
-        },
-        {
-         "id": "card-10",
-         "definitionId": "prism"
         },
         {
          "id": "card-9",
          "definitionId": "channel"
         },
         {
+         "id": "card-35",
+         "definitionId": "attune"
+        },
+        {
+         "id": "card-21",
+         "definitionId": "overload"
+        },
+        {
          "id": "card-34",
-         "definitionId": "fireball"
-        }
-       ]
-      },
-      "money": 0,
-      "mana": 1,
-      "positionChanged": false,
-      "firstBuyMoney": 0,
-      "firstBuyPending": false,
-      "startingBuild": [
-       "channel",
-       "channel",
-       "prism"
-      ],
-      "purchases": [
-       "fireball",
-       "channel",
-       "fireball"
-      ]
-     },
-     "indigo": {
-      "id": "indigo",
-      "deck": {
-       "draw": [
-        {
-         "id": "card-30",
-         "definitionId": "footwork"
-        },
-        {
-         "id": "card-20",
-         "definitionId": "stipend"
-        },
-        {
-         "id": "card-16",
-         "definitionId": "copper"
-        },
-        {
-         "id": "card-18",
-         "definitionId": "muster"
-        },
-        {
-         "id": "card-29",
-         "definitionId": "muster"
-        },
-        {
-         "id": "card-11",
-         "definitionId": "copper"
+         "definitionId": "overload"
         },
         {
          "id": "card-28",
-         "definitionId": "muster"
+         "definitionId": "channel"
         },
         {
-         "id": "card-33",
-         "definitionId": "footwork"
+         "id": "card-30",
+         "definitionId": "overload"
         },
         {
-         "id": "card-39",
-         "definitionId": "footwork"
-        },
-        {
-         "id": "card-26",
-         "definitionId": "stipend"
-        },
-        {
-         "id": "card-22",
-         "definitionId": "steadyShot"
-        },
-        {
-         "id": "card-25",
-         "definitionId": "steadyShot"
+         "id": "card-2",
+         "definitionId": "copper"
         },
         {
          "id": "card-37",
-         "definitionId": "footwork"
+         "definitionId": "attune"
         },
         {
-         "id": "card-31",
-         "definitionId": "footwork"
+         "id": "card-26",
+         "definitionId": "attune"
         },
         {
-         "id": "card-13",
-         "definitionId": "copper"
+         "id": "card-8",
+         "definitionId": "attune"
         },
         {
-         "id": "card-17",
-         "definitionId": "copper"
-        },
-        {
-         "id": "card-36",
-         "definitionId": "footwork"
-        },
-        {
-         "id": "card-19",
-         "definitionId": "reclaim"
-        },
-        {
-         "id": "card-27",
-         "definitionId": "reclaim"
-        },
-        {
-         "id": "card-12",
-         "definitionId": "copper"
-        },
-        {
-         "id": "card-38",
-         "definitionId": "footwork"
+         "id": "card-33",
+         "definitionId": "attune"
         }
        ],
        "hand": [
         {
-         "id": "card-15",
+         "id": "card-4",
          "definitionId": "copper"
         },
         {
-         "id": "card-23",
-         "definitionId": "steadyShot"
+         "id": "card-36",
+         "definitionId": "attune"
         },
         {
-         "id": "card-32",
-         "definitionId": "footwork"
+         "id": "card-10",
+         "definitionId": "overload"
         },
         {
-         "id": "card-35",
-         "definitionId": "footwork"
+         "id": "card-3",
+         "definitionId": "copper"
         },
         {
-         "id": "card-14",
+         "id": "card-5",
          "definitionId": "copper"
         }
        ],
@@ -316,27 +212,97 @@
       "firstBuyMoney": 0,
       "firstBuyPending": false,
       "startingBuild": [
-       "muster",
-       "reclaim",
-       "stipend"
+       "attune",
+       "channel",
+       "overload"
       ],
       "purchases": [
-       "steadyShot",
-       "steadyShot",
-       "steadyShot",
-       "stipend",
-       "reclaim",
-       "muster",
-       "muster",
-       "footwork",
-       "footwork",
-       "footwork",
-       "footwork",
-       "footwork",
-       "footwork",
-       "footwork",
-       "footwork",
-       "footwork"
+       "overload",
+       "attune",
+       "attune",
+       "channel",
+       "overload",
+       "channel",
+       "attune",
+       "overload",
+       "attune",
+       "attune",
+       "attune"
+      ]
+     },
+     "indigo": {
+      "id": "indigo",
+      "deck": {
+       "draw": [
+        {
+         "id": "card-29",
+         "definitionId": "jab"
+        }
+       ],
+       "hand": [
+        {
+         "id": "card-31",
+         "definitionId": "jab"
+        },
+        {
+         "id": "card-13",
+         "definitionId": "copper"
+        },
+        {
+         "id": "card-11",
+         "definitionId": "copper"
+        },
+        {
+         "id": "card-16",
+         "definitionId": "copper"
+        }
+       ],
+       "discard": [
+        {
+         "id": "card-19",
+         "definitionId": "jab"
+        }
+       ],
+       "play": [
+        {
+         "id": "card-25",
+         "definitionId": "regroup"
+        },
+        {
+         "id": "card-20",
+         "definitionId": "regroup"
+        },
+        {
+         "id": "card-23",
+         "definitionId": "regroup"
+        },
+        {
+         "id": "card-22",
+         "definitionId": "regroup"
+        },
+        {
+         "id": "card-27",
+         "definitionId": "improvise"
+        }
+       ]
+      },
+      "money": 0,
+      "mana": 0,
+      "positionChanged": false,
+      "firstBuyMoney": 0,
+      "firstBuyPending": false,
+      "startingBuild": [
+       "cull",
+       "jab",
+       "regroup"
+      ],
+      "purchases": [
+       "regroup",
+       "regroup",
+       "regroup",
+       "improvise",
+       "jab",
+       "jab"
       ]
      }
     },
@@ -344,42 +310,73 @@
      "ochre": {
       "playerId": "ochre",
       "position": 2,
-      "health": 1,
+      "health": 0,
       "aimed": false,
       "exposed": false
      },
      "indigo": {
       "playerId": "indigo",
-      "position": 1,
-      "health": 0,
+      "position": 3,
+      "health": 40,
       "aimed": false,
       "exposed": false
      }
     },
     "supply": {
-     "footwork": 1,
-     "muster": 8,
-     "stipend": 9,
-     "reclaim": 9,
-     "adapt": 10,
-     "heavyBlow": 10,
-     "steadyShot": 7,
-     "channel": 9,
-     "prism": 10,
-     "fireball": 8,
-     "step": 10,
      "cull": 10,
+     "channel": 8,
+     "attune": 4,
+     "overload": 7,
+     "jab": 8,
+     "rally": 10,
+     "pepperingShot": 10,
+     "precisionShot": 10,
+     "regroup": 7,
+     "improvise": 9,
+     "step": 10,
      "focus": 10
     },
-    "trash": [],
-    "actionsThisTurn": [
-     "channel",
-     "channel",
-     "fireball",
-     "prism",
-     "channel",
-     "fireball"
+    "trash": [
+     {
+      "id": "card-17",
+      "definitionId": "copper"
+     },
+     {
+      "id": "card-14",
+      "definitionId": "copper"
+     },
+     {
+      "id": "card-15",
+      "definitionId": "copper"
+     },
+     {
+      "id": "card-18",
+      "definitionId": "cull"
+     },
+     {
+      "id": "card-12",
+      "definitionId": "copper"
+     }
     ],
+    "turnState": {
+     "cardsPlayed": [
+      "regroup",
+      "regroup",
+      "regroup",
+      "regroup",
+      "improvise"
+     ],
+     "spacesMoved": 0,
+     "manaSpent": 0,
+     "spellsPlayed": 0,
+     "copiesPlayed": {
+      "regroup": 4,
+      "improvise": 1
+     },
+     "familiesPlayed": [
+      "engine"
+     ]
+    },
     "pendingChoice": null,
     "events": [
      {
@@ -389,7 +386,7 @@
       "detail": {
        "playerId": "ochre",
        "count": 3,
-       "cost": 11
+       "cost": 12
       }
      },
      {
@@ -399,7 +396,7 @@
       "detail": {
        "playerId": "indigo",
        "count": 3,
-       "cost": 11
+       "cost": 9
       }
      },
      {
@@ -433,7 +430,7 @@
       "playerId": "ochre",
       "detail": {
        "cardInstanceId": "card-8",
-       "definitionId": "channel"
+       "definitionId": "attune"
       }
      },
      {
@@ -459,7 +456,7 @@
       "playerId": "ochre",
       "detail": {
        "phase": "buy",
-       "money": 6
+       "money": 5
       }
      },
      {
@@ -467,7 +464,7 @@
       "type": "purchase",
       "playerId": "ochre",
       "detail": {
-       "definitionId": "fireball",
+       "definitionId": "overload",
        "cost": 5
       }
      },
@@ -494,7 +491,7 @@
       "playerId": "indigo",
       "detail": {
        "phase": "buy",
-       "money": 6
+       "money": 8
       }
      },
      {
@@ -502,7 +499,7 @@
       "type": "purchase",
       "playerId": "indigo",
       "detail": {
-       "definitionId": "steadyShot",
+       "definitionId": "regroup",
        "cost": 3
       }
      },
@@ -511,7 +508,7 @@
       "type": "purchase",
       "playerId": "indigo",
       "detail": {
-       "definitionId": "steadyShot",
+       "definitionId": "regroup",
        "cost": 3
       }
      },
@@ -563,8 +560,8 @@
       "type": "cardPlayed",
       "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-10",
-       "definitionId": "prism"
+       "cardInstanceId": "card-8",
+       "definitionId": "attune"
       }
      },
      {
@@ -572,8 +569,8 @@
       "type": "mana",
       "playerId": "ochre",
       "detail": {
-       "amount": 2,
-       "mana": 3
+       "amount": 1,
+       "mana": 2
       }
      },
      {
@@ -586,41 +583,6 @@
      },
      {
       "sequence": 23,
-      "type": "discard",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-1",
-       "definitionId": "copper"
-      }
-     },
-     {
-      "sequence": 24,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-8",
-       "definitionId": "channel"
-      }
-     },
-     {
-      "sequence": 25,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 1,
-       "mana": 4
-      }
-     },
-     {
-      "sequence": 26,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 27,
       "type": "phase",
       "playerId": "ochre",
       "detail": {
@@ -629,16 +591,16 @@
       }
      },
      {
-      "sequence": 28,
+      "sequence": 24,
       "type": "purchase",
       "playerId": "ochre",
       "detail": {
-       "definitionId": "channel",
-       "cost": 3
+       "definitionId": "attune",
+       "cost": 4
       }
      },
      {
-      "sequence": 29,
+      "sequence": 25,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -646,7 +608,7 @@
       }
      },
      {
-      "sequence": 30,
+      "sequence": 26,
       "type": "turn",
       "playerId": "indigo",
       "detail": {
@@ -655,50 +617,16 @@
       }
      },
      {
-      "sequence": 31,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-19",
-       "definitionId": "reclaim"
-      }
-     },
-     {
-      "sequence": 32,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 33,
+      "sequence": 27,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
        "cardInstanceId": "card-20",
-       "definitionId": "stipend"
+       "definitionId": "regroup"
       }
      },
      {
-      "sequence": 34,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 35,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-18",
-       "definitionId": "muster"
-      }
-     },
-     {
-      "sequence": 36,
+      "sequence": 28,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
@@ -706,34 +634,52 @@
       }
      },
      {
-      "sequence": 37,
+      "sequence": 29,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 30,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-18",
+       "definitionId": "cull"
+      }
+     },
+     {
+      "sequence": 31,
+      "type": "trash",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-17",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 32,
       "type": "phase",
       "playerId": "indigo",
       "detail": {
        "phase": "buy",
-       "money": 7
+       "money": 3
       }
      },
      {
-      "sequence": 38,
+      "sequence": 33,
       "type": "purchase",
       "playerId": "indigo",
       "detail": {
-       "definitionId": "steadyShot",
+       "definitionId": "regroup",
        "cost": 3
       }
      },
      {
-      "sequence": 39,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "stipend",
-       "cost": 3
-      }
-     },
-     {
-      "sequence": 40,
+      "sequence": 34,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
@@ -741,7 +687,7 @@
       }
      },
      {
-      "sequence": 41,
+      "sequence": 35,
       "type": "turn",
       "playerId": "ochre",
       "detail": {
@@ -750,7 +696,7 @@
       }
      },
      {
-      "sequence": 42,
+      "sequence": 36,
       "type": "phase",
       "playerId": "ochre",
       "detail": {
@@ -759,7 +705,16 @@
       }
      },
      {
-      "sequence": 43,
+      "sequence": 37,
+      "type": "purchase",
+      "playerId": "ochre",
+      "detail": {
+       "definitionId": "attune",
+       "cost": 4
+      }
+     },
+     {
+      "sequence": 38,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -767,7 +722,7 @@
       }
      },
      {
-      "sequence": 44,
+      "sequence": 39,
       "type": "turn",
       "playerId": "indigo",
       "detail": {
@@ -776,16 +731,320 @@
       }
      },
      {
-      "sequence": 45,
+      "sequence": 40,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
        "cardInstanceId": "card-23",
-       "definitionId": "steadyShot"
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 41,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 42,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-14",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 43,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 44,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 45,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-18",
+       "definitionId": "cull"
       }
      },
      {
       "sequence": 46,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 47,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 48,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 49,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 5
+      }
+     },
+     {
+      "sequence": 50,
+      "type": "purchase",
+      "playerId": "indigo",
+      "detail": {
+       "definitionId": "improvise",
+       "cost": 5
+      }
+     },
+     {
+      "sequence": 51,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 52,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 7,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 53,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-8",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 54,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 55,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 56,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-24",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 57,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 2,
+       "mana": 3
+      }
+     },
+     {
+      "sequence": 58,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 59,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-9",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 60,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 4
+      }
+     },
+     {
+      "sequence": 61,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 62,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 63,
+      "type": "purchase",
+      "playerId": "ochre",
+      "detail": {
+       "definitionId": "channel",
+       "cost": 3
+      }
+     },
+     {
+      "sequence": 64,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 65,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 8,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 66,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 67,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 68,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-14",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 69,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 70,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 71,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-12",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 72,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 73,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 74,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-13",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 75,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 76,
       "type": "damage",
       "playerId": "indigo",
       "detail": {
@@ -795,16 +1054,190 @@
       }
      },
      {
-      "sequence": 47,
+      "sequence": 77,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-22",
-       "definitionId": "steadyShot"
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
       }
      },
      {
-      "sequence": 48,
+      "sequence": 78,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 79,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 80,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 81,
+      "type": "purchase",
+      "playerId": "indigo",
+      "detail": {
+       "definitionId": "jab",
+       "cost": 3
+      }
+     },
+     {
+      "sequence": 82,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 83,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 9,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 84,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-26",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 85,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 86,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 87,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 5
+      }
+     },
+     {
+      "sequence": 88,
+      "type": "purchase",
+      "playerId": "ochre",
+      "detail": {
+       "definitionId": "overload",
+       "cost": 5
+      }
+     },
+     {
+      "sequence": 89,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 90,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 10,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 91,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 92,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 93,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-18",
+       "definitionId": "cull"
+      }
+     },
+     {
+      "sequence": 94,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 95,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 96,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-11",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 97,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 98,
       "type": "damage",
       "playerId": "indigo",
       "detail": {
@@ -814,16 +1247,190 @@
       }
      },
      {
-      "sequence": 49,
-      "type": "cardPlayed",
+      "sequence": 99,
+      "type": "phase",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-18",
-       "definitionId": "muster"
+       "phase": "buy",
+       "money": 3
       }
      },
      {
-      "sequence": 50,
+      "sequence": 100,
+      "type": "purchase",
+      "playerId": "indigo",
+      "detail": {
+       "definitionId": "jab",
+       "cost": 3
+      }
+     },
+     {
+      "sequence": 101,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 102,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 11,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 103,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-8",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 104,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 105,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 106,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-9",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 107,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 2
+      }
+     },
+     {
+      "sequence": 108,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 109,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-28",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 110,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 3
+      }
+     },
+     {
+      "sequence": 111,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 112,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-24",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 113,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 2,
+       "mana": 5
+      }
+     },
+     {
+      "sequence": 114,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 115,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 116,
+      "type": "purchase",
+      "playerId": "ochre",
+      "detail": {
+       "definitionId": "channel",
+       "cost": 3
+      }
+     },
+     {
+      "sequence": 117,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 118,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 12,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 119,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 120,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
@@ -831,16 +1438,138 @@
       }
      },
      {
-      "sequence": 51,
-      "type": "cardPlayed",
+      "sequence": 121,
+      "type": "discard",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-25",
-       "definitionId": "steadyShot"
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
       }
      },
      {
-      "sequence": 52,
+      "sequence": 122,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 123,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 124,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-12",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 125,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 126,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 127,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-15",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 128,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 129,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 130,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 13,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 131,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 4
+      }
+     },
+     {
+      "sequence": 132,
+      "type": "purchase",
+      "playerId": "ochre",
+      "detail": {
+       "definitionId": "attune",
+       "cost": 4
+      }
+     },
+     {
+      "sequence": 133,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 134,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 14,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 135,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 136,
       "type": "damage",
       "playerId": "indigo",
       "detail": {
@@ -850,278 +1579,16 @@
       }
      },
      {
-      "sequence": 53,
-      "type": "phase",
-      "playerId": "indigo",
-      "detail": {
-       "phase": "buy",
-       "money": 3
-      }
-     },
-     {
-      "sequence": 54,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "reclaim",
-       "cost": 3
-      }
-     },
-     {
-      "sequence": 55,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 5
-      }
-     },
-     {
-      "sequence": 56,
-      "type": "turn",
-      "playerId": "ochre",
-      "detail": {
-       "turn": 7,
-       "activePlayerId": "ochre"
-      }
-     },
-     {
-      "sequence": 57,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-10",
-       "definitionId": "prism"
-      }
-     },
-     {
-      "sequence": 58,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 2,
-       "mana": 2
-      }
-     },
-     {
-      "sequence": 59,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 60,
-      "type": "discard",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-6",
-       "definitionId": "copper"
-      }
-     },
-     {
-      "sequence": 61,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-8",
-       "definitionId": "channel"
-      }
-     },
-     {
-      "sequence": 62,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 1,
-       "mana": 3
-      }
-     },
-     {
-      "sequence": 63,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 64,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-24",
-       "definitionId": "channel"
-      }
-     },
-     {
-      "sequence": 65,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 1,
-       "mana": 4
-      }
-     },
-     {
-      "sequence": 66,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 67,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-9",
-       "definitionId": "channel"
-      }
-     },
-     {
-      "sequence": 68,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 1,
-       "mana": 5
-      }
-     },
-     {
-      "sequence": 69,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 70,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-21",
-       "definitionId": "fireball"
-      }
-     },
-     {
-      "sequence": 71,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": -2,
-       "mana": 3
-      }
-     },
-     {
-      "sequence": 72,
-      "type": "damage",
-      "playerId": "ochre",
-      "detail": {
-       "targetId": "indigo",
-       "amount": 7,
-       "health": 33
-      }
-     },
-     {
-      "sequence": 73,
-      "type": "phase",
-      "playerId": "ochre",
-      "detail": {
-       "phase": "buy",
-       "money": 3
-      }
-     },
-     {
-      "sequence": 74,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 5
-      }
-     },
-     {
-      "sequence": 75,
-      "type": "turn",
-      "playerId": "indigo",
-      "detail": {
-       "turn": 8,
-       "activePlayerId": "indigo"
-      }
-     },
-     {
-      "sequence": 76,
+      "sequence": 137,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-20",
-       "definitionId": "stipend"
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
       }
      },
      {
-      "sequence": 77,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 78,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-19",
-       "definitionId": "reclaim"
-      }
-     },
-     {
-      "sequence": 79,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 80,
-      "type": "recover",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-18",
-       "definitionId": "muster"
-      }
-     },
-     {
-      "sequence": 81,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-26",
-       "definitionId": "stipend"
-      }
-     },
-     {
-      "sequence": 82,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 83,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-18",
-       "definitionId": "muster"
-      }
-     },
-     {
-      "sequence": 84,
+      "sequence": 138,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
@@ -1129,16 +1596,234 @@
       }
      },
      {
-      "sequence": 85,
+      "sequence": 139,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-16",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 140,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
        "cardInstanceId": "card-22",
-       "definitionId": "steadyShot"
+       "definitionId": "regroup"
       }
      },
      {
-      "sequence": 86,
+      "sequence": 141,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 142,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-29",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 143,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-18",
+       "definitionId": "cull"
+      }
+     },
+     {
+      "sequence": 144,
+      "type": "trash",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-14",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 145,
+      "type": "trash",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-15",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 146,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 0
+      }
+     },
+     {
+      "sequence": 147,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 148,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 15,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 149,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-26",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 150,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 151,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 152,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-33",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 153,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 2,
+       "mana": 3
+      }
+     },
+     {
+      "sequence": 154,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 155,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 2
+      }
+     },
+     {
+      "sequence": 156,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 157,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 16,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 158,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 159,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 160,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-31",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 161,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 162,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 163,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-12",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 164,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 165,
       "type": "damage",
       "playerId": "indigo",
       "detail": {
@@ -1148,142 +1833,7 @@
       }
      },
      {
-      "sequence": 87,
-      "type": "phase",
-      "playerId": "indigo",
-      "detail": {
-       "phase": "buy",
-       "money": 7
-      }
-     },
-     {
-      "sequence": 88,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "muster",
-       "cost": 5
-      }
-     },
-     {
-      "sequence": 89,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 5
-      }
-     },
-     {
-      "sequence": 90,
-      "type": "turn",
-      "playerId": "ochre",
-      "detail": {
-       "turn": 9,
-       "activePlayerId": "ochre"
-      }
-     },
-     {
-      "sequence": 91,
-      "type": "phase",
-      "playerId": "ochre",
-      "detail": {
-       "phase": "buy",
-       "money": 4
-      }
-     },
-     {
-      "sequence": 92,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 5
-      }
-     },
-     {
-      "sequence": 93,
-      "type": "turn",
-      "playerId": "indigo",
-      "detail": {
-       "turn": 10,
-       "activePlayerId": "indigo"
-      }
-     },
-     {
-      "sequence": 94,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-25",
-       "definitionId": "steadyShot"
-      }
-     },
-     {
-      "sequence": 95,
-      "type": "damage",
-      "playerId": "indigo",
-      "detail": {
-       "targetId": "ochre",
-       "amount": 2,
-       "health": 27
-      }
-     },
-     {
-      "sequence": 96,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-27",
-       "definitionId": "reclaim"
-      }
-     },
-     {
-      "sequence": 97,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 98,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-23",
-       "definitionId": "steadyShot"
-      }
-     },
-     {
-      "sequence": 99,
-      "type": "damage",
-      "playerId": "indigo",
-      "detail": {
-       "targetId": "ochre",
-       "amount": 2,
-       "health": 25
-      }
-     },
-     {
-      "sequence": 100,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-22",
-       "definitionId": "steadyShot"
-      }
-     },
-     {
-      "sequence": 101,
-      "type": "damage",
-      "playerId": "indigo",
-      "detail": {
-       "targetId": "ochre",
-       "amount": 2,
-       "health": 23
-      }
-     },
-     {
-      "sequence": 102,
+      "sequence": 166,
       "type": "phase",
       "playerId": "indigo",
       "detail": {
@@ -1292,7 +1842,7 @@
       }
      },
      {
-      "sequence": 103,
+      "sequence": 167,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
@@ -1300,25 +1850,25 @@
       }
      },
      {
-      "sequence": 104,
+      "sequence": 168,
       "type": "turn",
       "playerId": "ochre",
       "detail": {
-       "turn": 11,
+       "turn": 17,
        "activePlayerId": "ochre"
       }
      },
      {
-      "sequence": 105,
+      "sequence": 169,
       "type": "cardPlayed",
       "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-9",
+       "cardInstanceId": "card-28",
        "definitionId": "channel"
       }
      },
      {
-      "sequence": 106,
+      "sequence": 170,
       "type": "mana",
       "playerId": "ochre",
       "detail": {
@@ -1327,7 +1877,7 @@
       }
      },
      {
-      "sequence": 107,
+      "sequence": 171,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -1335,16 +1885,16 @@
       }
      },
      {
-      "sequence": 108,
+      "sequence": 172,
       "type": "cardPlayed",
       "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-8",
+       "cardInstanceId": "card-32",
        "definitionId": "channel"
       }
      },
      {
-      "sequence": 109,
+      "sequence": 173,
       "type": "mana",
       "playerId": "ochre",
       "detail": {
@@ -1353,7 +1903,7 @@
       }
      },
      {
-      "sequence": 110,
+      "sequence": 174,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -1361,462 +1911,7 @@
       }
      },
      {
-      "sequence": 111,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-24",
-       "definitionId": "channel"
-      }
-     },
-     {
-      "sequence": 112,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 1,
-       "mana": 3
-      }
-     },
-     {
-      "sequence": 113,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 114,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-10",
-       "definitionId": "prism"
-      }
-     },
-     {
-      "sequence": 115,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 2,
-       "mana": 5
-      }
-     },
-     {
-      "sequence": 116,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 117,
-      "type": "discard",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-1",
-       "definitionId": "copper"
-      }
-     },
-     {
-      "sequence": 118,
-      "type": "phase",
-      "playerId": "ochre",
-      "detail": {
-       "phase": "buy",
-       "money": 4
-      }
-     },
-     {
-      "sequence": 119,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 5
-      }
-     },
-     {
-      "sequence": 120,
-      "type": "turn",
-      "playerId": "indigo",
-      "detail": {
-       "turn": 12,
-       "activePlayerId": "indigo"
-      }
-     },
-     {
-      "sequence": 121,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-28",
-       "definitionId": "muster"
-      }
-     },
-     {
-      "sequence": 122,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 2
-      }
-     },
-     {
-      "sequence": 123,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-19",
-       "definitionId": "reclaim"
-      }
-     },
-     {
-      "sequence": 124,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 125,
-      "type": "recover",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-27",
-       "definitionId": "reclaim"
-      }
-     },
-     {
-      "sequence": 126,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-20",
-       "definitionId": "stipend"
-      }
-     },
-     {
-      "sequence": 127,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 128,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-18",
-       "definitionId": "muster"
-      }
-     },
-     {
-      "sequence": 129,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 2
-      }
-     },
-     {
-      "sequence": 130,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-27",
-       "definitionId": "reclaim"
-      }
-     },
-     {
-      "sequence": 131,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 132,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-26",
-       "definitionId": "stipend"
-      }
-     },
-     {
-      "sequence": 133,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 134,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-22",
-       "definitionId": "steadyShot"
-      }
-     },
-     {
-      "sequence": 135,
-      "type": "damage",
-      "playerId": "indigo",
-      "detail": {
-       "targetId": "ochre",
-       "amount": 2,
-       "health": 21
-      }
-     },
-     {
-      "sequence": 136,
-      "type": "phase",
-      "playerId": "indigo",
-      "detail": {
-       "phase": "buy",
-       "money": 8
-      }
-     },
-     {
-      "sequence": 137,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "muster",
-       "cost": 5
-      }
-     },
-     {
-      "sequence": 138,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "footwork",
-       "cost": 3
-      }
-     },
-     {
-      "sequence": 139,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 5
-      }
-     },
-     {
-      "sequence": 140,
-      "type": "turn",
-      "playerId": "ochre",
-      "detail": {
-       "turn": 13,
-       "activePlayerId": "ochre"
-      }
-     },
-     {
-      "sequence": 141,
-      "type": "phase",
-      "playerId": "ochre",
-      "detail": {
-       "phase": "buy",
-       "money": 4
-      }
-     },
-     {
-      "sequence": 142,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 5
-      }
-     },
-     {
-      "sequence": 143,
-      "type": "turn",
-      "playerId": "indigo",
-      "detail": {
-       "turn": 14,
-       "activePlayerId": "indigo"
-      }
-     },
-     {
-      "sequence": 144,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-23",
-       "definitionId": "steadyShot"
-      }
-     },
-     {
-      "sequence": 145,
-      "type": "damage",
-      "playerId": "indigo",
-      "detail": {
-       "targetId": "ochre",
-       "amount": 2,
-       "health": 19
-      }
-     },
-     {
-      "sequence": 146,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-25",
-       "definitionId": "steadyShot"
-      }
-     },
-     {
-      "sequence": 147,
-      "type": "damage",
-      "playerId": "indigo",
-      "detail": {
-       "targetId": "ochre",
-       "amount": 2,
-       "health": 17
-      }
-     },
-     {
-      "sequence": 148,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-26",
-       "definitionId": "stipend"
-      }
-     },
-     {
-      "sequence": 149,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 150,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-19",
-       "definitionId": "reclaim"
-      }
-     },
-     {
-      "sequence": 151,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 152,
-      "type": "phase",
-      "playerId": "indigo",
-      "detail": {
-       "phase": "buy",
-       "money": 4
-      }
-     },
-     {
-      "sequence": 153,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "footwork",
-       "cost": 3
-      }
-     },
-     {
-      "sequence": 154,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 5
-      }
-     },
-     {
-      "sequence": 155,
-      "type": "turn",
-      "playerId": "ochre",
-      "detail": {
-       "turn": 15,
-       "activePlayerId": "ochre"
-      }
-     },
-     {
-      "sequence": 156,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-10",
-       "definitionId": "prism"
-      }
-     },
-     {
-      "sequence": 157,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 2,
-       "mana": 2
-      }
-     },
-     {
-      "sequence": 158,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 159,
-      "type": "discard",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-6",
-       "definitionId": "copper"
-      }
-     },
-     {
-      "sequence": 160,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-24",
-       "definitionId": "channel"
-      }
-     },
-     {
-      "sequence": 161,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 1,
-       "mana": 3
-      }
-     },
-     {
-      "sequence": 162,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 163,
+      "sequence": 175,
       "type": "cardPlayed",
       "playerId": "ochre",
       "detail": {
@@ -1825,7 +1920,33 @@
       }
      },
      {
-      "sequence": 164,
+      "sequence": 176,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 3
+      }
+     },
+     {
+      "sequence": 177,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 178,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-24",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 179,
       "type": "mana",
       "playerId": "ochre",
       "detail": {
@@ -1834,7 +1955,7 @@
       }
      },
      {
-      "sequence": 165,
+      "sequence": 180,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -1842,70 +1963,25 @@
       }
      },
      {
-      "sequence": 166,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-8",
-       "definitionId": "channel"
-      }
-     },
-     {
-      "sequence": 167,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 1,
-       "mana": 5
-      }
-     },
-     {
-      "sequence": 168,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 169,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-21",
-       "definitionId": "fireball"
-      }
-     },
-     {
-      "sequence": 170,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": -2,
-       "mana": 3
-      }
-     },
-     {
-      "sequence": 171,
-      "type": "damage",
-      "playerId": "ochre",
-      "detail": {
-       "targetId": "indigo",
-       "amount": 7,
-       "health": 26
-      }
-     },
-     {
-      "sequence": 172,
+      "sequence": 181,
       "type": "phase",
       "playerId": "ochre",
       "detail": {
        "phase": "buy",
-       "money": 3
+       "money": 5
       }
      },
      {
-      "sequence": 173,
+      "sequence": 182,
+      "type": "purchase",
+      "playerId": "ochre",
+      "detail": {
+       "definitionId": "overload",
+       "cost": 5
+      }
+     },
+     {
+      "sequence": 183,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -1913,99 +1989,12 @@
       }
      },
      {
-      "sequence": 174,
+      "sequence": 184,
       "type": "turn",
       "playerId": "indigo",
       "detail": {
-       "turn": 16,
+       "turn": 18,
        "activePlayerId": "indigo"
-      }
-     },
-     {
-      "sequence": 175,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-29",
-       "definitionId": "muster"
-      }
-     },
-     {
-      "sequence": 176,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 2
-      }
-     },
-     {
-      "sequence": 177,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-20",
-       "definitionId": "stipend"
-      }
-     },
-     {
-      "sequence": 178,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 179,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-30",
-       "definitionId": "footwork"
-      }
-     },
-     {
-      "sequence": 180,
-      "type": "move",
-      "playerId": "indigo",
-      "detail": {
-       "movement": "left",
-       "from": 3,
-       "to": 2
-      }
-     },
-     {
-      "sequence": 181,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 182,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-27",
-       "definitionId": "reclaim"
-      }
-     },
-     {
-      "sequence": 183,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 184,
-      "type": "recover",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-31",
-       "definitionId": "footwork"
       }
      },
      {
@@ -2013,8 +2002,8 @@
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-18",
-       "definitionId": "muster"
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
       }
      },
      {
@@ -2027,21 +2016,20 @@
      },
      {
       "sequence": 187,
-      "type": "cardPlayed",
+      "type": "discard",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-31",
-       "definitionId": "footwork"
+       "cardInstanceId": "card-16",
+       "definitionId": "copper"
       }
      },
      {
       "sequence": 188,
-      "type": "move",
+      "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "movement": "left",
-       "from": 2,
-       "to": 1
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
       }
      },
      {
@@ -2049,43 +2037,43 @@
       "type": "draw",
       "playerId": "indigo",
       "detail": {
-       "count": 1
+       "count": 2
       }
      },
      {
       "sequence": 190,
-      "type": "cardPlayed",
+      "type": "discard",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-22",
-       "definitionId": "steadyShot"
+       "cardInstanceId": "card-31",
+       "definitionId": "jab"
       }
      },
      {
       "sequence": 191,
-      "type": "damage",
+      "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "targetId": "ochre",
-       "amount": 2,
-       "health": 15
+       "cardInstanceId": "card-18",
+       "definitionId": "cull"
       }
      },
      {
       "sequence": 192,
-      "type": "cardPlayed",
+      "type": "trash",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-28",
-       "definitionId": "muster"
+       "cardInstanceId": "card-18",
+       "definitionId": "cull"
       }
      },
      {
       "sequence": 193,
-      "type": "draw",
+      "type": "trash",
       "playerId": "indigo",
       "detail": {
-       "count": 2
+       "cardInstanceId": "card-12",
+       "definitionId": "copper"
       }
      },
      {
@@ -2093,225 +2081,91 @@
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-25",
-       "definitionId": "steadyShot"
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
       }
      },
      {
       "sequence": 195,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 196,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-11",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 197,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 198,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 199,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 200,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 201,
       "type": "damage",
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
        "amount": 2,
-       "health": 13
-      }
-     },
-     {
-      "sequence": 196,
-      "type": "phase",
-      "playerId": "indigo",
-      "detail": {
-       "phase": "buy",
-       "money": 7
-      }
-     },
-     {
-      "sequence": 197,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "footwork",
-       "cost": 3
-      }
-     },
-     {
-      "sequence": 198,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "footwork",
-       "cost": 3
-      }
-     },
-     {
-      "sequence": 199,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 5
-      }
-     },
-     {
-      "sequence": 200,
-      "type": "turn",
-      "playerId": "ochre",
-      "detail": {
-       "turn": 17,
-       "activePlayerId": "ochre"
-      }
-     },
-     {
-      "sequence": 201,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-24",
-       "definitionId": "channel"
+       "health": 27
       }
      },
      {
       "sequence": 202,
-      "type": "mana",
-      "playerId": "ochre",
+      "type": "phase",
+      "playerId": "indigo",
       "detail": {
-       "amount": 1,
-       "mana": 1
+       "phase": "buy",
+       "money": 1
       }
      },
      {
       "sequence": 203,
       "type": "draw",
-      "playerId": "ochre",
+      "playerId": "indigo",
       "detail": {
-       "count": 1
+       "count": 5
       }
      },
      {
       "sequence": 204,
-      "type": "phase",
-      "playerId": "ochre",
-      "detail": {
-       "phase": "buy",
-       "money": 5
-      }
-     },
-     {
-      "sequence": 205,
-      "type": "purchase",
-      "playerId": "ochre",
-      "detail": {
-       "definitionId": "fireball",
-       "cost": 5
-      }
-     },
-     {
-      "sequence": 206,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 5
-      }
-     },
-     {
-      "sequence": 207,
-      "type": "turn",
-      "playerId": "indigo",
-      "detail": {
-       "turn": 18,
-       "activePlayerId": "indigo"
-      }
-     },
-     {
-      "sequence": 208,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-23",
-       "definitionId": "steadyShot"
-      }
-     },
-     {
-      "sequence": 209,
-      "type": "damage",
-      "playerId": "indigo",
-      "detail": {
-       "targetId": "ochre",
-       "amount": 2,
-       "health": 11
-      }
-     },
-     {
-      "sequence": 210,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-26",
-       "definitionId": "stipend"
-      }
-     },
-     {
-      "sequence": 211,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 212,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-19",
-       "definitionId": "reclaim"
-      }
-     },
-     {
-      "sequence": 213,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 214,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-22",
-       "definitionId": "steadyShot"
-      }
-     },
-     {
-      "sequence": 215,
-      "type": "damage",
-      "playerId": "indigo",
-      "detail": {
-       "targetId": "ochre",
-       "amount": 2,
-       "health": 9
-      }
-     },
-     {
-      "sequence": 216,
-      "type": "phase",
-      "playerId": "indigo",
-      "detail": {
-       "phase": "buy",
-       "money": 4
-      }
-     },
-     {
-      "sequence": 217,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "footwork",
-       "cost": 3
-      }
-     },
-     {
-      "sequence": 218,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 5
-      }
-     },
-     {
-      "sequence": 219,
       "type": "turn",
       "playerId": "ochre",
       "detail": {
@@ -2320,16 +2174,16 @@
       }
      },
      {
-      "sequence": 220,
+      "sequence": 205,
       "type": "cardPlayed",
       "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-9",
-       "definitionId": "channel"
+       "cardInstanceId": "card-8",
+       "definitionId": "attune"
       }
      },
      {
-      "sequence": 221,
+      "sequence": 206,
       "type": "mana",
       "playerId": "ochre",
       "detail": {
@@ -2338,7 +2192,7 @@
       }
      },
      {
-      "sequence": 222,
+      "sequence": 207,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -2346,16 +2200,16 @@
       }
      },
      {
-      "sequence": 223,
+      "sequence": 208,
       "type": "cardPlayed",
       "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-10",
-       "definitionId": "prism"
+       "cardInstanceId": "card-26",
+       "definitionId": "attune"
       }
      },
      {
-      "sequence": 224,
+      "sequence": 209,
       "type": "mana",
       "playerId": "ochre",
       "detail": {
@@ -2364,7 +2218,7 @@
       }
      },
      {
-      "sequence": 225,
+      "sequence": 210,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -2372,62 +2226,25 @@
       }
      },
      {
-      "sequence": 226,
-      "type": "discard",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-3",
-       "definitionId": "copper"
-      }
-     },
-     {
-      "sequence": 227,
+      "sequence": 211,
       "type": "cardPlayed",
       "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-21",
-       "definitionId": "fireball"
-      }
-     },
-     {
-      "sequence": 228,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": -2,
-       "mana": 1
-      }
-     },
-     {
-      "sequence": 229,
-      "type": "damage",
-      "playerId": "ochre",
-      "detail": {
-       "targetId": "indigo",
-       "amount": 7,
-       "health": 19
-      }
-     },
-     {
-      "sequence": 230,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-8",
+       "cardInstanceId": "card-28",
        "definitionId": "channel"
       }
      },
      {
-      "sequence": 231,
+      "sequence": 212,
       "type": "mana",
       "playerId": "ochre",
       "detail": {
        "amount": 1,
-       "mana": 2
+       "mana": 4
       }
      },
      {
-      "sequence": 232,
+      "sequence": 213,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -2435,70 +2252,16 @@
       }
      },
      {
-      "sequence": 233,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-24",
-       "definitionId": "channel"
-      }
-     },
-     {
-      "sequence": 234,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 1,
-       "mana": 3
-      }
-     },
-     {
-      "sequence": 235,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 236,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-34",
-       "definitionId": "fireball"
-      }
-     },
-     {
-      "sequence": 237,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": -2,
-       "mana": 1
-      }
-     },
-     {
-      "sequence": 238,
-      "type": "damage",
-      "playerId": "ochre",
-      "detail": {
-       "targetId": "indigo",
-       "amount": 7,
-       "health": 12
-      }
-     },
-     {
-      "sequence": 239,
+      "sequence": 214,
       "type": "phase",
       "playerId": "ochre",
       "detail": {
        "phase": "buy",
-       "money": 2
+       "money": 3
       }
      },
      {
-      "sequence": 240,
+      "sequence": 215,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -2506,7 +2269,7 @@
       }
      },
      {
-      "sequence": 241,
+      "sequence": 216,
       "type": "turn",
       "playerId": "indigo",
       "detail": {
@@ -2515,49 +2278,265 @@
       }
      },
      {
-      "sequence": 242,
+      "sequence": 217,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-32",
-       "definitionId": "footwork"
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
       }
      },
      {
-      "sequence": 243,
-      "type": "move",
-      "playerId": "indigo",
-      "detail": {
-       "movement": "stay",
-       "from": 1,
-       "to": 1
-      }
-     },
-     {
-      "sequence": 244,
+      "sequence": 218,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
-       "count": 1
+       "count": 2
       }
      },
      {
-      "sequence": 245,
+      "sequence": 219,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-29",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 220,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-25",
-       "definitionId": "steadyShot"
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
       }
      },
      {
-      "sequence": 246,
+      "sequence": 221,
       "type": "damage",
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
        "amount": 2,
-       "health": 7
+       "health": 25
+      }
+     },
+     {
+      "sequence": 222,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 223,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 224,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-31",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 225,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 226,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 227,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 21,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 228,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-32",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 229,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 230,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 231,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-9",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 232,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 2
+      }
+     },
+     {
+      "sequence": 233,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 234,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-33",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 235,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 3
+      }
+     },
+     {
+      "sequence": 236,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 237,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 4
+      }
+     },
+     {
+      "sequence": 238,
+      "type": "purchase",
+      "playerId": "ochre",
+      "detail": {
+       "definitionId": "attune",
+       "cost": 4
+      }
+     },
+     {
+      "sequence": 239,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 240,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 22,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 241,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 242,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 243,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-11",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 244,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 245,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 246,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
       }
      },
      {
@@ -2565,8 +2544,8 @@
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-29",
-       "definitionId": "muster"
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
       }
      },
      {
@@ -2579,29 +2558,30 @@
      },
      {
       "sequence": 249,
-      "type": "cardPlayed",
+      "type": "discard",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-30",
-       "definitionId": "footwork"
+       "cardInstanceId": "card-29",
+       "definitionId": "jab"
       }
      },
      {
       "sequence": 250,
-      "type": "move",
+      "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "movement": "stay",
-       "from": 1,
-       "to": 1
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
       }
      },
      {
       "sequence": 251,
-      "type": "draw",
+      "type": "damage",
       "playerId": "indigo",
       "detail": {
-       "count": 1
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 23
       }
      },
      {
@@ -2609,35 +2589,34 @@
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-33",
-       "definitionId": "footwork"
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
       }
      },
      {
       "sequence": 253,
-      "type": "move",
+      "type": "draw",
       "playerId": "indigo",
       "detail": {
-       "movement": "stay",
-       "from": 1,
-       "to": 1
+       "count": 2
       }
      },
      {
       "sequence": 254,
-      "type": "draw",
+      "type": "discard",
       "playerId": "indigo",
       "detail": {
-       "count": 1
+       "cardInstanceId": "card-13",
+       "definitionId": "copper"
       }
      },
      {
       "sequence": 255,
-      "type": "cardPlayed",
+      "type": "phase",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-20",
-       "definitionId": "stipend"
+       "phase": "buy",
+       "money": 1
       }
      },
      {
@@ -2645,66 +2624,66 @@
       "type": "draw",
       "playerId": "indigo",
       "detail": {
-       "count": 1
+       "count": 5
       }
      },
      {
       "sequence": 257,
-      "type": "cardPlayed",
-      "playerId": "indigo",
+      "type": "turn",
+      "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-31",
-       "definitionId": "footwork"
+       "turn": 23,
+       "activePlayerId": "ochre"
       }
      },
      {
       "sequence": 258,
-      "type": "move",
-      "playerId": "indigo",
+      "type": "cardPlayed",
+      "playerId": "ochre",
       "detail": {
-       "movement": "stay",
-       "from": 1,
-       "to": 1
+       "cardInstanceId": "card-24",
+       "definitionId": "attune"
       }
      },
      {
       "sequence": 259,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 260,
       "type": "draw",
-      "playerId": "indigo",
+      "playerId": "ochre",
       "detail": {
        "count": 1
       }
      },
      {
-      "sequence": 260,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-18",
-       "definitionId": "muster"
-      }
-     },
-     {
       "sequence": 261,
-      "type": "draw",
-      "playerId": "indigo",
+      "type": "cardPlayed",
+      "playerId": "ochre",
       "detail": {
-       "count": 2
+       "cardInstanceId": "card-32",
+       "definitionId": "channel"
       }
      },
      {
       "sequence": 262,
-      "type": "cardPlayed",
-      "playerId": "indigo",
+      "type": "mana",
+      "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-27",
-       "definitionId": "reclaim"
+       "amount": 1,
+       "mana": 2
       }
      },
      {
       "sequence": 263,
       "type": "draw",
-      "playerId": "indigo",
+      "playerId": "ochre",
       "detail": {
        "count": 1
       }
@@ -2712,112 +2691,85 @@
      {
       "sequence": 264,
       "type": "cardPlayed",
-      "playerId": "indigo",
+      "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-28",
-       "definitionId": "muster"
+       "cardInstanceId": "card-8",
+       "definitionId": "attune"
       }
      },
      {
       "sequence": 265,
-      "type": "draw",
-      "playerId": "indigo",
+      "type": "mana",
+      "playerId": "ochre",
       "detail": {
-       "count": 2
+       "amount": 2,
+       "mana": 4
       }
      },
      {
       "sequence": 266,
-      "type": "cardPlayed",
-      "playerId": "indigo",
+      "type": "draw",
+      "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-35",
-       "definitionId": "footwork"
+       "count": 1
       }
      },
      {
       "sequence": 267,
-      "type": "move",
-      "playerId": "indigo",
+      "type": "phase",
+      "playerId": "ochre",
       "detail": {
-       "movement": "stay",
-       "from": 1,
-       "to": 1
+       "phase": "buy",
+       "money": 3
       }
      },
      {
       "sequence": 268,
       "type": "draw",
-      "playerId": "indigo",
+      "playerId": "ochre",
       "detail": {
-       "count": 1
+       "count": 5
       }
      },
      {
       "sequence": 269,
-      "type": "cardPlayed",
+      "type": "turn",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-26",
-       "definitionId": "stipend"
+       "turn": 24,
+       "activePlayerId": "indigo"
       }
      },
      {
       "sequence": 270,
-      "type": "draw",
+      "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "count": 1
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
       }
      },
      {
       "sequence": 271,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-23",
-       "definitionId": "steadyShot"
-      }
-     },
-     {
-      "sequence": 272,
       "type": "damage",
       "playerId": "indigo",
       "detail": {
        "targetId": "ochre",
        "amount": 2,
-       "health": 5
+       "health": 21
       }
      },
      {
-      "sequence": 273,
+      "sequence": 272,
       "type": "phase",
       "playerId": "indigo",
       "detail": {
        "phase": "buy",
-       "money": 8
+       "money": 2
       }
      },
      {
-      "sequence": 274,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "footwork",
-       "cost": 3
-      }
-     },
-     {
-      "sequence": 275,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "footwork",
-       "cost": 3
-      }
-     },
-     {
-      "sequence": 276,
+      "sequence": 273,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
@@ -2825,12 +2777,38 @@
       }
      },
      {
-      "sequence": 277,
+      "sequence": 274,
       "type": "turn",
       "playerId": "ochre",
       "detail": {
-       "turn": 21,
+       "turn": 25,
        "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 275,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-35",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 276,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 277,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
       }
      },
      {
@@ -2848,7 +2826,7 @@
       "playerId": "ochre",
       "detail": {
        "amount": 1,
-       "mana": 1
+       "mana": 2
       }
      },
      {
@@ -2864,8 +2842,8 @@
       "type": "cardPlayed",
       "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-10",
-       "definitionId": "prism"
+       "cardInstanceId": "card-33",
+       "definitionId": "attune"
       }
      },
      {
@@ -2874,7 +2852,7 @@
       "playerId": "ochre",
       "detail": {
        "amount": 2,
-       "mana": 3
+       "mana": 4
       }
      },
      {
@@ -2887,24 +2865,15 @@
      },
      {
       "sequence": 284,
-      "type": "discard",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-1",
-       "definitionId": "copper"
-      }
-     },
-     {
-      "sequence": 285,
       "type": "phase",
       "playerId": "ochre",
       "detail": {
        "phase": "buy",
-       "money": 4
+       "money": 3
       }
      },
      {
-      "sequence": 286,
+      "sequence": 285,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -2912,29 +2881,38 @@
       }
      },
      {
-      "sequence": 287,
+      "sequence": 286,
       "type": "turn",
       "playerId": "indigo",
       "detail": {
-       "turn": 22,
+       "turn": 26,
        "activePlayerId": "indigo"
       }
      },
      {
-      "sequence": 288,
+      "sequence": 287,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-19",
-       "definitionId": "reclaim"
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 288,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
       }
      },
      {
       "sequence": 289,
-      "type": "draw",
+      "type": "discard",
       "playerId": "indigo",
       "detail": {
-       "count": 1
+       "cardInstanceId": "card-31",
+       "definitionId": "jab"
       }
      },
      {
@@ -2943,11 +2921,2044 @@
       "playerId": "indigo",
       "detail": {
        "cardInstanceId": "card-22",
-       "definitionId": "steadyShot"
+       "definitionId": "regroup"
       }
      },
      {
       "sequence": 291,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 292,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-13",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 293,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 294,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 295,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 296,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 297,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 298,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-29",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 299,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 300,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 19
+      }
+     },
+     {
+      "sequence": 301,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 2
+      }
+     },
+     {
+      "sequence": 302,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 303,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 27,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 304,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-28",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 305,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 306,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 307,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-26",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 308,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 2
+      }
+     },
+     {
+      "sequence": 309,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 310,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-32",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 311,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 3
+      }
+     },
+     {
+      "sequence": 312,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 313,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-33",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 314,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 2,
+       "mana": 5
+      }
+     },
+     {
+      "sequence": 315,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 316,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-9",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 317,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 6
+      }
+     },
+     {
+      "sequence": 318,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 319,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 320,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 321,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 28,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 322,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 323,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 17
+      }
+     },
+     {
+      "sequence": 324,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 2
+      }
+     },
+     {
+      "sequence": 325,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 326,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 29,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 327,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 328,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 329,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 30,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 330,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 331,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 332,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-29",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 333,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 334,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 335,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-16",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 336,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 337,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 338,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-31",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 339,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 340,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 341,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-13",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 342,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 343,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 15
+      }
+     },
+     {
+      "sequence": 344,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 2
+      }
+     },
+     {
+      "sequence": 345,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 346,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 31,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 347,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-8",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 348,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 349,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 350,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-24",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 351,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 2,
+       "mana": 3
+      }
+     },
+     {
+      "sequence": 352,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 353,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-35",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 354,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 3,
+       "mana": 6
+      }
+     },
+     {
+      "sequence": 355,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 356,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-28",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 357,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 7
+      }
+     },
+     {
+      "sequence": 358,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 359,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-9",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 360,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 8
+      }
+     },
+     {
+      "sequence": 361,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 362,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-33",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 363,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 4,
+       "mana": 12
+      }
+     },
+     {
+      "sequence": 364,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 365,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-26",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 366,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 5,
+       "mana": 17
+      }
+     },
+     {
+      "sequence": 367,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 368,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 2
+      }
+     },
+     {
+      "sequence": 369,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 370,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 32,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 371,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 372,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 373,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-29",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 374,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 375,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 376,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 377,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 378,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 379,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-11",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 380,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 381,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 13
+      }
+     },
+     {
+      "sequence": 382,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 383,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 384,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-16",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 385,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 1
+      }
+     },
+     {
+      "sequence": 386,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 387,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 33,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 388,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-32",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 389,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 390,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 391,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 4
+      }
+     },
+     {
+      "sequence": 392,
+      "type": "purchase",
+      "playerId": "ochre",
+      "detail": {
+       "definitionId": "attune",
+       "cost": 4
+      }
+     },
+     {
+      "sequence": 393,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 394,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 34,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 395,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 396,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 397,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-11",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 398,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 399,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 11
+      }
+     },
+     {
+      "sequence": 400,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 401,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 402,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-31",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 403,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 404,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 405,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 406,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 407,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 408,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-29",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 409,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 410,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 411,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 35,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 412,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-24",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 413,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 414,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 415,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 416,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 417,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 36,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 418,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 419,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 420,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-31",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 421,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 422,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 423,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-11",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 424,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 425,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 9
+      }
+     },
+     {
+      "sequence": 426,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 427,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 428,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-29",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 429,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 430,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 431,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-16",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 432,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 2
+      }
+     },
+     {
+      "sequence": 433,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 434,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 37,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 435,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-26",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 436,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 437,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 438,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-35",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 439,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 2,
+       "mana": 3
+      }
+     },
+     {
+      "sequence": 440,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 441,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-36",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 442,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 3,
+       "mana": 6
+      }
+     },
+     {
+      "sequence": 443,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 444,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-33",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 445,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 4,
+       "mana": 10
+      }
+     },
+     {
+      "sequence": 446,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 447,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-28",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 448,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 11
+      }
+     },
+     {
+      "sequence": 449,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 450,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-8",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 451,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 5,
+       "mana": 16
+      }
+     },
+     {
+      "sequence": 452,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 453,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-32",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 454,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 17
+      }
+     },
+     {
+      "sequence": 455,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 456,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-9",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 457,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 18
+      }
+     },
+     {
+      "sequence": 458,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 459,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 460,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 461,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 38,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 462,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 463,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 464,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-29",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 465,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 466,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 467,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 468,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 469,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 470,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-11",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 471,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 472,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 7
+      }
+     },
+     {
+      "sequence": 473,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 474,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 475,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-13",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 476,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 1
+      }
+     },
+     {
+      "sequence": 477,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 478,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 39,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 479,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-26",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 480,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 481,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 482,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-8",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 483,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 2,
+       "mana": 3
+      }
+     },
+     {
+      "sequence": 484,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 485,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-36",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 486,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 3,
+       "mana": 6
+      }
+     },
+     {
+      "sequence": 487,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 488,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-33",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 489,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 4,
+       "mana": 10
+      }
+     },
+     {
+      "sequence": 490,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 491,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 492,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 493,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 40,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 494,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 495,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 496,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-11",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 497,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 498,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
+       "health": 5
+      }
+     },
+     {
+      "sequence": 499,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 500,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 501,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-16",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 502,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 503,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 504,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 505,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 506,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 507,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-13",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 508,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 1
+      }
+     },
+     {
+      "sequence": 509,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 510,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 41,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 511,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-24",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 512,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 513,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 514,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-35",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 515,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 2,
+       "mana": 3
+      }
+     },
+     {
+      "sequence": 516,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 517,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 3
+      }
+     },
+     {
+      "sequence": 518,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 519,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 42,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 520,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 521,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 522,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-16",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 523,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 524,
       "type": "damage",
       "playerId": "indigo",
       "detail": {
@@ -2957,33 +4968,198 @@
       }
      },
      {
-      "sequence": 292,
+      "sequence": 525,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 526,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 527,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-29",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 528,
+      "type": "phase",
+      "playerId": "indigo",
+      "detail": {
+       "phase": "buy",
+       "money": 2
+      }
+     },
+     {
+      "sequence": 529,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 530,
+      "type": "turn",
+      "playerId": "ochre",
+      "detail": {
+       "turn": 43,
+       "activePlayerId": "ochre"
+      }
+     },
+     {
+      "sequence": 531,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-32",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 532,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 1
+      }
+     },
+     {
+      "sequence": 533,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 534,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-9",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 535,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 2
+      }
+     },
+     {
+      "sequence": 536,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 537,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-28",
+       "definitionId": "channel"
+      }
+     },
+     {
+      "sequence": 538,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 3
+      }
+     },
+     {
+      "sequence": 539,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 540,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-24",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 541,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 1,
+       "mana": 4
+      }
+     },
+     {
+      "sequence": 542,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 543,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 2
+      }
+     },
+     {
+      "sequence": 544,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 545,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 44,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 546,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
        "cardInstanceId": "card-20",
-       "definitionId": "stipend"
+       "definitionId": "regroup"
       }
      },
      {
-      "sequence": 293,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 294,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-28",
-       "definitionId": "muster"
-      }
-     },
-     {
-      "sequence": 295,
+      "sequence": 547,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
@@ -2991,97 +5167,25 @@
       }
      },
      {
-      "sequence": 296,
+      "sequence": 548,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-16",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 549,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-33",
-       "definitionId": "footwork"
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
       }
      },
      {
-      "sequence": 297,
-      "type": "move",
-      "playerId": "indigo",
-      "detail": {
-       "movement": "stay",
-       "from": 1,
-       "to": 1
-      }
-     },
-     {
-      "sequence": 298,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 299,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-36",
-       "definitionId": "footwork"
-      }
-     },
-     {
-      "sequence": 300,
-      "type": "move",
-      "playerId": "indigo",
-      "detail": {
-       "movement": "stay",
-       "from": 1,
-       "to": 1
-      }
-     },
-     {
-      "sequence": 301,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 302,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-31",
-       "definitionId": "footwork"
-      }
-     },
-     {
-      "sequence": 303,
-      "type": "move",
-      "playerId": "indigo",
-      "detail": {
-       "movement": "stay",
-       "from": 1,
-       "to": 1
-      }
-     },
-     {
-      "sequence": 304,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 305,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-18",
-       "definitionId": "muster"
-      }
-     },
-     {
-      "sequence": 306,
+      "sequence": 550,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
@@ -3089,94 +5193,25 @@
       }
      },
      {
-      "sequence": 307,
-      "type": "cardPlayed",
+      "sequence": 551,
+      "type": "discard",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-29",
-       "definitionId": "muster"
+       "cardInstanceId": "card-13",
+       "definitionId": "copper"
       }
      },
      {
-      "sequence": 308,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 2
-      }
-     },
-     {
-      "sequence": 309,
+      "sequence": 552,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
        "cardInstanceId": "card-27",
-       "definitionId": "reclaim"
+       "definitionId": "improvise"
       }
      },
      {
-      "sequence": 310,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 311,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-26",
-       "definitionId": "stipend"
-      }
-     },
-     {
-      "sequence": 312,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 313,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-30",
-       "definitionId": "footwork"
-      }
-     },
-     {
-      "sequence": 314,
-      "type": "move",
-      "playerId": "indigo",
-      "detail": {
-       "movement": "stay",
-       "from": 1,
-       "to": 1
-      }
-     },
-     {
-      "sequence": 315,
-      "type": "draw",
-      "playerId": "indigo",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 316,
-      "type": "cardPlayed",
-      "playerId": "indigo",
-      "detail": {
-       "cardInstanceId": "card-25",
-       "definitionId": "steadyShot"
-      }
-     },
-     {
-      "sequence": 317,
+      "sequence": 553,
       "type": "damage",
       "playerId": "indigo",
       "detail": {
@@ -3186,88 +5221,68 @@
       }
      },
      {
-      "sequence": 318,
+      "sequence": 554,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-35",
-       "definitionId": "footwork"
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
       }
      },
      {
-      "sequence": 319,
-      "type": "move",
-      "playerId": "indigo",
-      "detail": {
-       "movement": "stay",
-       "from": 1,
-       "to": 1
-      }
-     },
-     {
-      "sequence": 320,
+      "sequence": 555,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
-       "count": 1
+       "count": 2
       }
      },
      {
-      "sequence": 321,
+      "sequence": 556,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 557,
       "type": "cardPlayed",
       "playerId": "indigo",
       "detail": {
-       "cardInstanceId": "card-37",
-       "definitionId": "footwork"
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
       }
      },
      {
-      "sequence": 322,
-      "type": "move",
-      "playerId": "indigo",
-      "detail": {
-       "movement": "stay",
-       "from": 1,
-       "to": 1
-      }
-     },
-     {
-      "sequence": 323,
+      "sequence": 558,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
-       "count": 1
+       "count": 2
       }
      },
      {
-      "sequence": 324,
+      "sequence": 559,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-29",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 560,
       "type": "phase",
       "playerId": "indigo",
       "detail": {
        "phase": "buy",
-       "money": 8
+       "money": 2
       }
      },
      {
-      "sequence": 325,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "footwork",
-       "cost": 3
-      }
-     },
-     {
-      "sequence": 326,
-      "type": "purchase",
-      "playerId": "indigo",
-      "detail": {
-       "definitionId": "footwork",
-       "cost": 3
-      }
-     },
-     {
-      "sequence": 327,
+      "sequence": 561,
       "type": "draw",
       "playerId": "indigo",
       "detail": {
@@ -3275,25 +5290,25 @@
       }
      },
      {
-      "sequence": 328,
+      "sequence": 562,
       "type": "turn",
       "playerId": "ochre",
       "detail": {
-       "turn": 23,
+       "turn": 45,
        "activePlayerId": "ochre"
       }
      },
      {
-      "sequence": 329,
+      "sequence": 563,
       "type": "cardPlayed",
       "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-24",
-       "definitionId": "channel"
+       "cardInstanceId": "card-33",
+       "definitionId": "attune"
       }
      },
      {
-      "sequence": 330,
+      "sequence": 564,
       "type": "mana",
       "playerId": "ochre",
       "detail": {
@@ -3302,7 +5317,7 @@
       }
      },
      {
-      "sequence": 331,
+      "sequence": 565,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -3310,114 +5325,25 @@
       }
      },
      {
-      "sequence": 332,
+      "sequence": 566,
       "type": "cardPlayed",
       "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-8",
-       "definitionId": "channel"
+       "cardInstanceId": "card-35",
+       "definitionId": "attune"
       }
      },
      {
-      "sequence": 333,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 1,
-       "mana": 2
-      }
-     },
-     {
-      "sequence": 334,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 335,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-21",
-       "definitionId": "fireball"
-      }
-     },
-     {
-      "sequence": 336,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": -2,
-       "mana": 0
-      }
-     },
-     {
-      "sequence": 337,
-      "type": "damage",
-      "playerId": "ochre",
-      "detail": {
-       "targetId": "indigo",
-       "amount": 7,
-       "health": 5
-      }
-     },
-     {
-      "sequence": 338,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-10",
-       "definitionId": "prism"
-      }
-     },
-     {
-      "sequence": 339,
+      "sequence": 567,
       "type": "mana",
       "playerId": "ochre",
       "detail": {
        "amount": 2,
-       "mana": 2
-      }
-     },
-     {
-      "sequence": 340,
-      "type": "draw",
-      "playerId": "ochre",
-      "detail": {
-       "count": 1
-      }
-     },
-     {
-      "sequence": 341,
-      "type": "discard",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-5",
-       "definitionId": "copper"
-      }
-     },
-     {
-      "sequence": 342,
-      "type": "cardPlayed",
-      "playerId": "ochre",
-      "detail": {
-       "cardInstanceId": "card-9",
-       "definitionId": "channel"
-      }
-     },
-     {
-      "sequence": 343,
-      "type": "mana",
-      "playerId": "ochre",
-      "detail": {
-       "amount": 1,
        "mana": 3
       }
      },
      {
-      "sequence": 344,
+      "sequence": 568,
       "type": "draw",
       "playerId": "ochre",
       "detail": {
@@ -3425,39 +5351,221 @@
       }
      },
      {
-      "sequence": 345,
+      "sequence": 569,
       "type": "cardPlayed",
       "playerId": "ochre",
       "detail": {
-       "cardInstanceId": "card-34",
-       "definitionId": "fireball"
+       "cardInstanceId": "card-26",
+       "definitionId": "attune"
       }
      },
      {
-      "sequence": 346,
+      "sequence": 570,
       "type": "mana",
       "playerId": "ochre",
       "detail": {
-       "amount": -2,
-       "mana": 1
+       "amount": 3,
+       "mana": 6
       }
      },
      {
-      "sequence": 347,
-      "type": "damage",
+      "sequence": 571,
+      "type": "draw",
       "playerId": "ochre",
       "detail": {
-       "targetId": "indigo",
-       "amount": 7,
+       "count": 1
+      }
+     },
+     {
+      "sequence": 572,
+      "type": "cardPlayed",
+      "playerId": "ochre",
+      "detail": {
+       "cardInstanceId": "card-8",
+       "definitionId": "attune"
+      }
+     },
+     {
+      "sequence": 573,
+      "type": "mana",
+      "playerId": "ochre",
+      "detail": {
+       "amount": 4,
+       "mana": 10
+      }
+     },
+     {
+      "sequence": 574,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 1
+      }
+     },
+     {
+      "sequence": 575,
+      "type": "phase",
+      "playerId": "ochre",
+      "detail": {
+       "phase": "buy",
+       "money": 4
+      }
+     },
+     {
+      "sequence": 576,
+      "type": "purchase",
+      "playerId": "ochre",
+      "detail": {
+       "definitionId": "attune",
+       "cost": 4
+      }
+     },
+     {
+      "sequence": 577,
+      "type": "draw",
+      "playerId": "ochre",
+      "detail": {
+       "count": 5
+      }
+     },
+     {
+      "sequence": 578,
+      "type": "turn",
+      "playerId": "indigo",
+      "detail": {
+       "turn": 46,
+       "activePlayerId": "indigo"
+      }
+     },
+     {
+      "sequence": 579,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-25",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 580,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 581,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-16",
+       "definitionId": "copper"
+      }
+     },
+     {
+      "sequence": 582,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-20",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 583,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 584,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-29",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 585,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-23",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 586,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 587,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 588,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-22",
+       "definitionId": "regroup"
+      }
+     },
+     {
+      "sequence": 589,
+      "type": "draw",
+      "playerId": "indigo",
+      "detail": {
+       "count": 2
+      }
+     },
+     {
+      "sequence": 590,
+      "type": "discard",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-19",
+       "definitionId": "jab"
+      }
+     },
+     {
+      "sequence": 591,
+      "type": "cardPlayed",
+      "playerId": "indigo",
+      "detail": {
+       "cardInstanceId": "card-27",
+       "definitionId": "improvise"
+      }
+     },
+     {
+      "sequence": 592,
+      "type": "damage",
+      "playerId": "indigo",
+      "detail": {
+       "targetId": "ochre",
+       "amount": 2,
        "health": 0
       }
      },
      {
-      "sequence": 348,
+      "sequence": 593,
       "type": "victory",
-      "playerId": "ochre",
+      "playerId": "indigo",
       "detail": {
-       "winner": "ochre"
+       "winner": "indigo"
       }
      }
     ]
@@ -3479,67 +5587,65 @@
      "swapSides": true,
      "turnLimitPerPlayer": 100,
      "actionCapPerTurn": 200,
+     "startingDraftEnabled": true,
      "agentIds": {
-      "ochre": "sg-acc2720e94",
-      "indigo": "sg-5431750c6a"
+      "ochre": "sg-58dea9267b",
+      "indigo": "sg-cb7a269d7a"
      }
     },
-    "outcome": "ochre",
+    "outcome": "indigo",
     "reason": "victory",
-    "turns": 21,
+    "turns": 18,
     "telemetry": {
-     "turnsToWin": 21,
-     "eventCount": 302,
+     "turnsToWin": 18,
+     "eventCount": 232,
      "damageByCard": {
       "ochre": {
-       "steadyShot": 38
+       "improvise": 10
       },
       "indigo": {
-       "steadyShot": 32
+       "pepperingShot": 23,
+       "precisionShot": 20
       }
      },
      "playsByCard": {
       "ochre": {
-       "reclaim": 10,
-       "stipend": 11,
-       "muster": 14,
-       "steadyShot": 19,
-       "footwork": 6
+       "regroup": 21,
+       "cull": 3,
+       "improvise": 5
       },
       "indigo": {
-       "steadyShot": 16,
-       "footwork": 18
+       "pepperingShot": 23,
+       "precisionShot": 5
       }
      },
      "purchasesByCard": {
       "ochre": {
-       "steadyShot": 3,
-       "muster": 2,
-       "stipend": 1,
-       "reclaim": 1,
-       "footwork": 3
+       "regroup": 3,
+       "improvise": 1,
+       "jab": 2
       },
       "indigo": {
-       "steadyShot": 2,
-       "footwork": 7
+       "pepperingShot": 4,
+       "precisionShot": 2
       }
      },
      "startingBuild": {
       "ochre": [
-       "muster",
-       "reclaim",
-       "stipend"
+       "cull",
+       "jab",
+       "regroup"
       ],
       "indigo": [
-       "steadyShot"
+       "pepperingShot"
       ]
      },
      "deadDraws": {
       "ochre": {
-       "range": 0,
+       "range": 9,
        "mana": 0,
        "setup": 0,
-       "total": 0
+       "total": 9
       },
       "indigo": {
        "range": 0,
@@ -3549,16 +5655,16 @@
       }
      },
      "moneySpent": {
-      "ochre": 34,
-      "indigo": 27
+      "ochre": 20,
+      "indigo": 22
      },
      "unspentMoney": {
-      "ochre": 21,
-      "indigo": 15
+      "ochre": 6,
+      "indigo": 22
      },
      "finalHealth": {
-      "ochre": 8,
-      "indigo": 0
+      "ochre": 0,
+      "indigo": 27
      }
     }
    }
@@ -3579,86 +5685,80 @@
      "swapSides": false,
      "turnLimitPerPlayer": 100,
      "actionCapPerTurn": 200,
+     "startingDraftEnabled": true,
      "agentIds": {
-      "ochre": "sg-bcf33b067d",
-      "indigo": "sg-848a4ae786"
+      "ochre": "sg-74bb04c16e",
+      "indigo": "sg-725a401b75"
      }
     },
     "outcome": "indigo",
     "reason": "victory",
-    "turns": 24,
+    "turns": 26,
     "telemetry": {
-     "turnsToWin": 24,
-     "eventCount": 285,
+     "turnsToWin": 26,
+     "eventCount": 162,
      "damageByCard": {
-      "ochre": {
-       "volley": 34
-      },
+      "ochre": {},
       "indigo": {
-       "arcBolt": 40
+       "fireball": 42
       }
      },
      "playsByCard": {
       "ochre": {
-       "footwork": 10,
-       "aim": 13,
-       "volley": 9
+       "cull": 2
       },
       "indigo": {
-       "footwork": 10,
-       "channel": 13,
-       "arcBolt": 10
+       "leyStep": 13,
+       "cull": 3,
+       "fireball": 6
       }
      },
      "purchasesByCard": {
       "ochre": {
-       "aim": 2,
-       "volley": 1,
-       "footwork": 1
+       "longshot": 3
       },
       "indigo": {
-       "arcBolt": 3,
-       "channel": 5,
-       "footwork": 1
+       "fireball": 1,
+       "leyStep": 3
       }
      },
      "startingBuild": {
       "ochre": [
        "aim",
-       "footwork",
-       "volley"
+       "cull",
+       "longshot"
       ],
       "indigo": [
-       "arcBolt",
-       "channel",
-       "footwork"
+       "cull",
+       "fireball",
+       "leyStep"
       ]
      },
      "deadDraws": {
       "ochre": {
-       "range": 6,
+       "range": 26,
        "mana": 0,
        "setup": 0,
-       "total": 6
+       "total": 26
       },
       "indigo": {
        "range": 0,
-       "mana": 10,
+       "mana": 5,
        "setup": 0,
-       "total": 10
+       "total": 5
       }
      },
      "moneySpent": {
-      "ochre": 14,
-      "indigo": 30
+      "ochre": 12,
+      "indigo": 14
      },
      "unspentMoney": {
-      "ochre": 32,
-      "indigo": 13
+      "ochre": 21,
+      "indigo": 14
      },
      "finalHealth": {
       "ochre": 0,
-      "indigo": 3
+      "indigo": 37
      }
     }
    }
@@ -3679,6 +5779,7 @@
      "swapSides": false,
      "turnLimitPerPlayer": 100,
      "actionCapPerTurn": 200,
+     "startingDraftEnabled": true,
      "agentIds": {
       "ochre": "sg-4da10d603d",
       "indigo": "sg-4da10d603d"
@@ -3755,9 +5856,10 @@
      "swapSides": true,
      "turnLimitPerPlayer": 100,
      "actionCapPerTurn": 200,
+     "startingDraftEnabled": true,
      "agentIds": {
-      "ochre": "sg-d310dc5587",
-      "indigo": "sg-f02ddf329e"
+      "ochre": "sg-27c829536f",
+      "indigo": "sg-d3ff39958a"
      }
     },
     "outcome": "ochre",
@@ -3765,54 +5867,47 @@
     "turns": 19,
     "telemetry": {
      "turnsToWin": 19,
-     "eventCount": 199,
+     "eventCount": 207,
      "damageByCard": {
       "ochre": {
-       "drive": 10,
-       "heavyBlow": 28
+       "drive": 38
       },
       "indigo": {
-       "arcBolt": 20,
-       "fireball": 14
+       "discharge": 14,
+       "fireball": 7
       }
      },
      "playsByCard": {
       "ochre": {
-       "footwork": 9,
-       "drive": 4,
-       "heavyBlow": 7
+       "cull": 2,
+       "footwork": 14,
+       "drive": 12
       },
       "indigo": {
-       "leyStep": 4,
-       "arcBolt": 5,
-       "channel": 9,
-       "footwork": 4,
-       "fireball": 2
+       "leyStep": 10,
+       "discharge": 4,
+       "fireball": 1
       }
      },
      "purchasesByCard": {
       "ochre": {
-       "footwork": 1,
-       "heavyBlow": 1,
-       "drive": 1
+       "drive": 2,
+       "footwork": 2
       },
       "indigo": {
-       "channel": 3,
-       "fireball": 2,
-       "arcBolt": 2,
-       "leyStep": 1
+       "discharge": 2,
+       "leyStep": 2
       }
      },
      "startingBuild": {
       "ochre": [
+       "cull",
        "drive",
-       "footwork",
-       "heavyBlow"
+       "footwork"
       ],
       "indigo": [
-       "arcBolt",
-       "channel",
-       "footwork",
+       "discharge",
+       "fireball",
        "leyStep"
       ]
      },
@@ -3825,21 +5920,21 @@
       },
       "indigo": {
        "range": 0,
-       "mana": 4,
+       "mana": 3,
        "setup": 0,
-       "total": 4
+       "total": 3
       }
      },
      "moneySpent": {
-      "ochre": 12,
-      "indigo": 29
+      "ochre": 14,
+      "indigo": 14
      },
      "unspentMoney": {
-      "ochre": 19,
-      "indigo": 5
+      "ochre": 13,
+      "indigo": 13
      },
      "finalHealth": {
-      "ochre": 6,
+      "ochre": 19,
       "indigo": 0
      }
     }
@@ -3861,6 +5956,7 @@
      "swapSides": false,
      "turnLimitPerPlayer": 100,
      "actionCapPerTurn": 200,
+     "startingDraftEnabled": true,
      "agentIds": {
       "ochre": "sg-4da10d603d",
       "indigo": "sg-4da10d603d"

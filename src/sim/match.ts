@@ -20,11 +20,12 @@ export type MatchObserver = (state: GameState) => void;
 export function runMatch(config: MatchConfig, onState?: MatchObserver): MatchResult {
   let state = createGame({
     seed: config.seed, firstPlayerId: config.firstPlayerId,
-    kingdomId: config.kingdomId, swapSides: config.swapSides
+    kingdomId: config.kingdomId, swapSides: config.swapSides,
+    startingDraftEnabled: config.startingDraftEnabled ?? true
   });
 
   const startingBuild: Record<PlayerId, string[]> = { ochre: [], indigo: [] };
-  for (const playerId of BUILD_ORDER) {
+  if (state.startingDraftEnabled) for (const playerId of BUILD_ORDER) {
     const build = config.agents[playerId].chooseStartingBuild(state, playerId);
     startingBuild[playerId] = [...build];
     state = submitStartingBuild(state, playerId, build);
@@ -67,7 +68,9 @@ export function runMatch(config: MatchConfig, onState?: MatchObserver): MatchRes
         events: state.events.slice(eventsBefore), completedTurns: state.turn - 1, deadDraws, unspentMoney
       });
       onState?.(state);
-      actionsInTurn += 1;
+      if (!['resolveDiscard', 'resolveRecover', 'resolveOptionalTrash', 'resolveGain'].includes(action.command.type)) {
+        actionsInTurn += 1;
+      }
 
       if (state.winner || state.phase === 'ended') { outcome = state.winner ?? 'draw'; reason = 'victory'; break; }
       if (actionsInTurn > config.actionCapPerTurn) { outcome = 'draw'; reason = 'actionCap'; break; }
@@ -84,7 +87,7 @@ export function runMatch(config: MatchConfig, onState?: MatchObserver): MatchRes
     config: {
       kingdomId: config.kingdomId, seed: config.seed, firstPlayerId: config.firstPlayerId,
       swapSides: config.swapSides, turnLimitPerPlayer: config.turnLimitPerPlayer,
-      actionCapPerTurn: config.actionCapPerTurn,
+      actionCapPerTurn: config.actionCapPerTurn, startingDraftEnabled: config.startingDraftEnabled ?? true,
       agentIds: { ochre: config.agents.ochre.id, indigo: config.agents.indigo.id }
     },
     outcome,

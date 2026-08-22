@@ -18,9 +18,10 @@ class MemoryRepository implements GameRepository {
   async save(record: GameRecord) { this.record = structuredClone(record); }
   async withLock<T>(_id: string, work: () => Promise<T>) { return work(); }
 }
+const TEST_MARKET = ['cull','footwork','feint','drive','aim','volley','prism','reclaim','muster','starfire'];
 async function setup() {
   const repository = new MemoryRepository(); const service = new GameService(repository);
-  const game = await service.create({ seed: 3 }); return { repository, service, game };
+  const game = await service.create({ seed: 3, variableCardIds: TEST_MARKET }); return { repository, service, game };
 }
 function resetReplay(record: GameRecord): void { record.initialState = structuredClone(record.state); record.committedCommands = []; record.undoHistory = []; }
 function seedPlayerHand(record: GameRecord, definitions: string[], draw: string[] = []): void {
@@ -95,10 +96,19 @@ describe('local GameService', () => {
     expect(edited.buildProposal).toEqual(['aim', 'volley']);
     await expect(service.updateBuild(game.id, 0, [], false)).rejects.toThrow('Expected revision');
     await expect(service.updateBuild(game.id, edited.revision, ['invented-card'], false)).rejects.toThrow('unknown card');
-    await expect(service.updateBuild(game.id, edited.revision, ['starfire'], false)).rejects.toThrow('does not sell');
+    await expect(service.updateBuild(game.id, edited.revision, ['regiment'], false)).rejects.toThrow('does not sell');
     const completed = await service.updateBuild(game.id, edited.revision, ['aim'], true);
     await service.updateBuild(game.id, completed.revision, [], true);
     await expect(service.updateBuild(game.id, completed.revision + 1, [], false)).rejects.toThrow('already complete');
+  });
+  it('starts draft-off immediately with Scrap and rejects build commands', async () => {
+    const repository = new MemoryRepository(); const service = new GameService(repository);
+    const view = await service.create({ seed:3, variableCardIds:TEST_MARKET, startingDraftEnabled:false });
+    expect(view).toMatchObject({ phase:'action', turn:1, activePlayerId:'ochre', startingDraftEnabled:false, completedBuilds:null });
+    expect(view.players.ochre.deckCounts).toEqual({ copper:7, scrap:3 }); expect(view.players.indigo.deckCounts).toEqual({ copper:7, scrap:3 });
+    expect(view.cards.scrap).toMatchObject({ name:'Scrap', cost:0 }); expect(view.fixedCardIds).not.toContain('scrap'); expect(view.variableCardIds).not.toContain('scrap');
+    const record = await service.getRecord(view.id); expect(record.startingDraftEnabled).toBe(false); expect(record.state.players.ochre.startingBuild).toBeNull();
+    await expect(service.updateBuild(view.id,view.revision,[],true)).rejects.toThrow('already complete');
   });
   it('projects disabled reasons and renderable movement choices without engine commands', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
@@ -120,7 +130,7 @@ describe('local GameService', () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
     const record = await repository.load(game.id); seedPlayerHand(record, ['cull', 'copper', 'silver']); resetReplay(record); await repository.save(record);
     const view = await service.get(game.id); const cull = projectedHandCard(view, record, 'cull');
-    expect(cull).toMatchObject({ enabled: true, selection: 'trashOneOrTwo' });
+    expect(cull).toMatchObject({ enabled: true, selection: 'targets' });
     expect(cull.eligibleCardInstanceIds).toEqual(record.state.players.ochre.deck.hand.map((card) => card.id));
     expect(cull.choices.some((choice) => choice.targetCardInstanceIds.length === 1)).toBe(true);
     expect(cull.choices.some((choice) => choice.targetCardInstanceIds.length === 2)).toBe(true);
@@ -155,7 +165,7 @@ describe('local GameService', () => {
     expect(resolved.actions.selection).toBeNull();
     expect((await service.getRecord(game.id)).state.players.ochre.deck.discard.map((card) => card.id)).toContain(copperId);
   });
-  it('projects Reclaim targets and Recover nothing, then accepts the null choice', async () => {
+  it('projects every mandatory Reclaim target and accepts one recovery', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
     const record = await repository.load(game.id); useProjectionKingdom(record);
     seedPlayerHand(record, ['reclaim'], ['copper']);
@@ -166,12 +176,13 @@ describe('local GameService', () => {
     const pending = await service.commitAction(game.id, before.revision, reclaim.actionId!);
     expect(pending.actions.phases).toEqual([]); expect(pending.actions.buys).toEqual([]);
     expect(pending.actions.selection).toMatchObject({ kind: 'recover' });
-    expect(pending.actions.selection!.choices.map((choice) => choice.cardInstanceId)).toEqual([...recoverIds, null]);
-    const recoverNothing = pending.actions.selection!.choices.find((choice) => choice.cardInstanceId === null)!;
-    expect(recoverNothing).toMatchObject({ label: 'Recover nothing', text: 'Recover nothing' });
-    const resolved = await service.commitAction(game.id, pending.revision, recoverNothing.id);
+    expect(pending.actions.selection!.choices.map((choice) => choice.cardInstanceId)).toEqual(recoverIds);
+    const recoverGold = pending.actions.selection!.choices.at(-1)!;
+    expect(recoverGold.label).toBe('Recover Gold');
+    const resolved = await service.commitAction(game.id, pending.revision, recoverGold.id);
     expect(resolved.actions.selection).toBeNull();
-    expect((await service.getRecord(game.id)).state.pendingChoice).toBeNull();
+    const saved = await service.getRecord(game.id); expect(saved.state.pendingChoice).toBeNull();
+    expect(saved.state.players.ochre.deck.hand.at(-1)?.definitionId).toBe('gold');
   });
   it('undoes three committed actions in order and restores each exact replayed state', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
@@ -214,14 +225,34 @@ describe('local GameService', () => {
     expect(restored).toMatchObject({ phase: 'action', turn: 1, completedBuilds: { ochre: [], indigo: [] }, canUndo: false });
     await expect(service.undoAction(game.id, restored.revision)).rejects.toThrow('There is no action to undo.');
   });
-  it('exports the current local game view with schema 12', async () => {
+  it('exports the current local game view with schema 13', async () => {
     const { service, game } = await setup(); const exported = await service.exportGame(game.id);
-    expect(exported).toMatchObject({ schemaVersion: 12, game: { schemaVersion: 12, id: game.id } });
+    expect(exported).toMatchObject({ schemaVersion: 13, game: { schemaVersion: 13, id: game.id } });
     expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
 });
 
 describe('persistence schema', () => {
+  it('reloads and replays optionalTrash and gain pending continuations', async () => {
+    const directory = await mkdtemp(path.join(tmpdir(),'hexdeck-pending-'));
+    try {
+      const repository = new FileGameRepository(directory); const service = new GameService(repository);
+      const created = await service.create({ seed:12, variableCardIds:TEST_MARKET }); await completeBuilds(service,created.id,created.revision);
+      let record = await repository.load(created.id); seedPlayerHand(record,['sharpen'],['gold']); resetReplay(record); await repository.save(record);
+      let view = await service.get(created.id); const sharpen = projectedHandCard(view,record,'sharpen'); view = await service.commitAction(created.id,view.revision,sharpen.actionId!);
+      expect((await repository.load(created.id)).state.pendingChoice?.type).toBe('optionalTrash');
+      const skip = view.actions.selection!.choices.find((choice) => choice.cardInstanceId === null)!; view = await service.commitAction(created.id,view.revision,skip.id);
+      expect((await repository.load(created.id)).state.pendingChoice).toBeNull();
+
+      record = await repository.load(created.id); seedPlayerHand(record,['reforge','gold']); resetReplay(record); await repository.save(record);
+      view = await service.get(created.id); const reforge = projectedHandCard(view,record,'reforge'); const gold = record.state.players.ochre.deck.hand.find((card) => card.definitionId === 'gold')!;
+      const target = reforge.choices.find((choice) => choice.targetCardInstanceIds.includes(gold.id))!; view = await service.commitAction(created.id,view.revision,target.id);
+      expect((await repository.load(created.id)).state.pendingChoice).toEqual({ type:'gain', playerId:'ochre', maxCost:9 });
+      const gainGold = view.actions.selection!.choices.find((choice) => choice.label === 'Gain Gold')!; view = await service.commitAction(created.id,view.revision,gainGold.id);
+      const saved = await repository.load(created.id); expect(saved.state.pendingChoice).toBeNull(); expect(saved.state.players.ochre.purchases).toEqual([]);
+      expect(saved.state.events.at(-1)).toMatchObject({ type:'gain', detail:{ definitionId:'gold' } });
+    } finally { await rm(directory,{ recursive:true, force:true }); }
+  });
   it('rejects unknown persisted event types', async () => {
     const { service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
     const state = (await service.getRecord(game.id)).state;
@@ -254,12 +285,12 @@ describe('persistence schema', () => {
       undone = await restarted.undoAction(created.id, undone.revision); expect((await restarted.getRecord(created.id)).state).toEqual(states[0]); expect(undone.canUndo).toBe(false);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
-  it('serializes concurrent file writes and leaves valid schema 12 state', async () => {
+  it('serializes concurrent file writes and leaves valid schema 13 state', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-lock-'));
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8 });
       await Promise.all([1, 2].map((marker) => repository.withLock(created.id, async () => { const record = await repository.load(created.id); await new Promise((resolve) => setTimeout(resolve, marker === 1 ? 5 : 0)); record.revision += 1; await repository.save(record); })));
-      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(12);
+      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(13);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it('rejects an older save with a specific message', async () => {

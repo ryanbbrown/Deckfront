@@ -5,14 +5,19 @@ import { pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
 const executeFile = promisify(execFile);
 export interface CoverageManifest { cards: Record<string, string[]>; browserFlows: Record<string, string[]> }
-export const requiredCards = ['copper', 'silver', 'gold', 'step', 'focus', 'footwork', 'cull', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley'];
+export const requiredCards = [
+  'copper', 'silver', 'gold', 'step', 'focus', 'footwork', 'cull', 'muster', 'feint', 'drive',
+  'flurry', 'aim', 'volley', 'scrap', 'bullRush', 'salvageShot', 'discipline', 'sharpen',
+  'reforge', 'scour'
+];
 export const requiredBrowserFlows = [
   'fullTablePreview', 'randomMarketRefresh', 'marketReferenceDialog', 'fixedAndVariableMarket',
   'sequentialBuilds', 'zeroPaidBuild', 'buildAddRemoveRefresh', 'buildLock', 'completeLocalTurns',
   'aiTrainingAndPublicTurns', 'aiSafeUndo', 'carriedStartingMoney', 'multiplePurchases', 'actionSupply',
   'turnCleanup', 'cardSelections', 'disabledReasons', 'sharedSpacesAndPassThrough', 'globalUndo',
   'undoAndReload', 'victoryUndoReloadNewGame', 'localLabelsAndRules', 'deckSummary', 'handGrouping',
-  'fullScreenLayout', 'overlappingHand', 'multiLevelUndo', 'actionRail', 'actionLogScroll'
+  'fullScreenLayout', 'overlappingHand', 'multiLevelUndo', 'actionRail', 'actionLogScroll', 'draftToggle',
+  'scrapExclusion', 'targetedCardCopy', 'optionalTrashChoice', 'gainChoice', 'variableTargetCounts'
 ];
 export function validateManifest(manifest: CoverageManifest, discoveredIds: Set<string>): { mappings: number; tests: number } {
   const errors: string[] = [];

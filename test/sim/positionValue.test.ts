@@ -4,11 +4,12 @@ import {
   buildAttackProfile, printedAttackDamage, profilePositionValue, publicPositionAdvantage, removeProfileCard
 } from '../../src/sim/positionValue';
 
+function attack(id: string) {
+  const card = cardDefinition(id);
+  return { mechanic: card.mechanic, values: card.values ?? {} };
+}
 function profile(...ids: string[]): ReturnType<typeof buildAttackProfile> {
-  return buildAttackProfile(ids.map((id) => {
-    const card = cardDefinition(id);
-    return { definitionId: card.id, mechanic: card.mechanic, values: card.values ?? {} };
-  }));
+  return buildAttackProfile(ids.map((id) => ({ definitionId: id, ...attack(id) })), 2);
 }
 
 describe('public position value', () => {
@@ -27,50 +28,88 @@ describe('public position value', () => {
     expect(profilePositionValue(drive, 1, 3)).toBe(-2);
   });
 
-  it('values Steady Shot equally at Near and Far', () => {
+  it('values Steady Shot equally at Near and Far with public Aim potential', () => {
     const ranged = profile('steadyShot');
     expect(profilePositionValue(ranged, 3, 3)).toBe(-1);
-    expect(profilePositionValue(ranged, 2, 3)).toBe(10);
-    expect(profilePositionValue(ranged, 1, 3)).toBe(10);
+    expect(profilePositionValue(ranged, 2, 3)).toBe(20);
+    expect(profilePositionValue(ranged, 1, 3)).toBe(20);
   });
 
-  it('values Repelling Shot as a ranged attack', () => {
+  it('values Repelling Shot with separate Near and Far damage', () => {
     const ranged = profile('repellingShot');
-    expect(profilePositionValue(ranged, 3, 3)).toBe(-1);
-    expect(profilePositionValue(ranged, 2, 3)).toBe(5);
-    expect(profilePositionValue(ranged, 1, 3)).toBe(5);
+    expect(profilePositionValue(ranged, 3, 3)).toBe(-2);
+    expect(profilePositionValue(ranged, 2, 3)).toBe(14);
+    expect(profilePositionValue(ranged, 1, 3)).toBe(20);
   });
 
   it('uses current Aim only for the current hand and best printed Volley for public value', () => {
     const volley = cardDefinition('volley');
     const card = { mechanic: volley.mechanic, values: volley.values ?? {} };
-    expect(printedAttackDamage(card, 2, 3, { aimed: false, tacticalPlayed: 0, publicFuture: false })).toBe(1);
-    expect(printedAttackDamage(card, 2, 3, { aimed: true, tacticalPlayed: 0, publicFuture: false })).toBe(4);
-    expect(printedAttackDamage(card, 1, 3, { aimed: false, tacticalPlayed: 0, publicFuture: false })).toBe(4);
-    expect(printedAttackDamage(card, 1, 3, { aimed: true, tacticalPlayed: 0, publicFuture: false })).toBe(5);
-    expect(profilePositionValue(profile('volley'), 2, 3)).toBe(19);
-    expect(profilePositionValue(profile('volley'), 1, 3)).toBe(25);
+    expect(printedAttackDamage(card, 2, 3, { aimed: false, aimBonus: 2, tacticalPlayed: 0, publicFuture: false })).toBe(1);
+    expect(printedAttackDamage(card, 2, 3, { aimed: true, aimBonus: 2, tacticalPlayed: 0, publicFuture: false })).toBe(3);
+    expect(printedAttackDamage(card, 1, 3, { aimed: false, aimBonus: 2, tacticalPlayed: 0, publicFuture: false })).toBe(4);
+    expect(printedAttackDamage(card, 1, 3, { aimed: true, aimBonus: 2, tacticalPlayed: 0, publicFuture: false })).toBe(6);
+    expect(profilePositionValue(profile('volley'), 2, 3)).toBe(14);
+    expect(profilePositionValue(profile('volley'), 1, 3)).toBe(30);
+  });
+
+  it('scores mana and family damage from current tactical counters', () => {
+    const discharge = attack('discharge');
+    const overload = attack('overload');
+    const improvise = attack('improvise');
+    expect(printedAttackDamage(discharge, 2, 3,
+      { aimed: false, aimBonus: 2, tacticalPlayed: 0, publicFuture: false, mana: 3 })).toBe(6);
+    expect(printedAttackDamage(overload, 2, 3,
+      { aimed: false, aimBonus: 2, tacticalPlayed: 0, publicFuture: false, manaSpent: 2 })).toBe(4);
+    expect(printedAttackDamage(improvise, 2, 3,
+      { aimed: false, aimBonus: 2, tacticalPlayed: 0, publicFuture: false, familiesPlayed: ['mana', 'melee'] })).toBe(6);
+  });
+
+  it('scores targeted, copy-sensitive, and spell-chain attacks from current tactical context', () => {
+    const salvage = attack('salvageShot');
+    const precision = attack('precisionShot');
+    const cascade = attack('cascade');
+    const base = { aimed: false, aimBonus: 2, tacticalPlayed: 0, publicFuture: false };
+    expect(printedAttackDamage(salvage, 2, 4, { ...base, salvageCost: 5 })).toBe(5);
+    expect(printedAttackDamage(precision, 2, 4,
+      { ...base, definitionId: 'precisionShot', copiesPlayed: {} })).toBe(4);
+    expect(printedAttackDamage(precision, 2, 4,
+      { ...base, definitionId: 'precisionShot', copiesPlayed: { precisionShot: 1 } })).toBe(2);
+    expect(printedAttackDamage(cascade, 2, 4, { ...base, spellsPlayed: 2 })).toBe(7);
+  });
+
+  it('gives public-future Flurry one nominal prior Tactical Action at Close range', () => {
+    const flurry = profile('flurry');
+    expect(profilePositionValue(flurry, 3, 3)).toBe(5);
+    expect(profilePositionValue(flurry, 2, 3)).toBe(-1);
+  });
+
+  it('keeps Longshot at one damage for Near and absolute-distance damage for Far', () => {
+    const longshot = attack('longshot');
+    const state = { aimed: false, aimBonus: 2, tacticalPlayed: 0, publicFuture: false };
+    expect(printedAttackDamage(longshot, 2, 3, state)).toBe(1);
+    expect(printedAttackDamage(longshot, 1, 5, state)).toBe(4);
   });
 
   it('keeps Mage damage position-neutral', () => {
     const mage = profile('arcBolt');
-    expect(profilePositionValue(mage, 3, 3)).toBe(20);
-    expect(profilePositionValue(mage, 2, 3)).toBe(20);
-    expect(profilePositionValue(mage, 1, 3)).toBe(20);
+    expect(profilePositionValue(mage, 3, 3)).toBe(15);
+    expect(profilePositionValue(mage, 2, 3)).toBe(15);
+    expect(profilePositionValue(mage, 1, 3)).toBe(15);
   });
 
   it('normalizes unequal live deck sizes with exact integer arithmetic', () => {
     const smallMage = profile('arcBolt');
     const largeMage = profile('arcBolt', 'copper');
-    expect(publicPositionAdvantage(smallMage, largeMage, 1, 3)).toBe(20);
-    expect(publicPositionAdvantage(largeMage, smallMage, 1, 3)).toBe(-20);
+    expect(publicPositionAdvantage(smallMage, largeMage, 1, 3)).toBe(15);
+    expect(publicPositionAdvantage(largeMage, smallMage, 1, 3)).toBe(-15);
   });
 
   it('updates normalization when Cull removes a live non-attack card', () => {
     const card = cardDefinition('copper');
     const mageWithCopper = profile('arcBolt', 'copper');
     const mage = profile('arcBolt');
-    expect(publicPositionAdvantage(mageWithCopper, mage, 1, 3)).toBe(-20);
+    expect(publicPositionAdvantage(mageWithCopper, mage, 1, 3)).toBe(-15);
     removeProfileCard(mageWithCopper, {
       definitionId: card.id, mechanic: card.mechanic, values: card.values ?? {}
     });

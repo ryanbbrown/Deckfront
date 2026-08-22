@@ -63,17 +63,17 @@ describe('shared build repair', () => {
 describe('strategy normalization', () => {
   it('removes Copper, duplicates, zero targets, and targets satisfied by setup', () => {
     const repaired = repairStrategy('current-duel', strategy({
-      startingBuild: ['copper', 'footwork'],
+      startingBuild: ['copper', 'channel'],
       buyAgenda: [
         { cardId: 'copper', desiredCount: 9 },
-        { cardId: 'footwork', desiredCount: 1 },
+        { cardId: 'channel', desiredCount: 1 },
         { cardId: 'aim', desiredCount: 3 },
         { cardId: 'aim', desiredCount: 4 },
         { cardId: 'volley', desiredCount: 0 }
       ],
       repeatPurchase: 'copper'
     }));
-    expect(repaired.startingBuild).toEqual(['footwork']);
+    expect(repaired.startingBuild).toEqual(['channel']);
     expect(repaired.buyAgenda).toEqual([{ cardId: 'aim', desiredCount: 3 }]);
     expect(repaired.repeatPurchase).toBe('aim');
     assertBounds('current-duel', repaired);
@@ -89,12 +89,12 @@ describe('strategy normalization', () => {
 
   it('normalizes starting-build permutations to one population slot', () => {
     const left = repairStrategy('current-duel', strategy({
-      startingBuild: ['volley', 'aim', 'aim'], repeatPurchase: 'footwork'
+      startingBuild: ['precisionShot', 'aim'], repeatPurchase: 'channel'
     }));
     const right = repairStrategy('current-duel', strategy({
-      startingBuild: ['aim', 'volley', 'aim'], repeatPurchase: 'footwork'
+      startingBuild: ['aim', 'precisionShot'], repeatPurchase: 'channel'
     }));
-    expect(left.startingBuild).toEqual(['aim', 'aim', 'volley']);
+    expect(left.startingBuild).toEqual(['aim', 'precisionShot']);
     expect(right.startingBuild).toEqual(left.startingBuild);
     expect(right.id).toBe(left.id);
     expect(new Set([canonicalStrategy(left), canonicalStrategy(right)]).size).toBe(1);

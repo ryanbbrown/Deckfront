@@ -40,12 +40,12 @@ for (const command of record.committedCommands) {
       .find((c) => c.id === id);
     const extra = 'movement' in command ? ` ${String((command as { movement: string }).movement)}`
       : 'direction' in command ? ` ${String((command as { direction: string }).direction)}` : '';
-    const trash = 'trashInstanceIds' in command
-      ? ` trash=${(command as { trashInstanceIds: string[] }).trashInstanceIds
-        .map((t) => [...state.players[actor].deck.hand, ...state.players[actor].deck.play]
-          .find((c) => c.id === t)?.definitionId ?? '?').join('+')}`
+    const targets = 'targetCardInstanceIds' in command
+      ? ` targets=${(command as { targetCardInstanceIds: string[] }).targetCardInstanceIds
+        .map((targetId) => [...state.players[actor].deck.hand, ...state.players[actor].deck.play]
+          .find((candidate) => candidate.id === targetId)?.definitionId ?? '?').join('+')}`
       : '';
-    text = `play ${card ? resolveCard(state, card.definitionId).name : '?'}${extra}${trash}`;
+    text = `play ${card ? resolveCard(state, card.definitionId).name : '?'}${extra}${targets}`;
   } else if (type === 'buyCard') {
     text = `buy ${(command as unknown as { definitionId: string }).definitionId}`;
   }

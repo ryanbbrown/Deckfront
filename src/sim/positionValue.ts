@@ -1,4 +1,4 @@
-import type { CardMechanic, CardValues } from '../game';
+import type { CardFamily, CardMechanic, CardValues } from '../game';
 
 const ARENA_MIN = 1;
 const ARENA_MAX = 5;
@@ -6,7 +6,9 @@ const ARENA_MAX = 5;
 const CURRENT_DAMAGE_WEIGHT = ARENA_MAX - ARENA_MIN + 1;
 
 const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set([
-  'melee', 'drive', 'flurry', 'ranged', 'repellingShot', 'spell', 'volley'
+  'melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush', 'ranged', 'repellingShot',
+  'longshot', 'salvageShot', 'precisionShot', 'spell', 'discharge', 'cascade', 'overload',
+  'discipline', 'improvise', 'scrap', 'volley'
 ]);
 
 export interface ProfileCard {
@@ -19,16 +21,28 @@ export interface AttackProfileEntry extends ProfileCard { count: number }
 export interface AttackProfile {
   attacks: AttackProfileEntry[];
   liveDeckSize: number;
+  aimBonus: number;
 }
 
 export interface AttackState {
   aimed: boolean;
+  aimBonus: number;
+  closeBonus?: number;
   tacticalPlayed: number;
   publicFuture: boolean;
+  mana?: number;
+  manaSpent?: number;
+  spellsPlayed?: number;
+  copiesPlayed?: Readonly<Record<string, number>>;
+  familiesPlayed?: readonly CardFamily[];
+  salvageCost?: number;
+  definitionId?: string;
 }
 
 function value(values: CardValues, key: string): number { return values[key] ?? 0; }
 function distance(left: number, right: number): number { return Math.abs(left - right); }
+function aimBonus(state: AttackState): number { return state.aimed || state.publicFuture ? state.aimBonus : 0; }
+function closeBonus(state: AttackState): number { return state.closeBonus ?? 0; }
 
 export function printedAttackDamage(
   card: Pick<ProfileCard, 'mechanic' | 'values'>,
@@ -38,34 +52,43 @@ export function printedAttackDamage(
 ): number {
   const close = actorPosition === opponentPosition;
   switch (card.mechanic) {
-    case 'melee': return close ? value(card.values, 'damage') : 0;
+    case 'melee': return close ? value(card.values, 'damage') + closeBonus(state) : 0;
     case 'drive': return close
-      ? value(card.values, 'damage')
+      ? value(card.values, 'damage') + closeBonus(state)
         + ((actorPosition === ARENA_MIN || actorPosition === ARENA_MAX) ? value(card.values, 'wallDamage') : 0)
       : 0;
     case 'flurry': return close
-      ? (state.publicFuture
-        ? value(card.values, 'max')
-        : Math.min(value(card.values, 'max'), state.tacticalPlayed * value(card.values, 'perAction')))
+      ? (state.publicFuture ? 1 : state.tacticalPlayed) * value(card.values, 'perAction') + closeBonus(state)
       : 0;
-    case 'ranged': case 'repellingShot': return close ? 0 : value(card.values, 'damage');
+    case 'openingStrike': return close ? value(card.values, 'first') + closeBonus(state) : 0;
+    case 'rally': return close ? value(card.values, 'damage') + closeBonus(state) : 0;
+    case 'bullRush': return close ? value(card.values, 'damage') + closeBonus(state) : 0;
+    case 'ranged': return close ? 0 : value(card.values, 'damage') + aimBonus(state);
+    case 'repellingShot': return close ? 0 : value(card.values, distance(actorPosition, opponentPosition) === 1 ? 'near' : 'far') + aimBonus(state);
+    case 'longshot': return close ? 0 : distance(actorPosition, opponentPosition) + aimBonus(state);
+    case 'salvageShot': return close ? 0 : (state.salvageCost ?? 0) + aimBonus(state);
+    case 'precisionShot': {
+      if (close) return 0;
+      const copies = state.definitionId ? state.copiesPlayed?.[state.definitionId] ?? 0 : 0;
+      return value(card.values, copies === 0 ? 'first' : 'later') + aimBonus(state);
+    }
     case 'spell': return value(card.values, 'damage');
+    case 'discharge': return (state.mana ?? 0) * value(card.values, 'perMana');
+    case 'cascade': return value(card.values, 'damage') + (state.spellsPlayed ?? 0) * value(card.values, 'perSpell');
+    case 'overload': return (state.manaSpent ?? 0) * value(card.values, 'perManaSpent');
+    case 'improvise': return new Set([...(state.familiesPlayed ?? []), 'engine']).size * value(card.values, 'perFamily');
+    case 'discipline': case 'scrap': return value(card.values, 'damage');
     case 'volley': {
       if (close) return 0;
       const near = distance(actorPosition, opponentPosition) === 1;
-      if (state.publicFuture) {
-        return near
-          ? Math.max(value(card.values, 'near'), value(card.values, 'aimedNear'))
-          : Math.max(value(card.values, 'far'), value(card.values, 'aimedFar'));
-      }
-      return value(card.values, state.aimed ? (near ? 'aimedNear' : 'aimedFar') : (near ? 'near' : 'far'));
+      return value(card.values, near ? 'near' : 'far') + aimBonus(state);
     }
     default: return 0;
   }
 }
 
-export function buildAttackProfile(cards: Iterable<ProfileCard>): AttackProfile {
-  const profile: AttackProfile = { attacks: [], liveDeckSize: 0 };
+export function buildAttackProfile(cards: Iterable<ProfileCard>, aimBonusValue = 0): AttackProfile {
+  const profile: AttackProfile = { attacks: [], liveDeckSize: 0, aimBonus: aimBonusValue };
   for (const card of cards) {
     addProfileCard(profile, card);
   }
@@ -90,10 +113,12 @@ export function removeProfileCard(profile: AttackProfile, card: ProfileCard): vo
   if (entry.count === 0) profile.attacks.splice(index, 1);
 }
 
-function stepsToBestRange(card: AttackProfileEntry, actorPosition: number, opponentPosition: number): number {
+function stepsToBestRange(
+  card: AttackProfileEntry, actorPosition: number, opponentPosition: number, profileAimBonus: number
+): number {
   let bestDamage = -1;
   let fewestSteps = ARENA_MAX - ARENA_MIN;
-  const state = { aimed: false, tacticalPlayed: 0, publicFuture: true };
+  const state = { aimed: false, aimBonus: profileAimBonus, tacticalPlayed: 0, publicFuture: true };
   for (let position = ARENA_MIN; position <= ARENA_MAX; position += 1) {
     const damage = printedAttackDamage(card, position, opponentPosition, state);
     const steps = Math.abs(position - actorPosition);
@@ -103,23 +128,24 @@ function stepsToBestRange(card: AttackProfileEntry, actorPosition: number, oppon
   return fewestSteps;
 }
 
-const positionTables = new WeakMap<CardValues, Map<CardMechanic, Int16Array>>();
+const positionTables = new WeakMap<CardValues, Map<string, Int16Array>>();
 
-function positionTable(card: AttackProfileEntry): Int16Array {
+function positionTable(card: AttackProfileEntry, profileAimBonus: number): Int16Array {
   let byMechanic = positionTables.get(card.values);
   if (!byMechanic) { byMechanic = new Map(); positionTables.set(card.values, byMechanic); }
-  const cached = byMechanic.get(card.mechanic);
+  const cacheKey = `${card.mechanic}:${profileAimBonus}`;
+  const cached = byMechanic.get(cacheKey);
   if (cached) return cached;
   const table = new Int16Array(ARENA_MAX * ARENA_MAX);
-  const state = { aimed: false, tacticalPlayed: 0, publicFuture: true };
+  const state = { aimed: false, aimBonus: profileAimBonus, tacticalPlayed: 0, publicFuture: true };
   for (let actor = ARENA_MIN; actor <= ARENA_MAX; actor += 1) {
     for (let opponent = ARENA_MIN; opponent <= ARENA_MAX; opponent += 1) {
       const current = printedAttackDamage(card, actor, opponent, state);
       table[(actor - 1) * ARENA_MAX + opponent - 1] = current * CURRENT_DAMAGE_WEIGHT
-        - stepsToBestRange(card, actor, opponent);
+        - stepsToBestRange(card, actor, opponent, profileAimBonus);
     }
   }
-  byMechanic.set(card.mechanic, table);
+  byMechanic.set(cacheKey, table);
   return table;
 }
 
@@ -129,7 +155,7 @@ export function profilePositionValue(
 ): number {
   let total = 0;
   for (const card of profile.attacks) {
-    total += card.count * positionTable(card)[(actorPosition - 1) * ARENA_MAX + opponentPosition - 1]!;
+    total += card.count * positionTable(card, profile.aimBonus)[(actorPosition - 1) * ARENA_MAX + opponentPosition - 1]!;
   }
   return total;
 }

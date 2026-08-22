@@ -12,7 +12,14 @@
     "drive": ["pw:DD-E2E-006", "pw:DD-E2E-010", "pw:DD-E2E-014", "pw:DD-E2E-018"],
     "flurry": ["pw:DD-E2E-007", "pw:DD-E2E-010", "pw:DD-E2E-019"],
     "aim": ["pw:DD-E2E-009", "pw:DD-E2E-011", "pw:DD-E2E-015"],
-    "volley": ["pw:DD-E2E-009", "pw:DD-E2E-011", "pw:DD-E2E-012", "pw:DD-E2E-015"]
+    "volley": ["pw:DD-E2E-009", "pw:DD-E2E-011", "pw:DD-E2E-012", "pw:DD-E2E-015"],
+    "scrap": ["pw:DD-E2E-049"],
+    "bullRush": ["pw:DD-E2E-050"],
+    "salvageShot": ["pw:DD-E2E-050"],
+    "discipline": ["pw:DD-E2E-050"],
+    "sharpen": ["pw:DD-E2E-051"],
+    "reforge": ["pw:DD-E2E-052"],
+    "scour": ["pw:DD-E2E-053"]
   },
   "browserFlows": {
     "fullTablePreview": ["pw:DD-E2E-001"],
@@ -43,6 +50,12 @@
     "overlappingHand": ["pw:DD-E2E-040"],
     "multiLevelUndo": ["pw:DD-E2E-044"],
     "actionRail": ["pw:DD-E2E-040", "pw:DD-E2E-045", "pw:DD-E2E-046", "pw:DD-E2E-048"],
-    "actionLogScroll": ["pw:DD-E2E-046", "pw:DD-E2E-047"]
+    "actionLogScroll": ["pw:DD-E2E-046", "pw:DD-E2E-047"],
+    "draftToggle": ["pw:DD-E2E-049"],
+    "scrapExclusion": ["pw:DD-E2E-049"],
+    "targetedCardCopy": ["pw:DD-E2E-050"],
+    "optionalTrashChoice": ["pw:DD-E2E-051"],
+    "gainChoice": ["pw:DD-E2E-052"],
+    "variableTargetCounts": ["pw:DD-E2E-053"]
   }
 }

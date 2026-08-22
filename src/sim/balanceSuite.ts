@@ -62,7 +62,7 @@ export interface BalanceSuiteValidation {
 }
 
 export const BALANCE_SUITE_SPEC: BalanceSuiteSpec = Object.freeze({
-  suiteVersion: 'balance-suite-v2', generatorVersion: 'balanced-swaps-v1',
+  suiteVersion: 'balance-suite-v3', generatorVersion: 'balanced-swaps-v1',
   eligibleCardIds: Object.freeze([...VARIABLE_ACTION_IDS].sort()),
   kingdomSize: 10,
   splits: Object.freeze([
@@ -97,7 +97,9 @@ function overlap(left: readonly string[], right: readonly string[]): number {
   return left.reduce((count, card) => count + Number(rightSet.has(card)), 0);
 }
 function isDamage(cardId: string): boolean {
-  return ['melee', 'drive', 'flurry', 'ranged', 'repellingShot', 'volley', 'spell']
+  return ['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush', 'ranged', 'repellingShot',
+    'longshot', 'salvageShot', 'precisionShot', 'volley', 'spell', 'discharge', 'cascade', 'overload',
+    'discipline', 'improvise', 'scrap']
     .includes(CARDS[cardId]!.mechanic);
 }
 function pairCounts(rows: readonly (readonly string[])[], eligible: readonly string[]): Map<string, number> {

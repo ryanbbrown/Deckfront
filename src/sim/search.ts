@@ -1,5 +1,5 @@
 import {
-  isTacticalAction, kingdomEpoch, kingdomMarket, listLegalActions, opponent, resolveCard
+  CARDS, isTacticalAction, kingdomEpoch, listLegalActions, opponent, resolveCard
 } from '../game';
 import { applyLegalAction } from '../game/engine';
 import type { CardInstance, CardMechanic, GameEvent, GameState, LegalAction, PlayerId } from '../game';
@@ -9,6 +9,8 @@ import type { Strategy } from './strategy';
 import { ActionSearchOverflowError } from './types';
 import { buildAttackProfile, publicPositionAdvantage } from './positionValue';
 import type { AttackProfile, ProfileCard } from './positionValue';
+import { fixedTargetSelection } from './tacticalPilot';
+import type { PilotCard } from './tacticalPilot';
 
 export interface Branch {
   lethal: boolean;
@@ -27,7 +29,9 @@ export interface SearchOutcome { action: LegalAction; visited: number }
 
 export const DEFAULT_STATE_LIMIT = 20000;
 export const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set<CardMechanic>([
-  'melee', 'ranged', 'repellingShot', 'spell', 'volley', 'drive', 'flurry'
+  'melee', 'ranged', 'repellingShot', 'spell', 'volley', 'drive', 'flurry', 'openingStrike', 'rally',
+  'bullRush', 'longshot', 'salvageShot', 'precisionShot', 'discharge', 'cascade', 'overload',
+  'discipline', 'improvise', 'scrap'
 ]);
 
 let indexedEpoch = -1;
@@ -38,7 +42,7 @@ function cardIndex(kingdomId: string): ReadonlyMap<string, number> {
   if (indexedEpoch !== currentEpoch) { cardIndexes.clear(); indexedEpoch = currentEpoch; }
   let index = cardIndexes.get(kingdomId);
   if (!index) {
-    index = new Map(kingdomMarket(kingdomId).map((definition, position) => [definition.id, position]));
+    index = new Map(Object.values(CARDS).map((definition, position) => [definition.id, position]));
     cardIndexes.set(kingdomId, index);
   }
   return index;
@@ -98,7 +102,7 @@ function attackProfile(state: GameState, playerId: PlayerId): AttackProfile {
       yield { definitionId: definition.id, mechanic: definition.mechanic, values: definition.values ?? {} };
     }
   }
-  return buildAttackProfile(definitions());
+  return buildAttackProfile(definitions(), resolveCard(state, 'aim').values?.bonus ?? 0);
 }
 
 function eventTotals(state: GameState, playerId: PlayerId, baseline: SearchBaseline): {
@@ -183,14 +187,18 @@ export function memoKey(state: GameState, playerId: PlayerId): string {
     return values.join(',');
   };
   const ordered = (cards: readonly CardInstance[]): string => cards.map(indexOf).join(',');
-  const tactical = state.actionsThisTurn.filter(isTacticalAction).length;
+  const tactical = state.turnState.cardsPlayed.filter(isTacticalAction).length;
+  const turn = state.turnState;
+  const copies = Object.entries(turn.copiesPlayed).sort(([left], [right]) => left.localeCompare(right));
   const pending = state.pendingChoice;
   return [
     mine.position, mine.health, mine.aimed ? 1 : 0, mine.exposed ? 1 : 0,
     foe.position, foe.health, foe.aimed ? 1 : 0, foe.exposed ? 1 : 0,
     counts(player.deck.hand), counts(player.deck.play), ordered(player.deck.draw), ordered(player.deck.discard),
     player.mana, player.money, player.positionChanged ? 1 : 0, state.rngState,
-    pending ? `${pending.type}:${pending.remaining}` : '-', tactical
+    pending ? JSON.stringify(pending) : '-', tactical,
+    turn.spacesMoved, turn.manaSpent, turn.spellsPlayed, turn.cardsPlayed.join(','),
+    JSON.stringify(copies), turn.familiesPlayed.join(',')
   ].join('|');
 }
 
@@ -247,15 +255,38 @@ function allowedActions(
     })[0]!];
   }
 
-  if (!actions.some((action) => action.command.type === 'playCull')) return actions;
+  if (!actions.some((action) => action.command.type === 'playTargetedAction')) return actions;
   const floor = resolveCard(state, strategy.repeatPurchase).cost;
   const availableMoney = repeatableMoney(state, playerId);
+  const hand = state.players[playerId].deck.hand.map((instance, handIndex): PilotCard => {
+    const definition = resolveCard(state, instance.definitionId);
+    return {
+      handIndex, definitionId: definition.id, mechanic: definition.mechanic, family: definition.family,
+      cost: definition.cost, money: definition.money ?? 0, values: definition.values ?? {},
+      enabled: true, movements: []
+    };
+  });
   return actions.filter((action) => {
-    if (action.command.type !== 'playCull') return true;
+    if (action.command.type !== 'playTargetedAction') return true;
+    const source = cardById(state, playerId, action.command.cardInstanceId);
+    if (!source) return false;
+    if (source.definitionId !== 'cull') {
+      const pilotCard = hand.find((card) => card.handIndex === state.players[playerId].deck.hand
+        .findIndex((instance) => instance.id === source.id));
+      if (!pilotCard) return false;
+      const selected = fixedTargetSelection(pilotCard, hand);
+      if (!selected) return true;
+      const expected = [
+        ...(selected.targetSelf ? [source.id] : []),
+        ...(selected.targetHandIndexes ?? []).map((index) => state.players[playerId].deck.hand[index]?.id)
+      ].filter((id): id is string => id !== undefined);
+      return action.command.targetCardInstanceIds.length === expected.length
+        && action.command.targetCardInstanceIds.every((id) => expected.includes(id));
+    }
     let removedMoney = 0;
     let removedCopper = 0;
     let removesCull = false;
-    for (const targetId of action.command.trashInstanceIds) {
+    for (const targetId of action.command.targetCardInstanceIds) {
       const card = cardById(state, playerId, targetId);
       if (!card) return false;
       if (card.definitionId !== 'copper' && !(card.definitionId === 'cull' && targetId === action.command.cardInstanceId)) return false;

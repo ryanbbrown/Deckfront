@@ -27,17 +27,19 @@ function statesOf(seed: number): GameState[] {
 
 const states = statesOf(11);
 const midGame = states[Math.floor(states.length / 2)]!;
-const pending = states.find((state) => state.pendingChoice !== null);
+const pending = states.find((state) => state.pendingChoice !== null) ?? {
+  ...midGame, pendingChoice: { type: 'discard' as const, playerId: midGame.activePlayerId, remaining: 1 }
+};
 const final = states.at(-1)!;
 
 describe('cloning a game state', () => {
   // `10-8:61` requires the mana-and-pending-choice case, which is where a cheap clone fails first.
   // Without this the fixture could silently lose it and every check below would still pass.
   it('has a state with a live pending choice to copy', () => {
-    expect(pending?.pendingChoice).toMatchObject({ playerId: expect.any(String), remaining: expect.any(Number) });
+    expect(pending.pendingChoice).toMatchObject({ playerId: expect.any(String), remaining: expect.any(Number) });
   });
 
-  it.each([['mid game', midGame], ['a pending choice', pending!], ['the final state', final]] as const)(
+  it.each([['mid game', midGame], ['a pending choice', pending], ['the final state', final]] as const)(
     'copies %s exactly as structuredClone does',
     (_name, state) => {
       expect(cloneGame(state)).toEqual(structuredClone(state));
@@ -64,13 +66,25 @@ describe('cloning a game state', () => {
       fighter.health = 99;
     }
     copy.trash.push(card);
-    copy.actionsThisTurn.push('intruder');
+    copy.turnState.cardsPlayed.push('intruder');
     copy.events.push({ sequence: -1, type: 'draw', playerId: 'ochre', detail: {} });
     copy.supply.gold = 99;
     copy.turn = 999;
-    if (copy.pendingChoice) copy.pendingChoice.remaining = 99;
+    if (copy.pendingChoice?.type === 'discard' || copy.pendingChoice?.type === 'recover') copy.pendingChoice.remaining = 99;
 
     expect(state).toEqual(before);
+  });
+
+  it.each([
+    { type: 'optionalTrash' as const, playerId: 'ochre' as const, sourceCardInstanceId: 'source-1' },
+    { type: 'gain' as const, playerId: 'ochre' as const, maxCost: 5 }
+  ])('isolates $type pending-choice fields', (pendingChoice) => {
+    const state = { ...midGame, pendingChoice };
+    const copy = cloneGame(state);
+    expect(copy.pendingChoice).not.toBe(state.pendingChoice);
+    if (copy.pendingChoice?.type === 'optionalTrash') copy.pendingChoice.sourceCardInstanceId = 'source-2';
+    if (copy.pendingChoice?.type === 'gain') copy.pendingChoice.maxCost = 9;
+    expect(state.pendingChoice).toEqual(pendingChoice);
   });
 
   it('shares the card and event objects on purpose, which is where the speed comes from', () => {

@@ -17,7 +17,7 @@ function run(slice: TelemetrySlice) {
 function availability(cardInstanceId: string, overrides: Partial<ActionAvailability> = {}): ActionAvailability {
   return {
     cardInstanceId, enabled: false, reasonCode: null, reason: null,
-    selection: 'none', eligibleCardInstanceIds: [], movements: [], ...overrides
+    selection: 'none', eligibleCardInstanceIds: [], movements: [], minimumTargets: 0, maximumTargets: 0, ...overrides
   };
 }
 function handOf(state: GameState, playerId: PlayerId, definitionIds: readonly string[]): void {
@@ -106,7 +106,7 @@ describe('telemetry accumulator', () => {
       availability(flurry!.id, { enabled: true })
     ];
     state.fighters.ochre.aimed = true;
-    state.actionsThisTurn = ['footwork'];
+    state.turnState.cardsPlayed = ['footwork'];
     expect(deadDrawCounts({ playerId: 'ochre', state, availability: list })).toEqual({ range: 0, mana: 0, setup: 0, total: 0 });
   });
 

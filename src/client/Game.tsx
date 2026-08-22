@@ -12,9 +12,10 @@ type PlayedGroup = CardGroup;
 
 export function PreviewTable({ catalog, market, error, onRefresh, onStart }: {
   catalog: SetupCatalog; market: string[]; error: string | null; onRefresh: () => void;
-  onStart: (mode: GameMode, humanPlayerId?: PlayerId, aiDifficulty?: AiDifficulty) => Promise<void>;
+  onStart: (mode: GameMode, startingDraftEnabled: boolean, humanPlayerId?: PlayerId, aiDifficulty?: AiDifficulty) => Promise<void>;
 }) {
   const [mode, setMode] = useState<GameMode>('local');
+  const [startingDraftEnabled, setStartingDraftEnabled] = useState(true);
   const [human, setHuman] = useState<PlayerId>('ochre');
   const [difficulty, setDifficulty] = useState<AiDifficulty>('expert');
   const [marketOpen, setMarketOpen] = useState(false);
@@ -23,10 +24,11 @@ export function PreviewTable({ catalog, market, error, onRefresh, onStart }: {
     <TableHeader title="Choose a kingdom" controls={<div className="setup-controls">
       <label><input type="radio" checked={mode === 'local'} onChange={() => setMode('local')} /> Local players</label>
       <label><input type="radio" checked={mode === 'ai'} onChange={() => setMode('ai')} /> Play against AI</label>
+      <label><input type="checkbox" checked={startingDraftEnabled} onChange={(event) => setStartingDraftEnabled(event.target.checked)} /> Starting draft</label>
       {mode === 'ai' ? <><fieldset><legend>Turn order</legend><label><input type="radio" checked={human === 'ochre'} onChange={() => setHuman('ochre')} /> I go first</label><label><input type="radio" checked={human === 'indigo'} onChange={() => setHuman('indigo')} /> AI goes first</label></fieldset><label>AI strength<select aria-label="AI strength" value={difficulty} onChange={(event) => setDifficulty(event.target.value as AiDifficulty)}>{AI_DIFFICULTIES.map((value) => <option key={value} value={value}>{value[0]!.toUpperCase() + value.slice(1)}</option>)}</select></label></> : null}
       <button className="control-button" onClick={onRefresh}>Refresh market</button>
       <button className="control-button" onClick={() => setMarketOpen(true)}>View cards</button>
-      <button className="control-button primary" onClick={() => void onStart(mode, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)}>Start game</button>
+      <button className="control-button primary" onClick={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)}>Start game</button>
     </div>} />
     {error ? <p role="alert" className="error">{error}</p> : null}
     <PreviewArena />
@@ -39,9 +41,9 @@ export function PreviewTable({ catalog, market, error, onRefresh, onStart }: {
 
 export function Game({ game, error, onGame, onError, onNew }: GameProps) {
   const [busy, setBusy] = useState(false);
-  const [cullCard, setCullCard] = useState<string | null>(null);
+  const [targetedCard, setTargetedCard] = useState<string | null>(null);
   const [movementCard, setMovementCard] = useState<string | null>(null);
-  const [trash, setTrash] = useState<string[]>([]);
+  const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
   const [marketOpen, setMarketOpen] = useState(false);
   const actor = game.players[game.activePlayerId];
   const actorName = playerName(game.activePlayerId);
@@ -68,25 +70,37 @@ export function Game({ game, error, onGame, onError, onNew }: GameProps) {
     catch (cause) { onError(cause instanceof Error ? cause.message : 'Undo failed.'); }
     finally { setBusy(false); }
   }
-  function clearChoice() { setCullCard(null); setMovementCard(null); setTrash([]); }
+  function clearChoice() { setTargetedCard(null); setMovementCard(null); setSelectedTargets([]); }
   function chooseCard(id: string) {
     const info = availability.get(id); if (!info?.enabled) return;
-    if (info.selection === 'trashOneOrTwo') { setCullCard(id); setMovementCard(null); setTrash([]); return; }
-    if (info.selection === 'movement') { setMovementCard(id); setCullCard(null); return; }
+    if (info.selection === 'targets') { setTargetedCard(id); setMovementCard(null); setSelectedTargets([]); return; }
+    if (info.selection === 'movement') { setMovementCard(id); setTargetedCard(null); return; }
     if (info.actionId) void act({ id: info.actionId });
   }
-  function toggleTrashGroup(instanceIds: string[]) {
-    const eligible = new Set(cullCard ? availability.get(cullCard)?.eligibleCardInstanceIds ?? [] : []);
+  function toggleTargetGroup(instanceIds: string[]) {
+    const eligible = new Set(targetedCard ? availability.get(targetedCard)?.eligibleCardInstanceIds ?? [] : []);
     const candidates = instanceIds.filter((id) => eligible.has(id));
-    setTrash((current) => {
+    setSelectedTargets((current) => {
       const selectedHere = candidates.filter((id) => current.includes(id));
-      if (selectedHere.length === candidates.length || current.length >= 2) return current.filter((id) => !candidates.includes(id));
+      const maximum = targetedCard ? availability.get(targetedCard)?.maximumTargets ?? 0 : 0;
+      if (selectedHere.length === candidates.length || current.length >= maximum) return current.filter((id) => !candidates.includes(id));
       const next = candidates.find((id) => !current.includes(id));
-      return next && current.length < 2 ? [...current, next] : current;
+      return next && current.length < maximum ? [...current, next] : current;
     });
   }
-  const cullAction = cullCard && trash.length >= 1 && trash.length <= 2
-    ? availability.get(cullCard)?.choices.find((action) => sameSelection(action.targetCardInstanceIds, trash)) : undefined;
+  const targetInfo = targetedCard ? availability.get(targetedCard) : undefined;
+  const targetAction = targetedCard && selectedTargets.length >= (targetInfo?.minimumTargets ?? 0) && selectedTargets.length <= (targetInfo?.maximumTargets ?? 0)
+    ? availability.get(targetedCard)?.choices.find((action) => sameSelection(action.targetCardInstanceIds, selectedTargets)) : undefined;
+  const targetCount = targetInfo?.minimumTargets === 0 ? `up to ${String(targetInfo.maximumTargets)}`
+    : targetInfo?.minimumTargets === targetInfo?.maximumTargets ? String(targetInfo?.maximumTargets)
+      : `${String(targetInfo?.minimumTargets)} or ${String(targetInfo?.maximumTargets)}`;
+  const targetedInstance = targetedCard ? actor.hand.find((card) => card.id === targetedCard) : undefined;
+  const targetedMechanic = targetedInstance ? game.cards[targetedInstance.definitionId]?.mechanic : undefined;
+  const targetVerb = targetedMechanic === 'bullRush' || targetedMechanic === 'salvageShot' ? 'discard' : 'trash';
+  const targetNoun = targetInfo?.maximumTargets === 1 ? 'card' : 'cards';
+  const groupedTargetHint = (targetInfo?.maximumTargets ?? 0) > 1
+    ? ' Click a grouped card twice to select two physical copies.' : '';
+  const selectedTargetLabel = targetVerb === 'discard' ? 'Discard' : 'Trash';
   const endAction = game.actions.phases.find((action) => action.kind === 'endAction');
   const endBuy = game.actions.phases.find((action) => action.kind === 'endBuy');
   const turnText = game.winner ? `${playerName(game.winner)} wins`
@@ -110,17 +124,17 @@ export function Game({ game, error, onGame, onError, onNew }: GameProps) {
     {error ? <p role="alert" className="error">{error}</p> : null}
     <section className="arena-zone table-zone"><div className="range-label" data-testid="range">{game.range} · {Math.abs(game.fighters.ochre.position - game.fighters.indigo.position)} {Math.abs(game.fighters.ochre.position - game.fighters.indigo.position) === 1 ? 'space' : 'spaces'}</div><Board game={game} /></section>
     {game.phase === 'startingBuild' ? <div className="build-strip"><strong>{actorName} selected</strong><div>{game.buildProposal.map((id, index) => <button key={`${id}-${index}`} aria-label={`Remove ${game.cards[id]?.name}`} onClick={() => void saveBuild(game.buildProposal.filter((_, position) => position !== index))}>{game.cards[id]?.name} ×</button>)}</div><span>{game.buildProposal.length ? 'Click a selected card to remove it.' : 'Click market piles to add cards.'}</span></div> : null}
-    {game.actions.selection ? <div className="choice-bar"><strong>{game.actions.selection.kind === 'discard' ? 'Choose a card to discard' : 'Choose a card to recover'}</strong><div>{game.actions.selection.choices.map((action) => <button className="choice-button" key={action.id} aria-label={action.label} disabled={busy} onClick={() => void act(action)}>{action.text}</button>)}</div></div> : null}
+    {game.actions.selection ? <div className="choice-bar"><strong>{game.actions.selection.kind === 'discard' ? 'Choose a card to discard' : game.actions.selection.kind === 'recover' ? 'Choose a card to recover' : game.actions.selection.kind === 'gain' ? 'Choose a card to gain' : 'Choose a card to trash, or skip'}</strong><div>{game.actions.selection.choices.map((action) => <button className="choice-button" key={action.id} aria-label={action.label} disabled={busy} onClick={() => void act(action)}>{action.text}</button>)}</div></div> : null}
     <CompactMarket cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} supply={game.supply} onView={() => setMarketOpen(true)} onCard={marketAction} enabled={(id) => game.phase === 'startingBuild' ? !busy : Boolean(buys.get(id)) && !busy} />
     <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2><span>Consecutive copies share a stack.</span></div><div className="played-row" data-testid="played-row">{playedGroups.length ? playedGroups.map((group) => <PlayedCard key={group.instances[0]!.id} card={game.cards[group.definitionId]!} group={group} />) : <p className="empty-row">Cards move here from your hand.</p>}</div></section>
     <section className="hand-panel table-zone"><div className="zone-title"><h2>{actorName} hand</h2><span>{actor.zoneCounts.hand} physical cards</span></div><div className="hand-row" data-testid="hand-grid">{handGroups.map((group, index) => {
       const enabledInstance = group.instances.find((card) => availability.get(card.id)?.enabled) ?? group.instances[0]!;
       const info = availability.get(enabledInstance.id);
-      const targetIds = cullCard ? group.instances.filter((card) => availability.get(cullCard)?.eligibleCardInstanceIds.includes(card.id)).map((card) => card.id) : [];
-      const selectedCount = group.instances.filter((card) => trash.includes(card.id)).length;
-      const unavailable = cullCard ? targetIds.length === 0 : !info?.enabled;
-      return <div className="hand-card-slot" key={group.definitionId} style={{ zIndex: index + 1 }}>{group.instances.length > 1 ? <span className="quantity-badge" data-testid={`hand-count-${group.definitionId}`}>×{group.instances.length}</span> : null}<button className={`card full-card card--${game.cards[group.definitionId]!.family}${unavailable ? ' card--unavailable' : ''}${selectedCount ? ' card--target' : ''}${movementCard === enabledInstance.id || cullCard === enabledInstance.id ? ' card--selected' : ''}`} data-card-name={game.cards[group.definitionId]!.name} data-card-instance-id={enabledInstance.id} data-card-count={group.instances.length} disabled={busy} aria-disabled={unavailable} title={!cullCard ? info?.reason ?? undefined : undefined} onClick={() => { if (unavailable) return; if (cullCard) toggleTrashGroup(targetIds); else chooseCard(enabledInstance.id); }}><CardFace card={game.cards[group.definitionId]!} />{selectedCount ? <span className="selected-count">Selected ×{selectedCount}</span> : null}{!info?.enabled && !cullCard && game.cards[group.definitionId]!.type === 'action' ? <em>{info?.reason}</em> : null}</button></div>;
-    })}</div>{cullCard ? <div className="choice-bar choice-bar--overlay"><p>Select 1 or 2 cards. Click a grouped card twice to select two physical copies. {trash.length} selected (maximum 2).</p><div><button className="control-button primary" disabled={!cullAction} onClick={() => cullAction && void act(cullAction)}>{trash.length === 1 ? 'Trash selected card' : 'Trash selected cards'}</button><button className="control-button" onClick={clearChoice}>Cancel</button></div></div> : null}{movementCard ? <div className="choice-bar choice-bar--overlay"><strong>Choose movement</strong><div>{(availability.get(movementCard)?.choices ?? []).map((action) => <button className="choice-button" key={action.id} aria-label={action.label} disabled={busy} onClick={() => void act(action)}>{action.text}</button>)}<button className="control-button" onClick={clearChoice}>Cancel</button></div></div> : null}</section>
+      const targetIds = targetedCard ? group.instances.filter((card) => availability.get(targetedCard)?.eligibleCardInstanceIds.includes(card.id)).map((card) => card.id) : [];
+      const selectedCount = group.instances.filter((card) => selectedTargets.includes(card.id)).length;
+      const unavailable = targetedCard ? targetIds.length === 0 : !info?.enabled;
+      return <div className="hand-card-slot" key={group.definitionId} style={{ zIndex: index + 1 }}>{group.instances.length > 1 ? <span className="quantity-badge" data-testid={`hand-count-${group.definitionId}`}>×{group.instances.length}</span> : null}<button className={`card full-card card--${game.cards[group.definitionId]!.family}${unavailable ? ' card--unavailable' : ''}${selectedCount ? ' card--target' : ''}${movementCard === enabledInstance.id || targetedCard === enabledInstance.id ? ' card--selected' : ''}`} data-card-name={game.cards[group.definitionId]!.name} data-card-instance-id={enabledInstance.id} data-card-count={group.instances.length} disabled={busy} aria-disabled={unavailable} title={!targetedCard ? info?.reason ?? undefined : undefined} onClick={() => { if (unavailable) return; if (targetedCard) toggleTargetGroup(targetIds); else chooseCard(enabledInstance.id); }}><CardFace card={game.cards[group.definitionId]!} />{selectedCount ? <span className="selected-count">Selected ×{selectedCount}</span> : null}{!info?.enabled && !targetedCard && game.cards[group.definitionId]!.type === 'action' ? <em>{info?.reason}</em> : null}</button></div>;
+    })}</div>{targetedCard ? <div className="choice-bar choice-bar--overlay"><p>Select {targetCount} {targetNoun} to {targetVerb}.{groupedTargetHint} {selectedTargets.length} selected.</p><div><button className="control-button primary" disabled={!targetAction} onClick={() => targetAction && void act(targetAction)}>{selectedTargets.length === 0 ? 'Play with no targets' : `${selectedTargetLabel} selected ${selectedTargets.length === 1 ? 'card' : 'cards'}`}</button><button className="control-button" onClick={clearChoice}>Cancel</button></div></div> : null}{movementCard ? <div className="choice-bar choice-bar--overlay"><strong>Choose movement</strong><div>{(availability.get(movementCard)?.choices ?? []).map((action) => <button className="choice-button" key={action.id} aria-label={action.label} disabled={busy} onClick={() => void act(action)}>{action.text}</button>)}<button className="control-button" onClick={clearChoice}>Cancel</button></div></div> : null}</section>
     <ActionRail game={game} />
     {marketOpen ? <MarketDialog cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} onClose={() => setMarketOpen(false)} /> : null}
   </main>;
@@ -193,7 +207,8 @@ function eventText(game: GameView, event: PublicGameEvent): string {
     case 'wallCollision': return `Wall blocked ${String(detail.direction)}; neither fighter moved`;
     case 'condition': return `${String(detail.condition)} ${detail.change === 'set' ? 'applied to' : 'consumed from'} ${eventPlayerName(detail.targetId)}`;
     case 'discard': return `Discarded ${cardName()}`;
-    case 'recover': return 'Recovered a card to the top of the deck';
+    case 'recover': return 'Recovered a card to hand';
+    case 'gain': return `Gained ${cardName()}`;
     case 'trash': return `Trashed ${cardName()}`;
     case 'draw': return `Drew ${String(detail.count)} ${detail.count === 1 ? 'card' : 'cards'}`;
     case 'phase': return `Started Buy phase with ${String(detail.money)} money`;

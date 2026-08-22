@@ -32,8 +32,8 @@ function semanticAction(state: GameState, playerId: PlayerId, action: LegalActio
   if ('cardInstanceId' in command) {
     const cardId = definitionForInstance(state, playerId, command.cardInstanceId);
     const movement = 'movement' in command ? command.movement : 'direction' in command ? command.direction : null;
-    const trash = command.type === 'playCull'
-      ? command.trashInstanceIds.map((id) => definitionForInstance(state, playerId, id)).sort()
+    const trash = command.type === 'playTargetedAction'
+      ? command.targetCardInstanceIds.map((id) => definitionForInstance(state, playerId, id)).sort()
       : [];
     return JSON.stringify(['play', cardId, movement, trash]);
   }

@@ -27,12 +27,12 @@ function passiveAgents(observe?: (state: GameState, playerId: PlayerId) => void)
 function busyAgents(): Record<PlayerId, Agent> {
   return {
     ochre: scriptedAgent({
-      id: 'ochre-agent', builds: { ochre: ['footwork', 'aim', 'volley'] },
-      play: ['aim', 'volley', 'footwork'], buy: ['footwork', 'silver']
+      id: 'ochre-agent', builds: { ochre: ['aim', 'volley'] },
+      play: ['aim', 'volley'], buy: ['footwork', 'silver']
     }),
     indigo: scriptedAgent({
-      id: 'indigo-agent', builds: { indigo: ['muster', 'feint', 'footwork'] },
-      play: ['muster', 'footwork', 'feint'], buy: ['muster', 'silver']
+      id: 'indigo-agent', builds: { indigo: ['drive', 'feint', 'footwork'] },
+      play: ['footwork', 'feint', 'drive'], buy: ['feint', 'silver']
     })
   };
 }
@@ -143,7 +143,7 @@ describe('runMatch stop conditions', () => {
     // A melee build stuck at range produces real dead draws, so both snapshots carry a value the
     // spoof would move. With all-zero telemetry the comparison below would prove nothing.
     const agents = (wrap: boolean): Record<PlayerId, Agent> => {
-      const ochre = scriptedAgent({ id: 'melee', builds: { ochre: ['drive', 'feint', 'feint'] } });
+      const ochre = scriptedAgent({ id: 'melee', builds: { ochre: ['drive', 'feint'] } });
       const indigo = scriptedAgent({ id: 'idle', buy: ['silver'] });
       return wrap ? { ochre: spoofing(ochre), indigo: spoofing(indigo) } : { ochre, indigo };
     };
@@ -254,7 +254,7 @@ describe('runMatch telemetry', () => {
     const result = runMatch(config({
       seed: 3, turnLimitPerPlayer: 4,
       agents: {
-        ochre: scriptedAgent({ id: 'melee', builds: { ochre: ['drive', 'feint', 'feint'] } }),
+        ochre: scriptedAgent({ id: 'melee', builds: { ochre: ['drive', 'feint'] } }),
         indigo: scriptedAgent({ id: 'idle' })
       }
     }));

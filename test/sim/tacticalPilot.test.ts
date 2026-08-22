@@ -101,7 +101,7 @@ describe('the shared tactical pilot', () => {
       kingdomId: 'three-way-open', hand: ['adapt', 'leyStep', 'flurry', 'arcBolt', 'arcBolt'],
       draw: [], mana: 0, ochre: 2, indigo: 2, indigoHand: [], indigoDraw: [], indigoDiscard: []
     });
-    state.actionsThisTurn = ['footwork', 'footwork', 'footwork', 'footwork', 'footwork'];
+    state.turnState.cardsPlayed = ['footwork', 'footwork', 'footwork', 'footwork', 'footwork'];
     expect(playedDefinition(state, choose(state))).toBe('adapt');
   });
 
@@ -125,6 +125,29 @@ describe('the shared tactical pilot', () => {
     expect(choose(right).command).toMatchObject({ type: 'playDrive', direction: 'right' });
   });
 
+  it('uses Scour on the first two Copper cards and skips targets only without Copper', () => {
+    const withCopper = arena({ hand:['scour','copper','copper','copper','silver'] });
+    const selected = choose(withCopper);
+    expect(selected.command.type).toBe('playTargetedAction');
+    const selectedIds = selected.command.type === 'playTargetedAction' ? selected.command.targetCardInstanceIds : [];
+    expect(selectedIds.map((id) => withCopper.players.ochre.deck.hand.find((card) => card.id === id)?.definitionId))
+      .toEqual(['copper','copper']);
+
+    const withoutCopper = arena({ hand:['scour','silver'] });
+    expect(choose(withoutCopper).command).toMatchObject({ type:'playTargetedAction', targetCardInstanceIds:[] });
+  });
+
+  it('filters heterogeneous actions before scoring gain definitions', () => {
+    const state = arena({ kingdomId:'current-duel', hand:[] });
+    state.pendingChoice = { type:'gain', playerId:'ochre', maxCost:5 };
+    const actions: LegalAction[] = [
+      { id:'other', label:'Other', command:{ type:'endActionPhase' } },
+      { id:'gain', label:'Gain Rally', command:{ type:'resolveGain', definitionId:'rally' } }
+    ];
+    expect(tacticalAgent(strategy()).chooseAction(state,'ochre',actions).command)
+      .toEqual({ type:'resolveGain', definitionId:'rally' });
+  });
+
   it('uses Cull-updated live deck size for a later Step decision', () => {
     let state = arena({
       kingdomId: 'range-rich-mixed', hand: ['cull', 'copper', 'step'], draw: ['heavyBlow'],
@@ -133,7 +156,7 @@ describe('the shared tactical pilot', () => {
       indigoDraw: [], indigoDiscard: [], firstBuyPending: false
     });
     const cull = choose(state);
-    expect(cull.command.type).toBe('playCull');
+    expect(cull.command.type).toBe('playTargetedAction');
     state = applyAction(state, cull.id);
     expect(choose(state).command).toMatchObject({ type: 'playMoveAction', direction: 'right' });
   });
@@ -187,10 +210,10 @@ describe('the shared tactical pilot', () => {
       kingdomId: 'current-duel', hand: ['cull', 'copper', 'copper'], money: 5, firstBuyPending: false
     });
     const action = choose(state, strategy({
-      buyAgenda: [{ cardId: 'volley', desiredCount: 1 }], repeatPurchase: 'footwork'
+      buyAgenda: [{ cardId: 'precisionShot', desiredCount: 1 }], repeatPurchase: 'footwork'
     }));
-    expect(action.command.type).toBe('playCull');
-    expect(action.command.type === 'playCull' ? action.command.trashInstanceIds : []).toHaveLength(2);
+    expect(action.command.type).toBe('playTargetedAction');
+    expect(action.command.type === 'playTargetedAction' ? action.command.targetCardInstanceIds : []).toHaveLength(2);
   });
 
   it('keeps Coppers when trashing them would lose the planned purchase', () => {
@@ -198,7 +221,7 @@ describe('the shared tactical pilot', () => {
       kingdomId: 'current-duel', hand: ['cull', 'copper', 'copper'], money: 3, firstBuyPending: false
     });
     expect(choose(state, strategy({
-      buyAgenda: [{ cardId: 'volley', desiredCount: 1 }], repeatPurchase: 'footwork'
+      buyAgenda: [{ cardId: 'precisionShot', desiredCount: 1 }], repeatPurchase: 'footwork'
     })).command.type).toBe('endActionPhase');
   });
 });

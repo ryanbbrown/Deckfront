@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   ALWAYS_AVAILABLE_ACTION_IDS, STARTING_BUDGET, STARTING_DECK_COPPER_COUNT, TREASURE_IDS, VARIABLE_ACTION_IDS,
   applyCommand, assertInvariants, CARDS, cloneGame, createGame, kingdomMarket,
-  listActionAvailability, listLegalActions, marketCost, opponent, randomKingdom, rangeBand,
+  listActionAvailability, listLegalActions, marketCost, opponent, randomKingdom, rangeBand, resolveCard,
   registerKingdom, replayCommands
 } from '../game';
 import type { GameCommand, PlayerId } from '../game';
@@ -25,6 +25,7 @@ export interface CreateGameInput {
   humanPlayerId?: PlayerId | undefined;
   aiDifficulty?: AiDifficulty | undefined;
   variableCardIds?: string[] | undefined;
+  startingDraftEnabled?: boolean | undefined;
 }
 export class GameService {
   constructor(private readonly repository: GameRepository, private readonly aiTrainer: AiTrainer = new ProductionAiTrainer()) {}
@@ -40,10 +41,11 @@ export class GameService {
     const aiPlayerId = humanPlayerId ? opponent(humanPlayerId) : null;
     const aiDifficulty = mode === 'ai' ? input.aiDifficulty ?? 'expert' : null;
     const trained = aiDifficulty ? await this.aiTrainer.train(kingdom, seed, aiDifficulty) : null;
-    const initialState = createGame({ seed, firstPlayerId: 'ochre', kingdomId: kingdom.id });
+    const startingDraftEnabled = input.startingDraftEnabled ?? true;
+    const initialState = createGame({ seed, firstPlayerId: 'ochre', kingdomId: kingdom.id, startingDraftEnabled });
     const record: GameRecord = {
-      schemaVersion: 12, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
-      completedActions: 0, durationSeconds: null, buildProposal: [], kingdom, mode, humanPlayerId,
+      schemaVersion: 13, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
+      completedActions: 0, durationSeconds: null, buildProposal: [], kingdom, startingDraftEnabled, mode, humanPlayerId,
       aiDifficulty,
       aiStrategy: trained?.strategy ?? null, training: trained?.summary ?? null,
       initialState: cloneGame(initialState), committedCommands: [], undoHistory: [], state: initialState
@@ -115,7 +117,7 @@ export class GameService {
     });
   }
   async exportGame(id: string): Promise<GameExport> {
-    return { schemaVersion: 12, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
+    return { schemaVersion: 13, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
   }
   private advanceComputer(record: GameRecord): void {
     if (record.mode !== 'ai' || !record.aiStrategy || !record.humanPlayerId) return;
@@ -175,7 +177,8 @@ export class GameService {
         case 'damage': return { ...event, detail: { targetId: detail.targetId, amount: detail.amount, health: detail.health } };
         case 'wallCollision': return { ...event, detail: { direction: detail.direction } };
         case 'trash': case 'discard': return { ...event, detail: { definitionId: detail.definitionId } };
-        case 'recover': return { ...event, detail: {} };
+        case 'recover': return { ...event, detail: { definitionId: detail.definitionId, destination: 'hand' } };
+        case 'gain': return { ...event, detail: { definitionId: detail.definitionId } };
         case 'phase': return { ...event, detail: { phase: detail.phase, money: detail.money } };
         case 'purchase': return { ...event, detail: { definitionId: detail.definitionId, cost: detail.cost } };
         case 'turn': return { ...event, detail: { turn: detail.turn, activePlayerId: detail.activePlayerId } };
@@ -203,8 +206,7 @@ export class GameService {
     const cards: CardActionPresentation[] = listActionAvailability(state, state.activePlayerId).map((availability) => {
       const legal = cardActions.get(availability.cardInstanceId) ?? [];
       const selection: CardActionPresentation['selection'] = availability.selection === 'movement' || availability.selection === 'direction'
-        ? 'movement'
-        : availability.selection === 'trashOneOrTwo' ? 'trashOneOrTwo' : 'none';
+        ? 'movement' : availability.selection === 'targets' ? 'targets' : 'none';
       const choices: CardActionChoice[] = legal.map((action) => {
         let text = action.label;
         let targetCardInstanceIds: string[] = [];
@@ -214,8 +216,8 @@ export class GameService {
           text = action.command.direction === 'left' ? 'Move both left' : 'Move both right';
         } else if (action.command.type === 'playMoveAction') {
           text = action.command.direction === 'left' ? 'Left' : 'Right';
-        } else if (action.command.type === 'playCull') {
-          targetCardInstanceIds = [...action.command.trashInstanceIds];
+        } else if (action.command.type === 'playTargetedAction') {
+          targetCardInstanceIds = [...action.command.targetCardInstanceIds];
         }
         return { ...browserAction(action, text), targetCardInstanceIds };
       });
@@ -225,7 +227,9 @@ export class GameService {
         reason: availability.reason,
         selection,
         eligibleCardInstanceIds: [...availability.eligibleCardInstanceIds],
-        actionId: selection === 'none' && legal.length === 1 ? legal[0]!.id : null,
+        minimumTargets: availability.minimumTargets, maximumTargets: availability.maximumTargets,
+        actionId: selection === 'none' && legal.length === 1 ? legal[0]!.id
+          : selection === 'targets' && availability.minimumTargets === 0 ? legal.find((action) => action.command.type === 'playTargetedAction' && action.command.targetCardInstanceIds.length === 0)?.id ?? null : null,
         choices
       };
     });
@@ -243,9 +247,9 @@ export class GameService {
         if (action.command.type === 'resolveDiscard') {
           return [{ ...browserAction(action), cardInstanceId: action.command.discardInstanceId }];
         }
-        if (action.command.type === 'resolveRecover') {
-          return [{ ...browserAction(action), cardInstanceId: action.command.recoverInstanceId }];
-        }
+        if (action.command.type === 'resolveRecover') return [{ ...browserAction(action), cardInstanceId: action.command.recoverInstanceId }];
+        if (action.command.type === 'resolveOptionalTrash') return [{ ...browserAction(action), cardInstanceId: action.command.trashInstanceId }];
+        if (action.command.type === 'resolveGain') return [{ ...browserAction(action), cardInstanceId: null }];
         return [];
       })
     } : null;
@@ -273,12 +277,13 @@ export class GameService {
       ? { ochre: [...state.players.ochre.startingBuild], indigo: [...state.players.indigo.startingBuild] }
       : null;
     return {
-      schemaVersion: 12, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
+      schemaVersion: 13, id: record.id, revision: record.revision, createdAt: record.createdAt, updatedAt: record.updatedAt,
       elapsedSeconds: Math.max(0, Math.floor((Date.parse(record.updatedAt) - Date.parse(record.createdAt)) / 1000)),
       completedActions: record.completedActions, durationSeconds: record.durationSeconds,
       activePlayerId: state.activePlayerId, selectedFirstPlayerId: state.selectedFirstPlayerId, phase: state.phase,
-      turn: state.turn, winner: state.winner, fighters: structuredClone(state.fighters), range: rangeBand(state),
-      supply: { ...state.supply }, cards: Object.fromEntries(kingdomMarket(state.kingdomId).map((card) => [card.id, card])),
+      turn: state.turn, winner: state.winner, startingDraftEnabled: state.startingDraftEnabled,
+      fighters: structuredClone(state.fighters), range: rangeBand(state), supply: { ...state.supply },
+      cards: Object.fromEntries(Object.keys(CARDS).map((id) => [id, resolveCard(state, id)])),
       players, trashCount: state.trash.length,
       events: this.publicEvents(record),
       actions: this.projectActions(record),

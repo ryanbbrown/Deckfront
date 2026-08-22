@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { VARIABLE_ACTION_IDS, createCard, resetKingdoms } from '../src/game';
+import { createCard, resetKingdoms } from '../src/game';
 import { ProductionAiTrainer } from '../src/server/aiTrainer';
 import type { AiTrainer } from '../src/server/aiTrainer';
 import { GameService } from '../src/server/gameService';
@@ -21,7 +21,7 @@ const strategy = identify({ id: '', startingBuild: [], buyAgenda: [], repeatPurc
 const trainer: AiTrainer = { train: async () => ({ strategy, summary: { elapsedMs: 1, matches: 4, strategyId: strategy.id } }) };
 const privateBuildStrategy = identify({ id: '', startingBuild: ['step'], buyAgenda: [], repeatPurchase: 'silver' });
 const privateBuildTrainer: AiTrainer = { train: async () => ({ strategy: privateBuildStrategy, summary: { elapsedMs: 1, matches: 4, strategyId: privateBuildStrategy.id } }) };
-const market = VARIABLE_ACTION_IDS.slice(0, 10);
+const market = ['cull','footwork','aim','volley','muster','feint','drive','channel','arcBolt','reclaim'];
 
 function phaseAction(game: Awaited<ReturnType<GameService['create']>>, kind: 'endAction' | 'endBuy') {
   return game.actions.phases.find((action) => action.kind === kind)!.id;
@@ -64,6 +64,14 @@ describe('AI games', () => {
       && event.detail.definitionId === 'silver')).toBe(true);
   });
 
+  it('starts draft-off AI games without using the trained starting build', async () => {
+    const repository = new MemoryRepository(); const service = new GameService(repository, privateBuildTrainer);
+    const view = await service.create({ seed:3, mode:'ai', humanPlayerId:'indigo', variableCardIds:market, startingDraftEnabled:false });
+    expect(view).toMatchObject({ startingDraftEnabled:false, phase:'action', activePlayerId:'indigo' });
+    const record = repository.record!; expect(record.state.players.ochre.startingBuild).toBeNull(); expect(record.state.players.indigo.startingBuild).toBeNull();
+    expect(record.state.players.ochre.firstBuyPending).toBe(false); expect(view.completedBuilds).toBeNull();
+    expect(view.players.ochre.deckCounts).toMatchObject({ copper:7, scrap:3 });
+  });
   it('executes trained strategies with the simulator tactical policy', async () => {
     const repository = new MemoryRepository(); const service = new GameService(repository, trainer);
     const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
@@ -73,7 +81,7 @@ describe('AI games', () => {
     aiDeck.hand = [createCard(record.state, 'volley'), createCard(record.state, 'muster')];
     aiDeck.draw = [createCard(record.state, 'copper')]; aiDeck.discard = []; aiDeck.play = [];
     record.state.activePlayerId = 'ochre'; record.state.phase = 'buy'; record.state.pendingChoice = null;
-    record.state.events = []; record.state.actionsThisTurn = []; record.state.players.ochre.money = 0;
+    record.state.events = []; record.state.turnState.cardsPlayed = []; record.state.players.ochre.money = 0;
     record.initialState = structuredClone(record.state); record.committedCommands = []; record.undoHistory = []; record.completedActions = 0;
     const buy = await service.get(created.id);
     const returned = await service.commitAction(created.id, buy.revision, phaseAction(buy, 'endBuy'));

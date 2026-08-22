@@ -6,96 +6,194 @@ import { AI_DIFFICULTIES } from '../shared/api';
 
 const playerId = z.enum(['ochre', 'indigo']);
 const card = z.object({ id: z.string(), definitionId: z.string() });
-const deck = z.object({ draw: z.array(card), hand: z.array(card), discard: z.array(card), play: z.array(card) });
+const deck = z.object({
+  draw: z.array(card),
+  hand: z.array(card),
+  discard: z.array(card),
+  play: z.array(card)
+});
 const phase = z.enum(['startingBuild', 'action', 'buy', 'ended']);
 const commandCard = { cardInstanceId: z.string() };
+
 export const gameCommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('submitStartingBuild'), playerId, definitionIds: z.array(z.string()) }),
   z.object({ type: z.literal('playFootwork'), ...commandCard, movement: z.enum(['left', 'right', 'stay']) }),
-  z.object({ type: z.literal('playCull'), ...commandCard, trashInstanceIds: z.union([z.tuple([z.string()]), z.tuple([z.string(), z.string()])]) }),
-  z.object({ type: z.literal('playMuster'), ...commandCard }), z.object({ type: z.literal('playFeint'), ...commandCard }),
-  z.object({ type: z.literal('playDrive'), ...commandCard, direction: z.enum(['left', 'right']) }), z.object({ type: z.literal('playFlurry'), ...commandCard }),
-  z.object({ type: z.literal('playAim'), ...commandCard }), z.object({ type: z.literal('playVolley'), ...commandCard }),
+  z.object({ type: z.literal('playMuster'), ...commandCard }),
+  z.object({ type: z.literal('playFeint'), ...commandCard }),
+  z.object({ type: z.literal('playDrive'), ...commandCard, direction: z.enum(['left', 'right']) }),
+  z.object({ type: z.literal('playFlurry'), ...commandCard }),
+  z.object({ type: z.literal('playAim'), ...commandCard }),
+  z.object({ type: z.literal('playVolley'), ...commandCard }),
   z.object({ type: z.literal('playAction'), ...commandCard }),
   z.object({ type: z.literal('playMoveAction'), ...commandCard, direction: z.enum(['left', 'right']) }),
+  z.object({ type: z.literal('playTargetedAction'), ...commandCard, targetCardInstanceIds: z.array(z.string()) }),
   z.object({ type: z.literal('resolveDiscard'), discardInstanceId: z.string() }),
-  z.object({ type: z.literal('resolveRecover'), recoverInstanceId: z.string().nullable() }),
+  z.object({ type: z.literal('resolveRecover'), recoverInstanceId: z.string() }),
+  z.object({ type: z.literal('resolveOptionalTrash'), trashInstanceId: z.string().nullable() }),
+  z.object({ type: z.literal('resolveGain'), definitionId: z.string() }),
   z.object({ type: z.literal('endActionPhase') }),
-  z.object({ type: z.literal('buyCard'), definitionId: z.string() }), z.object({ type: z.literal('endBuyPhase') })
+  z.object({ type: z.literal('buyCard'), definitionId: z.string() }),
+  z.object({ type: z.literal('endBuyPhase') })
 ]);
+
 const player = z.object({
-  id: playerId, deck, money: z.number().int().nonnegative(), mana: z.number().int().nonnegative(),
-  positionChanged: z.boolean(), firstBuyMoney: z.number().int().min(0).max(MAX_FIRST_BUY_CARRY),
-  firstBuyPending: z.boolean(), startingBuild: z.array(z.string()).nullable(), purchases: z.array(z.string())
+  id: playerId,
+  deck,
+  money: z.number().int().nonnegative(),
+  mana: z.number().int().nonnegative(),
+  positionChanged: z.boolean(),
+  firstBuyMoney: z.number().int().min(0).max(MAX_FIRST_BUY_CARRY),
+  firstBuyPending: z.boolean(),
+  startingBuild: z.array(z.string()).nullable(),
+  purchases: z.array(z.string())
 });
-const fighter = z.object({ playerId, position: z.number().int().min(1).max(5), health: z.number().int().nonnegative(), aimed: z.boolean(), exposed: z.boolean() });
-const pendingChoice = z.object({ type: z.enum(['discard', 'recover']), playerId, remaining: z.number().int().positive() });
+const fighter = z.object({
+  playerId,
+  position: z.number().int().min(1).max(5),
+  health: z.number().int().nonnegative(),
+  aimed: z.boolean(),
+  exposed: z.boolean()
+});
+const pendingChoice = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('discard'), playerId, remaining: z.number().int().positive() }),
+  z.object({ type: z.literal('recover'), playerId, remaining: z.number().int().positive() }),
+  z.object({ type: z.literal('optionalTrash'), playerId, sourceCardInstanceId: z.string() }),
+  z.object({ type: z.literal('gain'), playerId, maxCost: z.number().int().nonnegative() })
+]);
 const eventPlayerDetailKeys: Partial<Record<GameEventType, string>> = {
-  buildComplete: 'playerId', condition: 'targetId', damage: 'targetId', wallCollision: 'targetId',
-  turn: 'activePlayerId', victory: 'winner'
+  buildComplete: 'playerId',
+  condition: 'targetId',
+  damage: 'targetId',
+  wallCollision: 'targetId',
+  turn: 'activePlayerId',
+  victory: 'winner'
 };
 const event = z.object({
-  sequence: z.number().int().nonnegative(), type: z.enum(GAME_EVENT_TYPES), playerId,
+  sequence: z.number().int().nonnegative(),
+  type: z.enum(GAME_EVENT_TYPES),
+  playerId,
   detail: z.record(z.string(), z.unknown())
 }).superRefine((value, context) => {
   const detailPlayerKey = eventPlayerDetailKeys[value.type];
   if (detailPlayerKey && !playerId.safeParse(value.detail[detailPlayerKey]).success) {
-    context.addIssue({ code: 'custom', path: ['detail', detailPlayerKey], message: 'Event detail contains an invalid player id.' });
+    context.addIssue({
+      code: 'custom', path: ['detail', detailPlayerKey],
+      message: 'Event detail contains an invalid player id.'
+    });
   }
-  if (value.type === 'move' && value.detail.fighters !== undefined && !z.array(playerId).safeParse(value.detail.fighters).success) {
-    context.addIssue({ code: 'custom', path: ['detail', 'fighters'], message: 'Event detail contains invalid fighter ids.' });
+  if (value.type === 'move' && value.detail.fighters !== undefined
+    && !z.array(playerId).safeParse(value.detail.fighters).success) {
+    context.addIssue({
+      code: 'custom', path: ['detail', 'fighters'],
+      message: 'Event detail contains invalid fighter ids.'
+    });
   }
 });
+const turnState = z.object({
+  cardsPlayed: z.array(z.string()),
+  spacesMoved: z.number().int().nonnegative(),
+  manaSpent: z.number().int().nonnegative(),
+  spellsPlayed: z.number().int().nonnegative(),
+  copiesPlayed: z.record(z.string(), z.number().int().positive()),
+  familiesPlayed: z.array(z.enum(['treasure', 'ranged', 'mana', 'melee', 'engine']))
+});
+
 export const gameStateSchema = z.object({
-  schemaVersion: z.literal(8), seed: z.number().int(), rngState: z.number().int().nonnegative(), version: z.number().int().nonnegative(),
-  nextCardSerial: z.number().int().positive(), kingdomId: z.string().min(1), startingHealth: z.number().int().positive(),
-  activePlayerId: playerId, selectedFirstPlayerId: playerId, phase,
-  turn: z.number().int().nonnegative(), winner: playerId.nullable(), players: z.object({ ochre: player, indigo: player }),
-  fighters: z.object({ ochre: fighter, indigo: fighter }), supply: z.record(z.string(), z.number().int().nonnegative()),
-  trash: z.array(card), actionsThisTurn: z.array(z.string()), pendingChoice: pendingChoice.nullable(), events: z.array(event)
+  schemaVersion: z.literal(9),
+  seed: z.number().int(),
+  rngState: z.number().int().nonnegative(),
+  version: z.number().int().nonnegative(),
+  nextCardSerial: z.number().int().positive(),
+  kingdomId: z.string().min(1),
+  startingHealth: z.number().int().positive(),
+  startingDraftEnabled: z.boolean(),
+  activePlayerId: playerId,
+  selectedFirstPlayerId: playerId,
+  phase,
+  turn: z.number().int().nonnegative(),
+  winner: playerId.nullable(),
+  players: z.object({ ochre: player, indigo: player }),
+  fighters: z.object({ ochre: fighter, indigo: fighter }),
+  supply: z.record(z.string(), z.number().int().nonnegative()),
+  trash: z.array(card),
+  turnState,
+  pendingChoice: pendingChoice.nullable(),
+  events: z.array(event)
 });
+
 const undoHistoryEntry = z.object({
-  committedCommandCount: z.number().int().nonnegative(), completedActions: z.number().int().nonnegative(),
-  finishedAt: z.string().datetime().nullable(), durationSeconds: z.number().nonnegative().nullable()
+  committedCommandCount: z.number().int().nonnegative(),
+  completedActions: z.number().int().nonnegative(),
+  finishedAt: z.string().datetime().nullable(),
+  durationSeconds: z.number().nonnegative().nullable()
 });
 const strategySchema = z.object({
-  id: z.string().min(1), startingBuild: z.array(z.string()),
+  id: z.string().min(1),
+  startingBuild: z.array(z.string()),
   buyAgenda: z.array(z.object({ cardId: z.string(), desiredCount: z.number().int().positive() })),
   repeatPurchase: z.string().min(1)
 });
 const trainingSchema = z.object({
-  elapsedMs: z.number().nonnegative(), matches: z.number().int().nonnegative(), strategyId: z.string().min(1)
+  elapsedMs: z.number().nonnegative(),
+  matches: z.number().int().nonnegative(),
+  strategyId: z.string().min(1)
 });
+
 export const gameRecordSchema = z.object({
-  schemaVersion: z.literal(12), id: z.string().uuid(), revision: z.number().int().nonnegative(),
-  createdAt: z.string().datetime(), updatedAt: z.string().datetime(), finishedAt: z.string().datetime().nullable(),
-  completedActions: z.number().int().nonnegative(), durationSeconds: z.number().nonnegative().nullable(),
-  buildProposal: z.array(z.string()), kingdom: kingdomSchema, mode: z.enum(['local', 'ai']),
+  schemaVersion: z.literal(13),
+  id: z.string().uuid(),
+  revision: z.number().int().nonnegative(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  finishedAt: z.string().datetime().nullable(),
+  completedActions: z.number().int().nonnegative(),
+  durationSeconds: z.number().nonnegative().nullable(),
+  buildProposal: z.array(z.string()),
+  kingdom: kingdomSchema,
+  startingDraftEnabled: z.boolean(),
+  mode: z.enum(['local', 'ai']),
   aiDifficulty: z.enum(AI_DIFFICULTIES).nullable(),
-  humanPlayerId: playerId.nullable(), aiStrategy: strategySchema.nullable(), training: trainingSchema.nullable(),
-  initialState: gameStateSchema, committedCommands: z.array(gameCommandSchema),
-  undoHistory: z.array(undoHistoryEntry), state: gameStateSchema
+  humanPlayerId: playerId.nullable(),
+  aiStrategy: strategySchema.nullable(),
+  training: trainingSchema.nullable(),
+  initialState: gameStateSchema,
+  committedCommands: z.array(gameCommandSchema),
+  undoHistory: z.array(undoHistoryEntry),
+  state: gameStateSchema
 }).superRefine((record, context) => {
   const metadata = [record.humanPlayerId, record.aiDifficulty, record.aiStrategy, record.training];
   if ((record.mode === 'ai' && metadata.some((value) => value === null))
     || (record.mode === 'local' && metadata.some((value) => value !== null))) {
     context.addIssue({ code: 'custom', message: 'Game mode metadata is inconsistent.' });
   }
-  if (record.state.kingdomId !== record.kingdom.id || record.initialState.kingdomId !== record.kingdom.id) {
+  if (record.state.kingdomId !== record.kingdom.id
+    || record.initialState.kingdomId !== record.kingdom.id) {
     context.addIssue({ code: 'custom', message: 'Saved states do not use the persisted kingdom.' });
+  }
+  if (record.startingDraftEnabled !== record.state.startingDraftEnabled
+    || record.startingDraftEnabled !== record.initialState.startingDraftEnabled) {
+    context.addIssue({ code: 'custom', message: 'Draft configuration is inconsistent.' });
   }
   if (record.aiStrategy && record.training?.strategyId !== record.aiStrategy.id) {
     context.addIssue({ code: 'custom', message: 'Training metadata does not match the selected strategy.' });
   }
 });
+
 export const createGameRequestSchema = z.object({
-  seed: z.number().int().optional(), mode: z.enum(['local', 'ai']),
-  humanPlayerId: playerId.optional(), aiDifficulty: z.enum(AI_DIFFICULTIES).optional(),
+  seed: z.number().int().optional(),
+  mode: z.enum(['local', 'ai']),
+  startingDraftEnabled: z.boolean().optional(),
+  humanPlayerId: playerId.optional(),
+  aiDifficulty: z.enum(AI_DIFFICULTIES).optional(),
   variableCardIds: z.array(z.string())
 }).strict().superRefine((input, context) => {
-  if (input.variableCardIds.length !== RANDOM_KINGDOM_SIZE || new Set(input.variableCardIds).size !== RANDOM_KINGDOM_SIZE
+  if (input.variableCardIds.length !== RANDOM_KINGDOM_SIZE
+    || new Set(input.variableCardIds).size !== RANDOM_KINGDOM_SIZE
     || input.variableCardIds.some((id) => !VARIABLE_ACTION_IDS.includes(id))) {
-    context.addIssue({ code: 'custom', message: `variableCardIds must contain ${RANDOM_KINGDOM_SIZE} unique variable actions.` });
+    context.addIssue({
+      code: 'custom',
+      message: `variableCardIds must contain ${RANDOM_KINGDOM_SIZE} unique variable actions.`
+    });
   }
   if ((input.mode === 'ai') !== (input.humanPlayerId !== undefined)) {
     context.addIssue({ code: 'custom', message: 'humanPlayerId is required only for AI games.' });
@@ -104,6 +202,14 @@ export const createGameRequestSchema = z.object({
     context.addIssue({ code: 'custom', message: 'aiDifficulty is allowed only for AI games.' });
   }
 });
-export const buildRequestSchema = z.object({ expectedRevision: z.number().int().nonnegative(), definitionIds: z.array(z.string()).max(1000), complete: z.boolean() });
-export const actionRequestSchema = z.object({ expectedRevision: z.number().int().nonnegative(), actionId: z.string().min(1) });
+
+export const buildRequestSchema = z.object({
+  expectedRevision: z.number().int().nonnegative(),
+  definitionIds: z.array(z.string()).max(1000),
+  complete: z.boolean()
+});
+export const actionRequestSchema = z.object({
+  expectedRevision: z.number().int().nonnegative(),
+  actionId: z.string().min(1)
+});
 export const revisionRequestSchema = z.object({ expectedRevision: z.number().int().nonnegative() });

@@ -14,14 +14,7 @@ import type { TelemetryAggregate } from '../src/sim/types';
 export const MATERIAL_WEIGHT = 0.001;
 export const NEAR_COMPETITIVE_SCORE = 0.48;
 
-const FAMILY_BY_CARD = {
-  footwork: 'Engine', cull: 'Engine', muster: 'Engine', stipend: 'Engine', reclaim: 'Engine',
-  adapt: 'Engine', step: 'Engine', feint: 'Melee', drive: 'Melee', flurry: 'Melee',
-  heavyBlow: 'Melee', strike: 'Melee', aim: 'Ranged', volley: 'Ranged',
-  steadyShot: 'Ranged', repellingShot: 'Ranged', channel: 'Mage', leyStep: 'Mage', prism: 'Mage',
-  focus: 'Mage', arcBolt: 'Mage', fireball: 'Mage', starfire: 'Mage'
-} as const satisfies Record<string, 'Engine' | 'Melee' | 'Ranged' | 'Mage'>;
-export type CardFamily = (typeof FAMILY_BY_CARD)[keyof typeof FAMILY_BY_CARD] | 'Treasure';
+export type CardFamily = 'Engine' | 'Melee' | 'Ranged' | 'Mage' | 'Treasure';
 
 const numberRecord = z.record(z.string(), z.number());
 const pairRecordSchema = z.object({ played: z.number(), wins: z.number(), draws: z.number(),
@@ -208,13 +201,8 @@ function scoreAgainst(artifact: ArtifactSet, strategyIndex: number, weights: Rea
 export function family(cardId: string): CardFamily {
   const card = cardDefinition(cardId);
   if (card.type === 'treasure') return 'Treasure';
-  const result = FAMILY_BY_CARD[cardId as keyof typeof FAMILY_BY_CARD];
-  if (!result) throw new Error(`Action card ${cardId} has no reporting family.`);
-  return result;
-}
-
-export function assertExhaustiveCardFamilies(): void {
-  for (const card of Object.values(CARDS)) if (card.type === 'action') family(card.id);
+  return card.family === 'engine' ? 'Engine' : card.family === 'melee' ? 'Melee'
+    : card.family === 'ranged' ? 'Ranged' : 'Mage';
 }
 
 function strategyFamilies(strategy: Strategy): CardFamily[] {
@@ -344,7 +332,6 @@ export function buildBalanceReportModel(
   artifacts: readonly ArtifactSet[], selfPlayByKingdom: ReadonlyMap<string, ReadonlyMap<string, TelemetryAggregate>>,
   options: { competitiveScore?: number; competitiveStatus?: 'Near 50%' | '40% viable' } = {}
 ): BalanceReportModel {
-  assertExhaustiveCardFamilies();
   const competitiveScore = options.competitiveScore ?? NEAR_COMPETITIVE_SCORE;
   const competitiveStatus = options.competitiveStatus ?? 'Near 50%';
   const kingdoms: KingdomReport[] = artifacts.map((artifact) => {

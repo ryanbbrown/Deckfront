@@ -52,7 +52,7 @@ describe('buy agenda', () => {
   it('buys finite targets, then repeats the explicit final card', () => {
     const plan = strategy({ buyAgenda: [{ cardId: 'footwork', desiredCount: 2 }], repeatPurchase: 'aim' });
     const commands = buyRun(buyState({ money: 20 }), plan);
-    expect(bought(commands)).toEqual(['footwork', 'footwork', 'aim', 'aim', 'aim', 'aim']);
+    expect(bought(commands)).toEqual(['footwork', 'footwork', 'aim', 'aim']);
     expect(commands.at(-1)!.type).toBe('endBuyPhase');
   });
 
@@ -61,11 +61,11 @@ describe('buy agenda', () => {
       buyAgenda: [{ cardId: 'heavyBlow', desiredCount: 2 }, { cardId: 'footwork', desiredCount: 1 }],
       repeatPurchase: 'aim'
     });
-    expect(bought(buyRun(buyState({ money: 6 }), plan))).toEqual(['footwork', 'aim']);
+    expect(bought(buyRun(buyState({ money: 6 }), plan))).toEqual(['footwork']);
 
     const exhausted = buyState({ money: 6 });
     exhausted.supply.footwork = 0;
-    expect(bought(buyRun(exhausted, plan))).toEqual(['aim', 'aim']);
+    expect(bought(buyRun(exhausted, plan))).toEqual(['aim']);
   });
 
   it('prices Heavy Blow through the kingdom override, not the card data', () => {
@@ -89,7 +89,7 @@ describe('buy agenda', () => {
     const state = buyState({ money: 3 });
     state.players.ochre.startingBuild = ['footwork'];
     const plan = strategy({ buyAgenda: [{ cardId: 'footwork', desiredCount: 1 }], repeatPurchase: 'aim' });
-    expect(bought(buyRun(state, plan))).toEqual(['aim']);
+    expect(bought(buyRun(state, plan))).toEqual([]);
   });
 
   it('does not buy a trashed purchased card again', () => {
@@ -174,9 +174,9 @@ describe('strategy agent dispatch', () => {
     expect(marketCost(state, overrun)).toBeLessThanOrEqual(12);
     expect(overrun).toEqual(['gold', 'gold']);
 
-    // Flurry and Muster both cost 5, so the tie falls to the lower definition id.
+    // Muster is not sold in Distance Duel; the legal equal-cost cards remain in stable order.
     const tied = ['flurry', 'muster', 'aim', 'aim'];
-    expect(repairBuild(state, tied)).toEqual(['muster', 'aim', 'aim']);
+    expect(repairBuild(state, tied)).toEqual(['flurry', 'aim']);
     expect(repairBuild(state, tied)).toEqual(repairBuild(state, tied));
   });
 

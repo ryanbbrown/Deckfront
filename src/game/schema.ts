@@ -8,7 +8,9 @@ export const cardDefinitionSchema = z.object({
   mechanic: z.enum([
     'money', 'footwork', 'cull', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley',
     'stipend', 'reclaim', 'adapt', 'melee', 'ranged', 'repellingShot', 'spell', 'channel',
-    'leyStep', 'prism', 'step'
+    'leyStep', 'prism', 'step', 'attune', 'discharge', 'cascade', 'overload', 'openingStrike',
+    'rally', 'bullRush', 'longshot', 'salvageShot', 'precisionShot', 'regroup', 'discipline',
+    'sharpen', 'reforge', 'scour', 'improvise', 'scrap'
   ]),
   money: z.number().int().positive().optional(),
   values: z.record(z.string(), z.number()).optional()

@@ -33,10 +33,10 @@ export function App() {
       catch { localStorage.removeItem(ACTIVE_GAME_KEY); }
     }).catch((cause) => setError(cause instanceof Error ? cause.message : 'Could not load setup.')).finally(() => setLoading(false));
   }, []);
-  async function start(mode: GameMode, humanPlayerId?: PlayerId, aiDifficulty?: AiDifficulty) {
+  async function start(mode: GameMode, startingDraftEnabled: boolean, humanPlayerId?: PlayerId, aiDifficulty?: AiDifficulty) {
     setTraining(mode === 'ai'); setLoading(mode !== 'ai'); setError(null);
     try {
-      const created = await createGame({ mode, variableCardIds: market,
+      const created = await createGame({ mode, variableCardIds: market, startingDraftEnabled,
         ...(mode === 'ai' ? { humanPlayerId, aiDifficulty } : {}) });
       localStorage.setItem(ACTIVE_GAME_KEY, created.id); setGame(created);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not create game.'); }

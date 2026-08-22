@@ -14,7 +14,7 @@ describe('seed strategy model', () => {
   it('refuses every in-place write', () => {
     const plan = diagnosticStrategies('current-duel')[0]!;
     expect(() => { (plan.buyAgenda[0] as unknown as Record<string, number>).desiredCount = 99; }).toThrow(TypeError);
-    expect(plan.buyAgenda[0]!.desiredCount).toBe(3);
+    expect(plan.buyAgenda[0]!.desiredCount).toBe(4);
     for (const list of [plan.startingBuild, plan.buyAgenda]) {
       expect(Object.isFrozen(list)).toBe(true);
       expect(() => (list as unknown as unknown[]).push('copper')).toThrow(TypeError);

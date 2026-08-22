@@ -25,13 +25,13 @@ function setDraw(state: GameState, playerId: PlayerId, definitions: string[]): v
 describe('starting build', () => {
   it('creates no physical cards or draws before both hidden builds complete', () => {
     let state = createGame({ seed: 7, firstPlayerId: 'indigo' }); expect(state.phase).toBe('startingBuild'); expect(state.nextCardSerial).toBe(1);
-    state = submitStartingBuild(state, 'ochre', ['footwork', 'aim', 'volley']);
+    state = submitStartingBuild(state, 'ochre', ['aim', 'volley']);
     expect(state.activePlayerId).toBe('indigo'); expect(state.players.ochre.deck.hand).toEqual([]); expect(state.nextCardSerial).toBe(1);
-    state = submitStartingBuild(state, 'indigo', ['footwork', 'feint', 'drive']);
+    state = submitStartingBuild(state, 'indigo', ['feint', 'drive']);
     expect(state.phase).toBe('action'); expect(state.activePlayerId).toBe('indigo'); expect(state.turn).toBe(1);
-    expect(state.players.ochre.firstBuyMoney).toBe(1); expect(state.players.indigo.firstBuyMoney).toBe(2);
+    expect(state.players.ochre.firstBuyMoney).toBe(2); expect(state.players.indigo.firstBuyMoney).toBe(3);
     expect(state.players.ochre.deck.hand).toHaveLength(5); expect(state.players.indigo.deck.hand).toHaveLength(5);
-    expect(state.nextCardSerial).toBe(21); expect(state.fighters.ochre).toMatchObject({ position: 2, health: 40 }); expect(state.fighters.indigo).toMatchObject({ position: 3, health: 37 });
+    expect(state.nextCardSerial).toBe(19); expect(state.fighters.ochre).toMatchObject({ position: 2, health: 40 }); expect(state.fighters.indigo).toMatchObject({ position: 3, health: 37 });
     assertInvariants(state);
   });
   it('creates instances, shuffles, and draws in the exact approved player order', () => {
@@ -83,16 +83,16 @@ describe('arena and movement', () => {
 describe('cards and conditions', () => {
   it('Cull can trash itself alone, one remaining hand card, or two remaining hand cards', () => {
     let state = ready(); isolateHand(state, 'ochre', ['cull']); const self = state.players.ochre.deck.hand[0]!;
-    expect(listActionAvailability(state, 'ochre')[0]).toMatchObject({ enabled: true, reasonCode: null, selection: 'trashOneOrTwo', eligibleCardInstanceIds: [self.id] });
-    state = applyAction(state, action(state, (command) => command.type === 'playCull' && command.trashInstanceIds.length === 1 && command.trashInstanceIds[0] === self.id).id);
-    expect(state.trash.at(-1)?.definitionId).toBe('cull'); expect(state.actionsThisTurn).toHaveLength(1);
+    expect(listActionAvailability(state, 'ochre')[0]).toMatchObject({ enabled: true, reasonCode: null, selection: 'targets', eligibleCardInstanceIds: [self.id] });
+    state = applyAction(state, action(state, (command) => command.type === 'playTargetedAction' && command.targetCardInstanceIds.length === 1 && command.targetCardInstanceIds[0] === self.id).id);
+    expect(state.trash.at(-1)?.definitionId).toBe('cull'); expect(state.turnState.cardsPlayed).toHaveLength(1);
 
     state = ready(); isolateHand(state, 'ochre', ['cull', 'copper']); const [cull, copper] = state.players.ochre.deck.hand;
-    state = applyAction(state, action(state, (command) => command.type === 'playCull' && command.trashInstanceIds.length === 1 && command.trashInstanceIds[0] === copper!.id).id);
+    state = applyAction(state, action(state, (command) => command.type === 'playTargetedAction' && command.targetCardInstanceIds.length === 1 && command.targetCardInstanceIds[0] === copper!.id).id);
     expect(state.players.ochre.deck.play.map((card) => card.id)).toContain(cull!.id); expect(state.trash.at(-1)?.definitionId).toBe('copper');
 
     state = ready(); isolateHand(state, 'ochre', ['cull', 'copper', 'silver']); const [playedCull, first, second] = state.players.ochre.deck.hand;
-    state = applyAction(state, action(state, (command) => command.type === 'playCull' && command.trashInstanceIds.includes(first!.id) && command.trashInstanceIds.includes(second!.id)).id);
+    state = applyAction(state, action(state, (command) => command.type === 'playTargetedAction' && command.targetCardInstanceIds.includes(first!.id) && command.targetCardInstanceIds.includes(second!.id)).id);
     expect(state.players.ochre.deck.play.map((card) => card.id)).toContain(playedCull!.id); expect(state.trash.slice(-2).map((card) => card.definitionId).sort()).toEqual(['copper', 'silver']);
   });
   it('Muster draws across a reshuffle and stops when only one card exists', () => {
@@ -105,38 +105,38 @@ describe('cards and conditions', () => {
   });
   it('Cull accepts one or two schema targets but rejects zero, duplicates, three, missing, and already-played targets', () => {
     let state = ready(); isolateHand(state, 'ochre', ['cull', 'copper', 'silver', 'muster']); const [cull, copper, silver, muster] = state.players.ochre.deck.hand;
-    expect(gameCommandSchema.safeParse({ type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id] }).success).toBe(true);
-    expect(gameCommandSchema.safeParse({ type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, silver!.id] }).success).toBe(true);
-    expect(gameCommandSchema.safeParse({ type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [] }).success).toBe(false);
+    expect(gameCommandSchema.safeParse({ type: 'playTargetedAction', cardInstanceId: cull!.id, targetCardInstanceIds: [copper!.id] }).success).toBe(true);
+    expect(gameCommandSchema.safeParse({ type: 'playTargetedAction', cardInstanceId: cull!.id, targetCardInstanceIds: [copper!.id, silver!.id] }).success).toBe(true);
+    expect(gameCommandSchema.safeParse({ type: 'playTargetedAction', cardInstanceId: cull!.id, targetCardInstanceIds: [] }).success).toBe(true);
     const invalid = [
-      { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [] },
-      { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, copper!.id] },
-      { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, silver!.id, muster!.id] },
-      { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, 'missing-id'] }
+      { type: 'playTargetedAction', cardInstanceId: cull!.id, targetCardInstanceIds: [] },
+      { type: 'playTargetedAction', cardInstanceId: cull!.id, targetCardInstanceIds: [copper!.id, copper!.id] },
+      { type: 'playTargetedAction', cardInstanceId: cull!.id, targetCardInstanceIds: [copper!.id, silver!.id, muster!.id] },
+      { type: 'playTargetedAction', cardInstanceId: cull!.id, targetCardInstanceIds: [copper!.id, 'missing-id'] }
     ];
     for (const command of invalid) expect(() => applyCommand(state, command as unknown as GameCommand)).toThrow('Illegal command');
-    state = applyAction(state, action(state, (command) => command.type === 'playMuster').id); expect(() => applyCommand(state, { type: 'playCull', cardInstanceId: cull!.id, trashInstanceIds: [copper!.id, muster!.id] })).toThrow('Illegal command');
+    state = applyAction(state, action(state, (command) => command.type === 'playMuster').id); expect(() => applyCommand(state, { type: 'playTargetedAction', cardInstanceId: cull!.id, targetCardInstanceIds: [copper!.id, muster!.id] })).toThrow('Illegal command');
   });
   it('Feint reapplies without stacking, while Drive moves both fighters or collides with a wall', () => {
     let state = ready(); state.fighters.ochre.position = 3; state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['feint', 'feint', 'drive']);
     state = play(state, 'playFeint'); state = play(state, 'playFeint'); expect(state.fighters.indigo.exposed).toBe(true);
     state = applyAction(state, action(state, (command) => command.type === 'playDrive' && command.direction === 'left').id);
-    expect(state.fighters.indigo.health).toBe(36); expect(state.fighters.indigo.position).toBe(2); expect(state.fighters.ochre.position).toBe(2); expect(rangeBand(state)).toBe('Close'); expect(state.fighters.indigo.exposed).toBe(false);
+    expect(state.fighters.indigo.health).toBe(37); expect(state.fighters.indigo.position).toBe(2); expect(state.fighters.ochre.position).toBe(2); expect(rangeBand(state)).toBe('Close'); expect(state.fighters.indigo.exposed).toBe(true);
     expect(state.events.at(-1)).toMatchObject({ type: 'move', detail: { movement: 'left', from: 3, to: 2, fighters: ['ochre', 'indigo'], source: 'drive' } });
     state.fighters.ochre.position = 1; state.fighters.indigo.position = 1; isolateHand(state, 'ochre', ['feint', 'drive']); state = play(state, 'playFeint'); state = applyAction(state, action(state, (command) => command.type === 'playDrive' && command.direction === 'left').id);
-    expect(state.fighters.indigo.health).toBe(30); expect(state.fighters.indigo.position).toBe(1); expect(state.fighters.ochre.position).toBe(1); expect(state.events.some((event) => event.type === 'wallCollision' && event.detail.direction === 'left')).toBe(true);
+    expect(state.fighters.indigo.health).toBe(32); expect(state.fighters.indigo.position).toBe(1); expect(state.fighters.ochre.position).toBe(1); expect(state.events.some((event) => event.type === 'wallCollision' && event.detail.direction === 'left')).toBe(true);
   });
   it('Drive victory clamps at zero and stops before push', () => {
     let state = ready(); state.fighters.ochre.position = 3; state.fighters.indigo.position = 3; state.fighters.indigo.health = 1; isolateHand(state, 'ochre', ['drive']);
     state = play(state, 'playDrive'); expect(state.fighters.indigo.health).toBe(0); expect(state.winner).toBe('ochre'); expect(state.phase).toBe('ended'); expect(state.fighters.indigo.position).toBe(3);
   });
-  it('Flurry needs Close, consumes Exposed, and counts only other Tactical Actions', () => {
+  it('Flurry needs Close, keeps Exposed, and counts only other Tactical Actions', () => {
     for (const position of [3, 5]) {
       const state = ready(); state.fighters.ochre.position = 2; state.fighters.indigo.position = position; isolateHand(state, 'ochre', ['flurry']);
       expect(listActionAvailability(state, 'ochre')[0]).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
     }
     let state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['flurry']); state.fighters.indigo.exposed = true;
-    state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(38);
+    state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(39); expect(state.fighters.indigo.exposed).toBe(true);
 
     state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['channel', 'muster', 'flurry']);
     state = play(state, 'playAction'); state = play(state, 'playMuster'); state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(40);
@@ -145,7 +145,7 @@ describe('cards and conditions', () => {
     state = play(state, 'playAim'); state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'right').id);
     expect(rangeBand(state)).toBe('Close'); state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(38);
   });
-  it('Flurry counts an earlier Flurry, never itself, and caps at 5', () => {
+  it('Flurry counts an earlier Flurry, never itself, and has no cap', () => {
     let state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['footwork', 'flurry', 'flurry']);
     state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'stay').id);
     state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(39);
@@ -153,12 +153,12 @@ describe('cards and conditions', () => {
 
     state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['footwork', 'footwork', 'footwork', 'footwork', 'footwork', 'footwork', 'flurry']);
     for (let index = 0; index < 6; index += 1) state = applyAction(state, action(state, (command) => command.type === 'playFootwork' && command.movement === 'stay').id);
-    state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(35);
+    state = play(state, 'playFlurry'); expect(state.fighters.indigo.health).toBe(34);
   });
   it('Aim draws and refreshes, while Volley resolves literal Near and Far damage', () => {
     for (const test of [
       { enemy: 3, aimed: false, damage: 1 }, { enemy: 5, aimed: false, damage: 4 },
-      { enemy: 3, aimed: true, damage: 4 }, { enemy: 5, aimed: true, damage: 5 }
+      { enemy: 3, aimed: true, damage: 3 }, { enemy: 5, aimed: true, damage: 6 }
     ]) {
       let state = ready(); state.fighters.ochre.position = 2; state.fighters.indigo.position = test.enemy; isolateHand(state, 'ochre', test.aimed ? ['aim', 'aim', 'volley'] : ['volley']);
       if (test.aimed) { state = play(state, 'playAim'); state = play(state, 'playAim'); expect(state.fighters.ochre.aimed).toBe(true); }
@@ -173,10 +173,10 @@ describe('complete turns and purchases', () => {
     let state = ready(1, 'ochre', [], []); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['copper', 'silver', 'gold', 'flurry']);
     state = play(state, 'playFlurry'); expect(state.activePlayerId).toBe('ochre'); state = play(state, 'endActionPhase');
     expect(state.phase).toBe('buy'); expect(state.players.ochre.money).toBe(9);
-    state = applyAction(state, action(state, (command) => command.type === 'buyCard' && command.definitionId === 'muster').id);
+    state = applyAction(state, action(state, (command) => command.type === 'buyCard' && command.definitionId === 'feint').id);
     state = applyAction(state, action(state, (command) => command.type === 'buyCard' && command.definitionId === 'silver').id);
     state = applyAction(state, action(state, (command) => command.type === 'buyCard' && command.definitionId === 'copper').id);
-    expect(state.phase).toBe('buy'); expect(state.players.ochre.money).toBe(1); expect(state.supply.muster).toBe(9);
+    expect(state.phase).toBe('buy'); expect(state.players.ochre.money).toBe(1); expect(state.supply.feint).toBe(9);
     state.fighters.ochre.aimed = true; state.fighters.indigo.exposed = true; state = play(state, 'endBuyPhase');
     expect(state.activePlayerId).toBe('indigo'); expect(state.phase).toBe('action'); expect(state.players.ochre.money).toBe(0); expect(state.fighters.ochre.aimed).toBe(false); expect(state.fighters.indigo.exposed).toBe(false);
     expect(state.players.ochre.deck.hand).toHaveLength(5); assertInvariants(state);

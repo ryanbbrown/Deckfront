@@ -49,28 +49,28 @@ describe('deck tools', () => {
     state = applyAction(state, action(state, (command) => command.type === 'endActionPhase').id);
     expect(state.players.ochre.money).toBe(4); assertInvariants(state);
   });
-  it('Reclaim draws, offers the discard pile, and puts the chosen card on top of the deck', () => {
+  it('Reclaim offers the discard pile and moves the mandatory choice directly to hand', () => {
     let state = ready(); isolateHand(state, 'ochre', ['reclaim', 'muster']); setDraw(state, 'ochre', ['copper']); setDiscard(state, 'ochre', ['gold', 'silver']);
-    state = playCard(state, 'reclaim');
-    expect(definitions(state.players.ochre.deck.hand)).toEqual(['muster', 'copper']);
+    state = playCard(state, 'reclaim'); expect(definitions(state.players.ochre.deck.hand)).toEqual(['muster']);
     expect(state.pendingChoice).toEqual({ type: 'recover', playerId: 'ochre', remaining: 1 });
     const gold = state.players.ochre.deck.discard.find((card) => card.definitionId === 'gold')!;
+    const legal = listLegalActions(state); expect(legal).toHaveLength(2); expect(legal.every((entry) => entry.command.type === 'resolveRecover')).toBe(true);
     state = applyAction(state, action(state, (command) => command.type === 'resolveRecover' && command.recoverInstanceId === gold.id).id);
-    expect(state.pendingChoice).toBeNull(); expect(definitions(state.players.ochre.deck.draw)).toEqual(['gold']); expect(definitions(state.players.ochre.deck.discard)).toEqual(['silver']);
-    state = playCard(state, 'muster'); expect(definitions(state.players.ochre.deck.hand)).toEqual(['copper', 'gold', 'silver']); assertInvariants(state);
+    expect(state.pendingChoice).toBeNull(); expect(definitions(state.players.ochre.deck.hand)).toEqual(['muster','gold']);
+    expect(definitions(state.players.ochre.deck.discard)).toEqual(['silver']);
+    state = playCard(state, 'muster'); expect(definitions(state.players.ochre.deck.hand)).toEqual(['gold','copper','silver']); assertInvariants(state);
   });
-  it('Reclaim that recovers nothing leaves the discard pile unchanged', () => {
-    let state = ready(); isolateHand(state, 'ochre', ['reclaim']); setDraw(state, 'ochre', ['copper']); setDiscard(state, 'ochre', ['gold', 'silver']);
-    state = playCard(state, 'reclaim');
-    state = applyAction(state, action(state, (command) => command.type === 'resolveRecover' && command.recoverInstanceId === null).id);
-    expect(state.pendingChoice).toBeNull(); expect(definitions(state.players.ochre.deck.discard)).toEqual(['gold', 'silver']); expect(state.players.ochre.deck.draw).toEqual([]);
-    assertInvariants(state);
+  it('Reclaim never offers a recover-nothing action when discard is nonempty', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['reclaim']); setDiscard(state, 'ochre', ['gold','silver']); state = playCard(state,'reclaim');
+    expect(listLegalActions(state).map((entry) => entry.command)).toEqual([
+      { type:'resolveRecover', recoverInstanceId:state.players.ochre.deck.discard[0]!.id },
+      { type:'resolveRecover', recoverInstanceId:state.players.ochre.deck.discard[1]!.id }
+    ]);
   });
-  it('Reclaim reshuffles an empty draw pile and then offers the emptied discard pile', () => {
-    let state = ready(); isolateHand(state, 'ochre', ['reclaim']); setDiscard(state, 'ochre', ['gold']);
-    state = playCard(state, 'reclaim');
-    expect(definitions(state.players.ochre.deck.hand)).toEqual(['gold']); expect(state.players.ochre.deck.discard).toEqual([]);
-    expect(state.pendingChoice).toBeNull(); assertInvariants(state);
+  it('Reclaim with one discarded card creates one mandatory recovery', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['reclaim']); setDiscard(state, 'ochre', ['gold']); state = playCard(state,'reclaim');
+    expect(state.players.ochre.deck.hand).toEqual([]); expect(state.pendingChoice).toEqual({ type:'recover', playerId:'ochre', remaining:1 });
+    state = applyAction(state,listLegalActions(state)[0]!.id); expect(definitions(state.players.ochre.deck.hand)).toEqual(['gold']); assertInvariants(state);
   });
   it('Reclaim with an empty discard pile after the draw resolves immediately', () => {
     let state = ready(); isolateHand(state, 'ochre', ['reclaim']); setDraw(state, 'ochre', ['copper']);
@@ -102,6 +102,7 @@ describe('deck tools', () => {
     let state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['drive']); isolateHand(state, 'indigo', []);
     state = playCard(state, 'drive', (command) => command.type === 'playDrive' && command.direction === 'right');
     expect(state.players.ochre.positionChanged).toBe(true); expect(state.players.indigo.positionChanged).toBe(false);
+    expect(state.turnState.spacesMoved).toBe(1);
     state = endTurn(state);
     isolateHand(state, 'indigo', ['adapt']); setDraw(state, 'indigo', ['copper', 'copper']);
     state = playCard(state, 'adapt'); expect(definitions(state.players.indigo.deck.hand)).toEqual(['copper']);
@@ -113,11 +114,11 @@ describe('deck tools', () => {
 });
 
 describe('attacks', () => {
-  it('Heavy Blow deals 4 at Close, 6 into Exposed, and is illegal at Near or Far', () => {
+  it('Heavy Blow deals 4 at Close and gains the persistent Feint bonus at Close', () => {
     let state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['heavyBlow']);
     state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(36); assertInvariants(state);
     state = ready(); state.fighters.indigo.position = 2; state.fighters.indigo.exposed = true; isolateHand(state, 'ochre', ['heavyBlow']);
-    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(34); expect(state.fighters.indigo.exposed).toBe(false);
+    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(35); expect(state.fighters.indigo.exposed).toBe(true);
     for (const position of [3, 5]) {
       const near = ready(); near.fighters.indigo.position = position; isolateHand(near, 'ochre', ['heavyBlow']);
       expect(availability(near, 'heavyBlow')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
@@ -144,7 +145,7 @@ describe('attacks', () => {
 
   });
   it('Repelling Shot damages and moves the opponent farther away', () => {
-    expect(cardDefinition('repellingShot')).toMatchObject({ cost: 3, values: { damage: 1 } });
+    expect(cardDefinition('repellingShot')).toMatchObject({ cost: 3, values: { near: 1, far: 2 } });
     expect(isTacticalAction('repellingShot')).toBe(true);
     let state = ready(); isolateHand(state, 'ochre', ['repellingShot']);
     state = playCard(state, 'repellingShot');
@@ -157,7 +158,8 @@ describe('attacks', () => {
     let state = ready(); state.fighters.indigo.position = 5; isolateHand(state, 'ochre', ['repellingShot']);
     state = playCard(state, 'repellingShot');
     expect(state.fighters.ochre.position).toBe(1); expect(state.fighters.indigo.position).toBe(5);
-    expect(state.fighters.indigo.health).toBe(39); expect(state.players.ochre.positionChanged).toBe(true);
+    expect(state.fighters.indigo.health).toBe(38); expect(state.players.ochre.positionChanged).toBe(true);
+    expect(state.turnState.spacesMoved).toBe(1);
     assertInvariants(state);
   });
   it('Repelling Shot moves neither fighter when both are blocked by walls', () => {
@@ -165,21 +167,22 @@ describe('attacks', () => {
     isolateHand(state, 'ochre', ['repellingShot']);
     state = playCard(state, 'repellingShot');
     expect(state.fighters.ochre.position).toBe(1); expect(state.fighters.indigo.position).toBe(5);
-    expect(state.fighters.indigo.health).toBe(39); expect(state.events.at(-1)?.type).toBe('damage');
+    expect(state.fighters.indigo.health).toBe(38); expect(state.events.at(-1)?.type).toBe('damage');
+    expect(state.turnState.spacesMoved).toBe(0);
     assertInvariants(state);
   });
-  it('Repelling Shot is illegal at Close range and does not consume Aimed', () => {
+  it('Repelling Shot is illegal at Close and consumes Aimed when played at range', () => {
     const close = ready(); close.fighters.indigo.position = 2; isolateHand(close, 'ochre', ['repellingShot']);
     expect(availability(close, 'repellingShot')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_NEAR_OR_FAR' });
     let aimed = ready(); aimed.fighters.ochre.aimed = true; isolateHand(aimed, 'ochre', ['repellingShot']);
     aimed = playCard(aimed, 'repellingShot');
-    expect(aimed.fighters.ochre.aimed).toBe(true); expect(aimed.fighters.indigo.health).toBe(39);
+    expect(aimed.fighters.ochre.aimed).toBe(false); expect(aimed.fighters.indigo.health).toBe(37);
   });
-  it('a spell leaves Exposed alone while a melee attack consumes it', () => {
+  it('a spell leaves Exposed alone while Close attacks use it without consuming it', () => {
     let spell = ready(); spell.fighters.indigo.position = 2; spell.fighters.indigo.exposed = true; spell.players.ochre.mana = 1; isolateHand(spell, 'ochre', ['arcBolt']);
-    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(36); expect(spell.fighters.indigo.exposed).toBe(true);
+    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(37); expect(spell.fighters.indigo.exposed).toBe(true);
     let melee = ready(); melee.fighters.indigo.position = 2; melee.fighters.indigo.exposed = true; isolateHand(melee, 'ochre', ['strike']);
-    melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(36); expect(melee.fighters.indigo.exposed).toBe(false);
+    melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(37); expect(melee.fighters.indigo.exposed).toBe(true);
   });
 });
 
@@ -201,13 +204,23 @@ describe('mage cards', () => {
     expect(state.players.ochre.mana).toBe(0); expect(state.players.indigo.mana).toBe(2); assertInvariants(state);
   });
   it('Ley Step moves exactly one space, gains mana, and offers no move into a wall', () => {
-    expect(cardDefinition('leyStep').cost).toBe(2);
+    expect(cardDefinition('leyStep').cost).toBe(3);
     let state = ready(); isolateHand(state, 'ochre', ['leyStep', 'leyStep']);
     state = playCard(state, 'leyStep', (command) => command.type === 'playMoveAction' && command.direction === 'left');
-    expect(state.fighters.ochre.position).toBe(1); expect(state.players.ochre.mana).toBe(1); assertInvariants(state);
+    expect(state.fighters.ochre.position).toBe(1); expect(state.players.ochre.mana).toBe(2); assertInvariants(state);
     expect(availability(state, 'leyStep')).toMatchObject({ selection: 'direction', movements: ['right'] });
     expect(listLegalActions(state).filter((entry) => entry.command.type === 'playMoveAction')).toHaveLength(1);
   });
+  it('Ley Step gains 1 mana at Near and 2 mana at Far after moving', () => {
+    let near = ready(); near.fighters.indigo.position = 4; isolateHand(near, 'ochre', ['leyStep']);
+    near = playCard(near, 'leyStep', (command) => command.type === 'playMoveAction' && command.direction === 'right');
+    expect(near.fighters.ochre.position).toBe(3); expect(near.players.ochre.mana).toBe(1);
+
+    let far = ready(); far.fighters.indigo.position = 4; isolateHand(far, 'ochre', ['leyStep']);
+    far = playCard(far, 'leyStep', (command) => command.type === 'playMoveAction' && command.direction === 'left');
+    expect(far.fighters.ochre.position).toBe(1); expect(far.players.ochre.mana).toBe(2);
+  });
+
   it('Prism gains 2 mana, draws, and discards exactly the chosen card', () => {
     let state = ready(); isolateHand(state, 'ochre', ['prism', 'muster']); setDraw(state, 'ochre', ['gold']);
     state = playCard(state, 'prism');
@@ -232,7 +245,7 @@ describe('mage cards', () => {
     expect(availability(state, 'muster')).toMatchObject({ enabled: false, reasonCode: 'RESOLVE_CHOICE_FIRST', selection: 'discard' });
   });
   it('spells spend their mana cost and are illegal without it', () => {
-    for (const [definitionId, mana, damage] of [['arcBolt', 1, 4], ['fireball', 2, 7], ['starfire', 3, 10]] as const) {
+    for (const [definitionId, mana, damage] of [['arcBolt', 1, 3], ['fireball', 2, 7], ['starfire', 3, 12]] as const) {
       for (const position of [2, 3, 5]) {
         let state = ready(); state.fighters.indigo.position = position; state.players.ochre.mana = mana; isolateHand(state, 'ochre', [definitionId]);
         state = playCard(state, definitionId);
@@ -268,7 +281,7 @@ describe('batch integrity', () => {
     const channel = ready(); isolateHand(channel, 'ochre', ['channel']); setDraw(channel, 'ochre', ['gold']);
     const played = replayCommands(channel, [{ type: 'playAction', cardInstanceId: handCard(channel, 'ochre', 'channel') }]);
     expect(definitions(played.players.ochre.deck.hand)).toEqual(['gold']); expect(definitions(played.players.ochre.deck.play)).toEqual(['channel']);
-    expect(played.players.ochre.deck.draw).toEqual([]); expect(played.players.ochre.mana).toBe(1); expect(played.actionsThisTurn).toEqual(['channel']);
+    expect(played.players.ochre.deck.draw).toEqual([]); expect(played.players.ochre.mana).toBe(1); expect(played.turnState.cardsPlayed).toEqual(['channel']);
     expect(played.events.slice(-3).map((event) => event.type)).toEqual(['cardPlayed', 'mana', 'draw']);
 
     const step = ready(); isolateHand(step, 'ochre', ['step']);
@@ -289,7 +302,7 @@ describe('batch integrity', () => {
       { type: 'playAction', cardInstanceId: handCard(reclaim, 'ochre', 'reclaim') },
       { type: 'resolveRecover', recoverInstanceId: reclaim.players.ochre.deck.discard[0]!.id }
     ]);
-    expect(definitions(recovered.players.ochre.deck.hand)).toEqual(['copper']); expect(definitions(recovered.players.ochre.deck.draw)).toEqual(['gold']);
+    expect(definitions(recovered.players.ochre.deck.hand)).toEqual(['gold']); expect(definitions(recovered.players.ochre.deck.draw)).toEqual(['copper']);
     expect(recovered.players.ochre.deck.discard).toEqual([]); expect(definitions(recovered.players.ochre.deck.play)).toEqual(['reclaim']);
   });
 });

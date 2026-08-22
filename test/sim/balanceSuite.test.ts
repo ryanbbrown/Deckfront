@@ -18,6 +18,7 @@ describe('balance-suite design', () => {
         pairCountMaximum: 1, pairCountStandardDeviation: 0, largestOverlap: 1 });
   });
 
+  // The v3 generator searches a materially larger eligible-card set, so concurrent test load can exceed 15 seconds.
   it('regenerates the committed manifest byte-for-byte from fixed seeds', () => {
     const first = `${JSON.stringify(generateBalanceSuite(BALANCE_SUITE_SPEC), null, 2)}\n`;
     const second = `${JSON.stringify(generateBalanceSuite(BALANCE_SUITE_SPEC), null, 2)}\n`;
@@ -25,7 +26,7 @@ describe('balance-suite design', () => {
       '../../src/sim/balance-suite-manifest.json'), 'utf8');
     expect(first).toBe(second);
     expect(first).toBe(committed);
-  }, 15_000);
+  }, 60_000);
 
   it('satisfies split balance, pile, damage, identity, and overlap constraints', () => {
     expect(BALANCE_SUITE_MANIFEST.kingdoms).toHaveLength(100);

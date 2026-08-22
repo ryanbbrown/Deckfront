@@ -31,8 +31,10 @@ export interface CardActionPresentation {
   cardInstanceId: string;
   enabled: boolean;
   reason: string | null;
-  selection: 'none' | 'movement' | 'trashOneOrTwo';
+  selection: 'none' | 'movement' | 'targets';
   eligibleCardInstanceIds: string[];
+  minimumTargets: number;
+  maximumTargets: number;
   actionId: string | null;
   choices: CardActionChoice[];
 }
@@ -40,7 +42,7 @@ export interface PhaseActionPresentation { id: string; kind: 'endAction' | 'endB
 export interface BuyActionPresentation { id: string; definitionId: string }
 export interface SelectionActionPresentation extends BrowserAction { cardInstanceId: string | null }
 export interface SelectionPresentation {
-  kind: 'discard' | 'recover';
+  kind: 'discard' | 'recover' | 'optionalTrash' | 'gain';
   choices: SelectionActionPresentation[];
 }
 export interface GameActionPresentation {
@@ -50,10 +52,11 @@ export interface GameActionPresentation {
   selection: SelectionPresentation | null;
 }
 export interface GameView {
-  schemaVersion: 12;
+  schemaVersion: 13;
   id: string; revision: number; createdAt: string; updatedAt: string; elapsedSeconds: number;
   completedActions: number; durationSeconds: number | null;
   activePlayerId: PlayerId; selectedFirstPlayerId: PlayerId; phase: Phase; turn: number; winner: PlayerId | null;
+  startingDraftEnabled: boolean;
   fighters: Record<PlayerId, FighterView>; range: RangeBand; supply: Record<string, number>;
   cards: Record<string, CardDefinition>; players: Record<PlayerId, GamePlayerView>; trashCount: number;
   events: PublicGameEvent[]; actions: GameActionPresentation;
@@ -63,4 +66,4 @@ export interface GameView {
   fixedCardIds: string[]; variableCardIds: string[];
   buildProposal: string[]; completedBuilds: Record<PlayerId, string[]> | null;
 }
-export interface GameExport { schemaVersion: 12; exportedAt: string; game: GameView }
+export interface GameExport { schemaVersion: 13; exportedAt: string; game: GameView }

@@ -1,8 +1,8 @@
 import {
-  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, firstBuyCarry, isTacticalAction, kingdomEpoch,
+  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, cardDefinition, firstBuyCarry, isTacticalAction, kingdomEpoch,
   kingdomMarket, kingdomOf, playerStartingHealth
 } from '../game';
-import type { CardMechanic, CardValues, MovementChoice, PlayerId } from '../game';
+import type { CardFamily, CardMechanic, CardValues, MovementChoice, PlayerId } from '../game';
 import { repairBuildIn } from './build';
 import type { Strategy } from './strategy';
 import { chooseTacticalAction } from './tacticalPilot';
@@ -16,6 +16,7 @@ interface KernelCard {
   id: string;
   type: 'action' | 'treasure';
   mechanic: CardMechanic;
+  family: CardFamily;
   cost: number;
   money: number;
   values: CardValues;
@@ -28,6 +29,8 @@ interface KernelKingdom {
   cards: readonly KernelCard[];
   index: ReadonlyMap<string, number>;
   initialSupply: Int16Array;
+  aimBonus: number;
+  feintBonus: number;
 }
 
 interface KernelPlayer {
@@ -42,7 +45,6 @@ interface KernelPlayer {
   mana: number;
   firstBuyMoney: number;
   firstBuyPending: boolean;
-  positionChanged: boolean;
   purchases: number[];
   acquired: Int16Array;
   attackProfile: AttackProfile;
@@ -60,6 +62,12 @@ interface KernelState {
   turn: number;
   rng: number;
   tacticalPlayed: number;
+  cardsPlayed: number[];
+  spacesMoved: number;
+  manaSpent: number;
+  spellsPlayed: number;
+  copiesPlayed: Int16Array;
+  familiesPlayed: Set<CardFamily>;
   eventCount: number;
   telemetry: MatchTelemetry;
 }
@@ -71,6 +79,7 @@ export interface SimulationMatchConfig {
   swapSides: boolean;
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
+  startingDraftEnabled?: boolean;
   strategies: Record<PlayerId, Strategy>;
 }
 
@@ -83,9 +92,9 @@ function kernelKingdom(kingdomId: string): KernelKingdom {
   const cached = kingdomCache.get(kingdomId);
   if (cached) return cached;
   const kingdom = kingdomOf(kingdomId);
-  const definitions = kingdomMarket(kingdomId);
+  const definitions = [...kingdomMarket(kingdomId), cardDefinition('scrap')];
   const cards = definitions.map((definition): KernelCard => ({
-    id: definition.id, type: definition.type, mechanic: definition.mechanic,
+    id: definition.id, type: definition.type, mechanic: definition.mechanic, family: definition.family,
     cost: definition.cost, money: definition.money ?? 0, values: definition.values ?? {},
     tactical: isTacticalAction(definition.id)
   }));
@@ -94,7 +103,12 @@ function kernelKingdom(kingdomId: string): KernelKingdom {
   initialSupply.fill(-1);
   for (const pile of kingdom.actionPiles) initialSupply[index.get(pile.cardId)!] = pile.count;
   for (const id of ALWAYS_AVAILABLE_ACTION_IDS) initialSupply[index.get(id)!] = ALWAYS_AVAILABLE_COUNT;
-  const result = { id: kingdomId, health: kingdom.startingHealth, cards, index, initialSupply };
+  const resolvedValue = (definitionId: string, key: string): number =>
+    kingdom.overrides?.[definitionId]?.values?.[key] ?? cardDefinition(definitionId).values?.[key] ?? 0;
+  const result = {
+    id: kingdomId, health: kingdom.startingHealth, cards, index, initialSupply,
+    aimBonus: resolvedValue('aim', 'bonus'), feintBonus: resolvedValue('feint', 'bonus')
+  };
   kingdomCache.set(kingdomId, result);
   return result;
 }
@@ -103,20 +117,27 @@ function seat(playerId: PlayerId): 0 | 1 { return playerId === 'ochre' ? 0 : 1; 
 function playerId(index: 0 | 1): PlayerId { return index === 0 ? 'ochre' : 'indigo'; }
 function other(index: 0 | 1): 0 | 1 { return index === 0 ? 1 : 0; }
 function cardValue(card: KernelCard, key: string): number { return card.values[key] ?? 0; }
+function kingdomValue(state: KernelState, definitionId: string, key: string): number {
+  const index = state.kingdom.index.get(definitionId);
+  if (index !== undefined) return cardValue(state.kingdom.cards[index]!, key);
+  if (definitionId === 'aim' && key === 'bonus') return state.kingdom.aimBonus;
+  if (definitionId === 'feint' && key === 'bonus') return state.kingdom.feintBonus;
+  return 0;
+}
 function bump(counts: Record<string, number>, key: string, amount: number): void {
   counts[key] = (counts[key] ?? 0) + amount;
 }
 function emptyDeadDraws(): DeadDrawCounts { return { range: 0, mana: 0, setup: 0, total: 0 }; }
 
-function makePlayer(kingdom: KernelKingdom, strategy: Strategy): KernelPlayer {
-  const buildIds = repairBuildIn(kingdom.id, strategy.startingBuild);
+function makePlayer(kingdom: KernelKingdom, strategy: Strategy, startingDraftEnabled: boolean): KernelPlayer {
+  const buildIds = startingDraftEnabled ? repairBuildIn(kingdom.id, strategy.startingBuild) : [];
   const build = buildIds.map((id) => kingdom.index.get(id)!).filter((index) => index !== undefined);
   const acquired = new Int16Array(kingdom.cards.length);
   for (const index of build) acquired[index]! += 1;
   const buildCost = build.reduce((total, index) => total + kingdom.cards[index]!.cost, 0);
   return {
     strategy, build, draw: [], drawHead: 0, hand: [], discard: [], play: [], money: 0, mana: 0,
-    firstBuyMoney: firstBuyCarry(buildCost), firstBuyPending: true, positionChanged: false, purchases: [], acquired,
+    firstBuyMoney: startingDraftEnabled ? firstBuyCarry(buildCost) : 0, firstBuyPending: startingDraftEnabled, purchases: [], acquired,
     attackProfile: buildAttackProfile([])
   };
 }
@@ -167,7 +188,7 @@ function draw(state: KernelState, playerIndex: 0 | 1, count: number): number {
 function addDamage(state: KernelState, actor: 0 | 1, amount: number, close: boolean, source: number): boolean {
   const target = other(actor);
   let actual = amount;
-  if (close && state.exposed[target]) { actual += 2; state.exposed[target] = false; event(state); }
+  if (close && state.exposed[target]) actual += kingdomValue(state, 'feint', 'bonus');
   state.health[target] = Math.max(0, state.health[target] - actual);
   bump(state.telemetry.damageByCard[playerId(actor)], state.kingdom.cards[source]!.id, actual);
   event(state);
@@ -179,15 +200,24 @@ function addDamage(state: KernelState, actor: 0 | 1, amount: number, close: bool
   return false;
 }
 
+function addRangedDamage(state: KernelState, actor: 0 | 1, amount: number, source: number): boolean {
+  if (state.aimed[actor]) {
+    amount += kingdomValue(state, 'aim', 'bonus'); state.aimed[actor] = false; event(state);
+  }
+  return addDamage(state, actor, amount, false, source);
+}
+
 function positionAfter(position: number, movement: MovementChoice): number {
   return position + (movement === 'left' ? -1 : movement === 'right' ? 1 : 0);
 }
 
 function enabled(state: KernelState, actor: 0 | 1, card: KernelCard): boolean {
   const close = state.positions[actor] === state.positions[other(actor)];
-  if (['melee', 'drive', 'flurry', 'feint'].includes(card.mechanic)) return close;
-  if (['ranged', 'repellingShot', 'volley', 'aim'].includes(card.mechanic)) return !close;
-  if (card.mechanic === 'spell') return state.players[actor].mana >= cardValue(card, 'manaCost');
+  if (['melee', 'drive', 'flurry', 'feint', 'openingStrike', 'rally', 'bullRush'].includes(card.mechanic) && !close) return false;
+  if (['ranged', 'repellingShot', 'volley', 'aim', 'longshot', 'salvageShot', 'precisionShot'].includes(card.mechanic) && close) return false;
+  if (['spell', 'cascade'].includes(card.mechanic) && state.players[actor].mana < cardValue(card, 'manaCost')) return false;
+  if (card.mechanic === 'bullRush') return state.players[actor].hand.filter((index) => state.kingdom.cards[index]!.family === 'melee').length > 1;
+  if (card.mechanic === 'salvageShot') return state.players[actor].hand.filter((index) => state.kingdom.cards[index]!.family === 'ranged').length > 1;
   return card.type === 'action';
 }
 
@@ -259,7 +289,7 @@ function attackProfile(state: KernelState, actor: 0 | 1): AttackProfile {
       yield { definitionId: card.id, mechanic: card.mechanic, values: card.values };
     }
   }
-  return buildAttackProfile(definitions());
+  return buildAttackProfile(definitions(), kingdomValue(state, 'aim', 'bonus'));
 }
 
 function profileCard(card: KernelCard): ProfileCard {
@@ -271,7 +301,7 @@ function pilotView(state: KernelState, actor: 0 | 1, pending: 'discard' | 'recov
   const hand: PilotCard[] = player.hand.map((index, handIndex) => {
     const card = state.kingdom.cards[index]!;
     return {
-      handIndex, definitionId: card.id, mechanic: card.mechanic, cost: card.cost, money: card.money,
+      handIndex, definitionId: card.id, mechanic: card.mechanic, family: card.family, cost: card.cost, money: card.money,
       values: card.values, enabled: pending === null && enabled(state, actor, card),
       movements: movements(state, actor, card.mechanic)
     };
@@ -300,8 +330,13 @@ function pilotView(state: KernelState, actor: 0 | 1, pending: 'discard' | 'recov
     })),
     pendingChoice: pending,
     actorPosition: state.positions[actor], opponentPosition: state.positions[other(actor)],
-    opponentHealth: state.health[other(actor)], aimed: state.aimed[actor], opponentExposed: state.exposed[other(actor)],
-    mana: player.mana, positionChanged: player.positionChanged, tacticalPlayed: state.tacticalPlayed, cullOptions,
+    opponentHealth: state.health[other(actor)], aimed: state.aimed[actor],
+    aimBonus: state.aimed[actor] ? kingdomValue(state, 'aim', 'bonus') : 0,
+    opponentExposed: state.exposed[other(actor)],
+    opponentExposedBonus: state.exposed[other(actor)] ? kingdomValue(state, 'feint', 'bonus') : 0,
+    mana: player.mana, manaSpent: state.manaSpent, spellsPlayed: state.spellsPlayed, cardsPlayed: state.cardsPlayed.length,
+    copiesPlayed: Object.fromEntries(state.kingdom.cards.map((card, index) => [card.id, state.copiesPlayed[index]!])),
+    familiesPlayed: [...state.familiesPlayed], positionChanged: state.spacesMoved > 0, tacticalPlayed: state.tacticalPlayed, cullOptions,
     actorProfile: player.attackProfile, opponentProfile: state.players[other(actor)].attackProfile
   };
 }
@@ -324,8 +359,7 @@ function resolveRecover(state: KernelState, actor: 0 | 1): void {
   const player = state.players[actor];
   const [card] = player.discard.splice(decision.discardIndex, 1);
   if (card === undefined) return;
-  if (player.drawHead > 0) { player.drawHead -= 1; player.draw[player.drawHead] = card; }
-  else player.draw.unshift(card);
+  player.hand.push(card);
   event(state);
 }
 
@@ -338,16 +372,21 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
   event(state);
   const previousTactical = state.tacticalPlayed;
   if (card.tactical) state.tacticalPlayed += 1;
+  state.cardsPlayed.push(cardIndex); state.copiesPlayed[cardIndex]! += 1;
+  if (['arcBolt', 'fireball', 'starfire', 'discharge', 'cascade', 'overload'].includes(card.id)) state.spellsPlayed += 1;
+  state.familiesPlayed.add(card.family);
 
   switch (card.mechanic) {
     case 'footwork': {
       const movement = decision.movement ?? 'stay';
       const next = positionAfter(state.positions[actor], movement);
-      if (next !== state.positions[actor]) { state.positions[actor] = next; player.positionChanged = true; }
+      if (next !== state.positions[actor]) {
+        state.spacesMoved += Math.abs(next - state.positions[actor]); state.positions[actor] = next;
+      }
       event(state); draw(state, actor, cardValue(card, 'draw')); break;
     }
     case 'cull': {
-      const copperCount = decision.trashHandIndexes?.length ?? 0;
+      const copperCount = decision.targetHandIndexes?.length ?? 0;
       for (let count = 0; count < copperCount; count += 1) {
         const index = player.hand.findIndex((candidate) => state.kingdom.cards[candidate]!.id === 'copper');
         if (index >= 0) {
@@ -356,13 +395,13 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
           event(state);
         }
       }
-      if (decision.trashCull) {
+      if (decision.targetSelf) {
         player.play.pop(); removeProfileCard(player.attackProfile, profileCard(card)); event(state);
       }
       break;
     }
     case 'muster': draw(state, actor, cardValue(card, 'draw')); break;
-    case 'feint': state.exposed[other(actor)] = true; event(state); break;
+    case 'feint': draw(state, actor, cardValue(card, 'draw')); state.exposed[other(actor)] = true; event(state); break;
     case 'drive': {
       if (addDamage(state, actor, cardValue(card, 'damage'), true, cardIndex)) return true;
       const movement = decision.movement ?? 'left';
@@ -371,33 +410,33 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
         event(state);
         if (addDamage(state, actor, cardValue(card, 'wallDamage'), false, cardIndex)) return true;
       } else {
+        state.spacesMoved += Math.abs(destination - state.positions[actor]);
         state.positions[actor] = destination; state.positions[other(actor)] = destination;
-        player.positionChanged = true; event(state);
+        event(state);
       }
       break;
     }
     case 'flurry': if (addDamage(state, actor,
-      Math.min(cardValue(card, 'max'), previousTactical * cardValue(card, 'perAction')), true, cardIndex)) return true; break;
+      previousTactical * cardValue(card, 'perAction'), true, cardIndex)) return true; break;
     case 'aim': state.aimed[actor] = true; event(state); draw(state, actor, cardValue(card, 'draw')); break;
     case 'volley': {
       const near = Math.abs(state.positions[actor] - state.positions[other(actor)]) === 1;
-      const amount = cardValue(card, state.aimed[actor] ? (near ? 'aimedNear' : 'aimedFar') : (near ? 'near' : 'far'));
-      if (state.aimed[actor]) { state.aimed[actor] = false; event(state); }
-      if (addDamage(state, actor, amount, false, cardIndex)) return true;
+      if (addRangedDamage(state, actor, cardValue(card, near ? 'near' : 'far'), cardIndex)) return true;
       break;
     }
     case 'stipend': draw(state, actor, cardValue(card, 'draw')); player.money += cardValue(card, 'money'); break;
-    case 'reclaim': draw(state, actor, cardValue(card, 'draw')); resolveRecover(state, actor); break;
+    case 'reclaim': if (player.discard.length) resolveRecover(state, actor); else draw(state, actor, cardValue(card, 'draw')); break;
     case 'adapt':
       draw(state, actor, cardValue(card, 'draw'));
-      if (player.positionChanged) draw(state, actor, cardValue(card, 'movedDraw'));
+      if (state.spacesMoved > 0) draw(state, actor, cardValue(card, 'movedDraw'));
       break;
-    case 'melee': if (addDamage(state, actor, cardValue(card, 'damage'), true, cardIndex)) return true; break;
+    case 'melee': if (addDamage(state, actor, cardValue(card, 'damage'), true, cardIndex)) return true; draw(state, actor, cardValue(card, 'draw')); break;
     case 'ranged':
-      if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true;
+      if (addRangedDamage(state, actor, cardValue(card, 'damage'), cardIndex)) return true;
       draw(state, actor, cardValue(card, 'draw')); break;
     case 'repellingShot': {
-      if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true;
+      const near = Math.abs(state.positions[actor] - state.positions[other(actor)]) === 1;
+      if (addRangedDamage(state, actor, cardValue(card, near ? 'near' : 'far'), cardIndex)) return true;
       const target = other(actor);
       const targetStep = state.positions[target] > state.positions[actor] ? 1 : -1;
       const targetDestination = state.positions[target] + targetStep;
@@ -407,22 +446,60 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       }
       const actorDestination = state.positions[actor] - targetStep;
       if (actorDestination >= 1 && actorDestination <= 5) {
-        state.positions[actor] = actorDestination; player.positionChanged = true; event(state);
+        state.spacesMoved += Math.abs(actorDestination - state.positions[actor]);
+        state.positions[actor] = actorDestination; event(state);
       }
       break;
     }
     case 'spell':
-      player.mana -= cardValue(card, 'manaCost'); event(state);
+      player.mana -= cardValue(card, 'manaCost'); state.manaSpent += cardValue(card, 'manaCost'); event(state);
       if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true; break;
     case 'channel': player.mana += cardValue(card, 'mana'); event(state); draw(state, actor, cardValue(card, 'draw')); break;
     case 'leyStep': case 'step': {
       const movement = decision.movement ?? 'left'; const next = positionAfter(state.positions[actor], movement);
-      state.positions[actor] = next; player.positionChanged = true; event(state);
-      const mana = cardValue(card, 'mana'); if (mana) { player.mana += mana; event(state); }
+      state.spacesMoved += Math.abs(next - state.positions[actor]); state.positions[actor] = next; event(state);
+      const mana = cardValue(card, 'mana') + (card.mechanic === 'leyStep' && Math.abs(state.positions[actor] - state.positions[other(actor)]) >= 2 ? cardValue(card, 'farMana') : 0); if (mana) { player.mana += mana; event(state); }
       break;
     }
     case 'prism':
       player.mana += cardValue(card, 'mana'); event(state); draw(state, actor, cardValue(card, 'draw')); resolveDiscard(state, actor); break;
+    case 'attune': player.mana += cardValue(card, 'mana') + (state.copiesPlayed[cardIndex]! - 1) * cardValue(card, 'perCopy'); event(state); draw(state, actor, cardValue(card, 'draw')); break;
+    case 'discharge': {
+      const mana = player.mana;
+      const won = addDamage(state, actor, mana * cardValue(card, 'perMana'), false, cardIndex);
+      player.mana = 0; if (mana) event(state);
+      if (won) return true;
+      break;
+    }
+    case 'cascade': player.mana -= cardValue(card, 'manaCost'); state.manaSpent += cardValue(card, 'manaCost'); event(state); if (addDamage(state, actor, cardValue(card, 'damage') + (state.spellsPlayed - 1) * cardValue(card, 'perSpell'), false, cardIndex)) return true; break;
+    case 'overload': if (addDamage(state, actor, state.manaSpent * cardValue(card, 'perManaSpent'), false, cardIndex)) return true; break;
+    case 'openingStrike': if (addDamage(state, actor, cardValue(card, state.cardsPlayed.length === 1 ? 'first' : 'later'), true, cardIndex)) return true; break;
+    case 'rally': if (addDamage(state, actor, cardValue(card, 'damage') + (state.copiesPlayed[cardIndex]! - 1) * cardValue(card, 'perCopy'), true, cardIndex)) return true; break;
+    case 'bullRush': { const target = player.hand.findIndex((index) => state.kingdom.cards[index]!.family === 'melee'); if (target >= 0) { player.discard.push(player.hand.splice(target, 1)[0]!); event(state); } if (addDamage(state, actor, cardValue(card, 'damage'), true, cardIndex)) return true; break; }
+    case 'longshot': if (addRangedDamage(state, actor, Math.abs(state.positions[actor] - state.positions[other(actor)]), cardIndex)) return true; break;
+    case 'salvageShot': { const target = player.hand.findIndex((index) => state.kingdom.cards[index]!.family === 'ranged'); const discarded = target >= 0 ? player.hand.splice(target, 1)[0] : undefined; if (discarded !== undefined) { player.discard.push(discarded); event(state); if (addRangedDamage(state, actor, state.kingdom.cards[discarded]!.cost, cardIndex)) return true; draw(state, actor, cardValue(card, 'draw')); } break; }
+    case 'precisionShot': if (addRangedDamage(state, actor, cardValue(card, state.copiesPlayed[cardIndex] === 1 ? 'first' : 'later'), cardIndex)) return true; break;
+    case 'regroup':
+      draw(state, actor, cardValue(card, 'draw'));
+      if (player.hand.length) resolveDiscard(state, actor);
+      break;
+    case 'discipline': { player.play.pop(); removeProfileCard(player.attackProfile, profileCard(card)); event(state); if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true; break; }
+    case 'sharpen': draw(state, actor, cardValue(card, 'draw')); break;
+    case 'reforge': { const trashed = player.play.pop() ?? cardIndex; removeProfileCard(player.attackProfile, profileCard(state.kingdom.cards[trashed]!)); event(state); const maximum = state.kingdom.cards[trashed]!.cost + cardValue(card, 'costBonus'); let gain = -1; for (let index = 0; index < state.kingdom.cards.length; index += 1) { const candidate = state.kingdom.cards[index]!; if (candidate.id !== 'scrap' && candidate.cost <= maximum && pileAvailable(state, index) && (gain < 0 || (candidate.cost > state.kingdom.cards[gain]!.cost || (candidate.cost === state.kingdom.cards[gain]!.cost && candidate.id.localeCompare(state.kingdom.cards[gain]!.id) < 0)))) gain = index; } if (gain >= 0) { const gained = state.kingdom.cards[gain]!; player.discard.push(gain); player.acquired[gain]! += 1; if (gained.type === 'action') state.supply[gain]!--; addProfileCard(player.attackProfile, profileCard(gained)); event(state); } break; }
+    case 'scour': {
+      let trashed = 0;
+      for (let count = 0; count < 2; count += 1) {
+        const target = player.hand.findIndex((index) => state.kingdom.cards[index]!.id === 'copper');
+        if (target < 0) break;
+        const [removed] = player.hand.splice(target, 1);
+        removeProfileCard(player.attackProfile, profileCard(state.kingdom.cards[removed!]!));
+        trashed += 1; event(state);
+      }
+      draw(state, actor, trashed * cardValue(card, 'drawPerTrash'));
+      break;
+    }
+    case 'improvise': if (addDamage(state, actor, state.familiesPlayed.size * cardValue(card, 'perFamily'), false, cardIndex)) return true; break;
+    case 'scrap': if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true; break;
     case 'money': throw new Error('The tactical pilot cannot play treasure cards.');
   }
   return false;
@@ -435,13 +512,14 @@ function recordDeadDraws(state: KernelState, actor: 0 | 1): void {
   for (const index of player.hand) {
     const card = state.kingdom.cards[index]!;
     if (card.type !== 'action') continue;
-    if ((['melee', 'drive', 'flurry', 'feint'].includes(card.mechanic) && !close)
-      || (['ranged', 'repellingShot', 'volley', 'aim'].includes(card.mechanic) && close)) {
+    if ((['melee', 'drive', 'flurry', 'feint', 'openingStrike', 'rally', 'bullRush'].includes(card.mechanic) && !close)
+      || (['ranged', 'repellingShot', 'volley', 'aim', 'longshot', 'salvageShot', 'precisionShot'].includes(card.mechanic) && close)) {
       counts.range += 1; counts.total += 1; continue;
     }
-    if (card.mechanic === 'spell' && player.mana < cardValue(card, 'manaCost')) {
+    if (['spell', 'cascade'].includes(card.mechanic) && player.mana < cardValue(card, 'manaCost')) {
       counts.mana += 1; counts.total += 1; continue;
     }
+    if (!enabled(state, actor, card)) { counts.total += 1; continue; }
     if (card.mechanic === 'volley' && !state.aimed[actor]) counts.setup += 1;
     else if (card.mechanic === 'flurry' && state.tacticalPlayed === 0) counts.setup += 1;
   }
@@ -503,27 +581,35 @@ function endBuyPhase(state: KernelState, actor: 0 | 1): void {
   player.discard.push(...player.hand, ...player.play); player.hand = []; player.play = [];
   player.money = 0; player.mana = 0; player.firstBuyPending = false; player.firstBuyMoney = 0;
   state.aimed[actor] = false; state.exposed[other(actor)] = false;
-  draw(state, actor, 5); state.tacticalPlayed = 0;
-  state.active = other(actor); state.turn += 1; state.players[state.active].positionChanged = false; event(state);
+  draw(state, actor, 5); state.tacticalPlayed = 0; state.cardsPlayed = []; state.spacesMoved = 0; state.manaSpent = 0; state.spellsPlayed = 0;
+  state.copiesPlayed.fill(0); state.familiesPlayed.clear();
+  state.active = other(actor); state.turn += 1; event(state);
 }
 
 function createState(config: SimulationMatchConfig): KernelState {
   const kingdom = kernelKingdom(config.kingdomId);
+  const draft = config.startingDraftEnabled ?? true;
   const players: [KernelPlayer, KernelPlayer] = [
-    makePlayer(kingdom, config.strategies.ochre), makePlayer(kingdom, config.strategies.indigo)
+    makePlayer(kingdom, config.strategies.ochre, draft), makePlayer(kingdom, config.strategies.indigo, draft)
   ];
   const state: KernelState = {
     kingdom, players, positions: config.swapSides ? [3, 2] : [2, 3],
     health: [playerStartingHealth(kingdom.health, config.firstPlayerId === 'ochre'),
       playerStartingHealth(kingdom.health, config.firstPlayerId === 'indigo')],
     aimed: [false, false], exposed: [false, false], supply: new Int16Array(kingdom.initialSupply),
-    active: seat(config.firstPlayerId), turn: 1, rng: config.seed >>> 0, tacticalPlayed: 0, eventCount: 2,
+    active: seat(config.firstPlayerId), turn: 1, rng: config.seed >>> 0, tacticalPlayed: 0,
+    cardsPlayed: [], spacesMoved: 0, manaSpent: 0, spellsPlayed: 0, copiesPlayed: new Int16Array(kingdom.cards.length), familiesPlayed: new Set(), eventCount: 2,
     telemetry: undefined as unknown as MatchTelemetry
   };
-  const copper = kingdom.index.get('copper')!;
-  players[0].draw = shuffle(state, [...Array<number>(7).fill(copper), ...players[0].build]);
-  players[1].draw = shuffle(state, [...Array<number>(7).fill(copper), ...players[1].build]);
+  const copper = kingdom.index.get('copper')!; const scrap = kingdom.index.get('scrap')!;
+  const starting = (player: KernelPlayer): number[] => draft
+    ? [...Array<number>(7).fill(copper), ...player.build]
+    : [...Array<number>(7).fill(copper), ...Array<number>(3).fill(scrap)];
+  players[0].draw = shuffle(state, starting(players[0]));
+  players[1].draw = shuffle(state, starting(players[1]));
   draw(state, 0, 5); draw(state, 1, 5); event(state);
+  // Draft-off setup records only the turn event; its initial deal is not a public draw event.
+  if (!draft) state.eventCount = 1;
   players[0].attackProfile = attackProfile(state, 0);
   players[1].attackProfile = attackProfile(state, 1);
   state.telemetry = createTelemetry(players, kingdom);
@@ -564,7 +650,7 @@ export function runSimulationMatch(config: SimulationMatchConfig): MatchResult {
     config: {
       kingdomId: config.kingdomId, seed: config.seed, firstPlayerId: config.firstPlayerId,
       swapSides: config.swapSides, turnLimitPerPlayer: config.turnLimitPerPlayer,
-      actionCapPerTurn: config.actionCapPerTurn,
+      actionCapPerTurn: config.actionCapPerTurn, startingDraftEnabled: config.startingDraftEnabled ?? true,
       agentIds: { ochre: config.strategies.ochre.id, indigo: config.strategies.indigo.id }
     },
     outcome, reason, turns: state.turn - 1, telemetry: state.telemetry

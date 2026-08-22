@@ -19,26 +19,34 @@ async function server(aiTrainer?: AiTrainer) {
   cleanups.push(async () => { await new Promise<void>((resolve) => app.server.close(() => resolve())); await rm(directory, { recursive: true, force: true }); });
   return { base: `http://127.0.0.1:${address.port}`, games };
 }
+const TEST_MARKET = ['cull','footwork','feint','drive','aim','volley','muster','prism','reclaim','starfire'];
 async function create(base: string, body: Record<string, unknown> = {}) {
-  return fetch(`${base}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 2, mode: 'local', variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10), ...body }) });
+  return fetch(`${base}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 2, mode: 'local', variableCardIds: TEST_MARKET, ...body }) });
 }
 describe('local game HTTP interface', () => {
   it('serves the setup catalog with fixed and variable cards separated', async () => {
     const { base } = await server(); const response = await fetch(`${base}/api/setup`);
     const setup = await response.json() as { fixedCardIds: string[]; variableCardIds: string[]; cards: Record<string, unknown> };
     expect(response.status).toBe(200);
-    expect(setup.fixedCardIds).toEqual(['copper', 'silver', 'gold', 'step', 'cull', 'focus']);
+    expect(setup.fixedCardIds).toEqual(['copper', 'silver', 'gold', 'step', 'focus']);
     expect(setup.variableCardIds).toContain('footwork'); expect(setup.variableCardIds).not.toContain('step');
     expect(Object.keys(setup.cards)).toContain('starfire');
   });
   it('creates a game and accepts both sequential builds', async () => {
     const { base } = await server(); const createdResponse = await create(base); expect(createdResponse.status).toBe(201);
     const created = await createdResponse.json() as { id: string; revision: number; schemaVersion: number; activePlayerId: string };
-    expect(created).toMatchObject({ schemaVersion: 12, activePlayerId: 'ochre', aiDifficulty: null });
+    expect(created).toMatchObject({ schemaVersion: 13, activePlayerId: 'ochre', aiDifficulty: null });
     const playerOne = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['footwork'], complete: true }) }).then((response) => response.json()) as { revision: number; activePlayerId: string; phase: string };
     expect(playerOne).toMatchObject({ activePlayerId: 'indigo', phase: 'startingBuild' });
     const playerTwo = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: playerOne.revision, definitionIds: ['aim'], complete: true }) }).then((response) => response.json()) as { phase: string; completedBuilds: Record<string, string[]> };
     expect(playerTwo.phase).toBe('action'); expect(playerTwo.completedBuilds).toEqual({ ochre: ['footwork'], indigo: ['aim'] });
+  });
+  it('accepts the strict draft toggle and starts draft-off without build endpoints', async () => {
+    const { base } = await server(); const response = await create(base,{ startingDraftEnabled:false }); expect(response.status).toBe(201);
+    const view = await response.json() as GameView; expect(view).toMatchObject({ startingDraftEnabled:false, phase:'action', turn:1 });
+    expect(view.players.ochre.deckCounts).toEqual({ copper:7, scrap:3 }); expect(view.cards.scrap).toBeDefined();
+    const build = await fetch(`${base}/api/games/${view.id}/build`,{ method:'POST', headers:{ 'content-type':'application/json' }, body:JSON.stringify({ expectedRevision:view.revision, definitionIds:[], complete:true }) });
+    expect(build.status).toBe(403);
   });
   it('returns a specific old-save schema error', async () => {
     const { base, games } = await server(); const id = '11111111-1111-4111-8111-111111111111'; await mkdir(games, { recursive: true }); await writeFile(path.join(games, `${id}.json`), JSON.stringify({ schemaVersion: 11 }));
@@ -105,6 +113,6 @@ describe('local game HTTP interface', () => {
     const { base } = await server(); const created = await (await create(base)).json() as { id: string; revision: number };
     const edit = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['feint'], complete: false }) }); expect(edit.status).toBe(200);
     const stale = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: [], complete: false }) }); expect(stale.status).toBe(409);
-    const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(12); expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
+    const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(13); expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
 });

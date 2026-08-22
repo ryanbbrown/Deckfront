@@ -23,11 +23,13 @@ export interface RulesFingerprint {
     orientationProtocol: string;
     simulationKernelProtocol: string;
     tacticalPilotProtocol: string;
+    startingDraftEnabled: boolean;
   };
 }
 
 export function rulesFingerprint(
-  kingdomId: string, turnLimitPerPlayer = TURN_LIMIT_PER_PLAYER, actionCapPerTurn = ACTION_CAP_PER_TURN
+  kingdomId: string, turnLimitPerPlayer = TURN_LIMIT_PER_PLAYER, actionCapPerTurn = ACTION_CAP_PER_TURN,
+  startingDraftEnabled = true
 ): RulesFingerprint {
   const rules: RulesFingerprint['rules'] = {
     kingdom: structuredClone(kingdomOf(kingdomId)),
@@ -39,7 +41,8 @@ export function rulesFingerprint(
     actionCapPerTurn,
     orientationProtocol: MATRIX_PROTOCOL_VERSION,
     simulationKernelProtocol: SIMULATION_KERNEL_PROTOCOL_VERSION,
-    tacticalPilotProtocol: TACTICAL_PILOT_PROTOCOL_VERSION
+    tacticalPilotProtocol: TACTICAL_PILOT_PROTOCOL_VERSION,
+    startingDraftEnabled
   };
   return { version: RULES_FINGERPRINT_VERSION, hash: stableHash(JSON.stringify(rules)), rules };
 }

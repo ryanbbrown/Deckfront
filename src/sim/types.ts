@@ -18,6 +18,7 @@ export interface MatchConfig {
   swapSides: boolean;             // exchanges the two starting positions
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
+  startingDraftEnabled?: boolean;
   agents: Record<PlayerId, Agent>;
 }
 
@@ -40,7 +41,7 @@ export type MatchOutcome = 'ochre' | 'indigo' | 'draw' | 'aborted';
 export type MatchReason = 'victory' | 'turnLimit' | 'actionCap' | 'actionSearchOverflow';
 
 export interface MatchResult {
-  config: Omit<MatchConfig, 'agents'> & { agentIds: Record<PlayerId, string> };
+  config: Omit<MatchConfig, 'agents' | 'startingDraftEnabled'> & { startingDraftEnabled: boolean; agentIds: Record<PlayerId, string> };
   outcome: MatchOutcome;
   reason: MatchReason;
   turns: number;                  // completed player turns

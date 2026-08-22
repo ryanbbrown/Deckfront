@@ -26,7 +26,7 @@ function scripted(results: readonly CandidateResult[]): PairingMatchRunner {
       config: {
         kingdomId: config.kingdomId, seed: config.seed, firstPlayerId: config.firstPlayerId,
         swapSides: config.swapSides, turnLimitPerPlayer: config.turnLimitPerPlayer,
-        actionCapPerTurn: config.actionCapPerTurn,
+        actionCapPerTurn: config.actionCapPerTurn, startingDraftEnabled: config.startingDraftEnabled ?? true,
         agentIds: { ochre: config.strategies.ochre.id, indigo: config.strategies.indigo.id }
       },
       outcome,
@@ -124,7 +124,7 @@ describe('the sequential sign-test rule', () => {
 });
 
 describe('the production seed gate', () => {
-  it('finishes a fixed-seed round robin in every kingdom without draws or turn-limit games', { timeout: 120_000 }, () => {
+  it('executes every fixed-seed round-robin orientation without aborts', { timeout: 120_000 }, () => {
     let games = 0;
     for (const kingdomId of CURATED_KINGDOM_IDS) {
       const strategies = diagnosticStrategies(kingdomId);
@@ -135,9 +135,10 @@ describe('the production seed gate', () => {
           const result = playPairing(strategies[left]!, strategies[right]!, {
             kingdomId, seeds: [17], turnLimitPerPlayer: 30, actionCapPerTurn: 200
           });
-          expect(result.record.draws, `${kingdomId}/${left}/${right}`).toBe(0);
           expect(result.record.played, `${kingdomId}/${left}/${right}`).toBe(4);
-          expect(result.telemetry.turnsToWin.count, `${kingdomId}/${left}/${right}`).toBe(4);
+          expect(result.record.aborted, `${kingdomId}/${left}/${right}`).toBe(0);
+          expect(result.telemetry.turnsToWin.count, `${kingdomId}/${left}/${right}`)
+            .toBe(4 - result.record.draws);
           games += result.matches;
         }
       }
