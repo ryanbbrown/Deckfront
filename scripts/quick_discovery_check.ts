@@ -74,15 +74,19 @@ try {
   const ranked = discovery.strategies
     .map((strategy) => ({ strategy, weight: weights[strategy.id] ?? 0 }))
     .sort((left, right) => right.weight - left.weight || left.strategy.id.localeCompare(right.strategy.id));
+  const support = ranked.filter((entry) => entry.weight > 1e-6);
   const target = ranked[0]!.strategy;
+  const targetMixture = support.map((entry) => ({ strategy: entry.strategy, weight: entry.weight }));
   const discoveryElapsedMs = Date.now() - started;
   console.log(`\ndiscovery: ${discovery.strategies.length} strategies,`
-    + ` support ${ranked.filter((entry) => entry.weight > 1e-6).length},`
+    + ` support ${support.length},`
     + ` ${discovery.matches.toLocaleString()} matches, ${(discoveryElapsedMs / 1000).toFixed(1)}s`);
-  console.log(formatStrategy(target));
+  for (const entry of support) {
+    console.log(`weight ${entry.weight.toFixed(4)}\n${formatStrategy(entry.strategy)}`);
+  }
 
   const sweepStarted = Date.now();
-  const sweep = await sweepAgainst(runner, kingdomId, target, bootstrap,
+  const sweep = await sweepAgainst(runner, kingdomId, targetMixture, bootstrap,
     (message) => console.log(`  sweep: ${message}`));
   const sweepElapsedMs = Date.now() - sweepStarted;
   const best = sweep.ranked[0]!;
@@ -94,7 +98,7 @@ try {
   console.log(`total elapsed: ${((Date.now() - started) / 1000).toFixed(1)}s`);
 
   fs.writeFileSync(outFile, `${JSON.stringify({
-    kingdomId, seed, target, equilibrium: discovery.equilibrium,
+    kingdomId, seed, target, targetMixture, equilibrium: discovery.equilibrium,
     discovery: { strategies: discovery.strategies.length, matches: discovery.matches,
       elapsedMs: discoveryElapsedMs, stopReason: discovery.stopReason },
     sweep: { ...sweep, elapsedMs: sweepElapsedMs }

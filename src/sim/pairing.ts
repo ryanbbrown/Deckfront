@@ -14,10 +14,9 @@ export interface Orientation {
  *
  * There are three binary factors to balance — seat, who moves first, and arena position — so four
  * games need a half-fraction rather than the obvious assignment. `createGame` puts ochre at position
- * 2 and indigo at 3 and exchanges them when `swapSides` is true, and those positions are not
- * equivalent. Taking ochre in orientations 1 and 3 would leave the candidate at position 2 in all
- * four games, so `swapSides` would cancel nothing for it. Ochre in 1 and 4 gives seat 2/2,
- * moves-first 2/2, and position 2/2.
+ * 3 and indigo at 4 and exchanges them when `swapSides` is true. Taking ochre in orientations 1 and
+ * 3 would leave the candidate on the same side in all four games, so `swapSides` would cancel
+ * nothing for it. Ochre in 1 and 4 gives seat 2/2, moves-first 2/2, and arena side 2/2.
  *
  * A candidate plays both seats, moves first twice, and starts on each arena position twice. This
  * prevents seat or arena advantages from biasing a payoff cell or response evaluation.
@@ -126,6 +125,7 @@ export interface PairingOptions {
   seeds: readonly number[];
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
+  startingDraftEnabled?: boolean | undefined;
   // Only preliminary payoff-matrix cells set this. Every other evaluation plays all seed blocks.
   allowEarlyStop?: boolean | undefined;
 }
@@ -228,6 +228,7 @@ export function playPairing(
           swapSides: orientation.swapSides,
           turnLimitPerPlayer: options.turnLimitPerPlayer,
           actionCapPerTurn: options.actionCapPerTurn,
+          startingDraftEnabled: options.startingDraftEnabled ?? true,
           strategies: candidateIsOchre
             ? { ochre: candidate, indigo: opponent }
             : { ochre: opponent, indigo: candidate }

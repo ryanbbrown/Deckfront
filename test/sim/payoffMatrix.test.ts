@@ -97,10 +97,14 @@ describe('protocol-keyed payoff matrix', () => {
       { ...base, seeds: [1, 3] },
       { ...base, turnLimitPerPlayer: 31 },
       { ...base, actionCapPerTurn: 201 },
+      matrixProtocol('current-duel', [1, 2], 30, 200, false),
       { ...base, cards: [...base.cards as unknown[], { id: 'changed-card' }] },
       { ...base, orientationProtocol: 'four-orientations-v2' }
     ];
     for (const variant of variants) await fill(variant);
     expect(runner.jobs).toHaveLength(1 + variants.length);
+    expect(runner.jobs.find((job) => job.options.startingDraftEnabled === false)).toBeDefined();
+    expect(matrixProtocol('current-duel', [1, 2], 30, 200, false).rulesFingerprint)
+      .not.toBe(base.rulesFingerprint);
   });
 });

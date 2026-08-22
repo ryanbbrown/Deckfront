@@ -109,7 +109,7 @@ describe('fixed buy ladder', () => {
   });
 
   it('does not buy a finite target already acquired in the starting build', () => {
-    const state = buyState({ money: 3 });
+    const state = buyState({ money: 5 });
     state.players.ochre.startingBuild = ['footwork'];
     const plan = strategy({ buyPlan: [
       { kind: 'buy', cardId: 'footwork', desiredCount: 1 },

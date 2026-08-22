@@ -7,7 +7,7 @@ import type { GameState } from '../../src/game';
 import { strategyAgent } from '../../src/sim/agents/strategyAgent';
 import { runMatch } from '../../src/sim/match';
 import { diagnosticLabels, diagnosticStrategies } from '../../src/sim/baselines';
-import { INFINITE_COUNT, identify } from '../../src/sim/strategy';
+import { INFINITE_COUNT, fixedBuyPlan, identify } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import type { MatchResult } from '../../src/sim/types';
 
@@ -35,11 +35,11 @@ const { cases } = JSON.parse(fs.readFileSync(oraclePath, 'utf8')) as { cases: Or
 
 /** Headline facts written by hand, so a shrunken or silently regenerated oracle fails here first. */
 const HEADLINES: Record<string, { outcome: string; reason: string; turns: number }> = {
-  'three-way-engine:11': { outcome: 'indigo', reason: 'victory', turns: 45 },
-  'three-way-engine:12': { outcome: 'indigo', reason: 'victory', turns: 18 },
-  'range-rich-mixed:14': { outcome: 'indigo', reason: 'victory', turns: 26 },
+  'three-way-engine:3': { outcome: 'indigo', reason: 'victory', turns: 45 },
+  'three-way-engine:12': { outcome: 'indigo', reason: 'victory', turns: 16 },
+  'range-rich-mixed:14': { outcome: 'indigo', reason: 'victory', turns: 30 },
   'current-duel:15': { outcome: 'draw', reason: 'turnLimit', turns: 200 },
-  'three-way-open:16': { outcome: 'ochre', reason: 'victory', turns: 19 },
+  'three-way-open:16': { outcome: 'ochre', reason: 'victory', turns: 29 },
   'three-way-engine:17': { outcome: 'draw', reason: 'turnLimit', turns: 200 }
 };
 
@@ -49,7 +49,8 @@ function key(entry: { kingdomId: string; seed: number }): string {
 
 function oracleStrategy(kingdomId: string, label: string): Strategy {
   if (label === 'no-attack') return identify({
-    id: label, startingBuild: [], buyPlan: [{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }]
+    id: label, startingBuild: [],
+    buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }])
   });
   const labels = diagnosticLabels(kingdomId);
   const found = diagnosticStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);
@@ -90,9 +91,7 @@ describe('match result identity', () => {
     '%s replays to the stored result',
     (id, entry) => {
       const { result } = played.get(id)!;
-      expect(result).toEqual({ ...entry.result, config: {
-        ...entry.result.config, agentIds: result.config.agentIds
-      } });
+      expect(result).toEqual(entry.result);
       expect({ outcome: result.outcome, reason: result.reason, turns: result.turns })
         .toEqual(HEADLINES[id]);
     }

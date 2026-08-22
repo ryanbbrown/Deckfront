@@ -16,6 +16,7 @@ export interface MatrixProtocol {
   seeds: number[];
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
+  startingDraftEnabled: boolean;
   orientationProtocol: string;
   rulesFingerprint: string;
 }
@@ -59,13 +60,16 @@ export class DeadlineInterruptionError extends Error {
 }
 
 export function matrixProtocol(
-  kingdomId: string, seeds: readonly number[], turnLimitPerPlayer: number, actionCapPerTurn: number
+  kingdomId: string, seeds: readonly number[], turnLimitPerPlayer: number, actionCapPerTurn: number,
+  startingDraftEnabled = true
 ): MatrixProtocol {
-  const fingerprint = rulesFingerprint(kingdomId, turnLimitPerPlayer, actionCapPerTurn);
+  const fingerprint = rulesFingerprint(
+    kingdomId, turnLimitPerPlayer, actionCapPerTurn, startingDraftEnabled
+  );
   return {
     kingdomId,
     cards: kingdomMarket(kingdomId).map((card) => card),
-    seeds: [...seeds], turnLimitPerPlayer, actionCapPerTurn,
+    seeds: [...seeds], turnLimitPerPlayer, actionCapPerTurn, startingDraftEnabled,
     orientationProtocol: MATRIX_PROTOCOL_VERSION, rulesFingerprint: fingerprint.hash
   };
 }
@@ -118,6 +122,7 @@ export class PayoffMatrix {
       kingdomId: this.protocol.kingdomId, seeds,
       turnLimitPerPlayer: this.protocol.turnLimitPerPlayer,
       actionCapPerTurn: this.protocol.actionCapPerTurn,
+      startingDraftEnabled: this.protocol.startingDraftEnabled,
       allowEarlyStop
     } } };
   }

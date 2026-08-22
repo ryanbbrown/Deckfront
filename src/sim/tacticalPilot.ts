@@ -1,3 +1,4 @@
+import { ARENA_MAX, ARENA_MIN } from '../game';
 import type { CardFamily, CardMechanic, CardValues, MovementChoice, PendingChoiceType } from '../game';
 import { printedAttackDamage, publicPositionAdvantage } from './positionValue';
 import type { AttackProfile } from './positionValue';
@@ -19,6 +20,7 @@ export interface CullOption {
   trashHandIndexes: readonly number[];
   trashCull: boolean;
   copperTrashed: number;
+  scrapTrashed: number;
   purchaseProjection: readonly number[];
 }
 
@@ -59,7 +61,7 @@ function immediateDamage(card: PilotCard, view: TacticalView): number {
   switch (card.mechanic) {
     case 'melee': return value(card, 'damage') + view.opponentExposedBonus;
     case 'drive': return value(card, 'damage') + view.opponentExposedBonus
-      + ((view.actorPosition === 1 || view.actorPosition === 5) ? value(card, 'wallDamage') : 0);
+      + ((view.actorPosition === ARENA_MIN || view.actorPosition === ARENA_MAX) ? value(card, 'wallDamage') : 0);
     case 'flurry': return view.tacticalPlayed * value(card, 'perAction') + view.opponentExposedBonus;
     case 'openingStrike': return value(card, view.cardsPlayed === 0 ? 'first' : 'later') + view.opponentExposedBonus;
     case 'rally': return value(card, 'damage') + (view.copiesPlayed[card.definitionId] ?? 0) * value(card, 'perCopy') + view.opponentExposedBonus;
@@ -73,7 +75,8 @@ function immediateDamage(card: PilotCard, view: TacticalView): number {
     case 'discharge': return view.mana * value(card, 'perMana');
     case 'cascade': return value(card, 'damage') + view.spellsPlayed * value(card, 'perSpell');
     case 'overload': return view.manaSpent * value(card, 'perManaSpent');
-    case 'discipline': case 'scrap': return value(card, 'damage');
+    case 'discipline': return value(card, 'damage');
+    case 'scrap': return (view.copiesPlayed.scrap ?? 0) === 0 ? value(card, 'damage') : 0;
     case 'improvise': return new Set([...view.familiesPlayed, 'engine']).size * value(card, 'perFamily');
     case 'volley': {
       const near = distance(view.actorPosition, view.opponentPosition) === 1;
@@ -98,7 +101,12 @@ function currentHandDamageAt(
   view: TacticalView, actorPosition: number, opponentPosition: number, mana: number, tacticalPlayed: number
 ): number {
   let total = 0;
+  let canUseAim = false;
   let spellDamage: Int16Array | null = null;
+  const ranged = new Set<CardMechanic>([
+    'ranged', 'repellingShot', 'longshot', 'salvageShot', 'precisionShot', 'volley'
+  ]);
+  let scrapAvailable = (view.copiesPlayed.scrap ?? 0) === 0;
   for (const card of view.hand) {
     if (!['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush', 'ranged', 'repellingShot',
       'longshot', 'salvageShot', 'precisionShot', 'spell', 'discharge', 'cascade', 'overload', 'discipline', 'improvise', 'scrap', 'volley']
@@ -114,10 +122,18 @@ function currentHandDamageAt(
       }
       continue;
     }
-    total += printedAttackDamage(card, actorPosition, opponentPosition,
-      attackState(card, view, mana, tacticalPlayed));
+    const state = attackState(card, view, mana, tacticalPlayed);
+    if (card.mechanic === 'scrap') {
+      if (!scrapAvailable) state.copiesPlayed = { ...view.copiesPlayed, scrap: 1 };
+      scrapAvailable = false;
+    }
+    state.aimed = false;
+    state.aimBonus = 0;
+    const damage = printedAttackDamage(card, actorPosition, opponentPosition, state);
+    total += damage;
+    if (damage > 0 && ranged.has(card.mechanic)) canUseAim = true;
   }
-  return total + (spellDamage?.at(-1) ?? 0);
+  return total + (canUseAim ? view.aimBonus : 0) + (spellDamage?.at(-1) ?? 0);
 }
 
 interface MovementResult {
@@ -184,11 +200,11 @@ function movementPreservesDamage(view: TacticalView, result: MovementResult): bo
 function repellingPositions(view: TacticalView): Pick<MovementResult, 'actorPosition' | 'opponentPosition'> {
   const targetStep = view.opponentPosition > view.actorPosition ? 1 : -1;
   const targetDestination = view.opponentPosition + targetStep;
-  if (targetDestination >= 1 && targetDestination <= 5) {
+  if (targetDestination >= ARENA_MIN && targetDestination <= ARENA_MAX) {
     return { actorPosition: view.actorPosition, opponentPosition: targetDestination };
   }
   const actorDestination = view.actorPosition - targetStep;
-  return actorDestination >= 1 && actorDestination <= 5
+  return actorDestination >= ARENA_MIN && actorDestination <= ARENA_MAX
     ? { actorPosition: actorDestination, opponentPosition: view.opponentPosition }
     : { actorPosition: view.actorPosition, opponentPosition: view.opponentPosition };
 }
@@ -213,7 +229,7 @@ function bestDriveDirection(card: PilotCard, view: TacticalView): MovementChoice
   let best: MovementResult | null = null;
   for (const movement of card.movements) {
     const destination = view.actorPosition + (movement === 'left' ? -1 : 1);
-    const collision = destination < 1 || destination > 5;
+    const collision = destination < ARENA_MIN || destination > ARENA_MAX;
     const actorPosition = collision ? view.actorPosition : destination;
     const opponentPosition = collision ? view.opponentPosition : destination;
     const candidate: MovementResult = {
@@ -244,8 +260,10 @@ function bestCull(view: TacticalView): CullOption | null {
     if (!best) { best = option; continue; }
     const purchase = compareProjection(option.purchaseProjection, best.purchaseProjection);
     if (purchase > 0
-      || (purchase === 0 && option.copperTrashed > best.copperTrashed)
-      || (purchase === 0 && option.copperTrashed === best.copperTrashed && option.trashCull && !best.trashCull)) best = option;
+      || (purchase === 0 && option.scrapTrashed > best.scrapTrashed)
+      || (purchase === 0 && option.scrapTrashed === best.scrapTrashed && option.copperTrashed > best.copperTrashed)
+      || (purchase === 0 && option.scrapTrashed === best.scrapTrashed
+        && option.copperTrashed === best.copperTrashed && option.trashCull && !best.trashCull)) best = option;
   }
   return best;
 }
@@ -272,18 +290,28 @@ export function fixedTargetSelection(
 ): Pick<Extract<TacticalDecision, { type: 'play' }>, 'targetHandIndexes' | 'targetSelf'> | null {
   if (card.mechanic === 'bullRush' || card.mechanic === 'salvageShot') {
     const family = card.mechanic === 'bullRush' ? 'melee' : 'ranged';
-    const target = hand.find((candidate) => candidate.handIndex !== card.handIndex && candidate.family === family);
+    const targets = hand.filter((candidate) =>
+      candidate.handIndex !== card.handIndex && candidate.family === family);
+    const target = card.mechanic === 'salvageShot'
+      ? [...targets].sort((left, right) => right.cost - left.cost
+        || left.definitionId.localeCompare(right.definitionId)
+        || left.handIndex - right.handIndex)[0]
+      : targets[0];
     return { targetHandIndexes: target ? [target.handIndex] : [], targetSelf: false };
   }
   if (card.mechanic === 'discipline' || card.mechanic === 'reforge') {
-    return { targetHandIndexes: [], targetSelf: true };
+    const target = hand.find((candidate) => candidate.definitionId === 'scrap')
+      ?? hand.find((candidate) => candidate.definitionId === 'copper');
+    return target
+      ? { targetHandIndexes: [target.handIndex], targetSelf: false }
+      : { targetHandIndexes: [], targetSelf: true };
   }
   if (card.mechanic === 'scour') {
-    return {
-      targetHandIndexes: hand.filter((candidate) => candidate.definitionId === 'copper').slice(0, 2)
-        .map((candidate) => candidate.handIndex),
-      targetSelf: false
-    };
+    const targets = [
+      ...hand.filter((candidate) => candidate.definitionId === 'scrap'),
+      ...hand.filter((candidate) => candidate.definitionId === 'copper')
+    ].slice(0, 2);
+    return { targetHandIndexes: targets.map((candidate) => candidate.handIndex), targetSelf: false };
   }
   return null;
 }
@@ -326,6 +354,9 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
   const volley = first(view, 'volley');
   if (view.aimed && volley) return play(volley);
 
+  const openingStrike = first(view, 'openingStrike');
+  if (openingStrike && view.cardsPlayed === 0) return play(openingStrike);
+
   const reclaim = first(view, 'reclaim');
   if (reclaim && view.discard.length > 0) return play(reclaim);
 
@@ -358,6 +389,32 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
   const repellingShot = first(view, 'repellingShot');
   if (repellingShot && repellingImproves(view)) return play(repellingShot);
 
+  if (view.hand.some((card) => card.definitionId === 'scrap')) {
+    const discipline = first(view, 'discipline');
+    if (discipline) return play(discipline, undefined, view.hand);
+    const cull = first(view, 'cull');
+    const cullOption = cull ? bestCull(view) : null;
+    if (cull && cullOption?.scrapTrashed) return {
+      type: 'play', handIndex: cull.handIndex,
+      targetHandIndexes: cullOption.trashHandIndexes, targetSelf: false
+    };
+    for (const mechanic of ['sharpen', 'scour', 'reforge'] as const) {
+      const card = first(view, mechanic);
+      if (card) return play(card, undefined, view.hand);
+    }
+  }
+
+  const cascade = first(view, 'cascade');
+  if (cascade && immediateDamage(cascade, view) < view.opponentHealth) {
+    let primer: PilotCard | undefined;
+    for (const candidate of view.hand) {
+      if (!candidate.enabled || candidate.mechanic !== 'spell'
+        || value(candidate, 'manaCost') + value(cascade, 'manaCost') > view.mana) continue;
+      if (!primer || immediateDamage(candidate, view) > immediateDamage(primer, view)) primer = candidate;
+    }
+    if (primer) return play(primer);
+  }
+
   const nonFlurryDamage = bestDamage(view, true);
   if (nonFlurryDamage) {
     if (nonFlurryDamage.mechanic === 'drive') {
@@ -376,7 +433,7 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
 
   const cull = first(view, 'cull');
   const cullOption = cull ? bestCull(view) : null;
-  if (cull && cullOption && (cullOption.copperTrashed > 0 || cullOption.trashCull)) {
+  if (cull && cullOption && (cullOption.scrapTrashed > 0 || cullOption.copperTrashed > 0 || cullOption.trashCull)) {
     return {
       type: 'play', handIndex: cull.handIndex,
       targetHandIndexes: cullOption.trashHandIndexes, targetSelf: cullOption.trashCull

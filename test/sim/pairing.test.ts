@@ -91,6 +91,20 @@ describe('the sequential sign-test rule', () => {
     expect(result.record.wins).toBe(48);
   });
 
+  it('propagates draft-off mode to every orientation', () => {
+    const [candidate, opponent] = diagnosticStrategies('current-duel');
+    const modes: boolean[] = [];
+    const runner: PairingMatchRunner = (config) => {
+      modes.push(config.startingDraftEnabled ?? true);
+      return scripted(['draw'])(config);
+    };
+    playPairing(candidate!, opponent!, {
+      kingdomId: 'current-duel', seeds: [1], turnLimitPerPlayer: 30,
+      actionCapPerTurn: 200, startingDraftEnabled: false
+    }, runner);
+    expect(modes).toEqual([false, false, false, false]);
+  });
+
   it('disables early stopping for screens, confirmations, and final top-ups', () => {
     const [candidate, opponent] = diagnosticStrategies('current-duel');
     const result = playPairing(candidate!, opponent!, {

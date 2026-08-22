@@ -2,8 +2,8 @@ import type { GameView } from '../shared/api';
 
 export function Board({ game }: { game: GameView }) {
   return (
-    <div className="arena" role="img" aria-label="Five space line arena">
-      {[1, 2, 3, 4, 5].map((space) => {
+    <div className="arena" role="img" aria-label="Six space line arena">
+      {[1, 2, 3, 4, 5, 6].map((space) => {
         const fighters = Object.values(game.fighters).filter((candidate) => candidate.position === space);
         return (
           <div key={space} className="arena-space" data-space={space}>

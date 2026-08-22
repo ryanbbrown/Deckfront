@@ -255,12 +255,18 @@ function cardById(state: GameState, playerId: PlayerId, instanceId: string): Car
 function allowedActions(
   state: GameState, playerId: PlayerId, actions: readonly LegalAction[], strategy: Strategy
 ): readonly LegalAction[] {
+  if (state.pendingChoice?.type === 'optionalTrash') {
+    const scrap = state.players[playerId].deck.hand.find((card) => card.definitionId === 'scrap');
+    if (scrap) return actions.filter((action) =>
+      action.command.type === 'resolveOptionalTrash' && action.command.trashInstanceId === scrap.id);
+  }
+
   if (state.pendingChoice?.type === 'recover') {
-    const recoveries = actions.filter((action) => action.command.type === 'resolveRecover' && action.command.recoverInstanceId !== null);
-    if (!recoveries.length) return actions.filter((action) => action.command.type === 'resolveRecover');
+    const recoveries = actions.filter((action) => action.command.type === 'resolveRecover');
+    if (!recoveries.length) return actions;
     return [[...recoveries].sort((left, right) => {
-      const leftId = (left.command as Extract<typeof left.command, { type: 'resolveRecover' }>).recoverInstanceId!;
-      const rightId = (right.command as Extract<typeof right.command, { type: 'resolveRecover' }>).recoverInstanceId!;
+      const leftId = (left.command as Extract<typeof left.command, { type: 'resolveRecover' }>).recoverInstanceId;
+      const rightId = (right.command as Extract<typeof right.command, { type: 'resolveRecover' }>).recoverInstanceId;
       const leftCard = cardById(state, playerId, leftId)!;
       const rightCard = cardById(state, playerId, rightId)!;
       return resolveCard(state, rightCard.definitionId).cost - resolveCard(state, leftCard.definitionId).cost
@@ -297,13 +303,21 @@ function allowedActions(
       return action.command.targetCardInstanceIds.length === expected.length
         && action.command.targetCardInstanceIds.every((id) => expected.includes(id));
     }
+    const requiredScrap = state.players[playerId].deck.hand
+      .filter((card) => card.definitionId === 'scrap').slice(0, 2);
+    const selectedScrap = action.command.targetCardInstanceIds.filter((targetId) =>
+      cardById(state, playerId, targetId)?.definitionId === 'scrap');
+    if (selectedScrap.length !== requiredScrap.length
+      || requiredScrap.some((card) => !selectedScrap.includes(card.id))) return false;
     let removedMoney = 0;
     let removedCopper = 0;
     let removesCull = false;
     for (const targetId of action.command.targetCardInstanceIds) {
       const card = cardById(state, playerId, targetId);
       if (!card) return false;
-      if (card.definitionId !== 'copper' && !(card.definitionId === 'cull' && targetId === action.command.cardInstanceId)) return false;
+      if (!['scrap', 'copper'].includes(card.definitionId)
+        && !(card.definitionId === 'cull' && targetId === action.command.cardInstanceId)) return false;
+      if (targetId === action.command.cardInstanceId && requiredScrap.length > 0) return false;
       const definition = resolveCard(state, card.definitionId);
       if (card.definitionId === 'copper') removedCopper += 1;
       if (targetId === action.command.cardInstanceId) removesCull = true;

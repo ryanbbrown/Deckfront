@@ -31,7 +31,8 @@ function result(strategies: Strategy[], payoffs: number[][], weights: number[]):
   const matrix: MatrixSnapshot = {
     protocol: {
       kingdomId: kingdom.id, cards: [], seeds: [1], turnLimitPerPlayer: 30,
-      actionCapPerTurn: 100, orientationProtocol: 'literal', rulesFingerprint: 'literal'
+      actionCapPerTurn: 100, startingDraftEnabled: true,
+      orientationProtocol: 'literal', rulesFingerprint: 'literal'
     },
     strategies, cells: [], complete: true, centeredPayoffs: payoffs
   };

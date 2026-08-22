@@ -1,5 +1,5 @@
 import {
-  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, cardDefinition, firstBuyCarry, isTacticalAction, kingdomEpoch,
+  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, ARENA_MAX, ARENA_MIN, cardDefinition, firstBuyCarry, isTacticalAction, kingdomEpoch,
   kingdomMarket, kingdomOf, playerStartingHealth
 } from '../game';
 import type { CardFamily, CardMechanic, CardValues, MovementChoice, PlayerId } from '../game';
@@ -226,9 +226,9 @@ function movements(state: KernelState, actor: 0 | 1, mechanic: CardMechanic): Mo
   if (mechanic === 'drive') return ['left', 'right'];
   if (!['footwork', 'leyStep', 'step'].includes(mechanic)) return [];
   const result: MovementChoice[] = [];
-  if (state.positions[actor] > 1) result.push('left');
+  if (state.positions[actor] > ARENA_MIN) result.push('left');
   if (mechanic === 'footwork') result.push('stay');
-  if (state.positions[actor] < 5) result.push('right');
+  if (state.positions[actor] < ARENA_MAX) result.push('right');
   return result;
 }
 
@@ -269,6 +269,15 @@ function purchaseProjection(state: KernelState, actor: 0 | 1, copperTrashed: num
   return bought;
 }
 
+function compareProjection(left: readonly number[], right: readonly number[]): number {
+  const length = Math.max(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const difference = (left[index] ?? 0) - (right[index] ?? 0);
+    if (difference) return difference;
+  }
+  return 0;
+}
+
 function attackProfile(state: KernelState, actor: 0 | 1): AttackProfile {
   const player = state.players[actor];
   function* definitions(): Iterable<ProfileCard> {
@@ -300,20 +309,32 @@ function pilotView(state: KernelState, actor: 0 | 1, pending: 'discard' | 'recov
   });
   const cull = hand.find((card) => card.mechanic === 'cull');
   const copper = hand.filter((card) => card.definitionId === 'copper').map((card) => card.handIndex);
+  const scrap = hand.filter((card) => card.definitionId === 'scrap').slice(0, 2).map((card) => card.handIndex);
   const copperIndex = state.kingdom.index.get('copper')!;
   const copperOwned = player.hand.filter((index) => index === copperIndex).length
     + player.draw.slice(player.drawHead).filter((index) => index === copperIndex).length
     + player.discard.filter((index) => index === copperIndex).length
     + player.play.filter((index) => index === copperIndex).length;
+  const scrapIndex = state.kingdom.index.get('scrap')!;
+  const scrapOwned = player.hand.filter((index) => index === scrapIndex).length
+    + player.draw.slice(player.drawHead).filter((index) => index === scrapIndex).length
+    + player.discard.filter((index) => index === scrapIndex).length
+    + player.play.filter((index) => index === scrapIndex).length;
   const cullOptions: CullOption[] = cull ? [{
-    trashHandIndexes: [], trashCull: false, copperTrashed: 0,
+    trashHandIndexes: scrap, trashCull: false, copperTrashed: 0, scrapTrashed: scrap.length,
     purchaseProjection: purchaseProjection(state, actor, 0)
   }] : [];
-  if (cull) for (let count = 0; count <= Math.min(2, copper.length); count += 1) {
-    if (count > 0) cullOptions.push({ trashHandIndexes: copper.slice(0, count), trashCull: false,
-      copperTrashed: count, purchaseProjection: purchaseProjection(state, actor, count) });
-    if (count < 2 && copperOwned === 0) cullOptions.push({ trashHandIndexes: copper.slice(0, count), trashCull: true,
-      copperTrashed: count, purchaseProjection: purchaseProjection(state, actor, count) });
+  if (cull) {
+    const remainingCapacity = 2 - scrap.length;
+    for (let count = 1; count <= Math.min(remainingCapacity, copper.length); count += 1) cullOptions.push({
+      trashHandIndexes: [...scrap, ...copper.slice(0, count)], trashCull: false,
+      copperTrashed: count, scrapTrashed: scrap.length,
+      purchaseProjection: purchaseProjection(state, actor, count)
+    });
+    if (scrapOwned === 0 && copperOwned === 0) cullOptions.push({
+      trashHandIndexes: [], trashCull: true, copperTrashed: 0, scrapTrashed: 0,
+      purchaseProjection: purchaseProjection(state, actor, 0)
+    });
   }
   return {
     hand,
@@ -357,9 +378,27 @@ function resolveRecover(state: KernelState, actor: 0 | 1): void {
 
 function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType<typeof chooseTacticalAction>, { type: 'play' }>): boolean {
   const player = state.players[actor];
+  const selectedTargets = (decision.targetHandIndexes ?? []).map((handIndex) => player.hand[handIndex]!)
+    .filter((index) => index !== undefined);
+  const selectedTarget = decision.targetHandIndexes?.[0];
+  const targetAfterPlay = selectedTarget === undefined
+    ? -1 : selectedTarget - (selectedTarget > decision.handIndex ? 1 : 0);
   const cardIndex = removeHand(player, decision.handIndex);
   const card = state.kingdom.cards[cardIndex]!;
   player.play.push(cardIndex);
+  const removeSelectedTarget = (): number => {
+    if (decision.targetSelf) {
+      const removed = player.play.pop();
+      if (removed === undefined) throw new Error(`No played ${card.id} to target.`);
+      return removed;
+    }
+    return removeHand(player, targetAfterPlay);
+  };
+  const removeFamilyTarget = (family: CardFamily): number | undefined => {
+    const target = targetAfterPlay >= 0 && state.kingdom.cards[player.hand[targetAfterPlay]!]?.family === family
+      ? targetAfterPlay : player.hand.findIndex((index) => state.kingdom.cards[index]!.family === family);
+    return target < 0 ? undefined : removeHand(player, target);
+  };
   bump(state.telemetry.playsByCard[playerId(actor)], card.id, 1);
   event(state);
   const previousTactical = state.tacticalPlayed;
@@ -378,9 +417,8 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       event(state); draw(state, actor, cardValue(card, 'draw')); break;
     }
     case 'cull': {
-      const copperCount = decision.targetHandIndexes?.length ?? 0;
-      for (let count = 0; count < copperCount; count += 1) {
-        const index = player.hand.findIndex((candidate) => state.kingdom.cards[candidate]!.id === 'copper');
+      for (const selected of selectedTargets) {
+        const index = player.hand.findIndex((candidate) => candidate === selected);
         if (index >= 0) {
           const [trashed] = player.hand.splice(index, 1);
           removeProfileCard(player.attackProfile, profileCard(state.kingdom.cards[trashed!]!));
@@ -398,7 +436,7 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       if (addDamage(state, actor, cardValue(card, 'damage'), true, cardIndex)) return true;
       const movement = decision.movement ?? 'left';
       const destination = positionAfter(state.positions[actor], movement);
-      if (destination < 1 || destination > 5) {
+      if (destination < ARENA_MIN || destination > ARENA_MAX) {
         event(state);
         if (addDamage(state, actor, cardValue(card, 'wallDamage'), false, cardIndex)) return true;
       } else {
@@ -432,12 +470,12 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       const target = other(actor);
       const targetStep = state.positions[target] > state.positions[actor] ? 1 : -1;
       const targetDestination = state.positions[target] + targetStep;
-      if (targetDestination >= 1 && targetDestination <= 5) {
+      if (targetDestination >= ARENA_MIN && targetDestination <= ARENA_MAX) {
         state.positions[target] = targetDestination; event(state);
         break;
       }
       const actorDestination = state.positions[actor] - targetStep;
-      if (actorDestination >= 1 && actorDestination <= 5) {
+      if (actorDestination >= ARENA_MIN && actorDestination <= ARENA_MAX) {
         state.spacesMoved += Math.abs(actorDestination - state.positions[actor]);
         state.positions[actor] = actorDestination; event(state);
       }
@@ -467,23 +505,81 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
     case 'overload': if (addDamage(state, actor, state.manaSpent * cardValue(card, 'perManaSpent'), false, cardIndex)) return true; break;
     case 'openingStrike': if (addDamage(state, actor, cardValue(card, state.cardsPlayed.length === 1 ? 'first' : 'later'), true, cardIndex)) return true; break;
     case 'rally': if (addDamage(state, actor, cardValue(card, 'damage') + (state.copiesPlayed[cardIndex]! - 1) * cardValue(card, 'perCopy'), true, cardIndex)) return true; break;
-    case 'bullRush': { const target = player.hand.findIndex((index) => state.kingdom.cards[index]!.family === 'melee'); if (target >= 0) { player.discard.push(player.hand.splice(target, 1)[0]!); event(state); } if (addDamage(state, actor, cardValue(card, 'damage'), true, cardIndex)) return true; break; }
+    case 'bullRush': {
+      const discarded = removeFamilyTarget('melee');
+      if (discarded !== undefined) { player.discard.push(discarded); event(state); }
+      if (addDamage(state, actor, cardValue(card, 'damage'), true, cardIndex)) return true;
+      break;
+    }
     case 'longshot': if (addRangedDamage(state, actor, Math.abs(state.positions[actor] - state.positions[other(actor)]), cardIndex)) return true; break;
-    case 'salvageShot': { const target = player.hand.findIndex((index) => state.kingdom.cards[index]!.family === 'ranged'); const discarded = target >= 0 ? player.hand.splice(target, 1)[0] : undefined; if (discarded !== undefined) { player.discard.push(discarded); event(state); if (addRangedDamage(state, actor, state.kingdom.cards[discarded]!.cost, cardIndex)) return true; draw(state, actor, cardValue(card, 'draw')); } break; }
+    case 'salvageShot': {
+      const discarded = removeFamilyTarget('ranged');
+      if (discarded !== undefined) {
+        player.discard.push(discarded); event(state);
+        if (addRangedDamage(state, actor, state.kingdom.cards[discarded]!.cost, cardIndex)) return true;
+        draw(state, actor, cardValue(card, 'draw'));
+      }
+      break;
+    }
     case 'precisionShot': if (addRangedDamage(state, actor, cardValue(card, state.copiesPlayed[cardIndex] === 1 ? 'first' : 'later'), cardIndex)) return true; break;
     case 'regroup':
       draw(state, actor, cardValue(card, 'draw'));
       if (player.hand.length) resolveDiscard(state, actor);
       break;
-    case 'discipline': { player.play.pop(); removeProfileCard(player.attackProfile, profileCard(card)); event(state); if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true; break; }
-    case 'sharpen': draw(state, actor, cardValue(card, 'draw')); break;
-    case 'reforge': { const trashed = player.play.pop() ?? cardIndex; removeProfileCard(player.attackProfile, profileCard(state.kingdom.cards[trashed]!)); event(state); const maximum = state.kingdom.cards[trashed]!.cost + cardValue(card, 'costBonus'); let gain = -1; for (let index = 0; index < state.kingdom.cards.length; index += 1) { const candidate = state.kingdom.cards[index]!; if (candidate.id !== 'scrap' && candidate.cost <= maximum && pileAvailable(state, index) && (gain < 0 || (candidate.cost > state.kingdom.cards[gain]!.cost || (candidate.cost === state.kingdom.cards[gain]!.cost && candidate.id.localeCompare(state.kingdom.cards[gain]!.id) < 0)))) gain = index; } if (gain >= 0) { const gained = state.kingdom.cards[gain]!; player.discard.push(gain); player.acquired[gain]! += 1; if (gained.type === 'action') state.supply[gain]!--; addProfileCard(player.attackProfile, profileCard(gained)); event(state); } break; }
+    case 'discipline': {
+      const trashed = removeSelectedTarget();
+      removeProfileCard(player.attackProfile, profileCard(state.kingdom.cards[trashed]!)); event(state);
+      if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true;
+      break;
+    }
+    case 'sharpen': {
+      draw(state, actor, cardValue(card, 'draw'));
+      const scrap = state.kingdom.index.get('scrap')!;
+      const scrapIndex = player.hand.findIndex((index) => index === scrap);
+      if (scrapIndex >= 0) {
+        const trashed = removeHand(player, scrapIndex);
+        removeProfileCard(player.attackProfile, profileCard(state.kingdom.cards[trashed]!)); event(state);
+        break;
+      }
+      const copper = state.kingdom.index.get('copper')!;
+      const copperIndex = player.hand.findIndex((index) => index === copper);
+      if (copperIndex >= 0 && compareProjection(
+        purchaseProjection(state, actor, 1), purchaseProjection(state, actor, 0)
+      ) >= 0) {
+        const trashed = removeHand(player, copperIndex);
+        removeProfileCard(player.attackProfile, profileCard(state.kingdom.cards[trashed]!)); event(state);
+      }
+      break;
+    }
+    case 'reforge': {
+      const trashed = removeSelectedTarget();
+      removeProfileCard(player.attackProfile, profileCard(state.kingdom.cards[trashed]!)); event(state);
+      const maximum = state.kingdom.cards[trashed]!.cost + cardValue(card, 'costBonus');
+      let gain = -1;
+      for (let index = 0; index < state.kingdom.cards.length; index += 1) {
+        const candidate = state.kingdom.cards[index]!;
+        if (candidate.id !== 'scrap' && candidate.cost <= maximum && pileAvailable(state, index)
+          && (gain < 0 || candidate.cost > state.kingdom.cards[gain]!.cost
+            || (candidate.cost === state.kingdom.cards[gain]!.cost
+              && candidate.id.localeCompare(state.kingdom.cards[gain]!.id) < 0))) gain = index;
+      }
+      if (gain >= 0) {
+        const gained = state.kingdom.cards[gain]!;
+        player.discard.push(gain);
+        if (gained.type === 'action') state.supply[gain]!--;
+        addProfileCard(player.attackProfile, profileCard(gained)); event(state);
+      }
+      break;
+    }
     case 'scour': {
       let trashed = 0;
       for (let count = 0; count < 2; count += 1) {
-        const target = player.hand.findIndex((index) => state.kingdom.cards[index]!.id === 'copper');
-        if (target < 0) break;
-        const [removed] = player.hand.splice(target, 1);
+        const target = player.hand.findIndex((index) => state.kingdom.cards[index]!.id === 'scrap');
+        const fallback = target < 0
+          ? player.hand.findIndex((index) => state.kingdom.cards[index]!.id === 'copper')
+          : target;
+        if (fallback < 0) break;
+        const [removed] = player.hand.splice(fallback, 1);
         removeProfileCard(player.attackProfile, profileCard(state.kingdom.cards[removed!]!));
         trashed += 1; event(state);
       }
@@ -491,7 +587,8 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       break;
     }
     case 'improvise': if (addDamage(state, actor, state.familiesPlayed.size * cardValue(card, 'perFamily'), false, cardIndex)) return true; break;
-    case 'scrap': if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true; break;
+    case 'scrap': if (addDamage(state, actor,
+      state.copiesPlayed[cardIndex] === 1 ? cardValue(card, 'damage') : 0, false, cardIndex)) return true; break;
     case 'money': throw new Error('The tactical pilot cannot play treasure cards.');
   }
   return false;
@@ -580,7 +677,7 @@ function createState(config: SimulationMatchConfig): KernelState {
     makePlayer(kingdom, config.strategies.ochre, draft), makePlayer(kingdom, config.strategies.indigo, draft)
   ];
   const state: KernelState = {
-    kingdom, players, positions: config.swapSides ? [3, 2] : [2, 3],
+    kingdom, players, positions: config.swapSides ? [4, 3] : [3, 4],
     health: [playerStartingHealth(kingdom.health, config.firstPlayerId === 'ochre'),
       playerStartingHealth(kingdom.health, config.firstPlayerId === 'indigo')],
     aimed: [false, false], exposed: [false, false], supply: new Int16Array(kingdom.initialSupply),

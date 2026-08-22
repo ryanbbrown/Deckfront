@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { registerKingdom, resetKingdoms } from '../../src/game';
+import type { GameState } from '../../src/game';
 import { tacticalAgent } from '../../src/sim/tacticalAgent';
 import { diagnosticStrategies } from '../../src/sim/baselines';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
@@ -112,6 +113,40 @@ describe('the compact simulation kernel', () => {
     expect(totals.drive).toBeGreaterThan(0); expect(totals.repellingShot).toBeGreaterThan(0); expect(totals.adapt).toBeGreaterThan(0);
   });
 
+  it('matches Salvage Shot when the pilot selects a later higher-cost Ranged card', () => {
+    registerKingdom({
+      id: 'salvage-target-parity', name: 'Salvage target parity', startingHealth: 60,
+      actionPiles: [
+        { cardId: 'salvageShot', count: 10 }, { cardId: 'pepperingShot', count: 10 },
+        { cardId: 'longshot', count: 10 }
+      ]
+    });
+    const active: Strategy = {
+      id: 'salvage', startingBuild: ['salvageShot', 'pepperingShot', 'longshot'],
+      buyPlan: fixedBuyPlan([
+        { kind: 'buy', cardId: 'salvageShot', desiredCount: INFINITE_COUNT }
+      ])
+    };
+    const passive: Strategy = {
+      id: 'passive', startingBuild: [],
+      buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'gold', desiredCount: INFINITE_COUNT }])
+    };
+    let salvagePlays = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const shared = {
+        kingdomId: 'salvage-target-parity', seed, firstPlayerId: 'ochre' as const,
+        swapSides: false, turnLimitPerPlayer: 8, actionCapPerTurn: 200
+      };
+      const product = runMatch({
+        ...shared, agents: { ochre: tacticalAgent(active), indigo: tacticalAgent(passive) }
+      });
+      const compact = runSimulationMatch({ ...shared, strategies: { ochre: active, indigo: passive } });
+      expect(compact, `seed ${seed}`).toEqual(product);
+      salvagePlays += product.telemetry.playsByCard.ochre.salvageShot ?? 0;
+    }
+    expect(salvagePlays).toBeGreaterThan(0);
+  });
+
   it('matches resolved Feint and Aim bonus overrides', () => {
     registerKingdom({ id:'sim-bonus-overrides', name:'Simulator bonus overrides', startingHealth:60,
       actionPiles:['footwork','feint','strike','aim','steadyShot'].map((cardId) => ({ cardId, count:10 })),
@@ -214,6 +249,44 @@ describe('the compact simulation kernel', () => {
       plays += compact.telemetry.playsByCard.ochre.regroup ?? 0;
     }
     expect(plays).toBeGreaterThan(0);
+  });
+
+  it('does not count a Reforge gain as progress toward a finite purchase slot', () => {
+    registerKingdom({
+      id: 'reforge-purchase-parity', name: 'Reforge purchase parity', startingHealth: 80,
+      actionPiles: [{ cardId: 'reforge', count: 10 }, { cardId: 'adapt', count: 10 }],
+      overrides: { reforge: { cost: 0 }, adapt: { cost: 3 } }
+    });
+    const active: Strategy = {
+      id: 'reforge-buyer', startingBuild: Array<string>(5).fill('reforge'),
+      buyPlan: fixedBuyPlan([
+        { kind: 'buy', cardId: 'adapt', desiredCount: 1 },
+        { kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }
+      ])
+    };
+    const passive: Strategy = {
+      id: 'passive', startingBuild: [],
+      buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'gold', desiredCount: INFINITE_COUNT }])
+    };
+    const shared = {
+      kingdomId: 'reforge-purchase-parity', seed: 4, firstPlayerId: 'ochre' as const,
+      swapSides: false, turnLimitPerPlayer: 4, actionCapPerTurn: 200,
+      strategies: { ochre: active, indigo: passive }
+    };
+    let finalState: GameState | null = null;
+    const product = runMatch({
+      ...shared, agents: { ochre: tacticalAgent(active), indigo: tacticalAgent(passive) }
+    }, (state) => { finalState = state; });
+    expect(product.telemetry.playsByCard.ochre.reforge).toBeGreaterThan(0);
+    expect(product.telemetry.purchasesByCard.ochre.adapt).toBeGreaterThan(0);
+    const events = (finalState as GameState | null)?.events ?? [];
+    const gained = events.findIndex((event) =>
+      event.type === 'gain' && event.playerId === 'ochre' && event.detail.definitionId === 'adapt');
+    const purchased = events.findIndex((event) =>
+      event.type === 'purchase' && event.playerId === 'ochre' && event.detail.definitionId === 'adapt');
+    expect(gained).toBeGreaterThanOrEqual(0);
+    expect(purchased).toBeGreaterThan(gained);
+    expect(runSimulationMatch(shared)).toEqual(product);
   });
 
   it('matches combo counters, Reforge, and draft-off setup against the immutable engine', () => {

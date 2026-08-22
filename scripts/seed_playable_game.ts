@@ -43,10 +43,11 @@ const humanPlayerId = (option('seat') ?? 'ochre') as PlayerId;
 const baseUrl = option('url') ?? 'http://127.0.0.1:4173';
 const limits = EXPERIMENT_DEFAULTS.full;
 
-async function writeGame(kingdom: Kingdom, strategy: Strategy, training: unknown, seed: number): Promise<string> {
+async function writeGame(
+  kingdom: Kingdom, strategy: Strategy, training: unknown, seed: number, startingDraftEnabled = true
+): Promise<string> {
   const id = randomUUID();
   const now = new Date().toISOString();
-  const startingDraftEnabled = true;
   const initialState = createGame({ seed, firstPlayerId: 'ochre', kingdomId: kingdom.id, startingDraftEnabled });
   await new FileGameRepository(dataDirectory).create({
     schemaVersion: 13, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
@@ -72,10 +73,12 @@ const fromFile = option('from');
 
 if (fromFile) {
   const record = JSON.parse(fs.readFileSync(fromFile, 'utf8')) as {
-    kingdom: Kingdom; aiStrategy: Strategy; training: unknown;
+    kingdom: Kingdom; aiStrategy: Strategy; training: unknown; startingDraftEnabled?: boolean;
   };
   registerKingdom(record.kingdom);
-  const id = await writeGame(record.kingdom, record.aiStrategy, record.training, Date.now());
+  const id = await writeGame(
+    record.kingdom, record.aiStrategy, record.training, Date.now(), record.startingDraftEnabled ?? true
+  );
   console.log(`market: ${record.kingdom.actionPiles.map((pile) => pile.cardId).join(', ')}`);
   console.log(formatStrategy(record.aiStrategy));
   links.push(`${baseUrl}/rematch.html?game=${id}`);

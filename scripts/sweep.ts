@@ -12,7 +12,7 @@ import type { PairingRunner } from '../src/sim/pairingRunner';
 import { INFINITE_COUNT, canonicalStrategy, fixedBuyPlan } from '../src/sim/strategy';
 import type { BuyPlanSlot, Strategy } from '../src/sim/strategy';
 import { headToHead, headToHeadStream, seedRange } from './headToHead';
-import type { HeadToHeadScore } from './headToHead';
+import type { HeadToHeadScore, HeadToHeadTarget } from './headToHead';
 
 export const SCREEN_SEEDS = seedRange(1, 1);
 export const LEAD_SEEDS = seedRange(21, 4);
@@ -26,7 +26,8 @@ const KEEP_LEAD = 300;
 const KEEP_EXTEND = 50;
 
 /** Every multiset of market cards the starting budget can pay for. */
-export function everyBuild(kingdomId: string): string[][] {
+export function everyBuild(kingdomId: string, startingDraftEnabled = true): string[][] {
+  if (!startingDraftEnabled) return [[]];
   const probe = createGame({ seed: 1, kingdomId });
   const ordered = [...kingdomFacts(kingdomId).marketIds].sort((left, right) => left.localeCompare(right));
   const builds: string[][] = [];
@@ -54,6 +55,8 @@ export interface SweepResult {
 
 export type SweepReporter = (message: string) => void;
 
+export interface SweepOptions { startingDraftEnabled?: boolean }
+
 function activeSlots(strategy: Strategy): BuyPlanSlot[] {
   return strategy.buyPlan.filter((slot) => slot.kind !== 'inactive');
 }
@@ -72,12 +75,13 @@ function uniqueStrategies(kingdomId: string, proposals: Iterable<Strategy>): Str
 }
 
 export async function sweepAgainst(
-  runner: PairingRunner, kingdomId: string, target: Strategy,
+  runner: PairingRunner, kingdomId: string, target: HeadToHeadTarget,
   bootstrap: (values: readonly number[]) => { lower: number; upper: number },
-  report: SweepReporter = () => {}
+  report: SweepReporter = () => {}, options: SweepOptions = {}
 ): Promise<SweepResult> {
   const { purchaseIds } = kingdomFacts(kingdomId);
-  const builds = everyBuild(kingdomId);
+  const startingDraftEnabled = options.startingDraftEnabled ?? true;
+  const builds = everyBuild(kingdomId, startingDraftEnabled);
   let matches = 0;
   const count = (scores: readonly HeadToHeadScore[]): void => {
     for (const score of scores) matches += score.matches;
@@ -97,7 +101,7 @@ export async function sweepAgainst(
 
   report(`screening ${builds.length} builds x ${purchaseIds.length + 1} simple floors`);
   const screened = await headToHeadStream(runner, kingdomId, floors(), target, SCREEN_SEEDS,
-    10_000, KEEP_SCREEN);
+    10_000, KEEP_SCREEN, undefined, { startingDraftEnabled });
   matches += screened.matches;
 
   const leadProposals: Strategy[] = [];
@@ -113,7 +117,7 @@ export async function sweepAgainst(
   const leads = uniqueStrategies(kingdomId, leadProposals);
   report(`testing one finite slot on ${screened.best.length} survivors (${leads.length} strategies)`);
   const led = await headToHeadStream(runner, kingdomId, leads, target, LEAD_SEEDS,
-    10_000, KEEP_LEAD);
+    10_000, KEEP_LEAD, undefined, { startingDraftEnabled });
   matches += led.matches;
 
   const extensionProposals: Strategy[] = [];
@@ -138,12 +142,14 @@ export async function sweepAgainst(
   const extensions = uniqueStrategies(kingdomId, extensionProposals);
   report(`testing a second finite or stop slot on ${led.best.length} survivors (${extensions.length} strategies)`);
   const extended = await headToHeadStream(runner, kingdomId, extensions, target, EXTEND_SEEDS,
-    5_000, KEEP_EXTEND);
+    5_000, KEEP_EXTEND, undefined, { startingDraftEnabled });
   matches += extended.matches;
 
   const finalists = extended.best.map((entry) => entry.strategy);
   report(`confirming ${finalists.length} finalists on ${FINAL_SEEDS.length} held-out seeds`);
-  const confirmed = await headToHead(runner, kingdomId, finalists, target, FINAL_SEEDS, 50);
+  const confirmed = await headToHead(
+    runner, kingdomId, finalists, target, FINAL_SEEDS, 50, undefined, { startingDraftEnabled }
+  );
   count(confirmed);
 
   const ranked = confirmed

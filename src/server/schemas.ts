@@ -49,7 +49,7 @@ const player = z.object({
 });
 const fighter = z.object({
   playerId,
-  position: z.number().int().min(1).max(5),
+  position: z.number().int().min(1).max(6),
   health: z.number().int().nonnegative(),
   aimed: z.boolean(),
   exposed: z.boolean()

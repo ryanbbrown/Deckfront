@@ -59,8 +59,8 @@ export function arena(options: ArenaOptions = {}): GameState {
   if (options.indigoDraw) indigoDeck.draw = options.indigoDraw.map((id) => createCard(state, id));
   if (options.indigoDiscard) indigoDeck.discard = options.indigoDiscard.map((id) => createCard(state, id));
   if (options.indigoHand || options.indigoDraw || options.indigoDiscard) indigoDeck.play = [];
-  state.fighters.ochre.position = options.ochre ?? 2;
-  state.fighters.indigo.position = options.indigo ?? 3;
+  state.fighters.ochre.position = options.ochre ?? 3;
+  state.fighters.indigo.position = options.indigo ?? 4;
   if (options.health !== undefined) state.fighters.indigo.health = options.health;
   if (options.mana !== undefined) state.players.ochre.mana = options.mana;
   if (options.money !== undefined) state.players.ochre.money = options.money;

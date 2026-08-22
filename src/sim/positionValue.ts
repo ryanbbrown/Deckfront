@@ -1,8 +1,7 @@
+import { ARENA_MAX, ARENA_MIN } from '../game';
 import type { CardFamily, CardMechanic, CardValues } from '../game';
 
-const ARENA_MIN = 1;
-const ARENA_MAX = 5;
-// One damage point must outweigh the longest possible four-step delay.
+// One damage point must outweigh the longest possible arena delay.
 const CURRENT_DAMAGE_WEIGHT = ARENA_MAX - ARENA_MIN + 1;
 
 const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set([
@@ -77,7 +76,11 @@ export function printedAttackDamage(
     case 'cascade': return value(card.values, 'damage') + (state.spellsPlayed ?? 0) * value(card.values, 'perSpell');
     case 'overload': return (state.manaSpent ?? 0) * value(card.values, 'perManaSpent');
     case 'improvise': return new Set([...(state.familiesPlayed ?? []), 'engine']).size * value(card.values, 'perFamily');
-    case 'discipline': case 'scrap': return value(card.values, 'damage');
+    case 'discipline': return value(card.values, 'damage');
+    case 'scrap': {
+      const copies = state.definitionId ? state.copiesPlayed?.[state.definitionId] ?? 0 : 0;
+      return copies === 0 ? value(card.values, 'damage') : 0;
+    }
     case 'volley': {
       if (close) return 0;
       const near = distance(actorPosition, opponentPosition) === 1;
@@ -155,7 +158,8 @@ export function profilePositionValue(
 ): number {
   let total = 0;
   for (const card of profile.attacks) {
-    total += card.count * positionTable(card, profile.aimBonus)[(actorPosition - 1) * ARENA_MAX + opponentPosition - 1]!;
+    const count = card.mechanic === 'scrap' ? Math.min(1, card.count) : card.count;
+    total += count * positionTable(card, profile.aimBonus)[(actorPosition - 1) * ARENA_MAX + opponentPosition - 1]!;
   }
   return total;
 }

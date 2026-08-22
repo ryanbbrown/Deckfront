@@ -1,9 +1,11 @@
-import { applyAction, listLegalActions } from '../../src/game';
+import { applyAction, listLegalActions, registerKingdom, resetKingdoms } from '../../src/game';
 import type { GameState, LegalAction } from '../../src/game';
 import { tacticalAgent } from '../../src/sim/tacticalAgent';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { arena, strategy } from './fixtures';
 import { INFINITE_COUNT } from '../../src/sim/strategy';
+
+afterEach(() => { resetKingdoms(); });
 
 function choose(state: GameState, plan = strategy()): LegalAction {
   const actions = listLegalActions(state);
@@ -121,21 +123,128 @@ describe('the shared tactical pilot', () => {
 
   it('chooses Drive wall damage at both arena walls', () => {
     const left = arena({ hand: ['drive'], ochre: 1, indigo: 1 });
-    const right = arena({ hand: ['drive'], ochre: 5, indigo: 5 });
+    const right = arena({ hand: ['drive'], ochre: 6, indigo: 6 });
     expect(choose(left).command).toMatchObject({ type: 'playDrive', direction: 'left' });
     expect(choose(right).command).toMatchObject({ type: 'playDrive', direction: 'right' });
   });
 
-  it('uses Scour on the first two Copper cards and skips targets only without Copper', () => {
-    const withCopper = arena({ hand:['scour','copper','copper','copper','silver'] });
-    const selected = choose(withCopper);
+  it('uses the highest-cost Ranged card for Salvage Shot damage', () => {
+    registerKingdom({
+      id: 'salvage-policy', name: 'Salvage policy', startingHealth: 40,
+      actionPiles: [
+        { cardId: 'salvageShot', count: 10 }, { cardId: 'pepperingShot', count: 10 },
+        { cardId: 'longshot', count: 10 }
+      ]
+    });
+    const state = arena({
+      kingdomId: 'salvage-policy', hand: ['salvageShot', 'pepperingShot', 'longshot'], draw: []
+    });
+    const action = choose(state);
+    expect(action.command.type).toBe('playTargetedAction');
+    const targetId = action.command.type === 'playTargetedAction'
+      ? action.command.targetCardInstanceIds[0] : undefined;
+    expect(state.players.ochre.deck.hand.find((card) => card.id === targetId)?.definitionId).toBe('longshot');
+  });
+
+  it('trashes Scrap before Copper with Discipline and Reforge', () => {
+    for (const mechanic of ['discipline', 'reforge'] as const) {
+      registerKingdom({
+        id: `${mechanic}-policy`, name: `${mechanic} policy`, startingHealth: 40,
+        actionPiles: [{ cardId: mechanic, count: 10 }]
+      });
+      const state = arena({ kingdomId: `${mechanic}-policy`, hand: [mechanic, 'copper', 'scrap'] });
+      const action = choose(state);
+      expect(action.command.type).toBe('playTargetedAction');
+      const targetId = action.command.type === 'playTargetedAction'
+        ? action.command.targetCardInstanceIds[0] : undefined;
+      expect(state.players.ochre.deck.hand.find((card) => card.id === targetId)?.definitionId).toBe('scrap');
+    }
+  });
+
+  it('trashes Copper with Discipline instead of trashing Discipline when no Scrap is available', () => {
+    registerKingdom({
+      id: 'discipline-policy', name: 'Discipline policy', startingHealth: 40,
+      actionPiles: [{ cardId: 'discipline', count: 10 }]
+    });
+    const state = arena({ kingdomId: 'discipline-policy', hand: ['discipline', 'copper'] });
+    const action = choose(state);
+    expect(action.command.type).toBe('playTargetedAction');
+    const targetId = action.command.type === 'playTargetedAction'
+      ? action.command.targetCardInstanceIds[0] : undefined;
+    expect(state.players.ochre.deck.hand.find((card) => card.id === targetId)?.definitionId).toBe('copper');
+  });
+
+  it('plays Opening Strike before a setup card keeps it from dealing full damage', () => {
+    registerKingdom({
+      id: 'opening-policy', name: 'Opening policy', startingHealth: 40,
+      actionPiles: [{ cardId: 'channel', count: 10 }, { cardId: 'openingStrike', count: 10 }]
+    });
+    const state = arena({
+      kingdomId: 'opening-policy', hand: ['channel', 'openingStrike'], ochre: 2, indigo: 2
+    });
+    expect(playedDefinition(state, choose(state))).toBe('openingStrike');
+  });
+
+  it('plays another affordable spell before Cascade increases its damage', () => {
+    const state = arena({
+      kingdomId: 'current-duel', hand: ['cascade', 'arcBolt'], mana: 2, health: 40
+    });
+    expect(playedDefinition(state, choose(state))).toBe('arcBolt');
+  });
+
+  it('does not count one Aim bonus once for every Ranged card while moving', () => {
+    registerKingdom({
+      id: 'aim-once-policy', name: 'Aim once policy', startingHealth: 40,
+      actionPiles: [
+        { cardId: 'footwork', count: 10 }, { cardId: 'pepperingShot', count: 10 },
+        { cardId: 'heavyBlow', count: 10 }
+      ],
+      overrides: { heavyBlow: { values: { damage: 5, draw: 0 } } }
+    });
+    const state = arena({
+      kingdomId: 'aim-once-policy', hand: ['footwork', 'pepperingShot', 'pepperingShot', 'heavyBlow'],
+      aimed: true, ochre: 2, indigo: 3, indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    expect(choose(state).command).toMatchObject({ type: 'playFootwork', movement: 'right' });
+  });
+
+  it('uses Scour on Scrap before filling its remaining capacity with Copper', () => {
+    const state = arena({ hand:['scour','copper','scrap','copper','silver'] });
+    const selected = choose(state);
     expect(selected.command.type).toBe('playTargetedAction');
     const selectedIds = selected.command.type === 'playTargetedAction' ? selected.command.targetCardInstanceIds : [];
-    expect(selectedIds.map((id) => withCopper.players.ochre.deck.hand.find((card) => card.id === id)?.definitionId))
-      .toEqual(['copper','copper']);
+    expect(selectedIds.map((id) => state.players.ochre.deck.hand.find((card) => card.id === id)?.definitionId).sort())
+      .toEqual(['copper','scrap']);
+  });
 
-    const withoutCopper = arena({ hand:['scour','silver'] });
-    expect(choose(withoutCopper).command).toMatchObject({ type:'playTargetedAction', targetCardInstanceIds:[] });
+  it('uses Cull on Scrap before filling its remaining capacity with Copper', () => {
+    const state = arena({
+      kingdomId: 'current-duel', hand: ['cull', 'copper', 'scrap', 'copper'], money: 5,
+      firstBuyPending: false
+    });
+    const selected = choose(state, strategy({
+      buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }]
+    }));
+    expect(selected.command.type).toBe('playTargetedAction');
+    const selectedIds = selected.command.type === 'playTargetedAction' ? selected.command.targetCardInstanceIds : [];
+    expect(selectedIds.map((id) => state.players.ochre.deck.hand.find((card) => card.id === id)?.definitionId).sort())
+      .toEqual(['copper','scrap']);
+  });
+
+  it('uses Sharpen on Scrap before Copper', () => {
+    const state = arena({
+      kingdomId: 'current-duel', hand: ['sharpen', 'scrap', 'copper'], draw: [], firstBuyPending: false
+    });
+    const pending = applyAction(state, choose(state).id);
+    const selected = choose(pending);
+    expect(selected.command.type).toBe('resolveOptionalTrash');
+    const targetId = selected.command.type === 'resolveOptionalTrash' ? selected.command.trashInstanceId : null;
+    expect(pending.players.ochre.deck.hand.find((card) => card.id === targetId)?.definitionId).toBe('scrap');
+  });
+
+  it('skips Scour targets without Scrap or Copper', () => {
+    const state = arena({ hand:['scour','silver'] });
+    expect(choose(state).command).toMatchObject({ type:'playTargetedAction', targetCardInstanceIds:[] });
   });
 
   it('filters heterogeneous actions before scoring gain definitions', () => {
@@ -204,6 +313,25 @@ describe('the shared tactical pilot', () => {
     expect(choose(state).command).toMatchObject({
       type: 'resolveDiscard', discardInstanceId: state.players.ochre.deck.hand[0]!.id
     });
+  });
+
+  it('uses Sharpen to trash Copper when the planned purchase stays available', () => {
+    registerKingdom({
+      id: 'sharpen-policy', name: 'Sharpen policy', startingHealth: 40,
+      actionPiles: [{ cardId: 'sharpen', count: 10 }]
+    });
+    const state = arena({
+      kingdomId: 'sharpen-policy', hand: ['sharpen', 'copper'], draw: [], firstBuyPending: false
+    });
+    const finished = applyAction(state, choose(state).id);
+    expect(finished.pendingChoice?.type).toBe('optionalTrash');
+    const resolution = tacticalAgent(strategy({
+      buyPlan: [{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }]
+    })).chooseAction(finished, 'ochre', listLegalActions(finished));
+    expect(resolution.command.type).toBe('resolveOptionalTrash');
+    const trashId = resolution.command.type === 'resolveOptionalTrash'
+      ? resolution.command.trashInstanceId : undefined;
+    expect(finished.players.ochre.deck.hand.find((card) => card.id === trashId)?.definitionId).toBe('copper');
   });
 
   it('trashes two Coppers when the planned purchase stays available', () => {

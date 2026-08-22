@@ -153,7 +153,7 @@ describe('mutation reach and bounds', () => {
 
   it('reaches every slot state and each adjacent reorder in the complete neighbourhood', () => {
     const parent = repairStrategy('current-duel', strategy({ buyPlan: [
-      { kind: 'buy', cardId: 'volley', desiredCount: 2 },
+      { kind: 'buy', cardId: 'precisionShot', desiredCount: 2 },
       { kind: 'stop', threshold: 3 }
     ] }));
     const forms = new Set(neighbourhood('current-duel', parent).map(canonicalStrategy));

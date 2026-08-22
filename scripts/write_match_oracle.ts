@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { strategyAgent } from '../src/sim/agents/strategyAgent';
 import { runMatch } from '../src/sim/match';
 import { diagnosticLabels, diagnosticStrategies } from '../src/sim/baselines';
-import { INFINITE_COUNT, identify } from '../src/sim/strategy';
+import { INFINITE_COUNT, fixedBuyPlan, identify } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 import type { GameState } from '../src/game';
 import type { MatchResult } from '../src/sim/types';
@@ -31,7 +31,7 @@ interface OracleCase {
 }
 
 const CASES: readonly OracleCase[] = [
-  { name: 'mana and pending choices', kingdomId: 'three-way-engine', seed: 11, ochre: 'mage', indigo: 'engine', firstPlayerId: 'ochre', swapSides: false, storeState: true },
+  { name: 'mana and pending choices', kingdomId: 'three-way-engine', seed: 3, ochre: 'mage', indigo: 'engine', firstPlayerId: 'ochre', swapSides: false, storeState: true },
   { name: 'engine against money', kingdomId: 'three-way-engine', seed: 12, ochre: 'engine', indigo: 'money', firstPlayerId: 'indigo', swapSides: true, storeState: false },
   { name: 'ranged against mage', kingdomId: 'range-rich-mixed', seed: 14, ochre: 'ranged-volley', indigo: 'mage', firstPlayerId: 'indigo', swapSides: false, storeState: false },
   { name: 'no attacks, turn limit', kingdomId: 'current-duel', seed: 15, ochre: 'no-attack', indigo: 'no-attack', firstPlayerId: 'ochre', swapSides: false, storeState: false },
@@ -41,7 +41,8 @@ const CASES: readonly OracleCase[] = [
 
 function oracleStrategy(kingdomId: string, label: string): Strategy {
   if (label === 'no-attack') return identify({
-    id: label, startingBuild: [], buyPlan: [{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }]
+    id: label, startingBuild: [],
+    buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }])
   });
   const labels = diagnosticLabels(kingdomId);
   const found = diagnosticStrategies(kingdomId).find((entry) => labels.get(entry.id) === label);

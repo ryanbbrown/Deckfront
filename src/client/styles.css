@@ -36,7 +36,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .table-zone { min-width: 0; overflow: hidden; border: 1px solid #ffffff20; background: #ffffff0b; }
 .arena-zone { padding: 4px 12px; }
 .range-label { height: 18px; color: #dfe8e4; font-family: Georgia,serif; font-size: 13px; font-weight: 900; text-align: center; }
-.arena { display: grid; grid-template-columns: repeat(5,1fr); gap: 5px; max-width: 1200px; height: 64px; margin: 0 auto; }
+.arena { display: grid; grid-template-columns: repeat(6,1fr); gap: 5px; max-width: 1200px; height: 64px; margin: 0 auto; }
 .arena-space { position: relative; display: flex; align-items: center; justify-content: center; border: 1px solid #9a9b8d; background: #e1ddcf; color: #4c554f; }
 .arena-space > span,.arena-space__number { position: absolute; top: 3px; left: 5px; font-size: 10px; }
 .arena-space__fighters { display: flex; align-items: center; gap: 8px; }
