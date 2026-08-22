@@ -62,7 +62,7 @@ describe('public position value', () => {
     expect(printedAttackDamage(overload, 2, 3,
       { aimed: false, aimBonus: 2, tacticalPlayed: 0, publicFuture: false, manaSpent: 2 })).toBe(4);
     expect(printedAttackDamage(improvise, 2, 3,
-      { aimed: false, aimBonus: 2, tacticalPlayed: 0, publicFuture: false, familiesPlayed: ['mana', 'melee'] })).toBe(6);
+      { aimed: false, aimBonus: 2, tacticalPlayed: 0, publicFuture: false, familiesPlayed: ['mana', 'melee'] })).toBe(4);
   });
 
   it('scores targeted, copy-sensitive, and spell-chain attacks from current tactical context', () => {

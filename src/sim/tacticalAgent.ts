@@ -5,7 +5,7 @@ import { actionPhaseMoney } from './search';
 import { chooseBuyAction, projectPurchases } from './buy';
 import type { Strategy } from './strategy';
 import { chooseTacticalAction } from './tacticalPilot';
-import type { CullOption, PilotCard, TacticalDecision, TacticalView } from './tacticalPilot';
+import type { CullOption, DiscardOption, PilotCard, TacticalDecision, TacticalView } from './tacticalPilot';
 import { buildAttackProfile } from './positionValue';
 import type { AttackProfile, ProfileCard } from './positionValue';
 import type { Agent } from './types';
@@ -27,8 +27,8 @@ function availableCard(state: GameState, actions: readonly LegalAction[], card: 
   };
 }
 
-function projectionVector(state: GameState, playerId: PlayerId, strategy: Strategy, copperTrashed: number): readonly number[] {
-  const projection = projectPurchases(state, playerId, actionPhaseMoney(state, playerId) - copperTrashed, strategy);
+function projectionVector(state: GameState, playerId: PlayerId, strategy: Strategy, moneyLost: number): readonly number[] {
+  const projection = projectPurchases(state, playerId, actionPhaseMoney(state, playerId) - moneyLost, strategy);
   return projection.bought;
 }
 
@@ -102,6 +102,10 @@ export function tacticalView(
     positionChanged: state.players[playerId].positionChanged,
     tacticalPlayed: state.turnState.cardsPlayed.filter(isTacticalAction).length,
     cullOptions: cullOptions(state, playerId, strategy, hand),
+    discardOptions: hand.map((card): DiscardOption => ({
+      handIndex: card.handIndex,
+      purchaseProjection: projectionVector(state, playerId, strategy, card.money)
+    })),
     actorProfile: attackProfile(state, playerId), opponentProfile: attackProfile(state, opponentId)
   };
 }

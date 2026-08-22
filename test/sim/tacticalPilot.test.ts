@@ -315,6 +315,43 @@ describe('the shared tactical pilot', () => {
     });
   });
 
+  it('discards Scrap before Copper when Copper preserves the planned purchase', () => {
+    const state = arena({
+      kingdomId: 'current-duel', hand: ['scrap', 'copper'], money: 2, firstBuyPending: false
+    });
+    state.pendingChoice = { type: 'discard', playerId: 'ochre', remaining: 1 };
+    const action = choose(state, strategy({
+      buyPlan: [{ kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }]
+    }));
+    expect(action.command.type).toBe('resolveDiscard');
+    const discardedId = action.command.type === 'resolveDiscard' ? action.command.discardInstanceId : null;
+    expect(state.players.ochre.deck.hand.find((card) => card.id === discardedId)?.definitionId).toBe('scrap');
+  });
+
+  it('retains the one tactically useful Scrap when the purchase is already safe', () => {
+    const state = arena({
+      kingdomId: 'current-duel', hand: ['scrap', 'copper'], money: 5, firstBuyPending: false
+    });
+    state.pendingChoice = { type: 'discard', playerId: 'ochre', remaining: 1 };
+    const action = choose(state, strategy({
+      buyPlan: [{ kind: 'buy', cardId: 'silver', desiredCount: 1 }]
+    }));
+    expect(action.command.type).toBe('resolveDiscard');
+    const discardedId = action.command.type === 'resolveDiscard' ? action.command.discardInstanceId : null;
+    expect(state.players.ochre.deck.hand.find((card) => card.id === discardedId)?.definitionId).toBe('copper');
+  });
+
+  it('discards a redundant extra Scrap before Copper', () => {
+    const state = arena({
+      kingdomId: 'current-duel', hand: ['scrap', 'scrap', 'copper'], money: 5, firstBuyPending: false
+    });
+    state.pendingChoice = { type: 'discard', playerId: 'ochre', remaining: 1 };
+    const action = choose(state);
+    expect(action.command.type).toBe('resolveDiscard');
+    const discardedId = action.command.type === 'resolveDiscard' ? action.command.discardInstanceId : null;
+    expect(state.players.ochre.deck.hand.find((card) => card.id === discardedId)?.definitionId).toBe('scrap');
+  });
+
   it('uses Sharpen to trash Copper when the planned purchase stays available', () => {
     registerKingdom({
       id: 'sharpen-policy', name: 'Sharpen policy', startingHealth: 40,

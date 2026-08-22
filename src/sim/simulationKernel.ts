@@ -7,7 +7,7 @@ import { repairBuildIn } from './build';
 import { slotWantsMore } from './strategy';
 import type { Strategy } from './strategy';
 import { chooseTacticalAction } from './tacticalPilot';
-import type { CullOption, PilotCard, TacticalView } from './tacticalPilot';
+import type { CullOption, DiscardOption, PilotCard, TacticalView } from './tacticalPilot';
 import { addProfileCard, buildAttackProfile, removeProfileCard } from './positionValue';
 import type { AttackProfile, ProfileCard } from './positionValue';
 import type { DeadDrawCounts, MatchResult, MatchTelemetry } from './types';
@@ -239,12 +239,12 @@ function moneyInActionPhase(state: KernelState, actor: 0 | 1): number {
   return money;
 }
 
-function purchaseProjection(state: KernelState, actor: 0 | 1, copperTrashed: number): readonly number[] {
+function purchaseProjection(state: KernelState, actor: 0 | 1, moneyLost: number): readonly number[] {
   const player = state.players[actor];
   const acquired = new Int16Array(player.acquired);
   const supply = new Int16Array(state.supply);
   const bought = player.strategy.buyPlan.map(() => 0);
-  let money = moneyInActionPhase(state, actor) - copperTrashed;
+  let money = moneyInActionPhase(state, actor) - moneyLost;
   // Every rung costs at least one money, so a finite purse always ends this loop.
   while (true) {
     let purchased = false;
@@ -350,6 +350,10 @@ function pilotView(state: KernelState, actor: 0 | 1, pending: 'discard' | 'recov
     mana: player.mana, manaSpent: state.manaSpent, spellsPlayed: state.spellsPlayed, cardsPlayed: state.cardsPlayed.length,
     copiesPlayed: Object.fromEntries(state.kingdom.cards.map((card, index) => [card.id, state.copiesPlayed[index]!])),
     familiesPlayed: [...state.familiesPlayed], positionChanged: state.spacesMoved > 0, tacticalPlayed: state.tacticalPlayed, cullOptions,
+    discardOptions: hand.map((card): DiscardOption => ({
+      handIndex: card.handIndex,
+      purchaseProjection: purchaseProjection(state, actor, card.money)
+    })),
     actorProfile: player.attackProfile, opponentProfile: state.players[other(actor)].attackProfile
   };
 }
@@ -586,7 +590,8 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       draw(state, actor, trashed * cardValue(card, 'drawPerTrash'));
       break;
     }
-    case 'improvise': if (addDamage(state, actor, state.familiesPlayed.size * cardValue(card, 'perFamily'), false, cardIndex)) return true; break;
+    case 'improvise': if (addDamage(state, actor, [...state.familiesPlayed].filter((family) =>
+      family === 'mana' || family === 'melee' || family === 'ranged').length * cardValue(card, 'perFamily'), false, cardIndex)) return true; break;
     case 'scrap': if (addDamage(state, actor,
       state.copiesPlayed[cardIndex] === 1 ? cardValue(card, 'damage') : 0, false, cardIndex)) return true; break;
     case 'money': throw new Error('The tactical pilot cannot play treasure cards.');

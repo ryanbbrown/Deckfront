@@ -24,6 +24,11 @@ export interface CullOption {
   purchaseProjection: readonly number[];
 }
 
+export interface DiscardOption {
+  handIndex: number;
+  purchaseProjection: readonly number[];
+}
+
 export interface TacticalView {
   hand: readonly PilotCard[];
   discard: readonly { discardIndex: number; cost: number; definitionId: string }[];
@@ -44,6 +49,7 @@ export interface TacticalView {
   positionChanged: boolean;
   tacticalPlayed: number;
   cullOptions: readonly CullOption[];
+  discardOptions: readonly DiscardOption[];
   actorProfile: AttackProfile;
   opponentProfile: AttackProfile;
 }
@@ -77,7 +83,8 @@ function immediateDamage(card: PilotCard, view: TacticalView): number {
     case 'overload': return view.manaSpent * value(card, 'perManaSpent');
     case 'discipline': return value(card, 'damage');
     case 'scrap': return (view.copiesPlayed.scrap ?? 0) === 0 ? value(card, 'damage') : 0;
-    case 'improvise': return new Set([...view.familiesPlayed, 'engine']).size * value(card, 'perFamily');
+    case 'improvise': return new Set(view.familiesPlayed.filter((family) =>
+      family === 'mana' || family === 'melee' || family === 'ranged')).size * value(card, 'perFamily');
     case 'volley': {
       const near = distance(view.actorPosition, view.opponentPosition) === 1;
       return value(card, near ? 'near' : 'far') + view.aimBonus;
@@ -268,16 +275,35 @@ function bestCull(view: TacticalView): CullOption | null {
   return best;
 }
 
-function discardValue(card: PilotCard, view: TacticalView): number {
-  if (card.mechanic === 'money') return card.money * 20;
-  return immediateDamage(card, view) * 100
-    + (value(card, 'draw') + (card.mechanic === 'adapt' && view.positionChanged ? value(card, 'movedDraw') : 0)) * 30
-    + value(card, 'mana') * 15 + value(card, 'money') * 20 + card.cost;
+function retainedHandValue(view: TacticalView, discardedHandIndex: number): number {
+  let total = 0;
+  let usefulScraps = (view.copiesPlayed.scrap ?? 0) === 0 ? 1 : 0;
+  for (const card of view.hand) {
+    if (card.handIndex === discardedHandIndex) continue;
+    const damage = card.mechanic === 'scrap'
+      ? (usefulScraps-- > 0 ? value(card, 'damage') : 0)
+      : immediateDamage(card, view);
+    total += damage * 100
+      + (value(card, 'draw') + (card.mechanic === 'adapt' && view.positionChanged ? value(card, 'movedDraw') : 0)) * 30
+      + value(card, 'mana') * 15 + card.money * 20 + card.cost;
+  }
+  return total;
 }
 
 function pickDiscard(view: TacticalView): TacticalDecision {
   let best = view.hand[0];
-  for (const card of view.hand) if (best && discardValue(card, view) < discardValue(best, view)) best = card;
+  let bestProjection = best
+    ? view.discardOptions.find((option) => option.handIndex === best!.handIndex)?.purchaseProjection ?? []
+    : [];
+  let bestHandValue = best ? retainedHandValue(view, best.handIndex) : 0;
+  for (const card of view.hand.slice(1)) {
+    const projection = view.discardOptions.find((option) => option.handIndex === card.handIndex)?.purchaseProjection ?? [];
+    const purchase = compareProjection(projection, bestProjection);
+    const handValue = retainedHandValue(view, card.handIndex);
+    if (purchase > 0 || (purchase === 0 && handValue > bestHandValue)) {
+      best = card; bestProjection = projection; bestHandValue = handValue;
+    }
+  }
   return best ? { type: 'discard', handIndex: best.handIndex } : { type: 'end' };
 }
 

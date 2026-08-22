@@ -48,7 +48,7 @@
     { "id": "sharpen", "name": "Sharpen", "type": "action", "cost": 3, "text": "Draw 1 card. You may trash 1 card from your hand.", "mechanic": "sharpen", "values": { "draw": 1 }, "family": "engine" },
     { "id": "reforge", "name": "Reforge", "type": "action", "cost": 4, "text": "Trash 1 card from your hand. Gain a card costing up to 3 more than it.", "mechanic": "reforge", "values": { "costBonus": 3 }, "family": "engine" },
     { "id": "scour", "name": "Scour", "type": "action", "cost": 5, "text": "Trash up to 2 cards from your hand. Draw 1 card for each card trashed.", "mechanic": "scour", "values": { "drawPerTrash": 1 }, "family": "engine" },
-    { "id": "improvise", "name": "Improvise", "type": "action", "cost": 5, "text": "Deal 2 damage at any range for each different card family you played this turn.", "mechanic": "improvise", "values": { "perFamily": 2 }, "family": "engine" },
+    { "id": "improvise", "name": "Improvise", "type": "action", "cost": 5, "text": "Deal 2 damage at any range for each different Mana, Melee, or Ranged family you played this turn.", "mechanic": "improvise", "values": { "perFamily": 2 }, "family": "engine" },
     { "id": "scrap", "name": "Scrap", "type": "action", "cost": 0, "text": "Deal 1 damage at any range.", "mechanic": "scrap", "values": { "damage": 1 }, "family": "engine" }
   ]
 }

@@ -111,7 +111,7 @@ describe('combo card batch', () => {
     state = play(state, 'arcBolt'); state = play(state, 'cascade'); state = play(state, 'overload'); state = play(state, 'discharge');
     expect(state.fighters.indigo.health).toBe(24); expect(state.players.ochre.mana).toBe(0); expect(state.turnState.manaSpent).toBe(2);
     state = ready(); hand(state, ['footwork','improvise']); state = play(state, 'footwork'); state = play(state, 'improvise');
-    expect(state.fighters.indigo.health).toBe(38);
+    expect(state.fighters.indigo.health).toBe(40);
   });
 
   it('enforces family targets, self-trash, optional trash, and Reforge gain rules', () => {
@@ -258,7 +258,8 @@ describe('complete public card coverage', () => {
       expect(state.fighters.indigo.health).toBe(40-damage);
     }
     let state = ready(); hand(state,['channel','attune','footwork','improvise']); state = play(state,'channel'); state = play(state,'attune'); state = play(state,'footwork'); state = play(state,'improvise');
-    expect(state.fighters.indigo.health).toBe(36);
+    expect(state.fighters.indigo.health).toBe(38);
+    expect(cardDefinition('improvise').text).toContain('Mana, Melee, or Ranged');
   });
 
   it('deals Scrap damage only for the first copy played each turn', () => {

@@ -21,14 +21,14 @@ import type { MatrixSnapshot } from '../src/sim/payoffMatrix';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import type { PairingRunner } from '../src/sim/pairingRunner';
 import {
-  INFINITE_COUNT, canonicalStrategy, fixedBuyPlan, formatStrategy
+  BUY_PLAN_SLOTS, INFINITE_COUNT, canonicalStrategy, fixedBuyPlan, formatStrategy
 } from '../src/sim/strategy';
 import type { BuyPlanSlot, Strategy } from '../src/sim/strategy';
 import { headToHead, seedRange } from './headToHead';
 import type { HeadToHeadScore, WeightedOpponent } from './headToHead';
 import { sweepAgainst } from './sweep';
 
-const FINITE_COUNTS = [1, 2, 4] as const;
+const FINITE_COUNTS = [1, 2, 3, 4, 5] as const;
 const STOP_THRESHOLDS = [2, 4, 6] as const;
 const DEFAULT_STAGE_SEEDS = [1, 2, 4] as const;
 const DEFAULT_CONFIRM_SEEDS = 12;
@@ -36,6 +36,8 @@ const DEFAULT_MATRIX_SEEDS = 8;
 const DEFAULT_BEAM_WIDTH = 64;
 const DEFAULT_CONFIRM_COUNT = 8;
 const DEFAULT_ITERATIONS = 3;
+const DEFAULT_EARLY_STOP_DELTA = 0.002;
+const DEFAULT_EARLY_STOP_PATIENCE = 2;
 
 export interface BeamCandidate { floorKey: string; strategy: Strategy }
 export interface ScoredBeamCandidate extends BeamCandidate { mean: number }
@@ -62,7 +64,9 @@ export function beamFloors(kingdomId: string): BeamCandidate[] {
 }
 
 /** Adds one structural ladder slot at every position before the terminal floor. */
-export function expandBeamCandidate(kingdomId: string, candidate: BeamCandidate): BeamCandidate[] {
+export function expandBeamCandidate(
+  kingdomId: string, candidate: BeamCandidate, maxActiveSlots = BUY_PLAN_SLOTS
+): BeamCandidate[] {
   const slots = activeSlots(candidate.strategy);
   const terminal = slots.at(-1)!;
   const prefix = slots.slice(0, -1);
@@ -71,7 +75,7 @@ export function expandBeamCandidate(kingdomId: string, candidate: BeamCandidate)
     proposals.push({ ...candidate.strategy,
       buyPlan: fixedBuyPlan([...prefix.slice(0, index), slot, ...prefix.slice(index), terminal]) });
   };
-  for (let index = 0; index <= prefix.length; index += 1) {
+  if (slots.length < maxActiveSlots) for (let index = 0; index <= prefix.length; index += 1) {
     for (const cardId of kingdomFacts(kingdomId).purchaseIds) {
       for (const desiredCount of FINITE_COUNTS) insert({ kind: 'buy', cardId, desiredCount }, index);
     }
@@ -149,17 +153,22 @@ interface BeamSearchOptions {
   width: number;
   confirmCount: number;
   iteration: number;
+  maxSlots: number;
   report: (message: string) => void;
 }
 
 async function beamBestResponses(
   runner: PairingRunner, kingdomId: string, target: readonly WeightedOpponent[], options: BeamSearchOptions
-): Promise<{ confirmed: HeadToHeadScore[]; stages: { depth: number; candidates: number; retained: number }[] }> {
+): Promise<{ confirmed: HeadToHeadScore[]; stages: { depth: number; candidates: number; retained: number; best: number }[] }> {
   let beam = beamFloors(kingdomId).map((entry) => ({ ...entry, mean: 0.5 }));
-  const stages: { depth: number; candidates: number; retained: number }[] = [];
-  for (let depth = 0; depth < DEFAULT_STAGE_SEEDS.length; depth += 1) {
-    const candidates = uniqueCandidates(beam.flatMap((entry) => expandBeamCandidate(kingdomId, entry)));
-    const seeds = seedRange(100 + options.iteration * 10_000 + depth * 100, DEFAULT_STAGE_SEEDS[depth]!);
+  const stages: { depth: number; candidates: number; retained: number; best: number }[] = [];
+  let previousBest = 0.5;
+  let stagnantStages = 0;
+  for (let depth = 0; depth < options.maxSlots - 1; depth += 1) {
+    const candidates = uniqueCandidates(beam.flatMap((entry) =>
+      expandBeamCandidate(kingdomId, entry, options.maxSlots)));
+    const seedCount = DEFAULT_STAGE_SEEDS[Math.min(depth, DEFAULT_STAGE_SEEDS.length - 1)]!;
+    const seeds = seedRange(100 + options.iteration * 10_000 + depth * 100, seedCount);
     options.report(`beam depth ${depth + 1}: scoring ${candidates.length} candidates on ${seeds.length} seeds`);
     const scores = await headToHead(
       runner, kingdomId, candidates.map((entry) => entry.strategy), target, seeds, 2_000,
@@ -169,7 +178,14 @@ async function beamBestResponses(
     beam = retainDiverseBeam(candidates.map((candidate) => ({
       ...candidate, mean: byId.get(candidate.strategy.id)!.mean
     })), options.width);
-    stages.push({ depth: depth + 1, candidates: candidates.length, retained: beam.length });
+    const best = beam[0]?.mean ?? 0.5;
+    stages.push({ depth: depth + 1, candidates: candidates.length, retained: beam.length, best });
+    stagnantStages = best - previousBest < DEFAULT_EARLY_STOP_DELTA ? stagnantStages + 1 : 0;
+    previousBest = best;
+    if (depth + 1 >= DEFAULT_STAGE_SEEDS.length && stagnantStages >= DEFAULT_EARLY_STOP_PATIENCE) {
+      options.report(`stopping beam after ${depth + 1} depths without material improvement`);
+      break;
+    }
   }
   const finalists = beam.slice(0, options.confirmCount).map((entry) => entry.strategy);
   const heldOutSeeds = seedRange(5_000 + options.iteration * 10_000, DEFAULT_CONFIRM_SEEDS);
@@ -214,6 +230,8 @@ async function main(): Promise<void> {
   const iterations = positiveInteger('iterations', DEFAULT_ITERATIONS);
   const width = positiveInteger('beam-width', DEFAULT_BEAM_WIDTH);
   const confirmCount = positiveInteger('confirm-count', DEFAULT_CONFIRM_COUNT);
+  const maxSlots = positiveInteger('max-slots', BUY_PLAN_SLOTS);
+  if (maxSlots > BUY_PLAN_SLOTS) throw new Error(`--max-slots cannot exceed ${BUY_PLAN_SLOTS}.`);
   const runSweep = process.argv.includes('--sweep');
   const record = JSON.parse(fs.readFileSync(gameFile, 'utf8')) as { kingdom: Kingdom };
   registerKingdom(record.kingdom);
@@ -242,7 +260,7 @@ async function main(): Promise<void> {
       const equilibrium = solveSnapshot(before);
       const target = weightedTarget(before, equilibrium.weights);
       const search = await beamBestResponses(runner, kingdomId, target, {
-        width, confirmCount, iteration, report
+        width, confirmCount, iteration, maxSlots, report
       });
       const known = new Set(before.strategies.map(canonicalStrategy));
       const response = search.confirmed.find((entry) =>
@@ -272,9 +290,10 @@ async function main(): Promise<void> {
       schemaVersion: 1,
       experiment: 'draft-off-diverse-beam-double-oracle',
       kingdom: record.kingdom,
-      config: { startingDraftEnabled: false, iterations, width, confirmCount,
+      config: { startingDraftEnabled: false, iterations, width, confirmCount, maxSlots,
         stageSeeds: DEFAULT_STAGE_SEEDS, confirmationSeeds: DEFAULT_CONFIRM_SEEDS,
-        matrixSeeds: DEFAULT_MATRIX_SEEDS },
+        matrixSeeds: DEFAULT_MATRIX_SEEDS, earlyStopDelta: DEFAULT_EARLY_STOP_DELTA,
+        earlyStopPatience: DEFAULT_EARLY_STOP_PATIENCE },
       elapsedMs: Date.now() - started,
       iterations: iterationResults,
       matrix: snapshot,

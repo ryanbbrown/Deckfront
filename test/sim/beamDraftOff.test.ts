@@ -33,6 +33,38 @@ describe('the experimental draft-off beam grammar', () => {
       slot.kind === 'stop'))).toBe(true);
   });
 
+  it('constructs a full ten-slot alternating purchase ladder', () => {
+    let candidate = beamFloors('three-way-engine').find((entry) => entry.floorKey === 'pepperingShot')!;
+    const rungs = [
+      ['regroup', 1], ['pepperingShot', 1], ['regroup', 2], ['pepperingShot', 2],
+      ['regroup', 3], ['pepperingShot', 3], ['regroup', 4], ['pepperingShot', 4], ['regroup', 5]
+    ] as const;
+    for (const [cardId, desiredCount] of rungs) {
+      candidate = expandBeamCandidate('three-way-engine', candidate).find((entry) => {
+        const slots = entry.strategy.buyPlan.filter((slot) => slot.kind !== 'inactive');
+        const inserted = slots.at(-2);
+        return inserted?.kind === 'buy' && inserted.cardId === cardId
+          && inserted.desiredCount === desiredCount;
+      })!;
+      expect(candidate).toBeDefined();
+    }
+    const slots = candidate.strategy.buyPlan.filter((slot) => slot.kind !== 'inactive');
+    expect(slots).toHaveLength(BUY_PLAN_SLOTS);
+    expect(slots.map((slot) => slot.kind === 'buy' ? slot.cardId : 'stop'))
+      .toEqual([...rungs.map(([cardId]) => cardId), 'pepperingShot']);
+  });
+
+  it('respects a practical active-slot limit without expanding exhaustively past it', () => {
+    let candidate = beamFloors('current-duel')[1]!;
+    for (let active = 1; active < 4; active += 1) {
+      candidate = expandBeamCandidate('current-duel', candidate, 4).find((entry) =>
+        entry.strategy.buyPlan.filter((slot) => slot.kind !== 'inactive').length === active + 1)!;
+    }
+    const expanded = expandBeamCandidate('current-duel', candidate, 4);
+    expect(expanded).toHaveLength(1);
+    expect(expanded[0]!.strategy.buyPlan.filter((slot) => slot.kind !== 'inactive')).toHaveLength(4);
+  });
+
   it('reserves a place for each floor before global score retention', () => {
     const floors = beamFloors('current-duel').slice(0, 3);
     const scored = floors.flatMap((floor, floorIndex) => [0, 1].map((rank) => ({

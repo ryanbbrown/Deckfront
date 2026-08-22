@@ -36,6 +36,14 @@ A complete full-mode run on that kingdom took 14.3 seconds for PSRO and 19.9 sec
 
 Before broad balance work, repeat this full gate on a small new-card kingdom set. Mean and worst exploitability must remain close to 0.5. If they do not, stop and diagnose generation and selection.
 
+## Ranged-chain tactical and beam follow-up
+
+The saved game `.data/games/56cd495e-02e5-40ab-991c-c0f1692ba806.json` is the recent 50-health ranged-chain playtest. Its human purchases were Precision Shot 1, Regroup 1, Footwork 1, Peppering Shot 2, Regroup 2, Peppering Shot 5, Regroup 3, Longshot 1, and Regroup 5. A ten-slot reconstruction ends with Peppering Shot infinite.
+
+A shared pending-discard projection now preserves the best planned purchase first, then retains the highest-value resulting hand. It treats only one unplayed Scrap as useful. The reconstructed strategy improved from the earlier 0.153 score to 0.4075 over 1,600 matches, with a 95% interval of [0.3600, 0.4600], but it still lost clearly. This proves that generic discard selection was a large blocker but not the only blocker. Do not add card-specific action rules from this result.
+
+The draft-off beam can now race up to all ten active slots, or a lower `--max-slots` limit, and stops after two stages without a 0.002 score improvement. Finite counts 1 through 5 let it construct the exact shape of longer alternating ladders. A 7-slot, width-32, one-iteration run took 78.294 seconds and stopped after depth 4. It found one Regroup finalist but no alternating Regroup/Peppering ladder. Its top response scored 0.9861 against the beam's initial floor mixture, but only 0.1300 against the saved trained strategy over an independent 1,600-match check. The beam target and one-iteration admission process therefore remain a blocker; do not infer strength from the floor-mixture confirmation.
+
 ## Deferred card work
 
 New cards, higher health, draft removal, live-deck counting, broader trash choices, setup/combo policy, cost bands, turn-limit tuning, and discovery-budget retuning happen after this gate. Re-run the independent benchmark after those rules and policies change.

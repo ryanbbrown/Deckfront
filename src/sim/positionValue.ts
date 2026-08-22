@@ -75,7 +75,8 @@ export function printedAttackDamage(
     case 'discharge': return (state.mana ?? 0) * value(card.values, 'perMana');
     case 'cascade': return value(card.values, 'damage') + (state.spellsPlayed ?? 0) * value(card.values, 'perSpell');
     case 'overload': return (state.manaSpent ?? 0) * value(card.values, 'perManaSpent');
-    case 'improvise': return new Set([...(state.familiesPlayed ?? []), 'engine']).size * value(card.values, 'perFamily');
+    case 'improvise': return new Set((state.familiesPlayed ?? []).filter((family) =>
+      family === 'mana' || family === 'melee' || family === 'ranged')).size * value(card.values, 'perFamily');
     case 'discipline': return value(card.values, 'damage');
     case 'scrap': {
       const copies = state.definitionId ? state.copiesPlayed?.[state.definitionId] ?? 0 : 0;

@@ -116,7 +116,9 @@ const EFFECT_MAP: Record<CardMechanic, CardEffect> = {
   sharpen: { ...BASE, tactical: false, command: playAction, resolve: (context, values) => { context.draw(context.actorId, value(values, 'draw')); context.requestOptionalTrash(); } },
   reforge: { ...BASE, tactical: false, choice: 'targets', target: { minimum: 1, maximum: 1, zone: 'handOrSelf' }, command: targeted, resolve: (context, values) => { const target = context.targetCards[0]!; const cost = resolveCard(context.state, target.definitionId).cost; context.trash(target.id); context.requestGain(cost + value(values, 'costBonus')); } },
   scour: { ...BASE, tactical: false, choice: 'targets', target: { minimum: 0, maximum: 2, zone: 'handOrSelf' }, command: targeted, resolve: (context, values) => { for (const target of context.targetCards) context.trash(target.id); context.draw(context.actorId, context.targetCards.length * value(values, 'drawPerTrash')); } },
-  improvise: { ...BASE, tactical: true, command: playAction, resolve: (context, values) => context.damage(context.targetId, context.state.turnState.familiesPlayed.length * value(values, 'perFamily'), false) },
+  improvise: { ...BASE, tactical: true, command: playAction, resolve: (context, values) => context.damage(context.targetId,
+    new Set(context.state.turnState.familiesPlayed.filter((family) =>
+      family === 'mana' || family === 'melee' || family === 'ranged')).size * value(values, 'perFamily'), false) },
   scrap: { ...BASE, tactical: true, command: playAction, resolve: (context, values) => context.damage(
     context.targetId, context.state.turnState.copiesPlayed.scrap === 1 ? value(values, 'damage') : 0, false
   ) }
