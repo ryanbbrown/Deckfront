@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   beamFloors, expandBeamCandidate, retainDiverseBeam
 } from '../../scripts/beam_draft_off';
+import { forcedMageGrammar } from '../../scripts/diagnose_forced_mage';
+import {
+  ALWAYS_AVAILABLE_ACTION_IDS, cardDefinition
+} from '../../src/game';
+import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import { kingdomFacts } from '../../src/sim/mutation';
 import { BUY_PLAN_SLOTS, INFINITE_COUNT, canonicalStrategy } from '../../src/sim/strategy';
 
@@ -63,6 +68,34 @@ describe('the experimental draft-off beam grammar', () => {
     const expanded = expandBeamCandidate('current-duel', candidate, 4);
     expect(expanded).toHaveLength(1);
     expect(expanded[0]!.strategy.buyPlan.filter((slot) => slot.kind !== 'inactive')).toHaveLength(4);
+  });
+
+  it('restricts ladder cards and required terminal floors with a small grammar', () => {
+    const grammar = { purchaseIds: ['silver', 'step', 'focus'], floorIds: ['focus'] };
+    const floors = beamFloors('current-duel', grammar);
+    expect(floors.map((floor) => floor.floorKey)).toEqual(['focus']);
+    const expanded = expandBeamCandidate('current-duel', floors[0]!, 3, grammar);
+    expect(expanded.every((candidate) => candidate.floorKey === 'focus')).toBe(true);
+    const purchased = expanded.flatMap((candidate) => candidate.strategy.buyPlan.flatMap((slot) =>
+      slot.kind === 'buy' ? [slot.cardId] : []));
+    expect(new Set(purchased)).toEqual(new Set(grammar.purchaseIds));
+  });
+
+  it('builds forced Mage grammars from real Mage damage and allowed support cards', () => {
+    deepBeamSuite.register();
+    const kingdomId = 'deep-beam-tuning-002';
+    const grammar = forcedMageGrammar(kingdomId);
+    const alwaysAvailable = new Set(ALWAYS_AVAILABLE_ACTION_IDS);
+    expect(grammar.purchaseIds!.every((cardId) =>
+      ['mana', 'engine', 'treasure'].includes(cardDefinition(cardId).family)
+      || alwaysAvailable.has(cardId))).toBe(true);
+    expect(grammar.purchaseIds).not.toContain('bullRush');
+    expect(grammar.purchaseIds).not.toContain('precisionShot');
+    expect(grammar.floorIds).toEqual(['arcBolt', 'discharge']);
+    expect(beamFloors(kingdomId, grammar).every((floor) =>
+      floor.strategy.buyPlan.some((slot) => slot.kind === 'buy'
+        && ['spell', 'discharge', 'cascade', 'overload'].includes(cardDefinition(slot.cardId).mechanic))))
+      .toBe(true);
   });
 
   it('reserves a place for each floor before global score retention', () => {

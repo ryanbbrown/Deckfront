@@ -43,31 +43,51 @@ const DEFAULT_EARLY_STOP_PATIENCE = 2;
 
 export interface BeamCandidate { floorKey: string; strategy: Strategy }
 export interface ScoredBeamCandidate extends BeamCandidate { mean: number }
+export interface BeamGrammar {
+  /** Cards that can appear in a purchase ladder. Defaults to the full kingdom market. */
+  purchaseIds?: readonly string[];
+  /** Infinite terminal floors. Defaults to no-buy plus every allowed purchase. */
+  floorIds?: readonly string[];
+}
 
 function activeSlots(strategy: Strategy): BuyPlanSlot[] {
   return strategy.buyPlan.filter((slot) => slot.kind !== 'inactive');
 }
 
+function grammarPurchaseIds(kingdomId: string, grammar: BeamGrammar): string[] {
+  const available = new Set(kingdomFacts(kingdomId).purchaseIds);
+  const requested = grammar.purchaseIds ?? [...available];
+  const purchaseIds = [...new Set(requested)].sort();
+  for (const cardId of purchaseIds) {
+    if (!available.has(cardId)) throw new Error(`Beam purchase ${cardId} is not available in ${kingdomId}.`);
+  }
+  return purchaseIds;
+}
+
 /** The no-buy floor and one infinite floor for every purchasable card. */
-export function beamFloors(kingdomId: string): BeamCandidate[] {
-  const noBuy = repairStrategy(kingdomId, {
-    id: '', startingBuild: [], buyPlan: fixedBuyPlan([{ kind: 'stop', threshold: 0 }])
-  });
-  return [
-    { floorKey: 'no-buy', strategy: noBuy },
-    ...[...kingdomFacts(kingdomId).purchaseIds].sort().map((cardId) => ({
-      floorKey: cardId,
-      strategy: repairStrategy(kingdomId, {
-        id: '', startingBuild: [],
-        buyPlan: fixedBuyPlan([{ kind: 'buy', cardId, desiredCount: INFINITE_COUNT }])
-      })
-    }))
-  ];
+export function beamFloors(kingdomId: string, grammar: BeamGrammar = {}): BeamCandidate[] {
+  const purchaseIds = grammarPurchaseIds(kingdomId, grammar);
+  const floorIds = grammar.floorIds === undefined ? ['no-buy', ...purchaseIds] : [...new Set(grammar.floorIds)].sort();
+  if (!floorIds.length) throw new Error('A beam grammar needs at least one floor.');
+  for (const cardId of floorIds) {
+    if (cardId !== 'no-buy' && !purchaseIds.includes(cardId)) {
+      throw new Error(`Beam floor ${cardId} is not an allowed purchase in ${kingdomId}.`);
+    }
+  }
+  return floorIds.map((cardId) => ({
+    floorKey: cardId,
+    strategy: repairStrategy(kingdomId, {
+      id: '', startingBuild: [], buyPlan: fixedBuyPlan([cardId === 'no-buy'
+        ? { kind: 'stop', threshold: 0 }
+        : { kind: 'buy', cardId, desiredCount: INFINITE_COUNT }])
+    })
+  }));
 }
 
 /** Adds one structural ladder slot at every position before the terminal floor. */
 export function expandBeamCandidate(
-  kingdomId: string, candidate: BeamCandidate, maxActiveSlots = BUY_PLAN_SLOTS
+  kingdomId: string, candidate: BeamCandidate, maxActiveSlots = BUY_PLAN_SLOTS,
+  grammar: BeamGrammar = {}
 ): BeamCandidate[] {
   const slots = activeSlots(candidate.strategy);
   const terminal = slots.at(-1)!;
@@ -78,7 +98,7 @@ export function expandBeamCandidate(
       buyPlan: fixedBuyPlan([...prefix.slice(0, index), slot, ...prefix.slice(index), terminal]) });
   };
   if (slots.length < maxActiveSlots) for (let index = 0; index <= prefix.length; index += 1) {
-    for (const cardId of kingdomFacts(kingdomId).purchaseIds) {
+    for (const cardId of grammarPurchaseIds(kingdomId, grammar)) {
       for (const desiredCount of FINITE_COUNTS) insert({ kind: 'buy', cardId, desiredCount }, index);
     }
     for (const threshold of STOP_THRESHOLDS) insert({ kind: 'stop', threshold }, index);
@@ -151,24 +171,26 @@ function solveSnapshot(snapshot: MatrixSnapshot) {
   return solveEquilibrium(snapshot.strategies.map((strategy) => strategy.id), snapshot.centeredPayoffs);
 }
 
-interface BeamSearchOptions {
+export interface BeamSearchOptions {
   width: number;
   confirmCount: number;
   iteration: number;
   maxSlots: number;
+  grammar?: BeamGrammar;
   report: (message: string) => void;
 }
 
-async function beamBestResponses(
+export async function beamBestResponses(
   runner: PairingRunner, kingdomId: string, target: readonly WeightedOpponent[], options: BeamSearchOptions
 ): Promise<{ confirmed: HeadToHeadScore[]; stages: { depth: number; candidates: number; retained: number; best: number }[] }> {
-  let beam = beamFloors(kingdomId).map((entry) => ({ ...entry, mean: 0.5 }));
+  const grammar = options.grammar ?? {};
+  let beam = beamFloors(kingdomId, grammar).map((entry) => ({ ...entry, mean: 0.5 }));
   const stages: { depth: number; candidates: number; retained: number; best: number }[] = [];
   let previousBest = 0.5;
   let stagnantStages = 0;
   for (let depth = 0; depth < options.maxSlots - 1; depth += 1) {
     const candidates = uniqueCandidates(beam.flatMap((entry) =>
-      expandBeamCandidate(kingdomId, entry, options.maxSlots)));
+      expandBeamCandidate(kingdomId, entry, options.maxSlots, grammar)));
     const seedCount = DEFAULT_STAGE_SEEDS[Math.min(depth, DEFAULT_STAGE_SEEDS.length - 1)]!;
     const seeds = seedRange(100 + options.iteration * 10_000 + depth * 100, seedCount);
     options.report(`beam depth ${depth + 1}: scoring ${candidates.length} candidates on ${seeds.length} seeds`);
