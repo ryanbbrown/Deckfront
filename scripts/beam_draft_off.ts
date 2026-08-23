@@ -11,8 +11,8 @@
 import fs from 'node:fs';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
-import { SeededRandom, registerKingdom } from '../src/game';
-import type { Kingdom } from '../src/game';
+import { ALWAYS_AVAILABLE_ACTION_IDS, SeededRandom, cardDefinition, registerKingdom } from '../src/game';
+import type { CardFamily, Kingdom } from '../src/game';
 import { solveEquilibrium } from '../src/sim/equilibrium';
 import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from '../src/sim/experimentConfig';
 import { kingdomFacts, repairStrategy } from '../src/sim/mutation';
@@ -21,6 +21,8 @@ import type { MatrixSnapshot } from '../src/sim/payoffMatrix';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import type { PairingRunner } from '../src/sim/pairingRunner';
 import { rulesFingerprint } from '../src/sim/rulesFingerprint';
+import { STRATIFIED_ADMISSIONS_PER_LANE, STRATIFIED_BEAM_LANES } from '../src/sim/stratifiedBeam';
+import type { BeamLaneConfig, BeamLaneId } from '../src/sim/stratifiedBeam';
 import {
   BUY_PLAN_SLOTS, INFINITE_COUNT, canonicalStrategy, fixedBuyPlan, formatStrategy
 } from '../src/sim/strategy';
@@ -34,8 +36,6 @@ const STOP_THRESHOLDS = [2, 4, 6] as const;
 const DEFAULT_STAGE_SEEDS = [1, 2, 4] as const;
 const DEFAULT_CONFIRM_SEEDS = 12;
 const DEFAULT_MATRIX_SEEDS = 8;
-const DEFAULT_BEAM_WIDTH = 64;
-const DEFAULT_CONFIRM_COUNT = 8;
 const DEFAULT_ITERATIONS = 3;
 const DEFAULT_MAX_ACTIVE_SLOTS = 8;
 const DEFAULT_EARLY_STOP_DELTA = 0.002;
@@ -48,6 +48,40 @@ export interface BeamGrammar {
   purchaseIds?: readonly string[];
   /** Infinite terminal floors. Defaults to no-buy plus every allowed purchase. */
   floorIds?: readonly string[];
+}
+
+export { STRATIFIED_ADMISSIONS_PER_LANE, STRATIFIED_BEAM_LANES } from '../src/sim/stratifiedBeam';
+export type { BeamLaneConfig, BeamLaneId } from '../src/sim/stratifiedBeam';
+
+const LANE_FAMILIES: Record<Exclude<BeamLaneId, 'unrestricted'>, CardFamily> = {
+  mage: 'mana', melee: 'melee', ranged: 'ranged'
+};
+const DAMAGE_MECHANICS: Record<Exclude<BeamLaneId, 'unrestricted'>, ReadonlySet<string>> = {
+  mage: new Set(['spell', 'discharge', 'cascade', 'overload']),
+  melee: new Set(['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush']),
+  ranged: new Set(['ranged', 'repellingShot', 'longshot', 'salvageShot', 'precisionShot', 'volley'])
+};
+
+/** Restricts a pure lane to its family and neutral support, with real family damage as every floor. */
+export function pureLaneGrammar(
+  kingdomId: string, laneId: Exclude<BeamLaneId, 'unrestricted'>
+): BeamGrammar | null {
+  const family = LANE_FAMILIES[laneId];
+  const alwaysAvailable = new Set(ALWAYS_AVAILABLE_ACTION_IDS);
+  const purchaseIds = kingdomFacts(kingdomId).purchaseIds.filter((cardId) => {
+    const card = cardDefinition(cardId);
+    return card.family === family || card.family === 'engine' || card.family === 'treasure'
+      || alwaysAvailable.has(cardId);
+  });
+  const floorIds = purchaseIds.filter((cardId) => {
+    const card = cardDefinition(cardId);
+    return card.family === family && DAMAGE_MECHANICS[laneId].has(card.mechanic);
+  });
+  return floorIds.length ? { purchaseIds, floorIds } : null;
+}
+
+export function laneGrammar(kingdomId: string, laneId: BeamLaneId): BeamGrammar | null {
+  return laneId === 'unrestricted' ? {} : pureLaneGrammar(kingdomId, laneId);
 }
 
 function activeSlots(strategy: Strategy): BuyPlanSlot[] {
@@ -172,20 +206,53 @@ function solveSnapshot(snapshot: MatrixSnapshot) {
 }
 
 export interface BeamSearchOptions {
-  width: number;
-  confirmCount: number;
   iteration: number;
   maxSlots: number;
-  grammar?: BeamGrammar;
+  lanes?: readonly BeamLaneConfig[];
   report: (message: string) => void;
 }
+export interface BeamStage {
+  lane: BeamLaneId;
+  depth: number;
+  candidates: number;
+  retained: number;
+  best: number;
+}
+export interface LaneFinalist { lane: BeamLaneId; strategy: Strategy }
 
-export async function beamBestResponses(
-  runner: PairingRunner, kingdomId: string, target: readonly WeightedOpponent[], options: BeamSearchOptions
-): Promise<{ confirmed: HeadToHeadScore[]; stages: { depth: number; candidates: number; retained: number; best: number }[] }> {
-  const grammar = options.grammar ?? {};
+export function deduplicateLaneFinalists(finalists: readonly LaneFinalist[]): LaneFinalist[] {
+  const seen = new Set<string>();
+  return finalists.filter((finalist) => {
+    const form = canonicalStrategy(finalist.strategy);
+    if (seen.has(form)) return false;
+    seen.add(form);
+    return true;
+  });
+}
+
+export function selectLaneResponses(
+  confirmed: readonly HeadToHeadScore[], finalists: readonly LaneFinalist[],
+  knownForms: ReadonlySet<string>, admissionsPerLane = STRATIFIED_ADMISSIONS_PER_LANE
+): HeadToHeadScore[] {
+  const laneByForm = new Map(finalists.map((entry) => [canonicalStrategy(entry.strategy), entry.lane]));
+  const admittedByLane = new Map<BeamLaneId, number>();
+  return confirmed.filter((entry) => {
+    const form = canonicalStrategy(entry.strategy);
+    const lane = laneByForm.get(form);
+    if (!lane || entry.mean <= 0.5 || knownForms.has(form)) return false;
+    const admitted = admittedByLane.get(lane) ?? 0;
+    if (admitted >= admissionsPerLane) return false;
+    admittedByLane.set(lane, admitted + 1);
+    return true;
+  });
+}
+
+async function searchLane(
+  runner: PairingRunner, kingdomId: string, target: readonly WeightedOpponent[],
+  config: BeamLaneConfig, grammar: BeamGrammar, options: BeamSearchOptions
+): Promise<{ finalists: LaneFinalist[]; stages: BeamStage[] }> {
   let beam = beamFloors(kingdomId, grammar).map((entry) => ({ ...entry, mean: 0.5 }));
-  const stages: { depth: number; candidates: number; retained: number; best: number }[] = [];
+  const stages: BeamStage[] = [];
   let previousBest = 0.5;
   let stagnantStages = 0;
   for (let depth = 0; depth < options.maxSlots - 1; depth += 1) {
@@ -193,7 +260,7 @@ export async function beamBestResponses(
       expandBeamCandidate(kingdomId, entry, options.maxSlots, grammar)));
     const seedCount = DEFAULT_STAGE_SEEDS[Math.min(depth, DEFAULT_STAGE_SEEDS.length - 1)]!;
     const seeds = seedRange(100 + options.iteration * 10_000 + depth * 100, seedCount);
-    options.report(`beam depth ${depth + 1}: scoring ${candidates.length} candidates on ${seeds.length} seeds`);
+    options.report(`${config.id} beam depth ${depth + 1}: scoring ${candidates.length} candidates on ${seeds.length} seeds`);
     const scores = await headToHead(
       runner, kingdomId, candidates.map((entry) => entry.strategy), target, seeds, 2_000,
       undefined, { startingDraftEnabled: false }
@@ -201,25 +268,42 @@ export async function beamBestResponses(
     const byId = new Map(scores.map((score) => [score.strategy.id, score]));
     beam = retainDiverseBeam(candidates.map((candidate) => ({
       ...candidate, mean: byId.get(candidate.strategy.id)!.mean
-    })), options.width);
+    })), config.width);
     const best = beam[0]?.mean ?? 0.5;
-    stages.push({ depth: depth + 1, candidates: candidates.length, retained: beam.length, best });
+    stages.push({ lane: config.id, depth: depth + 1, candidates: candidates.length,
+      retained: beam.length, best });
     stagnantStages = best - previousBest < DEFAULT_EARLY_STOP_DELTA ? stagnantStages + 1 : 0;
     previousBest = best;
     if (depth + 1 >= DEFAULT_STAGE_SEEDS.length && stagnantStages >= DEFAULT_EARLY_STOP_PATIENCE) {
-      options.report(`stopping beam after ${depth + 1} depths without material improvement`);
+      options.report(`stopping ${config.id} beam after ${depth + 1} depths without material improvement`);
       break;
     }
   }
-  const finalists = beam.slice(0, options.confirmCount).map((entry) => entry.strategy);
+  return { finalists: beam.slice(0, config.finalists)
+    .map((entry) => ({ lane: config.id, strategy: entry.strategy })), stages };
+}
+
+export async function beamBestResponses(
+  runner: PairingRunner, kingdomId: string, target: readonly WeightedOpponent[], options: BeamSearchOptions
+): Promise<{ confirmed: HeadToHeadScore[]; stages: BeamStage[]; finalists: LaneFinalist[] }> {
+  const laneResults: { finalists: LaneFinalist[]; stages: BeamStage[] }[] = [];
+  for (const config of options.lanes ?? STRATIFIED_BEAM_LANES) {
+    const grammar = laneGrammar(kingdomId, config.id);
+    if (!grammar) {
+      options.report(`skipping ${config.id} beam: the kingdom has no ${config.id} damage card`);
+      continue;
+    }
+    laneResults.push(await searchLane(runner, kingdomId, target, config, grammar, options));
+  }
+  const finalists = deduplicateLaneFinalists(laneResults.flatMap((result) => result.finalists));
   const heldOutSeeds = seedRange(5_000 + options.iteration * 10_000, DEFAULT_CONFIRM_SEEDS);
-  options.report(`confirming ${finalists.length} beam finalists on ${heldOutSeeds.length} held-out seeds`);
+  options.report(`confirming ${finalists.length} deduplicated lane finalists on ${heldOutSeeds.length} held-out seeds`);
   const confirmed = await headToHead(
-    runner, kingdomId, finalists, target, heldOutSeeds, options.confirmCount,
-    undefined, { startingDraftEnabled: false }
+    runner, kingdomId, finalists.map((entry) => entry.strategy), target, heldOutSeeds,
+    Math.max(1, finalists.length), undefined, { startingDraftEnabled: false }
   );
   confirmed.sort((left, right) => right.mean - left.mean || left.strategy.id.localeCompare(right.strategy.id));
-  return { confirmed, stages };
+  return { confirmed, stages: laneResults.flatMap((result) => result.stages), finalists };
 }
 
 function bootstrap(values: readonly number[]): { lower: number; upper: number } {
@@ -252,8 +336,6 @@ async function main(): Promise<void> {
   const outFile = option('out') ?? '.data/beam-draft-off.json';
   const workers = positiveInteger('workers', 12);
   const iterations = positiveInteger('iterations', DEFAULT_ITERATIONS);
-  const width = positiveInteger('beam-width', DEFAULT_BEAM_WIDTH);
-  const confirmCount = positiveInteger('confirm-count', DEFAULT_CONFIRM_COUNT);
   const maxSlots = positiveInteger('max-slots', DEFAULT_MAX_ACTIVE_SLOTS);
   if (maxSlots > BUY_PLAN_SLOTS) throw new Error(`--max-slots cannot exceed ${BUY_PLAN_SLOTS}.`);
   const runSweep = process.argv.includes('--sweep');
@@ -267,10 +349,6 @@ async function main(): Promise<void> {
   }
   registerKingdom(record.kingdom);
   const kingdomId = record.kingdom.id;
-  const floorCount = beamFloors(kingdomId).length;
-  if (width < floorCount) {
-    throw new Error(`--beam-width must be at least ${floorCount} to retain every floor.`);
-  }
   const runner = new WorkerPairingRunner(
     workers, new URL('../src/server/aiWorker.ts', import.meta.url), { kingdom: record.kingdom },
     ['--import', 'tsx']
@@ -302,20 +380,26 @@ async function main(): Promise<void> {
       const equilibrium = solveSnapshot(before);
       const target = weightedTarget(before, equilibrium.weights);
       const search = await beamBestResponses(runner, kingdomId, target, {
-        width, confirmCount, iteration, maxSlots, report
+        iteration, maxSlots, lanes: STRATIFIED_BEAM_LANES, report
       });
       const known = new Set(before.strategies.map(canonicalStrategy));
-      const response = search.confirmed.find((entry) =>
-        entry.mean > 0.5 && !known.has(canonicalStrategy(entry.strategy)));
+      const laneByForm = new Map(search.finalists.map((entry) => [canonicalStrategy(entry.strategy), entry.lane]));
+      const responses = selectLaneResponses(search.confirmed, search.finalists, known);
       iterationResults.push({
         iteration, equilibrium, stages: search.stages,
         confirmed: search.confirmed.map((entry) => ({
+          lane: laneByForm.get(canonicalStrategy(entry.strategy)),
           strategy: entry.strategy, mean: entry.mean, blockScores: entry.blockScores, matches: entry.matches
-        })), admittedStrategyId: response?.strategy.id ?? null
+        })),
+        admittedStrategyIds: responses.map((entry) => entry.strategy.id),
+        admittedLanes: responses.map((entry) => laneByForm.get(canonicalStrategy(entry.strategy)))
       });
-      if (!response) break;
-      report(`admitting ${response.strategy.id} at held-out mean ${response.mean.toFixed(4)}`);
-      await matrix.addRow(response.strategy, false);
+      if (!responses.length) break;
+      for (const response of responses) {
+        const lane = laneByForm.get(canonicalStrategy(response.strategy));
+        report(`admitting ${lane} response ${response.strategy.id} at held-out mean ${response.mean.toFixed(4)}`);
+        await matrix.addRow(response.strategy, false);
+      }
     }
     const snapshot = matrix.snapshot();
     const equilibrium = solveSnapshot(snapshot);
@@ -336,7 +420,8 @@ async function main(): Promise<void> {
       rulesFingerprint: rulesFingerprint(
         kingdomId, TURN_LIMIT_PER_PLAYER, ACTION_CAP_PER_TURN, false
       ),
-      config: { startingDraftEnabled: false, workers, iterations, width, confirmCount, maxSlots,
+      config: { startingDraftEnabled: false, workers, iterations, maxSlots,
+        lanes: STRATIFIED_BEAM_LANES, admissionsPerLane: STRATIFIED_ADMISSIONS_PER_LANE,
         stageSeeds: DEFAULT_STAGE_SEEDS, confirmationSeeds: DEFAULT_CONFIRM_SEEDS,
         matrixSeeds: DEFAULT_MATRIX_SEEDS, earlyStopDelta: DEFAULT_EARLY_STOP_DELTA,
         earlyStopPatience: DEFAULT_EARLY_STOP_PATIENCE, sweep: runSweep },

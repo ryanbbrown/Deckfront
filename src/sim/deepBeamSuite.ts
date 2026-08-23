@@ -8,14 +8,15 @@ import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from './experimentConfig';
 import { matrixProtocol } from './payoffMatrix';
 import { rulesFingerprint } from './rulesFingerprint';
 import type { RulesFingerprint } from './rulesFingerprint';
+import { STRATIFIED_ADMISSIONS_PER_LANE, STRATIFIED_BEAM_LANES } from './stratifiedBeam';
 
 export const DEEP_BEAM_SUITE_VERSION = 'deep-beam-v1';
 export const DEEP_BEAM_CONFIG = Object.freeze({
   workers: 10,
   iterations: 3,
-  width: 32,
-  confirmCount: 4,
-  maxSlots: 8
+  maxSlots: 8,
+  lanes: STRATIFIED_BEAM_LANES,
+  admissionsPerLane: STRATIFIED_ADMISSIONS_PER_LANE
 });
 export const DEEP_BEAM_DRAFT = Object.freeze({ startingDraftEnabled: false });
 
@@ -23,9 +24,9 @@ const RESULT_CONFIG = Object.freeze({
   startingDraftEnabled: false,
   workers: DEEP_BEAM_CONFIG.workers,
   iterations: DEEP_BEAM_CONFIG.iterations,
-  width: DEEP_BEAM_CONFIG.width,
-  confirmCount: DEEP_BEAM_CONFIG.confirmCount,
   maxSlots: DEEP_BEAM_CONFIG.maxSlots,
+  lanes: STRATIFIED_BEAM_LANES,
+  admissionsPerLane: STRATIFIED_ADMISSIONS_PER_LANE,
   stageSeeds: [1, 2, 4],
   confirmationSeeds: 12,
   matrixSeeds: 8,
@@ -192,8 +193,6 @@ async function defaultRun(request: DeepBeamRunRequest): Promise<void> {
     '--out', request.resultPath,
     '--workers', String(request.config.workers),
     '--iterations', String(request.config.iterations),
-    '--beam-width', String(request.config.width),
-    '--confirm-count', String(request.config.confirmCount),
     '--max-slots', String(request.config.maxSlots)
   ];
   await new Promise<void>((resolve, reject) => {

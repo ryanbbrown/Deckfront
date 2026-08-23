@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  beamFloors, expandBeamCandidate, retainDiverseBeam
+  beamFloors, deduplicateLaneFinalists, expandBeamCandidate, laneGrammar, retainDiverseBeam,
+  selectLaneResponses
 } from '../../scripts/beam_draft_off';
 import { forcedMageGrammar } from '../../scripts/diagnose_forced_mage';
 import {
@@ -81,21 +82,52 @@ describe('the experimental draft-off beam grammar', () => {
     expect(new Set(purchased)).toEqual(new Set(grammar.purchaseIds));
   });
 
-  it('builds forced Mage grammars from real Mage damage and allowed support cards', () => {
+  it('builds every pure grammar from family damage and allowed support cards', () => {
     deepBeamSuite.register();
     const kingdomId = 'deep-beam-tuning-002';
-    const grammar = forcedMageGrammar(kingdomId);
     const alwaysAvailable = new Set(ALWAYS_AVAILABLE_ACTION_IDS);
-    expect(grammar.purchaseIds!.every((cardId) =>
-      ['mana', 'engine', 'treasure'].includes(cardDefinition(cardId).family)
-      || alwaysAvailable.has(cardId))).toBe(true);
-    expect(grammar.purchaseIds).not.toContain('bullRush');
-    expect(grammar.purchaseIds).not.toContain('precisionShot');
-    expect(grammar.floorIds).toEqual(['arcBolt', 'discharge']);
-    expect(beamFloors(kingdomId, grammar).every((floor) =>
-      floor.strategy.buyPlan.some((slot) => slot.kind === 'buy'
-        && ['spell', 'discharge', 'cascade', 'overload'].includes(cardDefinition(slot.cardId).mechanic))))
-      .toBe(true);
+    const lanes = [
+      { id: 'mage' as const, family: 'mana', floors: ['arcBolt', 'discharge'] },
+      { id: 'melee' as const, family: 'melee', floors: ['bullRush', 'drive'] },
+      { id: 'ranged' as const, family: 'ranged', floors: ['precisionShot'] }
+    ];
+    for (const lane of lanes) {
+      const grammar = laneGrammar(kingdomId, lane.id)!;
+      expect(grammar.purchaseIds!.every((cardId) =>
+        [lane.family, 'engine', 'treasure'].includes(cardDefinition(cardId).family)
+        || alwaysAvailable.has(cardId))).toBe(true);
+      expect(grammar.floorIds).toEqual(lane.floors);
+      expect(grammar.floorIds!.every((cardId) => cardDefinition(cardId).family === lane.family)).toBe(true);
+      expect(beamFloors(kingdomId, grammar).every((floor) => floor.floorKey !== 'no-buy')).toBe(true);
+    }
+    expect(forcedMageGrammar(kingdomId)).toEqual(laneGrammar(kingdomId, 'mage'));
+    expect(laneGrammar(kingdomId, 'unrestricted')).toEqual({});
+  });
+
+  it('omits a pure lane when the kingdom offers no damage package for it', () => {
+    deepBeamSuite.register();
+    expect(laneGrammar('deep-beam-tuning-001', 'ranged')).toBeNull();
+  });
+
+  it('deduplicates pooled finalists and admits one competitive response from each lane', () => {
+    const strategies = beamFloors('current-duel').slice(1, 5).map((entry) => entry.strategy);
+    expect(deduplicateLaneFinalists([
+      { lane: 'unrestricted', strategy: strategies[0]! }, { lane: 'mage', strategy: strategies[0]! },
+      { lane: 'melee', strategy: strategies[1]! }
+    ])).toEqual([
+      { lane: 'unrestricted', strategy: strategies[0]! }, { lane: 'melee', strategy: strategies[1]! }
+    ]);
+    const finalists = [
+      { lane: 'mage' as const, strategy: strategies[0]! },
+      { lane: 'mage' as const, strategy: strategies[1]! },
+      { lane: 'melee' as const, strategy: strategies[2]! },
+      { lane: 'ranged' as const, strategy: strategies[3]! }
+    ];
+    const scores = finalists.map(({ strategy }, index) => ({
+      strategy, mean: index === 3 ? 0.5 : 0.9 - index * 0.1, blockScores: [], matches: 0
+    }));
+    expect(selectLaneResponses(scores, finalists, new Set()).map((score) => score.strategy))
+      .toEqual([strategies[0], strategies[2]]);
   });
 
   it('reserves a place for each floor before global score retention', () => {

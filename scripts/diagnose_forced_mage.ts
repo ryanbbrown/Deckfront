@@ -2,21 +2,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { pathToFileURL } from 'node:url';
-import {
-  ALWAYS_AVAILABLE_ACTION_IDS, SeededRandom, cardDefinition, registerKingdom
-} from '../src/game';
+import { SeededRandom, cardDefinition, registerKingdom } from '../src/game';
 import type { Kingdom } from '../src/game';
-import { kingdomFacts } from '../src/sim/mutation';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import { canonicalStrategy, formatStrategy } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
-import { beamBestResponses } from './beam_draft_off';
+import { beamBestResponses, pureLaneGrammar } from './beam_draft_off';
 import type { BeamGrammar } from './beam_draft_off';
 import { headToHead, seedRange } from './headToHead';
 import type { WeightedOpponent } from './headToHead';
 
 const MAGE_DAMAGE_MECHANICS = new Set(['spell', 'discharge', 'cascade', 'overload']);
-const ALLOWED_FAMILIES = new Set(['mana', 'engine', 'treasure']);
 const DEFAULT_KINGDOMS = ['deep-beam-tuning-002', 'deep-beam-tuning-007', 'deep-beam-tuning-008'];
 const SEARCH_CONFIG = Object.freeze({ width: 32, confirmCount: 4, maxSlots: 8 });
 const FINAL_SCORE_SEEDS = 200;
@@ -29,14 +25,9 @@ interface SavedEquilibrium {
 }
 
 export function forcedMageGrammar(kingdomId: string): BeamGrammar {
-  const alwaysAvailable = new Set(ALWAYS_AVAILABLE_ACTION_IDS);
-  const purchaseIds = kingdomFacts(kingdomId).purchaseIds.filter((cardId) => {
-    const card = cardDefinition(cardId);
-    return ALLOWED_FAMILIES.has(card.family) || alwaysAvailable.has(cardId);
-  });
-  const floorIds = purchaseIds.filter((cardId) => MAGE_DAMAGE_MECHANICS.has(cardDefinition(cardId).mechanic));
-  if (!floorIds.length) throw new Error(`${kingdomId} has no purchasable Mage damage card.`);
-  return { purchaseIds, floorIds };
+  const grammar = pureLaneGrammar(kingdomId, 'mage');
+  if (!grammar) throw new Error(`${kingdomId} has no purchasable Mage damage card.`);
+  return grammar;
 }
 
 function option(name: string): string | null {
@@ -111,7 +102,8 @@ async function main(): Promise<void> {
     try {
       console.log(`${kingdomId}: allowed ${grammar.purchaseIds!.join(', ')}; Mage floors ${grammar.floorIds!.join(', ')}`);
       const search = await beamBestResponses(runner, kingdomId, saved.targetMixture, {
-        ...SEARCH_CONFIG, iteration: 0, grammar,
+        iteration: 0, maxSlots: SEARCH_CONFIG.maxSlots,
+        lanes: [{ id: 'mage', width: SEARCH_CONFIG.width, finalists: SEARCH_CONFIG.confirmCount }],
         report: (message) => console.log(`  ${message}`)
       });
       const searchElapsedMs = Date.now() - started;

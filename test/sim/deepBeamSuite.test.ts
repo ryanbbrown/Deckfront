@@ -11,6 +11,7 @@ import {
 } from '../../src/sim/deepBeamSuite';
 import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from '../../src/sim/experimentConfig';
 import { matrixProtocol } from '../../src/sim/payoffMatrix';
+import { STRATIFIED_BEAM_LANES } from '../../src/sim/stratifiedBeam';
 
 afterEach(() => { resetKingdoms(); });
 
@@ -26,9 +27,9 @@ function completeResult(kingdomId: string): Record<string, unknown> {
       startingDraftEnabled: false,
       workers: 10,
       iterations: 3,
-      width: 32,
-      confirmCount: 4,
       maxSlots: 8,
+      lanes: STRATIFIED_BEAM_LANES.map((lane) => ({ ...lane })),
+      admissionsPerLane: 1,
       stageSeeds: [1, 2, 4],
       confirmationSeeds: 12,
       matrixSeeds: 8,
@@ -102,7 +103,14 @@ describe('deep-beam suite design', () => {
 
   it('creates explicit draft-off inputs with the exact standard beam config', () => {
     const input = deepBeamSuite.createInput(DEEP_BEAM_KINGDOMS[0]!.id);
-    expect(DEEP_BEAM_CONFIG).toEqual({ workers: 10, iterations: 3, width: 32, confirmCount: 4, maxSlots: 8 });
+    expect(DEEP_BEAM_CONFIG).toEqual({ workers: 10, iterations: 3, maxSlots: 8,
+      lanes: [
+        { id: 'unrestricted', width: 24, finalists: 4 },
+        { id: 'mage', width: 16, finalists: 2 },
+        { id: 'melee', width: 16, finalists: 2 },
+        { id: 'ranged', width: 16, finalists: 2 }
+      ],
+      admissionsPerLane: 1 });
     expect(input).toMatchObject({ schemaVersion: 1, suiteVersion: DEEP_BEAM_SUITE_VERSION,
       startingDraftEnabled: false, beamConfig: DEEP_BEAM_CONFIG,
       kingdom: { startingHealth: 50 } });
@@ -125,7 +133,7 @@ describe('deep-beam suite resume boundary', () => {
     writeJson(deepBeamSuite.resultPath(root, ids[3]!), partial);
     writeJson(deepBeamSuite.resultPath(root, ids[4]!), { status: 'failed' });
     const wrongConfig = completeResult(ids[5]!);
-    (wrongConfig.config as { maxSlots: number }).maxSlots = 10;
+    ((wrongConfig.config as { lanes: { width: number }[] }).lanes[1]!).width = 15;
     writeJson(deepBeamSuite.resultPath(root, ids[5]!), wrongConfig);
 
     const called: string[] = [];
