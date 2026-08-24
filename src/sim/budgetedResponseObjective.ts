@@ -20,6 +20,7 @@ export interface BudgetedResponseObjectiveOptions {
   runner: PairingRunner;
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
+  startingDraftEnabled?: boolean;
   scheduleSeeds?: readonly number[];
   samplingSeed?: number;
 }
@@ -34,7 +35,7 @@ export class BudgetedResponseObjective {
   private readonly opponents: ReadonlyMap<string, Strategy>;
   private readonly runner: PairingRunner;
   private readonly options: Pick<BudgetedResponseObjectiveOptions,
-    'kingdomId' | 'turnLimitPerPlayer' | 'actionCapPerTurn'>;
+    'kingdomId' | 'turnLimitPerPlayer' | 'actionCapPerTurn' | 'startingDraftEnabled'>;
   private readonly aggregates = new Map<string, AggregateScore>();
   private cursor = 0;
   private consumed = 0;

@@ -24,6 +24,9 @@ import type { Strategy } from '../../src/sim/strategy';
 
 class DrawRunner implements PairingRunner {
   async run(jobs: readonly PairingJob[]) {
+    if (jobs.some((job) => job.options.startingDraftEnabled !== false)) {
+      throw new Error('Random PSRO evaluation must keep the starting draft disabled.');
+    }
     return { submitted: jobs.length, outcomes: jobs.map((job) => {
       const blocks = job.options.seeds.map((seed) => ({ seed, score: 0.5, played: 4, aborted: 0 }));
       return { record: { played: blocks.length * 4, wins: 0, draws: blocks.length * 4, losses: 0, aborted: 0 },

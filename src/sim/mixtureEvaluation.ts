@@ -61,7 +61,7 @@ export async function evaluateCandidates(
   candidates: readonly Strategy[], opponents: ReadonlyMap<string, Strategy>, schedule: MixtureSchedule,
   runner: PairingRunner, options: {
     kingdomId: string; turnLimitPerPlayer: number; actionCapPerTurn: number;
-    deadline?: number | undefined;
+    startingDraftEnabled?: boolean | undefined; deadline?: number | undefined;
   }
 ): Promise<CandidateEvaluation[]> {
   const jobs = candidates.flatMap((candidate) => schedule.blocks.map((block) => {
@@ -70,7 +70,7 @@ export async function evaluateCandidates(
     return { candidate, opponent, options: {
       kingdomId: options.kingdomId, seeds: [block.seed],
       turnLimitPerPlayer: options.turnLimitPerPlayer, actionCapPerTurn: options.actionCapPerTurn,
-      allowEarlyStop: false
+      startingDraftEnabled: options.startingDraftEnabled ?? true, allowEarlyStop: false
     } };
   }));
   const batch = await runner.run(jobs, { deadline: options.deadline });
@@ -132,7 +132,7 @@ export async function raceCandidates(
   weights: Readonly<Record<string, number>>, roundSeeds: readonly (readonly number[])[],
   samplingSeed: number, runner: PairingRunner, options: {
     kingdomId: string; turnLimitPerPlayer: number; actionCapPerTurn: number;
-    deadline?: number | undefined;
+    startingDraftEnabled?: boolean | undefined; deadline?: number | undefined;
   }
 ): Promise<RaceResult> {
   const telemetry = emptyAggregate();

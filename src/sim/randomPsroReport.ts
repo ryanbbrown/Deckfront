@@ -227,7 +227,7 @@ async function evaluateLottery(
   const schedule = mixtureSchedule(weights, seeds, samplingSeed);
   const evaluations = await evaluateCandidates(candidate.strategies.map((entry) => entry.strategy),
     opponents, schedule, runner, { kingdomId, turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
-      actionCapPerTurn: ACTION_CAP_PER_TURN });
+      actionCapPerTurn: ACTION_CAP_PER_TURN, startingDraftEnabled: false });
   return weightedLotteryEvaluation(evaluations,
     Object.fromEntries(candidate.strategies.map((entry) => [entry.strategy.id, entry.weight])), bootstrapSeed);
 }

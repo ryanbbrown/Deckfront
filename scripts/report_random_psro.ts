@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { RANDOM_PSRO_VERSION } from '../src/sim/randomPsro';
 import {
   generateRandomPsroConsistencyReport, renderRandomPsroConsistencyReport
 } from '../src/sim/randomPsroReport';
@@ -21,7 +22,7 @@ function positive(flag: string, fallback: number): number {
 try {
   const ordinarySource = value('--ordinary-source');
   const outDirectory = path.resolve(value('--out') ?? path.join(process.cwd(), '.experiments',
-    'random-psro-consistency', 'random-psro-v2', 'report'));
+    'random-psro-consistency', RANDOM_PSRO_VERSION, 'report'));
   const stratifiedSource = value('--stratified-source');
   const report = await generateRandomPsroConsistencyReport({ root: process.cwd(),
     ...(ordinarySource ? { ordinarySource } : {}),

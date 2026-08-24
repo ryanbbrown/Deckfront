@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import { RANDOM_PSRO_VERSION } from '../src/sim/randomPsro';
 import {
   generateKingdom001SenseCheck, renderKingdom001SenseCheck
 } from '../src/sim/randomPsroReport';
@@ -29,7 +30,7 @@ try {
     confirmationBlocks: positive('--confirmation-blocks', 400),
     workers: positive('--workers', 10) });
   const outDirectory = path.resolve(value('--out') ?? path.join(process.cwd(), '.experiments',
-    'random-psro-consistency', 'random-psro-v2', 'report'));
+    'random-psro-consistency', RANDOM_PSRO_VERSION, 'report'));
   fs.mkdirSync(outDirectory, { recursive: true });
   const base = `k001-seed-${seed}-check`;
   fs.writeFileSync(path.join(outDirectory, `${base}.json`), `${JSON.stringify(report, null, 2)}\n`);

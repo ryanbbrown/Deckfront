@@ -16,7 +16,7 @@ import type { RulesFingerprint } from './rulesFingerprint';
 import { canonicalStrategy, identify, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 
-export const RANDOM_PSRO_VERSION = 'random-psro-v2';
+export const RANDOM_PSRO_VERSION = 'random-psro-v3';
 export const RANDOM_PSRO_SUITE_SEEDS = Object.freeze([35_001, 35_002] as const);
 export const RANDOM_PSRO_DEFAULT_CONFIG = Object.freeze({
   initialStrategies: 8,
@@ -229,7 +229,8 @@ async function randomBatch(input: OracleBatchInput): Promise<{
   const budget = randomRacingBudget(count, input.config.raceBlocks);
   const objective = new BudgetedResponseObjective({ kingdomId: input.domain.kingdomId, opponents,
     budget, scheduleSeed: samplingSeeds[0]!, samplingSeed: samplingSeeds[0]!, scheduleSeeds: raceSeeds,
-    runner: input.runner, turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER, actionCapPerTurn: ACTION_CAP_PER_TURN });
+    runner: input.runner, turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
+    actionCapPerTurn: ACTION_CAP_PER_TURN, startingDraftEnabled: false });
   const raced = await runUniformRandomRacing(objective, input.domain, seed, {
     batchSize: count, roundBlocks: input.config.raceBlocks, searchBudget: budget,
     excludedCanonical: known
@@ -244,7 +245,7 @@ async function randomBatch(input: OracleBatchInput): Promise<{
   const evaluations = await evaluateCandidates(finalists, opponentMap, schedule, input.runner, {
     kingdomId: input.domain.kingdomId,
     turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
-    actionCapPerTurn: ACTION_CAP_PER_TURN
+    actionCapPerTurn: ACTION_CAP_PER_TURN, startingDraftEnabled: false
   });
   const evidence = evaluations.map((entry, index) => confirmed(entry, bootstrapSeeds[index]!))
     .sort((left, right) => right.mean - left.mean || left.strategy.id.localeCompare(right.strategy.id));

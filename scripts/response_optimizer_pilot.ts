@@ -214,7 +214,8 @@ export async function runPilot(options: PilotOptions, root: string): Promise<Res
         const objective = new BudgetedResponseObjective({ kingdomId: options.kingdomId,
           opponents: saved.targetMixture, budget: options.budget,
           scheduleSeed: trainingScheduleSeeds[restart]!, runner,
-          turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER, actionCapPerTurn: ACTION_CAP_PER_TURN });
+          turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER, actionCapPerTurn: ACTION_CAP_PER_TURN,
+          startingDraftEnabled: false });
         const search = await optimize(name, objective, domain, lanes,
           optimizerSeeds[name]![restart]!, searchBudget);
         restartResults.push(await runFinalTrainingRerace(objective, search, finalRerace));
@@ -224,7 +225,7 @@ export async function runPilot(options: PilotOptions, root: string): Promise<Res
       domain.decode(selected.policy);
       const heldOut = (await evaluateCandidates([selected.policy], opponents, confirmationSchedule, runner, {
         kingdomId: options.kingdomId, turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
-        actionCapPerTurn: ACTION_CAP_PER_TURN
+        actionCapPerTurn: ACTION_CAP_PER_TURN, startingDraftEnabled: false
       }))[0]!;
       const interval95 = percentileBootstrapMean(heldOut.blockScores, deriveSeed(options.seed, 'confirmation-bootstrap'));
       const selectedRestart = restartResults.indexOf(selected);
