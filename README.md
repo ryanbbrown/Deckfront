@@ -118,6 +118,17 @@ npm run deep-beam:strategy-ranges
 
 `deep-beam:strategy-ranges` writes the current ten-kingdom selected/minimum/maximum archetype shares to the ignored `.data/deep-strategy-equilibrium-ranges-pilot-10.json` artifact. Each range optimizes an archetype jointly over the full equilibrium polytope of each kingdom’s discovered payoff matrix. It then averages kingdoms with equal weight. The range is conditional on the discovered matrix and does not cover strategies that search omitted. Damage archetypes use a fixed, provisional classification from the recorded matrix acquisitions; labels do not change when the LP weights change.
 
+The fixed-reservoir five-run suite compares pool seeds 1–5 on Kingdoms 001 and 009. Prepare the reusable Kingdom 009 seed-1 and seed-2 artifacts once, then run, inspect, and report with:
+
+```sh
+npm run fixed-reservoir:five-run:prepare
+npm run fixed-reservoir:five-run
+npm run fixed-reservoir:five-run:status
+npm run fixed-reservoir:five-run:report
+```
+
+The suite resumes each pool and PSRO run independently under `.experiments/fixed-reservoir-psro-five-run/`. The report command requires all ten deeply validated runs.
+
 Use `--limit 10` for a resumable ten-kingdom balance pilot. At 330 seconds per kingdom, the serial search takes about 9.2 hours before overhead. Complete results
 survive interruption. Inputs, results, and atomic status are ignored under
 `.experiments/deep-beam-suite/deep-beam-v1/`.

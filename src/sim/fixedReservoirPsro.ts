@@ -17,12 +17,22 @@ import type { Strategy } from './strategy';
 
 export const FIXED_RESERVOIR_VERSION = 'fixed-reservoir-psro-v1';
 export const FIXED_RESERVOIR_EVALUATION_SEED = 7_100_009;
-export const FIXED_RESERVOIR_CONFIG = Object.freeze({
+export interface FixedReservoirProtocol {
+  generatedCount: number; goldfishCount: number; randomCount: number; initialStrategies: number;
+  raceBlocks: readonly number[]; finalists: number; confirmationBlocks: number; matrixBlocks: number;
+  cleanScansRequired: number; safetyCap: number; admissionLowerBound: number; chunkSize: number;
+}
+export const FIXED_RESERVOIR_CONFIG: Readonly<FixedReservoirProtocol> = Object.freeze({
   generatedCount: 500_000, goldfishCount: 18_000, randomCount: 2_000,
   initialStrategies: 50, raceBlocks: Object.freeze([1, 2, 4, 8] as const),
   finalists: 8, confirmationBlocks: 400, matrixBlocks: 25, cleanScansRequired: 2,
   safetyCap: 32, admissionLowerBound: 0.5, chunkSize: 1_000
 });
+export interface FixedReservoirRunOptions { evaluationSeed?: number; protocol?: FixedReservoirProtocol }
+function runOptions(options: FixedReservoirRunOptions = {}): { evaluationSeed: number; protocol: FixedReservoirProtocol } {
+  return { evaluationSeed: options.evaluationSeed ?? FIXED_RESERVOIR_EVALUATION_SEED,
+    protocol: options.protocol ?? FIXED_RESERVOIR_CONFIG };
+}
 
 export interface ReservoirEntry {
   strategy: Strategy;
@@ -100,8 +110,13 @@ export function reservoirHash(entries: readonly ReservoirEntry[]): string {
 }
 export function generatedHash(ids: readonly string[]): string { return stableHash(ids.join('\n')); }
 
-export function validateFixedReservoirPool(value: unknown, expected?: { poolSeed?: number; generatedCount?: number;
-  goldfishCount?: number; randomCount?: number }): value is FixedReservoirPoolArtifact {
+export interface FixedReservoirPoolExpectation {
+  kingdomId?: string; poolSeed?: number; generatedCount?: number; goldfishCount?: number;
+  randomCount?: number; goldfishSeeds?: readonly number[];
+}
+export function validateFixedReservoirPool(
+  value: unknown, expected: FixedReservoirPoolExpectation = {}
+): value is FixedReservoirPoolArtifact {
   if (!value || typeof value !== 'object') return false;
   const artifact = value as Partial<FixedReservoirPoolArtifact>;
   if (artifact.schemaVersion !== 1 || artifact.experiment !== 'fixed-reservoir-pool'
@@ -109,15 +124,18 @@ export function validateFixedReservoirPool(value: unknown, expected?: { poolSeed
     || !Array.isArray(artifact.reservoir) || artifact.generatedIds.length !== artifact.generatedCount
     || generatedHash(artifact.generatedIds) !== artifact.generatedHash
     || reservoirHash(artifact.reservoir) !== artifact.reservoirHash) return false;
-  if (expected?.poolSeed !== undefined && artifact.poolSeed !== expected.poolSeed) return false;
-  if (expected?.generatedCount !== undefined && artifact.generatedCount !== expected.generatedCount) return false;
+  if (expected.kingdomId !== undefined && artifact.kingdomId !== expected.kingdomId) return false;
+  if (expected.poolSeed !== undefined && artifact.poolSeed !== expected.poolSeed) return false;
+  if (expected.generatedCount !== undefined && artifact.generatedCount !== expected.generatedCount) return false;
+  if (expected.goldfishSeeds !== undefined
+    && artifact.goldfishSeeds?.join('|') !== expected.goldfishSeeds.join('|')) return false;
   const generated = new Set(artifact.generatedIds);
   const reservoirIds = artifact.reservoir.map((entry) => entry.strategy.id);
   if (new Set(reservoirIds).size !== reservoirIds.length || reservoirIds.some((id) => !generated.has(id))) return false;
   const goldfish = artifact.reservoir.filter((entry) => entry.source === 'goldfish');
   const random = artifact.reservoir.filter((entry) => entry.source === 'random');
-  if (expected?.goldfishCount !== undefined && goldfish.length !== expected.goldfishCount) return false;
-  if (expected?.randomCount !== undefined && random.length !== expected.randomCount) return false;
+  if (expected.goldfishCount !== undefined && goldfish.length !== expected.goldfishCount) return false;
+  if (expected.randomCount !== undefined && random.length !== expected.randomCount) return false;
   if (goldfish.some((entry, index) => entry.goldfishRank !== index + 1)) return false;
   return artifact.reservoir.every((entry) => canonicalStrategy(entry.strategy).length > 0);
 }
@@ -126,9 +144,11 @@ export function remainingReservoirStrategies(entries: readonly ReservoirEntry[],
   return entries.filter((entry) => !activeIds.has(entry.strategy.id)).map((entry) => entry.strategy);
 }
 
-export function nextCleanStreak(previous: number, admitted: number): { streak: number; converged: boolean } {
+export function nextCleanStreak(
+  previous: number, admitted: number, cleanScansRequired = FIXED_RESERVOIR_CONFIG.cleanScansRequired
+): { streak: number; converged: boolean } {
   const streak = admitted ? 0 : previous + 1;
-  return { streak, converged: streak >= FIXED_RESERVOIR_CONFIG.cleanScansRequired };
+  return { streak, converged: streak >= cleanScansRequired };
 }
 export function globalRaceSurvivors<T extends { strategy: Strategy; mean: number }>(
   chunks: readonly (readonly T[])[], keep: number
@@ -187,36 +207,40 @@ export async function scanFixedReservoir(input: { candidates: readonly Strategy[
     blocks:entry.blockScores.length,matches:entry.matches})).sort((a,b)=>b.mean-a.mean||a.strategy.id.localeCompare(b.strategy.id));
 }
 
-export async function runFixedReservoirPsro(pool: FixedReservoirPoolArtifact, runner: PairingRunner,
-  now=Date.now): Promise<FixedReservoirPsroArtifact> {
-  if (!validateFixedReservoirPool(pool,{poolSeed:pool.poolSeed,generatedCount:FIXED_RESERVOIR_CONFIG.generatedCount,
-    goldfishCount:FIXED_RESERVOIR_CONFIG.goldfishCount,randomCount:FIXED_RESERVOIR_CONFIG.randomCount})) {
+export async function runFixedReservoirPsro(
+  pool: FixedReservoirPoolArtifact, runner: PairingRunner, options: FixedReservoirRunOptions = {}, now=Date.now
+): Promise<FixedReservoirPsroArtifact> {
+  const { evaluationSeed, protocol } = runOptions(options);
+  if (!validateFixedReservoirPool(pool,{kingdomId:pool.kingdomId,poolSeed:pool.poolSeed,
+    generatedCount:protocol.generatedCount,goldfishCount:protocol.goldfishCount,randomCount:protocol.randomCount})) {
     throw new Error('Fixed reservoir pool is invalid.');
   }
   const started=now(); kingdomOf(pool.kingdomId);
-  const ledger=new RandomPsroSeedLedger(FIXED_RESERVOIR_EVALUATION_SEED);
-  const matrixSeeds=ledger.reserve('matrix',FIXED_RESERVOIR_CONFIG.matrixBlocks);
+  const ledger=new RandomPsroSeedLedger(evaluationSeed);
+  const matrixSeeds=ledger.reserve('matrix',protocol.matrixBlocks);
   const matrix=new PayoffMatrix(matrixProtocol(pool.kingdomId,matrixSeeds,TURN_LIMIT_PER_PLAYER,ACTION_CAP_PER_TURN,false),
     runner,createMatrixCellCache());
-  const initial=pool.reservoir.filter((entry)=>entry.source==='goldfish').slice(0,FIXED_RESERVOIR_CONFIG.initialStrategies);
+  const initial=pool.reservoir.filter((entry)=>entry.source==='goldfish').slice(0,protocol.initialStrategies);
   for (const entry of initial) matrix.addStrategy(entry.strategy);
   await matrix.fillAll(false);
   let snapshot=matrix.snapshot(); let equilibrium=solve(snapshot); let cleanStreak=0; let converged=false;
   const rounds:ReservoirRound[]=[];
-  for (let round=0;round<FIXED_RESERVOIR_CONFIG.safetyCap;round+=1) {
+  for (let round=0;round<protocol.safetyCap;round+=1) {
     const active=new Set(snapshot.strategies.map((strategy)=>strategy.id));
     const candidates=remainingReservoirStrategies(pool.reservoir,active);
-    const raceSeeds=ledger.reserve(`round:${round}:race`,FIXED_RESERVOIR_CONFIG.raceBlocks.reduce((a,b)=>a+b,0));
-    const confirmationSeeds=ledger.reserve(`round:${round}:confirmation`,FIXED_RESERVOIR_CONFIG.confirmationBlocks);
-    const samplingSeeds=ledger.reserve(`round:${round}:sampling`,FIXED_RESERVOIR_CONFIG.raceBlocks.length+1);
-    const bootstrapSeeds=ledger.reserve(`round:${round}:bootstrap`,FIXED_RESERVOIR_CONFIG.finalists);
+    const raceSeeds=ledger.reserve(`round:${round}:race`,protocol.raceBlocks.reduce((a,b)=>a+b,0));
+    const confirmationSeeds=ledger.reserve(`round:${round}:confirmation`,protocol.confirmationBlocks);
+    const samplingSeeds=ledger.reserve(`round:${round}:sampling`,protocol.raceBlocks.length+1);
+    const bootstrapSeeds=ledger.reserve(`round:${round}:bootstrap`,protocol.finalists);
     const targetWeights={...equilibrium.weights};
     const finalists=await scanFixedReservoir({candidates,snapshot,equilibrium,runner,kingdomId:pool.kingdomId,
-      raceSeeds,confirmationSeeds,samplingSeeds,bootstrapSeeds});
-    const admitted=finalists.filter((entry)=>entry.interval95.lower>FIXED_RESERVOIR_CONFIG.admissionLowerBound);
+      raceSeeds,confirmationSeeds,samplingSeeds,bootstrapSeeds,raceBlocks:protocol.raceBlocks,
+      finalists:protocol.finalists,chunkSize:protocol.chunkSize});
+    const admitted=finalists.filter((entry)=>entry.interval95.lower>protocol.admissionLowerBound);
     for (const entry of admitted) matrix.addStrategy(entry.strategy);
     if (admitted.length) { await matrix.fillAll(false); snapshot=matrix.snapshot(); equilibrium=solve(snapshot); }
-    const state=nextCleanStreak(cleanStreak,admitted.length); cleanStreak=state.streak; converged=state.converged;
+    const state=nextCleanStreak(cleanStreak,admitted.length,protocol.cleanScansRequired);
+    cleanStreak=state.streak; converged=state.converged;
     rounds.push({round,scannedCount:candidates.length,targetWeights,raceSeeds:[...raceSeeds],
       confirmationSeeds:[...confirmationSeeds],finalists,admittedStrategyIds:admitted.map((entry)=>entry.strategy.id),
       cleanStreak,equilibriumAfter:equilibrium});
@@ -224,7 +248,7 @@ export async function runFixedReservoirPsro(pool: FixedReservoirPoolArtifact, ru
   }
   ledger.validate(); snapshot=matrix.snapshot(); equilibrium=solve(snapshot);
   return {schemaVersion:1,experiment:'fixed-reservoir-psro',version:FIXED_RESERVOIR_VERSION,
-    kingdomId:pool.kingdomId,poolSeed:pool.poolSeed,evaluationSeed:FIXED_RESERVOIR_EVALUATION_SEED,
+    kingdomId:pool.kingdomId,poolSeed:pool.poolSeed,evaluationSeed,
     rulesFingerprint:rulesFingerprint(pool.kingdomId,TURN_LIMIT_PER_PLAYER,ACTION_CAP_PER_TURN,false),
     poolHash:pool.generatedHash,reservoirHash:pool.reservoirHash,reservoir:pool.reservoir,
     status:converged?'converged':'incomplete',stopReason:converged?'two-clean-full-scans':'safety-cap',
@@ -241,19 +265,24 @@ function subgame(matrix:MatrixSnapshot,ids:readonly string[]):EquilibriumResult{
   if(indexes.some((index)=>index<0))throw new Error('Missing subgame strategy.');
   return solveEquilibrium([...ids],indexes.map((row)=>indexes.map((column)=>matrix.centeredPayoffs[row]![column]!)));
 }
-export function validateFixedReservoirPsroArtifact(value: unknown, pool: FixedReservoirPoolArtifact): boolean {
+export function validateFixedReservoirPsroArtifact(
+  value: unknown, pool: FixedReservoirPoolArtifact, options: FixedReservoirRunOptions = {}
+): boolean {
   try {
+    const { evaluationSeed, protocol } = runOptions(options);
     if (!value||typeof value!=='object') return false;
     const artifact=value as Partial<FixedReservoirPsroArtifact>;
     if (artifact.schemaVersion!==1||artifact.experiment!=='fixed-reservoir-psro'||artifact.version!==FIXED_RESERVOIR_VERSION
-      ||artifact.poolSeed!==pool.poolSeed||artifact.evaluationSeed!==FIXED_RESERVOIR_EVALUATION_SEED
+      ||artifact.kingdomId!==pool.kingdomId||artifact.poolSeed!==pool.poolSeed||artifact.evaluationSeed!==evaluationSeed
       ||artifact.poolHash!==pool.generatedHash||artifact.reservoirHash!==pool.reservoirHash
+      ||JSON.stringify(artifact.rulesFingerprint)!==JSON.stringify(
+        rulesFingerprint(pool.kingdomId,TURN_LIMIT_PER_PLAYER,ACTION_CAP_PER_TURN,false))
       ||!Array.isArray(artifact.rounds)||!artifact.matrix||!artifact.equilibrium||!artifact.seedNamespaces) return false;
     const matrix=artifact.matrix;const ids=new Set(pool.reservoir.map((entry)=>entry.strategy.id));
     if(matrix.strategies.some((strategy)=>!ids.has(strategy.id))||!matrix.complete
       ||matrix.cells.length!==matrix.strategies.length*(matrix.strategies.length-1)/2) return false;
     const matrixSeeds=artifact.seedNamespaces.matrix;
-    if(!matrixSeeds||matrixSeeds.length!==FIXED_RESERVOIR_CONFIG.matrixBlocks)return false;
+    if(!matrixSeeds||matrixSeeds.length!==protocol.matrixBlocks)return false;
     const matrixIndex=new Map(matrix.strategies.map((strategy,index)=>[strategy.id,index]));
     for(const cell of matrix.cells){const row=matrixIndex.get(cell.rowId),column=matrixIndex.get(cell.columnId);
       if(row===undefined||column===undefined||!cell.complete||cell.blocks.length!==matrixSeeds.length
@@ -262,21 +291,22 @@ export function validateFixedReservoirPsroArtifact(value: unknown, pool: FixedRe
       const centered=2*cell.blocks.reduce((sum,block)=>sum+block.score*block.played,0)/played-1;
       if(!near(centered,cell.centeredPayoff)||!near(matrix.centeredPayoffs[row]![column]!,centered))return false;
     }
-    const ledger=new RandomPsroSeedLedger(FIXED_RESERVOIR_EVALUATION_SEED);
-    ledger.reserve('matrix',FIXED_RESERVOIR_CONFIG.matrixBlocks);
-    let active=pool.reservoir.filter((entry)=>entry.source==='goldfish').slice(0,FIXED_RESERVOIR_CONFIG.initialStrategies)
+    const ledger=new RandomPsroSeedLedger(evaluationSeed);
+    ledger.reserve('matrix',protocol.matrixBlocks);
+    let active=pool.reservoir.filter((entry)=>entry.source==='goldfish').slice(0,protocol.initialStrategies)
       .map((entry)=>entry.strategy.id).sort();
     let streak=0;
     for (const [index,round] of artifact.rounds.entries()) {
-      const race=ledger.reserve(`round:${index}:race`,FIXED_RESERVOIR_CONFIG.raceBlocks.reduce((a,b)=>a+b,0));
-      const confirmation=ledger.reserve(`round:${index}:confirmation`,FIXED_RESERVOIR_CONFIG.confirmationBlocks);
-      ledger.reserve(`round:${index}:sampling`,FIXED_RESERVOIR_CONFIG.raceBlocks.length+1);
-      ledger.reserve(`round:${index}:bootstrap`,FIXED_RESERVOIR_CONFIG.finalists);
+      const race=ledger.reserve(`round:${index}:race`,protocol.raceBlocks.reduce((a,b)=>a+b,0));
+      const confirmation=ledger.reserve(`round:${index}:confirmation`,protocol.confirmationBlocks);
+      ledger.reserve(`round:${index}:sampling`,protocol.raceBlocks.length+1);
+      ledger.reserve(`round:${index}:bootstrap`,protocol.finalists);
       const before=subgame(matrix,active);
       if(round.round!==index||round.scannedCount!==pool.reservoir.length-active.length
         ||round.raceSeeds.join('|')!==race.join('|')||round.confirmationSeeds.join('|')!==confirmation.join('|')
         ||!sameEquilibrium({...before,weights:round.targetWeights},before)) return false;
-      const expected=round.finalists.filter((entry)=>entry.interval95.lower>0.5).map((entry)=>entry.strategy.id);
+      const expected=round.finalists.filter((entry)=>entry.interval95.lower>protocol.admissionLowerBound)
+        .map((entry)=>entry.strategy.id);
       if(expected.join('|')!==round.admittedStrategyIds.join('|')||expected.some((id)=>active.includes(id)))return false;
       active=[...active,...expected].sort();const after=subgame(matrix,active);
       if(!sameEquilibrium(round.equilibriumAfter,after))return false;
@@ -286,7 +316,7 @@ export function validateFixedReservoirPsroArtifact(value: unknown, pool: FixedRe
     if(JSON.stringify(ledger.namespaces)!==JSON.stringify(artifact.seedNamespaces)
       ||active.join('|')!==matrix.strategies.map((strategy)=>strategy.id).sort().join('|'))return false;
     const final=subgame(matrix,active);if(!sameEquilibrium(artifact.equilibrium,final))return false;
-    const converged=streak>=FIXED_RESERVOIR_CONFIG.cleanScansRequired;
+    const converged=streak>=protocol.cleanScansRequired;
     return artifact.status===(converged?'converged':'incomplete')
       && artifact.stopReason===(converged?'two-clean-full-scans':'safety-cap');
   } catch { return false; }
