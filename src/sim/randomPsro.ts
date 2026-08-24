@@ -9,13 +9,15 @@ import type { BootstrapInterval, CandidateEvaluation } from './mixtureEvaluation
 import { createMatrixCellCache, matrixProtocol, PayoffMatrix } from './payoffMatrix';
 import type { MatrixSnapshot } from './payoffMatrix';
 import type { PairingRunner } from './pairingRunner';
+import { proposeResponsePortfolio } from './responsePortfolio';
+import type { ResponseProposalDiagnostics } from './responsePortfolio';
 import { ResponsePolicyDomain } from './responsePolicyGrammar';
 import { rulesFingerprint } from './rulesFingerprint';
 import type { RulesFingerprint } from './rulesFingerprint';
 import { canonicalStrategy, identify, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 
-export const RANDOM_PSRO_VERSION = 'random-psro-v4';
+export const RANDOM_PSRO_VERSION = 'random-psro-v5';
 export const RANDOM_PSRO_SUITE_SEEDS = Object.freeze([35_001, 35_002] as const);
 export const RANDOM_PSRO_DEFAULT_CONFIG = Object.freeze({
   initialStrategies: 8,
@@ -56,6 +58,7 @@ export interface RandomOracleRound {
   targetWeights: Record<string, number>;
   proposalSeed: number;
   uniqueProposals: number;
+  proposalDiagnostics: ResponseProposalDiagnostics;
   raceScheduleSeeds: number[];
   confirmationScheduleSeeds: number[];
   archiveCandidateIds: string[];
@@ -72,6 +75,7 @@ export interface RandomOracleRound {
 export interface RandomAttackResult {
   proposalSeed: number;
   uniqueProposals: number;
+  proposalDiagnostics: ResponseProposalDiagnostics;
   scheduleSeeds: number[];
   finalists: ConfirmedCandidate[];
   best: ConfirmedCandidate | null;
@@ -79,7 +83,7 @@ export interface RandomAttackResult {
 }
 
 export interface RandomPsroArtifact {
-  schemaVersion: 3;
+  schemaVersion: 4;
   experiment: 'random-first-psro-consistency';
   suiteVersion: typeof RANDOM_PSRO_VERSION;
   createdAt: string;
@@ -213,6 +217,7 @@ interface OracleBatchInput {
   runner: PairingRunner;
   ledger: RandomPsroSeedLedger;
   archive?: readonly ConfirmedCandidate[];
+  parents?: readonly Strategy[];
 }
 
 function ordered(evaluations: readonly CandidateEvaluation[]): CandidateEvaluation[] {
@@ -234,8 +239,8 @@ async function raceField(
 }
 
 async function randomBatch(input: OracleBatchInput): Promise<{
-  proposalSeed: number; uniqueProposals: number; raceSeeds: number[];
-  confirmationSeeds: number[]; finalists: ConfirmedCandidate[];
+  proposalSeed: number; uniqueProposals: number; proposalDiagnostics: ResponseProposalDiagnostics;
+  raceSeeds: number[]; confirmationSeeds: number[]; finalists: ConfirmedCandidate[];
 }> {
   const count = input.kind === 'attack' ? input.config.independentAttackProposalCount : input.config.proposalCount;
   const label = `${input.kind}:${input.round}`;
@@ -246,8 +251,13 @@ async function randomBatch(input: OracleBatchInput): Promise<{
   const seed = input.ledger.reserve(`${label}:proposal`, 1)[0]!;
   const opponents = weightedStrategies(input.snapshot, input.equilibrium);
   const archive = input.kind === 'oracle' ? [...(input.archive ?? [])] : [];
-  const known = new Set([...input.snapshot.strategies.map(canonicalStrategy), ...archive.map((entry) => canonicalStrategy(entry.strategy))]);
-  const fresh = uniqueRandomPolicies(input.domain, seed, count, known);
+  const parents = [...weightedStrategies(input.snapshot, input.equilibrium).map((entry) => entry.strategy),
+    ...(input.parents ?? [])];
+  const known = new Set([...input.snapshot.strategies.map(canonicalStrategy),
+    ...archive.map((entry) => canonicalStrategy(entry.strategy)), ...parents.map(canonicalStrategy)]);
+  const proposal = proposeResponsePortfolio({ kingdom: kingdomOf(input.domain.kingdomId), seed, count,
+    excludedCanonical: known, parents });
+  const fresh = proposal.policies;
   const budget = randomRacingBudget(fresh.length, input.config.raceBlocks)
     + (archive.length ? randomRacingBudget(archive.length, input.config.raceBlocks) : 0);
   const objective = new BudgetedResponseObjective({ kingdomId: input.domain.kingdomId, opponents,
@@ -260,7 +270,8 @@ async function randomBatch(input: OracleBatchInput): Promise<{
   const finalists = ordered([...archiveRaced, ...freshRaced]).slice(0, input.config.finalists)
     .map((entry) => entry.strategy);
   const uniqueProposals = fresh.length;
-  if (!finalists.length) return { proposalSeed: seed, uniqueProposals, raceSeeds, confirmationSeeds, finalists: [] };
+  if (!finalists.length) return { proposalSeed: seed, uniqueProposals,
+    proposalDiagnostics: proposal.diagnostics, raceSeeds, confirmationSeeds, finalists: [] };
   const weights = input.equilibrium.weights;
   const opponentMap = new Map(input.snapshot.strategies.map((strategy) => [strategy.id, strategy]));
   const schedule = mixtureSchedule(weights, confirmationSeeds, samplingSeeds[1]!);
@@ -271,7 +282,8 @@ async function randomBatch(input: OracleBatchInput): Promise<{
   });
   const evidence = evaluations.map((entry, index) => confirmed(entry, bootstrapSeeds[index]!))
     .sort((left, right) => right.mean - left.mean || left.strategy.id.localeCompare(right.strategy.id));
-  return { proposalSeed: seed, uniqueProposals, raceSeeds, confirmationSeeds, finalists: evidence };
+  return { proposalSeed: seed, uniqueProposals, proposalDiagnostics: proposal.diagnostics,
+    raceSeeds, confirmationSeeds, finalists: evidence };
 }
 
 export function convergenceState(cleanStreak: number, admitted: boolean, required = 5): {
@@ -282,13 +294,13 @@ export function convergenceState(cleanStreak: number, admitted: boolean, require
 }
 
 export function summarizeIndependentAttack(
-  proposalSeed: number, uniqueProposals: number, scheduleSeeds: readonly number[],
-  finalists: readonly ConfirmedCandidate[], threshold: number
+  proposalSeed: number, uniqueProposals: number, proposalDiagnostics: ResponseProposalDiagnostics,
+  scheduleSeeds: readonly number[], finalists: readonly ConfirmedCandidate[], threshold: number
 ): RandomAttackResult {
   const retained = [...finalists];
   const best = [...retained].sort((left, right) => right.interval95.lower - left.interval95.lower
     || right.mean - left.mean || left.strategy.id.localeCompare(right.strategy.id))[0] ?? null;
-  return { proposalSeed, uniqueProposals, scheduleSeeds: [...scheduleSeeds], finalists: retained, best,
+  return { proposalSeed, uniqueProposals, proposalDiagnostics, scheduleSeeds: [...scheduleSeeds], finalists: retained, best,
     confirmedAboveThreshold: retained.some((entry) => entry.interval95.lower > threshold) };
 }
 
@@ -323,7 +335,8 @@ export async function runRandomPsro(
     const archiveCandidateIds = reconsidered.map((entry) => entry.strategy.id);
     const archiveForms = new Set(reconsidered.map((entry) => canonicalStrategy(entry.strategy)));
     const batch = await randomBatch({ kind: 'oracle', round, config,
-      domain, snapshot, equilibrium, runner, ledger, archive: reconsidered });
+      domain, snapshot, equilibrium, runner, ledger, archive: reconsidered,
+      parents: archive.map((entry) => entry.strategy) });
     const freshFinalistIds = batch.finalists.filter((entry) => !archiveForms.has(canonicalStrategy(entry.strategy)))
       .map((entry) => entry.strategy.id);
     const archiveFinalistIds = batch.finalists.filter((entry) => archiveForms.has(canonicalStrategy(entry.strategy)))
@@ -343,7 +356,8 @@ export async function runRandomPsro(
     cleanStreak = state.cleanStreak;
     cleanConvergence = state.converged;
     rounds.push({ round, targetWeights, proposalSeed: batch.proposalSeed,
-      uniqueProposals: batch.uniqueProposals, raceScheduleSeeds: batch.raceSeeds,
+      uniqueProposals: batch.uniqueProposals, proposalDiagnostics: batch.proposalDiagnostics,
+      raceScheduleSeeds: batch.raceSeeds,
       confirmationScheduleSeeds: batch.confirmationSeeds, archiveCandidateIds,
       freshFinalistIds, archiveFinalistIds, finalists: batch.finalists,
       admittedStrategyIds: admitted.map((entry) => entry.strategy.id), archiveSizeAfter: archive.length,
@@ -355,9 +369,11 @@ export async function runRandomPsro(
   let independentAttack: RandomAttackResult | null = null;
   if (cleanConvergence) {
     const attackBatch = await randomBatch({ kind: 'attack', round: rounds.length,
-      config, domain, snapshot, equilibrium, runner, ledger });
+      config, domain, snapshot, equilibrium, runner, ledger,
+      parents: archive.map((entry) => entry.strategy) });
     independentAttack = summarizeIndependentAttack(attackBatch.proposalSeed,
-      attackBatch.uniqueProposals, attackBatch.confirmationSeeds, attackBatch.finalists,
+      attackBatch.uniqueProposals, attackBatch.proposalDiagnostics,
+      attackBatch.confirmationSeeds, attackBatch.finalists,
       config.admissionLowerBound);
   }
   const converged = cleanConvergence && independentAttack?.confirmedAboveThreshold === false;
@@ -365,7 +381,7 @@ export async function runRandomPsro(
     : cleanConvergence ? 'independent-attack-found' : 'safety-cap';
   ledger.validate();
   return {
-    schemaVersion: 3, experiment: 'random-first-psro-consistency', suiteVersion: RANDOM_PSRO_VERSION,
+    schemaVersion: 4, experiment: 'random-first-psro-consistency', suiteVersion: RANDOM_PSRO_VERSION,
     createdAt: new Date().toISOString(), kingdom, rulesFingerprint: fingerprint, runSeed: options.seed,
     config, status: converged ? 'converged' : 'incomplete', stopReason, rounds, archive,
     matrix: snapshot, equilibrium, independentAttack, seedNamespaces: ledger.namespaces,
@@ -428,7 +444,7 @@ export function validateRandomPsroArtifact(
     const config = completeConfig(expected.config);
     const kingdom = kingdomOf(expected.kingdomId);
     const fingerprint = rulesFingerprint(expected.kingdomId, TURN_LIMIT_PER_PLAYER, ACTION_CAP_PER_TURN, false);
-    if (artifact?.schemaVersion !== 3 || artifact.experiment !== 'random-first-psro-consistency'
+    if (artifact?.schemaVersion !== 4 || artifact.experiment !== 'random-first-psro-consistency'
       || artifact.suiteVersion !== RANDOM_PSRO_VERSION) throw new Error('wrong random PSRO schema or version');
     if (artifact.runSeed !== expected.seed || !exact(artifact.kingdom, kingdom)) throw new Error('wrong kingdom or seed');
     if (!exact(artifact.config, config)) throw new Error('configuration is stale');
@@ -529,6 +545,17 @@ export function validateRandomPsroArtifact(
         || round.proposalSeed !== namespaces[`${label}:proposal`]![0]) {
         throw new Error('oracle round schedule, archive, or target chain is stale');
       }
+      const activeStrategies = activeIds.map((id) => strategies.find((strategy) => strategy.id === id)!);
+      const proposalParents = [...activeStrategies.filter((strategy) => (before.weights[strategy.id] ?? 0) > 0),
+        ...reconstructedArchive.map((entry) => entry.strategy)];
+      const regenerated = proposeResponsePortfolio({ kingdom, seed: round.proposalSeed,
+        count: config.proposalCount,
+        excludedCanonical: new Set([...activeStrategies, ...reconstructedArchive.map((entry) => entry.strategy)]
+          .map(canonicalStrategy)), parents: proposalParents });
+      if (!exact(round.proposalDiagnostics, regenerated.diagnostics)) {
+        throw new Error('oracle proposal source or recipe evidence is stale');
+      }
+      const generatedForms = new Set(regenerated.policies.map(canonicalStrategy));
       if (round.finalists.length > config.finalists) throw new Error('oracle finalist count exceeds its cap');
       const archiveCandidateSet = new Set(round.archiveCandidateIds);
       const expectedFresh: string[] = [], expectedArchived: string[] = [];
@@ -538,7 +565,11 @@ export function validateRandomPsroArtifact(
         const form = canonicalStrategy(finalist.strategy);
         if (activeForms.has(form) || finalistForms.has(form)) throw new Error('oracle finalist is not novel');
         finalistForms.add(form);
-        (archiveCandidateSet.has(finalist.strategy.id) ? expectedArchived : expectedFresh).push(finalist.strategy.id);
+        if (archiveCandidateSet.has(finalist.strategy.id)) expectedArchived.push(finalist.strategy.id);
+        else {
+          if (!generatedForms.has(form)) throw new Error('oracle fresh finalist lacks proposal evidence');
+          expectedFresh.push(finalist.strategy.id);
+        }
         if (!archivedForms.has(form)) { archivedForms.add(form); reconstructedArchive.push(finalist); }
       }
       if (!exact(round.freshFinalistIds, expectedFresh) || !exact(round.archiveFinalistIds, expectedArchived)
@@ -596,17 +627,29 @@ export function validateRandomPsroArtifact(
         || attack.proposalSeed !== namespaces[`${label}:proposal`]![0]) {
         throw new Error('independent attack schedule is stale');
       }
+      const attackParents = [...strategies.filter((strategy) => (computedFinal.weights[strategy.id] ?? 0) > 0),
+        ...reconstructedArchive.map((entry) => entry.strategy)];
+      const regenerated = proposeResponsePortfolio({ kingdom, seed: attack.proposalSeed,
+        count: config.independentAttackProposalCount,
+        excludedCanonical: new Set([...strategies, ...reconstructedArchive.map((entry) => entry.strategy)]
+          .map(canonicalStrategy)), parents: attackParents });
+      if (!exact(attack.proposalDiagnostics, regenerated.diagnostics)) {
+        throw new Error('independent attack proposal source or recipe evidence is stale');
+      }
+      const generatedForms = new Set(regenerated.policies.map(canonicalStrategy));
       if (attack.finalists.length > config.finalists) throw new Error('attack finalist count exceeds its cap');
       const finalForms = new Set(strategies.map(canonicalStrategy));
       const attackForms = new Set<string>();
       for (const finalist of attack.finalists) {
         validateConfirmedCandidate(finalist, domain, config.confirmationBlocks, 'attack finalist');
         const form = canonicalStrategy(finalist.strategy);
-        if (finalForms.has(form) || attackForms.has(form)) throw new Error('attack finalist is not novel');
+        if (finalForms.has(form) || attackForms.has(form) || !generatedForms.has(form)) {
+          throw new Error('attack finalist is not novel or lacks proposal evidence');
+        }
         attackForms.add(form);
       }
       const summary = summarizeIndependentAttack(attack.proposalSeed, attack.uniqueProposals,
-        attack.scheduleSeeds, attack.finalists, config.admissionLowerBound);
+        attack.proposalDiagnostics, attack.scheduleSeeds, attack.finalists, config.admissionLowerBound);
       if (!exact(attack.best, summary.best) || attack.confirmedAboveThreshold !== summary.confirmedAboveThreshold) {
         throw new Error('independent attack result flag is stale');
       }

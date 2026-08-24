@@ -126,7 +126,7 @@ export async function runRandomPsroBatch(
     }
   }
   writeAtomic(path.join(suiteRoot(options.root), 'status.json'), {
-    schemaVersion: 1, suiteVersion: RANDOM_PSRO_VERSION, config: { ...RANDOM_PSRO_DEFAULT_CONFIG, ...options.config },
+    schemaVersion: 2, suiteVersion: RANDOM_PSRO_VERSION, config: { ...RANDOM_PSRO_DEFAULT_CONFIG, ...options.config },
     total: units.length, ...result
   });
   return result;

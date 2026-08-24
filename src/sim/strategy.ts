@@ -28,13 +28,17 @@ export function fixedBuyPlan(slots: readonly BuyPlanSlot[]): BuyPlanSlot[] {
 /** Removes cumulative buy targets that cannot change the executable purchase ladder. */
 export function normalizeCumulativeBuyTargets(slots: readonly BuyPlanSlot[]): BuyPlanSlot[] {
   const highest = new Map<string, number>();
-  const active = slots.filter((slot) => slot.kind !== 'inactive').flatMap((slot): BuyPlanSlot[] => {
-    if (slot.kind !== 'buy') return [{ ...slot }];
+  const active: BuyPlanSlot[] = [];
+  for (const slot of slots) {
+    if (slot.kind === 'inactive') continue;
+    if (slot.kind !== 'buy') { active.push({ ...slot }); continue; }
     const previous = highest.get(slot.cardId) ?? 0;
-    if (previous === INFINITE_COUNT || slot.desiredCount <= previous) return [];
+    if (previous === INFINITE_COUNT || slot.desiredCount <= previous) continue;
+    const contiguous = active.at(-1);
+    if (contiguous?.kind === 'buy' && contiguous.cardId === slot.cardId) active.pop();
     highest.set(slot.cardId, slot.desiredCount);
-    return [{ ...slot }];
-  });
+    active.push({ ...slot });
+  }
   return fixedBuyPlan(active);
 }
 

@@ -112,9 +112,9 @@ describe('random-first policy grammar and evidence', () => {
     const reduced = domain.complete([
       `buy:${card}:5`, `buy:${card}:2`, `buy:${card}:5`, `buy:${other}:2`
     ], `floor:${other}`);
-    expect(domain.decode(reduced).prefix).toEqual([`buy:${card}:5`, `buy:${other}:2`]);
+    expect(domain.decode(reduced).prefix).toEqual([`buy:${card}:5`]);
     const increasing = domain.complete([`buy:${card}:2`, `buy:${card}:5`], `floor:${other}`);
-    expect(domain.decode(increasing).prefix).toEqual([`buy:${card}:2`, `buy:${card}:5`]);
+    expect(domain.decode(increasing).prefix).toEqual([`buy:${card}:5`]);
     expect(normalizeCumulativeBuyTargets([
       { kind: 'buy', cardId: card!, desiredCount: INFINITE_COUNT },
       { kind: 'buy', cardId: card!, desiredCount: 5 },
@@ -188,6 +188,9 @@ describe('random PSRO artifacts and resumability', () => {
     rejects('terminal streak', (copy) => { copy.rounds.at(-1)!.cleanStreak = 1; });
     rejects('archive', (copy) => { copy.archive.push(structuredClone(copy.archive[0]!)); });
     rejects('archive reconsideration', (copy) => { copy.rounds[1]!.archiveCandidateIds = []; });
+    rejects('proposal source counts', (copy) => { copy.rounds[0]!.proposalDiagnostics.sourceCounts.semantic += 1; });
+    rejects('recipe coverage', (copy) => { copy.rounds[0]!.proposalDiagnostics.recipeCoverage.coveredCoreIds.pop(); });
+    rejects('proposal hash', (copy) => { copy.independentAttack!.proposalDiagnostics.proposalHash = 'malformed'; });
     rejects('attack evidence', (copy) => { copy.independentAttack!.finalists[0]!.blocks += 1; });
     rejects('attack flag', (copy) => { copy.independentAttack!.confirmedAboveThreshold = true; });
     rejects('seed overlap', (copy) => {
@@ -232,11 +235,13 @@ describe('random PSRO artifacts and resumability', () => {
     passing.strategy = stoplessRandomDomain(setup()).randomComplete(new SeededRandom(98));
     passing.mean = 0.7; passing.interval95 = { lower: 0.6, upper: 0.8 };
     finalists[0]!.mean = 0.9; finalists[0]!.interval95 = { lower: 0.50, upper: 1 };
-    const result = summarizeIndependentAttack(1, 2, [3, 4], [finalists[0]!, passing], 0.50);
+    const diagnostics = artifact.independentAttack!.proposalDiagnostics;
+    const result = summarizeIndependentAttack(1, 2, diagnostics, [3, 4], [finalists[0]!, passing], 0.50);
     expect(result.finalists).toHaveLength(2);
     expect(result.best?.strategy.id).toBe(passing.strategy.id);
     expect(result.confirmedAboveThreshold).toBe(true);
-    expect(summarizeIndependentAttack(1, 1, [3], [finalists[0]!], 0.50).confirmedAboveThreshold).toBe(false);
+    expect(summarizeIndependentAttack(1, 1, diagnostics, [3], [finalists[0]!], 0.50)
+      .confirmedAboveThreshold).toBe(false);
   });
 
   it('marks a clean-streak artifact incomplete when final validation finds an admissible attack', async () => {

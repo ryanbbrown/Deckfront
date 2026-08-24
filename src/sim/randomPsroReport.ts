@@ -71,6 +71,7 @@ export interface KingdomConsistencyReport {
   kingdomId: string;
   runs: { seed: number; converged: boolean; archetypes: ArchetypeSummary[];
     support: { id: string; archetype: string; weight: number; plan: string }[];
+    proposalDiagnostics: RandomPsroArtifact['rounds'][number]['proposalDiagnostics'][];
     independentAttack: NonNullable<RandomPsroArtifact['independentAttack']> }[];
   crossPlay: LotteryEvaluation;
   reverseCrossPlay: LotteryEvaluation;
@@ -291,6 +292,7 @@ function runSummary(seed: number, artifact: RandomPsroArtifact): KingdomConsiste
     support: supportStrategies(artifact).map((entry) => ({ id: entry.strategy.id,
       archetype: strategyArchetype(entry.strategy), weight: entry.weight,
       plan: entry.strategy.buyPlan.filter((slot) => slot.kind !== 'inactive').map(formatSlot).join(' → ') })),
+    proposalDiagnostics: artifact.rounds.map((round) => round.proposalDiagnostics),
     independentAttack: artifact.independentAttack };
 }
 
@@ -464,7 +466,12 @@ export function renderRandomPsroConsistencyReport(report: RandomPsroConsistencyR
     for (const run of kingdom.runs) {
       const shares = run.archetypes.map((entry) => `${entry.archetype} ${percent(entry.selectedShare)} [${percent(entry.range.minimum)}–${percent(entry.range.maximum)}]`).join('; ');
       const attack = run.independentAttack.best;
+      const batches = [...run.proposalDiagnostics, run.independentAttack.proposalDiagnostics];
+      const minimumCovered = Math.min(...batches.map((entry) => entry.recipeCoverage.coveredCoreIds.length));
+      const availableCores = batches[0]?.recipeCoverage.availableCoreIds.length ?? 0;
+      const allocation = batches[0]?.sourceCounts;
       lines.push(`- Seed ${run.seed}: ${run.converged ? 'converged' : 'incomplete'}; ${shares}; attack ${attack ? `${percent(attack.mean)} (${percent(attack.interval95.lower)} lower)` : 'none'}.`,
+        `  Proposal portfolio: ${allocation?.semantic ?? 0} semantic / ${allocation?.local ?? 0} local / ${allocation?.unrestricted ?? 0} unrestricted per batch; minimum core coverage ${minimumCovered}/${availableCores}.`,
         `  Strategies: ${run.support.map((entry) => `${entry.id} ${percent(entry.weight)} ${entry.archetype}: ${entry.plan}`).join(' | ')}`);
     }
     if (kingdom.kingdom001Comparison) lines.push(`- K001 old-support gate: ${gate(kingdom.kingdom001Comparison.oldSupportGate)} from ${kingdom.kingdom001Comparison.pooledOldSupportCount} pooled support strategies.`);

@@ -114,7 +114,9 @@ describe('the shared response policy grammar', () => {
   it('builds one legal canonical draft-off policy at every allowed length', () => {
     const grammar = domain();
     for (let length = 0; length <= grammar.maxPrefixSlots; length += 1) {
-      const prefix = grammar.prefixTokens.filter((token): token is PrefixToken => token.startsWith('buy:')).slice(0, length);
+      const floorCard = grammar.floorTokens[0]!.slice('floor:'.length);
+      const prefix = grammar.purchaseIds.filter((cardId) => cardId !== floorCard).slice(0, length)
+        .map((cardId): PrefixToken => `buy:${cardId}:1`);
       const policy = grammar.complete(prefix, grammar.floorTokens[0]!);
       expect(grammar.decode(policy).prefix).toHaveLength(length);
       expect(policy.startingBuild).toEqual([]);
@@ -180,14 +182,16 @@ describe('dependency-aware CEM', () => {
   it('updates complete ordered policies by their preceding token and keeps exploration', () => {
     const grammar = domain();
     const first = grammar.prefixTokens[0]!;
-    const second = grammar.prefixTokens[1]!;
+    const firstCard = first.split(':')[1];
+    const second = grammar.prefixTokens.find((token) => token.split(':')[1] !== firstCard)!;
     const floor = grammar.floorTokens[1]!;
     const model = new DependencyAwareCemModel(grammar, { smoothing: 0.8, explorationFloor: 0.05 });
     const before = model.prefixProbability(2, 1, first, second);
     model.update(Array<Strategy>(10).fill(grammar.complete([first, second], floor)));
     expect(model.prefixProbability(2, 1, first, second)).toBeGreaterThan(before);
     expect(model.prefixProbability(5, 1, first, second)).toBeGreaterThan(before);
-    expect(model.prefixProbability(2, 1, first, grammar.prefixTokens[2]!)).toBeGreaterThan(0);
+    const alternative = grammar.prefixTokens.find((token) => token !== second)!;
+    expect(model.prefixProbability(2, 1, first, alternative)).toBeGreaterThan(0);
     expect(model.floorProbability(2, second, floor)).toBeGreaterThan(1 / grammar.floorTokens.length);
   });
 
