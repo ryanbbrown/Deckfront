@@ -247,7 +247,8 @@ describe('complete public card coverage', () => {
   });
 
   it('uses literal Longshot distances and distinct Improvise families', () => {
-    expect(cardDefinition('longshot')).toMatchObject({ headline: 'Damage equal to distance', detail: undefined });
+    expect(cardDefinition('longshot').headline).toBe('Damage equal to distance');
+    expect(cardDefinition('longshot').detail).toBeUndefined();
     for (const [position, damage] of [[3,1],[4,2],[5,3],[6,4]] as const) {
       let state = ready(); state.fighters.ochre.position = 2; state.fighters.indigo.position = position; hand(state,['longshot']); state = play(state,'longshot');
       expect(state.fighters.indigo.health).toBe(40-damage);

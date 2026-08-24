@@ -40,6 +40,7 @@ export interface CardActionPresentation {
   minimumTargets: number;
   maximumTargets: number;
   actionId: string | null;
+  batchPlayable: boolean;
   choices: CardActionChoice[];
 }
 export interface PhaseActionPresentation { id: string; kind: 'endAction' | 'endBuy' }

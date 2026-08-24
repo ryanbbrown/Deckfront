@@ -1,3 +1,4 @@
+import { ARENA_MAX, ARENA_MIN } from '../game';
 import type { CardActionChoice, GameView } from '../shared/api';
 
 export function Board({ game, movementChoices = [], busy = false, onMovement }: {
@@ -6,13 +7,15 @@ export function Board({ game, movementChoices = [], busy = false, onMovement }: 
   busy?: boolean;
   onMovement?: (choice: CardActionChoice) => void;
 }) {
+  const spaces = Array.from({ length: ARENA_MAX - ARENA_MIN + 1 }, (_, index) => ARENA_MIN + index);
   return (
     <div className="arena" aria-label="Six space line arena">
-      {[1, 2, 3, 4, 5, 6].map((space) => {
+      {spaces.map((space) => {
         const fighters = Object.values(game.fighters).filter((candidate) => candidate.position === space);
         const movement = movementChoices.find((choice) => choice.destination === space);
-        const contents = <>
+        return <div key={space} className={`arena-space${movement ? ' arena-space--choice' : ''}`} data-space={space}>
           <span className="arena-space__number">{space}</span>
+          {movement ? <button type="button" className="arena-space__choice-button" aria-label={movement.label} disabled={busy} onClick={() => onMovement?.(movement)}><span className="arena-space__action">{movement.text}</span></button> : null}
           <div className="arena-space__fighters">
             {fighters.map((fighter) => {
               const name = fighter.playerId === 'ochre' ? 'Player 1' : 'Player 2';
@@ -22,10 +25,7 @@ export function Board({ game, movementChoices = [], busy = false, onMovement }: 
               </div>;
             })}
           </div>
-          {movement ? <span className="arena-space__action">{movement.text}</span> : null}
-        </>;
-        return movement ? <button type="button" key={space} className="arena-space arena-space--choice" data-space={space} aria-label={movement.label} disabled={busy} onClick={() => onMovement?.(movement)}>{contents}</button>
-          : <div key={space} className="arena-space" data-space={space}>{contents}</div>;
+        </div>;
       })}
     </div>
   );

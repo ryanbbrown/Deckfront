@@ -127,6 +127,14 @@ describe('local GameService', () => {
     ]);
     expect(JSON.stringify(view.actions)).not.toContain('command');
   });
+  it('projects batch eligibility and excludes cards that can raise follow-up choices', async () => {
+    const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
+    const record = await repository.load(game.id); seedPlayerHand(record, ['muster', 'reclaim', 'prism']); resetReplay(record); await repository.save(record);
+    const view = await service.get(game.id);
+    expect(projectedHandCard(view, record, 'muster').batchPlayable).toBe(true);
+    expect(projectedHandCard(view, record, 'reclaim').batchPlayable).toBe(false);
+    expect(projectedHandCard(view, record, 'prism').batchPlayable).toBe(false);
+  });
   it('maps a wall-collision direction to the current arena edge', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
     const record = await repository.load(game.id); seedPlayerHand(record, ['drive']);

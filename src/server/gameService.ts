@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import {
-  ALWAYS_AVAILABLE_ACTION_IDS, STARTING_BUDGET, STARTING_DECK_COPPER_COUNT, TREASURE_IDS, VARIABLE_ACTION_IDS,
+  ALWAYS_AVAILABLE_ACTION_IDS, ARENA_MAX, ARENA_MIN, STARTING_BUDGET, STARTING_DECK_COPPER_COUNT, TREASURE_IDS, VARIABLE_ACTION_IDS,
   applyCommand, assertInvariants, CARDS, cloneGame, createGame, kingdomMarket,
   listActionAvailability, listLegalActions, marketCost, opponent, randomKingdom, rangeBand, resolveCard,
   registerKingdom, replayCommands
@@ -219,7 +219,7 @@ export class GameService {
         } else if (action.command.type === 'playDrive') {
           const offset = action.command.direction === 'left' ? -1 : 1;
           const proposed = currentPosition + offset;
-          intoWall = proposed < 1 || proposed > 6;
+          intoWall = proposed < ARENA_MIN || proposed > ARENA_MAX;
           destination = intoWall ? currentPosition : proposed;
           text = intoWall ? `Move both ${action.command.direction} into wall` : `Move both ${action.command.direction}`;
         } else if (action.command.type === 'playMoveAction') {
@@ -230,6 +230,8 @@ export class GameService {
         }
         return { ...browserAction(action, text), targetCardInstanceIds, destination, intoWall };
       });
+      const definitionId = state.players[state.activePlayerId].deck.hand.find((card) => card.id === availability.cardInstanceId)?.definitionId;
+      const canRaiseFollowUp = definitionId ? ['reclaim', 'prism', 'regroup', 'sharpen'].includes(resolveCard(state, definitionId).mechanic) : false;
       return {
         cardInstanceId: availability.cardInstanceId,
         enabled: availability.enabled,
@@ -239,6 +241,7 @@ export class GameService {
         minimumTargets: availability.minimumTargets, maximumTargets: availability.maximumTargets,
         actionId: selection === 'none' && legal.length === 1 ? legal[0]!.id
           : selection === 'targets' && availability.minimumTargets === 0 ? legal.find((action) => action.command.type === 'playTargetedAction' && action.command.targetCardInstanceIds.length === 0)?.id ?? null : null,
+        batchPlayable: selection === 'none' && !canRaiseFollowUp,
         choices
       };
     });

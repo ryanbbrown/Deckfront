@@ -61,7 +61,9 @@ test('DD-E2E-002: repeated Copper Silver and Gold buys stay available and show p
 
 test('DD-E2E-003: Footwork offers Stay, draws without moving, then can move into a shared space', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['footwork'], ['aim']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 3; });
-  await page.locator('[data-card-name="Footwork"]').click(); await expect(page.getByRole('button', { name: 'Play Footwork: Left' })).toHaveText(/Left/); await expect(page.getByRole('button', { name: 'Play Footwork: Stay' })).toHaveText(/Stay/); await expect(page.getByRole('button', { name: 'Play Footwork: Right' })).toHaveText(/Right/); await expect(page.getByRole('button', { name: 'Play Footwork: Left' })).toHaveClass(/arena-space--choice/); await expect(page.locator('.choice-bar').filter({ hasText: 'Choose movement' })).toHaveCount(0);
+  await page.locator('[data-card-name="Footwork"]').click(); await expect(page.getByRole('button', { name: 'Play Footwork: Left' })).toHaveText(/Left/); await expect(page.getByRole('button', { name: 'Play Footwork: Stay' })).toHaveText(/Stay/); await expect(page.getByRole('button', { name: 'Play Footwork: Right' })).toHaveText(/Right/); await expect(page.getByRole('button', { name: 'Play Footwork: Left' }).locator('..')).toHaveClass(/arena-space--choice/); await expect(page.locator('.choice-bar').filter({ hasText: 'Choose movement' })).toHaveCount(0);
+  const leftAction = page.getByRole('button', { name: 'Play Footwork: Left' }).locator('.arena-space__action'); expect(await leftAction.evaluate((label) => { const button = label.parentElement!.getBoundingClientRect(); const box = label.getBoundingClientRect(); return button.bottom - box.bottom; })).toBeLessThan(5);
+  await page.getByRole('button', { name: 'Cancel movement' }).click(); await expect(page.locator('.arena-space__choice-button')).toHaveCount(0); await expect(page.locator('[data-card-name="Footwork"]')).not.toHaveClass(/card--selected/); await page.locator('[data-card-name="Footwork"]').click();
   await page.getByRole('button', { name: 'Play Footwork: Stay' }).click(); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '2'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-card-name="Aim"]')).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Stayed on space 2')).toBeVisible();
   await page.getByRole('button', { name: 'Undo last action' }).click(); await page.locator('[data-card-name="Footwork"]').click(); await page.getByRole('button', { name: 'Play Footwork: Right' }).click(); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3'); await expect(page.getByTestId('range')).toHaveText('Close · 0 spaces');
 });
@@ -132,7 +134,7 @@ test('DD-E2E-013: wall-blocked direction is absent and Close blocks Aim and Voll
 
 test('DD-E2E-014: chosen Drive direction into a wall deals exact six damage and moves neither fighter', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['feint', 'drive']); record.state.fighters.ochre.position = 6; record.state.fighters.indigo.position = 6; });
-  await playCard(page, 'Feint'); await page.locator('[data-card-name="Drive"]').click(); await page.getByRole('button', { name: 'Play Drive: Move Both Right' }).click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('34 HP'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '6'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '6'); await expect(page.getByTestId('action-log').getByText('Wall blocked right; neither fighter moved')).toBeVisible();
+  await playCard(page, 'Feint'); await page.locator('[data-card-name="Drive"]').click(); const wall = page.getByRole('button', { name: 'Play Drive: Move Both Right' }); await expect(wall).toContainText('Move both right into wall'); await expect(wall.locator('..')).toHaveAttribute('data-space', '6'); await wall.click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('34 HP'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '6'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '6'); await expect(page.getByTestId('action-log').getByText('Wall blocked right; neither fighter moved')).toBeVisible();
 });
 
 test('DD-E2E-015: two unprepared Near Volleys deal two and Aim plus Near Volley deals three', async ({ page, openGame }) => {
@@ -239,11 +241,12 @@ test('DD-E2E-039: grouped Cull selects two physical copies from one card group',
 });
 
 test('DD-E2E-040: large unique hands overlap and the action rail stays visible', async ({ page, openGame }) => {
-  await page.setViewportSize({ width: 1920, height: 1080 }); await openGame(page, (record) => { seedHand(record, ['copper', 'silver', 'gold', 'step', 'cull', 'focus', 'footwork', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley', 'stipend', 'reclaim', 'adapt']); });
+  await page.setViewportSize({ width: 1920, height: 1080 }); await openGame(page, (record) => { seedHand(record, ['copper', 'silver', 'gold', 'step', 'cull', 'focus', 'footwork', 'muster', 'muster', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley', 'stipend', 'reclaim', 'adapt']); });
   const before = await page.evaluate(() => { const cards = Array.from(document.querySelectorAll<HTMLElement>('.hand-card-slot')); const first = cards[0]!.getBoundingClientRect(); const second = cards[1]!.getBoundingClientRect(); return { count: cards.length, sameRow: cards.every((card) => Math.abs(card.getBoundingClientRect().top - first.top) < 1), delta: second.left - first.left, width: document.querySelector<HTMLElement>('.full-card')!.getBoundingClientRect().width, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth }; });
   expect(before).toMatchObject({ count: 16, sameRow: true, overflow: 0 }); expect(before.delta).toBeLessThan(before.width); expect(before.delta).toBeGreaterThan(0);
-  const footwork = page.locator('[data-testid="hand-grid"] [data-card-name="Footwork"]'); const resting = await footwork.evaluate((card) => getComputedStyle(card).transform); await footwork.hover(); const lifted = await footwork.evaluate((card) => getComputedStyle(card).transform); expect(lifted).not.toBe(resting); await page.mouse.move(0, 0); await footwork.focus(); const focused = await footwork.evaluate((card) => ({ transform: getComputedStyle(card).transform, zIndex: getComputedStyle(card.parentElement!).zIndex })); expect(focused.transform).not.toBe(resting); expect(Number(focused.zIndex)).toBe(250);
-  for (const name of ['Copper', 'Drive']) { const card = page.locator(`[data-testid="hand-grid"] [data-card-name="${name}"]`); await expect(card).toHaveAttribute('aria-disabled', 'true'); const beforeFocus = await card.evaluate((element) => getComputedStyle(element).transform); await card.focus(); await expect(card).toBeFocused(); const afterFocus = await card.evaluate((element) => ({ transform: getComputedStyle(element).transform, zIndex: getComputedStyle(element.parentElement!).zIndex })); expect(afterFocus.transform).not.toBe(beforeFocus); expect(Number(afterFocus.zIndex)).toBe(250); await page.keyboard.press('Enter'); await expect(card).toBeVisible(); } await expect(page.locator('[data-testid="played-row"] [data-played-card-name]')).toHaveCount(0);
+  const footwork = page.locator('[data-testid="hand-grid"] [data-card-name="Footwork"]'); const resting = await footwork.evaluate((card) => getComputedStyle(card).transform); await footwork.hover(); const lifted = await footwork.evaluate((card) => getComputedStyle(card).transform); expect(lifted).not.toBe(resting); await page.mouse.move(0, 0); await footwork.focus(); const focused = await footwork.evaluate((card) => ({ transform: getComputedStyle(card).transform, zIndex: getComputedStyle(card.parentElement!.parentElement!).zIndex })); expect(focused.transform).not.toBe(resting); expect(Number(focused.zIndex)).toBe(250);
+  const controls = await page.locator('[data-card-name="Muster"]').evaluate((card) => { const frame = card.parentElement!.getBoundingClientRect(); const badge = card.parentElement!.querySelector<HTMLElement>('.quantity-badge')!.getBoundingClientRect(); const playAll = card.parentElement!.querySelector<HTMLElement>('.play-all-button')!.getBoundingClientRect(); return { frameWidth: frame.width, badgeAtRight: Math.abs(badge.right - (frame.right + 5)) < 1, playAllInside: playAll.right <= frame.right && playAll.bottom <= frame.bottom }; }); expect(controls).toEqual({ frameWidth: 148, badgeAtRight: true, playAllInside: true });
+  for (const name of ['Copper', 'Drive']) { const card = page.locator(`[data-testid="hand-grid"] [data-card-name="${name}"]`); await expect(card).toHaveAttribute('aria-disabled', 'true'); const beforeFocus = await card.evaluate((element) => getComputedStyle(element).transform); await card.focus(); await expect(card).toBeFocused(); const afterFocus = await card.evaluate((element) => ({ transform: getComputedStyle(element).transform, zIndex: getComputedStyle(element.parentElement!.parentElement!).zIndex })); expect(afterFocus.transform).not.toBe(beforeFocus); expect(Number(afterFocus.zIndex)).toBe(250); await page.keyboard.press('Enter'); await expect(card).toBeVisible(); } await expect(page.locator('[data-testid="played-row"] [data-played-card-name]')).toHaveCount(0);
   await expect(page.getByRole('complementary', { name: 'Action history and deck compositions' })).toBeVisible(); await expect(page.locator('.side-drawer,.edge-toggle')).toHaveCount(0); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Footwork"]')).toHaveText('Footwork×1');
 });
 
@@ -251,13 +254,13 @@ test('DD-E2E-043: a projected pending choice renders and clears after selection'
   await openGame(page, (record) => {
     const kingdom = kingdomOf('three-way-engine'); record.kingdom = kingdom; record.state.kingdomId = kingdom.id;
     record.state.startingHealth = kingdom.startingHealth; record.state.supply = kingdomSupply(kingdom);
-    seedHand(record, ['prism', 'copper'], ['silver']);
+    seedHand(record, ['prism', 'copper', 'copper'], ['silver']);
   });
   await page.locator('[data-card-name="Prism"]').click();
   await expect(page.getByText('Select one card to discard')).toBeVisible();
-  const discard = page.locator('[data-card-name="Copper"]');
+  const discard = page.locator('[data-card-name="Copper"]'); await expect(discard).toHaveAttribute('data-card-count', '2');
   await discard.click(); await expect(discard).toHaveClass(/card--selected/);
-  await page.getByRole('button', { name: 'Confirm discard' }).click();
+  await page.getByRole('button', { name: 'Confirm discard' }).click(); await expect(discard).toHaveAttribute('data-card-count', '1');
   await expect(page.getByText('Select one card to discard')).toHaveCount(0);
   await expect(page.locator('[data-card-name="Silver"]')).toBeVisible();
 });
@@ -386,6 +389,13 @@ test('DD-E2E-051: Sharpen can skip or complete its optional post-draw trash', as
   await page.getByRole('button', { name: 'Confirm trash' }).click();
   await expect(page.locator('[data-card-name="Gold"]')).toHaveCount(0);
   await expect(page.getByTestId('action-log').getByText('Trashed Gold')).toBeVisible();
+
+  await openGame(page, (record) => { seedHand(record, ['sharpen'], ['gold']); });
+  await page.locator('[data-card-name="Sharpen"]').click();
+  const playedSharpen = page.locator('[data-played-card-name="Sharpen"]'); await expect(playedSharpen).toHaveRole('button');
+  await playedSharpen.click(); await expect(playedSharpen).toHaveClass(/card--selected/);
+  await page.getByRole('button', { name: 'Confirm trash' }).click();
+  await expect(playedSharpen).toHaveCount(0); await expect(page.getByTestId('action-log').getByText('Trashed Sharpen')).toBeVisible();
 });
 
 test('DD-E2E-052: Reforge trashes a target and completes its market gain choice', async ({ page, openGame }) => {
@@ -394,9 +404,9 @@ test('DD-E2E-052: Reforge trashes a target and completes its market gain choice'
   await expect(page.getByText('Select 1 card to trash. 0 selected.')).toBeVisible();
   await page.locator('[data-card-name="Copper"]').click();
   await page.getByRole('button', { name: 'Trash selected card' }).click();
-  await expect(page.getByText('Choose a card to gain')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Gain Channel' })).toBeVisible();
-  await page.getByRole('button', { name: 'Gain Channel' }).click();
+  const gainPicker = page.getByRole('dialog', { name: 'Choose a card to gain' }); await expect(gainPicker).toBeVisible();
+  const channel = gainPicker.locator('[data-picker-card="Channel"]'); await expect(channel).toBeVisible(); await expect(channel.locator('.card__headline')).toHaveText('+1 mana · +1 card');
+  await gainPicker.getByRole('button', { name: 'Gain Channel' }).click();
   await expect(page.getByText('Choose a card to gain')).toHaveCount(0);
   await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Channel"]')).toHaveText('Channel×1');
   await expect(page.getByTestId('action-log').getByText('Trashed Copper')).toBeVisible();
@@ -441,14 +451,13 @@ test('DD-E2E-054: Reclaim groups identical discard cards in a canonical picker',
 });
 
 test('DD-E2E-055: Play all resolves direct copies only and movement copies keep their choice', async ({ page, openGame }) => {
-  await openGame(page, (record) => { seedHand(record, ['muster', 'muster', 'muster', 'footwork', 'footwork']); record.state.fighters.ochre.position = 3; });
-  await expect(page.getByRole('button', { name: 'Play all ×3' })).toBeVisible();
-  await expect(page.getByRole('button', { name: /Play all ×2/ })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Play all ×3' }).click();
+  await openGame(page, (record) => { seedHand(record, ['muster', 'muster', 'muster', 'footwork', 'footwork', 'reclaim', 'reclaim', 'sharpen', 'sharpen']); record.state.fighters.ochre.position = 3; });
+  await expect(page.getByRole('button', { name: 'Play all', exact: true })).toHaveCount(1);
+  await page.getByRole('button', { name: 'Play all', exact: true }).click();
   await expect(page.locator('[data-card-name="Muster"]')).toHaveCount(0);
   await expect(page.locator('[data-played-card-name="Muster"]')).toHaveAttribute('data-card-count', '3');
   await page.locator('[data-card-name="Footwork"]').click();
-  await expect(page.getByRole('button', { name: 'Play Footwork: Stay' })).toHaveClass(/arena-space--choice/);
+  await expect(page.getByRole('button', { name: 'Play Footwork: Stay' }).locator('..')).toHaveClass(/arena-space--choice/);
 });
 
 test('DD-E2E-056: hand groups keep turn slots and append newly drawn definitions', async ({ page, openGame }) => {
@@ -464,8 +473,8 @@ test('DD-E2E-056: hand groups keep turn slots and append newly drawn definitions
 
 test('DD-E2E-057: canonical card faces keep long rules inside hand and scaled played cards', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['reclaim', 'reclaim', 'precisionShot', 'salvageShot', 'drive', 'repellingShot']); record.state.fighters.ochre.position = 1; record.state.fighters.indigo.position = 4; });
-  const fit = await page.locator('[data-testid="hand-grid"] .card').evaluateAll((cards) => cards.map((card) => { const cardRect = card.getBoundingClientRect(); const header = card.querySelector('.card__header')!.getBoundingClientRect(); const rules = card.querySelector('.card__rules')!.getBoundingClientRect(); return { headerAtTop: header.top <= cardRect.top + 4, rulesInside: rules.bottom <= cardRect.bottom + 1 }; }));
-  expect(fit.every((entry) => entry.headerAtTop && entry.rulesInside)).toBe(true);
+  const fit = await page.locator('[data-testid="hand-grid"] .card').evaluateAll((cards) => cards.map((card) => { const cardRect = card.getBoundingClientRect(); const header = card.querySelector('.card__header')!.getBoundingClientRect(); const rules = card.querySelector('.card__rules')!.getBoundingClientRect(); return { name: card.getAttribute('data-card-name'), headerOffset: header.top - cardRect.top, rulesOverflow: rules.bottom - cardRect.bottom }; }));
+  expect(fit.filter((entry) => entry.headerOffset > 4 || entry.rulesOverflow > 1)).toEqual([]);
   const precisionCopy = page.locator('[data-card-name="Precision Shot"]');
   await expect(precisionCopy.locator('.card__headline')).toHaveText('4 damage');
   await expect(precisionCopy.locator('.card__detail')).toHaveText('Other Precision Shots you play this turn deal 2 damage instead.');
@@ -479,15 +488,17 @@ test('DD-E2E-048: kingdom piles wrap before the action rail at a narrower deskto
   await page.setViewportSize({ width: 1600, height: 1080 }); await openGame(page);
   const layout = await page.evaluate(() => {
     const root = document.documentElement; const market = document.querySelector<HTMLElement>('.market-zone')!; const rail = document.querySelector<HTMLElement>('.action-rail')!;
-    const piles = [...document.querySelectorAll<HTMLElement>('.market-group:last-of-type [data-market-card]')];
-    const rects = piles.map((pile) => pile.getBoundingClientRect()); const marketRect = market.getBoundingClientRect(); const railRect = rail.getBoundingClientRect();
+    const group = document.querySelector<HTMLElement>('.market-group:last-of-type')!; const row = group.querySelector<HTMLElement>('.compact-market__row')!;
+    const piles = [...group.querySelectorAll<HTMLElement>('[data-market-card]')];
+    const rects = piles.map((pile) => pile.getBoundingClientRect()); const marketRect = market.getBoundingClientRect(); const railRect = rail.getBoundingClientRect(); const groupRect = group.getBoundingClientRect(); const rowRect = row.getBoundingClientRect();
     const rowLefts = [...new Set(rects.map((rect) => Math.round(rect.left)))];
     return {
       count: piles.length, rows: new Set(rects.map((rect) => Math.round(rect.top))).size, columns: rowLefts.length,
       centered: Math.abs((Math.min(...rects.map((rect) => rect.left)) + Math.max(...rects.map((rect) => rect.right))) / 2 - marketRect.left - marketRect.width / 2) < 2,
+      symmetricGutter: Math.abs(rowRect.left - groupRect.left - (groupRect.right - rowRect.right)) < 2,
       clearOfRail: rects.every((rect) => rect.right <= railRect.left), insideMarket: rects.every((rect) => rect.bottom <= marketRect.bottom),
       horizontal: root.scrollWidth - root.clientWidth, vertical: root.scrollHeight - root.clientHeight
     };
   });
-  expect(layout).toEqual({ count: 10, rows: 2, columns: 5, centered: true, clearOfRail: true, insideMarket: true, horizontal: 0, vertical: 0 });
+  expect(layout).toEqual({ count: 10, rows: 2, columns: 5, centered: true, symmetricGutter: true, clearOfRail: true, insideMarket: true, horizontal: 0, vertical: 0 });
 });

@@ -23,7 +23,7 @@ describe('random markets', () => {
   it('defines the six fixed piles and keeps Footwork variable', () => {
     expect([...TREASURE_IDS, ...ALWAYS_AVAILABLE_ACTION_IDS]).toEqual(['copper', 'silver', 'gold', 'step', 'focus']);
     expect(VARIABLE_ACTION_IDS).toContain('footwork'); expect(ALWAYS_AVAILABLE_ACTION_IDS).not.toContain('footwork');
-    expect(CARDS.step).toMatchObject({ headline: 'Move 1 space', detail: undefined });
+    expect(CARDS.step!.headline).toBe('Move 1 space'); expect(CARDS.step!.detail).toBeUndefined();
     expect(VARIABLE_ACTION_IDS).toContain('repellingShot');
     expect(VARIABLE_ACTION_IDS).not.toContain('shot');
     expect(CARDS.shot).toBeUndefined();
