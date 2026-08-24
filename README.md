@@ -122,6 +122,17 @@ Use `--limit 10` for a resumable ten-kingdom balance pilot. At 330 seconds per k
 survive interruption. Inputs, results, and atomic status are ignored under
 `.experiments/deep-beam-suite/deep-beam-v1/`.
 
+The response-optimizer pilot compares stratified beam, uniform complete-policy racing, dependency-aware discrete CEM, and UCT MCTS against one saved target lottery. All four use the same candidate seed-block budget and untouched held-out schedule. Run the recorded one-kingdom configuration with:
+
+```sh
+npm run response-optimizer:pilot -- --kingdom deep-beam-tuning-001 \
+  --budget 60000 --seed 1 --restarts 1 --confirmation-blocks 200 --workers 10
+```
+
+The command prints the held-out comparison and writes ignored JSON under
+`.experiments/response-optimizer-pilot/`. Pass `--out` to choose another ignored result path.
+A score above 52% is a practical exploit. The held-out 95% lower bound must exceed 50% for statistical success.
+
 The search uses policy-space response oracles. It starts each restart from random legal strategies,
 solves a maximum-support equilibrium over the discovered payoff matrix, and searches for a response
 to that weighted strategy mixture. Full mode uses three independent restarts, solves their completed
