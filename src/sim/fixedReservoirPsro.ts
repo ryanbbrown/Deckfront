@@ -73,7 +73,13 @@ export function selectFixedReservoir(
   if (goldfishCount < 1 || randomCount < 1 || scores.length < goldfishCount + randomCount) {
     throw new Error('Fixed reservoir needs two non-empty disjoint cohorts.');
   }
-  const ranked = [...scores].sort(compareMovementAwareGoldfishScores);
+  const rankedAll = [...scores].sort(compareMovementAwareGoldfishScores);
+  const heldIds = new Set<string>();
+  const ranked = rankedAll.filter((entry) => {
+    if (heldIds.has(entry.strategy.id)) return false;
+    heldIds.add(entry.strategy.id); return true;
+  });
+  if (ranked.length < goldfishCount + randomCount) throw new Error('Strategy-id collisions exhausted the reservoir.');
   const top = ranked.slice(0, goldfishCount);
   const topIds = new Set(top.map((entry) => entry.strategy.id));
   const rankById = new Map(ranked.map((entry, index) => [entry.strategy.id, index + 1]));
@@ -101,7 +107,6 @@ export function validateFixedReservoirPool(value: unknown, expected?: { poolSeed
   if (artifact.schemaVersion !== 1 || artifact.experiment !== 'fixed-reservoir-pool'
     || artifact.version !== FIXED_RESERVOIR_VERSION || !Array.isArray(artifact.generatedIds)
     || !Array.isArray(artifact.reservoir) || artifact.generatedIds.length !== artifact.generatedCount
-    || new Set(artifact.generatedIds).size !== artifact.generatedIds.length
     || generatedHash(artifact.generatedIds) !== artifact.generatedHash
     || reservoirHash(artifact.reservoir) !== artifact.reservoirHash) return false;
   if (expected?.poolSeed !== undefined && artifact.poolSeed !== expected.poolSeed) return false;
