@@ -44,7 +44,7 @@ export function App() {
   }
   function newGame() { localStorage.removeItem(ACTIVE_GAME_KEY); setGame(null); setError(null); if (catalog) setMarket(refreshed(catalog.variableCardIds)); }
   if (training) return <main className="training-state"><div><span className="spinner" /><h1>Training opponent…</h1><p>The AI is testing strategies for this kingdom.</p></div></main>;
-  if (loading || !catalog) return <main className="loading">Loading Hexdeck…</main>;
+  if (loading || !catalog) return <main className="loading">Loading Deckfront…</main>;
   if (!game) return <PreviewTable catalog={catalog} market={market} error={error} onRefresh={() => setMarket(refreshed(catalog.variableCardIds))} onStart={start} />;
   return <Game game={game} error={error} onGame={setGame} onError={setError} onNew={newGame} />;
 }

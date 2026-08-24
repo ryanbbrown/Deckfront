@@ -27,7 +27,7 @@ export function PreviewTable({ catalog, market, error, onRefresh, onStart }: {
     <CompactMarket cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} onView={() => setMarketOpen(true)} />
     <EmptyPlayed />
     <section className="hand-panel table-zone"><div className="zone-title"><h2>Your hand</h2><span>Your opening hand appears here.</span></div><div className="hand-row"><p className="empty-row">Start the game to draw five cards.</p></div></section>
-    <SetupRail mode={mode} startingDraftEnabled={startingDraftEnabled} human={human} difficulty={difficulty} onMode={setMode} onStartingDraft={setStartingDraftEnabled} onHuman={setHuman} onDifficulty={setDifficulty} onRefresh={onRefresh} onView={() => setMarketOpen(true)} onStart={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)} />
+    <SetupRail mode={mode} startingDraftEnabled={startingDraftEnabled} human={human} difficulty={difficulty} onMode={setMode} onStartingDraft={setStartingDraftEnabled} onHuman={setHuman} onDifficulty={setDifficulty} onRefresh={onRefresh} onStart={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)} />
     {marketOpen ? <MarketDialog cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} onClose={() => setMarketOpen(false)} /> : null}
   </main>;
 }
@@ -162,19 +162,19 @@ export function Game({ game, error, onGame, onError, onNew }: GameProps) {
   </main>;
 }
 
-function TableHeader({ title, controls }: { title: string; controls: React.ReactNode }) { return <header className="table-header"><div className="brand"><span>Distance duel</span><h1>Hexdeck</h1></div><div className="turn-banner" role="status">{title}</div><div className="table-header__controls">{controls}</div></header>; }
+function TableHeader({ title, controls }: { title: string; controls: React.ReactNode }) { return <header className="table-header"><div className="brand"><h1>Deckfront</h1></div><div className="turn-banner" role="status">{title}</div><div className="table-header__controls">{controls}</div></header>; }
 function PreviewArena() { return <section className="arena-zone table-zone"><div className="range-label">Near · 1 space</div><div className="arena" role="img" aria-label="Six space line arena">{[1,2,3,4,5,6].map((space) => <div className="arena-space" key={space}><span className="arena-space__number">{space}</span>{space === 3 ? <div className="fighter fighter--ochre">P1<small>47 HP</small></div> : null}{space === 4 ? <div className="fighter fighter--indigo">P2<small>50 HP</small></div> : null}</div>)}</div></section>; }
 function EmptyPlayed() { return <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2></div><div className="played-row"><p className="empty-row">Cards move here from your hand.</p></div></section>; }
-function SetupRail({ mode, startingDraftEnabled, human, difficulty, onMode, onStartingDraft, onHuman, onDifficulty, onRefresh, onView, onStart }: {
+function SetupRail({ mode, startingDraftEnabled, human, difficulty, onMode, onStartingDraft, onHuman, onDifficulty, onRefresh, onStart }: {
   mode: GameMode; startingDraftEnabled: boolean; human: PlayerId; difficulty: AiDifficulty;
   onMode: (mode: GameMode) => void; onStartingDraft: (enabled: boolean) => void; onHuman: (playerId: PlayerId) => void;
-  onDifficulty: (difficulty: AiDifficulty) => void; onRefresh: () => void; onView: () => void; onStart: () => void;
+  onDifficulty: (difficulty: AiDifficulty) => void; onRefresh: () => void; onStart: () => void;
 }) {
   return <aside className="setup-rail" aria-label="Game setup"><header><span>Game setup</span><h2>New match</h2></header><div className="setup-rail__body">
     <fieldset className="setup-group"><legend>Opponent</legend><div className="setup-options"><button type="button" aria-pressed={mode === 'local'} onClick={() => onMode('local')}>Local players</button><button type="button" aria-pressed={mode === 'ai'} onClick={() => onMode('ai')}>Play against AI</button></div></fieldset>
     {mode === 'ai' ? <><fieldset className="setup-group"><legend>Turn order</legend><div className="setup-options"><button type="button" aria-pressed={human === 'ochre'} onClick={() => onHuman('ochre')}>I go first</button><button type="button" aria-pressed={human === 'indigo'} onClick={() => onHuman('indigo')}>AI goes first</button></div></fieldset><fieldset className="setup-group"><legend>AI strength</legend><div className="setup-options setup-options--four">{AI_DIFFICULTIES.map((value) => <button type="button" key={value} aria-pressed={difficulty === value} onClick={() => onDifficulty(value)}>{value[0]!.toUpperCase() + value.slice(1)}</button>)}</div></fieldset></> : null}
     <label className="setup-switch"><span><strong>Starting draft</strong><small>{startingDraftEnabled ? 'Build a custom opening deck.' : 'Start with 7 Copper and 3 Scrap.'}</small></span><input type="checkbox" checked={startingDraftEnabled} onChange={(event) => onStartingDraft(event.target.checked)} /><i aria-hidden="true" /></label>
-    <div className="setup-market-actions"><button className="control-button" onClick={onRefresh}>Refresh market</button><button className="control-button" onClick={onView}>View cards</button></div>
+    <div className="setup-market-actions"><button className="control-button" onClick={onRefresh}>Refresh market</button></div>
   </div><button className="control-button primary setup-start" onClick={onStart}>Start game</button></aside>;
 }
 function CompactMarket({ cards, fixedIds, variableIds, supply, onView, onCard, enabled }: {
@@ -196,7 +196,7 @@ function CompactMarket({ cards, fixedIds, variableIds, supply, onView, onCard, e
   };
   const row = (ids: readonly string[]) => <div className="compact-market__row">{ids.map((id) => { const card = cards[id]; if (!card) return null; const available = Boolean(onCard && enabled?.(id)); return <span key={id} className="compact-pile-slot" onContextMenu={(event) => inspect(event, id)}><button data-market-card={card.name} className={`compact-pile pile--${card.family}`} aria-disabled={!available} onClick={() => { if (available) onCard?.(id); }}><strong>{card.name}</strong><span className="compact-pile__cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span>{supply ? <small>{card.type === 'action' ? `${supply[id]} left` : '∞'}</small> : null}</button></span>; })}</div>;
   const inspectedCard = inspection ? cards[inspection.id] : null;
-  return <section className="market-zone table-zone"><div className="zone-title"><h2>Market</h2><button className="text-button" onClick={onView}>View all cards</button></div><div className="market-group"><span>Fixed</span>{row(fixedIds)}</div><div className="market-group"><span>Kingdom</span>{row(variableIds)}</div>{inspection && inspectedCard ? <aside ref={inspectionRef} className="market-card-popover" role="dialog" aria-label={`${inspectedCard.name} details`} style={{ left: inspection.left, top: inspection.top }}><article className={`card full-card card--${inspectedCard.family}`}><CardFace card={inspectedCard} /></article></aside> : null}</section>;
+  return <section className="market-zone table-zone"><div className="zone-title"><h2>Market</h2><button className="text-button" onClick={onView}>Card reference</button></div><div className="market-group"><span>Fixed</span>{row(fixedIds)}</div><div className="market-group"><span>Kingdom</span>{row(variableIds)}</div>{inspection && inspectedCard ? <aside ref={inspectionRef} className="market-card-popover" role="dialog" aria-label={`${inspectedCard.name} details`} style={{ left: inspection.left, top: inspection.top }}><article className={`card full-card card--${inspectedCard.family}`}><CardFace card={inspectedCard} /></article></aside> : null}</section>;
 }
 
 function MarketDialog({ cards, fixedIds, variableIds, onClose }: { cards: Record<string, CardDefinition>; fixedIds: readonly string[]; variableIds: readonly string[]; onClose: () => void }) {

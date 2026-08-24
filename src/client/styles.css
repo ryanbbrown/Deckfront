@@ -19,7 +19,6 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .table-shell--preview { grid-template-columns: minmax(0,1fr) 350px; }
 .table-header { display: grid; grid-template-columns: 190px minmax(220px,1fr) minmax(190px,auto); align-items: center; gap: 12px; padding: 5px 10px; border-bottom: 1px solid #ffffff2b; background: #0d251fdd; }
 .table-header__controls { min-width: 190px; }
-.brand span { color: #9ec4b7; font-size: 10px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
 .brand h1 { font-size: 25px; line-height: 1; }
 .turn-banner { justify-self: center; padding: 8px 18px; border-radius: 5px; background: #ffffff12; font-weight: 850; }
 .phase-controls { display: flex; align-items: center; justify-content: flex-end; gap: 7px; }
@@ -50,6 +49,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .played-summary { display: flex; align-items: center; gap: 12px; }
 .played-summary strong { font-size: 11px; }
 .market-zone { padding-bottom: 5px; }
+.market-zone .text-button { min-height: 20px; padding: 1px 7px; border-color: #ffffff30; border-radius: 4px; color: #d7e3de; font-size: 9px; font-weight: 750; }
 .market-group { display: grid; grid-template-columns: 34px minmax(0,1fr) 34px; align-items: center; min-height: 72px; padding: 2px 8px; border-top: 1px solid #ffffff16; }
 .market-group:last-of-type { min-height: 138px; }
 .market-group > span { align-self: center; justify-self: center; color: #aebdb7; font-size: 10px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
@@ -93,14 +93,19 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .card--melee { border-color: var(--melee); } .card--melee .card__header { background: #843f3a; }
 .card--engine { border-color: var(--engine); } .card--engine .card__header { background: #565c58; }
 .card em { position: absolute; right: 6px; bottom: 6px; left: 6px; padding: 4px; background: #fff2ef; color: #8f2626; font-size: 8px; }
-.played-card-slot { position: relative; flex: 0 0 78px; width: 78px; height: 110px; margin-right: 3px; }
+.played-card-slot { position: relative; flex: 1 1 78px; width: 78px; min-width: 18px; max-width: 78px; height: 110px; }
+.played-card-slot:last-child { flex: 0 0 78px; }
 .played-card { position: absolute; top: 0; left: 0; transform: scale(.5); transform-origin: top left; }
 @media (min-height: 850px) {
-  .played-card-slot { flex-basis: 103px; width: 103px; height: 149px; }
+  .played-card-slot { flex-basis: 103px; width: 103px; max-width: 103px; height: 149px; }
+  .played-card-slot:last-child { flex-basis: 103px; }
   .played-card { transform: scale(.675); }
 }
 .quantity-badge { position: absolute; z-index: 3; top: -9px; right: -10px; display: grid; min-width: 28px; height: 28px; padding: 0 4px; border: 2px solid #fff; border-radius: 20px; background: var(--danger); color: #fff; font-size: 11px; font-weight: 900; place-items: center; }
-.played-card-count { z-index: 4; top: -7px; right: -2px; }
+.played-card-count { z-index: 4; top: -5px; right: auto; left: 60px; transform: scale(.5); transform-origin: top right; }
+@media (min-height: 850px) {
+  .played-card-count { top: -6px; left: 81px; transform: scale(.675); }
+}
 .selected-count { position: absolute; right: 6px; bottom: 6px; left: 6px; padding: 4px; background: var(--danger); color: #fff; font-size: 9px; text-align: center; }
 .card--target,.card--selected { border-color: #ff6258; }
 .play-all-button { position: absolute; z-index: 5; right: 7px; bottom: 7px; min-height: 24px; padding: 3px 6px; border: 1px solid #fff3b8; border-radius: 4px; background: #d7a92f; color: #17201c; font-size: 9px; font-weight: 900; box-shadow: 0 2px 5px #0007; }
@@ -109,14 +114,21 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .hand-choice-controls { position: absolute; z-index: 270; right: 10px; bottom: 8px; display: flex; align-items: center; gap: 5px; padding: 5px 7px; border: 1px solid #917a50; border-radius: 5px; background: #f5edda; color: var(--ink); box-shadow: 0 3px 10px #0007; }
 .hand-choice-controls strong { margin-right: 3px; font-size: 10px; }
 .hand-choice-controls .control-button { min-height: 27px; padding: 3px 7px; font-size: 10px; }
-.market-dialog { width: 100vw; max-width: none; height: 100vh; max-height: none; padding: 0; border: 0; background: #071d18cc; color: #fff; }
+.market-dialog { position: fixed; inset: 0 358px 0 0; width: auto; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; background: #071d18e8; color: #fff; }
 .market-dialog[open] { display: grid; place-items: center; }
-.market-dialog::backdrop { background: #071d18cc; }
-.market-dialog__surface { width: 1320px; height: 540px; margin: 0; padding: 12px 18px 16px; overflow: hidden; border: 1px solid #ffffff52; border-radius: 10px; background: #173c32; box-shadow: 0 20px 60px #0009; }
+.market-dialog::backdrop { background: transparent; }
+.market-dialog__surface { width: min(1320px,calc(100% - 24px)); height: 540px; margin: 0; padding: 12px 18px 16px; overflow: hidden; border: 1px solid #ffffff52; border-radius: 10px; background: #173c32; box-shadow: 0 20px 60px #0009; }
 .market-dialog__surface > header { display: flex; align-items: center; justify-content: space-between; height: 48px; }
 .market-dialog__surface > header span { color: #a8c6ba; font-size: 9px; text-transform: uppercase; }
 .market-dialog__surface > header button { width: 34px; height: 34px; border: 1px solid #ffffff45; border-radius: 5px; background: #fff; color: var(--ink); font-size: 22px; }
-.market-dialog__grid { display: grid; grid-template-columns: repeat(8,148px); grid-template-rows: repeat(2,220px); justify-content: center; gap: 10px; height: 450px; }
+.market-dialog__grid { display: grid; grid-template-columns: repeat(8,148px); grid-template-rows: repeat(2,220px); justify-content: center; gap: 10px; height: 450px; overflow: auto; }
+@media (max-width: 1700px) {
+  .market-dialog__surface { height: min(760px,calc(100% - 24px)); }
+  .market-dialog__grid { grid-template-columns: repeat(7,148px); grid-template-rows: none; grid-auto-rows: 220px; height: calc(100% - 48px); }
+}
+@media (max-width: 1400px) {
+  .market-dialog__grid { grid-template-columns: repeat(5,148px); }
+}
 .reference-card { width: 148px; height: 220px; }
 .market-card-popover { position: fixed; z-index: 280; width: 148px; height: 220px; border: 0; background: transparent; filter: drop-shadow(0 14px 24px #000b); }
 .card-picker { width: 100vw; max-width: none; height: 100vh; max-height: none; padding: 0; border: 0; background: #071d18cc; color: #fff; }
@@ -150,7 +162,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .setup-switch input:checked + i { background: #d0a832; }
 .setup-switch input:checked + i::after { background: #fff; transform: translateX(18px); }
 .setup-switch input:focus-visible + i { outline: 3px solid #ffe087; outline-offset: 2px; }
-.setup-market-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.setup-market-actions { display: grid; }
 .setup-start { width: 100%; min-height: 46px; font-size: 14px; }
 .action-rail { grid-column: 2; grid-row: 1/-1; display: grid; grid-template-rows: minmax(0,1fr) auto; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid #ffffff2b; background: #0a201b; }
 .action-log { display: grid; grid-template-rows: auto minmax(0,1fr); min-height: 0; overflow: hidden; }
