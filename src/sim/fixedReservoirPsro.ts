@@ -231,27 +231,65 @@ export async function runFixedReservoirPsro(pool: FixedReservoirPoolArtifact, ru
     rounds,matrix:snapshot,equilibrium,seedNamespaces:ledger.namespaces,elapsedMs:now()-started};
 }
 
+function near(left:number,right:number,tolerance=1e-6):boolean{return Math.abs(left-right)<=tolerance;}
+function sameEquilibrium(left:EquilibriumResult,right:EquilibriumResult):boolean{
+  if(!near(left.value,right.value)||left.strategyIds.join('|')!==right.strategyIds.join('|'))return false;
+  return left.strategyIds.every((id)=>near(left.weights[id]??0,right.weights[id]??0,1e-5));
+}
+function subgame(matrix:MatrixSnapshot,ids:readonly string[]):EquilibriumResult{
+  const indexes=ids.map((id)=>matrix.strategies.findIndex((strategy)=>strategy.id===id));
+  if(indexes.some((index)=>index<0))throw new Error('Missing subgame strategy.');
+  return solveEquilibrium([...ids],indexes.map((row)=>indexes.map((column)=>matrix.centeredPayoffs[row]![column]!)));
+}
 export function validateFixedReservoirPsroArtifact(value: unknown, pool: FixedReservoirPoolArtifact): boolean {
-  if (!value||typeof value!=='object') return false;
-  const artifact=value as Partial<FixedReservoirPsroArtifact>;
-  if (artifact.schemaVersion!==1||artifact.experiment!=='fixed-reservoir-psro'||artifact.version!==FIXED_RESERVOIR_VERSION
-    ||artifact.poolSeed!==pool.poolSeed||artifact.evaluationSeed!==FIXED_RESERVOIR_EVALUATION_SEED
-    ||artifact.poolHash!==pool.generatedHash||artifact.reservoirHash!==pool.reservoirHash
-    ||!Array.isArray(artifact.rounds)||!artifact.matrix||!artifact.equilibrium) return false;
-  const ids=new Set(pool.reservoir.map((entry)=>entry.strategy.id));
-  if (artifact.matrix.strategies.some((strategy)=>!ids.has(strategy.id))||!artifact.matrix.complete) return false;
-  let streak=0;
-  for (const [index,round] of artifact.rounds.entries()) {
-    if (round.round!==index||round.scannedCount!==pool.reservoir.length-(FIXED_RESERVOIR_CONFIG.initialStrategies
-      + artifact.rounds.slice(0,index).reduce((sum,entry)=>sum+entry.admittedStrategyIds.length,0))) return false;
-    const expected=round.finalists.filter((entry)=>entry.interval95.lower>0.5).map((entry)=>entry.strategy.id);
-    if (expected.join('|')!==round.admittedStrategyIds.join('|')) return false;
-    streak=round.admittedStrategyIds.length?0:streak+1;
-    if (round.cleanStreak!==streak) return false;
-  }
-  const converged=streak>=FIXED_RESERVOIR_CONFIG.cleanScansRequired;
-  return artifact.status===(converged?'converged':'incomplete')
-    && artifact.stopReason===(converged?'two-clean-full-scans':'safety-cap');
+  try {
+    if (!value||typeof value!=='object') return false;
+    const artifact=value as Partial<FixedReservoirPsroArtifact>;
+    if (artifact.schemaVersion!==1||artifact.experiment!=='fixed-reservoir-psro'||artifact.version!==FIXED_RESERVOIR_VERSION
+      ||artifact.poolSeed!==pool.poolSeed||artifact.evaluationSeed!==FIXED_RESERVOIR_EVALUATION_SEED
+      ||artifact.poolHash!==pool.generatedHash||artifact.reservoirHash!==pool.reservoirHash
+      ||!Array.isArray(artifact.rounds)||!artifact.matrix||!artifact.equilibrium||!artifact.seedNamespaces) return false;
+    const matrix=artifact.matrix;const ids=new Set(pool.reservoir.map((entry)=>entry.strategy.id));
+    if(matrix.strategies.some((strategy)=>!ids.has(strategy.id))||!matrix.complete
+      ||matrix.cells.length!==matrix.strategies.length*(matrix.strategies.length-1)/2) return false;
+    const matrixSeeds=artifact.seedNamespaces.matrix;
+    if(!matrixSeeds||matrixSeeds.length!==FIXED_RESERVOIR_CONFIG.matrixBlocks)return false;
+    const matrixIndex=new Map(matrix.strategies.map((strategy,index)=>[strategy.id,index]));
+    for(const cell of matrix.cells){const row=matrixIndex.get(cell.rowId),column=matrixIndex.get(cell.columnId);
+      if(row===undefined||column===undefined||!cell.complete||cell.blocks.length!==matrixSeeds.length
+        ||cell.blocks.some((block,index)=>block.seed!==matrixSeeds[index]||block.played!==4||block.aborted!==0))return false;
+      const played=cell.blocks.reduce((sum,block)=>sum+block.played,0);
+      const centered=2*cell.blocks.reduce((sum,block)=>sum+block.score*block.played,0)/played-1;
+      if(!near(centered,cell.centeredPayoff)||!near(matrix.centeredPayoffs[row]![column]!,centered))return false;
+    }
+    const ledger=new RandomPsroSeedLedger(FIXED_RESERVOIR_EVALUATION_SEED);
+    ledger.reserve('matrix',FIXED_RESERVOIR_CONFIG.matrixBlocks);
+    let active=pool.reservoir.filter((entry)=>entry.source==='goldfish').slice(0,FIXED_RESERVOIR_CONFIG.initialStrategies)
+      .map((entry)=>entry.strategy.id).sort();
+    let streak=0;
+    for (const [index,round] of artifact.rounds.entries()) {
+      const race=ledger.reserve(`round:${index}:race`,FIXED_RESERVOIR_CONFIG.raceBlocks.reduce((a,b)=>a+b,0));
+      const confirmation=ledger.reserve(`round:${index}:confirmation`,FIXED_RESERVOIR_CONFIG.confirmationBlocks);
+      ledger.reserve(`round:${index}:sampling`,FIXED_RESERVOIR_CONFIG.raceBlocks.length+1);
+      ledger.reserve(`round:${index}:bootstrap`,FIXED_RESERVOIR_CONFIG.finalists);
+      const before=subgame(matrix,active);
+      if(round.round!==index||round.scannedCount!==pool.reservoir.length-active.length
+        ||round.raceSeeds.join('|')!==race.join('|')||round.confirmationSeeds.join('|')!==confirmation.join('|')
+        ||!sameEquilibrium({...before,weights:round.targetWeights},before)) return false;
+      const expected=round.finalists.filter((entry)=>entry.interval95.lower>0.5).map((entry)=>entry.strategy.id);
+      if(expected.join('|')!==round.admittedStrategyIds.join('|')||expected.some((id)=>active.includes(id)))return false;
+      active=[...active,...expected].sort();const after=subgame(matrix,active);
+      if(!sameEquilibrium(round.equilibriumAfter,after))return false;
+      streak=expected.length?0:streak+1;if(round.cleanStreak!==streak)return false;
+    }
+    ledger.validate();
+    if(JSON.stringify(ledger.namespaces)!==JSON.stringify(artifact.seedNamespaces)
+      ||active.join('|')!==matrix.strategies.map((strategy)=>strategy.id).sort().join('|'))return false;
+    const final=subgame(matrix,active);if(!sameEquilibrium(artifact.equilibrium,final))return false;
+    const converged=streak>=FIXED_RESERVOIR_CONFIG.cleanScansRequired;
+    return artifact.status===(converged?'converged':'incomplete')
+      && artifact.stopReason===(converged?'two-clean-full-scans':'safety-cap');
+  } catch { return false; }
 }
 
 export function supportEntries(artifact: FixedReservoirPsroArtifact): {strategy:Strategy;weight:number}[] {
