@@ -16,11 +16,49 @@ import {
   RANDOM_PSRO_KINGDOMS, inspectRandomPsroUnit
 } from './randomPsroSuite';
 import { rulesFingerprint } from './rulesFingerprint';
-import { canonicalStrategy, formatSlot } from './strategy';
+import { STRATIFIED_ADMISSIONS_PER_LANE, STRATIFIED_BEAM_LANES } from './stratifiedBeam';
+import { INFINITE_COUNT, canonicalStrategy, fixedBuyPlan, formatSlot, identify } from './strategy';
 import type { Strategy } from './strategy';
 
-const ORDINARY_MAGE_SUPPORT_IDS = new Set(['sg-00060b43b5', 'sg-0033a454c1']);
-const STRATIFIED_MELEE_SUPPORT_IDS = new Set(['sg-1e75552ec4', 'sg-7b4e9543a9']);
+export const K001_ORDINARY_SOURCE_VERSION = 'k001-ordinary-recovered-v1';
+const ORDINARY_SUPPORT = Object.freeze([
+  { weight: 0.3404255296666667, strategy: identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([
+    { kind: 'buy', cardId: 'channel', desiredCount: 5 },
+    { kind: 'buy', cardId: 'gold', desiredCount: 3 },
+    { kind: 'buy', cardId: 'arcBolt', desiredCount: INFINITE_COUNT }
+  ]) }) },
+  { weight: 0.3404255341333333, strategy: identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([
+    { kind: 'buy', cardId: 'footwork', desiredCount: 5 },
+    { kind: 'buy', cardId: 'channel', desiredCount: 5 },
+    { kind: 'buy', cardId: 'starfire', desiredCount: 5 },
+    { kind: 'buy', cardId: 'arcBolt', desiredCount: INFINITE_COUNT }
+  ]) }) },
+  { weight: 0.3191489362, strategy: identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([
+    { kind: 'buy', cardId: 'step', desiredCount: 1 },
+    { kind: 'buy', cardId: 'cascade', desiredCount: 4 },
+    { kind: 'buy', cardId: 'strike', desiredCount: INFINITE_COUNT }
+  ]) }) }
+]);
+const STRATIFIED_SUPPORT = Object.freeze([
+  { weight: 0.79629626665, strategy: identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([
+    { kind: 'buy', cardId: 'footwork', desiredCount: 3 },
+    { kind: 'buy', cardId: 'strike', desiredCount: 5 },
+    { kind: 'buy', cardId: 'adapt', desiredCount: 2 },
+    { kind: 'buy', cardId: 'footwork', desiredCount: 3 },
+    { kind: 'buy', cardId: 'strike', desiredCount: INFINITE_COUNT }
+  ]) }) },
+  { weight: 0.20370373335, strategy: identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([
+    { kind: 'buy', cardId: 'strike', desiredCount: INFINITE_COUNT }
+  ]) }) }
+]);
+
+for (const [actual, expected] of [
+  [ORDINARY_SUPPORT[0]!.strategy.id, 'sg-00060b43b5'],
+  [ORDINARY_SUPPORT[1]!.strategy.id, 'sg-0033a454c1'],
+  [ORDINARY_SUPPORT[2]!.strategy.id, 'sg-00dac22eb4'],
+  [STRATIFIED_SUPPORT[0]!.strategy.id, 'sg-1e75552ec4'],
+  [STRATIFIED_SUPPORT[1]!.strategy.id, 'sg-7b4e9543a9']
+]) if (actual !== expected) throw new Error(`Historical K001 strategy identity mismatch: ${actual} != ${expected}.`);
 
 export interface Lottery { label: string; strategies: { strategy: Strategy; weight: number }[] }
 export interface LotteryEvaluation {
@@ -33,7 +71,7 @@ export interface KingdomConsistencyReport {
   kingdomId: string;
   runs: { seed: number; converged: boolean; archetypes: ArchetypeSummary[];
     support: { id: string; archetype: string; weight: number; plan: string }[];
-    independentAttack: RandomPsroArtifact['independentAttack'] }[];
+    independentAttack: NonNullable<RandomPsroArtifact['independentAttack']> }[];
   crossPlay: LotteryEvaluation;
   reverseCrossPlay: LotteryEvaluation;
   canonicalSupportOverlap: { count: number; union: number; jaccard: number; forms: string[] };
@@ -65,10 +103,48 @@ export interface RandomPsroConsistencyReport {
 }
 
 interface SavedLotteryArtifact {
+  schemaVersion?: unknown;
+  experiment?: unknown;
+  suiteVersion?: unknown;
+  provenance?: unknown;
   kingdom: Kingdom;
-  rulesFingerprint?: { hash?: string };
-  config?: { startingDraftEnabled?: unknown; maxSlots?: unknown };
+  rulesFingerprint?: unknown;
+  config?: unknown;
   targetMixture?: { strategy: Strategy; weight: number }[];
+}
+
+function exact(left: unknown, right: unknown): boolean { return JSON.stringify(left) === JSON.stringify(right); }
+
+export function kingdom001OrdinarySourcePath(root: string): string {
+  return path.join(root, '.experiments', 'random-psro-consistency', 'baselines', 'k001-ordinary-mage.json');
+}
+
+export function buildKingdom001OrdinarySource(_root: string): SavedLotteryArtifact {
+  const kingdom = RANDOM_PSRO_KINGDOMS[0]!;
+  registerKingdom(kingdom);
+  return { schemaVersion: 1, experiment: 'historical-k001-ordinary-lottery',
+    suiteVersion: K001_ORDINARY_SOURCE_VERSION,
+    provenance: 'Recovered from the prior ordinary deep-beam Kingdom 001 result recorded in the project session transcript.',
+    kingdom, rulesFingerprint: rulesFingerprint(kingdom.id,
+      TURN_LIMIT_PER_PLAYER, ACTION_CAP_PER_TURN, false),
+    config: { startingDraftEnabled: false, maxSlots: 8 },
+    targetMixture: ORDINARY_SUPPORT.map((entry) => structuredClone(entry)) };
+}
+
+export function writeKingdom001OrdinarySource(root: string, output = kingdom001OrdinarySourcePath(root)): string {
+  const artifact = buildKingdom001OrdinarySource(root);
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, `${JSON.stringify(artifact, null, 2)}\n`);
+  loadKingdom001PriorLottery(output, 'ordinary-mage');
+  return output;
+}
+
+function exactSourceConfig(kind: 'ordinary-mage' | 'stratified-melee'): unknown {
+  if (kind === 'ordinary-mage') return { startingDraftEnabled: false, maxSlots: 8 };
+  return { startingDraftEnabled: false, workers: 10, iterations: 3, maxSlots: 8,
+    lanes: STRATIFIED_BEAM_LANES, admissionsPerLane: STRATIFIED_ADMISSIONS_PER_LANE,
+    stageSeeds: [1, 2, 4], confirmationSeeds: 12, matrixSeeds: 8,
+    earlyStopDelta: 0.002, earlyStopPatience: 2, sweep: false };
 }
 
 export function loadKingdom001PriorLottery(file: string, kind: 'ordinary-mage' | 'stratified-melee'): Lottery {
@@ -78,23 +154,33 @@ export function loadKingdom001PriorLottery(file: string, kind: 'ordinary-mage' |
     const requirement = kind === 'ordinary-mage' ? 'exact Mage-heavy ordinary Kingdom 001 source' : 'exact Melee-heavy stratified Kingdom 001 source';
     throw new Error(`${requirement} is required at ${file}: ${error instanceof Error ? error.message : String(error)}.`);
   }
-  if (parsed.kingdom?.id !== 'deep-beam-tuning-001' || parsed.kingdom.startingHealth !== 50
-    || parsed.config?.startingDraftEnabled !== false || parsed.config?.maxSlots !== 8) {
-    throw new Error(`${file} is not a draft-off, 50-health, eight-slot Kingdom 001 artifact.`);
+  const kingdom = RANDOM_PSRO_KINGDOMS[0]!;
+  registerKingdom(kingdom);
+  const fingerprint = rulesFingerprint(kingdom.id, TURN_LIMIT_PER_PLAYER, ACTION_CAP_PER_TURN, false);
+  const schemaValid = kind === 'ordinary-mage'
+    ? parsed.schemaVersion === 1 && parsed.experiment === 'historical-k001-ordinary-lottery'
+      && parsed.suiteVersion === K001_ORDINARY_SOURCE_VERSION
+      && parsed.provenance === 'Recovered from the prior ordinary deep-beam Kingdom 001 result recorded in the project session transcript.'
+    : parsed.schemaVersion === 1 && parsed.experiment === 'draft-off-diverse-beam-double-oracle'
+      && parsed.suiteVersion === 'deep-beam-v1';
+  if (!schemaValid || !exact(parsed.kingdom, kingdom) || !exact(parsed.rulesFingerprint, fingerprint)
+    || !exact(parsed.config, exactSourceConfig(kind))) {
+    throw new Error(`${file} is not the exact validated ${kind} Kingdom 001 artifact.`);
   }
-  registerKingdom(parsed.kingdom);
-  const expected = rulesFingerprint(parsed.kingdom.id, TURN_LIMIT_PER_PLAYER, ACTION_CAP_PER_TURN, false);
-  if (parsed.rulesFingerprint?.hash !== expected.hash) throw new Error(`${file} has a stale or wrong rules fingerprint.`);
-  const support = (parsed.targetMixture ?? []).filter((entry) => entry.weight > 0);
-  if (!support.length) throw new Error(`${file} has no positive-support lottery.`);
-  const required = kind === 'ordinary-mage' ? ORDINARY_MAGE_SUPPORT_IDS : STRATIFIED_MELEE_SUPPORT_IDS;
-  const ids = new Set(support.map((entry) => entry.strategy.id));
-  if (![...required].every((id) => ids.has(id))) {
-    const label = kind === 'ordinary-mage' ? 'Mage-heavy ordinary' : 'Melee-heavy stratified';
-    throw new Error(`${file} is not the exact ${label} Kingdom 001 source; required support ids: ${[...required].join(', ')}.`);
+  const expected = kind === 'ordinary-mage' ? ORDINARY_SUPPORT : STRATIFIED_SUPPORT;
+  const support = (parsed.targetMixture ?? []).filter((entry) => entry.weight > 0)
+    .sort((left, right) => left.strategy.id.localeCompare(right.strategy.id));
+  const expectedSorted = [...expected].sort((left, right) => left.strategy.id.localeCompare(right.strategy.id));
+  if (support.length !== expectedSorted.length) throw new Error(`${file} has wrong exact ${kind} support membership.`);
+  for (let index = 0; index < support.length; index += 1) {
+    const held = support[index]!, wanted = expectedSorted[index]!;
+    if (held.strategy.id !== identify(held.strategy).id || held.strategy.id !== wanted.strategy.id
+      || canonicalStrategy(held.strategy) !== canonicalStrategy(wanted.strategy)
+      || held.weight !== wanted.weight) {
+      throw new Error(`${file} has wrong exact ${kind} strategy content or weight.`);
+    }
   }
-  const total = support.reduce((sum, entry) => sum + entry.weight, 0);
-  return { label: kind, strategies: support.map((entry) => ({ strategy: entry.strategy, weight: entry.weight / total })) };
+  return { label: kind, strategies: support.map((entry) => structuredClone(entry)) };
 }
 
 export function weightedLotteryEvaluation(
@@ -135,6 +221,12 @@ function lottery(label: string, artifact: RandomPsroArtifact): Lottery {
   return { label, strategies: supportStrategies(artifact) };
 }
 
+export function directionalCrossPlayWithinRange(
+  forward: number, reverse: number, minimum = 0.47, maximum = 0.53
+): boolean {
+  return forward >= minimum && forward <= maximum && reverse >= minimum && reverse <= maximum;
+}
+
 function supportOverlap(left: RandomPsroArtifact, right: RandomPsroArtifact): KingdomConsistencyReport['canonicalSupportOverlap'] {
   const a = new Set(supportStrategies(left).map((entry) => canonicalStrategy(entry.strategy)));
   const b = new Set(supportStrategies(right).map((entry) => canonicalStrategy(entry.strategy)));
@@ -144,6 +236,7 @@ function supportOverlap(left: RandomPsroArtifact, right: RandomPsroArtifact): Ki
 }
 
 function runSummary(seed: number, artifact: RandomPsroArtifact): KingdomConsistencyReport['runs'][number] {
+  if (!artifact.independentAttack) throw new Error('A converged report artifact needs an independent attack.');
   return { seed, converged: artifact.status === 'converged', archetypes: artifactArchetypes(artifact),
     support: supportStrategies(artifact).map((entry) => ({ id: entry.strategy.id,
       archetype: strategyArchetype(entry.strategy), weight: entry.weight,
@@ -153,7 +246,7 @@ function runSummary(seed: number, artifact: RandomPsroArtifact): KingdomConsiste
 
 export interface GenerateRandomPsroReportOptions {
   root: string;
-  ordinarySource: string;
+  ordinarySource?: string;
   stratifiedSource?: string;
   reportSeed?: number;
   confirmationBlocks?: number;
@@ -165,7 +258,8 @@ export async function generateRandomPsroConsistencyReport(
 ): Promise<RandomPsroConsistencyReport> {
   const reportSeed = options.reportSeed ?? 91_001;
   const confirmationBlocks = options.confirmationBlocks ?? 400;
-  const ordinaryPath = path.resolve(options.root, options.ordinarySource);
+  const ordinaryPath = path.resolve(options.root,
+    options.ordinarySource ?? kingdom001OrdinarySourcePath(options.root));
   const stratifiedPath = path.resolve(options.root, options.stratifiedSource
     ?? path.join('.experiments', 'deep-beam-suite', 'deep-beam-v1', 'results', 'deep-beam-tuning-001.json'));
   const ordinary = loadKingdom001PriorLottery(ordinaryPath, 'ordinary-mage');
@@ -225,9 +319,10 @@ export async function generateRandomPsroConsistencyReport(
       kingdoms.push({ kingdomId: kingdom.id,
         runs: artifacts.map((artifact, index) => runSummary(RANDOM_PSRO_SUITE_SEEDS[index]!, artifact)),
         crossPlay, reverseCrossPlay, canonicalSupportOverlap: supportOverlap(artifacts[0]!, artifacts[1]!),
-        gates: { crossPlayWithin47To53: crossPlay.score >= 0.47 && crossPlay.score <= 0.53,
+        gates: { crossPlayWithin47To53: directionalCrossPlayWithinRange(crossPlay.score, reverseCrossPlay.score),
           crossRunSupportHasNoConfirmedExploit: crossSupportGate,
-          independentAttackHasNoConfirmedChallenger: artifacts.every((artifact) => !artifact.independentAttack.confirmedAboveThreshold) },
+          independentAttackHasNoConfirmedChallenger: artifacts.every((artifact) =>
+            artifact.independentAttack !== null && !artifact.independentAttack.confirmedAboveThreshold) },
         ...(kingdom001Comparison ? { kingdom001Comparison } : {}) });
     } finally { await runner.close(); }
   }

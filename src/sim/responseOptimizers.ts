@@ -93,6 +93,7 @@ export interface RandomRacingOptions {
   batchSize?: number;
   roundBlocks?: readonly number[];
   searchBudget?: number;
+  excludedCanonical?: ReadonlySet<string>;
 }
 
 function racingCost(initial: number, rounds: readonly number[]): number {
@@ -125,7 +126,7 @@ export async function runUniformRandomRacing(
     for (let attempts = 0; field.length < wanted && attempts < wanted * 128; attempts += 1) {
       const policy = domain.randomComplete(random);
       const form = canonicalStrategy(policy);
-      if (seen.has(form)) continue;
+      if (options.excludedCanonical?.has(form) || seen.has(form)) continue;
       seen.add(form); field.push(policy);
     }
     if (!field.length) break;

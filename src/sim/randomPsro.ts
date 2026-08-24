@@ -13,10 +13,10 @@ import { ResponsePolicyDomain } from './responsePolicyGrammar';
 import { runUniformRandomRacing } from './responseOptimizers';
 import { rulesFingerprint } from './rulesFingerprint';
 import type { RulesFingerprint } from './rulesFingerprint';
-import { canonicalStrategy, stableHash } from './strategy';
+import { canonicalStrategy, identify, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 
-export const RANDOM_PSRO_VERSION = 'random-psro-v1';
+export const RANDOM_PSRO_VERSION = 'random-psro-v2';
 export const RANDOM_PSRO_SUITE_SEEDS = Object.freeze([35_001, 35_002] as const);
 export const RANDOM_PSRO_DEFAULT_CONFIG = Object.freeze({
   initialStrategies: 8,
@@ -72,12 +72,13 @@ export interface RandomAttackResult {
   proposalSeed: number;
   uniqueProposals: number;
   scheduleSeeds: number[];
+  finalists: ConfirmedCandidate[];
   best: ConfirmedCandidate | null;
   confirmedAboveThreshold: boolean;
 }
 
 export interface RandomPsroArtifact {
-  schemaVersion: 1;
+  schemaVersion: 2;
   experiment: 'random-first-psro-consistency';
   suiteVersion: typeof RANDOM_PSRO_VERSION;
   createdAt: string;
@@ -90,7 +91,7 @@ export interface RandomPsroArtifact {
   rounds: RandomOracleRound[];
   matrix: MatrixSnapshot;
   equilibrium: EquilibriumResult;
-  independentAttack: RandomAttackResult;
+  independentAttack: RandomAttackResult | null;
   seedNamespaces: Record<string, number[]>;
   elapsedMs: number;
 }
@@ -223,18 +224,18 @@ async function randomBatch(input: OracleBatchInput): Promise<{
   const bootstrapSeeds = input.ledger.reserve(`${label}:bootstrap`, input.config.finalists);
   const seed = input.ledger.reserve(`${label}:proposal`, 1)[0]!;
   const opponents = weightedStrategies(input.snapshot, input.equilibrium);
+  const known = new Set(input.snapshot.strategies.map(canonicalStrategy));
   const budget = randomRacingBudget(count, input.config.raceBlocks);
   const objective = new BudgetedResponseObjective({ kingdomId: input.domain.kingdomId, opponents,
     budget, scheduleSeed: samplingSeeds[0]!, samplingSeed: samplingSeeds[0]!, scheduleSeeds: raceSeeds,
     runner: input.runner, turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER, actionCapPerTurn: ACTION_CAP_PER_TURN });
   const raced = await runUniformRandomRacing(objective, input.domain, seed, {
-    batchSize: count, roundBlocks: input.config.raceBlocks, searchBudget: budget
+    batchSize: count, roundBlocks: input.config.raceBlocks, searchBudget: budget,
+    excludedCanonical: known
   });
   const uniqueProposals = Number(raced.diagnostics.uniquePolicies);
-  if (uniqueProposals !== count) throw new Error(`Random batch generated ${uniqueProposals}; required ${count} unique proposals.`);
-  const known = new Set(input.snapshot.strategies.map(canonicalStrategy));
-  const finalists = raced.finalists.filter((strategy) => !known.has(canonicalStrategy(strategy)))
-    .slice(0, input.config.finalists);
+  if (uniqueProposals !== count) throw new Error(`Random batch generated ${uniqueProposals}; required ${count} novel proposals.`);
+  const finalists = raced.finalists.slice(0, input.config.finalists);
   if (!finalists.length) return { proposalSeed: seed, uniqueProposals, raceSeeds, confirmationSeeds, finalists: [] };
   const weights = input.equilibrium.weights;
   const opponentMap = new Map(input.snapshot.strategies.map((strategy) => [strategy.id, strategy]));
@@ -254,6 +255,17 @@ export function convergenceState(cleanStreak: number, admitted: boolean, require
 } {
   const next = admitted ? 0 : cleanStreak + 1;
   return { cleanStreak: next, converged: next >= required };
+}
+
+export function summarizeIndependentAttack(
+  proposalSeed: number, uniqueProposals: number, scheduleSeeds: readonly number[],
+  finalists: readonly ConfirmedCandidate[], threshold: number
+): RandomAttackResult {
+  const retained = [...finalists];
+  const best = [...retained].sort((left, right) => right.interval95.lower - left.interval95.lower
+    || right.mean - left.mean || left.strategy.id.localeCompare(right.strategy.id))[0] ?? null;
+  return { proposalSeed, uniqueProposals, scheduleSeeds: [...scheduleSeeds], finalists: retained, best,
+    confirmedAboveThreshold: retained.some((entry) => entry.interval95.lower > threshold) };
 }
 
 export async function runRandomPsro(
@@ -300,19 +312,17 @@ export async function runRandomPsro(
   }
   snapshot = matrix.snapshot();
   equilibrium = solve(snapshot);
-  const attackBatch = await randomBatch({ kind: 'attack', round: rounds.length,
-    config, domain, snapshot, equilibrium, runner, ledger });
-  const attackBest = attackBatch.finalists[0] ?? null;
-  const independentAttack: RandomAttackResult = {
-    proposalSeed: attackBatch.proposalSeed,
-    uniqueProposals: attackBatch.uniqueProposals,
-    scheduleSeeds: attackBatch.confirmationSeeds,
-    best: attackBest,
-    confirmedAboveThreshold: (attackBest?.interval95.lower ?? 0) > config.independentAttackLowerBound
-  };
+  let independentAttack: RandomAttackResult | null = null;
+  if (converged) {
+    const attackBatch = await randomBatch({ kind: 'attack', round: rounds.length,
+      config, domain, snapshot, equilibrium, runner, ledger });
+    independentAttack = summarizeIndependentAttack(attackBatch.proposalSeed,
+      attackBatch.uniqueProposals, attackBatch.confirmationSeeds, attackBatch.finalists,
+      config.independentAttackLowerBound);
+  }
   ledger.validate();
   return {
-    schemaVersion: 1, experiment: 'random-first-psro-consistency', suiteVersion: RANDOM_PSRO_VERSION,
+    schemaVersion: 2, experiment: 'random-first-psro-consistency', suiteVersion: RANDOM_PSRO_VERSION,
     createdAt: new Date().toISOString(), kingdom, rulesFingerprint: fingerprint, runSeed: options.seed,
     config, status: converged ? 'converged' : 'incomplete',
     stopReason: converged ? 'two-clean-random-batches' : 'safety-cap', rounds,
@@ -323,49 +333,229 @@ export async function runRandomPsro(
 
 export interface ArtifactEvidence { valid: boolean; converged: boolean; reason: string; artifact: RandomPsroArtifact | null }
 
+function exact(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function near(left: number, right: number, tolerance = 1e-8): boolean {
+  return Number.isFinite(left) && Number.isFinite(right) && Math.abs(left - right) <= tolerance;
+}
+
+function validateEquilibrium(saved: EquilibriumResult, computed: EquilibriumResult, label: string): void {
+  if (!exact(saved.strategyIds, computed.strategyIds)) throw new Error(`${label} equilibrium strategy ids are stale`);
+  const keys = Object.keys(computed.weights).sort();
+  if (!exact(Object.keys(saved.weights ?? {}).sort(), keys)
+    || !exact(Object.keys(saved.maximumEquilibriumWeight ?? {}).sort(), keys)) {
+    throw new Error(`${label} equilibrium weight ids are stale`);
+  }
+  for (const id of keys) {
+    if (!near(saved.weights[id]!, computed.weights[id]!)
+      || !near(saved.maximumEquilibriumWeight[id]!, computed.maximumEquilibriumWeight[id]!)) {
+      throw new Error(`${label} equilibrium weights are stale`);
+    }
+  }
+  if (!near(saved.value, computed.value) || !near(saved.maximumKnownAdvantage, computed.maximumKnownAdvantage)) {
+    throw new Error(`${label} equilibrium value is stale`);
+  }
+  for (const key of Object.keys(computed.residuals) as (keyof EquilibriumResult['residuals'])[]) {
+    if (!(saved.residuals?.[key] >= 0) || !near(saved.residuals[key], computed.residuals[key])) {
+      throw new Error(`${label} equilibrium residuals are invalid`);
+    }
+  }
+}
+
+function validateConfirmedCandidate(
+  entry: ConfirmedCandidate, domain: ResponsePolicyDomain, blocks: number, label: string
+): void {
+  domain.decode(entry.strategy);
+  if (identify(entry.strategy).id !== entry.strategy.id) throw new Error(`${label} strategy id is not canonical`);
+  if (!Number.isFinite(entry.mean) || entry.mean < 0 || entry.mean > 1
+    || !Number.isFinite(entry.interval95?.lower) || !Number.isFinite(entry.interval95?.upper)
+    || entry.interval95.lower < 0 || entry.interval95.upper > 1
+    || entry.interval95.lower > entry.interval95.upper
+    || entry.blocks !== blocks || entry.matches !== blocks * 4) {
+    throw new Error(`${label} confirmation evidence is invalid`);
+  }
+}
+
 export function validateRandomPsroArtifact(
   input: unknown, expected: { kingdomId: string; seed: number; config?: Partial<RandomPsroConfig> }
 ): ArtifactEvidence {
   try {
     const artifact = input as RandomPsroArtifact;
     const config = completeConfig(expected.config);
+    const kingdom = kingdomOf(expected.kingdomId);
     const fingerprint = rulesFingerprint(expected.kingdomId, TURN_LIMIT_PER_PLAYER, ACTION_CAP_PER_TURN, false);
-    if (artifact?.schemaVersion !== 1 || artifact.experiment !== 'random-first-psro-consistency'
+    if (artifact?.schemaVersion !== 2 || artifact.experiment !== 'random-first-psro-consistency'
       || artifact.suiteVersion !== RANDOM_PSRO_VERSION) throw new Error('wrong random PSRO schema or version');
-    if (artifact.kingdom?.id !== expected.kingdomId || artifact.runSeed !== expected.seed) throw new Error('wrong kingdom or seed');
-    if (JSON.stringify(artifact.config) !== JSON.stringify(config)) throw new Error('configuration is stale');
-    if (JSON.stringify(artifact.rulesFingerprint) !== JSON.stringify(fingerprint)) throw new Error('rules fingerprint is stale');
-    if (!artifact.matrix?.complete || artifact.matrix.protocol?.startingDraftEnabled !== false
-      || artifact.matrix.protocol?.rulesFingerprint !== fingerprint.hash) throw new Error('matrix is incomplete or stale');
-    if (!artifact.equilibrium || artifact.equilibrium.strategyIds.length !== artifact.matrix.strategies.length) {
-      throw new Error('equilibrium is missing or stale');
-    }
-    if (!Array.isArray(artifact.rounds) || !artifact.rounds.length || artifact.rounds.length > config.safetyCap) {
-      throw new Error('oracle rounds are missing or exceed the safety cap');
-    }
-    const raceSeedCount = config.raceBlocks.reduce((sum, value) => sum + value, 0);
-    for (const round of artifact.rounds) {
-      if (round.uniqueProposals !== config.proposalCount
-        || round.raceScheduleSeeds.length !== raceSeedCount
-        || round.confirmationScheduleSeeds.length !== config.confirmationBlocks
-        || round.cleanBatch !== (round.admittedStrategyId === null)) {
-        throw new Error('oracle round evidence is incomplete or inconsistent');
-      }
+    if (artifact.runSeed !== expected.seed || !exact(artifact.kingdom, kingdom)) throw new Error('wrong kingdom or seed');
+    if (!exact(artifact.config, config)) throw new Error('configuration is stale');
+    if (!exact(artifact.rulesFingerprint, fingerprint)) throw new Error('rules fingerprint is stale');
+
+    const namespaces = artifact.seedNamespaces ?? {};
+    const allSeeds = Object.values(namespaces).flat();
+    if (!allSeeds.length || new Set(allSeeds).size !== allSeeds.length) throw new Error('simulation evidence seeds overlap');
+    const matrixSeeds = namespaces.matrix;
+    if (!Array.isArray(matrixSeeds) || matrixSeeds.length !== config.matrixBlocks
+      || namespaces['initial:proposal']?.length !== 1) throw new Error('matrix or initial seed evidence is stale');
+    const expectedProtocol = matrixProtocol(expected.kingdomId, matrixSeeds,
+      TURN_LIMIT_PER_PLAYER, ACTION_CAP_PER_TURN, false);
+    if (!artifact.matrix?.complete || !exact(artifact.matrix.protocol, expectedProtocol)) {
+      throw new Error('matrix protocol is incomplete or stale');
     }
     const domain = stoplessRandomDomain(expected.kingdomId, 8);
-    for (const strategy of artifact.matrix.strategies) domain.decode(strategy);
-    const allSeeds = Object.values(artifact.seedNamespaces ?? {}).flat();
-    if (!allSeeds.length || new Set(allSeeds).size !== allSeeds.length) throw new Error('simulation evidence seeds overlap');
-    const converged = artifact.status === 'converged'
-      && artifact.stopReason === 'two-clean-random-batches'
-      && artifact.rounds.slice(-config.cleanBatchesRequired).every((round) => round.cleanBatch);
-    if (artifact.status !== 'incomplete' && !converged) throw new Error('terminal convergence state is inconsistent');
-    if (artifact.status === 'incomplete'
-      && (artifact.stopReason !== 'safety-cap' || artifact.rounds.length !== config.safetyCap)) {
+    const strategies = artifact.matrix.strategies;
+    if (!Array.isArray(strategies) || strategies.length < config.initialStrategies
+      || !exact(strategies.map((strategy) => strategy.id), strategies.map((strategy) => strategy.id).sort())
+      || new Set(strategies.map((strategy) => strategy.id)).size !== strategies.length) {
+      throw new Error('matrix strategy ids are invalid');
+    }
+    for (const strategy of strategies) {
+      domain.decode(strategy);
+      if (identify(strategy).id !== strategy.id) throw new Error('matrix strategy id is not canonical');
+    }
+    const size = strategies.length;
+    const payoffs = artifact.matrix.centeredPayoffs;
+    if (!Array.isArray(payoffs) || payoffs.length !== size
+      || payoffs.some((row) => !Array.isArray(row) || row.length !== size)) throw new Error('matrix payoff shape is invalid');
+    for (let row = 0; row < size; row += 1) for (let column = 0; column < size; column += 1) {
+      const value = payoffs[row]![column]!;
+      if (!Number.isFinite(value) || (row === column && value !== 0)
+        || !near(value, -payoffs[column]![row]!)) throw new Error('matrix payoffs are not finite antisymmetric values');
+    }
+    const cells = artifact.matrix.cells;
+    if (!Array.isArray(cells) || cells.length !== size * (size - 1) / 2) throw new Error('matrix cells are incomplete');
+    const cellPairs = new Set<string>();
+    const cellKeys = new Set<string>();
+    const indexById = new Map(strategies.map((strategy, index) => [strategy.id, index]));
+    for (const cell of cells) {
+      const row = indexById.get(cell.rowId), column = indexById.get(cell.columnId);
+      const pair = `${cell.rowId}|${cell.columnId}`;
+      if (row === undefined || column === undefined || row >= column || cellPairs.has(pair)
+        || typeof cell.key !== 'string' || !cell.key || cellKeys.has(cell.key) || !cell.complete
+        || !Array.isArray(cell.blocks) || cell.blocks.length !== config.matrixBlocks
+        || !exact(cell.blocks.map((block) => block.seed), matrixSeeds)
+        || cell.blocks.some((block) => block.played !== 4
+          || block.aborted !== 0 || !Number.isFinite(block.score) || block.score < 0 || block.score > 1)) {
+        throw new Error('matrix cell evidence is invalid');
+      }
+      cellPairs.add(pair); cellKeys.add(cell.key);
+      const played = cell.blocks.reduce((sum, block) => sum + block.played, 0);
+      const centered = 2 * cell.blocks.reduce((sum, block) => sum + block.score * block.played, 0) / played - 1;
+      if (!near(cell.centeredPayoff, centered) || !near(payoffs[row]![column]!, centered)
+        || cell.matches !== cell.blocks.length * 4) throw new Error('matrix cell payoff is stale');
+    }
+    const computedFinal = solveEquilibrium(strategies.map((strategy) => strategy.id), payoffs);
+    validateEquilibrium(artifact.equilibrium, computedFinal, 'final');
+
+    if (!Array.isArray(artifact.rounds) || artifact.rounds.length < 1 || artifact.rounds.length > config.safetyCap) {
+      throw new Error('oracle rounds are missing or exceed the safety cap');
+    }
+    const admittedIds = artifact.rounds.flatMap((round) => round.admittedStrategyId ? [round.admittedStrategyId] : []);
+    if (new Set(admittedIds).size !== admittedIds.length) throw new Error('admitted strategy chain contains duplicates');
+    const admittedSet = new Set(admittedIds);
+    let activeIds = strategies.map((strategy) => strategy.id).filter((id) => !admittedSet.has(id));
+    if (activeIds.length !== config.initialStrategies) throw new Error('initial strategy population is stale');
+    let cleanStreak = 0;
+    const raceSeedCount = config.raceBlocks.reduce((sum, value) => sum + value, 0);
+    const expectedNamespaceLabels = new Set(['matrix', 'initial:proposal']);
+    for (let index = 0; index < artifact.rounds.length; index += 1) {
+      const round = artifact.rounds[index]!;
+      const label = `oracle:${index}`;
+      for (const suffix of ['race', 'confirmation', 'sampling', 'bootstrap', 'proposal']) {
+        expectedNamespaceLabels.add(`${label}:${suffix}`);
+      }
+      const activeIndexes = activeIds.map((id) => strategies.findIndex((strategy) => strategy.id === id));
+      const activePayoffs = activeIndexes.map((row) => activeIndexes.map((column) => payoffs[row]![column]!));
+      const before = solveEquilibrium(activeIds, activePayoffs);
+      if (round.round !== index || !exact(round.targetWeights, before.weights)
+        || round.uniqueProposals !== config.proposalCount
+        || !exact(round.raceScheduleSeeds, namespaces[`${label}:race`])
+        || !exact(round.confirmationScheduleSeeds, namespaces[`${label}:confirmation`])
+        || round.raceScheduleSeeds.length !== raceSeedCount
+        || round.confirmationScheduleSeeds.length !== config.confirmationBlocks
+        || namespaces[`${label}:sampling`]?.length !== 2
+        || namespaces[`${label}:bootstrap`]?.length !== config.finalists
+        || namespaces[`${label}:proposal`]?.length !== 1
+        || round.proposalSeed !== namespaces[`${label}:proposal`]![0]) {
+        throw new Error('oracle round schedule or target chain is stale');
+      }
+      if (round.finalists.length > config.finalists) throw new Error('oracle finalist count exceeds its cap');
+      const activeForms = new Set(activeIds.map((id) => canonicalStrategy(strategies.find((strategy) => strategy.id === id)!)));
+      const finalistForms = new Set<string>();
+      for (const finalist of round.finalists) {
+        validateConfirmedCandidate(finalist, domain, config.confirmationBlocks, 'oracle finalist');
+        const form = canonicalStrategy(finalist.strategy);
+        if (activeForms.has(form) || finalistForms.has(form)) throw new Error('oracle finalist is not novel');
+        finalistForms.add(form);
+      }
+      const admitted = round.admittedStrategyId;
+      const admittedFinalist = admitted ? round.finalists.find((entry) => entry.strategy.id === admitted) : undefined;
+      if (round.cleanBatch !== (admitted === null)
+        || (admittedFinalist !== undefined) !== (admitted !== null)
+        || (admittedFinalist && !(admittedFinalist.interval95.lower > config.admissionLowerBound))
+        || (!admitted && round.finalists.some((entry) => entry.interval95.lower > config.admissionLowerBound))) {
+        throw new Error('oracle admission evidence is inconsistent');
+      }
+      if (admitted) {
+        const matrixStrategy = strategies.find((strategy) => strategy.id === admitted);
+        if (!matrixStrategy || canonicalStrategy(matrixStrategy) !== canonicalStrategy(admittedFinalist!.strategy)) {
+          throw new Error('admitted strategy content is missing from matrix');
+        }
+        activeIds = [...activeIds, admitted].sort();
+      }
+      const afterIndexes = activeIds.map((id) => strategies.findIndex((strategy) => strategy.id === id));
+      if (afterIndexes.some((value) => value < 0)) throw new Error('admitted strategy is missing from matrix');
+      const after = solveEquilibrium(activeIds,
+        afterIndexes.map((row) => afterIndexes.map((column) => payoffs[row]![column]!)));
+      validateEquilibrium(round.equilibriumAfter, after, `round ${index}`);
+      const state = convergenceState(cleanStreak, admitted !== null, config.cleanBatchesRequired);
+      cleanStreak = state.cleanStreak;
+      if (round.cleanStreak !== cleanStreak || state.converged !== (index === artifact.rounds.length - 1
+        && artifact.status === 'converged')) throw new Error('oracle clean-streak chain is inconsistent');
+    }
+    if (!exact(activeIds, strategies.map((strategy) => strategy.id))) throw new Error('terminal matrix strategy chain is stale');
+
+    const converged = artifact.status === 'converged';
+    if (converged) {
+      if (artifact.stopReason !== 'two-clean-random-batches'
+        || artifact.rounds.length < config.cleanBatchesRequired || cleanStreak !== config.cleanBatchesRequired
+        || !artifact.independentAttack) throw new Error('terminal convergence state is inconsistent');
+      const attack = artifact.independentAttack;
+      const label = `attack:${artifact.rounds.length}`;
+      for (const suffix of ['race', 'confirmation', 'sampling', 'bootstrap', 'proposal']) {
+        expectedNamespaceLabels.add(`${label}:${suffix}`);
+      }
+      if (attack.uniqueProposals !== config.independentAttackProposalCount
+        || !exact(attack.scheduleSeeds, namespaces[`${label}:confirmation`])
+        || attack.scheduleSeeds.length !== config.confirmationBlocks
+        || namespaces[`${label}:race`]?.length !== raceSeedCount
+        || namespaces[`${label}:sampling`]?.length !== 2
+        || namespaces[`${label}:bootstrap`]?.length !== config.finalists
+        || namespaces[`${label}:proposal`]?.length !== 1
+        || attack.proposalSeed !== namespaces[`${label}:proposal`]![0]) {
+        throw new Error('independent attack schedule is stale');
+      }
+      if (attack.finalists.length > config.finalists) throw new Error('attack finalist count exceeds its cap');
+      const finalForms = new Set(strategies.map(canonicalStrategy));
+      const attackForms = new Set<string>();
+      for (const finalist of attack.finalists) {
+        validateConfirmedCandidate(finalist, domain, config.confirmationBlocks, 'attack finalist');
+        const form = canonicalStrategy(finalist.strategy);
+        if (finalForms.has(form) || attackForms.has(form)) throw new Error('attack finalist is not novel');
+        attackForms.add(form);
+      }
+      const summary = summarizeIndependentAttack(attack.proposalSeed, attack.uniqueProposals,
+        attack.scheduleSeeds, attack.finalists, config.independentAttackLowerBound);
+      if (!exact(attack.best, summary.best) || attack.confirmedAboveThreshold !== summary.confirmedAboveThreshold) {
+        throw new Error('independent attack result flag is stale');
+      }
+    } else if (artifact.status !== 'incomplete' || artifact.stopReason !== 'safety-cap'
+      || artifact.rounds.length !== config.safetyCap || artifact.independentAttack !== null) {
       throw new Error('incomplete run has wrong safety-cap state');
     }
-    if (!artifact.independentAttack || artifact.independentAttack.uniqueProposals !== config.independentAttackProposalCount) {
-      throw new Error('independent attack is missing or stale');
+    if (!exact(Object.keys(namespaces).sort(), [...expectedNamespaceLabels].sort())) {
+      throw new Error('seed namespace evidence is incomplete or unexpected');
     }
     return { valid: true, converged, reason: converged ? 'converged' : 'safety cap reached', artifact };
   } catch (error) {

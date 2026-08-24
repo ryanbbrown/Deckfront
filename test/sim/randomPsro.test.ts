@@ -7,17 +7,17 @@ import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import { emptyAggregate } from '../../src/sim/pairing';
 import type { PairingJob, PairingRunner } from '../../src/sim/pairingRunner';
 import {
-  RandomPsroSeedLedger, convergenceState, runRandomPsro, stoplessRandomDomain,
-  validateRandomPsroArtifact
+  RandomPsroSeedLedger, convergenceState, randomRacingBudget, runRandomPsro,
+  stoplessRandomDomain, summarizeIndependentAttack, validateRandomPsroArtifact
 } from '../../src/sim/randomPsro';
 import {
   inspectRandomPsroUnit, randomPsroArtifactPath, runRandomPsroBatch
 } from '../../src/sim/randomPsroSuite';
 import {
-  loadKingdom001PriorLottery, renderRandomPsroConsistencyReport, weightedLotteryEvaluation
+  buildKingdom001OrdinarySource, directionalCrossPlayWithinRange, loadKingdom001PriorLottery,
+  renderRandomPsroConsistencyReport, weightedLotteryEvaluation, writeKingdom001OrdinarySource
 } from '../../src/sim/randomPsroReport';
-import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from '../../src/sim/experimentConfig';
-import { rulesFingerprint } from '../../src/sim/rulesFingerprint';
+import { runUniformRandomRacing } from '../../src/sim/responseOptimizers';
 import { canonicalStrategy } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 
@@ -35,7 +35,7 @@ class DrawRunner implements PairingRunner {
 }
 
 const tinyConfig = {
-  initialStrategies: 1, proposalCount: 2, raceBlocks: [1], finalists: 1,
+  initialStrategies: 2, proposalCount: 2, raceBlocks: [1], finalists: 1,
   confirmationBlocks: 2, matrixBlocks: 1, safetyCap: 2, cleanBatchesRequired: 2,
   independentAttackProposalCount: 2
 };
@@ -51,16 +51,6 @@ async function tinyArtifact(seed = 7) {
   return runRandomPsro({ kingdomId: setup(), seed, config: tinyConfig }, new DrawRunner());
 }
 
-function oldSource(file: string, ids: readonly string[]): void {
-  const kingdomId = setup();
-  const kingdom = deepBeamSuite.kingdoms[0]!;
-  const domain = stoplessRandomDomain(kingdomId);
-  const random = new SeededRandom(9);
-  const targetMixture = ids.map((id) => ({ strategy: { ...domain.randomComplete(random), id }, weight: 1 / ids.length }));
-  fs.writeFileSync(file, JSON.stringify({ kingdom,
-    rulesFingerprint: rulesFingerprint(kingdomId, TURN_LIMIT_PER_PLAYER, ACTION_CAP_PER_TURN, false),
-    config: { startingDraftEnabled: false, maxSlots: 8 }, targetMixture }));
-}
 
 describe('random-first policy grammar and evidence', () => {
   it('samples only stopless 1–8 slot policies with an infinite fallback', () => {
@@ -95,23 +85,90 @@ describe('random-first policy grammar and evidence', () => {
     expect(convergenceState(1, true)).toEqual({ cleanStreak: 0, converged: false });
     expect(convergenceState(1, false)).toEqual({ cleanStreak: 2, converged: true });
   });
+
+  it('counts only novel policies before racing and finalist truncation', async () => {
+    const kingdomId = setup();
+    const domain = stoplessRandomDomain(kingdomId);
+    const seed = 55;
+    const known = domain.randomComplete(new SeededRandom(seed));
+    const budget = randomRacingBudget(2, [1]);
+    const policies: Strategy[] = [];
+    let consumed = 0;
+    const objective = {
+      budget, get remaining() { return budget - consumed; }, get blocksConsumed() { return consumed; },
+      get matchesConsumed() { return consumed * 4; }, curve: [],
+      canEvaluate: (count: number, blocks: number) => count * blocks <= budget - consumed,
+      evaluate: async (candidates: readonly Strategy[], blocks: number) => {
+        policies.push(...candidates); consumed += candidates.length * blocks;
+        return candidates.map((strategy) => ({ strategy, mean: 0.5, blockScores: [0.5], interval: null,
+          matches: blocks * 4, telemetry: emptyAggregate() }));
+      },
+      aggregate: () => ({ mean: 0.5, blocks: 1 })
+    };
+    await runUniformRandomRacing(objective, domain, seed, { batchSize: 2, roundBlocks: [1],
+      searchBudget: budget, excludedCanonical: new Set([canonicalStrategy(known)]) });
+    expect(policies).toHaveLength(2);
+    expect(policies.map(canonicalStrategy)).not.toContain(canonicalStrategy(known));
+  });
 });
 
 describe('random PSRO artifacts and resumability', () => {
-  it('validates convergence and rejects stale or overlapping evidence', async () => {
+  it('recomputes and rejects corrupted rules, matrix, equilibrium, chain, terminal, and attack evidence', async () => {
     const artifact = await tinyArtifact();
+    const expected = { kingdomId: artifact.kingdom.id, seed: 7, config: tinyConfig };
     expect(artifact.status).toBe('converged');
     expect(artifact.rounds.map((round) => round.cleanBatch)).toEqual([true, true]);
-    expect(validateRandomPsroArtifact(artifact, { kingdomId: artifact.kingdom.id, seed: 7,
-      config: tinyConfig })).toMatchObject({ valid: true, converged: true });
-    const stale = structuredClone(artifact); stale.rulesFingerprint.hash = 'stale';
-    expect(validateRandomPsroArtifact(stale, { kingdomId: artifact.kingdom.id, seed: 7,
-      config: tinyConfig }).valid).toBe(false);
-    const overlap = structuredClone(artifact);
-    const labels = Object.keys(overlap.seedNamespaces);
-    overlap.seedNamespaces[labels[1]!]![0] = overlap.seedNamespaces[labels[0]!]![0]!;
-    expect(validateRandomPsroArtifact(overlap, { kingdomId: artifact.kingdom.id, seed: 7,
-      config: tinyConfig }).reason).toContain('overlap');
+    expect(validateRandomPsroArtifact(artifact, expected)).toMatchObject({ valid: true, converged: true });
+    const rejects = (name: string, mutate: (copy: typeof artifact) => void): void => {
+      const copy = structuredClone(artifact); mutate(copy);
+      expect(validateRandomPsroArtifact(copy, expected).valid, name).toBe(false);
+    };
+    rejects('kingdom', (copy) => { copy.kingdom.name = 'wrong'; });
+    rejects('rules', (copy) => { copy.rulesFingerprint.hash = 'stale'; });
+    rejects('config', (copy) => { copy.config.finalists += 1; });
+    rejects('matrix id', (copy) => { copy.matrix.strategies[0]!.id = 'wrong'; });
+    rejects('matrix cells', (copy) => { copy.matrix.cells.pop(); });
+    rejects('cell payoff', (copy) => { copy.matrix.cells[0]!.centeredPayoff += 0.1; });
+    rejects('nonfinite payoff', (copy) => { copy.matrix.centeredPayoffs[0]![1] = Number.NaN; });
+    rejects('antisymmetry', (copy) => {
+      copy.matrix.centeredPayoffs[0]![1] = copy.matrix.centeredPayoffs[0]![1]! + 0.1;
+    });
+    rejects('equilibrium ids', (copy) => { copy.equilibrium.strategyIds.reverse(); });
+    rejects('equilibrium weights', (copy) => { copy.equilibrium.weights[copy.equilibrium.strategyIds[0]!]! += 0.1; });
+    rejects('equilibrium value', (copy) => { copy.equilibrium.value += 0.1; });
+    rejects('equilibrium residual', (copy) => { copy.equilibrium.residuals.value = -1; });
+    rejects('too few clean rounds', (copy) => { copy.rounds.splice(0, 1); });
+    rejects('round target chain', (copy) => { copy.rounds[0]!.targetWeights.wrong = 1; });
+    rejects('round equilibrium chain', (copy) => { copy.rounds[0]!.equilibriumAfter.value += 0.1; });
+    rejects('terminal streak', (copy) => { copy.rounds.at(-1)!.cleanStreak = 1; });
+    rejects('attack evidence', (copy) => { copy.independentAttack!.finalists[0]!.blocks += 1; });
+    rejects('attack flag', (copy) => { copy.independentAttack!.confirmedAboveThreshold = true; });
+    rejects('seed overlap', (copy) => {
+      const labels = Object.keys(copy.seedNamespaces);
+      copy.seedNamespaces[labels[1]!]![0] = copy.seedNamespaces[labels[0]!]![0]!;
+    });
+  });
+
+  it('omits independent attack evidence when the safety cap is incomplete', async () => {
+    const config = { ...tinyConfig, safetyCap: 1 };
+    const artifact = await runRandomPsro({ kingdomId: setup(), seed: 9, config }, new DrawRunner());
+    expect(artifact).toMatchObject({ status: 'incomplete', stopReason: 'safety-cap', independentAttack: null });
+    expect(Object.keys(artifact.seedNamespaces).some((label) => label.startsWith('attack:'))).toBe(false);
+    expect(validateRandomPsroArtifact(artifact, { kingdomId: artifact.kingdom.id, seed: 9, config }))
+      .toMatchObject({ valid: true, converged: false });
+  });
+
+  it('gates independent attacks on maximum CI lower bound and retains all finalists', async () => {
+    const artifact = await tinyArtifact();
+    const finalists = structuredClone(artifact.independentAttack!.finalists);
+    const lowerMean = structuredClone(finalists[0]!);
+    lowerMean.strategy = stoplessRandomDomain(setup()).randomComplete(new SeededRandom(98));
+    lowerMean.mean = 0.7; lowerMean.interval95 = { lower: 0.6, upper: 0.8 };
+    finalists[0]!.mean = 0.9; finalists[0]!.interval95 = { lower: 0.52, upper: 1 };
+    const result = summarizeIndependentAttack(1, 2, [3, 4], [finalists[0]!, lowerMean], 0.55);
+    expect(result.finalists).toHaveLength(2);
+    expect(result.best?.strategy.id).toBe(lowerMean.strategy.id);
+    expect(result.confirmedAboveThreshold).toBe(true);
   });
 
   it('keeps a completed unit when a later unit fails, then skips it on rerun', async () => {
@@ -158,15 +215,53 @@ describe('consistency report math and prior sources', () => {
     expect(rendered).toContain('not proofs');
   });
 
-  it('rejects a wrong ordinary artifact instead of substituting the stratified source', () => {
+  it('requires both fresh cross-play directions to pass the 47–53% gate', () => {
+    expect(directionalCrossPlayWithinRange(0.5, 0.52)).toBe(true);
+    expect(directionalCrossPlayWithinRange(0.5, 0.54)).toBe(false);
+    expect(directionalCrossPlayWithinRange(0.46, 0.5)).toBe(false);
+  });
+
+  it('requires exact membership, content, and weights from the saved stratified source', () => {
+    setup();
+    const sourceFile = path.join(process.cwd(), '.experiments', 'deep-beam-suite', 'deep-beam-v1',
+      'results', 'deep-beam-tuning-001.json');
+    const source = JSON.parse(fs.readFileSync(sourceFile, 'utf8')) as Record<string, unknown>;
+    expect(loadKingdom001PriorLottery(sourceFile, 'stratified-melee').strategies.map((entry) => entry.strategy.id))
+      .toEqual(['sg-1e75552ec4', 'sg-7b4e9543a9']);
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-stratified-source-'));
+    const rejects = (name: string, mutate: (copy: Record<string, unknown>) => void): void => {
+      const copy = structuredClone(source); mutate(copy); const file = path.join(root, `${name}.json`);
+      fs.writeFileSync(file, JSON.stringify(copy));
+      expect(() => loadKingdom001PriorLottery(file, 'stratified-melee'), name).toThrow();
+    };
+    const target = (copy: Record<string, unknown>) => copy.targetMixture as { weight: number; strategy: Strategy }[];
+    rejects('extra', (copy) => { target(copy).push(structuredClone(target(copy)[0]!)); });
+    rejects('weight', (copy) => { target(copy)[0]!.weight += 0.01; });
+    rejects('content', (copy) => { target(copy)[0]!.strategy.buyPlan[0] = { kind: 'inactive' }; });
+    rejects('id', (copy) => { target(copy)[0]!.strategy.id = 'sg-fabricated'; });
+  });
+
+  it('writes and validates the exact three-strategy recovered ordinary source', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-random-source-'));
-    const wrong = path.join(root, 'wrong.json');
-    oldSource(wrong, ['sg-1e75552ec4', 'sg-7b4e9543a9']);
-    expect(() => loadKingdom001PriorLottery(wrong, 'ordinary-mage')).toThrow('exact Mage-heavy ordinary');
+    setup();
     const ordinary = path.join(root, 'ordinary.json');
-    oldSource(ordinary, ['sg-00060b43b5', 'sg-0033a454c1']);
+    writeKingdom001OrdinarySource(root, ordinary);
     const loaded = loadKingdom001PriorLottery(ordinary, 'ordinary-mage');
-    expect(loaded.strategies).toHaveLength(2);
-    expect(loaded.strategies.map((entry) => canonicalStrategy(entry.strategy))).toHaveLength(2);
+    expect(loaded.strategies.map((entry) => [entry.strategy.id, entry.weight])).toEqual([
+      ['sg-00060b43b5', 0.3404255296666667],
+      ['sg-0033a454c1', 0.3404255341333333],
+      ['sg-00dac22eb4', 0.3191489362]
+    ]);
+    const source = buildKingdom001OrdinarySource(root);
+    const rejects = (name: string, mutate: (copy: typeof source) => void): void => {
+      const file = path.join(root, `${name}.json`); const copy = structuredClone(source); mutate(copy);
+      fs.writeFileSync(file, JSON.stringify(copy));
+      expect(() => loadKingdom001PriorLottery(file, 'ordinary-mage'), name).toThrow();
+    };
+    rejects('extra', (copy) => { copy.targetMixture!.push(structuredClone(copy.targetMixture![0]!)); });
+    rejects('weight', (copy) => { copy.targetMixture![0]!.weight += 0.01; });
+    rejects('content', (copy) => { copy.targetMixture![0]!.strategy.buyPlan[0] = { kind: 'inactive' }; });
+    rejects('id', (copy) => { copy.targetMixture![0]!.strategy.id = 'sg-fabricated'; });
+    rejects('provenance', (copy) => { copy.provenance = 'fabricated'; });
   });
 });

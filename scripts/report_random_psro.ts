@@ -20,13 +20,11 @@ function positive(flag: string, fallback: number): number {
 
 try {
   const ordinarySource = value('--ordinary-source');
-  if (!ordinarySource) {
-    throw new Error('--ordinary-source must name the exact Mage-heavy ordinary Kingdom 001 artifact. The stratified artifact is not a substitute.');
-  }
   const outDirectory = path.resolve(value('--out') ?? path.join(process.cwd(), '.experiments',
-    'random-psro-consistency', 'random-psro-v1', 'report'));
+    'random-psro-consistency', 'random-psro-v2', 'report'));
   const stratifiedSource = value('--stratified-source');
-  const report = await generateRandomPsroConsistencyReport({ root: process.cwd(), ordinarySource,
+  const report = await generateRandomPsroConsistencyReport({ root: process.cwd(),
+    ...(ordinarySource ? { ordinarySource } : {}),
     ...(stratifiedSource ? { stratifiedSource } : {}),
     reportSeed: positive('--report-seed', 91_001), confirmationBlocks: positive('--confirmation-blocks', 400),
     workers: positive('--workers', 10) });
