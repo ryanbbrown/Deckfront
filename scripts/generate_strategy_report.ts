@@ -332,7 +332,8 @@ export function loadStrategyReportInput(root: string): StrategyReportInput {
         repeatPurchase: strategy.repeatPurchase })) };
   });
   const cards = Object.values(CARDS).filter((card) => card.type === 'action').map((card): StrategyReportCardInput => ({
-    id: card.id, name: card.name, family: family(card.id), cost: card.cost, text: card.text,
+    id: card.id, name: card.name, family: family(card.id), cost: card.cost,
+    text: [card.headline, card.detail].filter(Boolean).join(' '),
     alwaysAvailable: ALWAYS_AVAILABLE_ACTION_IDS.includes(card.id)
   })).sort((left, right) => left.family.localeCompare(right.family) || left.name.localeCompare(right.name));
   return { suiteVersion: balanceSuite.manifest.suiteVersion, kingdoms, cards };

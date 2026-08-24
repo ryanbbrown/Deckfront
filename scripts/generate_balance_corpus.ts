@@ -296,7 +296,8 @@ export function buildStrategyGroups(model: BalanceCorpusModel): StrategyGroupRep
       const definition = cardDefinition(cardId);
       const cardFamily = family(cardId);
       if (cardFamily === 'Treasure') throw new Error(`Strategy group cannot include treasure ${cardId}.`);
-      return { cardId, name: definition.name, family: cardFamily, cost: definition.cost, effect: definition.text,
+      return { cardId, name: definition.name, family: cardFamily, cost: definition.cost,
+        effect: [definition.headline, definition.detail].filter(Boolean).join(' '),
         availableStrategies, acquiredStrategies,
         averageCopiesWhenAcquired: acquiredStrategies ? acquisitions / acquiredStrategies : 0,
         buildPlans, finitePlans, repeatPlans };

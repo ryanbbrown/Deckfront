@@ -247,15 +247,14 @@ describe('complete public card coverage', () => {
   });
 
   it('uses literal Longshot distances and distinct Improvise families', () => {
-    expect(cardDefinition('longshot').text)
-      .toBe('At Near or Far range, deal damage equal to the distance between you and your opponent.');
+    expect(cardDefinition('longshot')).toMatchObject({ headline: 'Damage equal to distance', detail: undefined });
     for (const [position, damage] of [[3,1],[4,2],[5,3],[6,4]] as const) {
       let state = ready(); state.fighters.ochre.position = 2; state.fighters.indigo.position = position; hand(state,['longshot']); state = play(state,'longshot');
       expect(state.fighters.indigo.health).toBe(40-damage);
     }
     let state = ready(); hand(state,['channel','attune','footwork','improvise']); state = play(state,'channel'); state = play(state,'attune'); state = play(state,'footwork'); state = play(state,'improvise');
     expect(state.fighters.indigo.health).toBe(38);
-    expect(cardDefinition('improvise').text).toContain('Mana, Melee, or Ranged');
+    expect(cardDefinition('improvise').detail).toContain('Mana, Melee, or Ranged');
   });
 
   it('deals Scrap damage only for the first copy played each turn', () => {

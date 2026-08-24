@@ -27,7 +27,7 @@ test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local b
   await expect(page.locator('[data-market-card="Step"]')).toBeVisible(); await expect(page.locator('[data-market-card="Focus"]')).toBeVisible(); await expect(page.locator('[data-market-card="Scrap"]')).toHaveCount(0); await expect(page.locator('[data-market-card]')).toHaveCount(15); await expect(page.locator('[data-market-card][aria-disabled="true"]')).toHaveCount(15); await expect(page.getByLabel('Starting draft')).toBeChecked();
   const compactWidths = await page.locator('[data-market-card]').evaluateAll((cards) => cards.map((card) => Math.round(card.getBoundingClientRect().width)));
   expect([...new Set(compactWidths)]).toEqual([137]);
-  await page.locator('[data-market-card="Step"]').locator('..').click({ button: 'right' }); const cardPopup = page.getByRole('dialog', { name: 'Step details' }); await expect(cardPopup).toBeVisible(); await expect(cardPopup).toContainText('Move 1 space.'); await expect(cardPopup.getByLabel('Cost 2')).toBeVisible(); expect(await cardPopup.evaluate((element) => element.matches(':modal'))).toBe(false); expect(Number.parseFloat(await cardPopup.locator('.card__rules').evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7); await page.keyboard.press('Escape'); await expect(cardPopup).toHaveCount(0);
+  await page.locator('[data-market-card="Step"]').locator('..').click({ button: 'right' }); const cardPopup = page.getByRole('dialog', { name: 'Step details' }); await expect(cardPopup).toBeVisible(); await expect(cardPopup).toContainText('Move 1 space'); await expect(cardPopup.getByLabel('Cost 2')).toBeVisible(); expect(await cardPopup.evaluate((element) => element.matches(':modal'))).toBe(false); expect(Number.parseFloat(await cardPopup.locator('.card__rules').evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7); await page.keyboard.press('Escape'); await expect(cardPopup).toHaveCount(0);
   const before = await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents(); await page.getByRole('button', { name: 'Refresh market' }).click(); const after = await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents(); expect(after).not.toEqual(before);
   for (const viewport of [{ width: 1920, height: 1080 }, { width: 3840, height: 2160 }]) {
     await page.setViewportSize(viewport); await page.getByRole('button', { name: 'View cards' }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.locator('.market-dialog .reference-card')).toHaveCount(15); await expect(page.locator('.market-dialog .card__image')).toHaveCount(15);
@@ -205,7 +205,7 @@ test('DD-E2E-032: Buy completion switches players immediately and can be undone'
 test('DD-E2E-034: public labels and card rules use explicit player-facing text', async ({ page, openGame }) => {
   await openGame(page); await expect(page.getByTestId('zone-money')).toHaveText('Player 1 money: 0'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('title', 'Player 1'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('title', 'Player 2');
   await page.getByRole('button', { name: 'View all cards' }).click(); const dialog = page.getByRole('dialog');
-  await expect(dialog.locator('[data-card-name="Step"]')).toContainText('Move 1 space.'); await expect(dialog.locator('[data-card-name="Channel"]')).toContainText('Gain 1 mana. Draw 1 card.'); await expect(dialog.locator('[data-card-name="Cascade"]')).toContainText('Deal 2 additional damage for each other spell you played this turn.');
+  await expect(dialog.locator('[data-card-name="Step"] .card__headline')).toHaveText('Move 1 space'); await expect(dialog.locator('[data-card-name="Channel"] .card__headline')).toHaveText('+1 mana · +1 card'); await expect(dialog.locator('[data-card-name="Cascade"] .card__detail')).toContainText('+2 damage for each other spell you played this turn.');
   await expect(dialog.locator('[data-card-name="Gold"]')).toHaveClass(/card--treasure/); await expect(dialog.locator('[data-card-name="Step"]')).toHaveClass(/card--engine/); await expect(dialog.locator('[data-card-name="Focus"]')).toHaveClass(/card--mana/); await expect(dialog.locator('[data-card-name="Scrap"]')).toHaveCount(0);
 });
 
@@ -336,7 +336,7 @@ test('DD-E2E-049: draft-off setup starts with rendered Scrap that stays outside 
 
   await openGame(page, (record) => { seedHand(record, ['scrap']); });
   const scrap = page.locator('[data-card-name="Scrap"]');
-  await expect(scrap).toContainText('Deal 1 damage at any range.');
+  await expect(scrap.locator('.card__headline')).toHaveText('1 damage at any range');
   await scrap.click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('39 HP');
   await expect(page.getByTestId('action-log').getByText('Played Scrap')).toBeVisible();
   await expect(page.locator('[data-market-card="Scrap"]')).toHaveCount(0);
@@ -466,6 +466,10 @@ test('DD-E2E-057: canonical card faces keep long rules inside hand and scaled pl
   await openGame(page, (record) => { seedHand(record, ['reclaim', 'reclaim', 'precisionShot', 'salvageShot', 'drive', 'repellingShot']); record.state.fighters.ochre.position = 1; record.state.fighters.indigo.position = 4; });
   const fit = await page.locator('[data-testid="hand-grid"] .card').evaluateAll((cards) => cards.map((card) => { const cardRect = card.getBoundingClientRect(); const header = card.querySelector('.card__header')!.getBoundingClientRect(); const rules = card.querySelector('.card__rules')!.getBoundingClientRect(); return { headerAtTop: header.top <= cardRect.top + 4, rulesInside: rules.bottom <= cardRect.bottom + 1 }; }));
   expect(fit.every((entry) => entry.headerAtTop && entry.rulesInside)).toBe(true);
+  const precisionCopy = page.locator('[data-card-name="Precision Shot"]');
+  await expect(precisionCopy.locator('.card__headline')).toHaveText('4 damage');
+  await expect(precisionCopy.locator('.card__detail')).toHaveText('Other Precision Shots you play this turn deal 2 damage instead.');
+  expect(await precisionCopy.locator('.card__headline').evaluate((headline) => ({ align: getComputedStyle(headline).textAlign, weight: Number(getComputedStyle(headline).fontWeight) }))).toMatchObject({ align: 'center', weight: 900 });
   await page.locator('[data-card-name="Reclaim"]').click();
   const sizes = await page.evaluate(() => { const hand = document.querySelector<HTMLElement>('[data-card-name="Reclaim"]')!.getBoundingClientRect(); const played = document.querySelector<HTMLElement>('[data-played-card-name="Reclaim"]')!.getBoundingClientRect(); return { handRatio: hand.height / hand.width, playedRatio: played.height / played.width }; });
   expect(Math.abs(sizes.handRatio - sizes.playedRatio)).toBeLessThan(.02);
