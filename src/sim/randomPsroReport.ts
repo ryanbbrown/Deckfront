@@ -13,7 +13,7 @@ import {
 } from './randomPsro';
 import type { ArchetypeSummary, ConfirmedCandidate, RandomPsroArtifact } from './randomPsro';
 import {
-  RANDOM_PSRO_KINGDOMS, inspectRandomPsroUnit
+  RANDOM_PSRO_KINGDOMS, inspectRandomPsroUnit, randomPsroArtifactPath
 } from './randomPsroSuite';
 import { rulesFingerprint } from './rulesFingerprint';
 import { STRATIFIED_ADMISSIONS_PER_LANE, STRATIFIED_BEAM_LANES } from './stratifiedBeam';
@@ -79,13 +79,28 @@ export interface KingdomConsistencyReport {
     independentAttackHasNoConfirmedChallenger: boolean };
   kingdom001Comparison?: Kingdom001Comparison;
 }
+export interface OldLotteryEvaluations {
+  ordinary: LotteryEvaluation;
+  stratified: LotteryEvaluation;
+}
 export interface Kingdom001Comparison {
   sources: { ordinary: string; stratified: string };
   pooledOldSupportCount: number;
   oldSupportAgainstNew: Record<string, LotteryEvaluation>;
-  newSupportAgainstOld: Record<string, Record<string, LotteryEvaluation>>;
+  newSupportAgainstOld: Record<string, OldLotteryEvaluations>;
   wholeLotteryCrossPlay: Record<string, LotteryEvaluation>;
   oldSupportGate: boolean;
+}
+export interface Kingdom001SenseCheck {
+  schemaVersion: 1;
+  experiment: 'random-psro-k001-old-lottery-check';
+  createdAt: string;
+  runSeed: number;
+  reportSeed: number;
+  confirmationBlocks: number;
+  newArtifact: string;
+  seedNamespaces: Record<string, number[]>;
+  comparison: Kingdom001Comparison;
 }
 export interface RandomPsroConsistencyReport {
   schemaVersion: 1;
@@ -221,6 +236,41 @@ function lottery(label: string, artifact: RandomPsroArtifact): Lottery {
   return { label, strategies: supportStrategies(artifact) };
 }
 
+export type LotteryEvaluator = (
+  candidate: Lottery, opponent: Lottery, label: string
+) => Promise<LotteryEvaluation>;
+
+export async function evaluateKingdom001Comparison(
+  newLotteries: readonly Lottery[], ordinary: Lottery, stratified: Lottery,
+  evaluate: LotteryEvaluator, sources: Kingdom001Comparison['sources']
+): Promise<Kingdom001Comparison> {
+  const byForm = new Map<string, { strategy: Strategy; weight: number }>();
+  for (const source of [ordinary, stratified]) for (const entry of source.strategies) {
+    if (!byForm.has(canonicalStrategy(entry.strategy))) byForm.set(canonicalStrategy(entry.strategy), entry);
+  }
+  const pooled: Lottery = { label: 'pooled-old-support',
+    strategies: [...byForm.values()].map((entry) => ({ ...entry, weight: 1 })) };
+  const oldSupportAgainstNew: Record<string, LotteryEvaluation> = {};
+  const newSupportAgainstOld: Record<string, OldLotteryEvaluations> = {};
+  const wholeLotteryCrossPlay: Record<string, LotteryEvaluation> = {};
+  for (const current of newLotteries) {
+    oldSupportAgainstNew[current.label] = await evaluate(pooled, current, `old-support-vs-${current.label}`);
+    newSupportAgainstOld[current.label] = {
+      ordinary: await evaluate(current, ordinary, `${current.label}-vs-ordinary`),
+      stratified: await evaluate(current, stratified, `${current.label}-vs-stratified`)
+    };
+    wholeLotteryCrossPlay[`${current.label}-vs-ordinary`] = newSupportAgainstOld[current.label]!.ordinary;
+    wholeLotteryCrossPlay[`${current.label}-vs-stratified`] = newSupportAgainstOld[current.label]!.stratified;
+    wholeLotteryCrossPlay[`ordinary-vs-${current.label}`] = await evaluate(ordinary, current, `ordinary-vs-${current.label}`);
+    wholeLotteryCrossPlay[`stratified-vs-${current.label}`] = await evaluate(stratified, current, `stratified-vs-${current.label}`);
+  }
+  wholeLotteryCrossPlay['ordinary-vs-stratified'] = await evaluate(ordinary, stratified, 'ordinary-vs-stratified');
+  return { sources, pooledOldSupportCount: pooled.strategies.length,
+    oldSupportAgainstNew, newSupportAgainstOld, wholeLotteryCrossPlay,
+    oldSupportGate: Object.values(oldSupportAgainstNew)
+      .every((result) => result.support.every((entry) => entry.interval95.lower <= 0.50)) };
+}
+
 export function directionalCrossPlayWithinRange(
   forward: number, reverse: number, minimum = 0.47, maximum = 0.53
 ): boolean {
@@ -289,29 +339,9 @@ export async function generateRandomPsroConsistencyReport(
       const reverseCrossPlay = await evaluate(runs[1]!, runs[0]!, 'run-b-vs-a');
       let kingdom001Comparison: Kingdom001Comparison | undefined;
       if (kingdomIndex === 0) {
-        const byForm = new Map<string, { strategy: Strategy; weight: number }>();
-        for (const source of [ordinary, stratified]) for (const entry of source.strategies) {
-          if (!byForm.has(canonicalStrategy(entry.strategy))) byForm.set(canonicalStrategy(entry.strategy), entry);
-        }
-        const pooled: Lottery = { label: 'pooled-old-support', strategies: [...byForm.values()].map((entry) => ({ ...entry, weight: 1 })) };
-        const oldSupportAgainstNew: Record<string, LotteryEvaluation> = {};
-        const newSupportAgainstOld: Record<string, Record<string, LotteryEvaluation>> = {};
-        const wholeLotteryCrossPlay: Record<string, LotteryEvaluation> = {};
-        for (const current of runs) {
-          oldSupportAgainstNew[current.label] = await evaluate(pooled, current, `old-support-vs-${current.label}`);
-          newSupportAgainstOld[current.label] = {
-            ordinary: await evaluate(current, ordinary, `${current.label}-vs-ordinary`),
-            stratified: await evaluate(current, stratified, `${current.label}-vs-stratified`)
-          };
-          wholeLotteryCrossPlay[`ordinary-vs-${current.label}`] = await evaluate(ordinary, current, `ordinary-vs-${current.label}`);
-          wholeLotteryCrossPlay[`stratified-vs-${current.label}`] = await evaluate(stratified, current, `stratified-vs-${current.label}`);
-        }
-        wholeLotteryCrossPlay['ordinary-vs-stratified'] = await evaluate(ordinary, stratified, 'ordinary-vs-stratified');
-        kingdom001Comparison = { sources: { ordinary: path.relative(options.root, ordinaryPath),
-          stratified: path.relative(options.root, stratifiedPath) }, pooledOldSupportCount: pooled.strategies.length,
-          oldSupportAgainstNew, newSupportAgainstOld, wholeLotteryCrossPlay,
-          oldSupportGate: Object.values(oldSupportAgainstNew)
-            .every((result) => result.worstSupport.interval95.lower <= 0.50) };
+        kingdom001Comparison = await evaluateKingdom001Comparison(runs, ordinary, stratified, evaluate,
+          { ordinary: path.relative(options.root, ordinaryPath),
+            stratified: path.relative(options.root, stratifiedPath) });
       }
       ledger.validate();
       const crossSupportGate = crossPlay.worstSupport.interval95.lower <= 0.50
@@ -336,8 +366,86 @@ export async function generateRandomPsroConsistencyReport(
     }, kingdoms };
 }
 
+export interface GenerateKingdom001SenseCheckOptions {
+  root: string;
+  seed: number;
+  ordinarySource?: string;
+  stratifiedSource?: string;
+  reportSeed?: number;
+  confirmationBlocks?: number;
+  workers?: number;
+}
+
+export async function generateKingdom001SenseCheck(
+  options: GenerateKingdom001SenseCheckOptions
+): Promise<Kingdom001SenseCheck> {
+  const kingdom = RANDOM_PSRO_KINGDOMS[0]!;
+  registerKingdom(kingdom);
+  const unit = { kingdomId: kingdom.id, seed: options.seed };
+  const evidence = inspectRandomPsroUnit(options.root, unit, RANDOM_PSRO_DEFAULT_CONFIG);
+  if (!evidence.valid || !evidence.converged || !evidence.artifact) {
+    throw new Error(`${kingdom.id} seed ${options.seed} is not one valid converged full artifact: ${evidence.reason}.`);
+  }
+  const ordinaryPath = path.resolve(options.root,
+    options.ordinarySource ?? kingdom001OrdinarySourcePath(options.root));
+  if (!options.ordinarySource && !fs.existsSync(ordinaryPath)) {
+    writeKingdom001OrdinarySource(options.root, ordinaryPath);
+  }
+  const stratifiedPath = path.resolve(options.root, options.stratifiedSource
+    ?? path.join('.experiments', 'deep-beam-suite', 'deep-beam-v1', 'results', 'deep-beam-tuning-001.json'));
+  const ordinary = loadKingdom001PriorLottery(ordinaryPath, 'ordinary-mage');
+  const stratified = loadKingdom001PriorLottery(stratifiedPath, 'stratified-melee');
+  const reportSeed = options.reportSeed ?? 92_001;
+  const confirmationBlocks = options.confirmationBlocks ?? 400;
+  const runner = new WorkerPairingRunner(options.workers ?? 10,
+    new URL('../server/aiWorker.ts', import.meta.url), { kingdom }, ['--import', 'tsx']);
+  const ledger = new RandomPsroSeedLedger(reportSeed);
+  const evaluate: LotteryEvaluator = async (candidate, opponent, label) => {
+    const seeds = ledger.reserve(`${label}:schedule`, confirmationBlocks);
+    const extras = ledger.reserve(`${label}:other`, 2);
+    return evaluateLottery(candidate, opponent, runner, kingdom.id, seeds, extras[0]!, extras[1]!);
+  };
+  try {
+    const comparison = await evaluateKingdom001Comparison(
+      [lottery(`seed-${options.seed}`, evidence.artifact)], ordinary, stratified, evaluate,
+      { ordinary: path.relative(options.root, ordinaryPath), stratified: path.relative(options.root, stratifiedPath) });
+    ledger.validate();
+    const priorSeeds = new Set(Object.values(evidence.artifact.seedNamespaces).flat());
+    if (Object.values(ledger.namespaces).flat().some((seed) => priorSeeds.has(seed))) {
+      throw new Error('K001 held-out evidence overlaps the strategy-discovery run.');
+    }
+    return { schemaVersion: 1, experiment: 'random-psro-k001-old-lottery-check',
+      createdAt: new Date().toISOString(), runSeed: options.seed, reportSeed, confirmationBlocks,
+      newArtifact: path.relative(options.root, randomPsroArtifactPath(options.root, unit)),
+      seedNamespaces: ledger.namespaces, comparison };
+  } finally { await runner.close(); }
+}
+
 function percent(value: number): string { return `${(value * 100).toFixed(1)}%`; }
 function gate(value: boolean): string { return value ? 'PASS' : 'FAIL'; }
+function candidateLine(entry: ConfirmedCandidate): string {
+  const plan = entry.strategy.buyPlan.filter((slot) => slot.kind !== 'inactive').map(formatSlot).join(' → ');
+  return `- ${entry.strategy.id}: ${percent(entry.mean)}; CI ${percent(entry.interval95.lower)}–${percent(entry.interval95.upper)}; ${plan}`;
+}
+
+export function renderKingdom001SenseCheck(report: Kingdom001SenseCheck): string {
+  const label = `seed-${report.runSeed}`;
+  const comparison = report.comparison;
+  const old = comparison.oldSupportAgainstNew[label]!;
+  const newAgainst = comparison.newSupportAgainstOld[label]!;
+  const lines = ['# Kingdom 001 old-lottery sense check', '',
+    'This is fresh held-out empirical evidence. It is not a proof.', '',
+    `Old-support no-CI-lower-above-50% gate: **${gate(comparison.oldSupportGate)}**`, '',
+    '## Every old support strategy vs the new lottery', '', ...old.support.map(candidateLine), '',
+    '## Every new support strategy vs each old lottery', '', '### Ordinary Mage-heavy lottery', '',
+    ...newAgainst.ordinary.support.map(candidateLine), '', '### Stratified Melee-heavy lottery', '',
+    ...newAgainst.stratified.support.map(candidateLine), '', '## Whole-lottery cross-play', '' ];
+  for (const [name, result] of Object.entries(comparison.wholeLotteryCrossPlay)) {
+    lines.push(`- ${name}: ${percent(result.score)}; CI ${percent(result.interval95.lower)}–${percent(result.interval95.upper)}`);
+  }
+  lines.push('', `Detailed JSON: \`k001-seed-${report.runSeed}-check.json\``, '');
+  return lines.join('\n');
+}
 
 export function renderRandomPsroConsistencyReport(report: RandomPsroConsistencyReport): string {
   const lines = [

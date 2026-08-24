@@ -27,6 +27,7 @@
     "random-psro:suite": "tsx scripts/run_random_psro.ts --suite",
     "random-psro:status": "tsx scripts/run_random_psro.ts --status",
     "random-psro:k001-source": "tsx scripts/write_random_psro_k001_source.ts",
+    "random-psro:k001-check": "tsx scripts/check_random_psro_k001.ts",
     "random-psro:report": "tsx scripts/report_random_psro.ts",
     "strategy:report": "tsx scripts/generate_strategy_report.ts",
     "test:e2e:manifest": "tsx scripts/validate_e2e_manifest.ts",

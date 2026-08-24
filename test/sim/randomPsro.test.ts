@@ -14,8 +14,9 @@ import {
   inspectRandomPsroUnit, randomPsroArtifactPath, runRandomPsroBatch
 } from '../../src/sim/randomPsroSuite';
 import {
-  buildKingdom001OrdinarySource, directionalCrossPlayWithinRange, loadKingdom001PriorLottery,
-  renderRandomPsroConsistencyReport, weightedLotteryEvaluation, writeKingdom001OrdinarySource
+  buildKingdom001OrdinarySource, directionalCrossPlayWithinRange, evaluateKingdom001Comparison,
+  loadKingdom001PriorLottery, renderKingdom001SenseCheck, renderRandomPsroConsistencyReport,
+  weightedLotteryEvaluation, writeKingdom001OrdinarySource
 } from '../../src/sim/randomPsroReport';
 import { runUniformRandomRacing } from '../../src/sim/responseOptimizers';
 import { canonicalStrategy } from '../../src/sim/strategy';
@@ -213,6 +214,43 @@ describe('consistency report math and prior sources', () => {
         crossRunSupportNoCiLowerAbove50: true, independentAttackNoCiLowerAbove55: true }, kingdoms: [] });
     expect(rendered).toContain('empirical gates');
     expect(rendered).toContain('not proofs');
+  });
+
+  it('builds the one-run K001 comparison through the shared evaluator and gates every old support', async () => {
+    const domain = stoplessRandomDomain(setup());
+    const random = new SeededRandom(77);
+    const makeLottery = (label: string, count: number) => ({ label,
+      strategies: Array.from({ length: count }, () => ({ strategy: domain.randomComplete(random), weight: 1 / count })) });
+    const current = makeLottery('seed-35001', 2);
+    const ordinary = makeLottery('ordinary', 3);
+    const stratified = makeLottery('stratified', 2);
+    const calls: string[] = [];
+    const evaluate = async (candidate: typeof current, _opponent: typeof current, label: string) => {
+      calls.push(label);
+      const support = candidate.strategies.map((entry) => ({ strategy: entry.strategy, mean: 0.5,
+        interval95: { lower: 0.49, upper: 0.51 }, blocks: 10, matches: 40 }));
+      return { score: 0.5, interval95: { lower: 0.49, upper: 0.51 }, support, worstSupport: support[0]! };
+    };
+    const comparison = await evaluateKingdom001Comparison([current], ordinary, stratified,
+      evaluate, { ordinary: 'ordinary.json', stratified: 'stratified.json' });
+    expect(calls).toEqual(['old-support-vs-seed-35001', 'seed-35001-vs-ordinary',
+      'seed-35001-vs-stratified', 'ordinary-vs-seed-35001', 'stratified-vs-seed-35001',
+      'ordinary-vs-stratified']);
+    expect(comparison.oldSupportAgainstNew['seed-35001']!.support).toHaveLength(5);
+    expect(comparison.newSupportAgainstOld['seed-35001']!.ordinary.support).toHaveLength(2);
+    expect(comparison.newSupportAgainstOld['seed-35001']!.stratified.support).toHaveLength(2);
+    expect(comparison.oldSupportGate).toBe(true);
+    comparison.oldSupportAgainstNew['seed-35001']!.support[0]!.interval95.lower = 0.51;
+    comparison.oldSupportGate = Object.values(comparison.oldSupportAgainstNew)
+      .every((result) => result.support.every((entry) => entry.interval95.lower <= 0.50));
+    expect(comparison.oldSupportGate).toBe(false);
+    const markdown = renderKingdom001SenseCheck({ schemaVersion: 1,
+      experiment: 'random-psro-k001-old-lottery-check', createdAt: '', runSeed: 35_001,
+      reportSeed: 92_001, confirmationBlocks: 10, newArtifact: 'new.json',
+      seedNamespaces: {}, comparison });
+    expect(markdown).toContain('Every old support strategy');
+    expect(markdown).toContain('Every new support strategy');
+    expect(markdown).toContain('Whole-lottery cross-play');
   });
 
   it('requires both fresh cross-play directions to pass the 47–53% gate', () => {
