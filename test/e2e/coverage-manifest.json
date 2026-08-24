@@ -45,7 +45,7 @@
     "victoryUndoReloadNewGame": ["pw:DD-E2E-012"],
     "localLabelsAndRules": ["pw:DD-E2E-034", "pw:DD-E2E-057"],
     "deckSummary": ["pw:DD-E2E-037", "pw:DD-E2E-040", "pw:DD-E2E-046"],
-    "handGrouping": ["pw:DD-E2E-037", "pw:DD-E2E-038", "pw:DD-E2E-039", "pw:DD-E2E-056"],
+    "handGrouping": ["pw:DD-E2E-037", "pw:DD-E2E-038", "pw:DD-E2E-039", "pw:DD-E2E-056", "pw:DD-E2E-062"],
     "fullScreenLayout": ["pw:DD-E2E-038", "pw:DD-E2E-040", "pw:DD-E2E-046", "pw:DD-E2E-058"],
     "overlappingHand": ["pw:DD-E2E-040"],
     "multiLevelUndo": ["pw:DD-E2E-044"],
@@ -58,12 +58,16 @@
     "gainChoice": ["pw:DD-E2E-052"],
     "variableTargetCounts": ["pw:DD-E2E-053"],
     "playAll": ["pw:DD-E2E-055"],
-    "cardTravel": ["pw:DD-E2E-059"],
-    "drawTravel": ["pw:DD-E2E-059"],
-    "zonePiles": ["pw:DD-E2E-059"],
-    "aiPlayback": ["pw:DD-E2E-042"],
+    "cardTravel": ["pw:DD-E2E-059", "pw:DD-E2E-062"],
+    "drawTravel": ["pw:DD-E2E-059", "pw:DD-E2E-062"],
+    "zonePiles": ["pw:DD-E2E-059", "pw:DD-E2E-066"],
+    "aiPlayback": ["pw:DD-E2E-042", "pw:DD-E2E-063", "pw:DD-E2E-064"],
     "playbackChoicesSuppressed": ["pw:DD-E2E-042"],
-    "aiAnimationSetting": ["pw:DD-E2E-061"],
-    "reducedMotion": ["pw:DD-E2E-060"]
+    "aiAnimationSetting": ["pw:DD-E2E-061", "pw:DD-E2E-063"],
+    "reducedMotion": ["pw:DD-E2E-060"],
+    "cardDestinationStability": ["pw:DD-E2E-059", "pw:DD-E2E-062"],
+    "playbackInterruptions": ["pw:DD-E2E-063", "pw:DD-E2E-064", "pw:DD-E2E-060"],
+    "newGameStaleResponses": ["pw:DD-E2E-065"],
+    "handZoneLayout": ["pw:DD-E2E-066"]
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { STARTING_BUDGET, firstBuyCarry } from '../game';
 import type { CardDefinition, CardInstance, PlayerId } from '../game';
 import { AI_DIFFICULTIES } from '../shared/api';
@@ -10,6 +10,7 @@ import type { Flight } from './playback';
 
 interface GameProps { game: GameView; initialPresentation: PresentationSequence | null; error: string | null; animateAi: boolean; onAnimateAi: (enabled: boolean) => void; onGame: (game: GameView) => void; onError: (value: string | null) => void; onNew: () => void }
 interface CardGroup { definitionId: string; instances: CardInstance[] }
+interface AnimationDestination { kind: 'handToPlayed' | 'drawToHand'; definitionId: string }
 type PlayedGroup = CardGroup;
 
 export function PreviewTable({ catalog, market, error, animateAi, onAnimateAi, onRefresh, onStart }: {
@@ -41,11 +42,13 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
   const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
   const [pendingHandActionId, setPendingHandActionId] = useState<string | null>(null);
   const [marketOpen, setMarketOpen] = useState(false);
-  const [presentationGame, setPresentationGame] = useState<GameView | null>(null);
-  const [playbackActive, setPlaybackActive] = useState(false);
-  const [playingAi, setPlayingAi] = useState(false);
+  const initialFrames = initialPresentation?.frames ?? [];
+  const initializePlayback = initialFrames.length > 0 && animateAi && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [presentationGame, setPresentationGame] = useState<GameView | null>(() => initializePlayback ? gameAtFrame(game, initialFrames[0]!) : null);
+  const [playbackActive, setPlaybackActive] = useState(initializePlayback);
+  const [playingAi, setPlayingAi] = useState(() => initializePlayback && initialFrames.some((frame) => game.mode === 'ai' && frame.playerId === game.aiPlayerId));
   const [flights, setFlights] = useState<Flight[]>([]);
-  const [destinations, setDestinations] = useState<Array<{ kind: 'handToPlayed' | 'drawToHand'; definitionId: string }>>([]);
+  const [destinations, setDestinations] = useState<AnimationDestination[]>([]);
   const playbackToken = useRef(0);
   const finalGame = useRef<GameView>(game);
   const reducedMotion = useReducedMotion();
@@ -59,23 +62,22 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
   const playedGroups = groupPlayedCards(actor.played);
   const proposalCost = game.buildProposal.reduce((sum, id) => sum + (game.cards[id]?.cost ?? 0), 0);
 
-  function finishPlayback() {
+  const finishPlayback = useCallback(() => {
     playbackToken.current += 1;
     setFlights([]); setDestinations([]); setPresentationGame(null); setPlaybackActive(false); setPlayingAi(false);
     onGame(finalGame.current);
-  }
+  }, [onGame]);
   async function present(update: GameUpdateView): Promise<GameView> {
     const final = updateGame(update); finalGame.current = final;
     const token = ++playbackToken.current;
     const frames = update.presentation.frames;
-    const includesAiTurn = frames.some((frame) => final.mode === 'ai' && frame.playerId === final.aiPlayerId && frame.commandType !== 'submitStartingBuild');
-    if (!frames.length || reducedMotion || (!animateAi && includesAiTurn)) { setPresentationGame(null); setPlaybackActive(false); onGame(final); return final; }
+    if (!frames.length || reducedMotion) { setPresentationGame(null); setPlaybackActive(false); onGame(final); return final; }
     setPlaybackActive(true); setPlayingAi(frames.some((frame) => final.mode === 'ai' && frame.playerId === final.aiPlayerId)); clearChoice();
     try {
       for (const frame of frames) {
         if (token !== playbackToken.current) return final;
         const isAiFrame = final.mode === 'ai' && frame.playerId === final.aiPlayerId;
-        if (isAiFrame && !animateAi) continue;
+        if (isAiFrame && !animateAi) { setPresentationGame(null); setPlaybackActive(false); setPlayingAi(false); onGame(final); return final; }
         const visibleTransfers = frame.transfers.filter((transfer) => !transfer.hidden);
         const remainingWithheld = new Set(visibleTransfers.map((transfer) => transfer.card.id));
         const sourceRects = new Map<string, DOMRect>();
@@ -83,11 +85,19 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
           const source = document.querySelector<HTMLElement>(`[data-hand-definition-id="${transfer.card.definitionId}"] .full-card`);
           if (source) sourceRects.set(transfer.card.id, source.getBoundingClientRect());
         }
-        if (!visibleTransfers.length) setPresentationGame(gameAtFrame(final, frame));
+        if (!visibleTransfers.length) {
+          setPresentationGame(gameAtFrame(final, frame));
+          await nextPaint();
+          if (token !== playbackToken.current) return final;
+          if (isAiFrame && frame.commandType === 'aiTurnStart') await wait(AI_SETTLE_MS);
+          continue;
+        }
         for (const kind of ['handToPlayed', 'drawToHand'] as const) {
           const batch = visibleTransfers.filter((transfer) => transfer.kind === kind);
           if (!batch.length) continue;
-          setDestinations(batch.map((transfer) => ({ kind: transfer.kind, definitionId: transfer.card.definitionId })));
+          const uniqueDestinations = new Map<string, AnimationDestination>();
+          for (const transfer of batch) uniqueDestinations.set(`${transfer.kind}:${transfer.card.definitionId}`, { kind: transfer.kind, definitionId: transfer.card.definitionId });
+          setDestinations([...uniqueDestinations.values()]);
           setPresentationGame(gameAtFrame(final, frame, remainingWithheld));
           await nextPaint();
           if (token !== playbackToken.current) return final;
@@ -95,10 +105,11 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
           batch.forEach((transfer, index) => {
             const selector = transfer.kind === 'handToPlayed' ? `[data-played-definition-id="${transfer.card.definitionId}"]` : `[data-hand-definition-id="${transfer.card.definitionId}"] .full-card`;
             const placeholder = document.querySelector<HTMLElement>(`[data-animation-destination="${transfer.kind}-${transfer.card.definitionId}"]`);
-            const target = placeholder?.querySelector<HTMLElement>('.hand-card-frame') ?? placeholder ?? document.querySelector<HTMLElement>(selector);
+            const matches = document.querySelectorAll<HTMLElement>(selector);
+            const target = placeholder?.querySelector<HTMLElement>('.hand-card-frame') ?? placeholder ?? matches.item(matches.length - 1);
             if (!target) return;
             const to = target.getBoundingClientRect();
-            const from = transfer.kind === 'handToPlayed' ? sourceRects.get(transfer.card.id) : new DOMRect(to.left, window.innerHeight + 12, 148, 220);
+            const from = transfer.kind === 'handToPlayed' ? sourceRects.get(transfer.card.id) : new DOMRect(to.left, window.innerHeight + 12, to.width, to.height);
             if (!from) return;
             nextFlights.push({ id: transfer.card.id, card: final.cards[transfer.card.definitionId]!, from, to,
               duration: transfer.kind === 'handToPlayed' ? PLAY_DURATION_MS : DRAW_DURATION_MS,
@@ -125,7 +136,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
     const hidden = () => { if (document.hidden && playbackActive) finishPlayback(); };
     document.addEventListener('visibilitychange', hidden);
     return () => document.removeEventListener('visibilitychange', hidden);
-  });
+  }, [finishPlayback, playbackActive]);
   useEffect(() => { if ((reducedMotion || (!animateAi && playingAi)) && playbackActive) finishPlayback(); }, [animateAi, reducedMotion, playingAi, playbackActive]);
   useEffect(() => { if (!playbackActive) finalGame.current = game; }, [game, playbackActive]);
 
@@ -299,8 +310,8 @@ function ZonePiles({ game, playerId }: { game: GameView; playerId: PlayerId }) {
   const player = game.players[playerId];
   const discard = player.discardTop ? game.cards[player.discardTop.definitionId] : null;
   return <aside className="zone-piles" aria-label={`${playerName(playerId)} draw and discard piles`}>
-    <div className="zone-pile"><div className="card-back" data-testid="draw-pile" aria-label={`${player.zoneCounts.draw} cards in draw pile`}><span>Deckfront</span></div><strong>Draw ×{player.zoneCounts.draw}</strong></div>
-    <div className="zone-pile"><div className="discard-top" data-testid="discard-pile" aria-label={`${player.zoneCounts.discard} cards in discard pile`}>{discard ? <article className={`card full-card card--${discard.family}`} data-discard-card={discard.name}><CardFace card={discard} /></article> : <span>Empty</span>}</div><strong>Discard ×{player.zoneCounts.discard}</strong></div>
+    <div className="zone-pile"><div className="card-back" data-testid="draw-pile" aria-label={`${player.zoneCounts.draw} ${cardWord(player.zoneCounts.draw)} in draw pile`}><span>Deckfront</span></div><strong>Draw ×{player.zoneCounts.draw}</strong></div>
+    <div className="zone-pile"><div className="discard-top" data-testid="discard-pile" aria-label={`${player.zoneCounts.discard} ${cardWord(player.zoneCounts.discard)} in discard pile`}>{discard ? <article className={`card full-card card--${discard.family}`} data-discard-card={discard.name}><CardFace card={discard} /></article> : <span>Empty</span>}</div><strong>Discard ×{player.zoneCounts.discard}</strong></div>
   </aside>;
 }
 
@@ -355,6 +366,7 @@ function stableHandGroups(cards: CardInstance[], turnKey: string, orders: Map<st
 }
 function groupPlayedCards(cards: CardInstance[]): PlayedGroup[] { const groups: PlayedGroup[] = []; for (const card of cards) { const previous = groups.at(-1); if (previous?.definitionId === card.definitionId) previous.instances.push(card); else groups.push({ definitionId: card.definitionId, instances: [card] }); } return groups; }
 function playerName(playerId: PlayerId): string { return playerId === 'ochre' ? 'Player 1' : 'Player 2'; }
+function cardWord(count: number): string { return count === 1 ? 'card' : 'cards'; }
 function eventPlayerName(value: unknown): string { return value === 'ochre' || value === 'indigo' ? playerName(value) : 'Unknown player'; }
 function eventText(game: GameView, event: PublicGameEvent): string {
   const detail = event.detail;

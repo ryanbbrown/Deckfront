@@ -54,5 +54,5 @@ export function App() {
   if (loading || !catalog) return <main className="loading">Loading Deckfront…</main>;
   if (!game) return <PreviewTable catalog={catalog} market={market} error={error} animateAi={animateAi} onAnimateAi={setAnimateAi} onRefresh={() => setMarket(refreshed(catalog.variableCardIds))} onStart={start} />;
   const gameGeneration = generation.current;
-  return <Game game={game} initialPresentation={initialPresentation} error={error} animateAi={animateAi} onAnimateAi={setAnimateAi} onGame={(next) => { if (generation.current === gameGeneration) { setInitialPresentation(null); setGame(next); } }} onError={setError} onNew={newGame} />;
+  return <Game game={game} initialPresentation={initialPresentation} error={error} animateAi={animateAi} onAnimateAi={setAnimateAi} onGame={(next) => { if (generation.current === gameGeneration) { setInitialPresentation(null); setGame(next); } }} onError={(value) => { if (generation.current === gameGeneration) setError(value); }} onNew={newGame} />;
 }

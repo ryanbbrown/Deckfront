@@ -29,10 +29,13 @@ export function updateGame(update: GameUpdateView): GameView {
 export function gameAtFrame(finalGame: GameView, frame: PresentationFrame, withheldIds: ReadonlySet<string> = new Set()): GameView {
   const players = Object.fromEntries((['ochre', 'indigo'] as const).map((playerId) => {
     const player = frame.state.players[playerId];
+    const hand = player.hand.filter((card) => !withheldIds.has(card.id));
+    const played = player.played.filter((card) => !withheldIds.has(card.id));
     return [playerId, {
       ...player,
-      hand: player.hand.filter((card) => !withheldIds.has(card.id)),
-      played: player.played.filter((card) => !withheldIds.has(card.id))
+      hand,
+      played,
+      zoneCounts: { ...player.zoneCounts, hand: hand.length, play: played.length }
     }];
   })) as GameView['players'];
   return {
