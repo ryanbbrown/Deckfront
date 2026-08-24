@@ -336,7 +336,7 @@ test('DD-E2E-044: every action undoes to setup and Step can take a different dir
 
 test('DD-E2E-045: the fixed action rail shows public actions from both local players', async ({ page, openGame }) => {
   await openGame(page); const rail = page.getByRole('complementary', { name: /Action history/ }); await expect(rail).toBeVisible();
-  await expect(page.locator('.side-drawer,.edge-toggle')).toHaveCount(0); await expect(rail.getByRole('button', { name: 'Undo last action' })).toHaveText('↶'); await expect(rail.getByRole('button', { name: 'New game' })).toHaveText('＋');
+  await expect(page.locator('.side-drawer,.edge-toggle')).toHaveCount(0); await expect(rail.getByRole('navigation', { name: 'Game controls' }).locator('button')).toHaveText(['Undo', 'Reset', 'New game']);
   await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await page.getByRole('button', { name: 'End Action phase' }).click();
   await expect(page.getByTestId('action-log').locator('li').filter({ hasText: 'Player 1' }).filter({ hasText: 'Started Buy phase' })).toHaveCount(1);
   await expect(page.getByTestId('action-log').locator('li').filter({ hasText: 'Player 2' }).filter({ hasText: 'Started Buy phase' })).toHaveCount(1);
@@ -710,7 +710,7 @@ test('DD-E2E-072: Reset interrupts AI playback and reuses the existing trained g
   await page.setViewportSize({ width: 1920, height: 1080 }); let createRequests = 0;
   page.on('request', (request) => { const url = new URL(request.url()); if (request.method() === 'POST' && url.pathname === '/api/games') createRequests += 1; });
   await page.goto(baseUrl); await page.getByText('Play against AI', { exact: true }).click(); await page.getByText('AI goes first', { exact: true }).click(); await page.getByRole('button', { name: 'Start game' }).click();
-  const gameId = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId')); await expect(page.getByText('Playing AI turn…')).toBeVisible();
+  await expect(page.getByText('Playing AI turn…')).toBeVisible(); const gameId = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'));
   await page.getByRole('button', { name: 'Reset' }).click(); await expect(page.getByRole('dialog', { name: 'Reset this game?' })).toBeVisible(); await expect(page.getByText('Playing AI turn…')).toHaveCount(0); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
   const response = page.waitForResponse('**/api/games/*/reset'); await page.getByRole('button', { name: 'Yes, reset' }).click(); expect((await response).status()).toBe(200);
   await expect(page.getByText(/Turn 2 · Player 2 action/)).toBeVisible(); expect(createRequests).toBe(1); expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(gameId); await expect(page.getByRole('navigation', { name: 'Game controls' }).locator('button').first()).toBeDisabled();
