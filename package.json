@@ -24,6 +24,7 @@
     "response-optimizer:pilot": "tsx scripts/response_optimizer_pilot.ts",
     "goldfish:pilot": "tsx scripts/goldfish_random_pilot.ts",
     "goldfish:enrichment": "tsx scripts/goldfish_enrichment_pilot.ts",
+    "fixed-reservoir:pilot": "tsx scripts/fixed_reservoir_psro_pilot.ts",
     "random-psro:run": "tsx scripts/run_random_psro.ts",
     "random-psro:smoke": "tsx scripts/run_random_psro.ts --smoke --kingdom deep-beam-tuning-001 --seed 35001",
     "random-psro:suite": "tsx scripts/run_random_psro.ts --suite",
