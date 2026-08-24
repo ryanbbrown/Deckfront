@@ -78,6 +78,32 @@ describe('AI games', () => {
     expect(record.state.players.ochre.firstBuyPending).toBe(false); expect(view.completedBuilds).toBeNull();
     expect(view.players.ochre.deckCounts).toMatchObject({ copper:7, scrap:3 });
   });
+  it('resets an AI-first draft to the same human boundary without retraining', async () => {
+    let trainingCalls = 0;
+    const recordingTrainer: AiTrainer = { train: async () => {
+      trainingCalls += 1;
+      return { strategy, summary: { elapsedMs: 7, matches: 11, strategyId: strategy.id } };
+    } };
+    const repository = new MemoryRepository(); const service = new GameService(repository, recordingTrainer);
+    const created = await service.create({ seed: 17, mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard', variableCardIds: market });
+    const ready = await service.updateBuild(created.id, created.revision, ['aim'], true);
+    const boundary = structuredClone(repository.record!);
+    const buy = await service.commitAction(created.id, ready.revision, phaseAction(ready, 'endAction'));
+    const progressed = await service.commitAction(created.id, buy.revision, phaseAction(buy, 'endBuy'));
+    repository.record!.finishedAt = '2026-01-01T00:00:00.000Z'; repository.record!.durationSeconds = 12;
+
+    const reset = await service.resetGame(created.id, progressed.revision);
+    const saved = repository.record!;
+    expect(trainingCalls).toBe(1);
+    expect(saved.state).toEqual(boundary.state);
+    expect(saved.committedCommands).toEqual(boundary.committedCommands);
+    expect(saved.completedActions).toBe(boundary.completedActions);
+    expect(saved.undoHistory).toEqual([]); expect(saved.finishedAt).toBeNull(); expect(saved.durationSeconds).toBeNull(); expect(saved.buildProposal).toEqual([]);
+    expect(saved).toMatchObject({ id: boundary.id, createdAt: boundary.createdAt, kingdom: boundary.kingdom, mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard', aiStrategy: boundary.aiStrategy, training: boundary.training, initialState: boundary.initialState });
+    expect(reset).toMatchObject({ id: created.id, activePlayerId: 'indigo', phase: 'action', turn: 2, canUndo: false, completedBuilds: { ochre: [], indigo: ['aim'] } });
+    expect(reset.revision).toBe(progressed.revision + 1);
+    expect(reset.presentation.frames.some((frame) => frame.commandType === 'aiTurnStart')).toBe(true);
+  });
   it('executes trained strategies with the simulator tactical policy', async () => {
     const repository = new MemoryRepository(); const service = new GameService(repository, trainer);
     const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });

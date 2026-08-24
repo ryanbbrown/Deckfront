@@ -3,7 +3,7 @@ import { STARTING_BUDGET, firstBuyCarry } from '../game';
 import type { CardDefinition, CardInstance, PlayerId } from '../game';
 import { AI_DIFFICULTIES } from '../shared/api';
 import type { AiDifficulty, BrowserAction, GameMode, GameUpdateView, GameView, PresentationFrame, PresentationSequence, PublicGameEvent, SelectionActionPresentation, SetupCatalog } from '../shared/api';
-import { takeAction, undoAction, updateBuild } from './api';
+import { resetGame, takeAction, undoAction, updateBuild } from './api';
 import { Board } from './Board';
 import { AI_SETTLE_MS, DRAW_DURATION_MS, DRAW_STAGGER_MS, FlyingCards, HUMAN_SETTLE_MS, PLAY_DURATION_MS, PURCHASE_PREVIEW_MS, PurchasePreview, gameAtFrame, updateGame, useReducedMotion, wait } from './playback';
 import type { Flight, PurchaseReveal } from './playback';
@@ -43,6 +43,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
   const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
   const [pendingHandActionId, setPendingHandActionId] = useState<string | null>(null);
   const [marketOpen, setMarketOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
   const initialFrames = initialPresentation?.frames ?? [];
   const initializePlayback = initialFrames.length > 0 && animateAi && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const [presentationGame, setPresentationGame] = useState<GameView | null>(() => initializePlayback ? gameAtFrame(game, initialFrames[0]!) : null);
@@ -70,12 +71,12 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
     setFlights([]); setDestinations([]); setPurchaseReveal(null); setDamageFeedback(null); setPresentationGame(null); setPlaybackActive(false); setPlayingAi(false);
     onGame(finalGame.current);
   }, [onGame]);
-  async function present(update: GameUpdateView): Promise<GameView> {
+  async function present(update: GameUpdateView, firstEvent = view.events.length): Promise<GameView> {
     const final = updateGame(update); finalGame.current = final;
     const token = ++playbackToken.current;
     const frames = batchConsecutiveAiPlays(update.presentation.frames, final.aiPlayerId);
     if (!frames.length || reducedMotion) { setPresentationGame(null); setPlaybackActive(false); onGame(final); return final; }
-    let eventCursor = view.events.length;
+    let eventCursor = firstEvent;
     setPlaybackActive(true); setPlayingAi(frames.some((frame) => final.mode === 'ai' && frame.playerId === final.aiPlayerId)); clearChoice();
     try {
       for (const frame of frames) {
@@ -190,6 +191,16 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
     catch (cause) { onError(cause instanceof Error ? cause.message : 'Undo failed.'); }
     finally { setBusy(false); }
   }
+  function confirmReset() {
+    if (playbackActive) finishPlayback();
+    setResetOpen(true);
+  }
+  async function reset() {
+    setResetOpen(false); setBusy(true); onError(null);
+    try { const update = await resetGame(finalGame.current); await present(update, 0); clearChoice(); }
+    catch (cause) { onError(cause instanceof Error ? cause.message : 'Reset failed.'); }
+    finally { setBusy(false); }
+  }
   function clearChoice() { setTargetedCard(null); setMovementCard(null); setSelectedTargets([]); setPendingHandActionId(null); }
   function chooseCard(id: string) {
     const info = availability.get(id); if (!info?.enabled) return;
@@ -281,11 +292,12 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
       const batchPlayableCount = group.instances.filter((card) => { const action = availability.get(card.id); return action?.enabled && action.batchPlayable && Boolean(action.actionId); }).length;
       return <div className="hand-card-slot" key={group.definitionId} style={{ zIndex: index + 1 }} data-hand-definition-id={group.definitionId}><div className="hand-card-frame">{group.instances.length > 1 ? <span className="quantity-badge" data-testid={`hand-count-${group.definitionId}`}>×{group.instances.length}</span> : null}<button className={`card full-card card--${game.cards[group.definitionId]!.family}${unavailable ? ' card--unavailable' : ''}${selectedCount ? ' card--target' : ''}${pendingSelected || movementCard === enabledInstance.id || targetedCard === enabledInstance.id ? ' card--selected' : ''}`} data-card-name={game.cards[group.definitionId]!.name} data-card-instance-id={enabledInstance.id} data-card-count={group.instances.length} disabled={!interactive} aria-disabled={unavailable || playbackActive} title={!targetedCard && !pendingHandSelection ? info?.reason ?? undefined : undefined} onClick={() => { if (unavailable || playbackActive) return; if (pendingAction) setPendingHandActionId(pendingAction.id); else if (targetedCard) toggleTargetGroup(targetIds); else chooseCard(enabledInstance.id); }}><CardFace card={game.cards[group.definitionId]!} />{selectedCount ? <span className="selected-count">Selected ×{selectedCount}</span> : null}{!playbackActive && !info?.enabled && !targetedCard && !pendingHandSelection && game.cards[group.definitionId]!.type === 'action' ? <em>{info?.reason}</em> : null}</button>{!playbackActive && batchPlayableCount >= 2 && !targetedCard && !pendingHandSelection ? <button className="play-all-button" disabled={busy} onClick={() => void playAll(group.definitionId)}>Play all</button> : null}</div></div>;
     })}{destinations.filter((item) => item.kind === 'drawToHand' && !handGroups.some((group) => group.definitionId === item.definitionId)).map((item) => <div key={`hand-placeholder-${item.definitionId}`} className="hand-card-slot animation-placeholder" data-hand-definition-id={item.definitionId} data-animation-destination={`drawToHand-${item.definitionId}`}><div className="hand-card-frame" /></div>)}</div></div></section>
-    <ActionRail game={view} busy={busy} playbackActive={playbackActive} onUndo={() => void undo()} onNew={() => { if (playbackActive) finishPlayback(); onNew(); }} />
+    <ActionRail game={view} busy={busy} playbackActive={playbackActive} onUndo={() => void undo()} onReset={confirmReset} onNew={() => { if (playbackActive) finishPlayback(); onNew(); }} />
     <FlyingCards flights={flights} renderCard={(card) => <CardFace card={card} />} />
     <PurchasePreview reveal={purchaseReveal} renderCard={(card) => <CardFace card={card} />} />
     {marketOpen ? <MarketDialog cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} onClose={() => setMarketOpen(false)} /> : null}
     {pickerSelection ? <CardPicker cards={game.cards} kind={pickerSelection.kind === 'recover' ? 'recover' : 'gain'} choices={pickerSelection.choices} busy={busy} onChoose={(choice) => void act(choice)} /> : null}
+    {resetOpen ? <ResetDialog onAccept={() => void reset()} onCancel={() => setResetOpen(false)} /> : null}
   </main>;
 }
 
@@ -376,7 +388,14 @@ function PlayedCard({ card, group, pendingAction, selected, busy, onSelect }: {
   const attributes = { 'data-played-card-name': card.name, 'data-played-definition-id': card.id, 'data-card-count': count };
   return <div className="played-card-slot">{count > 1 ? <span className="quantity-badge played-card-count" data-testid={`played-count-${card.id}`}>×{count}</span> : null}{pendingAction ? <button className={className} {...attributes} disabled={busy} aria-label={pendingAction.label} onClick={() => onSelect(pendingAction.id)}><CardFace card={card} /></button> : <article className={className} {...attributes}><CardFace card={card} /></article>}</div>;
 }
-function ActionRail({ game, busy, playbackActive, onUndo, onNew }: { game: GameView; busy: boolean; playbackActive: boolean; onUndo: () => void; onNew: () => void }) {
+function ResetDialog({ onAccept, onCancel }: { onAccept: () => void; onCancel: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => { const dialog = ref.current; if (dialog && !dialog.open) dialog.showModal(); }, []);
+  return <dialog ref={ref} className="reset-dialog" aria-labelledby="reset-title" onCancel={(event) => { event.preventDefault(); onCancel(); }}>
+    <div><h2 id="reset-title">Reset this game?</h2><p>This returns the same game and kingdom to its starting point. Your progress will be lost.</p><footer><button className="control-button primary" onClick={onAccept}>Yes, reset</button><button className="control-button" onClick={onCancel}>Cancel</button></footer></div>
+  </dialog>;
+}
+function ActionRail({ game, busy, playbackActive, onUndo, onReset, onNew }: { game: GameView; busy: boolean; playbackActive: boolean; onUndo: () => void; onReset: () => void; onNew: () => void }) {
   const log = useRef<HTMLOListElement>(null);
   const newestEvent = game.events.at(-1);
   const newestEventIdentity = newestEvent ? `${newestEvent.sequence}:${newestEvent.type}:${newestEvent.playerId}:${JSON.stringify(newestEvent.detail)}` : '';
@@ -384,7 +403,7 @@ function ActionRail({ game, busy, playbackActive, onUndo, onNew }: { game: GameV
   return <aside className="action-rail" aria-label="Action history, deck compositions, and game controls">
     <section className="action-log"><header><div><span>Public record</span><h2>Actions</h2></div></header><ol ref={log} data-testid="action-log">{game.events.map((event) => <li key={event.sequence} className={event.type === 'turn' ? 'action-log__turn' : undefined}><span>{playerName(event.playerId)}</span><strong>{eventText(game, event)}</strong></li>)}</ol></section>
     <section className="rail-decks"><h2>Deck compositions</h2><div><DeckSummary game={game} playerId="ochre" /><DeckSummary game={game} playerId="indigo" /></div></section>
-    <nav className="rail-controls" aria-label="Game controls"><button className="rail-icon-button" aria-label="Undo last action" title="Undo last action" disabled={!game.canUndo || busy} onClick={onUndo}><span aria-hidden="true">↶</span></button><button className="rail-icon-button" aria-label="New game" title="New game" onClick={onNew}><span aria-hidden="true">＋</span></button>{playbackActive ? <span className="playback-label">Playing AI turn…</span> : null}</nav>
+    <nav className="rail-controls" aria-label="Game controls"><button className="rail-control-button" aria-label="Undo last action" disabled={!game.canUndo || busy} onClick={onUndo}>Undo</button><button className="rail-control-button" disabled={busy || game.phase === 'startingBuild'} onClick={onReset}>Reset</button><button className="rail-control-button" onClick={onNew}>New game</button>{playbackActive ? <span className="playback-label">Playing AI turn…</span> : null}</nav>
   </aside>;
 }
 function DeckSummary({ game, playerId }: { game: GameView; playerId: PlayerId }) { const entries = Object.entries(game.players[playerId].deckCounts).sort(([left], [right]) => (game.cards[left]?.name ?? left).localeCompare(game.cards[right]?.name ?? right)); return <section className={`deck-summary deck-summary--${playerId}`} data-testid={`deck-summary-${playerId}`}><h3>{playerName(playerId)}</h3><div>{entries.map(([id, count]) => <span key={id} data-deck-card={game.cards[id]?.name}><span>{game.cards[id]?.name ?? id}</span><strong>×{count}</strong></span>)}</div></section>; }

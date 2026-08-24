@@ -91,7 +91,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .card__title { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; font-family: Georgia,serif; font-size: 14px; line-height: 1.14; text-align: center; text-wrap: balance; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .card__cost { position: absolute; z-index: 2; bottom: 5px; left: 5px; display: grid; width: 23px; height: 23px; border: 2px solid #ffffffcc; border-radius: 50%; background: #15201c; color: #fff; font-size: 10px; place-items: center; }
 .card__image { display: block; height: 72px; margin: 6px; border: 1px solid #0003; background: linear-gradient(135deg,#ffffff52,#0000000c); }
-.card__rules { display: block; margin: 0 7px 7px; padding-bottom: 23px; color: #202925; font-size: 9.5px; line-height: 1.18; text-align: center; }
+.card__rules { position: relative; z-index: 2; display: block; margin: 0 7px 7px; padding-bottom: 23px; color: #202925; font-size: 9.5px; line-height: 1.18; text-align: center; }
 .card__headline,.card__detail { display: block; }
 .card__headline { font-size: 9.5px; font-weight: 900; line-height: 1.18; }
 .card__detail { margin-top: 5px; font-size: 9.5px; }
@@ -102,7 +102,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .card--mana { border-color: var(--mana); } .card--mana .card__header { background: #39578f; }
 .card--melee { border-color: var(--melee); } .card--melee .card__header { background: #843f3a; }
 .card--engine { border-color: var(--engine); } .card--engine .card__header { background: #565c58; }
-.card em { position: absolute; right: 6px; bottom: 6px; left: 6px; padding: 4px; background: #fff2ef; color: #8f2626; font-size: 8px; }
+.card em { position: absolute; z-index: 6; right: 5px; bottom: 5px; left: 5px; display: flex; min-height: 25px; max-height: calc(100% - 10px); align-items: center; justify-content: center; padding: 4px 6px; overflow: auto; border: 1px solid #ffb2ac; border-radius: 3px; background: #9f302b; color: #fff; font-size: 8px; font-style: normal; font-weight: 850; line-height: 1.15; text-align: center; }
 .played-card-slot { position: relative; flex: 1 1 78px; width: 78px; min-width: 18px; max-width: 78px; height: 110px; }
 .played-card-slot:last-child { flex: 0 0 78px; }
 .played-card { position: absolute; top: 0; left: 0; transform: scale(.5); transform-origin: top left; }
@@ -176,8 +176,14 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .rail-controls { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 10px; border-top: 1px solid #ffffff32; background: #091c17; }
 .animation-toggle { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 800; white-space: nowrap; }
 .playback-label { position: absolute; right: 8px; bottom: 2px; color: #b8cbc4; font-size: 8px; }
-.rail-icon-button { display: grid; width: 34px; height: 34px; padding: 0; border: 1px solid #ffffff42; border-radius: 6px; background: #f7f3e8; color: var(--ink); font-size: 20px; font-weight: 900; line-height: 1; place-items: center; }
-.rail-icon-button:hover:not(:disabled) { border-color: #f2d477; background: #fff8df; }
+.rail-control-button { min-height: 34px; padding: 5px 12px; border: 1px solid #ffffff42; border-radius: 6px; background: #f7f3e8; color: var(--ink); font-size: 11px; font-weight: 900; white-space: nowrap; }
+.rail-control-button:hover:not(:disabled) { border-color: #f2d477; background: #fff8df; }
+.reset-dialog { width: min(390px,calc(100vw - 32px)); padding: 0; border: 1px solid #ffffff52; border-radius: 9px; background: #173c32; color: #fff; box-shadow: 0 20px 60px #000b; }
+.reset-dialog::backdrop { background: #071d18b8; }
+.reset-dialog > div { display: grid; gap: 12px; padding: 20px; }
+.reset-dialog h2 { font-size: 22px; }
+.reset-dialog p { color: #d9e4df; font-size: 12px; line-height: 1.45; }
+.reset-dialog footer { display: flex; justify-content: flex-end; gap: 8px; }
 .action-log h2,.rail-decks h2 { font-size: 18px; }
 .action-log ol { min-height: 0; margin: 0; padding: 0 8px 8px; overflow-y: auto; list-style: none; scrollbar-color: #78978c #102a24; }
 .action-log li { display: grid; grid-template-columns: 58px 1fr; gap: 7px; padding: 6px 4px; border-bottom: 1px solid #ffffff16; font-size: 10px; line-height: 1.25; }

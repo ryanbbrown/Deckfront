@@ -119,6 +119,35 @@ export class GameService {
       return this.gameUpdate(record, []);
     });
   }
+  async resetGame(id: string, expectedRevision: number): Promise<GameUpdateView> {
+    return this.repository.withLock(id, async () => {
+      const record = await this.repository.load(id);
+      this.assertRevision(record, expectedRevision);
+      const setupCommands: GameCommand[] = [];
+      if (record.startingDraftEnabled) {
+        const ochreBuild = record.state.players.ochre.startingBuild;
+        const indigoBuild = record.state.players.indigo.startingBuild;
+        if (!ochreBuild || !indigoBuild) throw new ForbiddenActionError('Complete both starting builds before resetting the game.');
+        setupCommands.push(
+          { type: 'submitStartingBuild', playerId: 'ochre', definitionIds: [...ochreBuild] },
+          { type: 'submitStartingBuild', playerId: 'indigo', definitionIds: [...indigoBuild] }
+        );
+      }
+      record.committedCommands = setupCommands;
+      record.state = replayCommands(record.initialState, setupCommands);
+      record.buildProposal = [];
+      record.undoHistory = [];
+      record.completedActions = 0;
+      record.finishedAt = null;
+      record.durationSeconds = null;
+      const frames: PresentationFrame[] = [];
+      this.advanceComputer(record, frames);
+      this.touch(record);
+      this.assertRecordReplay(record);
+      await this.repository.save(record);
+      return this.gameUpdate(record, frames);
+    });
+  }
   async exportGame(id: string): Promise<GameExport> {
     return { schemaVersion: 13, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
   }

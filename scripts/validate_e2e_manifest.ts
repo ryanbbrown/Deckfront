@@ -20,7 +20,8 @@ export const requiredBrowserFlows = [
   'scrapExclusion', 'targetedCardCopy', 'optionalTrashChoice', 'gainChoice', 'variableTargetCounts',
   'playAll', 'cardTravel', 'drawTravel', 'zonePiles', 'aiPlayback', 'playbackChoicesSuppressed', 'aiAnimationSetting', 'reducedMotion',
   'cardDestinationStability', 'playbackInterruptions', 'newGameStaleResponses', 'handZoneLayout',
-  'stackPlayCadence', 'purchasePreview', 'damageFeedback'
+  'stackPlayCadence', 'purchasePreview', 'damageFeedback', 'gameReset', 'resetConfirmation',
+  'textGameControls', 'unavailableWarningGeometry'
 ];
 export function validateManifest(manifest: CoverageManifest, discoveredIds: Set<string>): { mappings: number; tests: number } {
   const errors: string[] = [];

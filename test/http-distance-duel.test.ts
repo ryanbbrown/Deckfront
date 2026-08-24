@@ -117,4 +117,12 @@ describe('local game HTTP interface', () => {
     const stale = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: [], complete: false }) }); expect(stale.status).toBe(409);
     const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(13); expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
+  it('exposes a revision-locked reset endpoint for the persisted game', async () => {
+    const { base } = await server(); const created = await (await create(base, { startingDraftEnabled: false })).json() as GameView;
+    const buy = await fetch(`${base}/api/games/${created.id}/actions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, actionId: created.actions.phases.find((action) => action.kind === 'endAction')!.id }) }).then((response) => response.json()) as GameView;
+    const response = await fetch(`${base}/api/games/${created.id}/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: buy.revision }) });
+    expect(response.status).toBe(200); expect(await response.json()).toMatchObject({ id: created.id, revision: buy.revision + 1, turn: 1, phase: 'action', completedActions: 0, canUndo: false });
+    const stale = await fetch(`${base}/api/games/${created.id}/reset`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: buy.revision }) });
+    expect(stale.status).toBe(409);
+  });
 });

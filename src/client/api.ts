@@ -16,3 +16,4 @@ export function loadGame(id: string): Promise<GameView> { return request(`/api/g
 export function updateBuild(game: GameView, definitionIds: string[], complete: boolean): Promise<GameUpdateView> { return request(`/api/games/${game.id}/build`, { method: 'POST', body: JSON.stringify({ expectedRevision: game.revision, definitionIds, complete }) }); }
 export function takeAction(game: GameView, actionId: string): Promise<GameUpdateView> { return request(`/api/games/${game.id}/actions`, { method: 'POST', body: JSON.stringify({ expectedRevision: game.revision, actionId }) }); }
 export function undoAction(game: GameView): Promise<GameUpdateView> { return request(`/api/games/${game.id}/undo`, { method: 'POST', body: JSON.stringify({ expectedRevision: game.revision }) }); }
+export function resetGame(game: GameView): Promise<GameUpdateView> { return request(`/api/games/${game.id}/reset`, { method: 'POST', body: JSON.stringify({ expectedRevision: game.revision }) }); }

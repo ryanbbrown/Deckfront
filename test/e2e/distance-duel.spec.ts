@@ -687,6 +687,49 @@ test('DD-E2E-058: a long played row fans cards without clipping its final card a
   expect(stackedCard).not.toBeNull(); expect(badge).not.toBeNull(); expect(badge!.height / stackedCard!.height).toBeLessThan(.16);
 });
 
+test('DD-E2E-070: text controls confirm and reset the same game while Cancel preserves progress', async ({ page, baseUrl }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 }); await page.goto(baseUrl); await page.getByRole('button', { name: 'Start game' }).click();
+  const controls = page.getByRole('navigation', { name: 'Game controls' });
+  await expect(controls.locator('button')).toHaveText(['Undo', 'Reset', 'New game']);
+  await expect(controls.locator('button').first()).toBeDisabled();
+  const gameId = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'));
+  const kingdom = await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents();
+  const openingHand = await page.locator('[data-testid="hand-grid"] [data-card-name]').evaluateAll((cards) => cards.map((card) => ({ name: card.getAttribute('data-card-name'), count: card.getAttribute('data-card-count') })));
+  await page.getByRole('button', { name: 'End Action phase' }).click(); await expect(page.getByText(/Turn 1 · Player 1 buy/)).toBeVisible();
+  await controls.getByRole('button', { name: 'Reset' }).click(); const confirmation = page.getByRole('dialog', { name: 'Reset this game?' });
+  await expect(confirmation).toContainText('same game and kingdom'); await expect(confirmation.getByRole('button')).toHaveText(['Yes, reset', 'Cancel']);
+  await confirmation.getByRole('button', { name: 'Cancel' }).click(); await expect(confirmation).toHaveCount(0); await expect(page.getByText(/Turn 1 · Player 1 buy/)).toBeVisible(); await expect(controls.locator('button').first()).toBeEnabled();
+  await controls.getByRole('button', { name: 'Reset' }).click(); await page.getByRole('button', { name: 'Yes, reset' }).click();
+  await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible(); await expect(controls.locator('button').first()).toBeDisabled();
+  expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(gameId);
+  expect(await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents()).toEqual(kingdom);
+  expect(await page.locator('[data-testid="hand-grid"] [data-card-name]').evaluateAll((cards) => cards.map((card) => ({ name: card.getAttribute('data-card-name'), count: card.getAttribute('data-card-count') })))).toEqual(openingHand);
+});
+
+test('DD-E2E-072: Reset interrupts AI playback and reuses the existing trained game', async ({ page, baseUrl }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 }); let createRequests = 0;
+  page.on('request', (request) => { const url = new URL(request.url()); if (request.method() === 'POST' && url.pathname === '/api/games') createRequests += 1; });
+  await page.goto(baseUrl); await page.getByText('Play against AI', { exact: true }).click(); await page.getByText('AI goes first', { exact: true }).click(); await page.getByRole('button', { name: 'Start game' }).click();
+  const gameId = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId')); await expect(page.getByText('Playing AI turn…')).toBeVisible();
+  await page.getByRole('button', { name: 'Reset' }).click(); await expect(page.getByRole('dialog', { name: 'Reset this game?' })).toBeVisible(); await expect(page.getByText('Playing AI turn…')).toHaveCount(0); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
+  const response = page.waitForResponse('**/api/games/*/reset'); await page.getByRole('button', { name: 'Yes, reset' }).click(); expect((await response).status()).toBe(200);
+  await expect(page.getByText(/Turn 2 · Player 2 action/)).toBeVisible(); expect(createRequests).toBe(1); expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(gameId); await expect(page.getByRole('navigation', { name: 'Game controls' }).locator('button').first()).toBeDisabled();
+});
+
+test('DD-E2E-071: unavailable warning stays inside the card and stacks above rules and cost', async ({ page, openGame }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 }); await openGame(page, (record) => { seedHand(record, ['feint']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 4; });
+  const geometry = await page.locator('[data-card-name="Feint"]').evaluate((card) => {
+    const warning = card.querySelector<HTMLElement>('em')!; const rules = card.querySelector<HTMLElement>('.card__rules')!; const cost = card.querySelector<HTMLElement>('.card__cost')!;
+    const box = (element: Element) => { const rect = element.getBoundingClientRect(); return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }; };
+    const cardBox = box(card); const warningBox = box(warning); const costBox = box(cost);
+    const overlaps = (left: ReturnType<typeof box>, right: ReturnType<typeof box>) => left.left < right.right && left.right > right.left && left.top < right.bottom && left.bottom > right.top;
+    const top = document.elementFromPoint((costBox.left + costBox.right) / 2, (costBox.top + costBox.bottom) / 2);
+    return { cardBox, warningBox, warningZ: Number(getComputedStyle(warning).zIndex), rulesZ: Number(getComputedStyle(rules).zIndex), costZ: Number(getComputedStyle(cost).zIndex), warningFits: warning.scrollHeight <= warning.clientHeight, overlapsCost: overlaps(warningBox, costBox), warningAtCost: top === warning || warning.contains(top) };
+  });
+  expect(geometry.warningBox.left).toBeGreaterThanOrEqual(geometry.cardBox.left); expect(geometry.warningBox.top).toBeGreaterThanOrEqual(geometry.cardBox.top); expect(geometry.warningBox.right).toBeLessThanOrEqual(geometry.cardBox.right); expect(geometry.warningBox.bottom).toBeLessThanOrEqual(geometry.cardBox.bottom);
+  expect(geometry).toMatchObject({ warningFits: true, overlapsCost: true, warningAtCost: true }); expect(geometry.warningZ).toBeGreaterThan(geometry.rulesZ); expect(geometry.warningZ).toBeGreaterThan(geometry.costZ);
+});
+
 test('DD-E2E-048: kingdom piles wrap before the action rail at a narrower desktop width', async ({ page, openGame }) => {
   await page.setViewportSize({ width: 1600, height: 1080 }); await openGame(page);
   const layout = await page.evaluate(() => {

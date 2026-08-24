@@ -153,6 +153,20 @@ describe('local GameService', () => {
     const record = await service.getRecord(view.id); expect(record.startingDraftEnabled).toBe(false); expect(record.state.players.ochre.startingBuild).toBeNull();
     await expect(service.updateBuild(view.id,view.revision,[],true)).rejects.toThrow('already complete');
   });
+  it('resets a draft-off game to its exact persisted initial state and clears progress metadata', async () => {
+    const repository = new MemoryRepository(); const service = new GameService(repository);
+    const created = await service.create({ seed: 23, variableCardIds: TEST_MARKET, startingDraftEnabled: false });
+    const initial = structuredClone((await service.getRecord(created.id)).initialState);
+    const buy = await service.commitAction(created.id, created.revision, phaseAction(created, 'endAction'));
+    const progressed = await service.commitAction(created.id, buy.revision, buy.actions.buys.find((action) => action.definitionId === 'copper')!.id);
+    repository.record!.finishedAt = '2026-01-01T00:00:00.000Z'; repository.record!.durationSeconds = 9; repository.record!.buildProposal = ['aim'];
+
+    const reset = await service.resetGame(created.id, progressed.revision);
+    const saved = await service.getRecord(created.id);
+    expect(saved.state).toEqual(initial); expect(saved.committedCommands).toEqual([]); expect(saved.undoHistory).toEqual([]);
+    expect(saved).toMatchObject({ completedActions: 0, finishedAt: null, durationSeconds: null, buildProposal: [], startingDraftEnabled: false });
+    expect(reset).toMatchObject({ id: created.id, revision: progressed.revision + 1, phase: 'action', turn: 1, canUndo: false, completedActions: 0, presentation: { frames: [] } });
+  });
   it('projects disabled reasons and renderable movement choices without engine commands', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
     const record = await repository.load(game.id); seedPlayerHand(record, ['feint', 'footwork', 'drive']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 4; resetReplay(record); await repository.save(record);

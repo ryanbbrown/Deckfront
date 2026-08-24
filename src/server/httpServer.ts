@@ -40,7 +40,7 @@ async function handleApi(request: IncomingMessage, response: ServerResponse, ser
     sendJson(response, 201, await service.create(createGameRequestSchema.parse(await readJson(request))));
     return true;
   }
-  const match = url.pathname.match(/^\/api\/games\/([0-9a-f-]{36})(?:\/(build|actions|undo|export))?$/i);
+  const match = url.pathname.match(/^\/api\/games\/([0-9a-f-]{36})(?:\/(build|actions|undo|reset|export))?$/i);
   if (!match?.[1]) throw new GameNotFoundError('Game not found.');
   const id = match[1];
   const operation = match[2];
@@ -58,6 +58,11 @@ async function handleApi(request: IncomingMessage, response: ServerResponse, ser
   if (request.method === 'POST' && operation === 'undo') {
     const input = revisionRequestSchema.parse(await readJson(request));
     sendJson(response, 200, await service.undoAction(id, input.expectedRevision));
+    return true;
+  }
+  if (request.method === 'POST' && operation === 'reset') {
+    const input = revisionRequestSchema.parse(await readJson(request));
+    sendJson(response, 200, await service.resetGame(id, input.expectedRevision));
     return true;
   }
   if (request.method === 'GET' && operation === 'export') {
