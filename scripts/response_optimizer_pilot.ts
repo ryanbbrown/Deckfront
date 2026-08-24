@@ -12,11 +12,13 @@ import { evaluateCandidates, mixtureSchedule, percentileBootstrapMean } from '..
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import { ResponsePolicyDomain } from '../src/sim/responsePolicyGrammar';
 import {
-  runDiscreteCem, runStratifiedBeam, runUctMcts, runUniformRandomRacing
+  runDiscreteCem, runFinalTrainingRerace, runStratifiedBeam, runUctMcts,
+  runUniformRandomRacing
 } from '../src/sim/responseOptimizers';
 import type {
   BeamLaneDomain, ResponseOptimizerName, ResponseOptimizerResult
 } from '../src/sim/responseOptimizers';
+import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 import { rulesFingerprint } from '../src/sim/rulesFingerprint';
 import { STRATIFIED_BEAM_LANES } from '../src/sim/stratifiedBeam';
 import { canonicalStrategy, stableHash } from '../src/sim/strategy';
@@ -28,10 +30,13 @@ const DEFAULT_CONFIRMATION_BLOCKS = 200;
 const OPTIMIZERS: readonly ResponseOptimizerName[] = [
   'stratified-beam', 'uniform-random-racing', 'discrete-cem', 'uct-mcts'
 ];
+const TRAINING_CURVE_MINIMUM_BLOCKS = 1;
+const FINAL_RERACE = Object.freeze({ candidateCount: 8, blocksPerCandidate: 500, reservedBlocks: 4_000 });
 const OPTIMIZER_CONFIG = Object.freeze({
   'stratified-beam': { lanes: STRATIFIED_BEAM_LANES, stageBlocks: [1, 2, 4],
     earlyStopDelta: 0.002, earlyStopPatience: 2 },
-  'uniform-random-racing': { batchSize: 96, roundBlocks: [1, 2, 4, 8] },
+  'uniform-random-racing': { sampling: 'uniform-length-then-uniform-tokens',
+    batchSize: 96, roundBlocks: [1, 2, 4, 8] },
   'discrete-cem': { population: 96, evaluationBlocks: 4, eliteFraction: 0.2,
     smoothing: 0.35, explorationFloor: 0.03 },
   'uct-mcts': { batchSize: 16, rolloutBlocks: 4, exploration: Math.SQRT2 }
@@ -47,16 +52,25 @@ const strategySchema = z.object({
 });
 const curvePointSchema = z.object({ candidateBlocks: z.number().int().nonnegative(),
   matches: z.number().int().nonnegative(), bestMean: z.number(), policyId: z.string() });
+const restartResultSchema = z.object({
+  restart: z.number().int().nonnegative(), optimizerSeed: z.number().int().nonnegative(),
+  trainingScheduleSeed: z.number().int().nonnegative(), candidateBlocks: z.number().int().nonnegative(),
+  matches: z.number().int().nonnegative(), bestPolicy: strategySchema, bestTrainingMean: z.number(),
+  curve: z.array(curvePointSchema), finalists: z.array(strategySchema).min(1),
+  diagnostics: z.record(z.string(), z.unknown())
+});
 const optimizerResultSchema = z.object({
-  optimizer: z.enum(OPTIMIZERS), optimizerSeed: z.number().int().nonnegative(), elapsedMs: z.number().nonnegative(),
+  optimizer: z.enum(OPTIMIZERS), selectedRestart: z.number().int().nonnegative(),
+  optimizerSeed: z.number().int().nonnegative(), elapsedMs: z.number().nonnegative(),
   trainingBlocksConsumed: z.number().int().nonnegative(), trainingMatches: z.number().int().nonnegative(),
   bestPolicy: strategySchema, bestTrainingMean: z.number(), trainingCurve: z.array(curvePointSchema),
+  finalists: z.array(strategySchema).min(1), restarts: z.array(restartResultSchema).min(1),
   diagnostics: z.record(z.string(), z.unknown()),
   heldOut: z.object({ mean: z.number(), matchCount: z.number().int().positive(),
     seedBlocks: z.number().int().positive(), interval95: z.object({ lower: z.number(), upper: z.number() }) })
 });
 export const responseOptimizerPilotSchema = z.object({
-  schemaVersion: z.literal(1), experiment: z.literal('response-optimizer-pilot'), createdAt: z.string(),
+  schemaVersion: z.literal(2), experiment: z.literal('response-optimizer-pilot'), createdAt: z.string(),
   frozen: z.object({ kingdom: kingdomSchema, kingdomIdentity: z.string(), targetMixtureIdentity: z.string(),
     targetMixture: z.array(z.object({ strategy: strategySchema, weight: z.number().positive() })).min(1),
     sourceArtifact: z.string() }),
@@ -64,7 +78,10 @@ export const responseOptimizerPilotSchema = z.object({
     trainingBudgetPerRestart: z.number().int().positive(), confirmationBlocks: z.number().int().positive(),
     restarts: z.number().int().positive(), workers: z.number().int().positive(), seed: z.number().int().nonnegative(),
     trainingScheduleSeeds: z.array(z.number().int().nonnegative()), confirmationScheduleSeed: z.number().int().nonnegative(),
-    confirmationScheduleIdentity: z.string(), optimizerConfig: z.record(z.string(), z.unknown()),
+    confirmationScheduleIdentity: z.string(), trainingCurveMinimumBlocks: z.number().int().positive(),
+    finalRerace: z.object({ candidateCount: z.number().int().positive(),
+      blocksPerCandidate: z.number().int().positive(), reservedBlocks: z.number().int().positive() }),
+    optimizerConfig: z.record(z.string(), z.unknown()),
     optimizerSeeds: z.record(z.string(), z.array(z.number().int().nonnegative())) }),
   results: z.array(optimizerResultSchema).length(4)
 });
@@ -75,7 +92,7 @@ interface SavedEquilibrium {
   config: { startingDraftEnabled?: unknown; maxSlots?: unknown };
   targetMixture: { strategy: Strategy; weight: number }[];
 }
-interface PilotOptions {
+export interface PilotOptions {
   kingdomId: string; budget: number; confirmationBlocks: number; seed: number;
   restarts: number; workers: number; out: string;
 }
@@ -84,7 +101,7 @@ function deriveSeed(seed: number, label: string, restart = 0): number {
   return Number.parseInt(stableHash(`${seed >>> 0}:${label}:${restart}`).slice(0, 8), 16) >>> 0;
 }
 
-function parseOptions(argv: readonly string[], root: string): PilotOptions {
+export function parsePilotOptions(argv: readonly string[], root: string): PilotOptions {
   const values = new Map<string, string>();
   const known = new Set(['--kingdom', '--budget', '--confirmation-blocks', '--seed', '--restarts', '--workers', '--out']);
   for (let index = 0; index < argv.length; index += 2) {
@@ -114,8 +131,10 @@ function sourcePath(root: string, kingdomId: string): string {
   return path.join(root, '.experiments', 'deep-beam-suite', 'deep-beam-v1', 'results', `${kingdomId}.json`);
 }
 
-function loadFrozen(root: string, kingdomId: string): SavedEquilibrium {
+export function loadFrozenEquilibrium(root: string, kingdomId: string): SavedEquilibrium {
   const file = sourcePath(root, kingdomId);
+  const evidence = deepBeamSuite.resultEvidence(root, kingdomId);
+  if (!evidence.valid) throw new Error(`${file} failed deep-beam validation: ${evidence.reason}.`);
   const saved = JSON.parse(fs.readFileSync(file, 'utf8')) as SavedEquilibrium;
   if (saved.kingdom.id !== kingdomId || saved.config.startingDraftEnabled !== false || saved.config.maxSlots !== 8) {
     throw new Error(`${file} is not the required draft-off eight-slot frozen equilibrium.`);
@@ -139,18 +158,34 @@ function beamLanes(kingdomId: string): BeamLaneDomain[] {
 
 async function optimize(
   name: ResponseOptimizerName, objective: BudgetedResponseObjective,
-  domain: ResponsePolicyDomain, lanes: readonly BeamLaneDomain[], seed: number
+  domain: ResponsePolicyDomain, lanes: readonly BeamLaneDomain[], seed: number,
+  searchBudget: number
 ): Promise<ResponseOptimizerResult> {
-  if (name === 'stratified-beam') return runStratifiedBeam(objective, { lanes });
-  if (name === 'uniform-random-racing') {
-    return runUniformRandomRacing(objective, domain, seed, OPTIMIZER_CONFIG[name]);
+  if (name === 'stratified-beam') {
+    const config = OPTIMIZER_CONFIG[name];
+    return runStratifiedBeam(objective, { lanes, stageBlocks: config.stageBlocks,
+      earlyStopDelta: config.earlyStopDelta, earlyStopPatience: config.earlyStopPatience,
+      searchBudget });
   }
-  if (name === 'discrete-cem') return runDiscreteCem(objective, domain, seed, OPTIMIZER_CONFIG[name]);
-  return runUctMcts(objective, domain, seed, OPTIMIZER_CONFIG[name]);
+  if (name === 'uniform-random-racing') {
+    return runUniformRandomRacing(objective, domain, seed, { ...OPTIMIZER_CONFIG[name], searchBudget });
+  }
+  if (name === 'discrete-cem') {
+    return runDiscreteCem(objective, domain, seed, { ...OPTIMIZER_CONFIG[name], searchBudget });
+  }
+  return runUctMcts(objective, domain, seed, { ...OPTIMIZER_CONFIG[name], searchBudget });
+}
+
+function reraceConfig(budget: number): { candidateCount: number; blocksPerCandidate: number; reservedBlocks: number } {
+  if (budget >= FINAL_RERACE.reservedBlocks * 2) return FINAL_RERACE;
+  const reservedBlocks = Math.max(1, Math.floor(budget / 2));
+  const candidateCount = Math.min(FINAL_RERACE.candidateCount, reservedBlocks);
+  const blocksPerCandidate = Math.max(1, Math.floor(reservedBlocks / candidateCount));
+  return { candidateCount, blocksPerCandidate, reservedBlocks: candidateCount * blocksPerCandidate };
 }
 
 export async function runPilot(options: PilotOptions, root: string): Promise<ResponseOptimizerPilotArtifact> {
-  const saved = loadFrozen(root, options.kingdomId);
+  const saved = loadFrozenEquilibrium(root, options.kingdomId);
   registerKingdom(saved.kingdom);
   const domain = new ResponsePolicyDomain(options.kingdomId, { maxActiveSlots: 8 });
   const lanes = beamLanes(options.kingdomId);
@@ -168,6 +203,9 @@ export async function runPilot(options: PilotOptions, root: string): Promise<Res
   const optimizerSeeds = Object.fromEntries(OPTIMIZERS.map((name) => [name,
     Array.from({ length: options.restarts }, (_unused, restart) => deriveSeed(options.seed, name, restart))]));
   const outputResults: z.infer<typeof optimizerResultSchema>[] = [];
+  const finalRerace = reraceConfig(options.budget);
+  const searchBudget = options.budget - finalRerace.reservedBlocks;
+  if (searchBudget < 1) throw new Error('The training budget must leave at least one search block before reracing.');
   try {
     for (const name of OPTIMIZERS) {
       const started = Date.now();
@@ -177,7 +215,9 @@ export async function runPilot(options: PilotOptions, root: string): Promise<Res
           opponents: saved.targetMixture, budget: options.budget,
           scheduleSeed: trainingScheduleSeeds[restart]!, runner,
           turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER, actionCapPerTurn: ACTION_CAP_PER_TURN });
-        restartResults.push(await optimize(name, objective, domain, lanes, optimizerSeeds[name]![restart]!));
+        const search = await optimize(name, objective, domain, lanes,
+          optimizerSeeds[name]![restart]!, searchBudget);
+        restartResults.push(await runFinalTrainingRerace(objective, search, finalRerace));
       }
       const selected = [...restartResults].sort((left, right) => right.trainingMean - left.trainingMean
         || left.policy.id.localeCompare(right.policy.id))[0]!;
@@ -187,17 +227,19 @@ export async function runPilot(options: PilotOptions, root: string): Promise<Res
         actionCapPerTurn: ACTION_CAP_PER_TURN
       }))[0]!;
       const interval95 = percentileBootstrapMean(heldOut.blockScores, deriveSeed(options.seed, 'confirmation-bootstrap'));
-      const totalBlocks = restartResults.reduce((sum, entry) => sum + entry.candidateBlocks, 0);
-      const totalMatches = restartResults.reduce((sum, entry) => sum + entry.matches, 0);
-      outputResults.push({ optimizer: name, optimizerSeed: optimizerSeeds[name]![0]!, elapsedMs: Date.now() - started,
-        trainingBlocksConsumed: totalBlocks, trainingMatches: totalMatches,
+      const selectedRestart = restartResults.indexOf(selected);
+      outputResults.push({ optimizer: name, selectedRestart,
+        optimizerSeed: optimizerSeeds[name]![selectedRestart]!, elapsedMs: Date.now() - started,
+        trainingBlocksConsumed: selected.candidateBlocks, trainingMatches: selected.matches,
         bestPolicy: selected.policy, bestTrainingMean: selected.trainingMean,
-        trainingCurve: selected.curve, diagnostics: {
-          selectedRestart: restartResults.indexOf(selected), restarts: restartResults.map((entry) => ({
-            candidateBlocks: entry.candidateBlocks, matches: entry.matches,
-            trainingMean: entry.trainingMean, policyId: entry.policy.id, diagnostics: entry.diagnostics
-          }))
-        }, heldOut: { mean: heldOut.mean, matchCount: heldOut.matches,
+        trainingCurve: selected.curve, finalists: selected.finalists,
+        restarts: restartResults.map((entry, restart) => ({ restart,
+          optimizerSeed: optimizerSeeds[name]![restart]!,
+          trainingScheduleSeed: trainingScheduleSeeds[restart]!, candidateBlocks: entry.candidateBlocks,
+          matches: entry.matches, bestPolicy: entry.policy, bestTrainingMean: entry.trainingMean,
+          curve: entry.curve, finalists: entry.finalists, diagnostics: entry.diagnostics
+        })), diagnostics: selected.diagnostics,
+        heldOut: { mean: heldOut.mean, matchCount: heldOut.matches,
           seedBlocks: heldOut.blockScores.length, interval95 } });
       const latest = outputResults.at(-1)!;
       console.log(`${name}: ${(latest.heldOut.mean * 100).toFixed(2)}% `
@@ -212,7 +254,7 @@ export async function runPilot(options: PilotOptions, root: string): Promise<Res
     policy: canonicalStrategy(entry.strategy), weight: entry.weight
   }))));
   const artifact = {
-    schemaVersion: 1 as const, experiment: 'response-optimizer-pilot' as const,
+    schemaVersion: 2 as const, experiment: 'response-optimizer-pilot' as const,
     createdAt: new Date().toISOString(),
     frozen: { kingdom: saved.kingdom, kingdomIdentity: fingerprint.hash, targetMixtureIdentity,
       targetMixture: saved.targetMixture, sourceArtifact: path.relative(root, sourcePath(root, options.kingdomId)) },
@@ -221,14 +263,15 @@ export async function runPilot(options: PilotOptions, root: string): Promise<Res
       restarts: options.restarts, workers: options.workers, seed: options.seed, trainingScheduleSeeds,
       confirmationScheduleSeed,
       confirmationScheduleIdentity: stableHash(JSON.stringify(confirmationSchedule.blocks)),
-      optimizerConfig: OPTIMIZER_CONFIG, optimizerSeeds },
+      trainingCurveMinimumBlocks: TRAINING_CURVE_MINIMUM_BLOCKS,
+      finalRerace, optimizerConfig: OPTIMIZER_CONFIG, optimizerSeeds },
     results: outputResults
   };
   return responseOptimizerPilotSchema.parse(artifact);
 }
 
 export async function main(argv: readonly string[], root: string): Promise<number> {
-  const options = parseOptions(argv, root);
+  const options = parsePilotOptions(argv, root);
   const artifact = await runPilot(options, root);
   fs.mkdirSync(path.dirname(options.out), { recursive: true });
   fs.writeFileSync(options.out, `${JSON.stringify(artifact, null, 2)}\n`);

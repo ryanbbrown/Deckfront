@@ -122,7 +122,7 @@ Use `--limit 10` for a resumable ten-kingdom balance pilot. At 330 seconds per k
 survive interruption. Inputs, results, and atomic status are ignored under
 `.experiments/deep-beam-suite/deep-beam-v1/`.
 
-The response-optimizer pilot compares stratified beam, uniform complete-policy racing, dependency-aware discrete CEM, and UCT MCTS against one saved target lottery. All four use the same candidate seed-block budget and untouched held-out schedule. Run the recorded one-kingdom configuration with:
+The response-optimizer pilot compares stratified beam, uniform length-then-token policy racing, dependency-aware discrete CEM, and UCT MCTS against one validated saved target lottery. All four reserve 4,000 of the 60,000 candidate seed blocks for the same eight-candidate final training rerace. Held-out confirmation stays untouched. Run the recorded one-kingdom configuration with:
 
 ```sh
 npm run response-optimizer:pilot -- --kingdom deep-beam-tuning-001 \

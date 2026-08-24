@@ -1,11 +1,10 @@
 import { SeededRandom } from '../game';
 import type { CandidateEvaluation } from './mixtureEvaluation';
-import { STRATIFIED_BEAM_LANES } from './stratifiedBeam';
 import { canonicalStrategy } from './strategy';
 import type { Strategy } from './strategy';
 import type { FloorToken, PrefixToken } from './responsePolicyGrammar';
 import { ResponsePolicyDomain } from './responsePolicyGrammar';
-import type { BudgetedResponseObjective, TrainingCurvePoint } from './budgetedResponseObjective';
+import type { TrainingCurvePoint } from './budgetedResponseObjective';
 
 export interface ObjectiveLike {
   readonly budget: number;
@@ -26,6 +25,7 @@ export interface ResponseOptimizerResult {
   candidateBlocks: number;
   matches: number;
   curve: TrainingCurvePoint[];
+  finalists: Strategy[];
   diagnostics: Record<string, unknown>;
 }
 
@@ -35,15 +35,65 @@ function ordered(evaluations: readonly CandidateEvaluation[]): CandidateEvaluati
 }
 
 function result(
-  optimizer: ResponseOptimizerName, policy: Strategy, objective: ObjectiveLike,
+  optimizer: ResponseOptimizerName, finalists: readonly Strategy[], objective: ObjectiveLike,
   fallbackMean: number, diagnostics: Record<string, unknown>
 ): ResponseOptimizerResult {
-  return { optimizer, policy, trainingMean: objective.aggregate(policy)?.mean ?? fallbackMean,
+  const policy = finalists[0];
+  if (!policy) throw new Error(`${optimizer} produced no finalist.`);
+  return { optimizer, policy, finalists: [...finalists],
+    trainingMean: objective.aggregate(policy)?.mean ?? fallbackMean,
     candidateBlocks: objective.blocksConsumed, matches: objective.matchesConsumed,
     curve: [...objective.curve], diagnostics };
 }
 
-export interface RandomRacingOptions { batchSize?: number; roundBlocks?: readonly number[] }
+function searchRemaining(objective: ObjectiveLike, searchBudget: number | undefined): number {
+  return Math.max(0, Math.min(objective.remaining,
+    (searchBudget ?? objective.budget) - objective.blocksConsumed));
+}
+
+interface RankedPolicy { strategy: Strategy; mean: number }
+function retainRanked(pool: RankedPolicy[], entries: readonly RankedPolicy[], count = 32): void {
+  const byForm = new Map(pool.map((entry) => [canonicalStrategy(entry.strategy), entry]));
+  for (const entry of entries) {
+    const form = canonicalStrategy(entry.strategy);
+    const held = byForm.get(form);
+    if (!held || entry.mean > held.mean) byForm.set(form, entry);
+  }
+  pool.splice(0, pool.length, ...[...byForm.values()].sort((left, right) => right.mean - left.mean
+    || left.strategy.id.localeCompare(right.strategy.id)).slice(0, count));
+}
+
+export interface FinalReraceOptions { candidateCount: number; blocksPerCandidate: number }
+
+/** Selects every optimizer's returned policy on the same reserved training evidence. */
+export async function runFinalTrainingRerace(
+  objective: ObjectiveLike, search: ResponseOptimizerResult, options: FinalReraceOptions
+): Promise<ResponseOptimizerResult> {
+  const seen = new Set<string>();
+  const candidates = search.finalists.filter((strategy) => {
+    const form = canonicalStrategy(strategy);
+    if (seen.has(form)) return false;
+    seen.add(form); return true;
+  }).slice(0, options.candidateCount);
+  const blocks = Math.min(options.blocksPerCandidate, Math.floor(objective.remaining / candidates.length));
+  if (!candidates.length || blocks < 1) throw new Error(`${search.optimizer} has no budgeted final rerace.`);
+  const reraced = ordered(await objective.evaluate(candidates, blocks));
+  const best = reraced[0]!;
+  return { ...search, policy: best.strategy, finalists: reraced.map((entry) => entry.strategy),
+    trainingMean: best.mean, candidateBlocks: objective.blocksConsumed,
+    matches: objective.matchesConsumed, curve: [...objective.curve], diagnostics: {
+      ...search.diagnostics,
+      finalRerace: { blocksPerCandidate: blocks, candidates: reraced.map((entry) => ({
+        policyId: entry.strategy.id, mean: entry.mean, matches: entry.matches
+      })) }
+    } };
+}
+
+export interface RandomRacingOptions {
+  batchSize?: number;
+  roundBlocks?: readonly number[];
+  searchBudget?: number;
+}
 
 function racingCost(initial: number, rounds: readonly number[]): number {
   let field = initial;
@@ -63,12 +113,13 @@ export async function runUniformRandomRacing(
   const batchSize = options.batchSize ?? 96;
   const roundBlocks = options.roundBlocks ?? [1, 2, 4, 8];
   const seen = new Set<string>();
-  let champion: CandidateEvaluation | null = null;
+  const finalists: RankedPolicy[] = [];
   let races = 0;
   const rounds: { entered: number; blocks: number; survivors: number }[] = [];
-  while (objective.remaining > 0) {
-    let wanted = Math.min(batchSize, objective.remaining);
-    while (wanted > 0 && racingCost(wanted, roundBlocks) > objective.remaining) wanted -= 1;
+  while (searchRemaining(objective, options.searchBudget) > 0) {
+    const available = searchRemaining(objective, options.searchBudget);
+    let wanted = Math.min(batchSize, available);
+    while (wanted > 0 && racingCost(wanted, roundBlocks) > available) wanted -= 1;
     if (!wanted) break;
     const field: Strategy[] = [];
     for (let attempts = 0; field.length < wanted && attempts < wanted * 128; attempts += 1) {
@@ -87,15 +138,13 @@ export async function runUniformRandomRacing(
       rounds.push({ entered: last.length, blocks, survivors: survivors.length });
     }
     const winner = last[0]!;
-    if (!champion || winner.mean > champion.mean
-      || (winner.mean === champion.mean && winner.strategy.id.localeCompare(champion.strategy.id) < 0)) {
-      champion = winner;
-    }
+    retainRanked(finalists, [{ strategy: winner.strategy, mean: winner.mean }]);
     races += 1;
   }
-  if (!champion) throw new Error('Uniform random search could not evaluate a policy.');
-  return result('uniform-random-racing', champion.strategy, objective, champion.mean,
-    { races, uniquePolicies: seen.size, rounds });
+  if (!finalists.length) throw new Error('Uniform length-then-token sampling could not evaluate a policy.');
+  return result('uniform-random-racing', finalists.slice(0, 8).map((entry) => entry.strategy),
+    objective, finalists[0]!.mean,
+    { sampling: 'uniform-length-then-uniform-tokens', races, uniquePolicies: seen.size, rounds });
 }
 
 interface Distribution { values: readonly string[]; probabilities: number[] }
@@ -202,16 +251,23 @@ export class DependencyAwareCemModel {
     return distribution.probabilities[distribution.values.indexOf(floor)] ?? 0;
   }
 
-  private prefixContext(length: number, position: number, previous: string): string {
-    return `${length}:${position}:${previous}`;
+  private prefixContext(_length: number, position: number, previous: string): string {
+    return `${positionBucket(position)}:${previous}`;
   }
-  private floorContext(length: number, previous: string): string { return `${length}:${previous}`; }
+  private floorContext(length: number, previous: string): string {
+    return `${positionBucket(length)}:${previous}`;
+  }
+}
+
+function positionBucket(position: number): string {
+  return position === 0 ? 'first' : position < 3 ? 'early' : 'late';
 }
 
 export interface CemOptions extends CemModelOptions {
   population?: number;
   evaluationBlocks?: number;
   eliteFraction?: number;
+  searchBudget?: number;
 }
 
 /** Discrete cross-entropy search over complete ordered policies. */
@@ -223,24 +279,26 @@ export async function runDiscreteCem(
   const population = options.population ?? 96;
   const evaluationBlocks = options.evaluationBlocks ?? 4;
   const eliteFraction = options.eliteFraction ?? 0.2;
-  let champion: CandidateEvaluation | null = null;
+  const finalists: RankedPolicy[] = [];
   let generations = 0;
   const history: { generation: number; population: number; elite: number; best: number }[] = [];
-  while (objective.remaining > 0) {
-    const blocks = Math.min(evaluationBlocks, objective.remaining);
-    const count = Math.min(population, Math.floor(objective.remaining / blocks));
+  while (searchRemaining(objective, options.searchBudget) > 0) {
+    const available = searchRemaining(objective, options.searchBudget);
+    const blocks = Math.min(evaluationBlocks, available);
+    const count = Math.min(population, Math.floor(available / blocks));
     if (count < 1) break;
     const policies = Array.from({ length: count }, () => model.sample(random));
     const scored = ordered(await objective.evaluate(policies, blocks));
     const eliteCount = Math.max(1, Math.ceil(scored.length * eliteFraction));
     const elites = scored.slice(0, eliteCount);
     model.update(elites.map((entry) => entry.strategy));
-    if (!champion || scored[0]!.mean > champion.mean) champion = scored[0]!;
+    retainRanked(finalists, scored.map((entry) => ({ strategy: entry.strategy, mean: entry.mean })));
     generations += 1;
     history.push({ generation: generations, population: count, elite: eliteCount, best: scored[0]!.mean });
   }
-  if (!champion) throw new Error('CEM could not evaluate a policy.');
-  return result('discrete-cem', champion.strategy, objective, champion.mean,
+  if (!finalists.length) throw new Error('CEM could not evaluate a policy.');
+  return result('discrete-cem', finalists.slice(0, 8).map((entry) => entry.strategy),
+    objective, finalists[0]!.mean,
     { generations, population, evaluationBlocks, eliteFraction,
       smoothing: model.smoothing, explorationFloor: model.explorationFloor, history });
 }
@@ -305,7 +363,12 @@ function selectRollout(root: MctsNode, domain: ResponsePolicyDomain, random: See
   return { policy: mctsPolicy(domain, actions), path };
 }
 
-export interface MctsOptions { batchSize?: number; rolloutBlocks?: number; exploration?: number }
+export interface MctsOptions {
+  batchSize?: number;
+  rolloutBlocks?: number;
+  exploration?: number;
+  searchBudget?: number;
+}
 
 /** UCT tree search. Every simulation uses a complete grammar-valid rollout for terminal reward. */
 export async function runUctMcts(
@@ -317,11 +380,12 @@ export async function runUctMcts(
   const exploration = options.exploration ?? Math.SQRT2;
   const root: MctsNode = { parent: null, action: null, actions: [], children: [], visits: 0, value: 0 };
   const completeVisits = new Map<string, number>();
-  let champion: CandidateEvaluation | null = null;
+  const finalists: RankedPolicy[] = [];
   let batches = 0;
-  while (objective.remaining > 0) {
-    const blocks = Math.min(rolloutBlocks, objective.remaining);
-    const count = Math.min(batchSize, Math.floor(objective.remaining / blocks));
+  while (searchRemaining(objective, options.searchBudget) > 0) {
+    const available = searchRemaining(objective, options.searchBudget);
+    const blocks = Math.min(rolloutBlocks, available);
+    const count = Math.min(batchSize, Math.floor(available / blocks));
     if (count < 1) break;
     const pending = Array.from({ length: count }, () => selectRollout(root, domain, random, exploration));
     const scored = await objective.evaluate(pending.map((entry) => entry.policy), blocks);
@@ -331,16 +395,17 @@ export async function runUctMcts(
       const form = canonicalStrategy(pending[index]!.policy);
       completeVisits.set(form, (completeVisits.get(form) ?? 0) + 1);
       const aggregate = objective.aggregate(pending[index]!.policy)!;
-      if (!champion || aggregate.mean > (objective.aggregate(champion.strategy)?.mean ?? champion.mean)) {
-        champion = { ...scored[index]!, strategy: pending[index]!.policy, mean: aggregate.mean };
-      }
+      retainRanked(finalists, [{ strategy: pending[index]!.policy, mean: aggregate.mean }]);
     }
     batches += 1;
   }
-  if (!champion) throw new Error('MCTS could not evaluate a complete rollout.');
-  return result('uct-mcts', champion.strategy, objective, champion.mean,
+  if (!finalists.length) throw new Error('MCTS could not evaluate a complete rollout.');
+  const best = finalists[0]!;
+  return result('uct-mcts', finalists.slice(0, 8).map((entry) => entry.strategy),
+    objective, best.mean,
     { rootVisits: root.visits, treeNodes: countNodes(root), completePolicies: completeVisits.size,
-      bestPolicyVisits: completeVisits.get(canonicalStrategy(champion.strategy)) ?? 0,
+      finalistVisits: Object.fromEntries(finalists.slice(0, 8).map((entry) => [entry.strategy.id,
+        completeVisits.get(canonicalStrategy(entry.strategy)) ?? 0])),
       batches, batchSize, rolloutBlocks, exploration });
 }
 
@@ -349,7 +414,13 @@ function countNodes(root: MctsNode): number {
 }
 
 export interface BeamLaneDomain { id: string; width: number; finalists: number; domain: ResponsePolicyDomain }
-export interface BeamOptions { lanes: readonly BeamLaneDomain[]; maxSlots?: number }
+export interface BeamOptions {
+  lanes: readonly BeamLaneDomain[];
+  stageBlocks: readonly number[];
+  earlyStopDelta: number;
+  earlyStopPatience: number;
+  searchBudget?: number;
+}
 interface BeamEntry { floor: FloorToken; strategy: Strategy; mean: number }
 
 function expandBeam(domain: ResponsePolicyDomain, entry: BeamEntry): BeamEntry[] {
@@ -399,16 +470,16 @@ export async function runStratifiedBeam(
     beam: lane.domain.floorTokens.map((floor): BeamEntry => ({
       floor, strategy: lane.domain.complete([], floor), mean: 0.5
     })), depth: 0, previousBest: 0.5, stagnant: 0, stopped: false }));
+  if (!options.stageBlocks.length) throw new Error('The beam needs stage block counts.');
   const stages: Record<string, unknown>[] = [];
-  let champion: BeamEntry | null = null;
   while (states.some((state) => !state.stopped)) {
     let progressed = false;
     for (const state of states) {
       if (state.stopped) continue;
       if (state.depth >= state.lane.domain.maxPrefixSlots) { state.stopped = true; continue; }
       const candidates = uniqueBeam(state.beam.flatMap((entry) => expandBeam(state.lane.domain, entry)));
-      const blocks = [1, 2, 4][Math.min(state.depth, 2)]!;
-      if (!objective.canEvaluate(candidates.length, blocks)) {
+      const blocks = options.stageBlocks[Math.min(state.depth, options.stageBlocks.length - 1)]!;
+      if (candidates.length * blocks > searchRemaining(objective, options.searchBudget)) {
         state.stopped = true;
         stages.push({ lane: state.lane.id, depth: state.depth + 1, candidates: candidates.length,
           blocks, skippedForBudget: true });
@@ -419,23 +490,23 @@ export async function runStratifiedBeam(
       state.beam = retainBeam(candidates.map((entry) => ({ ...entry,
         mean: means.get(canonicalStrategy(entry.strategy))! })), state.lane.width);
       const best = state.beam[0]!;
-      if (!champion || best.mean > champion.mean) champion = best;
-      state.stagnant = best.mean - state.previousBest < 0.002 ? state.stagnant + 1 : 0;
+      state.stagnant = best.mean - state.previousBest < options.earlyStopDelta ? state.stagnant + 1 : 0;
       state.previousBest = best.mean;
       state.depth += 1;
-      if (state.depth >= 3 && state.stagnant >= 2) state.stopped = true;
+      if (state.depth >= options.stageBlocks.length && state.stagnant >= options.earlyStopPatience) {
+        state.stopped = true;
+      }
       stages.push({ lane: state.lane.id, depth: state.depth, candidates: candidates.length,
         retained: state.beam.length, blocks, best: best.mean });
       progressed = true;
     }
     if (!progressed) break;
   }
-  const fallback = states[0]?.beam[0];
-  const best = champion ?? fallback;
-  if (!best) throw new Error('The stratified beam has no legal floor.');
-  return result('stratified-beam', best.strategy, objective, best.mean,
-    { laneConfig: options.lanes.map((entry) => ({ id: entry.id, width: entry.width, finalists: entry.finalists })), stages });
+  const finalists = states.flatMap((state) => state.beam.slice(0, state.lane.finalists));
+  if (!finalists.length) throw new Error('The stratified beam has no legal floor.');
+  return result('stratified-beam', finalists.map((entry) => entry.strategy), objective,
+    finalists[0]!.mean,
+    { laneConfig: options.lanes.map((entry) => ({ id: entry.id, width: entry.width, finalists: entry.finalists })),
+      stageBlocks: options.stageBlocks, earlyStopDelta: options.earlyStopDelta,
+      earlyStopPatience: options.earlyStopPatience, stages });
 }
-
-export function defaultBeamWidths(): typeof STRATIFIED_BEAM_LANES { return STRATIFIED_BEAM_LANES; }
-export type RealBudgetedObjective = BudgetedResponseObjective;

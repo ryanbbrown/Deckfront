@@ -37,8 +37,6 @@ export class BudgetedResponseObjective {
   private cursor = 0;
   private consumed = 0;
   private played = 0;
-  private highWaterMean = -Infinity;
-  private highWaterPolicyId = '';
 
   constructor(options: BudgetedResponseObjectiveOptions) {
     if (!Number.isInteger(options.budget) || options.budget < 1) throw new Error('Training budget must be positive.');
@@ -79,15 +77,12 @@ export class BudgetedResponseObjective {
       aggregate.total += evaluation.blockScores.reduce((sum, score) => sum + score, 0);
       aggregate.blocks += evaluation.blockScores.length;
       this.aggregates.set(form, aggregate);
-      const mean = aggregate.total / aggregate.blocks;
-      if (mean > this.highWaterMean || (mean === this.highWaterMean
-        && evaluation.strategy.id.localeCompare(this.highWaterPolicyId) < 0)) {
-        this.highWaterMean = mean;
-        this.highWaterPolicyId = evaluation.strategy.id;
-      }
     }
+    const best = [...this.aggregates.values()].sort((left, right) =>
+      right.total / right.blocks - left.total / left.blocks
+        || left.strategy.id.localeCompare(right.strategy.id))[0]!;
     this.curve.push({ candidateBlocks: this.consumed, matches: this.played,
-      bestMean: this.highWaterMean, policyId: this.highWaterPolicyId });
+      bestMean: best.total / best.blocks, policyId: best.strategy.id });
     return result;
   }
 

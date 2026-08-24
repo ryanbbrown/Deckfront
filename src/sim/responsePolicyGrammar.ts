@@ -60,6 +60,7 @@ export class ResponsePolicyDomain {
       cardId === 'no-buy' ? 'no-buy' : `floor:${cardId}`));
   }
 
+  /** Samples length uniformly, then samples every prefix token and the terminal floor uniformly. */
   randomComplete(random: SeededRandom): Strategy {
     const length = random.nextInt(this.maxPrefixSlots + 1);
     const prefix = Array.from({ length }, () => this.prefixTokens[random.nextInt(this.prefixTokens.length)]!);
