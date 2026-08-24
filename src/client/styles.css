@@ -120,7 +120,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .market-dialog { position: fixed; inset: 0 358px 0 0; width: auto; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; background: #071d18e8; color: #fff; }
 .market-dialog[open] { display: grid; place-items: center; }
 .market-dialog::backdrop { background: transparent; }
-.market-dialog__surface { width: min(816px,calc(100% - 24px)); height: min(756px,calc(100% - 24px)); margin: 0; padding: 12px 18px 16px; overflow: hidden; border: 1px solid #ffffff52; border-radius: 10px; background: #173c32; box-shadow: 0 20px 60px #0009; }
+.market-dialog__surface { width: min(840px,calc(100% - 24px)); height: min(780px,calc(100% - 24px)); margin: 0; padding: 12px 18px 16px; overflow: hidden; border: 1px solid #ffffff52; border-radius: 10px; background: #173c32; box-shadow: 0 20px 60px #0009; }
 .market-dialog__surface > header { display: flex; align-items: center; justify-content: space-between; height: 48px; }
 .market-dialog__surface > header span { color: #a8c6ba; font-size: 9px; text-transform: uppercase; }
 .market-dialog__surface > header button { width: 34px; height: 34px; border: 1px solid #ffffff45; border-radius: 5px; background: #fff; color: var(--ink); font-size: 22px; }

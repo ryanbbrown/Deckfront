@@ -8,6 +8,7 @@ async function marketLayout(page: import('@playwright/test').Page) {
     const cardRects = [...document.querySelectorAll<HTMLElement>('.reference-card')].map((card) => card.getBoundingClientRect());
     const imageRects = [...document.querySelectorAll<HTMLElement>('.reference-card .card__image')].map((image) => image.getBoundingClientRect());
     const surface = rect('.market-dialog__surface'); const overlay = rect('.market-dialog'); const rail = rect('.setup-rail,.action-rail');
+    const grid = document.querySelector<HTMLElement>('.market-dialog__grid')!;
     return {
       surface: { left: surface.left, top: surface.top, right: surface.right, bottom: surface.bottom, width: surface.width, height: surface.height },
       centeredInTable: Math.abs((surface.left + surface.right) / 2 - (overlay.left + overlay.right) / 2) < 2,
@@ -18,6 +19,7 @@ async function marketLayout(page: import('@playwright/test').Page) {
       columns: new Set(cardRects.map((card) => Math.round(card.left))).size,
       imageHeights: [...new Set(imageRects.map((image) => Math.round(image.height)))],
       overflow: { horizontal: document.documentElement.scrollWidth - innerWidth, vertical: document.documentElement.scrollHeight - innerHeight },
+      gridOverflow: { horizontal: grid.scrollWidth - grid.clientWidth, vertical: grid.scrollHeight - grid.clientHeight },
       viewport: { width: innerWidth, height: innerHeight }
     };
   });
@@ -31,9 +33,9 @@ test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local b
   expect([...new Set(compactWidths)]).toEqual([137]);
   await page.locator('[data-market-card="Step"]').locator('..').click({ button: 'right' }); const cardPopup = page.getByRole('dialog', { name: 'Step details' }); await expect(cardPopup).toBeVisible(); await expect(cardPopup).toContainText('Move 1 space'); await expect(cardPopup.getByLabel('Cost 2')).toBeVisible(); expect(await cardPopup.evaluate((element) => element.matches(':modal'))).toBe(false); expect(Number.parseFloat(await cardPopup.locator('.card__rules').evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7); await page.keyboard.press('Escape'); await expect(cardPopup).toHaveCount(0);
   const before = await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents(); await page.getByRole('button', { name: 'Refresh market' }).click(); const after = await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents(); expect(after).not.toEqual(before);
-  for (const viewport of [{ width: 1920, height: 1080 }, { width: 3840, height: 2160 }]) {
+  for (const viewport of [{ width: 1690, height: 1550 }, { width: 1920, height: 1080 }, { width: 3840, height: 2160 }]) {
     await page.setViewportSize(viewport); await page.getByRole('button', { name: 'Card reference' }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.locator('.market-dialog .reference-card')).toHaveCount(15); await expect(page.locator('.market-dialog .card__image')).toHaveCount(15);
-    const layout = await marketLayout(page); expect(layout.cardWidths).toEqual([148]); expect(layout.cardHeights).toEqual([220]); expect(layout.imageHeights).toEqual([72]); expect(layout.rows).toBe(3); expect(layout.columns).toBe(5); expect(layout.surface.width).toBeLessThanOrEqual(816); expect(layout.surface.height).toBeLessThanOrEqual(756); expect(layout.surface.left).toBeGreaterThanOrEqual(0); expect(layout.surface.top).toBeGreaterThanOrEqual(0); expect(layout.surface.right).toBeLessThanOrEqual(layout.viewport.width); expect(layout.surface.bottom).toBeLessThanOrEqual(layout.viewport.height); expect(layout.centeredInTable).toBe(true); expect(layout.clearOfRail).toBe(true); expect(layout.overflow).toEqual({ horizontal: 0, vertical: 0 }); await page.getByRole('button', { name: 'Close market' }).click();
+    const layout = await marketLayout(page); expect(layout.cardWidths).toEqual([148]); expect(layout.cardHeights).toEqual([220]); expect(layout.imageHeights).toEqual([72]); expect(layout.rows).toBe(3); expect(layout.columns).toBe(5); expect(layout.surface.width).toBeLessThanOrEqual(840); expect(layout.surface.height).toBeLessThanOrEqual(780); expect(layout.surface.left).toBeGreaterThanOrEqual(0); expect(layout.surface.top).toBeGreaterThanOrEqual(0); expect(layout.surface.right).toBeLessThanOrEqual(layout.viewport.width); expect(layout.surface.bottom).toBeLessThanOrEqual(layout.viewport.height); expect(layout.centeredInTable).toBe(true); expect(layout.clearOfRail).toBe(true); expect(layout.overflow).toEqual({ horizontal: 0, vertical: 0 }); expect(layout.gridOverflow).toEqual({ horizontal: 0, vertical: 0 }); await page.getByRole('button', { name: 'Close market' }).click();
   }
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.getByLabel('Starting draft').check(); await page.getByRole('button', { name: 'Start game' }).click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Step"]').click(); await expect(page.getByTestId('build-budget')).toHaveText('2 / 12 · 3 carries');
