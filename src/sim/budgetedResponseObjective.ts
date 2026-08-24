@@ -20,6 +20,8 @@ export interface BudgetedResponseObjectiveOptions {
   runner: PairingRunner;
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
+  scheduleSeeds?: readonly number[];
+  samplingSeed?: number;
 }
 
 interface AggregateScore { strategy: Strategy; total: number; blocks: number }
@@ -46,8 +48,13 @@ export class BudgetedResponseObjective {
     this.opponents = new Map(options.opponents.map((entry) => [entry.strategy.id, entry.strategy]));
     const weights = Object.fromEntries(options.opponents.map((entry) => [entry.strategy.id, entry.weight]));
     const random = new SeededRandom(options.scheduleSeed);
-    const seeds = Array.from({ length: options.budget }, () => random.nextInt(0x7fffffff) + 1);
-    this.schedule = mixtureSchedule(weights, seeds, options.scheduleSeed ^ 0x51f15e3d);
+    const seeds = options.scheduleSeeds === undefined
+      ? Array.from({ length: options.budget }, () => random.nextInt(0x7fffffff) + 1)
+      : [...options.scheduleSeeds];
+    if (!seeds.length || new Set(seeds).size !== seeds.length) {
+      throw new Error('Training schedule seeds must be a non-empty unique sequence.');
+    }
+    this.schedule = mixtureSchedule(weights, seeds, options.samplingSeed ?? (options.scheduleSeed ^ 0x51f15e3d));
   }
 
   get blocksConsumed(): number { return this.consumed; }

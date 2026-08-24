@@ -137,8 +137,7 @@ export async function runUniformRandomRacing(
       survivors = last.slice(0, keep).map((entry) => entry.strategy);
       rounds.push({ entered: last.length, blocks, survivors: survivors.length });
     }
-    const winner = last[0]!;
-    retainRanked(finalists, [{ strategy: winner.strategy, mean: winner.mean }]);
+    retainRanked(finalists, last.map((entry) => ({ strategy: entry.strategy, mean: entry.mean })));
     races += 1;
   }
   if (!finalists.length) throw new Error('Uniform length-then-token sampling could not evaluate a policy.');

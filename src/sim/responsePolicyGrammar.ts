@@ -14,6 +14,8 @@ export interface ResponsePolicyDomainOptions {
   purchaseIds?: readonly string[];
   floorIds?: readonly string[];
   maxActiveSlots?: number;
+  allowStopTokens?: boolean;
+  allowNoBuyFloor?: boolean;
 }
 
 function buyToken(cardId: string, count: number): PrefixToken {
@@ -37,8 +39,13 @@ export class ResponsePolicyDomain {
     for (const cardId of this.purchaseIds) {
       if (!available.has(cardId)) throw new Error(`${cardId} is not purchasable in ${kingdomId}.`);
     }
+    const allowNoBuyFloor = options.allowNoBuyFloor ?? true;
     const requestedFloors = options.floorIds === undefined
-      ? ['no-buy', ...this.purchaseIds] : [...new Set(options.floorIds)].sort();
+      ? [...(allowNoBuyFloor ? ['no-buy'] : []), ...this.purchaseIds]
+      : [...new Set(options.floorIds)].sort();
+    if (!allowNoBuyFloor && requestedFloors.includes('no-buy')) {
+      throw new Error('The response policy domain does not allow a no-buy floor.');
+    }
     for (const cardId of requestedFloors) {
       if (cardId !== 'no-buy' && !this.purchaseIds.includes(cardId)) {
         throw new Error(`${cardId} is not an allowed terminal floor in ${kingdomId}.`);
@@ -54,7 +61,8 @@ export class ResponsePolicyDomain {
     this.floorIds = Object.freeze(requestedFloors);
     this.prefixTokens = Object.freeze([
       ...this.purchaseIds.flatMap((cardId) => RESPONSE_FINITE_COUNTS.map((count) => buyToken(cardId, count))),
-      ...RESPONSE_STOP_THRESHOLDS.map((threshold): PrefixToken => `stop:${threshold}`)
+      ...((options.allowStopTokens ?? true)
+        ? RESPONSE_STOP_THRESHOLDS.map((threshold): PrefixToken => `stop:${threshold}`) : [])
     ]);
     this.floorTokens = Object.freeze(requestedFloors.map((cardId): FloorToken =>
       cardId === 'no-buy' ? 'no-buy' : `floor:${cardId}`));
