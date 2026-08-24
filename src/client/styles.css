@@ -80,7 +80,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .hand-card-slot:hover .full-card,.hand-card-slot:focus-within .full-card,.hand-card-slot .card--selected { transform: translateY(-7px) scale(1.04); box-shadow: 0 12px 24px #0008; }
 .card__face { position: absolute; inset: 0; display: block; }
 .card__header { position: relative; display: grid; min-height: 38px; padding: 5px 7px 4px; color: #fff; place-items: center; }
-.card__title { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; font-family: Georgia,serif; font-size: 14px; line-height: 1.02; text-align: center; text-wrap: balance; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.card__title { display: -webkit-box; overflow: hidden; overflow-wrap: anywhere; font-family: Georgia,serif; font-size: 14px; line-height: 1.14; text-align: center; text-wrap: balance; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .card__cost { position: absolute; z-index: 2; bottom: 5px; left: 5px; display: grid; width: 23px; height: 23px; border: 2px solid #ffffffcc; border-radius: 50%; background: #15201c; color: #fff; font-size: 10px; place-items: center; }
 .card__image { display: block; height: 72px; margin: 6px; border: 1px solid #0003; background: linear-gradient(135deg,#ffffff52,#0000000c); }
 .card__rules { display: block; margin: 0 7px 7px; padding-bottom: 23px; color: #202925; font-size: 9.5px; line-height: 1.18; text-align: center; }
