@@ -1,6 +1,8 @@
 import { SeededRandom } from '../game';
 import { kingdomFacts, repairStrategy } from './mutation';
-import { BUY_PLAN_SLOTS, INFINITE_COUNT, canonicalStrategy, fixedBuyPlan } from './strategy';
+import {
+  BUY_PLAN_SLOTS, INFINITE_COUNT, canonicalStrategy, normalizeCumulativeBuyTargets
+} from './strategy';
 import type { BuyPlanSlot, Strategy } from './strategy';
 
 export const RESPONSE_MAX_ACTIVE_SLOTS = 8;
@@ -82,10 +84,10 @@ export class ResponsePolicyDomain {
     if (!this.floorTokens.includes(floor)) throw new Error('The response floor is not legal.');
     const slots: BuyPlanSlot[] = prefix.map((token) => this.prefixSlot(token));
     slots.push(this.floorSlot(floor));
-    const strategy = repairStrategy(this.kingdomId, {
-      id: '', startingBuild: [], buyPlan: fixedBuyPlan(slots)
-    });
-    if (strategy.startingBuild.length || this.activeSlots(strategy).length !== slots.length) {
+    const buyPlan = normalizeCumulativeBuyTargets(slots);
+    const strategy = repairStrategy(this.kingdomId, { id: '', startingBuild: [], buyPlan });
+    if (strategy.startingBuild.length
+      || canonicalStrategy(strategy) !== canonicalStrategy({ id: '', startingBuild: [], buyPlan })) {
       throw new Error('Response policy repair changed a grammar-valid policy.');
     }
     return strategy;

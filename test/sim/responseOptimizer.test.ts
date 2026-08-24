@@ -114,7 +114,8 @@ describe('the shared response policy grammar', () => {
   it('builds one legal canonical draft-off policy at every allowed length', () => {
     const grammar = domain();
     for (let length = 0; length <= grammar.maxPrefixSlots; length += 1) {
-      const policy = grammar.complete(Array<PrefixToken>(length).fill(grammar.prefixTokens[0]!), grammar.floorTokens[0]!);
+      const prefix = grammar.prefixTokens.filter((token): token is PrefixToken => token.startsWith('buy:')).slice(0, length);
+      const policy = grammar.complete(prefix, grammar.floorTokens[0]!);
       expect(grammar.decode(policy).prefix).toHaveLength(length);
       expect(policy.startingBuild).toEqual([]);
       expect(strategyIsLegal(grammar.kingdomId, policy)).toBe(true);

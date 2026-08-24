@@ -10,13 +10,12 @@ import { createMatrixCellCache, matrixProtocol, PayoffMatrix } from './payoffMat
 import type { MatrixSnapshot } from './payoffMatrix';
 import type { PairingRunner } from './pairingRunner';
 import { ResponsePolicyDomain } from './responsePolicyGrammar';
-import { runUniformRandomRacing } from './responseOptimizers';
 import { rulesFingerprint } from './rulesFingerprint';
 import type { RulesFingerprint } from './rulesFingerprint';
 import { canonicalStrategy, identify, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 
-export const RANDOM_PSRO_VERSION = 'random-psro-v3';
+export const RANDOM_PSRO_VERSION = 'random-psro-v4';
 export const RANDOM_PSRO_SUITE_SEEDS = Object.freeze([35_001, 35_002] as const);
 export const RANDOM_PSRO_DEFAULT_CONFIG = Object.freeze({
   initialStrategies: 8,
@@ -26,10 +25,9 @@ export const RANDOM_PSRO_DEFAULT_CONFIG = Object.freeze({
   confirmationBlocks: 400,
   matrixBlocks: 25,
   safetyCap: 48,
-  cleanBatchesRequired: 2,
+  cleanBatchesRequired: 5,
   admissionLowerBound: 0.50,
-  independentAttackProposalCount: 20_000,
-  independentAttackLowerBound: 0.55
+  independentAttackProposalCount: 20_000
 });
 
 export interface RandomPsroConfig {
@@ -43,7 +41,6 @@ export interface RandomPsroConfig {
   cleanBatchesRequired: number;
   admissionLowerBound: number;
   independentAttackProposalCount: number;
-  independentAttackLowerBound: number;
 }
 
 export interface ConfirmedCandidate {
@@ -61,8 +58,12 @@ export interface RandomOracleRound {
   uniqueProposals: number;
   raceScheduleSeeds: number[];
   confirmationScheduleSeeds: number[];
+  archiveCandidateIds: string[];
+  freshFinalistIds: string[];
+  archiveFinalistIds: string[];
   finalists: ConfirmedCandidate[];
-  admittedStrategyId: string | null;
+  admittedStrategyIds: string[];
+  archiveSizeAfter: number;
   cleanBatch: boolean;
   cleanStreak: number;
   equilibriumAfter: EquilibriumResult;
@@ -78,7 +79,7 @@ export interface RandomAttackResult {
 }
 
 export interface RandomPsroArtifact {
-  schemaVersion: 2;
+  schemaVersion: 3;
   experiment: 'random-first-psro-consistency';
   suiteVersion: typeof RANDOM_PSRO_VERSION;
   createdAt: string;
@@ -87,8 +88,9 @@ export interface RandomPsroArtifact {
   runSeed: number;
   config: RandomPsroConfig;
   status: 'converged' | 'incomplete';
-  stopReason: 'two-clean-random-batches' | 'safety-cap';
+  stopReason: 'five-clean-batches-and-attack-clear' | 'independent-attack-found' | 'safety-cap';
   rounds: RandomOracleRound[];
+  archive: ConfirmedCandidate[];
   matrix: MatrixSnapshot;
   equilibrium: EquilibriumResult;
   independentAttack: RandomAttackResult | null;
@@ -138,10 +140,7 @@ function completeConfig(input: Partial<RandomPsroConfig> = {}): RandomPsroConfig
   if (!config.raceBlocks.length || config.raceBlocks.some((value) => !Number.isInteger(value) || value < 1)) {
     throw new Error('raceBlocks must be positive integers.');
   }
-  if (!(config.admissionLowerBound >= 0.5 && config.admissionLowerBound < 1)
-    || !(config.independentAttackLowerBound >= 0.5 && config.independentAttackLowerBound < 1)) {
-    throw new Error('CI gates must be from 0.5 up to, but not including, 1.');
-  }
+  if (config.admissionLowerBound !== 0.5) throw new Error('The random PSRO CI gate must be 0.50.');
   return config;
 }
 
@@ -171,14 +170,16 @@ export class RandomPsroSeedLedger {
   }
 }
 
-function uniqueRandomPolicies(domain: ResponsePolicyDomain, seed: number, count: number): Strategy[] {
+function uniqueRandomPolicies(
+  domain: ResponsePolicyDomain, seed: number, count: number, excluded: ReadonlySet<string> = new Set()
+): Strategy[] {
   const random = new SeededRandom(seed);
   const forms = new Set<string>();
   const policies: Strategy[] = [];
   for (let attempts = 0; policies.length < count && attempts < count * 256; attempts += 1) {
     const policy = domain.randomComplete(random);
     const form = canonicalStrategy(policy);
-    if (!forms.has(form)) { forms.add(form); policies.push(policy); }
+    if (!excluded.has(form) && !forms.has(form)) { forms.add(form); policies.push(policy); }
   }
   if (policies.length !== count) throw new Error(`Random policy space produced only ${policies.length} of ${count} unique policies.`);
   return policies;
@@ -211,6 +212,25 @@ interface OracleBatchInput {
   equilibrium: EquilibriumResult;
   runner: PairingRunner;
   ledger: RandomPsroSeedLedger;
+  archive?: readonly ConfirmedCandidate[];
+}
+
+function ordered(evaluations: readonly CandidateEvaluation[]): CandidateEvaluation[] {
+  return [...evaluations].sort((left, right) => right.mean - left.mean
+    || left.strategy.id.localeCompare(right.strategy.id));
+}
+
+async function raceField(
+  objective: BudgetedResponseObjective, field: readonly Strategy[], rounds: readonly number[]
+): Promise<CandidateEvaluation[]> {
+  let survivors = [...field];
+  let last: CandidateEvaluation[] = [];
+  for (const blocks of rounds) {
+    last = ordered(await objective.evaluate(survivors, blocks));
+    const keep = last.length <= 3 ? 1 : Math.max(3, Math.ceil(last.length / 3));
+    survivors = last.slice(0, keep).map((entry) => entry.strategy);
+  }
+  return last;
 }
 
 async function randomBatch(input: OracleBatchInput): Promise<{
@@ -225,19 +245,21 @@ async function randomBatch(input: OracleBatchInput): Promise<{
   const bootstrapSeeds = input.ledger.reserve(`${label}:bootstrap`, input.config.finalists);
   const seed = input.ledger.reserve(`${label}:proposal`, 1)[0]!;
   const opponents = weightedStrategies(input.snapshot, input.equilibrium);
-  const known = new Set(input.snapshot.strategies.map(canonicalStrategy));
-  const budget = randomRacingBudget(count, input.config.raceBlocks);
+  const archive = input.kind === 'oracle' ? [...(input.archive ?? [])] : [];
+  const known = new Set([...input.snapshot.strategies.map(canonicalStrategy), ...archive.map((entry) => canonicalStrategy(entry.strategy))]);
+  const fresh = uniqueRandomPolicies(input.domain, seed, count, known);
+  const budget = randomRacingBudget(fresh.length, input.config.raceBlocks)
+    + (archive.length ? randomRacingBudget(archive.length, input.config.raceBlocks) : 0);
   const objective = new BudgetedResponseObjective({ kingdomId: input.domain.kingdomId, opponents,
     budget, scheduleSeed: samplingSeeds[0]!, samplingSeed: samplingSeeds[0]!, scheduleSeeds: raceSeeds,
     runner: input.runner, turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
     actionCapPerTurn: ACTION_CAP_PER_TURN, startingDraftEnabled: false });
-  const raced = await runUniformRandomRacing(objective, input.domain, seed, {
-    batchSize: count, roundBlocks: input.config.raceBlocks, searchBudget: budget,
-    excludedCanonical: known
-  });
-  const uniqueProposals = Number(raced.diagnostics.uniquePolicies);
-  if (uniqueProposals !== count) throw new Error(`Random batch generated ${uniqueProposals}; required ${count} novel proposals.`);
-  const finalists = raced.finalists.slice(0, input.config.finalists);
+  const archiveRaced = archive.length
+    ? await raceField(objective, archive.map((entry) => entry.strategy), input.config.raceBlocks) : [];
+  const freshRaced = await raceField(objective, fresh, input.config.raceBlocks);
+  const finalists = ordered([...archiveRaced, ...freshRaced]).slice(0, input.config.finalists)
+    .map((entry) => entry.strategy);
+  const uniqueProposals = fresh.length;
   if (!finalists.length) return { proposalSeed: seed, uniqueProposals, raceSeeds, confirmationSeeds, finalists: [] };
   const weights = input.equilibrium.weights;
   const opponentMap = new Map(input.snapshot.strategies.map((strategy) => [strategy.id, strategy]));
@@ -252,7 +274,7 @@ async function randomBatch(input: OracleBatchInput): Promise<{
   return { proposalSeed: seed, uniqueProposals, raceSeeds, confirmationSeeds, finalists: evidence };
 }
 
-export function convergenceState(cleanStreak: number, admitted: boolean, required = 2): {
+export function convergenceState(cleanStreak: number, admitted: boolean, required = 5): {
   cleanStreak: number; converged: boolean;
 } {
   const next = admitted ? 0 : cleanStreak + 1;
@@ -290,44 +312,62 @@ export async function runRandomPsro(
   let snapshot = matrix.snapshot();
   let equilibrium = solve(snapshot);
   let cleanStreak = 0;
-  let converged = false;
+  let cleanConvergence = false;
   const rounds: RandomOracleRound[] = [];
+  const archive: ConfirmedCandidate[] = [];
+  const archivedForms = new Set<string>();
   for (let round = 0; round < config.safetyCap; round += 1) {
     const targetWeights = { ...equilibrium.weights };
+    const activeForms = new Set(snapshot.strategies.map(canonicalStrategy));
+    const reconsidered = archive.filter((entry) => !activeForms.has(canonicalStrategy(entry.strategy)));
+    const archiveCandidateIds = reconsidered.map((entry) => entry.strategy.id);
+    const archiveForms = new Set(reconsidered.map((entry) => canonicalStrategy(entry.strategy)));
     const batch = await randomBatch({ kind: 'oracle', round, config,
-      domain, snapshot, equilibrium, runner, ledger });
-    const response = batch.finalists.find((entry) => entry.interval95.lower > config.admissionLowerBound) ?? null;
-    if (response) {
-      await matrix.addRow(response.strategy, false);
+      domain, snapshot, equilibrium, runner, ledger, archive: reconsidered });
+    const freshFinalistIds = batch.finalists.filter((entry) => !archiveForms.has(canonicalStrategy(entry.strategy)))
+      .map((entry) => entry.strategy.id);
+    const archiveFinalistIds = batch.finalists.filter((entry) => archiveForms.has(canonicalStrategy(entry.strategy)))
+      .map((entry) => entry.strategy.id);
+    for (const finalist of batch.finalists) {
+      const form = canonicalStrategy(finalist.strategy);
+      if (!archivedForms.has(form)) { archivedForms.add(form); archive.push(finalist); }
+    }
+    const admitted = batch.finalists.filter((entry) => entry.interval95.lower > config.admissionLowerBound);
+    for (const entry of admitted) matrix.addStrategy(entry.strategy);
+    if (admitted.length) {
+      await matrix.fillAll(false);
       snapshot = matrix.snapshot();
       equilibrium = solve(snapshot);
     }
-    const state = convergenceState(cleanStreak, response !== null, config.cleanBatchesRequired);
+    const state = convergenceState(cleanStreak, admitted.length > 0, config.cleanBatchesRequired);
     cleanStreak = state.cleanStreak;
-    converged = state.converged;
+    cleanConvergence = state.converged;
     rounds.push({ round, targetWeights, proposalSeed: batch.proposalSeed,
       uniqueProposals: batch.uniqueProposals, raceScheduleSeeds: batch.raceSeeds,
-      confirmationScheduleSeeds: batch.confirmationSeeds, finalists: batch.finalists,
-      admittedStrategyId: response?.strategy.id ?? null, cleanBatch: response === null,
-      cleanStreak, equilibriumAfter: equilibrium });
-    if (converged) break;
+      confirmationScheduleSeeds: batch.confirmationSeeds, archiveCandidateIds,
+      freshFinalistIds, archiveFinalistIds, finalists: batch.finalists,
+      admittedStrategyIds: admitted.map((entry) => entry.strategy.id), archiveSizeAfter: archive.length,
+      cleanBatch: admitted.length === 0, cleanStreak, equilibriumAfter: equilibrium });
+    if (cleanConvergence) break;
   }
   snapshot = matrix.snapshot();
   equilibrium = solve(snapshot);
   let independentAttack: RandomAttackResult | null = null;
-  if (converged) {
+  if (cleanConvergence) {
     const attackBatch = await randomBatch({ kind: 'attack', round: rounds.length,
       config, domain, snapshot, equilibrium, runner, ledger });
     independentAttack = summarizeIndependentAttack(attackBatch.proposalSeed,
       attackBatch.uniqueProposals, attackBatch.confirmationSeeds, attackBatch.finalists,
-      config.independentAttackLowerBound);
+      config.admissionLowerBound);
   }
+  const converged = cleanConvergence && independentAttack?.confirmedAboveThreshold === false;
+  const stopReason = converged ? 'five-clean-batches-and-attack-clear'
+    : cleanConvergence ? 'independent-attack-found' : 'safety-cap';
   ledger.validate();
   return {
-    schemaVersion: 2, experiment: 'random-first-psro-consistency', suiteVersion: RANDOM_PSRO_VERSION,
+    schemaVersion: 3, experiment: 'random-first-psro-consistency', suiteVersion: RANDOM_PSRO_VERSION,
     createdAt: new Date().toISOString(), kingdom, rulesFingerprint: fingerprint, runSeed: options.seed,
-    config, status: converged ? 'converged' : 'incomplete',
-    stopReason: converged ? 'two-clean-random-batches' : 'safety-cap', rounds,
+    config, status: converged ? 'converged' : 'incomplete', stopReason, rounds, archive,
     matrix: snapshot, equilibrium, independentAttack, seedNamespaces: ledger.namespaces,
     elapsedMs: now() - started
   };
@@ -388,7 +428,7 @@ export function validateRandomPsroArtifact(
     const config = completeConfig(expected.config);
     const kingdom = kingdomOf(expected.kingdomId);
     const fingerprint = rulesFingerprint(expected.kingdomId, TURN_LIMIT_PER_PLAYER, ACTION_CAP_PER_TURN, false);
-    if (artifact?.schemaVersion !== 2 || artifact.experiment !== 'random-first-psro-consistency'
+    if (artifact?.schemaVersion !== 3 || artifact.experiment !== 'random-first-psro-consistency'
       || artifact.suiteVersion !== RANDOM_PSRO_VERSION) throw new Error('wrong random PSRO schema or version');
     if (artifact.runSeed !== expected.seed || !exact(artifact.kingdom, kingdom)) throw new Error('wrong kingdom or seed');
     if (!exact(artifact.config, config)) throw new Error('configuration is stale');
@@ -453,12 +493,15 @@ export function validateRandomPsroArtifact(
     if (!Array.isArray(artifact.rounds) || artifact.rounds.length < 1 || artifact.rounds.length > config.safetyCap) {
       throw new Error('oracle rounds are missing or exceed the safety cap');
     }
-    const admittedIds = artifact.rounds.flatMap((round) => round.admittedStrategyId ? [round.admittedStrategyId] : []);
+    const admittedIds = artifact.rounds.flatMap((round) => round.admittedStrategyIds ?? []);
     if (new Set(admittedIds).size !== admittedIds.length) throw new Error('admitted strategy chain contains duplicates');
     const admittedSet = new Set(admittedIds);
     let activeIds = strategies.map((strategy) => strategy.id).filter((id) => !admittedSet.has(id));
     if (activeIds.length !== config.initialStrategies) throw new Error('initial strategy population is stale');
     let cleanStreak = 0;
+    let cleanConvergence = false;
+    const reconstructedArchive: ConfirmedCandidate[] = [];
+    const archivedForms = new Set<string>();
     const raceSeedCount = config.raceBlocks.reduce((sum, value) => sum + value, 0);
     const expectedNamespaceLabels = new Set(['matrix', 'initial:proposal']);
     for (let index = 0; index < artifact.rounds.length; index += 1) {
@@ -470,8 +513,12 @@ export function validateRandomPsroArtifact(
       const activeIndexes = activeIds.map((id) => strategies.findIndex((strategy) => strategy.id === id));
       const activePayoffs = activeIndexes.map((row) => activeIndexes.map((column) => payoffs[row]![column]!));
       const before = solveEquilibrium(activeIds, activePayoffs);
+      const activeForms = new Set(activeIds.map((id) => canonicalStrategy(strategies.find((strategy) => strategy.id === id)!)));
+      const expectedArchiveCandidates = reconstructedArchive
+        .filter((entry) => !activeForms.has(canonicalStrategy(entry.strategy))).map((entry) => entry.strategy.id);
       if (round.round !== index || !exact(round.targetWeights, before.weights)
         || round.uniqueProposals !== config.proposalCount
+        || !exact(round.archiveCandidateIds, expectedArchiveCandidates)
         || !exact(round.raceScheduleSeeds, namespaces[`${label}:race`])
         || !exact(round.confirmationScheduleSeeds, namespaces[`${label}:confirmation`])
         || round.raceScheduleSeeds.length !== raceSeedCount
@@ -480,49 +527,60 @@ export function validateRandomPsroArtifact(
         || namespaces[`${label}:bootstrap`]?.length !== config.finalists
         || namespaces[`${label}:proposal`]?.length !== 1
         || round.proposalSeed !== namespaces[`${label}:proposal`]![0]) {
-        throw new Error('oracle round schedule or target chain is stale');
+        throw new Error('oracle round schedule, archive, or target chain is stale');
       }
       if (round.finalists.length > config.finalists) throw new Error('oracle finalist count exceeds its cap');
-      const activeForms = new Set(activeIds.map((id) => canonicalStrategy(strategies.find((strategy) => strategy.id === id)!)));
+      const archiveCandidateSet = new Set(round.archiveCandidateIds);
+      const expectedFresh: string[] = [], expectedArchived: string[] = [];
       const finalistForms = new Set<string>();
       for (const finalist of round.finalists) {
         validateConfirmedCandidate(finalist, domain, config.confirmationBlocks, 'oracle finalist');
         const form = canonicalStrategy(finalist.strategy);
         if (activeForms.has(form) || finalistForms.has(form)) throw new Error('oracle finalist is not novel');
         finalistForms.add(form);
+        (archiveCandidateSet.has(finalist.strategy.id) ? expectedArchived : expectedFresh).push(finalist.strategy.id);
+        if (!archivedForms.has(form)) { archivedForms.add(form); reconstructedArchive.push(finalist); }
       }
-      const admitted = round.admittedStrategyId;
-      const admittedFinalist = admitted ? round.finalists.find((entry) => entry.strategy.id === admitted) : undefined;
-      if (round.cleanBatch !== (admitted === null)
-        || (admittedFinalist !== undefined) !== (admitted !== null)
-        || (admittedFinalist && !(admittedFinalist.interval95.lower > config.admissionLowerBound))
-        || (!admitted && round.finalists.some((entry) => entry.interval95.lower > config.admissionLowerBound))) {
+      if (!exact(round.freshFinalistIds, expectedFresh) || !exact(round.archiveFinalistIds, expectedArchived)
+        || round.archiveSizeAfter !== reconstructedArchive.length) {
+        throw new Error('oracle finalist provenance or archive size is stale');
+      }
+      const expectedAdmitted = round.finalists.filter((entry) => entry.interval95.lower > config.admissionLowerBound)
+        .map((entry) => entry.strategy.id);
+      if (!exact(round.admittedStrategyIds, expectedAdmitted)
+        || round.cleanBatch !== (expectedAdmitted.length === 0)) {
         throw new Error('oracle admission evidence is inconsistent');
       }
-      if (admitted) {
+      for (const admitted of expectedAdmitted) {
+        const finalist = round.finalists.find((entry) => entry.strategy.id === admitted)!;
         const matrixStrategy = strategies.find((strategy) => strategy.id === admitted);
-        if (!matrixStrategy || canonicalStrategy(matrixStrategy) !== canonicalStrategy(admittedFinalist!.strategy)) {
+        if (!matrixStrategy || canonicalStrategy(matrixStrategy) !== canonicalStrategy(finalist.strategy)) {
           throw new Error('admitted strategy content is missing from matrix');
         }
-        activeIds = [...activeIds, admitted].sort();
       }
+      activeIds = [...activeIds, ...expectedAdmitted].sort();
       const afterIndexes = activeIds.map((id) => strategies.findIndex((strategy) => strategy.id === id));
       if (afterIndexes.some((value) => value < 0)) throw new Error('admitted strategy is missing from matrix');
       const after = solveEquilibrium(activeIds,
         afterIndexes.map((row) => afterIndexes.map((column) => payoffs[row]![column]!)));
       validateEquilibrium(round.equilibriumAfter, after, `round ${index}`);
-      const state = convergenceState(cleanStreak, admitted !== null, config.cleanBatchesRequired);
+      const state = convergenceState(cleanStreak, expectedAdmitted.length > 0, config.cleanBatchesRequired);
       cleanStreak = state.cleanStreak;
-      if (round.cleanStreak !== cleanStreak || state.converged !== (index === artifact.rounds.length - 1
-        && artifact.status === 'converged')) throw new Error('oracle clean-streak chain is inconsistent');
+      if (round.cleanStreak !== cleanStreak || (state.converged && index !== artifact.rounds.length - 1)) {
+        throw new Error('oracle clean-streak chain is inconsistent');
+      }
+      cleanConvergence = state.converged;
     }
     if (!exact(activeIds, strategies.map((strategy) => strategy.id))) throw new Error('terminal matrix strategy chain is stale');
+    if (!Array.isArray(artifact.archive) || !exact(artifact.archive, reconstructedArchive)
+      || new Set(artifact.archive.map((entry) => canonicalStrategy(entry.strategy))).size !== artifact.archive.length) {
+      throw new Error('terminal finalist archive is stale');
+    }
 
     const converged = artifact.status === 'converged';
-    if (converged) {
-      if (artifact.stopReason !== 'two-clean-random-batches'
-        || artifact.rounds.length < config.cleanBatchesRequired || cleanStreak !== config.cleanBatchesRequired
-        || !artifact.independentAttack) throw new Error('terminal convergence state is inconsistent');
+    if (cleanConvergence) {
+      if (artifact.rounds.length < config.cleanBatchesRequired || cleanStreak !== config.cleanBatchesRequired
+        || !artifact.independentAttack) throw new Error('terminal clean state is inconsistent');
       const attack = artifact.independentAttack;
       const label = `attack:${artifact.rounds.length}`;
       for (const suffix of ['race', 'confirmation', 'sampling', 'bootstrap', 'proposal']) {
@@ -548,9 +606,13 @@ export function validateRandomPsroArtifact(
         attackForms.add(form);
       }
       const summary = summarizeIndependentAttack(attack.proposalSeed, attack.uniqueProposals,
-        attack.scheduleSeeds, attack.finalists, config.independentAttackLowerBound);
+        attack.scheduleSeeds, attack.finalists, config.admissionLowerBound);
       if (!exact(attack.best, summary.best) || attack.confirmedAboveThreshold !== summary.confirmedAboveThreshold) {
         throw new Error('independent attack result flag is stale');
+      }
+      if (converged !== !attack.confirmedAboveThreshold
+        || artifact.stopReason !== (converged ? 'five-clean-batches-and-attack-clear' : 'independent-attack-found')) {
+        throw new Error('independent attack convergence gate is inconsistent');
       }
     } else if (artifact.status !== 'incomplete' || artifact.stopReason !== 'safety-cap'
       || artifact.rounds.length !== config.safetyCap || artifact.independentAttack !== null) {

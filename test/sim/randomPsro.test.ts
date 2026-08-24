@@ -19,7 +19,9 @@ import {
   weightedLotteryEvaluation, writeKingdom001OrdinarySource
 } from '../../src/sim/randomPsroReport';
 import { runUniformRandomRacing } from '../../src/sim/responseOptimizers';
-import { canonicalStrategy } from '../../src/sim/strategy';
+import {
+  INFINITE_COUNT, canonicalStrategy, normalizeCumulativeBuyTargets
+} from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 
 class DrawRunner implements PairingRunner {
@@ -38,9 +40,22 @@ class DrawRunner implements PairingRunner {
   async close(): Promise<void> {}
 }
 
+class CandidateWinRunner implements PairingRunner {
+  async run(jobs: readonly PairingJob[]) {
+    return { submitted: jobs.length, outcomes: jobs.map((job) => {
+      const blocks = job.options.seeds.map((seed) => ({ seed, score: 1, played: 4, aborted: 0 }));
+      return { record: { played: blocks.length * 4, wins: blocks.length * 4, draws: 0, losses: 0, aborted: 0 },
+        candidateScore: blocks.length * 4, opponentScore: 0,
+        telemetry: emptyAggregate(), matches: blocks.length * 4, seedBlocks: blocks.length,
+        stopReason: 'maximum' as const, candidateMean: 1, opponentMean: 0, blocks, aborts: [] };
+    }) };
+  }
+  async close(): Promise<void> {}
+}
+
 const tinyConfig = {
   initialStrategies: 2, proposalCount: 2, raceBlocks: [1], finalists: 1,
-  confirmationBlocks: 2, matrixBlocks: 1, safetyCap: 2, cleanBatchesRequired: 2,
+  confirmationBlocks: 2, matrixBlocks: 1, safetyCap: 5, cleanBatchesRequired: 5,
   independentAttackProposalCount: 2
 };
 
@@ -84,10 +99,30 @@ describe('random-first policy grammar and evidence', () => {
     expect(first.namespaces['round-0-race']).not.toEqual(second.namespaces['round-0-race']);
   });
 
-  it('requires two consecutive clean batches and resets after admission', () => {
+  it('requires five consecutive clean fresh-plus-archive batches and resets after admission', () => {
     expect(convergenceState(0, false)).toEqual({ cleanStreak: 1, converged: false });
-    expect(convergenceState(1, true)).toEqual({ cleanStreak: 0, converged: false });
-    expect(convergenceState(1, false)).toEqual({ cleanStreak: 2, converged: true });
+    expect(convergenceState(4, true)).toEqual({ cleanStreak: 0, converged: false });
+    expect(convergenceState(4, false)).toEqual({ cleanStreak: 5, converged: true });
+  });
+
+  it('removes cumulative buy no-ops before response policy identity', () => {
+    const kingdomId = setup();
+    const domain = stoplessRandomDomain(kingdomId);
+    const card = domain.purchaseIds[0]!, other = domain.purchaseIds[1]!;
+    const reduced = domain.complete([
+      `buy:${card}:5`, `buy:${card}:2`, `buy:${card}:5`, `buy:${other}:2`
+    ], `floor:${other}`);
+    expect(domain.decode(reduced).prefix).toEqual([`buy:${card}:5`, `buy:${other}:2`]);
+    const increasing = domain.complete([`buy:${card}:2`, `buy:${card}:5`], `floor:${other}`);
+    expect(domain.decode(increasing).prefix).toEqual([`buy:${card}:2`, `buy:${card}:5`]);
+    expect(normalizeCumulativeBuyTargets([
+      { kind: 'buy', cardId: card!, desiredCount: INFINITE_COUNT },
+      { kind: 'buy', cardId: card!, desiredCount: 5 },
+      { kind: 'buy', cardId: other!, desiredCount: 2 }
+    ]).filter((slot) => slot.kind !== 'inactive')).toEqual([
+      { kind: 'buy', cardId: card, desiredCount: INFINITE_COUNT },
+      { kind: 'buy', cardId: other, desiredCount: 2 }
+    ]);
   });
 
   it('counts only novel policies before racing and finalist truncation', async () => {
@@ -127,7 +162,7 @@ describe('random PSRO artifacts and resumability', () => {
     const artifact = await tinyArtifact();
     const expected = { kingdomId: artifact.kingdom.id, seed: 7, config: tinyConfig };
     expect(artifact.status).toBe('converged');
-    expect(artifact.rounds.map((round) => round.cleanBatch)).toEqual([true, true]);
+    expect(artifact.rounds.map((round) => round.cleanBatch)).toEqual([true, true, true, true, true]);
     expect(validateRandomPsroArtifact(artifact, expected)).toMatchObject({ valid: true, converged: true });
     const rejects = (name: string, mutate: (copy: typeof artifact) => void): void => {
       const copy = structuredClone(artifact); mutate(copy);
@@ -151,12 +186,34 @@ describe('random PSRO artifacts and resumability', () => {
     rejects('round target chain', (copy) => { copy.rounds[0]!.targetWeights.wrong = 1; });
     rejects('round equilibrium chain', (copy) => { copy.rounds[0]!.equilibriumAfter.value += 0.1; });
     rejects('terminal streak', (copy) => { copy.rounds.at(-1)!.cleanStreak = 1; });
+    rejects('archive', (copy) => { copy.archive.push(structuredClone(copy.archive[0]!)); });
+    rejects('archive reconsideration', (copy) => { copy.rounds[1]!.archiveCandidateIds = []; });
     rejects('attack evidence', (copy) => { copy.independentAttack!.finalists[0]!.blocks += 1; });
     rejects('attack flag', (copy) => { copy.independentAttack!.confirmedAboveThreshold = true; });
     rejects('seed overlap', (copy) => {
       const labels = Object.keys(copy.seedNamespaces);
       copy.seedNamespaces[labels[1]!]![0] = copy.seedNamespaces[labels[0]!]![0]!;
     });
+  });
+
+  it('persists unique finalists and reconsiders the archive against later mixtures', async () => {
+    const artifact = await tinyArtifact(8);
+    expect(artifact.archive).toHaveLength(new Set(artifact.archive.map((entry) => canonicalStrategy(entry.strategy))).size);
+    expect(artifact.archive.length).toBeGreaterThan(0);
+    expect(artifact.rounds[1]!.archiveCandidateIds).toContain(artifact.archive[0]!.strategy.id);
+    expect(artifact.rounds.at(-1)!.archiveSizeAfter).toBe(artifact.archive.length);
+  });
+
+  it('admits every passing finalist as one matrix batch before the round equilibrium', async () => {
+    const config = { ...tinyConfig, proposalCount: 9, finalists: 2, safetyCap: 1 };
+    const artifact = await runRandomPsro({ kingdomId: setup(), seed: 10, config }, new CandidateWinRunner());
+    const round = artifact.rounds[0]!;
+    expect(round.finalists).toHaveLength(2);
+    expect(round.admittedStrategyIds).toEqual(round.finalists.map((entry) => entry.strategy.id));
+    expect(round.equilibriumAfter.strategyIds).toHaveLength(config.initialStrategies + 2);
+    expect(artifact.matrix.strategies).toHaveLength(config.initialStrategies + 2);
+    expect(artifact.matrix.cells).toHaveLength(6);
+    expect(validateRandomPsroArtifact(artifact, { kingdomId: artifact.kingdom.id, seed: 10, config }).valid).toBe(true);
   });
 
   it('omits independent attack evidence when the safety cap is incomplete', async () => {
@@ -168,17 +225,31 @@ describe('random PSRO artifacts and resumability', () => {
       .toMatchObject({ valid: true, converged: false });
   });
 
-  it('gates independent attacks on maximum CI lower bound and retains all finalists', async () => {
+  it('uses the strict greater-than-50% attack threshold and retains all finalists', async () => {
     const artifact = await tinyArtifact();
     const finalists = structuredClone(artifact.independentAttack!.finalists);
-    const lowerMean = structuredClone(finalists[0]!);
-    lowerMean.strategy = stoplessRandomDomain(setup()).randomComplete(new SeededRandom(98));
-    lowerMean.mean = 0.7; lowerMean.interval95 = { lower: 0.6, upper: 0.8 };
-    finalists[0]!.mean = 0.9; finalists[0]!.interval95 = { lower: 0.52, upper: 1 };
-    const result = summarizeIndependentAttack(1, 2, [3, 4], [finalists[0]!, lowerMean], 0.55);
+    const passing = structuredClone(finalists[0]!);
+    passing.strategy = stoplessRandomDomain(setup()).randomComplete(new SeededRandom(98));
+    passing.mean = 0.7; passing.interval95 = { lower: 0.6, upper: 0.8 };
+    finalists[0]!.mean = 0.9; finalists[0]!.interval95 = { lower: 0.50, upper: 1 };
+    const result = summarizeIndependentAttack(1, 2, [3, 4], [finalists[0]!, passing], 0.50);
     expect(result.finalists).toHaveLength(2);
-    expect(result.best?.strategy.id).toBe(lowerMean.strategy.id);
+    expect(result.best?.strategy.id).toBe(passing.strategy.id);
     expect(result.confirmedAboveThreshold).toBe(true);
+    expect(summarizeIndependentAttack(1, 1, [3], [finalists[0]!], 0.50).confirmedAboveThreshold).toBe(false);
+  });
+
+  it('marks a clean-streak artifact incomplete when final validation finds an admissible attack', async () => {
+    const artifact = await tinyArtifact(11);
+    artifact.independentAttack!.finalists[0]!.mean = 0.75;
+    artifact.independentAttack!.finalists[0]!.interval95 = { lower: 0.60, upper: 0.90 };
+    artifact.independentAttack!.best = structuredClone(artifact.independentAttack!.finalists[0]!);
+    artifact.independentAttack!.confirmedAboveThreshold = true;
+    artifact.status = 'incomplete';
+    artifact.stopReason = 'independent-attack-found';
+    expect(validateRandomPsroArtifact(artifact, {
+      kingdomId: artifact.kingdom.id, seed: 11, config: tinyConfig
+    })).toMatchObject({ valid: true, converged: false });
   });
 
   it('keeps a completed unit when a later unit fails, then skips it on rerun', async () => {
