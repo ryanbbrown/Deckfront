@@ -84,18 +84,22 @@ export interface SimulationMatchConfig {
   strategies: Record<PlayerId, Strategy>;
 }
 
+export type GoldfishMovementProfile = 'stationary' | 'chaser' | 'kiter';
+
 export interface GoldfishTrialConfig {
   kingdomId: string;
   seed: number;
   strategy: Strategy;
   turnLimit: number;
   actionCapPerTurn: number;
+  movementProfile?: GoldfishMovementProfile;
 }
 
 export interface GoldfishTrialResult {
   completed: boolean;
   turnsTo50: number | null;
   damageByTurn: number[];
+  positionsByTurn: Array<{ candidate: number; dummy: number }>;
   moneySpent: number;
   unspentMoney: number;
   purchasesByCard: Record<string, number>;
@@ -724,6 +728,21 @@ function createState(config: SimulationMatchConfig): KernelState {
   return state;
 }
 
+function moveGoldfishDummy(state: KernelState, profile: GoldfishMovementProfile): void {
+  if (profile === 'stationary') return;
+  const candidate = state.positions[0];
+  const dummy = state.positions[1];
+  if (profile === 'chaser') {
+    if (dummy < candidate && dummy < ARENA_MAX) state.positions[1] += 1;
+    else if (dummy > candidate && dummy > ARENA_MIN) state.positions[1] -= 1;
+    return;
+  }
+  const choices = [dummy - 1, dummy + 1].filter((position) => position >= ARENA_MIN && position <= ARENA_MAX);
+  const farther = choices.filter((position) => Math.abs(position - candidate) > Math.abs(dummy - candidate));
+  if (farther.length) state.positions[1] = farther.sort((left, right) =>
+    Math.abs(right - candidate) - Math.abs(left - candidate) || left - right)[0]!;
+}
+
 export function runGoldfishTrial(config: GoldfishTrialConfig): GoldfishTrialResult {
   const dummy: Strategy = { id: 'goldfish-dummy', startingBuild: [], buyPlan: fixedBuyPlan([]) };
   const state = createState({
@@ -732,7 +751,9 @@ export function runGoldfishTrial(config: GoldfishTrialConfig): GoldfishTrialResu
     startingDraftEnabled: false, strategies: { ochre: config.strategy, indigo: dummy }
   });
   state.health[1] = 50;
+  const movementProfile = config.movementProfile ?? 'stationary';
   const damageByTurn: number[] = [];
+  const positionsByTurn = [{ candidate: state.positions[0], dummy: state.positions[1] }];
   let actionsInTurn = 0;
   let phase: 'action' | 'buy' = 'action';
   let reason: GoldfishTrialResult['reason'] = 'turnLimit';
@@ -755,6 +776,8 @@ export function runGoldfishTrial(config: GoldfishTrialConfig): GoldfishTrialResu
         endBuyPhase(state, actor); actionsInTurn += 1; phase = 'action';
         state.active = 0;
         damageByTurn.push(50 - state.health[1]);
+        moveGoldfishDummy(state, movementProfile);
+        positionsByTurn.push({ candidate: state.positions[0], dummy: state.positions[1] });
         turnChanged = true;
       }
     }
@@ -765,7 +788,7 @@ export function runGoldfishTrial(config: GoldfishTrialConfig): GoldfishTrialResu
 
   return {
     completed: reason === 'victory', turnsTo50: reason === 'victory' ? state.turn : null,
-    damageByTurn, moneySpent: state.telemetry.moneySpent.ochre,
+    damageByTurn, positionsByTurn, moneySpent: state.telemetry.moneySpent.ochre,
     unspentMoney: state.telemetry.unspentMoney.ochre,
     purchasesByCard: state.telemetry.purchasesByCard.ochre,
     damageByCard: state.telemetry.damageByCard.ochre, reason
