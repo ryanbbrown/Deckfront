@@ -4,7 +4,7 @@ import {
 } from '../game';
 import type { CardFamily, CardMechanic, CardValues, MovementChoice, PlayerId } from '../game';
 import { repairBuildIn } from './build';
-import { slotWantsMore } from './strategy';
+import { fixedBuyPlan, slotWantsMore } from './strategy';
 import type { Strategy } from './strategy';
 import { chooseTacticalAction } from './tacticalPilot';
 import type { CullOption, DiscardOption, PilotCard, TacticalView } from './tacticalPilot';
@@ -82,6 +82,25 @@ export interface SimulationMatchConfig {
   actionCapPerTurn: number;
   startingDraftEnabled?: boolean;
   strategies: Record<PlayerId, Strategy>;
+}
+
+export interface GoldfishTrialConfig {
+  kingdomId: string;
+  seed: number;
+  strategy: Strategy;
+  turnLimit: number;
+  actionCapPerTurn: number;
+}
+
+export interface GoldfishTrialResult {
+  completed: boolean;
+  turnsTo50: number | null;
+  damageByTurn: number[];
+  moneySpent: number;
+  unspentMoney: number;
+  purchasesByCard: Record<string, number>;
+  damageByCard: Record<string, number>;
+  reason: 'victory' | 'turnLimit' | 'actionCap';
 }
 
 let cachedEpoch = -1;
@@ -703,6 +722,54 @@ function createState(config: SimulationMatchConfig): KernelState {
   players[1].attackProfile = attackProfile(state, 1);
   state.telemetry = createTelemetry(players, kingdom);
   return state;
+}
+
+export function runGoldfishTrial(config: GoldfishTrialConfig): GoldfishTrialResult {
+  const dummy: Strategy = { id: 'goldfish-dummy', startingBuild: [], buyPlan: fixedBuyPlan([]) };
+  const state = createState({
+    kingdomId: config.kingdomId, seed: config.seed, firstPlayerId: 'ochre', swapSides: false,
+    turnLimitPerPlayer: config.turnLimit, actionCapPerTurn: config.actionCapPerTurn,
+    startingDraftEnabled: false, strategies: { ochre: config.strategy, indigo: dummy }
+  });
+  state.health[1] = 50;
+  const damageByTurn: number[] = [];
+  let actionsInTurn = 0;
+  let phase: 'action' | 'buy' = 'action';
+  let reason: GoldfishTrialResult['reason'] = 'turnLimit';
+
+  for (;;) {
+    const actor = 0;
+    let turnChanged = false;
+    if (phase === 'action') {
+      const decision = chooseTacticalAction(pilotView(state, actor, null));
+      if (decision.type === 'play') {
+        const won = playCard(state, actor, decision); actionsInTurn += 1;
+        if (won) { damageByTurn.push(50); reason = 'victory'; break; }
+      } else {
+        endActionPhase(state, actor); actionsInTurn += 1; phase = 'buy';
+      }
+    } else {
+      const purchase = choosePurchase(state, actor);
+      if (purchase !== null) { buy(state, actor, purchase); actionsInTurn += 1; }
+      else {
+        endBuyPhase(state, actor); actionsInTurn += 1; phase = 'action';
+        state.active = 0;
+        damageByTurn.push(50 - state.health[1]);
+        turnChanged = true;
+      }
+    }
+    if (actionsInTurn > config.actionCapPerTurn) { reason = 'actionCap'; break; }
+    if (state.turn > config.turnLimit) break;
+    if (turnChanged) actionsInTurn = 0;
+  }
+
+  return {
+    completed: reason === 'victory', turnsTo50: reason === 'victory' ? state.turn : null,
+    damageByTurn, moneySpent: state.telemetry.moneySpent.ochre,
+    unspentMoney: state.telemetry.unspentMoney.ochre,
+    purchasesByCard: state.telemetry.purchasesByCard.ochre,
+    damageByCard: state.telemetry.damageByCard.ochre, reason
+  };
 }
 
 export function runSimulationMatch(config: SimulationMatchConfig): MatchResult {
