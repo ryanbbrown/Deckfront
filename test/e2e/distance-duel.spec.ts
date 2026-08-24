@@ -28,7 +28,8 @@ async function recordFlights(page: import('@playwright/test').Page): Promise<voi
         flight.dataset.recorded = 'true'; const name = flight.dataset.flyingCard!; const kind = flight.dataset.flightKind!;
         const definitionId = name.replaceAll(' ', '').replace(/^./, (letter) => letter.toLowerCase());
         const destination = kind === 'draw' ? `drawToHand-${definitionId}` : `handToPlayed-${definitionId}`;
-        state.recordedFlights!.push({ name, kind, at: performance.now(), source: { left: Number.parseFloat(flight.style.left), top: Number.parseFloat(flight.style.top), width: Number.parseFloat(flight.style.width), height: Number.parseFloat(flight.style.height) }, target: target(flight), destinations: [...document.querySelectorAll(`[data-animation-destination="${destination}"]`)].map((element) => rect(element.querySelector('.hand-card-frame') ?? element)), earlyCardCount: document.querySelectorAll(`[data-card-name="${name}"]`).length });
+        const delay = Number.parseFloat(flight.style.animationDelay) || 0;
+        state.recordedFlights!.push({ name, kind, at: performance.now() + delay, source: { left: Number.parseFloat(flight.style.left), top: Number.parseFloat(flight.style.top), width: Number.parseFloat(flight.style.width), height: Number.parseFloat(flight.style.height) }, target: target(flight), destinations: [...document.querySelectorAll(`[data-animation-destination="${destination}"]`)].map((element) => rect(element.querySelector('.hand-card-frame') ?? element)), earlyCardCount: document.querySelectorAll(`[data-card-name="${name}"]`).length });
       });
     }).observe(document.body, { childList: true, subtree: true });
   });
@@ -38,6 +39,14 @@ async function recordedFlights(page: import('@playwright/test').Page): Promise<R
 }
 async function recordedAiSource(page: import('@playwright/test').Page, name: string): Promise<CardBounds | null> {
   return page.evaluate((cardName) => (window as typeof window & { recordedAiSources?: Record<string, CardBounds> }).recordedAiSources?.[cardName] ?? null, name);
+}
+async function recordDamageFeedback(page: import('@playwright/test').Page): Promise<void> {
+  await page.evaluate(() => {
+    const state = window as typeof window & { recordedDamage?: Array<{ target: string; amount: string }> }; state.recordedDamage = [];
+    new MutationObserver(() => document.querySelectorAll<HTMLElement>('[data-damage-target]:not([data-recorded])').forEach((marker) => {
+      marker.dataset.recorded = 'true'; state.recordedDamage!.push({ target: marker.dataset.damageTarget!, amount: marker.dataset.damageAmount! });
+    })).observe(document.body, { childList: true, subtree: true });
+  });
 }
 async function marketLayout(page: import('@playwright/test').Page) {
   return page.evaluate(() => {
@@ -605,6 +614,45 @@ test('DD-E2E-066: centered hands and zone piles do not overflow at supported des
     });
     expect(layout).toEqual({ centered: true, pilesVisible: true, horizontal: 0, vertical: 0 });
   }
+});
+
+test('DD-E2E-067: Play all uses the same stack cadence as automatic Treasure play', async ({ page, openGame }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 }); const intervals = (flights: RecordedFlight[]) => flights.slice(1).map((flight, index) => flight.at - flights[index]!.at);
+  await openGame(page, (record) => { seedHand(record, ['precisionShot', 'precisionShot', 'precisionShot']); record.state.fighters.indigo.health = 50; }); await recordFlights(page);
+  await page.getByRole('button', { name: 'Play all', exact: true }).click(); await expect(page.locator('[data-played-card-name="Precision Shot"]')).toHaveAttribute('data-card-count', '3');
+  const repeated = (await recordedFlights(page)).filter((flight) => flight.name === 'Precision Shot'); expect(repeated).toHaveLength(3);
+
+  await openGame(page, (record) => { seedHand(record, ['gold', 'gold', 'gold']); }); await recordFlights(page); await page.getByRole('button', { name: 'End Action phase' }).click(); await expect(page.locator('[data-played-card-name="Gold"]')).toHaveAttribute('data-card-count', '3');
+  const treasures = (await recordedFlights(page)).filter((flight) => flight.name === 'Gold'); expect(treasures).toHaveLength(3);
+  const repeatedIntervals = intervals(repeated); const treasureIntervals = intervals(treasures);
+  for (const interval of [...repeatedIntervals, ...treasureIntervals]) { expect(interval).toBeGreaterThanOrEqual(70); expect(interval).toBeLessThanOrEqual(120); }
+  expect(repeatedIntervals).toEqual(treasureIntervals.map((interval) => expect.closeTo(interval, 0)));
+});
+
+test('DD-E2E-068: human and AI purchases show a readable market-anchored card preview', async ({ page, openGame }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 }); await openGame(page, (record) => { seedHand(record, ['gold']); }); await page.getByRole('button', { name: 'End Action phase' }).click();
+  const pile = page.locator('[data-market-card="Silver"]'); await pile.click(); const preview = page.locator('[data-purchase-preview="Silver"]'); await expect(preview).toBeVisible();
+  await expect(preview.locator('.card__headline')).toHaveText('+2 money'); await expect(preview.locator('.card__image')).toBeVisible();
+  const pileBox = await bounds(pile); const previewBox = await bounds(preview); expect(Math.abs((pileBox.left + pileBox.width / 2) - (previewBox.left + previewBox.width / 2))).toBeLessThan(2);
+  await expect(preview).toHaveCount(0);
+
+  await openGame(page, (record) => { makeAiGame(record); seedPlayerHand(record, 'ochre', []); seedPlayerHand(record, 'indigo', ['gold']); }); await page.getByLabel('Animate AI turns').check();
+  await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click();
+  await expect(page.locator('[data-purchase-preview="Silver"]')).toBeVisible(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible();
+
+  await page.emulateMedia({ reducedMotion: 'reduce' }); await openGame(page, (record) => { seedHand(record, ['gold']); }); await page.getByRole('button', { name: 'End Action phase' }).click(); await page.locator('[data-market-card="Copper"]').click();
+  await expect(page.locator('[data-purchase-preview]')).toHaveCount(0);
+});
+
+test('DD-E2E-069: damaging human and AI cards mark the correct fighter and exact amount', async ({ page, openGame }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 }); await openGame(page, (record) => { seedHand(record, ['precisionShot']); }); await recordDamageFeedback(page); await page.locator('[data-card-name="Precision Shot"]').click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('46 HP');
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { recordedDamage?: Array<{ target: string; amount: string }> }).recordedDamage ?? [])).toContainEqual({ target: 'indigo', amount: '4' }); await expect(page.locator('[data-damage-target]')).toHaveCount(0);
+
+  await openGame(page, (record) => { seedHand(record, ['aim']); }); await page.locator('[data-card-name="Aim"]').click(); await expect(page.locator('[data-damage-target]')).toHaveCount(0);
+
+  await openGame(page, (record) => { makeAiGame(record); seedPlayerHand(record, 'ochre', []); seedPlayerHand(record, 'indigo', ['precisionShot']); }); await page.getByLabel('Animate AI turns').check(); await recordDamageFeedback(page);
+  await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { recordedDamage?: Array<{ target: string; amount: string }> }).recordedDamage ?? [])).toContainEqual({ target: 'ochre', amount: '4' }); await expect(page.locator('[data-player-score="ochre"]')).toContainText('43 HP');
 });
 
 test('DD-E2E-057: canonical card faces keep long rules inside hand and scaled played cards', async ({ page, openGame }) => {

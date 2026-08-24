@@ -5,12 +5,13 @@ import { AI_DIFFICULTIES } from '../shared/api';
 import type { AiDifficulty, BrowserAction, GameMode, GameUpdateView, GameView, PresentationSequence, PublicGameEvent, SelectionActionPresentation, SetupCatalog } from '../shared/api';
 import { takeAction, undoAction, updateBuild } from './api';
 import { Board } from './Board';
-import { AI_SETTLE_MS, DRAW_DURATION_MS, DRAW_STAGGER_MS, FlyingCards, HUMAN_SETTLE_MS, PLAY_DURATION_MS, gameAtFrame, updateGame, useReducedMotion, wait } from './playback';
-import type { Flight } from './playback';
+import { AI_SETTLE_MS, DRAW_DURATION_MS, DRAW_STAGGER_MS, FlyingCards, HUMAN_SETTLE_MS, PLAY_DURATION_MS, PURCHASE_PREVIEW_MS, PurchasePreview, gameAtFrame, updateGame, useReducedMotion, wait } from './playback';
+import type { Flight, PurchaseReveal } from './playback';
 
 interface GameProps { game: GameView; initialPresentation: PresentationSequence | null; error: string | null; animateAi: boolean; onAnimateAi: (enabled: boolean) => void; onGame: (game: GameView) => void; onError: (value: string | null) => void; onNew: () => void }
 interface CardGroup { definitionId: string; instances: CardInstance[] }
 interface AnimationDestination { kind: 'handToPlayed' | 'drawToHand'; definitionId: string }
+interface DamageFeedback { id: string; targetId: PlayerId; amount: number }
 type PlayedGroup = CardGroup;
 
 export function PreviewTable({ catalog, market, error, animateAi, onAnimateAi, onRefresh, onStart }: {
@@ -49,6 +50,8 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
   const [playingAi, setPlayingAi] = useState(() => initializePlayback && initialFrames.some((frame) => game.mode === 'ai' && frame.playerId === game.aiPlayerId));
   const [flights, setFlights] = useState<Flight[]>([]);
   const [destinations, setDestinations] = useState<AnimationDestination[]>([]);
+  const [purchaseReveal, setPurchaseReveal] = useState<PurchaseReveal | null>(null);
+  const [damageFeedback, setDamageFeedback] = useState<DamageFeedback | null>(null);
   const playbackToken = useRef(0);
   const finalGame = useRef<GameView>(game);
   const reducedMotion = useReducedMotion();
@@ -64,7 +67,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
 
   const finishPlayback = useCallback(() => {
     playbackToken.current += 1;
-    setFlights([]); setDestinations([]); setPresentationGame(null); setPlaybackActive(false); setPlayingAi(false);
+    setFlights([]); setDestinations([]); setPurchaseReveal(null); setDamageFeedback(null); setPresentationGame(null); setPlaybackActive(false); setPlayingAi(false);
     onGame(finalGame.current);
   }, [onGame]);
   async function present(update: GameUpdateView): Promise<GameView> {
@@ -72,31 +75,47 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
     const token = ++playbackToken.current;
     const frames = update.presentation.frames;
     if (!frames.length || reducedMotion) { setPresentationGame(null); setPlaybackActive(false); onGame(final); return final; }
+    let eventCursor = view.events.length;
     setPlaybackActive(true); setPlayingAi(frames.some((frame) => final.mode === 'ai' && frame.playerId === final.aiPlayerId)); clearChoice();
     try {
       for (const frame of frames) {
         if (token !== playbackToken.current) return final;
         const isAiFrame = final.mode === 'ai' && frame.playerId === final.aiPlayerId;
         if (isAiFrame && !animateAi) { setPresentationGame(null); setPlaybackActive(false); setPlayingAi(false); onGame(final); return final; }
+        const frameEvents = final.events.slice(eventCursor, frame.eventCount); eventCursor = frame.eventCount;
+        const damageEvents = frameEvents.filter((event) => event.type === 'damage');
         const visibleTransfers = frame.transfers.filter((transfer) => !transfer.hidden);
-        const remainingWithheld = new Set(visibleTransfers.map((transfer) => transfer.card.id));
+        const movementTransfers = visibleTransfers.filter((transfer) => transfer.kind !== 'purchase');
+        const purchases = visibleTransfers.filter((transfer) => transfer.kind === 'purchase');
+        const remainingWithheld = new Set(movementTransfers.map((transfer) => transfer.card.id));
         const sourceRects = new Map<string, DOMRect>();
-        for (const transfer of visibleTransfers.filter((item) => item.kind === 'handToPlayed')) {
+        for (const transfer of movementTransfers.filter((item) => item.kind === 'handToPlayed')) {
           const source = document.querySelector<HTMLElement>(`[data-hand-definition-id="${transfer.card.definitionId}"] .full-card`);
           if (source) sourceRects.set(transfer.card.id, source.getBoundingClientRect());
         }
-        if (!visibleTransfers.length) {
+        if (!movementTransfers.length) {
           setPresentationGame(gameAtFrame(final, frame));
           await nextPaint();
           if (token !== playbackToken.current) return final;
           if (isAiFrame && frame.commandType === 'aiTurnStart') await wait(AI_SETTLE_MS);
-          continue;
         }
+        let playedCard = false; let damageShown = false;
+        const showDamage = async () => {
+          if (damageShown || !damageEvents.length) return; damageShown = true;
+          for (const event of damageEvents) {
+            const targetId = event.detail.targetId; const amount = Number(event.detail.amount);
+            if ((targetId !== 'ochre' && targetId !== 'indigo') || !Number.isFinite(amount)) continue;
+            setDamageFeedback({ id: `${event.sequence}-${token}`, targetId, amount });
+            await wait(isAiFrame ? AI_SETTLE_MS : 320); setDamageFeedback(null);
+            if (token !== playbackToken.current) return;
+          }
+        };
         for (const kind of ['handToPlayed', 'drawToHand'] as const) {
-          const batch = visibleTransfers.filter((transfer) => transfer.kind === kind);
+          const batch = movementTransfers.filter((transfer) => transfer.kind === kind);
           if (!batch.length) continue;
+          if (kind === 'handToPlayed') playedCard = true;
           const uniqueDestinations = new Map<string, AnimationDestination>();
-          for (const transfer of batch) uniqueDestinations.set(`${transfer.kind}:${transfer.card.definitionId}`, { kind: transfer.kind, definitionId: transfer.card.definitionId });
+          for (const transfer of batch) uniqueDestinations.set(`${kind}:${transfer.card.definitionId}`, { kind, definitionId: transfer.card.definitionId });
           setDestinations([...uniqueDestinations.values()]);
           setPresentationGame(gameAtFrame(final, frame, remainingWithheld));
           await nextPaint();
@@ -120,11 +139,21 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
           if (token !== playbackToken.current) return final;
           for (const transfer of batch) remainingWithheld.delete(transfer.card.id);
           setFlights([]); setDestinations([]); setPresentationGame(gameAtFrame(final, frame, remainingWithheld));
-          if (kind === 'handToPlayed') await wait(isAiFrame ? AI_SETTLE_MS : HUMAN_SETTLE_MS);
+          if (kind === 'handToPlayed') {
+            if (damageEvents.length) await showDamage(); else await wait(isAiFrame ? AI_SETTLE_MS : HUMAN_SETTLE_MS);
+          }
         }
+        for (const transfer of purchases) {
+          const pile = document.querySelector<HTMLElement>(`[data-market-definition-id="${transfer.card.definitionId}"]`);
+          if (!pile) continue;
+          setPurchaseReveal({ id: transfer.card.id, card: final.cards[transfer.card.definitionId]!, anchor: pile.getBoundingClientRect() });
+          await wait(PURCHASE_PREVIEW_MS); setPurchaseReveal(null);
+          if (token !== playbackToken.current) return final;
+        }
+        if (!playedCard) await showDamage();
       }
     } finally {
-      if (token === playbackToken.current) { setFlights([]); setDestinations([]); setPresentationGame(null); setPlaybackActive(false); setPlayingAi(false); onGame(final); }
+      if (token === playbackToken.current) { setFlights([]); setDestinations([]); setPurchaseReveal(null); setDamageFeedback(null); setPresentationGame(null); setPlaybackActive(false); setPlayingAi(false); onGame(final); }
     }
     return final;
   }
@@ -171,18 +200,21 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
   async function playAll(definitionId: string) {
     if (busy) return;
     setBusy(true); onError(null); clearChoice();
-    let current = game;
+    let current = game; const updates: GameUpdateView[] = [];
     try {
       while (!current.winner && current.phase === 'action' && current.activePlayerId === game.activePlayerId && !current.actions.selection) {
         const matching = current.players[current.activePlayerId].hand.filter((card) => card.definitionId === definitionId);
         const direct = matching.map((card) => current.actions.cards.find((item) => item.cardInstanceId === card.id))
           .find((item) => item?.enabled && item.batchPlayable && item.actionId);
         if (!direct?.actionId) break;
-        const update = await takeAction(current, direct.actionId);
-        setBusy(false); current = await present(update); setBusy(true);
+        const update = await takeAction(current, direct.actionId); updates.push(update); current = updateGame(update);
       }
-    } catch (cause) { onGame(current); onError(cause instanceof Error ? cause.message : 'Play all failed.'); }
-    finally { setBusy(false); }
+      if (updates.length) { setBusy(false); current = await present(combinePlayAllUpdates(updates)); setBusy(true); }
+    } catch (cause) {
+      if (updates.length) { setBusy(false); current = await present(combinePlayAllUpdates(updates)); setBusy(true); }
+      else onGame(current);
+      onError(cause instanceof Error ? cause.message : 'Play all failed.');
+    } finally { setBusy(false); }
   }
   function toggleTargetGroup(instanceIds: string[]) {
     const eligible = new Set(targetedCard ? availability.get(targetedCard)?.eligibleCardInstanceIds ?? [] : []);
@@ -231,7 +263,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
   return <main className="table-shell">
     <TableHeader title={turnText} controls={<div className="phase-controls">{game.phase === 'startingBuild' ? <><strong data-testid="build-budget">{proposalCost} / {STARTING_BUDGET} · {firstBuyCarry(proposalCost)} carries</strong><button className="control-button primary" disabled={!interactive || proposalCost > STARTING_BUDGET} onClick={() => void saveBuild(game.buildProposal, true)}>Finish starting build</button></> : null}{game.mode === 'ai' ? <label className="animation-toggle"><input type="checkbox" checked={animateAi} onChange={(event) => onAnimateAi(event.target.checked)} /> Animate AI turns</label> : null}</div>} />
     {error ? <p role="alert" className="error">{error}</p> : null}
-    <section className="arena-zone table-zone"><div className="range-label" data-testid="range">{view.range} · {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position)} {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position) === 1 ? 'space' : 'spaces'}{movementCard && !playbackActive ? <button className="movement-cancel" onClick={clearChoice}>Cancel movement</button> : null}</div><Board game={view} movementChoices={playbackActive ? [] : movementChoices} busy={!interactive} onMovement={(choice) => void act(choice)} /></section>
+    <section className="arena-zone table-zone"><div className="range-label" data-testid="range">{view.range} · {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position)} {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position) === 1 ? 'space' : 'spaces'}{movementCard && !playbackActive ? <button className="movement-cancel" onClick={clearChoice}>Cancel movement</button> : null}</div><Board game={view} movementChoices={playbackActive ? [] : movementChoices} busy={!interactive} damageFeedback={damageFeedback} onMovement={(choice) => void act(choice)} /></section>
     {game.phase === 'startingBuild' ? <div className="build-strip"><strong>{actorName} selected</strong><div>{game.buildProposal.map((id, index) => <button key={`${id}-${index}`} aria-label={`Remove ${game.cards[id]?.name}`} onClick={() => void saveBuild(game.buildProposal.filter((_, position) => position !== index))}>{game.cards[id]?.name} ×</button>)}</div><span>{game.buildProposal.length ? 'Click a selected card to remove it.' : 'Click market piles to add cards.'}</span></div> : null}
     <CompactMarket cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} supply={view.supply} onView={() => setMarketOpen(true)} onCard={marketAction} enabled={(id) => !playbackActive && (game.phase === 'startingBuild' ? !busy : Boolean(buys.get(id)) && !busy)} />
     <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2><div className="played-summary"><strong data-testid="zone-money">{actorName} money: {actor.money}</strong><span>Consecutive copies share a stack.</span></div></div><div className="played-row" data-testid="played-row">{playedGroups.length ? playedGroups.map((group) => { const pendingAction = pendingHandSelection?.choices.find((choice) => choice.cardInstanceId && group.instances.some((card) => card.id === choice.cardInstanceId)); return <PlayedCard key={group.instances[0]!.id} card={game.cards[group.definitionId]!} group={group} pendingAction={pendingAction} selected={pendingAction?.id === pendingHandActionId} busy={!interactive} onSelect={setPendingHandActionId} />; }) : null}{destinations.filter((item) => item.kind === 'handToPlayed' && playedGroups.at(-1)?.definitionId !== item.definitionId).map((item) => <div key={`played-placeholder-${item.definitionId}`} className="played-card-slot animation-placeholder" data-played-definition-id={item.definitionId} data-animation-destination={`handToPlayed-${item.definitionId}`} />)}{!playedGroups.length && !destinations.some((item) => item.kind === 'handToPlayed') ? <p className="empty-row">Cards move here from your hand.</p> : null}</div></section>
@@ -251,6 +283,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
     })}{destinations.filter((item) => item.kind === 'drawToHand' && !handGroups.some((group) => group.definitionId === item.definitionId)).map((item) => <div key={`hand-placeholder-${item.definitionId}`} className="hand-card-slot animation-placeholder" data-hand-definition-id={item.definitionId} data-animation-destination={`drawToHand-${item.definitionId}`}><div className="hand-card-frame" /></div>)}</div></div></section>
     <ActionRail game={view} busy={busy} playbackActive={playbackActive} onUndo={() => void undo()} onNew={() => { if (playbackActive) finishPlayback(); onNew(); }} />
     <FlyingCards flights={flights} renderCard={(card) => <CardFace card={card} />} />
+    <PurchasePreview reveal={purchaseReveal} renderCard={(card) => <CardFace card={card} />} />
     {marketOpen ? <MarketDialog cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} onClose={() => setMarketOpen(false)} /> : null}
     {pickerSelection ? <CardPicker cards={game.cards} kind={pickerSelection.kind === 'recover' ? 'recover' : 'gain'} choices={pickerSelection.choices} busy={busy} onChoose={(choice) => void act(choice)} /> : null}
   </main>;
@@ -288,7 +321,7 @@ function CompactMarket({ cards, fixedIds, variableIds, supply, onView, onCard, e
     event.preventDefault();
     setInspection({ id, left: Math.max(8, Math.min(event.clientX + 12, window.innerWidth - 156)), top: Math.max(8, Math.min(event.clientY + 12, window.innerHeight - 228)) });
   };
-  const row = (ids: readonly string[]) => <div className="compact-market__row">{ids.map((id) => { const card = cards[id]; if (!card) return null; const available = Boolean(onCard && enabled?.(id)); return <span key={id} className="compact-pile-slot" onContextMenu={(event) => inspect(event, id)}><button data-market-card={card.name} className={`compact-pile pile--${card.family}`} aria-disabled={!available} onClick={() => { if (available) onCard?.(id); }}><strong>{card.name}</strong><span className="compact-pile__cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span>{supply ? <small>{card.type === 'action' ? `${supply[id]} left` : '∞'}</small> : null}</button></span>; })}</div>;
+  const row = (ids: readonly string[]) => <div className="compact-market__row">{ids.map((id) => { const card = cards[id]; if (!card) return null; const available = Boolean(onCard && enabled?.(id)); return <span key={id} className="compact-pile-slot" onContextMenu={(event) => inspect(event, id)}><button data-market-card={card.name} data-market-definition-id={id} className={`compact-pile pile--${card.family}`} aria-disabled={!available} onClick={() => { if (available) onCard?.(id); }}><strong>{card.name}</strong><span className="compact-pile__cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span>{supply ? <small>{card.type === 'action' ? `${supply[id]} left` : '∞'}</small> : null}</button></span>; })}</div>;
   const inspectedCard = inspection ? cards[inspection.id] : null;
   return <section className="market-zone table-zone"><div className="zone-title"><h2>Market</h2><button className="text-button" onClick={onView}>Card reference</button></div><div className="market-group"><span>Fixed</span>{row(fixedIds)}</div><div className="market-group"><span>Kingdom</span>{row(variableIds)}</div>{inspection && inspectedCard ? <aside ref={inspectionRef} className="market-card-popover" role="dialog" aria-label={`${inspectedCard.name} details`} style={{ left: inspection.left, top: inspection.top }}><article className={`card full-card card--${inspectedCard.family}`}><CardFace card={inspectedCard} /></article></aside> : null}</section>;
 }
@@ -389,6 +422,12 @@ function eventText(game: GameView, event: PublicGameEvent): string {
     case 'victory': return 'Won the game';
     case 'mana': return `${Number(detail.amount) >= 0 ? 'Gained' : 'Spent'} ${String(Math.abs(Number(detail.amount)))} mana`;
   }
+}
+function combinePlayAllUpdates(updates: GameUpdateView[]): GameUpdateView {
+  const final = updates.at(-1); if (!final) throw new Error('Play all produced no accepted updates.');
+  const frames = updates.flatMap((update) => update.presentation.frames); const lastFrame = frames.at(-1);
+  if (!lastFrame) return { ...final, presentation: { frames: [] } };
+  return { ...final, presentation: { frames: [{ ...lastFrame, commandType: 'playAll', transfers: frames.flatMap((frame) => frame.transfers) }] } };
 }
 function nextPaint(): Promise<void> { return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))); }
 function sameSelection(left: readonly string[], right: readonly string[]): boolean { return left.length === right.length && left.every((id) => right.includes(id)); }

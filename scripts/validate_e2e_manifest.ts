@@ -19,7 +19,8 @@ export const requiredBrowserFlows = [
   'fullScreenLayout', 'overlappingHand', 'multiLevelUndo', 'actionRail', 'actionLogScroll', 'draftToggle',
   'scrapExclusion', 'targetedCardCopy', 'optionalTrashChoice', 'gainChoice', 'variableTargetCounts',
   'playAll', 'cardTravel', 'drawTravel', 'zonePiles', 'aiPlayback', 'playbackChoicesSuppressed', 'aiAnimationSetting', 'reducedMotion',
-  'cardDestinationStability', 'playbackInterruptions', 'newGameStaleResponses', 'handZoneLayout'
+  'cardDestinationStability', 'playbackInterruptions', 'newGameStaleResponses', 'handZoneLayout',
+  'stackPlayCadence', 'purchasePreview', 'damageFeedback'
 ];
 export function validateManifest(manifest: CoverageManifest, discoveredIds: Set<string>): { mappings: number; tests: number } {
   const errors: string[] = [];

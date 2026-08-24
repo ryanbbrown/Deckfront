@@ -159,8 +159,10 @@ export class GameService {
     const transfers: PresentationTransfer[] = [];
     const newEvents = after.events.slice(before.events.length);
     for (const playerId of ['ochre', 'indigo'] as const) {
-      const beforeHand = new Map(before.players[playerId].deck.hand.map((card) => [card.id, card]));
-      const beforePlay = new Set(before.players[playerId].deck.play.map((card) => card.id));
+      const beforeDeck = before.players[playerId].deck;
+      const beforeOwned = new Set([...beforeDeck.draw, ...beforeDeck.hand, ...beforeDeck.discard, ...beforeDeck.play].map((card) => card.id));
+      const beforeHand = new Map(beforeDeck.hand.map((card) => [card.id, card]));
+      const beforePlay = new Set(beforeDeck.play.map((card) => card.id));
       for (const card of after.players[playerId].deck.play) {
         if (!beforePlay.has(card.id) && beforeHand.has(card.id)) transfers.push({ kind: 'handToPlayed', playerId, card: { ...card }, hidden: false });
       }
@@ -169,6 +171,11 @@ export class GameService {
         for (const card of after.players[playerId].deck.hand) {
           if (!beforeHand.has(card.id)) transfers.push({ kind: 'drawToHand', playerId, card: { ...card }, hidden: command.type === 'endBuyPhase' });
         }
+      }
+      if (command.type === 'buyCard' && playerId === before.activePlayerId) {
+        const purchased = after.players[playerId].deck.discard.find((card) => !beforeOwned.has(card.id));
+        if (!purchased) throw new Error('A purchased card was not added to the discard pile.');
+        transfers.push({ kind: 'purchase', playerId, card: { ...purchased }, hidden: false });
       }
     }
     return transfers;

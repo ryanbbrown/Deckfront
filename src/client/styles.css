@@ -37,7 +37,11 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .movement-cancel { position: absolute; top: -1px; right: 2px; min-height: 18px; padding: 0 6px; border: 1px solid #ffffff66; border-radius: 3px; background: transparent; color: #fff; font-size: 9px; font-weight: 800; }
 .arena-space__number { position: absolute; z-index: 2; top: 3px; left: 5px; font-size: 10px; pointer-events: none; }
 .arena-space__fighters { position: relative; z-index: 2; display: flex; align-items: center; gap: 8px; pointer-events: none; }
-.fighter { display: grid; min-width: 78px; height: 47px; padding: 4px 7px; border: 2px solid #fff; border-radius: 5px; color: #fff; font-size: 11px; font-weight: 900; text-align: center; box-shadow: 0 2px 5px #0004; place-items: center; }
+.fighter { position: relative; display: grid; min-width: 78px; height: 47px; padding: 4px 7px; border: 2px solid #fff; border-radius: 5px; color: #fff; font-size: 11px; font-weight: 900; text-align: center; box-shadow: 0 2px 5px #0004; place-items: center; }
+.fighter--damaged { animation: fighter-hit .22s ease-out; }
+.damage-burst { position: absolute; z-index: 5; top: -20px; left: 50%; min-width: 34px; padding: 2px 5px; border: 2px solid #fff; border-radius: 12px; background: #a72d28; color: #fff; font-size: 13px; line-height: 1; box-shadow: 0 3px 8px #0008; transform: translateX(-50%); animation: damage-burst .32s ease-out both; }
+@keyframes fighter-hit { 0%,100% { filter: none; transform: translateX(0); } 20% { filter: brightness(1.65) saturate(1.4); transform: translateX(-5px); } 45% { transform: translateX(5px); } 70% { transform: translateX(-3px); } }
+@keyframes damage-burst { 0% { opacity: 0; transform: translate(-50%,6px) scale(.8); } 25%,75% { opacity: 1; transform: translate(-50%,0) scale(1); } 100% { opacity: 0; transform: translate(-50%,-5px) scale(1.05); } }
 .fighter--ochre { background: var(--ochre); } .fighter--indigo { background: var(--indigo); }
 .fighter small { display: block; font-size: 10px; } .fighter em { font-size: 8px; font-style: normal; }
 .build-strip { display: grid; grid-template-columns: 125px 1fr auto; align-items: center; gap: 8px; min-width: 0; padding: 4px 9px; background: #f4eee0; color: var(--ink); }
@@ -199,6 +203,9 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .discard-top .full-card { position: absolute; top: 0; left: 0; transform: scale(.284); transform-origin: top left; }
 .animation-placeholder { visibility: hidden; }
 .flight-layer { position: fixed; z-index: 400; inset: 0; overflow: visible; pointer-events: none; }
+.purchase-preview { position: fixed; z-index: 400; width: 100px; height: 149px; overflow: visible; pointer-events: none; animation: purchase-preview .6s ease-in-out both; }
+.purchase-preview .full-card { position: absolute; top: 0; left: 0; transform: scale(.675); transform-origin: top left; box-shadow: 0 12px 24px #000a; }
+@keyframes purchase-preview { 0% { opacity: 0; transform: scale(.9); } 18%,72% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(.96); } }
 .flying-card { position: fixed; margin: 0; transform-origin: top left; animation-name: card-flight; animation-timing-function: cubic-bezier(.2,.75,.25,1); animation-fill-mode: both; }
 @keyframes card-flight {
   0% { transform: translate(0,0) scale(1); }
@@ -207,7 +214,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 }
 @media (prefers-reduced-motion: reduce) {
   .spinner { animation: none; }
-  .flying-card { animation: none; }
+  .flying-card,.purchase-preview,.fighter--damaged,.damage-burst { animation: none; }
   .hand-card-frame .full-card,.setup-switch i::after { transition: none; }
 }
 @media (max-width: 1700px) {

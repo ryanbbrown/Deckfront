@@ -61,7 +61,7 @@ export interface GameActionPresentation {
   selection: SelectionPresentation | null;
 }
 export interface PresentationTransfer {
-  kind: 'handToPlayed' | 'drawToHand';
+  kind: 'handToPlayed' | 'drawToHand' | 'purchase';
   playerId: PlayerId;
   card: CardInstance;
   hidden: boolean;

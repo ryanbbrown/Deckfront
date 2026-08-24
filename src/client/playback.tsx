@@ -6,7 +6,9 @@ import type { GameUpdateView, GameView, PresentationFrame } from '../shared/api'
 export const AI_ANIMATION_KEY = 'deckfront.animateAiTurns';
 export const PLAY_DURATION_MS = 280;
 export const DRAW_DURATION_MS = 260;
-export const DRAW_STAGGER_MS = 90;
+export const CARD_STACK_STAGGER_MS = 90;
+export const DRAW_STAGGER_MS = CARD_STACK_STAGGER_MS;
+export const PURCHASE_PREVIEW_MS = 600;
 export const HUMAN_SETTLE_MS = 80;
 export const AI_SETTLE_MS = 220;
 
@@ -18,6 +20,12 @@ export interface Flight {
   duration: number;
   delay: number;
   kind: 'play' | 'draw';
+}
+
+export interface PurchaseReveal {
+  id: string;
+  card: CardDefinition;
+  anchor: DOMRect;
 }
 
 export function updateGame(update: GameUpdateView): GameView {
@@ -82,4 +90,12 @@ export function FlyingCards({ flights, renderCard }: { flights: Flight[]; render
       animationDuration: `${flight.duration}ms`, animationDelay: `${flight.delay}ms`
     } as React.CSSProperties}>{renderCard(flight.card)}</article>;
   })}</div>, document.body);
+}
+
+export function PurchasePreview({ reveal, renderCard }: { reveal: PurchaseReveal | null; renderCard: (card: CardDefinition) => React.ReactNode }) {
+  if (!reveal) return null;
+  const width = 100; const height = 149;
+  const left = Math.max(8, Math.min(window.innerWidth - width - 8, reveal.anchor.left + (reveal.anchor.width - width) / 2));
+  const top = Math.max(8, Math.min(window.innerHeight - height - 8, reveal.anchor.top + (reveal.anchor.height - height) / 2));
+  return createPortal(<div key={reveal.id} className="purchase-preview" data-purchase-preview={reveal.card.name} style={{ left, top }} aria-hidden="true"><article className={`card full-card card--${reveal.card.family}`}>{renderCard(reveal.card)}</article></div>, document.body);
 }

@@ -89,6 +89,21 @@ describe('local GameService', () => {
     expect(frame).not.toHaveProperty('actions'); expect(frame.state).not.toHaveProperty('cards');
     expect(JSON.stringify(await repository.load(game.id))).not.toContain('presentation');
   });
+  it('projects each accepted purchase with its physical discard card', async () => {
+    const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
+    const record = await repository.load(game.id); seedPlayerHand(record, []); record.state.phase = 'buy'; record.state.players.ochre.money = 30; resetReplay(record); await repository.save(record);
+    let current = await service.get(game.id);
+    for (const definitionId of ['copper', 'silver', 'gold', 'footwork']) {
+      const action = current.actions.buys.find((candidate) => candidate.definitionId === definitionId)!;
+      const update = await service.commitAction(game.id, current.revision, action.id);
+      const transfer = update.presentation.frames[0]!.transfers.find((candidate) => candidate.kind === 'purchase');
+      expect(transfer).toMatchObject({ kind: 'purchase', playerId: 'ochre', hidden: false, card: { definitionId } });
+      expect(update.players.ochre.discardTop).toEqual(transfer!.card);
+      current = update;
+    }
+    expect(JSON.stringify(await repository.load(game.id))).not.toContain('presentation');
+    expect(JSON.stringify(await service.exportGame(game.id))).not.toContain('presentation');
+  });
   it('hides replenishment draws and projects the public discard top', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
     const record = await repository.load(game.id); seedPlayerHand(record, ['copper'], ['aim', 'volley', 'silver', 'gold', 'footwork']); record.state.phase = 'buy'; resetReplay(record); await repository.save(record);
