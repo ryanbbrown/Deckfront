@@ -84,11 +84,11 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .card__cost { position: absolute; z-index: 2; bottom: 5px; left: 5px; display: grid; width: 23px; height: 23px; border: 2px solid #ffffffcc; border-radius: 50%; background: #15201c; color: #fff; font-size: 10px; place-items: center; }
 .card__image { display: block; height: 72px; margin: 6px; border: 1px solid #0003; background: linear-gradient(135deg,#ffffff52,#0000000c); }
 .card__rules { display: block; margin: 0 7px 7px; padding-bottom: 23px; color: #202925; font-size: 9.5px; line-height: 1.18; text-align: center; }
-.card__rules--dense { font-size: 8.3px; line-height: 1.13; }
-.card__rules--very-dense { font-size: 7.3px; line-height: 1.08; }
-.card__headline,.card__detail { display: block; font-size: inherit; }
-.card__headline { font-weight: 900; }
-.card__detail { margin-top: 5px; }
+.card__headline,.card__detail { display: block; }
+.card__headline { font-size: 9.5px; font-weight: 900; line-height: 1.18; }
+.card__detail { margin-top: 5px; font-size: 9.5px; }
+.card__detail--dense { font-size: 8.3px; line-height: 1.13; }
+.card__detail--very-dense { font-size: 7.3px; line-height: 1.08; }
 .card--treasure { border-color: var(--treasure); } .card--treasure .card__header { background: #9b771b; }
 .card--ranged { border-color: var(--ranged); } .card--ranged .card__header { background: #326c46; }
 .card--mana { border-color: var(--mana); } .card--mana .card__header { background: #39578f; }

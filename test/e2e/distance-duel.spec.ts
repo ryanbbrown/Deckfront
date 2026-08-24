@@ -476,13 +476,18 @@ test('DD-E2E-056: hand groups keep turn slots and append newly drawn definitions
 });
 
 test('DD-E2E-057: canonical card faces keep long rules inside hand and scaled played cards', async ({ page, openGame }) => {
-  await openGame(page, (record) => { seedHand(record, ['reclaim', 'reclaim', 'precisionShot', 'salvageShot', 'drive', 'repellingShot']); record.state.fighters.ochre.position = 1; record.state.fighters.indigo.position = 4; });
+  await openGame(page, (record) => { seedHand(record, ['reclaim', 'reclaim', 'precisionShot', 'salvageShot', 'drive', 'fireball', 'repellingShot']); record.state.fighters.ochre.position = 1; record.state.fighters.indigo.position = 4; });
   const fit = await page.locator('[data-testid="hand-grid"] .card').evaluateAll((cards) => cards.map((card) => { const cardRect = card.getBoundingClientRect(); const header = card.querySelector('.card__header')!.getBoundingClientRect(); const rules = card.querySelector('.card__rules')!.getBoundingClientRect(); const title = card.querySelector('.card__title')!.getBoundingClientRect(); const cost = card.querySelector('.card__cost')!.getBoundingClientRect(); return { name: card.getAttribute('data-card-name'), headerOffset: header.top - cardRect.top, rulesOverflow: rules.bottom - cardRect.bottom, titleCentered: Math.abs((title.left + title.right) / 2 - (cardRect.left + cardRect.right) / 2) < 1, costBottomLeft: cost.left - cardRect.left < 10 && cardRect.bottom - cost.bottom < 10 }; }));
   expect(fit.filter((entry) => entry.headerOffset > 4 || entry.rulesOverflow > 1 || !entry.titleCentered || !entry.costBottomLeft)).toEqual([]);
   const precisionCopy = page.locator('[data-card-name="Precision Shot"]');
   await expect(precisionCopy.locator('.card__headline')).toHaveText('4 damage');
   await expect(precisionCopy.locator('.card__detail')).toHaveText('Other Precision Shots you play this turn deal 2 damage instead.');
   expect(await precisionCopy.locator('.card__headline').evaluate((headline) => ({ align: getComputedStyle(headline).textAlign, weight: Number(getComputedStyle(headline).fontWeight) }))).toMatchObject({ align: 'center', weight: 900 });
+  const cardCopySizes = await page.locator('[data-testid="hand-grid"]').evaluate(() => {
+    const size = (card: string, copy: string) => Number.parseFloat(getComputedStyle(document.querySelector(`[data-card-name="${card}"] ${copy}`)!).fontSize);
+    return { driveHeadline: size('Drive', '.card__headline'), driveDetail: size('Drive', '.card__detail'), fireballHeadline: size('Fireball', '.card__headline') };
+  });
+  expect(cardCopySizes.driveHeadline).toBe(cardCopySizes.fireballHeadline); expect(cardCopySizes.driveDetail).toBeLessThan(cardCopySizes.driveHeadline);
   await page.locator('[data-card-name="Reclaim"]').click();
   const handBox = await page.locator('[data-card-name="Reclaim"]').boundingBox(); const playedBox = await page.locator('[data-played-card-name="Reclaim"]').boundingBox(); const playedRowBox = await page.getByTestId('played-row').boundingBox();
   expect(handBox).not.toBeNull(); expect(playedBox).not.toBeNull(); expect(playedRowBox).not.toBeNull();

@@ -35,8 +35,11 @@ describe('draft UI request boundary', () => {
     for (const card of Object.values(CARDS).filter((candidate) => candidate.family === 'ranged')) {
       expect(`${card.headline} ${card.detail ?? ''}`).not.toContain('At Near or Far range');
     }
+    for (const card of Object.values(CARDS).filter((candidate) => candidate.family === 'mana')) {
+      expect(`${card.headline} ${card.detail ?? ''}`).not.toContain('at any range');
+    }
     expect(copy('volley')).toContain('Near: 1 damage · Far: 4 damage');
     expect(copy('repellingShot')).toContain('Far: 2 damage · Near: 1 damage');
-    expect(copy('arcBolt')).toContain('at any range');
+    expect(copy('scrap')).toContain('at any range');
   });
 });
