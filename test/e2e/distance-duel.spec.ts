@@ -656,6 +656,7 @@ test('DD-E2E-069: damaging human and AI cards mark the correct fighter and exact
 });
 
 test('DD-E2E-057: canonical card faces keep long rules inside hand and scaled played cards', async ({ page, openGame }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
   await openGame(page, (record) => { seedHand(record, ['reclaim', 'reclaim', 'precisionShot', 'salvageShot', 'drive', 'fireball', 'repellingShot']); record.state.fighters.ochre.position = 1; record.state.fighters.indigo.position = 4; });
   const fit = await page.locator('[data-testid="hand-grid"] .card').evaluateAll((cards) => cards.map((card) => { const cardRect = card.getBoundingClientRect(); const header = card.querySelector('.card__header')!.getBoundingClientRect(); const rules = card.querySelector('.card__rules')!.getBoundingClientRect(); const title = card.querySelector('.card__title')!.getBoundingClientRect(); const cost = card.querySelector('.card__cost')!.getBoundingClientRect(); return { name: card.getAttribute('data-card-name'), headerOffset: header.top - cardRect.top, rulesOverflow: rules.bottom - cardRect.bottom, titleCentered: Math.abs((title.left + title.right) / 2 - (cardRect.left + cardRect.right) / 2) < 1, costBottomLeft: cost.left - cardRect.left < 10 && cardRect.bottom - cost.bottom < 10 }; }));
   expect(fit.filter((entry) => entry.headerOffset > 4 || entry.rulesOverflow > 1 || !entry.titleCentered || !entry.costBottomLeft)).toEqual([]);

@@ -14,7 +14,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .training-state div { display: grid; gap: 12px; place-items: center; }
 .spinner { width: 46px; height: 46px; border: 5px solid #ffffff33; border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.table-shell { position: relative; display: grid; grid-template-columns: minmax(0,1fr) 350px; grid-template-rows: 62px 94px minmax(238px,250px) minmax(150px,170px) minmax(290px,1fr); gap: 6px 8px; width: 100vw; height: 100dvh; padding: 8px; overflow: hidden; }
+.table-shell { position: relative; display: grid; grid-template-columns: minmax(0,1fr) 350px; grid-template-rows: 62px 94px minmax(238px,250px) minmax(150px,185px) minmax(290px,1fr); gap: 6px 8px; width: 100vw; height: 100dvh; padding: 8px; overflow: hidden; }
 .table-shell:has(.build-strip) { grid-template-rows: 62px 94px 42px minmax(238px,250px) minmax(135px,155px) minmax(290px,1fr); }
 .table-shell--preview { grid-template-columns: minmax(0,1fr) 350px; }
 .table-header { display: grid; grid-template-columns: 190px minmax(220px,1fr) minmax(190px,auto); align-items: center; gap: 12px; padding: 5px 10px; border-bottom: 1px solid #ffffff2b; background: #0d251fdd; }
