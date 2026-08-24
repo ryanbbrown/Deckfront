@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { STARTING_BUDGET, firstBuyCarry } from '../game';
 import type { CardDefinition, CardInstance, PlayerId } from '../game';
 import { AI_DIFFICULTIES } from '../shared/api';
-import type { AiDifficulty, BrowserAction, GameMode, GameUpdateView, GameView, PresentationSequence, PublicGameEvent, SelectionActionPresentation, SetupCatalog } from '../shared/api';
+import type { AiDifficulty, BrowserAction, GameMode, GameUpdateView, GameView, PresentationFrame, PresentationSequence, PublicGameEvent, SelectionActionPresentation, SetupCatalog } from '../shared/api';
 import { takeAction, undoAction, updateBuild } from './api';
 import { Board } from './Board';
 import { AI_SETTLE_MS, DRAW_DURATION_MS, DRAW_STAGGER_MS, FlyingCards, HUMAN_SETTLE_MS, PLAY_DURATION_MS, PURCHASE_PREVIEW_MS, PurchasePreview, gameAtFrame, updateGame, useReducedMotion, wait } from './playback';
@@ -73,7 +73,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
   async function present(update: GameUpdateView): Promise<GameView> {
     const final = updateGame(update); finalGame.current = final;
     const token = ++playbackToken.current;
-    const frames = update.presentation.frames;
+    const frames = batchConsecutiveAiPlays(update.presentation.frames, final.aiPlayerId);
     if (!frames.length || reducedMotion) { setPresentationGame(null); setPlaybackActive(false); onGame(final); return final; }
     let eventCursor = view.events.length;
     setPlaybackActive(true); setPlayingAi(frames.some((frame) => final.mode === 'ai' && frame.playerId === final.aiPlayerId)); clearChoice();
@@ -428,6 +428,30 @@ function combinePlayAllUpdates(updates: GameUpdateView[]): GameUpdateView {
   const frames = updates.flatMap((update) => update.presentation.frames); const lastFrame = frames.at(-1);
   if (!lastFrame) return { ...final, presentation: { frames: [] } };
   return { ...final, presentation: { frames: [{ ...lastFrame, commandType: 'playAll', transfers: frames.flatMap((frame) => frame.transfers) }] } };
+}
+function batchConsecutiveAiPlays(frames: PresentationFrame[], aiPlayerId: PlayerId | null): PresentationFrame[] {
+  if (!aiPlayerId) return frames;
+  const result: PresentationFrame[] = [];
+  for (let index = 0; index < frames.length;) {
+    const first = frames[index]!;
+    const firstPlay = aiCardPlay(first, aiPlayerId);
+    if (!firstPlay) { result.push(first); index += 1; continue; }
+    const group = [first]; let nextIndex = index + 1;
+    while (nextIndex < frames.length) {
+      const next = frames[nextIndex]!; const nextPlay = aiCardPlay(next, aiPlayerId);
+      if (nextPlay?.card.definitionId !== firstPlay.card.definitionId) break;
+      group.push(next); nextIndex += 1;
+    }
+    const last = group.at(-1)!;
+    result.push(group.length === 1 ? first : { ...last, commandType: 'aiPlayAll', transfers: group.flatMap((frame) => frame.transfers) });
+    index = nextIndex;
+  }
+  return result;
+}
+function aiCardPlay(frame: PresentationFrame, aiPlayerId: PlayerId) {
+  if (frame.playerId !== aiPlayerId) return null;
+  const plays = frame.transfers.filter((transfer) => !transfer.hidden && transfer.kind === 'handToPlayed' && transfer.playerId === aiPlayerId);
+  return plays.length === 1 ? plays[0]! : null;
 }
 function nextPaint(): Promise<void> { return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))); }
 function sameSelection(left: readonly string[], right: readonly string[]): boolean { return left.length === right.length && left.every((id) => right.includes(id)); }

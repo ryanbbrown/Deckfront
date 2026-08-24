@@ -583,11 +583,11 @@ test('DD-E2E-063: AI-first creation paints its hand before ordered flights and a
   await page.getByLabel('Animate AI turns').uncheck(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible(); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
 });
 
-test('DD-E2E-064: AI playback has a 500 ms rhythm and Undo or visibility interruption finishes safely', async ({ page, openGame }) => {
+test('DD-E2E-064: AI playback batches consecutive card copies and Undo or visibility interruption finishes safely', async ({ page, openGame }) => {
   const openAi = async () => { await openGame(page, (record) => { makeAiGame(record); seedPlayerHand(record, 'indigo', ['precisionShot', 'precisionShot']); }); await page.getByLabel('Animate AI turns').check(); };
   const startAi = async () => { await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByRole('heading', { name: 'AI hand' })).toBeVisible(); };
   await openAi(); await recordFlights(page); await startAi(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible();
-  const aiFlights = (await recordedFlights(page)).filter((flight) => flight.kind === 'play' && flight.name === 'Precision Shot'); expect(aiFlights.length).toBeGreaterThanOrEqual(2); expect(aiFlights[1]!.at - aiFlights[0]!.at).toBeGreaterThanOrEqual(450); expect(aiFlights[1]!.at - aiFlights[0]!.at).toBeLessThan(750);
+  const aiFlights = (await recordedFlights(page)).filter((flight) => flight.kind === 'play' && flight.name === 'Precision Shot'); expect(aiFlights.length).toBeGreaterThanOrEqual(2); expect(aiFlights[1]!.at - aiFlights[0]!.at).toBeGreaterThanOrEqual(70); expect(aiFlights[1]!.at - aiFlights[0]!.at).toBeLessThanOrEqual(120);
 
   await openAi(); await startAi(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 1 · Player 1 buy/)).toBeVisible(); await expect(page.getByRole('heading', { name: 'AI hand' })).toHaveCount(0); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
 
