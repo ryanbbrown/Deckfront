@@ -114,6 +114,12 @@ describe('random-first policy grammar and evidence', () => {
 });
 
 describe('random PSRO artifacts and resumability', () => {
+  it('rejects matrix evidence above the pairing seed limit', async () => {
+    await expect(runRandomPsro({ kingdomId: setup(), seed: 7,
+      config: { ...tinyConfig, matrixBlocks: 26 } }, new DrawRunner()))
+      .rejects.toThrow('25-seed pairing limit');
+  });
+
   it('recomputes and rejects corrupted rules, matrix, equilibrium, chain, terminal, and attack evidence', async () => {
     const artifact = await tinyArtifact();
     const expected = { kingdomId: artifact.kingdom.id, seed: 7, config: tinyConfig };

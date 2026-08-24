@@ -24,7 +24,7 @@ export const RANDOM_PSRO_DEFAULT_CONFIG = Object.freeze({
   raceBlocks: Object.freeze([1, 2, 4, 8] as const),
   finalists: 8,
   confirmationBlocks: 400,
-  matrixBlocks: 32,
+  matrixBlocks: 25,
   safetyCap: 12,
   cleanBatchesRequired: 2,
   admissionLowerBound: 0.50,
@@ -134,6 +134,7 @@ function completeConfig(input: Partial<RandomPsroConfig> = {}): RandomPsroConfig
   for (const key of positive) if (!Number.isInteger(config[key]) || config[key] < 1) {
     throw new Error(`${key} must be a positive integer.`);
   }
+  if (config.matrixBlocks > 25) throw new Error('matrixBlocks cannot exceed the 25-seed pairing limit.');
   if (!config.raceBlocks.length || config.raceBlocks.some((value) => !Number.isInteger(value) || value < 1)) {
     throw new Error('raceBlocks must be positive integers.');
   }
