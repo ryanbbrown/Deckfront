@@ -210,16 +210,25 @@ export class GameService {
       const choices: CardActionChoice[] = legal.map((action) => {
         let text = action.label;
         let targetCardInstanceIds: string[] = [];
+        let destination: number | null = null;
+        let intoWall = false;
+        const currentPosition = state.fighters[state.activePlayerId].position;
         if (action.command.type === 'playFootwork') {
           text = action.command.movement === 'left' ? 'Left' : action.command.movement === 'right' ? 'Right' : 'Stay';
+          destination = currentPosition + (action.command.movement === 'left' ? -1 : action.command.movement === 'right' ? 1 : 0);
         } else if (action.command.type === 'playDrive') {
-          text = action.command.direction === 'left' ? 'Move both left' : 'Move both right';
+          const offset = action.command.direction === 'left' ? -1 : 1;
+          const proposed = currentPosition + offset;
+          intoWall = proposed < 1 || proposed > 6;
+          destination = intoWall ? currentPosition : proposed;
+          text = intoWall ? `Move both ${action.command.direction} into wall` : `Move both ${action.command.direction}`;
         } else if (action.command.type === 'playMoveAction') {
           text = action.command.direction === 'left' ? 'Left' : 'Right';
+          destination = currentPosition + (action.command.direction === 'left' ? -1 : 1);
         } else if (action.command.type === 'playTargetedAction') {
           targetCardInstanceIds = [...action.command.targetCardInstanceIds];
         }
-        return { ...browserAction(action, text), targetCardInstanceIds };
+        return { ...browserAction(action, text), targetCardInstanceIds, destination, intoWall };
       });
       return {
         cardInstanceId: availability.cardInstanceId,
@@ -241,15 +250,25 @@ export class GameService {
     const buys = legalActions.flatMap((action) => action.command.type === 'buyCard'
       ? [{ id: action.id, definitionId: action.command.definitionId }]
       : []);
+    const definitionIdFor = (instanceId: string): string => {
+      const cards = [
+        ...state.players[state.activePlayerId].deck.hand,
+        ...state.players[state.activePlayerId].deck.discard,
+        ...state.players[state.activePlayerId].deck.play
+      ];
+      const card = cards.find((candidate) => candidate.id === instanceId);
+      if (!card) throw new Error(`Pending choice card ${instanceId} is not visible to its player.`);
+      return card.definitionId;
+    };
     const selection = state.pendingChoice ? {
       kind: state.pendingChoice.type,
       choices: legalActions.flatMap((action) => {
         if (action.command.type === 'resolveDiscard') {
-          return [{ ...browserAction(action), cardInstanceId: action.command.discardInstanceId }];
+          return [{ ...browserAction(action), cardInstanceId: action.command.discardInstanceId, definitionId: definitionIdFor(action.command.discardInstanceId) }];
         }
-        if (action.command.type === 'resolveRecover') return [{ ...browserAction(action), cardInstanceId: action.command.recoverInstanceId }];
-        if (action.command.type === 'resolveOptionalTrash') return [{ ...browserAction(action), cardInstanceId: action.command.trashInstanceId }];
-        if (action.command.type === 'resolveGain') return [{ ...browserAction(action), cardInstanceId: null }];
+        if (action.command.type === 'resolveRecover') return [{ ...browserAction(action), cardInstanceId: action.command.recoverInstanceId, definitionId: definitionIdFor(action.command.recoverInstanceId) }];
+        if (action.command.type === 'resolveOptionalTrash') return [{ ...browserAction(action), cardInstanceId: action.command.trashInstanceId, definitionId: action.command.trashInstanceId ? definitionIdFor(action.command.trashInstanceId) : null }];
+        if (action.command.type === 'resolveGain') return [{ ...browserAction(action), cardInstanceId: null, definitionId: action.command.definitionId }];
         return [];
       })
     } : null;

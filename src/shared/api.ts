@@ -26,7 +26,11 @@ export interface GamePlayerView {
 export interface FighterView { playerId: PlayerId; position: number; health: number; aimed: boolean; exposed: boolean }
 export interface PublicGameEvent { sequence: number; type: GameEventType; playerId: PlayerId; detail: Record<string, unknown> }
 export interface BrowserAction { id: string; label: string; text: string }
-export interface CardActionChoice extends BrowserAction { targetCardInstanceIds: string[] }
+export interface CardActionChoice extends BrowserAction {
+  targetCardInstanceIds: string[];
+  destination: number | null;
+  intoWall: boolean;
+}
 export interface CardActionPresentation {
   cardInstanceId: string;
   enabled: boolean;
@@ -40,7 +44,10 @@ export interface CardActionPresentation {
 }
 export interface PhaseActionPresentation { id: string; kind: 'endAction' | 'endBuy' }
 export interface BuyActionPresentation { id: string; definitionId: string }
-export interface SelectionActionPresentation extends BrowserAction { cardInstanceId: string | null }
+export interface SelectionActionPresentation extends BrowserAction {
+  cardInstanceId: string | null;
+  definitionId: string | null;
+}
 export interface SelectionPresentation {
   kind: 'discard' | 'recover' | 'optionalTrash' | 'gain';
   choices: SelectionActionPresentation[];

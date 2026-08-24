@@ -120,11 +120,24 @@ describe('local GameService', () => {
     });
     const footwork = projectedHandCard(view, record, 'footwork');
     expect(footwork).toMatchObject({ enabled: true, selection: 'movement' });
-    expect(footwork.choices.map((choice) => ({ label: choice.label, text: choice.text }))).toEqual([
-      { label: 'Play Footwork: Left', text: 'Left' }, { label: 'Play Footwork: Stay', text: 'Stay' },
-      { label: 'Play Footwork: Right', text: 'Right' }
+    expect(footwork.choices.map((choice) => ({ label: choice.label, text: choice.text, destination: choice.destination, intoWall: choice.intoWall }))).toEqual([
+      { label: 'Play Footwork: Left', text: 'Left', destination: 1, intoWall: false },
+      { label: 'Play Footwork: Stay', text: 'Stay', destination: 2, intoWall: false },
+      { label: 'Play Footwork: Right', text: 'Right', destination: 3, intoWall: false }
     ]);
     expect(JSON.stringify(view.actions)).not.toContain('command');
+  });
+  it('maps a wall-collision direction to the current arena edge', async () => {
+    const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
+    const record = await repository.load(game.id); seedPlayerHand(record, ['drive']);
+    record.state.fighters.ochre.position = 6; record.state.fighters.indigo.position = 6; resetReplay(record); await repository.save(record);
+    const drive = projectedHandCard(await service.get(game.id), record, 'drive');
+    expect(drive.choices.find((choice) => choice.label === 'Play Drive: Move Both Right')).toMatchObject({
+      text: 'Move both right into wall', destination: 6, intoWall: true
+    });
+    expect(drive.choices.find((choice) => choice.label === 'Play Drive: Move Both Left')).toMatchObject({
+      destination: 5, intoWall: false
+    });
   });
   it('projects Cull target combinations, phase choices, and market buys by definition id', async () => {
     const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
@@ -160,6 +173,7 @@ describe('local GameService', () => {
     expect(pending.actions.phases).toEqual([]); expect(pending.actions.buys).toEqual([]);
     expect(pending.actions.selection).toMatchObject({ kind: 'discard' });
     expect(pending.actions.selection!.choices.map((choice) => choice.cardInstanceId).sort()).toEqual([copperId, silverId].sort());
+    expect(pending.actions.selection!.choices.map((choice) => choice.definitionId).sort()).toEqual(['copper', 'silver']);
     const discard = pending.actions.selection!.choices.find((choice) => choice.cardInstanceId === copperId)!;
     const resolved = await service.commitAction(game.id, pending.revision, discard.id);
     expect(resolved.actions.selection).toBeNull();
@@ -177,6 +191,7 @@ describe('local GameService', () => {
     expect(pending.actions.phases).toEqual([]); expect(pending.actions.buys).toEqual([]);
     expect(pending.actions.selection).toMatchObject({ kind: 'recover' });
     expect(pending.actions.selection!.choices.map((choice) => choice.cardInstanceId)).toEqual(recoverIds);
+    expect(pending.actions.selection!.choices.map((choice) => choice.definitionId)).toEqual(['silver', 'gold']);
     const recoverGold = pending.actions.selection!.choices.at(-1)!;
     expect(recoverGold.label).toBe('Recover Gold');
     const resolved = await service.commitAction(game.id, pending.revision, recoverGold.id);
@@ -248,7 +263,7 @@ describe('persistence schema', () => {
       view = await service.get(created.id); const reforge = projectedHandCard(view,record,'reforge'); const gold = record.state.players.ochre.deck.hand.find((card) => card.definitionId === 'gold')!;
       const target = reforge.choices.find((choice) => choice.targetCardInstanceIds.includes(gold.id))!; view = await service.commitAction(created.id,view.revision,target.id);
       expect((await repository.load(created.id)).state.pendingChoice).toEqual({ type:'gain', playerId:'ochre', maxCost:9 });
-      const gainGold = view.actions.selection!.choices.find((choice) => choice.label === 'Gain Gold')!; view = await service.commitAction(created.id,view.revision,gainGold.id);
+      const gainGold = view.actions.selection!.choices.find((choice) => choice.label === 'Gain Gold')!; expect(gainGold.definitionId).toBe('gold'); view = await service.commitAction(created.id,view.revision,gainGold.id);
       const saved = await repository.load(created.id); expect(saved.state.pendingChoice).toBeNull(); expect(saved.state.players.ochre.purchases).toEqual([]);
       expect(saved.state.events.at(-1)).toMatchObject({ type:'gain', detail:{ definitionId:'gold' } });
     } finally { await rm(directory,{ recursive:true, force:true }); }
