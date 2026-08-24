@@ -5,7 +5,7 @@ import { actionPhaseMoney } from './search';
 import { chooseBuyAction, projectPurchases } from './buy';
 import type { Strategy } from './strategy';
 import { chooseTacticalAction } from './tacticalPilot';
-import type { CullOption, PilotCard, TacticalDecision, TacticalView } from './tacticalPilot';
+import type { CullOption, DiscardOption, PilotCard, TacticalDecision, TacticalView } from './tacticalPilot';
 import { buildAttackProfile } from './positionValue';
 import type { AttackProfile, ProfileCard } from './positionValue';
 import type { Agent } from './types';
@@ -27,32 +27,43 @@ function availableCard(state: GameState, actions: readonly LegalAction[], card: 
   };
 }
 
-function projectionVector(state: GameState, playerId: PlayerId, strategy: Strategy, copperTrashed: number): readonly number[] {
-  const projection = projectPurchases(state, playerId, actionPhaseMoney(state, playerId) - copperTrashed, strategy);
+function projectionVector(state: GameState, playerId: PlayerId, strategy: Strategy, moneyLost: number): readonly number[] {
+  const projection = projectPurchases(state, playerId, actionPhaseMoney(state, playerId) - moneyLost, strategy);
   return [...projection.finite, projection.repeated];
+}
+
+function compareProjection(left: readonly number[], right: readonly number[]): number {
+  const length = Math.max(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const difference = (left[index] ?? 0) - (right[index] ?? 0);
+    if (difference) return difference;
+  }
+  return 0;
 }
 
 function cullOptions(state: GameState, playerId: PlayerId, strategy: Strategy, hand: readonly PilotCard[]): CullOption[] {
   const copper = hand.filter((card) => card.definitionId === 'copper').map((card) => card.handIndex);
+  const scrap = hand.filter((card) => card.definitionId === 'scrap').slice(0, 2).map((card) => card.handIndex);
   const cull = hand.find((card) => card.definitionId === 'cull');
   if (!cull) return [];
   const deck = state.players[playerId].deck;
-  const copperOwned = [...deck.draw, ...deck.hand, ...deck.discard, ...deck.play]
-    .filter((card) => card.definitionId === 'copper').length;
+  const owned = [...deck.draw, ...deck.hand, ...deck.discard, ...deck.play];
+  const copperOwned = owned.filter((card) => card.definitionId === 'copper').length;
+  const scrapOwned = owned.filter((card) => card.definitionId === 'scrap').length;
   const options: CullOption[] = [{
-    trashHandIndexes: [], trashCull: false, copperTrashed: 0,
+    trashHandIndexes: scrap, trashCull: false, copperTrashed: 0, scrapTrashed: scrap.length,
     purchaseProjection: projectionVector(state, playerId, strategy, 0)
   }];
-  for (let count = 0; count <= Math.min(2, copper.length); count += 1) {
-    if (count > 0) options.push({
-      trashHandIndexes: copper.slice(0, count), trashCull: false, copperTrashed: count,
-      purchaseProjection: projectionVector(state, playerId, strategy, count)
-    });
-    if (count < 2 && copperOwned === 0) options.push({
-      trashHandIndexes: copper.slice(0, count), trashCull: true, copperTrashed: count,
-      purchaseProjection: projectionVector(state, playerId, strategy, count)
-    });
-  }
+  const remainingCapacity = 2 - scrap.length;
+  for (let count = 1; count <= Math.min(remainingCapacity, copper.length); count += 1) options.push({
+    trashHandIndexes: [...scrap, ...copper.slice(0, count)], trashCull: false,
+    copperTrashed: count, scrapTrashed: scrap.length,
+    purchaseProjection: projectionVector(state, playerId, strategy, count)
+  });
+  if (scrapOwned === 0 && copperOwned === 0) options.push({
+    trashHandIndexes: [], trashCull: true, copperTrashed: 0, scrapTrashed: 0,
+    purchaseProjection: projectionVector(state, playerId, strategy, 0)
+  });
   return options;
 }
 
@@ -91,6 +102,12 @@ export function tacticalView(
     positionChanged: state.players[playerId].positionChanged,
     tacticalPlayed: state.turnState.cardsPlayed.filter(isTacticalAction).length,
     cullOptions: cullOptions(state, playerId, strategy, hand),
+    discardOptions: state.pendingChoice?.type === 'discard'
+      ? hand.map((card): DiscardOption => ({
+        handIndex: card.handIndex,
+        purchaseProjection: projectionVector(state, playerId, strategy, card.money)
+      }))
+      : [],
     actorProfile: attackProfile(state, playerId), opponentProfile: attackProfile(state, opponentId)
   };
 }
@@ -131,7 +148,18 @@ export function tacticalAgent(strategy: Strategy): Agent {
     chooseAction(state, playerId, actions) {
       if (state.phase === 'buy') return chooseBuyAction(state, playerId, actions, strategy);
       if (state.pendingChoice?.type === 'optionalTrash') {
-        return actions.find((action) => action.command.type === 'resolveOptionalTrash' && action.command.trashInstanceId === null)!;
+        const decline = actions.find((action) =>
+          action.command.type === 'resolveOptionalTrash' && action.command.trashInstanceId === null)!;
+        const scrap = state.players[playerId].deck.hand.find((card) => card.definitionId === 'scrap');
+        if (scrap) return actions.find((action) =>
+          action.command.type === 'resolveOptionalTrash' && action.command.trashInstanceId === scrap.id) ?? decline;
+        const copper = state.players[playerId].deck.hand.find((card) => card.definitionId === 'copper');
+        if (!copper || compareProjection(
+          projectionVector(state, playerId, strategy, 1),
+          projectionVector(state, playerId, strategy, 0)
+        ) < 0) return decline;
+        return actions.find((action) =>
+          action.command.type === 'resolveOptionalTrash' && action.command.trashInstanceId === copper.id) ?? decline;
       }
       if (state.pendingChoice?.type === 'gain') {
         const gains = actions.filter((action): action is LegalAction & {

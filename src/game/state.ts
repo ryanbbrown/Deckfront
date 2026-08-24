@@ -29,9 +29,9 @@ export function createGame(config: CreateGameConfig): GameState {
     phase: draft ? 'startingBuild' : 'action', turn: draft ? 0 : 1, winner: null,
     players: { ochre: player('ochre', draft), indigo: player('indigo', draft) },
     fighters: {
-      ochre: { playerId: 'ochre', position: config.swapSides ? 3 : 2,
+      ochre: { playerId: 'ochre', position: config.swapSides ? 4 : 3,
         health: playerStartingHealth(health, firstPlayerId === 'ochre'), aimed: false, exposed: false },
-      indigo: { playerId: 'indigo', position: config.swapSides ? 2 : 3,
+      indigo: { playerId: 'indigo', position: config.swapSides ? 3 : 4,
         health: playerStartingHealth(health, firstPlayerId === 'indigo'), aimed: false, exposed: false }
     },
     supply: kingdomSupply(kingdom), trash: [], turnState: emptyTurnState(), pendingChoice: null, events: []

@@ -188,19 +188,19 @@ describe('runMatch stop conditions', () => {
 describe('runMatch seating', () => {
   it('exchanges the starting positions when swapSides is set', () => {
     const swapped = createGame({ seed: 1, swapSides: true });
-    expect(swapped.fighters.ochre.position).toBe(3);
-    expect(swapped.fighters.indigo.position).toBe(2);
+    expect(swapped.fighters.ochre.position).toBe(4);
+    expect(swapped.fighters.indigo.position).toBe(3);
     expect(rangeBand(swapped)).toBe('Near');
     assertInvariants(swapped);
 
     const normal = createGame({ seed: 1 });
-    expect(normal.fighters.ochre.position).toBe(2);
-    expect(normal.fighters.indigo.position).toBe(3);
+    expect(normal.fighters.ochre.position).toBe(3);
+    expect(normal.fighters.indigo.position).toBe(4);
 
     const seen: GameState[] = [];
     runMatch(config({ swapSides: true, turnLimitPerPlayer: 1, agents: passiveAgents((state) => { if (!seen.length) seen.push(cloneGame(state)); }) }));
-    expect(seen[0]!.fighters.ochre.position).toBe(3);
-    expect(seen[0]!.fighters.indigo.position).toBe(2);
+    expect(seen[0]!.fighters.ochre.position).toBe(4);
+    expect(seen[0]!.fighters.indigo.position).toBe(3);
   });
 
   it('changes who acts on turn 1 without changing either deck shuffle', () => {

@@ -17,6 +17,8 @@ describe('draft UI request boundary', () => {
 
   it('renders Scrap from the shared card definition', () => {
     const html = renderToStaticMarkup(<article><CardFace card={CARDS.scrap!} /></article>);
-    expect(html).toContain('Scrap'); expect(html).toContain('Deal 1 damage at any range.'); expect(html).toContain('Cost 0');
+    expect(html).toContain('Scrap');
+    expect(html).toContain('The first Scrap you play each turn deals 1 damage at any range.');
+    expect(html).toContain('Cost 0');
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ALWAYS_AVAILABLE_ACTION_IDS, CARDS, EFFECTS, TACTICAL_ACTIONS, VARIABLE_ACTION_IDS, applyAction, applyCommand,
-  createCard, createGame, kingdomMarket, kingdomOf, listLegalActions, registerKingdom, replayCommands, submitStartingBuild
+  cardDefinition, createCard, createGame, kingdomMarket, kingdomOf, listLegalActions, registerKingdom, replayCommands, submitStartingBuild
 } from '../src/game';
 import type { GameState, LegalAction } from '../src/game';
 import { gameStateSchema } from '../src/server/schemas';
@@ -79,7 +79,7 @@ describe('combo card batch', () => {
       state = submitStartingBuild(state,'ochre',[]); return submitStartingBuild(state,'indigo',[]);
     };
     let close = setup(); close.fighters.indigo.position = close.fighters.ochre.position; hand(close,['feint','strike']);
-    close = play(close,'feint'); close = play(close,'strike'); expect(close.fighters.indigo.health).toBe(35);
+    close = play(close,'feint'); close = play(close,'strike'); expect(close.fighters.indigo.health).toBe(34);
     let ranged = setup(); hand(ranged,['aim','steadyShot']); ranged = play(ranged,'aim'); ranged = play(ranged,'steadyShot');
     expect(ranged.fighters.indigo.health).toBe(33);
   });
@@ -87,7 +87,7 @@ describe('combo card batch', () => {
   it('applies persistent Feint and one-shot Aim through shared attack paths', () => {
     let state = ready(); state.fighters.ochre.position = state.fighters.indigo.position = 2; hand(state, ['feint','strike','rally']);
     state = play(state, 'feint'); state = play(state, 'strike'); state = play(state, 'rally');
-    expect(state.fighters.indigo.health).toBe(35); expect(state.fighters.indigo.exposed).toBe(true);
+    expect(state.fighters.indigo.health).toBe(34); expect(state.fighters.indigo.exposed).toBe(true);
     state = applyAction(state, listLegalActions(state).find((a) => a.command.type === 'endActionPhase')!.id);
     state = applyAction(state, listLegalActions(state).find((a) => a.command.type === 'endBuyPhase')!.id);
     expect(state.fighters.indigo.exposed).toBe(false);
@@ -108,9 +108,9 @@ describe('combo card batch', () => {
   it('resolves mana and family combos', () => {
     let state = ready(); state.players.ochre.mana = 4; hand(state, ['arcBolt','cascade','overload','discharge']);
     state = play(state, 'arcBolt'); state = play(state, 'cascade'); state = play(state, 'overload'); state = play(state, 'discharge');
-    expect(state.fighters.indigo.health).toBe(24); expect(state.players.ochre.mana).toBe(0); expect(state.turnState.manaSpent).toBe(2);
+    expect(state.fighters.indigo.health).toBe(22); expect(state.players.ochre.mana).toBe(0); expect(state.turnState.manaSpent).toBe(2);
     state = ready(); hand(state, ['footwork','improvise']); state = play(state, 'footwork'); state = play(state, 'improvise');
-    expect(state.fighters.indigo.health).toBe(38);
+    expect(state.fighters.indigo.health).toBe(40);
   });
 
   it('enforces family targets, self-trash, optional trash, and Reforge gain rules', () => {
@@ -118,7 +118,7 @@ describe('combo card batch', () => {
     expect(listLegalActions(state).some((a) => 'cardInstanceId' in a.command && a.command.cardInstanceId === state.players.ochre.deck.hand[0]!.id)).toBe(false);
     state = ready(); hand(state,['salvageShot','copper']);
     expect(listLegalActions(state).some((a) => 'cardInstanceId' in a.command && a.command.cardInstanceId === state.players.ochre.deck.hand[0]!.id)).toBe(false);
-    state = ready(); state.fighters.indigo.position = 2; hand(state, ['bullRush','strike']); const strike = state.players.ochre.deck.hand[1]!; state = play(state, 'bullRush', [strike.id]);
+    state = ready(); state.fighters.indigo.position = 3; hand(state, ['bullRush','strike']); const strike = state.players.ochre.deck.hand[1]!; state = play(state, 'bullRush', [strike.id]);
     expect(state.players.ochre.deck.discard).toContainEqual(strike); expect(state.fighters.indigo.health).toBe(35);
 
     state = ready(); hand(state, ['discipline']); const discipline = state.players.ochre.deck.hand[0]!; state = play(state, 'discipline', [discipline.id]);
@@ -188,11 +188,11 @@ describe('complete public card coverage', () => {
 
   it('gates every Close, ranged, and mana-cost attack with literal reason codes', () => {
     for (const id of ['feint','jab','strike','drive','heavyBlow','openingStrike','rally','bullRush','flurry']) {
-      const state = ready(); state.fighters.indigo.position = 3; hand(state, id === 'bullRush' ? [id,'strike'] : [id]);
+      const state = ready(); state.fighters.indigo.position = 4; hand(state, id === 'bullRush' ? [id,'strike'] : [id]);
       expect(listLegalActions(state).some((entry) => 'cardInstanceId' in entry.command)).toBe(false);
     }
     for (const id of ['aim','pepperingShot','steadyShot','repellingShot','longshot','volley','salvageShot','precisionShot']) {
-      const state = ready(); state.fighters.indigo.position = 2; hand(state, id === 'salvageShot' ? [id,'steadyShot'] : [id]);
+      const state = ready(); state.fighters.indigo.position = 3; hand(state, id === 'salvageShot' ? [id,'steadyShot'] : [id]);
       expect(listLegalActions(state).some((entry) => 'cardInstanceId' in entry.command)).toBe(false);
     }
     for (const id of ['arcBolt','fireball','starfire','cascade']) {
@@ -202,9 +202,9 @@ describe('complete public card coverage', () => {
   });
 
   it.each([
-    ['jab',2],['strike',3],['drive',3],['heavyBlow',5],['openingStrike',2],['rally',2],['bullRush',6],['flurry',2]
+    ['jab',3],['strike',4],['drive',4],['heavyBlow',7],['openingStrike',2],['rally',2],['bullRush',6],['flurry',2]
   ] as const)('Feint routes persistent Close bonus through %s', (attackId, damage) => {
-    let state = ready(); state.fighters.indigo.position = 2;
+    let state = ready(); state.fighters.indigo.position = 3;
     hand(state,['feint',attackId,...(attackId === 'bullRush' ? ['strike'] : [])]); state = play(state,'feint');
     const source = state.players.ochre.deck.hand.find((card) => card.definitionId === attackId)!;
     const legal = listLegalActions(state).filter((entry) => 'cardInstanceId' in entry.command && entry.command.cardInstanceId === source.id);
@@ -230,7 +230,7 @@ describe('complete public card coverage', () => {
 
   it('does not draw after lethal Jab or Peppering Shot', () => {
     for (const [id, close] of [['jab',true],['pepperingShot',false]] as const) {
-      let state = ready(); state.fighters.indigo.position = close ? 2 : 3; state.fighters.indigo.health = 1;
+      let state = ready(); state.fighters.indigo.position = close ? 3 : 4; state.fighters.indigo.health = 1;
       hand(state,[id]); state.players.ochre.deck.draw = [createCard(state,'gold')]; state = play(state,id);
       expect(state.winner).toBe('ochre'); expect(state.players.ochre.deck.hand).toEqual([]);
       expect(state.players.ochre.deck.draw.map((card) => card.definitionId)).toEqual(['gold']);
@@ -240,19 +240,30 @@ describe('complete public card coverage', () => {
   it('uses literal copy boundaries for Attune, Rally, and Precision Shot', () => {
     let state = ready(); hand(state,['attune','attune','attune']); state = play(state,'attune'); state = play(state,'attune'); state = play(state,'attune');
     expect(state.players.ochre.mana).toBe(6);
-    state = ready(); state.fighters.indigo.position = 2; hand(state,['rally','rally','rally']); state = play(state,'rally'); state = play(state,'rally'); state = play(state,'rally');
+    state = ready(); state.fighters.indigo.position = 3; hand(state,['rally','rally','rally']); state = play(state,'rally'); state = play(state,'rally'); state = play(state,'rally');
     expect(state.fighters.indigo.health).toBe(34);
     state = ready(); hand(state,['precisionShot','precisionShot','precisionShot']); state = play(state,'precisionShot'); state = play(state,'precisionShot'); state = play(state,'precisionShot');
     expect(state.fighters.indigo.health).toBe(32);
   });
 
   it('uses literal Longshot distances and distinct Improvise families', () => {
-    for (const [position, damage] of [[3,1],[4,2],[5,3]] as const) {
+    expect(cardDefinition('longshot').text)
+      .toBe('At Near or Far range, deal damage equal to the distance between you and your opponent.');
+    for (const [position, damage] of [[3,1],[4,2],[5,3],[6,4]] as const) {
       let state = ready(); state.fighters.ochre.position = 2; state.fighters.indigo.position = position; hand(state,['longshot']); state = play(state,'longshot');
       expect(state.fighters.indigo.health).toBe(40-damage);
     }
     let state = ready(); hand(state,['channel','attune','footwork','improvise']); state = play(state,'channel'); state = play(state,'attune'); state = play(state,'footwork'); state = play(state,'improvise');
-    expect(state.fighters.indigo.health).toBe(36);
+    expect(state.fighters.indigo.health).toBe(38);
+    expect(cardDefinition('improvise').text).toContain('Mana, Melee, or Ranged');
+  });
+
+  it('deals Scrap damage only for the first copy played each turn', () => {
+    let state = ready(); hand(state, ['scrap', 'scrap', 'scrap']);
+    state = play(state, 'scrap'); state = play(state, 'scrap'); state = play(state, 'scrap');
+    expect(state.fighters.indigo.health).toBe(39);
+    expect(state.turnState.copiesPlayed.scrap).toBe(3);
+    expect(state.turnState.familiesPlayed).toContain('engine');
   });
 
   it('Scour trashes two selected Copper cards and draws one card per trash', () => {

@@ -78,7 +78,7 @@ describe('shared damage pilot', () => {
       health: 20, indigoHand: ['steadyShot'], indigoDraw: [], indigoDiscard: []
     });
     expect(choose(state, strategy()).command).toMatchObject({ type: 'playMoveAction', direction: 'right' });
-    expect(playPhase(state, strategy()).fighters.indigo.health).toBe(16);
+    expect(playPhase(state, strategy()).fighters.indigo.health).toBe(14);
   });
 });
 
@@ -185,7 +185,7 @@ describe('fixed choice policy', () => {
   it('uses the revealed state after Prism to preserve the maximum damage line', () => {
     const state = arena({ kingdomId: 'three-way-engine', hand: ['prism', 'fireball', 'copper'], draw: ['channel'], firstBuyPending: false });
     const finished = playPhase(state, strategy({ repeatPurchase: 'footwork' }));
-    expect(finished.fighters.indigo.health).toBe(33);
+    expect(finished.fighters.indigo.health).toBe(32);
     expect(finished.events.some((event) => event.type === 'discard')).toBe(true);
   });
 });

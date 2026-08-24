@@ -1,4 +1,5 @@
 import { CARDS, MAX_FIRST_BUY_CARRY } from './config';
+import { ARENA_MAX, ARENA_MIN } from './effects';
 import { ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, findKingdom } from './kingdom';
 import type { GameState } from './types';
 
@@ -7,7 +8,7 @@ export function checkInvariants(state: GameState): string[] {
   if (state.schemaVersion !== 9) errors.push('Unsupported game schema version.');
 
   for (const fighter of Object.values(state.fighters)) {
-    if (fighter.position < 1 || fighter.position > 5) {
+    if (fighter.position < ARENA_MIN || fighter.position > ARENA_MAX) {
       errors.push(`${fighter.playerId} is outside the arena.`);
     }
     if (fighter.health < 0 || fighter.health > state.startingHealth) {

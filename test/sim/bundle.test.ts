@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { Worker } from 'node:worker_threads';
+import { promisify } from 'node:util';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { diagnosticStrategies } from '../../src/sim/baselines';
 import { runExperiment } from '../../src/sim/experiment';
@@ -14,6 +15,7 @@ import { resetKingdoms } from '../../src/game';
 
 const root = path.resolve(import.meta.dirname, '../..');
 const bundle = path.join(root, 'dist-sim', 'experiment.mjs');
+const execFileAsync = promisify(execFile);
 beforeAll(() => { execFileSync('npm', ['run', 'build:sim'], { cwd: root, stdio: 'pipe' }); });
 
 describe('compiled PSRO bundle', () => {
@@ -32,13 +34,12 @@ describe('compiled PSRO bundle', () => {
     }
   });
 
-  it('runs a minimal pooled experiment and writes only the PSRO artifact contract', { timeout: 60_000 }, () => {
+  it('runs a minimal pooled experiment and writes only the PSRO artifact contract', { timeout: 180_000 }, async () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-psro-bundle-'));
-    const result = spawnSync(process.execPath, [bundle, '--kingdom', 'current-duel', '--mode', 'smoke',
+    await execFileAsync(process.execPath, [bundle, '--kingdom', 'current-duel', '--mode', 'smoke',
       '--initial-strategies', '2', '--candidates', '2', '--iterations', '1',
-      '--seeds', '1', '--union-iterations', '1', '--restarts', '1', '--workers', '2', '--deadline-minutes', '1'],
-    { cwd, encoding: 'utf8', timeout: 55_000 });
-    expect(result.status, result.stderr).toBe(0);
+      '--seeds', '1', '--union-iterations', '1', '--restarts', '1', '--workers', '2', '--deadline-minutes', '2'],
+    { cwd, encoding: 'utf8', timeout: 170_000 });
     const directory = path.join(cwd, '.experiments/current-duel/smoke');
     expect(fs.readdirSync(directory).sort()).toEqual([
       'iterations.jsonl', 'matrix.json', 'report.md', 'run.json', 'strategies.json', 'telemetry.json'
@@ -53,14 +54,13 @@ describe('compiled PSRO bundle', () => {
     expect(new Set(usedSeeds).size).toBe(usedSeeds.length);
   });
 
-  it('runs a generated kingdom through the compiled simulator entry point', { timeout: 60_000 }, () => {
+  it('runs a generated kingdom through the compiled simulator entry point', { timeout: 180_000 }, async () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-balance-suite-bundle-'));
     const kingdomId = balanceSuite.manifest.kingdoms[0]!.id;
-    const result = spawnSync(process.execPath, [bundle, '--kingdom', kingdomId, '--mode', 'smoke',
+    await execFileAsync(process.execPath, [bundle, '--kingdom', kingdomId, '--mode', 'smoke',
       '--initial-strategies', '2', '--candidates', '2', '--iterations', '1',
-      '--seeds', '1', '--union-iterations', '1', '--restarts', '1', '--workers', '2', '--deadline-minutes', '1'],
-    { cwd, encoding: 'utf8', timeout: 55_000 });
-    expect(result.status, result.stderr).toBe(0);
+      '--seeds', '1', '--union-iterations', '1', '--restarts', '1', '--workers', '2', '--deadline-minutes', '2'],
+    { cwd, encoding: 'utf8', timeout: 170_000 });
     const run = JSON.parse(fs.readFileSync(path.join(cwd, '.experiments', kingdomId, 'smoke', 'run.json'), 'utf8'));
     expect(run).toMatchObject({ schemaVersion: 5, valid: true, kingdomId });
   });

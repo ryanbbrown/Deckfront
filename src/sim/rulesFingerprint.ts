@@ -1,5 +1,5 @@
 import {
-  FIRST_PLAYER_HEALTH_PENALTY, MAX_FIRST_BUY_CARRY, STARTING_BUDGET, kingdomMarket, kingdomOf
+  ARENA_MAX, ARENA_MIN, FIRST_PLAYER_HEALTH_PENALTY, MAX_FIRST_BUY_CARRY, STARTING_BUDGET, kingdomMarket, kingdomOf
 } from '../game';
 import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from './experimentConfig';
 import {
@@ -15,6 +15,8 @@ export interface RulesFingerprint {
   rules: {
     kingdom: ReturnType<typeof kingdomOf>;
     market: ReturnType<typeof kingdomMarket>;
+    arenaMinimum: number;
+    arenaMaximum: number;
     startingBudget: number;
     maximumFirstBuyCarry: number;
     firstPlayerHealthPenalty: number;
@@ -34,6 +36,8 @@ export function rulesFingerprint(
   const rules: RulesFingerprint['rules'] = {
     kingdom: structuredClone(kingdomOf(kingdomId)),
     market: structuredClone(kingdomMarket(kingdomId)),
+    arenaMinimum: ARENA_MIN,
+    arenaMaximum: ARENA_MAX,
     startingBudget: STARTING_BUDGET,
     maximumFirstBuyCarry: MAX_FIRST_BUY_CARRY,
     firstPlayerHealthPenalty: FIRST_PLAYER_HEALTH_PENALTY,

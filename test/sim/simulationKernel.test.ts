@@ -109,6 +109,37 @@ describe('the compact simulation kernel', () => {
     expect(totals.drive).toBeGreaterThan(0); expect(totals.repellingShot).toBeGreaterThan(0); expect(totals.adapt).toBeGreaterThan(0);
   });
 
+  it('matches Salvage Shot when the pilot selects a later higher-cost Ranged card', () => {
+    registerKingdom({
+      id: 'salvage-target-parity', name: 'Salvage target parity', startingHealth: 60,
+      actionPiles: [
+        { cardId: 'salvageShot', count: 10 }, { cardId: 'pepperingShot', count: 10 },
+        { cardId: 'longshot', count: 10 }
+      ]
+    });
+    const active: Strategy = {
+      id: 'salvage', startingBuild: ['salvageShot', 'pepperingShot', 'longshot'],
+      buyAgenda: [{ cardId: 'salvageShot', desiredCount: 10 }], repeatPurchase: 'salvageShot'
+    };
+    const passive: Strategy = {
+      id: 'passive', startingBuild: [], buyAgenda: [], repeatPurchase: 'gold'
+    };
+    let salvagePlays = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) {
+      const shared = {
+        kingdomId: 'salvage-target-parity', seed, firstPlayerId: 'ochre' as const,
+        swapSides: false, turnLimitPerPlayer: 8, actionCapPerTurn: 200
+      };
+      const product = runMatch({
+        ...shared, agents: { ochre: tacticalAgent(active), indigo: tacticalAgent(passive) }
+      });
+      const compact = runSimulationMatch({ ...shared, strategies: { ochre: active, indigo: passive } });
+      expect(compact, `seed ${seed}`).toEqual(product);
+      salvagePlays += product.telemetry.playsByCard.ochre.salvageShot ?? 0;
+    }
+    expect(salvagePlays).toBeGreaterThan(0);
+  });
+
   it('matches resolved Feint and Aim bonus overrides', () => {
     registerKingdom({ id:'sim-bonus-overrides', name:'Simulator bonus overrides', startingHealth:60,
       actionPiles:['footwork','feint','strike','aim','steadyShot'].map((cardId) => ({ cardId, count:10 })),

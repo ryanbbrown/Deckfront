@@ -80,7 +80,7 @@ describe('deck tools', () => {
   });
   it('Adapt draws 1 without movement and 2 after the acting fighter moved', () => {
     function adaptDraws(prepare: (state: GameState) => GameState, hand: string[]): number {
-      let state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', [...hand, 'adapt']); setDraw(state, 'ochre', ['copper', 'copper', 'copper', 'copper']);
+      let state = ready(); state.fighters.indigo.position = 3; isolateHand(state, 'ochre', [...hand, 'adapt']); setDraw(state, 'ochre', ['copper', 'copper', 'copper', 'copper']);
       state = prepare(state); const before = state.players.ochre.deck.hand.length;
       state = playCard(state, 'adapt'); assertInvariants(state);
       return state.players.ochre.deck.hand.length - (before - 1);
@@ -90,7 +90,7 @@ describe('deck tools', () => {
     expect(adaptDraws((state) => playCard(state, 'footwork', (command) => command.type === 'playFootwork' && command.movement === 'stay'), ['footwork'])).toBe(1);
     expect(adaptDraws((state) => playCard(state, 'drive', (command) => command.type === 'playDrive' && command.direction === 'right'), ['drive'])).toBe(2);
     expect(adaptDraws((state) => {
-      state.fighters.ochre.position = 5; state.fighters.indigo.position = 5;
+      state.fighters.ochre.position = 6; state.fighters.indigo.position = 6;
       return playCard(state, 'drive', (command) => command.type === 'playDrive' && command.direction === 'right');
     }, ['drive'])).toBe(1);
     expect(adaptDraws((state) => {
@@ -99,7 +99,7 @@ describe('deck tools', () => {
     }, ['footwork', 'footwork'])).toBe(2);
   });
   it('Drive never sets the pushed opponent position flag, and the flag resets between a player own turns', () => {
-    let state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['drive']); isolateHand(state, 'indigo', []);
+    let state = ready(); state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['drive']); isolateHand(state, 'indigo', []);
     state = playCard(state, 'drive', (command) => command.type === 'playDrive' && command.direction === 'right');
     expect(state.players.ochre.positionChanged).toBe(true); expect(state.players.indigo.positionChanged).toBe(false);
     expect(state.turnState.spacesMoved).toBe(1);
@@ -114,33 +114,33 @@ describe('deck tools', () => {
 });
 
 describe('attacks', () => {
-  it('Heavy Blow deals 4 at Close and gains the persistent Feint bonus at Close', () => {
-    let state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['heavyBlow']);
-    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(36); assertInvariants(state);
-    state = ready(); state.fighters.indigo.position = 2; state.fighters.indigo.exposed = true; isolateHand(state, 'ochre', ['heavyBlow']);
-    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(35); expect(state.fighters.indigo.exposed).toBe(true);
-    for (const position of [3, 5]) {
+  it('Heavy Blow deals 6 at Close and gains the persistent Feint bonus at Close', () => {
+    let state = ready(); state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['heavyBlow']);
+    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(34); assertInvariants(state);
+    state = ready(); state.fighters.indigo.position = 3; state.fighters.indigo.exposed = true; isolateHand(state, 'ochre', ['heavyBlow']);
+    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(33); expect(state.fighters.indigo.exposed).toBe(true);
+    for (const position of [4, 6]) {
       const near = ready(); near.fighters.indigo.position = position; isolateHand(near, 'ochre', ['heavyBlow']);
       expect(availability(near, 'heavyBlow')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
     }
   });
   it('Steady Shot deals 2 at Near and Far and is illegal at Close', () => {
     expect(cardDefinition('steadyShot').cost).toBe(3);
-    for (const position of [3, 5]) {
+    for (const position of [4, 6]) {
       let state = ready(); state.fighters.indigo.position = position; isolateHand(state, 'ochre', ['steadyShot']);
       state = playCard(state, 'steadyShot'); expect(state.fighters.indigo.health).toBe(38); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
     }
-    const close = ready(); close.fighters.indigo.position = 2; isolateHand(close, 'ochre', ['steadyShot']);
+    const close = ready(); close.fighters.indigo.position = 3; isolateHand(close, 'ochre', ['steadyShot']);
     expect(availability(close, 'steadyShot')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_NEAR_OR_FAR' });
   });
   it('Step moves and Strike attacks at Close range', () => {
     let state = ready(); isolateHand(state, 'ochre', ['step']); setDraw(state, 'ochre', ['gold']);
     state = playCard(state, 'step', (command) => command.type === 'playMoveAction' && command.direction === 'right');
-    expect(state.fighters.ochre.position).toBe(3); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
+    expect(state.fighters.ochre.position).toBe(4); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
 
-    state = ready(); state.fighters.indigo.position = 2; isolateHand(state, 'ochre', ['strike']);
-    state = playCard(state, 'strike'); expect(state.fighters.indigo.health).toBe(38);
-    const strikeFar = ready(); strikeFar.fighters.indigo.position = 5; isolateHand(strikeFar, 'ochre', ['strike']);
+    state = ready(); state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['strike']);
+    state = playCard(state, 'strike'); expect(state.fighters.indigo.health).toBe(37);
+    const strikeFar = ready(); strikeFar.fighters.indigo.position = 6; isolateHand(strikeFar, 'ochre', ['strike']);
     expect(availability(strikeFar, 'strike')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
 
   });
@@ -149,40 +149,40 @@ describe('attacks', () => {
     expect(isTacticalAction('repellingShot')).toBe(true);
     let state = ready(); isolateHand(state, 'ochre', ['repellingShot']);
     state = playCard(state, 'repellingShot');
-    expect(state.fighters.ochre.position).toBe(2); expect(state.fighters.indigo.position).toBe(4);
+    expect(state.fighters.ochre.position).toBe(3); expect(state.fighters.indigo.position).toBe(5);
     expect(state.fighters.indigo.health).toBe(39); expect(state.players.indigo.positionChanged).toBe(false);
     expect(state.events.slice(-2).map((event) => event.type)).toEqual(['damage', 'move']);
     assertInvariants(state);
   });
   it('Repelling Shot moves the attacker when the opponent is blocked by a wall', () => {
-    let state = ready(); state.fighters.indigo.position = 5; isolateHand(state, 'ochre', ['repellingShot']);
+    let state = ready(); state.fighters.indigo.position = 6; isolateHand(state, 'ochre', ['repellingShot']);
     state = playCard(state, 'repellingShot');
-    expect(state.fighters.ochre.position).toBe(1); expect(state.fighters.indigo.position).toBe(5);
+    expect(state.fighters.ochre.position).toBe(2); expect(state.fighters.indigo.position).toBe(6);
     expect(state.fighters.indigo.health).toBe(38); expect(state.players.ochre.positionChanged).toBe(true);
     expect(state.turnState.spacesMoved).toBe(1);
     assertInvariants(state);
   });
   it('Repelling Shot moves neither fighter when both are blocked by walls', () => {
-    let state = ready(); state.fighters.ochre.position = 1; state.fighters.indigo.position = 5;
+    let state = ready(); state.fighters.ochre.position = 1; state.fighters.indigo.position = 6;
     isolateHand(state, 'ochre', ['repellingShot']);
     state = playCard(state, 'repellingShot');
-    expect(state.fighters.ochre.position).toBe(1); expect(state.fighters.indigo.position).toBe(5);
+    expect(state.fighters.ochre.position).toBe(1); expect(state.fighters.indigo.position).toBe(6);
     expect(state.fighters.indigo.health).toBe(38); expect(state.events.at(-1)?.type).toBe('damage');
     expect(state.turnState.spacesMoved).toBe(0);
     assertInvariants(state);
   });
   it('Repelling Shot is illegal at Close and consumes Aimed when played at range', () => {
-    const close = ready(); close.fighters.indigo.position = 2; isolateHand(close, 'ochre', ['repellingShot']);
+    const close = ready(); close.fighters.indigo.position = 3; isolateHand(close, 'ochre', ['repellingShot']);
     expect(availability(close, 'repellingShot')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_NEAR_OR_FAR' });
     let aimed = ready(); aimed.fighters.ochre.aimed = true; isolateHand(aimed, 'ochre', ['repellingShot']);
     aimed = playCard(aimed, 'repellingShot');
     expect(aimed.fighters.ochre.aimed).toBe(false); expect(aimed.fighters.indigo.health).toBe(37);
   });
   it('a spell leaves Exposed alone while Close attacks use it without consuming it', () => {
-    let spell = ready(); spell.fighters.indigo.position = 2; spell.fighters.indigo.exposed = true; spell.players.ochre.mana = 1; isolateHand(spell, 'ochre', ['arcBolt']);
-    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(37); expect(spell.fighters.indigo.exposed).toBe(true);
-    let melee = ready(); melee.fighters.indigo.position = 2; melee.fighters.indigo.exposed = true; isolateHand(melee, 'ochre', ['strike']);
-    melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(37); expect(melee.fighters.indigo.exposed).toBe(true);
+    let spell = ready(); spell.fighters.indigo.position = 3; spell.fighters.indigo.exposed = true; spell.players.ochre.mana = 1; isolateHand(spell, 'ochre', ['arcBolt']);
+    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(36); expect(spell.fighters.indigo.exposed).toBe(true);
+    let melee = ready(); melee.fighters.indigo.position = 3; melee.fighters.indigo.exposed = true; isolateHand(melee, 'ochre', ['strike']);
+    melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(36); expect(melee.fighters.indigo.exposed).toBe(true);
   });
 });
 
@@ -205,7 +205,7 @@ describe('mage cards', () => {
   });
   it('Ley Step moves exactly one space, gains mana, and offers no move into a wall', () => {
     expect(cardDefinition('leyStep').cost).toBe(3);
-    let state = ready(); isolateHand(state, 'ochre', ['leyStep', 'leyStep']);
+    let state = ready(); state.fighters.ochre.position = 2; isolateHand(state, 'ochre', ['leyStep', 'leyStep']);
     state = playCard(state, 'leyStep', (command) => command.type === 'playMoveAction' && command.direction === 'left');
     expect(state.fighters.ochre.position).toBe(1); expect(state.players.ochre.mana).toBe(2); assertInvariants(state);
     expect(availability(state, 'leyStep')).toMatchObject({ selection: 'direction', movements: ['right'] });
@@ -214,11 +214,11 @@ describe('mage cards', () => {
   it('Ley Step gains 1 mana at Near and 2 mana at Far after moving', () => {
     let near = ready(); near.fighters.indigo.position = 4; isolateHand(near, 'ochre', ['leyStep']);
     near = playCard(near, 'leyStep', (command) => command.type === 'playMoveAction' && command.direction === 'right');
-    expect(near.fighters.ochre.position).toBe(3); expect(near.players.ochre.mana).toBe(1);
+    expect(near.fighters.ochre.position).toBe(4); expect(near.players.ochre.mana).toBe(1);
 
     let far = ready(); far.fighters.indigo.position = 4; isolateHand(far, 'ochre', ['leyStep']);
     far = playCard(far, 'leyStep', (command) => command.type === 'playMoveAction' && command.direction === 'left');
-    expect(far.fighters.ochre.position).toBe(1); expect(far.players.ochre.mana).toBe(2);
+    expect(far.fighters.ochre.position).toBe(2); expect(far.players.ochre.mana).toBe(2);
   });
 
   it('Prism gains 2 mana, draws, and discards exactly the chosen card', () => {
@@ -245,7 +245,7 @@ describe('mage cards', () => {
     expect(availability(state, 'muster')).toMatchObject({ enabled: false, reasonCode: 'RESOLVE_CHOICE_FIRST', selection: 'discard' });
   });
   it('spells spend their mana cost and are illegal without it', () => {
-    for (const [definitionId, mana, damage] of [['arcBolt', 1, 3], ['fireball', 2, 7], ['starfire', 3, 12]] as const) {
+    for (const [definitionId, mana, damage] of [['arcBolt', 1, 4], ['fireball', 2, 8], ['starfire', 3, 12]] as const) {
       for (const position of [2, 3, 5]) {
         let state = ready(); state.fighters.indigo.position = position; state.players.ochre.mana = mana; isolateHand(state, 'ochre', [definitionId]);
         state = playCard(state, definitionId);
@@ -260,12 +260,12 @@ describe('mage cards', () => {
 describe('batch integrity', () => {
   const PLAYABLE: readonly { id: string; position: number; mana: number }[] = [
     { id: 'stipend', position: 3, mana: 0 }, { id: 'reclaim', position: 3, mana: 0 }, { id: 'adapt', position: 3, mana: 0 },
-    { id: 'heavyBlow', position: 2, mana: 0 }, { id: 'steadyShot', position: 3, mana: 0 },
+    { id: 'heavyBlow', position: 3, mana: 0 }, { id: 'steadyShot', position: 4, mana: 0 },
     { id: 'focus', position: 3, mana: 0 }, { id: 'channel', position: 3, mana: 0 },
     { id: 'leyStep', position: 3, mana: 0 }, { id: 'prism', position: 3, mana: 0 },
     { id: 'arcBolt', position: 3, mana: 1 }, { id: 'fireball', position: 3, mana: 2 }, { id: 'starfire', position: 3, mana: 3 },
-    { id: 'step', position: 3, mana: 0 }, { id: 'strike', position: 2, mana: 0 },
-    { id: 'repellingShot', position: 3, mana: 0 }
+    { id: 'step', position: 3, mana: 0 }, { id: 'strike', position: 3, mana: 0 },
+    { id: 'repellingShot', position: 4, mana: 0 }
   ];
   it('every card in the batch resolves into a valid state', () => {
     for (const entry of PLAYABLE) {
@@ -286,7 +286,7 @@ describe('batch integrity', () => {
 
     const step = ready(); isolateHand(step, 'ochre', ['step']);
     const moved = replayCommands(step, [{ type: 'playMoveAction', cardInstanceId: handCard(step, 'ochre', 'step'), direction: 'right' }]);
-    expect(moved.fighters.ochre.position).toBe(3); expect(moved.players.ochre.positionChanged).toBe(true);
+    expect(moved.fighters.ochre.position).toBe(4); expect(moved.players.ochre.positionChanged).toBe(true);
     expect(moved.players.ochre.deck.hand).toEqual([]); expect(definitions(moved.players.ochre.deck.play)).toEqual(['step']);
     expect(moved.events.slice(-2).map((event) => event.type)).toEqual(['cardPlayed', 'move']);
 
