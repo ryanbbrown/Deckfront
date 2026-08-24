@@ -164,10 +164,13 @@ describe('random PSRO artifacts and resumability', () => {
     expect(artifact.status).toBe('converged');
     expect(artifact.rounds.map((round) => round.cleanBatch)).toEqual([true, true, true, true, true]);
     expect(validateRandomPsroArtifact(artifact, expected)).toMatchObject({ valid: true, converged: true });
+    expect(validateRandomPsroArtifact(artifact, expected, { proposalEvidence: 'structural' }))
+      .toMatchObject({ valid: true, converged: true });
     const rejects = (name: string, mutate: (copy: typeof artifact) => void): void => {
       const copy = structuredClone(artifact); mutate(copy);
-      expect(validateRandomPsroArtifact(copy, expected).valid, name).toBe(false);
+      expect(validateRandomPsroArtifact(copy, expected, { proposalEvidence: 'structural' }).valid, name).toBe(false);
     };
+    rejects('schema', (copy) => { copy.schemaVersion = 4 as typeof copy.schemaVersion; });
     rejects('kingdom', (copy) => { copy.kingdom.name = 'wrong'; });
     rejects('rules', (copy) => { copy.rulesFingerprint.hash = 'stale'; });
     rejects('config', (copy) => { copy.config.finalists += 1; });
@@ -191,6 +194,13 @@ describe('random PSRO artifacts and resumability', () => {
     rejects('proposal source counts', (copy) => { copy.rounds[0]!.proposalDiagnostics.sourceCounts.semantic += 1; });
     rejects('recipe coverage', (copy) => { copy.rounds[0]!.proposalDiagnostics.recipeCoverage.coveredCoreIds.pop(); });
     rejects('proposal hash', (copy) => { copy.independentAttack!.proposalDiagnostics.proposalHash = 'malformed'; });
+    const deepProposalMismatch = structuredClone(artifact);
+    deepProposalMismatch.rounds[0]!.proposalDiagnostics.proposalHash = '000000000';
+    expect(validateRandomPsroArtifact(deepProposalMismatch, expected, { proposalEvidence: 'structural' }).valid).toBe(true);
+    expect(validateRandomPsroArtifact(deepProposalMismatch, expected).valid).toBe(false);
+    const malformedDiagnostics = structuredClone(artifact);
+    malformedDiagnostics.rounds[0]!.proposalDiagnostics.sourceCounts.semantic += 1;
+    expect(validateRandomPsroArtifact(malformedDiagnostics, expected, { proposalEvidence: 'structural' }).valid).toBe(false);
     rejects('attack evidence', (copy) => { copy.independentAttack!.finalists[0]!.blocks += 1; });
     rejects('attack flag', (copy) => { copy.independentAttack!.confirmedAboveThreshold = true; });
     rejects('seed overlap', (copy) => {
@@ -293,7 +303,7 @@ describe('consistency report math and prior sources', () => {
     expect(result.score).toBeCloseTo(0.5);
     expect(result.support).toHaveLength(2);
     expect(result.worstSupport.interval95.lower).toBeGreaterThanOrEqual(0);
-    const rendered = renderRandomPsroConsistencyReport({ schemaVersion: 1,
+    const rendered = renderRandomPsroConsistencyReport({ schemaVersion: 2,
       experiment: 'random-psro-consistency-report', createdAt: '', reportSeed: 1, confirmationBlocks: 2,
       empiricalGates: { oldSupportVsNewNoCiLowerAbove50: true, crossRunLotteryWithin47To53: true,
         crossRunSupportNoCiLowerAbove50: true, independentAttackNoCiLowerAbove55: true }, kingdoms: [] });

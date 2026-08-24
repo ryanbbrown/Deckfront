@@ -104,7 +104,7 @@ export interface Kingdom001SenseCheck {
   comparison: Kingdom001Comparison;
 }
 export interface RandomPsroConsistencyReport {
-  schemaVersion: 1;
+  schemaVersion: 2;
   experiment: 'random-psro-consistency-report';
   createdAt: string;
   reportSeed: number;
@@ -358,7 +358,7 @@ export async function generateRandomPsroConsistencyReport(
         ...(kingdom001Comparison ? { kingdom001Comparison } : {}) });
     } finally { await runner.close(); }
   }
-  return { schemaVersion: 1, experiment: 'random-psro-consistency-report', createdAt: new Date().toISOString(),
+  return { schemaVersion: 2, experiment: 'random-psro-consistency-report', createdAt: new Date().toISOString(),
     reportSeed, confirmationBlocks,
     empiricalGates: {
       oldSupportVsNewNoCiLowerAbove50: kingdoms[0]?.kingdom001Comparison?.oldSupportGate ?? false,

@@ -3,7 +3,7 @@
 ## Run
 
 - Kingdom: `deep-beam-tuning-009`
-- Version: `random-psro-v5`
+- Version: `random-psro-v5`, artifact schema 4, consistency report schema 1
 - Seeds: 35001 and 35002
 - Proposal mix per 20,000 fresh policies: 12,000 semantic recipes, 5,000 local mutations, and 3,000 unrestricted policies
 
@@ -15,6 +15,7 @@
 - No support strategy had a held-out lower bound above 52% against the other lottery, so the cross-support pilot gate passed.
 - Acquisition-based metagame shares were 70.7% Melee / 29.3% Ranged for seed 35001 and 100.0% Melee for seed 35002. The 29.3-point family-share gap failed the 10-point gate and was worse than v4's 14.9-point gap.
 - The known v4 Precision Shot–Longshot challenger scored 49.7% against seed 35001 and 46.0% against seed 35002. Its confidence-interval lower bounds were 48.1% and 43.9%, so the canary gate passed.
+- All generated support plans decoded as canonical response policies, so the cumulative and contiguous duplicate-target no-op gate passed.
 - Seed 35002's final attack was a local count variant of its 89.8%-weight strategy: `Precision Shot ×3 → Sharpen ×3 → Strike ×4 → Step ×1 → Gold ×∞` instead of `Precision Shot ×4 → Sharpen ×3 → Strike ×3 → Step ×2 → Gold ×∞`.
 
 ## Decision

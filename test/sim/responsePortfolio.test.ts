@@ -1,17 +1,21 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { kingdomOf, resetKingdoms } from '../../src/game';
+import { kingdomOf, registerKingdom, resetKingdoms } from '../../src/game';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import {
   deriveResponseCardRoles, proposeResponsePortfolio, responseDamageCores, responsePortfolioAllocation
 } from '../../src/sim/responsePortfolio';
-import { stoplessRandomDomain } from '../../src/sim/randomPsro';
-import { INFINITE_COUNT, canonicalStrategy } from '../../src/sim/strategy';
+import { stoplessRandomDomain, strategyArchetype } from '../../src/sim/randomPsro';
+import { INFINITE_COUNT, canonicalStrategy, fixedBuyPlan, identify } from '../../src/sim/strategy';
+import type { Strategy } from '../../src/sim/strategy';
 
 afterEach(() => resetKingdoms());
 
 function kingdom009() {
   deepBeamSuite.register();
   return kingdomOf('deep-beam-tuning-009');
+}
+function plan(slots: Parameters<typeof fixedBuyPlan>[0]): Strategy {
+  return identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan(slots) });
 }
 
 describe('semantic response proposal portfolio', () => {
@@ -24,23 +28,50 @@ describe('semantic response proposal portfolio', () => {
     expect(roles.trashing).toEqual(expect.arrayContaining(['reforge', 'scour', 'sharpen']));
     expect(roles.economy).toEqual(expect.arrayContaining(['silver', 'gold']));
     expect(roles.cards.salvageShot).toMatchObject({ damage: true, requiredFodderFamily: 'ranged' });
+    expect(strategyArchetype(plan([
+      { kind: 'buy', cardId: 'precisionShot', desiredCount: 2 },
+      { kind: 'buy', cardId: 'improvise', desiredCount: INFINITE_COUNT }
+    ]))).toBe('Ranged + Engine');
   });
 
-  it('covers every one-card and two-card damage core before repeating the portfolio', () => {
-    const kingdom = kingdom009();
+  it('covers every feasible damage core and retains its cards and sampled hard enablers', () => {
+    deepBeamSuite.register();
+    const kingdom = kingdomOf('deep-beam-tuning-003');
     const roles = deriveResponseCardRoles(kingdom);
     const cores = responseDamageCores(roles);
-    const result = proposeResponsePortfolio({ kingdom, seed: 35_001, count: 100, excludedCanonical: new Set() });
-    expect(cores).toHaveLength(15);
-    expect(cores).toContainEqual(expect.objectContaining({
-      cardIds: ['longshot', 'precisionShot'], familyShape: 'pure'
-    }));
+    const result = proposeResponsePortfolio({ kingdom, seed: 35_001, count: 500, excludedCanonical: new Set() });
+    expect(cores).toContainEqual(expect.objectContaining({ cardIds: ['longshot', 'salvageShot'], familyShape: 'pure' }));
     expect(result.diagnostics.recipeCoverage.coveredCoreIds)
       .toEqual(result.diagnostics.recipeCoverage.availableCoreIds);
-    expect(Object.values(result.diagnostics.recipeCoverage.recipesByCore).every((count) => count > 0)).toBe(true);
+    for (let index = 0; index < result.policies.length; index += 1) {
+      const origin = result.origins[index]!;
+      if (origin.source !== 'semantic') continue;
+      const cards = new Set(result.policies[index]!.buyPlan.flatMap((slot) => slot.kind === 'buy' ? [slot.cardId] : []));
+      expect(origin.coreCardIds.every((cardId) => cards.has(cardId))).toBe(true);
+      expect(origin.requiredEnablerIds.every((cardId) => cards.has(cardId))).toBe(true);
+    }
   });
 
-  it('makes semantic recipes legal, damaging, enabled, useful, and free of cumulative no-ops', () => {
+  it('rejects damage cores whose mana, spender, or discard-fodder requirements are impossible', () => {
+    registerKingdom({ id: 'impossible-overload', name: 'Impossible Overload', startingHealth: 50,
+      actionPiles: [{ cardId: 'overload', count: 10 }] });
+    const overloadRoles = deriveResponseCardRoles(kingdomOf('impossible-overload'));
+    expect(overloadRoles.damage).toContain('overload');
+    expect(responseDamageCores(overloadRoles).map((core) => core.id)).not.toContain('overload');
+    expect(() => proposeResponsePortfolio({ kingdom: kingdomOf('impossible-overload'), seed: 1,
+      count: 10, excludedCanonical: new Set() })).toThrow('no credible purchasable damage path');
+
+    registerKingdom({ id: 'impossible-mana', name: 'Impossible Mana', startingHealth: 50,
+      actionPiles: [{ cardId: 'arcBolt', count: 10 }], overrides: { focus: { cost: 0 } } });
+    expect(responseDamageCores(deriveResponseCardRoles(kingdomOf('impossible-mana')))).toEqual([]);
+
+    registerKingdom({ id: 'impossible-fodder', name: 'Impossible Fodder', startingHealth: 50,
+      actionPiles: [{ cardId: 'salvageShot', count: 10 }, { cardId: 'strike', count: 10 }] });
+    expect(responseDamageCores(deriveResponseCardRoles(kingdomOf('impossible-fodder')))
+      .some((core) => core.cardIds.includes('salvageShot'))).toBe(false);
+  });
+
+  it('makes semantic recipes legal, damaging, useful, and free of cumulative no-ops', () => {
     deepBeamSuite.register();
     const kingdom = kingdomOf('deep-beam-tuning-001');
     const roles = deriveResponseCardRoles(kingdom);
@@ -64,32 +95,58 @@ describe('semantic response proposal portfolio', () => {
         const previous = active[index - 1]!, current = active[index]!;
         expect(previous.kind === 'buy' && current.kind === 'buy' && previous.cardId === current.cardId).toBe(false);
       }
-      if (cards.includes('arcBolt') || cards.includes('cascade') || cards.includes('fireball') || cards.includes('starfire')) {
-        expect(cards.some((cardId) => roles.mana.includes(cardId))).toBe(true);
-      }
     }
+    const sampledManaEnablers = new Set(result.origins.flatMap((origin) =>
+      origin.source === 'semantic' && origin.coreCardIds.includes('arcBolt') ? origin.requiredEnablerIds : []));
+    expect(sampledManaEnablers.size).toBeGreaterThan(1);
     expect(new Set(result.policies.map(canonicalStrategy)).size).toBe(result.policies.length);
   });
 
-  it('uses exact source allocation and canonical meaningful local policies', () => {
+  it('prioritizes weighted support, links local changes to scored parents, and finds the observed attack', () => {
     const kingdom = kingdom009();
-    const seed = proposeResponsePortfolio({ kingdom, seed: 3, count: 20, excludedCanonical: new Set() });
-    const excluded = new Set(seed.policies.map(canonicalStrategy));
-    const result = proposeResponsePortfolio({ kingdom, seed: 4, count: 20_000,
-      excludedCanonical: excluded, parents: seed.policies });
-    expect(responsePortfolioAllocation(20_000, true)).toEqual({ semantic: 12_000, local: 5_000, unrestricted: 3_000 });
+    const dominant = plan([
+      { kind: 'buy', cardId: 'precisionShot', desiredCount: 4 },
+      { kind: 'buy', cardId: 'sharpen', desiredCount: 3 },
+      { kind: 'buy', cardId: 'strike', desiredCount: 3 },
+      { kind: 'buy', cardId: 'step', desiredCount: 2 },
+      { kind: 'buy', cardId: 'gold', desiredCount: INFINITE_COUNT }
+    ]);
+    const secondary = plan([
+      { kind: 'buy', cardId: 'strike', desiredCount: 2 },
+      { kind: 'buy', cardId: 'step', desiredCount: 2 },
+      { kind: 'buy', cardId: 'silver', desiredCount: INFINITE_COUNT }
+    ]);
+    const archive = plan([{ kind: 'buy', cardId: 'longshot', desiredCount: INFINITE_COUNT }]);
+    const excluded = new Set([dominant, secondary, archive].map(canonicalStrategy));
+    const result = proposeResponsePortfolio({ kingdom, seed: 35_002, count: 20_000, excludedCanonical: excluded,
+      parents: [{ strategy: secondary, weight: 0.102 }, { strategy: dominant, weight: 0.898 }],
+      archiveParents: [archive] });
     expect(result.diagnostics.sourceCounts).toEqual({ semantic: 12_000, local: 5_000, unrestricted: 3_000 });
-    expect(result.diagnostics.parentCount).toBe(20);
-    const domain = stoplessRandomDomain(kingdom.id);
-    const local = result.policies.filter((_policy, index) => result.sources[index] === 'local');
-    expect(local).toHaveLength(5_000);
-    for (const policy of local) {
-      expect(() => domain.decode(policy)).not.toThrow();
-      expect(excluded.has(canonicalStrategy(policy))).toBe(false);
+    expect(result.diagnostics).toMatchObject({ supportParentCount: 2, archiveParentCount: 1 });
+    const localIndexes = result.origins.flatMap((origin, index) => origin.source === 'local' ? [index] : []);
+    expect(result.origins[localIndexes[0]!]!).toMatchObject({ source: 'local', parentId: dominant.id,
+      parentKind: 'support', operator: 'count-vector' });
+    for (const index of localIndexes) {
+      const origin = result.origins[index]!;
+      if (origin.source !== 'local') continue;
+      const parent = [dominant, secondary, archive].find((candidate) => candidate.id === origin.parentId)!;
+      expect(canonicalStrategy(result.policies[index]!)).not.toBe(canonicalStrategy(parent));
     }
+    const attack = result.policies.find((policy, index) => {
+      const origin = result.origins[index]!;
+      const active = policy.buyPlan.filter((slot) => slot.kind === 'buy');
+      return origin.source === 'local' && origin.parentId === dominant.id
+        && active.map((slot) => slot.desiredCount).join('/') === `3/3/4/1/${INFINITE_COUNT}`
+        && active.map((slot) => slot.cardId).join('/') === 'precisionShot/sharpen/strike/step/gold';
+    });
+    expect(attack, 'the seed-35002 dominant-parent 3 / 3 / 4 / 1 attack').toBeDefined();
     expect(new Set(result.policies.map(canonicalStrategy)).size).toBe(20_000);
+  });
 
-    const parentless = proposeResponsePortfolio({ kingdom, seed: 5, count: 200, excludedCanonical: new Set() });
+  it('uses exact allocation and moves the local quota to semantic without parents', () => {
+    expect(responsePortfolioAllocation(20_000, true)).toEqual({ semantic: 12_000, local: 5_000, unrestricted: 3_000 });
+    const parentless = proposeResponsePortfolio({ kingdom: kingdom009(), seed: 5, count: 200,
+      excludedCanonical: new Set() });
     expect(parentless.diagnostics.sourceCounts).toEqual({ semantic: 170, local: 0, unrestricted: 30 });
   });
 

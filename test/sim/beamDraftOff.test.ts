@@ -40,7 +40,7 @@ describe('the experimental draft-off beam grammar', () => {
   });
 
   it('constructs a full ten-slot alternating purchase ladder', () => {
-    let candidate = beamFloors('three-way-engine').find((entry) => entry.floorKey === 'precisionShot')!;
+    let candidate = beamFloors('three-way-engine').find((entry) => entry.floorKey === 'pepperingShot')!;
     const rungs = [
       ['regroup', 1], ['pepperingShot', 1], ['regroup', 2], ['pepperingShot', 2],
       ['regroup', 3], ['pepperingShot', 3], ['regroup', 4], ['pepperingShot', 4], ['regroup', 5]
@@ -57,7 +57,7 @@ describe('the experimental draft-off beam grammar', () => {
     const slots = candidate.strategy.buyPlan.filter((slot) => slot.kind !== 'inactive');
     expect(slots).toHaveLength(BUY_PLAN_SLOTS);
     expect(slots.map((slot) => slot.kind === 'buy' ? slot.cardId : 'stop'))
-      .toEqual([...rungs.map(([cardId]) => cardId), 'precisionShot']);
+      .toEqual([...rungs.map(([cardId]) => cardId), 'pepperingShot']);
   });
 
   it('respects a practical active-slot limit without expanding exhaustively past it', () => {

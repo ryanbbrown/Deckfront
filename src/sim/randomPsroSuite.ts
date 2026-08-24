@@ -9,7 +9,7 @@ import {
   runRandomPsro, validateRandomPsroArtifact
 } from './randomPsro';
 import type {
-  ArtifactEvidence, RandomPsroArtifact, RandomPsroConfig, RunRandomPsroOptions
+  ArtifactEvidence, ArtifactValidationOptions, RandomPsroArtifact, RandomPsroConfig, RunRandomPsroOptions
 } from './randomPsro';
 import { rulesFingerprint } from './rulesFingerprint';
 
@@ -54,11 +54,12 @@ export function randomPsroArtifactPath(root: string, unit: RandomPsroUnit): stri
 }
 
 export function inspectRandomPsroUnit(
-  root: string, unit: RandomPsroUnit, config: Partial<RandomPsroConfig> = {}
+  root: string, unit: RandomPsroUnit, config: Partial<RandomPsroConfig> = {},
+  validation: ArtifactValidationOptions = {}
 ): ArtifactEvidence {
   try {
     const parsed = JSON.parse(fs.readFileSync(randomPsroArtifactPath(root, unit), 'utf8')) as unknown;
-    return validateRandomPsroArtifact(parsed, { ...unit, config });
+    return validateRandomPsroArtifact(parsed, { ...unit, config }, validation);
   } catch (error) {
     return { valid: false, converged: false,
       reason: error instanceof Error ? error.message : String(error), artifact: null };
@@ -126,7 +127,7 @@ export async function runRandomPsroBatch(
     }
   }
   writeAtomic(path.join(suiteRoot(options.root), 'status.json'), {
-    schemaVersion: 2, suiteVersion: RANDOM_PSRO_VERSION, config: { ...RANDOM_PSRO_DEFAULT_CONFIG, ...options.config },
+    schemaVersion: 3, suiteVersion: RANDOM_PSRO_VERSION, config: { ...RANDOM_PSRO_DEFAULT_CONFIG, ...options.config },
     total: units.length, ...result
   });
   return result;
@@ -139,7 +140,7 @@ export function randomPsroStatus(root: string, config: Partial<RandomPsroConfig>
   let valid = 0, converged = 0, incomplete = 0;
   const missing: { unit: RandomPsroUnit; reason: string }[] = [];
   for (const unit of units) {
-    const evidence = inspectRandomPsroUnit(root, unit, config);
+    const evidence = inspectRandomPsroUnit(root, unit, config, { proposalEvidence: 'structural' });
     if (!evidence.valid) missing.push({ unit, reason: evidence.reason });
     else { valid += 1; if (evidence.converged) converged += 1; else incomplete += 1; }
   }
