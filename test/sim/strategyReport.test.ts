@@ -38,9 +38,9 @@ describe('strategy distribution report', () => {
 
     expect(model.eligibleStrategies).toBe(3);
     expect(model.strategyTypes).toEqual([
-      { label: 'Mage + Ranged', share: 0.5, kingdoms: 1 },
-      { label: 'Melee', share: 0.375, kingdoms: 1 },
-      { label: 'Mage + Melee', share: 0.125, kingdoms: 1 }
+      { label: 'Mage + Ranged', share: 0.5, minimumShare: 0.5, maximumShare: 0.5, kingdoms: 1 },
+      { label: 'Melee', share: 0.375, minimumShare: 0.375, maximumShare: 0.375, kingdoms: 1 },
+      { label: 'Mage + Melee', share: 0.125, minimumShare: 0.125, maximumShare: 0.125, kingdoms: 1 }
     ]);
     expect(model.cardSelection.find((card) => card.cardId === 'a')).toMatchObject({
       eligibleKingdoms: 2, selectionRate: 0.375, startingRate: 0.375
@@ -154,6 +154,30 @@ describe('strategy distribution report', () => {
     ]);
   });
 
+  it('averages per-kingdom joint archetype extrema from full discovered matrices', () => {
+    const weakPayoff = [[0, 0, 1], [0, 0, 0], [-1, 0, 0]];
+    const model = buildStrategyReportModel({ suiteVersion: 'test', cards, kingdoms: [
+      { id: 'ranging', availableCardIds: [], strategies: [
+        strategy('a', { weight: 0.5, damageType: 'Melee' }),
+        strategy('b', { weight: 0.5, damageType: 'Mage' })
+      ], equilibrium: { strategyIds: ['a', 'b', 'c'], centeredPayoffs: weakPayoff, value: 0,
+        archetypeByStrategyId: { a: 'Melee', b: 'Mage', c: 'Ranged' } } },
+      { id: 'fixed', availableCardIds: [], strategies: [
+        strategy('only', { damageType: 'Mage' })
+      ], equilibrium: { strategyIds: ['only'], centeredPayoffs: [[0]], value: 0,
+        archetypeByStrategyId: { only: 'Mage' } } }
+    ] });
+    const byLabel = new Map(model.strategyTypes.map((measure) => [measure.label, measure]));
+
+    expect(byLabel.get('Melee')).toEqual({ label: 'Melee', share: 0.25,
+      minimumShare: 0, maximumShare: 0.5, kingdoms: 1 });
+    expect(byLabel.get('Mage')).toEqual({ label: 'Mage', share: 0.75,
+      minimumShare: 0.5, maximumShare: 1, kingdoms: 2 });
+    expect(byLabel.get('Ranged')).toMatchObject({ label: 'Ranged', share: 0,
+      minimumShare: 0, kingdoms: 0 });
+    expect(byLabel.get('Ranged')!.maximumShare).toBeLessThan(1e-6);
+  });
+
   it('renders the fixed sections in order without obsolete controls or global analyses', () => {
     const html = renderStrategyReport(buildStrategyReportModel({ suiteVersion: 'test', cards, kingdoms: [
       { id: 'one', availableCardIds: ['a', 'b', 'm1', 'm2', 'r1', 'r2', 'e'], strategies: [strategy('one')] }
@@ -182,6 +206,9 @@ describe('strategy distribution report', () => {
     expect(html).toContain('The denominator is K eligible kingdoms, not a raw strategy count.');
     expect(html).not.toContain('relationship score');
     expect(html).toContain('including mixed strategies');
+    expect(html).toContain('minimum–maximum share');
+    expect(html).toContain('conditional on discovered strategies and do not cover omitted strategies');
+    expect(html).toContain('provisional classification');
     expect(html).not.toContain('data-weight');
     expect(html).not.toContain('<select');
     expect(html).not.toContain('Most often together');

@@ -20,6 +20,11 @@ export interface EquilibriumResult {
   residuals: EquilibriumResiduals;
 }
 
+export interface EquilibriumGroupWeightRange {
+  minimum: number;
+  maximum: number;
+}
+
 function validate(ids: readonly string[], payoff: readonly (readonly number[])[]): void {
   if (!ids.length || payoff.length !== ids.length || payoff.some((row) => row.length !== ids.length)) {
     throw new Error('An equilibrium needs a non-empty square payoff matrix.');
@@ -38,6 +43,52 @@ function validate(ids: readonly string[], payoff: readonly (readonly number[])[]
 
 function solutionMap(variables: readonly [string, number][]): Map<string, number> {
   return new Map(variables);
+}
+
+function groupWeight(
+  ids: readonly string[], payoff: readonly (readonly number[])[], value: number,
+  groupIds: ReadonlySet<string>, direction: 'minimize' | 'maximize'
+): number {
+  const constraints = new Map<string, { min?: number; equal?: number }>([['total', { equal: 1 }]]);
+  for (let column = 0; column < ids.length; column += 1) {
+    constraints.set(`column:${column}`, { min: value - EQUILIBRIUM_TOLERANCE });
+  }
+  const variables = new Map<string, Map<string, number>>();
+  for (let row = 0; row < ids.length; row += 1) {
+    const coefficients = new Map<string, number>([
+      ['total', 1], ['objective', groupIds.has(ids[row]!) ? 1 : 0]
+    ]);
+    for (let column = 0; column < ids.length; column += 1) {
+      coefficients.set(`column:${column}`, payoff[row]![column]!);
+    }
+    variables.set(`p:${row}`, coefficients);
+  }
+  const result = solve({ direction, objective: 'objective', constraints, variables },
+    { precision: 1e-10, checkCycles: true });
+  if (result.status !== 'optimal') throw new Error(`Equilibrium group-weight LP failed: ${result.status}.`);
+  const values = solutionMap(result.variables);
+  const weight = ids.reduce((sum, id, index) => sum
+    + (groupIds.has(id) ? (values.get(`p:${index}`) ?? 0) : 0), 0);
+  return Math.max(0, Math.min(1, weight));
+}
+
+/** Optimizes a group as one objective over all mixtures with the fixed solved game value. */
+export function equilibriumGroupWeightRange(
+  inputIds: readonly string[], inputPayoff: readonly (readonly number[])[], value: number,
+  inputGroupIds: Iterable<string>
+): EquilibriumGroupWeightRange {
+  validate(inputIds, inputPayoff);
+  if (!Number.isFinite(value)) throw new Error('The fixed equilibrium value must be finite.');
+  const groupIds = new Set(inputGroupIds);
+  const knownIds = new Set(inputIds);
+  for (const id of groupIds) if (!knownIds.has(id)) throw new Error(`Unknown equilibrium strategy id ${id}.`);
+  const order = inputIds.map((id, index) => ({ id, index })).sort((a, b) => a.id.localeCompare(b.id));
+  const ids = order.map((entry) => entry.id);
+  const payoff = order.map((row) => order.map((column) => inputPayoff[row.index]![column.index]!));
+  return {
+    minimum: groupWeight(ids, payoff, value, groupIds, 'minimize'),
+    maximum: groupWeight(ids, payoff, value, groupIds, 'maximize')
+  };
 }
 
 function baseValue(payoff: readonly (readonly number[])[]): number {

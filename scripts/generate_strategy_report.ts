@@ -6,6 +6,7 @@ import {
   ALWAYS_AVAILABLE_ACTION_IDS, CARDS, VARIABLE_ACTION_IDS
 } from '../src/game';
 import { balanceSuite } from '../src/sim/balanceSuite';
+import { equilibriumGroupWeightRange, solveEquilibrium } from '../src/sim/equilibrium';
 import {
   buildBalanceReportModel, family, loadArtifactDirectory, selfPlayFor
 } from './generate_balance_report';
@@ -31,10 +32,18 @@ export interface StrategyReportStrategyInput {
   buyPlan?: readonly { cardId: string }[];
 }
 
+export interface StrategyReportEquilibriumInput {
+  strategyIds: string[];
+  centeredPayoffs: number[][];
+  value: number;
+  archetypeByStrategyId: Record<string, string>;
+}
+
 export interface StrategyReportKingdomInput {
   id: string;
   availableCardIds: string[];
   strategies: StrategyReportStrategyInput[];
+  equilibrium?: StrategyReportEquilibriumInput;
 }
 
 export interface StrategyReportInput {
@@ -43,7 +52,13 @@ export interface StrategyReportInput {
   cards: StrategyReportCardInput[];
 }
 
-export interface StrategyTypeMeasure { label: string; share: number; kingdoms: number }
+export interface StrategyTypeMeasure {
+  label: string;
+  share: number;
+  minimumShare: number;
+  maximumShare: number;
+  kingdoms: number;
+}
 export interface CardSelectionMeasure {
   cardId: string;
   offeredKingdoms: number;
@@ -137,24 +152,53 @@ function buildStrategyTypes(input: StrategyReportInput): {
 } {
   const rows = input.kingdoms.map((kingdom) => {
     const strategies = lotteryStrategies(kingdom);
-    return { strategies, weights: normalizedWeights(strategies) };
+    return { kingdom, strategies, weights: normalizedWeights(strategies) };
   }).filter((row) => row.strategies.length > 0);
-  const totals = new Map<string, { share: number; kingdoms: number }>();
+  const labels = new Set(rows.flatMap((row) => [
+    ...row.strategies.map((strategy) => strategy.damageType),
+    ...Object.values(row.kingdom.equilibrium?.archetypeByStrategyId ?? {})
+  ]));
+  const totals = new Map([...labels].map((label) => [label,
+    { share: 0, minimumShare: 0, maximumShare: 0, kingdoms: 0 }]));
   for (const row of rows) {
     const present = new Set<string>();
     row.strategies.forEach((strategy, index) => {
-      const current = totals.get(strategy.damageType) ?? { share: 0, kingdoms: 0 };
-      current.share += row.weights[index]!;
-      totals.set(strategy.damageType, current);
+      totals.get(strategy.damageType)!.share += row.weights[index]!;
       present.add(strategy.damageType);
     });
     for (const label of present) totals.get(label)!.kingdoms += 1;
+    for (const label of labels) {
+      const equilibrium = row.kingdom.equilibrium;
+      if (!equilibrium) {
+        const selected = row.strategies.reduce((sum, strategy, index) =>
+          sum + (strategy.damageType === label ? row.weights[index]! : 0), 0);
+        totals.get(label)!.minimumShare += selected;
+        totals.get(label)!.maximumShare += selected;
+        continue;
+      }
+      const matrixIds = new Set(equilibrium.strategyIds);
+      const labelIds = Object.entries(equilibrium.archetypeByStrategyId)
+        .filter(([, archetype]) => archetype === label).map(([id]) => id);
+      if (Object.keys(equilibrium.archetypeByStrategyId).length !== equilibrium.strategyIds.length
+        || equilibrium.strategyIds.some((id) => equilibrium.archetypeByStrategyId[id] === undefined)
+        || Object.keys(equilibrium.archetypeByStrategyId).some((id) => !matrixIds.has(id))) {
+        throw new Error(`Archetype labels must partition the full discovered matrix for ${row.kingdom.id}.`);
+      }
+      const range = equilibriumGroupWeightRange(equilibrium.strategyIds,
+        equilibrium.centeredPayoffs, equilibrium.value, labelIds);
+      totals.get(label)!.minimumShare += range.minimum;
+      totals.get(label)!.maximumShare += range.maximum;
+    }
   }
   return {
     eligibleKingdoms: rows.length,
     eligibleStrategies: rows.reduce((sum, row) => sum + row.strategies.length, 0),
     strategyTypes: [...totals.entries()].map(([label, values]) => ({
-      label, share: rows.length ? values.share / rows.length : 0, kingdoms: values.kingdoms
+      label,
+      share: rows.length ? values.share / rows.length : 0,
+      minimumShare: rows.length ? values.minimumShare / rows.length : 0,
+      maximumShare: rows.length ? values.maximumShare / rows.length : 0,
+      kingdoms: values.kingdoms
     })).sort((left, right) => right.share - left.share || left.label.localeCompare(right.label))
   };
 }
@@ -286,7 +330,7 @@ export function renderStrategyReport(model: StrategyReportModel): string {
     `<tr><td><strong>${measure.family}</strong></td>${depthCells(measure.counts)}</tr>`).join('');
   const familyCountRows = depth.familyCounts.map((measure) =>
     `<tr${measure.familyCount === '2 or 3' ? ' class="summary-row"' : ''}><td><strong>${measure.familyCount} ${measure.familyCount === 1 ? 'family' : 'families'}</strong></td>${depthCells(measure.counts)}</tr>`).join('');
-  const typeBars = model.strategyTypes.map((type) => `<div class="bar-row"><strong>${escape(type.label)}</strong><div class="bar"><i style="width:${(type.share * 100).toFixed(1)}%"></i></div><span>${(type.share * 100).toFixed(1)}%</span></div>`).join('');
+  const typeBars = model.strategyTypes.map((type) => `<div class="bar-row"><strong>${escape(type.label)}</strong><div class="bar"><span class="range" style="left:${(type.minimumShare * 100).toFixed(1)}%;width:${((type.maximumShare - type.minimumShare) * 100).toFixed(1)}%"></span><i style="left:${(type.share * 100).toFixed(1)}%"></i></div><span>${(type.share * 100).toFixed(1)}%<small>${(type.minimumShare * 100).toFixed(1)}–${(type.maximumShare * 100).toFixed(1)}%</small></span></div>`).join('');
   const cardRows = model.cardSelection.slice().sort((left, right) => right.selectionRate - left.selectionRate
     || model.cards.find((card) => card.id === left.cardId)!.name.localeCompare(model.cards.find((card) => card.id === right.cardId)!.name)).map((measure) => {
     const card = model.cards.find((entry) => entry.id === measure.cardId)!;
@@ -299,9 +343,9 @@ export function renderStrategyReport(model: StrategyReportModel): string {
   }).join('');
   const embedded = JSON.stringify(model).replaceAll('<', '\\u003c');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Strategy distribution report</title><style>
-:root{color-scheme:light;--ink:#17231d;--muted:#5a665f;--paper:#f4f1e9;--panel:#fff;--line:#ced7d1;--accent:#096b4b;--accent-soft:#e3f1eb}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.48 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1500px;margin:auto;padding:32px 26px 72px}h1{font-size:clamp(34px,5vw,58px);line-height:1;margin:0 0 12px}h2{font-size:27px;margin:0 0 8px}h3{font-size:20px;margin:0 0 8px}h4{font-size:16px;margin:0 0 6px}p{max-width:95ch;color:var(--muted)}section{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:22px;margin:22px 0}.evidence{display:flex;gap:10px;flex-wrap:wrap}.evidence div{background:var(--accent-soft);border-radius:9px;padding:12px 15px}.evidence strong{display:block;font-size:24px;color:var(--accent)}.table-scroll,.matrix-scroll{overflow:auto;border:1px solid var(--line);border-radius:9px}table{width:100%;border-collapse:collapse;background:#fff}th,td{text-align:left;padding:9px 11px;border-bottom:1px solid #e5eae7;vertical-align:top}th{background:#edf3ef;font-size:12px;text-transform:uppercase;letter-spacing:.035em;white-space:nowrap}tbody tr:last-child td{border-bottom:0}small{display:block;color:var(--muted)}.bar-row{display:grid;grid-template-columns:minmax(130px,220px) 1fr 68px;align-items:center;gap:10px;margin:8px 0}.bar{height:18px;background:#edf0ee;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent)}.family-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:18px}.family-panel{min-width:0;border:1px solid var(--line);border-radius:10px;padding:14px}.matrix{width:auto;table-layout:fixed}.matrix th,.matrix td{padding:3px;text-align:center}.matrix thead th{height:105px;vertical-align:bottom}.matrix thead span{display:block;writing-mode:vertical-rl;transform:rotate(180deg);margin:auto}.matrix tbody th{text-align:right;position:sticky;left:0;z-index:2}.matrix td.empty{background:#f7f8f7}.matrix button{width:94px;min-height:78px;border:1px solid rgba(0,0,0,.08);border-radius:5px;background:#fff;font:10px/1.25 system-ui;cursor:pointer}.matrix button small{margin-top:2px}.matrix button:focus{outline:3px solid #17231d;outline-offset:1px}.cell-stack{display:flex;height:7px;margin-top:5px;border-radius:3px;overflow:hidden;background:#eee}.cell-stack i{display:block;height:100%}.combination-heading{margin-top:18px}.pair-detail{margin-top:13px}.stack{display:flex;height:28px;border-radius:6px;overflow:hidden;background:#eee}.stack span{min-width:1px}.both{background:#087a58}.first{background:#68af98}.second{background:#d99a69}.neither{background:#d9dfdc}.legend{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;margin-top:8px;font-size:12px}.legend i{display:inline-block;width:10px;height:10px;margin-right:4px}.summary-row td{background:var(--accent-soft);border-top:2px solid var(--accent)}.definitions li{margin:8px 0}@media(max-width:1050px){.family-grid{grid-template-columns:1fr}}@media(max-width:760px){main{padding:20px 10px 48px}section{padding:15px}.bar-row{grid-template-columns:110px 1fr 56px}}
+:root{color-scheme:light;--ink:#17231d;--muted:#5a665f;--paper:#f4f1e9;--panel:#fff;--line:#ced7d1;--accent:#096b4b;--accent-soft:#e3f1eb}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.48 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1500px;margin:auto;padding:32px 26px 72px}h1{font-size:clamp(34px,5vw,58px);line-height:1;margin:0 0 12px}h2{font-size:27px;margin:0 0 8px}h3{font-size:20px;margin:0 0 8px}h4{font-size:16px;margin:0 0 6px}p{max-width:95ch;color:var(--muted)}section{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:22px;margin:22px 0}.evidence{display:flex;gap:10px;flex-wrap:wrap}.evidence div{background:var(--accent-soft);border-radius:9px;padding:12px 15px}.evidence strong{display:block;font-size:24px;color:var(--accent)}.table-scroll,.matrix-scroll{overflow:auto;border:1px solid var(--line);border-radius:9px}table{width:100%;border-collapse:collapse;background:#fff}th,td{text-align:left;padding:9px 11px;border-bottom:1px solid #e5eae7;vertical-align:top}th{background:#edf3ef;font-size:12px;text-transform:uppercase;letter-spacing:.035em;white-space:nowrap}tbody tr:last-child td{border-bottom:0}small{display:block;color:var(--muted)}.bar-row{display:grid;grid-template-columns:minmax(130px,220px) 1fr 95px;align-items:center;gap:10px;margin:8px 0}.bar{position:relative;height:18px;background:#edf0ee;border-radius:4px}.bar .range{position:absolute;top:5px;height:8px;background:#8bc6b1;border-radius:4px}.bar i{position:absolute;top:1px;width:3px;height:16px;background:var(--accent);transform:translateX(-1px)}.family-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-top:18px}.family-panel{min-width:0;border:1px solid var(--line);border-radius:10px;padding:14px}.matrix{width:auto;table-layout:fixed}.matrix th,.matrix td{padding:3px;text-align:center}.matrix thead th{height:105px;vertical-align:bottom}.matrix thead span{display:block;writing-mode:vertical-rl;transform:rotate(180deg);margin:auto}.matrix tbody th{text-align:right;position:sticky;left:0;z-index:2}.matrix td.empty{background:#f7f8f7}.matrix button{width:94px;min-height:78px;border:1px solid rgba(0,0,0,.08);border-radius:5px;background:#fff;font:10px/1.25 system-ui;cursor:pointer}.matrix button small{margin-top:2px}.matrix button:focus{outline:3px solid #17231d;outline-offset:1px}.cell-stack{display:flex;height:7px;margin-top:5px;border-radius:3px;overflow:hidden;background:#eee}.cell-stack i{display:block;height:100%}.combination-heading{margin-top:18px}.pair-detail{margin-top:13px}.stack{display:flex;height:28px;border-radius:6px;overflow:hidden;background:#eee}.stack span{min-width:1px}.both{background:#087a58}.first{background:#68af98}.second{background:#d99a69}.neither{background:#d9dfdc}.legend{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;margin-top:8px;font-size:12px}.legend i{display:inline-block;width:10px;height:10px;margin-right:4px}.summary-row td{background:var(--accent-soft);border-top:2px solid var(--accent)}.definitions li{margin:8px 0}@media(max-width:1050px){.family-grid{grid-template-columns:1fr}}@media(max-width:760px){main{padding:20px 10px 48px}section{padding:15px}.bar-row{grid-template-columns:110px 1fr 56px}}
 </style></head><body><main><header><h1>Strategy distribution report</h1><p>This report shows optimal-play representation. Metagame shares use equilibrium weights within each kingdom, then give every eligible kingdom equal weight.</p><div class="evidence"><div><strong>${model.evidence.kingdoms}</strong>v2 tuning kingdoms</div><div><strong>40 of 80</strong>offer each variable card</div><div><strong>${model.evidence.alwaysAvailableCardIds.map((id) => escape(model.cards.find((card) => card.id === id)!.name)).join(', ')}</strong>always offered</div></div></header>
-<section id="strategy-types"><h2>Strategy types</h2><p>All final-lottery strategies count, including mixed strategies. Shares are metagame-weighted.</p>${typeBars}<p>${model.eligibleStrategies} lottery strategies across ${model.eligibleKingdoms} eligible kingdoms.</p></section>
+<section id="strategy-types"><h2>Strategy types</h2><p>The marker is the selected deterministic maximum-support witness. The light bar is the minimum–maximum share across all equilibria of each kingdom’s full discovered payoff matrix. Each archetype is optimized jointly, and each kingdom has equal weight.</p>${typeBars}<p>${model.eligibleStrategies} selected lottery strategies across ${model.eligibleKingdoms} eligible kingdoms. These ranges are conditional on discovered strategies and do not cover omitted strategies. Archetype labels are fixed before each LP from the current damage-card evidence. This provisional classification does not change with the LP weights, so a different opponent mixture could change actual purchases without changing a strategy’s label.</p></section>
 <section id="competitive-depth"><h2>Competitive depth</h2><p>These tables show how pure-family options expand beyond the optimal lottery. Each family counts at most once per kingdom. Mixed strategies do not count.</p><h3>Kingdoms with each pure family</h3><div class="table-scroll"><table><thead><tr><th>Pure family</th><th>Lottery only</th><th>Add ≥48%</th><th>Add ≥45%</th><th>Add ≥40%</th></tr></thead><tbody>${familyDepthRows}</tbody></table></div><h3>Number of pure families per kingdom</h3><div class="table-scroll"><table><thead><tr><th>Pure families present</th><th>Lottery only</th><th>Add ≥48%</th><th>Add ≥45%</th><th>Add ≥40%</th></tr></thead><tbody>${familyCountRows}</tbody></table></div><p>Each column is cumulative and uses all ${depth.kingdoms} kingdoms as its denominator. “Add ≥45%” includes the lottery plus non-lottery strategies that score at least 45% against it. Zero pure families can mean that only mixed strategies qualify.</p></section>
 <section id="family-relationships"><h2>Cards in pure-family play</h2><p>Each family table and heatmap is conditional on exact pure-family lottery play. Mixed strategies are excluded. “Usage when offered” asks whether the card was used when available. “Overall usage” counts unavailable cards as unused across all pure-family kingdoms. Equilibrium weights are normalized within that family, then eligible kingdoms receive equal weight.</p><div class="family-grid">${familyPanels}</div></section>
 <section id="card-use"><h2>Cards used by these strategies</h2><p>This table uses all final-lottery strategies, including mixed strategies. Every eligible kingdom has equal weight, with equilibrium strategy weights inside each kingdom. Selection means that a card starts in the deck or was acquired during evaluated games. A purchase plan does not count unless the strategy bought the card.</p><div class="table-scroll"><table><thead><tr><th>Card</th><th>Offered</th><th>Selected</th><th>Starting deck</th><th>Acquired</th><th>Mean copies per strategy</th></tr></thead><tbody>${cardRows}</tbody></table></div></section>
@@ -320,14 +364,29 @@ export function loadStrategyReportInput(root: string): StrategyReportInput {
     competitiveScore: 0.4, competitiveStatus: '40% viable'
   }).kingdoms;
   const definitionById = new Map(definitions.map((definition) => [definition.id, definition]));
+  const artifactById = new Map(artifacts.map((artifact) => [artifact.run.kingdomId, artifact]));
   const kingdoms: StrategyReportKingdomInput[] = reports.map((kingdom) => {
     const definition = definitionById.get(kingdom.id)!;
+    const artifact = artifactById.get(kingdom.id)!;
+    const reportById = new Map(kingdom.strategies.map((strategy) => [strategy.id, strategy]));
+    const archetypeByStrategyId = Object.fromEntries(artifact.strategies.map((strategy) => {
+      const reported = reportById.get(strategy.id);
+      const acquisitionRates = reported?.acquisitionRates ?? Object.fromEntries(strategy.buyPlan
+        .flatMap((slot) => slot.kind === 'buy' ? [[slot.cardId, 1] as const] : []));
+      return [strategy.id, classifyStrategyDamage({ startingBuild: strategy.startingBuild, acquisitionRates })];
+    }));
+    const solved = solveEquilibrium(artifact.strategies.map((strategy) => strategy.id),
+      artifact.matrix.centeredPayoffs);
     return { id: kingdom.id,
       availableCardIds: [...ALWAYS_AVAILABLE_ACTION_IDS, ...definition.actionPiles.map((pile) => pile.cardId)],
       strategies: kingdom.strategies.map((strategy) => ({ id: strategy.id, status: strategy.status,
-        weight: strategy.weight, score: strategy.score, damageType: classifyStrategyDamage(strategy),
+        weight: strategy.weight, score: strategy.score, damageType: archetypeByStrategyId[strategy.id]!,
         startingBuild: strategy.startingBuild, acquisitionRates: strategy.acquisitionRates,
-        buyPlan: strategy.purchaseSteps.map((step) => ({ cardId: step.cardId })) })) };
+        buyPlan: strategy.purchaseSteps.map((step) => ({ cardId: step.cardId })) })),
+      equilibrium: { strategyIds: artifact.strategies.map((strategy) => strategy.id),
+        centeredPayoffs: artifact.matrix.centeredPayoffs, value: solved.value,
+        archetypeByStrategyId }
+    };
   });
   const cards = Object.values(CARDS).filter((card) => card.type === 'action').map((card): StrategyReportCardInput => ({
     id: card.id, name: card.name, family: family(card.id), cost: card.cost, text: card.text,

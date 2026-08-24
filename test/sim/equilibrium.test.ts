@@ -1,6 +1,8 @@
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { solveEquilibrium } from '../../src/sim/equilibrium';
+import {
+  equilibriumGroupWeightRange, solveEquilibrium
+} from '../../src/sim/equilibrium';
 
 describe('maximum-support equilibrium', () => {
   it('solves dominant, cyclic, degenerate, and dominated literal matrices', () => {
@@ -20,6 +22,27 @@ describe('maximum-support equilibrium', () => {
 
     const weak = solveEquilibrium(['a', 'b', 'c'], [[0, 0, 1], [0, 0, 0], [-1, 0, 0]]);
     expect(weak.maximumEquilibriumWeight.b).toBeGreaterThan(0.99);
+  });
+
+  it('optimizes a strategy group jointly instead of summing individual maxima', () => {
+    const ids = ['a', 'b', 'dominated'];
+    const payoff = [[0, 0, 1], [0, 0, 1], [-1, -1, 0]];
+    const solved = solveEquilibrium(ids, payoff);
+    const range = equilibriumGroupWeightRange(ids, payoff, solved.value, ['a', 'b']);
+
+    expect(solved.maximumEquilibriumWeight.a! + solved.maximumEquilibriumWeight.b!).toBeGreaterThan(1.99);
+    expect(range.minimum).toBeCloseTo(1);
+    expect(range.maximum).toBeCloseTo(1);
+  });
+
+  it('finds a genuine group-share range over the equilibrium polytope', () => {
+    const ids = ['a', 'b', 'dominated'];
+    const payoff = [[0, 0, 1], [0, 0, 0], [-1, 0, 0]];
+    const solved = solveEquilibrium(ids, payoff);
+
+    expect(equilibriumGroupWeightRange(ids, payoff, solved.value, ['a'])).toEqual({
+      minimum: 0, maximum: 1
+    });
   });
 
   it('lets a counter restore an old zero-weight strategy', () => {

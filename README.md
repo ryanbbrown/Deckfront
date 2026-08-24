@@ -113,7 +113,10 @@ slots. Run or resume it and check its status with:
 npm run deep-beam:suite:run
 npm run deep-beam:suite:run -- --limit 10
 npm run deep-beam:suite:status
+npm run deep-beam:strategy-ranges
 ```
+
+`deep-beam:strategy-ranges` writes the current ten-kingdom selected/minimum/maximum archetype shares to the ignored `.data/deep-strategy-equilibrium-ranges-pilot-10.json` artifact. Each range optimizes an archetype jointly over the full equilibrium polytope of each kingdom’s discovered payoff matrix. It then averages kingdoms with equal weight. The range is conditional on the discovered matrix and does not cover strategies that search omitted. Damage archetypes use a fixed, provisional classification from the recorded matrix acquisitions; labels do not change when the LP weights change.
 
 Use `--limit 10` for a resumable ten-kingdom balance pilot. At 330 seconds per kingdom, the serial search takes about 9.2 hours before overhead. Complete results
 survive interruption. Inputs, results, and atomic status are ignored under
@@ -135,8 +138,10 @@ node dist-sim/experiment.mjs --kingdom current-duel --mode smoke --seed 1 \
 Four workers are the measured default on an Apple M4 Pro. More workers remain available with `--workers`, but short simulation jobs become slower when process messaging and result transfer exceed the saved game time.
 
 `npm run strategy:report` writes the exploratory `.html/strategy-report.html` from the completed
-80-kingdom version 2 tuning corpus. The report shows equilibrium-weighted strategy types, pure-family
-competitive depth and card relationships, and equilibrium-weighted card use.
+80-kingdom version 2 tuning corpus. The first chart shows the selected deterministic maximum-support
+witness and the feasible archetype-share range over each full discovered matrix. The report also shows
+pure-family competitive depth and card relationships, and equilibrium-weighted card use. All equilibrium
+ranges are conditional on discovered strategies and do not cover omitted strategies.
 
 ## Code boundaries
 

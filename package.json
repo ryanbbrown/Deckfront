@@ -20,6 +20,7 @@
     "balance:suite:validate": "tsx scripts/validate_balance_suite.ts",
     "deep-beam:suite:run": "tsx scripts/run_deep_beam_suite.ts",
     "deep-beam:suite:status": "tsx scripts/run_deep_beam_suite.ts --status",
+    "deep-beam:strategy-ranges": "tsx scripts/generate_deep_strategy_ranges.ts",
     "strategy:report": "tsx scripts/generate_strategy_report.ts",
     "test:e2e:manifest": "tsx scripts/validate_e2e_manifest.ts",
     "test:e2e": "npm run test:e2e:manifest && npm run build && playwright test",

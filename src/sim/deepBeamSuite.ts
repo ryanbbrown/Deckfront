@@ -312,6 +312,7 @@ export const deepBeamSuite = Object.freeze({
   createInput,
   inputPath,
   resultPath,
+  resultEvidence: inspectRun,
   runBatch,
   status
 });
