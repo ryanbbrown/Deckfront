@@ -89,8 +89,8 @@
       "indigo": 78
      },
      "finalHealth": {
-      "ochre": 37,
-      "indigo": 40
+      "ochre": 47,
+      "indigo": 50
      }
     }
    },
@@ -101,7 +101,7 @@
     "version": 582,
     "nextCardSerial": 42,
     "kingdomId": "three-way-engine",
-    "startingHealth": 40,
+    "startingHealth": 50,
     "startingDraftEnabled": true,
     "activePlayerId": "ochre",
     "selectedFirstPlayerId": "ochre",
@@ -326,14 +326,14 @@
      "ochre": {
       "playerId": "ochre",
       "position": 3,
-      "health": 37,
+      "health": 47,
       "aimed": false,
       "exposed": false
      },
      "indigo": {
       "playerId": "indigo",
       "position": 4,
-      "health": 40,
+      "health": 50,
       "aimed": false,
       "exposed": false
      }
@@ -9826,25 +9826,25 @@
     },
     "outcome": "indigo",
     "reason": "victory",
-    "turns": 18,
+    "turns": 20,
     "telemetry": {
-     "turnsToWin": 18,
-     "eventCount": 222,
+     "turnsToWin": 20,
+     "eventCount": 251,
      "damageByCard": {
       "ochre": {},
       "indigo": {
-       "pepperingShot": 23,
-       "precisionShot": 20
+       "pepperingShot": 26,
+       "precisionShot": 24
       }
      },
      "playsByCard": {
       "ochre": {
-       "regroup": 21,
+       "regroup": 25,
        "cull": 3
       },
       "indigo": {
-       "pepperingShot": 23,
-       "precisionShot": 5
+       "pepperingShot": 26,
+       "precisionShot": 6
       }
      },
      "purchasesByCard": {
@@ -9870,10 +9870,10 @@
      },
      "deadDraws": {
       "ochre": {
-       "range": 9,
+       "range": 12,
        "mana": 0,
        "setup": 0,
-       "total": 9
+       "total": 12
       },
       "indigo": {
        "range": 0,
@@ -9887,12 +9887,12 @@
       "indigo": 22
      },
      "unspentMoney": {
-      "ochre": 7,
-      "indigo": 22
+      "ochre": 8,
+      "indigo": 26
      },
      "finalHealth": {
       "ochre": 0,
-      "indigo": 37
+      "indigo": 47
      }
     }
    }
@@ -9921,14 +9921,14 @@
     },
     "outcome": "indigo",
     "reason": "victory",
-    "turns": 24,
+    "turns": 28,
     "telemetry": {
-     "turnsToWin": 24,
-     "eventCount": 147,
+     "turnsToWin": 28,
+     "eventCount": 177,
      "damageByCard": {
       "ochre": {},
       "indigo": {
-       "fireball": 40
+       "fireball": 56
       }
      },
      "playsByCard": {
@@ -9936,9 +9936,9 @@
        "cull": 2
       },
       "indigo": {
-       "leyStep": 11,
+       "leyStep": 15,
        "cull": 3,
-       "fireball": 5
+       "fireball": 7
       }
      },
      "purchasesByCard": {
@@ -9964,10 +9964,10 @@
      },
      "deadDraws": {
       "ochre": {
-       "range": 24,
+       "range": 29,
        "mana": 0,
        "setup": 0,
-       "total": 24
+       "total": 29
       },
       "indigo": {
        "range": 0,
@@ -9981,12 +9981,12 @@
       "indigo": 14
      },
      "unspentMoney": {
-      "ochre": 18,
-      "indigo": 13
+      "ochre": 23,
+      "indigo": 16
      },
      "finalHealth": {
       "ochre": 0,
-      "indigo": 37
+      "indigo": 47
      }
     }
    }
@@ -10062,8 +10062,8 @@
       "indigo": 85
      },
      "finalHealth": {
-      "ochre": 37,
-      "indigo": 40
+      "ochre": 47,
+      "indigo": 50
      }
     }
    }
@@ -10092,13 +10092,13 @@
     },
     "outcome": "ochre",
     "reason": "victory",
-    "turns": 19,
+    "turns": 21,
     "telemetry": {
-     "turnsToWin": 19,
-     "eventCount": 196,
+     "turnsToWin": 21,
+     "eventCount": 219,
      "damageByCard": {
       "ochre": {
-       "drive": 37
+       "drive": 47
       },
       "indigo": {
        "discharge": 16,
@@ -10108,8 +10108,8 @@
      "playsByCard": {
       "ochre": {
        "cull": 2,
-       "footwork": 14,
-       "drive": 9
+       "footwork": 17,
+       "drive": 11
       },
       "indigo": {
        "leyStep": 10,
@@ -10158,11 +10158,11 @@
       "indigo": 14
      },
      "unspentMoney": {
-      "ochre": 13,
-      "indigo": 13
+      "ochre": 16,
+      "indigo": 17
      },
      "finalHealth": {
-      "ochre": 16,
+      "ochre": 26,
       "indigo": 0
      }
     }
@@ -10239,8 +10239,8 @@
       "indigo": 86
      },
      "finalHealth": {
-      "ochre": 37,
-      "indigo": 40
+      "ochre": 47,
+      "indigo": 50
      }
     }
    }

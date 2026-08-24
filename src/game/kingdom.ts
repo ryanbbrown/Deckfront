@@ -132,7 +132,7 @@ export function randomKingdom(id: string, variableCardIds: readonly string[]): K
     throw new Error(`A random kingdom needs ${RANDOM_KINGDOM_SIZE} unique variable action cards.`);
   }
   return {
-    id, name: 'Random Kingdom', startingHealth: 40,
+    id, name: 'Random Kingdom', startingHealth: 50,
     actionPiles: variableCardIds.map((cardId) => ({ cardId, count: MAX_PILE_COUNT }))
   };
 }

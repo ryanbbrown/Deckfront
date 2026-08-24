@@ -34,7 +34,7 @@ describe('AI games', () => {
     expect(created).toMatchObject({ mode: 'ai', humanPlayerId: 'indigo', aiPlayerId: 'ochre',
       aiDifficulty: 'hard', phase: 'startingBuild', activePlayerId: 'indigo' });
     expect(repository.record?.aiDifficulty).toBe('hard');
-    expect(created.fighters.ochre.health).toBe(37); expect(created.training?.strategyId).toBe(strategy.id);
+    expect(created.fighters.ochre.health).toBe(47); expect(created.training?.strategyId).toBe(strategy.id);
     const ready = await service.updateBuild(created.id, created.revision, [], true);
     expect(ready).toMatchObject({ phase: 'action', activePlayerId: 'indigo', turn: 2 });
     expect(ready.completedBuilds).toEqual({ ochre: [], indigo: [] });
@@ -105,7 +105,7 @@ describe('AI games', () => {
     const service = new GameService(new MemoryRepository(), trainer);
     const created = await service.create({ seed: 9, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
     expect(created).toMatchObject({ humanPlayerId: 'ochre', aiPlayerId: 'indigo', selectedFirstPlayerId: 'ochre', activePlayerId: 'ochre' });
-    expect(created.fighters.ochre.health).toBe(37); expect(created.fighters.indigo.health).toBe(40);
+    expect(created.fighters.ochre.health).toBe(47); expect(created.fighters.indigo.health).toBe(50);
   });
 
   it('returns public AI events without hidden hand or draw-order details', async () => {

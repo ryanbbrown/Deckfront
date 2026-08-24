@@ -6,7 +6,9 @@ import {
 import type { GameCommand, GameState, PlayerId } from '../src/game';
 
 function ready(seed = 1, first: PlayerId = 'ochre'): GameState {
-  let state = createGame({ seed, firstPlayerId: first }); state = submitStartingBuild(state, 'ochre', []); return submitStartingBuild(state, 'indigo', []);
+  let state = createGame({ seed, firstPlayerId: first }); state = submitStartingBuild(state, 'ochre', []); state = submitStartingBuild(state, 'indigo', []);
+  state.fighters.ochre.health = 40; state.fighters.indigo.health = 40;
+  return state;
 }
 function action(state: GameState, predicate: (command: GameCommand) => boolean) {
   const found = listLegalActions(state).find((candidate) => predicate(candidate.command));

@@ -185,7 +185,7 @@ describe('fixed choice policy', () => {
   it('uses the revealed state after Prism to preserve the maximum damage line', () => {
     const state = arena({ kingdomId: 'three-way-engine', hand: ['prism', 'fireball', 'copper'], draw: ['channel'], firstBuyPending: false });
     const finished = playPhase(state, strategy({ repeatPurchase: 'footwork' }));
-    expect(finished.fighters.indigo.health).toBe(32);
+    expect(finished.fighters.indigo.health).toBe(42);
     expect(finished.events.some((event) => event.type === 'discard')).toBe(true);
   });
 });
@@ -219,7 +219,7 @@ describe('search mechanics', () => {
     expect(memoized.state).toEqual(plain.state);
     expect(memoized.commands.map((command) => command.type)).toContain('resolveRecover');
     expect(memoized.commands.filter((command) => 'cardInstanceId' in command)).toHaveLength(2);
-    expect(memoized.state.fighters.indigo.health).toBe(39);
+    expect(memoized.state.fighters.indigo.health).toBe(49);
   });
 
   it('does not read labels while searching', () => {

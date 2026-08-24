@@ -12,7 +12,9 @@ import type { Strategy } from '../src/sim/strategy';
 function ready(): GameState {
   let state = createGame({ seed: 9 });
   state = submitStartingBuild(state, 'ochre', []);
-  return submitStartingBuild(state, 'indigo', []);
+  state = submitStartingBuild(state, 'indigo', []);
+  state.fighters.ochre.health = 40; state.fighters.indigo.health = 40;
+  return state;
 }
 function hand(state: GameState, ids: string[]): void {
   state.players[state.activePlayerId].deck.hand = ids.map((id) => createCard(state, id));
