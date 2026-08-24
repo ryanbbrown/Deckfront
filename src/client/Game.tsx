@@ -15,7 +15,7 @@ export function PreviewTable({ catalog, market, error, onRefresh, onStart }: {
   onStart: (mode: GameMode, startingDraftEnabled: boolean, humanPlayerId?: PlayerId, aiDifficulty?: AiDifficulty) => Promise<void>;
 }) {
   const [mode, setMode] = useState<GameMode>('local');
-  const [startingDraftEnabled, setStartingDraftEnabled] = useState(true);
+  const [startingDraftEnabled, setStartingDraftEnabled] = useState(false);
   const [human, setHuman] = useState<PlayerId>('ochre');
   const [difficulty, setDifficulty] = useState<AiDifficulty>('expert');
   const [marketOpen, setMarketOpen] = useState(false);

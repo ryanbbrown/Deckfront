@@ -24,7 +24,7 @@ async function marketLayout(page: import('@playwright/test').Page) {
 test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local builds', async ({ page, baseUrl }) => {
   await page.setViewportSize({ width: 1920, height: 1080 }); await page.goto(baseUrl);
   await expect(page.getByRole('heading', { name: 'Hexdeck' })).toBeVisible(); await expect(page.getByText('Choose a kingdom')).toBeVisible(); await expect(page.getByText('I go first', { exact: true })).toHaveCount(0); await expect(page.getByText('AI goes first', { exact: true })).toHaveCount(0); await expect(page.getByLabel('AI strength')).toHaveCount(0);
-  await expect(page.locator('[data-market-card="Step"]')).toBeVisible(); await expect(page.locator('[data-market-card="Focus"]')).toBeVisible(); await expect(page.locator('[data-market-card="Scrap"]')).toHaveCount(0); await expect(page.locator('[data-market-card]')).toHaveCount(15); await expect(page.locator('[data-market-card][aria-disabled="true"]')).toHaveCount(15); await expect(page.getByLabel('Starting draft')).toBeChecked();
+  await expect(page.locator('[data-market-card="Step"]')).toBeVisible(); await expect(page.locator('[data-market-card="Focus"]')).toBeVisible(); await expect(page.locator('[data-market-card="Scrap"]')).toHaveCount(0); await expect(page.locator('[data-market-card]')).toHaveCount(15); await expect(page.locator('[data-market-card][aria-disabled="true"]')).toHaveCount(15); await expect(page.getByLabel('Starting draft')).not.toBeChecked();
   const compactWidths = await page.locator('[data-market-card]').evaluateAll((cards) => cards.map((card) => Math.round(card.getBoundingClientRect().width)));
   expect([...new Set(compactWidths)]).toEqual([137]);
   await page.locator('[data-market-card="Step"]').locator('..').click({ button: 'right' }); const cardPopup = page.getByRole('dialog', { name: 'Step details' }); await expect(cardPopup).toBeVisible(); await expect(cardPopup).toContainText('Move 1 space'); await expect(cardPopup.getByLabel('Cost 2')).toBeVisible(); expect(await cardPopup.evaluate((element) => element.matches(':modal'))).toBe(false); expect(Number.parseFloat(await cardPopup.locator('.card__rules').evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7); await page.keyboard.press('Escape'); await expect(cardPopup).toHaveCount(0);
@@ -34,7 +34,7 @@ test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local b
     const layout = await marketLayout(page); expect(layout.cardWidths).toEqual([148]); expect(layout.cardHeights).toEqual([220]); expect(layout.imageHeights).toEqual([72]); expect(layout.rows).toBe(2); expect(layout.columns).toBe(8); expect(layout.surface.width).toBeLessThanOrEqual(1320); expect(layout.surface.height).toBeLessThanOrEqual(540); expect(layout.surface.left).toBeGreaterThanOrEqual(0); expect(layout.surface.top).toBeGreaterThanOrEqual(0); expect(layout.surface.right).toBeLessThanOrEqual(layout.viewport.width); expect(layout.surface.bottom).toBeLessThanOrEqual(layout.viewport.height); expect(layout.overflow).toEqual({ horizontal: 0, vertical: 0 }); await page.getByRole('button', { name: 'Close market' }).click();
   }
   await page.setViewportSize({ width: 1920, height: 1080 });
-  await page.getByRole('button', { name: 'Start game' }).click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Step"]').click(); await expect(page.getByTestId('build-budget')).toHaveText('2 / 12 · 3 carries');
+  await page.getByLabel('Starting draft').check(); await page.getByRole('button', { name: 'Start game' }).click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Step"]').click(); await expect(page.getByTestId('build-budget')).toHaveText('2 / 12 · 3 carries');
   await page.reload(); await expect(page.getByRole('button', { name: 'Remove Copper' })).toHaveCount(2); await page.getByRole('button', { name: 'Remove Copper' }).first().click();
   await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByText('Player 2 starting build')).toBeVisible();
   await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Copper"]')).toHaveText('Copper×7'); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Step"]')).toHaveCount(0); await expect(page.getByTestId('deck-summary-indigo').locator('[data-deck-card="Copper"]')).toHaveText('Copper×7');
@@ -42,7 +42,7 @@ test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local b
   await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible();
 });
 test('DD-E2E-035: two local players draft in sequence and take complete turns on one browser', async ({ page, baseUrl }) => {
-  await page.goto(baseUrl); await page.getByRole('button', { name: 'Start game' }).click();
+  await page.goto(baseUrl); await page.getByLabel('Starting draft').check(); await page.getByRole('button', { name: 'Start game' }).click();
   await expect(page.getByText('Player 1 starting build')).toBeVisible(); await page.locator('[data-market-card="Step"]').click(); await page.getByRole('button', { name: 'Finish starting build' }).click();
   await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.locator('[data-market-card="Focus"]').click(); await page.getByRole('button', { name: 'Finish starting build' }).click();
   await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible(); await expect(page.getByRole('heading', { name: 'Player 1 hand' })).toBeVisible(); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('title', 'Player 1'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('title', 'Player 2');
@@ -183,12 +183,12 @@ test('DD-E2E-023: Cull can trash one remaining hand card and it stays absent aft
 });
 
 test('DD-E2E-025: delayed build updates keep the market dialog stable through every close path', async ({ page, baseUrl }) => {
-  await page.goto(baseUrl); await page.getByRole('button', { name: 'Start game' }).click();
+  await page.goto(baseUrl); await page.getByLabel('Starting draft').check(); await page.getByRole('button', { name: 'Start game' }).click();
   await page.route('**/build', async (route) => { await new Promise((resolve) => setTimeout(resolve, 150)); await route.continue(); }); const copper = page.locator('[data-market-card="Copper"]'); const response = page.waitForResponse('**/build'); await copper.click(); await expect(copper).toBeDisabled(); await expect(page.locator('[data-market-card="Step"]')).toBeDisabled(); await page.getByRole('button', { name: 'View all cards' }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await response; await expect(page.getByRole('dialog')).toBeVisible(); await page.getByRole('button', { name: 'Close market' }).click(); await expect(page.getByRole('dialog')).toHaveCount(0);
   await page.getByRole('button', { name: 'View all cards' }).click(); await page.keyboard.press('Escape'); await expect(page.getByRole('dialog')).toHaveCount(0); await page.getByRole('button', { name: 'View all cards' }).click(); await page.getByRole('dialog').click({ position: { x: 5, y: 5 } }); await expect(page.getByRole('dialog')).toHaveCount(0); await expect(page.getByRole('button', { name: 'Remove Copper' })).toBeVisible(); await expect(page.getByRole('alert')).toHaveCount(0);
 });
 test('DD-E2E-026: a zero-paid build locks after completion and passes to Player 2', async ({ page, baseUrl }) => {
-  await page.goto(baseUrl); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByTestId('build-budget')).toHaveText('0 / 12 · 3 carries');
+  await page.goto(baseUrl); await page.getByLabel('Starting draft').check(); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByTestId('build-budget')).toHaveText('0 / 12 · 3 carries');
   await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.locator('[data-market-card="Copper"]')).toBeVisible(); await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Copper"]')).toHaveText('Copper×7'); await expect(page.getByTestId('deck-summary-indigo').locator('[data-deck-card="Copper"]')).toHaveText('Copper×7');
 });
 test('DD-E2E-028: immediate Action, global Undo, and Buy phase restore after refresh', async ({ page, openGame }) => {
@@ -267,7 +267,7 @@ test('DD-E2E-043: a projected pending choice renders and clears after selection'
 
 test('DD-E2E-042: AI-first games show public automatic turns and undo to a human state', async ({ page, baseUrl }) => {
   await page.setViewportSize({ width: 1920, height: 1080 }); await page.goto(baseUrl); await page.getByText('Play against AI', { exact: true }).click(); await expect(page.getByText('AI goes first', { exact: true })).toBeVisible(); await page.getByText('AI goes first', { exact: true }).click();
-  const difficulty = page.getByLabel('AI strength'); await expect(difficulty.locator('option')).toHaveText(['Easy', 'Normal', 'Hard', 'Expert']); await expect(difficulty).toHaveValue('expert'); await difficulty.selectOption('hard');
+  const difficulty = page.getByLabel('AI strength'); await expect(difficulty.locator('option')).toHaveText(['Easy', 'Normal', 'Hard', 'Expert']); await expect(difficulty).toHaveValue('expert'); await difficulty.selectOption('hard'); await page.getByLabel('Starting draft').check();
   let createRequest: Record<string, unknown> | null = null;
   await page.route('**/api/games', async (route) => { createRequest = route.request().postDataJSON() as Record<string, unknown>; await new Promise((resolve) => setTimeout(resolve, 100)); await route.continue(); }); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByText('Training opponent…')).toBeVisible();
   await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByText(/Turn 2 · Player 2 action/)).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Bought Silver').last()).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Turn 1 started')).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Turn 2 started')).toBeVisible();
@@ -328,7 +328,7 @@ test('DD-E2E-047: replacing the latest event at the same count scrolls it into v
 
 test('DD-E2E-049: draft-off setup starts with rendered Scrap that stays outside the market', async ({ page, baseUrl, openGame }) => {
   await page.goto(baseUrl);
-  const draft = page.getByLabel('Starting draft'); await expect(draft).toBeChecked(); await draft.uncheck();
+  const draft = page.getByLabel('Starting draft'); await expect(draft).not.toBeChecked();
   let request: Record<string, unknown> | null = null;
   await page.route('**/api/games', async (route) => { request = route.request().postDataJSON() as Record<string, unknown>; await route.continue(); });
   await page.getByRole('button', { name: 'Start game' }).click();
