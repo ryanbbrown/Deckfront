@@ -25,7 +25,7 @@ export const RANDOM_PSRO_DEFAULT_CONFIG = Object.freeze({
   finalists: 8,
   confirmationBlocks: 400,
   matrixBlocks: 25,
-  safetyCap: 12,
+  safetyCap: 48,
   cleanBatchesRequired: 2,
   admissionLowerBound: 0.50,
   independentAttackProposalCount: 20_000,

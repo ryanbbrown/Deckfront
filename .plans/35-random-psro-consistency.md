@@ -7,7 +7,7 @@ Replace beam proposals for this experiment with broad uniform random complete pu
 ## Implementation
 
 - Add a `ResponsePolicyDomain` option for stopless policies with no no-buy floor. Random policies have 1–8 active purchase slots, finite purchase rungs only, and one mandatory infinite-card fallback.
-- In each oracle round, sample at least 20,000 unique complete policies with a fresh proposal seed. Race them on disjoint 1/2/4/8-block evidence, then evaluate up to eight finalists on a fresh held-out schedule. Admit only the best finalist whose 95% bootstrap CI lower bound is above 0.50.
+- In each oracle round, sample at least 20,000 unique complete policies with a fresh proposal seed. Race them on disjoint 1/2/4/8-block evidence, then evaluate up to eight finalists on a fresh held-out schedule. Admit only the best finalist whose 95% bootstrap CI lower bound is above 0.50. The safety cap is 48 rounds; the first full Kingdom 001 smoke admitted a response in all 12 original cap rounds, so 12 was not a meaningful convergence limit.
 - Add one confirmed response, refill the payoff matrix, solve the new equilibrium, and start a fresh batch against the new lottery. Converge only after two consecutive batches have no confirmed response. A configurable round cap writes an `incomplete` result and never reports success.
 - After convergence, run a fresh independent random attack. Its empirical gate is no confirmed challenger with a 95% CI lower bound above 0.55.
 - Store one atomic JSON artifact per kingdom and seed under a rules-fingerprint directory. Validate the kingdom, rules, configuration, matrix, equilibrium, seed separation, and terminal state before reuse.
