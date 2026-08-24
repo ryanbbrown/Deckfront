@@ -5,11 +5,11 @@ import {
   listActionAvailability, listLegalActions, marketCost, opponent, randomKingdom, rangeBand, resolveCard,
   registerKingdom, replayCommands
 } from '../game';
-import type { GameCommand, PlayerId } from '../game';
+import type { GameCommand, GameState, PlayerId } from '../game';
 import { tacticalAgent } from '../sim/tacticalAgent';
 import type {
-  AiDifficulty, BrowserAction, CardActionChoice, CardActionPresentation, GameActionPresentation, GameExport, GameView,
-  PhaseActionPresentation, PublicGameEvent
+  AiDifficulty, BrowserAction, CardActionChoice, CardActionPresentation, GameActionPresentation, GameExport, GameUpdateView, GameView,
+  PhaseActionPresentation, PresentationFrame, PresentationState, PresentationTransfer, PublicGameEvent
 } from '../shared/api';
 import type { GameRecord, GameRepository, UndoHistoryEntry } from './types';
 import { ProductionAiTrainer } from './aiTrainer';
@@ -29,7 +29,7 @@ export interface CreateGameInput {
 }
 export class GameService {
   constructor(private readonly repository: GameRepository, private readonly aiTrainer: AiTrainer = new ProductionAiTrainer()) {}
-  async create(input: CreateGameInput): Promise<GameView> {
+  async create(input: CreateGameInput): Promise<GameUpdateView> {
     const now = new Date().toISOString();
     const id = randomUUID();
     const seed = input.seed ?? Date.now();
@@ -50,13 +50,14 @@ export class GameService {
       aiStrategy: trained?.strategy ?? null, training: trained?.summary ?? null,
       initialState: cloneGame(initialState), committedCommands: [], undoHistory: [], state: initialState
     };
-    if (aiPlayerId === 'ochre') this.advanceComputer(record);
+    const frames: PresentationFrame[] = [];
+    if (aiPlayerId === 'ochre') this.advanceComputer(record, frames);
     await this.repository.create(record);
-    return this.gameView(record);
+    return this.gameUpdate(record, frames);
   }
   async get(id: string): Promise<GameView> { return this.gameView(await this.repository.load(id)); }
   async getRecord(id: string): Promise<GameRecord> { return this.repository.load(id); }
-  async updateBuild(id: string, expectedRevision: number, definitionIds: string[], complete: boolean): Promise<GameView> {
+  async updateBuild(id: string, expectedRevision: number, definitionIds: string[], complete: boolean): Promise<GameUpdateView> {
     return this.repository.withLock(id, async () => {
       const record = await this.repository.load(id);
       this.assertRevision(record, expectedRevision);
@@ -69,18 +70,19 @@ export class GameService {
       if (complete && marketCost(record.state, definitionIds) > STARTING_BUDGET) throw new BadBuildError(`Starting build costs more than ${STARTING_BUDGET} money.`);
       record.buildProposal = [...definitionIds];
       record.undoHistory = [];
+      const frames: PresentationFrame[] = [];
       if (complete) {
-        this.commitCommand(record, { type: 'submitStartingBuild', playerId: builderId, definitionIds });
+        this.commitCommand(record, { type: 'submitStartingBuild', playerId: builderId, definitionIds }, frames);
         record.buildProposal = [];
-        this.advanceComputer(record);
+        this.advanceComputer(record, frames);
       }
       this.touch(record);
       this.assertRecordReplay(record);
       await this.repository.save(record);
-      return this.gameView(record);
+      return this.gameUpdate(record, frames);
     });
   }
-  async commitAction(id: string, expectedRevision: number, actionId: string): Promise<GameView> {
+  async commitAction(id: string, expectedRevision: number, actionId: string): Promise<GameUpdateView> {
     return this.repository.withLock(id, async () => {
       const record = await this.repository.load(id);
       this.assertRevision(record, expectedRevision);
@@ -89,17 +91,18 @@ export class GameService {
       const selected = listLegalActions(record.state).find((action) => action.id === actionId);
       if (!selected) throw new ConflictError('That action is no longer legal.');
       record.undoHistory.push(this.historyEntry(record));
-      this.commitCommand(record, selected.command);
+      const frames: PresentationFrame[] = [];
+      this.commitCommand(record, selected.command, frames);
       record.completedActions += 1;
-      this.advanceComputer(record);
+      this.advanceComputer(record, frames);
       this.touch(record);
       if (record.state.winner) this.finish(record);
       this.assertRecordReplay(record);
       await this.repository.save(record);
-      return this.gameView(record);
+      return this.gameUpdate(record, frames);
     });
   }
-  async undoAction(id: string, expectedRevision: number): Promise<GameView> {
+  async undoAction(id: string, expectedRevision: number): Promise<GameUpdateView> {
     return this.repository.withLock(id, async () => {
       const record = await this.repository.load(id);
       this.assertRevision(record, expectedRevision);
@@ -113,28 +116,31 @@ export class GameService {
       this.touch(record);
       this.assertRecordReplay(record);
       await this.repository.save(record);
-      return this.gameView(record);
+      return this.gameUpdate(record, []);
     });
   }
   async exportGame(id: string): Promise<GameExport> {
     return { schemaVersion: 13, exportedAt: new Date().toISOString(), game: this.gameView(await this.repository.load(id)) };
   }
-  private advanceComputer(record: GameRecord): void {
+  private advanceComputer(record: GameRecord, frames: PresentationFrame[]): void {
     if (record.mode !== 'ai' || !record.aiStrategy || !record.humanPlayerId) return;
     const aiPlayerId = opponent(record.humanPlayerId);
     const agent = tacticalAgent(record.aiStrategy);
     let actions = 0;
+    if (!record.state.winner && record.state.activePlayerId === aiPlayerId && record.state.phase !== 'startingBuild') {
+      frames.push(this.presentationFrame(record, aiPlayerId, 'aiTurnStart', []));
+    }
     while (!record.state.winner && record.state.activePlayerId === aiPlayerId) {
       if (actions >= 1_000) throw new AiAdvanceError('The AI exceeded its turn action limit.');
       if (record.state.phase === 'startingBuild') {
         this.commitCommand(record, {
           type: 'submitStartingBuild', playerId: aiPlayerId,
           definitionIds: agent.chooseStartingBuild(record.state, aiPlayerId)
-        });
+        }, frames);
       } else {
         const legal = listLegalActions(record.state);
         const selected = agent.chooseAction(record.state, aiPlayerId, legal);
-        this.commitCommand(record, selected.command);
+        this.commitCommand(record, selected.command, frames);
         record.completedActions += 1;
       }
       actions += 1;
@@ -143,9 +149,32 @@ export class GameService {
   private historyEntry(record: GameRecord): UndoHistoryEntry {
     return { committedCommandCount: record.committedCommands.length, completedActions: record.completedActions, finishedAt: record.finishedAt, durationSeconds: record.durationSeconds };
   }
-  private commitCommand(record: GameRecord, command: GameCommand): void {
+  private commitCommand(record: GameRecord, command: GameCommand, frames: PresentationFrame[]): void {
+    const before = record.state;
     record.state = applyCommand(record.state, command);
     record.committedCommands.push(command);
+    frames.push(this.presentationFrame(record, before.activePlayerId, command.type, this.presentationTransfers(before, record.state, command)));
+  }
+  private presentationTransfers(before: GameState, after: GameState, command: GameCommand): PresentationTransfer[] {
+    const transfers: PresentationTransfer[] = [];
+    const newEvents = after.events.slice(before.events.length);
+    for (const playerId of ['ochre', 'indigo'] as const) {
+      const beforeHand = new Map(before.players[playerId].deck.hand.map((card) => [card.id, card]));
+      const beforePlay = new Set(before.players[playerId].deck.play.map((card) => card.id));
+      for (const card of after.players[playerId].deck.play) {
+        if (!beforePlay.has(card.id) && beforeHand.has(card.id)) transfers.push({ kind: 'handToPlayed', playerId, card: { ...card }, hidden: false });
+      }
+      const drew = newEvents.some((event) => event.type === 'draw' && event.playerId === playerId);
+      if (drew) {
+        for (const card of after.players[playerId].deck.hand) {
+          if (!beforeHand.has(card.id)) transfers.push({ kind: 'drawToHand', playerId, card: { ...card }, hidden: command.type === 'endBuyPhase' });
+        }
+      }
+    }
+    return transfers;
+  }
+  private presentationFrame(record: GameRecord, playerId: PlayerId, commandType: string, transfers: PresentationTransfer[]): PresentationFrame {
+    return { playerId, commandType, state: this.presentationState(record.state), eventCount: record.state.events.length, transfers };
   }
   private touch(record: GameRecord): void { record.revision += 1; record.updatedAt = new Date().toISOString(); }
   private finish(record: GameRecord): void {
@@ -277,9 +306,8 @@ export class GameService {
     } : null;
     return { cards, phases, buys, selection };
   }
-  private gameView(record: GameRecord): GameView {
-    const state = record.state;
-    const players = Object.fromEntries((['ochre', 'indigo'] as const).map((playerId) => {
+  private projectPlayers(state: GameState): GameView['players'] {
+    return Object.fromEntries((['ochre', 'indigo'] as const).map((playerId) => {
       const player = state.players[playerId];
       const ownedDefinitionIds = state.phase === 'startingBuild'
         ? Array<string>(STARTING_DECK_COPPER_COUNT).fill('copper')
@@ -290,11 +318,26 @@ export class GameService {
       }, {});
       return [playerId, {
         id: playerId, hand: structuredClone(player.deck.hand), played: structuredClone(player.deck.play),
+        discardTop: player.deck.discard.length ? { ...player.deck.discard.at(-1)! } : null,
         zoneCounts: { draw: player.deck.draw.length, hand: player.deck.hand.length, discard: player.deck.discard.length, play: player.deck.play.length },
         deckCounts, money: player.money, firstBuyMoney: player.firstBuyMoney, firstBuyPending: player.firstBuyPending,
         purchases: [...player.purchases]
       }];
     })) as GameView['players'];
+  }
+  private presentationState(state: GameState): PresentationState {
+    return {
+      activePlayerId: state.activePlayerId, phase: state.phase, turn: state.turn, winner: state.winner,
+      fighters: structuredClone(state.fighters), range: rangeBand(state), supply: { ...state.supply },
+      players: this.projectPlayers(state), trashCount: state.trash.length
+    };
+  }
+  private gameUpdate(record: GameRecord, frames: PresentationFrame[]): GameUpdateView {
+    return { ...this.gameView(record), presentation: { frames } };
+  }
+  private gameView(record: GameRecord): GameView {
+    const state = record.state;
+    const players = this.projectPlayers(state);
     const completedBuilds = state.players.ochre.startingBuild && state.players.indigo.startingBuild
       ? { ochre: [...state.players.ochre.startingBuild], indigo: [...state.players.indigo.startingBuild] }
       : null;

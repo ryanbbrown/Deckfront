@@ -23,7 +23,7 @@ The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, 
 ## Play
 
 1. Refresh until the 10 unique variable cards make an interesting kingdom. Copper, Silver, Gold, Step, and Focus are in every market. Cull is a normal kingdom pile.
-2. Choose two local players or the AI opponent. In an AI game, choose whether you or the AI goes first and select Easy, Normal, Hard, or Expert strength.
+2. Choose two local players or the AI opponent. In an AI game, choose whether you or the AI goes first, select Easy, Normal, Hard, or Expert strength, and choose whether to animate AI turns.
 3. Choose whether to use the starting draft, then start the game. AI training can take several seconds because the server simulates strategies for the chosen kingdom.
 4. With the draft on, Player 1 spends up to 12 money on starting cards, then Player 2 builds. With the draft off, both players start immediately with 7 Copper and 3 Scrap.
 5. Play any number of Action cards, end the Action phase to play Treasure cards, buy affordable cards, and end the Buy phase.
@@ -32,7 +32,7 @@ Draft-on decks start with 7 Copper. Up to 3 unspent starting money carries into 
 
 AI strategy training currently uses draft-on simulations. In a draft-off AI game, the trained starting build is ignored, but its purchase plan still controls the opponent.
 
-The arena has spaces 1 through 6. Fighters start on the symmetric middle spaces, Player 1 at 3 and Player 2 at 4. Fighters can share a space and move through each other. Distance 0 is Close, 1 is Near, and 2 or more is Far. See the [card reference](./.plans/09-card-list.md) for current costs and card text. Bought cards enter the discard pile. Actions resolve at once. The right rail keeps the public action record visible and shows both full deck compositions without zone counts. In an AI game, a complete AI turn resolves before the server returns the next human state. Its public actions appear in the rail. Undo can roll back every submitted action to the completed-setup boundary. Each undo of a turn-ending human action also removes the full AI response that it caused. Reload restores the active game and its undo history. New game clears the browser's active-game link.
+The arena has spaces 1 through 6. Fighters start on the symmetric middle spaces, Player 1 at 3 and Player 2 at 4. Fighters can share a space and move through each other. Distance 0 is Close, 1 is Near, and 2 or more is Far. See the [card reference](./.plans/09-card-list.md) for current costs and card text. Bought cards enter the discard pile. Actions resolve at once. Played cards move from the hand to Played this turn, and effect draws rise into the hand. Small draw and discard piles at the bottom left show the exact draw count, discard count, and latest discarded card. The right rail keeps the public action record visible and shows both full deck compositions without zone counts. In an AI game, the server still resolves the complete turn before it returns, then the table shows the AI hand and replays visible card plays about half a second apart. End-of-turn replenishment stays hidden. Turn off `Animate AI turns` for the immediate result. Undo can roll back every submitted action to the completed-setup boundary. Each undo of a turn-ending human action also removes the full AI response that it caused. Reload restores the active game and its undo history. New game clears the browser's active-game link.
 
 ## Verify
 

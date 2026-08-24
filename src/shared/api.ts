@@ -16,6 +16,7 @@ export interface GamePlayerView {
   id: PlayerId;
   hand: CardInstance[];
   played: CardInstance[];
+  discardTop: CardInstance | null;
   zoneCounts: { draw: number; hand: number; discard: number; play: number };
   deckCounts: Record<string, number>;
   money: number;
@@ -59,6 +60,32 @@ export interface GameActionPresentation {
   buys: BuyActionPresentation[];
   selection: SelectionPresentation | null;
 }
+export interface PresentationTransfer {
+  kind: 'handToPlayed' | 'drawToHand';
+  playerId: PlayerId;
+  card: CardInstance;
+  hidden: boolean;
+}
+export interface PresentationState {
+  activePlayerId: PlayerId;
+  phase: Phase;
+  turn: number;
+  winner: PlayerId | null;
+  fighters: Record<PlayerId, FighterView>;
+  range: RangeBand;
+  supply: Record<string, number>;
+  players: Record<PlayerId, GamePlayerView>;
+  trashCount: number;
+}
+export interface PresentationFrame {
+  playerId: PlayerId;
+  commandType: string;
+  state: PresentationState;
+  eventCount: number;
+  transfers: PresentationTransfer[];
+}
+export interface PresentationSequence { frames: PresentationFrame[] }
+
 export interface GameView {
   schemaVersion: 13;
   id: string; revision: number; createdAt: string; updatedAt: string; elapsedSeconds: number;
@@ -74,4 +101,5 @@ export interface GameView {
   fixedCardIds: string[]; variableCardIds: string[];
   buildProposal: string[]; completedBuilds: Record<PlayerId, string[]> | null;
 }
+export type GameUpdateView = GameView & { presentation: PresentationSequence };
 export interface GameExport { schemaVersion: 13; exportedAt: string; game: GameView }

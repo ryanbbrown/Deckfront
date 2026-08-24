@@ -7,7 +7,7 @@ import { VARIABLE_ACTION_IDS } from '../src/game';
 import { ProductionAiTrainer } from '../src/server/aiTrainer';
 import type { AiTrainer } from '../src/server/aiTrainer';
 import { createHexdeckServer } from '../src/server/httpServer';
-import type { GameView } from '../src/shared/api';
+import type { GameUpdateView, GameView } from '../src/shared/api';
 import type { PairingRunner } from '../src/sim/pairingRunner';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cleanups: Array<() => Promise<void>> = [];
@@ -34,12 +34,14 @@ describe('local game HTTP interface', () => {
   });
   it('creates a game and accepts both sequential builds', async () => {
     const { base } = await server(); const createdResponse = await create(base); expect(createdResponse.status).toBe(201);
-    const created = await createdResponse.json() as { id: string; revision: number; schemaVersion: number; activePlayerId: string };
-    expect(created).toMatchObject({ schemaVersion: 13, activePlayerId: 'ochre', aiDifficulty: null });
+    const created = await createdResponse.json() as GameUpdateView;
+    expect(created).toMatchObject({ schemaVersion: 13, activePlayerId: 'ochre', aiDifficulty: null, presentation: { frames: [] } });
     const playerOne = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['footwork'], complete: true }) }).then((response) => response.json()) as { revision: number; activePlayerId: string; phase: string };
     expect(playerOne).toMatchObject({ activePlayerId: 'indigo', phase: 'startingBuild' });
     const playerTwo = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: playerOne.revision, definitionIds: ['aim'], complete: true }) }).then((response) => response.json()) as { phase: string; completedBuilds: Record<string, string[]> };
     expect(playerTwo.phase).toBe('action'); expect(playerTwo.completedBuilds).toEqual({ ochre: ['footwork'], indigo: ['aim'] });
+    const loaded = await fetch(`${base}/api/games/${created.id}`).then((response) => response.json()) as Record<string, unknown>;
+    expect(loaded).not.toHaveProperty('presentation');
   });
   it('accepts the strict draft toggle and starts draft-off without build endpoints', async () => {
     const { base } = await server(); const response = await create(base,{ startingDraftEnabled:false }); expect(response.status).toBe(201);

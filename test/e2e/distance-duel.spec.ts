@@ -65,7 +65,7 @@ test('DD-E2E-002: repeated Copper Silver and Gold buys stay available and show p
 
 test('DD-E2E-003: Footwork offers Stay, draws without moving, then can move into a shared space', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['footwork'], ['aim']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 3; });
-  await page.locator('[data-card-name="Footwork"]').click(); await expect(page.getByRole('button', { name: 'Play Footwork: Left' })).toHaveText(''); await expect(page.getByRole('button', { name: 'Play Footwork: Stay' })).toHaveText(''); await expect(page.getByRole('button', { name: 'Play Footwork: Right' })).toHaveText(''); await expect(page.getByRole('button', { name: 'Play Footwork: Left' }).locator('..')).toHaveClass(/arena-space--choice/); await expect(page.locator('.choice-bar').filter({ hasText: 'Choose movement' })).toHaveCount(0);
+  await page.locator('[data-card-name="Footwork"]').click(); await expect(page.getByRole('button', { name: 'Play Footwork: Left' })).toHaveText('Left'); await expect(page.getByRole('button', { name: 'Play Footwork: Stay' })).toHaveText('Stay'); await expect(page.getByRole('button', { name: 'Play Footwork: Right' })).toHaveText('Right'); await expect(page.getByRole('button', { name: 'Play Footwork: Left' }).locator('..')).toHaveClass(/arena-space--choice/); await expect(page.locator('.choice-bar').filter({ hasText: 'Choose movement' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Cancel movement' }).click(); await expect(page.locator('.arena-space__choice-button')).toHaveCount(0); await expect(page.locator('[data-card-name="Footwork"]')).not.toHaveClass(/card--selected/); await page.locator('[data-card-name="Footwork"]').click();
   await page.getByRole('button', { name: 'Play Footwork: Stay' }).click(); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '2'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-card-name="Aim"]')).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Stayed on space 2')).toBeVisible();
   await page.getByRole('button', { name: 'Undo last action' }).click(); await page.locator('[data-card-name="Footwork"]').click(); await page.getByRole('button', { name: 'Play Footwork: Right' }).click(); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3'); await expect(page.getByTestId('range')).toHaveText('Close · 0 spaces');
@@ -111,10 +111,10 @@ test('DD-E2E-009: Far Aim applies Aimed and Volley deals six', async ({ page, op
   await playCard(page, 'Volley'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('44 HP'); await expect(page.locator('[data-player-score="ochre"]')).not.toContainText('Aimed');
 });
 
-test('DD-E2E-010: close combination resolves Footwork Feint Drive Flurry for seven damage', async ({ page, openGame }) => {
+test('DD-E2E-010: close combination resolves Footwork Feint Drive Flurry for eight damage', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['footwork', 'feint', 'drive', 'flurry']); record.state.fighters.ochre.position = 1; record.state.fighters.indigo.position = 2; });
   await page.locator('[data-card-name="Footwork"]').click(); await page.getByRole('button', { name: 'Play Footwork: Right' }).click(); await playCard(page, 'Feint'); await page.locator('[data-card-name="Drive"]').click(); await page.getByRole('button', { name: 'Play Drive: Move Both Right' }).click(); await playCard(page, 'Flurry');
-  await expect(page.locator('[data-player-score="indigo"]')).toContainText('43 HP'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3');
+  await expect(page.locator('[data-player-score="indigo"]')).toContainText('42 HP'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3');
 });
 
 test('DD-E2E-011: ranged escape uses two Footwork cards then Aim and Volley for six at Far', async ({ page, openGame }) => {
@@ -273,7 +273,7 @@ test('DD-E2E-042: AI-first games show public automatic turns and undo to a human
   const difficulty = page.getByRole('group', { name: 'AI strength' }); await expect(difficulty.getByRole('button')).toHaveText(['Easy', 'Normal', 'Hard', 'Expert']); await expect(difficulty.getByRole('button', { name: 'Expert' })).toHaveAttribute('aria-pressed', 'true'); await difficulty.getByRole('button', { name: 'Hard' }).click(); await page.getByLabel('Starting draft').check();
   let createRequest: Record<string, unknown> | null = null;
   await page.route('**/api/games', async (route) => { createRequest = route.request().postDataJSON() as Record<string, unknown>; await new Promise((resolve) => setTimeout(resolve, 100)); await route.continue(); }); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByText('Training opponent…')).toBeVisible();
-  await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByText(/Turn 2 · Player 2 action/)).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Bought Silver').last()).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Turn 1 started')).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Turn 2 started')).toBeVisible();
+  await expect(page.getByText('Player 2 starting build')).toBeVisible(); await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByRole('heading', { name: 'AI hand' })).toBeVisible(); await expect(page.locator('.choice-bar,.hand-choice-controls,.card-picker,.arena-space__choice-button')).toHaveCount(0); await expect(page.getByText(/Turn 2 · Player 2 action/)).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Bought Silver').last()).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Turn 1 started')).toBeVisible(); await expect(page.getByTestId('action-log').getByText('Turn 2 started')).toBeVisible();
   expect(createRequest).toMatchObject({ mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard' });
   await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 4 · Player 2 action/)).toBeVisible(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 2 · Player 2 buy/)).toBeVisible(); await page.reload(); await expect(page.getByText(/Turn 2 · Player 2 buy/)).toBeVisible();
 });
@@ -349,7 +349,7 @@ test('DD-E2E-049: draft-off setup starts with rendered Scrap that stays outside 
 });
 
 test('DD-E2E-050: single-target discard and trash choices complete their card effects', async ({ page, openGame }) => {
-  await openGame(page, (record) => { seedHand(record, ['bullRush','strike']); record.state.fighters.indigo.position = 2; });
+  await openGame(page, (record) => { seedHand(record, ['bullRush','strike']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 2; });
   await page.locator('[data-card-name="Bull Rush"]').click();
   await expect(page.getByText('Select 1 card to discard. 0 selected.')).toBeVisible();
   await expect(page.getByText('Click a grouped card twice')).toHaveCount(0);
@@ -473,6 +473,35 @@ test('DD-E2E-056: hand groups keep turn slots and append newly drawn definitions
   expect(await page.locator('[data-card-name="Gold"]').evaluate((card) => card.getBoundingClientRect().left)).toBeGreaterThan(await copper.evaluate((card) => card.getBoundingClientRect().left));
   await page.getByRole('button', { name: 'Undo last action' }).click();
   await expect(stipend).toHaveAttribute('data-card-count', '2'); expect(await slotLeft()).toBe(before);
+});
+
+test('DD-E2E-059: played and drawn cards travel while zone piles show exact public state', async ({ page, openGame }) => {
+  await openGame(page, (record) => { seedHand(record, ['muster'], ['aim', 'volley']); record.state.players.ochre.deck.discard.push(createCard(record.state, 'gold')); });
+  await expect(page.getByTestId('draw-pile')).toHaveAttribute('aria-label', '2 cards in draw pile');
+  await expect(page.getByTestId('discard-pile')).toHaveAttribute('aria-label', '1 cards in discard pile');
+  await expect(page.locator('[data-discard-card="Gold"]')).toBeVisible();
+  await page.evaluate(() => { const seen: string[] = []; (window as typeof window & { seenFlights?: string[] }).seenFlights = seen; new MutationObserver(() => { document.querySelectorAll<HTMLElement>('[data-flying-card]').forEach((card) => { const name = card.dataset.flyingCard; if (name && !seen.includes(name)) seen.push(name); }); }).observe(document.body, { childList: true, subtree: true }); });
+  await page.locator('[data-card-name="Muster"]').click();
+  await expect(page.locator('[data-flying-card="Muster"]')).toBeVisible();
+  await expect(page.locator('[data-played-card-name="Muster"]')).toBeVisible();
+  await expect(page.locator('[data-card-name="Aim"]')).toBeVisible(); await expect(page.locator('[data-card-name="Volley"]')).toBeVisible();
+  await expect(page.getByTestId('draw-pile')).toHaveAttribute('aria-label', '0 cards in draw pile');
+  expect(await page.evaluate(() => (window as typeof window & { seenFlights?: string[] }).seenFlights)).toEqual(expect.arrayContaining(['Muster', 'Aim', 'Volley']));
+});
+
+test('DD-E2E-061: the AI animation setting persists across reload', async ({ page, baseUrl }) => {
+  await page.goto(baseUrl); await page.getByText('Play against AI', { exact: true }).click();
+  const setting = page.getByLabel('Animate AI turns'); await expect(setting).toBeChecked(); await setting.uncheck();
+  await page.reload(); await page.getByText('Play against AI', { exact: true }).click(); await expect(page.getByLabel('Animate AI turns')).not.toBeChecked();
+});
+
+test('DD-E2E-060: reduced motion installs accepted card state without a flight', async ({ page, openGame }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await openGame(page, (record) => { seedHand(record, ['muster'], ['aim']); });
+  await page.locator('[data-card-name="Muster"]').click();
+  await expect(page.locator('[data-played-card-name="Muster"]')).toBeVisible();
+  await expect(page.locator('[data-card-name="Aim"]')).toBeVisible();
+  await expect(page.locator('[data-flying-card]')).toHaveCount(0);
 });
 
 test('DD-E2E-057: canonical card faces keep long rules inside hand and scaled played cards', async ({ page, openGame }) => {

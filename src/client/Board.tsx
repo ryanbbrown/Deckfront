@@ -15,7 +15,7 @@ export function Board({ game, movementChoices = [], busy = false, onMovement }: 
         const movement = movementChoices.find((choice) => choice.destination === space);
         return <div key={space} className={`arena-space${movement ? ' arena-space--choice' : ''}`} data-space={space}>
           <span className="arena-space__number">{space}</span>
-          {movement ? <button type="button" className="arena-space__choice-button" aria-label={movement.label} disabled={busy} onClick={() => onMovement?.(movement)} /> : null}
+          {movement ? <button type="button" className="arena-space__choice-button" aria-label={movement.label} disabled={busy} onClick={() => onMovement?.(movement)}><span className="arena-space__action">{movement.text}</span></button> : null}
           <div className="arena-space__fighters">
             {fighters.map((fighter) => {
               const name = fighter.playerId === 'ochre' ? 'Player 1' : 'Player 2';

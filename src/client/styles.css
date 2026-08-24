@@ -34,6 +34,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .arena-space--choice { border: 3px solid #ffcf5a; background: #fff2bd; color: var(--ink); box-shadow: inset 0 0 0 2px #735b1f, 0 0 12px #ffd86b99; }
 .arena-space--choice:hover { background: #ffe692; }
 .arena-space__choice-button { position: absolute; z-index: 1; inset: 0; padding: 0; border: 0; background: transparent; color: inherit; }
+.arena-space__action { position: absolute; right: 3px; bottom: 2px; left: 3px; overflow: hidden; color: #4f3a08; font-size: 9px; font-weight: 900; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .movement-cancel { position: absolute; top: -1px; right: 2px; min-height: 18px; padding: 0 6px; border: 1px solid #ffffff66; border-radius: 3px; background: transparent; color: #fff; font-size: 9px; font-weight: 800; }
 .arena-space__number { position: absolute; z-index: 2; top: 3px; left: 5px; font-size: 10px; pointer-events: none; }
 .arena-space__fighters { position: relative; z-index: 2; display: flex; align-items: center; gap: 8px; pointer-events: none; }
@@ -67,7 +68,10 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .played-row,.hand-row { display: flex; align-items: flex-start; min-width: 0; height: calc(100% - 28px); overflow: visible; padding: 4px 10px; }
 .hand-panel:has(.hand-control-bar) { display: grid; grid-template-rows: 28px 34px minmax(0,1fr); }
 .hand-control-bar { z-index: 260; display: flex; align-items: center; justify-content: center; min-width: 0; padding: 2px 10px; }
-.hand-panel:has(.hand-control-bar) .hand-row { align-items: center; justify-content: center; height: auto; min-height: 0; gap: 10px; }
+.hand-content { position: relative; min-width: 0; min-height: 0; }
+.hand-panel:has(.hand-control-bar) .hand-row { align-items: center; justify-content: center; height: 100%; min-height: 0; gap: 10px; padding-right: 116px; padding-left: 116px; }
+.hand-panel--ai { border-color: #6974c7aa; box-shadow: inset 0 0 28px #6974c71c; }
+.hand-panel--ochre { border-color: #d79a32aa; box-shadow: inset 0 0 28px #d79a321c; }
 .empty-row { align-self: center; margin: auto; color: #aebbb5; font-size: 12px; }
 .hand-card-slot { position: relative; flex: 0 1 165px; min-width: 36px; max-width: 165px; height: 220px; }
 .hand-card-slot:last-child { flex: 0 0 165px; }
@@ -165,7 +169,9 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .action-log header,.rail-decks { padding: 10px; }
 .action-log header { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #ffffff25; }
 .action-log header span { color: #9ec4b7; font-size: 9px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
-.rail-controls { display: flex; justify-content: center; gap: 8px; padding: 8px 10px; border-top: 1px solid #ffffff32; background: #091c17; }
+.rail-controls { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 10px; border-top: 1px solid #ffffff32; background: #091c17; }
+.animation-toggle { display: flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 800; white-space: nowrap; }
+.playback-label { position: absolute; right: 8px; bottom: 2px; color: #b8cbc4; font-size: 8px; }
 .rail-icon-button { display: grid; width: 34px; height: 34px; padding: 0; border: 1px solid #ffffff42; border-radius: 6px; background: #f7f3e8; color: var(--ink); font-size: 20px; font-weight: 900; line-height: 1; place-items: center; }
 .rail-icon-button:hover:not(:disabled) { border-color: #f2d477; background: #fff8df; }
 .action-log h2,.rail-decks h2 { font-size: 18px; }
@@ -183,3 +189,30 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .deck-summary > div { display: grid; gap: 2px; }
 .deck-summary [data-deck-card] { display: flex; justify-content: space-between; gap: 3px; min-width: 0; padding: 3px 5px; border-radius: 3px; background: #ffffff0d; font-size: 9px; }
 .deck-summary [data-deck-card] > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zone-piles { position: absolute; z-index: 20; bottom: 8px; left: 10px; display: flex; align-items: end; gap: 8px; }
+.zone-pile { display: grid; justify-items: center; gap: 2px; width: 46px; }
+.zone-pile > strong { color: #c8d4cf; font-size: 8px; white-space: nowrap; }
+.card-back,.discard-top { position: relative; display: grid; width: 44px; height: 66px; overflow: hidden; border: 2px solid #d7cda9; border-radius: 4px; background: #142f5b; box-shadow: 0 2px 5px #0007; place-items: center; }
+.card-back { background: repeating-linear-gradient(45deg,#183866 0 6px,#244a7c 6px 12px); color: #f2df9d; }
+.card-back span { font-family: Georgia,serif; font-size: 7px; font-weight: 900; transform: rotate(-55deg); }
+.discard-top { border-color: #ffffff66; background: #ffffff0b; color: #9fb0aa; font-size: 8px; }
+.discard-top .full-card { position: absolute; top: 0; left: 0; transform: scale(.284); transform-origin: top left; }
+.animation-placeholder { visibility: hidden; }
+.hand-row > .animation-placeholder { position: absolute; right: 116px; }
+@media (max-width: 1700px) { .hand-row > .animation-placeholder { right: 104px; } }
+.flight-layer { position: fixed; z-index: 400; inset: 0; overflow: visible; pointer-events: none; }
+.flying-card { position: fixed; margin: 0; transform-origin: top left; animation-name: card-flight; animation-timing-function: cubic-bezier(.2,.75,.25,1); animation-fill-mode: both; }
+@keyframes card-flight {
+  0% { transform: translate(0,0) scale(1); }
+  45% { filter: drop-shadow(0 14px 12px #0008); }
+  100% { transform: translate(var(--flight-x),var(--flight-y)) scale(var(--flight-scale-x),var(--flight-scale-y)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
+  .flying-card { animation: none; }
+  .hand-card-frame .full-card,.setup-switch i::after { transition: none; }
+}
+@media (max-width: 1700px) {
+  .hand-panel:has(.hand-control-bar) .hand-row { padding-right: 104px; padding-left: 104px; gap: 5px; }
+  .zone-piles { left: 6px; gap: 5px; }
+}

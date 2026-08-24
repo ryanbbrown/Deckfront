@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { createCard, resetKingdoms } from '../src/game';
 import { ProductionAiTrainer } from '../src/server/aiTrainer';
 import type { AiTrainer } from '../src/server/aiTrainer';
+import type { GameView } from '../src/shared/api';
 import { GameService } from '../src/server/gameService';
 import { FileGameRepository } from '../src/server/persistence';
 import type { GameRecord, GameRepository } from '../src/server/types';
@@ -23,7 +24,7 @@ const privateBuildStrategy = identify({ id: '', startingBuild: ['step'], buyAgen
 const privateBuildTrainer: AiTrainer = { train: async () => ({ strategy: privateBuildStrategy, summary: { elapsedMs: 1, matches: 4, strategyId: privateBuildStrategy.id } }) };
 const market = ['cull','footwork','aim','volley','muster','feint','drive','channel','arcBolt','reclaim'];
 
-function phaseAction(game: Awaited<ReturnType<GameService['create']>>, kind: 'endAction' | 'endBuy') {
+function phaseAction(game: GameView, kind: 'endAction' | 'endBuy') {
   return game.actions.phases.find((action) => action.kind === kind)!.id;
 }
 
@@ -37,6 +38,9 @@ describe('AI games', () => {
     expect(created.fighters.ochre.health).toBe(47); expect(created.training?.strategyId).toBe(strategy.id);
     const ready = await service.updateBuild(created.id, created.revision, [], true);
     expect(ready).toMatchObject({ phase: 'action', activePlayerId: 'indigo', turn: 2 });
+    expect(ready.presentation.frames[0]).toMatchObject({ playerId: 'indigo', commandType: 'submitStartingBuild' });
+    expect(ready.presentation.frames.some((frame) => frame.playerId === 'ochre' && frame.commandType === 'aiTurnStart')).toBe(true);
+    expect(ready.presentation.frames.at(-1)?.state).toMatchObject({ activePlayerId: ready.activePlayerId, phase: ready.phase, turn: ready.turn });
     expect(ready.completedBuilds).toEqual({ ochre: [], indigo: [] });
   });
 
@@ -68,6 +72,8 @@ describe('AI games', () => {
     const repository = new MemoryRepository(); const service = new GameService(repository, privateBuildTrainer);
     const view = await service.create({ seed:3, mode:'ai', humanPlayerId:'indigo', variableCardIds:market, startingDraftEnabled:false });
     expect(view).toMatchObject({ startingDraftEnabled:false, phase:'action', activePlayerId:'indigo' });
+    expect(view.presentation.frames[0]).toMatchObject({ playerId:'ochre', commandType:'aiTurnStart' });
+    expect(view.presentation.frames.at(-1)?.state).toMatchObject({ activePlayerId:'indigo', phase:'action' });
     const record = repository.record!; expect(record.state.players.ochre.startingBuild).toBeNull(); expect(record.state.players.indigo.startingBuild).toBeNull();
     expect(record.state.players.ochre.firstBuyPending).toBe(false); expect(view.completedBuilds).toBeNull();
     expect(view.players.ochre.deckCounts).toMatchObject({ copper:7, scrap:3 });

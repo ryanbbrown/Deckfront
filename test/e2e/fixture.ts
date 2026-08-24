@@ -30,7 +30,7 @@ export const test = base.extend<Fixtures>({
       if (!response.ok) throw new Error(await response.text()); const created = await response.json() as { id: string }; const record = await repository.load(created.id);
       expect(record.schemaVersion).toBe(13); expect(record.startingDraftEnabled).toBe(true);
       completeSetup(record); mutate?.(record); resetRecord(record); await repository.save(record);
-      await page.goto(baseUrl); await page.evaluate((id) => localStorage.setItem('hexdeck.activeGameId', id), created.id); await page.reload(); await expect(page.getByText(/Player [12] (?:action|buy)/)).toBeVisible(); return record;
+      await page.goto(baseUrl); await page.evaluate((id) => { localStorage.setItem('hexdeck.activeGameId', id); localStorage.setItem('deckfront.animateAiTurns', 'false'); }, created.id); await page.reload(); await expect(page.getByText(/Player [12] (?:action|buy)/)).toBeVisible(); return record;
     });
   }
 });

@@ -73,6 +73,34 @@ describe('local GameService', () => {
     const next = await service.commitAction(game.id, buy.revision, buy.actions.phases.find((action) => action.kind === 'endBuy')!.id);
     expect(next).toMatchObject({ activePlayerId: 'indigo', phase: 'action', turn: 2 });
   });
+  it('projects accepted card play and draw motion with physical card identities', async () => {
+    const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
+    const record = await repository.load(game.id); seedPlayerHand(record, ['muster'], ['aim', 'volley']); resetReplay(record); await repository.save(record);
+    const ready = await service.get(game.id); const muster = projectedHandCard(ready, record, 'muster');
+    const update = await service.commitAction(game.id, ready.revision, muster.actionId!);
+    const frame = update.presentation.frames[0]!;
+    expect(frame.transfers.map((transfer) => ({ kind: transfer.kind, definitionId: transfer.card.definitionId, hidden: transfer.hidden }))).toEqual([
+      { kind: 'handToPlayed', definitionId: 'muster', hidden: false },
+      { kind: 'drawToHand', definitionId: 'aim', hidden: false },
+      { kind: 'drawToHand', definitionId: 'volley', hidden: false }
+    ]);
+    expect(frame.state.players.ochre.played.map((card) => card.definitionId)).toEqual(['muster']);
+    expect(frame.state.players.ochre.hand.map((card) => card.definitionId)).toEqual(['aim', 'volley']);
+    expect(frame).not.toHaveProperty('actions'); expect(frame.state).not.toHaveProperty('cards');
+    expect(JSON.stringify(await repository.load(game.id))).not.toContain('presentation');
+  });
+  it('hides replenishment draws and projects the public discard top', async () => {
+    const { repository, service, game } = await setup(); await completeBuilds(service, game.id, game.revision);
+    const record = await repository.load(game.id); seedPlayerHand(record, ['copper'], ['aim', 'volley', 'silver', 'gold', 'footwork']); record.state.phase = 'buy'; resetReplay(record); await repository.save(record);
+    const ready = await service.get(game.id); const update = await service.commitAction(game.id, ready.revision, phaseAction(ready, 'endBuy'));
+    const frame = update.presentation.frames[0]!;
+    expect(frame.transfers.filter((transfer) => transfer.kind === 'drawToHand')).toEqual(expect.arrayContaining([
+      expect.objectContaining({ card: expect.objectContaining({ definitionId: 'aim' }), hidden: true }),
+      expect.objectContaining({ card: expect.objectContaining({ definitionId: 'volley' }), hidden: true })
+    ]));
+    expect(frame.state.activePlayerId).toBe('indigo');
+    expect(update.players.ochre.discardTop?.definitionId).toBe('copper');
+  });
   it('keeps both starting builds private until setup is complete', async () => {
     const { service, game } = await setup();
     expect(game.players.ochre.deckCounts).toEqual({ copper: 7 }); expect(game.players.indigo.deckCounts).toEqual({ copper: 7 });
