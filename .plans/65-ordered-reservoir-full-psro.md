@@ -98,7 +98,13 @@ Apply decisions in this order:
 
 The 50%–51% interval is the practical indifference zone. A precise interval wholly inside that zone retires under rule 1. A candidate that is clearly above 50% but cannot yet be ruled below 51% can be admitted under rule 2. The retirement-first order makes the rule deterministic if both tests pass.
 
-Admit every candidate that passes rule 2. There is no finalist or admission count cutoff. If adding all admissions would make the matrix wider than 128 strategies, stop as `matrix-width-unresolved` before changing the matrix.
+Make every statistical decision per canonical ID before considering equivalence. Then partition admitted IDs only when their complete shared confirmation evidence is acquisition-equivalent: identical full block-score vector, per-block purchases and acquisitions, reached plan positions, starting build, and every other saved product-telemetry field. Score-only equality is never enough, and different acquisition or card evidence always creates different classes.
+
+Choose the lowest UTF-16 strategy ID in each acquisition-equivalent class as its deterministic representative. Admit only the representative to the matrix and record every other class member as a shadow equivalent. Apply the width-128 matrix gate to representatives, not shadows. The representative carries the class's equilibrium weight for reporting; never divide or invent member weights.
+
+Every later broad screen includes every shadow because shadows are not active matrix strategies. When an advanced shadow reaches confirmation, also evaluate its active class representative on the same complete full-telemetry confirmation schedule as a decision-exempt anchor. Keep the shadow collapsed only if its new complete evidence remains acquisition-equivalent to that anchor. A diverged shadow becomes a separate representative and enters the matrix if its own per-ID statistical decision admits it. Shadows can form new acquisition-equivalent classes with other newly admitted IDs under the same rules.
+
+There is no finalist or representative-admission count cutoff. If adding all new representatives would make the matrix wider than 128 strategies, stop as `matrix-width-unresolved` before changing the matrix. Report every class representative, shadow member, divergence, merge decision, and class weight.
 
 ## Matrix evidence and adaptive precision
 
@@ -132,6 +138,7 @@ Run three independent full-telemetry panels. Each panel evaluates every reportin
 
 For each panel and the pooled panels, report:
 
+- acquisition-equivalent class membership, representative, shadow divergences, and the representative's full equilibrium class weight;
 - expected acquired copies per card per player-game;
 - each action card's share of all action-card acquisitions;
 - continuous Melee, Ranged, and Mage damage-package acquisition shares;
@@ -151,6 +158,8 @@ The three-panel stability gate passes only when:
 If the first three panels fail, add exactly two more 1,000-block panels and recompute all ranges over five panels. If the five-panel gate fails, stop as `acquisition-panel-unresolved`. Do not weaken a threshold.
 
 Move the classifier implementation to `src/sim/strategyDamage.ts`. Import and re-export it from `scripts/generate_balance_corpus.ts` so the strategy report and its current tests keep one classifier. Add equilibrium-weighted acquisition helpers in simulator code; do not reuse the unweighted `acquiredFamilyShares` helper.
+
+Before production, reproduce the observed YALPS cycle from the saved real 81–114 strategy robust matrices when solving feasible group-weight ranges. Harden `equilibriumGroupWeightRange` without changing its game-value, payoff, or group-objective semantics. Keep the current YALPS result when it is optimal and independently valid. On a cycle or invalid result, use a deterministic fallback solve of the same linear program. Independently verify every primary or fallback solution: finite and nonnegative weights, total weight within `1e-7` of one, every payoff constraint at least `value - 1e-7`, and reported group objective within `1e-7` of the recomputed weight. Validate optimality by solving the opposite signed objective and comparing the returned bound; reject infeasible, unbounded, inconsistent, or non-optimal results. Preserve all existing equilibrium outputs and tests. A full-PSRO report with any missing or invalid group range fails closed.
 
 ## Two independent runs and the comparison gate
 
@@ -203,7 +212,8 @@ Deep validation must recompute:
 - exact candidate IDs, canonical strategies, chunk bounds, schedules, block counts, scores, matches, and telemetry totals;
 - complete score tiers, tie inclusion, audit samples, and the 512-candidate gate;
 - e-process values, anytime p-values, Holm order and decisions, indifference-zone priority, and unresolved state;
-- matrix prefix batches, centered payoffs, equilibrium, admissions, widths, precision gates, and scan transitions;
+- complete per-block confirmation telemetry, acquisition-equivalence partitions, deterministic representatives, shadows, anchor comparisons, divergences, and representative-only width gates;
+- matrix prefix batches, centered payoffs, equilibrium, representative admissions, widths, precision gates, and scan transitions;
 - acquisition weighting, classifier inputs and labels, group ranges, panel gates, cross-play, and comparison gates; and
 - evidence hashes excluding elapsed time only.
 
@@ -217,7 +227,8 @@ Add:
 - `src/sim/orderedReservoirFullPsro.ts` for the frozen protocol, screen tiers, audit sample, state machine, artifacts, validation, and comparison gates;
 - `src/sim/nestedPayoffMatrix.ts` for protocol-local 50-block matrix batches and prefix snapshots;
 - `src/sim/strategyDamage.ts` for the shared classifier;
-- `src/sim/lotteryAcquisition.ts` for stratified final panels and equilibrium weighting;
+- `src/sim/lotteryAcquisition.ts` for stratified final panels, acquisition-equivalence evidence, and equilibrium weighting;
+- `src/sim/equilibriumGroupRange.ts` for independently validated primary and fallback group-range LP solves;
 - `scripts/ordered_reservoir_full_psro.ts` for run, resume, status, report, and compare orchestration;
 - focused tests for each new simulator module and one small end-to-end resumability fixture.
 
@@ -234,6 +245,9 @@ Tests must prove:
 - direct-product and log-space e-values agree, p-values are anytime, and changed score order changes the validated hash;
 - Holm admission decisions use the full cohort and run-level alpha allocation, while retirement uses the declared individual 97.5% anytime bound;
 - 200/800/3,200/6,400 continuation, fail-closed width gates, and every unresolved/safety transition;
+- only complete acquisition-equivalent confirmation evidence collapses admitted IDs, representatives are deterministic, shadows rescreen, and divergence separates;
+- matrix width counts representatives while reports preserve class membership and class weight;
+- the saved 81–114 strategy fixture reproduces the group-range cycle, the fallback returns independently validated bounds, and non-cycling existing outputs stay unchanged;
 - nested matrix prefixes reuse exact blocks and telemetry without changing existing `PayoffMatrix` behavior;
 - every matrix precision top-up forces a fresh screen;
 - self-play is present in every final panel and equilibrium weighting matches a hand-calculated two-strategy fixture;
