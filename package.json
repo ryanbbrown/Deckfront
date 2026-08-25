@@ -23,6 +23,7 @@
     "deep-beam:strategy-ranges": "tsx scripts/generate_deep_strategy_ranges.ts",
     "response-optimizer:pilot": "tsx scripts/response_optimizer_pilot.ts",
     "goldfish:pilot": "tsx scripts/goldfish_random_pilot.ts",
+    "goldfish:ordered-benchmark": "tsx scripts/ordered_goldfish_benchmark.ts",
     "goldfish:enrichment": "tsx scripts/goldfish_enrichment_pilot.ts",
     "fixed-reservoir:pilot": "tsx scripts/fixed_reservoir_psro_pilot.ts",
     "fixed-reservoir:five-run:prepare": "tsx scripts/fixed_reservoir_five_run.ts --prepare",
