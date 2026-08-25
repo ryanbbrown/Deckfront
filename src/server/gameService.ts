@@ -356,7 +356,7 @@ export class GameService {
         id: playerId, hand: structuredClone(player.deck.hand), played: structuredClone(player.deck.play),
         discardTop: player.deck.discard.length ? { ...player.deck.discard.at(-1)! } : null,
         zoneCounts: { draw: player.deck.draw.length, hand: player.deck.hand.length, discard: player.deck.discard.length, play: player.deck.play.length },
-        deckCounts, money: player.money, firstBuyMoney: player.firstBuyMoney, firstBuyPending: player.firstBuyPending,
+        deckCounts, money: player.money, mana: player.mana, firstBuyMoney: player.firstBuyMoney, firstBuyPending: player.firstBuyPending,
         purchases: [...player.purchases]
       }];
     })) as GameView['players'];

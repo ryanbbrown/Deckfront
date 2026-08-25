@@ -58,7 +58,9 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .zone-title { display: flex; align-items: center; justify-content: space-between; height: 28px; gap: 12px; padding: 0 8px; }
 .zone-title h2 { font-size: 15px; } .zone-title span { color: var(--muted); font-size: 10px; }
 .played-summary { display: flex; align-items: center; gap: 12px; }
+.played-resources { display: flex; align-items: center; gap: 6px; }
 .played-summary strong { font-size: 11px; }
+.mana-counter { padding: 2px 7px; border: 1px solid #82a8ec; border-radius: 10px; background: #254678; color: #f2f6ff; box-shadow: inset 0 0 8px #79a5ef38; }
 .market-zone { display: grid; grid-template-rows: 28px minmax(0,1fr); padding-bottom: 5px; }
 .market-zone .text-button { min-height: 20px; padding: 1px 7px; border-color: #ffffff30; border-radius: 4px; color: #d7e3de; font-size: 9px; font-weight: 750; }
 .market-layout { display: grid; grid-template-columns: minmax(205px,.72fr) minmax(0,2.7fr); gap: 7px; min-height: 0; padding: 0 8px 3px; }
@@ -82,6 +84,8 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .kingdom-pile__title { display: -webkit-box; overflow: hidden; font-family: Georgia,serif; font-size: clamp(10px,.78vw,13px); font-weight: 900; line-height: 1.05; text-wrap: balance; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .kingdom-pile__count { position: static; flex: 0 0 auto; }
 .kingdom-pile__effect { position: absolute; z-index: 3; right: 5px; bottom: 5px; max-width: calc(100% - 39px); padding: 3px 6px; overflow: hidden; border: 1px solid #ffffff3d; border-radius: 10px; background: #07110fc9; color: #f3f3ed; font-size: clamp(7px,.52vw,8px); font-weight: 800; line-height: 1; text-overflow: ellipsis; text-shadow: 0 1px 2px #000; white-space: nowrap; }
+.pile--out-of-stock img,.pile--out-of-stock:hover > img { filter: grayscale(.85) brightness(.5); transform: none; }
+.pile-stock-label { position: absolute; z-index: 6; top: 50%; left: 50%; width: calc(100% - 12px); padding: 4px 3px; border: 1px solid #ffd2cd; border-radius: 3px; background: #7d2724ed; color: #fff; font-size: clamp(8px,.65vw,11px); font-weight: 950; letter-spacing: .05em; line-height: 1; text-align: center; text-transform: uppercase; box-shadow: 0 2px 7px #0009; transform: translate(-50%,-50%) rotate(-3deg); }
 .family-treasure { --family: var(--treasure); } .family-ranged { --family: var(--ranged); }
 .family-mana { --family: var(--mana); } .family-melee { --family: var(--melee); } .family-engine { --family: var(--engine); }
 .played-panel,.hand-panel { position: relative; }

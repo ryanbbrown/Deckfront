@@ -20,6 +20,7 @@ export interface GamePlayerView {
   zoneCounts: { draw: number; hand: number; discard: number; play: number };
   deckCounts: Record<string, number>;
   money: number;
+  mana: number;
   firstBuyMoney: number;
   firstBuyPending: boolean;
   purchases: string[];
