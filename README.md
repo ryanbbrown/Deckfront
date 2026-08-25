@@ -235,6 +235,15 @@ npm run goldfish:ordered-product -- validate-reservoir \
 
 The ranked bytes contain the 500,000-candidate stage-one cohort, all four-seed score evidence, ranks, and shard provenance. Runtime and container data remain in `run-summary.json` on the Modal Volume.
 
+Run or resume one fixed-reservoir response round from the validated final 20,000-strategy Kingdom 009 prefix, then compare it with all five saved fixed-reservoir lotteries:
+
+```sh
+npm run ordered-reservoir:challenge
+npm run ordered-reservoir:challenge:status
+```
+
+The command accepts only `.experiments/ordered-goldfish-product/native-e760135dba6f-5625a0ff0bf6048653f9` as its ordered source. It runs the ordered-product validation CLI before the first adaptation. It does not run goldfish scoring or Modal. Checkpoints, five independent held-out comparisons, and the report go under `.experiments/ordered-reservoir-challenge/ordered-reservoir-challenge-v1/`. A one-round result is not a convergence result; the report labels it incomplete when the round admits strategies.
+
 ## Code boundaries
 
 The arrows show import direction:
