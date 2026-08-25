@@ -2,27 +2,42 @@
 
 ## Result
 
-The stronger PSRO process removed the earlier 88%–89% failures, but it did not make the ordered reservoir reliable.
+The stronger PSRO process removed the earlier 88%–89% failures. It did not fully close the old-reservoir audit, but the evidence does not justify expanding the ordered candidate grammar.
 
 - All three ordered-only runs reached a clean full-reservoir closure.
-- The strongest historical counter scored 53.7% against evaluation seed 9,100,009, none passed against seed 9,200,009, and the strongest scored 59.3% against seed 9,300,009.
-- The three ordered lotteries were still inconsistent. Pairwise support Jaccard similarity was 0.000, 0.083, and 0.200. Pairwise lottery total-variation distance was 1.000, 1.000, and 0.848.
-- Historical audits confirmed 24 attacker results from 23 distinct old strategies. No confirmed old strategy exists in the ordered 12,972,960-candidate space.
-- Deterministic representable analogs still exposed the final lottery in 14 of 24 checks. One analog was in the top 20,000, eight were ranked from 20,001 through 500,000, and five did not reach the retained top 500,000.
-
-The remaining problem is both candidate coverage and competitive evaluation. The ordered generator excludes useful plan shapes, goldfish rank removes useful representable plans, and competitive payoffs still vary enough across seeds to produce materially different lotteries.
+- The strongest historical counter scored 53.7% against evaluation seed 9,100,009. None passed against seed 9,200,009. The strongest scored 59.3% against seed 9,300,009.
+- Fresh 400-seed weighted cross-play put each pair of ordered lotteries close to even: 51.12%, 50.21%, and 49.65% in the measured directions.
+- The 24 confirmed audit results came from 23 canonical historical strategy forms. Canonical difference did not establish behavioral difference.
+- Four inspected counters had effective equivalents inside the ordered 12,972,960-candidate space. Their extra or infinite steps were unused or unnecessary in evaluated games.
+- Three effective equivalents did not reach the retained top 500,000 goldfish set. One ranked 186,989. These examples are goldfish-retention misses, not candidate-generation misses.
 
 ## Protocol and runtime
 
 Each evaluation seed used only the corrected ordered 20,000-strategy reservoir. Every ordinary and closure scan used two independent cumulative 1/2/4/8 races, up to 16 union finalists, and 400 fresh confirmation blocks. Each run started from the top 50, used 25-block matrix cells, and stopped only after two clean ordinary scans plus a clean full-reservoir closure.
 
-| Evaluation seed | Scans | Matrix | Support | Search time |
+| Evaluation seed | Scans | Matrix | Material support | Search time |
 |---:|---:|---:|---:|---:|
 | 9,100,009 | 10 | 114 | 3 | 412.4 s |
 | 9,200,009 | 6 | 81 | 14 | 231.3 s |
 | 9,300,009 | 8 | 94 | 10 | 314.1 s |
 
-The full command took 1,660.8 seconds, or 27 minutes 41 seconds. Ordered search took 957.8 seconds, the 15 historical audits took 483.7 seconds, and attacker diagnostics took 22.6 seconds. Local external cost was $0.
+The full command took 1,660.8 seconds, or 27 minutes 41 seconds. Ordered search took 957.8 seconds, the 15 historical audits took 483.7 seconds, and the original attacker diagnostics took 22.6 seconds. Local external cost was $0.
+
+## Correct family classification
+
+The family percentages use `classifyStrategyDamage` from `scripts/generate_balance_corpus.ts`, as used by the strategy report. It classifies recorded starting builds and matrix acquisitions. Purchase-plan family presence is not the report classification.
+
+| Evaluation seed | Selected Melee | Feasible Melee range | Selected Ranged | Feasible Ranged range |
+|---:|---:|---:|---:|---:|
+| 9,100,009 | 99.999994% | 99.999865%–100% | 0.000006% | 0%–0.000135% |
+| 9,200,009 | 76.666276% | 76.663292%–76.666683% | 23.333724% | 23.333317%–23.336708% |
+| 9,300,009 | 90.641241% | 90.639488%–90.641599% | 9.358759% | 9.358401%–9.360512% |
+
+The selected witnesses have no Mage or mixed weight. No matrix has a Mage label. Mixed Melee + Ranged can receive at most 0.000053% in another equilibrium. The largest archetype range spans 0.0034 percentage points, so equilibrium selection is not a material family-share concern inside any run.
+
+The largest individual-strategy feasible band is 0.0024 percentage points for seed 9,100,009, 26.6667 points for seed 9,200,009, and 0.0189 points for seed 9,300,009. The seed-9,200,009 matrix has interchangeable Melee strategies. This strategy-level ambiguity does not change its narrow family-share range.
+
+The remaining 0% to 23.3% Ranged difference is across sampled payoff matrices. It is not ambiguity among equilibria of one fixed matrix. Direct cross-play shows that these different family compositions still have similar competitive strength.
 
 ## Historical attacks
 
@@ -36,33 +51,34 @@ The strongest seed-9,300,009 counter was `sg-e6063a7ed8`:
 
 `Longshot ×1 → Improvise ×2 → Salvage Shot ×1 → Sharpen ×3 → Scour ×1 → Step ×3 → Improvise ×∞`
 
-This plan combines movement, deck thinning, ranged damage, and an unlimited Improvise target. It is outside the ordered grammar because it has seven buy slots, repeats Improvise, uses an infinite count, and has an unsupported fifth-slot count.
+Across 1,600 shared-schedule games, it averaged 8.15 purchases and reached at most 11. Capping final Improvise at 3 produced the same block outcomes and purchase record. Scour was bought 0.000625 times per game. Removing Scour and the final Improvise gave this behavior-preserving ordered strategy:
 
-Its representable analog was:
+`Longshot ×1 → Improvise ×2 → Salvage Shot ×1 → Sharpen ×3 → Step ×3`
 
-`Longshot ×1 → Salvage Shot ×1 → Sharpen ×3 → Scour ×3 → Step ×3`
+It scored the same 57.8125% on the shared schedule and did not reach the retained top 500,000 goldfish set.
 
-The analog ranked 54,918, so goldfish excluded it from the final 20,000. It scored 59.2% against seed 9,100,009 and 65.3% against seed 9,300,009 on fresh 400-block checks.
+Two other exact examples were:
 
-Another clear failure was `sg-f00fd308c7`:
+- `Salvage Shot ×2 → Sharpen ×3 → Step ×3 → Scour ×3 → Improvise ×∞`
+- `Salvage Shot ×2 → Sharpen ×3 → Step ×3 → Gold ×3 → Scour ×∞`
 
-`Salvage Shot ×2 → Sharpen ×3 → Step ×3 → Scour ×3 → Improvise ×∞`
+Replacing each infinite final buy with a finite count of 3 produced an ordered candidate with identical block outcomes and purchase records. Neither finite candidate reached the top 500,000.
 
-Its finite analog changes only Improvise infinity to Improvise ×3. That analog did not reach the retained top 500,000, but it scored 59.8%, with a 56.8% lower confidence bound, against seed 9,300,009.
+A six-slot example,
 
-These plans share a common shape: Step maintains range, Sharpen and Scour remove weak cards and draw replacements, Salvage Shot converts a ranged card into damage plus another draw, and a repeated damage card gives the deck a continuing purchase target. The ordered grammar fixes exactly five distinct cards and finite quantities. It cannot express repeated-card ladders, infinite repeat purchases, four-card plans, or six-to-eight-slot plans.
+`Salvage Shot ×2 → Precision Shot ×1 → Sharpen ×3 → Step ×3 → Improvise ×3 → Salvage Shot ×∞`,
 
-## PSRO evidence
+had a five-slot ordered prefix that scored better on the shared schedule. That prefix ranked 186,989.
 
-The finite plan `sg-23c91658bc` is in the ordered reservoir at rank 11,867 and entered the seed-9,300,009 matrix. Its fresh score against that matrix's solved lottery was 53.6%, with a 51.0% lower confidence bound. This strategy was not missing from generation or goldfish selection. The saved 25-block matrix and fresh 400-block evaluation disagreed enough to leave a retained matrix strategy as a confirmed counter.
-
-This result, plus the near-disjoint supports across the three runs, shows that stronger candidate racing did not remove payoff-estimation and equilibrium instability.
+No evaluated game among these four examples exceeded 11 purchases. The extra and infinite steps did not explain their strength.
 
 ## Decision
 
-Do not treat the current ordered top 20,000 or any one of its three lotteries as the production strategy set.
+Keep the exhaustive ordered grammar as the current candidate-generation baseline. Do not infer missing behavior from a different canonical plan string.
 
-The next proposal space must support at least variable plan length, repeated cards, and an infinite final buy. Goldfish selection must also preserve competitively useful plans outside its top 20,000. Before another broad run, increase or adapt matrix evidence and require fresh direct checks of every active strategy plus independent closure evidence against the final lottery.
+The next analysis should audit all 23 historical forms by executed behavior, then identify each behavior-preserving ordered candidate's goldfish rank and whether the top 20,000 contains another strategy with the same role. Improve goldfish retention or the PSRO payoff process only where that audit supplies direct evidence.
+
+Use `docs/strategy-search-evidence.md` for the reporting and interpretation rules.
 
 ## Artifacts
 

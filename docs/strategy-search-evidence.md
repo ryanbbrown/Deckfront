@@ -1,0 +1,50 @@
+# Strategy-search evidence
+
+Read this before interpreting PSRO, equilibrium, strategy-family, or balance-report results.
+
+## Use the project classifier
+
+Use `classifyStrategyDamage` in `scripts/generate_balance_corpus.ts` for Melee, Ranged, Mage, and mixed strategy labels. It classifies a strategy from its starting build and recorded acquisitions. A family is part of a mixed label when it supplies at least 20% of the strategy's damage-package evidence. Improvise contributes to each damage family that the strategy owns.
+
+`npm run strategy:report` uses this classifier for the headline strategy-type chart. The chart's marker is the selected deterministic maximum-support equilibrium. Its light band is the minimum and maximum joint archetype share over all equilibria of the discovered payoff matrix.
+
+A card-family presence check on the purchase plan is not this classification. Do not use plan presence to report a kingdom's Ranged, Melee, or Mage percentage.
+
+## Separate three kinds of consistency
+
+- Candidate consistency: the ordered generator exhausts its specified 12,972,960-strategy space. With fixed code, rules, kingdom, and seeds, candidate generation and goldfish ranking are reproducible.
+- Payoff consistency: PSRO estimates match payoffs from sampled games. Different evaluation seeds can produce different matrices and lotteries.
+- Equilibrium consistency: one fixed payoff matrix can have several equilibria. The solver returns a deterministic maximum-support witness, but balance reporting must use feasible group-share ranges over the full equilibrium set.
+
+A fixed matrix has one game value and an equilibrium set. It does not always have one unique lottery. Canonical support overlap and per-strategy weight changes are weak balance measures when several strategies have the same effective role. Compare lotteries by direct cross-play and compare balance by classified archetype ranges.
+
+## Recorded equilibrium evidence
+
+Earlier deep-beam matrices had narrow equilibrium-selection ranges. For example, the selected Mage share was 7.5254%, and its feasible range was 7.5253% to 7.5255%. See `.plans/34-strategy-search-results.md`.
+
+The three robust ordered-reservoir Kingdom 009 matrices also have narrow archetype ranges when the strategy-report classifier is used:
+
+| Evaluation seed | Selected Melee | Feasible Melee range | Selected Ranged | Feasible Ranged range |
+|---:|---:|---:|---:|---:|
+| 9,100,009 | 99.999994% | 99.999865%–100% | 0.000006% | 0%–0.000135% |
+| 9,200,009 | 76.666276% | 76.663292%–76.666683% | 23.333724% | 23.333317%–23.336708% |
+| 9,300,009 | 90.641241% | 90.639488%–90.641599% | 9.358759% | 9.358401%–9.360512% |
+
+The selected witnesses have no Mage or mixed weight. No matrix has a Mage label. Mixed Melee + Ranged can receive at most 0.000053% in another equilibrium. The largest archetype-band width is 0.0034 percentage points. Equilibrium selection is therefore not a material source of family-share uncertainty in these runs.
+
+Per-strategy uniqueness is a different result. The largest single-strategy feasible band is 0.0024 percentage points for seed 9,100,009, 26.6667 points for seed 9,200,009, and 0.0189 points for seed 9,300,009. Seed 9,200,009 contains interchangeable Melee strategies. This large strategy-level band does not change its narrow Melee/Ranged group band.
+
+Across evaluation seeds, the selected Ranged share still changes from effectively 0% to 23.3%. This is cross-seed payoff or discovered-matrix variation, not equilibrium-selection ambiguity inside one matrix. Fresh 400-seed weighted lottery cross-play put every pair close to even, from 49.65% to 51.12%, so canonical support differences overstated the competitive difference.
+
+## Interpret candidate coverage by executed behavior
+
+Canonical strategy identity is not behavioral identity. Infinite final buys, extra slots, and repeated cards can be irrelevant when games never reach those plan steps. Before claiming that the ordered grammar omitted a counter:
+
+1. Cap infinite quantities at the observed purchase limit.
+2. Remove plan steps that evaluated games never reach.
+3. Compare shared-seed block outcomes and purchase telemetry.
+4. Look up the behavior-preserving ordered strategy's goldfish rank.
+
+Four inspected historical counters had effective equivalents in the 12,972,960-strategy space. Two finite equivalents produced identical outcomes and purchases. A six-slot counter had a stronger five-slot ordered prefix. A seven-slot counter had an ordered five-slot version with identical outcomes after its almost-unused Scour step and unused final Improvise step were removed. Three effective equivalents did not reach the top 500,000 goldfish set; one ranked 186,989.
+
+These examples point first to goldfish retention, not candidate grammar. The 23 historical counter IDs are 23 canonical forms, not proof of 23 distinct behaviors. Audit all counters by executed behavior before changing the exhaustive grammar.

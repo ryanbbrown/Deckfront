@@ -3,6 +3,7 @@
 ## Project Context
 - This is a greenfield side project.
 - Unless the user explicitly says otherwise, there are no backwards-compatibility requirements.
+- When interpreting strategy search, PSRO, equilibrium, strategy-family, or balance-report results, read `docs/strategy-search-evidence.md` first.
 
 ## Workflow
 - Plans live in `.plans/`, should be committed, and should be named with implementation-order prefixes like `01-auth.md`, `02-billing.md`, and `03-dashboard.md`.
