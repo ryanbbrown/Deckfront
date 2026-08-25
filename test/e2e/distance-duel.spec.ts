@@ -117,6 +117,7 @@ test('DD-E2E-075: tactical counters share one space and focused card controls su
   await expect(arena.getByRole('img', { name: /Player 2, 50 health/ })).toBeVisible();
   const shared = await page.locator('[data-space="3"]').evaluate((space) => { const parent = space.getBoundingClientRect(); const counters = [...space.querySelectorAll<HTMLElement>('[data-player-id]')].map((counter) => counter.getBoundingClientRect()); return { count: counters.length, inside: counters.every((counter) => counter.left >= parent.left && counter.right <= parent.right && counter.top >= parent.top && counter.bottom <= parent.bottom), separated: counters[0]!.right <= counters[1]!.left, labels: [...space.querySelectorAll<HTMLElement>('.fighter__details')].map((details) => details.innerText) }; });
   expect(shared).toEqual({ count: 2, inside: true, separated: true, labels: ['P1\n47 HP','P2\n50 HP'] });
+  await expect(page.getByRole('navigation', { name: 'Game controls' }).getByRole('button', { name: 'New game' })).toBeVisible();
 
   const copper = page.locator('[data-market-card="Copper"]'); await copper.focus(); await page.keyboard.press('Shift+F10');
   let inspector = page.getByRole('dialog', { name: 'Copper details' }); await expect(inspector).toBeVisible();

@@ -183,7 +183,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .card-picker__grid { display: grid; grid-template-columns: repeat(5,148px); justify-content: center; gap: 18px; }
 .picker-card-button { position: relative; width: 148px; height: 220px; padding: 0; border: 0; border-radius: 7px; background: transparent; }
 .picker-card-button:hover .card,.picker-card-button:focus-visible .card { transform: translateY(-4px); box-shadow: 0 12px 24px #0009; }
-.setup-rail { grid-column: 2; grid-row: 1/-1; display: grid; grid-template-rows: auto minmax(0,1fr) auto; min-width: 0; min-height: 0; padding: 18px; overflow: hidden; border: 1px solid #ffffff2b; background: #0a201b; }
+.setup-rail { grid-column: 2; grid-row: 1/-1; display: grid; grid-template-rows: auto minmax(0,1fr) auto; align-self: start; width: 100%; height: calc(100dvh - 16px); min-width: 0; min-height: 0; padding: 18px; overflow: hidden; border: 1px solid #ffffff2b; background: #0a201b; }
 .setup-rail > header { padding-bottom: 16px; border-bottom: 1px solid #ffffff25; }
 .setup-rail > header span { color: #9ec4b7; font-size: 9px; font-weight: 900; letter-spacing: .14em; text-transform: uppercase; }
 .setup-rail > header h2 { margin-top: 2px; font-size: 24px; }
@@ -206,7 +206,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .setup-switch input:focus-visible + i { outline: 3px solid #ffe087; outline-offset: 2px; }
 .setup-market-actions { display: grid; }
 .setup-start { width: 100%; min-height: 46px; font-size: 14px; }
-.action-rail { grid-column: 2; grid-row: 1/-1; display: grid; grid-template-rows: minmax(0,1fr) auto auto; min-width: 0; min-height: 0; overflow: hidden; border: 1px solid #ffffff2b; background: #0a201b; }
+.action-rail { grid-column: 2; grid-row: 1/-1; display: grid; grid-template-rows: minmax(0,1fr) auto auto; align-self: start; width: 100%; height: calc(100dvh - 16px); min-width: 0; min-height: 0; overflow: hidden; border: 1px solid #ffffff2b; background: #0a201b; }
 .action-log { display: grid; grid-template-rows: auto minmax(0,1fr); min-height: 0; overflow: hidden; }
 .action-log header,.rail-decks { padding: 10px; }
 .action-log header { display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #ffffff25; }
