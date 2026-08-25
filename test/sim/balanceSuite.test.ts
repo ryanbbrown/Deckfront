@@ -138,7 +138,9 @@ describe('balance-suite sensitive validation', () => {
     expect(() => validateBalanceSuiteManifest(top)).toThrow(/manifest digest/iu);
   });
 
-  it('rejects changed card semantics and candidate selection with current digests', () => {
+  it('rejects changed generator provenance, card semantics, and candidate selection with current digests', () => {
+    const generator = clone(); generator.generator.baseSeed += 1; rehash(generator);
+    expect(() => validateBalanceSuiteManifest(generator)).toThrow(/generator provenance/iu);
     const semantics = clone(); semantics.cardPool.semantics.variable[0]!.cost += 1; rehash(semantics);
     expect(() => validateBalanceSuiteManifest(semantics)).toThrow(/semantics/iu);
     const candidate = clone(); candidate.selection.candidates.find((entry) => entry.count === 160)!.passed = false; rehash(candidate);

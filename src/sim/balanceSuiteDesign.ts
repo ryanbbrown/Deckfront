@@ -1380,6 +1380,14 @@ export function validateBalanceSuiteManifest(input: BalanceSuiteManifest): Balan
   }
   if (input.campaignProtocolStatus !== 'pending-k009-consistency') throw new Error('Unexpected campaign protocol status.');
   if (input.digest !== manifestDigest(input)) throw new Error('Balance-suite manifest digest is invalid.');
+  if (input.generator.baseSeed !== BASE_SEED || input.generator.greedyCandidatesPerRow !== GREEDY_CANDIDATES
+    || input.generator.comparisonOptimizationAttemptsPerRow !== COMPARISON_OPTIMIZATION_ATTEMPTS_PER_ROW
+    || input.generator.passingOptimizationAttemptsPerRow !== PASSING_OPTIMIZATION_ATTEMPTS_PER_ROW
+    || input.generator.constructionRestarts !== CONSTRUCTION_RESTARTS
+    || input.generator.optimizationRestarts !== OPTIMIZATION_RESTARTS
+    || input.generator.selectedDesignSourceDigest !== sha256Canonical(rawCoveringDesign)) {
+    throw new Error('Balance-suite generator provenance is stale.');
+  }
   if (input.kingdoms.length !== input.chosenCount) throw new Error('Balance-suite kingdom count does not match selection.');
   assertEqual(input.cardPool.orderedVariableCardIds, [...VARIABLE_ACTION_IDS], 'Eligible card order is stale.');
   const expectedSemantics = {
