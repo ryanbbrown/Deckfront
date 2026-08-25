@@ -26,6 +26,7 @@ process.stdin.resume();
         actionPiles: [{ cardId: 'precisionShot', count: 10 }] }, [strategy], {
         kingdomId: 'signal-fixture', seeds: [1], turnLimit: 1, actionCapPerTurn: 1
       }, 1, 'compact')).rejects.toThrow('signal SIGTERM');
+      await expect(scorer.stableHash('late-request')).rejects.toThrow('signal SIGTERM');
       await expect(scorer.close()).rejects.toThrow('signal SIGTERM');
     } finally {
       fs.rmSync(directory, { recursive: true, force: true });

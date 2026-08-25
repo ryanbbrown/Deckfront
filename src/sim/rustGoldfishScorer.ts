@@ -65,6 +65,9 @@ export class RustGoldfishScorer {
 
   private async request(value: unknown): Promise<Record<string, unknown>> {
     if (this.spawnError) throw this.spawnError;
+    if (this.exitState || this.process.exitCode !== null || this.process.signalCode !== null) {
+      throw this.exitError('before accepting a request');
+    }
     this.process.stdin.write(`${JSON.stringify(value)}\n`);
     const response = JSON.parse(await this.nextLine()) as NativeResponse;
     if (!response.ok || !response.result) {
