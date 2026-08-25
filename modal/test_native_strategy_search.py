@@ -26,6 +26,29 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                 self.assertEqual(len(held["runs"]), 1)
                 self.assertEqual(held["runs"]["run"]["reservedUsd"], 1.25)
 
+    def test_python_traversal_matches_typescript_fixture_and_digest(self):
+        cards = ["channel", "focus", "gold", "improvise", "longshot", "precisionShot", "reclaim",
+                 "reforge", "salvageShot", "scour", "sharpen", "silver", "step", "strike"]
+        strategy, canonical = launcher._strategy_at(2_500_427, cards)
+        self.assertEqual(strategy["id"], "sg-1d1fcdb6c1")
+        self.assertEqual(canonical, '{"buyPlan":[["buy","gold",1],["buy","sharpen",3],'
+                         '["buy","channel",4],["buy","strike",3],["buy","reclaim",3],'
+                         '["inactive"],["inactive"],["inactive"],["inactive"],["inactive"]],'
+                         '"startingBuild":[]}')
+        canonicals = [launcher._strategy_at((2_500_427 + position * 7_951_921)
+                      % launcher.FULL_CANDIDATE_COUNT, cards)[1] for position in range(500)]
+        self.assertEqual(launcher._stable_hash(canonicals), "fa0328fb18315")
+
+    def test_controller_claim_blocks_duplicates_and_allows_failed_resume(self):
+        with tempfile.TemporaryDirectory() as directory:
+            ledger = pathlib.Path(directory) / "ledger.json"
+            with patch.object(launcher, "LEDGER_PATH", ledger):
+                launcher.reserve_cost("run", 1.0, False, {"a": 1})
+                self.assertTrue(launcher.claim_controller("run", 60))
+                self.assertFalse(launcher.claim_controller("run", 60))
+                launcher.update_run_status("run", "reserved")
+                self.assertTrue(launcher.claim_controller("run", 60))
+
     def test_result_validation_rejects_partial_and_stale_checkpoints(self):
         spec = {"run_id": "run", "shard_id": 1, "start_position": 10, "end_position": 20,
                 "rule_fingerprint": "rules", "build_version": "build"}

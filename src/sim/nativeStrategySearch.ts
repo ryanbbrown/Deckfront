@@ -37,16 +37,18 @@ export interface GeneratedChunk {
 }
 
 export interface StreamedGeneration {
-  chunks: GeneratedChunk[];
   provenance: GeneratedProvenance;
   collisionIds: string[];
 }
 
-/** One coordinator consumes the stateful generator and preserves accepted-candidate order. */
-export function streamUniqueStrategies(source: Iterable<Strategy>, acceptedCount: number, chunkSize: number): StreamedGeneration {
+/** One coordinator consumes the stateful generator and emits bounded accepted-order chunks. */
+export function streamUniqueStrategies(
+  source: Iterable<Strategy>, acceptedCount: number, chunkSize: number,
+  consume: (chunk: GeneratedChunk) => void = () => undefined
+): StreamedGeneration {
   if (!Number.isSafeInteger(acceptedCount) || acceptedCount < 0
     || !Number.isSafeInteger(chunkSize) || chunkSize < 1) throw new Error('Invalid streaming generation bounds.');
-  if (acceptedCount === 0) return { chunks: [], provenance: { generatedCount: 0,
+  if (acceptedCount === 0) return { provenance: { generatedCount: 0,
     generatedIdDigest: new StableHashAccumulator().digest(),
     canonicalProvenanceDigest: new StableHashAccumulator().digest(),
     duplicateCanonicalCount: 0, displayIdCollisionCount: 0 }, collisionIds: [] };
@@ -55,7 +57,6 @@ export function streamUniqueStrategies(source: Iterable<Strategy>, acceptedCount
   const collisionIds = new Set<string>();
   const idDigest = new StableHashAccumulator();
   const provenanceDigest = new StableHashAccumulator();
-  const chunks: GeneratedChunk[] = [];
   let duplicateCanonicalCount = 0;
   let displayIdCollisionCount = 0;
   let chunk: Strategy[] = [];
@@ -75,15 +76,15 @@ export function streamUniqueStrategies(source: Iterable<Strategy>, acceptedCount
     provenanceDigest.update(canonical);
     chunk.push(strategy);
     if (chunk.length === chunkSize) {
-      chunks.push({ startPosition: position + 1 - chunk.length, endPosition: position + 1, strategies: chunk });
+      consume({ startPosition: position + 1 - chunk.length, endPosition: position + 1, strategies: chunk });
       chunk = [];
     }
     if (canonicalSeen.size === acceptedCount) break;
   }
   if (canonicalSeen.size !== acceptedCount) throw new Error('Strategy source ended before the accepted count.');
-  if (chunk.length) chunks.push({ startPosition: acceptedCount - chunk.length,
+  if (chunk.length) consume({ startPosition: acceptedCount - chunk.length,
     endPosition: acceptedCount, strategies: chunk });
-  return { chunks, provenance: { generatedCount: acceptedCount, generatedIdDigest: idDigest.digest(),
+  return { provenance: { generatedCount: acceptedCount, generatedIdDigest: idDigest.digest(),
     canonicalProvenanceDigest: provenanceDigest.digest(), duplicateCanonicalCount, displayIdCollisionCount },
     collisionIds: [...collisionIds].sort(compareUtf16) };
 }
@@ -136,6 +137,8 @@ export interface ShardRetention {
   startPosition: number;
   endPosition: number;
   completeCount: number;
+  leaderBound: number;
+  tailBound: number;
   candidateDigest: string;
   scoreDigest: string;
   leaders: TraversalScoreRecord[];
@@ -146,7 +149,7 @@ export interface ShardRetention {
 export function retainShard(
   shardId: number, startPosition: number, endPosition: number,
   records: readonly TraversalScoreRecord[], leaderBound: number, tailBound: number, tailSeed: number,
-  globalCollisionIds: ReadonlySet<string> = new Set()
+  globalCollisionIds: ReadonlySet<string>
 ): ShardRetention {
   if (endPosition - startPosition !== records.length) throw new Error('Shard range and score count differ.');
   const ordered = [...records].sort((left, right) => left.traversalPosition - right.traversalPosition);
@@ -157,7 +160,7 @@ export function retainShard(
   };
   const collisions = ordered.filter((entry) => globalCollisionIds.has(entry.displayId));
   const ordinary = ordered.filter((entry) => !globalCollisionIds.has(entry.displayId));
-  return { shardId, startPosition, endPosition, completeCount: records.length,
+  return { shardId, startPosition, endPosition, completeCount: records.length, leaderBound, tailBound,
     candidateDigest: fold((entry) => entry.canonicalStrategy),
     scoreDigest: fold((entry) => [entry.score.worstCompletions, entry.score.totalCompletions,
       entry.score.worstPenalizedTurnsTo50, entry.score.totalPenalizedTurnsTo50,
@@ -172,6 +175,9 @@ export function mergeShardRetention(
   shards: readonly ShardRetention[], leaderCount: number, tailCount: number, tailSeed: number
 ): { leaders: TraversalScoreRecord[]; tail: TraversalScoreRecord[] } {
   const orderedShards = [...shards].sort((left, right) => left.startPosition - right.startPosition);
+  if (orderedShards.some((shard) => shard.leaderBound < leaderCount || shard.tailBound < tailCount)) {
+    throw new Error('Shard retention bounds are smaller than the requested merge.');
+  }
   for (let index = 1; index < orderedShards.length; index += 1) {
     if (orderedShards[index - 1]!.endPosition !== orderedShards[index]!.startPosition) {
       throw new Error('Shard ranges are not contiguous.');

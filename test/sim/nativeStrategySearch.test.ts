@@ -37,19 +37,23 @@ describe('bounded deterministic native strategy search', () => {
     registerKingdom(kingdom);
     const source = function* () { const random = new SeededRandom(5), domain = stoplessRandomDomain(kingdom.id);
       for (;;) yield domain.randomComplete(random); };
-    const one = streamUniqueStrategies(source(), 1_000, 1);
-    const uneven = streamUniqueStrategies(source(), 1_000, 137);
+    const oneIds: string[] = [], unevenIds: string[] = [];
+    const one = streamUniqueStrategies(source(), 1_000, 1,
+      (chunk) => oneIds.push(...chunk.strategies.map((entry) => entry.id)));
+    const uneven = streamUniqueStrategies(source(), 1_000, 137,
+      (chunk) => unevenIds.push(...chunk.strategies.map((entry) => entry.id)));
     expect(one.provenance).toEqual(uneven.provenance);
-    expect(one.chunks.flatMap((chunk) => chunk.strategies).map((entry) => entry.id))
-      .toEqual(uneven.chunks.flatMap((chunk) => chunk.strategies).map((entry) => entry.id));
+    expect(oneIds).toEqual(unevenIds);
   });
 
   it('preserves stateful accepted order and provenance across chunk sizes', () => {
     const source = [strategy(0), strategy(0), strategy(1, 'forced'), strategy(2, 'forced'), strategy(3)];
-    const one = streamUniqueStrategies(source, 4, 1);
-    const three = streamUniqueStrategies(source, 4, 3);
-    expect(one.chunks.flatMap((chunk) => chunk.strategies))
-      .toEqual(three.chunks.flatMap((chunk) => chunk.strategies));
+    const oneStrategies: Strategy[] = [], threeStrategies: Strategy[] = [];
+    const one = streamUniqueStrategies(source, 4, 1,
+      (chunk) => oneStrategies.push(...chunk.strategies));
+    const three = streamUniqueStrategies(source, 4, 3,
+      (chunk) => threeStrategies.push(...chunk.strategies));
+    expect(oneStrategies).toEqual(threeStrategies);
     expect(one.provenance).toEqual(three.provenance);
     expect(one.provenance.duplicateCanonicalCount).toBe(1);
     expect(one.provenance.displayIdCollisionCount).toBe(1);
@@ -67,8 +71,8 @@ describe('bounded deterministic native strategy search', () => {
     const records = [record(0, 100, 'collision'), record(1, 90), record(2, 80),
       record(3, 110, 'collision'), record(4, 70), record(5, 60)];
     const collisionIds = new Set(['collision']);
-    const shards = [retainShard(0, 0, 3, records.slice(0, 3), 2, 1, 5, collisionIds),
-      retainShard(1, 3, 6, records.slice(3), 2, 1, 5, collisionIds)];
+    const shards = [retainShard(0, 0, 3, records.slice(0, 3), 3, 2, 5, collisionIds),
+      retainShard(1, 3, 6, records.slice(3), 3, 2, 5, collisionIds)];
     const merged = mergeShardRetention(shards, 3, 2, 5);
     const single = mergeShardRetention([retainShard(0, 0, 6, records, 3, 2, 5, collisionIds)], 3, 2, 5);
     expect(merged).toEqual(single);
@@ -78,12 +82,15 @@ describe('bounded deterministic native strategy search', () => {
 
   it('merges uneven and empty final shards like one process', () => {
     const records = Array.from({ length: 23 }, (_unused, index) => record(index, (index * 7) % 13));
-    const shards = [retainShard(0, 0, 7, records.slice(0, 7), 8, 8, 77),
-      retainShard(1, 7, 19, records.slice(7, 19), 8, 8, 77),
-      retainShard(2, 19, 23, records.slice(19), 8, 8, 77),
-      retainShard(3, 23, 23, [], 8, 8, 77)];
+    const collisionIds = new Set<string>();
+    const shards = [retainShard(0, 0, 7, records.slice(0, 7), 8, 8, 77, collisionIds),
+      retainShard(1, 7, 19, records.slice(7, 19), 8, 8, 77, collisionIds),
+      retainShard(2, 19, 23, records.slice(19), 8, 8, 77, collisionIds),
+      retainShard(3, 23, 23, [], 8, 8, 77, collisionIds)];
     const merged = mergeShardRetention(shards, 8, 5, 77);
-    const single = mergeShardRetention([retainShard(0, 0, 23, records, 8, 8, 77)], 8, 5, 77);
+    const single = mergeShardRetention([
+      retainShard(0, 0, 23, records, 8, 8, 77, collisionIds)
+    ], 8, 5, 77);
     expect(merged.leaders.map((entry) => entry.canonicalStrategy))
       .toEqual(single.leaders.map((entry) => entry.canonicalStrategy));
     expect(merged.tail.map((entry) => entry.canonicalStrategy))

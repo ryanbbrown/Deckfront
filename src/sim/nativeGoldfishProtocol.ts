@@ -14,6 +14,9 @@ export const NATIVE_GOLDFISH_SCORER_VERSION = 'native-goldfish-v1';
 export interface NativeScoreBatchRequest {
   type: 'score_batch';
   payload: {
+    protocolVersion: number;
+    scorerVersion: string;
+    ruleFingerprint: string;
     kingdom: {
       id: string;
       health: number;
@@ -57,6 +60,9 @@ export function nativeScoreBatchRequest(
 ): NativeScoreBatchRequest {
   if (!Number.isSafeInteger(threads) || threads < 1) throw new Error('Native scorer threads must be positive.');
   return { type: 'score_batch', payload: {
+    protocolVersion: NATIVE_GOLDFISH_PROTOCOL_VERSION,
+    scorerVersion: NATIVE_GOLDFISH_SCORER_VERSION,
+    ruleFingerprint: nativeRuleFingerprint(kingdom.id, config.turnLimit, config.actionCapPerTurn),
     kingdom: nativeKingdomInput(kingdom),
     strategies: strategies.map((strategy) => ({ ...strategy, canonicalStrategy: canonicalStrategy(strategy) })),
     seeds: [...config.seeds], movementProfiles: [...GOLDFISH_MOVEMENT_PROFILES],

@@ -52,6 +52,7 @@ async function scoreInWorkers(input: {
   const candidateDigest = new StableHashAccumulator();
   const scoreDigest = new StableHashAccumulator();
   const results = new Map<number, MovementAwareRankingScore[]>();
+  const expectedChunkSizes = new Map<number, number>();
   const traversal = representativeCandidateIndices(
     input.space.candidateCount, input.limit, input.startPosition
   );
@@ -121,6 +122,7 @@ async function scoreInWorkers(input: {
         const chunk = makeChunk();
         if (!chunk) { finish(); return; }
         active += 1;
+        expectedChunkSizes.set(chunk.id, chunk.strategies.length);
         worker.postMessage({ id: chunk.id, strategies: chunk.strategies, config: input.config,
           mode: input.scorer === 'original' ? 'movement-aware' : 'movement-aware-lean-compact' });
       };
@@ -134,6 +136,10 @@ async function scoreInWorkers(input: {
             fail(new Error(reply.stack ?? reply.error ?? 'Goldfish worker failed.'));
             return;
           }
+          if (reply.scores.length !== expectedChunkSizes.get(reply.id)) {
+            fail(new Error(`Goldfish worker returned a short chunk ${reply.id}.`)); return;
+          }
+          expectedChunkSizes.delete(reply.id);
           results.set(reply.id, reply.scores);
           peakRssBytes = Math.max(peakRssBytes, process.memoryUsage().rss);
           foldReady();
@@ -234,7 +240,8 @@ process.stdout.write(`${JSON.stringify({
   scoring: { path: options.scorer, profiles: GOLDFISH_MOVEMENT_PROFILES,
     shuffleSeeds: seeds, shuffleCount: seeds.length, turnLimit: goldfishConfig.turnLimit,
     actionCapPerTurn: goldfishConfig.actionCapPerTurn, requestedWorkers: options.workers,
-    usedWorkers: Math.min(options.workers, Math.ceil(result.scoredCount / options.chunkSize)),
+    usedWorkers: options.scorer === 'rust' ? options.workers
+      : Math.min(options.workers, Math.ceil(result.scoredCount / options.chunkSize)),
     chunkSize: options.chunkSize, dispatch: options.scorer === 'rust' ? 'rust-rayon' : 'dynamic-pull',
     workerBuild: options.scorer === 'rust' ? 'rust-1.98-release' : 'esbuild-node22',
     digestFoldOrder: 'traversal', individualTrials },

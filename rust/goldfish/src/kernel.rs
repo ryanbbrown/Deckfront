@@ -231,6 +231,9 @@ pub struct KingdomInput {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BatchInput {
+    pub protocol_version: u32,
+    pub scorer_version: String,
+    pub rule_fingerprint: String,
     pub kingdom: KingdomInput,
     pub strategies: Vec<RawStrategy>,
     pub seeds: Vec<u32>,
@@ -1651,7 +1654,6 @@ pub struct ProfileScore {
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Score {
-    strategy: RawStrategy,
     profiles: Option<Vec<ProfileScore>>,
     worst_completions: i32,
     total_completions: i32,
@@ -1793,6 +1795,19 @@ fn metrics(
 }
 
 pub fn score_batch(input: BatchInput) -> Result<Vec<Score>, String> {
+    if input.protocol_version != 1
+        || input.scorer_version != "native-goldfish-v1"
+        || input.rule_fingerprint.is_empty()
+    {
+        return Err("native scorer protocol, version, or rule fingerprint mismatch".into());
+    }
+    if input
+        .movement_profiles
+        .iter()
+        .any(|profile| !matches!(profile.as_str(), "stationary" | "chaser" | "kiter"))
+    {
+        return Err("unknown goldfish movement profile".into());
+    }
     if input.threads == 0 || input.threads > input.cpu_request {
         return Err("threads exceed CPU request".into());
     }
@@ -1800,10 +1815,7 @@ pub fn score_batch(input: BatchInput) -> Result<Vec<Score>, String> {
     let strategies = input
         .strategies
         .into_iter()
-        .map(|raw| {
-            let compiled = k.strategy(raw.clone())?;
-            Ok((raw, compiled))
-        })
+        .map(|raw| k.strategy(raw))
         .collect::<Result<Vec<_>, String>>()?;
     let pool = rayon::ThreadPoolBuilder::new()
         .num_threads(input.threads)
@@ -1812,7 +1824,7 @@ pub fn score_batch(input: BatchInput) -> Result<Vec<Score>, String> {
     let scores: Vec<Score> = pool.install(|| {
         strategies
             .into_par_iter()
-            .map(|(raw, s)| {
+            .map(|s| {
                 let profiles: Vec<_> = input
                     .movement_profiles
                     .iter()
@@ -1830,7 +1842,6 @@ pub fn score_batch(input: BatchInput) -> Result<Vec<Score>, String> {
                     .collect();
                 let vals: Vec<_> = profiles.iter().map(|x| &x.score).collect();
                 Score {
-                    strategy: raw,
                     strategy_id: s.id.clone(),
                     collision_tie_key: s.canonical.clone(),
                     worst_completions: vals.iter().map(|x| x.completions).min().unwrap_or(0),
@@ -1854,4 +1865,116 @@ pub fn score_batch(input: BatchInput) -> Result<Vec<Score>, String> {
             .collect::<Vec<_>>()
     });
     Ok(scores)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn card(
+        id: &str,
+        card_type: &str,
+        mechanic: &str,
+        family: &str,
+        cost: i16,
+        money: i16,
+        supply: i16,
+        values: RawValues,
+    ) -> RawCard {
+        RawCard {
+            id: id.into(),
+            card_type: card_type.into(),
+            mechanic: mechanic.into(),
+            family: family.into(),
+            cost,
+            money,
+            supply,
+            tactical: card_type == "action",
+            values,
+        }
+    }
+
+    fn fixture() -> (Kingdom, Strategy) {
+        let kingdom = Kingdom::compile(KingdomInput {
+            health: 50,
+            aim_bonus: 2,
+            feint_bonus: 1,
+            cards: vec![
+                card(
+                    "copper",
+                    "treasure",
+                    "money",
+                    "treasure",
+                    0,
+                    1,
+                    -1,
+                    RawValues::default(),
+                ),
+                card(
+                    "gold",
+                    "treasure",
+                    "money",
+                    "treasure",
+                    6,
+                    3,
+                    -1,
+                    RawValues::default(),
+                ),
+                card(
+                    "precisionShot",
+                    "action",
+                    "precisionShot",
+                    "ranged",
+                    5,
+                    0,
+                    10,
+                    RawValues {
+                        first: 4,
+                        later: 2,
+                        ..RawValues::default()
+                    },
+                ),
+                card(
+                    "scrap",
+                    "action",
+                    "scrap",
+                    "engine",
+                    0,
+                    0,
+                    -1,
+                    RawValues {
+                        damage: 1,
+                        ..RawValues::default()
+                    },
+                ),
+            ],
+        })
+        .unwrap();
+        let strategy = kingdom
+            .strategy(RawStrategy {
+                id: "fixture".into(),
+                canonical_strategy: "fixture".into(),
+                starting_build: vec![],
+                buy_plan: vec![
+                    RawSlot::Buy {
+                        card_id: "precisionShot".into(),
+                        desired_count: 99,
+                    },
+                    RawSlot::Inactive,
+                ],
+            })
+            .unwrap();
+        (kingdom, strategy)
+    }
+
+    #[test]
+    fn turn_and_action_boundaries_pad_damage_area() {
+        let (kingdom, strategy) = fixture();
+        let turn = trial(&kingdom, &strategy, 11, "stationary", 1, 200);
+        let action = trial(&kingdom, &strategy, 11, "stationary", 30, 1);
+        let complete = trial(&kingdom, &strategy, 11, "stationary", 30, 200);
+        assert_eq!(turn.area, i32::from(turn.damage));
+        assert_eq!(action.area, i32::from(action.damage) * 30);
+        assert!(complete.area >= i32::from(complete.damage));
+    }
 }

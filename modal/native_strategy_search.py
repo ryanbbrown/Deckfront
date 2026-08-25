@@ -16,6 +16,7 @@ import time
 from typing import Any
 
 import modal
+from modal.exception import TimeoutError as ModalTimeoutError
 
 CPU_RATE_PER_CORE_HOUR = 0.0473
 MEMORY_RATE_PER_GIB_HOUR = 0.008
@@ -134,6 +135,15 @@ def claim_controller(run_id: str, controller_timeout: int) -> bool:
         return True
 
 
+def update_run_status(run_id: str, status: str) -> None:
+    lock_path = LEDGER_PATH.with_suffix(".lock")
+    with lock_path.open("a+") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        ledger = json.loads(LEDGER_PATH.read_text())
+        ledger["runs"][run_id]["status"] = status
+        _atomic_json(LEDGER_PATH, ledger)
+
+
 def record_controller_call(run_id: str, call_id: str) -> None:
     lock_path = LEDGER_PATH.with_suffix(".lock")
     with lock_path.open("a+") as lock:
@@ -232,7 +242,9 @@ def _native_shard(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str,
         strategy, canonical = _strategy_at(candidate_index, metadata["orderedCardIds"])
         strategies.append(strategy)
         canonicals.append(canonical)
-    request = {"type": "score_batch", "payload": {"kingdom": metadata["kingdom"],
+    request = {"type": "score_batch", "payload": {"protocolVersion": 1,
+        "scorerVersion": SCORER_VERSION, "ruleFingerprint": metadata["ruleFingerprint"],
+        "kingdom": metadata["kingdom"],
         "strategies": strategies, "seeds": [4_100_000 + index for index in range(spec["shuffles"])],
         "movementProfiles": ["stationary", "chaser", "kiter"], "turnLimit": 30,
         "actionCapPerTurn": 200, "threads": spec["threads"], "cpuRequest": spec["cpu"],
@@ -327,18 +339,14 @@ def controller(config: dict[str, Any]) -> dict[str, Any]:
         if not pending:
             break
         replies = list(shard_function.map(pending, order_outputs=False, return_exceptions=True))
-        failed_ids = set()
         by_id = {spec["shard_id"]: spec for spec in pending}
         for reply in replies:
             if isinstance(reply, BaseException) or not isinstance(reply, dict):
-                failed_ids.update(by_id)
                 continue
             shard_id = reply.get("shardId")
             spec = by_id.get(shard_id)
             if spec and valid_result(reply, spec):
                 completed[shard_id] = reply
-            elif isinstance(shard_id, int):
-                failed_ids.add(shard_id)
         pending = [spec for spec in specs if spec["shard_id"] not in completed]
         if pending and attempt < MAX_RETRIES:
             time.sleep(min(30, 2 ** attempt))
@@ -430,6 +438,18 @@ def launch(
         "reservation": entry,
         "resultLocation": f"hexdeck-native-strategy-results:/{run_id}/merge.json",
     }, indent=2))
+    if entry.get("status") == "launched" and entry.get("controllerCallId"):
+        try:
+            modal.FunctionCall.from_id(entry["controllerCallId"]).get(timeout=0)
+        except ModalTimeoutError:
+            print(f"controller still owns run {run_id}; no duplicate was launched")
+            return
+        except Exception:
+            update_run_status(run_id, "reserved")
+        else:
+            update_run_status(run_id, "complete")
+            print(f"run {run_id} is already complete")
+            return
     if not claim_controller(run_id, config["controller_timeout"]):
         print(f"controller already owns run {run_id}; no duplicate was launched")
         return
