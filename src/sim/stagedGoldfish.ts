@@ -33,7 +33,7 @@ export interface StagedRandomReservoirEntry {
   strategy: Strategy;
   source: 'random';
   randomTailRank: number;
-  stageOneGoldfishRank: number;
+  stageOneGoldfishRank: number | null;
   scoreProvenance: 'stage-one-only';
   stageOneScore: ReservoirScoreSummary;
 }
@@ -88,33 +88,32 @@ function tailRank(id: string, seed: number): number {
 
 export interface StageOneRankedScore {
   score: MovementAwareGoldfishScore;
-  stageOneGoldfishRank: number;
+  stageOneGoldfishRank: number | null;
 }
 
-export function selectStagedReservoirFromEvidence(
+export function selectStagedReservoirFromMergedEvidence(
   prefilter: readonly StageOneRankedScore[],
-  remainingSeedScores: readonly MovementAwareGoldfishScore[],
+  combinedLeaders: readonly MovementAwareGoldfishScore[],
   tailCandidates: readonly StageOneRankedScore[],
   goldfishCount: number,
   randomCount: number
 ): StagedReservoirEntry[] {
   if (goldfishCount < 1 || randomCount < 1 || prefilter.length < goldfishCount
-    || tailCandidates.length < goldfishCount + randomCount) {
+    || combinedLeaders.length !== goldfishCount || tailCandidates.length < goldfishCount + randomCount) {
     throw new Error('Staged reservoir cohort sizes are invalid.');
   }
-  const prefilterIds = new Set(prefilter.map((entry) => entry.score.strategy.id));
-  const rescoreById = new Map(remainingSeedScores.map((entry) => [entry.strategy.id, entry]));
-  if (prefilterIds.size !== prefilter.length || rescoreById.size !== remainingSeedScores.length
-    || remainingSeedScores.length !== prefilter.length
-    || remainingSeedScores.some((entry) => !prefilterIds.has(entry.strategy.id))) {
-    throw new Error('Rescore evidence must contain exactly the prefilter survivors.');
-  }
   const stageOneRank = new Map(prefilter.map((entry) => [entry.score.strategy.id, entry.stageOneGoldfishRank]));
-  const combined = prefilter.map((entry) => mergeMovementAwareGoldfishScores([
-    entry.score, rescoreById.get(entry.score.strategy.id)!
-  ])).sort(compareMovementAwareGoldfishScores);
-  const goldfish: StagedGoldfishReservoirEntry[] = combined.slice(0, goldfishCount).map((entry, index) => ({
-    strategy: entry.strategy, source: 'goldfish', stageOneGoldfishRank: stageOneRank.get(entry.strategy.id)!,
+  if (stageOneRank.size !== prefilter.length || [...stageOneRank.values()].some((rank) => rank === null)
+    || combinedLeaders.some((entry) => !stageOneRank.has(entry.strategy.id))) {
+    throw new Error('Merged leaders must be unique prefilter survivors with exact stage-one ranks.');
+  }
+  const orderedLeaders = [...combinedLeaders].sort(compareMovementAwareGoldfishScores);
+  if (orderedLeaders.some((entry, index) => entry.strategy.id !== combinedLeaders[index]!.strategy.id)) {
+    throw new Error('Merged leaders are not in global score order.');
+  }
+  const goldfish: StagedGoldfishReservoirEntry[] = combinedLeaders.map((entry, index) => ({
+    strategy: entry.strategy, source: 'goldfish',
+    stageOneGoldfishRank: stageOneRank.get(entry.strategy.id) as number,
     fourSeedGoldfishRank: index + 1, scoreProvenance: 'combined-four-seed', score: scoreSummary(entry)
   }));
   const goldfishIds = new Set(goldfish.map((entry) => entry.strategy.id));
@@ -126,6 +125,27 @@ export function selectStagedReservoirFromEvidence(
     source: 'random', randomTailRank: index + 1, stageOneGoldfishRank: entry.stageOneGoldfishRank,
     scoreProvenance: 'stage-one-only', stageOneScore: scoreSummary(entry.score) }));
   return [...goldfish, ...random];
+}
+
+export function selectStagedReservoirFromEvidence(
+  prefilter: readonly StageOneRankedScore[],
+  remainingSeedScores: readonly MovementAwareGoldfishScore[],
+  tailCandidates: readonly StageOneRankedScore[],
+  goldfishCount: number,
+  randomCount: number
+): StagedReservoirEntry[] {
+  const prefilterIds = new Set(prefilter.map((entry) => entry.score.strategy.id));
+  const rescoreById = new Map(remainingSeedScores.map((entry) => [entry.strategy.id, entry]));
+  if (prefilterIds.size !== prefilter.length || rescoreById.size !== remainingSeedScores.length
+    || remainingSeedScores.length !== prefilter.length
+    || remainingSeedScores.some((entry) => !prefilterIds.has(entry.strategy.id))) {
+    throw new Error('Rescore evidence must contain exactly the prefilter survivors.');
+  }
+  const combined = prefilter.map((entry) => mergeMovementAwareGoldfishScores([
+    entry.score, rescoreById.get(entry.score.strategy.id)!
+  ])).sort(compareMovementAwareGoldfishScores).slice(0, goldfishCount);
+  return selectStagedReservoirFromMergedEvidence(prefilter, combined, tailCandidates,
+    goldfishCount, randomCount);
 }
 
 export function selectStagedReservoir(
@@ -149,7 +169,7 @@ export function selectStagedReservoir(
   }
   const stageOneRank = new Map(rankedStageOne.map((entry, index) => [entry.strategy.id, index + 1]));
   const ranked = (score: MovementAwareGoldfishScore): StageOneRankedScore => ({
-    score, stageOneGoldfishRank: stageOneRank.get(score.strategy.id)!
+    score, stageOneGoldfishRank: stageOneRank.get(score.strategy.id) ?? null
   });
   const tailCandidates = [...rankedStageOne].sort((left, right) =>
     tailRank(left.strategy.id, tailSeed) - tailRank(right.strategy.id, tailSeed)
@@ -230,7 +250,8 @@ function validateStagedFixedReservoirPoolUnchecked(
     || entry.stageOneGoldfishRank < 1 || entry.stageOneGoldfishRank > artifact.prefilterCount!
     || entry.scoreProvenance !== 'combined-four-seed' || !validSummary(entry.score))) return false;
   if (random.some((entry, index) => entry.randomTailRank !== index + 1
-    || entry.stageOneGoldfishRank < 1 || entry.stageOneGoldfishRank > artifact.generatedCount!
+    || (entry.stageOneGoldfishRank !== null && (entry.stageOneGoldfishRank < 1
+      || entry.stageOneGoldfishRank > artifact.generatedCount!))
     || entry.scoreProvenance !== 'stage-one-only' || !validSummary(entry.stageOneScore))) return false;
   const orderedTail = random.every((entry, index) => index === 0 || (() => {
     const previous = random[index - 1]!;
@@ -255,7 +276,7 @@ export function validateStagedFixedReservoirPool(
 function normalizedPool(pool: StagedFixedReservoirPoolArtifact): FixedReservoirPoolArtifact {
   const reservoir: ReservoirEntry[] = pool.reservoir.map((entry): ReservoirEntry => entry.source === 'goldfish'
     ? { strategy: entry.strategy, source: 'goldfish', goldfishRank: entry.fourSeedGoldfishRank, score: entry.score }
-    : { strategy: entry.strategy, source: 'random', goldfishRank: entry.stageOneGoldfishRank,
+    : { strategy: entry.strategy, source: 'random', goldfishRank: entry.stageOneGoldfishRank ?? 0,
       score: entry.stageOneScore });
   return { schemaVersion: 2, experiment: 'fixed-reservoir-pool', version: FIXED_RESERVOIR_VERSION,
     kingdomId: pool.kingdomId, poolSeed: pool.poolSeed, goldfishSeeds: pool.goldfishSeeds,

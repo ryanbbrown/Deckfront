@@ -167,7 +167,7 @@ export function retainShard(
       entry.score.worstDamageArea, entry.score.totalDamageArea, entry.score.totalMoneySpent,
       entry.displayId, entry.canonicalStrategy].join('\t')),
     leaders: [...ordinary].sort(compareTraversalScoreRecords).slice(0, leaderBound),
-    tail: [...ordinary].sort(compareTailRecords(tailSeed)).slice(0, tailBound + leaderBound),
+    tail: [...ordinary].sort(compareTailRecords(tailSeed)).slice(0, tailBound),
     collisions };
 }
 
@@ -187,12 +187,8 @@ export function mergeShardRetention(
   const leaders = applyCollisionPolicy([
     ...orderedShards.flatMap((shard) => shard.leaders), ...collisionRecords
   ]).slice(0, leaderCount);
-  const leaderCanonicals = new Set(leaders.map((entry) => entry.canonicalStrategy));
-  const leaderIds = new Set(leaders.map((entry) => entry.displayId));
   const tail = applyCollisionPolicy([
     ...orderedShards.flatMap((shard) => shard.tail), ...collisionRecords
-  ])
-    .filter((entry) => !leaderCanonicals.has(entry.canonicalStrategy) && !leaderIds.has(entry.displayId))
-    .sort(compareTailRecords(tailSeed)).slice(0, tailCount);
+  ]).sort(compareTailRecords(tailSeed)).slice(0, tailCount);
   return { leaders, tail };
 }

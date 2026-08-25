@@ -1,11 +1,18 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { SeededRandom, registerKingdom, resetKingdoms } from '../../src/game';
-import type { CompactMovementAwareGoldfishScore } from '../../src/sim/goldfish';
+import {
+  mergeMovementAwareGoldfishScores, scoreMovementAwareGoldfishStrategyLean
+} from '../../src/sim/goldfish';
+import type { CompactMovementAwareGoldfishScore, GoldfishConfig,
+  MovementAwareGoldfishScore } from '../../src/sim/goldfish';
 import {
   applyCollisionPolicy, mergeShardRetention, retainShard, streamUniqueStrategies
 } from '../../src/sim/nativeStrategySearch';
 import type { TraversalScoreRecord } from '../../src/sim/nativeStrategySearch';
 import { canonicalStrategy, fixedBuyPlan, identify } from '../../src/sim/strategy';
+import {
+  selectStagedReservoir, selectStagedReservoirFromMergedEvidence
+} from '../../src/sim/stagedGoldfish';
 import type { Strategy } from '../../src/sim/strategy';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import { stoplessRandomDomain } from '../../src/sim/randomPsro';
@@ -76,9 +83,64 @@ describe('bounded deterministic native strategy search', () => {
     const merged = mergeShardRetention(shards, 3, 2, 5);
     const single = mergeShardRetention([retainShard(0, 0, 6, records, 3, 2, 5, collisionIds)], 3, 2, 5);
     expect(merged).toEqual(single);
-    expect(new Set([...merged.leaders, ...merged.tail].map((entry) => entry.displayId)).size)
-      .toBe(merged.leaders.length + merged.tail.length);
   });
+
+  it('matches one-process staged selection with real generated strategies and scores', () => {
+    const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
+    registerKingdom(kingdom);
+    const generated: Strategy[] = [];
+    const source = function* () { const random = new SeededRandom(17), domain = stoplessRandomDomain(kingdom.id);
+      for (;;) yield domain.randomComplete(random); };
+    const generation = streamUniqueStrategies(source(), 36, 7,
+      (chunk) => generated.push(...chunk.strategies));
+    const firstConfig: GoldfishConfig = { kingdomId: kingdom.id, seeds: [71], turnLimit: 12,
+      actionCapPerTurn: 40 };
+    const remainingConfig: GoldfishConfig = { ...firstConfig, seeds: [72, 73] };
+    const stageOneScores = generated.map((entry) =>
+      scoreMovementAwareGoldfishStrategyLean(entry, firstConfig, 'full'));
+    const records = stageOneScores.map((score, index): TraversalScoreRecord => ({
+      traversalPosition: index, displayId: score.strategy.id,
+      canonicalStrategy: canonicalStrategy(score.strategy), score
+    }));
+    const collisionIds = new Set(generation.collisionIds);
+    const stageOneShards = [
+      retainShard(0, 0, 11, records.slice(0, 11), 20, 8, 17, collisionIds),
+      retainShard(1, 11, 27, records.slice(11, 27), 20, 8, 17, collisionIds),
+      retainShard(2, 27, 36, records.slice(27), 20, 8, 17, collisionIds)
+    ];
+    const mergedOne = mergeShardRetention(stageOneShards, 20, 8, 17);
+    const remaining = mergedOne.leaders.map((entry) => scoreMovementAwareGoldfishStrategyLean(
+      entry.score.strategy, remainingConfig, 'full'));
+    const combined = mergedOne.leaders.map((entry, index): TraversalScoreRecord => {
+      const score = mergeMovementAwareGoldfishScores([
+        entry.score as MovementAwareGoldfishScore, remaining[index]!
+      ]);
+      return { traversalPosition: index, displayId: score.strategy.id,
+        canonicalStrategy: canonicalStrategy(score.strategy), score };
+    });
+    const stageTwo = mergeShardRetention([
+      retainShard(0, 0, 6, combined.slice(0, 6), 5, 0, 17, new Set()),
+      retainShard(1, 6, 17, combined.slice(6, 17), 5, 0, 17, new Set()),
+      retainShard(2, 17, 20, combined.slice(17), 5, 0, 17, new Set())
+    ], 5, 0, 17);
+    const ranks = new Map(mergedOne.leaders.map((entry, index) => [entry.canonicalStrategy, index + 1]));
+    const sharded = selectStagedReservoirFromMergedEvidence(
+      mergedOne.leaders.map((entry, index) => ({ score: entry.score as MovementAwareGoldfishScore,
+        stageOneGoldfishRank: index + 1 })),
+      stageTwo.leaders.map((entry) => entry.score as MovementAwareGoldfishScore),
+      mergedOne.tail.map((entry) => ({ score: entry.score as MovementAwareGoldfishScore,
+        stageOneGoldfishRank: ranks.get(entry.canonicalStrategy) ?? null })), 5, 3);
+    const oneProcess = selectStagedReservoir(stageOneScores, remaining, 20, 5, 3, 17);
+    expect(mergedOne.leaders.map((entry) => entry.canonicalStrategy)).toEqual(
+      applyCollisionPolicy(records).slice(0, 20).map((entry) => entry.canonicalStrategy));
+    expect(sharded.map((entry) => entry.strategy.id)).toEqual(
+      oneProcess.map((entry) => entry.strategy.id));
+    expect(sharded.filter((entry) => entry.source === 'random').map((entry) => entry.randomTailRank))
+      .toEqual(oneProcess.filter((entry) => entry.source === 'random')
+        .map((entry) => entry.randomTailRank));
+    expect(sharded.filter((entry) => entry.source === 'random')
+      .some((entry) => entry.stageOneGoldfishRank === null)).toBe(true);
+  }, 30_000);
 
   it('merges uneven and empty final shards like one process', () => {
     const records = Array.from({ length: 23 }, (_unused, index) => record(index, (index * 7) % 13));

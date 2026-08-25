@@ -98,7 +98,7 @@ interface AttackProvenance {
   source: 'goldfish' | 'random';
   scoreProvenance: 'baseline-four-seed' | 'combined-four-seed' | 'stage-one-only';
   goldfishRank?: number;
-  stageOneGoldfishRank?: number;
+  stageOneGoldfishRank?: number | null;
   fourSeedGoldfishRank?: number;
   randomTailRank?: number;
 }
@@ -199,10 +199,10 @@ function validStageOne(value: unknown, baseline: FixedReservoirPoolArtifact): va
     || artifact.tailCandidates.length !== FIXED_RESERVOIR_CONFIG.goldfishCount + FIXED_RESERVOIR_CONFIG.randomCount) return false;
   const prefilterIds = artifact.prefilter.map((entry) => entry.score.strategy.id);
   return new Set(prefilterIds).size === prefilterIds.length
-    && artifact.prefilter.every((entry) => entry.stageOneGoldfishRank >= 1
-      && entry.stageOneGoldfishRank <= artifact.generatedCount!)
-    && artifact.tailCandidates.every((entry) => entry.stageOneGoldfishRank >= 1
-      && entry.stageOneGoldfishRank <= artifact.generatedCount!);
+    && artifact.prefilter.every((entry) => typeof entry.stageOneGoldfishRank === 'number'
+      && entry.stageOneGoldfishRank >= 1 && entry.stageOneGoldfishRank <= artifact.generatedCount!)
+    && artifact.tailCandidates.every((entry) => typeof entry.stageOneGoldfishRank === 'number'
+      && entry.stageOneGoldfishRank >= 1 && entry.stageOneGoldfishRank <= artifact.generatedCount!);
 }
 function baselineArtifacts(): { pool: FixedReservoirPoolArtifact; run: FixedReservoirPsroArtifact } {
   const pool = readJson(path.join(BASELINE_ROOT, `pool-${poolSeed}.json`));

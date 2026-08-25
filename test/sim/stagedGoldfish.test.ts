@@ -62,7 +62,8 @@ describe('staged movement-aware goldfish', () => {
       .every((entry) => entry.stageOneGoldfishRank <= 10)).toBe(true);
     const tail = selected.filter((entry) => entry.source === 'random');
     expect(tail).toHaveLength(5);
-    expect(tail.some((entry) => entry.stageOneGoldfishRank > 10)).toBe(true);
+    expect(tail.some((entry) => entry.stageOneGoldfishRank !== null
+      && entry.stageOneGoldfishRank > 10)).toBe(true);
     expect(tail.every((entry) => entry.scoreProvenance === 'stage-one-only')).toBe(true);
   });
 
