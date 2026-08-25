@@ -8,11 +8,15 @@ The final path must run efficiently on Modal. The local Modal CLI is installed, 
 
 ## Repository state
 
-Start from commit `08f8f80`, which includes:
+Implementation starts from the commit that records this reviewed plan. Its parent state is `29280cc`, which includes:
 
 - `48fe48e` — staged goldfish scoring and PSRO evaluation-seed variance
 - `24b8366` — ordered goldfish benchmark and baseline results
-- `08f8f80` — this performance handoff
+- `08f8f80` — the first performance handoff
+- `b9c23f7` — the Modal execution revision
+- `29280cc` — the authenticated Modal smoke-test record
+
+Do not reset to an older commit. Capture the plan-revision commit as the pre-implementation review base.
 
 Preserve the unrelated uncommitted user edit in `.plans/34-strategy-search-results.md`. Do not stage, overwrite, revert, clean, or commit it.
 
@@ -79,9 +83,11 @@ Profile before and after each optimization. Cover all known opportunities:
 - Reduce worker serialization. Send compact candidate data once per batch and return compact score data.
 - Use compiled workers when startup or TypeScript loader overhead is measurable. Do not optimize startup when simulation dominates.
 
-Keep the frozen current-path benchmark available behind an explicit scorer choice so native and optimized paths can be compared with the original implementation. First add a deterministic digest over every ranking key for the fixed 100,000 candidates; the candidate checksum alone cannot detect a wrong scorer. The lean TypeScript path must match every original `MovementAwareGoldfishScore` field on fixed candidates, including victory, turn-limit, and action-cap damage-area padding.
+Keep the frozen current-path benchmark available behind `--scorer original|lean|rust`. First add a deterministic digest over every ranking key for the fixed 100,000 candidates; the candidate checksum alone cannot detect a wrong scorer. Re-measure the original path with digest work enabled and use that result as the optimization baseline while retaining the earlier no-digest table as historical evidence.
 
-Profile the turn loop as well as its output. In particular, measure eager `pilotView` construction, repeated purchase projections, hand scans, temporary sets and arrays, and tactical-agent allocation. Use pull-based small chunks so workers dynamically claim more work instead of waiting for one expensive static partition.
+The lean scorer has two outputs. Conformance mode returns every original `MovementAwareGoldfishScore` field. Production mode returns the strategy reference and the compact ranking key: `worstCompletions`, `totalCompletions`, `worstPenalizedTurnsTo50`, `totalPenalizedTurnsTo50`, `worstDamageArea`, `totalDamageArea`, `totalMoneySpent`, strategy ID, and the collision tie key. Prove full-field lean equality with the original scorer first. Then prove compact-mode ranking, leaders, and seeded tail equal full-field lean. Include victory, turn-limit, and action-cap damage-area padding.
+
+Profile the turn loop as well as its output. In particular, measure eager `pilotView` construction, repeated purchase projections, hand scans, temporary sets and arrays, and tactical-agent allocation. Use pull-based small chunks so workers dynamically claim more work instead of waiting for one expensive static partition. Fold candidate and score digests in traversal order after reordering worker replies, never in completion order. Hoist the coprime traversal configuration and advance the index arithmetic progression directly instead of recomputing the GCD and BigInt formula for every candidate.
 
 ### 2. Port the scoring kernel to Rust
 
@@ -97,7 +103,9 @@ rust/
 
 Port only the hot deterministic kernel and batch scorer unless profiling justifies a wider port. The port includes the behavior used by `simulationKernel.ts`, `tacticalPilot.ts`, `positionValue.ts`, and purchase-plan helpers. Keep strategy generation, PSRO control, artifact validation, and reporting in TypeScript.
 
-Use a standalone Rust shard executable as the first integration boundary. Give it a versioned compact input containing the rule fingerprint, scorer version, kingdom card data, strategies, seeds, movement profiles, and limits. Return compact score keys and structured errors. Start with a clear line-delimited format for conformance and replace it with a binary format only when profiling shows serialization matters. TypeScript or Modal owns shard scheduling; Rust owns threads inside one shard. Prevent nested Node-worker and Rust-thread oversubscription.
+Use a standalone Rust shard executable as the first integration boundary. Give it a versioned compact input containing the rule fingerprint, scorer version, kingdom card data, strategies, seeds, movement profiles, and limits. Return compact score keys and structured errors. Start with a clear line-delimited format for conformance and replace it with a binary format only when profiling shows serialization matters. Rust is in scope only for goldfish trials and batch scoring. Two-player matches and PSRO remain TypeScript paths.
+
+TypeScript or Modal owns shard scheduling; Rust owns threads inside one shard. Run one Rust process per Modal function input, set `max_inputs=1`, and set Rust threads to the integer CPU request. Reject a thread count above that request. Do not wrap Rust with Node workers. Build the executable inside the Linux image with pinned Rust `1.98.0` for `x86_64-unknown-linux-gnu`; never copy the macOS ARM binary. Keep Python and Node 22 in the image for Modal control and TypeScript conformance, although production shard scoring invokes only Rust.
 
 Build the Rust hot loop around compact data:
 
@@ -122,23 +130,33 @@ Create deterministic cross-language fixtures that cover:
 - Candidate ordering and tie-breaking
 - Exact seeded shuffle output before full-game comparison
 
-Require exact discrete outcomes and exact integer aggregates. Compare floating values from the same integer totals. Investigate every mismatch; do not hide simulator differences behind broad tolerances. Replace locale-dependent ordering in shared selection and ported hot paths with one explicit deterministic code-unit or byte ordering before requiring Rust parity. Keep the original full-trial function; add the lean scorer beside it until equivalence is proved.
+Require exact discrete outcomes and exact integer aggregates. Compare floating values from the same integer totals. Investigate every mismatch; do not hide simulator differences behind broad tolerances. Keep the original full-trial function; add the lean scorer beside it until equivalence is proved.
+
+Use one explicit UTF-16 code-unit comparator in TypeScript and Rust for card IDs, strategy IDs, and canonical strategy text. Rust compares `encode_utf16()` units. Replace `localeCompare` in shared selection and ported hot paths before Rust parity. Prove that the new comparator has the same sign as the current `localeCompare` for every current card-ID pair and every fixed fixture tie, and rerun the frozen original scorer digest and kernel/pilot tests. Current identifiers are ASCII; if a future identifier breaks this guard, UTF-16 order remains canonical and the protocol version must change.
+
+A strategy ID remains the existing compact display ID. Canonical strategy text is the collision key and the final comparator key after strategy ID. Distinct canonical strategies with one display ID are ranked deterministically, then the lower-ranked duplicate display ID is dropped. Apply this policy in fixed and staged selection and both validators. A shard record carries display ID, canonical strategy, and traversal position. Merge shard records in ascending traversal position before ranking; never concatenate in completion order.
 
 ### 4. Add deterministic Modal execution
 
-First make the provisional ordered benchmark indexable and divisible into independent shards. This path measures throughput and scorer parity; it does not define the product reservoir. Each shard must record:
+First make the provisional ordered benchmark indexable and divisible into independent contiguous traversal-position shards. This path measures throughput and scorer parity; it does not define the product reservoir. Each shard must record:
 
 - Candidate range or deterministic traversal positions
-- Candidate and score-key digests
+- Candidate and score-key digests folded in traversal order
 - Rule fingerprint and scorer version
 - Shuffle seeds and movement profiles
 - Build version
 - Timing, requested CPU, actual concurrency, and container identity
 - Structured success or failure
 
-Build a small Python Modal launcher around the standalone shard command. Use an explicit image, configurable CPU and shard sizes, bounded `max_containers`, per-shard timeouts, retries for interruption-safe failures, and detached or deployed execution so a local disconnect does not stop overnight work. Persist shard results under deterministic IDs and make reruns skip completed valid shards. Keep disk and network output bounded.
+Build a small Python Modal launcher around the standalone shard command. Use an explicit image, configurable CPU and shard sizes, bounded `max_containers`, per-shard timeouts, and at most two retries per shard. Detached launch starts one remote controller that owns fan-out and merge, so a local disconnect cannot stop the job. Persist shard results under deterministic IDs with temporary-file plus atomic-rename writes. Skip a result only after validating its schema, shard range, complete count, candidate and score digests, rule fingerprint, scorer version, and build version. Corrupt, partial, stale, or mismatched results run again.
 
-Then define the product merge contract before running full staged generation. The current product needs both 18,000 score-ranked goldfish leaders and a 2,000-strategy deterministic seeded tail, while current artifact validation records every generated ID. Specify a bounded artifact version, incremental provenance digest, collision handling, per-shard retention for both rankings, exact tie rules, and a merge proof. Test uneven and empty final shards, duplicate IDs, and ties against one-process selection.
+Enforce cost before launch. Use the current Modal CPU and memory rates and calculate worst-case cost as all shard attempts, including retries, running for the full timeout. The launcher rejects aggregate allocation above 192 physical CPU cores, a run above its explicit `--max-cost-usd`, cumulative reserved ledger spend above $25, or more than three full-candidate-space runs. A full run defaults to a $5 maximum. Reserve projected cost atomically in a durable local ledger before launch; resume uses the existing run entry and cannot reserve or launch a second copy of a valid shard.
+
+The product generator remains one ordered coordinator stream. It uses the existing stateful `SeededRandom`, canonical-strategy duplicate filter, and accepted-candidate order, then sends bounded chunks for scoring. Independent workers never generate product candidates. The streaming output must match the sequential generator's accepted count, collision decisions, generated-ID digest, and canonical provenance digest for each tested seed and chunk size.
+
+The staged product merge has two global stages. Stage one scores 500,000 generated candidates on one seed and retains the best 50,000 by movement-aware score plus the best 20,000 by deterministic tail rank. Stage two scores the 50,000 prefilter survivors on the remaining three seeds, combines disjoint-seed evidence, retains 18,000 leaders, then takes the first 2,000 stage-one tail entries not used as leaders. Per-shard retention uses those global bounds, so merging shard top sets is sufficient. Merge in traversal order, then apply the explicit score and tail comparators and collision policy. Prove equality with one-process selection for the generated digest, prefilter order, leader order, and tail order.
+
+Replace unbounded `generatedIds` artifacts with a bounded version that stores generated count, streaming generated-ID digest, canonical provenance digest, duplicate and display-ID-collision counts, retained candidates, scoring protocol, and shard provenance. Update both fixed and staged validators to validate this contract without reconstructing every generated ID. Old artifacts are not a compatibility requirement. Test uneven and empty final shards, duplicate canonical strategies, display-ID collisions, score ties, seeded-rank collisions, corrupted checkpoints, retry de-duplication, and atomic writes.
 
 Provide one unattended Modal command that builds the Linux image, launches or resumes the job, and reports durable result locations. Modal credentials and billing are already configured; the code must not require browser approval during a run.
 
@@ -174,10 +192,12 @@ The work is complete when all of these are true:
 - The optimized TypeScript and Rust scorers pass cross-language conformance.
 - Full candidate generation and scoring use bounded memory.
 - Local and Modal thread counts, CPU requests, container caps, and shard sizes are configurable.
-- Independent shards merge deterministically into the same leaders and seeded tail as one process.
-- One documented unattended Modal command builds the Linux image and launches or resumes a durable run without browser approval.
+- Independent shards merge deterministically into the same 50,000 prefilter, 18,000 leaders, and 2,000 seeded tail as one process.
+- The sequential product generator and every streaming chunk size have the same accepted-candidate order, collision decisions, and provenance digests.
+- Bounded fixed and staged artifact validators do not store every generated ID.
+- One documented unattended Modal command builds the Linux image and launches or resumes a durable run without browser approval and enforces retries, aggregate CPU, run cost, cumulative spend, and full-run limits.
 - Benchmark records show the speedup for TypeScript optimizations, Rust, local parallelism, and Modal parallelism separately.
 - The relevant tests, full test suite, typecheck, lint, `cargo test`, `cargo fmt --check`, `cargo clippy`, and `git diff --check` pass.
-- `.gitignore` excludes Rust build output before the first native build.
+- `.gitignore` excludes `/rust/target/`, Python `__pycache__/`, and local virtual environments before the first native or Modal build.
 - `README.md` gains the minimum commands needed to build, verify, benchmark, and run a shard while retaining the context needed to understand the project.
 - Plans and result records describe the current implementation and measured conclusions.
