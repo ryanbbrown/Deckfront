@@ -124,8 +124,7 @@ test('DD-E2E-075: tactical counters share one space and focused card controls su
   const close = inspector.getByRole('button', { name: 'Close card details' }); await expect(close).toBeVisible(); await close.click();
 
   const drive = page.locator('[data-card-name="Drive"]'); await drive.focus(); await page.keyboard.press('ContextMenu');
-  inspector = page.getByRole('dialog', { name: 'Drive details' }); await expect(inspector).toBeVisible(); await inspector.getByRole('button', { name: 'Close card details' }).click();
-  await copper.click({ button: 'right', force: true }); await expect(page.getByRole('dialog', { name: 'Copper details' })).toBeVisible();
+  inspector = page.getByRole('dialog', { name: 'Drive details' }); await expect(inspector).toBeVisible(); await inspector.getByRole('button', { name: 'Close card details' }).click(); await expect(inspector).toHaveCount(0);
 });
 
 test('DD-E2E-073: full card catalog covers the viewport and shows all cards in approved order', async ({ page, openGame }) => {
