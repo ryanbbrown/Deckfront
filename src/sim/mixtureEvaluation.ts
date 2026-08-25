@@ -1,7 +1,9 @@
 import { SeededRandom } from '../game';
 import { emptyAggregate, mergeAggregate } from './pairing';
 import type { PairingRunner } from './pairingRunner';
+import { canonicalStrategy } from './strategy';
 import type { Strategy } from './strategy';
+import { compareUtf16 } from './utf16';
 import type { TelemetryAggregate } from './types';
 import { DeadlineInterruptionError, InvalidEvaluationError } from './payoffMatrix';
 
@@ -25,7 +27,8 @@ export interface CandidateEvaluation {
 export function mixtureSchedule(
   weights: Readonly<Record<string, number>>, seeds: readonly number[], samplingSeed: number
 ): MixtureSchedule {
-  const entries = Object.entries(weights).filter((entry) => entry[1] > 0).sort(([a], [b]) => a.localeCompare(b));
+  const entries = Object.entries(weights).filter((entry) => entry[1] > 0)
+    .sort(([a], [b]) => compareUtf16(a, b));
   const total = entries.reduce((sum, entry) => sum + entry[1], 0);
   if (!entries.length || !(total > 0)) throw new Error('A mixture schedule needs positive weights.');
   const random = new SeededRandom(samplingSeed);
@@ -146,7 +149,8 @@ export async function raceCandidates(
     const schedule = mixtureSchedule(weights, seeds, samplingSeed ^ (round + 1));
     const evaluations = await evaluateCandidates(field, opponents, schedule, runner, options);
     evaluations.sort((left, right) => right.mean - left.mean
-      || left.strategy.id.localeCompare(right.strategy.id));
+      || compareUtf16(left.strategy.id, right.strategy.id)
+      || compareUtf16(canonicalStrategy(left.strategy), canonicalStrategy(right.strategy)));
     for (const evaluation of evaluations) { matches += evaluation.matches; mergeAggregate(telemetry, evaluation.telemetry); }
     best = evaluations[0]!;
     const survivors = Math.max(RACE_FLOOR, Math.ceil(field.length / RACE_SURVIVOR_SHARE));

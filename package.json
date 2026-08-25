@@ -27,6 +27,8 @@
     "goldfish:ordered-benchmark": "npm run build:goldfish-worker --silent && tsx scripts/ordered_goldfish_benchmark.ts",
     "psro:worker-benchmark": "tsx scripts/benchmark_psro_workers.ts",
     "goldfish:native-metadata": "tsx scripts/native_goldfish_metadata.ts",
+    "goldfish:native-build": "cd rust && cargo build --release",
+    "goldfish:native-verify": "cd rust && cargo test && cargo fmt --check && cargo clippy --all-targets -- -D warnings",
     "goldfish:enrichment": "tsx scripts/goldfish_enrichment_pilot.ts",
     "fixed-reservoir:pilot": "tsx scripts/fixed_reservoir_psro_pilot.ts",
     "fixed-reservoir:five-run:prepare": "tsx scripts/fixed_reservoir_five_run.ts --prepare",

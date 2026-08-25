@@ -43,6 +43,7 @@ import type {
 } from '../src/sim/stagedGoldfishSuite';
 import { canonicalStrategy, formatSlot, stableHash } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
+import { compareUtf16 } from '../src/sim/utf16';
 import type { TelemetryAggregate } from '../src/sim/types';
 import { classifyStrategyDamage } from './generate_balance_corpus';
 import { headToHead } from './headToHead';
@@ -147,14 +148,18 @@ function migrateSeedFiveArtifacts(): void {
 function tailRank(id: string): number {
   return Number.parseInt(stableHash(`reservoir-tail:${poolSeed}:${id}`).slice(0, 8), 16) >>> 0;
 }
-function generate(count: number): Strategy[] {
+function generate(count: number) {
   const domain = stoplessRandomDomain(KINGDOM_ID), random = new SeededRandom(poolSeed), seen = new Set<string>();
-  const result: Strategy[] = [];
-  while (result.length < count) {
+  const ids = new Map<string, string>(), strategies: Strategy[] = [];
+  let duplicateCanonicalCount = 0, displayIdCollisionCount = 0;
+  while (strategies.length < count) {
     const strategy = domain.randomComplete(random), key = canonicalStrategy(strategy);
-    if (!seen.has(key)) { seen.add(key); result.push(strategy); }
+    if (seen.has(key)) { duplicateCanonicalCount += 1; continue; }
+    seen.add(key); const held = ids.get(strategy.id);
+    if (held !== undefined && held !== key) displayIdCollisionCount += 1; else ids.set(strategy.id, key);
+    strategies.push(strategy);
   }
-  return result;
+  return { strategies, duplicateCanonicalCount, displayIdCollisionCount };
 }
 async function scoreInWorkers(
   strategies: readonly Strategy[], config: GoldfishConfig, kingdom: Kingdom
@@ -223,9 +228,10 @@ async function buildPool(kingdom: Kingdom, baseline: FixedReservoirPoolArtifact)
     }
   }
   const generationStarted = Date.now();
-  const generated = generate(FIXED_RESERVOIR_CONFIG.generatedCount);
+  const generation = generate(FIXED_RESERVOIR_CONFIG.generatedCount), generated = generation.strategies;
   const generationMs = Date.now() - generationStarted;
-  const provenance = generatedProvenance(generated);
+  const provenance = generatedProvenance(generated, generation.duplicateCanonicalCount,
+    generation.displayIdCollisionCount);
   if (provenance.generatedIdDigest !== baseline.generatedHash
     || provenance.canonicalProvenanceDigest !== baseline.canonicalProvenanceDigest) {
     throw new Error(`Pool seed ${poolSeed} did not recreate the baseline raw strategies in order.`);
@@ -256,7 +262,8 @@ async function buildPool(kingdom: Kingdom, baseline: FixedReservoirPoolArtifact)
       canonicalProvenanceDigest: provenance.canonicalProvenanceDigest, prefilterCount: PREFILTER_COUNT,
       generationMs, scoringMs, prefilter: ranked.slice(0, PREFILTER_COUNT).map(wrap),
       tailCandidates: [...ranked].sort((left, right) => tailRank(left.strategy.id) - tailRank(right.strategy.id)
-        || left.strategy.id.localeCompare(right.strategy.id))
+        || compareUtf16(left.strategy.id, right.strategy.id)
+        || compareUtf16(canonicalStrategy(left.strategy), canonicalStrategy(right.strategy)))
         .slice(0, FIXED_RESERVOIR_CONFIG.goldfishCount + FIXED_RESERVOIR_CONFIG.randomCount).map(wrap) };
     writeAtomic(files.stageOne, stageOne);
     console.log(`stage one: completed in ${(scoringMs / 1000).toFixed(1)}s`);

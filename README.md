@@ -167,22 +167,20 @@ ranges are conditional on discovered strategies and do not cover omitted strateg
 
 ## Native strategy search
 
-The ordered Kingdom 009 benchmark streams bounded chunks, dispatches them dynamically, and folds candidate and ranking digests in traversal order. The original and lean TypeScript paths must return the same digest.
+The ordered Kingdom 009 benchmark streams bounded chunks and folds candidate and ranking digests in traversal order. The original, lean TypeScript, and standalone Rust paths must return the same digest.
 
 ```sh
 npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 250 --scorer original
 npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 250 --scorer lean
+npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 250 --scorer rust
 npm run psro:worker-benchmark -- --workers 4 --candidates 30 --blocks 4 --mode score-only
 ```
 
 The native workspace pins Rust 1.98.0. Build and verify it on Linux x86-64 with:
 
 ```sh
-cd rust
-cargo build --release --target x86_64-unknown-linux-gnu
-cargo test
-cargo fmt --check
-cargo clippy --all-targets -- -D warnings
+npm run goldfish:native-build
+npm run goldfish:native-verify
 ```
 
 `hexdeck-goldfish` uses versioned line-delimited JSON. It rejects a thread count above the CPU request. Get the rule fingerprint with `npm run goldfish:native-metadata`.
@@ -192,8 +190,9 @@ The Modal launcher reserves the worst-case cost for all attempts before launch. 
 ```sh
 modal profile activate ryanburnettebrown
 modal run --detach modal/native_strategy_search.py --build-version "$(git rev-parse HEAD)" \
-  --rule-fingerprint RULE_HASH --count 5000 --shard-size 2500 --cpu 4 --memory-gib 4 \
-  --threads 4 --max-containers 2 --timeout-seconds 600 --max-cost-usd 1 --scorer lean
+  --rule-fingerprint "$(npm run goldfish:native-metadata --silent)" \
+  --count 5000 --shard-size 2500 --cpu 4 --memory-gib 4 --threads 4 \
+  --max-containers 2 --timeout-seconds 120 --max-cost-usd 1 --scorer rust
 ```
 
 Shard checkpoints and the ordered merge live in the `hexdeck-native-strategy-results` Modal Volume. The local reservation ledger is `~/.hexdeck-modal-cost-ledger.json`.

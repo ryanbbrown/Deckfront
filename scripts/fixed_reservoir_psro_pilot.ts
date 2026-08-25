@@ -35,10 +35,13 @@ function writeAtomic(file:string,value:unknown):void { fs.mkdirSync(path.dirname
 function poolPath(seed:number):string{return path.join(ROOT,`pool-${seed}.json`)}
 function runPath(seed:number):string{return path.join(ROOT,`run-${seed}.json`)}
 function plan(strategy:Strategy):string{return strategy.buyPlan.filter((slot)=>slot.kind!=='inactive').map(formatSlot).join(' → ')}
-function generate(kingdomId:string,count:number,seed:number):Strategy[]{
-  const domain=stoplessRandomDomain(kingdomId);const random=new SeededRandom(seed);const seen=new Set<string>();const result:Strategy[]=[];
-  while(result.length<count){const strategy=domain.randomComplete(random);const key=canonicalStrategy(strategy);
-    if(!seen.has(key)){seen.add(key);result.push(strategy)}} return result;
+function generate(kingdomId:string,count:number,seed:number){
+  const domain=stoplessRandomDomain(kingdomId),random=new SeededRandom(seed),seen=new Set<string>(),ids=new Map<string,string>();
+  const strategies:Strategy[]=[];let duplicateCanonicalCount=0,displayIdCollisionCount=0;
+  while(strategies.length<count){const strategy=domain.randomComplete(random),key=canonicalStrategy(strategy);
+    if(seen.has(key)){duplicateCanonicalCount+=1;continue}seen.add(key);const held=ids.get(strategy.id);
+    if(held!==undefined&&held!==key)displayIdCollisionCount+=1;else ids.set(strategy.id,key);strategies.push(strategy)}
+  return{strategies,duplicateCanonicalCount,displayIdCollisionCount};
 }
 async function scoreInWorkers(strategies:readonly Strategy[],config:GoldfishConfig,kingdom:Kingdom):Promise<MovementAwareGoldfishScore[]>{
   const pool=Array.from({length:workers},()=>new Worker(new URL('../src/server/goldfishWorker.ts',import.meta.url),
@@ -56,11 +59,11 @@ async function buildPool(kingdom:Kingdom,poolSeed:number):Promise<FixedReservoir
     if(validateFixedReservoirPool(held,{poolSeed,generatedCount:FIXED_RESERVOIR_CONFIG.generatedCount,
       goldfishCount:FIXED_RESERVOIR_CONFIG.goldfishCount,randomCount:FIXED_RESERVOIR_CONFIG.randomCount})) return held;}
   const started=Date.now();console.log(`pool ${poolSeed}: generating ${FIXED_RESERVOIR_CONFIG.generatedCount}`);
-  const generated=generate(kingdom.id,FIXED_RESERVOIR_CONFIG.generatedCount,poolSeed);
+  const generation=generate(kingdom.id,FIXED_RESERVOIR_CONFIG.generatedCount,poolSeed),generated=generation.strategies;
   console.log(`pool ${poolSeed}: goldfishing`);
   const scores=await scoreInWorkers(generated,{kingdomId:kingdom.id,seeds:GOLDFISH_SEEDS,turnLimit:30,actionCapPerTurn:200},kingdom);
   const reservoir=selectFixedReservoir(scores,FIXED_RESERVOIR_CONFIG.goldfishCount,FIXED_RESERVOIR_CONFIG.randomCount,poolSeed);
-  const provenance=generatedProvenance(generated);
+  const provenance=generatedProvenance(generated,generation.duplicateCanonicalCount,generation.displayIdCollisionCount);
   const artifact:FixedReservoirPoolArtifact={schemaVersion:2,experiment:'fixed-reservoir-pool',version:FIXED_RESERVOIR_VERSION,
     kingdomId:kingdom.id,poolSeed,goldfishSeeds:[...GOLDFISH_SEEDS],generatedCount:generated.length,
     generatedHash:provenance.generatedIdDigest,canonicalProvenanceDigest:provenance.canonicalProvenanceDigest,

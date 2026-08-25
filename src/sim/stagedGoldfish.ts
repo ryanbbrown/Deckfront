@@ -12,6 +12,7 @@ import {
 import type { MovementAwareGoldfishScore } from './goldfish';
 import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
+import { compareUtf16 } from './utf16';
 
 export const STAGED_GOLDFISH_VERSION = 'staged-goldfish-ab-v2';
 
@@ -148,7 +149,9 @@ export function selectStagedReservoir(
   });
   const tailCandidates = [...rankedStageOne].sort((left, right) =>
     tailRank(left.strategy.id, tailSeed) - tailRank(right.strategy.id, tailSeed)
-      || left.strategy.id.localeCompare(right.strategy.id)).slice(0, goldfishCount + randomCount).map(ranked);
+      || compareUtf16(left.strategy.id, right.strategy.id)
+      || compareUtf16(canonicalStrategy(left.strategy), canonicalStrategy(right.strategy)))
+    .slice(0, goldfishCount + randomCount).map(ranked);
   return selectStagedReservoirFromEvidence(rankedStageOne.slice(0, prefilterCount).map(ranked),
     remainingSeedScores, tailCandidates, goldfishCount, randomCount);
 }
@@ -208,11 +211,13 @@ function validateStagedFixedReservoirPoolUnchecked(
   const canonical = artifact.reservoir.map((entry) => canonicalStrategy(entry.strategy));
   if (new Set(canonical).size !== canonical.length) return false;
   const shards = [...artifact.shardProvenance].sort((left, right) => left.startPosition - right.startPosition);
-  if (shards.length && (shards[0]!.startPosition !== 0
+  if ((artifact.generatedCount! > 0 && shards.length === 0)
+    || (shards.length && (shards[0]!.startPosition !== 0
     || shards.at(-1)!.endPosition !== artifact.generatedCount
     || shards.some((entry, index) => entry.endPosition < entry.startPosition
       || (index > 0 && shards[index - 1]!.endPosition !== entry.startPosition)
-      || !entry.candidateDigest || !entry.scoreDigest))) return false;
+      || !/^[0-9a-f]{9,}$/.test(entry.candidateDigest)
+      || !/^[0-9a-f]{9,}$/.test(entry.scoreDigest))))) return false;
   const goldfish = artifact.reservoir.filter((entry): entry is StagedGoldfishReservoirEntry => entry.source === 'goldfish');
   const random = artifact.reservoir.filter((entry): entry is StagedRandomReservoirEntry => entry.source === 'random');
   if (expected.goldfishCount !== undefined && goldfish.length !== expected.goldfishCount) return false;
@@ -223,7 +228,16 @@ function validateStagedFixedReservoirPoolUnchecked(
   if (random.some((entry, index) => entry.randomTailRank !== index + 1
     || entry.stageOneGoldfishRank < 1 || entry.stageOneGoldfishRank > artifact.generatedCount!
     || entry.scoreProvenance !== 'stage-one-only' || !validSummary(entry.stageOneScore))) return false;
-  return random.every((entry, index) => entry.randomTailRank === index + 1)
+  const orderedTail = random.every((entry, index) => index === 0 || (() => {
+    const previous = random[index - 1]!;
+    const rankDifference = tailRank(previous.strategy.id, artifact.poolSeed!)
+      - tailRank(entry.strategy.id, artifact.poolSeed!);
+    return rankDifference < 0 || (rankDifference === 0
+      && (compareUtf16(previous.strategy.id, entry.strategy.id) < 0
+        || (previous.strategy.id === entry.strategy.id
+          && compareUtf16(canonicalStrategy(previous.strategy), canonicalStrategy(entry.strategy)) <= 0)));
+  })());
+  return orderedTail && random.every((entry, index) => entry.randomTailRank === index + 1)
     && artifact.reservoir.every((entry) => canonicalStrategy(entry.strategy).length > 0);
 }
 

@@ -147,11 +147,13 @@ export function validateFixedReservoirPool(
   const canonical = artifact.reservoir.map((entry) => canonicalStrategy(entry.strategy));
   if (new Set(canonical).size !== canonical.length) return false;
   const shards = [...artifact.shardProvenance].sort((left, right) => left.startPosition - right.startPosition);
-  if (shards.length && (shards[0]!.startPosition !== 0
+  if ((artifact.generatedCount! > 0 && shards.length === 0)
+    || (shards.length && (shards[0]!.startPosition !== 0
     || shards.at(-1)!.endPosition !== artifact.generatedCount
     || shards.some((entry, index) => entry.endPosition < entry.startPosition
       || (index > 0 && shards[index - 1]!.endPosition !== entry.startPosition)
-      || !entry.candidateDigest || !entry.scoreDigest))) return false;
+      || !/^[0-9a-f]{9,}$/.test(entry.candidateDigest)
+      || !/^[0-9a-f]{9,}$/.test(entry.scoreDigest))))) return false;
   const goldfish = artifact.reservoir.filter((entry) => entry.source === 'goldfish');
   const random = artifact.reservoir.filter((entry) => entry.source === 'random');
   if (expected.goldfishCount !== undefined && goldfish.length !== expected.goldfishCount) return false;
@@ -189,13 +191,13 @@ function solve(snapshot: MatrixSnapshot): EquilibriumResult {
 }
 async function evaluateChunks(candidates: readonly Strategy[], opponents: ReadonlyMap<string,Strategy>,
   weights: Record<string,number>, seeds: readonly number[], samplingSeed: number,
-  runner: PairingRunner, kingdomId: string, chunkSize: number): Promise<CandidateEvaluation[]> {
+  runner: PairingRunner, kingdomId: string, chunkSize: number, scoreOnly: boolean): Promise<CandidateEvaluation[]> {
   const schedule = mixtureSchedule(weights, seeds, samplingSeed);
   const chunks: CandidateEvaluation[][] = [];
   for (let index=0; index<candidates.length; index+=chunkSize) {
     chunks.push(await evaluateCandidates(candidates.slice(index,index+chunkSize), opponents, schedule, runner, {
       kingdomId, turnLimitPerPlayer:TURN_LIMIT_PER_PLAYER, actionCapPerTurn:ACTION_CAP_PER_TURN,
-      startingDraftEnabled:false, scoreOnly:true
+      startingDraftEnabled:false, scoreOnly
     }));
   }
   return globalRaceSurvivors(chunks, candidates.length);
@@ -203,7 +205,8 @@ async function evaluateChunks(candidates: readonly Strategy[], opponents: Readon
 export async function scanFixedReservoir(input: { candidates: readonly Strategy[]; snapshot: MatrixSnapshot;
   equilibrium: EquilibriumResult; runner: PairingRunner; kingdomId: string; raceSeeds: readonly number[];
   confirmationSeeds: readonly number[]; samplingSeeds: readonly number[]; bootstrapSeeds: readonly number[];
-  raceBlocks?: readonly number[]; finalists?: number; chunkSize?: number }): Promise<ReservoirConfirmedCandidate[]> {
+  raceBlocks?: readonly number[]; finalists?: number; chunkSize?: number;
+  scoreOnly?: boolean }): Promise<ReservoirConfirmedCandidate[]> {
   const raceBlocks=input.raceBlocks??FIXED_RESERVOIR_CONFIG.raceBlocks;
   const opponentsWeighted=weightedStrategies(input.snapshot,input.equilibrium);
   const opponents=new Map(opponentsWeighted.map((entry)=>[entry.strategy.id,entry.strategy]));
@@ -212,7 +215,7 @@ export async function scanFixedReservoir(input: { candidates: readonly Strategy[
   for (let round=0; round<raceBlocks.length && field.length; round+=1) {
     const count=raceBlocks[round]!; const seeds=input.raceSeeds.slice(cursor,cursor+count); cursor+=count;
     const evaluations=await evaluateChunks(field,opponents,weights,seeds,input.samplingSeeds[round]!,input.runner,
-      input.kingdomId,input.chunkSize??FIXED_RESERVOIR_CONFIG.chunkSize);
+      input.kingdomId,input.chunkSize??FIXED_RESERVOIR_CONFIG.chunkSize,input.scoreOnly??true);
     const keep=evaluations.length<=3?1:Math.max(3,Math.ceil(evaluations.length/3));
     field=evaluations.slice(0,keep).map((entry)=>entry.strategy);
   }
@@ -221,7 +224,7 @@ export async function scanFixedReservoir(input: { candidates: readonly Strategy[
   const schedule=mixtureSchedule(weights,input.confirmationSeeds,input.samplingSeeds.at(-1)!);
   const evidence=await evaluateCandidates(finalists,opponents,schedule,input.runner,{
     kingdomId:input.kingdomId,turnLimitPerPlayer:TURN_LIMIT_PER_PLAYER,actionCapPerTurn:ACTION_CAP_PER_TURN,
-    startingDraftEnabled:false,scoreOnly:true
+    startingDraftEnabled:false,scoreOnly:input.scoreOnly??true
   });
   return evidence.map((entry,index)=>({strategy:entry.strategy,mean:entry.mean,
     interval95:percentileBootstrapMean(entry.blockScores,input.bootstrapSeeds[index]!),

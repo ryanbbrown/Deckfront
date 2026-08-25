@@ -68,14 +68,19 @@ function expectation(config: SuiteConfig, seed: number, protocol = FIXED_RESERVO
   return { kingdomId: config.kingdom.id, poolSeed: seed, generatedCount: protocol.generatedCount,
     goldfishCount: protocol.goldfishCount, randomCount: protocol.randomCount, goldfishSeeds: GOLDFISH_SEEDS };
 }
-function generate(kingdomId: string, count: number, seed: number): Strategy[] {
+function generate(kingdomId: string, count: number, seed: number) {
   const domain = stoplessRandomDomain(kingdomId), random = new SeededRandom(seed), seen = new Set<string>();
-  const result: Strategy[] = [];
-  while (result.length < count) {
+  const identities = new Map<string, string>(), strategies: Strategy[] = [];
+  let duplicateCanonicalCount = 0, displayIdCollisionCount = 0;
+  while (strategies.length < count) {
     const strategy = domain.randomComplete(random), key = canonicalStrategy(strategy);
-    if (!seen.has(key)) { seen.add(key); result.push(strategy); }
+    if (seen.has(key)) { duplicateCanonicalCount += 1; continue; }
+    seen.add(key); const held = identities.get(strategy.id);
+    if (held !== undefined && held !== key) displayIdCollisionCount += 1;
+    else identities.set(strategy.id, key);
+    strategies.push(strategy);
   }
-  return result;
+  return { strategies, duplicateCanonicalCount, displayIdCollisionCount };
 }
 async function scoreInWorkers(
   strategies: readonly Strategy[], config: GoldfishConfig, kingdom: Kingdom, workers = WORKERS
@@ -102,12 +107,14 @@ async function buildPool(
 ): Promise<FixedReservoirPoolArtifact> {
   const started = Date.now();
   console.log(`${config.kingdom.id} pool ${poolSeed}: generating ${protocol.generatedCount}`);
-  const generated = generate(config.kingdom.id, protocol.generatedCount, poolSeed);
+  const generation = generate(config.kingdom.id, protocol.generatedCount, poolSeed);
+  const generated = generation.strategies;
   console.log(`${config.kingdom.id} pool ${poolSeed}: goldfishing`);
   const scores = await scoreInWorkers(generated, { kingdomId: config.kingdom.id, seeds: GOLDFISH_SEEDS,
     turnLimit: 30, actionCapPerTurn: 200 }, config.kingdom, workers);
   const reservoir = selectFixedReservoir(scores, protocol.goldfishCount, protocol.randomCount, poolSeed);
-  const provenance = generatedProvenance(generated);
+  const provenance = generatedProvenance(generated, generation.duplicateCanonicalCount,
+    generation.displayIdCollisionCount);
   const artifact: FixedReservoirPoolArtifact = { schemaVersion: 2, experiment: 'fixed-reservoir-pool',
     version: FIXED_RESERVOIR_VERSION, kingdomId: config.kingdom.id, poolSeed, goldfishSeeds: [...GOLDFISH_SEEDS],
     generatedCount: generated.length, generatedHash: provenance.generatedIdDigest,

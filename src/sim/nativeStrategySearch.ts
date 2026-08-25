@@ -140,11 +140,13 @@ export interface ShardRetention {
   scoreDigest: string;
   leaders: TraversalScoreRecord[];
   tail: TraversalScoreRecord[];
+  collisions: TraversalScoreRecord[];
 }
 
 export function retainShard(
   shardId: number, startPosition: number, endPosition: number,
-  records: readonly TraversalScoreRecord[], leaderBound: number, tailBound: number, tailSeed: number
+  records: readonly TraversalScoreRecord[], leaderBound: number, tailBound: number, tailSeed: number,
+  globalCollisionIds: ReadonlySet<string> = new Set()
 ): ShardRetention {
   if (endPosition - startPosition !== records.length) throw new Error('Shard range and score count differ.');
   const ordered = [...records].sort((left, right) => left.traversalPosition - right.traversalPosition);
@@ -153,14 +155,17 @@ export function retainShard(
     ordered.forEach((entry, index) => { if (index) hash.update('\n'); hash.update(select(entry)); });
     return hash.digest();
   };
+  const collisions = ordered.filter((entry) => globalCollisionIds.has(entry.displayId));
+  const ordinary = ordered.filter((entry) => !globalCollisionIds.has(entry.displayId));
   return { shardId, startPosition, endPosition, completeCount: records.length,
     candidateDigest: fold((entry) => entry.canonicalStrategy),
     scoreDigest: fold((entry) => [entry.score.worstCompletions, entry.score.totalCompletions,
       entry.score.worstPenalizedTurnsTo50, entry.score.totalPenalizedTurnsTo50,
       entry.score.worstDamageArea, entry.score.totalDamageArea, entry.score.totalMoneySpent,
       entry.displayId, entry.canonicalStrategy].join('\t')),
-    leaders: [...ordered].sort(compareTraversalScoreRecords).slice(0, leaderBound),
-    tail: [...ordered].sort(compareTailRecords(tailSeed)).slice(0, tailBound) };
+    leaders: [...ordinary].sort(compareTraversalScoreRecords).slice(0, leaderBound),
+    tail: [...ordinary].sort(compareTailRecords(tailSeed)).slice(0, tailBound + leaderBound),
+    collisions };
 }
 
 export function mergeShardRetention(
@@ -172,10 +177,16 @@ export function mergeShardRetention(
       throw new Error('Shard ranges are not contiguous.');
     }
   }
-  const leaders = applyCollisionPolicy(orderedShards.flatMap((shard) => shard.leaders)).slice(0, leaderCount);
+  const collisionRecords = orderedShards.flatMap((shard) => shard.collisions);
+  const leaders = applyCollisionPolicy([
+    ...orderedShards.flatMap((shard) => shard.leaders), ...collisionRecords
+  ]).slice(0, leaderCount);
   const leaderCanonicals = new Set(leaders.map((entry) => entry.canonicalStrategy));
-  const tail = applyCollisionPolicy(orderedShards.flatMap((shard) => shard.tail))
-    .filter((entry) => !leaderCanonicals.has(entry.canonicalStrategy))
+  const leaderIds = new Set(leaders.map((entry) => entry.displayId));
+  const tail = applyCollisionPolicy([
+    ...orderedShards.flatMap((shard) => shard.tail), ...collisionRecords
+  ])
+    .filter((entry) => !leaderCanonicals.has(entry.canonicalStrategy) && !leaderIds.has(entry.displayId))
     .sort(compareTailRecords(tailSeed)).slice(0, tailCount);
   return { leaders, tail };
 }

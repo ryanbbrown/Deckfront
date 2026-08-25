@@ -197,9 +197,12 @@ export function compactMovementAwareGoldfishScore(
 }
 
 export function rankingKeyText(score: MovementAwareRankingScore): string {
+  const strategyId = 'strategyId' in score ? score.strategyId : score.strategy.id;
+  const collisionTieKey = 'collisionTieKey' in score
+    ? score.collisionTieKey : canonicalStrategy(score.strategy);
   return [score.worstCompletions, score.totalCompletions, score.worstPenalizedTurnsTo50,
     score.totalPenalizedTurnsTo50, score.worstDamageArea, score.totalDamageArea,
-    score.totalMoneySpent, score.strategy.id, canonicalStrategy(score.strategy)].join('\t');
+    score.totalMoneySpent, strategyId, collisionTieKey].join('\t');
 }
 
 export function rankingDigest(scores: readonly MovementAwareRankingScore[]): string {

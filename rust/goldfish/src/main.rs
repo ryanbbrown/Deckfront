@@ -3,6 +3,8 @@ use serde_json::Value;
 use std::cmp::Ordering;
 use std::io::{self, BufRead, Write};
 
+mod kernel;
+
 const PROTOCOL_VERSION: u32 = 1;
 const SCORER_VERSION: &str = "native-goldfish-v1";
 
@@ -26,8 +28,7 @@ enum Request {
         text: String,
     },
     ScoreBatch {
-        #[serde(default)]
-        payload: Value,
+        payload: kernel::BatchInput,
     },
 }
 
@@ -83,9 +84,7 @@ fn stable_hash(text: &str) -> String {
 fn shuffle(seed: u32, mut deck: Vec<i32>) -> Vec<i32> {
     let mut rng = seed;
     for index in (1..deck.len()).rev() {
-        rng = 1_664_525_u32
-            .wrapping_mul(rng)
-            .wrapping_add(1_013_904_223);
+        rng = 1_664_525_u32.wrapping_mul(rng).wrapping_add(1_013_904_223);
         let swap = ((u64::from(rng) * (index as u64 + 1)) >> 32) as usize;
         deck.swap(index, swap);
     }
@@ -117,14 +116,16 @@ fn parse_thread_budget() -> Result<usize, String> {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let _threads = parse_thread_budget().map_err(io::Error::other)?;
+    let thread_budget = parse_thread_budget().map_err(io::Error::other)?;
     let stdin = io::stdin();
     let mut stdout = io::BufWriter::new(io::stdout().lock());
     for line in stdin.lock().lines() {
         let line = line?;
         let parsed = serde_json::from_str::<Request>(&line);
         let output = match parsed {
-            Err(error) => serde_json::to_value(failure::<Value>("invalid_json", error.to_string()))?,
+            Err(error) => {
+                serde_json::to_value(failure::<Value>("invalid_json", error.to_string()))?
+            }
             Ok(Request::Hello {
                 protocol_version,
                 scorer_version,
@@ -133,9 +134,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if protocol_version != PROTOCOL_VERSION || scorer_version != SCORER_VERSION {
                     serde_json::to_value(failure::<Value>(
                         "version_mismatch",
-                        format!(
-                            "expected protocol {PROTOCOL_VERSION} and scorer {SCORER_VERSION}"
-                        ),
+                        format!("expected protocol {PROTOCOL_VERSION} and scorer {SCORER_VERSION}"),
                     ))?
                 } else if rule_fingerprint.is_empty() {
                     serde_json::to_value(failure::<Value>(
@@ -164,13 +163,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Ok(Request::StableHash { text }) => {
                 serde_json::to_value(success(serde_json::json!({ "hash": stable_hash(&text) })))?
             }
-            Ok(Request::ScoreBatch { payload }) => serde_json::to_value(failure::<Value>(
-                "score_protocol_unavailable",
-                format!(
-                    "native score batches require the generated compact kingdom schema; received {} bytes",
-                    payload.to_string().len()
-                ),
-            ))?,
+            Ok(Request::ScoreBatch { payload }) if payload.threads != thread_budget => {
+                serde_json::to_value(failure::<Value>(
+                    "thread_budget",
+                    "payload threads must equal the process thread budget",
+                ))?
+            }
+            Ok(Request::ScoreBatch { payload }) => match kernel::score_batch(payload) {
+                Ok(scores) => {
+                    serde_json::to_value(success(serde_json::json!({ "scores": scores })))?
+                }
+                Err(message) => serde_json::to_value(failure::<Value>("score_error", message))?,
+            },
         };
         serde_json::to_writer(&mut stdout, &output)?;
         stdout.write_all(b"\n")?;
@@ -197,6 +201,9 @@ mod tests {
 
     #[test]
     fn shuffles_with_the_kernel_lcg() {
-        assert_eq!(shuffle(11, (0..10).collect()), vec![1, 3, 7, 6, 5, 4, 0, 8, 9, 2]);
+        assert_eq!(
+            shuffle(11, (0..10).collect()),
+            vec![1, 3, 7, 6, 5, 4, 0, 8, 9, 2]
+        );
     }
 }

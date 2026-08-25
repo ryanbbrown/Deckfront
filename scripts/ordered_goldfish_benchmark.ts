@@ -15,6 +15,7 @@ import {
 } from '../src/sim/orderedGoldfishBenchmark';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 import { StableHashAccumulator, canonicalStrategy } from '../src/sim/strategy';
+import { RustGoldfishScorer } from '../src/sim/rustGoldfishScorer';
 import type { Strategy } from '../src/sim/strategy';
 
 interface WorkerReply {
@@ -150,10 +151,45 @@ async function scoreInWorkers(input: {
     peakRssBytes };
 }
 
-const options = parseOrderedGoldfishArgs(process.argv.slice(2));
-if (options.scorer === 'rust') {
-  throw new Error('Use scripts/native_goldfish_shard.ts for the standalone Rust scorer.');
+async function scoreInRust(input: {
+  space: ReturnType<typeof createOrderedCandidateSpace>; limit: number; startPosition: number;
+  chunkSize: number; config: GoldfishConfig; kingdom: Kingdom; threads: number;
+}): Promise<ScoreResult> {
+  const traversal = representativeCandidateIndices(input.space.candidateCount, input.limit, input.startPosition);
+  const candidateDigest = new StableHashAccumulator();
+  const scoreDigest = new StableHashAccumulator();
+  const scorer = new RustGoldfishScorer(input.threads);
+  let generated = 0, generationMs = 0, firstCandidateIndex = -1, lastCandidateIndex = -1;
+  let peakRssBytes = process.memoryUsage().rss;
+  try {
+    while (generated < input.limit) {
+      const started = performance.now();
+      const strategies: Strategy[] = [];
+      while (strategies.length < input.chunkSize && generated < input.limit) {
+        const next = traversal.next();
+        if (next.done) throw new Error('Ordered traversal ended before the requested limit.');
+        if (firstCandidateIndex < 0) firstCandidateIndex = next.value;
+        lastCandidateIndex = next.value;
+        const strategy = input.space.candidateAt(next.value);
+        if (generated) candidateDigest.update('\n');
+        candidateDigest.update(canonicalStrategy(strategy));
+        strategies.push(strategy); generated += 1;
+      }
+      generationMs += performance.now() - started;
+      const scores = await scorer.score(input.kingdom, strategies, input.config, input.threads, 'compact');
+      scores.forEach((score, index) => {
+        const scorePosition = generated - strategies.length + index;
+        if (scorePosition) scoreDigest.update('\n');
+        scoreDigest.update(rankingKeyText(score));
+      });
+      peakRssBytes = Math.max(peakRssBytes, process.memoryUsage().rss);
+    }
+  } finally { await scorer.close(); }
+  return { scoredCount: generated, candidateChecksum: candidateDigest.digest(),
+    scoreKeyDigest: scoreDigest.digest(), generationMs, firstCandidateIndex, lastCandidateIndex, peakRssBytes };
 }
+
+const options = parseOrderedGoldfishArgs(process.argv.slice(2));
 const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === options.kingdomId);
 if (!kingdom) throw new Error(`Unknown deep-beam suite kingdom: ${options.kingdomId}`);
 registerKingdom(kingdom);
@@ -166,9 +202,12 @@ const seeds = Array.from({ length: options.shuffles }, (_unused, index) => ORDER
 const goldfishConfig: GoldfishConfig = { kingdomId: kingdom.id, seeds,
   turnLimit: ORDERED_GOLDFISH_TURN_LIMIT, actionCapPerTurn: ORDERED_GOLDFISH_ACTION_CAP };
 const scoringStarted = performance.now();
-const result = await scoreInWorkers({ space, limit: options.limit, startPosition: options.startPosition,
-  chunkSize: options.chunkSize,
-  config: goldfishConfig, kingdom, requestedWorkers: options.workers, scorer: options.scorer });
+const result = options.scorer === 'rust'
+  ? await scoreInRust({ space, limit: options.limit, startPosition: options.startPosition,
+    chunkSize: options.chunkSize, config: goldfishConfig, kingdom, threads: options.workers })
+  : await scoreInWorkers({ space, limit: options.limit, startPosition: options.startPosition,
+    chunkSize: options.chunkSize, config: goldfishConfig, kingdom,
+    requestedWorkers: options.workers, scorer: options.scorer });
 const scoringMs = performance.now() - scoringStarted;
 const individualTrials = result.scoredCount * seeds.length * GOLDFISH_MOVEMENT_PROFILES.length;
 const seconds = scoringMs / 1_000;
@@ -196,7 +235,8 @@ process.stdout.write(`${JSON.stringify({
     shuffleSeeds: seeds, shuffleCount: seeds.length, turnLimit: goldfishConfig.turnLimit,
     actionCapPerTurn: goldfishConfig.actionCapPerTurn, requestedWorkers: options.workers,
     usedWorkers: Math.min(options.workers, Math.ceil(result.scoredCount / options.chunkSize)),
-    chunkSize: options.chunkSize, dispatch: 'dynamic-pull', workerBuild: 'esbuild-node22',
+    chunkSize: options.chunkSize, dispatch: options.scorer === 'rust' ? 'rust-rayon' : 'dynamic-pull',
+    workerBuild: options.scorer === 'rust' ? 'rust-1.98-release' : 'esbuild-node22',
     digestFoldOrder: 'traversal', individualTrials },
   timing: { generationMs: result.generationMs, scoringMs,
     strategiesPerSecond: result.scoredCount / seconds, individualTrialsPerSecond: individualTrials / seconds },

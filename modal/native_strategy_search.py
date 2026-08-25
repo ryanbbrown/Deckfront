@@ -8,6 +8,7 @@ import json
 import math
 import os
 import pathlib
+import re
 import socket
 import subprocess
 import tempfile
@@ -39,7 +40,9 @@ image = (
         "/root/.cargo/bin/rustup toolchain install 1.98.0 --profile minimal --component clippy,rustfmt --target x86_64-unknown-linux-gnu",
     )
     .env({"PATH": "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
-    .add_local_dir(".", remote_path="/workspace", copy=True)
+    .add_local_dir(".", remote_path="/workspace", copy=True,
+        ignore=[".git/**", "node_modules/**", ".experiments/**", ".reviews/**",
+                "rust/target/**", "dist/**", "dist-sim/**", "dist-benchmark/**"])
     .run_commands(
         "cd /workspace && npm ci",
         "cd /workspace/rust && cargo +1.98.0 build --release --target x86_64-unknown-linux-gnu",
@@ -48,11 +51,16 @@ image = (
 
 
 def projected_cost_usd(
-    shard_count: int, cpu: int, memory_gib: float, timeout_seconds: int, retries: int = MAX_RETRIES
+    shard_count: int, cpu: int, memory_gib: float, timeout_seconds: int,
+    max_containers: int = 1, retries: int = MAX_RETRIES
 ) -> float:
     attempts = retries + 1
-    hourly = cpu * CPU_RATE_PER_CORE_HOUR + memory_gib * MEMORY_RATE_PER_GIB_HOUR
-    return shard_count * attempts * timeout_seconds / 3600 * hourly
+    shard_timeout = timeout_seconds + 30
+    shard_hourly = cpu * CPU_RATE_PER_CORE_HOUR + memory_gib * MEMORY_RATE_PER_GIB_HOUR
+    shard_cost = shard_count * attempts * shard_timeout / 3600 * shard_hourly
+    controller_seconds = attempts * math.ceil(shard_count / max_containers) * shard_timeout + 300
+    controller_cost = controller_seconds / 3600 * (CPU_RATE_PER_CORE_HOUR + MEMORY_RATE_PER_GIB_HOUR)
+    return shard_cost + controller_cost
 
 
 def _atomic_json(path: pathlib.Path, value: Any) -> None:
@@ -64,11 +72,14 @@ def _atomic_json(path: pathlib.Path, value: Any) -> None:
         os.fsync(held.fileno())
         temporary = pathlib.Path(held.name)
     os.replace(temporary, path)
-    directory = os.open(path.parent, os.O_RDONLY)
     try:
-        os.fsync(directory)
-    finally:
-        os.close(directory)
+        directory = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    except OSError:
+        pass
 
 
 def reserve_cost(run_id: str, projected: float, full_run: bool, config: dict[str, Any]) -> dict[str, Any]:
@@ -106,6 +117,39 @@ def reserve_cost(run_id: str, projected: float, full_run: bool, config: dict[str
         return entry
 
 
+def claim_controller(run_id: str, controller_timeout: int) -> bool:
+    lock_path = LEDGER_PATH.with_suffix(".lock")
+    with lock_path.open("a+") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        ledger = json.loads(LEDGER_PATH.read_text())
+        entry = ledger["runs"][run_id]
+        now = int(time.time())
+        if entry["status"] in {"launching", "launched", "complete"}:
+            stale = entry["status"] == "launching" and now - entry.get("launchingAt", now) > controller_timeout
+            if not stale:
+                return False
+        entry["status"] = "launching"
+        entry["launchingAt"] = now
+        _atomic_json(LEDGER_PATH, ledger)
+        return True
+
+
+def record_controller_call(run_id: str, call_id: str) -> None:
+    lock_path = LEDGER_PATH.with_suffix(".lock")
+    with lock_path.open("a+") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        ledger = json.loads(LEDGER_PATH.read_text())
+        ledger["runs"][run_id].update({"status": "launched", "controllerCallId": call_id})
+        _atomic_json(LEDGER_PATH, ledger)
+
+
+def _result_hash(value: dict[str, Any]) -> str:
+    held = {key: value[key] for key in ["runId", "shardId", "startPosition", "endPosition",
+        "completeCount", "candidateDigest", "scoreDigest", "ruleFingerprint", "scorerVersion",
+        "buildVersion", "shuffleSeeds", "movementProfiles", "requestedCpu", "threads"]}
+    return hashlib.sha256(json.dumps(held, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
 def valid_result(value: Any, spec: dict[str, Any]) -> bool:
     try:
         return (
@@ -120,9 +164,10 @@ def valid_result(value: Any, spec: dict[str, Any]) -> bool:
             and value["scorerVersion"] == SCORER_VERSION
             and value["buildVersion"] == spec["build_version"]
             and isinstance(value["candidateDigest"], str)
-            and len(value["candidateDigest"]) >= 9
+            and re.fullmatch(r"[0-9a-f]{9,}", value["candidateDigest"]) is not None
             and isinstance(value["scoreDigest"], str)
-            and len(value["scoreDigest"]) >= 9
+            and re.fullmatch(r"[0-9a-f]{9,}", value["scoreDigest"]) is not None
+            and value["resultHash"] == _result_hash(value)
         )
     except (KeyError, TypeError):
         return False
@@ -132,9 +177,85 @@ def _result_path(spec: dict[str, Any]) -> pathlib.Path:
     return pathlib.Path("/results") / spec["run_id"] / f"shard-{spec['shard_id']:06d}.json"
 
 
+def _stable_hash(lines: list[str]) -> str:
+    text = "\n".join(lines)
+    value = 0x811C9DC5
+    units = text.encode("utf-16-le")
+    for index in range(0, len(units), 2):
+        value ^= units[index] | (units[index + 1] << 8)
+        value = (value * 0x01000193) & 0xFFFFFFFF
+    return f"{value:08x}{len(units) // 2:x}"
+
+
+def _quantity_vectors() -> list[list[int]]:
+    return [[first, second, third, 3, 3] for first in range(1, 5)
+            for second in range(1, 5) for third in range(1, 5)
+            if first + second + third + 6 <= 15]
+
+
+def _permutation_count(cards: int, rungs: int) -> int:
+    result = 1
+    for offset in range(rungs):
+        result *= cards - offset
+    return result
+
+
+def _strategy_at(candidate_index: int, card_ids: list[str]) -> tuple[dict[str, Any], str]:
+    quantities = _quantity_vectors()
+    available = list(card_ids)
+    remainder = candidate_index // len(quantities)
+    selected = []
+    for position in range(5):
+        remaining = 4 - position
+        block = _permutation_count(len(available) - 1, remaining) if remaining else 1
+        selected_index, remainder = divmod(remainder, block)
+        selected.append(available.pop(selected_index))
+    vector = quantities[candidate_index % len(quantities)]
+    canonical_plan = [["buy", card, vector[index]] for index, card in enumerate(selected)]
+    canonical_plan.extend([["inactive"]] * 5)
+    canonical = json.dumps({"buyPlan": canonical_plan, "startingBuild": []}, separators=(",", ":"))
+    display_id = f"sg-{_stable_hash([canonical])}"
+    buy_plan = [{"kind": "buy", "cardId": card, "desiredCount": vector[index]}
+                for index, card in enumerate(selected)]
+    buy_plan.extend({"kind": "inactive"} for _ in range(5))
+    return {"id": display_id, "canonicalStrategy": canonical,
+            "startingBuild": [], "buyPlan": buy_plan}, canonical
+
+
+def _native_shard(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str, dict[str, Any]]:
+    metadata = json.loads(pathlib.Path("/workspace/rust/goldfish/kingdom009.json").read_text())
+    if metadata["ruleFingerprint"] != spec["rule_fingerprint"]:
+        raise RuntimeError("container rule fingerprint does not match the shard specification")
+    strategies, canonicals = [], []
+    for position in range(spec["start_position"], spec["end_position"]):
+        candidate_index = (2_500_427 + position * 7_951_921) % FULL_CANDIDATE_COUNT
+        strategy, canonical = _strategy_at(candidate_index, metadata["orderedCardIds"])
+        strategies.append(strategy)
+        canonicals.append(canonical)
+    request = {"type": "score_batch", "payload": {"kingdom": metadata["kingdom"],
+        "strategies": strategies, "seeds": [4_100_000 + index for index in range(spec["shuffles"])],
+        "movementProfiles": ["stationary", "chaser", "kiter"], "turnLimit": 30,
+        "actionCapPerTurn": 200, "threads": spec["threads"], "cpuRequest": spec["cpu"],
+        "mode": "compact"}}
+    executable = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
+    completed = subprocess.run([executable, "--threads", str(spec["threads"]), "--cpu-request", str(spec["cpu"])],
+        input=json.dumps(request, separators=(",", ":")) + "\n", text=True, capture_output=True,
+        timeout=spec["timeout_seconds"], check=True)
+    response = json.loads(completed.stdout)
+    if not response.get("ok"):
+        raise RuntimeError(str(response.get("error")))
+    scores = response["result"]["scores"]
+    ranking = ["\t".join(str(score[key]) for key in ["worstCompletions", "totalCompletions",
+        "worstPenalizedTurnsTo50", "totalPenalizedTurnsTo50", "worstDamageArea",
+        "totalDamageArea", "totalMoneySpent"]) + "\t" + score["strategyId"] + "\t"
+        + score["collisionTieKey"] for score in scores]
+    return scores, _stable_hash(canonicals), _stable_hash(ranking), metadata
+
+
 @app.function(image=image, cpu=4, memory=4096, timeout=3600, volumes={"/results": volume})
 @modal.concurrent(max_inputs=1)
 def score_shard(spec: dict[str, Any]) -> dict[str, Any]:
+    volume.reload()
     path = _result_path(spec)
     if path.exists():
         try:
@@ -144,20 +265,8 @@ def score_shard(spec: dict[str, Any]) -> dict[str, Any]:
         except (OSError, json.JSONDecodeError):
             pass
     started = time.monotonic()
-    count = spec["end_position"] - spec["start_position"]
-    command = [
-        "npm", "run", "goldfish:ordered-benchmark", "--", "--limit", str(count),
-        "--start-position", str(spec["start_position"]), "--workers", str(spec["threads"]),
-        "--chunk-size", str(spec["chunk_size"]), "--shuffles", str(spec["shuffles"]),
-        "--scorer", spec["scorer"],
-    ]
     try:
-        completed = subprocess.run(
-            command, cwd="/workspace", text=True, capture_output=True,
-            timeout=spec["timeout_seconds"], check=True,
-        )
-        marker = completed.stdout.find("{")
-        benchmark = json.loads(completed.stdout[marker:])
+        scores, candidate_digest, score_digest, metadata = _native_shard(spec)
         result = {
             "schemaVersion": RESULT_SCHEMA_VERSION,
             "status": "success",
@@ -165,21 +274,22 @@ def score_shard(spec: dict[str, Any]) -> dict[str, Any]:
             "shardId": spec["shard_id"],
             "startPosition": spec["start_position"],
             "endPosition": spec["end_position"],
-            "completeCount": benchmark["scoredCount"],
-            "candidateDigest": benchmark["candidateChecksum"],
-            "scoreDigest": benchmark["scoreKeyDigest"],
-            "ruleFingerprint": spec["rule_fingerprint"],
+            "completeCount": len(scores),
+            "candidateDigest": candidate_digest,
+            "scoreDigest": score_digest,
+            "ruleFingerprint": metadata["ruleFingerprint"],
             "scorerVersion": SCORER_VERSION,
             "buildVersion": spec["build_version"],
-            "shuffleSeeds": benchmark["scoring"]["shuffleSeeds"],
-            "movementProfiles": benchmark["scoring"]["profiles"],
+            "shuffleSeeds": [4_100_000 + index for index in range(spec["shuffles"])],
+            "movementProfiles": ["stationary", "chaser", "kiter"],
             "requestedCpu": spec["cpu"],
             "threads": spec["threads"],
             "maxContainers": spec["max_containers"],
             "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname()),
             "elapsedMs": round((time.monotonic() - started) * 1000, 3),
-            "benchmark": benchmark,
+            "scoringPath": "standalone-rust-process",
         }
+        result["resultHash"] = _result_hash(result)
         if not valid_result(result, spec):
             raise RuntimeError("shard result failed its schema and provenance check")
         _atomic_json(path, result)
@@ -211,7 +321,7 @@ def controller(config: dict[str, Any]) -> dict[str, Any]:
     pending = specs
     shard_function = score_shard.with_options(
         cpu=config["cpu"], memory=config["memory_gib"] * 1024,
-        timeout=config["timeout_seconds"] + 120, max_containers=config["max_containers"], retries=0,
+        timeout=config["timeout_seconds"] + 30, max_containers=config["max_containers"], retries=0,
     )
     for attempt in range(MAX_RETRIES + 1):
         if not pending:
@@ -272,12 +382,12 @@ def launch(
     max_cost_usd: float = 5.0,
     chunk_size: int = 250,
     shuffles: int = 1,
-    scorer: str = "lean",
+    scorer: str = "rust",
 ) -> None:
     if min(count, shard_size, cpu, memory_gib, threads, max_containers, timeout_seconds) < 1:
         raise ValueError("counts and resource limits must be positive")
-    if scorer not in {"original", "lean", "rust"}:
-        raise ValueError("scorer must be original, lean, or rust")
+    if scorer != "rust":
+        raise ValueError("Modal production supports only the standalone Rust scorer")
     if threads > cpu:
         raise ValueError("Rust/worker threads cannot exceed the integer CPU request")
     if cpu * max_containers > MAX_PHYSICAL_CORES:
@@ -286,7 +396,7 @@ def launch(
     if start_position < 0 or end_position > FULL_CANDIDATE_COUNT:
         raise ValueError("candidate range is outside the ordered space")
     shard_count = math.ceil(count / shard_size)
-    projected = projected_cost_usd(shard_count, cpu, memory_gib, timeout_seconds)
+    projected = projected_cost_usd(shard_count, cpu, memory_gib, timeout_seconds, max_containers)
     if projected > max_cost_usd:
         raise ValueError(f"worst-case cost ${projected:.4f} exceeds run cap ${max_cost_usd:.4f}")
     full_run = start_position == 0 and count == FULL_CANDIDATE_COUNT
@@ -306,6 +416,8 @@ def launch(
         "chunk_size": chunk_size,
         "shuffles": shuffles,
         "scorer": scorer,
+        "controller_timeout": (MAX_RETRIES + 1) * math.ceil(shard_count / max_containers)
+            * (timeout_seconds + 30) + 300,
     }
     identity = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()[:20]
     run_id = f"native-{build_version[:12]}-{identity}"
@@ -318,5 +430,9 @@ def launch(
         "reservation": entry,
         "resultLocation": f"hexdeck-native-strategy-results:/{run_id}/merge.json",
     }, indent=2))
-    call = controller.spawn(config)
+    if not claim_controller(run_id, config["controller_timeout"]):
+        print(f"controller already owns run {run_id}; no duplicate was launched")
+        return
+    call = controller.with_options(timeout=config["controller_timeout"], retries=0).spawn(config)
+    record_controller_call(run_id, call.object_id)
     print(f"detached controller call: {call.object_id}")

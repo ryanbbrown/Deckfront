@@ -22,7 +22,7 @@ describe('the worker pairing runner', () => {
     const scoreOnlyJobs = jobs(1).map((job) => ({ ...job, scoreOnly: true }));
     const compact = await runner.run(scoreOnlyJobs);
     const withoutTelemetry = (value: typeof full.outcomes[number] | undefined) => value
-      ? { ...value, telemetry: undefined }
+      ? { ...value, telemetry: undefined, telemetryCollected: undefined }
       : value;
     expect(withoutTelemetry(compact.outcomes[0])).toEqual(withoutTelemetry(full.outcomes[0]));
     expect(compact.outcomes[0]?.telemetry.acquisitionsByStrategy).toEqual({});
