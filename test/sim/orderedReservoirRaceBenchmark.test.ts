@@ -39,7 +39,7 @@ const smallProtocol: OrderedRaceBenchmarkProtocol = {
 function smallMatrix(source: OrderedChallengePoolArtifact): OrderedRaceBenchmarkMatrixArtifact {
   const initial = benchmarkPoolSlices(source, smallProtocol).initial;
   return { schemaVersion: 1, experiment: 'ordered-reservoir-race-benchmark-matrix',
-    version: 'ordered-reservoir-race-benchmark-v1', poolHash: source.generatedHash,
+    version: 'ordered-reservoir-race-benchmark-v2', poolHash: source.generatedHash,
     reservoirHash: source.reservoirHash, sourceRankedSha256: source.source.rankedSha256,
     protocol: smallProtocol, seedPlan: orderedRaceBenchmarkSeedPlan(source.reservoirHash, smallProtocol),
     matrix: { protocol: {} as OrderedRaceBenchmarkMatrixArtifact['matrix']['protocol'], strategies: initial,
@@ -48,13 +48,14 @@ function smallMatrix(source: OrderedChallengePoolArtifact): OrderedRaceBenchmark
 }
 
 describe('ordered reservoir early-race benchmark protocol', () => {
-  it('uses disjoint deterministic seed namespaces and eight total blocks per candidate', () => {
+  it('reuses the v1 matrix seeds and gives each candidate 25 independent blocks per trial', () => {
     const plan = orderedRaceBenchmarkSeedPlan('123456789abcdef');
     const allSeeds = [...plan.matrixSeeds,
       ...plan.trials.flatMap((trial) => [...trial.blockSeeds, trial.opponentSamplingSeed])];
     expect(new Set(allSeeds).size).toBe(allSeeds.length);
     expect(plan.trials).toHaveLength(3);
-    expect(plan.trials.every((trial) => trial.blockSeeds.length === 8)).toBe(true);
+    expect(plan.matrixSeeds[0]).toBe(1_815_467_663);
+    expect(plan.trials.every((trial) => trial.blockSeeds.length === 25)).toBe(true);
     expect(orderedRaceBenchmarkSeedPlan('123456789abcdef')).toEqual(plan);
 
     const source = pool(5);
@@ -62,10 +63,10 @@ describe('ordered reservoir early-race benchmark protocol', () => {
     const matrix = { ...base, protocol: ORDERED_RACE_BENCHMARK_PROTOCOL,
       seedPlan: plan };
     const schedule = benchmarkTrialSchedule(matrix, 0);
-    expect(schedule.blocks).toHaveLength(8);
-    expect(Object.values(schedule.realizedOpponentCounts).reduce((sum, count) => sum + count, 0)).toBe(8);
+    expect(schedule.blocks).toHaveLength(25);
+    expect(Object.values(schedule.realizedOpponentCounts).reduce((sum, count) => sum + count, 0)).toBe(25);
     expect(ORDERED_RACE_BENCHMARK_PROTOCOL.candidateBlocks
-      * ORDERED_RACE_BENCHMARK_PROTOCOL.gamesPerBlock).toBe(32);
+      * ORDERED_RACE_BENCHMARK_PROTOCOL.gamesPerBlock).toBe(100);
   });
 
   it('selects one ranked prefix for the fixed matrix and the following ranks for evaluation', () => {
@@ -93,7 +94,7 @@ describe('ordered reservoir early-race benchmark protocol', () => {
         blockScores: [0.5, 0.75], matches: 8 })), elapsedMs: 10
     });
     expect(validateOrderedRaceBenchmarkChunkArtifact(chunk, source, matrix, smallProtocol)).toBe(true);
-    const changedScore = structuredClone(chunk); changedScore.candidates[0]!.blockScores[1] = 2;
+    const changedScore = structuredClone(chunk); changedScore.candidates[0]!.blockScores[1] = 0.5;
     expect(validateOrderedRaceBenchmarkChunkArtifact(changedScore, source, matrix, smallProtocol)).toBe(false);
     const changedSchedule = structuredClone(chunk); changedSchedule.schedule.blocks[0]!.seed += 1;
     expect(validateOrderedRaceBenchmarkChunkArtifact(changedSchedule, source, matrix, smallProtocol)).toBe(false);
@@ -102,33 +103,34 @@ describe('ordered reservoir early-race benchmark protocol', () => {
 
 function evidence(index: number, score: number): OrderedRaceBenchmarkCandidateEvidence {
   return { goldfishRank: index + 1, strategyId: `sg-${String(index).padStart(3, '0')}`,
-    canonicalStrategy: `strategy-${index}`, blockScores: Array(8).fill(score), matches: 32 };
+    canonicalStrategy: `strategy-${index}`, blockScores: Array(25).fill(score), matches: 100 };
 }
 
 describe('ordered reservoir early-race consistency calculations', () => {
   it('uses score prefixes, tie-adjusted rank correlation, and exact set Jaccard', () => {
     const rows = [
-      { ...evidence(0, 0), blockScores: [1, ...Array(7).fill(0)] },
-      { ...evidence(1, 0.5), blockScores: Array(8).fill(0.5) },
-      { ...evidence(2, 0.4), blockScores: Array(8).fill(0.4) }
+      { ...evidence(0, 0), blockScores: [1, ...Array(24).fill(0)] },
+      { ...evidence(1, 0.5), blockScores: Array(25).fill(0.5) },
+      { ...evidence(2, 0.4), blockScores: Array(25).fill(0.4) }
     ];
     expect(rankBenchmarkCandidates(rows, 1).map((entry) => entry.strategyId)).toEqual(['sg-000', 'sg-001', 'sg-002']);
     expect(rankBenchmarkCandidates(rows, 8).map((entry) => entry.strategyId)).toEqual(['sg-001', 'sg-002', 'sg-000']);
+    expect(rankBenchmarkCandidates(rows, 25).map((entry) => entry.strategyId)).toEqual(['sg-001', 'sg-002', 'sg-000']);
     expect(compareSets(new Set(['a', 'b']), new Set(['b', 'c']))).toEqual({ intersection: 1, union: 3, jaccard: 1 / 3 });
-    expect(tieAdjustedSpearman(rankBenchmarkCandidates(rows, 8), rankBenchmarkCandidates(rows, 8))).toBeCloseTo(1);
+    expect(tieAdjustedSpearman(rankBenchmarkCandidates(rows, 25), rankBenchmarkCandidates(rows, 25))).toBeCloseTo(1);
   });
 
   it('reports pairwise and triple top-cutoff consistency from the saved block scores', () => {
     const protocol: OrderedRaceBenchmarkProtocol = { ...ORDERED_RACE_BENCHMARK_PROTOCOL,
       rankLimit: 100, initialStrategies: 0, matrixBlocks: 1, evaluationTrials: 3,
-      candidateBlocks: 8, chunkSize: 100 };
+      candidateBlocks: 25, chunkSize: 100 };
     const sets = [new Set(Array.from({ length: 16 }, (_unused, index) => index)),
       new Set(Array.from({ length: 16 }, (_unused, index) => index + 8)),
       new Set(Array.from({ length: 16 }, (_unused, index) => index + 12))];
     const matrix = { elapsedMs: 10, evidenceHash: 'matrix-hash' } as OrderedRaceBenchmarkMatrixArtifact;
     const chunks = sets.map((top, trial) => createOrderedRaceBenchmarkChunkArtifact({
       matrixEvidenceHash: matrix.evidenceHash, trial, chunk: 0, startRank: 1, endRank: 100,
-      schedule: { targetWeights: { target: 1 }, blocks: [], realizedOpponentCounts: { target: 8 },
+      schedule: { targetWeights: { target: 1 }, blocks: [], realizedOpponentCounts: { target: 25 },
         unsampledPositiveWeightStrategies: [] },
       candidates: Array.from({ length: 100 }, (_unused, index) => evidence(index, top.has(index) ? 1 : index / 1000)),
       elapsedMs: 20
@@ -137,7 +139,8 @@ describe('ordered reservoir early-race consistency calculations', () => {
     const top16 = report.depths[0]!.cutoffs[0]!;
     expect(top16.pairwise.map((entry) => entry.intersection)).toEqual([8, 4, 12]);
     expect(top16.triple).toEqual({ intersection: 4, union: 28, jaccard: 1 / 7 });
-    expect(report.oneVersusEight.every((entry) => entry.intersection === entry.cutoff)).toBe(true);
-    expect(report.matches).toBe(3 * 100 * 8 * 4);
+    expect(report.depthComparisons.every((entry) => entry.intersection === entry.cutoff)).toBe(true);
+    expect(report.depths.map((entry) => entry.blocks)).toEqual([1, 8, 25]);
+    expect(report.matches).toBe(3 * 100 * 25 * 4);
   });
 });

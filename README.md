@@ -262,7 +262,7 @@ npm run ordered-reservoir:race-benchmark:status
 npm run ordered-reservoir:race-benchmark:report
 ```
 
-The benchmark builds one 25-block matrix from ordered ranks 1–50. It evaluates ranks 51–5,000 on three independent schedules. Each candidate gets eight blocks with no elimination. One block is four total balanced games against one opponent sampled from the weighted lottery. The command saves each candidate's block scores in resumable chunks under `.experiments/ordered-reservoir-race-benchmark/ordered-reservoir-race-benchmark-v1/`. It does not admit strategies or rebuild the matrix.
+The current v2 benchmark uses the same v1-seeded 25-block matrix for ordered ranks 1–50. It evaluates ranks 51–1,000 on three independent schedules shared by all candidates in each trial. Every candidate gets 25 blocks, or 100 balanced games, with no elimination. Reports compare the saved evidence after 1, 8, and 25 blocks. Resumable artifacts live under `.experiments/ordered-reservoir-race-benchmark/ordered-reservoir-race-benchmark-v2/`; the completed 5,000-rank v1 artifacts remain unchanged. The benchmark does not admit strategies or rebuild the matrix.
 
 ## Code boundaries
 

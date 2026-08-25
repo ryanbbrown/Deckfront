@@ -10,7 +10,8 @@ import type { OrderedChallengePoolArtifact } from './orderedReservoirChallenge';
 import { canonicalStrategy, stableHash } from './strategy';
 import { compareUtf16 } from './utf16';
 
-export const ORDERED_RACE_BENCHMARK_VERSION = 'ordered-reservoir-race-benchmark-v1' as const;
+export const ORDERED_RACE_BENCHMARK_V1_VERSION = 'ordered-reservoir-race-benchmark-v1' as const;
+export const ORDERED_RACE_BENCHMARK_VERSION = 'ordered-reservoir-race-benchmark-v2' as const;
 export const ORDERED_RACE_BENCHMARK_WORKERS = 4;
 export const ORDERED_RACE_BENCHMARK_KINGDOM = 'deep-beam-tuning-009';
 
@@ -32,11 +33,11 @@ export interface OrderedRaceBenchmarkProtocol {
 }
 
 export const ORDERED_RACE_BENCHMARK_PROTOCOL: Readonly<OrderedRaceBenchmarkProtocol> = Object.freeze({
-  rankLimit: 5_000,
+  rankLimit: 1_000,
   initialStrategies: 50,
   matrixBlocks: 25,
   evaluationTrials: 3,
-  candidateBlocks: 8,
+  candidateBlocks: 25,
   chunkSize: 250,
   gamesPerBlock: 4,
   startingDraftEnabled: false,
@@ -56,6 +57,8 @@ export interface OrderedRaceBenchmarkTrialSeeds {
 export interface OrderedRaceBenchmarkSeedPlan {
   version: typeof ORDERED_RACE_BENCHMARK_VERSION;
   reservoirHash: string;
+  matrixSeedNamespace: typeof ORDERED_RACE_BENCHMARK_V1_VERSION;
+  candidateSeedNamespace: typeof ORDERED_RACE_BENCHMARK_VERSION;
   matrixSeeds: number[];
   trials: OrderedRaceBenchmarkTrialSeeds[];
 }
@@ -63,9 +66,9 @@ export interface OrderedRaceBenchmarkSeedPlan {
 function uint32Hash(value: string): number {
   return Number.parseInt(stableHash(value).slice(0, 8), 16) >>> 0;
 }
-function deriveSeeds(reservoirHash: string, label: string, count: number): number[] {
+function deriveSeeds(namespace: string, reservoirHash: string, label: string, count: number): number[] {
   return Array.from({ length: count }, (_unused, index) =>
-    uint32Hash(`${ORDERED_RACE_BENCHMARK_VERSION}:${reservoirHash}:${label}:${index}`));
+    uint32Hash(`${namespace}:${reservoirHash}:${label}:${index}`));
 }
 
 export function orderedRaceBenchmarkSeedPlan(
@@ -76,11 +79,15 @@ export function orderedRaceBenchmarkSeedPlan(
   const plan: OrderedRaceBenchmarkSeedPlan = {
     version: ORDERED_RACE_BENCHMARK_VERSION,
     reservoirHash,
-    matrixSeeds: deriveSeeds(reservoirHash, 'matrix', protocol.matrixBlocks),
+    matrixSeedNamespace: ORDERED_RACE_BENCHMARK_V1_VERSION,
+    candidateSeedNamespace: ORDERED_RACE_BENCHMARK_VERSION,
+    matrixSeeds: deriveSeeds(ORDERED_RACE_BENCHMARK_V1_VERSION, reservoirHash, 'matrix', protocol.matrixBlocks),
     trials: Array.from({ length: protocol.evaluationTrials }, (_unused, trial) => ({
       trial,
-      blockSeeds: deriveSeeds(reservoirHash, `trial:${trial}:blocks`, protocol.candidateBlocks),
-      opponentSamplingSeed: deriveSeeds(reservoirHash, `trial:${trial}:opponent-sampling`, 1)[0]!
+      blockSeeds: deriveSeeds(ORDERED_RACE_BENCHMARK_VERSION, reservoirHash,
+        `trial:${trial}:blocks`, protocol.candidateBlocks),
+      opponentSamplingSeed: deriveSeeds(ORDERED_RACE_BENCHMARK_VERSION, reservoirHash,
+        `trial:${trial}:opponent-sampling`, 1)[0]!
     }))
   };
   const all = [...plan.matrixSeeds, ...plan.trials.flatMap((trial) =>
@@ -265,12 +272,14 @@ export function validateOrderedRaceBenchmarkChunkArtifact(
   } catch { return false; }
 }
 
+export type OrderedRaceBenchmarkDepth = 1 | 8 | 25;
+
 export interface RankedBenchmarkCandidate extends OrderedRaceBenchmarkCandidateEvidence {
   mean: number;
   rank: number;
 }
 export function rankBenchmarkCandidates(
-  rows: readonly OrderedRaceBenchmarkCandidateEvidence[], blocks: 1 | 8
+  rows: readonly OrderedRaceBenchmarkCandidateEvidence[], blocks: OrderedRaceBenchmarkDepth
 ): RankedBenchmarkCandidate[] {
   return rows.map((row) => ({ ...row,
     mean: row.blockScores.slice(0, blocks).reduce((sum, score) => sum + score, 0) / blocks,
@@ -334,9 +343,18 @@ export interface CutoffConsistency {
   boundaryTies: Array<{ trial: number; score: number; tiedAtScore: number; selectedAtScore: number }>;
 }
 export interface DepthConsistency {
-  blocks: 1 | 8;
+  blocks: OrderedRaceBenchmarkDepth;
   cutoffs: CutoffConsistency[];
   rankCorrelations: Array<{ leftTrial: number; rightTrial: number; tieAdjustedSpearman: number | null }>;
+}
+export interface DepthComparison {
+  trial: number;
+  fromBlocks: OrderedRaceBenchmarkDepth;
+  toBlocks: OrderedRaceBenchmarkDepth;
+  cutoff: number;
+  intersection: number;
+  union: number;
+  jaccard: number;
 }
 export interface OrderedRaceBenchmarkReport {
   schemaVersion: 1;
@@ -348,7 +366,7 @@ export interface OrderedRaceBenchmarkReport {
   matches: number;
   elapsedMs: { matrix: number; candidateEvaluation: number; total: number };
   depths: DepthConsistency[];
-  oneVersusEight: Array<{ trial: number; cutoff: number } & SetComparison>;
+  depthComparisons: DepthComparison[];
   chunkEvidenceHashes: string[];
   evidenceHash: string;
 }
@@ -389,15 +407,18 @@ export function createOrderedRaceBenchmarkReport(input: {
     .flatMap((chunk) => chunk.candidates));
   const candidateCount = protocol.rankLimit - protocol.initialStrategies;
   if (byTrial.some((rows) => rows.length !== candidateCount)) throw new Error('Benchmark trial coverage is incomplete.');
-  const ranked = ([1, 8] as const).map((blocks) => ({ blocks,
+  const ranked = ([1, 8, 25] as const).map((blocks) => ({ blocks,
     rankings: byTrial.map((rows) => rankBenchmarkCandidates(rows, blocks)) }));
   const depths = ranked.map(({ blocks, rankings }): DepthConsistency => ({ blocks,
     cutoffs: [16, 50, 100].map((cutoff) => cutoffConsistency(rankings, cutoff)),
     rankCorrelations: rankings.flatMap((left, leftTrial) => rankings.slice(leftTrial + 1)
       .map((right, offset) => ({ leftTrial, rightTrial: leftTrial + offset + 1,
         tieAdjustedSpearman: tieAdjustedSpearman(left, right) }))) }));
-  const oneVersusEight = byTrial.flatMap((_rows, trial) => [16, 50, 100].map((cutoff) => ({ trial, cutoff,
-    ...compareSets(topSet(ranked[0]!.rankings[trial]!, cutoff), topSet(ranked[1]!.rankings[trial]!, cutoff)) })));
+  const depthComparisons = ranked.flatMap((from, fromIndex) => ranked.slice(fromIndex + 1).flatMap((to) =>
+    byTrial.flatMap((_rows, trial) => [16, 50, 100].map((cutoff): DepthComparison => ({
+      trial, fromBlocks: from.blocks, toBlocks: to.blocks, cutoff,
+      ...compareSets(topSet(from.rankings[trial]!, cutoff), topSet(to.rankings[trial]!, cutoff))
+    })))));
   const candidateEvaluation = input.chunks.reduce((sum, chunk) => sum + chunk.elapsedMs, 0);
   const base: Omit<OrderedRaceBenchmarkReport, 'evidenceHash'> = {
     schemaVersion: 1, experiment: 'ordered-reservoir-race-benchmark-report',
@@ -406,7 +427,7 @@ export function createOrderedRaceBenchmarkReport(input: {
     matches: protocol.evaluationTrials * candidateCount * protocol.candidateBlocks * protocol.gamesPerBlock,
     elapsedMs: { matrix: input.matrix.elapsedMs, candidateEvaluation,
       total: input.matrix.elapsedMs + candidateEvaluation },
-    depths, oneVersusEight, chunkEvidenceHashes: input.chunks.map((chunk) => chunk.evidenceHash)
+    depths, depthComparisons, chunkEvidenceHashes: input.chunks.map((chunk) => chunk.evidenceHash)
   };
   return { ...base, evidenceHash: reportHash(base) };
 }

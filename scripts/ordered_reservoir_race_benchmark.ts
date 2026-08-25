@@ -183,7 +183,8 @@ async function runChunks(
         throw new Error(`Generated benchmark chunk ${trial}:${chunk} failed validation.`);
       }
       writeAtomic(file, artifact);
-      console.log(`trial ${trial + 1}/3 chunk ${chunk + 1}/${benchmarkChunkCount()} ranks ${startRank}-${endRank}`);
+      console.log(`trial ${trial + 1}/${ORDERED_RACE_BENCHMARK_PROTOCOL.evaluationTrials} `
+        + `chunk ${chunk + 1}/${benchmarkChunkCount()} ranks ${startRank}-${endRank}`);
     }
   }
   return loadChunks(pool, matrix, true);
@@ -191,6 +192,8 @@ async function runChunks(
 
 function percentage(value: number): string { return `${(100 * value).toFixed(1)}%`; }
 function renderReport(report: OrderedRaceBenchmarkReport, matrix: OrderedRaceBenchmarkMatrixArtifact): string {
+  const materialSupport = matrix.equilibrium.strategyIds
+    .filter((id) => (matrix.equilibrium.weights[id] ?? 0) > 1e-6).length;
   const lines = [
     '# Ordered-reservoir early-race consistency benchmark', '',
     '## Protocol', '',
@@ -201,8 +204,9 @@ function renderReport(report: OrderedRaceBenchmarkReport, matrix: OrderedRaceBen
       + `${report.protocol.evaluationTrials} times. Each evaluation uses ${report.protocol.candidateBlocks} blocks with no elimination. `
       + `One block is ${report.protocol.gamesPerBlock} total balanced games against one opponent sampled from the fixed weighted lottery.`,
     '',
-    `Candidate schedules are independent between trials. The matrix is never rebuilt and no strategy is admitted. `
-      + `The matrix lottery has ${matrix.equilibrium.strategyIds.filter((id) => (matrix.equilibrium.weights[id] ?? 0) > 1e-6).length} material support strategies.`,
+    `Candidate schedules are independent between trials and shared by all candidates in that trial. `
+      + `The matrix uses the v1 matrix seed namespace, is never rebuilt, and admits no strategy. `
+      + `Its lottery has ${materialSupport} material support ${materialSupport === 1 ? 'strategy' : 'strategies'}.`,
     '',
     '## Runtime', '',
     `Matrix: ${(report.elapsedMs.matrix / 1000).toFixed(1)} s. Candidate evaluations: `
@@ -227,10 +231,11 @@ function renderReport(report: OrderedRaceBenchmarkReport, matrix: OrderedRaceBen
       + cutoff.boundaryTies.map((entry) => `${entry.selectedAtScore}/${entry.tiedAtScore} at ${(100 * entry.score).toFixed(1)}%`).join(', '));
     lines.push(`Boundary ties, shown as selected/tied for trials 1–3: ${ties.join('; ')}.`, '');
   }
-  lines.push('## One-block to eight-block retention', '',
-    '| Trial | Cutoff | Overlap | Jaccard |', '|---:|---:|---:|---:|');
-  for (const entry of report.oneVersusEight) {
-    lines.push(`| ${entry.trial + 1} | ${entry.cutoff} | ${entry.intersection}/${entry.cutoff} | ${percentage(entry.jaccard)} |`);
+  lines.push('## Within-trial depth retention', '',
+    '| Evidence | Trial | Cutoff | Overlap | Jaccard |', '|---|---:|---:|---:|---:|');
+  for (const entry of report.depthComparisons) {
+    lines.push(`| ${entry.fromBlocks}→${entry.toBlocks} blocks | ${entry.trial + 1} | ${entry.cutoff} `
+      + `| ${entry.intersection}/${entry.cutoff} | ${percentage(entry.jaccard)} |`);
   }
   lines.push('',
     'Top-cutoff overlap measures selection stability. Tie-adjusted Spearman uses average ranks for equal scores, so it does not invent an order inside score ties.',
