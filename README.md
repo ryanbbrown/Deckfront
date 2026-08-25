@@ -95,10 +95,14 @@ manifest, validate it, and reproduce the design report with:
 ```sh
 npm run balance:suite:manifest
 npm run balance:suite:manifest -- --check
+npm run balance:smoke:manifest -- --check
 npm run balance:suite:validate
 npm run balance:suite:design-report
 npm run balance:suite:design-report -- --check
 ```
+
+The 30-kingdom process-smoke set uses only tuning kingdoms. Its IDs, the 25-to-30 comparison, and
+coverage statistics are in `src/sim/balance-smoke-suite-manifest.json`.
 
 The report is `.html/kingdom-suite-design.html`. The production balance campaign is blocked on the
 Kingdom 009 consistency protocol and needs separate spending approval. `balance:suite:run`, the old

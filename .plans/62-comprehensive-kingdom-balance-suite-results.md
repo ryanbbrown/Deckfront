@@ -127,6 +127,23 @@ Across all 9,880 triples:
 
 The 60 required triples are representative. They cover Mana sequencing, Feint, Bull Rush, Flurry, Aim, Salvage Shot, distance and movement, trash and payoff, Reforge, and Improvise. They are not every plausible interaction.
 
+## Process-smoke subset
+
+`balance-smoke-v1` is a single-set process check, not a tuning and validation corpus. It compares 25 through 30 rows from the 128 tuning kingdoms. Every candidate covers all 96 priority pairs, all 60 required triples, and all 14 route labels at least once.
+
+| Rows | Card range | Broad pairs | Pair share | Broad triples | Triple share |
+|---:|---:|---:|---:|---:|---:|
+| 25 | 4–10 | 654 / 780 | 83.85% | 2,743 / 9,880 | 27.76% |
+| 26 | 5–11 | 673 / 780 | 86.28% | 2,841 / 9,880 | 28.76% |
+| 27 | 6–10 | 676 / 780 | 86.67% | 2,942 / 9,880 | 29.78% |
+| 28 | 6–11 | 693 / 780 | 88.85% | 3,037 / 9,880 | 30.74% |
+| 29 | 6–9 | 711 / 780 | 91.15% | 3,142 / 9,880 | 31.80% |
+| **30** | **6–10** | **719 / 780** | **92.18%** | **3,245 / 9,880** | **32.84%** |
+
+The selected 30 uses only tuning kingdoms. A three-validation-row alternative covers 731 pairs and 3,255 triples, gains of 12 and 10. That is not enough to consume held-back rows. A tuning-only card-balanced alternative raises the card minimum from 6 to 7 but covers 22 fewer pairs and 23 fewer triples. The smoke objective prefers interaction breadth after every card and named interaction is present.
+
+This is the best fixed design found by binary feasibility search and deterministic one-row exchange ascent under that objective. It is not a proof of the global subset optimum. Regenerate its measured manifest with `npm run balance:smoke:manifest`; the committed source is `src/sim/balance-smoke-suite-manifest.json`.
+
 ## Families, mechanics, costs, and routes
 
 The versioned taxonomy includes:

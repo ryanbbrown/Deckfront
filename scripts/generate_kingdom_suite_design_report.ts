@@ -1,29 +1,37 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import rawSmokeManifest from '../src/sim/balance-smoke-suite-manifest.json' with { type: 'json' };
 import { BALANCE_SUITE_MANIFEST } from '../src/sim/balanceSuite';
 import type { BalanceSuiteManifest } from '../src/sim/balanceSuite';
+import { validateBalanceSmokeSuiteManifest } from '../src/sim/balanceSmokeSuite';
+import type { BalanceSmokeSuiteManifest } from '../src/sim/balanceSmokeSuite';
 
 function escape(value: unknown): string {
   return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
 function percent(value: number): string { return `${(100 * value).toFixed(2)}%`; }
+interface RawHtml { html: string }
+const raw = (html: string): RawHtml => ({ html });
 function table(headers: readonly string[], rows: readonly (readonly unknown[])[]): string {
-  return `<div class="scroll"><table><thead><tr>${headers.map((header) => `<th>${escape(header)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${escape(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  const cell = (value: unknown): string => value && typeof value === 'object' && 'html' in value
+    ? String((value as RawHtml).html) : escape(value);
+  return `<div class="scroll"><table><thead><tr>${headers.map((header) => `<th>${escape(header)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((value) => `<td>${cell(value)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function bar(value: number, maximum: number): string {
-  return `<span class="bar"><i style="width:${(100 * value / maximum).toFixed(3)}%"></i></span>`;
+  return `<span class="bar" aria-label="${value} of ${maximum}"><i style="width:${(100 * value / maximum).toFixed(3)}%"></i></span>`;
 }
 
 export function renderKingdomSuiteDesignReport(manifest: BalanceSuiteManifest): string {
+  const smoke = validateBalanceSmokeSuiteManifest(rawSmokeManifest as unknown as BalanceSmokeSuiteManifest);
   const candidates = manifest.selection.candidates;
   const maximumTriples = Math.max(...candidates.map((candidate) => candidate.tripleCovered));
   const candidateRows = candidates.map((candidate) => [candidate.count, `${candidate.tuningSize}/${candidate.validationSize}`,
     candidate.cardMinimum, candidate.pairMinimum, candidate.validationPairMinimum,
     `${candidate.priorityPairMinimum}/${candidate.validationPriorityPairMinimum}`,
     `${candidate.requiredTripleMinimum}/${candidate.validationRequiredTripleMinimum}`,
-    `${candidate.tripleCovered} ${bar(candidate.tripleCovered, maximumTriples)}`, percent(candidate.tripleCoverage),
+    raw(`${candidate.tripleCovered} ${bar(candidate.tripleCovered, maximumTriples)}`), percent(candidate.tripleCoverage),
     candidate.largestOverlap, candidate.overlapP99, candidate.passed ? 'PASS' : candidate.failures.join('; ')]);
   const selected = candidates.find((candidate) => candidate.count === manifest.chosenCount)!;
   const routeRows = Object.entries(selected.routeCounts).map(([label, count]) => [label, count,
@@ -40,14 +48,22 @@ export function renderKingdomSuiteDesignReport(manifest: BalanceSuiteManifest): 
   };
   const authoredRows = manifest.kingdoms.filter((kingdom) => kingdom.provenance.kind === 'authored')
     .map((kingdom) => [kingdom.id, kingdom.split, kingdom.provenance.rationaleId, kingdom.provenance.reason]);
+  const smokeRows = smoke.selection.candidates.map((candidate) => [candidate.count,
+    `${candidate.cardMinimum}–${candidate.cardMaximum}`, `${candidate.pairCovered} of ${candidate.pairTotal}`,
+    percent(candidate.pairCoverage), `${candidate.priorityPairCovered} of ${candidate.priorityPairTotal}`,
+    `${candidate.requiredTripleCovered} of ${candidate.requiredTripleTotal}`,
+    `${candidate.tripleCovered} of ${candidate.tripleTotal}`, percent(candidate.tripleCoverage)]);
+  const selectedSmoke = smoke.selection.candidates.find((candidate) => candidate.count === smoke.selectedCount)!;
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kingdom suite design</title><style>
 :root{--ink:#18231f;--muted:#59655f;--paper:#f4f1e8;--panel:#fff;--line:#ccd6d0;--accent:#096b4b;--soft:#e5f1eb;--warn:#9a481c}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 system-ui,sans-serif}main{max-width:1450px;margin:auto;padding:34px 24px 70px}h1{font-size:clamp(36px,6vw,64px);line-height:1;margin:0 0 12px}h2{font-size:27px}section{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;margin:20px 0}.callouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.callouts div{background:var(--soft);border-radius:8px;padding:13px}.callouts strong{display:block;color:var(--accent);font-size:25px}.scroll{overflow:auto;border:1px solid var(--line);border-radius:8px}table{width:100%;border-collapse:collapse;background:#fff}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #e5eae7;vertical-align:top}th{background:#edf3ef;font-size:12px;text-transform:uppercase}.bar{display:inline-block;width:130px;height:8px;background:#e6ebe8;border-radius:4px;margin-left:6px}.bar i{display:block;height:100%;background:var(--accent);border-radius:4px}code{font:13px ui-monospace,monospace}.warning{border-color:var(--warn)}p{max-width:100ch;color:var(--muted)}</style></head><body><main>
-<header><h1>Kingdom suite design</h1><p>Version ${escape(manifest.suiteVersion)} · manifest digest <code>${escape(manifest.digest)}</code></p><div class="callouts"><div><strong>${manifest.chosenCount}</strong>smallest passing count</div><div><strong>${manifest.splits[0]!.size}/${manifest.splits[1]!.size}</strong>tuning / validation</div><div><strong>${manifest.statistics.tripleCovered}</strong>of 9,880 triples</div><div><strong>${manifest.statistics.largestOverlap}</strong>maximum overlap</div></div></header>
+<header><h1>Kingdom suite design</h1><p>Version ${escape(manifest.suiteVersion)} · manifest digest <code>${escape(manifest.digest)}</code></p><div class="callouts"><div><strong>${manifest.chosenCount}</strong>kingdoms</div><div><strong>40</strong>appearances per card</div><div><strong>780 / 780</strong>pairs, at least 8 times</div><div><strong>${manifest.statistics.tripleCovered} / 9,880</strong>triples covered</div></div></header>
+<section><h2>Core reason for 160</h2><p>Forty variable cards need 1,600 total pile slots to appear 40 times each. At ten variable piles per kingdom, that is exactly 160 kingdoms. The deterministic design then uses those slots well: every pair appears at least eight times, all 96 named pairs appear at least twelve times, all 60 named triples appear at least four times, and 92.26% of all triples appear at least once.</p><p>The 128 tuning kingdoms support repeated balance work. The 32 validation kingdoms stay held back until a proposed change is ready to check. This split is a workflow guard, not a claim that 40 contexts is the only valid threshold.</p></section>
 <section><h2>Why the old suite had 100 rows</h2><p>BB thread <code>thr_ghnwzhzcbh</code> records the decision. Event 64604 proposed 100 because runs were fast enough and asked for low overlap. Event 64751 counted 19 eligible cards and expected about 53 card appearances and 26 pair appearances. Event 64756 accepted it. Plan 20 fixed 80 tuning and 20 validation rows. It did not include a power calculation or a size comparison.</p><p>The committed v1 suite covered all 171 pairs and 969 triples from 19 cards. Cards appeared 52–53 times, pairs 24–31 times, triples 7–17 times, and maximum overlap was 8. That dense result does not transfer to 40 cards.</p></section>
 <section><h2>Exact random baseline</h2><p>The production space is <strong>40 choose 10 = 847,660,528</strong>, not the approximate <strong>45 choose 10 = 3,190,187,286</strong>. For 40 cards, a named card has probability <code>1/4</code>, a pair <code>3/52</code>, and a triple <code>3/247</code>. Expected uncovered interactions after m rows are <code>N × (1-p)^m</code>. The repeated-coverage union bound is <code>N × Σ(i=0…r-1) choose(m,i) p^i (1-p)^(m-i)</code>.</p><p>Conservative 95% random bounds are 24 rows for every card once, 163 for every pair once, 998 for every triple once, 236 for every card 40 times, 401 for every pair 8 times, 455 for the 96 priority pairs 12 times, and 1,090 for the 60 required triples 4 times.</p></section>
 <section><h2>Candidate coverage curve and decision</h2>${table(['Rows','Split','Card min','Pair min','Validation pair min','Priority full/validation','Required triple full/validation','Covered triples','Triple share','Max overlap','P99 overlap','Decision'], candidateRows)}<p>Counts below 160 fail the 40-card exposure lower bound. The 160-row design is the first passing count. The 200-row extension shows diminishing returns: it adds ${manifest.selection.candidates.find((candidate) => candidate.count === 200)!.tripleCovered - selected.tripleCovered} newly covered triples but does not change the first passing point.</p></section>
-<section><h2>Mechanic, family, cost, and route coverage</h2><p>The versioned taxonomy measures Mana sources and payoffs, direct damage, draw, movement, economy and gain, trash, discard, recovery, copy scaling, distance payoff, family discard, multi-family payoff, and low/middle/high costs.</p>${table(['Route label','Full rows','Validation rows','Required full'], routeRows)}</section>
-<section><h2>Distinctness and Jaccard</h2><p>For random rows, <code>P(J=j)=choose(10,j)choose(30,10-j)/choose(40,10)</code> and mean overlap is 2.5. The deterministic suite has mean overlap ${manifest.statistics.overlap.mean}, P99 ${manifest.statistics.overlap.p99}, maximum ${manifest.statistics.overlap.maximum}, mean Jaccard ${manifest.statistics.jaccard.mean}, and maximum Jaccard ${manifest.statistics.jaccard.maximum}.</p>${table(['Shared cards','Row pairs','Jaccard'], overlapRows)}</section>
+<section><h2>Thirty-kingdom smoke suite</h2><p>The recommended smoke set uses only tuning kingdoms. Its purpose is process testing, not final balance evidence. It covers all 40 cards, all 96 named pairs, all 60 named triples, and all 14 route labels. It covers ${selectedSmoke.pairCovered} of 780 broad pairs and ${selectedSmoke.tripleCovered} of 9,880 broad triples. The committed IDs and full curve are in <code>balance-smoke-suite-manifest.json</code>.</p>${table(['Rows','Card range','Broad pairs','Pair share','Named pairs','Named triples','Broad triples','Triple share'], smokeRows)}<p>Using three validation kingdoms raises broad pair coverage from ${selectedSmoke.pairCovered} to ${smoke.selection.alternatives.find((entry) => entry.id === 'all-source-breadth-30')!.pairCovered}. That gain is too small to justify consuming validation rows. A card-balanced alternative raises the minimum card exposure from 6 to 7 but covers 22 fewer broad pairs.</p></section>
+<section><h2>Card mechanics and playable routes</h2><p>A mechanic is a card behavior such as draw, movement, trash, Mana generation, or damage. These checks prevent a mathematically broad suite from omitting a usable economy, attack, or engine route.</p>${table(['Route label','Full rows','Validation rows','Required full'], routeRows)}</section>
+<section><h2>Secondary duplicate guard</h2><p>Distinctness only checks that the suite does not spend rows on near-duplicates. The selected suite has no duplicates and no two rows share more than ${manifest.statistics.overlap.maximum} variable cards. Jaccard is overlap divided by the combined unique cards.</p>${table(['Shared cards','Row pairs','Jaccard'], overlapRows)}</section>
 <section><h2>Anchors and controls</h2>${table(['Suite ID','Split','Rationale','Measurement need'], authoredRows)}</section>
 <section class="warning"><h2>Residual blind spots</h2><p>${manifest.residualBlindSpots.uncoveredTripleCount} unprioritized triples remain uncovered. The manifest records their family patterns. All 60 named triples appear at least four times and once in validation. The suite does not guarantee complete four-card or higher-order coverage. Deterministic combinatorial coverage does not prove card balance, causal effects, representative random-population estimates, or strategy-search closure.</p></section>
 <section><h2>Conditional future campaign estimate</h2>${table(['Scope','Local 500k pool','Modal product time','Fixed-reservoir time','Measured product cost','Worst reservation','Ordered-space cost'],[

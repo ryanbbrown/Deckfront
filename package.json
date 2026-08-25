@@ -16,6 +16,7 @@
     "measure:workers": "tsx scripts/measure_workers.ts",
     "balance:report": "tsx scripts/generate_balance_report.ts",
     "balance:suite:manifest": "tsx scripts/generate_balance_suite_manifest.ts",
+    "balance:smoke:manifest": "tsx scripts/generate_balance_smoke_suite_manifest.ts",
     "balance:suite:run": "tsx scripts/run_balance_suite.ts",
     "balance:suite:report": "tsx scripts/generate_balance_corpus.ts",
     "balance:suite:validate": "tsx scripts/validate_balance_suite.ts",

@@ -105,6 +105,9 @@ describe('balance-suite design', () => {
     expect(first).toContain('40 choose 10 = 847,660,528');
     expect(first).toContain('Candidate coverage curve and decision');
     expect(first).toContain('Residual blind spots');
+    expect(first).toContain('Thirty-kingdom smoke suite');
+    expect(first).toContain('<span class="bar"');
+    expect(first).not.toContain('&lt;span class=&quot;bar&quot;');
     expect(first).toContain('pending the Kingdom 009 consistency protocol');
     expect(first).toContain(BALANCE_SUITE_MANIFEST.digest);
   });
