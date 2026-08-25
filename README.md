@@ -264,6 +264,18 @@ npm run ordered-reservoir:race-benchmark:report
 
 The current v2 benchmark uses the same v1-seeded 25-block matrix for ordered ranks 1–50. It evaluates ranks 51–1,000 on three independent schedules shared by all candidates in each trial. Every candidate gets 25 blocks, or 100 balanced games, with no elimination. Reports compare the saved evidence after 1, 8, and 25 blocks. Resumable artifacts live under `.experiments/ordered-reservoir-race-benchmark/ordered-reservoir-race-benchmark-v2/`; the completed 5,000-rank v1 artifacts remain unchanged. The benchmark does not admit strategies or rebuild the matrix.
 
+The full Kingdom 009 PSRO protocol runs two independent searches from the fixed ordered 20,000 reservoir:
+
+```sh
+npm run ordered-reservoir:full-psro -- --run 1
+npm run ordered-reservoir:full-psro -- --run 2
+npm run ordered-reservoir:full-psro -- --status
+npm run ordered-reservoir:full-psro -- --report
+npm run ordered-reservoir:full-psro -- --compare
+```
+
+Each full screen gives every inactive candidate two shared 25-block lanes before tied-tier selection. Fresh adaptive confirmation uses full acquisition telemetry and multiple-testing control. Only candidates with identical complete acquisition evidence collapse behind one matrix representative; shadows are screened again after every lottery change. Matrix evidence adapts from 50 to 100 or 200 blocks, and final reports use full-telemetry self-play panels, feasible group ranges, and direct cross-play. Artifacts live under `.experiments/ordered-reservoir-full-psro/ordered-reservoir-full-psro-v1/`. Only run IDs 1 and 2 are valid.
+
 ## Code boundaries
 
 The arrows show import direction:

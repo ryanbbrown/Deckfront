@@ -35,6 +35,7 @@
     "ordered-reservoir:race-benchmark": "tsx scripts/ordered_reservoir_race_benchmark.ts --run",
     "ordered-reservoir:race-benchmark:status": "tsx scripts/ordered_reservoir_race_benchmark.ts --status",
     "ordered-reservoir:race-benchmark:report": "tsx scripts/ordered_reservoir_race_benchmark.ts --report",
+    "ordered-reservoir:full-psro": "tsx scripts/ordered_reservoir_full_psro.ts",
     "psro:worker-benchmark": "tsx scripts/benchmark_psro_workers.ts",
     "goldfish:native-metadata": "tsx scripts/native_goldfish_metadata.ts",
     "goldfish:native-kingdom-write": "tsx scripts/write_native_kingdom.ts",

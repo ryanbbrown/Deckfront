@@ -5,10 +5,12 @@ import { pathToFileURL } from 'node:url';
 import { ALWAYS_AVAILABLE_ACTION_IDS, VARIABLE_ACTION_IDS, cardDefinition } from '../src/game';
 import { balanceSuite } from '../src/sim/balanceSuite';
 import type { BalanceSuiteManifest, BalanceSuiteSplit } from '../src/sim/balanceSuite';
+import { classifyStrategyDamage, damageFamily } from '../src/sim/strategyDamage';
+export { classifyStrategyDamage } from '../src/sim/strategyDamage';
 import {
   buildBalanceReportModel, family, loadArtifactDirectory, selfPlayFor
 } from './generate_balance_report';
-import type { CardFamily, KingdomReport, StrategyReport } from './generate_balance_report';
+import type { CardFamily, KingdomReport } from './generate_balance_report';
 
 type ActionFamily = Exclude<CardFamily, 'Treasure'>;
 
@@ -110,47 +112,6 @@ export interface BalanceCorpusModel {
   kingdoms: CorpusKingdomReport[];
   selected: SelectedKingdom[];
   playQualityWarnings: PlayQualityWarning[];
-}
-
-const DAMAGE_FAMILIES = ['Melee', 'Ranged', 'Mage'] as const;
-const MIXED_DAMAGE_MINIMUM = 0.2;
-
-function damageFamily(cardId: string): (typeof DAMAGE_FAMILIES)[number] | null {
-  const mechanic = cardDefinition(cardId).mechanic;
-  if (['melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush'].includes(mechanic)) return 'Melee';
-  if (['ranged', 'repellingShot', 'volley', 'longshot', 'salvageShot', 'precisionShot'].includes(mechanic)) return 'Ranged';
-  if (['spell', 'discharge', 'cascade', 'overload'].includes(mechanic)) return 'Mage';
-  return null;
-}
-
-export function classifyStrategyDamage(
-  strategy: Pick<StrategyReport, 'startingBuild' | 'acquisitionRates'>
-): string {
-  const amounts = Object.fromEntries(DAMAGE_FAMILIES.map((name) => [name, 0])) as Record<(typeof DAMAGE_FAMILIES)[number], number>;
-  for (const cardId of strategy.startingBuild) {
-    const cardFamily = damageFamily(cardId);
-    if (cardFamily) amounts[cardFamily] += 1;
-  }
-  for (const [cardId, amount] of Object.entries(strategy.acquisitionRates)) {
-    const cardFamily = damageFamily(cardId);
-    if (cardFamily) amounts[cardFamily] += amount;
-  }
-  const improviseAmount = strategy.startingBuild.filter((cardId) => cardId === 'improvise').length
-    + (strategy.acquisitionRates.improvise ?? 0);
-  if (improviseAmount > 0) {
-    const ownedFamilies = new Set([...strategy.startingBuild, ...Object.entries(strategy.acquisitionRates)
-      .filter(([, amount]) => amount > 0).map(([cardId]) => cardId)].flatMap((cardId) => {
-      const cardFamily = cardDefinition(cardId).family;
-      return cardFamily === 'melee' ? ['Melee' as const] : cardFamily === 'ranged' ? ['Ranged' as const]
-        : cardFamily === 'mana' ? ['Mage' as const] : [];
-    }));
-    for (const cardFamily of ownedFamilies) amounts[cardFamily] += improviseAmount;
-  }
-  const total = Object.values(amounts).reduce((sum, amount) => sum + amount, 0);
-  if (!total) return 'No damage package';
-  const material = DAMAGE_FAMILIES.filter((name) => amounts[name] / total >= MIXED_DAMAGE_MINIMUM);
-  return material.length ? material.join(' + ') : DAMAGE_FAMILIES
-    .reduce((best, name) => amounts[name] > amounts[best] ? name : best);
 }
 
 function mean(values: readonly number[]): number { return values.reduce((sum, value) => sum + value, 0) / values.length; }

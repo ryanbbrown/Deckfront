@@ -46,6 +46,7 @@ export function emptyAggregate(): TelemetryAggregate {
   const side = (): Record<SideKey, PairRecord> => ({ normal: emptyPairRecord(), swapped: emptyPairRecord() });
   return {
     acquisitionsByStrategy: {},
+    planPositionPurchasesByStrategy: {},
     damageByCard: {},
     playsByCard: {},
     deadDraws: { range: 0, mana: 0, setup: 0, total: 0 },
@@ -66,6 +67,11 @@ export function mergeAggregate(into: TelemetryAggregate, from: TelemetryAggregat
   for (const [strategyId, counts] of Object.entries(from.acquisitionsByStrategy)) {
     into.acquisitionsByStrategy[strategyId] ??= {};
     addCounts(into.acquisitionsByStrategy[strategyId]!, counts);
+  }
+  into.planPositionPurchasesByStrategy ??= {};
+  for (const [strategyId, counts] of Object.entries(from.planPositionPurchasesByStrategy ?? {})) {
+    into.planPositionPurchasesByStrategy[strategyId] ??= {};
+    addCounts(into.planPositionPurchasesByStrategy[strategyId]!, counts);
   }
   addCounts(into.damageByCard, from.damageByCard);
   addCounts(into.playsByCard, from.playsByCard);
@@ -90,14 +96,34 @@ function acquisitions(result: MatchResult, seat: PlayerId): Record<string, numbe
   return counts;
 }
 
+function planPositionPurchases(result: MatchResult, seat: PlayerId, strategy: Strategy): Record<string, number> {
+  const starting: Record<string, number> = {};
+  for (const cardId of result.telemetry.startingBuild[seat]) starting[cardId] = (starting[cardId] ?? 0) + 1;
+  const final = Object.fromEntries(Object.entries(result.telemetry.purchasesByCard[seat])
+    .map(([cardId, purchases]) => [cardId, (starting[cardId] ?? 0) + purchases]));
+  const previousTarget = { ...starting }; const positions: Record<string, number> = {};
+  strategy.buyPlan.forEach((slot, position) => {
+    if (slot.kind !== 'buy') return;
+    const lower = previousTarget[slot.cardId] ?? 0;
+    const upper = Math.max(lower, slot.desiredCount);
+    const reached = Math.max(0, Math.min(final[slot.cardId] ?? lower, upper) - lower);
+    if (reached) positions[String(position)] = reached;
+    previousTarget[slot.cardId] = upper;
+  });
+  return positions;
+}
+
 export function recordMatch(
   into: TelemetryAggregate, result: MatchResult, orientation: Orientation,
-  seatStrategyIds: Record<PlayerId, string>
+  seatStrategies: Record<PlayerId, Strategy>
 ): void {
   for (const seat of ['ochre', 'indigo'] as const) {
-    const strategyId = seatStrategyIds[seat];
+    const strategy = seatStrategies[seat], strategyId = strategy.id;
     into.acquisitionsByStrategy[strategyId] ??= {};
     addCounts(into.acquisitionsByStrategy[strategyId]!, acquisitions(result, seat));
+    into.planPositionPurchasesByStrategy ??= {};
+    into.planPositionPurchasesByStrategy[strategyId] ??= {};
+    addCounts(into.planPositionPurchasesByStrategy[strategyId]!, planPositionPurchases(result, seat, strategy));
     addCounts(into.damageByCard, result.telemetry.damageByCard[seat]);
     addCounts(into.playsByCard, result.telemetry.playsByCard[seat]);
     const dead = result.telemetry.deadDraws[seat];
@@ -218,9 +244,9 @@ function playPairingMode(
     for (let orientationIndex = 0; orientationIndex < ORIENTATIONS.length; orientationIndex += 1) {
       const orientation = ORIENTATIONS[orientationIndex]!;
       const candidateIsOchre = orientation.candidateSeat === 'ochre';
-      const seatStrategyIds: Record<PlayerId, string> = candidateIsOchre
-        ? { ochre: candidate.id, indigo: opponent.id }
-        : { ochre: opponent.id, indigo: candidate.id };
+      const seatStrategies: Record<PlayerId, Strategy> = candidateIsOchre
+        ? { ochre: candidate, indigo: opponent }
+        : { ochre: opponent, indigo: candidate };
 
       const result = (matchRunner ?? (scoreOnly ? runSimulationMatchScoreOnly : runSimulationMatch))({
           kingdomId: options.kingdomId,
@@ -235,7 +261,7 @@ function playPairingMode(
             : { ochre: opponent, indigo: candidate }
         });
       matches += 1;
-      if (!scoreOnly) recordMatch(telemetry, result, orientation, seatStrategyIds);
+      if (!scoreOnly) recordMatch(telemetry, result, orientation, seatStrategies);
 
       if (result.outcome === 'aborted') {
         record.aborted += 1;

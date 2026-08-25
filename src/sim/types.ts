@@ -62,6 +62,7 @@ export type SideKey = 'normal' | 'swapped';
  */
 export interface TelemetryAggregate {
   acquisitionsByStrategy: Record<string, Record<string, number>>;
+  planPositionPurchasesByStrategy?: Record<string, Record<string, number>>;
   damageByCard: Record<string, number>;
   playsByCard: Record<string, number>;
   deadDraws: DeadDrawCounts;
