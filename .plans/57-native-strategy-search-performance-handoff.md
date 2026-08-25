@@ -63,6 +63,8 @@ Baseline on the Apple M4 Pro:
 
 Use the same candidates, shuffle seed, three movement profiles, 30-turn limit, and 200-action cap for every comparable benchmark. Record machine details, build mode, worker count, generation time, scoring time, throughput, memory, and checksums. Repeat short benchmarks when noise could change a decision.
 
+A Modal smoke test completed successfully with no interactive approval. Two concurrent containers each requested 4 CPUs and 4 GiB, ran the current 5,000-candidate TypeScript benchmark, exited zero, and returned checksum `6c8cf0ecf228f`. Container totals were 5.51s and 6.60s; successful Modal wall time including setup was 48.53s. The image must include Modal's Python runtime as well as Node 22. Production sharding remains untested.
+
 ## Required work
 
 ### 1. Tighten the TypeScript baseline
