@@ -46,6 +46,25 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             self.launch_limits(count=launcher.FULL_CANDIDATE_COUNT,
                                shard_size=150_000, max_containers=47, max_cost_usd=11)
 
+    def test_ordered_product_requires_exact_scope_authorization_and_bounded_counts(self):
+        values = self.launch_limits(count=launcher.FULL_CANDIDATE_COUNT, shard_size=250_000,
+            max_containers=47, timeout_seconds=420, max_cost_usd=5, ordered_product=True,
+            retained_count=500_000, reservoir_count=20_000,
+            authorization=launcher.ORDERED_PRODUCT_AUTHORIZATION)
+        expected = launcher.projected_ordered_product_cost_usd(52, 2, 4, 4, 420, 47)
+        self.assertAlmostEqual(values["projected"], expected)
+        self.assertTrue(values["full_run"])
+        with self.assertRaisesRegex(ValueError, "requires authorization"):
+            self.launch_limits(count=launcher.FULL_CANDIDATE_COUNT, ordered_product=True,
+                retained_count=500_000, reservoir_count=20_000)
+        with self.assertRaisesRegex(ValueError, "retained and reservoir"):
+            self.launch_limits(count=launcher.FULL_CANDIDATE_COUNT, ordered_product=True,
+                retained_count=10, reservoir_count=20,
+                authorization=launcher.ORDERED_PRODUCT_AUTHORIZATION)
+        with self.assertRaisesRegex(ValueError, "complete ordered"):
+            self.launch_limits(count=20_000, ordered_product=True,
+                authorization=launcher.ORDERED_PRODUCT_AUTHORIZATION)
+
     def test_ordered_subprocess_timeouts_fit_below_the_modal_timeout(self):
         generation, scoring = launcher.ordered_subprocess_timeouts(600)
         self.assertLessEqual(generation + scoring, 630)
@@ -79,6 +98,19 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                     launcher.reserve_cost(f"full-{index}", 1, True, {"run": index})
                 with self.assertRaisesRegex(RuntimeError, "full-space run limit"):
                     launcher.reserve_cost("full-3", 1, True, {"run": 3})
+
+    def test_one_use_correction_authorization_bypasses_only_the_exhausted_full_run_cap(self):
+        with tempfile.TemporaryDirectory() as directory:
+            ledger = pathlib.Path(directory) / "ledger.json"
+            with patch.object(launcher, "LEDGER_PATH", ledger):
+                for index in range(3):
+                    launcher.reserve_cost(f"full-{index}", 1, True, {"run": index})
+                config = {"authorization": launcher.ORDERED_PRODUCT_AUTHORIZATION}
+                launcher.reserve_cost("correction", 1, True, config)
+                self.assertEqual(launcher.reserve_cost("correction", 1, True, config)["runId"],
+                                 "correction")
+                with self.assertRaisesRegex(RuntimeError, "already used"):
+                    launcher.reserve_cost("correction-again", 1, True, config)
 
     def test_production_typescript_helper_generates_the_ordered_shard(self):
         with tempfile.TemporaryDirectory() as directory:

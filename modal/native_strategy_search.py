@@ -25,6 +25,9 @@ MAX_PHYSICAL_CORES = 192
 MAX_FULL_RUNS = 3
 FULL_CANDIDATE_COUNT = 12_972_960
 MAX_RETRIES = 2
+ORDERED_PRODUCT_AUTHORIZATION = "k009-ordered-product-correction-v1"
+ORDERED_PRODUCT_RETAINED_COUNT = 500_000
+ORDERED_PRODUCT_RESERVOIR_COUNT = 20_000
 SCORER_VERSION = "native-goldfish-v1"
 RESULT_SCHEMA_VERSION = 1
 LEDGER_PATH = pathlib.Path.home() / ".hexdeck-modal-cost-ledger.json"
@@ -71,6 +74,19 @@ def projected_product_cost_usd(
     return (retries + 1) * (timeout_seconds + 30) / 3600 * hourly
 
 
+def projected_ordered_product_cost_usd(
+    stage_one_shards: int, stage_two_shards: int, cpu: int, memory_gib: float,
+    timeout_seconds: int, max_containers: int, retries: int = MAX_RETRIES
+) -> float:
+    attempts = retries + 1
+    shard_count = stage_one_shards + stage_two_shards
+    hourly = cpu * CPU_RATE_PER_CORE_HOUR + memory_gib * MEMORY_RATE_PER_GIB_HOUR
+    shard_cost = shard_count * attempts * (timeout_seconds + 30) / 3600 * hourly
+    waves = math.ceil(stage_one_shards / max_containers) + math.ceil(stage_two_shards / max_containers)
+    controller_seconds = attempts * waves * (timeout_seconds + 30) + 600
+    return shard_cost + controller_seconds / 3600 * (CPU_RATE_PER_CORE_HOUR + 16 * MEMORY_RATE_PER_GIB_HOUR)
+
+
 def _atomic_json(path: pathlib.Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", dir=path.parent, delete=False) as held:
@@ -105,11 +121,15 @@ def reserve_cost(run_id: str, projected: float, full_run: bool, config: dict[str
             return existing
         reserved = sum(float(run["reservedUsd"]) for run in ledger["runs"].values())
         full_runs = sum(bool(run["fullRun"]) for run in ledger["runs"].values())
+        authorization = config.get("authorization")
+        if authorization and any(run.get("config", {}).get("authorization") == authorization
+                                 for run in ledger["runs"].values()):
+            raise RuntimeError(f"authorization {authorization} was already used")
         if reserved + projected > GROSS_BUDGET_USD:
             raise RuntimeError(
                 f"cumulative reservation ${reserved + projected:.4f} exceeds ${GROSS_BUDGET_USD:.2f}"
             )
-        if full_run and full_runs >= MAX_FULL_RUNS:
+        if full_run and full_runs >= MAX_FULL_RUNS and authorization != ORDERED_PRODUCT_AUTHORIZATION:
             raise RuntimeError(f"full-space run limit {MAX_FULL_RUNS} is exhausted")
         entry = {
             "runId": run_id,
@@ -341,6 +361,182 @@ def product_search(config: dict[str, Any]) -> dict[str, Any]:
     return summary
 
 
+def _ordered_product_checkpoint_path(config: dict[str, Any], stage: str, shard_id: int) -> pathlib.Path:
+    return pathlib.Path("/results") / config["run_id"] / stage / f"shard-{shard_id:06d}.json"
+
+
+def _ordered_product_cli(config: dict[str, Any]) -> list[str]:
+    return ["npx", "tsx", "scripts/ordered_goldfish_product.ts",
+        "--run-id", config["run_id"], "--build-version", config["build_version"],
+        "--rule-fingerprint", config["rule_fingerprint"], "--scorer-version", SCORER_VERSION,
+        "--retained-count", str(config["retained_count"]),
+        "--reservoir-count", str(config["reservoir_count"])]
+
+
+def _valid_ordered_product_checkpoint(path: pathlib.Path, spec: dict[str, Any], stage: str) -> bool:
+    if not path.exists():
+        return False
+    base = _ordered_product_cli(spec)
+    command = base[:3] + ["validate-checkpoint"] + base[3:] + ["--checkpoint", str(path),
+        "--stage", stage, "--shard-id", str(spec["shard_id"]),
+        "--start-position", str(spec["start_position"]),
+        "--end-position", str(spec["end_position"])]
+    try:
+        subprocess.run(command, cwd="/workspace", text=True, capture_output=True,
+                       timeout=120, check=True)
+        return True
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def _run_rust(request_path: pathlib.Path, response_path: pathlib.Path,
+              threads: int, cpu: int, timeout_seconds: int) -> None:
+    executable = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
+    with request_path.open() as request:
+        completed = subprocess.run([executable, "--threads", str(threads), "--cpu-request", str(cpu)],
+            stdin=request, text=True, capture_output=True, timeout=timeout_seconds, check=True)
+    response_path.write_text(completed.stdout)
+
+
+@app.function(image=image, cpu=4, memory=4096, timeout=7200, volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
+def ordered_product_stage_one(spec: dict[str, Any]) -> dict[str, Any]:
+    volume.reload()
+    output = _ordered_product_checkpoint_path(spec, "stage-one", spec["shard_id"])
+    if _valid_ordered_product_checkpoint(output, spec, "stage-one"):
+        held = json.loads(output.read_text())
+        return {"status": "success", "stage": "stage-one", "shardId": spec["shard_id"],
+                "contentDigest": held["contentDigest"], "reused": True}
+    started = time.monotonic()
+    with tempfile.TemporaryDirectory() as directory:
+        request = pathlib.Path(directory) / "request.jsonl"
+        response = pathlib.Path(directory) / "response.json"
+        metadata = pathlib.Path(directory) / "metadata.json"
+        generation_timeout, scoring_timeout = ordered_subprocess_timeouts(spec["timeout_seconds"])
+        subprocess.run(["npx", "tsx", "scripts/native_ordered_shard_input.ts",
+            "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"]),
+            "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]), "--shuffles", "1",
+            "--mode", "full", "--request", str(request), "--metadata", str(metadata)],
+            cwd="/workspace", text=True, capture_output=True, timeout=generation_timeout, check=True)
+        _run_rust(request, response, spec["threads"], spec["cpu"], scoring_timeout)
+        command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "stage-one-checkpoint",
+            "--request", str(request), "--response", str(response), "--metadata", str(metadata),
+            "--out", str(output), "--shard-id", str(spec["shard_id"]),
+            "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"])]
+        command += _ordered_product_cli(spec)[3:]
+        subprocess.run(command, cwd="/workspace", text=True, capture_output=True, timeout=300, check=True)
+    if not _valid_ordered_product_checkpoint(output, spec, "stage-one"):
+        raise RuntimeError("new stage-one checkpoint failed validation")
+    volume.commit()
+    held = json.loads(output.read_text())
+    return {"status": "success", "stage": "stage-one", "shardId": spec["shard_id"],
+            "contentDigest": held["contentDigest"], "reused": False,
+            "elapsedMs": round((time.monotonic() - started) * 1000, 3),
+            "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname())}
+
+
+@app.function(image=image, cpu=4, memory=4096, timeout=7200, volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
+def ordered_product_stage_two(spec: dict[str, Any]) -> dict[str, Any]:
+    volume.reload()
+    output = _ordered_product_checkpoint_path(spec, "stage-two", spec["shard_id"])
+    if _valid_ordered_product_checkpoint(output, spec, "stage-two"):
+        held = json.loads(output.read_text())
+        return {"status": "success", "stage": "stage-two", "shardId": spec["shard_id"],
+                "contentDigest": held["contentDigest"], "reused": True}
+    root = pathlib.Path("/results") / spec["run_id"]
+    cohort = root / "stage-one-cohort.json"
+    started = time.monotonic()
+    with tempfile.TemporaryDirectory() as directory:
+        request = pathlib.Path(directory) / "request.jsonl"
+        response = pathlib.Path(directory) / "response.json"
+        metadata = pathlib.Path(directory) / "metadata.json"
+        generation_timeout, scoring_timeout = ordered_subprocess_timeouts(spec["timeout_seconds"])
+        input_command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "stage-two-input",
+            "--cohort", str(cohort), "--start-position", str(spec["start_position"]),
+            "--end-position", str(spec["end_position"]), "--threads", str(spec["threads"]),
+            "--request", str(request), "--metadata", str(metadata)] + _ordered_product_cli(spec)[3:]
+        subprocess.run(input_command, cwd="/workspace", text=True, capture_output=True,
+                       timeout=generation_timeout, check=True)
+        _run_rust(request, response, spec["threads"], spec["cpu"], scoring_timeout)
+        command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "stage-two-checkpoint",
+            "--cohort", str(cohort), "--response", str(response), "--metadata", str(metadata),
+            "--out", str(output), "--shard-id", str(spec["shard_id"]),
+            "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"])]
+        command += _ordered_product_cli(spec)[3:]
+        subprocess.run(command, cwd="/workspace", text=True, capture_output=True, timeout=300, check=True)
+    if not _valid_ordered_product_checkpoint(output, spec, "stage-two"):
+        raise RuntimeError("new stage-two checkpoint failed validation")
+    volume.commit()
+    held = json.loads(output.read_text())
+    return {"status": "success", "stage": "stage-two", "shardId": spec["shard_id"],
+            "contentDigest": held["contentDigest"], "reused": False,
+            "elapsedMs": round((time.monotonic() - started) * 1000, 3),
+            "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname())}
+
+
+def _run_product_stage(function: Any, specs: list[dict[str, Any]], config: dict[str, Any]) -> list[dict[str, Any]]:
+    completed: dict[int, dict[str, Any]] = {}
+    remote = function.with_options(cpu=config["cpu"], memory=config["memory_gib"] * 1024,
+        timeout=config["timeout_seconds"] + 30, max_containers=config["max_containers"], retries=0)
+    for attempt in range(MAX_RETRIES + 1):
+        pending = [spec for spec in specs if spec["shard_id"] not in completed]
+        if not pending:
+            break
+        replies = list(remote.map(pending, order_outputs=False, return_exceptions=True))
+        for reply in replies:
+            if isinstance(reply, dict) and reply.get("status") == "success":
+                completed[reply["shardId"]] = reply
+        if len(completed) < len(specs) and attempt < MAX_RETRIES:
+            time.sleep(min(30, 2 ** attempt))
+    if len(completed) != len(specs):
+        raise RuntimeError(f"{len(specs) - len(completed)} ordered product shards failed")
+    return [completed[index] for index in range(len(specs))]
+
+
+@app.function(image=image, cpu=1, memory=16384, timeout=86400, volumes={"/results": volume})
+def ordered_product_controller(config: dict[str, Any]) -> dict[str, Any]:
+    volume.reload()
+    root = pathlib.Path("/results") / config["run_id"]
+    started = time.monotonic()
+    stage_one_specs = [{**config, "shard_id": shard_id, "start_position": start,
+        "end_position": min(start + config["shard_size"], FULL_CANDIDATE_COUNT)}
+        for shard_id, start in enumerate(range(0, FULL_CANDIDATE_COUNT, config["shard_size"]))]
+    stage_one_results = _run_product_stage(ordered_product_stage_one, stage_one_specs, config)
+    stage_one_manifest = root / "stage-one-manifest.json"
+    _atomic_json(stage_one_manifest, [str(_ordered_product_checkpoint_path(config, "stage-one", spec["shard_id"]))
+                                      for spec in stage_one_specs])
+    cohort = root / "stage-one-cohort.json"
+    merge = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "merge-stage-one",
+        "--manifest", str(stage_one_manifest), "--out", str(cohort)] + _ordered_product_cli(config)[3:]
+    node_environment = {**os.environ, "NODE_OPTIONS": "--max-old-space-size=12288"}
+    subprocess.run(merge, cwd="/workspace", env=node_environment, text=True, capture_output=True,
+                   timeout=1800, check=True)
+    volume.commit()
+    stage_two_specs = [{**config, "shard_id": shard_id, "start_position": start,
+        "end_position": min(start + config["shard_size"], config["retained_count"])}
+        for shard_id, start in enumerate(range(0, config["retained_count"], config["shard_size"]))]
+    stage_two_results = _run_product_stage(ordered_product_stage_two, stage_two_specs, config)
+    stage_two_manifest = root / "stage-two-manifest.json"
+    _atomic_json(stage_two_manifest, [str(_ordered_product_checkpoint_path(config, "stage-two", spec["shard_id"]))
+                                      for spec in stage_two_specs])
+    artifact = root / "ranked.json"
+    finalize = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "finalize",
+        "--cohort", str(cohort), "--manifest", str(stage_two_manifest), "--out", str(artifact)]
+    subprocess.run(finalize, cwd="/workspace", env=node_environment, text=True, capture_output=True,
+                   timeout=1800, check=True)
+    summary = {"schemaVersion": 1, "status": "success", "runId": config["run_id"],
+        "buildVersion": config["build_version"], "ruleFingerprint": config["rule_fingerprint"],
+        "scorerVersion": SCORER_VERSION, "retainedCount": config["retained_count"],
+        "reservoirCount": config["reservoir_count"], "stageOneShards": stage_one_results,
+        "stageTwoShards": stage_two_results, "elapsedMs": round((time.monotonic() - started) * 1000, 3),
+        "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname()),
+        "artifact": f"hexdeck-native-strategy-results:/{config['run_id']}/ranked.json"}
+    _atomic_json(root / "run-summary.json", summary)
+    volume.commit()
+    return summary
+
+
 @app.function(image=image, cpu=1, memory=1024, timeout=86400, volumes={"/results": volume})
 def controller(config: dict[str, Any]) -> dict[str, Any]:
     specs = []
@@ -400,7 +596,10 @@ def controller(config: dict[str, Any]) -> dict[str, Any]:
 def validate_launch_limits(
     *, count: int, start_position: int, shard_size: int, cpu: int, memory_gib: int,
     threads: int, max_containers: int, timeout_seconds: int, max_cost_usd: float,
-    chunk_size: int, shuffles: int, scorer: str, product: bool
+    chunk_size: int, shuffles: int, scorer: str, product: bool,
+    ordered_product: bool = False, retained_count: int = ORDERED_PRODUCT_RETAINED_COUNT,
+    reservoir_count: int = ORDERED_PRODUCT_RESERVOIR_COUNT,
+    authorization: str = ""
 ) -> dict[str, Any]:
     if min(count, shard_size, cpu, memory_gib, threads, max_containers,
            timeout_seconds, chunk_size, shuffles) < 1:
@@ -409,11 +608,28 @@ def validate_launch_limits(
         raise ValueError("Modal production supports only the standalone Rust scorer")
     if threads > cpu:
         raise ValueError("Rust/worker threads cannot exceed the integer CPU request")
+    if product and ordered_product:
+        raise ValueError("choose only one product mode")
     aggregate_cpu = cpu if product else 1 + cpu * max_containers
     if aggregate_cpu > MAX_PHYSICAL_CORES:
         raise ValueError(f"aggregate allocation exceeds {MAX_PHYSICAL_CORES} physical cores")
     end_position = start_position + count
-    if product:
+    if ordered_product:
+        if start_position != 0 or count != FULL_CANDIDATE_COUNT:
+            raise ValueError("ordered product must score the complete ordered candidate space")
+        if authorization != ORDERED_PRODUCT_AUTHORIZATION:
+            raise ValueError(f"ordered product requires authorization {ORDERED_PRODUCT_AUTHORIZATION}")
+        if retained_count < 1 or reservoir_count < 1 or reservoir_count > retained_count \
+                or retained_count > count:
+            raise ValueError("ordered product retained and reservoir counts are invalid")
+        stage_one_shards = math.ceil(count / shard_size)
+        stage_two_shards = math.ceil(retained_count / shard_size)
+        projected = projected_ordered_product_cost_usd(stage_one_shards, stage_two_shards,
+            cpu, memory_gib, timeout_seconds, max_containers)
+        full_run = True
+        waves = math.ceil(stage_one_shards / max_containers) + math.ceil(stage_two_shards / max_containers)
+        controller_timeout = (MAX_RETRIES + 1) * waves * (timeout_seconds + 30) + 600
+    elif product:
         if start_position != 0 or count > 500_000 or count < 20_000:
             raise ValueError("product count must be from 20,000 through 500,000 with start position zero")
         if max_containers != 1:
@@ -455,22 +671,31 @@ def launch(
     scorer: str = "rust",
     product: bool = False,
     pool_seed: int = 5,
+    ordered_product: bool = False,
+    retained_count: int = ORDERED_PRODUCT_RETAINED_COUNT,
+    reservoir_count: int = ORDERED_PRODUCT_RESERVOIR_COUNT,
+    authorization: str = "",
 ) -> None:
     limits = validate_launch_limits(count=count, start_position=start_position,
         shard_size=shard_size, cpu=cpu, memory_gib=memory_gib, threads=threads,
         max_containers=max_containers, timeout_seconds=timeout_seconds,
         max_cost_usd=max_cost_usd, chunk_size=chunk_size, shuffles=shuffles,
-        scorer=scorer, product=product)
+        scorer=scorer, product=product, ordered_product=ordered_product,
+        retained_count=retained_count, reservoir_count=reservoir_count,
+        authorization=authorization)
     end_position = limits["end_position"]
     projected = limits["projected"]
     full_run = limits["full_run"]
     controller_timeout = limits["controller_timeout"]
     config = {
-        "kind": "product" if product else "ordered",
+        "kind": "ordered-product" if ordered_product else "product" if product else "ordered",
         "build_version": build_version,
         "rule_fingerprint": rule_fingerprint,
         "count": count,
         "pool_seed": pool_seed,
+        "retained_count": retained_count,
+        "reservoir_count": reservoir_count,
+        "authorization": authorization,
         "start_position": start_position,
         "end_position": end_position,
         "shard_size": shard_size,
@@ -493,7 +718,7 @@ def launch(
         "profile": "ryanburnettebrown",
         "worstCaseCostUsd": projected,
         "reservation": entry,
-        "resultLocation": f"hexdeck-native-strategy-results:/{run_id}/{'pool.json' if product else 'merge.json'}",
+        "resultLocation": f"hexdeck-native-strategy-results:/{run_id}/{'ranked.json' if ordered_product else 'pool.json' if product else 'merge.json'}",
     }, indent=2))
     if entry.get("status") == "launched" and entry.get("controllerCallId"):
         try:
@@ -510,10 +735,13 @@ def launch(
     if not claim_controller(run_id, config["controller_timeout"]):
         print(f"controller already owns run {run_id}; no duplicate was launched")
         return
-    if product:
+    if ordered_product:
+        call = ordered_product_controller.with_options(timeout=config["controller_timeout"], retries=0).spawn(config)
+    elif product:
         call = product_search.with_options(cpu=cpu, memory=memory_gib * 1024,
             timeout=timeout_seconds + 30, retries=MAX_RETRIES).spawn(config)
     else:
         call = controller.with_options(timeout=config["controller_timeout"], retries=0).spawn(config)
     record_controller_call(run_id, call.object_id)
-    print(f"detached {'product' if product else 'ordered'} call: {call.object_id}")
+    mode = "ordered-product" if ordered_product else "product" if product else "ordered"
+    print(f"detached {mode} call: {call.object_id}")

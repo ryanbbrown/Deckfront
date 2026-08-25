@@ -25,7 +25,11 @@ const end = integer('end-position');
 const threads = integer('threads');
 const cpu = integer('cpu');
 const shuffles = integer('shuffles');
-if (end < start || threads < 1 || cpu < 1 || shuffles < 1) throw new Error('Invalid shard bounds.');
+const modeIndex = process.argv.indexOf('--mode');
+const mode = modeIndex < 0 ? 'compact' : process.argv[modeIndex + 1];
+if (end < start || threads < 1 || cpu < 1 || shuffles < 1 || !['full', 'compact'].includes(mode ?? '')) {
+  throw new Error('Invalid shard bounds or score mode.');
+}
 const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
 registerKingdom(kingdom);
 const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
@@ -34,7 +38,7 @@ const strategies = [...representativeCandidateIndices(space.candidateCount, end 
 const config = { kingdomId: kingdom.id,
   seeds: Array.from({ length: shuffles }, (_unused, index) => 4_100_000 + index),
   turnLimit: 30, actionCapPerTurn: 200 };
-const request = nativeScoreBatchRequest(kingdom, strategies, config, threads, 'compact');
+const request = nativeScoreBatchRequest(kingdom, strategies, config, threads, mode as 'full' | 'compact');
 fs.writeFileSync(option('request'), `${JSON.stringify(request)}\n`);
 fs.writeFileSync(option('metadata'), `${JSON.stringify({
   completeCount: strategies.length,

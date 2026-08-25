@@ -204,18 +204,38 @@ modal run --detach modal/native_strategy_search.py --build-version "$(git rev-pa
 
 Shard checkpoints and the ordered merge live in the `hexdeck-native-strategy-results` Modal Volume. The local reservation ledger is `~/.hexdeck-modal-cost-ledger.json`. Ordered shards call the production TypeScript candidate helper in the image and send its versioned request to Rust. Python does not generate strategies.
 
-Run or resume the staged product path with one TypeScript coordinator and bounded logical shards:
+Launch or resume the authorized ordered product correction. This configuration reserves at most $2.725 for all retry attempts, uses at most 191 physical cores, and does not launch a local full-space scorer:
 
 ```sh
-modal run --detach modal/native_strategy_search.py --product \
+modal run --detach modal/native_strategy_search.py --ordered-product \
+  --authorization k009-ordered-product-correction-v1 \
   --build-version "$(git rev-parse HEAD)" \
   --rule-fingerprint "$(npm run goldfish:native-metadata --silent)" \
-  --count 500000 --chunk-size 1000 --shard-size 250000 \
-  --cpu 10 --memory-gib 8 --threads 10 --max-containers 1 \
-  --timeout-seconds 3600 --max-cost-usd 5 --pool-seed 5
+  --count 12972960 --retained-count 500000 --reservoir-count 20000 \
+  --shard-size 250000 --cpu 2 --memory-gib 4 --threads 2 \
+  --max-containers 95 --timeout-seconds 420 --max-cost-usd 5 --scorer rust
 ```
 
-The durable product artifact records the 50,000 prefilter digest, 18,000 leader digest, 2,000 tail digest, generated and canonical provenance digests, and measured peak RSS.
+After the controller stops, fetch and validate the deterministic ranked artifact, then build and validate its exact ranked-prefix reservoir:
+
+```sh
+RUN_ID=<run-id-printed-by-launch>
+mkdir -p .experiments/ordered-goldfish-product/$RUN_ID
+modal volume get hexdeck-native-strategy-results \
+  "$RUN_ID/ranked.json" ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json"
+modal volume get hexdeck-native-strategy-results \
+  "$RUN_ID/ranked.json.sha256" ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json.sha256"
+npm run goldfish:ordered-product -- validate \
+  --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json"
+npm run goldfish:ordered-product -- build-reservoir \
+  --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json" \
+  --out ".experiments/ordered-goldfish-product/$RUN_ID/reservoir.json"
+npm run goldfish:ordered-product -- validate-reservoir \
+  --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json" \
+  --reservoir ".experiments/ordered-goldfish-product/$RUN_ID/reservoir.json"
+```
+
+The ranked bytes contain the 500,000-candidate stage-one cohort, all four-seed score evidence, ranks, and shard provenance. Runtime and container data remain in `run-summary.json` on the Modal Volume.
 
 ## Code boundaries
 
