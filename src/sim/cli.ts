@@ -62,6 +62,9 @@ export function experimentDir(root: string, kingdomId: string, mode: ExperimentM
 export async function main(argv: readonly string[], root: string, deps: ExperimentDeps = {}): Promise<number> {
   balanceSuite.register();
   const options = parseExperimentOptions(argv);
+  if (options.mode === 'full' && balanceSuite.hasKingdom(options.kingdomId)) {
+    balanceSuite.assertCampaignReady(options.kingdomId);
+  }
   const pairingRunner = deps.pairingRunner ?? new WorkerPairingRunner(options.workers, new URL(import.meta.url));
   const summary = await runExperiment(options, experimentDir(root, options.kingdomId, options.mode),
     { ...deps, pairingRunner });

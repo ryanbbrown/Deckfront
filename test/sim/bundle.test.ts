@@ -63,6 +63,11 @@ describe('compiled PSRO bundle', () => {
     expect(result.status, result.stderr).toBe(0);
     const run = JSON.parse(fs.readFileSync(path.join(cwd, '.experiments', kingdomId, 'smoke', 'run.json'), 'utf8'));
     expect(run).toMatchObject({ schemaVersion: 5, valid: true, kingdomId });
+    const blocked = spawnSync(process.execPath, [bundle, '--kingdom', kingdomId, '--mode', 'full'],
+      { cwd, encoding: 'utf8', timeout: 5_000 });
+    expect(blocked.status).toBe(1);
+    expect(blocked.stderr).toContain('pending-k009-consistency');
+    expect(fs.existsSync(path.join(cwd, '.experiments', kingdomId, 'full'))).toBe(false);
   });
 
   it('runs only pairing jobs in worker mode', async () => {

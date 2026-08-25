@@ -88,25 +88,24 @@ npm run balance:report
 The generator reads the ignored local `.experiments/` inputs, rejects stale rules fingerprints or
 incomplete runs, and writes `.html/balance-report.html`.
 
-The broad balance suite has 80 tuning kingdoms and 20 held-back validation kingdoms. Its variable
-card pool is the same `VARIABLE_ACTION_IDS` list used by playable random markets. Regenerate its
-committed manifest, resume its full searches, validate the artifacts, and build its report with:
+The deterministic `balance-suite-v4` design has 128 tuning kingdoms and 32 held-back validation
+kingdoms. It uses the same 40 variable cards as playable random markets. Regenerate or check its
+manifest, validate it, and reproduce the design report with:
 
 ```sh
 npm run balance:suite:manifest
-npm run balance:suite:run
-npm run balance:suite:run -- --tuning-only
+npm run balance:suite:manifest -- --check
 npm run balance:suite:validate
-npm run balance:suite:report
-npm run strategy:report
+npm run balance:suite:design-report
+npm run balance:suite:design-report -- --check
 ```
 
-The batch runs two kingdoms at once with four workers each, so it uses at most eight pairing workers.
-It keeps complete current results and reruns missing, failed, incomplete, or stale results. Raw output
-is ignored under `.experiments/balance-suite/balance-suite-v3/`. Use the tuning split for repeated card
-changes. Use the validation split only to confirm a proposed change.
+The report is `.html/kingdom-suite-design.html`. The production balance campaign is blocked on the
+Kingdom 009 consistency protocol and needs separate spending approval. `balance:suite:run`, the old
+corpus loader, and the old strategy report fail closed while that protocol is pending.
 
-The 50-health, draft-off deep-beam suite reuses the same 100 ten-pile card sets. Each player starts
+The 50-health, draft-off deep-beam suite uses the frozen 100-row v3 strategy-search manifest, not the
+active v4 balance manifest. Each player starts
 with 7 Copper and 3 Scrap. It runs one kingdom at a time with 10 workers, 3 iterations, beam width 32,
 4 confirmations, and at most 8 active purchase
 slots. Run or resume it and check its status with:
