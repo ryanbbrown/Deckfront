@@ -102,7 +102,9 @@ Make every statistical decision per canonical ID before considering equivalence.
 
 Choose the lowest UTF-16 strategy ID in each acquisition-equivalent class as its deterministic representative. Admit only the representative to the matrix and record every other class member as a shadow equivalent. Apply the width-128 matrix gate to representatives, not shadows. The representative carries the class's equilibrium weight for reporting; never divide or invent member weights.
 
-Every later broad screen includes every shadow because shadows are not active matrix strategies. When an advanced shadow reaches confirmation, also evaluate its active class representative on the same complete full-telemetry confirmation schedule as a decision-exempt anchor. Keep the shadow collapsed only if its new complete evidence remains acquisition-equivalent to that anchor. A diverged shadow becomes a separate representative and enters the matrix if its own per-ID statistical decision admits it. Shadows can form new acquisition-equivalent classes with other newly admitted IDs under the same rules.
+Every later broad screen includes every shadow because shadows are not active matrix strategies. When any known shadow advances and receives confirmation, evaluate its active class representative for the same complete number of blocks as a decision-exempt anchor, regardless of whether the shadow retires, continues, admits, or ends unresolved. A representative that would face itself must run under a deterministic synthetic candidate ID which cannot equal any reservoir or matrix ID. Normalize that synthetic ID back to the representative role before exact evidence comparison, so candidate and opponent telemetry never merge in self-play.
+
+Keep a shadow collapsed only if its new complete evidence remains acquisition-equivalent to that anchor. Split every diverged shadow from its old class immediately, regardless of its per-ID statistical decision. Add the split shadow to the matrix only when its own decision is `admitted`; a retired or unresolved split remains an inactive independent candidate and is eligible in every later screen. Shadows can form new acquisition-equivalent classes with other newly admitted IDs under the same rules. Tests must cover equivalent representative self-play, retired divergence, and admitted divergence.
 
 There is no finalist or representative-admission count cutoff. If adding all new representatives would make the matrix wider than 128 strategies, stop as `matrix-width-unresolved` before changing the matrix. Report every class representative, shadow member, divergence, merge decision, and class weight.
 
@@ -128,7 +130,7 @@ At 200 blocks, require two consecutive clean scans. Reapply the same gates betwe
 
 A run completes protocol closure only at 100 or 200 blocks, after two consecutive clean scans at that final matrix depth, no unresolved confirmation, no safety cap, and all matrix-precision gates passing. Stop after 10 total scans as `scan-cap-unresolved`.
 
-For every scan, report the number of advanced counter candidates, admissions, retirements at each look, unresolved candidates, continuation-width gates, strongest confirmed mean and anytime bounds, strongest retired upper bound, and complete boundary-tie counts. These are the closure counters; a clean scan has zero admissions and zero unresolved candidates.
+For every scan, report the number of advanced counter candidates; retire, continue, admit, and unresolved counts at every look; each continuation-width gate; lane, pooled, and boundary-audit tie widths; score-equivalence counts; strongest confirmed means and anytime lower and upper bounds; strongest retired mean and upper bound; shadow-anchor outcomes; representative admissions; and complete closure transitions. These are the closure counters; a clean scan has zero admissions and zero unresolved candidates. Record matrix-precision comparisons with every selected-share, feasible-range-endpoint, classifier-label, maximum-feasible-weight, and maximum-known-advantage delta used by its gate.
 
 ## Final acquisition and self-play panels
 
@@ -155,11 +157,19 @@ The three-panel stability gate passes only when:
 - every material card's expected copies span at most 0.02 per player-game; and
 - no strategy's panel damage-family evidence crosses the classifier's 20% mixed-family boundary or changes its label.
 
-If the first three panels fail, add exactly two more 1,000-block panels and recompute all ranges over five panels. If the five-panel gate fails, stop as `acquisition-panel-unresolved`. Do not weaken a threshold.
+If the first three panels fail, add exactly two more 1,000-block panels and recompute all ranges over five panels. If the five-panel gate fails, stop as `acquisition-panel-unresolved`. Do not weaken a threshold. Save every per-panel gate input and delta, including label-boundary evidence, so validation recomputes the panel decision instead of trusting its summary.
 
 Move the classifier implementation to `src/sim/strategyDamage.ts`. Import and re-export it from `scripts/generate_balance_corpus.ts` so the strategy report and its current tests keep one classifier. Add equilibrium-weighted acquisition helpers in simulator code; do not reuse the unweighted `acquiredFamilyShares` helper.
 
 Before production, reproduce the observed YALPS cycle from the saved real 81–114 strategy robust matrices when solving feasible group-weight ranges. Harden `equilibriumGroupWeightRange` without changing its game-value, payoff, or group-objective semantics. Keep the current YALPS result when it is optimal and independently valid. On a cycle or invalid result, use a deterministic fallback solve of the same linear program. Independently verify every primary or fallback solution: finite and nonnegative weights, total weight within `1e-7` of one, every payoff constraint at least `value - 1e-7`, and reported group objective within `1e-7` of the recomputed weight. Validate optimality by solving the opposite signed objective and comparing the returned bound; reject infeasible, unbounded, inconsistent, or non-optimal results. Preserve all existing equilibrium outputs and tests. A full-PSRO report with any missing or invalid group range fails closed.
+
+## Audit-only historical attacks
+
+After each run has a final unchanged lottery and its acquisition panels, attack that lottery with each of the five deeply validated historical Kingdom 009 fixed-reservoir v1 pools, seeds 1 through 5. This is mandatory audit evidence but never changes admissions, matrix membership, clean-scan counters, matrix depth, closure, or the selected lottery.
+
+Use the existing robust historical-audit semantics exactly: `closure-union-cumulative-v1`, two independent cumulative 1/2/4/8-block race passes with finalist union, then a fresh 400-block confirmation. A confirmed attack has the existing strict bootstrap 95% lower bound above 50%. Use new full-PSRO seed namespaces derived from the full-PSRO run and historical pool seed; do not reuse robust-v1 evidence or seeds. Exclude exact active strategy IDs as the robust audit does, but otherwise scan each complete old 20,000-strategy reservoir.
+
+Save and deeply validate every race allocation, target schedule, candidate block-score vector, finalist union, confirmation schedule, confirmation scores, bootstrap seed, decision, and source-pool hash. For every confirmed attacker, save its exact strategy, canonical form, source pool and rank, mean and interval, and a fresh full-telemetry replay of its complete 400-block confirmation schedule. Report its per-card acquisitions, plan positions reached, damage/card shares, classifier label, and the final-lottery opponents that expose it. A clean audit reports zero confirmed attacks. An attack is a limitation in the final report, not a reason to admit, reopen search, or withhold protocol closure.
 
 ## Two independent runs and the comparison gate
 
@@ -185,7 +195,7 @@ The two-run comparison passes only when:
 
 If all gates pass, report Run 1 as the predeclared representative and report the two-run ranges beside it. If any gate fails, report `two-run-inconsistent` and do not name a representative lottery.
 
-Also report admitted-ID overlap, selected-support Jaccard, exact-ID weight total variation, score-equivalence-class overlap, acquisition-equivalence-class overlap, and maximum feasible individual-strategy weights. These are diagnostics and never acceptance gates.
+Also report admitted-ID intersection, union, and Jaccard; selected-support intersection, union, and Jaccard; exact-ID weight total variation; score-equivalence-class intersection, union, and Jaccard; acquisition-equivalence-class intersection, union, and Jaccard; and every selected and maximum feasible individual-strategy weight. Report the exact delta and pass/fail result for every direct-score, confidence-interval, selected-archetype, feasible-range-endpoint, material-card share, material-card copies, and total-variation gate. These diagnostics never add acceptance gates.
 
 The suite must stop after this report. It must not launch, accept, or suggest an automatic third run. A later third-run decision requires a new approved protocol or plan.
 
@@ -200,7 +210,8 @@ Add immutable protocol-keyed artifacts for:
 - each confirmation look chunk and Holm decision manifest;
 - run checkpoint and state transition;
 - each acquisition panel;
-- two-run cross-play; and
+- each of the five audit-only historical attacks and any attacker telemetry replay;
+- two-run cross-play, including both saved weighted-lottery schedules and every per-block score; and
 - JSON and Markdown reports.
 
 Use 250-candidate screen chunks and atomic temporary-file rename. A valid existing chunk is skipped. A missing chunk is regenerated with the same seeds. An invalid existing artifact stops the command; it is never overwritten or silently repaired.
@@ -217,7 +228,9 @@ Deep validation must recompute:
 - acquisition weighting, classifier inputs and labels, group ranges, panel gates, cross-play, and comparison gates; and
 - evidence hashes excluding elapsed time only.
 
-A checkpoint references child artifact hashes. It becomes valid only after every child is atomically complete. Resume reconstructs state only from deeply valid checkpoints and child artifacts. Status distinguishes `missing`, `running`, `complete`, `unresolved`, and `invalid` for each run.
+A checkpoint references child artifact hashes. It becomes valid only after every child is atomically complete. Resume reconstructs state only from deeply valid checkpoints and child artifacts. A terminal width or safety failure writes a hashed terminal manifest that references all completed child evidence, the recomputed gate width, and the terminal reason before the checkpoint becomes terminal; evidence cannot be left orphaned. Status distinguishes `missing`, `running`, `complete`, `unresolved`, and `invalid` for each run.
+
+Validators must not accept a top-level hash as a substitute for semantics. They recompute screen schedules and selection, confirmation schedules and every look decision, shadow anchor normalization and class changes, scan transitions and terminal gates, matrix prefixes and precision deltas, panel schedules and summaries, historical-audit races and diagnostics, and comparison schedules, per-block scores, metrics, and gates. Add corruption, stale-target, wrong-source, wrong-rule, wrong-seed, wrong-protocol, terminal-width, and complete end-to-end resume fixtures.
 
 ## Implementation files and boundaries
 
@@ -245,7 +258,7 @@ Tests must prove:
 - direct-product and log-space e-values agree, p-values are anytime, and changed score order changes the validated hash;
 - Holm admission decisions use the full cohort and run-level alpha allocation, while retirement uses the declared individual 97.5% anytime bound;
 - 200/800/3,200/6,400 continuation, fail-closed width gates, and every unresolved/safety transition;
-- only complete acquisition-equivalent confirmation evidence collapses admitted IDs, representatives are deterministic, shadows rescreen, and divergence separates;
+- only complete acquisition-equivalent confirmation evidence collapses admitted IDs, representatives are deterministic, every confirmed known shadow gets an anchor, synthetic-ID self-play normalization retains a true equivalent, and retired plus admitted divergence both separate;
 - matrix width counts representatives while reports preserve class membership and class weight;
 - the saved 81–114 strategy fixture reproduces the group-range cycle, the fallback returns independently validated bounds, and non-cycling existing outputs stay unchanged;
 - nested matrix prefixes reuse exact blocks and telemetry without changing existing `PayoffMatrix` behavior;
@@ -253,8 +266,9 @@ Tests must prove:
 - self-play is present in every final panel and equilibrium weighting matches a hand-calculated two-strategy fixture;
 - actual acquisitions, not purchase-plan presence, drive classifier and card reports;
 - feasible group ranges use the final fixed labels;
+- all five historical pools use the unchanged robust audit semantics, remain audit-only, and expose exact acquisition diagnostics for confirmed attacks;
 - no command accepts run 3 or compares fewer than two valid runs; and
-- corrupt, stale, partial, wrong-source, wrong-rule, wrong-seed, or wrong-protocol artifacts fail closed.
+- corrupt, stale, partial, wrong-source, wrong-rule, wrong-seed, wrong-protocol, orphan terminal, or aggregate-only cross-play artifacts fail closed, while a complete end-to-end fixture resumes without recomputation.
 
 Before production, commit implementation and run:
 
@@ -288,9 +302,10 @@ One hard-capped run has these maxima:
 | 10 adaptive confirmations with 512/128/32/8 width gates | 11,264,000 |
 | Width-128 matrix at 200 blocks | 6,502,400 |
 | Five final panels: 32 strategies × 1,000 blocks × 4 games | 640,000 |
-| Total per run | 58,306,400 |
+| Five historical audits plus attacker telemetry replays | 2,182,160 |
+| Total per run | 60,488,560 |
 
-The confirmation maximum per scan is `512×200×4 + 128×600×4 + 32×2,400×4 + 8×3,200×4 = 1,126,400` games. Two hard-capped runs plus 40,000 cross-play games are at most 116,652,800 games. At the measured 10,200–12,800 games per second, simulation time is 2.53–3.18 hours. Allowing 15% for source validation, JSON I/O, equilibrium solves, and reports gives a hard projected wall bound of 2.91–3.65 hours. Every width, scan, depth, and panel cap fails closed, so no path exceeds this bound without a new protocol version.
+The confirmation maximum per scan is `512×200×4 + 128×600×4 + 32×2,400×4 + 8×3,200×4 = 1,126,400` games. One robust historical audit costs at most 410,832 games: two full cumulative race passes through 20,000 candidates plus a 16-finalist union confirmation. Five audits cost 2,054,160 games. Replaying all 80 possible confirmed finalists with full telemetry costs at most another 128,000 games. Two hard-capped runs plus 40,000 cross-play games are at most 121,017,120 games. At the measured 10,200–12,800 games per second, simulation time is 2.63–3.30 hours. Allowing 15% for source validation, JSON I/O, equilibrium solves, and reports gives a hard projected wall bound of 3.02–3.79 hours. Every width, scan, depth, panel, audit, and replay cap fails closed, so no path exceeds this bound without a new protocol version.
 
 A practical projection uses eight scans, a 400-candidate confirmation cohort, 20% continuing from 200 to 800 blocks, 5% continuing from 800 to 3,200 blocks, 2% continuing from 3,200 to 6,400 blocks, a width-100 100-block matrix, 16 support strategies, and three final panels:
 
@@ -298,6 +313,7 @@ A practical projection uses eight scans, a 400-candidate confirmation cohort, 20
 - confirmations: 6.4512 million games per run;
 - matrix: 1.9800 million games per run;
 - panels: 0.1920 million games per run;
-- total: 40.5432 million games per run.
+- historical audits and up to 80 attacker telemetry replays: 2.1822 million games per run;
+- total: 42.7254 million games per run.
 
-Two projected runs plus cross-play are 81.1264 million games, or 1.76–2.21 hours of simulation and about 2.03–2.54 hours of wall time with the same 15% allowance. Production reports must replace projections with exact recorded games and wall times.
+Two projected runs plus cross-play are 85.4907 million games, or 1.86–2.33 hours of simulation and about 2.13–2.68 hours of wall time with the same 15% allowance. Production reports must replace projections with exact recorded games and wall times.
