@@ -1,5 +1,5 @@
 import { kingdomFacts } from './mutation';
-import { StableHashAccumulator, canonicalStrategy, fixedBuyPlan, identify, stableHash } from './strategy';
+import { StableHashAccumulator, canonicalStrategy, fixedBuyPlan, identify } from './strategy';
 import type { Strategy } from './strategy';
 import { compareUtf16 } from './utf16';
 
@@ -180,10 +180,6 @@ export function* representativeCandidateIndices(
     candidate += traversal.stride;
     if (candidate >= total) candidate %= total;
   }
-}
-
-export function candidateChecksum(strategies: readonly Strategy[]): string {
-  return stableHash(strategies.map(canonicalStrategy).join('\n'));
 }
 
 export function candidateChecksumFromIterable(strategies: Iterable<Strategy>): string {

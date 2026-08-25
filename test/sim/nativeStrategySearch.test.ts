@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
 import { SeededRandom, registerKingdom, resetKingdoms } from '../../src/game';
 import {
@@ -5,8 +6,10 @@ import {
 } from '../../src/sim/goldfish';
 import type { CompactMovementAwareGoldfishScore, GoldfishConfig,
   MovementAwareGoldfishScore } from '../../src/sim/goldfish';
+import { nativeKingdom009Json } from '../../src/sim/nativeKingdom009';
 import {
-  applyCollisionPolicy, mergeShardRetention, retainShard, streamUniqueStrategies
+  applyCollisionPolicy, mergeShardRetention, retainShard, streamUniqueStrategies,
+  streamUniqueStrategiesAsync
 } from '../../src/sim/nativeStrategySearch';
 import type { TraversalScoreRecord } from '../../src/sim/nativeStrategySearch';
 import { canonicalStrategy, fixedBuyPlan, identify } from '../../src/sim/strategy';
@@ -39,6 +42,20 @@ function record(index: number, value: number, id?: string): TraversalScoreRecord
 afterEach(() => resetKingdoms());
 
 describe('bounded deterministic native strategy search', () => {
+  it('keeps the committed native Kingdom 009 input current', () => {
+    expect(fs.readFileSync('rust/goldfish/kingdom009.json', 'utf8')).toBe(nativeKingdom009Json());
+  });
+
+  it('awaits one stateful generation pass across chunk sizes', async () => {
+    const values = [strategy(0), strategy(0), strategy(1), strategy(2), strategy(3)];
+    const consumed: Strategy[] = [];
+    const generation = await streamUniqueStrategiesAsync(values, 4, 2, async (chunk) => {
+      consumed.push(...chunk.strategies);
+      await Promise.resolve();
+    });
+    expect(consumed).toEqual([values[0], values[2], values[3], values[4]]);
+    expect(generation.provenance).toEqual(streamUniqueStrategies(values, 4, 3).provenance);
+  });
   it('matches the real stateful product generator across chunk sizes', () => {
     const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
     registerKingdom(kingdom);

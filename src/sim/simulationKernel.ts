@@ -871,8 +871,10 @@ export function runLeanGoldfishTrial(config: GoldfishTrialConfig): LeanGoldfishT
   };
 }
 
-export function runSimulationMatchScoreOnly(config: SimulationMatchConfig): MatchResult {
-  const state = createState(config, false);
+function runSimulationMatchWithTelemetry(
+  config: SimulationMatchConfig, collectTelemetry: boolean
+): MatchResult {
+  const state = createState(config, collectTelemetry);
   let outcome: MatchResult['outcome'] = 'draw';
   let reason: MatchResult['reason'] = 'turnLimit';
   let actionsInTurn = 0;
@@ -905,43 +907,10 @@ export function runSimulationMatchScoreOnly(config: SimulationMatchConfig): Matc
     outcome, reason, turns: state.turn - 1, telemetry: state.telemetry };
 }
 
+export function runSimulationMatchScoreOnly(config: SimulationMatchConfig): MatchResult {
+  return runSimulationMatchWithTelemetry(config, false);
+}
+
 export function runSimulationMatch(config: SimulationMatchConfig): MatchResult {
-  const state = createState(config);
-  let outcome: MatchResult['outcome'] = 'draw';
-  let reason: MatchResult['reason'] = 'turnLimit';
-  let actionsInTurn = 0;
-  let phase: 'action' | 'buy' = 'action';
-
-  for (;;) {
-    const actor = state.active;
-    let turnChanged = false;
-    if (phase === 'action') {
-      const decision = chooseTacticalAction(pilotView(state, actor, null));
-      if (decision.type === 'play') {
-        const won = playCard(state, actor, decision); actionsInTurn += 1;
-        if (won) { outcome = playerId(actor); reason = 'victory'; break; }
-      } else {
-        endActionPhase(state, actor); actionsInTurn += 1; phase = 'buy';
-      }
-    } else {
-      const purchase = choosePurchase(state, actor);
-      if (purchase !== null) { buy(state, actor, purchase); actionsInTurn += 1; }
-      else { endBuyPhase(state, actor); actionsInTurn += 1; phase = 'action'; turnChanged = true; }
-    }
-    if (actionsInTurn > config.actionCapPerTurn) { reason = 'actionCap'; break; }
-    if (state.turn > config.turnLimitPerPlayer * 2) { reason = 'turnLimit'; break; }
-    if (turnChanged) actionsInTurn = 0;
-  }
-
-  state.telemetry.eventCount = state.eventCount;
-  state.telemetry.finalHealth = { ochre: state.health[0], indigo: state.health[1] };
-  return {
-    config: {
-      kingdomId: config.kingdomId, seed: config.seed, firstPlayerId: config.firstPlayerId,
-      swapSides: config.swapSides, turnLimitPerPlayer: config.turnLimitPerPlayer,
-      actionCapPerTurn: config.actionCapPerTurn, startingDraftEnabled: config.startingDraftEnabled ?? true,
-      agentIds: { ochre: config.strategies.ochre.id, indigo: config.strategies.indigo.id }
-    },
-    outcome, reason, turns: state.turn - 1, telemetry: state.telemetry
-  };
+  return runSimulationMatchWithTelemetry(config, true);
 }

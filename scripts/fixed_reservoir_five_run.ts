@@ -42,7 +42,8 @@ const RESULT_JSON = path.join(ROOT, 'report.json');
 const RESULT_MARKDOWN = path.join('.plans', '47-fixed-reservoir-five-run-results.md');
 const LEGACY_ROOT = path.join('.experiments', FIXED_RESERVOIR_VERSION);
 const GOLDFISH_SEEDS = Object.freeze([5_200_000, 5_200_001, 5_200_002, 5_200_003]);
-const WORKERS = 10;
+const GOLDFISH_WORKERS = 10;
+const PAIRING_WORKERS = 4;
 
 function writeAtomic(file: string, value: unknown): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -83,7 +84,7 @@ function generate(kingdomId: string, count: number, seed: number) {
   return { strategies, duplicateCanonicalCount, displayIdCollisionCount };
 }
 async function scoreInWorkers(
-  strategies: readonly Strategy[], config: GoldfishConfig, kingdom: Kingdom, workers = WORKERS
+  strategies: readonly Strategy[], config: GoldfishConfig, kingdom: Kingdom, workers = GOLDFISH_WORKERS
 ): Promise<MovementAwareGoldfishScore[]> {
   const pool = Array.from({ length: workers }, () => new Worker(
     new URL('../src/server/goldfishWorker.ts', import.meta.url),
@@ -103,7 +104,8 @@ async function scoreInWorkers(
   } finally { await Promise.all(pool.map((worker) => worker.terminate())); }
 }
 async function buildPool(
-  config: SuiteConfig, poolSeed: number, file: string, protocol = FIXED_RESERVOIR_CONFIG, workers = WORKERS
+  config: SuiteConfig, poolSeed: number, file: string, protocol = FIXED_RESERVOIR_CONFIG,
+  workers = GOLDFISH_WORKERS
 ): Promise<FixedReservoirPoolArtifact> {
   const started = Date.now();
   console.log(`${config.kingdom.id} pool ${poolSeed}: generating ${protocol.generatedCount}`);
@@ -131,7 +133,7 @@ async function buildPool(
 }
 async function runPsro(
   config: SuiteConfig, pool: FixedReservoirPoolArtifact, file: string,
-  protocol = FIXED_RESERVOIR_CONFIG, workers = WORKERS
+  protocol = FIXED_RESERVOIR_CONFIG, workers = PAIRING_WORKERS
 ): Promise<FixedReservoirPsroArtifact> {
   const runner = new WorkerPairingRunner(workers, new URL('../src/server/aiWorker.ts', import.meta.url),
     { kingdom: config.kingdom }, ['--import', 'tsx']);
@@ -325,7 +327,7 @@ async function report(): Promise<void> {
     const loaded = FIXED_RESERVOIR_POOL_SEEDS.map((seed) => deepLoad(config, seed));
     if (loaded.some((entry) => !entry)) throw new Error(`${config.kingdom.id} does not have five valid runs.`);
     const units = loaded as Array<{ pool: FixedReservoirPoolArtifact; run: FixedReservoirPsroArtifact }>;
-    const runner = new WorkerPairingRunner(WORKERS, new URL('../src/server/aiWorker.ts', import.meta.url),
+    const runner = new WorkerPairingRunner(PAIRING_WORKERS, new URL('../src/server/aiWorker.ts', import.meta.url),
       { kingdom: config.kingdom }, ['--import', 'tsx']);
     try {
       const evidence = [] as RunAcquisitionEvidence[];

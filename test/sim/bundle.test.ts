@@ -70,10 +70,10 @@ describe('compiled PSRO bundle', () => {
     const worker = new Worker(bundle, { workerData: { kind: 'pairing-worker' } });
     const response = await new Promise<{ kind: string; outcome: { matches: number } }>((resolve, reject) => {
       worker.once('message', resolve); worker.once('error', reject);
-      worker.postMessage({ kind: 'pairing-batch-v2', candidates: [candidate], opponents: [opponent],
+      worker.postMessage({ kind: 'pairing-schedules-v3', candidates: [candidate], opponents: [opponent],
         options: [{ kingdomId: 'current-duel', seeds: [1], turnLimitPerPlayer: 30,
           actionCapPerTurn: 200, allowEarlyStop: false }],
-        items: [{ id: 0, candidate: 0, opponent: 0, options: 0, scoreOnly: false }] });
+        schedules: [{ candidate: 0, scoreOnly: false, blocks: [{ id: 0, opponent: 0, options: 0 }] }] });
     });
     expect(response).toMatchObject({ kind: 'pairing-results', outcomes: [{ id: 0, outcome: { matches: 4 } }] });
     await worker.terminate();
@@ -86,10 +86,10 @@ describe('compiled PSRO bundle', () => {
     const worker = new Worker(bundle, { workerData: { kind: 'pairing-worker' } });
     const response = await new Promise<{ kind: string; outcome: { matches: number } }>((resolve, reject) => {
       worker.once('message', resolve); worker.once('error', reject);
-      worker.postMessage({ kind: 'pairing-batch-v2', candidates: [candidate], opponents: [opponent],
+      worker.postMessage({ kind: 'pairing-schedules-v3', candidates: [candidate], opponents: [opponent],
         options: [{ kingdomId, seeds: [1], turnLimitPerPlayer: 30,
           actionCapPerTurn: 200, allowEarlyStop: false }],
-        items: [{ id: 0, candidate: 0, opponent: 0, options: 0, scoreOnly: false }] });
+        schedules: [{ candidate: 0, scoreOnly: false, blocks: [{ id: 0, opponent: 0, options: 0 }] }] });
     });
     expect(response).toMatchObject({ kind: 'pairing-results', outcomes: [{ id: 0, outcome: { matches: 4 } }] });
     await worker.terminate();

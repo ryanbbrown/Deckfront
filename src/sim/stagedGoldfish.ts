@@ -53,9 +53,24 @@ export interface StagedFixedReservoirPoolArtifact {
   duplicateCanonicalCount: number;
   displayIdCollisionCount: number;
   scoringProtocol: string;
+  buildVersion: string;
+  ruleFingerprint: string;
   shardProvenance: Array<{ shardId: string; startPosition: number; endPosition: number;
     candidateDigest: string; scoreDigest: string }>;
   prefilterCount: number;
+  prefilterEvidence: {
+    count: number;
+    digest: string;
+    entries: Array<{ displayId: string; canonicalStrategy: string }>;
+  };
+  leaderDigest: string;
+  tailDigest: string;
+  tailEvidence: {
+    eligibleCount: number;
+    retainedCount: number;
+    digest: string;
+    entries: Array<{ displayId: string; canonicalStrategy: string; traversalPosition: number }>;
+  };
   scoring: {
     profiles: string[];
     combination: 'disjoint-seed-sum-v1';
@@ -203,6 +218,13 @@ export function stagedReservoirHash(entries: readonly StagedReservoirEntry[]): s
   return stableHash(entries.map((entry) => `${entry.source}:${canonicalStrategy(entry.strategy)}`).join('\n'));
 }
 
+export function stagedTailEvidenceDigest(
+  entries: readonly { displayId: string; canonicalStrategy: string; traversalPosition: number }[]
+): string {
+  return stableHash(entries.map((entry) => `${entry.traversalPosition}\t${entry.displayId}\t${entry.canonicalStrategy}`)
+    .join('\n'));
+}
+
 function validateStagedFixedReservoirPoolUnchecked(
   value: unknown, expected: StagedPoolExpectation
 ): value is StagedFixedReservoirPoolArtifact {
@@ -211,7 +233,8 @@ function validateStagedFixedReservoirPoolUnchecked(
   if (artifact.schemaVersion !== 2 || artifact.experiment !== 'staged-fixed-reservoir-pool'
     || artifact.version !== STAGED_GOLDFISH_VERSION
     || !Array.isArray(artifact.goldfishSeeds) || !Array.isArray(artifact.reservoir)
-    || !Array.isArray(artifact.shardProvenance) || !artifact.scoring
+    || !Array.isArray(artifact.shardProvenance) || !artifact.scoring || !artifact.tailEvidence
+    || !artifact.prefilterEvidence || !Array.isArray(artifact.prefilterEvidence.entries)
     || !Number.isSafeInteger(artifact.generatedCount) || artifact.generatedCount! < artifact.reservoir.length
     || typeof artifact.generatedHash !== 'string' || !/^[0-9a-f]{9,}$/.test(artifact.generatedHash)
     || typeof artifact.canonicalProvenanceDigest !== 'string'
@@ -219,12 +242,24 @@ function validateStagedFixedReservoirPoolUnchecked(
     || !Number.isSafeInteger(artifact.duplicateCanonicalCount) || artifact.duplicateCanonicalCount! < 0
     || !Number.isSafeInteger(artifact.displayIdCollisionCount) || artifact.displayIdCollisionCount! < 0
     || typeof artifact.scoringProtocol !== 'string' || artifact.scoringProtocol.length === 0
+    || typeof artifact.buildVersion !== 'string' || artifact.buildVersion.length === 0
+    || typeof artifact.ruleFingerprint !== 'string' || !/^[0-9a-f]{9,}$/.test(artifact.ruleFingerprint)
     || stagedReservoirHash(artifact.reservoir) !== artifact.reservoirHash
     || artifact.scoring.profiles.join('|') !== GOLDFISH_MOVEMENT_PROFILES.join('|')
     || artifact.scoring.combination !== 'disjoint-seed-sum-v1'
     || artifact.scoring.stageOne.seeds.length !== 1
     || artifact.scoring.stageOne.scoredCount !== artifact.generatedCount
     || artifact.scoring.rescore.scoredCount !== artifact.prefilterCount
+    || artifact.prefilterEvidence.count !== artifact.prefilterCount
+    || artifact.prefilterEvidence.entries.length !== artifact.prefilterCount
+    || stableHash(artifact.prefilterEvidence.entries.map((entry) =>
+      `${entry.displayId}\t${entry.canonicalStrategy}`).join('\n')) !== artifact.prefilterEvidence.digest
+    || !Number.isSafeInteger(artifact.tailEvidence.eligibleCount)
+    || artifact.tailEvidence.eligibleCount !== artifact.generatedCount! - artifact.displayIdCollisionCount!
+    || !Number.isSafeInteger(artifact.tailEvidence.retainedCount)
+    || artifact.tailEvidence.retainedCount !== artifact.tailEvidence.entries?.length
+    || artifact.tailEvidence.retainedCount! < (expected.randomCount ?? 1)
+    || stagedTailEvidenceDigest(artifact.tailEvidence.entries ?? []) !== artifact.tailEvidence.digest
     || [...artifact.scoring.stageOne.seeds, ...artifact.scoring.rescore.seeds].join('|')
       !== artifact.goldfishSeeds.join('|')) return false;
   if (expected.kingdomId !== undefined && artifact.kingdomId !== expected.kingdomId) return false;
@@ -233,7 +268,11 @@ function validateStagedFixedReservoirPoolUnchecked(
   if (expected.prefilterCount !== undefined && artifact.prefilterCount !== expected.prefilterCount) return false;
   if (expected.goldfishSeeds !== undefined && artifact.goldfishSeeds.join('|') !== expected.goldfishSeeds.join('|')) return false;
   const reservoirIds = artifact.reservoir.map((entry) => entry.strategy.id);
-  if (new Set(reservoirIds).size !== reservoirIds.length) return false;
+  if (new Set(reservoirIds).size !== reservoirIds.length
+    || new Set(artifact.prefilterEvidence.entries.map((entry) => entry.displayId)).size
+      !== artifact.prefilterEvidence.entries.length
+    || new Set(artifact.prefilterEvidence.entries.map((entry) => entry.canonicalStrategy)).size
+      !== artifact.prefilterEvidence.entries.length) return false;
   const canonical = artifact.reservoir.map((entry) => canonicalStrategy(entry.strategy));
   if (new Set(canonical).size !== canonical.length) return false;
   const validShards = (values: unknown, count: number): boolean => {
@@ -248,11 +287,15 @@ function validateStagedFixedReservoirPoolUnchecked(
         && /^[0-9a-f]{9,}$/.test(entry.scoreDigest));
   };
   if (!validShards(artifact.shardProvenance, artifact.generatedCount!)
-    || !validShards(artifact.scoring.rescore.shardProvenance, artifact.prefilterCount!)) return false;
+    || !validShards(artifact.scoring.rescore.shardProvenance, artifact.prefilterCount!)
+    || (artifact.shardProvenance.length === 1
+      && artifact.shardProvenance[0]!.candidateDigest !== artifact.canonicalProvenanceDigest)) return false;
   const goldfish = artifact.reservoir.filter((entry): entry is StagedGoldfishReservoirEntry => entry.source === 'goldfish');
   const random = artifact.reservoir.filter((entry): entry is StagedRandomReservoirEntry => entry.source === 'random');
   if (expected.goldfishCount !== undefined && goldfish.length !== expected.goldfishCount) return false;
   if (expected.randomCount !== undefined && random.length !== expected.randomCount) return false;
+  if (stableHash(goldfish.map((entry) => canonicalStrategy(entry.strategy)).join('\n')) !== artifact.leaderDigest
+    || stableHash(random.map((entry) => canonicalStrategy(entry.strategy)).join('\n')) !== artifact.tailDigest) return false;
   if (goldfish.some((entry, index) => entry.fourSeedGoldfishRank !== index + 1
     || entry.stageOneGoldfishRank < 1 || entry.stageOneGoldfishRank > artifact.prefilterCount!
     || entry.scoreProvenance !== 'combined-four-seed' || !validSummary(entry.score))) return false;
@@ -260,16 +303,27 @@ function validateStagedFixedReservoirPoolUnchecked(
     || (entry.stageOneGoldfishRank !== null && (entry.stageOneGoldfishRank < 1
       || entry.stageOneGoldfishRank > artifact.generatedCount!))
     || entry.scoreProvenance !== 'stage-one-only' || !validSummary(entry.stageOneScore))) return false;
-  const orderedTail = random.every((entry, index) => index === 0 || (() => {
-    const previous = random[index - 1]!;
-    const rankDifference = tailRank(previous.strategy.id, artifact.poolSeed!)
-      - tailRank(entry.strategy.id, artifact.poolSeed!);
-    return rankDifference < 0 || (rankDifference === 0
-      && (compareUtf16(previous.strategy.id, entry.strategy.id) < 0
-        || (previous.strategy.id === entry.strategy.id
-          && compareUtf16(canonicalStrategy(previous.strategy), canonicalStrategy(entry.strategy)) <= 0)));
+  const evidence = artifact.tailEvidence.entries;
+  if (new Set(evidence.map((entry) => entry.displayId)).size !== evidence.length
+    || new Set(evidence.map((entry) => entry.canonicalStrategy)).size !== evidence.length
+    || evidence.some((entry) => !Number.isSafeInteger(entry.traversalPosition)
+      || entry.traversalPosition < 0 || entry.traversalPosition >= artifact.generatedCount!)) return false;
+  const orderedEvidence = evidence.every((entry, index) => index === 0 || (() => {
+    const previous = evidence[index - 1]!;
+    return tailRank(previous.displayId, artifact.poolSeed!) - tailRank(entry.displayId, artifact.poolSeed!) < 0
+      || (tailRank(previous.displayId, artifact.poolSeed!) === tailRank(entry.displayId, artifact.poolSeed!)
+        && (compareUtf16(previous.displayId, entry.displayId) < 0
+          || (previous.displayId === entry.displayId
+            && (compareUtf16(previous.canonicalStrategy, entry.canonicalStrategy) < 0
+              || (previous.canonicalStrategy === entry.canonicalStrategy
+                && previous.traversalPosition < entry.traversalPosition)))));
   })());
-  return orderedTail && random.every((entry, index) => entry.randomTailRank === index + 1)
+  const goldfishIds = new Set(goldfish.map((entry) => entry.strategy.id));
+  const expectedRandom = evidence.filter((entry) => !goldfishIds.has(entry.displayId)).slice(0, random.length);
+  return orderedEvidence && expectedRandom.length === random.length
+    && expectedRandom.every((entry, index) => entry.displayId === random[index]!.strategy.id
+      && entry.canonicalStrategy === canonicalStrategy(random[index]!.strategy))
+    && random.every((entry, index) => entry.randomTailRank === index + 1)
     && artifact.reservoir.every((entry) => canonicalStrategy(entry.strategy).length > 0);
 }
 

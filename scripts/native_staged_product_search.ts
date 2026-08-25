@@ -5,18 +5,19 @@ import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 import { FIXED_RESERVOIR_CONFIG } from '../src/sim/fixedReservoirPsro';
 import { GOLDFISH_MOVEMENT_PROFILES, mergeMovementAwareGoldfishScores } from '../src/sim/goldfish';
 import type { GoldfishConfig, MovementAwareGoldfishScore } from '../src/sim/goldfish';
+import { nativeRuleFingerprint } from '../src/sim/nativeGoldfishProtocol';
 import {
-  mergeShardRetention, retainShard, streamUniqueStrategies
+  mergeShardRetention, retainShard, streamUniqueStrategiesAsync
 } from '../src/sim/nativeStrategySearch';
 import type { ShardRetention, TraversalScoreRecord } from '../src/sim/nativeStrategySearch';
 import { stoplessRandomDomain } from '../src/sim/randomPsro';
 import { RustGoldfishScorer } from '../src/sim/rustGoldfishScorer';
 import {
   STAGED_GOLDFISH_VERSION, selectStagedReservoirFromMergedEvidence, stagedReservoirHash,
-  validateStagedFixedReservoirPool
+  stagedTailEvidenceDigest, validateStagedFixedReservoirPool
 } from '../src/sim/stagedGoldfish';
 import type { StageOneRankedScore, StagedFixedReservoirPoolArtifact } from '../src/sim/stagedGoldfish';
-import { canonicalStrategy } from '../src/sim/strategy';
+import { canonicalStrategy, stableHash } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 
 const KINGDOM_ID = 'deep-beam-tuning-009';
@@ -36,21 +37,6 @@ function stringOption(name: string, fallback: string): string {
 function* source(seed: number): Generator<Strategy> {
   const random = new SeededRandom(seed), domain = stoplessRandomDomain(KINGDOM_ID);
   for (;;) yield domain.randomComplete(random);
-}
-function* uniqueChunks(seed: number, count: number, chunkSize: number): Generator<{
-  start: number; strategies: Strategy[]
-}> {
-  const seen = new Set<string>(), chunk: Strategy[] = [];
-  let accepted = 0, start = 0;
-  for (const strategy of source(seed)) {
-    const canonical = canonicalStrategy(strategy);
-    if (seen.has(canonical)) continue;
-    seen.add(canonical); chunk.push(strategy); accepted += 1;
-    if (chunk.length === chunkSize || accepted === count) {
-      yield { start, strategies: chunk.splice(0) }; start = accepted;
-    }
-    if (accepted === count) return;
-  }
 }
 function record(score: MovementAwareGoldfishScore, traversalPosition: number): TraversalScoreRecord {
   return { traversalPosition, displayId: score.strategy.id,
@@ -77,15 +63,33 @@ if (prefilterCount < FIXED_RESERVOIR_CONFIG.goldfishCount) {
 }
 const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === KINGDOM_ID)!;
 registerKingdom(kingdom);
+if (fs.existsSync(output)) {
+  try {
+    const held = JSON.parse(fs.readFileSync(output, 'utf8')) as unknown;
+    if (validateStagedFixedReservoirPool(held, { kingdomId: KINGDOM_ID, poolSeed, generatedCount,
+      prefilterCount, goldfishCount: FIXED_RESERVOIR_CONFIG.goldfishCount,
+      randomCount: FIXED_RESERVOIR_CONFIG.randomCount, goldfishSeeds: SEEDS })) {
+      const artifact = held as StagedFixedReservoirPoolArtifact;
+      console.log(JSON.stringify({ output, resumed: true, generatedCount,
+        prefilterCount: artifact.prefilterEvidence.count,
+        leaderCount: artifact.reservoir.filter((entry) => entry.source === 'goldfish').length,
+        tailCount: artifact.reservoir.filter((entry) => entry.source === 'random').length,
+        generatedHash: artifact.generatedHash,
+        canonicalProvenanceDigest: artifact.canonicalProvenanceDigest,
+        prefilterDigest: artifact.prefilterEvidence.digest, leaderDigest: artifact.leaderDigest,
+        tailDigest: artifact.tailDigest }));
+      process.exit(0);
+    }
+  } catch { /* Invalid or partial output runs again and is replaced atomically. */ }
+}
 
-const firstPass = streamUniqueStrategies(source(poolSeed), generatedCount, chunkSize);
-const collisionIds = new Set(firstPass.collisionIds);
 const scorer = new RustGoldfishScorer(threads);
 const tailRetain = FIXED_RESERVOIR_CONFIG.goldfishCount + FIXED_RESERVOIR_CONFIG.randomCount;
+const collisionAllowance = 1_024;
 const firstConfig: GoldfishConfig = { kingdomId: KINGDOM_ID, seeds: [SEEDS[0]!], turnLimit: 30,
   actionCapPerTurn: 200 };
 const started = Date.now();
-const stageOneStarted = Date.now();
+const stageOneStarted = started;
 const stageOneShards: ShardRetention[] = [];
 let pendingStageOne: TraversalScoreRecord[] = [];
 let stageOneShardStart = 0;
@@ -93,19 +97,23 @@ const flushStageOne = (): void => {
   if (!pendingStageOne.length) return;
   const end = stageOneShardStart + pendingStageOne.length;
   stageOneShards.push(retainShard(stageOneShards.length, stageOneShardStart, end, pendingStageOne,
-    prefilterCount, tailRetain, poolSeed, collisionIds));
+    prefilterCount + collisionAllowance, tailRetain + collisionAllowance, poolSeed, new Set()));
   stageOneShardStart = end;
   pendingStageOne = [];
 };
 try {
-  for (const chunk of uniqueChunks(poolSeed, generatedCount, chunkSize)) {
-    const scores = await scorer.score(kingdom, chunk.strategies, firstConfig, threads, 'full');
-    for (let index = 0; index < scores.length; index += 1) {
-      pendingStageOne.push(record(scores[index]!, chunk.start + index));
-      if (pendingStageOne.length === shardSize) flushStageOne();
-    }
-  }
+  const generation = await streamUniqueStrategiesAsync(source(poolSeed), generatedCount, chunkSize,
+    async (chunk) => {
+      const scores = await scorer.score(kingdom, chunk.strategies, firstConfig, threads, 'full');
+      for (let index = 0; index < scores.length; index += 1) {
+        pendingStageOne.push(record(scores[index]!, chunk.startPosition + index));
+        if (pendingStageOne.length === shardSize) flushStageOne();
+      }
+    });
   flushStageOne();
+  if (generation.provenance.displayIdCollisionCount > collisionAllowance) {
+    throw new Error(`Display-ID collisions exceed the bounded allowance ${collisionAllowance}.`);
+  }
   const stageOneElapsedMs = Date.now() - stageOneStarted;
   const stageOne = mergeShardRetention(stageOneShards, prefilterCount, tailRetain, poolSeed);
   const rankByCanonical = new Map(stageOne.leaders.map((entry, index) =>
@@ -153,15 +161,32 @@ try {
   const artifact: StagedFixedReservoirPoolArtifact = { schemaVersion: 2,
     experiment: 'staged-fixed-reservoir-pool', version: STAGED_GOLDFISH_VERSION,
     kingdomId: KINGDOM_ID, poolSeed, goldfishSeeds: [...SEEDS], generatedCount,
-    generatedHash: firstPass.provenance.generatedIdDigest,
-    canonicalProvenanceDigest: firstPass.provenance.canonicalProvenanceDigest,
-    duplicateCanonicalCount: firstPass.provenance.duplicateCanonicalCount,
-    displayIdCollisionCount: firstPass.provenance.displayIdCollisionCount,
-    scoringProtocol: 'native-streaming-staged-v2', shardProvenance: stageOneShards.map((shard) => ({
+    generatedHash: generation.provenance.generatedIdDigest,
+    canonicalProvenanceDigest: generation.provenance.canonicalProvenanceDigest,
+    duplicateCanonicalCount: generation.provenance.duplicateCanonicalCount,
+    displayIdCollisionCount: generation.provenance.displayIdCollisionCount,
+    scoringProtocol: 'native-streaming-staged-v3',
+    buildVersion: process.env.HEXDECK_BUILD_VERSION ?? 'local-working-tree',
+    ruleFingerprint: nativeRuleFingerprint(KINGDOM_ID, 30, 200), shardProvenance: stageOneShards.map((shard) => ({
       shardId: String(shard.shardId), startPosition: shard.startPosition,
       endPosition: shard.endPosition, candidateDigest: shard.candidateDigest,
       scoreDigest: shard.scoreDigest
-    })), prefilterCount, scoring: { profiles: [...GOLDFISH_MOVEMENT_PROFILES],
+    })), prefilterCount,
+    prefilterEvidence: { count: prefilter.length,
+      entries: prefilter.map((entry) => ({ displayId: entry.score.strategy.id,
+        canonicalStrategy: canonicalStrategy(entry.score.strategy) })),
+      digest: stableHash(prefilter.map((entry) =>
+        `${entry.score.strategy.id}\t${canonicalStrategy(entry.score.strategy)}`).join('\n')) },
+    leaderDigest: stableHash(reservoir.filter((entry) => entry.source === 'goldfish')
+      .map((entry) => canonicalStrategy(entry.strategy)).join('\n')),
+    tailDigest: stableHash(reservoir.filter((entry) => entry.source === 'random')
+      .map((entry) => canonicalStrategy(entry.strategy)).join('\n')),
+    tailEvidence: { eligibleCount: generatedCount - generation.provenance.displayIdCollisionCount,
+      retainedCount: stageOne.tail.length,
+      entries: stageOne.tail.map((entry) => ({ displayId: entry.displayId,
+        canonicalStrategy: entry.canonicalStrategy, traversalPosition: entry.traversalPosition })),
+      digest: stagedTailEvidenceDigest(stageOne.tail) },
+    scoring: { profiles: [...GOLDFISH_MOVEMENT_PROFILES],
       combination: 'disjoint-seed-sum-v1', stageOne: { seeds: [SEEDS[0]!], scoredCount: generatedCount,
         elapsedMs: stageOneElapsedMs }, rescore: { seeds: SEEDS.slice(1), scoredCount: prefilter.length,
         elapsedMs: rescoreElapsedMs, shardProvenance: stageTwoShards.map((shard) => ({
@@ -176,8 +201,14 @@ try {
     throw new Error('Bounded native staged artifact failed validation.');
   }
   writeAtomic(output, artifact);
-  console.log(JSON.stringify({ output, generatedCount, stageOneShardCount: stageOneShards.length,
-    stageTwoShardCount: stageTwoShards.length, stageOneElapsedMs, rescoreElapsedMs,
-    elapsedMs: artifact.elapsedMs, generatedHash: artifact.generatedHash,
-    canonicalProvenanceDigest: artifact.canonicalProvenanceDigest }));
+  console.log(JSON.stringify({ output, resumed: false, generatedCount,
+    prefilterCount: artifact.prefilterEvidence.count,
+    leaderCount: artifact.reservoir.filter((entry) => entry.source === 'goldfish').length,
+    tailCount: artifact.reservoir.filter((entry) => entry.source === 'random').length,
+    stageOneShardCount: stageOneShards.length, stageTwoShardCount: stageTwoShards.length,
+    stageOneElapsedMs, rescoreElapsedMs, elapsedMs: artifact.elapsedMs,
+    generatedHash: artifact.generatedHash,
+    canonicalProvenanceDigest: artifact.canonicalProvenanceDigest,
+    prefilterDigest: artifact.prefilterEvidence.digest, leaderDigest: artifact.leaderDigest,
+    tailDigest: artifact.tailDigest }));
 } finally { await scorer.close(); }

@@ -45,24 +45,10 @@ export class InlinePairingRunner implements PairingRunner {
   async close(): Promise<void> {}
 }
 
-interface CompactWorkerItem {
-  id: number;
-  candidate: number;
-  opponent: number;
-  options: number;
-  scoreOnly: boolean;
-}
 interface CompactWorkerSchedule {
   candidate: number;
   scoreOnly: boolean;
   blocks: readonly { id: number; opponent: number; options: number }[];
-}
-interface LegacyWorkerRequest {
-  kind: 'pairing-batch-v2';
-  candidates: readonly Strategy[];
-  opponents: readonly Strategy[];
-  options: readonly PairingOptions[];
-  items: readonly CompactWorkerItem[];
 }
 interface ScheduleWorkerRequest {
   kind: 'pairing-schedules-v3';
@@ -71,7 +57,7 @@ interface ScheduleWorkerRequest {
   options: readonly PairingOptions[];
   schedules: readonly CompactWorkerSchedule[];
 }
-type WorkerRequest = LegacyWorkerRequest | ScheduleWorkerRequest;
+type WorkerRequest = ScheduleWorkerRequest;
 interface WorkerSuccess { kind: 'pairing-results'; outcomes: readonly { id: number; outcome: PairingOutcome }[] }
 interface WorkerFailure { kind: 'pairing-error'; name: string; message: string; stack?: string | undefined }
 type WorkerResponse = WorkerSuccess | WorkerFailure;
@@ -232,21 +218,16 @@ export class WorkerPairingRunner implements PairingRunner {
 export function runPairingWorker(): void {
   if (isMainThread || !parentPort) throw new Error('The pairing worker handler needs a worker thread.');
   parentPort.on('message', (request: WorkerRequest) => {
-    if (request.kind !== 'pairing-batch-v2' && request.kind !== 'pairing-schedules-v3') return;
+    if (request.kind !== 'pairing-schedules-v3') return;
     try {
-      const items: readonly CompactWorkerItem[] = request.kind === 'pairing-batch-v2' ? request.items
-        : request.schedules.flatMap((schedule) => schedule.blocks.map((block) => ({
-          id: block.id, candidate: schedule.candidate, opponent: block.opponent,
-          options: block.options, scoreOnly: schedule.scoreOnly
-        })));
-      const outcomes = items.map((item) => {
-        const candidate = request.candidates[item.candidate]!;
-        const opponent = request.opponents[item.opponent]!;
-        const heldOptions = request.options[item.options]!;
-        const outcome = item.scoreOnly ? playPairingScoreOnly(candidate, opponent, heldOptions)
+      const outcomes = request.schedules.flatMap((schedule) => schedule.blocks.map((block) => {
+        const candidate = request.candidates[schedule.candidate]!;
+        const opponent = request.opponents[block.opponent]!;
+        const heldOptions = request.options[block.options]!;
+        const outcome = schedule.scoreOnly ? playPairingScoreOnly(candidate, opponent, heldOptions)
           : playPairing(candidate, opponent, heldOptions);
-        return { id: item.id, outcome };
-      });
+        return { id: block.id, outcome };
+      }));
       parentPort!.postMessage({ kind: 'pairing-results', outcomes } satisfies WorkerSuccess);
     } catch (error) {
       const value = error instanceof Error ? error : new Error(String(error));

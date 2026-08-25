@@ -115,8 +115,6 @@ export function selectFixedReservoir(
 export function reservoirHash(entries: readonly ReservoirEntry[]): string {
   return stableHash(entries.map((entry) => `${entry.source}:${canonicalStrategy(entry.strategy)}`).join('\n'));
 }
-export function generatedHash(ids: readonly string[]): string { return stableHash(ids.join('\n')); }
-
 export interface FixedReservoirPoolExpectation {
   kingdomId?: string; poolSeed?: number; generatedCount?: number; goldfishCount?: number;
   randomCount?: number; goldfishSeeds?: readonly number[];
@@ -154,6 +152,7 @@ export function validateFixedReservoirPool(
       || (index > 0 && shards[index - 1]!.endPosition !== entry.startPosition)
       || !/^[0-9a-f]{9,}$/.test(entry.candidateDigest)
       || !/^[0-9a-f]{9,}$/.test(entry.scoreDigest))))) return false;
+  if (shards.length === 1 && shards[0]!.candidateDigest !== artifact.canonicalProvenanceDigest) return false;
   const goldfish = artifact.reservoir.filter((entry) => entry.source === 'goldfish');
   const random = artifact.reservoir.filter((entry) => entry.source === 'random');
   if (expected.goldfishCount !== undefined && goldfish.length !== expected.goldfishCount) return false;

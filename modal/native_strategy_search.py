@@ -33,7 +33,7 @@ app = modal.App("hexdeck-native-strategy-search")
 volume = modal.Volume.from_name("hexdeck-native-strategy-results", create_if_missing=True)
 image = (
     modal.Image.debian_slim(python_version="3.12")
-    .apt_install("ca-certificates", "curl", "build-essential")
+    .apt_install("ca-certificates", "curl", "build-essential", "time")
     .run_commands(
         "curl -fsSL https://deb.nodesource.com/setup_22.x | bash -",
         "apt-get install -y nodejs && node --version",
@@ -62,6 +62,13 @@ def projected_cost_usd(
     controller_seconds = attempts * math.ceil(shard_count / max_containers) * shard_timeout + 300
     controller_cost = controller_seconds / 3600 * (CPU_RATE_PER_CORE_HOUR + MEMORY_RATE_PER_GIB_HOUR)
     return shard_cost + controller_cost
+
+
+def projected_product_cost_usd(
+    cpu: int, memory_gib: float, timeout_seconds: int, retries: int = MAX_RETRIES
+) -> float:
+    hourly = cpu * CPU_RATE_PER_CORE_HOUR + memory_gib * MEMORY_RATE_PER_GIB_HOUR
+    return (retries + 1) * (timeout_seconds + 30) / 3600 * hourly
 
 
 def _atomic_json(path: pathlib.Path, value: Any) -> None:
@@ -197,62 +204,24 @@ def _stable_hash(lines: list[str]) -> str:
     return f"{value:08x}{len(units) // 2:x}"
 
 
-def _quantity_vectors() -> list[list[int]]:
-    return [[first, second, third, 3, 3] for first in range(1, 5)
-            for second in range(1, 5) for third in range(1, 5)
-            if first + second + third + 6 <= 15]
-
-
-def _permutation_count(cards: int, rungs: int) -> int:
-    result = 1
-    for offset in range(rungs):
-        result *= cards - offset
-    return result
-
-
-def _strategy_at(candidate_index: int, card_ids: list[str]) -> tuple[dict[str, Any], str]:
-    quantities = _quantity_vectors()
-    available = list(card_ids)
-    remainder = candidate_index // len(quantities)
-    selected = []
-    for position in range(5):
-        remaining = 4 - position
-        block = _permutation_count(len(available) - 1, remaining) if remaining else 1
-        selected_index, remainder = divmod(remainder, block)
-        selected.append(available.pop(selected_index))
-    vector = quantities[candidate_index % len(quantities)]
-    canonical_plan = [["buy", card, vector[index]] for index, card in enumerate(selected)]
-    canonical_plan.extend([["inactive"]] * 5)
-    canonical = json.dumps({"buyPlan": canonical_plan, "startingBuild": []}, separators=(",", ":"))
-    display_id = f"sg-{_stable_hash([canonical])}"
-    buy_plan = [{"kind": "buy", "cardId": card, "desiredCount": vector[index]}
-                for index, card in enumerate(selected)]
-    buy_plan.extend({"kind": "inactive"} for _ in range(5))
-    return {"id": display_id, "canonicalStrategy": canonical,
-            "startingBuild": [], "buyPlan": buy_plan}, canonical
-
-
 def _native_shard(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str, dict[str, Any]]:
-    metadata = json.loads(pathlib.Path("/workspace/rust/goldfish/kingdom009.json").read_text())
-    if metadata["ruleFingerprint"] != spec["rule_fingerprint"]:
-        raise RuntimeError("container rule fingerprint does not match the shard specification")
-    strategies, canonicals = [], []
-    for position in range(spec["start_position"], spec["end_position"]):
-        candidate_index = (2_500_427 + position * 7_951_921) % FULL_CANDIDATE_COUNT
-        strategy, canonical = _strategy_at(candidate_index, metadata["orderedCardIds"])
-        strategies.append(strategy)
-        canonicals.append(canonical)
-    request = {"type": "score_batch", "payload": {"protocolVersion": 1,
-        "scorerVersion": SCORER_VERSION, "ruleFingerprint": metadata["ruleFingerprint"],
-        "kingdom": metadata["kingdom"],
-        "strategies": strategies, "seeds": [4_100_000 + index for index in range(spec["shuffles"])],
-        "movementProfiles": ["stationary", "chaser", "kiter"], "turnLimit": 30,
-        "actionCapPerTurn": 200, "threads": spec["threads"], "cpuRequest": spec["cpu"],
-        "mode": "compact"}}
-    executable = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
-    completed = subprocess.run([executable, "--threads", str(spec["threads"]), "--cpu-request", str(spec["cpu"])],
-        input=json.dumps(request, separators=(",", ":")) + "\n", text=True, capture_output=True,
-        timeout=spec["timeout_seconds"], check=True)
+    with tempfile.TemporaryDirectory() as directory:
+        request_path = pathlib.Path(directory) / "request.jsonl"
+        metadata_path = pathlib.Path(directory) / "metadata.json"
+        subprocess.run(["npx", "tsx", "scripts/native_ordered_shard_input.ts",
+            "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"]),
+            "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]),
+            "--shuffles", str(spec["shuffles"]), "--request", str(request_path),
+            "--metadata", str(metadata_path)], cwd="/workspace", text=True, capture_output=True,
+            timeout=spec["timeout_seconds"], check=True)
+        metadata = json.loads(metadata_path.read_text())
+        if metadata["ruleFingerprint"] != spec["rule_fingerprint"]:
+            raise RuntimeError("TypeScript rule fingerprint does not match the shard specification")
+        executable = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
+        with request_path.open() as request:
+            completed = subprocess.run([executable, "--threads", str(spec["threads"]),
+                "--cpu-request", str(spec["cpu"])], stdin=request, text=True, capture_output=True,
+                timeout=spec["timeout_seconds"], check=True)
     response = json.loads(completed.stdout)
     if not response.get("ok"):
         raise RuntimeError(str(response.get("error")))
@@ -261,7 +230,7 @@ def _native_shard(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str,
         "worstPenalizedTurnsTo50", "totalPenalizedTurnsTo50", "worstDamageArea",
         "totalDamageArea", "totalMoneySpent"]) + "\t" + score["strategyId"] + "\t"
         + score["collisionTieKey"] for score in scores]
-    return scores, _stable_hash(canonicals), _stable_hash(ranking), metadata
+    return scores, metadata["candidateDigest"], _stable_hash(ranking), metadata
 
 
 @app.function(image=image, cpu=4, memory=4096, timeout=3600, volumes={"/results": volume})
@@ -317,6 +286,47 @@ def score_shard(spec: dict[str, Any]) -> dict[str, Any]:
             "error": str(error),
             "elapsedMs": round((time.monotonic() - started) * 1000, 3),
         }
+
+
+@app.function(image=image, cpu=10, memory=8192, timeout=7200, retries=0, volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
+def product_search(config: dict[str, Any]) -> dict[str, Any]:
+    volume.reload()
+    root = pathlib.Path("/results") / config["run_id"]
+    output = root / "pool.json"
+    summary_path = root / "product-summary.json"
+    command = ["/usr/bin/time", "-v", "npm", "run", "staged-goldfish:native-pool", "--",
+        "--count", str(config["count"]), "--chunk-size", str(config["chunk_size"]),
+        "--shard-size", str(config["shard_size"]), "--threads", str(config["threads"]),
+        "--pool-seed", str(config["pool_seed"]), "--out", str(output)]
+    environment = {**os.environ,
+        "HEXDECK_GOLDFISH_BIN": "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish",
+        "HEXDECK_BUILD_VERSION": config["build_version"]}
+    started = time.monotonic()
+    completed = subprocess.run(command, cwd="/workspace", env=environment, text=True,
+        capture_output=True, timeout=config["timeout_seconds"], check=True)
+    lines = [line for line in completed.stdout.splitlines() if line.startswith("{")]
+    if not lines:
+        raise RuntimeError(f"product command returned no summary: {completed.stdout[-2000:]}")
+    command_summary = json.loads(lines[-1])
+    rss = re.search(r"Maximum resident set size \(kbytes\):\s*(\d+)", completed.stderr)
+    summary = {"schemaVersion": 1, "status": "success", "runId": config["run_id"],
+        "buildVersion": config["build_version"], "ruleFingerprint": config["rule_fingerprint"],
+        "scorerVersion": SCORER_VERSION, "generatedCount": config["count"],
+        "prefilterCount": command_summary["prefilterCount"],
+        "leaderCount": command_summary["leaderCount"], "tailCount": command_summary["tailCount"],
+        "generatedHash": command_summary["generatedHash"],
+        "canonicalProvenanceDigest": command_summary["canonicalProvenanceDigest"],
+        "prefilterDigest": command_summary["prefilterDigest"],
+        "leaderDigest": command_summary["leaderDigest"], "tailDigest": command_summary["tailDigest"],
+        "elapsedMs": round((time.monotonic() - started) * 1000, 3),
+        "peakRssKib": int(rss.group(1)) if rss else None,
+        "requestedCpu": config["cpu"], "threads": config["threads"],
+        "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname()),
+        "artifact": f"hexdeck-native-strategy-results:/{config['run_id']}/pool.json"}
+    _atomic_json(summary_path, summary)
+    volume.commit()
+    return summary
 
 
 @app.function(image=image, cpu=1, memory=1024, timeout=86400, volumes={"/results": volume})
@@ -391,6 +401,8 @@ def launch(
     chunk_size: int = 250,
     shuffles: int = 1,
     scorer: str = "rust",
+    product: bool = False,
+    pool_seed: int = 5,
 ) -> None:
     if min(count, shard_size, cpu, memory_gib, threads, max_containers, timeout_seconds) < 1:
         raise ValueError("counts and resource limits must be positive")
@@ -401,18 +413,32 @@ def launch(
     if cpu * max_containers > MAX_PHYSICAL_CORES:
         raise ValueError(f"aggregate allocation exceeds {MAX_PHYSICAL_CORES} physical cores")
     end_position = start_position + count
-    if start_position < 0 or end_position > FULL_CANDIDATE_COUNT:
-        raise ValueError("candidate range is outside the ordered space")
-    shard_count = math.ceil(count / shard_size)
-    projected = projected_cost_usd(shard_count, cpu, memory_gib, timeout_seconds, max_containers)
+    if product:
+        if start_position != 0 or count > 500_000 or count < 20_000:
+            raise ValueError("product count must be from 20,000 through 500,000 with start position zero")
+        if max_containers != 1:
+            raise ValueError("the ordered product coordinator requires --max-containers 1")
+        projected = projected_product_cost_usd(cpu, memory_gib, timeout_seconds)
+        full_run = count == 500_000
+        controller_timeout = (MAX_RETRIES + 1) * (timeout_seconds + 30) + 300
+    else:
+        if start_position < 0 or end_position > FULL_CANDIDATE_COUNT:
+            raise ValueError("candidate range is outside the ordered space")
+        shard_count = math.ceil(count / shard_size)
+        projected = projected_cost_usd(shard_count, cpu, memory_gib, timeout_seconds, max_containers)
+        full_run = start_position == 0 and count == FULL_CANDIDATE_COUNT
+        controller_timeout = (MAX_RETRIES + 1) * math.ceil(shard_count / max_containers) \
+            * (timeout_seconds + 30) + 300
     if projected > max_cost_usd:
         raise ValueError(f"worst-case cost ${projected:.4f} exceeds run cap ${max_cost_usd:.4f}")
-    full_run = start_position == 0 and count == FULL_CANDIDATE_COUNT
     if full_run and max_cost_usd > 5:
-        raise ValueError("a full-space run cap cannot exceed $5")
+        raise ValueError("a full production run cap cannot exceed $5")
     config = {
+        "kind": "product" if product else "ordered",
         "build_version": build_version,
         "rule_fingerprint": rule_fingerprint,
+        "count": count,
+        "pool_seed": pool_seed,
         "start_position": start_position,
         "end_position": end_position,
         "shard_size": shard_size,
@@ -424,8 +450,7 @@ def launch(
         "chunk_size": chunk_size,
         "shuffles": shuffles,
         "scorer": scorer,
-        "controller_timeout": (MAX_RETRIES + 1) * math.ceil(shard_count / max_containers)
-            * (timeout_seconds + 30) + 300,
+        "controller_timeout": controller_timeout,
     }
     identity = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()[:20]
     run_id = f"native-{build_version[:12]}-{identity}"
@@ -436,7 +461,7 @@ def launch(
         "profile": "ryanburnettebrown",
         "worstCaseCostUsd": projected,
         "reservation": entry,
-        "resultLocation": f"hexdeck-native-strategy-results:/{run_id}/merge.json",
+        "resultLocation": f"hexdeck-native-strategy-results:/{run_id}/{'pool.json' if product else 'merge.json'}",
     }, indent=2))
     if entry.get("status") == "launched" and entry.get("controllerCallId"):
         try:
@@ -453,6 +478,10 @@ def launch(
     if not claim_controller(run_id, config["controller_timeout"]):
         print(f"controller already owns run {run_id}; no duplicate was launched")
         return
-    call = controller.with_options(timeout=config["controller_timeout"], retries=0).spawn(config)
+    if product:
+        call = product_search.with_options(cpu=cpu, memory=memory_gib * 1024,
+            timeout=timeout_seconds + 30, retries=MAX_RETRIES).spawn(config)
+    else:
+        call = controller.with_options(timeout=config["controller_timeout"], retries=0).spawn(config)
     record_controller_call(run_id, call.object_id)
-    print(f"detached controller call: {call.object_id}")
+    print(f"detached {'product' if product else 'ordered'} call: {call.object_id}")

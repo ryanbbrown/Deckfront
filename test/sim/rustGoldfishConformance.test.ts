@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { ALWAYS_AVAILABLE_ACTION_IDS, CARDS, registerKingdom, resetKingdoms } from '../../src/game';
 import { scoreMovementAwareGoldfishStrategyLean } from '../../src/sim/goldfish';
@@ -13,7 +15,10 @@ const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-t
 beforeEach(() => registerKingdom(kingdom));
 afterEach(() => resetKingdoms());
 
-describe('Rust goldfish scorer conformance', () => {
+const nativeBinary = process.env.HEXDECK_GOLDFISH_BIN
+  ?? path.resolve('rust/target/release/hexdeck-goldfish');
+
+describe.skipIf(!fs.existsSync(nativeBinary))('Rust goldfish scorer conformance', () => {
   it('matches shuffle, UTF-16 comparison, and stable hashing through the process protocol', async () => {
     const scorer = new RustGoldfishScorer(1);
     try {
@@ -51,6 +56,19 @@ describe('Rust goldfish scorer conformance', () => {
           strategy: undefined })));
     } finally { await rust.close(); }
   }, 60_000);
+
+  it('matches disjoint multi-seed aggregation', async () => {
+    const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
+    const strategies = [...representativeCandidateIndices(space.candidateCount, 12)]
+      .map((index) => space.candidateAt(index));
+    const config = { kingdomId: kingdom.id, seeds: [4_100_000, 4_100_001, 4_100_002],
+      turnLimit: 12, actionCapPerTurn: 80 };
+    const rust = new RustGoldfishScorer(2);
+    try {
+      expect(await rust.score(kingdom, strategies, config, 2, 'full')).toEqual(
+        strategies.map((strategy) => scoreMovementAwareGoldfishStrategyLean(strategy, config, 'full')));
+    } finally { await rust.close(); }
+  }, 30_000);
 
   it('matches victory, turn-limit, and action-cap damage padding', async () => {
     const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));

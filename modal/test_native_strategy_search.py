@@ -1,5 +1,6 @@
 import json
 import pathlib
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -26,18 +27,19 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                 self.assertEqual(len(held["runs"]), 1)
                 self.assertEqual(held["runs"]["run"]["reservedUsd"], 1.25)
 
-    def test_python_traversal_matches_typescript_fixture_and_digest(self):
-        cards = ["channel", "focus", "gold", "improvise", "longshot", "precisionShot", "reclaim",
-                 "reforge", "salvageShot", "scour", "sharpen", "silver", "step", "strike"]
-        strategy, canonical = launcher._strategy_at(2_500_427, cards)
-        self.assertEqual(strategy["id"], "sg-1d1fcdb6c1")
-        self.assertEqual(canonical, '{"buyPlan":[["buy","gold",1],["buy","sharpen",3],'
-                         '["buy","channel",4],["buy","strike",3],["buy","reclaim",3],'
-                         '["inactive"],["inactive"],["inactive"],["inactive"],["inactive"]],'
-                         '"startingBuild":[]}')
-        canonicals = [launcher._strategy_at((2_500_427 + position * 7_951_921)
-                      % launcher.FULL_CANDIDATE_COUNT, cards)[1] for position in range(500)]
-        self.assertEqual(launcher._stable_hash(canonicals), "fa0328fb18315")
+    def test_production_typescript_helper_generates_the_ordered_shard(self):
+        with tempfile.TemporaryDirectory() as directory:
+            request = pathlib.Path(directory) / "request.jsonl"
+            metadata = pathlib.Path(directory) / "metadata.json"
+            subprocess.run(["npx", "tsx", "scripts/native_ordered_shard_input.ts",
+                "--start-position", "0", "--end-position", "500", "--threads", "1", "--cpu", "1",
+                "--shuffles", "1", "--request", str(request), "--metadata", str(metadata)], check=True)
+            payload = json.loads(request.read_text())["payload"]
+            held = json.loads(metadata.read_text())
+            self.assertEqual(len(payload["strategies"]), 500)
+            self.assertEqual(payload["strategies"][0]["id"], "sg-1d1fcdb6c1")
+            self.assertEqual(held["candidateDigest"], "fa0328fb18315")
+            self.assertEqual(held["completeCount"], 500)
 
     def test_controller_claim_blocks_duplicates_and_allows_failed_resume(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -49,7 +51,16 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                 launcher.update_run_status("run", "reserved")
                 self.assertTrue(launcher.claim_controller("run", 60))
 
-    def test_result_validation_rejects_partial_and_stale_checkpoints(self):
+    def test_atomic_write_keeps_the_previous_checkpoint_when_rename_is_interrupted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = pathlib.Path(directory) / "checkpoint.json"
+            launcher._atomic_json(target, {"complete": True})
+            with patch.object(launcher.os, "replace", side_effect=OSError("interrupted")):
+                with self.assertRaises(OSError):
+                    launcher._atomic_json(target, {"complete": False})
+            self.assertEqual(json.loads(target.read_text()), {"complete": True})
+
+    def test_result_validation_rejects_partial_corrupt_and_stale_checkpoints(self):
         spec = {"run_id": "run", "shard_id": 1, "start_position": 10, "end_position": 20,
                 "rule_fingerprint": "rules", "build_version": "build"}
         result = {"schemaVersion": 1, "status": "success", "runId": "run", "shardId": 1,
@@ -63,6 +74,7 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         self.assertTrue(launcher.valid_result(result, spec))
         self.assertFalse(launcher.valid_result({**result, "completeCount": 9}, spec))
         self.assertFalse(launcher.valid_result({**result, "buildVersion": "stale"}, spec))
+        self.assertFalse(launcher.valid_result({**result, "resultHash": "corrupt"}, spec))
 
 
 if __name__ == "__main__":

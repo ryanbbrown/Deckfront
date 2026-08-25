@@ -1,12 +1,13 @@
 import fs from 'node:fs';
-import { registerKingdom } from '../src/game';
-import { deepBeamSuite } from '../src/sim/deepBeamSuite';
-import { nativeKingdomInput, nativeRuleFingerprint } from '../src/sim/nativeGoldfishProtocol';
-import { orderedGoldfishCardIds } from '../src/sim/orderedGoldfishBenchmark';
+import { nativeKingdom009Json } from '../src/sim/nativeKingdom009';
 
-const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
-registerKingdom(kingdom);
-fs.writeFileSync('rust/goldfish/kingdom009.json', `${JSON.stringify({
-  kingdom: nativeKingdomInput(kingdom), orderedCardIds: orderedGoldfishCardIds(kingdom.id),
-  ruleFingerprint: nativeRuleFingerprint(kingdom.id, 30, 200)
-}, null, 2)}\n`);
+const file = 'rust/goldfish/kingdom009.json';
+const generated = nativeKingdom009Json();
+if (process.argv.includes('--check')) {
+  if (!fs.existsSync(file) || fs.readFileSync(file, 'utf8') !== generated) {
+    throw new Error(`${file} is stale. Run npm run goldfish:native-kingdom.`);
+  }
+  console.log(`${file} is current.`);
+} else {
+  fs.writeFileSync(file, generated);
+}

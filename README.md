@@ -38,6 +38,8 @@ The arena has spaces 1 through 6. Fighters start on the symmetric middle spaces,
 
 ```sh
 npm test
+npm run verify:native
+npm run modal:test
 npm run test:e2e:manifest
 npm run test:e2e
 npm run typecheck
@@ -177,11 +179,13 @@ npm run psro:worker-benchmark -- --workers 4 --candidates 30 --blocks 4 --mode s
 npm run staged-goldfish:native-pool -- --pool-seed 5 --chunk-size 1000 --shard-size 100000 --threads 10
 ```
 
-The staged product command keeps generation on one ordered coordinator. Both scoring stages retain independent bounded shard top sets and merge them deterministically. The native workspace pins Rust 1.98.0. Build and verify it on Linux x86-64 with:
+The staged product command keeps generation on one ordered TypeScript coordinator. Both scoring stages retain independent bounded shard top sets and merge them deterministically. The native workspace pins Rust 1.98.0. The local build targets the current host. The Modal image builds the pinned Linux x86-64 target. Build and verify the local target with:
 
 ```sh
 npm run goldfish:native-build
 npm run goldfish:native-verify
+npm run goldfish:native-kingdom-check
+npm run modal:test
 ```
 
 `hexdeck-goldfish` uses versioned line-delimited JSON. It rejects a thread count above the CPU request. Get the rule fingerprint with `npm run goldfish:native-metadata`.
@@ -196,7 +200,20 @@ modal run --detach modal/native_strategy_search.py --build-version "$(git rev-pa
   --max-containers 2 --timeout-seconds 120 --max-cost-usd 1 --scorer rust
 ```
 
-Shard checkpoints and the ordered merge live in the `hexdeck-native-strategy-results` Modal Volume. The local reservation ledger is `~/.hexdeck-modal-cost-ledger.json`.
+Shard checkpoints and the ordered merge live in the `hexdeck-native-strategy-results` Modal Volume. The local reservation ledger is `~/.hexdeck-modal-cost-ledger.json`. Ordered shards call the production TypeScript candidate helper in the image and send its versioned request to Rust. Python does not generate strategies.
+
+Run or resume the staged product path with one TypeScript coordinator and bounded logical shards:
+
+```sh
+modal run --detach modal/native_strategy_search.py --product \
+  --build-version "$(git rev-parse HEAD)" \
+  --rule-fingerprint "$(npm run goldfish:native-metadata --silent)" \
+  --count 500000 --chunk-size 1000 --shard-size 250000 \
+  --cpu 10 --memory-gib 8 --threads 10 --max-containers 1 \
+  --timeout-seconds 3600 --max-cost-usd 5 --pool-seed 5
+```
+
+The durable product artifact records the 50,000 prefilter digest, 18,000 leader digest, 2,000 tail digest, generated and canonical provenance digests, and measured peak RSS.
 
 ## Code boundaries
 

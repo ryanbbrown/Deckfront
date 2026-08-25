@@ -55,6 +55,14 @@ describe('ordered unique-card goldfish candidate space', () => {
     expect(candidateChecksumFromIterable(strategies())).toBe('93a38dcc12eabd6');
   });
 
+  it('keeps representative traversal continuous across shard boundaries', () => {
+    const total = 12_972_960;
+    expect([...representativeCandidateIndices(total, 301, 0)]).toEqual([
+      ...representativeCandidateIndices(total, 137, 0),
+      ...representativeCandidateIndices(total, 164, 137)
+    ]);
+  });
+
   it('uses a deterministic, duplicate-free traversal that reaches across the full space', () => {
     const total = 12_972_960;
     const indices = [...representativeCandidateIndices(total, 20_000)];

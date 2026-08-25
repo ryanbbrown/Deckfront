@@ -22,6 +22,7 @@ import {
 } from '../src/sim/goldfish';
 import type { GoldfishConfig, MovementAwareGoldfishScore } from '../src/sim/goldfish';
 import { percentileBootstrapMean } from '../src/sim/mixtureEvaluation';
+import { nativeRuleFingerprint } from '../src/sim/nativeGoldfishProtocol';
 import { generatedProvenance } from '../src/sim/nativeStrategySearch';
 import type { PairingJob } from '../src/sim/pairingRunner';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
@@ -29,7 +30,8 @@ import { stoplessRandomDomain } from '../src/sim/randomPsro';
 import { RANDOM_PSRO_KINGDOMS } from '../src/sim/randomPsroSuite';
 import {
   STAGED_GOLDFISH_VERSION, runStagedFixedReservoirPsro, selectStagedReservoirFromEvidence,
-  stagedReservoirHash, validateStagedFixedReservoirPool, validateStagedFixedReservoirPsroArtifact
+  stagedReservoirHash, stagedTailEvidenceDigest, validateStagedFixedReservoirPool,
+  validateStagedFixedReservoirPsroArtifact
 } from '../src/sim/stagedGoldfish';
 import type {
   StageOneRankedScore, StagedFixedReservoirPoolArtifact, StagedFixedReservoirPsroArtifact
@@ -53,7 +55,8 @@ const GOLDFISH_SEEDS = Object.freeze([5_200_000, 5_200_001, 5_200_002, 5_200_003
 const FIRST_GOLDFISH_SEED = GOLDFISH_SEEDS[0]!;
 const REMAINING_GOLDFISH_SEEDS = GOLDFISH_SEEDS.slice(1);
 const PREFILTER_COUNT = 50_000;
-const WORKERS = 10;
+const GOLDFISH_WORKERS = 10;
+const PAIRING_WORKERS = 4;
 const LEGACY_ROOT = path.join('.experiments', 'staged-goldfish-ab', STAGED_GOLDFISH_VERSION, KINGDOM_ID);
 const BASELINE_ROOT = path.join('.experiments', 'fixed-reservoir-psro-five-run',
   'fixed-reservoir-five-run-v1', KINGDOM_ID);
@@ -165,7 +168,7 @@ function generate(count: number) {
 async function scoreInWorkers(
   strategies: readonly Strategy[], config: GoldfishConfig, kingdom: Kingdom
 ): Promise<MovementAwareGoldfishScore[]> {
-  const workers = Array.from({ length: WORKERS }, () => new Worker(
+  const workers = Array.from({ length: GOLDFISH_WORKERS }, () => new Worker(
     new URL('../src/server/goldfishWorker.ts', import.meta.url),
     { workerData: { kingdom }, execArgv: ['--import', 'tsx'] }));
   try {
@@ -287,11 +290,30 @@ async function buildPool(kingdom: Kingdom, baseline: FixedReservoirPoolArtifact)
     canonicalProvenanceDigest: provenance.canonicalProvenanceDigest,
     duplicateCanonicalCount: provenance.duplicateCanonicalCount,
     displayIdCollisionCount: provenance.displayIdCollisionCount,
-    scoringProtocol: 'typescript-staged-movement-aware-v1',
+    scoringProtocol: 'typescript-staged-movement-aware-v1', buildVersion: 'local-typescript',
+    ruleFingerprint: nativeRuleFingerprint(KINGDOM_ID, 30, 200),
     shardProvenance: [{ shardId: 'stage-one-local-0', startPosition: 0, endPosition: generated.length,
       candidateDigest: provenance.canonicalProvenanceDigest,
       scoreDigest: completedStage.scoreDigest }],
-    prefilterCount: PREFILTER_COUNT, scoring: { profiles: [...GOLDFISH_MOVEMENT_PROFILES],
+    prefilterCount: PREFILTER_COUNT,
+    prefilterEvidence: { count: completedStage.prefilter.length,
+      entries: completedStage.prefilter.map((entry) => ({ displayId: entry.score.strategy.id,
+        canonicalStrategy: canonicalStrategy(entry.score.strategy) })),
+      digest: stableHash(completedStage.prefilter.map((entry) =>
+        `${entry.score.strategy.id}\t${canonicalStrategy(entry.score.strategy)}`).join('\n')) },
+    leaderDigest: stableHash(reservoir.filter((entry) => entry.source === 'goldfish')
+      .map((entry) => canonicalStrategy(entry.strategy)).join('\n')),
+    tailDigest: stableHash(reservoir.filter((entry) => entry.source === 'random')
+      .map((entry) => canonicalStrategy(entry.strategy)).join('\n')),
+    tailEvidence: (() => {
+      const position = new Map(generated.map((entry, index) => [canonicalStrategy(entry), index]));
+      const entries = completedStage.tailCandidates.map((entry) => ({ displayId: entry.score.strategy.id,
+        canonicalStrategy: canonicalStrategy(entry.score.strategy),
+        traversalPosition: position.get(canonicalStrategy(entry.score.strategy))! }));
+      return { eligibleCount: generated.length - provenance.displayIdCollisionCount,
+        retainedCount: entries.length, digest: stagedTailEvidenceDigest(entries), entries };
+    })(),
+    scoring: { profiles: [...GOLDFISH_MOVEMENT_PROFILES],
       combination: 'disjoint-seed-sum-v1',
       stageOne: { seeds: [FIRST_GOLDFISH_SEED], scoredCount: generated.length, elapsedMs: completedStage.scoringMs },
       rescore: { seeds: REMAINING_GOLDFISH_SEEDS, scoredCount: rescored.length, elapsedMs: rescoreMs,
@@ -317,7 +339,7 @@ async function runPsro(
       console.log('staged PSRO: skipped valid artifact'); return held;
     }
   }
-  const runner = new WorkerPairingRunner(WORKERS, new URL('../src/server/aiWorker.ts', import.meta.url),
+  const runner = new WorkerPairingRunner(PAIRING_WORKERS, new URL('../src/server/aiWorker.ts', import.meta.url),
     { kingdom }, ['--import', 'tsx']);
   try {
     const artifact = await runStagedFixedReservoirPsro(pool, runner,
@@ -601,7 +623,7 @@ function attackSummary(artifact: AttackArtifact) {
 async function compareAndReport(kingdom: Kingdom, baseline: { pool: FixedReservoirPoolArtifact;
   run: FixedReservoirPsroArtifact }, staged: { pool: StagedFixedReservoirPoolArtifact;
   run: StagedFixedReservoirPsroArtifact }): Promise<void> {
-  const runner = new WorkerPairingRunner(WORKERS, new URL('../src/server/aiWorker.ts', import.meta.url),
+  const runner = new WorkerPairingRunner(PAIRING_WORKERS, new URL('../src/server/aiWorker.ts', import.meta.url),
     { kingdom }, ['--import', 'tsx']);
   try {
     const acquisition = await ensureAcquisition(baseline.run, staged.run, runner);

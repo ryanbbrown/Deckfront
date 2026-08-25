@@ -41,6 +41,13 @@ export interface StreamedGeneration {
   collisionIds: string[];
 }
 
+function emptyStreamedGeneration(): StreamedGeneration {
+  return { provenance: { generatedCount: 0,
+    generatedIdDigest: new StableHashAccumulator().digest(),
+    canonicalProvenanceDigest: new StableHashAccumulator().digest(),
+    duplicateCanonicalCount: 0, displayIdCollisionCount: 0 }, collisionIds: [] };
+}
+
 /** One coordinator consumes the stateful generator and emits bounded accepted-order chunks. */
 export function streamUniqueStrategies(
   source: Iterable<Strategy>, acceptedCount: number, chunkSize: number,
@@ -48,10 +55,7 @@ export function streamUniqueStrategies(
 ): StreamedGeneration {
   if (!Number.isSafeInteger(acceptedCount) || acceptedCount < 0
     || !Number.isSafeInteger(chunkSize) || chunkSize < 1) throw new Error('Invalid streaming generation bounds.');
-  if (acceptedCount === 0) return { provenance: { generatedCount: 0,
-    generatedIdDigest: new StableHashAccumulator().digest(),
-    canonicalProvenanceDigest: new StableHashAccumulator().digest(),
-    duplicateCanonicalCount: 0, displayIdCollisionCount: 0 }, collisionIds: [] };
+  if (acceptedCount === 0) return emptyStreamedGeneration();
   const canonicalSeen = new Set<string>();
   const displayIdentity = new Map<string, string>();
   const collisionIds = new Set<string>();
@@ -84,6 +88,45 @@ export function streamUniqueStrategies(
   if (canonicalSeen.size !== acceptedCount) throw new Error('Strategy source ended before the accepted count.');
   if (chunk.length) consume({ startPosition: acceptedCount - chunk.length,
     endPosition: acceptedCount, strategies: chunk });
+  return { provenance: { generatedCount: acceptedCount, generatedIdDigest: idDigest.digest(),
+    canonicalProvenanceDigest: provenanceDigest.digest(), duplicateCanonicalCount, displayIdCollisionCount },
+    collisionIds: [...collisionIds].sort(compareUtf16) };
+}
+
+/** One coordinator awaits each bounded consumer before it advances the stateful generator. */
+export async function streamUniqueStrategiesAsync(
+  source: Iterable<Strategy>, acceptedCount: number, chunkSize: number,
+  consume: (chunk: GeneratedChunk) => Promise<void>
+): Promise<StreamedGeneration> {
+  if (!Number.isSafeInteger(acceptedCount) || acceptedCount < 0
+    || !Number.isSafeInteger(chunkSize) || chunkSize < 1) throw new Error('Invalid streaming generation bounds.');
+  if (acceptedCount === 0) return emptyStreamedGeneration();
+  const canonicalSeen = new Set<string>();
+  const displayIdentity = new Map<string, string>();
+  const collisionIds = new Set<string>();
+  const idDigest = new StableHashAccumulator();
+  const provenanceDigest = new StableHashAccumulator();
+  let duplicateCanonicalCount = 0;
+  let displayIdCollisionCount = 0;
+  let chunk: Strategy[] = [];
+  for (const strategy of source) {
+    const canonical = canonicalStrategy(strategy);
+    if (canonicalSeen.has(canonical)) { duplicateCanonicalCount += 1; continue; }
+    canonicalSeen.add(canonical);
+    const held = displayIdentity.get(strategy.id);
+    if (held === undefined) displayIdentity.set(strategy.id, canonical);
+    else if (held !== canonical) { displayIdCollisionCount += 1; collisionIds.add(strategy.id); }
+    const position = canonicalSeen.size - 1;
+    if (position > 0) { idDigest.update('\n'); provenanceDigest.update('\n'); }
+    idDigest.update(strategy.id); provenanceDigest.update(canonical); chunk.push(strategy);
+    if (chunk.length === chunkSize || canonicalSeen.size === acceptedCount) {
+      await consume({ startPosition: position + 1 - chunk.length, endPosition: position + 1,
+        strategies: chunk });
+      chunk = [];
+    }
+    if (canonicalSeen.size === acceptedCount) break;
+  }
+  if (canonicalSeen.size !== acceptedCount) throw new Error('Strategy source ended before the accepted count.');
   return { provenance: { generatedCount: acceptedCount, generatedIdDigest: idDigest.digest(),
     canonicalProvenanceDigest: provenanceDigest.digest(), duplicateCanonicalCount, displayIdCollisionCount },
     collisionIds: [...collisionIds].sort(compareUtf16) };

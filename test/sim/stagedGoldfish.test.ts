@@ -7,10 +7,10 @@ import {
 import type { GoldfishMetrics, MovementAwareGoldfishScore } from '../../src/sim/goldfish';
 import {
   STAGED_GOLDFISH_VERSION, selectStagedReservoir, stagedReservoirHash,
-  validateStagedFixedReservoirPool
+  stagedTailEvidenceDigest, validateStagedFixedReservoirPool
 } from '../../src/sim/stagedGoldfish';
 import type { StagedFixedReservoirPoolArtifact } from '../../src/sim/stagedGoldfish';
-import { INFINITE_COUNT, fixedBuyPlan, identify } from '../../src/sim/strategy';
+import { INFINITE_COUNT, canonicalStrategy, fixedBuyPlan, identify, stableHash } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 
 function strategy(index: number): Strategy {
@@ -78,8 +78,28 @@ describe('staged movement-aware goldfish', () => {
       generatedCount: 20, generatedHash: provenance.generatedIdDigest,
       canonicalProvenanceDigest: provenance.canonicalProvenanceDigest,
       duplicateCanonicalCount: 0, displayIdCollisionCount: 0, scoringProtocol: 'fixture-v1',
+      buildVersion: 'fixture-build', ruleFingerprint: '123456789',
       shardProvenance: [{ shardId: '0', startPosition: 0, endPosition: 20,
         candidateDigest: provenance.canonicalProvenanceDigest, scoreDigest: '123456789' }], prefilterCount: 8,
+      prefilterEvidence: (() => {
+        const entries = first.slice(-8).reverse().map((entry) => ({ displayId: entry.strategy.id,
+          canonicalStrategy: canonicalStrategy(entry.strategy) }));
+        return { count: entries.length,
+          digest: stableHash(entries.map((entry) => `${entry.displayId}\t${entry.canonicalStrategy}`).join('\n')),
+          entries };
+      })(),
+      leaderDigest: stableHash(reservoir.filter((entry) => entry.source === 'goldfish')
+        .map((entry) => canonicalStrategy(entry.strategy)).join('\n')),
+      tailDigest: stableHash(reservoir.filter((entry) => entry.source === 'random')
+        .map((entry) => canonicalStrategy(entry.strategy)).join('\n')),
+      tailEvidence: (() => {
+        const entries = reservoir.filter((entry) => entry.source === 'random').map((entry) => ({
+          displayId: entry.strategy.id, canonicalStrategy: canonicalStrategy(entry.strategy),
+          traversalPosition: first.findIndex((score) => score.strategy.id === entry.strategy.id)
+        }));
+        return { eligibleCount: 20, retainedCount: entries.length,
+          digest: stagedTailEvidenceDigest(entries), entries };
+      })(),
       scoring: { profiles: [...GOLDFISH_MOVEMENT_PROFILES], combination: 'disjoint-seed-sum-v1',
         stageOne: { seeds: [100], scoredCount: 20, elapsedMs: 10 },
         rescore: { seeds: [101, 102, 103], scoredCount: 8, elapsedMs: 20,
