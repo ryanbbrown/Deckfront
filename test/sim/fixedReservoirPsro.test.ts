@@ -1,11 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { registerKingdom, resetKingdoms } from '../../src/game';
 import {
   FIXED_RESERVOIR_EVALUATION_SEED, globalRaceSurvivors, nextCleanStreak,
-  remainingReservoirStrategies, reservoirHash, selectFixedReservoir, validateFixedReservoirPool,
+  remainingReservoirStrategies, reservoirHash, scanFixedReservoir, selectFixedReservoir, validateFixedReservoirPool,
   validateFixedReservoirPsroArtifact
 } from '../../src/sim/fixedReservoirPsro';
 import type { FixedReservoirPoolArtifact, ReservoirEntry } from '../../src/sim/fixedReservoirPsro';
 import type { MovementAwareGoldfishScore } from '../../src/sim/goldfish';
+import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { solveEquilibrium } from '../../src/sim/equilibrium';
+import { matrixProtocol } from '../../src/sim/payoffMatrix';
+import { InlinePairingRunner } from '../../src/sim/pairingRunner';
 import { generatedProvenance } from '../../src/sim/nativeStrategySearch';
 import { INFINITE_COUNT, fixedBuyPlan, identify } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
@@ -23,7 +28,23 @@ function score(index:number):MovementAwareGoldfishScore{return {strategy:strateg
   worstCompletions:index,totalCompletions:index,worstPenalizedTurnsTo50:100-index,
   totalPenalizedTurnsTo50:300-index,worstDamageArea:index,totalDamageArea:index,totalMoneySpent:index};}
 
+afterEach(()=>resetKingdoms());
+
 describe('fixed reservoir PSRO',()=>{
+  it('keeps full and score-only race survivors, finalists, means, and intervals equal',async()=>{
+    const kingdom=deepBeamSuite.kingdoms.find((entry)=>entry.id==='deep-beam-tuning-009')!;registerKingdom(kingdom);
+    const active=[strategy(1),strategy(2)],candidates=Array.from({length:6},(_u,index)=>strategy(index+3));
+    const snapshot={protocol:matrixProtocol(kingdom.id,[1],50,200,false),strategies:active,cells:[],complete:true,
+      centeredPayoffs:[[0,0],[0,0]]};
+    const equilibrium=solveEquilibrium(active.map((entry)=>entry.id),snapshot.centeredPayoffs);
+    const shared={candidates,snapshot,equilibrium,kingdomId:kingdom.id,raceSeeds:[100,101],
+      confirmationSeeds:[200,201,202],samplingSeeds:[300,301,302],bootstrapSeeds:[400,401],
+      raceBlocks:[1,1],finalists:2,chunkSize:3};
+    const full=await scanFixedReservoir({...shared,runner:new InlinePairingRunner(),scoreOnly:false});
+    const compact=await scanFixedReservoir({...shared,runner:new InlinePairingRunner(),scoreOnly:true});
+    expect(compact).toEqual(full);
+  },30_000);
+
   it('selects exact disjoint goldfish and random-tail cohorts deterministically',()=>{
     const scores=Array.from({length:30},(_u,index)=>score(index));
     const first=selectFixedReservoir(scores,18,2,1);const second=selectFixedReservoir([...scores].reverse(),18,2,1);

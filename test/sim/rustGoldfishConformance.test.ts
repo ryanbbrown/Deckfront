@@ -33,6 +33,23 @@ describe('Rust goldfish scorer conformance', () => {
     } finally { await rust.close(); }
   }, 60_000);
 
+  it('matches victory, turn-limit, and action-cap damage padding', async () => {
+    const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
+    const strategy = space.candidateAt([...representativeCandidateIndices(space.candidateCount, 1)][0]!);
+    const configs = [
+      { kingdomId: kingdom.id, seeds: [4_100_000], turnLimit: 30, actionCapPerTurn: 200 },
+      { kingdomId: kingdom.id, seeds: [4_100_000], turnLimit: 1, actionCapPerTurn: 200 },
+      { kingdomId: kingdom.id, seeds: [4_100_000], turnLimit: 30, actionCapPerTurn: 1 }
+    ];
+    const rust = new RustGoldfishScorer(1);
+    try {
+      for (const config of configs) {
+        expect((await rust.score(kingdom, [strategy], config, 1, 'full'))[0])
+          .toEqual(scoreMovementAwareGoldfishStrategyLean(strategy, config, 'full'));
+      }
+    } finally { await rust.close(); }
+  });
+
   it('matches every card mechanic in one all-mechanics kingdom', async () => {
     const always = new Set<string>(ALWAYS_AVAILABLE_ACTION_IDS);
     const cardIds = Object.values(CARDS).filter((card) => card.type === 'action'
