@@ -3,7 +3,7 @@ import type { EquilibriumResult } from '../../src/sim/equilibrium';
 import { emptyAggregate } from '../../src/sim/pairing';
 import {
   acquisitionEquivalentClasses, completeAcquisitionEvidenceKey, stratifiedOpponentSchedule,
-  summarizeLotteryAcquisitions
+  summarizeLotteryAcquisitions, validateFullCandidateEvidence
 } from '../../src/sim/lotteryAcquisition';
 import type { FullCandidateEvidence } from '../../src/sim/lotteryAcquisition';
 import { fixedBuyPlan, identify } from '../../src/sim/strategy';
@@ -23,6 +23,22 @@ function equilibrium(): EquilibriumResult {
 }
 
 describe('lottery acquisition evidence', () => {
+  it('rejects wrong schedules and corrupt complete telemetry', () => {
+    const held = evidence();
+    for (const first of ['firstOchre', 'firstIndigo'] as const) for (const side of ['normal', 'swapped'] as const) {
+      held.blocks[0]!.telemetry.byOrientation[first][side].played = 1;
+      held.blocks[0]!.telemetry.byOrientation[first][side].draws = 1;
+    }
+    expect(validateFullCandidateEvidence(held, { strategy: melee,
+      blocks: [{ seed: 1, opponentId: ranged.id }] })).toBe(true);
+    expect(validateFullCandidateEvidence(held, { strategy: melee,
+      blocks: [{ seed: 2, opponentId: ranged.id }] })).toBe(false);
+    const corrupt = structuredClone(held);
+    corrupt.blocks[0]!.telemetry.byOrientation.firstOchre.normal.played = 2;
+    expect(validateFullCandidateEvidence(corrupt, { strategy: melee,
+      blocks: [{ seed: 1, opponentId: ranged.id }] })).toBe(false);
+  });
+
   it('collapses only identical complete product telemetry', () => {
     const same = structuredClone(evidence()); same.strategy = { ...same.strategy, id: 'shadow' };
     same.blocks[0]!.telemetry.acquisitionsByStrategy.shadow = same.blocks[0]!.telemetry.acquisitionsByStrategy[melee.id]!;

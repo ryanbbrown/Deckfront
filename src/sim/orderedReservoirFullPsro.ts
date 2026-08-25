@@ -78,6 +78,8 @@ function seedOffset(label: string, count: number): number {
   if (label === 'comparison:row:sampling' && count === 1) return 90_000;
   if (label === 'comparison:column:blocks' && count === 10_000) return 80_000;
   if (label === 'comparison:column:sampling' && count === 1) return 90_000;
+  const historicalAudit = /^audit:historical:([1-5]):root$/.exec(label);
+  if (historicalAudit && count === 1) return 100_000 + Number(historicalAudit[1]);
   throw new Error(`Unknown full PSRO seed namespace ${label}.`);
 }
 export function orderedFullPsroSeeds(
@@ -110,6 +112,9 @@ export function validateOrderedFullPsroSeedPlan(reservoirHash: string): boolean 
         add(run, `scan:${scan}:confirmation:sampling`, 1);
       }
       for (let panel = 1; panel <= 5; panel += 1) add(run, `panel:${panel}`, 1_000);
+      for (let historical = 1; historical <= 5; historical += 1) {
+        add(run, `audit:historical:${historical}:root`, 1);
+      }
     }
     add(1, 'comparison:row:blocks', 10_000); add(1, 'comparison:row:sampling', 1);
     add(2, 'comparison:column:blocks', 10_000); add(2, 'comparison:column:sampling', 1);
@@ -133,6 +138,9 @@ export interface FullScreenSelection {
   boundaryAuditIds: string[];
   rankBandAuditIds: string[];
   boundaries: { laneA: number; laneB: number; pooled: number };
+  tieWidths: { laneA: number; laneB: number; pooled: number; boundaryAudit: number };
+  selectedWidth: number;
+  widthExceeded: boolean;
   scoreEquivalentGroups: string[][];
 }
 
@@ -158,7 +166,9 @@ function rankBand(rank: number): number {
   return 3;
 }
 
-export function selectFullScreenCandidates(rows: readonly FullScreenCandidate[]): FullScreenSelection {
+export function selectFullScreenCandidates(
+  rows: readonly FullScreenCandidate[], options: { allowOversize?: boolean } = {}
+): FullScreenSelection {
   if (new Set(rows.map((row) => row.strategyId)).size !== rows.length || rows.some((row) =>
     row.laneA.length !== 25 || row.laneB.length !== 25 || row.goldfishRank < 51 || row.goldfishRank > 20_000)) {
     throw new Error('Full screen rows are invalid.');
@@ -186,7 +196,8 @@ export function selectFullScreenCandidates(rows: readonly FullScreenCandidate[])
         || compareUtf16(left.strategyId, right.strategyId)).slice(0, 16);
     for (const row of held) { selected.add(row.strategyId); rankBandAuditIds.push(row.strategyId); }
   }
-  if (selected.size > ORDERED_FULL_PSRO_CONFIRMATION_WIDTH) throw new Error('screen-width-unresolved');
+  const widthExceeded = selected.size > ORDERED_FULL_PSRO_CONFIRMATION_WIDTH;
+  if (widthExceeded && !options.allowOversize) throw new Error('screen-width-unresolved');
   const scoreGroups = new Map<string, string[]>();
   for (const row of rows) {
     const key = stableHash(JSON.stringify([...row.laneA, ...row.laneB]));
@@ -195,6 +206,10 @@ export function selectFullScreenCandidates(rows: readonly FullScreenCandidate[])
   return { strategyIds: [...selected].sort(compareUtf16), laneATierIds: a.ids, laneBTierIds: b.ids,
     pooledTierIds: p.ids, boundaryAuditIds, rankBandAuditIds,
     boundaries: { laneA: a.boundary, laneB: b.boundary, pooled: p.boundary },
+    tieWidths: { laneA: laneA.filter((entry) => entry.score === a.boundary).length,
+      laneB: laneB.filter((entry) => entry.score === b.boundary).length,
+      pooled: pooled.filter((entry) => entry.score === p.boundary).length,
+      boundaryAudit: boundaryAuditIds.length }, selectedWidth: selected.size, widthExceeded,
     scoreEquivalentGroups: [...scoreGroups.values()].filter((ids) => ids.length > 1)
       .map((ids) => ids.sort(compareUtf16)).sort((left, right) => compareUtf16(left[0]!, right[0]!)) };
 }
@@ -245,20 +260,39 @@ export interface CollapsedAdmissions {
   divergedShadowIds: string[];
 }
 
+export function shadowAnchorSyntheticId(input: {
+  run: 1 | 2; scan: number; representativeId: string; blocks: number;
+}): string {
+  if (!ORDERED_FULL_PSRO_RUNS.includes(input.run) || !Number.isSafeInteger(input.scan) || input.scan < 0
+    || input.scan >= ORDERED_FULL_PSRO_SCAN_CAP || !input.representativeId
+    || !ORDERED_FULL_PSRO_CONFIRMATION_LOOKS.includes(input.blocks as never)) {
+    throw new Error('Shadow anchor identity input is invalid.');
+  }
+  return `shadow-anchor-${stableHash(JSON.stringify(input))}`;
+}
+
 export function collapseAcquisitionEquivalentAdmissions(input: {
-  admitted: readonly FullCandidateEvidence[];
+  evidence: readonly FullCandidateEvidence[];
+  admittedIds: ReadonlySet<string>;
   existingShadows: readonly ShadowEquivalentClass[];
   anchorEvidence: ReadonlyMap<string, FullCandidateEvidence>;
 }): CollapsedAdmissions {
   const shadowById = new Map(input.existingShadows.flatMap((group) => group.shadowIds.map((id) => [id, group])));
   const retainedShadowIds: string[] = [], divergedShadowIds: string[] = [], newEvidence: FullCandidateEvidence[] = [];
-  for (const evidence of input.admitted) {
+  for (const evidence of input.evidence) {
     const existing = shadowById.get(evidence.strategy.id);
-    if (!existing) { newEvidence.push(evidence); continue; }
-    const anchor = input.anchorEvidence.get(existing.activeRepresentativeId);
-    if (!anchor) throw new Error(`Missing shadow anchor ${existing.activeRepresentativeId}.`);
-    if (completeAcquisitionEvidenceKey(anchor) === completeAcquisitionEvidenceKey(evidence)) retainedShadowIds.push(evidence.strategy.id);
-    else { divergedShadowIds.push(evidence.strategy.id); newEvidence.push(evidence); }
+    if (!existing) {
+      if (input.admittedIds.has(evidence.strategy.id)) newEvidence.push(evidence);
+      continue;
+    }
+    const anchor = input.anchorEvidence.get(`${existing.activeRepresentativeId}:${evidence.blocks.length}`);
+    if (!anchor) throw new Error(`Missing shadow anchor ${existing.activeRepresentativeId}:${evidence.blocks.length}.`);
+    if (completeAcquisitionEvidenceKey(anchor) === completeAcquisitionEvidenceKey(evidence)) {
+      retainedShadowIds.push(evidence.strategy.id);
+    } else {
+      divergedShadowIds.push(evidence.strategy.id);
+      if (input.admittedIds.has(evidence.strategy.id)) newEvidence.push(evidence);
+    }
   }
   const classes = acquisitionEquivalentClasses(newEvidence);
   const byId = new Map(newEvidence.map((entry) => [entry.strategy.id, entry]));
@@ -323,6 +357,8 @@ export interface OrderedFullPsroCheckpoint {
   matrixEvidenceHash: string;
   scanEvidenceHashes: string[];
   panelEvidenceHashes: string[];
+  auditEvidenceHashes: string[];
+  terminalEvidenceHash: string | null;
   elapsedMs: number;
   evidenceHash: string;
 }
@@ -349,7 +385,10 @@ export function validateOrderedFullPsroCheckpoint(value: unknown): value is Orde
       || new Set(held.activeStrategyIds).size !== held.activeStrategyIds.length
       || held.activeStrategyIds.length > ORDERED_FULL_PSRO_MATRIX_WIDTH
       || !Array.isArray(held.shadowClasses) || !Array.isArray(held.scanEvidenceHashes)
-      || !Array.isArray(held.panelEvidenceHashes) || held.scanEvidenceHashes.length !== held.state.scan
+      || !Array.isArray(held.panelEvidenceHashes) || !Array.isArray(held.auditEvidenceHashes)
+      || held.auditEvidenceHashes.length > 5 || held.scanEvidenceHashes.length !== held.state.scan
+      || (held.state.status === 'unresolved') !== (typeof held.terminalEvidenceHash === 'string')
+      || (held.terminalEvidenceHash !== null && !held.terminalEvidenceHash)
       || !Number.isFinite(held.elapsedMs) || held.elapsedMs < 0) return false;
     const active = new Set(held.activeStrategyIds), shadows = new Set<string>();
     for (const group of held.shadowClasses) {
@@ -360,6 +399,59 @@ export function validateOrderedFullPsroCheckpoint(value: unknown): value is Orde
     }
     const copy = structuredClone(held) as Partial<OrderedFullPsroCheckpoint>; delete copy.evidenceHash; delete copy.elapsedMs;
     return held.evidenceHash === checkpointHash(copy as Omit<OrderedFullPsroCheckpoint, 'evidenceHash' | 'elapsedMs'>);
+  } catch { return false; }
+}
+
+export function validateOrderedFullPsroCheckpointIdentity(checkpoint: unknown, expected: {
+  run: 1 | 2; kingdomId: 'deep-beam-tuning-009'; rulesFingerprint: string;
+  reservoirHash: string; poolHash: string; sourceRankedSha256: string;
+}): checkpoint is OrderedFullPsroCheckpoint {
+  return validateOrderedFullPsroCheckpoint(checkpoint) && checkpoint.run === expected.run
+    && checkpoint.kingdomId === expected.kingdomId
+    && checkpoint.rulesFingerprint === expected.rulesFingerprint
+    && checkpoint.reservoirHash === expected.reservoirHash && checkpoint.poolHash === expected.poolHash
+    && checkpoint.sourceRankedSha256 === expected.sourceRankedSha256;
+}
+
+export interface DeepValidatedResumeTransition {
+  scan: number;
+  summaryHash: string;
+  childHashes: string[];
+  stateBefore: FullPsroState;
+  stateAfter: FullPsroState;
+  activeStrategyIdsBefore: string[];
+  activeStrategyIdsAfter: string[];
+  shadowClassesBefore: ShadowEquivalentClass[];
+  shadowClassesAfter: ShadowEquivalentClass[];
+}
+
+export function validateOrderedFullPsroResumeChain(input: {
+  checkpoint: OrderedFullPsroCheckpoint;
+  initialActiveStrategyIds: readonly string[];
+  transitions: readonly DeepValidatedResumeTransition[];
+}): boolean {
+  try {
+    if (!validateOrderedFullPsroCheckpoint(input.checkpoint)
+      || input.transitions.length !== input.checkpoint.scanEvidenceHashes.length) return false;
+    let state = initialFullPsroState();
+    let active = [...input.initialActiveStrategyIds].sort(compareUtf16);
+    let shadows: ShadowEquivalentClass[] = [];
+    const childHashes = new Set<string>();
+    for (let index = 0; index < input.transitions.length; index += 1) {
+      const step = input.transitions[index]!;
+      if (step.scan !== index || step.summaryHash !== input.checkpoint.scanEvidenceHashes[index]
+        || !step.childHashes.length || step.childHashes.some((hash) => !hash || childHashes.has(hash))
+        || JSON.stringify(step.stateBefore) !== JSON.stringify(state)
+        || JSON.stringify(step.activeStrategyIdsBefore) !== JSON.stringify(active)
+        || JSON.stringify(step.shadowClassesBefore) !== JSON.stringify(shadows)) return false;
+      step.childHashes.forEach((hash) => childHashes.add(hash));
+      state = step.stateAfter; active = [...step.activeStrategyIdsAfter]; shadows = structuredClone(step.shadowClassesAfter);
+      if (state.scan !== index + 1 || new Set(active).size !== active.length
+        || active.length > ORDERED_FULL_PSRO_MATRIX_WIDTH) return false;
+    }
+    return JSON.stringify(state) === JSON.stringify(input.checkpoint.state)
+      && JSON.stringify(active) === JSON.stringify(input.checkpoint.activeStrategyIds)
+      && JSON.stringify(shadows) === JSON.stringify(input.checkpoint.shadowClasses);
   } catch { return false; }
 }
 

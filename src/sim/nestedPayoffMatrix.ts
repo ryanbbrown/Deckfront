@@ -1,4 +1,5 @@
 import { emptyAggregate, mergeAggregate } from './pairing';
+import { validateTelemetryAggregate } from './lotteryAcquisition';
 import type { PairingBlockResult, PairingOutcome } from './pairing';
 import { matrixProtocol } from './payoffMatrix';
 import type { MatrixCell, MatrixSnapshot } from './payoffMatrix';
@@ -186,7 +187,8 @@ export function validateNestedMatrixEvidence(value: unknown): value is NestedMat
           || !exact(batch.seeds, evidence.protocol.seeds.slice(start, start + batch.seeds.length))
           || !exact(batch.blocks.map((block) => block.seed), batch.seeds)
           || batch.blocks.some((block) => block.played !== 4 || block.aborted || block.score < 0 || block.score > 1)
-          || batch.matches !== batch.seeds.length * 4 || !batch.telemetry) return false;
+          || batch.matches !== batch.seeds.length * 4
+          || !validateTelemetryAggregate(batch.telemetry, batch.matches)) return false;
         start += batch.seeds.length;
       }
       if (start > 200 || start % 25 !== 0) return false;

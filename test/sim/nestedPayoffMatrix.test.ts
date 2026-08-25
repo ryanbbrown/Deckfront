@@ -12,8 +12,13 @@ import { fixedBuyPlan, identify } from '../../src/sim/strategy';
 const left = identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'drive', desiredCount: 1 }]) });
 const right = identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'volley', desiredCount: 1 }]) });
 function outcome(seeds: number[]): PairingOutcome {
+  const telemetry = emptyAggregate();
+  for (const first of ['firstOchre', 'firstIndigo'] as const) for (const side of ['normal', 'swapped'] as const) {
+    telemetry.byOrientation[first][side].played = seeds.length;
+    telemetry.byOrientation[first][side].draws = seeds.length;
+  }
   return { record: { played: seeds.length * 4, wins: seeds.length * 2, draws: 0, losses: seeds.length * 2, aborted: 0 },
-    candidateScore: seeds.length * 2, opponentScore: seeds.length * 2, telemetry: emptyAggregate(),
+    candidateScore: seeds.length * 2, opponentScore: seeds.length * 2, telemetry,
     matches: seeds.length * 4, seedBlocks: seeds.length, stopReason: 'maximum', candidateMean: 0.5,
     opponentMean: 0.5, blocks: seeds.map((seed) => ({ seed, score: 0.5, played: 4, aborted: 0 })), aborts: [] };
 }

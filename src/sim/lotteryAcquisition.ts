@@ -2,7 +2,7 @@ import { cardDefinition } from '../game';
 import { equilibriumGroupWeightRange } from './equilibrium';
 import type { EquilibriumResult } from './equilibrium';
 import { damageFamily, classifyStrategyDamage, DAMAGE_FAMILIES } from './strategyDamage';
-import { stableHash } from './strategy';
+import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 import type { TelemetryAggregate } from './types';
 import { compareUtf16 } from './utf16';
@@ -18,6 +18,66 @@ export interface ProductBlockEvidence {
 export interface FullCandidateEvidence {
   strategy: Strategy;
   blocks: ProductBlockEvidence[];
+  candidateTelemetryId?: string;
+}
+
+function validCounts(value: unknown): value is Record<string, number> {
+  return !!value && typeof value === 'object' && Object.values(value).every((count) =>
+    Number.isSafeInteger(count) && count >= 0);
+}
+
+export function validateTelemetryAggregate(telemetry: unknown, expectedMatches: number): telemetry is TelemetryAggregate {
+  try {
+    if (!telemetry || typeof telemetry !== 'object' || !Number.isSafeInteger(expectedMatches)
+      || expectedMatches < 4 || expectedMatches % 4) return false;
+    const held = telemetry as TelemetryAggregate;
+    if (!validCounts(held.damageByCard) || !validCounts(held.playsByCard)
+      || !validCounts(held.deadDraws) || held.deadDraws.range + held.deadDraws.mana > held.deadDraws.total
+      || !Number.isSafeInteger(held.turnsToWin?.total) || held.turnsToWin.total < 0
+      || !Number.isSafeInteger(held.turnsToWin?.count) || held.turnsToWin.count < 0
+      || held.turnsToWin.count > expectedMatches || !held.planPositionPurchasesByStrategy) return false;
+    for (const group of [held.acquisitionsByStrategy, held.planPositionPurchasesByStrategy]) {
+      if (!group || typeof group !== 'object' || Object.values(group).some((counts) => !validCounts(counts))) return false;
+    }
+    let played = 0;
+    for (const first of ['firstOchre', 'firstIndigo'] as const) for (const side of ['normal', 'swapped'] as const) {
+      const record = held.byOrientation?.[first]?.[side];
+      if (!record || !Object.values(record).every((count) => Number.isSafeInteger(count) && count >= 0)
+        || record.wins + record.draws + record.losses !== record.played || record.aborted !== 0
+        || record.played !== expectedMatches / 4) return false;
+      played += record.played;
+    }
+    return played === expectedMatches;
+  } catch { return false; }
+}
+
+export function validateProductBlockEvidence(block: unknown, expected?: {
+  seed: number; opponentId: string; candidateTelemetryId: string;
+}): block is ProductBlockEvidence {
+  try {
+    if (!block || typeof block !== 'object') return false;
+    const held = block as ProductBlockEvidence;
+    if (!Number.isSafeInteger(held.seed) || held.matches !== 4 || !Number.isFinite(held.score)
+      || held.score < 0 || held.score > 1 || !held.opponentId
+      || !validateTelemetryAggregate(held.telemetry, 4)
+      || (expected && (held.seed !== expected.seed || held.opponentId !== expected.opponentId))) return false;
+    return !expected || !!held.telemetry.acquisitionsByStrategy[expected.candidateTelemetryId];
+  } catch { return false; }
+}
+
+export function validateFullCandidateEvidence(evidence: unknown, expected?: {
+  strategy: Strategy; blocks: readonly { seed: number; opponentId: string }[];
+}): evidence is FullCandidateEvidence {
+  try {
+    if (!evidence || typeof evidence !== 'object') return false;
+    const held = evidence as FullCandidateEvidence;
+    if (!held.strategy || !Array.isArray(held.blocks) || !held.blocks.length
+      || (expected && (canonicalStrategy(held.strategy) !== canonicalStrategy(expected.strategy)
+        || held.strategy.id !== expected.strategy.id || held.blocks.length !== expected.blocks.length))) return false;
+    const candidateTelemetryId = held.candidateTelemetryId ?? held.strategy.id;
+    return held.blocks.every((block, index) => validateProductBlockEvidence(block, expected
+      ? { ...expected.blocks[index]!, candidateTelemetryId } : undefined));
+  } catch { return false; }
 }
 
 function normalizedStrategyTelemetry(
@@ -39,15 +99,17 @@ function normalizedStrategyTelemetry(
 }
 
 export function completeAcquisitionEvidenceKey(evidence: FullCandidateEvidence): string {
+  const telemetryId = evidence.candidateTelemetryId ?? evidence.strategy.id;
   if (!evidence.blocks.length || evidence.blocks.some((block) => block.matches !== 4
-    || block.score < 0 || block.score > 1 || !block.telemetry.planPositionPurchasesByStrategy)) {
+    || block.score < 0 || block.score > 1 || !block.telemetry.planPositionPurchasesByStrategy
+    || !block.telemetry.acquisitionsByStrategy[telemetryId])) {
     throw new Error('Complete acquisition evidence is missing product telemetry.');
   }
   return stableHash(JSON.stringify({
     startingBuild: evidence.strategy.startingBuild,
     blocks: evidence.blocks.map((block) => ({ seed: block.seed, opponentId: block.opponentId,
       score: block.score, telemetry: normalizedStrategyTelemetry(block.telemetry,
-        evidence.strategy.id, block.opponentId) }))
+        telemetryId, block.opponentId) }))
   }));
 }
 
