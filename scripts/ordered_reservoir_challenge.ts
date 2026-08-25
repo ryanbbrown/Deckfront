@@ -6,11 +6,15 @@ import { registerKingdom } from '../src/game';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 import {
   FIXED_RESERVOIR_CONFIG, scanFixedReservoir, supportEntries,
-  runFixedReservoirPsro, validateFixedReservoirPool, validateFixedReservoirPsroArtifact
+  runFixedReservoirPsro, validateFixedReservoirPsroArtifact
 } from '../src/sim/fixedReservoirPsro';
+import type { FixedReservoirPsroArtifact } from '../src/sim/fixedReservoirPsro';
+import {
+  loadValidatedLegacyFixedReservoirV1
+} from '../src/sim/legacyFixedReservoirV1';
 import type {
-  FixedReservoirPoolArtifact, FixedReservoirPsroArtifact
-} from '../src/sim/fixedReservoirPsro';
+  LegacyFixedReservoirPoolArtifact, LegacyFixedReservoirPsroArtifact
+} from '../src/sim/legacyFixedReservoirV1';
 import { RandomPsroSeedLedger } from '../src/sim/randomPsro';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import {
@@ -19,8 +23,8 @@ import {
   ORDERED_RESERVOIR_HISTORICAL_ROOT, ORDERED_RESERVOIR_HISTORICAL_SEEDS,
   ORDERED_RESERVOIR_ONE_ROUND_PROTOCOL, ORDERED_RESERVOIR_OUTPUT,
   ORDERED_RESERVOIR_SOURCE, adaptValidatedOrderedReservoir, aggregateComparisons,
-  assessOneRound, canonicalOverlap, summarizeAttack, validateOrderedChallengePool,
-  wholeLotteryEvidence
+  assessOneRound, canonicalOverlap, inactiveAttackStrategies, summarizeAttack,
+  validateOrderedChallengePool, wholeLotteryEvidence
 } from '../src/sim/orderedReservoirChallenge';
 import type {
   LotteryDirectionEvidence, OrderedChallengePoolArtifact, OrderedHistoricalComparison,
@@ -35,7 +39,10 @@ const REPORT_FILE = path.join(ORDERED_RESERVOIR_OUTPUT, 'report.json');
 const REPORT_MARKDOWN = path.join(ORDERED_RESERVOIR_OUTPUT, 'report.md');
 const PAIRING_WORKERS = 4;
 
-interface HistoricalUnit { pool: FixedReservoirPoolArtifact; run: FixedReservoirPsroArtifact }
+interface HistoricalUnit {
+  pool: LegacyFixedReservoirPoolArtifact;
+  run: LegacyFixedReservoirPsroArtifact;
+}
 interface SeedPlan {
   namespaces: Record<string, number[]>;
   forward: number[]; reverse: number[]; forwardBootstrap: number; reverseBootstrap: number;
@@ -127,18 +134,9 @@ function loadHistorical(): HistoricalUnit[] {
     if (!fs.existsSync(poolFile) || !fs.existsSync(runFile)) {
       throw new Error(`Missing saved historical fixed-reservoir seed ${seed}.`);
     }
-    const pool = readJson<unknown>(poolFile);
-    if (!validateFixedReservoirPool(pool, { kingdomId: 'deep-beam-tuning-009', poolSeed: seed,
-      generatedCount: FIXED_RESERVOIR_CONFIG.generatedCount,
-      goldfishCount: FIXED_RESERVOIR_CONFIG.goldfishCount,
-      randomCount: FIXED_RESERVOIR_CONFIG.randomCount })) {
-      throw new Error(`Historical fixed-reservoir pool ${seed} failed deep validation.`);
-    }
-    const run = readJson<unknown>(runFile);
-    if (!validateFixedReservoirPsroArtifact(run, pool, { evaluationSeed: 7_100_009 })) {
-      throw new Error(`Historical fixed-reservoir run ${seed} failed deep validation.`);
-    }
-    return { pool, run: run as FixedReservoirPsroArtifact };
+    return loadValidatedLegacyFixedReservoirV1(readJson<unknown>(poolFile), readJson<unknown>(runFile), {
+      kingdomId: 'deep-beam-tuning-009', poolSeed: seed
+    });
   });
 }
 
@@ -226,7 +224,7 @@ async function lotteryDirection(
 
 function comparisonValid(
   value: unknown, historicalSeed: number, orderedHash: string, historicalHash: string,
-  plan: SeedPlan
+  orderedScannedCount: number, historicalScannedCount: number, plan: SeedPlan
 ): value is ComparisonArtifact {
   if (!value || typeof value !== 'object') return false;
   const artifact = value as Partial<ComparisonArtifact>;
@@ -237,8 +235,8 @@ function comparisonValid(
     || JSON.stringify(artifact.seedNamespaces) !== JSON.stringify(plan.namespaces)
     || artifact.orderedAsRow?.blocks !== ORDERED_RESERVOIR_CROSS_PLAY_BLOCKS
     || artifact.historicalAsRow?.blocks !== ORDERED_RESERVOIR_CROSS_PLAY_BLOCKS
-    || artifact.orderedAttack?.scannedCount !== 20_000
-    || artifact.historicalAttack?.scannedCount !== 20_000) return false;
+    || artifact.orderedAttack?.scannedCount !== orderedScannedCount
+    || artifact.historicalAttack?.scannedCount !== historicalScannedCount) return false;
   try {
     const direction = (held: LotteryDirectionEvidence, bootstrapSeed: number): boolean => {
       const rebuilt = wholeLotteryEvidence([{ strategyId: 'saved-lottery', weight: 1,
@@ -247,9 +245,9 @@ function comparisonValid(
     };
     return direction(artifact.orderedAsRow, plan.forwardBootstrap)
       && direction(artifact.historicalAsRow, plan.reverseBootstrap)
-      && JSON.stringify(summarizeAttack(20_000, artifact.orderedAttack.finalists))
+      && JSON.stringify(summarizeAttack(orderedScannedCount, artifact.orderedAttack.finalists))
         === JSON.stringify(artifact.orderedAttack)
-      && JSON.stringify(summarizeAttack(20_000, artifact.historicalAttack.finalists))
+      && JSON.stringify(summarizeAttack(historicalScannedCount, artifact.historicalAttack.finalists))
         === JSON.stringify(artifact.historicalAttack);
   } catch { return false; }
 }
@@ -259,9 +257,14 @@ async function loadOrCompare(
   historical: HistoricalUnit, plan: SeedPlan, runner: WorkerPairingRunner
 ): Promise<ComparisonArtifact> {
   const seed = historical.pool.poolSeed, file = comparisonFile(seed);
+  const orderedCandidates = inactiveAttackStrategies(
+    pool.reservoir.map((entry) => entry.strategy), historical.run.matrix.strategies);
+  const historicalCandidates = inactiveAttackStrategies(
+    historical.pool.reservoir.map((entry) => entry.strategy), orderedRun.matrix.strategies);
   if (fs.existsSync(file)) {
     const held = readJson<unknown>(file);
-    if (comparisonValid(held, seed, pool.reservoirHash, historical.pool.reservoirHash, plan)) {
+    if (comparisonValid(held, seed, pool.reservoirHash, historical.pool.reservoirHash,
+      orderedCandidates.length, historicalCandidates.length, plan)) {
       console.log(`comparison ${seed}: resumed validated checkpoint`);
       return held;
     }
@@ -275,14 +278,14 @@ async function loadOrCompare(
   const historicalAsRow = await lotteryDirection(runner, historicalSupport, orderedSupport,
     plan.reverse, plan.reverseBootstrap);
   console.log(`comparison ${seed}: ordered pool attack against historical lottery`);
-  const orderedFinalists = await scanFixedReservoir({ candidates: pool.reservoir.map((entry) => entry.strategy),
+  const orderedFinalists = await scanFixedReservoir({ candidates: orderedCandidates,
     snapshot: historical.run.matrix, equilibrium: historical.run.equilibrium, runner,
     kingdomId: pool.kingdomId, raceSeeds: plan.orderedAttack.race,
     confirmationSeeds: plan.orderedAttack.confirmation, samplingSeeds: plan.orderedAttack.sampling,
     bootstrapSeeds: plan.orderedAttack.bootstrap });
   console.log(`comparison ${seed}: historical pool attack against ordered lottery`);
   const historicalFinalists = await scanFixedReservoir({
-    candidates: historical.pool.reservoir.map((entry) => entry.strategy),
+    candidates: historicalCandidates,
     snapshot: orderedRun.matrix, equilibrium: orderedRun.equilibrium, runner,
     kingdomId: pool.kingdomId, raceSeeds: plan.historicalAttack.race,
     confirmationSeeds: plan.historicalAttack.confirmation, samplingSeeds: plan.historicalAttack.sampling,
@@ -292,8 +295,8 @@ async function loadOrCompare(
     kingdomId: pool.kingdomId, historicalPoolSeed: seed,
     orderedReservoirHash: pool.reservoirHash, historicalReservoirHash: historical.pool.reservoirHash,
     seedNamespaces: plan.namespaces, orderedAsRow, historicalAsRow,
-    orderedAttack: summarizeAttack(pool.reservoir.length, orderedFinalists),
-    historicalAttack: summarizeAttack(historical.pool.reservoir.length, historicalFinalists),
+    orderedAttack: summarizeAttack(orderedCandidates.length, orderedFinalists),
+    historicalAttack: summarizeAttack(historicalCandidates.length, historicalFinalists),
     reservoirOverlap: canonicalOverlap(pool.reservoir.map((entry) => entry.strategy),
       historical.pool.reservoir.map((entry) => entry.strategy)), elapsedMs: Date.now() - started };
   writeAtomic(file, artifact);

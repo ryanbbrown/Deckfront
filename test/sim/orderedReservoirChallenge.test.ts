@@ -1,7 +1,8 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   ORDERED_RESERVOIR_ONE_ROUND_PROTOCOL, adaptOrderedReservoirEntries,
-  aggregateComparisons, assessOneRound, summarizeAttack, wholeLotteryEvidence
+  aggregateComparisons, assessOneRound, inactiveAttackStrategies, summarizeAttack,
+  wholeLotteryEvidence
 } from '../../src/sim/orderedReservoirChallenge';
 import {
   combineScoreEvidence, deriveScoreEvidence, rankingKey
@@ -16,6 +17,13 @@ import type {
   FixedReservoirPoolArtifact, FixedReservoirProtocol, ReservoirConfirmedCandidate
 } from '../../src/sim/fixedReservoirPsro';
 import { InlinePairingRunner } from '../../src/sim/pairingRunner';
+import {
+  legacyGeneratedHash, legacyReservoirHash, loadValidatedLegacyFixedReservoirV1,
+  validateLegacyFixedReservoirPoolV1, validateLegacyFixedReservoirRunV1
+} from '../../src/sim/legacyFixedReservoirV1';
+import type {
+  LegacyFixedReservoirPoolArtifact, LegacyFixedReservoirPsroArtifact
+} from '../../src/sim/legacyFixedReservoirV1';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import { registerKingdom } from '../../src/game';
 import { canonicalStrategy, fixedBuyPlan, identify, stableHash } from '../../src/sim/strategy';
@@ -63,7 +71,7 @@ describe('ordered reservoir one-round challenge', () => {
       .toThrow('invalid, duplicated, or out of rank order');
   });
 
-  it('preserves fixed-reservoir settings and makes admissions explicitly incomplete after one round', async () => {
+  it('runs one round and validates a real-shape legacy v1 pool and run boundary', async () => {
     expect(ORDERED_RESERVOIR_ONE_ROUND_PROTOCOL).toEqual({
       ...FIXED_RESERVOIR_CONFIG,
       generatedCount: 12_972_960, goldfishCount: 20_000, randomCount: 0, safetyCap: 1
@@ -95,6 +103,28 @@ describe('ordered reservoir one-round challenge', () => {
     expect(run.rounds[0]!.scannedCount).toBe(3);
     expect(run.status).toBe('incomplete');
     expect(() => assessOneRound(run)).not.toThrow();
+
+    const reservoirIds = reservoir.map((entry) => entry.strategy.id);
+    const generatedIds = [...reservoirIds, reservoirIds[0]!];
+    const legacyPool: LegacyFixedReservoirPoolArtifact = { schemaVersion: 1,
+      experiment: 'fixed-reservoir-pool', version: 'fixed-reservoir-psro-v1', kingdomId: kingdom.id,
+      poolSeed: 0, goldfishSeeds: [1], generatedCount: generatedIds.length, generatedIds,
+      generatedHash: legacyGeneratedHash(generatedIds), reservoirHash: legacyReservoirHash(reservoir),
+      reservoir, elapsedMs: 10 };
+    const legacyRun: LegacyFixedReservoirPsroArtifact = { ...run, schemaVersion: 1,
+      version: 'fixed-reservoir-psro-v1', poolHash: legacyPool.generatedHash,
+      reservoirHash: legacyPool.reservoirHash, reservoir };
+    const legacyOptions = { kingdomId: kingdom.id, poolSeed: 0, evaluationSeed: 1234,
+      protocol: { ...protocol, generatedCount: generatedIds.length }, goldfishSeeds: [1] };
+    expect(validateLegacyFixedReservoirPoolV1(legacyPool, legacyOptions)).toBe(true);
+    expect(validateLegacyFixedReservoirRunV1(legacyRun, legacyPool, legacyOptions)).toBe(true);
+    expect(loadValidatedLegacyFixedReservoirV1(legacyPool, legacyRun, legacyOptions))
+      .toEqual({ pool: legacyPool, run: legacyRun });
+    expect(validateLegacyFixedReservoirPoolV1({ ...legacyPool,
+      generatedIds: [...legacyPool.generatedIds].reverse() }, legacyOptions)).toBe(false);
+    expect(validateLegacyFixedReservoirRunV1({ ...legacyRun,
+      rulesFingerprint: { ...legacyRun.rulesFingerprint, hash: 'stale-rules' }
+    }, legacyPool, legacyOptions)).toBe(false);
   }, 30_000);
 
   it('calculates whole-lottery directions and exploit evidence from independent literal results', () => {
@@ -110,6 +140,10 @@ describe('ordered reservoir one-round challenge', () => {
     const historicalAttack = summarizeAttack(20_000, [finalist('b', 0.48, 0.44)]);
     expect(orderedAttack.exploitStrategyIds).toEqual(['a']);
     expect(orderedAttack.best?.strategy.id).toBe('a');
+    const attackCandidates = inactiveAttackStrategies(
+      [record(0).strategy, record(1).strategy], [record(0).strategy]);
+    expect(attackCandidates.map((strategy) => strategy.id)).toEqual([record(1).strategy.id]);
+    expect(summarizeAttack(attackCandidates.length, []).scannedCount).toBe(1);
     const comparison = { historicalPoolSeed: 1, orderedAsRow: { ...forward,
       interval95: { lower: 0.55, upper: 0.75 } },
     historicalAsRow: { ...forward, score: 0.4, interval95: { lower: 0.3, upper: 0.45 } },

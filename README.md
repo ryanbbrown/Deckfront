@@ -242,7 +242,7 @@ npm run ordered-reservoir:challenge
 npm run ordered-reservoir:challenge:status
 ```
 
-The command accepts only `.experiments/ordered-goldfish-product/native-e760135dba6f-5625a0ff0bf6048653f9` as its ordered source. It runs the ordered-product validation CLI before the first adaptation. It does not run goldfish scoring or Modal. Checkpoints, five independent held-out comparisons, and the report go under `.experiments/ordered-reservoir-challenge/ordered-reservoir-challenge-v1/`. A one-round result is not a convergence result; the report labels it incomplete when the round admits strategies.
+The command accepts only `.experiments/ordered-goldfish-product/native-e760135dba6f-5625a0ff0bf6048653f9` as its ordered source. It runs the ordered-product validation CLI before the first adaptation. It validates the five historical `fixed-reservoir-psro-v1` pools and runs in read-only mode against the current rules fingerprint; it does not rewrite or regenerate them. It does not run goldfish scoring or Modal. Checkpoints, five independent held-out comparisons, and the report go under `.experiments/ordered-reservoir-challenge/ordered-reservoir-challenge-v1/`. A one-round result is not a convergence result; the report labels it incomplete when the round admits strategies.
 
 ## Code boundaries
 

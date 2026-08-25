@@ -284,6 +284,13 @@ export function aggregateComparisons(comparisons: readonly OrderedHistoricalComp
     assessment: orderedWins ? 'ordered-stronger' : historicalWins ? 'historical-stronger' : 'similar-or-unresolved' };
 }
 
+export function inactiveAttackStrategies(
+  source: readonly Strategy[], targetActive: readonly Strategy[]
+): Strategy[] {
+  const activeIds = new Set(targetActive.map((strategy) => strategy.id));
+  return source.filter((strategy) => !activeIds.has(strategy.id));
+}
+
 export function canonicalOverlap(left: readonly Strategy[], right: readonly Strategy[]): number {
   const forms = new Set(left.map(canonicalStrategy));
   return right.reduce((sum, strategy) => sum + Number(forms.has(canonicalStrategy(strategy))), 0);
