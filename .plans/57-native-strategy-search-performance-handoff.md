@@ -4,14 +4,15 @@
 
 Make strategy generation, movement-aware goldfish scoring, and fixed-reservoir competitive evaluation as fast as practical without changing game behavior. Use repeated profile-and-improve loops. Continue after the known optimizations are complete: profile the remaining runtime, test further speedups, and keep changes that improve measured wall time.
 
-The final path must run efficiently on Google Compute Engine. Ryan will handle interactive cloud setup, credentials, project configuration, and initial connectivity in another session. This work owns the code, Linux build, deterministic sharding, worker use, bounded memory, and commands needed to run efficiently after connection is available.
+The final path must run efficiently on Modal. The local Modal CLI is installed, authenticated as profile `ryanburnettebrown`, and ready for unattended use. This work owns the Modal image, Linux build, deterministic sharding, detached execution, retries, worker use, bounded memory, result collection, and cost/concurrency caps. Use Modal functions for CPU fan-out; do not add Google Cloud infrastructure.
 
 ## Repository state
 
-Start from these commits:
+Start from commit `08f8f80`, which includes:
 
 - `48fe48e` — staged goldfish scoring and PSRO evaluation-seed variance
 - `24b8366` — ordered goldfish benchmark and baseline results
+- `08f8f80` — this performance handoff
 
 Preserve the unrelated uncommitted user edit in `.plans/34-strategy-search-results.md`. Do not stage, overwrite, revert, clean, or commit it.
 
@@ -76,7 +77,9 @@ Profile before and after each optimization. Cover all known opportunities:
 - Reduce worker serialization. Send compact candidate data once per batch and return compact score data.
 - Use compiled workers when startup or TypeScript loader overhead is measurable. Do not optimize startup when simulation dominates.
 
-Keep the frozen current-path benchmark available so native and optimized paths can be compared with the original implementation.
+Keep the frozen current-path benchmark available behind an explicit scorer choice so native and optimized paths can be compared with the original implementation. First add a deterministic digest over every ranking key for the fixed 100,000 candidates; the candidate checksum alone cannot detect a wrong scorer. The lean TypeScript path must match every original `MovementAwareGoldfishScore` field on fixed candidates, including victory, turn-limit, and action-cap damage-area padding.
+
+Profile the turn loop as well as its output. In particular, measure eager `pilotView` construction, repeated purchase projections, hand scans, temporary sets and arrays, and tactical-agent allocation. Use pull-based small chunks so workers dynamically claim more work instead of waiting for one expensive static partition.
 
 ### 2. Port the scoring kernel to Rust
 
@@ -90,7 +93,9 @@ rust/
     src/
 ```
 
-Port only the hot deterministic kernel and batch scorer unless profiling justifies a wider port. Keep strategy generation, PSRO control, artifact validation, and reporting in TypeScript.
+Port only the hot deterministic kernel and batch scorer unless profiling justifies a wider port. The port includes the behavior used by `simulationKernel.ts`, `tacticalPilot.ts`, `positionValue.ts`, and purchase-plan helpers. Keep strategy generation, PSRO control, artifact validation, and reporting in TypeScript.
+
+Use a standalone Rust shard executable as the first integration boundary. Give it a versioned compact input containing the rule fingerprint, scorer version, kingdom card data, strategies, seeds, movement profiles, and limits. Return compact score keys and structured errors. Start with a clear line-delimited format for conformance and replace it with a binary format only when profiling shows serialization matters. TypeScript or Modal owns shard scheduling; Rust owns threads inside one shard. Prevent nested Node-worker and Rust-thread oversubscription.
 
 Build the Rust hot loop around compact data:
 
@@ -113,41 +118,43 @@ Create deterministic cross-language fixtures that cover:
 - Completion, turns, damage area, final damage, spending, and ranking fields
 - Edge cases near the turn and action limits
 - Candidate ordering and tie-breaking
+- Exact seeded shuffle output before full-game comparison
 
-Require exact discrete outcomes and exact integer aggregates. Compare floating values from the same integer totals. Investigate every mismatch; do not hide simulator differences behind broad tolerances.
+Require exact discrete outcomes and exact integer aggregates. Compare floating values from the same integer totals. Investigate every mismatch; do not hide simulator differences behind broad tolerances. Replace locale-dependent ordering in shared selection and ported hot paths with one explicit deterministic code-unit or byte ordering before requiring Rust parity. Keep the original full-trial function; add the lean scorer beside it until equivalence is proved.
 
-### 4. Add deterministic parallel and cloud execution
+### 4. Add deterministic Modal execution
 
-The complete candidate space must be indexable and divisible into independent shards. Each shard must record:
+First make the provisional ordered benchmark indexable and divisible into independent shards. This path measures throughput and scorer parity; it does not define the product reservoir. Each shard must record:
 
 - Candidate range or deterministic traversal positions
-- Candidate checksum
-- Rule and scorer version
+- Candidate and score-key digests
+- Rule fingerprint and scorer version
 - Shuffle seeds and movement profiles
 - Build version
-- Timing and machine details
-- Local retained candidates and scores
+- Timing, requested CPU, actual concurrency, and container identity
+- Structured success or failure
 
-Merging shard results must reproduce one-machine global selection. Keep disk and network output bounded; do not transfer full trial telemetry or every rejected candidate when selection needs only shard leaders.
+Build a small Python Modal launcher around the standalone shard command. Use an explicit image, configurable CPU and shard sizes, bounded `max_containers`, per-shard timeouts, retries for interruption-safe failures, and detached or deployed execution so a local disconnect does not stop overnight work. Persist shard results under deterministic IDs and make reruns skip completed valid shards. Keep disk and network output bounded.
 
-Provide a Linux x86-64 release build and a simple command that runs one shard on Google Compute Engine. Keep cloud-provider logic thin. Infrastructure provisioning, credentials, SSH, and interactive project setup are outside this handoff.
+Then define the product merge contract before running full staged generation. The current product needs both 18,000 score-ranked goldfish leaders and a 2,000-strategy deterministic seeded tail, while current artifact validation records every generated ID. Specify a bounded artifact version, incremental provenance digest, collision handling, per-shard retention for both rankings, exact tie rules, and a merge proof. Test uneven and empty final shards, duplicate IDs, and ties against one-process selection.
+
+Provide one unattended Modal command that builds the Linux image, launches or resumes the job, and reports durable result locations. Modal credentials and billing are already configured; the code must not require browser approval during a run.
 
 ### 5. Speed up fixed-reservoir PSRO
 
 After the goldfish path is stable, profile and implement the technical PSRO improvements that do not change intended evidence:
 
-- Benchmark worker counts on the actual competitive workload.
-- Add score-only race and confirmation execution. Matrix games still retain report telemetry.
+- Benchmark worker counts on the actual competitive workload. Deliberately revisit the current 16-worker guard before using larger Modal CPU allocations.
+- Add score-only race and confirmation execution. Matrix games still retain report telemetry. On fixed seeds, prove identical block order, scores, aborts, match counts, survivors, finalist order, means, and intervals against the full path.
 - Batch each candidate's opponent schedule into compact worker work instead of repeatedly serializing the candidate and options.
-- Rank race survivors with cumulative evidence from completed stages.
 
-Keep the initial 50-strategy matrix unchanged until a separate search-quality experiment approves a change. Treat stronger 4/8/16/32 racing, wider finalist confirmation, and independent closure attacks as search-protocol work that needs its own evidence and decision record.
+Keep the initial 50-strategy matrix unchanged until a separate search-quality experiment approves a change. Cumulative race evidence, stronger 4/8/16/32 racing, wider finalist confirmation, and independent closure attacks are search-protocol work. Give them a separate protocol version, plan, experiment, and decision record rather than mixing them into performance work.
 
 ## Optimization loop
 
 Repeat this loop until the remaining cost is understood and further work has poor expected value:
 
-1. Profile one representative local or cloud run.
+1. Profile one representative local or Modal run.
 2. Name the largest measured cost.
 3. Make one focused change.
 4. Run conformance and verification.
@@ -164,10 +171,11 @@ The work is complete when all of these are true:
 - The original TypeScript benchmark remains reproducible.
 - The optimized TypeScript and Rust scorers pass cross-language conformance.
 - Full candidate generation and scoring use bounded memory.
-- Local and cloud thread counts and shard sizes are configurable.
-- Independent shards merge deterministically into the same retained set as one process.
-- A documented Linux release command runs one Google Compute Engine shard after Ryan supplies access.
-- Benchmark records show the speedup for TypeScript optimizations, Rust, local parallelism, and cloud parallelism separately.
+- Local and Modal thread counts, CPU requests, container caps, and shard sizes are configurable.
+- Independent shards merge deterministically into the same leaders and seeded tail as one process.
+- One documented unattended Modal command builds the Linux image and launches or resumes a durable run without browser approval.
+- Benchmark records show the speedup for TypeScript optimizations, Rust, local parallelism, and Modal parallelism separately.
 - The relevant tests, full test suite, typecheck, lint, `cargo test`, `cargo fmt --check`, `cargo clippy`, and `git diff --check` pass.
-- `README.md` contains only the minimum commands needed to build, verify, benchmark, and run a shard.
+- `.gitignore` excludes Rust build output before the first native build.
+- `README.md` gains the minimum commands needed to build, verify, benchmark, and run a shard while retaining the context needed to understand the project.
 - Plans and result records describe the current implementation and measured conclusions.
