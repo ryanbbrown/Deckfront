@@ -254,6 +254,16 @@ npm run ordered-reservoir:robust:report
 
 Ordinary and closure scans each use two independent cumulative 1/2/4/8 races, a union of at most 16 finalists, and 400 fresh confirmation blocks. Atomic checkpoints and ignored reports go under `.experiments/ordered-reservoir-robust-psro/ordered-reservoir-robust-v1/`. Historical-attacker diagnostics stream the split ranked artifact, report exact ordered-space membership, and test a deterministic representable analog with fresh evidence.
 
+Measure early-race ranking consistency without changing the fixed lottery:
+
+```sh
+npm run ordered-reservoir:race-benchmark
+npm run ordered-reservoir:race-benchmark:status
+npm run ordered-reservoir:race-benchmark:report
+```
+
+The benchmark builds one 25-block matrix from ordered ranks 1–50. It evaluates ranks 51–5,000 on three independent schedules. Each candidate gets eight blocks with no elimination. One block is four total balanced games against one opponent sampled from the weighted lottery. The command saves each candidate's block scores in resumable chunks under `.experiments/ordered-reservoir-race-benchmark/ordered-reservoir-race-benchmark-v1/`. It does not admit strategies or rebuild the matrix.
+
 ## Code boundaries
 
 The arrows show import direction:
