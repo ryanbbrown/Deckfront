@@ -327,8 +327,16 @@ function CompactMarket({ cards, fixedIds, variableIds, supply, onView, onCard, e
   cards: Record<string, CardDefinition>; fixedIds: readonly string[]; variableIds: readonly string[];
   supply?: Record<string, number>; onView: () => void; onCard?: (id: string) => void; enabled?: (id: string) => boolean;
 }) {
-  const row = (ids: readonly string[]) => <div className="compact-market__row">{ids.map((id) => { const card = cards[id]; if (!card) return null; const available = Boolean(onCard && enabled?.(id)); return <span key={id} className="compact-pile-slot"><button data-market-card={card.name} data-market-definition-id={id} className={`compact-pile pile--${card.family}`} aria-disabled={!available} onClick={() => { if (available) onCard?.(id); }}><strong>{card.name}</strong><span className="compact-pile__cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span>{supply ? <small>{card.type === 'action' ? `${supply[id]} left` : '∞'}</small> : null}</button></span>; })}</div>;
-  return <section className="market-zone table-zone"><div className="zone-title"><h2>Market</h2><button className="text-button" onClick={onView}>Card reference</button></div><div className="market-group"><span>Fixed</span>{row(fixedIds)}</div><div className="market-group"><span>Kingdom</span>{row(variableIds)}</div></section>;
+  const pile = (id: string, fixed: boolean) => {
+    const card = cards[id]; if (!card) return null;
+    const available = Boolean(onCard && enabled?.(id));
+    const quantity = card.type === 'treasure' ? '∞' : `×${supply?.[id] ?? 10}`;
+    return <button key={id} data-market-card={card.name} data-market-definition-id={id} className={`${fixed ? 'fixed-pile' : 'kingdom-pile'} family-${card.family}`} aria-disabled={!available} onClick={() => { if (available) onCard?.(id); }}>
+      {fixed ? <><span className="fixed-pile__title">{card.name}</span><span className="fixed-pile__art"><img src={`/card-art/${id}.jpg`} alt="" loading="eager" decoding="async" /><span className="fixed-pile__count">{quantity}</span><span className="pile-cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span></span></>
+        : <><img src={`/card-art/${id}.jpg`} alt="" loading="eager" decoding="async" /><span className="kingdom-pile__top"><strong className="kingdom-pile__title">{card.name}</strong><span className="kingdom-pile__count">{quantity}</span></span><span className="pile-cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span><span className="kingdom-pile__effect">{card.headline}</span></>}
+    </button>;
+  };
+  return <section className="market-zone table-zone"><div className="zone-title"><h2>Market</h2><button className="text-button" onClick={onView}>Card reference</button></div><div className="market-layout"><section className="market-section"><h3 className="market-section__heading">Fixed piles</h3><div className="pile-grid pile-grid--fixed">{fixedIds.map((id) => pile(id, true))}</div></section><section className="market-section"><h3 className="market-section__heading">Kingdom piles</h3><div className="pile-grid pile-grid--kingdom">{variableIds.map((id) => pile(id, false))}</div></section></div></section>;
 }
 
 function cardIdAt(target: Element): string | undefined {
