@@ -51,13 +51,13 @@ Rates used before launch were $0.0473/core-hour and $0.008/GiB-hour. No GPU or S
 | Smoke `native-b8e4d9fefcdd-f2517b502539f2bc84ae` | 1,000 | 2 × 4 CPU, 4 GiB | $0.0668 | $0.01095 | 2/2 shards, exact local shard digests |
 | Full `native-b8e4d9fefcdd-da77b7a513d41a6d483e` | 12,972,960 | max 48 × 4 CPU, 4 GiB | $1.4562 | $0.37159 | 87/87 shards, 48 containers, complete merge |
 | Product smoke `native-0dc22ea4655a-69cc3f90c23b63a4cabe` | 20,000 | 4 CPU, 4 GiB | $0.11613 | $0.00754043 | valid staged artifact, exact local digests |
-| Product production `native-0dc22ea4655a-26821587f16d9cfcdabd` | 500,000 | 10 CPU, 8 GiB | $0.281925 | $0.01491667 | 50,000 prefilter, 18,000 leaders, 2,000 tail |
+| Product production `native-0dc22ea4655a-26821587f16d9cfcdabd` | 500,000 | 10 CPU, 8 GiB | $0.281925 | $0.01849660 | 50,000 prefilter, 18,000 leaders, 2,000 tail |
 
 The ordered full run used 150,000-candidate shards. Container elapsed time was 22.0–56.5 seconds, with a 41.8-second median. Its merge was observed within 102 seconds of launch, at least 127,000 strategies/s including scheduling.
 
 The production product function completed in 96.237 seconds and used 1,507,672 KiB peak RSS. Its TypeScript coordinator generated the stateful product stream once and sent bounded chunks to one persistent Rust scorer with ten internal threads. Two 250,000-candidate logical shards retained and merged stage-one evidence; stage two used one 50,000-candidate shard. The durable artifact has generated-ID digest `3bb77e906acfbf`, canonical provenance digest `e316ba625ffe4b7`, prefilter digest `b0594ed6a6857d`, leader digest `d972c5ac37f58d`, and tail digest `1a327f9362421`. Every digest equals the local production command.
 
-Durable results are in Modal Volume `hexdeck-native-strategy-results`. Cumulative native-run reservation is $1.92110916 and measured native-run cost is $0.40499162. Two of three full production runs are used: one ordered-space run and one 500,000-candidate product run. The billing summary is $0.41000000 metered, -$0.41000000 credits, and $0 billed. CPU is $0.04730/core-hour, memory is $0.00800/GiB-hour, and volume storage is $0.09000/GiB-month. All four retained native-search apps are stopped with zero tasks.
+Durable results are in Modal Volume `hexdeck-native-strategy-results`. Cumulative native-run reservation is $1.92110916 and measured native-run cost is $0.40857155. Two of three full production runs are used: one ordered-space run and one 500,000-candidate product run. The billing summary is $0.41000000 metered, -$0.41000000 credits, and $0 billed. CPU is $0.04730/core-hour, memory is $0.00800/GiB-hour, and volume storage is $0.09000/GiB-month. All four retained native-search apps are stopped with zero tasks.
 
 ## Bounded staged product path
 
