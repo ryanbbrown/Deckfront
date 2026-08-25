@@ -17,7 +17,7 @@ export const requiredBrowserFlows = [
   'turnCleanup', 'cardSelections', 'disabledReasons', 'sharedSpacesAndPassThrough', 'globalUndo',
   'undoAndReload', 'victoryUndoReloadNewGame', 'localLabelsAndRules', 'deckSummary', 'handGrouping',
   'fullScreenLayout', 'overlappingHand', 'multiLevelUndo', 'actionRail', 'actionLogScroll', 'draftToggle',
-  'scrapExclusion', 'targetedCardCopy', 'optionalTrashChoice', 'gainChoice', 'variableTargetCounts',
+  'fixedScrapPile', 'targetedCardCopy', 'optionalTrashChoice', 'gainChoice', 'variableTargetCounts',
   'playAll', 'cardTravel', 'drawTravel', 'zonePiles', 'aiPlayback', 'playbackChoicesSuppressed', 'aiAnimationSetting', 'reducedMotion',
   'cardDestinationStability', 'playbackInterruptions', 'newGameStaleResponses', 'handZoneLayout',
   'stackPlayCadence', 'purchasePreview', 'damageFeedback', 'gameReset', 'resetConfirmation',

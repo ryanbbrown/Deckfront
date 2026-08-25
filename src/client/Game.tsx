@@ -330,7 +330,7 @@ function CompactMarket({ cards, fixedIds, variableIds, supply, onView, onCard, e
   const pile = (id: string, fixed: boolean) => {
     const card = cards[id]; if (!card) return null;
     const available = Boolean(onCard && enabled?.(id));
-    const quantity = card.type === 'treasure' ? '∞' : `×${supply?.[id] ?? 10}`;
+    const quantity = card.type === 'treasure' ? '∞' : `×${supply === undefined ? 10 : supply[id] ?? 0}`;
     return <button key={id} data-market-card={card.name} data-market-definition-id={id} className={`${fixed ? 'fixed-pile' : 'kingdom-pile'} family-${card.family}`} aria-disabled={!available} onClick={() => { if (available) onCard?.(id); }}>
       {fixed ? <><span className="fixed-pile__title">{card.name}</span><span className="fixed-pile__art"><img src={`/card-art/${id}.jpg`} alt="" loading="eager" decoding="async" /><span className="fixed-pile__count">{quantity}</span><span className="pile-cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span></span></>
         : <><img src={`/card-art/${id}.jpg`} alt="" loading="eager" decoding="async" /><span className="kingdom-pile__top"><strong className="kingdom-pile__title">{card.name}</strong><span className="kingdom-pile__count">{quantity}</span></span><span className="pile-cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span><span className="kingdom-pile__effect">{card.headline}</span></>}

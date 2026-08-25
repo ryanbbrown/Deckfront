@@ -52,7 +52,7 @@
     "actionRail": ["pw:DD-E2E-040", "pw:DD-E2E-045", "pw:DD-E2E-046", "pw:DD-E2E-048"],
     "actionLogScroll": ["pw:DD-E2E-046", "pw:DD-E2E-047"],
     "draftToggle": ["pw:DD-E2E-049"],
-    "scrapExclusion": ["pw:DD-E2E-049"],
+    "fixedScrapPile": ["pw:DD-E2E-049"],
     "targetedCardCopy": ["pw:DD-E2E-050"],
     "optionalTrashChoice": ["pw:DD-E2E-051"],
     "gainChoice": ["pw:DD-E2E-052"],

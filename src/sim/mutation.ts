@@ -18,7 +18,7 @@ export function kingdomFacts(kingdomId: string): KingdomFacts {
   if (cached) return cached;
   const market = kingdomMarket(kingdomId);
   const built = {
-    marketIds: market.filter((card) => card.id !== 'copper').map((card) => card.id),
+    marketIds: market.filter((card) => card.id !== 'copper' && card.cost > 0).map((card) => card.id),
     purchaseIds: market.filter((card) => card.id !== 'copper' && card.cost > 0).map((card) => card.id)
   };
   facts.set(kingdomId, built);

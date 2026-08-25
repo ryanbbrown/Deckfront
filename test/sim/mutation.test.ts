@@ -102,6 +102,14 @@ describe('strategy normalization', () => {
 });
 
 describe('mutation reach and bounds', () => {
+  it('excludes every cost-0 card from mutation market candidates', () => {
+    for (const kingdomId of CURATED_KINGDOM_IDS) {
+      const definitions = new Map(kingdomMarket(kingdomId).map((card) => [card.id, card]));
+      expect(kingdomFacts(kingdomId).marketIds.every((cardId) => definitions.get(cardId)!.cost > 0)).toBe(true);
+      expect(kingdomFacts(kingdomId).marketIds).not.toContain('scrap');
+    }
+  });
+
   it('mutates every and only deck-plan field', () => {
     const parent = seedByLabel('range-rich-mixed', 'ranged-volley');
     const reached = new Set<string>();
