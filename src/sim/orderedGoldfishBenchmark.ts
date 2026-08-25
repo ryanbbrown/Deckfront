@@ -22,6 +22,7 @@ export interface OrderedGoldfishCliOptions {
   shuffles: number;
   chunkSize: number;
   scorer: 'original' | 'lean' | 'rust';
+  startPosition: number;
 }
 
 export interface CoprimeTraversalConfig {
@@ -39,6 +40,12 @@ export interface OrderedCandidateSpace {
   candidateAt(index: number): Strategy;
 }
 
+function nonnegativeInteger(name: string, raw: string | undefined): number {
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value < 0) throw new Error(`--${name} must be a nonnegative integer.`);
+  return value;
+}
+
 function positiveInteger(name: string, raw: string | undefined): number {
   const value = Number(raw);
   if (!Number.isSafeInteger(value) || value < 1) throw new Error(`--${name} must be a positive integer.`);
@@ -47,7 +54,8 @@ function positiveInteger(name: string, raw: string | undefined): number {
 
 export function parseOrderedGoldfishArgs(args: readonly string[]): OrderedGoldfishCliOptions {
   const values = new Map<string, string>();
-  const supported = new Set(['kingdom', 'limit', 'count', 'workers', 'shuffles', 'chunk-size', 'scorer']);
+  const supported = new Set(['kingdom', 'limit', 'count', 'workers', 'shuffles', 'chunk-size', 'scorer',
+    'start-position']);
   for (let index = 0; index < args.length; index += 2) {
     const token = args[index]!;
     if (!token.startsWith('--') || !supported.has(token.slice(2))) {
@@ -68,7 +76,8 @@ export function parseOrderedGoldfishArgs(args: readonly string[]): OrderedGoldfi
     workers: positiveInteger('workers', values.get('workers') ?? String(ORDERED_GOLDFISH_DEFAULT_WORKERS)),
     shuffles: positiveInteger('shuffles', values.get('shuffles') ?? String(ORDERED_GOLDFISH_DEFAULT_SHUFFLES)),
     chunkSize: positiveInteger('chunk-size', values.get('chunk-size') ?? String(ORDERED_GOLDFISH_DEFAULT_CHUNK_SIZE)),
-    scorer: scorer as OrderedGoldfishCliOptions['scorer']
+    scorer: scorer as OrderedGoldfishCliOptions['scorer'],
+    startPosition: nonnegativeInteger('start-position', values.get('start-position') ?? '0')
   };
 }
 

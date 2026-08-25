@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { registerKingdom, resetKingdoms } from '../../src/game';
-import { generatedHash } from '../../src/sim/fixedReservoirPsro';
+import { generatedProvenance } from '../../src/sim/nativeStrategySearch';
 import {
   GOLDFISH_MOVEMENT_PROFILES, mergeMovementAwareGoldfishScores, scoreMovementAwareGoldfishStrategy
 } from '../../src/sim/goldfish';
@@ -70,23 +70,24 @@ describe('staged movement-aware goldfish', () => {
     const first = Array.from({ length: 20 }, (_unused, index) => syntheticScore(index, 1));
     const survivors = first.slice(-8).map((_entry, offset) => syntheticScore(12 + offset, 3));
     const reservoir = selectStagedReservoir(first, survivors, 8, 5, 3, 5);
-    const generatedIds = first.map((entry) => entry.strategy.id);
-    const artifact: StagedFixedReservoirPoolArtifact = { schemaVersion: 1,
+    const provenance = generatedProvenance(first.map((entry) => entry.strategy));
+    const artifact: StagedFixedReservoirPoolArtifact = { schemaVersion: 2,
       experiment: 'staged-fixed-reservoir-pool', version: STAGED_GOLDFISH_VERSION,
       kingdomId: 'fixture', poolSeed: 5, goldfishSeeds: [100, 101, 102, 103],
-      generatedCount: 20, generatedIds, generatedHash: generatedHash(generatedIds), prefilterCount: 8,
+      generatedCount: 20, generatedHash: provenance.generatedIdDigest,
+      canonicalProvenanceDigest: provenance.canonicalProvenanceDigest,
+      duplicateCanonicalCount: 0, displayIdCollisionCount: 0, scoringProtocol: 'fixture-v1',
+      shardProvenance: [{ shardId: '0', startPosition: 0, endPosition: 20,
+        candidateDigest: provenance.canonicalProvenanceDigest, scoreDigest: '123456789' }], prefilterCount: 8,
       scoring: { profiles: [...GOLDFISH_MOVEMENT_PROFILES], combination: 'disjoint-seed-sum-v1',
         stageOne: { seeds: [100], scoredCount: 20, elapsedMs: 10 },
         rescore: { seeds: [101, 102, 103], scoredCount: 8, elapsedMs: 20 } },
       reservoirHash: stagedReservoirHash(reservoir), reservoir, elapsedMs: 30 };
     expect(validateStagedFixedReservoirPool(artifact, { goldfishCount: 5, randomCount: 3,
       goldfishSeeds: [100, 101, 102, 103] })).toBe(true);
-    const collidingRawId = structuredClone(artifact);
-    collidingRawId.generatedIds.push(collidingRawId.generatedIds[0]!);
-    collidingRawId.generatedCount += 1;
-    collidingRawId.scoring.stageOne.scoredCount += 1;
-    collidingRawId.generatedHash = generatedHash(collidingRawId.generatedIds);
-    expect(validateStagedFixedReservoirPool(collidingRawId, { generatedCount: 21 })).toBe(true);
+    const corruptShard = structuredClone(artifact);
+    corruptShard.shardProvenance[0]!.endPosition = 19;
+    expect(validateStagedFixedReservoirPool(corruptShard)).toBe(false);
     const randomIndex = artifact.reservoir.findIndex((entry) => entry.source === 'random');
     const dishonest = structuredClone(artifact);
     dishonest.reservoir[randomIndex]!.scoreProvenance = 'combined-four-seed';

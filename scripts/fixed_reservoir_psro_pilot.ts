@@ -4,14 +4,16 @@ import { Worker } from 'node:worker_threads';
 import { SeededRandom, registerKingdom } from '../src/game';
 import type { Kingdom } from '../src/game';
 import { classifyStrategyDamage } from './generate_balance_corpus';
+import { rankingDigest } from '../src/sim/goldfish';
 import type { MovementAwareGoldfishScore, GoldfishConfig } from '../src/sim/goldfish';
+import { generatedProvenance } from '../src/sim/nativeStrategySearch';
 import { percentileBootstrapMean } from '../src/sim/mixtureEvaluation';
 import type { PairingJob } from '../src/sim/pairingRunner';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import { RandomPsroSeedLedger, stoplessRandomDomain } from '../src/sim/randomPsro';
 import { RANDOM_PSRO_KINGDOMS } from '../src/sim/randomPsroSuite';
 import {
-  FIXED_RESERVOIR_CONFIG, FIXED_RESERVOIR_VERSION, generatedHash, reservoirHash,
+  FIXED_RESERVOIR_CONFIG, FIXED_RESERVOIR_VERSION, reservoirHash,
   runFixedReservoirPsro, scanFixedReservoir, selectFixedReservoir, supportEntries,
   validateFixedReservoirPool, validateFixedReservoirPsroArtifact
 } from '../src/sim/fixedReservoirPsro';
@@ -58,10 +60,14 @@ async function buildPool(kingdom:Kingdom,poolSeed:number):Promise<FixedReservoir
   console.log(`pool ${poolSeed}: goldfishing`);
   const scores=await scoreInWorkers(generated,{kingdomId:kingdom.id,seeds:GOLDFISH_SEEDS,turnLimit:30,actionCapPerTurn:200},kingdom);
   const reservoir=selectFixedReservoir(scores,FIXED_RESERVOIR_CONFIG.goldfishCount,FIXED_RESERVOIR_CONFIG.randomCount,poolSeed);
-  const ids=generated.map((strategy)=>strategy.id);
-  const artifact:FixedReservoirPoolArtifact={schemaVersion:1,experiment:'fixed-reservoir-pool',version:FIXED_RESERVOIR_VERSION,
-    kingdomId:kingdom.id,poolSeed,goldfishSeeds:[...GOLDFISH_SEEDS],generatedCount:generated.length,generatedIds:ids,
-    generatedHash:generatedHash(ids),reservoirHash:reservoirHash(reservoir),reservoir,elapsedMs:Date.now()-started};
+  const provenance=generatedProvenance(generated);
+  const artifact:FixedReservoirPoolArtifact={schemaVersion:2,experiment:'fixed-reservoir-pool',version:FIXED_RESERVOIR_VERSION,
+    kingdomId:kingdom.id,poolSeed,goldfishSeeds:[...GOLDFISH_SEEDS],generatedCount:generated.length,
+    generatedHash:provenance.generatedIdDigest,canonicalProvenanceDigest:provenance.canonicalProvenanceDigest,
+    duplicateCanonicalCount:provenance.duplicateCanonicalCount,displayIdCollisionCount:provenance.displayIdCollisionCount,
+    scoringProtocol:'typescript-movement-aware-v1',shardProvenance:[{shardId:'local-0',startPosition:0,
+      endPosition:generated.length,candidateDigest:provenance.canonicalProvenanceDigest,scoreDigest:rankingDigest(scores)}],
+    reservoirHash:reservoirHash(reservoir),reservoir,elapsedMs:Date.now()-started};
   writeAtomic(file,artifact);console.log(`pool ${poolSeed}: ${(artifact.elapsedMs/1000).toFixed(1)}s`);return artifact;
 }
 async function runPool(kingdom:Kingdom,pool:FixedReservoirPoolArtifact):Promise<FixedReservoirPsroArtifact>{

@@ -1,6 +1,6 @@
 import type { PairingRunner } from './pairingRunner';
 import {
-  FIXED_RESERVOIR_VERSION, generatedHash, reservoirHash, runFixedReservoirPsro,
+  FIXED_RESERVOIR_VERSION, reservoirHash, runFixedReservoirPsro,
   validateFixedReservoirPsroArtifact
 } from './fixedReservoirPsro';
 import type {
@@ -13,7 +13,7 @@ import type { MovementAwareGoldfishScore } from './goldfish';
 import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 
-export const STAGED_GOLDFISH_VERSION = 'staged-goldfish-ab-v1';
+export const STAGED_GOLDFISH_VERSION = 'staged-goldfish-ab-v2';
 
 export type ReservoirScoreSummary = Pick<MovementAwareGoldfishScore,
   'worstCompletions' | 'totalCompletions' | 'worstPenalizedTurnsTo50' |
@@ -40,15 +40,20 @@ export interface StagedRandomReservoirEntry {
 export type StagedReservoirEntry = StagedGoldfishReservoirEntry | StagedRandomReservoirEntry;
 
 export interface StagedFixedReservoirPoolArtifact {
-  schemaVersion: 1;
+  schemaVersion: 2;
   experiment: 'staged-fixed-reservoir-pool';
   version: typeof STAGED_GOLDFISH_VERSION;
   kingdomId: string;
   poolSeed: number;
   goldfishSeeds: number[];
   generatedCount: number;
-  generatedIds: string[];
   generatedHash: string;
+  canonicalProvenanceDigest: string;
+  duplicateCanonicalCount: number;
+  displayIdCollisionCount: number;
+  scoringProtocol: string;
+  shardProvenance: Array<{ shardId: string; startPosition: number; endPosition: number;
+    candidateDigest: string; scoreDigest: string }>;
   prefilterCount: number;
   scoring: {
     profiles: string[];
@@ -174,11 +179,17 @@ function validateStagedFixedReservoirPoolUnchecked(
 ): value is StagedFixedReservoirPoolArtifact {
   if (!value || typeof value !== 'object') return false;
   const artifact = value as Partial<StagedFixedReservoirPoolArtifact>;
-  if (artifact.schemaVersion !== 1 || artifact.experiment !== 'staged-fixed-reservoir-pool'
-    || artifact.version !== STAGED_GOLDFISH_VERSION || !Array.isArray(artifact.generatedIds)
+  if (artifact.schemaVersion !== 2 || artifact.experiment !== 'staged-fixed-reservoir-pool'
+    || artifact.version !== STAGED_GOLDFISH_VERSION
     || !Array.isArray(artifact.goldfishSeeds) || !Array.isArray(artifact.reservoir)
-    || !artifact.scoring || artifact.generatedIds.length !== artifact.generatedCount
-    || generatedHash(artifact.generatedIds) !== artifact.generatedHash
+    || !Array.isArray(artifact.shardProvenance) || !artifact.scoring
+    || !Number.isSafeInteger(artifact.generatedCount) || artifact.generatedCount! < artifact.reservoir.length
+    || typeof artifact.generatedHash !== 'string' || !/^[0-9a-f]{9,}$/.test(artifact.generatedHash)
+    || typeof artifact.canonicalProvenanceDigest !== 'string'
+      || !/^[0-9a-f]{9,}$/.test(artifact.canonicalProvenanceDigest)
+    || !Number.isSafeInteger(artifact.duplicateCanonicalCount) || artifact.duplicateCanonicalCount! < 0
+    || !Number.isSafeInteger(artifact.displayIdCollisionCount) || artifact.displayIdCollisionCount! < 0
+    || typeof artifact.scoringProtocol !== 'string' || artifact.scoringProtocol.length === 0
     || stagedReservoirHash(artifact.reservoir) !== artifact.reservoirHash
     || artifact.scoring.profiles.join('|') !== GOLDFISH_MOVEMENT_PROFILES.join('|')
     || artifact.scoring.combination !== 'disjoint-seed-sum-v1'
@@ -192,9 +203,16 @@ function validateStagedFixedReservoirPoolUnchecked(
   if (expected.generatedCount !== undefined && artifact.generatedCount !== expected.generatedCount) return false;
   if (expected.prefilterCount !== undefined && artifact.prefilterCount !== expected.prefilterCount) return false;
   if (expected.goldfishSeeds !== undefined && artifact.goldfishSeeds.join('|') !== expected.goldfishSeeds.join('|')) return false;
-  const generated = new Set(artifact.generatedIds);
   const reservoirIds = artifact.reservoir.map((entry) => entry.strategy.id);
-  if (new Set(reservoirIds).size !== reservoirIds.length || reservoirIds.some((id) => !generated.has(id))) return false;
+  if (new Set(reservoirIds).size !== reservoirIds.length) return false;
+  const canonical = artifact.reservoir.map((entry) => canonicalStrategy(entry.strategy));
+  if (new Set(canonical).size !== canonical.length) return false;
+  const shards = [...artifact.shardProvenance].sort((left, right) => left.startPosition - right.startPosition);
+  if (shards.length && (shards[0]!.startPosition !== 0
+    || shards.at(-1)!.endPosition !== artifact.generatedCount
+    || shards.some((entry, index) => entry.endPosition < entry.startPosition
+      || (index > 0 && shards[index - 1]!.endPosition !== entry.startPosition)
+      || !entry.candidateDigest || !entry.scoreDigest))) return false;
   const goldfish = artifact.reservoir.filter((entry): entry is StagedGoldfishReservoirEntry => entry.source === 'goldfish');
   const random = artifact.reservoir.filter((entry): entry is StagedRandomReservoirEntry => entry.source === 'random');
   if (expected.goldfishCount !== undefined && goldfish.length !== expected.goldfishCount) return false;
@@ -205,11 +223,7 @@ function validateStagedFixedReservoirPoolUnchecked(
   if (random.some((entry, index) => entry.randomTailRank !== index + 1
     || entry.stageOneGoldfishRank < 1 || entry.stageOneGoldfishRank > artifact.generatedCount!
     || entry.scoreProvenance !== 'stage-one-only' || !validSummary(entry.stageOneScore))) return false;
-  const goldfishIds = new Set(goldfish.map((entry) => entry.strategy.id));
-  const expectedTail = [...new Set(artifact.generatedIds)].filter((id) => !goldfishIds.has(id))
-    .sort((left, right) => tailRank(left, artifact.poolSeed!) - tailRank(right, artifact.poolSeed!)
-      || left.localeCompare(right)).slice(0, random.length);
-  return expectedTail.join('|') === random.map((entry) => entry.strategy.id).join('|')
+  return random.every((entry, index) => entry.randomTailRank === index + 1)
     && artifact.reservoir.every((entry) => canonicalStrategy(entry.strategy).length > 0);
 }
 
@@ -225,9 +239,13 @@ function normalizedPool(pool: StagedFixedReservoirPoolArtifact): FixedReservoirP
     ? { strategy: entry.strategy, source: 'goldfish', goldfishRank: entry.fourSeedGoldfishRank, score: entry.score }
     : { strategy: entry.strategy, source: 'random', goldfishRank: entry.stageOneGoldfishRank,
       score: entry.stageOneScore });
-  return { schemaVersion: 1, experiment: 'fixed-reservoir-pool', version: FIXED_RESERVOIR_VERSION,
+  return { schemaVersion: 2, experiment: 'fixed-reservoir-pool', version: FIXED_RESERVOIR_VERSION,
     kingdomId: pool.kingdomId, poolSeed: pool.poolSeed, goldfishSeeds: pool.goldfishSeeds,
-    generatedCount: pool.generatedCount, generatedIds: pool.generatedIds, generatedHash: pool.generatedHash,
+    generatedCount: pool.generatedCount, generatedHash: pool.generatedHash,
+    canonicalProvenanceDigest: pool.canonicalProvenanceDigest,
+    duplicateCanonicalCount: pool.duplicateCanonicalCount,
+    displayIdCollisionCount: pool.displayIdCollisionCount, scoringProtocol: pool.scoringProtocol,
+    shardProvenance: pool.shardProvenance,
     reservoirHash: reservoirHash(reservoir), reservoir, elapsedMs: pool.elapsedMs };
 }
 

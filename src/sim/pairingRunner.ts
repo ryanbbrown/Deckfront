@@ -1,5 +1,5 @@
 import { isMainThread, parentPort, Worker } from 'node:worker_threads';
-import { playPairing } from './pairing';
+import { playPairing, playPairingScoreOnly } from './pairing';
 import type { PairingOptions, PairingOutcome } from './pairing';
 import type { Strategy } from './strategy';
 
@@ -7,6 +7,7 @@ export interface PairingJob {
   candidate: Strategy;
   opponent: Strategy;
   options: PairingOptions;
+  scoreOnly?: boolean;
 }
 
 export interface PairingBatchResult {
@@ -33,7 +34,9 @@ export class InlinePairingRunner implements PairingRunner {
     for (let index = 0; index < jobs.length; index += 1) {
       if (options.deadline !== undefined && now() >= options.deadline) break;
       const job = jobs[index]!;
-      outcomes[index] = playPairing(job.candidate, job.opponent, job.options);
+      outcomes[index] = job.scoreOnly
+        ? playPairingScoreOnly(job.candidate, job.opponent, job.options)
+        : playPairing(job.candidate, job.opponent, job.options);
       submitted += 1;
     }
     return { outcomes, submitted };
@@ -42,8 +45,20 @@ export class InlinePairingRunner implements PairingRunner {
   async close(): Promise<void> {}
 }
 
-interface WorkerItem { id: number; job: PairingJob }
-interface WorkerRequest { kind: 'pairing-batch'; items: readonly WorkerItem[] }
+interface CompactWorkerItem {
+  id: number;
+  candidate: number;
+  opponent: number;
+  options: number;
+  scoreOnly: boolean;
+}
+interface WorkerRequest {
+  kind: 'pairing-batch-v2';
+  candidates: readonly Strategy[];
+  opponents: readonly Strategy[];
+  options: readonly PairingOptions[];
+  items: readonly CompactWorkerItem[];
+}
 interface WorkerSuccess { kind: 'pairing-results'; outcomes: readonly { id: number; outcome: PairingOutcome }[] }
 interface WorkerFailure { kind: 'pairing-error'; name: string; message: string; stack?: string | undefined }
 type WorkerResponse = WorkerSuccess | WorkerFailure;
@@ -59,8 +74,8 @@ export class WorkerPairingRunner implements PairingRunner {
     workerCount: number, workerUrl: URL, extraWorkerData: Record<string, unknown> = {},
     workerExecArgv?: string[]
   ) {
-    if (!Number.isInteger(workerCount) || workerCount < 1 || workerCount > 16) {
-      throw new Error(`workers must be an integer from 1 to 16, not ${workerCount}.`);
+    if (!Number.isInteger(workerCount) || workerCount < 1 || workerCount > 192) {
+      throw new Error(`workers must be an integer from 1 to 192, not ${workerCount}.`);
     }
     this.pool = Array.from({ length: workerCount }, () => ({
       worker: new Worker(workerUrl, {
@@ -107,20 +122,43 @@ export class WorkerPairingRunner implements PairingRunner {
           finish();
           return;
         }
-        const items: WorkerItem[] = [];
+        const jobsInBatch: Array<{ id: number; job: PairingJob }> = [];
         let estimatedGames = 0;
         const targetGames = options.now ? 1 : 32;
-        while (next < jobs.length && items.length < 8 && estimatedGames < targetGames) {
+        while (next < jobs.length && jobsInBatch.length < 8 && estimatedGames < targetGames) {
           const id = next;
           const job = jobs[id]!;
-          items.push({ id, job });
+          jobsInBatch.push({ id, job });
           estimatedGames += job.options.seeds.length * 4;
           next += 1;
         }
-        submitted += items.length;
+        submitted += jobsInBatch.length;
         active += 1;
         entry.busy = true;
-        entry.worker.postMessage({ kind: 'pairing-batch', items } satisfies WorkerRequest);
+        const candidates: Strategy[] = [];
+        const opponents: Strategy[] = [];
+        const compactOptions: PairingOptions[] = [];
+        const candidateIndex = new Map<string, number>();
+        const opponentIndex = new Map<string, number>();
+        const optionsIndex = new Map<string, number>();
+        const internStrategy = (strategy: Strategy, values: Strategy[], held: Map<string, number>): number => {
+          const key = JSON.stringify(strategy);
+          const existing = held.get(key);
+          if (existing !== undefined) return existing;
+          const index = values.length; values.push(strategy); held.set(key, index); return index;
+        };
+        const items = jobsInBatch.map(({ id, job }): CompactWorkerItem => {
+          const optionsKey = JSON.stringify(job.options);
+          let heldOptions = optionsIndex.get(optionsKey);
+          if (heldOptions === undefined) {
+            heldOptions = compactOptions.length; compactOptions.push(job.options); optionsIndex.set(optionsKey, heldOptions);
+          }
+          return { id, candidate: internStrategy(job.candidate, candidates, candidateIndex),
+            opponent: internStrategy(job.opponent, opponents, opponentIndex), options: heldOptions,
+            scoreOnly: job.scoreOnly ?? false };
+        });
+        entry.worker.postMessage({ kind: 'pairing-batch-v2', candidates, opponents,
+          options: compactOptions, items } satisfies WorkerRequest);
       };
 
       for (const entry of this.pool) {
@@ -171,11 +209,16 @@ export class WorkerPairingRunner implements PairingRunner {
 export function runPairingWorker(): void {
   if (isMainThread || !parentPort) throw new Error('The pairing worker handler needs a worker thread.');
   parentPort.on('message', (request: WorkerRequest) => {
-    if (request.kind !== 'pairing-batch') return;
+    if (request.kind !== 'pairing-batch-v2') return;
     try {
-      const outcomes = request.items.map(({ id, job }) => ({
-        id, outcome: playPairing(job.candidate, job.opponent, job.options)
-      }));
+      const outcomes = request.items.map((item) => {
+        const candidate = request.candidates[item.candidate]!;
+        const opponent = request.opponents[item.opponent]!;
+        const options = request.options[item.options]!;
+        const outcome = item.scoreOnly ? playPairingScoreOnly(candidate, opponent, options)
+          : playPairing(candidate, opponent, options);
+        return { id: item.id, outcome };
+      });
       parentPort!.postMessage({ kind: 'pairing-results', outcomes } satisfies WorkerSuccess);
     } catch (error) {
       const value = error instanceof Error ? error : new Error(String(error));

@@ -346,30 +346,29 @@ function pilotView(state: KernelState, actor: 0 | 1, pending: 'discard' | 'recov
     };
   });
   const cull = hand.find((card) => card.mechanic === 'cull');
-  const copper = hand.filter((card) => card.definitionId === 'copper').map((card) => card.handIndex);
-  const scrap = hand.filter((card) => card.definitionId === 'scrap').slice(0, 2).map((card) => card.handIndex);
-  const copperIndex = state.kingdom.index.get('copper')!;
-  const copperOwned = player.hand.filter((index) => index === copperIndex).length
-    + player.draw.slice(player.drawHead).filter((index) => index === copperIndex).length
-    + player.discard.filter((index) => index === copperIndex).length
-    + player.play.filter((index) => index === copperIndex).length;
-  const scrapIndex = state.kingdom.index.get('scrap')!;
-  const scrapOwned = player.hand.filter((index) => index === scrapIndex).length
-    + player.draw.slice(player.drawHead).filter((index) => index === scrapIndex).length
-    + player.discard.filter((index) => index === scrapIndex).length
-    + player.play.filter((index) => index === scrapIndex).length;
-  const cullOptions: CullOption[] = cull ? [{
-    trashHandIndexes: scrap, trashCull: false, copperTrashed: 0, scrapTrashed: scrap.length,
-    purchaseProjection: purchaseProjection(state, actor, 0)
-  }] : [];
+  const cullOptions: CullOption[] = [];
   if (cull) {
+    const copper = hand.filter((card) => card.definitionId === 'copper').map((card) => card.handIndex);
+    const scrap = hand.filter((card) => card.definitionId === 'scrap').slice(0, 2).map((card) => card.handIndex);
+    cullOptions.push({ trashHandIndexes: scrap, trashCull: false, copperTrashed: 0,
+      scrapTrashed: scrap.length, purchaseProjection: purchaseProjection(state, actor, 0) });
     const remainingCapacity = 2 - scrap.length;
     for (let count = 1; count <= Math.min(remainingCapacity, copper.length); count += 1) cullOptions.push({
       trashHandIndexes: [...scrap, ...copper.slice(0, count)], trashCull: false,
       copperTrashed: count, scrapTrashed: scrap.length,
       purchaseProjection: purchaseProjection(state, actor, count)
     });
-    if (scrapOwned === 0 && copperOwned === 0) cullOptions.push({
+    const owned = (definitionId: string): number => {
+      const index = state.kingdom.index.get(definitionId)!;
+      let count = 0;
+      for (const held of player.hand) if (held === index) count += 1;
+      for (let offset = player.drawHead; offset < player.draw.length; offset += 1) {
+        if (player.draw[offset] === index) count += 1;
+      }
+      for (const zone of [player.discard, player.play]) for (const held of zone) if (held === index) count += 1;
+      return count;
+    };
+    if (owned('scrap') === 0 && owned('copper') === 0) cullOptions.push({
       trashHandIndexes: [], trashCull: true, copperTrashed: 0, scrapTrashed: 0,
       purchaseProjection: purchaseProjection(state, actor, 0)
     });
@@ -388,10 +387,10 @@ function pilotView(state: KernelState, actor: 0 | 1, pending: 'discard' | 'recov
     mana: player.mana, manaSpent: state.manaSpent, spellsPlayed: state.spellsPlayed, cardsPlayed: state.cardsPlayed.length,
     copiesPlayed: Object.fromEntries(state.kingdom.cards.map((card, index) => [card.id, state.copiesPlayed[index]!])),
     familiesPlayed: [...state.familiesPlayed], positionChanged: state.spacesMoved > 0, tacticalPlayed: state.tacticalPlayed, cullOptions,
-    discardOptions: hand.map((card): DiscardOption => ({
+    discardOptions: pending === 'discard' ? hand.map((card): DiscardOption => ({
       handIndex: card.handIndex,
       purchaseProjection: purchaseProjection(state, actor, card.money)
-    })),
+    })) : [],
     actorProfile: player.attackProfile, opponentProfile: state.players[other(actor)].attackProfile
   };
 }
@@ -638,6 +637,7 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
 }
 
 function recordDeadDraws(state: KernelState, actor: 0 | 1): void {
+  if (!state.collectTelemetry) return;
   const player = state.players[actor];
   const counts = state.telemetry.deadDraws[playerId(actor)];
   const close = state.positions[actor] === state.positions[other(actor)];
@@ -869,6 +869,40 @@ export function runLeanGoldfishTrial(config: GoldfishTrialConfig): LeanGoldfishT
     damageArea, finalDamage, moneySpent: state.players[0].moneySpent,
     unspentMoney: state.players[0].unspentMoney, reason
   };
+}
+
+export function runSimulationMatchScoreOnly(config: SimulationMatchConfig): MatchResult {
+  const state = createState(config, false);
+  let outcome: MatchResult['outcome'] = 'draw';
+  let reason: MatchResult['reason'] = 'turnLimit';
+  let actionsInTurn = 0;
+  let phase: 'action' | 'buy' = 'action';
+  for (;;) {
+    const actor = state.active;
+    let turnChanged = false;
+    if (phase === 'action') {
+      const decision = chooseTacticalAction(pilotView(state, actor, null));
+      if (decision.type === 'play') {
+        const won = playCard(state, actor, decision); actionsInTurn += 1;
+        if (won) { outcome = playerId(actor); reason = 'victory'; break; }
+      } else { endActionPhase(state, actor); actionsInTurn += 1; phase = 'buy'; }
+    } else {
+      const purchase = choosePurchase(state, actor);
+      if (purchase !== null) { buy(state, actor, purchase); actionsInTurn += 1; }
+      else { endBuyPhase(state, actor); actionsInTurn += 1; phase = 'action'; turnChanged = true; }
+    }
+    if (actionsInTurn > config.actionCapPerTurn) { reason = 'actionCap'; break; }
+    if (state.turn > config.turnLimitPerPlayer * 2) { reason = 'turnLimit'; break; }
+    if (turnChanged) actionsInTurn = 0;
+  }
+  state.telemetry.eventCount = state.eventCount;
+  state.telemetry.finalHealth = { ochre: state.health[0], indigo: state.health[1] };
+  return { config: { kingdomId: config.kingdomId, seed: config.seed,
+    firstPlayerId: config.firstPlayerId, swapSides: config.swapSides,
+    turnLimitPerPlayer: config.turnLimitPerPlayer, actionCapPerTurn: config.actionCapPerTurn,
+    startingDraftEnabled: config.startingDraftEnabled ?? true,
+    agentIds: { ochre: config.strategies.ochre.id, indigo: config.strategies.indigo.id } },
+    outcome, reason, turns: state.turn - 1, telemetry: state.telemetry };
 }
 
 export function runSimulationMatch(config: SimulationMatchConfig): MatchResult {

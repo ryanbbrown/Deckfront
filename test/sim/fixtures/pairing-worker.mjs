@@ -13,7 +13,7 @@ const telemetry = () => ({
 });
 
 parentPort.on('message', (request) => {
-  if (request.items.some((item) => item.job.candidate.id === 'fail')) {
+  if (request.items.some((item) => request.candidates[item.candidate].id === 'fail')) {
     parentPort.postMessage({
       kind: 'pairing-error', name: 'Error', message: 'worker exploded'
     });

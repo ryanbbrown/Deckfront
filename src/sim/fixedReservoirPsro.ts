@@ -14,8 +14,9 @@ import { rulesFingerprint } from './rulesFingerprint';
 import type { RulesFingerprint } from './rulesFingerprint';
 import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
+import { compareUtf16 } from './utf16';
 
-export const FIXED_RESERVOIR_VERSION = 'fixed-reservoir-psro-v1';
+export const FIXED_RESERVOIR_VERSION = 'fixed-reservoir-psro-v2';
 export const FIXED_RESERVOIR_EVALUATION_SEED = 7_100_009;
 export interface FixedReservoirProtocol {
   generatedCount: number; goldfishCount: number; randomCount: number; initialStrategies: number;
@@ -42,15 +43,20 @@ export interface ReservoirEntry {
     'worstPenalizedTurnsTo50' | 'totalPenalizedTurnsTo50' | 'worstDamageArea' | 'totalDamageArea'>;
 }
 export interface FixedReservoirPoolArtifact {
-  schemaVersion: 1;
+  schemaVersion: 2;
   experiment: 'fixed-reservoir-pool';
   version: typeof FIXED_RESERVOIR_VERSION;
   kingdomId: string;
   poolSeed: number;
   goldfishSeeds: number[];
   generatedCount: number;
-  generatedIds: string[];
   generatedHash: string;
+  canonicalProvenanceDigest: string;
+  duplicateCanonicalCount: number;
+  displayIdCollisionCount: number;
+  scoringProtocol: string;
+  shardProvenance: Array<{ shardId: string; startPosition: number; endPosition: number;
+    candidateDigest: string; scoreDigest: string }>;
   reservoirHash: string;
   reservoir: ReservoirEntry[];
   elapsedMs: number;
@@ -95,7 +101,8 @@ export function selectFixedReservoir(
   const rankById = new Map(ranked.map((entry, index) => [entry.strategy.id, index + 1]));
   const tail = ranked.filter((entry) => !topIds.has(entry.strategy.id)).sort((left, right) =>
     seededRank(left.strategy.id, tailSeed) - seededRank(right.strategy.id, tailSeed)
-      || left.strategy.id.localeCompare(right.strategy.id)).slice(0, randomCount);
+      || compareUtf16(left.strategy.id, right.strategy.id)
+      || compareUtf16(canonicalStrategy(left.strategy), canonicalStrategy(right.strategy))).slice(0, randomCount);
   const map = (entry: MovementAwareGoldfishScore, source: ReservoirEntry['source']): ReservoirEntry => ({
     strategy: entry.strategy, source, goldfishRank: rankById.get(entry.strategy.id)!,
     score: { worstCompletions: entry.worstCompletions, totalCompletions: entry.totalCompletions,
@@ -119,19 +126,32 @@ export function validateFixedReservoirPool(
 ): value is FixedReservoirPoolArtifact {
   if (!value || typeof value !== 'object') return false;
   const artifact = value as Partial<FixedReservoirPoolArtifact>;
-  if (artifact.schemaVersion !== 1 || artifact.experiment !== 'fixed-reservoir-pool'
-    || artifact.version !== FIXED_RESERVOIR_VERSION || !Array.isArray(artifact.generatedIds)
-    || !Array.isArray(artifact.reservoir) || artifact.generatedIds.length !== artifact.generatedCount
-    || generatedHash(artifact.generatedIds) !== artifact.generatedHash
+  if (artifact.schemaVersion !== 2 || artifact.experiment !== 'fixed-reservoir-pool'
+    || artifact.version !== FIXED_RESERVOIR_VERSION || !Array.isArray(artifact.reservoir)
+    || !Array.isArray(artifact.shardProvenance) || !Number.isSafeInteger(artifact.generatedCount)
+    || artifact.generatedCount! < artifact.reservoir.length
+    || typeof artifact.generatedHash !== 'string' || !/^[0-9a-f]{9,}$/.test(artifact.generatedHash)
+    || typeof artifact.canonicalProvenanceDigest !== 'string'
+      || !/^[0-9a-f]{9,}$/.test(artifact.canonicalProvenanceDigest)
+    || !Number.isSafeInteger(artifact.duplicateCanonicalCount) || artifact.duplicateCanonicalCount! < 0
+    || !Number.isSafeInteger(artifact.displayIdCollisionCount) || artifact.displayIdCollisionCount! < 0
+    || typeof artifact.scoringProtocol !== 'string' || artifact.scoringProtocol.length === 0
     || reservoirHash(artifact.reservoir) !== artifact.reservoirHash) return false;
   if (expected.kingdomId !== undefined && artifact.kingdomId !== expected.kingdomId) return false;
   if (expected.poolSeed !== undefined && artifact.poolSeed !== expected.poolSeed) return false;
   if (expected.generatedCount !== undefined && artifact.generatedCount !== expected.generatedCount) return false;
   if (expected.goldfishSeeds !== undefined
     && artifact.goldfishSeeds?.join('|') !== expected.goldfishSeeds.join('|')) return false;
-  const generated = new Set(artifact.generatedIds);
   const reservoirIds = artifact.reservoir.map((entry) => entry.strategy.id);
-  if (new Set(reservoirIds).size !== reservoirIds.length || reservoirIds.some((id) => !generated.has(id))) return false;
+  if (new Set(reservoirIds).size !== reservoirIds.length) return false;
+  const canonical = artifact.reservoir.map((entry) => canonicalStrategy(entry.strategy));
+  if (new Set(canonical).size !== canonical.length) return false;
+  const shards = [...artifact.shardProvenance].sort((left, right) => left.startPosition - right.startPosition);
+  if (shards.length && (shards[0]!.startPosition !== 0
+    || shards.at(-1)!.endPosition !== artifact.generatedCount
+    || shards.some((entry, index) => entry.endPosition < entry.startPosition
+      || (index > 0 && shards[index - 1]!.endPosition !== entry.startPosition)
+      || !entry.candidateDigest || !entry.scoreDigest))) return false;
   const goldfish = artifact.reservoir.filter((entry) => entry.source === 'goldfish');
   const random = artifact.reservoir.filter((entry) => entry.source === 'random');
   if (expected.goldfishCount !== undefined && goldfish.length !== expected.goldfishCount) return false;
@@ -154,7 +174,8 @@ export function globalRaceSurvivors<T extends { strategy: Strategy; mean: number
   chunks: readonly (readonly T[])[], keep: number
 ): T[] {
   return chunks.flat().sort((left, right) => right.mean - left.mean
-    || left.strategy.id.localeCompare(right.strategy.id)).slice(0, keep);
+    || compareUtf16(left.strategy.id, right.strategy.id)
+    || compareUtf16(canonicalStrategy(left.strategy), canonicalStrategy(right.strategy))).slice(0, keep);
 }
 function weightedStrategies(snapshot: MatrixSnapshot, equilibrium: EquilibriumResult): {strategy:Strategy;weight:number}[] {
   return snapshot.strategies.flatMap((strategy) => {
@@ -174,7 +195,7 @@ async function evaluateChunks(candidates: readonly Strategy[], opponents: Readon
   for (let index=0; index<candidates.length; index+=chunkSize) {
     chunks.push(await evaluateCandidates(candidates.slice(index,index+chunkSize), opponents, schedule, runner, {
       kingdomId, turnLimitPerPlayer:TURN_LIMIT_PER_PLAYER, actionCapPerTurn:ACTION_CAP_PER_TURN,
-      startingDraftEnabled:false
+      startingDraftEnabled:false, scoreOnly:true
     }));
   }
   return globalRaceSurvivors(chunks, candidates.length);
@@ -200,11 +221,13 @@ export async function scanFixedReservoir(input: { candidates: readonly Strategy[
   const schedule=mixtureSchedule(weights,input.confirmationSeeds,input.samplingSeeds.at(-1)!);
   const evidence=await evaluateCandidates(finalists,opponents,schedule,input.runner,{
     kingdomId:input.kingdomId,turnLimitPerPlayer:TURN_LIMIT_PER_PLAYER,actionCapPerTurn:ACTION_CAP_PER_TURN,
-    startingDraftEnabled:false
+    startingDraftEnabled:false,scoreOnly:true
   });
   return evidence.map((entry,index)=>({strategy:entry.strategy,mean:entry.mean,
     interval95:percentileBootstrapMean(entry.blockScores,input.bootstrapSeeds[index]!),
-    blocks:entry.blockScores.length,matches:entry.matches})).sort((a,b)=>b.mean-a.mean||a.strategy.id.localeCompare(b.strategy.id));
+    blocks:entry.blockScores.length,matches:entry.matches})).sort((a,b)=>b.mean-a.mean
+      || compareUtf16(a.strategy.id,b.strategy.id)
+      || compareUtf16(canonicalStrategy(a.strategy),canonicalStrategy(b.strategy)));
 }
 
 export async function runFixedReservoirPsro(
@@ -328,5 +351,6 @@ export function supportEntries(
   return artifact.matrix.strategies.flatMap((strategy)=>{
     const weight=artifact.equilibrium.weights[strategy.id]??0;
     return weight>1e-6?[{strategy,weight}]:[];
-  }).sort((a,b)=>b.weight-a.weight||a.strategy.id.localeCompare(b.strategy.id));
+  }).sort((a,b)=>b.weight-a.weight||compareUtf16(a.strategy.id,b.strategy.id)
+    ||compareUtf16(canonicalStrategy(a.strategy),canonicalStrategy(b.strategy)));
 }

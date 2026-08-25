@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WorkerPairingRunner } from '../../src/sim/pairingRunner';
+import { InlinePairingRunner, WorkerPairingRunner } from '../../src/sim/pairingRunner';
 import type { PairingJob } from '../../src/sim/pairingRunner';
 import { strategy } from './fixtures';
 
@@ -16,6 +16,18 @@ function jobs(count: number, failAt = -1): PairingJob[] {
 }
 
 describe('the worker pairing runner', () => {
+  it('keeps score-only outcomes equal while dropping report telemetry', async () => {
+    const runner = new InlinePairingRunner();
+    const full = await runner.run(jobs(1));
+    const scoreOnlyJobs = jobs(1).map((job) => ({ ...job, scoreOnly: true }));
+    const compact = await runner.run(scoreOnlyJobs);
+    const withoutTelemetry = (value: typeof full.outcomes[number] | undefined) => value
+      ? { ...value, telemetry: undefined }
+      : value;
+    expect(withoutTelemetry(compact.outcomes[0])).toEqual(withoutTelemetry(full.outcomes[0]));
+    expect(compact.outcomes[0]?.telemetry.acquisitionsByStrategy).toEqual({});
+  });
+
   it('folds one-worker and reverse-completing two-worker results in submission order', async () => {
     const one = new WorkerPairingRunner(1, workerUrl);
     const two = new WorkerPairingRunner(2, workerUrl);

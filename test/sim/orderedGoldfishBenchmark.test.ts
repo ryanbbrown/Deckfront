@@ -72,11 +72,11 @@ describe('ordered unique-card goldfish candidate space', () => {
 describe('ordered goldfish CLI arguments', () => {
   it('has reproducible defaults and accepts count as the limit alias', () => {
     expect(parseOrderedGoldfishArgs([])).toEqual({ kingdomId: 'deep-beam-tuning-009',
-      limit: 100_000, workers: 10, shuffles: 1, chunkSize: 250, scorer: 'original' });
+      limit: 100_000, workers: 10, shuffles: 1, chunkSize: 250, scorer: 'original', startPosition: 0 });
     expect(parseOrderedGoldfishArgs(['--kingdom', 'deep-beam-tuning-003', '--count', '25',
       '--workers', '2', '--shuffles', '4', '--chunk-size', '8', '--scorer', 'lean']))
       .toEqual({ kingdomId: 'deep-beam-tuning-003', limit: 25, workers: 2, shuffles: 4,
-        chunkSize: 8, scorer: 'lean' });
+        chunkSize: 8, scorer: 'lean', startPosition: 0 });
   });
 
   it.each([
@@ -85,6 +85,7 @@ describe('ordered goldfish CLI arguments', () => {
     [['--limit', '2', '--count', '2'], 'Use either --limit or --count, not both.'],
     [['--workers', '2', '--workers', '3'], '--workers can be specified only once.'],
     [['--chunk-size', '0'], '--chunk-size must be a positive integer.'],
+    [['--start-position', '-1'], '--start-position must be a nonnegative integer.'],
     [['--scorer', 'fast'], '--scorer must be original, lean, or rust.'],
     [['--mystery', '2'], 'Unknown ordered goldfish option: --mystery']
   ])('rejects invalid arguments %j', (args, message) => {

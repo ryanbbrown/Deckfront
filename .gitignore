@@ -19,3 +19,10 @@ coverage/
 
 .experiments/
 dist-sim/
+dist-benchmark/
+
+/rust/target/
+__pycache__/
+.venv/
+venv/
+.modal/

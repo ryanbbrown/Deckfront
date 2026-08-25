@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
-  FIXED_RESERVOIR_EVALUATION_SEED, generatedHash, globalRaceSurvivors, nextCleanStreak,
+  FIXED_RESERVOIR_EVALUATION_SEED, globalRaceSurvivors, nextCleanStreak,
   remainingReservoirStrategies, reservoirHash, selectFixedReservoir, validateFixedReservoirPool,
   validateFixedReservoirPsroArtifact
 } from '../../src/sim/fixedReservoirPsro';
 import type { FixedReservoirPoolArtifact, ReservoirEntry } from '../../src/sim/fixedReservoirPsro';
 import type { MovementAwareGoldfishScore } from '../../src/sim/goldfish';
+import { generatedProvenance } from '../../src/sim/nativeStrategySearch';
 import { INFINITE_COUNT, fixedBuyPlan, identify } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import {
@@ -58,10 +59,14 @@ describe('fixed reservoir PSRO',()=>{
 
   it('validates pool provenance and keeps evaluation seed independent of pool seed',()=>{
     const reservoir=selectFixedReservoir(Array.from({length:8},(_u,index)=>score(index)),3,2,7);
-    const generatedIds=Array.from({length:8},(_u,index)=>strategy(index).id);
-    const artifact:FixedReservoirPoolArtifact={schemaVersion:1,experiment:'fixed-reservoir-pool',version:'fixed-reservoir-psro-v1',
-      kingdomId:'fixture',poolSeed:7,goldfishSeeds:[10,11],generatedCount:8,generatedIds,
-      generatedHash:generatedHash(generatedIds),reservoirHash:reservoirHash(reservoir),reservoir,elapsedMs:1};
+    const provenance=generatedProvenance(Array.from({length:8},(_u,index)=>strategy(index)));
+    const artifact:FixedReservoirPoolArtifact={schemaVersion:2,experiment:'fixed-reservoir-pool',version:'fixed-reservoir-psro-v2',
+      kingdomId:'fixture',poolSeed:7,goldfishSeeds:[10,11],generatedCount:8,
+      generatedHash:provenance.generatedIdDigest,canonicalProvenanceDigest:provenance.canonicalProvenanceDigest,
+      duplicateCanonicalCount:0,displayIdCollisionCount:0,scoringProtocol:'fixture-v1',
+      shardProvenance:[{shardId:'0',startPosition:0,endPosition:8,
+        candidateDigest:provenance.canonicalProvenanceDigest,scoreDigest:'123456789'}],
+      reservoirHash:reservoirHash(reservoir),reservoir,elapsedMs:1};
     expect(validateFixedReservoirPool(artifact,{kingdomId:'fixture',poolSeed:7,generatedCount:8,
       goldfishCount:3,randomCount:2,goldfishSeeds:[10,11]})).toBe(true);
     expect(validateFixedReservoirPool({...artifact,generatedHash:'bad'})).toBe(false);

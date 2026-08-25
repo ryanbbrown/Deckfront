@@ -1,5 +1,5 @@
 import type { PlayerId } from '../game';
-import { runSimulationMatch } from './simulationKernel';
+import { runSimulationMatch, runSimulationMatchScoreOnly } from './simulationKernel';
 import type { Strategy } from './strategy';
 import type { MatchResult, OrientationKey, PairRecord, SideKey, TelemetryAggregate } from './types';
 
@@ -192,8 +192,9 @@ export type PairingMatchRunner = typeof runSimulationMatch;
  * An aborted game is recorded outside `played` and the mean. PSRO callers reject the complete cell
  * or evaluation when `aborted` is nonzero.
  */
-export function playPairing(
-  candidate: Strategy, opponent: Strategy, options: PairingOptions, matchRunner?: PairingMatchRunner
+function playPairingMode(
+  candidate: Strategy, opponent: Strategy, options: PairingOptions,
+  scoreOnly: boolean, matchRunner?: PairingMatchRunner
 ): PairingOutcome {
   if (options.seeds.length < 1 || options.seeds.length > 25) {
     throw new Error(`A pairing needs 1 to 25 shared seeds, not ${options.seeds.length}.`);
@@ -221,7 +222,7 @@ export function playPairing(
         ? { ochre: candidate.id, indigo: opponent.id }
         : { ochre: opponent.id, indigo: candidate.id };
 
-      const result = (matchRunner ?? runSimulationMatch)({
+      const result = (matchRunner ?? (scoreOnly ? runSimulationMatchScoreOnly : runSimulationMatch))({
           kingdomId: options.kingdomId,
           seed: matchSeed(seed, orientationIndex),
           firstPlayerId: orientation.firstPlayerId,
@@ -234,7 +235,7 @@ export function playPairing(
             : { ochre: opponent, indigo: candidate }
         });
       matches += 1;
-      recordMatch(telemetry, result, orientation, seatStrategyIds);
+      if (!scoreOnly) recordMatch(telemetry, result, orientation, seatStrategyIds);
 
       if (result.outcome === 'aborted') {
         record.aborted += 1;
@@ -273,4 +274,16 @@ export function playPairing(
     opponentMean: record.played ? opponentScore / record.played : null,
     blocks, aborts
   };
+}
+
+export function playPairing(
+  candidate: Strategy, opponent: Strategy, options: PairingOptions, matchRunner?: PairingMatchRunner
+): PairingOutcome {
+  return playPairingMode(candidate, opponent, options, false, matchRunner);
+}
+
+export function playPairingScoreOnly(
+  candidate: Strategy, opponent: Strategy, options: PairingOptions
+): PairingOutcome {
+  return playPairingMode(candidate, opponent, options, true);
 }

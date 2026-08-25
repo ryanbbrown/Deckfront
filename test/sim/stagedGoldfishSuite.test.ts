@@ -18,11 +18,11 @@ describe('staged goldfish suite configuration', () => {
   it('isolates each pool seed and retains the seed-5 evidence namespace', () => {
     expect(STAGED_GOLDFISH_POOL_SEEDS.map((seed) =>
       stagedGoldfishArtifactDirectory('deep-beam-tuning-009', seed))).toEqual([
-      '.experiments/staged-goldfish-ab/staged-goldfish-ab-v1/deep-beam-tuning-009/seed-1',
-      '.experiments/staged-goldfish-ab/staged-goldfish-ab-v1/deep-beam-tuning-009/seed-2',
-      '.experiments/staged-goldfish-ab/staged-goldfish-ab-v1/deep-beam-tuning-009/seed-3',
-      '.experiments/staged-goldfish-ab/staged-goldfish-ab-v1/deep-beam-tuning-009/seed-4',
-      '.experiments/staged-goldfish-ab/staged-goldfish-ab-v1/deep-beam-tuning-009/seed-5'
+      '.experiments/staged-goldfish-ab/staged-goldfish-ab-v2/deep-beam-tuning-009/seed-1',
+      '.experiments/staged-goldfish-ab/staged-goldfish-ab-v2/deep-beam-tuning-009/seed-2',
+      '.experiments/staged-goldfish-ab/staged-goldfish-ab-v2/deep-beam-tuning-009/seed-3',
+      '.experiments/staged-goldfish-ab/staged-goldfish-ab-v2/deep-beam-tuning-009/seed-4',
+      '.experiments/staged-goldfish-ab/staged-goldfish-ab-v2/deep-beam-tuning-009/seed-5'
     ]);
     expect(STAGED_GOLDFISH_POOL_SEEDS.map((seed) => stagedGoldfishEvidenceSeedRoots(seed).acquisition))
       .toEqual([8_110_000, 8_120_000, 8_130_000, 8_140_000, 8_100_000]);

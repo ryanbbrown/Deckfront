@@ -62,12 +62,13 @@ export async function evaluateCandidates(
   runner: PairingRunner, options: {
     kingdomId: string; turnLimitPerPlayer: number; actionCapPerTurn: number;
     startingDraftEnabled?: boolean | undefined; deadline?: number | undefined;
+    scoreOnly?: boolean | undefined;
   }
 ): Promise<CandidateEvaluation[]> {
   const jobs = candidates.flatMap((candidate) => schedule.blocks.map((block) => {
     const opponent = opponents.get(block.opponentId);
     if (!opponent) throw new Error(`Mixture opponent ${block.opponentId} is missing.`);
-    return { candidate, opponent, options: {
+    return { candidate, opponent, scoreOnly: options.scoreOnly ?? false, options: {
       kingdomId: options.kingdomId, seeds: [block.seed],
       turnLimitPerPlayer: options.turnLimitPerPlayer, actionCapPerTurn: options.actionCapPerTurn,
       startingDraftEnabled: options.startingDraftEnabled ?? true, allowEarlyStop: false

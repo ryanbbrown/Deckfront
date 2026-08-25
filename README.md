@@ -165,6 +165,39 @@ witness and the feasible archetype-share range over each full discovered matrix.
 pure-family competitive depth and card relationships, and equilibrium-weighted card use. All equilibrium
 ranges are conditional on discovered strategies and do not cover omitted strategies.
 
+## Native strategy search
+
+The ordered Kingdom 009 benchmark streams bounded chunks, dispatches them dynamically, and folds candidate and ranking digests in traversal order. The original and lean TypeScript paths must return the same digest.
+
+```sh
+npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 250 --scorer original
+npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 250 --scorer lean
+npm run psro:worker-benchmark -- --workers 4 --candidates 30 --blocks 4 --mode score-only
+```
+
+The native workspace pins Rust 1.98.0. Build and verify it on Linux x86-64 with:
+
+```sh
+cd rust
+cargo build --release --target x86_64-unknown-linux-gnu
+cargo test
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+```
+
+`hexdeck-goldfish` uses versioned line-delimited JSON. It rejects a thread count above the CPU request. Get the rule fingerprint with `npm run goldfish:native-metadata`.
+
+The Modal launcher reserves the worst-case cost for all attempts before launch. It caps total reserved spend at $25, aggregate allocation at 192 physical cores, retries at two, and full-space runs at three. This unattended command launches a detached restart-safe controller. A repeat of the same command resumes the same run without a second reservation:
+
+```sh
+modal profile activate ryanburnettebrown
+modal run --detach modal/native_strategy_search.py --build-version "$(git rev-parse HEAD)" \
+  --rule-fingerprint RULE_HASH --count 5000 --shard-size 2500 --cpu 4 --memory-gib 4 \
+  --threads 4 --max-containers 2 --timeout-seconds 600 --max-cost-usd 1 --scorer lean
+```
+
+Shard checkpoints and the ordered merge live in the `hexdeck-native-strategy-results` Modal Volume. The local reservation ledger is `~/.hexdeck-modal-cost-ledger.json`.
+
 ## Code boundaries
 
 The arrows show import direction:

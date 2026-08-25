@@ -4,7 +4,7 @@ import { Worker } from 'node:worker_threads';
 import { SeededRandom, cardDefinition, registerKingdom } from '../src/game';
 import type { Kingdom } from '../src/game';
 import {
-  FIXED_RESERVOIR_CONFIG, FIXED_RESERVOIR_EVALUATION_SEED, generatedHash, scanFixedReservoir,
+  FIXED_RESERVOIR_CONFIG, FIXED_RESERVOIR_EVALUATION_SEED, scanFixedReservoir,
   supportEntries, validateFixedReservoirPool, validateFixedReservoirPsroArtifact
 } from '../src/sim/fixedReservoirPsro';
 import type {
@@ -18,10 +18,11 @@ import type {
   DamageFamily, RunAcquisitionEvidence, SupportAcquisitionEvidence
 } from '../src/sim/fixedReservoirSuite';
 import {
-  GOLDFISH_MOVEMENT_PROFILES, compareMovementAwareGoldfishScores
+  GOLDFISH_MOVEMENT_PROFILES, compareMovementAwareGoldfishScores, rankingDigest
 } from '../src/sim/goldfish';
 import type { GoldfishConfig, MovementAwareGoldfishScore } from '../src/sim/goldfish';
 import { percentileBootstrapMean } from '../src/sim/mixtureEvaluation';
+import { generatedProvenance } from '../src/sim/nativeStrategySearch';
 import type { PairingJob } from '../src/sim/pairingRunner';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import { stoplessRandomDomain } from '../src/sim/randomPsro';
@@ -81,8 +82,8 @@ interface StageOneArtifact {
   poolSeed: number;
   seed: number;
   generatedCount: number;
-  generatedIds: string[];
   generatedHash: string;
+  canonicalProvenanceDigest: string;
   prefilterCount: number;
   generationMs: number;
   scoringMs: number;
@@ -183,19 +184,18 @@ function validStageOne(value: unknown, baseline: FixedReservoirPoolArtifact): va
     || artifact.version !== STAGED_GOLDFISH_VERSION || artifact.kingdomId !== KINGDOM_ID
     || artifact.poolSeed !== poolSeed || artifact.seed !== FIRST_GOLDFISH_SEED
     || artifact.generatedCount !== FIXED_RESERVOIR_CONFIG.generatedCount
-    || artifact.prefilterCount !== PREFILTER_COUNT || !Array.isArray(artifact.generatedIds)
+    || artifact.prefilterCount !== PREFILTER_COUNT
     || !Array.isArray(artifact.prefilter) || !Array.isArray(artifact.tailCandidates)
-    || artifact.generatedIds.join('|') !== baseline.generatedIds.join('|')
-    || generatedHash(artifact.generatedIds) !== artifact.generatedHash
+    || artifact.generatedHash !== baseline.generatedHash
+    || artifact.canonicalProvenanceDigest !== baseline.canonicalProvenanceDigest
     || artifact.prefilter.length !== PREFILTER_COUNT
     || artifact.tailCandidates.length !== FIXED_RESERVOIR_CONFIG.goldfishCount + FIXED_RESERVOIR_CONFIG.randomCount) return false;
-  const generated = new Set(artifact.generatedIds);
   const prefilterIds = artifact.prefilter.map((entry) => entry.score.strategy.id);
   return new Set(prefilterIds).size === prefilterIds.length
     && artifact.prefilter.every((entry) => entry.stageOneGoldfishRank >= 1
-      && entry.stageOneGoldfishRank <= artifact.generatedCount! && generated.has(entry.score.strategy.id))
+      && entry.stageOneGoldfishRank <= artifact.generatedCount!)
     && artifact.tailCandidates.every((entry) => entry.stageOneGoldfishRank >= 1
-      && entry.stageOneGoldfishRank <= artifact.generatedCount! && generated.has(entry.score.strategy.id));
+      && entry.stageOneGoldfishRank <= artifact.generatedCount!);
 }
 function baselineArtifacts(): { pool: FixedReservoirPoolArtifact; run: FixedReservoirPsroArtifact } {
   const pool = readJson(path.join(BASELINE_ROOT, `pool-${poolSeed}.json`));
@@ -225,8 +225,9 @@ async function buildPool(kingdom: Kingdom, baseline: FixedReservoirPoolArtifact)
   const generationStarted = Date.now();
   const generated = generate(FIXED_RESERVOIR_CONFIG.generatedCount);
   const generationMs = Date.now() - generationStarted;
-  const generatedIds = generated.map((strategy) => strategy.id);
-  if (generatedIds.join('|') !== baseline.generatedIds.join('|')) {
+  const provenance = generatedProvenance(generated);
+  if (provenance.generatedIdDigest !== baseline.generatedHash
+    || provenance.canonicalProvenanceDigest !== baseline.canonicalProvenanceDigest) {
     throw new Error(`Pool seed ${poolSeed} did not recreate the baseline raw strategies in order.`);
   }
   let stageOne: StageOneArtifact | null = null;
@@ -251,7 +252,8 @@ async function buildPool(kingdom: Kingdom, baseline: FixedReservoirPoolArtifact)
     });
     stageOne = { schemaVersion: 1, experiment: 'staged-goldfish-stage-one', version: STAGED_GOLDFISH_VERSION,
       kingdomId: KINGDOM_ID, poolSeed, seed: FIRST_GOLDFISH_SEED, generatedCount: generated.length,
-      generatedIds, generatedHash: generatedHash(generatedIds), prefilterCount: PREFILTER_COUNT,
+      generatedHash: provenance.generatedIdDigest,
+      canonicalProvenanceDigest: provenance.canonicalProvenanceDigest, prefilterCount: PREFILTER_COUNT,
       generationMs, scoringMs, prefilter: ranked.slice(0, PREFILTER_COUNT).map(wrap),
       tailCandidates: [...ranked].sort((left, right) => tailRank(left.strategy.id) - tailRank(right.strategy.id)
         || left.strategy.id.localeCompare(right.strategy.id))
@@ -268,10 +270,18 @@ async function buildPool(kingdom: Kingdom, baseline: FixedReservoirPoolArtifact)
   const rescoreMs = Date.now() - rescoreStarted;
   const reservoir = selectStagedReservoirFromEvidence(completedStage.prefilter, rescored, completedStage.tailCandidates,
     FIXED_RESERVOIR_CONFIG.goldfishCount, FIXED_RESERVOIR_CONFIG.randomCount);
-  const artifact: StagedFixedReservoirPoolArtifact = { schemaVersion: 1,
+  const artifact: StagedFixedReservoirPoolArtifact = { schemaVersion: 2,
     experiment: 'staged-fixed-reservoir-pool', version: STAGED_GOLDFISH_VERSION,
     kingdomId: KINGDOM_ID, poolSeed, goldfishSeeds: [...GOLDFISH_SEEDS],
-    generatedCount: generated.length, generatedIds, generatedHash: generatedHash(generatedIds),
+    generatedCount: generated.length, generatedHash: provenance.generatedIdDigest,
+    canonicalProvenanceDigest: provenance.canonicalProvenanceDigest,
+    duplicateCanonicalCount: provenance.duplicateCanonicalCount,
+    displayIdCollisionCount: provenance.displayIdCollisionCount,
+    scoringProtocol: 'typescript-staged-movement-aware-v1',
+    shardProvenance: [{ shardId: 'stage-one-local-0', startPosition: 0, endPosition: generated.length,
+      candidateDigest: provenance.canonicalProvenanceDigest,
+      scoreDigest: rankingDigest([...completedStage.prefilter.map((entry) => entry.score),
+        ...completedStage.tailCandidates.map((entry) => entry.score)]) }],
     prefilterCount: PREFILTER_COUNT, scoring: { profiles: [...GOLDFISH_MOVEMENT_PROFILES],
       combination: 'disjoint-seed-sum-v1',
       stageOne: { seeds: [FIRST_GOLDFISH_SEED], scoredCount: generated.length, elapsedMs: completedStage.scoringMs },
@@ -603,7 +613,7 @@ async function compareAndReport(kingdom: Kingdom, baseline: { pool: FixedReservo
       kingdomId: KINGDOM_ID, poolSeed, evaluationSeed: FIXED_RESERVOIR_EVALUATION_SEED,
       provenance: reportProvenance(baseline, staged),
       rawStrategiesMatch: staged.pool.generatedHash === baseline.pool.generatedHash
-        && staged.pool.generatedIds.join('|') === baseline.pool.generatedIds.join('|'),
+        && staged.pool.canonicalProvenanceDigest === baseline.pool.canonicalProvenanceDigest,
       runtime: { stageOneMs: staged.pool.scoring.stageOne.elapsedMs,
         rescoreMs: staged.pool.scoring.rescore.elapsedMs, stagedPoolMs: staged.pool.elapsedMs,
         stagedPsroMs: staged.run.elapsedMs, stagedTotalMs: staged.pool.elapsedMs + staged.run.elapsedMs,

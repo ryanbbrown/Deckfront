@@ -37,6 +37,7 @@ interface ScoreResult {
 async function scoreInWorkers(input: {
   space: ReturnType<typeof createOrderedCandidateSpace>;
   limit: number;
+  startPosition: number;
   chunkSize: number;
   config: GoldfishConfig;
   kingdom: Kingdom;
@@ -45,12 +46,14 @@ async function scoreInWorkers(input: {
 }): Promise<ScoreResult> {
   const workerCount = Math.min(input.requestedWorkers, Math.ceil(input.limit / input.chunkSize));
   const workers = Array.from({ length: workerCount }, () => new Worker(
-    new URL('../src/server/goldfishWorker.ts', import.meta.url),
-    { workerData: { kingdom: input.kingdom }, execArgv: ['--import', 'tsx'] }));
+    new URL('../dist-benchmark/goldfishWorker.mjs', import.meta.url),
+    { workerData: { kingdom: input.kingdom } }));
   const candidateDigest = new StableHashAccumulator();
   const scoreDigest = new StableHashAccumulator();
   const results = new Map<number, MovementAwareRankingScore[]>();
-  const traversal = representativeCandidateIndices(input.space.candidateCount, input.limit);
+  const traversal = representativeCandidateIndices(
+    input.space.candidateCount, input.limit, input.startPosition
+  );
   let generated = 0;
   let scored = 0;
   let nextChunkId = 0;
@@ -155,15 +158,16 @@ const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === options.king
 if (!kingdom) throw new Error(`Unknown deep-beam suite kingdom: ${options.kingdomId}`);
 registerKingdom(kingdom);
 const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
-if (options.limit > space.candidateCount) {
-  throw new Error(`--limit cannot exceed the full candidate count ${space.candidateCount}.`);
+if (options.startPosition + options.limit > space.candidateCount) {
+  throw new Error(`The traversal range cannot exceed the full candidate count ${space.candidateCount}.`);
 }
 const traversal = coprimeTraversalConfig(space.candidateCount);
 const seeds = Array.from({ length: options.shuffles }, (_unused, index) => ORDERED_GOLDFISH_SEED_BASE + index);
 const goldfishConfig: GoldfishConfig = { kingdomId: kingdom.id, seeds,
   turnLimit: ORDERED_GOLDFISH_TURN_LIMIT, actionCapPerTurn: ORDERED_GOLDFISH_ACTION_CAP };
 const scoringStarted = performance.now();
-const result = await scoreInWorkers({ space, limit: options.limit, chunkSize: options.chunkSize,
+const result = await scoreInWorkers({ space, limit: options.limit, startPosition: options.startPosition,
+  chunkSize: options.chunkSize,
   config: goldfishConfig, kingdom, requestedWorkers: options.workers, scorer: options.scorer });
 const scoringMs = performance.now() - scoringStarted;
 const individualTrials = result.scoredCount * seeds.length * GOLDFISH_MOVEMENT_PROFILES.length;
@@ -185,13 +189,15 @@ process.stdout.write(`${JSON.stringify({
   scoredCount: result.scoredCount,
   candidateChecksum: result.candidateChecksum,
   scoreKeyDigest: result.scoreKeyDigest,
-  traversal: { ...traversal, formula: '(offset + position * stride) mod fullCandidateCount',
+  traversal: { ...traversal, startPosition: options.startPosition, endPosition: options.startPosition + options.limit,
+    formula: '(offset + position * stride) mod fullCandidateCount',
     firstCandidateIndex: result.firstCandidateIndex, lastCandidateIndex: result.lastCandidateIndex },
   scoring: { path: options.scorer, profiles: GOLDFISH_MOVEMENT_PROFILES,
     shuffleSeeds: seeds, shuffleCount: seeds.length, turnLimit: goldfishConfig.turnLimit,
     actionCapPerTurn: goldfishConfig.actionCapPerTurn, requestedWorkers: options.workers,
     usedWorkers: Math.min(options.workers, Math.ceil(result.scoredCount / options.chunkSize)),
-    chunkSize: options.chunkSize, dispatch: 'dynamic-pull', digestFoldOrder: 'traversal', individualTrials },
+    chunkSize: options.chunkSize, dispatch: 'dynamic-pull', workerBuild: 'esbuild-node22',
+    digestFoldOrder: 'traversal', individualTrials },
   timing: { generationMs: result.generationMs, scoringMs,
     strategiesPerSecond: result.scoredCount / seconds, individualTrialsPerSecond: individualTrials / seconds },
   memory: { peakRssBytes: result.peakRssBytes },
