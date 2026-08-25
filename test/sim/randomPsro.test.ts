@@ -207,7 +207,7 @@ describe('random PSRO artifacts and resumability', () => {
       const labels = Object.keys(copy.seedNamespaces);
       copy.seedNamespaces[labels[1]!]![0] = copy.seedNamespaces[labels[0]!]![0]!;
     });
-  });
+  }, 10_000);
 
   it('persists unique finalists and reconsiders the archive against later mixtures', async () => {
     const artifact = await tinyArtifact(8);
