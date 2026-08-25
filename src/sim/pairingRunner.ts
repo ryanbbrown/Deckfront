@@ -141,11 +141,10 @@ export class WorkerPairingRunner implements PairingRunner {
         while (next < jobs.length && scheduleJobs.length < 8
           && (scheduleJobs.length === 0 || estimatedGames < targetGames)) {
           const first = jobs[next]!;
-          const candidateKey = JSON.stringify(first.candidate);
           const schedule: Array<{ id: number; job: PairingJob }> = [];
           while (next < jobs.length) {
             const job = jobs[next]!;
-            if (JSON.stringify(job.candidate) !== candidateKey
+            if (job.candidate !== first.candidate
               || (job.scoreOnly ?? false) !== (first.scoreOnly ?? false)) break;
             schedule.push({ id: next, job });
             estimatedGames += job.options.seeds.length * 4;

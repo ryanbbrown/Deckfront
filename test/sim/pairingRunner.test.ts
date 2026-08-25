@@ -30,8 +30,9 @@ describe('the worker pairing runner', () => {
 
   it('sends one candidate complete opponent schedule as one compact worker unit', async () => {
     const runner = new WorkerPairingRunner(2, workerUrl);
-    const schedule = jobs(5).map((job, index) => ({ ...job,
-      candidate: strategy({ id: 'one-candidate' }), opponent: strategy({ id: `opponent-${index}` }) }));
+    const candidate = strategy({ id: 'one-candidate' });
+    const schedule = jobs(5).map((job, index) => ({ ...job, candidate,
+      opponent: strategy({ id: `opponent-${index}` }) }));
     try {
       const result = await runner.run(schedule);
       expect(result.submitted).toBe(5);
