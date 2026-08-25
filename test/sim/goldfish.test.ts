@@ -41,7 +41,7 @@ describe('goldfish scoring', () => {
 
   it('uses stable strategy identity as the final deterministic tie-break', () => {
     const score = (strategy: Strategy): GoldfishScore => ({ strategy, trials: 1, completions: 0,
-      meanTurnsTo50: null, totalTurnsTo50: 0, damageArea: 10, meanDamage: 1,
+      meanTurnsTo50: null, totalTurnsTo50: 0, damageArea: 10, totalDamage: 1, meanDamage: 1,
       moneySpent: 5, unspentMoney: 0, penalizedTurnsTo50: 31 });
     const first = { ...plan('first', 'gold'), id: 'a' };
     const second = { ...plan('second', 'gold'), id: 'b' };

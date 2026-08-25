@@ -322,7 +322,9 @@ export function validateFixedReservoirPsroArtifact(
   } catch { return false; }
 }
 
-export function supportEntries(artifact: FixedReservoirPsroArtifact): {strategy:Strategy;weight:number}[] {
+export function supportEntries(
+  artifact: Pick<FixedReservoirPsroArtifact, 'matrix' | 'equilibrium'>
+): {strategy:Strategy;weight:number}[] {
   return artifact.matrix.strategies.flatMap((strategy)=>{
     const weight=artifact.equilibrium.weights[strategy.id]??0;
     return weight>1e-6?[{strategy,weight}]:[];

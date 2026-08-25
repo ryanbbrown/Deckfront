@@ -17,6 +17,7 @@ export interface GoldfishScore {
   meanTurnsTo50: number | null;
   totalTurnsTo50: number;
   damageArea: number;
+  totalDamage: number;
   meanDamage: number;
   moneySpent: number;
   unspentMoney: number;
@@ -76,7 +77,7 @@ export function scoreGoldfishStrategy(strategy: Strategy, config: GoldfishConfig
     strategy, trials: trials.length, completions: completed.length,
     meanTurnsTo50: completed.length ? totalTurnsTo50 / completed.length : null,
     totalTurnsTo50, damageArea: trials.reduce((sum, trial) => sum + damageArea(trial, config.turnLimit), 0),
-    meanDamage: finalDamage / trials.length,
+    totalDamage: finalDamage, meanDamage: finalDamage / trials.length,
     moneySpent: trials.reduce((sum, trial) => sum + trial.moneySpent, 0),
     unspentMoney: trials.reduce((sum, trial) => sum + trial.unspentMoney, 0),
     penalizedTurnsTo50: trials.reduce((sum, trial) =>
@@ -108,6 +109,7 @@ export function scoreMovementAwareGoldfishStrategy(
       meanTurnsTo50: complete.meanTurnsTo50,
       totalTurnsTo50: complete.totalTurnsTo50,
       damageArea: complete.damageArea,
+      totalDamage: complete.totalDamage,
       meanDamage: complete.meanDamage,
       moneySpent: complete.moneySpent,
       unspentMoney: complete.unspentMoney,
@@ -127,6 +129,43 @@ export function scoreMovementAwareGoldfishStrategy(
     totalDamageArea: values.reduce((sum, score) => sum + score.damageArea, 0),
     totalMoneySpent: values.reduce((sum, score) => sum + score.moneySpent, 0)
   };
+}
+
+export function mergeMovementAwareGoldfishScores(
+  parts: readonly MovementAwareGoldfishScore[]
+): MovementAwareGoldfishScore {
+  if (!parts.length) throw new Error('Movement-aware goldfish merging needs score evidence.');
+  const strategy = parts[0]!.strategy;
+  if (parts.some((part) => part.strategy.id !== strategy.id)) {
+    throw new Error('Movement-aware goldfish evidence must describe one strategy.');
+  }
+  const profiles = GOLDFISH_MOVEMENT_PROFILES.map((profile) => {
+    const metrics = parts.map((part) => part.profiles.find((entry) => entry.profile === profile)?.score);
+    if (metrics.some((entry) => !entry)) throw new Error(`Missing ${profile} goldfish evidence.`);
+    const scores = metrics as GoldfishMetrics[];
+    const trials = scores.reduce((sum, score) => sum + score.trials, 0);
+    const completions = scores.reduce((sum, score) => sum + score.completions, 0);
+    const totalTurnsTo50 = scores.reduce((sum, score) => sum + score.totalTurnsTo50, 0);
+    const totalDamage = scores.reduce((sum, score) => sum + score.totalDamage, 0);
+    return { profile, score: {
+      trials, completions, meanTurnsTo50: completions ? totalTurnsTo50 / completions : null,
+      totalTurnsTo50,
+      damageArea: scores.reduce((sum, score) => sum + score.damageArea, 0),
+      totalDamage, meanDamage: totalDamage / trials,
+      moneySpent: scores.reduce((sum, score) => sum + score.moneySpent, 0),
+      unspentMoney: scores.reduce((sum, score) => sum + score.unspentMoney, 0),
+      penalizedTurnsTo50: scores.reduce((sum, score) => sum + score.penalizedTurnsTo50, 0)
+    } };
+  });
+  const values = profiles.map((entry) => entry.score);
+  return { strategy, profiles,
+    worstCompletions: Math.min(...values.map((score) => score.completions)),
+    totalCompletions: values.reduce((sum, score) => sum + score.completions, 0),
+    worstPenalizedTurnsTo50: Math.max(...values.map((score) => score.penalizedTurnsTo50)),
+    totalPenalizedTurnsTo50: values.reduce((sum, score) => sum + score.penalizedTurnsTo50, 0),
+    worstDamageArea: Math.min(...values.map((score) => score.damageArea)),
+    totalDamageArea: values.reduce((sum, score) => sum + score.damageArea, 0),
+    totalMoneySpent: values.reduce((sum, score) => sum + score.moneySpent, 0) };
 }
 
 export function compareMovementAwareGoldfishScores(
