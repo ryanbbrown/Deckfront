@@ -204,7 +204,7 @@ modal run --detach modal/native_strategy_search.py --build-version "$(git rev-pa
 
 Shard checkpoints and the ordered merge live in the `hexdeck-native-strategy-results` Modal Volume. The local reservation ledger is `~/.hexdeck-modal-cost-ledger.json`. Ordered shards call the production TypeScript candidate helper in the image and send its versioned request to Rust. Python does not generate strategies.
 
-Launch or resume the authorized ordered product correction. This configuration reserves at most $2.725 for all retry attempts, uses at most 191 physical cores, and does not launch a local full-space scorer:
+Launch or resume the authorized ordered product correction. This configuration reserves at most $2.886 for all retry attempts, uses at most 191 physical cores, and does not launch a local full-space scorer:
 
 ```sh
 modal run --detach modal/native_strategy_search.py --ordered-product \

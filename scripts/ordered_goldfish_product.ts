@@ -190,7 +190,9 @@ if (mode === 'validate-checkpoint') {
     throw new Error('Stage-one request, response, range, or rule fingerprint differs.');
   }
   const all = scores.map((raw, index): OrderedProductStageOneRecord => {
-    const strategy = request.payload.strategies[index]!, identity = rawIdentity(raw);
+    const inputStrategy = request.payload.strategies[index]!, identity = rawIdentity(raw);
+    const strategy: Strategy = { id: inputStrategy.id, startingBuild: inputStrategy.startingBuild,
+      buyPlan: inputStrategy.buyPlan };
     if (identity.strategyId !== strategy.id || identity.collisionTieKey !== canonicalStrategy(strategy)) {
       throw new Error('Native stage-one identity differs from TypeScript generation.');
     }

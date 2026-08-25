@@ -83,7 +83,7 @@ def projected_ordered_product_cost_usd(
     hourly = cpu * CPU_RATE_PER_CORE_HOUR + memory_gib * MEMORY_RATE_PER_GIB_HOUR
     shard_cost = shard_count * attempts * (timeout_seconds + 30) / 3600 * hourly
     waves = math.ceil(stage_one_shards / max_containers) + math.ceil(stage_two_shards / max_containers)
-    controller_seconds = attempts * waves * (timeout_seconds + 30) + 600
+    controller_seconds = attempts * waves * (timeout_seconds + 30) + 3900
     return shard_cost + controller_seconds / 3600 * (CPU_RATE_PER_CORE_HOUR + 16 * MEMORY_RATE_PER_GIB_HOUR)
 
 
@@ -628,7 +628,7 @@ def validate_launch_limits(
             cpu, memory_gib, timeout_seconds, max_containers)
         full_run = True
         waves = math.ceil(stage_one_shards / max_containers) + math.ceil(stage_two_shards / max_containers)
-        controller_timeout = (MAX_RETRIES + 1) * waves * (timeout_seconds + 30) + 600
+        controller_timeout = (MAX_RETRIES + 1) * waves * (timeout_seconds + 30) + 3900
     elif product:
         if start_position != 0 or count > 500_000 or count < 20_000:
             raise ValueError("product count must be from 20,000 through 500,000 with start position zero")
