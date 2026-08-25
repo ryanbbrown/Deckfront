@@ -5,7 +5,8 @@ import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import { createOrderedCandidateSpace, orderedGoldfishCardIds,
   representativeCandidateIndices } from '../../src/sim/orderedGoldfishBenchmark';
 import { RustGoldfishScorer } from '../../src/sim/rustGoldfishScorer';
-import { INFINITE_COUNT, fixedBuyPlan, identify } from '../../src/sim/strategy';
+import { INFINITE_COUNT, fixedBuyPlan, identify, stableHash } from '../../src/sim/strategy';
+import { compareUtf16 } from '../../src/sim/utf16';
 
 const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
 
@@ -13,6 +14,24 @@ beforeEach(() => registerKingdom(kingdom));
 afterEach(() => resetKingdoms());
 
 describe('Rust goldfish scorer conformance', () => {
+  it('matches shuffle, UTF-16 comparison, and stable hashing through the process protocol', async () => {
+    const scorer = new RustGoldfishScorer(1);
+    try {
+      let state = 11;
+      const deck = Array.from({ length: 10 }, (_unused, index) => index);
+      for (let index = deck.length - 1; index > 0; index -= 1) {
+        state = (1664525 * state + 1013904223) >>> 0;
+        const swap = Math.floor(state / 0x100000000 * (index + 1));
+        [deck[index], deck[swap]] = [deck[swap]!, deck[index]!];
+      }
+      expect(await scorer.shuffle(11, Array.from({ length: 10 }, (_unused, index) => index))).toEqual(deck);
+      expect(await scorer.stableHash('native-😀')).toBe(stableHash('native-😀'));
+      for (const [left, right] of [['a', 'A'], ['x😀', 'x￿'], ['same', 'same']]) {
+        expect(Math.sign(await scorer.compareUtf16(left!, right!))).toBe(Math.sign(compareUtf16(left!, right!)));
+      }
+    } finally { await scorer.close(); }
+  });
+
   it('matches full lean fields and compact ranking keys on ordered candidates', async () => {
     const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
     const positions = [...representativeCandidateIndices(space.candidateCount, 1000)];
@@ -36,6 +55,8 @@ describe('Rust goldfish scorer conformance', () => {
   it('matches victory, turn-limit, and action-cap damage padding', async () => {
     const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
     const strategy = space.candidateAt([...representativeCandidateIndices(space.candidateCount, 1)][0]!);
+    const ignoredBuild = identify({ ...strategy, id: '', startingBuild: ['precisionShot'],
+      buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'precisionShot', desiredCount: 2 }]) });
     const configs = [
       { kingdomId: kingdom.id, seeds: [4_100_000], turnLimit: 30, actionCapPerTurn: 200 },
       { kingdomId: kingdom.id, seeds: [4_100_000], turnLimit: 1, actionCapPerTurn: 200 },
@@ -44,8 +65,10 @@ describe('Rust goldfish scorer conformance', () => {
     const rust = new RustGoldfishScorer(1);
     try {
       for (const config of configs) {
-        expect((await rust.score(kingdom, [strategy], config, 1, 'full'))[0])
-          .toEqual(scoreMovementAwareGoldfishStrategyLean(strategy, config, 'full'));
+        const candidates = [strategy, ignoredBuild];
+        expect(await rust.score(kingdom, candidates, config, 1, 'full'))
+          .toEqual(candidates.map((candidate) =>
+            scoreMovementAwareGoldfishStrategyLean(candidate, config, 'full')));
       }
     } finally { await rust.close(); }
   });

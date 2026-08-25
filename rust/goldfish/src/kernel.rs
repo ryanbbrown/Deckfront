@@ -217,7 +217,6 @@ enum Slot {
 struct Strategy {
     id: String,
     canonical: String,
-    build: Vec<usize>,
     plan: Vec<Slot>,
 }
 #[derive(Clone, Debug, Deserialize)]
@@ -292,11 +291,9 @@ impl Kingdom {
                 .position(|c| c.id == id)
                 .ok_or_else(|| format!("missing strategy card {id}"))
         };
-        let build = raw
-            .starting_build
-            .iter()
-            .map(|id| find(id))
-            .collect::<Result<Vec<_>, _>>()?;
+        for id in &raw.starting_build {
+            find(id)?;
+        }
         let plan = raw
             .buy_plan
             .into_iter()
@@ -317,7 +314,6 @@ impl Kingdom {
         Ok(Strategy {
             id: raw.id,
             canonical: raw.canonical_strategy,
-            build,
             plan,
         })
     }
@@ -404,10 +400,7 @@ fn shuffle(r: &mut u32, source: &[usize]) -> Vec<usize> {
 }
 impl<'a> State<'a> {
     fn new(k: &'a Kingdom, s: Strategy, seed: u32) -> Self {
-        let mut acquired = vec![0; k.cards.len()];
-        for &c in &s.build {
-            acquired[c] += 1
-        }
+        let acquired = vec![0; k.cards.len()];
         let mut rng = seed;
         let starting = [vec![k.copper; 7], vec![k.scrap; 3]].concat();
         let draw = shuffle(&mut rng, &starting);

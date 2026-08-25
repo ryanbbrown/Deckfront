@@ -9,7 +9,7 @@ import type { Strategy } from './strategy';
 
 interface NativeResponse {
   ok: boolean;
-  result?: { scores?: Array<Record<string, unknown>> };
+  result?: Record<string, unknown>;
   error?: { code?: string; message?: string };
 }
 
@@ -48,6 +48,28 @@ export class RustGoldfishScorer {
     });
   }
 
+  private async request(value: unknown): Promise<Record<string, unknown>> {
+    if (this.spawnError) throw this.spawnError;
+    this.process.stdin.write(`${JSON.stringify(value)}\n`);
+    const response = JSON.parse(await this.nextLine()) as NativeResponse;
+    if (!response.ok || !response.result) {
+      throw new Error(`${response.error?.code ?? 'native_error'}: ${response.error?.message ?? 'missing result'}`);
+    }
+    return response.result;
+  }
+
+  async shuffle(seed: number, deck: readonly number[]): Promise<number[]> {
+    return (await this.request({ type: 'shuffle', seed, deck })).deck as number[];
+  }
+
+  async stableHash(text: string): Promise<string> {
+    return (await this.request({ type: 'stable_hash', text })).hash as string;
+  }
+
+  async compareUtf16(left: string, right: string): Promise<number> {
+    return (await this.request({ type: 'compare_utf16', left, right })).sign as number;
+  }
+
   async score(
     kingdom: Kingdom, strategies: readonly Strategy[], config: GoldfishConfig,
     threads: number, mode: 'full'
@@ -61,14 +83,11 @@ export class RustGoldfishScorer {
     threads: number, mode: 'full' | 'compact'
   ): Promise<Array<MovementAwareGoldfishScore | CompactMovementAwareGoldfishScore>> {
     const request = nativeScoreBatchRequest(kingdom, strategies, config, threads, mode);
-    if (this.spawnError) throw this.spawnError;
-    this.process.stdin.write(`${JSON.stringify(request)}\n`);
-    const response = JSON.parse(await this.nextLine()) as NativeResponse;
-    if (!response.ok || !response.result?.scores) {
-      throw new Error(`${response.error?.code ?? 'native_error'}: ${response.error?.message ?? 'missing scores'}`);
-    }
-    if (response.result.scores.length !== strategies.length) throw new Error('Native scorer returned the wrong count.');
-    return response.result.scores.map((raw, index) => {
+    const result = await this.request(request);
+    const scores = result.scores as Array<Record<string, unknown>> | undefined;
+    if (!scores) throw new Error('Native scorer returned no scores.');
+    if (scores.length !== strategies.length) throw new Error('Native scorer returned the wrong count.');
+    return scores.map((raw, index) => {
       if (mode === 'compact') delete raw.profiles;
       else { delete raw.strategyId; delete raw.collisionTieKey; }
       return { ...raw, strategy: strategies[index]! } as unknown as
