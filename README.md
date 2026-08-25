@@ -174,6 +174,7 @@ npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 2
 npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 250 --scorer lean
 npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 250 --scorer rust
 npm run psro:worker-benchmark -- --workers 4 --candidates 30 --blocks 4 --mode score-only
+npm run staged-goldfish:native-pool -- --pool-seed 5 --chunk-size 1000 --threads 10
 ```
 
 The native workspace pins Rust 1.98.0. Build and verify it on Linux x86-64 with:

@@ -41,6 +41,10 @@ The full run used 150,000-candidate shards. Container elapsed time was 22.0–56
 
 Durable results are in Modal Volume `hexdeck-native-strategy-results` under the two run IDs. The full merge records 12,972,960 complete candidates, build `b8e4d9fefcdd`, rule fingerprint `b5115138db0`, scorer `native-goldfish-v1`, and 87 contiguous shard ranges.
 
+## Bounded staged product path
+
+`npm run staged-goldfish:native-pool` runs the stateful product generator as one accepted-order coordinator, sends bounded chunks to one persistent Rust scorer, retains only the global 50,000 prefilter, seeded tail, 18,000 leaders, collision records, and final 2,000 tail, then writes the schema-v2 bounded artifact. A 52,000-candidate end-to-end validation completed in 15.6 seconds, wrote a valid 20,000-entry reservoir, and recorded generated-ID digest `b5be0176b1bbf` and canonical provenance digest `565d094e9e38ba`. Chunk-size parity and collision promotion are covered by the native strategy-search tests.
+
 ## Competitive PSRO
 
 Score-only race and confirmation keep matrix telemetry on the full path. On the fixed short workload, full and score-only digests were identical. Four workers took 458ms full and 434ms score-only, a 5.7% wall-time reduction. Score-only worker scaling on 12 candidates × 2 blocks was 257ms at 4 workers, 426ms at 10, and 631ms at 16. Four remains the measured local default. The worker guard now allows an explicit maximum of 192 for measured Modal allocations.

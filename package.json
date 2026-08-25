@@ -36,6 +36,7 @@
     "fixed-reservoir:five-run:status": "tsx scripts/fixed_reservoir_five_run.ts --status",
     "fixed-reservoir:five-run:report": "tsx scripts/fixed_reservoir_five_run.ts --report",
     "fixed-reservoir:five-run:smoke": "tsx scripts/fixed_reservoir_five_run.ts --smoke",
+    "staged-goldfish:native-pool": "tsx scripts/native_staged_product_search.ts",
     "staged-goldfish:ab": "tsx scripts/staged_goldfish_ab.ts --run",
     "staged-goldfish:ab:status": "tsx scripts/staged_goldfish_ab.ts --status",
     "staged-goldfish:ab:pool": "tsx scripts/staged_goldfish_ab.ts --pool",
