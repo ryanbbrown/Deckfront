@@ -2,8 +2,9 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { registerKingdom, resetKingdoms } from '../../src/game';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import {
-  candidateIndexAt, coprimeTraversalConfig, createOrderedCandidateSpace, orderedGoldfishCardIds,
-  orderedGoldfishQuantityVectors, parseOrderedGoldfishArgs, representativeCandidateIndices
+  candidateChecksumFromIterable, candidateIndexAt, coprimeTraversalConfig, createOrderedCandidateSpace,
+  orderedGoldfishCardIds, orderedGoldfishQuantityVectors, parseOrderedGoldfishArgs,
+  representativeCandidateIndices
 } from '../../src/sim/orderedGoldfishBenchmark';
 
 afterEach(() => { resetKingdoms(); });
@@ -44,6 +45,16 @@ describe('ordered unique-card goldfish candidate space', () => {
     expect(strategy.buyPlan.slice(5)).toEqual(Array.from({ length: 5 }, () => ({ kind: 'inactive' })));
   });
 
+  it('pins the frozen 100,000-candidate traversal checksum', () => {
+    const space = kingdom009Space();
+    const strategies = function* () {
+      for (const index of representativeCandidateIndices(space.candidateCount, 100_000)) {
+        yield space.candidateAt(index);
+      }
+    };
+    expect(candidateChecksumFromIterable(strategies())).toBe('93a38dcc12eabd6');
+  });
+
   it('uses a deterministic, duplicate-free traversal that reaches across the full space', () => {
     const total = 12_972_960;
     const indices = [...representativeCandidateIndices(total, 20_000)];
@@ -61,10 +72,11 @@ describe('ordered unique-card goldfish candidate space', () => {
 describe('ordered goldfish CLI arguments', () => {
   it('has reproducible defaults and accepts count as the limit alias', () => {
     expect(parseOrderedGoldfishArgs([])).toEqual({ kingdomId: 'deep-beam-tuning-009',
-      limit: 100_000, workers: 10, shuffles: 1 });
+      limit: 100_000, workers: 10, shuffles: 1, chunkSize: 250, scorer: 'original' });
     expect(parseOrderedGoldfishArgs(['--kingdom', 'deep-beam-tuning-003', '--count', '25',
-      '--workers', '2', '--shuffles', '4'])).toEqual({ kingdomId: 'deep-beam-tuning-003',
-      limit: 25, workers: 2, shuffles: 4 });
+      '--workers', '2', '--shuffles', '4', '--chunk-size', '8', '--scorer', 'lean']))
+      .toEqual({ kingdomId: 'deep-beam-tuning-003', limit: 25, workers: 2, shuffles: 4,
+        chunkSize: 8, scorer: 'lean' });
   });
 
   it.each([
@@ -72,6 +84,8 @@ describe('ordered goldfish CLI arguments', () => {
     [['--workers', '2.5'], '--workers must be a positive integer.'],
     [['--limit', '2', '--count', '2'], 'Use either --limit or --count, not both.'],
     [['--workers', '2', '--workers', '3'], '--workers can be specified only once.'],
+    [['--chunk-size', '0'], '--chunk-size must be a positive integer.'],
+    [['--scorer', 'fast'], '--scorer must be original, lean, or rust.'],
     [['--mystery', '2'], 'Unknown ordered goldfish option: --mystery']
   ])('rejects invalid arguments %j', (args, message) => {
     expect(() => parseOrderedGoldfishArgs(args)).toThrow(message);

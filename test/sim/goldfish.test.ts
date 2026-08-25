@@ -2,7 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { registerKingdom, resetKingdoms } from '../../src/game';
 import {
   compareGoldfishScores, compareMovementAwareGoldfishScores, scoreGoldfishStrategy,
-  scoreMovementAwareGoldfishStrategy, selectEnrichmentCohorts, summarizeCompetitiveGoldfishEntries
+  scoreMovementAwareGoldfishStrategy, scoreMovementAwareGoldfishStrategyLean,
+  selectEnrichmentCohorts, summarizeCompetitiveGoldfishEntries
 } from '../../src/sim/goldfish';
 import type { GoldfishScore, MovementAwareGoldfishScore } from '../../src/sim/goldfish';
 import { runGoldfishTrial } from '../../src/sim/simulationKernel';
@@ -63,6 +64,27 @@ describe('goldfish scoring', () => {
     expect(kiter.positionsByTurn.slice(0, 3)).toEqual([
       { candidate: 3, dummy: 4 }, { candidate: 3, dummy: 5 }, { candidate: 3, dummy: 6 }
     ]);
+  });
+
+  it('keeps every full score field equal in the lean path', () => {
+    registerKingdom({ id: 'goldfish-test', name: 'Goldfish test', startingHealth: 50,
+      actionPiles: [{ cardId: 'precisionShot', count: 10 }, { cardId: 'repellingShot', count: 10 }] });
+    for (const strategy of [plan('ranged', 'precisionShot'), plan('mobile', 'repellingShot')]) {
+      const original = scoreMovementAwareGoldfishStrategy(strategy, config());
+      const lean = scoreMovementAwareGoldfishStrategyLean(strategy, config(), 'full');
+      expect(lean).toEqual(original);
+      const compact = scoreMovementAwareGoldfishStrategyLean(strategy, config());
+      expect(compareMovementAwareGoldfishScores(compact, original)).toBe(0);
+      expect(compact.collisionTieKey.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('preserves action-cap damage-area padding in the lean path', () => {
+    registerKingdom({ id: 'goldfish-test', name: 'Goldfish test', startingHealth: 50,
+      actionPiles: [{ cardId: 'precisionShot', count: 10 }, { cardId: 'repellingShot', count: 10 }] });
+    const capped = { ...config(), seeds: [11], actionCapPerTurn: 1 };
+    expect(scoreMovementAwareGoldfishStrategyLean(plan('cap', 'precisionShot'), capped, 'full'))
+      .toEqual(scoreMovementAwareGoldfishStrategy(plan('cap', 'precisionShot'), capped));
   });
 
   it('ranks a ranged plan with movement above one trapped at Close range', () => {

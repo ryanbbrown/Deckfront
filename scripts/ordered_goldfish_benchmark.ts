@@ -4,48 +4,153 @@ import { performance } from 'node:perf_hooks';
 import { Worker } from 'node:worker_threads';
 import { registerKingdom } from '../src/game';
 import type { Kingdom } from '../src/game';
-import { GOLDFISH_MOVEMENT_PROFILES } from '../src/sim/goldfish';
-import type { GoldfishConfig } from '../src/sim/goldfish';
+import {
+  GOLDFISH_MOVEMENT_PROFILES, rankingKeyText
+} from '../src/sim/goldfish';
+import type { GoldfishConfig, MovementAwareRankingScore } from '../src/sim/goldfish';
 import {
   ORDERED_GOLDFISH_ACTION_CAP, ORDERED_GOLDFISH_SEED_BASE, ORDERED_GOLDFISH_TURN_LIMIT,
-  candidateChecksum, coprimeTraversalConfig, createOrderedCandidateSpace, orderedGoldfishCardIds,
+  coprimeTraversalConfig, createOrderedCandidateSpace, orderedGoldfishCardIds,
   parseOrderedGoldfishArgs, representativeCandidateIndices
 } from '../src/sim/orderedGoldfishBenchmark';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
+import { StableHashAccumulator, canonicalStrategy } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 
-interface WorkerReply { id: number; scores?: unknown[]; error?: string; stack?: string }
+interface WorkerReply {
+  id: number;
+  scores?: MovementAwareRankingScore[];
+  error?: string;
+  stack?: string;
+}
+interface Chunk { id: number; strategies: Strategy[] }
+interface ScoreResult {
+  scoredCount: number;
+  candidateChecksum: string;
+  scoreKeyDigest: string;
+  generationMs: number;
+  firstCandidateIndex: number;
+  lastCandidateIndex: number;
+  peakRssBytes: number;
+}
 
-async function scoreInWorkers(strategies: readonly Strategy[], config: GoldfishConfig,
-  kingdom: Kingdom, requestedWorkers: number): Promise<number> {
-  const workerCount = Math.min(requestedWorkers, strategies.length);
-  const pool = Array.from({ length: workerCount }, () => new Worker(
+async function scoreInWorkers(input: {
+  space: ReturnType<typeof createOrderedCandidateSpace>;
+  limit: number;
+  chunkSize: number;
+  config: GoldfishConfig;
+  kingdom: Kingdom;
+  requestedWorkers: number;
+  scorer: 'original' | 'lean';
+}): Promise<ScoreResult> {
+  const workerCount = Math.min(input.requestedWorkers, Math.ceil(input.limit / input.chunkSize));
+  const workers = Array.from({ length: workerCount }, () => new Worker(
     new URL('../src/server/goldfishWorker.ts', import.meta.url),
-    { workerData: { kingdom }, execArgv: ['--import', 'tsx'] }));
+    { workerData: { kingdom: input.kingdom }, execArgv: ['--import', 'tsx'] }));
+  const candidateDigest = new StableHashAccumulator();
+  const scoreDigest = new StableHashAccumulator();
+  const results = new Map<number, MovementAwareRankingScore[]>();
+  const traversal = representativeCandidateIndices(input.space.candidateCount, input.limit);
+  let generated = 0;
+  let scored = 0;
+  let nextChunkId = 0;
+  let nextFoldId = 0;
+  let active = 0;
+  let generationMs = 0;
+  let firstCandidateIndex = -1;
+  let lastCandidateIndex = -1;
+  let peakRssBytes = process.memoryUsage().rss;
+
+  const makeChunk = (): Chunk | null => {
+    if (generated >= input.limit) return null;
+    const started = performance.now();
+    const strategies: Strategy[] = [];
+    while (strategies.length < input.chunkSize && generated < input.limit) {
+      const next = traversal.next();
+      if (next.done) throw new Error('Ordered traversal ended before the requested limit.');
+      const candidateIndex = next.value;
+      if (firstCandidateIndex < 0) firstCandidateIndex = candidateIndex;
+      lastCandidateIndex = candidateIndex;
+      const strategy = input.space.candidateAt(candidateIndex);
+      if (generated > 0) candidateDigest.update('\n');
+      candidateDigest.update(canonicalStrategy(strategy));
+      strategies.push(strategy);
+      generated += 1;
+    }
+    generationMs += performance.now() - started;
+    return { id: nextChunkId++, strategies };
+  };
+  const foldReady = (): void => {
+    for (;;) {
+      const scores = results.get(nextFoldId);
+      if (!scores) return;
+      results.delete(nextFoldId);
+      for (const score of scores) {
+        if (scored > 0) scoreDigest.update('\n');
+        scoreDigest.update(rankingKeyText(score));
+        scored += 1;
+      }
+      nextFoldId += 1;
+    }
+  };
+
   try {
-    const partitions = pool.map((_worker, index) => strategies.slice(
-      Math.floor(strategies.length * index / workerCount),
-      Math.floor(strategies.length * (index + 1) / workerCount)));
-    const counts = await Promise.all(pool.map((worker, index) => new Promise<number>((resolve, reject) => {
-      const fail = (error: Error): void => reject(error);
-      worker.once('error', fail);
-      worker.once('message', (reply: WorkerReply) => {
-        worker.off('error', fail);
-        if (reply.error || !reply.scores) {
-          reject(new Error(reply.stack ?? reply.error ?? 'Goldfish worker failed.'));
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const fail = (error: Error): void => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      };
+      const finish = (): void => {
+        if (settled || generated < input.limit || active !== 0) return;
+        foldReady();
+        if (scored !== input.limit) {
+          fail(new Error(`Workers returned ${scored} of ${input.limit} scores.`));
           return;
         }
-        resolve(reply.scores.length);
-      });
-      worker.postMessage({ id: index, strategies: partitions[index], config, mode: 'movement-aware' });
-    })));
-    return counts.reduce((sum, count) => sum + count, 0);
+        settled = true;
+        resolve();
+      };
+      const dispatch = (worker: Worker): void => {
+        if (settled) return;
+        const chunk = makeChunk();
+        if (!chunk) { finish(); return; }
+        active += 1;
+        worker.postMessage({ id: chunk.id, strategies: chunk.strategies, config: input.config,
+          mode: input.scorer === 'original' ? 'movement-aware' : 'movement-aware-lean-compact' });
+      };
+      for (const worker of workers) {
+        worker.on('error', fail);
+        worker.on('exit', (code) => { if (!settled && code !== 0) fail(new Error(`Goldfish worker exited ${code}.`)); });
+        worker.on('message', (reply: WorkerReply) => {
+          if (settled) return;
+          active -= 1;
+          if (reply.error || !reply.scores) {
+            fail(new Error(reply.stack ?? reply.error ?? 'Goldfish worker failed.'));
+            return;
+          }
+          results.set(reply.id, reply.scores);
+          peakRssBytes = Math.max(peakRssBytes, process.memoryUsage().rss);
+          foldReady();
+          dispatch(worker);
+          finish();
+        });
+        dispatch(worker);
+      }
+    });
   } finally {
-    await Promise.all(pool.map((worker) => worker.terminate()));
+    await Promise.all(workers.map((worker) => worker.terminate()));
   }
+  return { scoredCount: scored, candidateChecksum: candidateDigest.digest(),
+    scoreKeyDigest: scoreDigest.digest(), generationMs, firstCandidateIndex, lastCandidateIndex,
+    peakRssBytes };
 }
 
 const options = parseOrderedGoldfishArgs(process.argv.slice(2));
+if (options.scorer === 'rust') {
+  throw new Error('Use scripts/native_goldfish_shard.ts for the standalone Rust scorer.');
+}
 const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === options.kingdomId);
 if (!kingdom) throw new Error(`Unknown deep-beam suite kingdom: ${options.kingdomId}`);
 registerKingdom(kingdom);
@@ -54,23 +159,18 @@ if (options.limit > space.candidateCount) {
   throw new Error(`--limit cannot exceed the full candidate count ${space.candidateCount}.`);
 }
 const traversal = coprimeTraversalConfig(space.candidateCount);
-const generationStarted = performance.now();
-const candidateIndices = [...representativeCandidateIndices(space.candidateCount, options.limit)];
-const strategies = candidateIndices.map((index) => space.candidateAt(index));
-const checksum = candidateChecksum(strategies);
-const generationMs = performance.now() - generationStarted;
 const seeds = Array.from({ length: options.shuffles }, (_unused, index) => ORDERED_GOLDFISH_SEED_BASE + index);
 const goldfishConfig: GoldfishConfig = { kingdomId: kingdom.id, seeds,
   turnLimit: ORDERED_GOLDFISH_TURN_LIMIT, actionCapPerTurn: ORDERED_GOLDFISH_ACTION_CAP };
 const scoringStarted = performance.now();
-const scoredCount = await scoreInWorkers(strategies, goldfishConfig, kingdom, options.workers);
+const result = await scoreInWorkers({ space, limit: options.limit, chunkSize: options.chunkSize,
+  config: goldfishConfig, kingdom, requestedWorkers: options.workers, scorer: options.scorer });
 const scoringMs = performance.now() - scoringStarted;
-if (scoredCount !== strategies.length) throw new Error(`Workers returned ${scoredCount} of ${strategies.length} scores.`);
-const individualTrials = scoredCount * seeds.length * GOLDFISH_MOVEMENT_PROFILES.length;
+const individualTrials = result.scoredCount * seeds.length * GOLDFISH_MOVEMENT_PROFILES.length;
 const seconds = scoringMs / 1_000;
 
 process.stdout.write(`${JSON.stringify({
-  schemaVersion: 1,
+  schemaVersion: 2,
   benchmark: 'ordered-unique-card-goldfish',
   baseline: {
     status: 'provisional benchmark baseline; not a product decision',
@@ -82,16 +182,19 @@ process.stdout.write(`${JSON.stringify({
   cardIds: space.cardIds,
   skeletonCount: space.skeletonCount,
   fullCandidateCount: space.candidateCount,
-  scoredCount,
-  candidateChecksum: checksum,
+  scoredCount: result.scoredCount,
+  candidateChecksum: result.candidateChecksum,
+  scoreKeyDigest: result.scoreKeyDigest,
   traversal: { ...traversal, formula: '(offset + position * stride) mod fullCandidateCount',
-    firstCandidateIndex: candidateIndices[0], lastCandidateIndex: candidateIndices.at(-1) },
-  scoring: { path: 'goldfishWorker/movement-aware', profiles: GOLDFISH_MOVEMENT_PROFILES,
+    firstCandidateIndex: result.firstCandidateIndex, lastCandidateIndex: result.lastCandidateIndex },
+  scoring: { path: options.scorer, profiles: GOLDFISH_MOVEMENT_PROFILES,
     shuffleSeeds: seeds, shuffleCount: seeds.length, turnLimit: goldfishConfig.turnLimit,
     actionCapPerTurn: goldfishConfig.actionCapPerTurn, requestedWorkers: options.workers,
-    usedWorkers: Math.min(options.workers, scoredCount), individualTrials },
-  timing: { generationMs, scoringMs,
-    strategiesPerSecond: scoredCount / seconds, individualTrialsPerSecond: individualTrials / seconds },
+    usedWorkers: Math.min(options.workers, Math.ceil(result.scoredCount / options.chunkSize)),
+    chunkSize: options.chunkSize, dispatch: 'dynamic-pull', digestFoldOrder: 'traversal', individualTrials },
+  timing: { generationMs: result.generationMs, scoringMs,
+    strategiesPerSecond: result.scoredCount / seconds, individualTrialsPerSecond: individualTrials / seconds },
+  memory: { peakRssBytes: result.peakRssBytes },
   runtime: { node: process.version, platform: process.platform, architecture: process.arch,
     logicalCpuCount: os.cpus().length, cpuModel: os.cpus()[0]?.model ?? 'unknown' }
 }, null, 2)}\n`);

@@ -11,6 +11,7 @@ import type { CullOption, DiscardOption, PilotCard, TacticalView } from './tacti
 import { addProfileCard, buildAttackProfile, removeProfileCard } from './positionValue';
 import type { AttackProfile, ProfileCard } from './positionValue';
 import type { DeadDrawCounts, MatchResult, MatchTelemetry } from './types';
+import { compareUtf16 } from './utf16';
 export { SIMULATION_KERNEL_PROTOCOL_VERSION } from './protocolVersions';
 
 interface KernelCard {
@@ -49,6 +50,8 @@ interface KernelPlayer {
   purchases: number[];
   acquired: Int16Array;
   attackProfile: AttackProfile;
+  moneySpent: number;
+  unspentMoney: number;
 }
 
 interface KernelState {
@@ -71,6 +74,7 @@ interface KernelState {
   familiesPlayed: Set<CardFamily>;
   eventCount: number;
   telemetry: MatchTelemetry;
+  collectTelemetry: boolean;
 }
 
 export interface SimulationMatchConfig {
@@ -105,6 +109,17 @@ export interface GoldfishTrialResult {
   purchasesByCard: Record<string, number>;
   damageByCard: Record<string, number>;
   reason: 'victory' | 'turnLimit' | 'actionCap';
+}
+
+/** Trial fields used by scoring. It does not retain per-turn, per-position, or per-card output. */
+export interface LeanGoldfishTrialResult {
+  completed: boolean;
+  turnsTo50: number | null;
+  damageArea: number;
+  finalDamage: number;
+  moneySpent: number;
+  unspentMoney: number;
+  reason: GoldfishTrialResult['reason'];
 }
 
 let cachedEpoch = -1;
@@ -162,7 +177,7 @@ function makePlayer(kingdom: KernelKingdom, strategy: Strategy, startingDraftEna
   return {
     strategy, build, draw: [], drawHead: 0, hand: [], discard: [], play: [], money: 0, mana: 0,
     firstBuyMoney: startingDraftEnabled ? firstBuyCarry(buildCost) : 0, firstBuyPending: startingDraftEnabled, purchases: [], acquired,
-    attackProfile: buildAttackProfile([])
+    attackProfile: buildAttackProfile([]), moneySpent: 0, unspentMoney: 0
   };
 }
 
@@ -214,7 +229,7 @@ function addDamage(state: KernelState, actor: 0 | 1, amount: number, close: bool
   let actual = amount;
   if (close && state.exposed[target]) actual += kingdomValue(state, 'feint', 'bonus');
   state.health[target] = Math.max(0, state.health[target] - actual);
-  bump(state.telemetry.damageByCard[playerId(actor)], state.kingdom.cards[source]!.id, actual);
+  if (state.collectTelemetry) bump(state.telemetry.damageByCard[playerId(actor)], state.kingdom.cards[source]!.id, actual);
   event(state);
   if (state.health[target] === 0) {
     state.telemetry.turnsToWin = state.turn - 1;
@@ -426,7 +441,7 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       ? targetAfterPlay : player.hand.findIndex((index) => state.kingdom.cards[index]!.family === family);
     return target < 0 ? undefined : removeHand(player, target);
   };
-  bump(state.telemetry.playsByCard[playerId(actor)], card.id, 1);
+  if (state.collectTelemetry) bump(state.telemetry.playsByCard[playerId(actor)], card.id, 1);
   event(state);
   const previousTactical = state.tacticalPlayed;
   if (card.tactical) state.tacticalPlayed += 1;
@@ -588,7 +603,7 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
         if (candidate.id !== 'scrap' && candidate.cost <= maximum && pileAvailable(state, index)
           && (gain < 0 || candidate.cost > state.kingdom.cards[gain]!.cost
             || (candidate.cost === state.kingdom.cards[gain]!.cost
-              && candidate.id.localeCompare(state.kingdom.cards[gain]!.id) < 0))) gain = index;
+              && compareUtf16(candidate.id, state.kingdom.cards[gain]!.id) < 0))) gain = index;
       }
       if (gain >= 0) {
         const gained = state.kingdom.cards[gain]!;
@@ -683,13 +698,16 @@ function buy(state: KernelState, actor: 0 | 1, cardIndex: number): void {
   player.money -= card.cost; if (card.type === 'action') state.supply[cardIndex]!--;
   player.discard.push(cardIndex); player.purchases.push(cardIndex); player.acquired[cardIndex]! += 1;
   addProfileCard(player.attackProfile, profileCard(card));
-  bump(state.telemetry.purchasesByCard[playerId(actor)], card.id, 1);
-  state.telemetry.moneySpent[playerId(actor)] += card.cost; event(state);
+  if (state.collectTelemetry) bump(state.telemetry.purchasesByCard[playerId(actor)], card.id, 1);
+  player.moneySpent += card.cost;
+  if (state.collectTelemetry) state.telemetry.moneySpent[playerId(actor)] += card.cost;
+  event(state);
 }
 
 function endBuyPhase(state: KernelState, actor: 0 | 1): void {
   const player = state.players[actor];
-  state.telemetry.unspentMoney[playerId(actor)] += player.money;
+  player.unspentMoney += player.money;
+  if (state.collectTelemetry) state.telemetry.unspentMoney[playerId(actor)] += player.money;
   player.discard.push(...player.hand, ...player.play); player.hand = []; player.play = [];
   player.money = 0; player.mana = 0; player.firstBuyPending = false; player.firstBuyMoney = 0;
   state.aimed[actor] = false; state.exposed[other(actor)] = false;
@@ -698,7 +716,7 @@ function endBuyPhase(state: KernelState, actor: 0 | 1): void {
   state.active = other(actor); state.turn += 1; event(state);
 }
 
-function createState(config: SimulationMatchConfig): KernelState {
+function createState(config: SimulationMatchConfig, collectTelemetry = true): KernelState {
   const kingdom = kernelKingdom(config.kingdomId);
   const draft = config.startingDraftEnabled ?? true;
   const players: [KernelPlayer, KernelPlayer] = [
@@ -711,7 +729,7 @@ function createState(config: SimulationMatchConfig): KernelState {
     aimed: [false, false], exposed: [false, false], supply: new Int16Array(kingdom.initialSupply),
     active: seat(config.firstPlayerId), turn: 1, rng: config.seed >>> 0, tacticalPlayed: 0,
     cardsPlayed: [], spacesMoved: 0, manaSpent: 0, spellsPlayed: 0, copiesPlayed: new Int16Array(kingdom.cards.length), familiesPlayed: new Set(), eventCount: 2,
-    telemetry: undefined as unknown as MatchTelemetry
+    telemetry: undefined as unknown as MatchTelemetry, collectTelemetry
   };
   const copper = kingdom.index.get('copper')!; const scrap = kingdom.index.get('scrap')!;
   const starting = (player: KernelPlayer): number[] => draft
@@ -788,10 +806,68 @@ export function runGoldfishTrial(config: GoldfishTrialConfig): GoldfishTrialResu
 
   return {
     completed: reason === 'victory', turnsTo50: reason === 'victory' ? state.turn : null,
-    damageByTurn, positionsByTurn, moneySpent: state.telemetry.moneySpent.ochre,
-    unspentMoney: state.telemetry.unspentMoney.ochre,
+    damageByTurn, positionsByTurn, moneySpent: state.players[0].moneySpent,
+    unspentMoney: state.players[0].unspentMoney,
     purchasesByCard: state.telemetry.purchasesByCard.ochre,
     damageByCard: state.telemetry.damageByCard.ochre, reason
+  };
+}
+
+export function runLeanGoldfishTrial(config: GoldfishTrialConfig): LeanGoldfishTrialResult {
+  const dummy: Strategy = { id: 'goldfish-dummy', startingBuild: [], buyPlan: fixedBuyPlan([]) };
+  const state = createState({
+    kingdomId: config.kingdomId, seed: config.seed, firstPlayerId: 'ochre', swapSides: false,
+    turnLimitPerPlayer: config.turnLimit, actionCapPerTurn: config.actionCapPerTurn,
+    startingDraftEnabled: false, strategies: { ochre: config.strategy, indigo: dummy }
+  }, false);
+  state.health[1] = 50;
+  const movementProfile = config.movementProfile ?? 'stationary';
+  let completedTurns = 0;
+  let damageArea = 0;
+  let finalDamage = 0;
+  let actionsInTurn = 0;
+  let phase: 'action' | 'buy' = 'action';
+  let reason: GoldfishTrialResult['reason'] = 'turnLimit';
+
+  for (;;) {
+    const actor = 0;
+    let turnChanged = false;
+    if (phase === 'action') {
+      const decision = chooseTacticalAction(pilotView(state, actor, null));
+      if (decision.type === 'play') {
+        const won = playCard(state, actor, decision); actionsInTurn += 1;
+        if (won) {
+          finalDamage = 50;
+          damageArea += 50;
+          completedTurns += 1;
+          reason = 'victory';
+          break;
+        }
+      } else {
+        endActionPhase(state, actor); actionsInTurn += 1; phase = 'buy';
+      }
+    } else {
+      const purchase = choosePurchase(state, actor);
+      if (purchase !== null) { buy(state, actor, purchase); actionsInTurn += 1; }
+      else {
+        endBuyPhase(state, actor); actionsInTurn += 1; phase = 'action';
+        state.active = 0;
+        finalDamage = 50 - state.health[1];
+        damageArea += finalDamage;
+        completedTurns += 1;
+        moveGoldfishDummy(state, movementProfile);
+        turnChanged = true;
+      }
+    }
+    if (actionsInTurn > config.actionCapPerTurn) { reason = 'actionCap'; break; }
+    if (state.turn > config.turnLimit) break;
+    if (turnChanged) actionsInTurn = 0;
+  }
+  damageArea += (config.turnLimit - completedTurns) * finalDamage;
+  return {
+    completed: reason === 'victory', turnsTo50: reason === 'victory' ? state.turn : null,
+    damageArea, finalDamage, moneySpent: state.players[0].moneySpent,
+    unspentMoney: state.players[0].unspentMoney, reason
   };
 }
 

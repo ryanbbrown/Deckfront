@@ -2,6 +2,7 @@ import { ARENA_MAX, ARENA_MIN } from '../game';
 import type { CardFamily, CardMechanic, CardValues, MovementChoice, PendingChoiceType } from '../game';
 import { printedAttackDamage, publicPositionAdvantage } from './positionValue';
 import type { AttackProfile } from './positionValue';
+import { compareUtf16 } from './utf16';
 export { TACTICAL_PILOT_PROTOCOL_VERSION } from './protocolVersions';
 
 export interface PilotCard {
@@ -320,7 +321,7 @@ export function fixedTargetSelection(
       candidate.handIndex !== card.handIndex && candidate.family === family);
     const target = card.mechanic === 'salvageShot'
       ? [...targets].sort((left, right) => right.cost - left.cost
-        || left.definitionId.localeCompare(right.definitionId)
+        || compareUtf16(left.definitionId, right.definitionId)
         || left.handIndex - right.handIndex)[0]
       : targets[0];
     return { targetHandIndexes: target ? [target.handIndex] : [], targetSelf: false };
@@ -372,7 +373,7 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
   if (view.pendingChoice === 'recover') {
     let best = view.discard[0];
     for (const card of view.discard) if (best && (card.cost > best.cost
-      || (card.cost === best.cost && card.definitionId.localeCompare(best.definitionId) < 0))) best = card;
+      || (card.cost === best.cost && compareUtf16(card.definitionId, best.definitionId) < 0))) best = card;
     return { type: 'recover', discardIndex: best?.discardIndex ?? null };
   }
   if (view.pendingChoice === 'discard') return pickDiscard(view);

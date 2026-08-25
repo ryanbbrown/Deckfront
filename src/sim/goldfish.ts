@@ -1,6 +1,8 @@
-import { runGoldfishTrial } from './simulationKernel';
+import { runGoldfishTrial, runLeanGoldfishTrial } from './simulationKernel';
 import type { GoldfishMovementProfile, GoldfishTrialResult } from './simulationKernel';
+import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
+import { compareUtf16 } from './utf16';
 
 export interface GoldfishConfig {
   kingdomId: string;
@@ -37,6 +39,21 @@ export interface MovementAwareGoldfishScore {
   totalDamageArea: number;
   totalMoneySpent: number;
 }
+
+export interface CompactMovementAwareGoldfishScore {
+  strategy: Strategy;
+  worstCompletions: number;
+  totalCompletions: number;
+  worstPenalizedTurnsTo50: number;
+  totalPenalizedTurnsTo50: number;
+  worstDamageArea: number;
+  totalDamageArea: number;
+  totalMoneySpent: number;
+  strategyId: string;
+  collisionTieKey: string;
+}
+
+export type MovementAwareRankingScore = MovementAwareGoldfishScore | CompactMovementAwareGoldfishScore;
 
 export interface EnrichmentCohorts {
   selected: MovementAwareGoldfishScore[];
@@ -91,36 +108,56 @@ export function compareGoldfishScores(left: GoldfishScore, right: GoldfishScore)
     || left.totalTurnsTo50 - right.totalTurnsTo50
     || right.damageArea - left.damageArea
     || right.moneySpent - left.moneySpent
-    || left.strategy.id.localeCompare(right.strategy.id);
+    || compareUtf16(left.strategy.id, right.strategy.id)
+    || compareUtf16(canonicalStrategy(left.strategy), canonicalStrategy(right.strategy));
 }
 
 export const GOLDFISH_MOVEMENT_PROFILES = Object.freeze([
   'stationary', 'chaser', 'kiter'
 ] as const satisfies readonly GoldfishMovementProfile[]);
 
-export function scoreMovementAwareGoldfishStrategy(
-  strategy: Strategy, config: GoldfishConfig
+export function scoreGoldfishStrategyLean(strategy: Strategy, config: GoldfishConfig): GoldfishScore {
+  if (!config.seeds.length) throw new Error('Goldfish scoring needs at least one seed.');
+  const trials = config.seeds.map((seed) => runLeanGoldfishTrial({
+    kingdomId: config.kingdomId, seed, strategy,
+    turnLimit: config.turnLimit, actionCapPerTurn: config.actionCapPerTurn,
+    ...(config.movementProfile ? { movementProfile: config.movementProfile } : {})
+  }));
+  const completed = trials.filter((trial) => trial.completed);
+  const totalTurnsTo50 = completed.reduce((sum, trial) => sum + trial.turnsTo50!, 0);
+  const finalDamage = trials.reduce((sum, trial) => sum + trial.finalDamage, 0);
+  return {
+    strategy, trials: trials.length, completions: completed.length,
+    meanTurnsTo50: completed.length ? totalTurnsTo50 / completed.length : null,
+    totalTurnsTo50, damageArea: trials.reduce((sum, trial) => sum + trial.damageArea, 0),
+    totalDamage: finalDamage, meanDamage: finalDamage / trials.length,
+    moneySpent: trials.reduce((sum, trial) => sum + trial.moneySpent, 0),
+    unspentMoney: trials.reduce((sum, trial) => sum + trial.unspentMoney, 0),
+    penalizedTurnsTo50: trials.reduce((sum, trial) =>
+      sum + (trial.completed ? trial.turnsTo50! : config.turnLimit + 1), 0)
+  };
+}
+
+function goldfishMetrics(complete: GoldfishScore): GoldfishMetrics {
+  return {
+    trials: complete.trials, completions: complete.completions,
+    meanTurnsTo50: complete.meanTurnsTo50, totalTurnsTo50: complete.totalTurnsTo50,
+    damageArea: complete.damageArea, totalDamage: complete.totalDamage,
+    meanDamage: complete.meanDamage, moneySpent: complete.moneySpent,
+    unspentMoney: complete.unspentMoney, penalizedTurnsTo50: complete.penalizedTurnsTo50
+  };
+}
+
+function movementAwareScore(
+  strategy: Strategy, config: GoldfishConfig,
+  scorer: (strategy: Strategy, config: GoldfishConfig) => GoldfishScore
 ): MovementAwareGoldfishScore {
-  const profiles = GOLDFISH_MOVEMENT_PROFILES.map((profile) => {
-    const complete = scoreGoldfishStrategy(strategy, { ...config, movementProfile: profile });
-    const score: GoldfishMetrics = {
-      trials: complete.trials,
-      completions: complete.completions,
-      meanTurnsTo50: complete.meanTurnsTo50,
-      totalTurnsTo50: complete.totalTurnsTo50,
-      damageArea: complete.damageArea,
-      totalDamage: complete.totalDamage,
-      meanDamage: complete.meanDamage,
-      moneySpent: complete.moneySpent,
-      unspentMoney: complete.unspentMoney,
-      penalizedTurnsTo50: complete.penalizedTurnsTo50
-    };
-    return { profile, score };
-  });
+  const profiles = GOLDFISH_MOVEMENT_PROFILES.map((profile) => ({ profile,
+    score: goldfishMetrics(scorer(strategy, { ...config, movementProfile: profile }))
+  }));
   const values = profiles.map((entry) => entry.score);
   return {
-    strategy,
-    profiles,
+    strategy, profiles,
     worstCompletions: Math.min(...values.map((score) => score.completions)),
     totalCompletions: values.reduce((sum, score) => sum + score.completions, 0),
     worstPenalizedTurnsTo50: Math.max(...values.map((score) => score.penalizedTurnsTo50)),
@@ -129,6 +166,50 @@ export function scoreMovementAwareGoldfishStrategy(
     totalDamageArea: values.reduce((sum, score) => sum + score.damageArea, 0),
     totalMoneySpent: values.reduce((sum, score) => sum + score.moneySpent, 0)
   };
+}
+
+export function scoreMovementAwareGoldfishStrategyLean(
+  strategy: Strategy, config: GoldfishConfig, mode: 'full'
+): MovementAwareGoldfishScore;
+export function scoreMovementAwareGoldfishStrategyLean(
+  strategy: Strategy, config: GoldfishConfig, mode?: 'compact'
+): CompactMovementAwareGoldfishScore;
+export function scoreMovementAwareGoldfishStrategyLean(
+  strategy: Strategy, config: GoldfishConfig, mode: 'full' | 'compact' = 'compact'
+): MovementAwareGoldfishScore | CompactMovementAwareGoldfishScore {
+  const full = movementAwareScore(strategy, config, scoreGoldfishStrategyLean);
+  if (mode === 'full') return full;
+  return compactMovementAwareGoldfishScore(full);
+}
+
+export function compactMovementAwareGoldfishScore(
+  score: MovementAwareGoldfishScore
+): CompactMovementAwareGoldfishScore {
+  return {
+    strategy: score.strategy, worstCompletions: score.worstCompletions,
+    totalCompletions: score.totalCompletions,
+    worstPenalizedTurnsTo50: score.worstPenalizedTurnsTo50,
+    totalPenalizedTurnsTo50: score.totalPenalizedTurnsTo50,
+    worstDamageArea: score.worstDamageArea, totalDamageArea: score.totalDamageArea,
+    totalMoneySpent: score.totalMoneySpent, strategyId: score.strategy.id,
+    collisionTieKey: canonicalStrategy(score.strategy)
+  };
+}
+
+export function rankingKeyText(score: MovementAwareRankingScore): string {
+  return [score.worstCompletions, score.totalCompletions, score.worstPenalizedTurnsTo50,
+    score.totalPenalizedTurnsTo50, score.worstDamageArea, score.totalDamageArea,
+    score.totalMoneySpent, score.strategy.id, canonicalStrategy(score.strategy)].join('\t');
+}
+
+export function rankingDigest(scores: readonly MovementAwareRankingScore[]): string {
+  return stableHash(scores.map(rankingKeyText).join('\n'));
+}
+
+export function scoreMovementAwareGoldfishStrategy(
+  strategy: Strategy, config: GoldfishConfig
+): MovementAwareGoldfishScore {
+  return movementAwareScore(strategy, config, scoreGoldfishStrategy);
 }
 
 export function mergeMovementAwareGoldfishScores(
@@ -169,7 +250,7 @@ export function mergeMovementAwareGoldfishScores(
 }
 
 export function compareMovementAwareGoldfishScores(
-  left: MovementAwareGoldfishScore, right: MovementAwareGoldfishScore
+  left: MovementAwareRankingScore, right: MovementAwareRankingScore
 ): number {
   return right.worstCompletions - left.worstCompletions
     || right.totalCompletions - left.totalCompletions
@@ -178,7 +259,8 @@ export function compareMovementAwareGoldfishScores(
     || right.worstDamageArea - left.worstDamageArea
     || right.totalDamageArea - left.totalDamageArea
     || right.totalMoneySpent - left.totalMoneySpent
-    || left.strategy.id.localeCompare(right.strategy.id);
+    || compareUtf16(left.strategy.id, right.strategy.id)
+    || compareUtf16(canonicalStrategy(left.strategy), canonicalStrategy(right.strategy));
 }
 
 function seededIdentityRank(id: string, seed: number): number {
@@ -198,7 +280,8 @@ export function selectEnrichmentCohorts(
   const selectedIds = new Set(selected.map((entry) => entry.strategy.id));
   const controls = scores.filter((entry) => !selectedIds.has(entry.strategy.id)).sort((left, right) =>
     seededIdentityRank(left.strategy.id, controlSeed) - seededIdentityRank(right.strategy.id, controlSeed)
-      || left.strategy.id.localeCompare(right.strategy.id)).slice(0, count);
+      || compareUtf16(left.strategy.id, right.strategy.id)
+      || compareUtf16(canonicalStrategy(left.strategy), canonicalStrategy(right.strategy))).slice(0, count);
   return { selected, controls };
 }
 
@@ -216,7 +299,7 @@ export function summarizeCompetitiveGoldfishEntries(
   const candidateScores = [...byCandidate].map(([strategyId, rows]) => {
     if (rows.size !== lotteryIds.length) throw new Error('Every candidate needs every lottery.');
     return { strategyId, mean: [...rows.values()].reduce((sum, score) => sum + score, 0) / rows.size };
-  }).sort((left, right) => right.mean - left.mean || left.strategyId.localeCompare(right.strategyId));
+  }).sort((left, right) => right.mean - left.mean || compareUtf16(left.strategyId, right.strategyId));
   const values = candidateScores.map((entry) => entry.mean).sort((left, right) => left - right);
   const middle = Math.floor(values.length / 2);
   const median = values.length % 2 ? values[middle]! : (values[middle - 1]! + values[middle]!) / 2;

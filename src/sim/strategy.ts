@@ -61,14 +61,28 @@ export function canonicalStrategy(strategy: Strategy): string {
   });
 }
 
+/** Incremental FNV-1a with the same output contract as stableHash. */
+export class StableHashAccumulator {
+  private hash = 0x811c9dc5;
+  private length = 0;
+
+  update(text: string): this {
+    for (let index = 0; index < text.length; index += 1) {
+      this.hash ^= text.charCodeAt(index);
+      this.hash = Math.imul(this.hash, 0x01000193) >>> 0;
+    }
+    this.length = (this.length + text.length) >>> 0;
+    return this;
+  }
+
+  digest(): string {
+    return `${this.hash.toString(16).padStart(8, '0')}${this.length.toString(16)}`;
+  }
+}
+
 /** FNV-1a, 32 bit. Stable across processes and runs. */
 export function stableHash(text: string): string {
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < text.length; index += 1) {
-    hash ^= text.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-  }
-  return `${hash.toString(16).padStart(8, '0')}${(text.length >>> 0).toString(16)}`;
+  return new StableHashAccumulator().update(text).digest();
 }
 
 export const STRATEGY_ID_PREFIX = 'sg-';
