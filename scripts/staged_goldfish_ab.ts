@@ -294,7 +294,10 @@ async function buildPool(kingdom: Kingdom, baseline: FixedReservoirPoolArtifact)
     prefilterCount: PREFILTER_COUNT, scoring: { profiles: [...GOLDFISH_MOVEMENT_PROFILES],
       combination: 'disjoint-seed-sum-v1',
       stageOne: { seeds: [FIRST_GOLDFISH_SEED], scoredCount: generated.length, elapsedMs: completedStage.scoringMs },
-      rescore: { seeds: REMAINING_GOLDFISH_SEEDS, scoredCount: rescored.length, elapsedMs: rescoreMs } },
+      rescore: { seeds: REMAINING_GOLDFISH_SEEDS, scoredCount: rescored.length, elapsedMs: rescoreMs,
+        shardProvenance: [{ shardId: 'rescore-local-0', startPosition: 0, endPosition: rescored.length,
+          candidateDigest: stableHash(completedStage.prefilter.map((entry) =>
+            canonicalStrategy(entry.score.strategy)).join('\n')), scoreDigest: rankingDigest(rescored) }] } },
     reservoirHash: stagedReservoirHash(reservoir), reservoir,
     elapsedMs: completedStage.generationMs + completedStage.scoringMs + rescoreMs };
   if (!validateStagedFixedReservoirPool(artifact, stagedPoolExpectation())) {

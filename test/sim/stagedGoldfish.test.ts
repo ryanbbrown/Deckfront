@@ -82,13 +82,18 @@ describe('staged movement-aware goldfish', () => {
         candidateDigest: provenance.canonicalProvenanceDigest, scoreDigest: '123456789' }], prefilterCount: 8,
       scoring: { profiles: [...GOLDFISH_MOVEMENT_PROFILES], combination: 'disjoint-seed-sum-v1',
         stageOne: { seeds: [100], scoredCount: 20, elapsedMs: 10 },
-        rescore: { seeds: [101, 102, 103], scoredCount: 8, elapsedMs: 20 } },
+        rescore: { seeds: [101, 102, 103], scoredCount: 8, elapsedMs: 20,
+          shardProvenance: [{ shardId: '0', startPosition: 0, endPosition: 8,
+            candidateDigest: '123456789', scoreDigest: 'abcdef123' }] } },
       reservoirHash: stagedReservoirHash(reservoir), reservoir, elapsedMs: 30 };
     expect(validateStagedFixedReservoirPool(artifact, { goldfishCount: 5, randomCount: 3,
       goldfishSeeds: [100, 101, 102, 103] })).toBe(true);
     const corruptShard = structuredClone(artifact);
     corruptShard.shardProvenance[0]!.endPosition = 19;
     expect(validateStagedFixedReservoirPool(corruptShard)).toBe(false);
+    const corruptRescoreShard = structuredClone(artifact);
+    corruptRescoreShard.scoring.rescore.shardProvenance[0]!.endPosition = 7;
+    expect(validateStagedFixedReservoirPool(corruptRescoreShard)).toBe(false);
     const randomIndex = artifact.reservoir.findIndex((entry) => entry.source === 'random');
     const dishonest = structuredClone(artifact);
     dishonest.reservoir[randomIndex]!.scoreProvenance = 'combined-four-seed';

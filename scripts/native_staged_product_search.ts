@@ -164,7 +164,11 @@ try {
     })), prefilterCount, scoring: { profiles: [...GOLDFISH_MOVEMENT_PROFILES],
       combination: 'disjoint-seed-sum-v1', stageOne: { seeds: [SEEDS[0]!], scoredCount: generatedCount,
         elapsedMs: stageOneElapsedMs }, rescore: { seeds: SEEDS.slice(1), scoredCount: prefilter.length,
-        elapsedMs: rescoreElapsedMs } }, reservoirHash: stagedReservoirHash(reservoir), reservoir,
+        elapsedMs: rescoreElapsedMs, shardProvenance: stageTwoShards.map((shard) => ({
+          shardId: String(shard.shardId), startPosition: shard.startPosition,
+          endPosition: shard.endPosition, candidateDigest: shard.candidateDigest,
+          scoreDigest: shard.scoreDigest
+        })) } }, reservoirHash: stagedReservoirHash(reservoir), reservoir,
     elapsedMs: Date.now() - started };
   if (!validateStagedFixedReservoirPool(artifact, { kingdomId: KINGDOM_ID, poolSeed, generatedCount,
     prefilterCount, goldfishCount: FIXED_RESERVOIR_CONFIG.goldfishCount,

@@ -60,7 +60,9 @@ export interface StagedFixedReservoirPoolArtifact {
     profiles: string[];
     combination: 'disjoint-seed-sum-v1';
     stageOne: { seeds: number[]; scoredCount: number; elapsedMs: number };
-    rescore: { seeds: number[]; scoredCount: number; elapsedMs: number };
+    rescore: { seeds: number[]; scoredCount: number; elapsedMs: number;
+      shardProvenance: Array<{ shardId: string; startPosition: number; endPosition: number;
+        candidateDigest: string; scoreDigest: string }> };
   };
   reservoirHash: string;
   reservoir: StagedReservoirEntry[];
@@ -234,14 +236,19 @@ function validateStagedFixedReservoirPoolUnchecked(
   if (new Set(reservoirIds).size !== reservoirIds.length) return false;
   const canonical = artifact.reservoir.map((entry) => canonicalStrategy(entry.strategy));
   if (new Set(canonical).size !== canonical.length) return false;
-  const shards = [...artifact.shardProvenance].sort((left, right) => left.startPosition - right.startPosition);
-  if ((artifact.generatedCount! > 0 && shards.length === 0)
-    || (shards.length && (shards[0]!.startPosition !== 0
-    || shards.at(-1)!.endPosition !== artifact.generatedCount
-    || shards.some((entry, index) => entry.endPosition < entry.startPosition
-      || (index > 0 && shards[index - 1]!.endPosition !== entry.startPosition)
-      || !/^[0-9a-f]{9,}$/.test(entry.candidateDigest)
-      || !/^[0-9a-f]{9,}$/.test(entry.scoreDigest))))) return false;
+  const validShards = (values: unknown, count: number): boolean => {
+    if (!Array.isArray(values)) return false;
+    const shards = [...values] as StagedFixedReservoirPoolArtifact['shardProvenance'];
+    shards.sort((left, right) => left.startPosition - right.startPosition);
+    return count === 0 ? shards.length === 0 : shards.length > 0
+      && shards[0]!.startPosition === 0 && shards.at(-1)!.endPosition === count
+      && shards.every((entry, index) => entry.endPosition >= entry.startPosition
+        && (index === 0 || shards[index - 1]!.endPosition === entry.startPosition)
+        && /^[0-9a-f]{9,}$/.test(entry.candidateDigest)
+        && /^[0-9a-f]{9,}$/.test(entry.scoreDigest));
+  };
+  if (!validShards(artifact.shardProvenance, artifact.generatedCount!)
+    || !validShards(artifact.scoring.rescore.shardProvenance, artifact.prefilterCount!)) return false;
   const goldfish = artifact.reservoir.filter((entry): entry is StagedGoldfishReservoirEntry => entry.source === 'goldfish');
   const random = artifact.reservoir.filter((entry): entry is StagedRandomReservoirEntry => entry.source === 'random');
   if (expected.goldfishCount !== undefined && goldfish.length !== expected.goldfishCount) return false;
