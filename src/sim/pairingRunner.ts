@@ -52,13 +52,26 @@ interface CompactWorkerItem {
   options: number;
   scoreOnly: boolean;
 }
-interface WorkerRequest {
+interface CompactWorkerSchedule {
+  candidate: number;
+  scoreOnly: boolean;
+  blocks: readonly { id: number; opponent: number; options: number }[];
+}
+interface LegacyWorkerRequest {
   kind: 'pairing-batch-v2';
   candidates: readonly Strategy[];
   opponents: readonly Strategy[];
   options: readonly PairingOptions[];
   items: readonly CompactWorkerItem[];
 }
+interface ScheduleWorkerRequest {
+  kind: 'pairing-schedules-v3';
+  candidates: readonly Strategy[];
+  opponents: readonly Strategy[];
+  options: readonly PairingOptions[];
+  schedules: readonly CompactWorkerSchedule[];
+}
+type WorkerRequest = LegacyWorkerRequest | ScheduleWorkerRequest;
 interface WorkerSuccess { kind: 'pairing-results'; outcomes: readonly { id: number; outcome: PairingOutcome }[] }
 interface WorkerFailure { kind: 'pairing-error'; name: string; message: string; stack?: string | undefined }
 type WorkerResponse = WorkerSuccess | WorkerFailure;
@@ -122,17 +135,25 @@ export class WorkerPairingRunner implements PairingRunner {
           finish();
           return;
         }
-        const jobsInBatch: Array<{ id: number; job: PairingJob }> = [];
+        const scheduleJobs: Array<Array<{ id: number; job: PairingJob }>> = [];
         let estimatedGames = 0;
         const targetGames = options.now ? 1 : 32;
-        while (next < jobs.length && jobsInBatch.length < 8 && estimatedGames < targetGames) {
-          const id = next;
-          const job = jobs[id]!;
-          jobsInBatch.push({ id, job });
-          estimatedGames += job.options.seeds.length * 4;
-          next += 1;
+        while (next < jobs.length && scheduleJobs.length < 8
+          && (scheduleJobs.length === 0 || estimatedGames < targetGames)) {
+          const first = jobs[next]!;
+          const candidateKey = JSON.stringify(first.candidate);
+          const schedule: Array<{ id: number; job: PairingJob }> = [];
+          while (next < jobs.length) {
+            const job = jobs[next]!;
+            if (JSON.stringify(job.candidate) !== candidateKey
+              || (job.scoreOnly ?? false) !== (first.scoreOnly ?? false)) break;
+            schedule.push({ id: next, job });
+            estimatedGames += job.options.seeds.length * 4;
+            next += 1;
+          }
+          scheduleJobs.push(schedule);
         }
-        submitted += jobsInBatch.length;
+        submitted += scheduleJobs.reduce((sum, schedule) => sum + schedule.length, 0);
         active += 1;
         entry.busy = true;
         const candidates: Strategy[] = [];
@@ -147,18 +168,21 @@ export class WorkerPairingRunner implements PairingRunner {
           if (existing !== undefined) return existing;
           const index = values.length; values.push(strategy); held.set(key, index); return index;
         };
-        const items = jobsInBatch.map(({ id, job }): CompactWorkerItem => {
-          const optionsKey = JSON.stringify(job.options);
-          let heldOptions = optionsIndex.get(optionsKey);
-          if (heldOptions === undefined) {
-            heldOptions = compactOptions.length; compactOptions.push(job.options); optionsIndex.set(optionsKey, heldOptions);
-          }
-          return { id, candidate: internStrategy(job.candidate, candidates, candidateIndex),
-            opponent: internStrategy(job.opponent, opponents, opponentIndex), options: heldOptions,
-            scoreOnly: job.scoreOnly ?? false };
-        });
-        entry.worker.postMessage({ kind: 'pairing-batch-v2', candidates, opponents,
-          options: compactOptions, items } satisfies WorkerRequest);
+        const internOptions = (held: PairingOptions): number => {
+          const key = JSON.stringify(held);
+          const existing = optionsIndex.get(key);
+          if (existing !== undefined) return existing;
+          const index = compactOptions.length; compactOptions.push(held); optionsIndex.set(key, index); return index;
+        };
+        const schedules = scheduleJobs.map((schedule): CompactWorkerSchedule => ({
+          candidate: internStrategy(schedule[0]!.job.candidate, candidates, candidateIndex),
+          scoreOnly: schedule[0]!.job.scoreOnly ?? false,
+          blocks: schedule.map(({ id, job }) => ({ id,
+            opponent: internStrategy(job.opponent, opponents, opponentIndex),
+            options: internOptions(job.options) }))
+        }));
+        entry.worker.postMessage({ kind: 'pairing-schedules-v3', candidates, opponents,
+          options: compactOptions, schedules } satisfies ScheduleWorkerRequest);
       };
 
       for (const entry of this.pool) {
@@ -209,14 +233,19 @@ export class WorkerPairingRunner implements PairingRunner {
 export function runPairingWorker(): void {
   if (isMainThread || !parentPort) throw new Error('The pairing worker handler needs a worker thread.');
   parentPort.on('message', (request: WorkerRequest) => {
-    if (request.kind !== 'pairing-batch-v2') return;
+    if (request.kind !== 'pairing-batch-v2' && request.kind !== 'pairing-schedules-v3') return;
     try {
-      const outcomes = request.items.map((item) => {
+      const items: readonly CompactWorkerItem[] = request.kind === 'pairing-batch-v2' ? request.items
+        : request.schedules.flatMap((schedule) => schedule.blocks.map((block) => ({
+          id: block.id, candidate: schedule.candidate, opponent: block.opponent,
+          options: block.options, scoreOnly: schedule.scoreOnly
+        })));
+      const outcomes = items.map((item) => {
         const candidate = request.candidates[item.candidate]!;
         const opponent = request.opponents[item.opponent]!;
-        const options = request.options[item.options]!;
-        const outcome = item.scoreOnly ? playPairingScoreOnly(candidate, opponent, options)
-          : playPairing(candidate, opponent, options);
+        const heldOptions = request.options[item.options]!;
+        const outcome = item.scoreOnly ? playPairingScoreOnly(candidate, opponent, heldOptions)
+          : playPairing(candidate, opponent, heldOptions);
         return { id: item.id, outcome };
       });
       parentPort!.postMessage({ kind: 'pairing-results', outcomes } satisfies WorkerSuccess);

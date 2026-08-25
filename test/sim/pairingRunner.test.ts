@@ -28,6 +28,17 @@ describe('the worker pairing runner', () => {
     expect(compact.outcomes[0]?.telemetry.acquisitionsByStrategy).toEqual({});
   });
 
+  it('sends one candidate complete opponent schedule as one compact worker unit', async () => {
+    const runner = new WorkerPairingRunner(2, workerUrl);
+    const schedule = jobs(5).map((job, index) => ({ ...job,
+      candidate: strategy({ id: 'one-candidate' }), opponent: strategy({ id: `opponent-${index}` }) }));
+    try {
+      const result = await runner.run(schedule);
+      expect(result.submitted).toBe(5);
+      expect(result.outcomes.map((outcome) => outcome?.seedBlocks)).toEqual([5, 5, 5, 5, 5]);
+    } finally { await runner.close(); }
+  });
+
   it('folds one-worker and reverse-completing two-worker results in submission order', async () => {
     const one = new WorkerPairingRunner(1, workerUrl);
     const two = new WorkerPairingRunner(2, workerUrl);
