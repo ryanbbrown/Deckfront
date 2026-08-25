@@ -276,6 +276,7 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
   .hand-card-slot { flex-basis: 82px; width: 82px; max-width: 82px; height: 110px; }
   .hand-card-slot:last-child { flex-basis: 82px; }
   .hand-card-frame { width: 74px; height: 110px; }
+  .hand-card-slot.animation-placeholder .hand-card-frame { transform: none; }
   .hand-card-frame .full-card { transform: scale(.5); transform-origin: top left; }
   .hand-card-slot:hover .full-card,.hand-card-slot:focus-within .full-card,.hand-card-slot .card--selected { transform: translateY(-3px) scale(.52); }
   .hand-card-frame > .quantity-badge { top: -9px; right: -6px; transform: scale(.72); }
