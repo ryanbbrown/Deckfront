@@ -139,9 +139,13 @@ export function selectStagedReservoir(
   if (stageOneScores.length < prefilterCount + randomCount) {
     throw new Error('Staged reservoir cohort sizes are invalid.');
   }
-  const rankedStageOne = [...stageOneScores].sort(compareMovementAwareGoldfishScores);
-  if (new Set(rankedStageOne.map((entry) => entry.strategy.id)).size !== rankedStageOne.length) {
-    throw new Error('Staged reservoir strategies must be unique.');
+  const heldIds = new Set<string>();
+  const rankedStageOne = [...stageOneScores].sort(compareMovementAwareGoldfishScores).filter((entry) => {
+    if (heldIds.has(entry.strategy.id)) return false;
+    heldIds.add(entry.strategy.id); return true;
+  });
+  if (rankedStageOne.length < prefilterCount + randomCount) {
+    throw new Error('Display-ID collisions exhausted the staged reservoir.');
   }
   const stageOneRank = new Map(rankedStageOne.map((entry, index) => [entry.strategy.id, index + 1]));
   const ranked = (score: MovementAwareGoldfishScore): StageOneRankedScore => ({

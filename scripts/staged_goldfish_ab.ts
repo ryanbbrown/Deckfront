@@ -88,6 +88,7 @@ interface StageOneArtifact {
   prefilterCount: number;
   generationMs: number;
   scoringMs: number;
+  scoreDigest: string;
   prefilter: StageOneRankedScore[];
   tailCandidates: StageOneRankedScore[];
 }
@@ -193,6 +194,7 @@ function validStageOne(value: unknown, baseline: FixedReservoirPoolArtifact): va
     || !Array.isArray(artifact.prefilter) || !Array.isArray(artifact.tailCandidates)
     || artifact.generatedHash !== baseline.generatedHash
     || artifact.canonicalProvenanceDigest !== baseline.canonicalProvenanceDigest
+    || typeof artifact.scoreDigest !== 'string' || !/^[0-9a-f]{9,}$/.test(artifact.scoreDigest)
     || artifact.prefilter.length !== PREFILTER_COUNT
     || artifact.tailCandidates.length !== FIXED_RESERVOIR_CONFIG.goldfishCount + FIXED_RESERVOIR_CONFIG.randomCount) return false;
   const prefilterIds = artifact.prefilter.map((entry) => entry.score.strategy.id);
@@ -260,7 +262,8 @@ async function buildPool(kingdom: Kingdom, baseline: FixedReservoirPoolArtifact)
       kingdomId: KINGDOM_ID, poolSeed, seed: FIRST_GOLDFISH_SEED, generatedCount: generated.length,
       generatedHash: provenance.generatedIdDigest,
       canonicalProvenanceDigest: provenance.canonicalProvenanceDigest, prefilterCount: PREFILTER_COUNT,
-      generationMs, scoringMs, prefilter: ranked.slice(0, PREFILTER_COUNT).map(wrap),
+      generationMs, scoringMs, scoreDigest: rankingDigest(scores),
+      prefilter: ranked.slice(0, PREFILTER_COUNT).map(wrap),
       tailCandidates: [...ranked].sort((left, right) => tailRank(left.strategy.id) - tailRank(right.strategy.id)
         || compareUtf16(left.strategy.id, right.strategy.id)
         || compareUtf16(canonicalStrategy(left.strategy), canonicalStrategy(right.strategy)))
@@ -287,8 +290,7 @@ async function buildPool(kingdom: Kingdom, baseline: FixedReservoirPoolArtifact)
     scoringProtocol: 'typescript-staged-movement-aware-v1',
     shardProvenance: [{ shardId: 'stage-one-local-0', startPosition: 0, endPosition: generated.length,
       candidateDigest: provenance.canonicalProvenanceDigest,
-      scoreDigest: rankingDigest([...completedStage.prefilter.map((entry) => entry.score),
-        ...completedStage.tailCandidates.map((entry) => entry.score)]) }],
+      scoreDigest: completedStage.scoreDigest }],
     prefilterCount: PREFILTER_COUNT, scoring: { profiles: [...GOLDFISH_MOVEMENT_PROFILES],
       combination: 'disjoint-seed-sum-v1',
       stageOne: { seeds: [FIRST_GOLDFISH_SEED], scoredCount: generated.length, elapsedMs: completedStage.scoringMs },
