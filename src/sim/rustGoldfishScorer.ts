@@ -19,12 +19,22 @@ export class RustGoldfishScorer {
   private readonly waiters: Array<{ resolve: (line: string) => void; reject: (error: Error) => void }> = [];
   private stderr = '';
   private spawnError: Error | null = null;
+  private exitState: { code: number | null; signal: NodeJS.Signals | null } | null = null;
+  private readonly exited: Promise<{ code: number | null; signal: NodeJS.Signals | null }>;
 
   constructor(threads: number, cpuRequest = threads, executable = process.env.HEXDECK_GOLDFISH_BIN
     ?? path.resolve('rust/target/release/hexdeck-goldfish')) {
     if (threads > cpuRequest) throw new Error('Native scorer threads cannot exceed the CPU request.');
     this.process = spawn(executable, ['--threads', String(threads), '--cpu-request', String(cpuRequest)],
       { stdio: ['pipe', 'pipe', 'pipe'] });
+    this.exited = new Promise((resolve) => {
+      this.process.once('exit', (code, signal) => {
+        this.exitState = { code, signal };
+        const error = this.exitError('before returning a response');
+        for (const waiter of this.waiters.splice(0)) waiter.reject(error);
+        resolve(this.exitState);
+      });
+    });
     readline.createInterface({ input: this.process.stdout }).on('line', (line) => {
       const waiter = this.waiters.shift();
       if (waiter) waiter.resolve(line); else this.lines.push(line);
@@ -36,16 +46,21 @@ export class RustGoldfishScorer {
     });
   }
 
+  private exitError(context: string): Error {
+    if (this.spawnError) return this.spawnError;
+    const state = this.exitState ?? { code: this.process.exitCode, signal: this.process.signalCode };
+    const status = state.signal ? `by signal ${state.signal}` : `with code ${state.code ?? 'unknown'}`;
+    return new Error(`Native scorer exited ${status} ${context}: ${this.stderr}`);
+  }
+
   private nextLine(): Promise<string> {
     const held = this.lines.shift();
     if (held !== undefined) return Promise.resolve(held);
     if (this.spawnError) return Promise.reject(this.spawnError);
-    return new Promise((resolve, reject) => {
-      const onExit = (code: number | null): void => reject(new Error(
-        `Native scorer exited ${code ?? 'by signal'}: ${this.stderr}`));
-      this.process.once('exit', onExit);
-      this.waiters.push({ resolve: (line) => { this.process.off('exit', onExit); resolve(line); }, reject });
-    });
+    if (this.exitState || this.process.exitCode !== null || this.process.signalCode !== null) {
+      return Promise.reject(this.exitError('before returning a response'));
+    }
+    return new Promise((resolve, reject) => this.waiters.push({ resolve, reject }));
   }
 
   private async request(value: unknown): Promise<Record<string, unknown>> {
@@ -97,8 +112,13 @@ export class RustGoldfishScorer {
 
   async close(): Promise<void> {
     if (this.spawnError) return;
-    if (!this.process.stdin.destroyed) this.process.stdin.end();
-    if (this.process.exitCode !== null) return;
-    await new Promise<void>((resolve) => this.process.once('exit', () => resolve()));
+    if (!this.exitState && this.process.exitCode === null && this.process.signalCode === null
+      && !this.process.stdin.destroyed) this.process.stdin.end();
+    const state = this.exitState ?? (this.process.exitCode !== null || this.process.signalCode !== null
+      ? { code: this.process.exitCode, signal: this.process.signalCode }
+      : await this.exited);
+    if (state.signal !== null || (state.code !== null && state.code !== 0)) {
+      throw this.exitError('during cleanup');
+    }
   }
 }

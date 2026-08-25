@@ -108,6 +108,16 @@ describe('staged movement-aware goldfish', () => {
       reservoirHash: stagedReservoirHash(reservoir), reservoir, elapsedMs: 30 };
     expect(validateStagedFixedReservoirPool(artifact, { goldfishCount: 5, randomCount: 3,
       goldfishSeeds: [100, 101, 102, 103] })).toBe(true);
+    const changedScore = structuredClone(artifact);
+    const goldfishIndex = changedScore.reservoir.findIndex((entry) => entry.source === 'goldfish');
+    if (changedScore.reservoir[goldfishIndex]!.source === 'goldfish') {
+      changedScore.reservoir[goldfishIndex]!.score.totalDamageArea += 1;
+    }
+    expect(validateStagedFixedReservoirPool(changedScore)).toBe(false);
+    const changedRank = structuredClone(artifact);
+    const changedRandom = changedRank.reservoir.find((entry) => entry.source === 'random');
+    if (changedRandom?.source === 'random') changedRandom.randomTailRank += 1;
+    expect(validateStagedFixedReservoirPool(changedRank)).toBe(false);
     const corruptShard = structuredClone(artifact);
     corruptShard.shardProvenance[0]!.endPosition = 19;
     expect(validateStagedFixedReservoirPool(corruptShard)).toBe(false);

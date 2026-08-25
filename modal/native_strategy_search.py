@@ -180,6 +180,10 @@ def valid_result(value: Any, spec: dict[str, Any]) -> bool:
             and value["ruleFingerprint"] == spec["rule_fingerprint"]
             and value["scorerVersion"] == SCORER_VERSION
             and value["buildVersion"] == spec["build_version"]
+            and value["shuffleSeeds"] == [4_100_000 + index for index in range(spec["shuffles"])]
+            and value["movementProfiles"] == ["stationary", "chaser", "kiter"]
+            and value["requestedCpu"] == spec["cpu"]
+            and value["threads"] == spec["threads"]
             and isinstance(value["candidateDigest"], str)
             and re.fullmatch(r"[0-9a-f]{9,}", value["candidateDigest"]) is not None
             and isinstance(value["scoreDigest"], str)
@@ -204,7 +208,14 @@ def _stable_hash(lines: list[str]) -> str:
     return f"{value:08x}{len(units) // 2:x}"
 
 
+def ordered_subprocess_timeouts(timeout_seconds: int) -> tuple[int, int]:
+    generation = max(1, timeout_seconds // 3)
+    scoring = max(1, timeout_seconds - generation)
+    return generation, scoring
+
+
 def _native_shard(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str, dict[str, Any]]:
+    generation_timeout, scoring_timeout = ordered_subprocess_timeouts(spec["timeout_seconds"])
     with tempfile.TemporaryDirectory() as directory:
         request_path = pathlib.Path(directory) / "request.jsonl"
         metadata_path = pathlib.Path(directory) / "metadata.json"
@@ -213,7 +224,7 @@ def _native_shard(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str,
             "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]),
             "--shuffles", str(spec["shuffles"]), "--request", str(request_path),
             "--metadata", str(metadata_path)], cwd="/workspace", text=True, capture_output=True,
-            timeout=spec["timeout_seconds"], check=True)
+            timeout=generation_timeout, check=True)
         metadata = json.loads(metadata_path.read_text())
         if metadata["ruleFingerprint"] != spec["rule_fingerprint"]:
             raise RuntimeError("TypeScript rule fingerprint does not match the shard specification")
@@ -221,7 +232,7 @@ def _native_shard(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str,
         with request_path.open() as request:
             completed = subprocess.run([executable, "--threads", str(spec["threads"]),
                 "--cpu-request", str(spec["cpu"])], stdin=request, text=True, capture_output=True,
-                timeout=spec["timeout_seconds"], check=True)
+                timeout=scoring_timeout, check=True)
     response = json.loads(completed.stdout)
     if not response.get("ok"):
         raise RuntimeError(str(response.get("error")))
@@ -305,6 +316,7 @@ def product_search(config: dict[str, Any]) -> dict[str, Any]:
     started = time.monotonic()
     completed = subprocess.run(command, cwd="/workspace", env=environment, text=True,
         capture_output=True, timeout=config["timeout_seconds"], check=True)
+    volume.commit()
     lines = [line for line in completed.stdout.splitlines() if line.startswith("{")]
     if not lines:
         raise RuntimeError(f"product command returned no summary: {completed.stdout[-2000:]}")
@@ -385,32 +397,20 @@ def controller(config: dict[str, Any]) -> dict[str, Any]:
     return merge
 
 
-@app.local_entrypoint()
-def launch(
-    build_version: str,
-    rule_fingerprint: str,
-    count: int = 5_000,
-    start_position: int = 0,
-    shard_size: int = 2_500,
-    cpu: int = 4,
-    memory_gib: int = 4,
-    threads: int = 4,
-    max_containers: int = 2,
-    timeout_seconds: int = 600,
-    max_cost_usd: float = 5.0,
-    chunk_size: int = 250,
-    shuffles: int = 1,
-    scorer: str = "rust",
-    product: bool = False,
-    pool_seed: int = 5,
-) -> None:
-    if min(count, shard_size, cpu, memory_gib, threads, max_containers, timeout_seconds) < 1:
+def validate_launch_limits(
+    *, count: int, start_position: int, shard_size: int, cpu: int, memory_gib: int,
+    threads: int, max_containers: int, timeout_seconds: int, max_cost_usd: float,
+    chunk_size: int, shuffles: int, scorer: str, product: bool
+) -> dict[str, Any]:
+    if min(count, shard_size, cpu, memory_gib, threads, max_containers,
+           timeout_seconds, chunk_size, shuffles) < 1:
         raise ValueError("counts and resource limits must be positive")
     if scorer != "rust":
         raise ValueError("Modal production supports only the standalone Rust scorer")
     if threads > cpu:
         raise ValueError("Rust/worker threads cannot exceed the integer CPU request")
-    if cpu * max_containers > MAX_PHYSICAL_CORES:
+    aggregate_cpu = cpu if product else 1 + cpu * max_containers
+    if aggregate_cpu > MAX_PHYSICAL_CORES:
         raise ValueError(f"aggregate allocation exceeds {MAX_PHYSICAL_CORES} physical cores")
     end_position = start_position + count
     if product:
@@ -433,6 +433,38 @@ def launch(
         raise ValueError(f"worst-case cost ${projected:.4f} exceeds run cap ${max_cost_usd:.4f}")
     if full_run and max_cost_usd > 5:
         raise ValueError("a full production run cap cannot exceed $5")
+    return {"end_position": end_position, "projected": projected, "full_run": full_run,
+            "controller_timeout": controller_timeout, "aggregate_cpu": aggregate_cpu}
+
+
+@app.local_entrypoint()
+def launch(
+    build_version: str,
+    rule_fingerprint: str,
+    count: int = 5_000,
+    start_position: int = 0,
+    shard_size: int = 2_500,
+    cpu: int = 4,
+    memory_gib: int = 4,
+    threads: int = 4,
+    max_containers: int = 2,
+    timeout_seconds: int = 600,
+    max_cost_usd: float = 5.0,
+    chunk_size: int = 250,
+    shuffles: int = 1,
+    scorer: str = "rust",
+    product: bool = False,
+    pool_seed: int = 5,
+) -> None:
+    limits = validate_launch_limits(count=count, start_position=start_position,
+        shard_size=shard_size, cpu=cpu, memory_gib=memory_gib, threads=threads,
+        max_containers=max_containers, timeout_seconds=timeout_seconds,
+        max_cost_usd=max_cost_usd, chunk_size=chunk_size, shuffles=shuffles,
+        scorer=scorer, product=product)
+    end_position = limits["end_position"]
+    projected = limits["projected"]
+    full_run = limits["full_run"]
+    controller_timeout = limits["controller_timeout"]
     config = {
         "kind": "product" if product else "ordered",
         "build_version": build_version,

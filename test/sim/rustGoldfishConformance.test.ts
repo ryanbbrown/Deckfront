@@ -1,11 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ALWAYS_AVAILABLE_ACTION_IDS, CARDS, registerKingdom, resetKingdoms } from '../../src/game';
+import {
+  ALWAYS_AVAILABLE_ACTION_IDS, CARDS, FIRST_PLAYER_HEALTH_PENALTY, registerKingdom, resetKingdoms
+} from '../../src/game';
 import { scoreMovementAwareGoldfishStrategyLean } from '../../src/sim/goldfish';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import { createOrderedCandidateSpace, orderedGoldfishCardIds,
   representativeCandidateIndices } from '../../src/sim/orderedGoldfishBenchmark';
+import { nativeScoreBatchRequest } from '../../src/sim/nativeGoldfishProtocol';
 import { RustGoldfishScorer } from '../../src/sim/rustGoldfishScorer';
 import { runGoldfishTrial } from '../../src/sim/simulationKernel';
 import { INFINITE_COUNT, fixedBuyPlan, identify, stableHash } from '../../src/sim/strategy';
@@ -18,6 +21,14 @@ afterEach(() => resetKingdoms());
 
 const nativeBinary = process.env.HEXDECK_GOLDFISH_BIN
   ?? path.resolve('rust/target/release/hexdeck-goldfish');
+
+it('carries strategy and first-player constants in the native scoring contract', () => {
+  const strategy = identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([]) });
+  const request = nativeScoreBatchRequest(kingdom, [strategy], { kingdomId: kingdom.id, seeds: [1],
+    turnLimit: 1, actionCapPerTurn: 1 }, 1, 'compact');
+  expect(request.payload.infiniteCount).toBe(INFINITE_COUNT);
+  expect(request.payload.firstPlayerHealthPenalty).toBe(FIRST_PLAYER_HEALTH_PENALTY);
+});
 
 describe.skipIf(!fs.existsSync(nativeBinary))('Rust goldfish scorer conformance', () => {
   it('matches shuffle, UTF-16 comparison, and stable hashing through the process protocol', async () => {

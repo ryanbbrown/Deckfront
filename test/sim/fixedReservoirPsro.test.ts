@@ -91,6 +91,12 @@ describe('fixed reservoir PSRO',()=>{
     expect(validateFixedReservoirPool(artifact,{kingdomId:'fixture',poolSeed:7,generatedCount:8,
       goldfishCount:3,randomCount:2,goldfishSeeds:[10,11]})).toBe(true);
     expect(validateFixedReservoirPool({...artifact,generatedHash:'bad'})).toBe(false);
+    const changedScore=structuredClone(artifact);
+    changedScore.reservoir[0]!.score.totalDamageArea+=1;
+    expect(validateFixedReservoirPool(changedScore)).toBe(false);
+    const changedRandomRank=structuredClone(artifact);
+    changedRandomRank.reservoir.find((entry)=>entry.source==='random')!.goldfishRank+=1;
+    expect(validateFixedReservoirPool(changedRandomRank)).toBe(false);
     expect(validateFixedReservoirPool(artifact,{kingdomId:'other'})).toBe(false);
     expect(validateFixedReservoirPool(artifact,{goldfishSeeds:[10,12]})).toBe(false);
     expect(FIXED_RESERVOIR_EVALUATION_SEED).toBe(7_100_009);

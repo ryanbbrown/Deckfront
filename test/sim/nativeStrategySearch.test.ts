@@ -8,8 +8,8 @@ import type { CompactMovementAwareGoldfishScore, GoldfishConfig,
   MovementAwareGoldfishScore } from '../../src/sim/goldfish';
 import { nativeKingdom009Json } from '../../src/sim/nativeKingdom009';
 import {
-  applyCollisionPolicy, mergeShardRetention, retainShard, streamUniqueStrategies,
-  streamUniqueStrategiesAsync
+  MAX_GLOBAL_COLLISION_IDS, applyCollisionPolicy, mergeShardRetention, retainShard,
+  seededTailRank, streamUniqueStrategies, streamUniqueStrategiesAsync
 } from '../../src/sim/nativeStrategySearch';
 import type { TraversalScoreRecord } from '../../src/sim/nativeStrategySearch';
 import { canonicalStrategy, fixedBuyPlan, identify } from '../../src/sim/strategy';
@@ -99,6 +99,13 @@ describe('bounded deterministic native strategy search', () => {
     expect(shard.collisions[0]?.traversalPosition).toBe(49);
   });
 
+  it('bounds the configured global collision set', () => {
+    const collisionIds = new Set(Array.from({ length: MAX_GLOBAL_COLLISION_IDS + 1 },
+      (_unused, index) => `collision-${index}`));
+    expect(() => retainShard(0, 0, 1, [record(0, 1)], 1, 1, 5, collisionIds))
+      .toThrow(`Global display-ID collisions exceed ${MAX_GLOBAL_COLLISION_IDS}.`);
+  });
+
   it('promotes records hidden by display-ID collisions across shard boundaries', () => {
     const records = [record(0, 100, 'collision'), record(1, 90), record(2, 80),
       record(3, 110, 'collision'), record(4, 70), record(5, 60)];
@@ -108,6 +115,32 @@ describe('bounded deterministic native strategy search', () => {
     const merged = mergeShardRetention(shards, 3, 2, 5);
     const single = mergeShardRetention([retainShard(0, 0, 6, records, 3, 2, 5, collisionIds)], 3, 2, 5);
     expect(merged).toEqual(single);
+  });
+
+  it('matches one-process policy with production empty collision IDs and allowance', () => {
+    const allowance = 6;
+    const records = Array.from({ length: 36 }, (_unused, index) => record(index, 100 - index));
+    const tailId = Array.from({ length: 100 }, (_unused, index) => `tail-collision-${index}`)
+      .sort((left, right) => seededTailRank({ ...records[0]!, displayId: left }, 5)
+        - seededTailRank({ ...records[0]!, displayId: right }, 5))[0]!;
+    const pairs: Array<[number, number, string]> = [
+      [2, 24, 'leader-collision'], [7, 8, 'prefilter-boundary-collision'],
+      [10, 27, tailId], [12, 29, 'collision-3'], [15, 31, 'collision-4'], [18, 34, 'collision-5']
+    ];
+    for (const [better, worse, id] of pairs) {
+      records[better] = record(better, 100 - better, id);
+      records[worse] = record(worse, 100 - worse, id);
+    }
+    const shards = [retainShard(0, 0, 8, records.slice(0, 8), 8 + allowance, 8 + allowance, 5, new Set()),
+      retainShard(1, 8, 23, records.slice(8, 23), 8 + allowance, 8 + allowance, 5, new Set()),
+      retainShard(2, 23, 36, records.slice(23), 8 + allowance, 8 + allowance, 5, new Set())];
+    const merged = mergeShardRetention(shards, 8, 8, 5);
+    const oneProcess = mergeShardRetention([
+      retainShard(0, 0, 36, records, 8 + allowance, 8 + allowance, 5, new Set())
+    ], 8, 8, 5);
+    expect(merged).toEqual(oneProcess);
+    expect(merged.leaders.some((entry) => entry.displayId === 'prefilter-boundary-collision')).toBe(true);
+    expect(merged.tail.some((entry) => entry.displayId === tailId)).toBe(true);
   });
 
   it('matches one-process staged selection with real generated strategies and scores', () => {

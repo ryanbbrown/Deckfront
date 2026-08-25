@@ -28,7 +28,7 @@
     "goldfish:ordered-benchmark": "npm run build:goldfish-worker --silent && tsx scripts/ordered_goldfish_benchmark.ts",
     "psro:worker-benchmark": "tsx scripts/benchmark_psro_workers.ts",
     "goldfish:native-metadata": "tsx scripts/native_goldfish_metadata.ts",
-    "goldfish:native-kingdom": "tsx scripts/write_native_kingdom.ts",
+    "goldfish:native-kingdom-write": "tsx scripts/write_native_kingdom.ts",
     "goldfish:native-kingdom-check": "tsx scripts/write_native_kingdom.ts --check",
     "goldfish:native-build": "cd rust && PATH=\"$HOME/.cargo/bin:$PATH\" cargo build --release",
     "goldfish:native-verify": "cd rust && PATH=\"$HOME/.cargo/bin:$PATH\" cargo test && PATH=\"$HOME/.cargo/bin:$PATH\" cargo fmt --check && PATH=\"$HOME/.cargo/bin:$PATH\" cargo clippy --all-targets -- -D warnings",

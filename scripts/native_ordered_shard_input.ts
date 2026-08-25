@@ -3,7 +3,7 @@ import { registerKingdom } from '../src/game';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 import { nativeScoreBatchRequest, nativeRuleFingerprint } from '../src/sim/nativeGoldfishProtocol';
 import {
-  candidateIndexAt, createOrderedCandidateSpace, orderedGoldfishCardIds
+  createOrderedCandidateSpace, orderedGoldfishCardIds, representativeCandidateIndices
 } from '../src/sim/orderedGoldfishBenchmark';
 import { canonicalStrategy, stableHash } from '../src/sim/strategy';
 
@@ -29,8 +29,8 @@ if (end < start || threads < 1 || cpu < 1 || shuffles < 1) throw new Error('Inva
 const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
 registerKingdom(kingdom);
 const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
-const strategies = Array.from({ length: end - start }, (_unused, offset) =>
-  space.candidateAt(candidateIndexAt(start + offset, space.candidateCount)));
+const strategies = [...representativeCandidateIndices(space.candidateCount, end - start, start)]
+  .map((index) => space.candidateAt(index));
 const config = { kingdomId: kingdom.id,
   seeds: Array.from({ length: shuffles }, (_unused, index) => 4_100_000 + index),
   turnLimit: 30, actionCapPerTurn: 200 };

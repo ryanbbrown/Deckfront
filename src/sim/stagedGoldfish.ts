@@ -188,11 +188,12 @@ export function selectStagedReservoir(
   const ranked = (score: MovementAwareGoldfishScore): StageOneRankedScore => ({
     score, stageOneGoldfishRank: stageOneRank.get(score.strategy.id) ?? null
   });
-  const tailCandidates = [...rankedStageOne].sort((left, right) =>
-    tailRank(left.strategy.id, tailSeed) - tailRank(right.strategy.id, tailSeed)
-      || compareUtf16(left.strategy.id, right.strategy.id)
-      || compareUtf16(canonicalStrategy(left.strategy), canonicalStrategy(right.strategy)))
-    .slice(0, goldfishCount + randomCount).map(ranked);
+  const tailCandidates = rankedStageOne
+    .map((entry) => ({ entry, rank: tailRank(entry.strategy.id, tailSeed) }))
+    .sort((left, right) => left.rank - right.rank
+      || compareUtf16(left.entry.strategy.id, right.entry.strategy.id)
+      || compareUtf16(canonicalStrategy(left.entry.strategy), canonicalStrategy(right.entry.strategy)))
+    .slice(0, goldfishCount + randomCount).map((entry) => ranked(entry.entry));
   return selectStagedReservoirFromEvidence(rankedStageOne.slice(0, prefilterCount).map(ranked),
     remainingSeedScores, tailCandidates, goldfishCount, randomCount);
 }
@@ -214,8 +215,18 @@ function validSummary(value: unknown): value is ReservoirScoreSummary {
     .every((key) => Number.isFinite((value as Record<string, unknown>)[key]));
 }
 
+function summaryEvidence(score: ReservoirScoreSummary): string {
+  return [score.worstCompletions, score.totalCompletions, score.worstPenalizedTurnsTo50,
+    score.totalPenalizedTurnsTo50, score.worstDamageArea, score.totalDamageArea].join('\t');
+}
+
 export function stagedReservoirHash(entries: readonly StagedReservoirEntry[]): string {
-  return stableHash(entries.map((entry) => `${entry.source}:${canonicalStrategy(entry.strategy)}`).join('\n'));
+  return stableHash(entries.map((entry) => entry.source === 'goldfish'
+    ? [entry.source, entry.stageOneGoldfishRank, entry.fourSeedGoldfishRank,
+      entry.scoreProvenance, summaryEvidence(entry.score), canonicalStrategy(entry.strategy)].join('\t')
+    : [entry.source, entry.randomTailRank, entry.stageOneGoldfishRank ?? 'null',
+      entry.scoreProvenance, summaryEvidence(entry.stageOneScore), canonicalStrategy(entry.strategy)].join('\t'))
+    .join('\n'));
 }
 
 export function stagedTailEvidenceDigest(
@@ -308,15 +319,16 @@ function validateStagedFixedReservoirPoolUnchecked(
     || new Set(evidence.map((entry) => entry.canonicalStrategy)).size !== evidence.length
     || evidence.some((entry) => !Number.isSafeInteger(entry.traversalPosition)
       || entry.traversalPosition < 0 || entry.traversalPosition >= artifact.generatedCount!)) return false;
-  const orderedEvidence = evidence.every((entry, index) => index === 0 || (() => {
-    const previous = evidence[index - 1]!;
-    return tailRank(previous.displayId, artifact.poolSeed!) - tailRank(entry.displayId, artifact.poolSeed!) < 0
-      || (tailRank(previous.displayId, artifact.poolSeed!) === tailRank(entry.displayId, artifact.poolSeed!)
-        && (compareUtf16(previous.displayId, entry.displayId) < 0
-          || (previous.displayId === entry.displayId
-            && (compareUtf16(previous.canonicalStrategy, entry.canonicalStrategy) < 0
-              || (previous.canonicalStrategy === entry.canonicalStrategy
-                && previous.traversalPosition < entry.traversalPosition)))));
+  const rankedEvidence = evidence.map((entry) => ({ entry,
+    rank: tailRank(entry.displayId, artifact.poolSeed!) }));
+  const orderedEvidence = rankedEvidence.every(({ entry, rank }, index) => index === 0 || (() => {
+    const previous = rankedEvidence[index - 1]!;
+    return previous.rank - rank < 0
+      || (previous.rank === rank && (compareUtf16(previous.entry.displayId, entry.displayId) < 0
+        || (previous.entry.displayId === entry.displayId
+          && (compareUtf16(previous.entry.canonicalStrategy, entry.canonicalStrategy) < 0
+            || (previous.entry.canonicalStrategy === entry.canonicalStrategy
+              && previous.entry.traversalPosition < entry.traversalPosition)))));
   })());
   const goldfishIds = new Set(goldfish.map((entry) => entry.strategy.id));
   const expectedRandom = evidence.filter((entry) => !goldfishIds.has(entry.displayId)).slice(0, random.length);

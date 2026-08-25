@@ -1,11 +1,12 @@
 import {
-  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, cardDefinition, isTacticalAction, kingdomMarket
+  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, FIRST_PLAYER_HEALTH_PENALTY,
+  cardDefinition, isTacticalAction, kingdomMarket
 } from '../game';
 import type { Kingdom } from '../game';
 import type { GoldfishConfig, MovementAwareGoldfishScore, CompactMovementAwareGoldfishScore } from './goldfish';
 import { GOLDFISH_MOVEMENT_PROFILES } from './goldfish';
 import { rulesFingerprint } from './rulesFingerprint';
-import { canonicalStrategy } from './strategy';
+import { INFINITE_COUNT, canonicalStrategy } from './strategy';
 import type { Strategy } from './strategy';
 
 export const NATIVE_GOLDFISH_PROTOCOL_VERSION = 1;
@@ -30,6 +31,8 @@ export interface NativeScoreBatchRequest {
     movementProfiles: string[];
     turnLimit: number;
     actionCapPerTurn: number;
+    infiniteCount: number;
+    firstPlayerHealthPenalty: number;
     threads: number;
     cpuRequest: number;
     mode: 'full' | 'compact';
@@ -67,6 +70,7 @@ export function nativeScoreBatchRequest(
     strategies: strategies.map((strategy) => ({ ...strategy, canonicalStrategy: canonicalStrategy(strategy) })),
     seeds: [...config.seeds], movementProfiles: [...GOLDFISH_MOVEMENT_PROFILES],
     turnLimit: config.turnLimit, actionCapPerTurn: config.actionCapPerTurn,
+    infiniteCount: INFINITE_COUNT, firstPlayerHealthPenalty: FIRST_PLAYER_HEALTH_PENALTY,
     threads, cpuRequest: threads, mode
   } };
 }

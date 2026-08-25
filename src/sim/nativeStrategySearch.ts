@@ -7,6 +7,7 @@ import type { Strategy } from './strategy';
 import { compareUtf16 } from './utf16';
 
 export const NATIVE_SEARCH_PROTOCOL_VERSION = 'native-strategy-search-v1';
+export const MAX_GLOBAL_COLLISION_IDS = 1_024;
 
 export interface GeneratedProvenance {
   generatedCount: number;
@@ -150,12 +151,13 @@ export function seededTailRank(record: TraversalScoreRecord, seed: number): numb
   return Number.parseInt(stableHash(`reservoir-tail:${seed}:${record.displayId}`).slice(0, 8), 16) >>> 0;
 }
 
-export function compareTailRecords(seed: number) {
-  return (left: TraversalScoreRecord, right: TraversalScoreRecord): number =>
-    seededTailRank(left, seed) - seededTailRank(right, seed)
-    || compareUtf16(left.displayId, right.displayId)
-    || compareUtf16(left.canonicalStrategy, right.canonicalStrategy)
-    || left.traversalPosition - right.traversalPosition;
+function sortTailRecords(records: readonly TraversalScoreRecord[], seed: number): TraversalScoreRecord[] {
+  return records.map((record) => ({ record, rank: seededTailRank(record, seed) }))
+    .sort((left, right) => left.rank - right.rank
+      || compareUtf16(left.record.displayId, right.record.displayId)
+      || compareUtf16(left.record.canonicalStrategy, right.record.canonicalStrategy)
+      || left.record.traversalPosition - right.record.traversalPosition)
+    .map((entry) => entry.record);
 }
 
 /** Canonical duplicates keep the first traversal occurrence; display-ID collisions keep the best ranked form. */
@@ -195,6 +197,9 @@ export function retainShard(
   globalCollisionIds: ReadonlySet<string>
 ): ShardRetention {
   if (endPosition - startPosition !== records.length) throw new Error('Shard range and score count differ.');
+  if (globalCollisionIds.size > MAX_GLOBAL_COLLISION_IDS) {
+    throw new Error(`Global display-ID collisions exceed ${MAX_GLOBAL_COLLISION_IDS}.`);
+  }
   const ordered = [...records].sort((left, right) => left.traversalPosition - right.traversalPosition);
   const fold = (select: (entry: TraversalScoreRecord) => string): string => {
     const hash = new StableHashAccumulator();
@@ -212,7 +217,7 @@ export function retainShard(
       entry.score.worstDamageArea, entry.score.totalDamageArea, entry.score.totalMoneySpent,
       entry.displayId, entry.canonicalStrategy].join('\t')),
     leaders: [...ordinary].sort(compareTraversalScoreRecords).slice(0, leaderBound),
-    tail: [...ordinary].sort(compareTailRecords(tailSeed)).slice(0, tailBound),
+    tail: tailBound === 0 ? [] : sortTailRecords(ordinary, tailSeed).slice(0, tailBound),
     collisions };
 }
 
@@ -232,8 +237,8 @@ export function mergeShardRetention(
   const leaders = applyCollisionPolicy([
     ...orderedShards.flatMap((shard) => shard.leaders), ...collisionRecords
   ]).slice(0, leaderCount);
-  const tail = applyCollisionPolicy([
+  const tail = tailCount === 0 ? [] : sortTailRecords(applyCollisionPolicy([
     ...orderedShards.flatMap((shard) => shard.tail), ...collisionRecords
-  ]).sort(compareTailRecords(tailSeed)).slice(0, tailCount);
+  ]), tailSeed).slice(0, tailCount);
   return { leaders, tail };
 }

@@ -99,10 +99,12 @@ export function selectFixedReservoir(
   const top = ranked.slice(0, goldfishCount);
   const topIds = new Set(top.map((entry) => entry.strategy.id));
   const rankById = new Map(ranked.map((entry, index) => [entry.strategy.id, index + 1]));
-  const tail = ranked.filter((entry) => !topIds.has(entry.strategy.id)).sort((left, right) =>
-    seededRank(left.strategy.id, tailSeed) - seededRank(right.strategy.id, tailSeed)
-      || compareUtf16(left.strategy.id, right.strategy.id)
-      || compareUtf16(canonicalStrategy(left.strategy), canonicalStrategy(right.strategy))).slice(0, randomCount);
+  const tail = ranked.filter((entry) => !topIds.has(entry.strategy.id))
+    .map((entry) => ({ entry, rank: seededRank(entry.strategy.id, tailSeed) }))
+    .sort((left, right) => left.rank - right.rank
+      || compareUtf16(left.entry.strategy.id, right.entry.strategy.id)
+      || compareUtf16(canonicalStrategy(left.entry.strategy), canonicalStrategy(right.entry.strategy)))
+    .slice(0, randomCount).map((entry) => entry.entry);
   const map = (entry: MovementAwareGoldfishScore, source: ReservoirEntry['source']): ReservoirEntry => ({
     strategy: entry.strategy, source, goldfishRank: rankById.get(entry.strategy.id)!,
     score: { worstCompletions: entry.worstCompletions, totalCompletions: entry.totalCompletions,
@@ -112,8 +114,15 @@ export function selectFixedReservoir(
   });
   return [...top.map((entry) => map(entry, 'goldfish')), ...tail.map((entry) => map(entry, 'random'))];
 }
+function reservoirEntryEvidence(entry: ReservoirEntry): string {
+  return [entry.source, entry.goldfishRank, entry.score.worstCompletions,
+    entry.score.totalCompletions, entry.score.worstPenalizedTurnsTo50,
+    entry.score.totalPenalizedTurnsTo50, entry.score.worstDamageArea,
+    entry.score.totalDamageArea, canonicalStrategy(entry.strategy)].join('\t');
+}
+
 export function reservoirHash(entries: readonly ReservoirEntry[]): string {
-  return stableHash(entries.map((entry) => `${entry.source}:${canonicalStrategy(entry.strategy)}`).join('\n'));
+  return stableHash(entries.map(reservoirEntryEvidence).join('\n'));
 }
 export interface FixedReservoirPoolExpectation {
   kingdomId?: string; poolSeed?: number; generatedCount?: number; goldfishCount?: number;
@@ -158,7 +167,11 @@ export function validateFixedReservoirPool(
   if (expected.goldfishCount !== undefined && goldfish.length !== expected.goldfishCount) return false;
   if (expected.randomCount !== undefined && random.length !== expected.randomCount) return false;
   if (goldfish.some((entry, index) => entry.goldfishRank !== index + 1)) return false;
-  return artifact.reservoir.every((entry) => canonicalStrategy(entry.strategy).length > 0);
+  return artifact.reservoir.every((entry) => (entry.source === 'goldfish' || entry.source === 'random')
+    && Number.isSafeInteger(entry.goldfishRank) && entry.goldfishRank > 0
+    && entry.goldfishRank <= artifact.generatedCount!
+    && Object.values(entry.score).every(Number.isFinite)
+    && canonicalStrategy(entry.strategy).length > 0);
 }
 
 export function remainingReservoirStrategies(entries: readonly ReservoirEntry[], activeIds: ReadonlySet<string>): Strategy[] {

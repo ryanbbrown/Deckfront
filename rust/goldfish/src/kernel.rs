@@ -12,6 +12,8 @@ const DAMAGE_WEIGHT: i16 = 6;
 const MAX_CARDS: usize = 128;
 const MAX_PLAN: usize = 10;
 const MAX_MANA: usize = 4096;
+const INFINITE_BUY_COUNT: i16 = 99;
+const FIRST_PLAYER_HEALTH_PENALTY: i16 = 3;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -259,6 +261,8 @@ pub struct BatchInput {
     pub movement_profiles: Vec<String>,
     pub turn_limit: i16,
     pub action_cap_per_turn: i16,
+    pub infinite_count: i16,
+    pub first_player_health_penalty: i16,
     pub threads: usize,
     pub cpu_request: usize,
     pub mode: String,
@@ -459,7 +463,7 @@ impl<'a> State<'a> {
             k,
             p,
             pos: [3, 4],
-            health: [k.health, 50],
+            health: [(k.health - FIRST_PLAYER_HEALTH_PENALTY).max(1), 50],
             aimed: false,
             exposed: false,
             supply: k.cards.iter().map(|c| c.supply).collect(),
@@ -570,7 +574,7 @@ impl<'a> State<'a> {
                     Slot::Buy { card, count } => {
                         let c = &self.k.cards[card];
                         if card == self.k.copper
-                            || (count != 99 && acquired[card] >= count)
+                            || (count != INFINITE_BUY_COUNT && acquired[card] >= count)
                             || c.cost <= 0
                             || c.cost > money
                             || (c.action && supply[card] <= 0)
@@ -1608,7 +1612,7 @@ impl<'a> State<'a> {
                 Slot::Buy { card, count } => {
                     let c = &self.k.cards[card];
                     if card != self.k.copper
-                        && (count == 99 || self.p.acquired[card] < count)
+                        && (count == INFINITE_BUY_COUNT || self.p.acquired[card] < count)
                         && c.cost > 0
                         && c.cost <= self.p.money
                         && (!c.action || self.supply[card] > 0)
@@ -1829,6 +1833,11 @@ pub fn score_batch(input: BatchInput) -> Result<Vec<Score>, String> {
     {
         return Err("native scorer protocol, version, or rule fingerprint mismatch".into());
     }
+    if input.infinite_count != INFINITE_BUY_COUNT
+        || input.first_player_health_penalty != FIRST_PLAYER_HEALTH_PENALTY
+    {
+        return Err("native scorer strategy and health constants mismatch".into());
+    }
     if input
         .movement_profiles
         .iter()
@@ -1986,7 +1995,7 @@ mod tests {
                 buy_plan: vec![
                     RawSlot::Buy {
                         card_id: "precisionShot".into(),
-                        desired_count: 99,
+                        desired_count: INFINITE_BUY_COUNT,
                     },
                     RawSlot::Inactive,
                 ],

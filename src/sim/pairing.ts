@@ -147,7 +147,6 @@ export interface PairingOutcome {
   candidateScore: number;
   opponentScore: number;
   telemetry: TelemetryAggregate;
-  telemetryCollected?: boolean;
   matches: number;           // every game played, aborted ones included
   seedBlocks: number;
   stopReason: 'significant' | 'maximum';
@@ -270,7 +269,7 @@ function playPairingMode(
     }
   }
   return {
-    record, candidateScore, opponentScore, telemetry, telemetryCollected: !scoreOnly,
+    record, candidateScore, opponentScore, telemetry,
     matches, seedBlocks, stopReason,
     candidateMean: record.played ? candidateScore / record.played : null,
     opponentMean: record.played ? opponentScore / record.played : null,

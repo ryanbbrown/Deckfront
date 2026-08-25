@@ -7,7 +7,7 @@ import { GOLDFISH_MOVEMENT_PROFILES, mergeMovementAwareGoldfishScores } from '..
 import type { GoldfishConfig, MovementAwareGoldfishScore } from '../src/sim/goldfish';
 import { nativeRuleFingerprint } from '../src/sim/nativeGoldfishProtocol';
 import {
-  mergeShardRetention, retainShard, streamUniqueStrategiesAsync
+  MAX_GLOBAL_COLLISION_IDS, mergeShardRetention, retainShard, streamUniqueStrategiesAsync
 } from '../src/sim/nativeStrategySearch';
 import type { ShardRetention, TraversalScoreRecord } from '../src/sim/nativeStrategySearch';
 import { stoplessRandomDomain } from '../src/sim/randomPsro';
@@ -85,7 +85,7 @@ if (fs.existsSync(output)) {
 
 const scorer = new RustGoldfishScorer(threads);
 const tailRetain = FIXED_RESERVOIR_CONFIG.goldfishCount + FIXED_RESERVOIR_CONFIG.randomCount;
-const collisionAllowance = 1_024;
+const collisionAllowance = MAX_GLOBAL_COLLISION_IDS;
 const firstConfig: GoldfishConfig = { kingdomId: KINGDOM_ID, seeds: [SEEDS[0]!], turnLimit: 30,
   actionCapPerTurn: 200 };
 const started = Date.now();
@@ -96,6 +96,8 @@ let stageOneShardStart = 0;
 const flushStageOne = (): void => {
   if (!pendingStageOne.length) return;
   const end = stageOneShardStart + pendingStageOne.length;
+  // At most `collisionAllowance` policy drops can precede a survivor. The same bound holds for
+  // the tail because its seeded rank depends on display ID, while collision policy picks its canonical form.
   stageOneShards.push(retainShard(stageOneShards.length, stageOneShardStart, end, pendingStageOne,
     prefilterCount + collisionAllowance, tailRetain + collisionAllowance, poolSeed, new Set()));
   stageOneShardStart = end;
