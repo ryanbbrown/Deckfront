@@ -281,6 +281,22 @@ A provisional three-pool multiplier gives:
 
 These values are conditional estimates. The Kingdom 009 consistency goal still owns the production competitive protocol, pool multiplier, attack work, runtime model, and artifact contract. No campaign ran. No estimate authorizes spending.
 
+## Verification
+
+Final verification passed:
+
+- executable covering-search regeneration: pass;
+- manifest, smoke manifest, validator, and HTML checks: pass;
+- Vitest: 55 files and 611 tests pass;
+- typecheck and lint: pass;
+- browser build, simulator bundle, and e2e manifest: pass;
+- native scorer tests, Rust tests, format, and Clippy: pass;
+- local Modal Python tests: 10 pass;
+- browser QA: seven real coverage bars, correct 9,880 denominator, no escaped markup;
+- Git diff check and clean working tree: pass.
+
+The full test run used the existing ignored Kingdom 001 deep-beam artifact required by `randomPsro.test.ts`; it did not run a campaign or create committed result evidence.
+
 ## Reproduction
 
 ```sh
