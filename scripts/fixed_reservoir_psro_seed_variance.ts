@@ -14,7 +14,7 @@ const EVALUATION_SEEDS = [7_100_009, 7_200_009, 7_300_009] as const;
 const BASELINE_ROOT = path.join('.experiments', 'fixed-reservoir-psro-five-run',
   'fixed-reservoir-five-run-v1', KINGDOM_ID);
 const ROOT = path.join('.experiments', 'fixed-reservoir-psro-evaluation-variance-v1', KINGDOM_ID);
-const WORKERS = 10;
+const PAIRING_WORKERS = 4;
 
 function readJson(file: string): unknown { return JSON.parse(fs.readFileSync(file, 'utf8')); }
 function writeAtomic(file: string, value: unknown): void {
@@ -59,7 +59,7 @@ if (command === '--status') {
   console.log(`${complete}/9 complete`);
   if (complete !== 9) process.exitCode = 1;
 } else if (command === '--run') {
-  const runner = new WorkerPairingRunner(WORKERS, new URL('../src/server/aiWorker.ts', import.meta.url),
+  const runner = new WorkerPairingRunner(PAIRING_WORKERS, new URL('../src/server/aiWorker.ts', import.meta.url),
     { kingdom }, ['--import', 'tsx']);
   try {
     for (const poolSeed of POOL_SEEDS) {

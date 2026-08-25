@@ -29,7 +29,8 @@ type WorkerScore=Omit<MovementAwareGoldfishScore,'strategy'>;
 interface WorkerReply {id:number;scores?:WorkerScore[];error?:string;stack?:string}
 const ROOT=path.join('.experiments',FIXED_RESERVOIR_VERSION);
 const GOLDFISH_SEEDS=Object.freeze([5_200_000,5_200_001,5_200_002,5_200_003]);
-const workers=10;
+const GOLDFISH_WORKERS=10;
+const PAIRING_WORKERS=4;
 function writeAtomic(file:string,value:unknown):void { fs.mkdirSync(path.dirname(file),{recursive:true});
   const temp=`${file}.tmp-${process.pid}`;fs.writeFileSync(temp,`${JSON.stringify(value,null,2)}\n`);fs.renameSync(temp,file); }
 function poolPath(seed:number):string{return path.join(ROOT,`pool-${seed}.json`)}
@@ -44,9 +45,11 @@ function generate(kingdomId:string,count:number,seed:number){
   return{strategies,duplicateCanonicalCount,displayIdCollisionCount};
 }
 async function scoreInWorkers(strategies:readonly Strategy[],config:GoldfishConfig,kingdom:Kingdom):Promise<MovementAwareGoldfishScore[]>{
-  const pool=Array.from({length:workers},()=>new Worker(new URL('../src/server/goldfishWorker.ts',import.meta.url),
+  const pool=Array.from({length:GOLDFISH_WORKERS},()=>new Worker(new URL('../src/server/goldfishWorker.ts',import.meta.url),
     {workerData:{kingdom},execArgv:['--import','tsx']}));
-  try {const partitions=pool.map((_worker,index)=>strategies.slice(Math.floor(strategies.length*index/workers),Math.floor(strategies.length*(index+1)/workers)));
+  try {const partitions=pool.map((_worker,index)=>strategies.slice(
+    Math.floor(strategies.length*index/GOLDFISH_WORKERS),
+    Math.floor(strategies.length*(index+1)/GOLDFISH_WORKERS)));
     return (await Promise.all(pool.map((worker,index)=>new Promise<MovementAwareGoldfishScore[]>((resolve,reject)=>{
       worker.once('error',reject);worker.once('message',(reply:WorkerReply)=>{if(reply.error||!reply.scores){reject(new Error(reply.stack??reply.error));return;}
         resolve(reply.scores.map((score,scoreIndex)=>({...score,strategy:partitions[index]![scoreIndex]!})))});
@@ -76,7 +79,7 @@ async function buildPool(kingdom:Kingdom,poolSeed:number):Promise<FixedReservoir
 async function runPool(kingdom:Kingdom,pool:FixedReservoirPoolArtifact):Promise<FixedReservoirPsroArtifact>{
   const file=runPath(pool.poolSeed);if(fs.existsSync(file)){const held=JSON.parse(fs.readFileSync(file,'utf8'));
     if(validateFixedReservoirPsroArtifact(held,pool)) return held;}
-  const runner=new WorkerPairingRunner(workers,new URL('../src/server/aiWorker.ts',import.meta.url),{kingdom},['--import','tsx']);
+  const runner=new WorkerPairingRunner(PAIRING_WORKERS,new URL('../src/server/aiWorker.ts',import.meta.url),{kingdom},['--import','tsx']);
   try {const artifact=await runFixedReservoirPsro(pool,runner);writeAtomic(file,artifact);
     console.log(`run ${pool.poolSeed}: ${artifact.status}, ${artifact.rounds.length} rounds, ${(artifact.elapsedMs/1000).toFixed(1)}s`);return artifact;}
   finally {await runner.close();}
@@ -110,7 +113,7 @@ async function crossAttack(source:FixedReservoirPsroArtifact,target:FixedReservo
   return finalists.sort((a,b)=>b.interval95.lower-a.interval95.lower||b.mean-a.mean)[0]??null;
 }
 async function compare(kingdom:Kingdom,left:FixedReservoirPsroArtifact,right:FixedReservoirPsroArtifact):Promise<unknown>{
-  const runner=new WorkerPairingRunner(workers,new URL('../src/server/aiWorker.ts',import.meta.url),{kingdom},['--import','tsx']);
+  const runner=new WorkerPairingRunner(PAIRING_WORKERS,new URL('../src/server/aiWorker.ts',import.meta.url),{kingdom},['--import','tsx']);
   try {const seeds=Array.from({length:400},(_u,i)=>5_400_000+i);const leftSupport=supportEntries(left),rightSupport=supportEntries(right);
     const leftRows=await headToHead(runner,kingdom.id,leftSupport.map((e)=>e.strategy),rightSupport,seeds,10,undefined,{startingDraftEnabled:false});
     const rightRows=await headToHead(runner,kingdom.id,rightSupport.map((e)=>e.strategy),leftSupport,seeds,10,undefined,{startingDraftEnabled:false});
