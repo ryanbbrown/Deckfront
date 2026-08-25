@@ -38,8 +38,8 @@ describe('balance smoke suite', () => {
     }
     expect(Math.min(...cardCounts.values())).toBe(6);
     expect(Math.max(...cardCounts.values())).toBe(10);
-    expect(pairs.size).toBe(719);
-    expect(triples.size).toBe(3245);
+    expect(pairs.size).toBe(710);
+    expect(triples.size).toBe(3221);
     const selected = smokeManifest.selection.candidates.find((candidate) => candidate.count === 30)!;
     expect(selected).toMatchObject({ priorityPairCovered: 96, priorityPairMinimum: 1,
       requiredTripleCovered: 60, requiredTripleMinimum: 1, routesCovered: 14, routesTotal: 14,
@@ -49,20 +49,15 @@ describe('balance smoke suite', () => {
   it('records the 25-to-30 coverage curve and source alternatives', () => {
     expect(smokeManifest.selection.candidates.map((candidate) => [candidate.count, candidate.cardMinimum,
       candidate.cardMaximum, candidate.pairCovered, candidate.tripleCovered])).toEqual([
-      [25, 4, 10, 654, 2743],
-      [26, 5, 11, 673, 2841],
-      [27, 6, 10, 676, 2942],
-      [28, 6, 11, 693, 3037],
-      [29, 6, 9, 711, 3142],
-      [30, 6, 10, 719, 3245]
+      [25, 5, 11, 653, 2720],
+      [26, 5, 10, 673, 2850],
+      [27, 5, 11, 679, 2935],
+      [28, 6, 10, 689, 3023],
+      [29, 6, 11, 706, 3142],
+      [30, 6, 10, 710, 3221]
     ]);
     expect(smokeManifest.selection.candidates.every((candidate) => candidate.priorityPairCovered === 96
       && candidate.requiredTripleCovered === 60 && candidate.routesCovered === 14)).toBe(true);
-    expect(smokeManifest.selection.alternatives.map((alternative) => [alternative.id, alternative.source,
-      alternative.cardMinimum, alternative.pairCovered, alternative.tripleCovered])).toEqual([
-      ['balanced-card-30', 'tuning', 7, 697, 3222],
-      ['all-source-breadth-30', 'tuning-and-validation', 6, 731, 3255]
-    ]);
   });
 
   it('regenerates byte for byte and rejects stale source data', () => {

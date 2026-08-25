@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
-  ALWAYS_AVAILABLE_ACTION_IDS, TREASURE_IDS, VARIABLE_ACTION_IDS, resetKingdoms
+  ALWAYS_AVAILABLE_ACTION_IDS, TREASURE_IDS, VARIABLE_ACTION_IDS, registerKingdom, resetKingdoms
 } from '../../src/game';
 import { BALANCE_SUITE_MANIFEST, balanceSuite } from '../../src/sim/balanceSuite';
 import {
@@ -107,6 +107,10 @@ describe('deep-beam suite design', () => {
     expect(BALANCE_SUITE_MANIFEST.kingdoms).toHaveLength(160);
     balanceSuite.register();
     expect(() => deepBeamSuite.register()).not.toThrow();
+    const frozenBalanceRow = FROZEN_DEEP_BEAM_SOURCE_MANIFEST.kingdoms[0]!;
+    expect(() => registerKingdom({ id: frozenBalanceRow.id, name: frozenBalanceRow.name,
+      startingHealth: frozenBalanceRow.startingHealth, actionPiles: frozenBalanceRow.actionPiles }))
+      .toThrow(/already registered with different content/iu);
   });
 
   it('pins the frozen Kingdom 009 cards and draft-off rules fingerprint', () => {

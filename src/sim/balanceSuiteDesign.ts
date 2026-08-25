@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import rawCoveringDesign from './balance-suite-covering-design-v1.json' with { type: 'json' };
+import rawCoveringDesign from './balance-suite-covering-design-v2.json' with { type: 'json' };
 import { ALWAYS_AVAILABLE_ACTION_IDS, CARDS, TREASURE_IDS, VARIABLE_ACTION_IDS } from '../game';
 import type { CardDefinition, Kingdom } from '../game';
 
@@ -77,7 +77,9 @@ export interface BalanceCandidateSummary {
   tripleCovered: number;
   tripleCoverage: number;
   largestOverlap: number;
+  overlapMean: number;
   overlapP99: number;
+  jaccardMean: number;
   pairCountStandardDeviation: number;
   deficits: { fullPairs: number; validationPairs: number; priorityPairs: number; validationPriorityPairs: number;
     requiredTriples: number; validationRequiredTriples: number; routes: number; validationRoutes: number };
@@ -88,7 +90,7 @@ export interface BalanceCandidateSummary {
 export interface BalanceSuiteManifest {
   schemaVersion: 2;
   suiteVersion: 'balance-suite-v4';
-  generatorVersion: 'deterministic-covering-v1';
+  generatorVersion: 'deterministic-covering-v2';
   taxonomyVersion: 'kingdom-taxonomy-v1';
   interactionVersion: 'kingdom-interactions-v1';
   methodologyVersion: 'coverage-thresholds-v1';
@@ -106,10 +108,7 @@ export interface BalanceSuiteManifest {
     baseSeed: number;
     seedDerivation: string;
     greedyCandidatesPerRow: number;
-    comparisonOptimizationAttemptsPerRow: number;
-    passingOptimizationAttemptsPerRow: number;
     constructionRestarts: number;
-    optimizationRestarts: number;
     selectedDesignSourceDigest: string;
     selectedDesignSearch: Record<string, unknown>;
     objectiveOrder: string[];
@@ -153,11 +152,17 @@ export interface BalanceSuiteManifest {
     actualPool: { cards: 40; choose10: number; cardProbability: number; pairProbability: number; tripleProbability: number };
     comparisonPool: { cards: 45; choose10: number; cardProbability: number; pairProbability: number; tripleProbability: number };
     candidates: { count: number; cardExpected: number; pairExpected: number; tripleExpected: number;
-      expectedUncoveredCards: number; expectedUncoveredPairs: number; expectedUncoveredTriples: number }[];
+      expectedUncoveredCards: number; expectedUncoveredPairs: number; expectedUncoveredTriples: number;
+      everyCardOnceSuccessLower: number; everyPairOnceSuccessLower: number; everyTripleOnceSuccessLower: number;
+      everyCardFortySuccessLower: number; everyPairEightSuccessLower: number;
+      priorityPairTwelveSuccessLower: number; requiredTripleFourSuccessLower: number }[];
     highProbabilityBounds: Record<string, number>;
-    randomOverlap: { expected: number; histogram: Record<string, number> };
+    randomOverlap: { expected: number; expectedJaccard: number; histogram: Record<string, number> };
   };
   deterministicLowerBounds: Record<string, number>;
+  rawFeasibilityPilot: { count: number; cardMinimum: number; cardMaximum: number;
+    pairMinimum: number; pairMaximum: number; tripleCovered: number; tripleCoverage: number;
+    maximumOverlap: number }[];
   splits: { name: BalanceSuiteSplit; seed: number; size: number; design: BalanceSuiteDesign }[];
   statistics: BalanceSuiteDesign;
   authoredOverlapMatrix: { left: string; right: string; overlap: number }[];
@@ -193,12 +198,25 @@ const ELIGIBLE_SET = new Set(ELIGIBLE);
 const KINGDOM_SIZE = 10;
 const BASE_SEED = 0x4b535634;
 const GREEDY_CANDIDATES = 200;
-const COMPARISON_OPTIMIZATION_ATTEMPTS_PER_ROW = 0;
-const PASSING_OPTIMIZATION_ATTEMPTS_PER_ROW = 0;
 const CONSTRUCTION_RESTARTS = 16;
-const OPTIMIZATION_RESTARTS = 1;
 const MAX_OVERLAP = 6;
 const REQUIRED_CANDIDATES = Object.freeze([50, 100, 150, 152, 156, 160, 200]);
+const RAW_FEASIBILITY_PILOT = Object.freeze([
+  { count: 50, cardMinimum: 12, cardMaximum: 13, pairMinimum: 1, pairMaximum: 5,
+    tripleCovered: 5235, tripleCoverage: 0.529858299595, maximumOverlap: 5 },
+  { count: 100, cardMinimum: 25, cardMaximum: 25, pairMinimum: 4, pairMaximum: 8,
+    tripleCovered: 7944, tripleCoverage: 0.804048582996, maximumOverlap: 6 },
+  { count: 150, cardMinimum: 37, cardMaximum: 38, pairMinimum: 7, pairMaximum: 11,
+    tripleCovered: 9103, tripleCoverage: 0.921356275304, maximumOverlap: 7 },
+  { count: 152, cardMinimum: 38, cardMaximum: 38, pairMinimum: 7, pairMaximum: 11,
+    tripleCovered: 9103, tripleCoverage: 0.921356275304, maximumOverlap: 7 },
+  { count: 156, cardMinimum: 39, cardMaximum: 39, pairMinimum: 7, pairMaximum: 11,
+    tripleCovered: 9146, tripleCoverage: 0.925708502024, maximumOverlap: 7 },
+  { count: 160, cardMinimum: 40, cardMaximum: 40, pairMinimum: 7, pairMaximum: 12,
+    tripleCovered: 9192, tripleCoverage: 0.93036437247, maximumOverlap: 7 },
+  { count: 200, cardMinimum: 50, cardMaximum: 50, pairMinimum: 10, pairMaximum: 14,
+    tripleCovered: 9562, tripleCoverage: 0.967813765182, maximumOverlap: 7 }
+]);
 
 const ROLE_IDS = Object.freeze({
   manaSource: ['channel', 'leyStep', 'attune', 'prism'],
@@ -618,8 +636,8 @@ function buildInitialRows(count: number, restart: number): DesignRow[] {
   if (Object.values(quotas).some((map) => [...map.values()].some((value) => value < 0))) {
     throw new Error(`Authored rows exceed a ${count}-row split quota.`);
   }
-  let counts = addCounts(rows);
-  let keys = new Set(rows.map((row) => rowKey(row.cards)));
+  const counts = addCounts(rows);
+  const keys = new Set(rows.map((row) => rowKey(row.cards)));
   for (const split of ['validation', 'tuning'] as const) {
     const authoredCount = rows.filter((row) => row.split === split).length;
     const generatedCount = sizes[split] - authoredCount;
@@ -667,304 +685,8 @@ function buildInitialRows(count: number, restart: number): DesignRow[] {
       }
     }
     if ([...remaining.values()].some((value) => value !== 0)) throw new Error(`Incomplete ${split} quota at ${count} rows.`);
-    if (split === 'validation') {
-      improveValidationRows(rows, count, restart);
-      counts = addCounts(rows);
-      keys = new Set(rows.map((row) => rowKey(row.cards)));
-    }
   }
   return rows;
-}
-
-type ObjectiveState = ReturnType<typeof addCounts> & {
-  rows: DesignRow[];
-  rowKeys: Set<string>;
-  overlapSix: number;
-  pairDeficit: number;
-  validationPairDeficit: number;
-  priorityDeficit: number;
-  validationPriorityDeficit: number;
-  requiredDeficit: number;
-  validationRequiredDeficit: number;
-  routeDeficit: number;
-  validationRouteDeficit: number;
-  uncoveredTriples: number;
-  pairSquares: number;
-}
-
-function deficit(count: number, target: number): number { return Math.max(0, target - count); }
-function createObjectiveState(rows: DesignRow[]): ObjectiveState {
-  const counts = addCounts(rows);
-  let overlapSix = 0;
-  for (let left = 0; left < rows.length; left += 1) for (let right = left + 1; right < rows.length; right += 1) {
-    if (overlap(rows[left]!.cards, rows[right]!.cards) === 6) overlapSix += 1;
-  }
-  return {
-    rows, rowKeys: new Set(rows.map((row) => rowKey(row.cards))), overlapSix, ...counts,
-    pairDeficit: ALL_PAIR_KEYS.reduce((sum, key) => sum + deficit(counts.pairs.get(key)!, 8), 0),
-    validationPairDeficit: ALL_PAIR_KEYS.reduce((sum, key) => sum + deficit(counts.validationPairs.get(key)!, 1), 0),
-    priorityDeficit: [...PRIORITY_PAIR_KEYS].reduce((sum, key) => sum + deficit(counts.pairs.get(key)!, 12), 0),
-    validationPriorityDeficit: [...PRIORITY_PAIR_KEYS].reduce((sum, key) => sum + deficit(counts.validationPairs.get(key)!, 2), 0),
-    requiredDeficit: [...REQUIRED_TRIPLE_KEYS].reduce((sum, key) => sum + deficit(counts.triples.get(key)!, 4), 0),
-    validationRequiredDeficit: [...REQUIRED_TRIPLE_KEYS].reduce((sum, key) => sum + deficit(counts.validationTriples.get(key)!, 1), 0),
-    routeDeficit: ROUTE_LABELS.reduce((sum, label) => sum + deficit(counts.routes.get(label)!, ROUTE_THRESHOLDS[label]), 0),
-    validationRouteDeficit: ROUTE_LABELS.reduce((sum, label) => sum + deficit(counts.validationRoutes.get(label)!, 1), 0),
-    uncoveredTriples: ALL_TRIPLE_KEYS.filter((key) => counts.triples.get(key) === 0).length,
-    pairSquares: ALL_PAIR_KEYS.reduce((sum, key) => sum + counts.pairs.get(key)! ** 2, 0)
-  };
-}
-
-function objective(state: ObjectiveState): number[] {
-  return [state.pairDeficit + state.validationPairDeficit, state.validationPairDeficit, state.pairDeficit,
-    state.priorityDeficit + state.validationPriorityDeficit, state.validationPriorityDeficit, state.priorityDeficit,
-    state.requiredDeficit + state.validationRequiredDeficit, state.validationRequiredDeficit, state.requiredDeficit,
-    state.routeDeficit + state.validationRouteDeficit, state.validationRouteDeficit, state.routeDeficit,
-    Math.max(0, state.uncoveredTriples - (ALL_TRIPLE_KEYS.length - 9090)), state.uncoveredTriples,
-    state.pairSquares, Math.max(0, state.overlapSix - Math.floor(state.rows.length * (state.rows.length - 1) / 2 * 0.01)),
-    state.overlapSix];
-}
-function validationObjective(state: ObjectiveState): number[] {
-  return [state.validationPairDeficit, state.validationPriorityDeficit, state.validationRequiredDeficit,
-    state.validationRouteDeficit, state.pairSquares, state.uncoveredTriples, state.overlapSix];
-}
-function objectiveBetter(left: readonly number[], right: readonly number[]): boolean {
-  for (let index = 0; index < left.length; index += 1) {
-    if (left[index] !== right[index]) return left[index]! < right[index]!;
-  }
-  return false;
-}
-
-function adjustPair(state: ObjectiveState, key: string, delta: number, validation: boolean): void {
-  const old = state.pairs.get(key)!, next = old + delta;
-  state.pairDeficit += deficit(next, 8) - deficit(old, 8);
-  if (PRIORITY_PAIR_KEYS.has(key)) state.priorityDeficit += deficit(next, 12) - deficit(old, 12);
-  state.pairSquares += next * next - old * old;
-  state.pairs.set(key, next);
-  if (validation) {
-    const oldValidation = state.validationPairs.get(key)!, nextValidation = oldValidation + delta;
-    state.validationPairDeficit += deficit(nextValidation, 1) - deficit(oldValidation, 1);
-    if (PRIORITY_PAIR_KEYS.has(key)) {
-      state.validationPriorityDeficit += deficit(nextValidation, 2) - deficit(oldValidation, 2);
-    }
-    state.validationPairs.set(key, nextValidation);
-  }
-}
-function adjustTriple(state: ObjectiveState, key: string, delta: number, validation: boolean): void {
-  const old = state.triples.get(key)!, next = old + delta;
-  if (old === 0 && next > 0) state.uncoveredTriples -= 1;
-  else if (old > 0 && next === 0) state.uncoveredTriples += 1;
-  if (REQUIRED_TRIPLE_KEYS.has(key)) state.requiredDeficit += deficit(next, 4) - deficit(old, 4);
-  state.triples.set(key, next);
-  if (validation) {
-    const oldValidation = state.validationTriples.get(key)!, nextValidation = oldValidation + delta;
-    if (REQUIRED_TRIPLE_KEYS.has(key)) {
-      state.validationRequiredDeficit += deficit(nextValidation, 1) - deficit(oldValidation, 1);
-    }
-    state.validationTriples.set(key, nextValidation);
-  }
-}
-function adjustRoutes(state: ObjectiveState, cards: readonly string[], split: BalanceSuiteSplit, delta: number): void {
-  for (const label of routeLabels(cards)) {
-    const old = state.routes.get(label)!, next = old + delta;
-    state.routeDeficit += deficit(next, ROUTE_THRESHOLDS[label]) - deficit(old, ROUTE_THRESHOLDS[label]);
-    state.routes.set(label, next);
-    if (split === 'validation') {
-      const oldValidation = state.validationRoutes.get(label)!, nextValidation = oldValidation + delta;
-      state.validationRouteDeficit += deficit(nextValidation, 1) - deficit(oldValidation, 1);
-      state.validationRoutes.set(label, nextValidation);
-    }
-  }
-}
-function adjustRow(state: ObjectiveState, row: DesignRow, delta: number): void {
-  const validation = row.split === 'validation';
-  for (const [left, right] of combinations2(row.cards)) adjustPair(state, pairKey(left, right), delta, validation);
-  for (const [first, second, third] of combinations3(row.cards)) adjustTriple(state, tripleKey(first, second, third), delta, validation);
-  adjustRoutes(state, row.cards, row.split, delta);
-}
-
-interface SwapProposal { leftIndex: number; rightIndex: number; leftCard: string; rightCard: string }
-function randomSwap(state: ObjectiveState, random: Random, split?: BalanceSuiteSplit): SwapProposal | null {
-  const indices = state.rows.map((_row, index) => index).filter((index) => !state.rows[index]!.authored
-    && (!split || state.rows[index]!.split === split));
-  if (indices.length < 2) return null;
-  for (let attempt = 0; attempt < 30; attempt += 1) {
-    const leftIndex = indices[random.int(indices.length)]!, rightIndex = indices[random.int(indices.length)]!;
-    if (leftIndex === rightIndex || state.rows[leftIndex]!.split !== state.rows[rightIndex]!.split) continue;
-    const left = state.rows[leftIndex]!.cards, right = state.rows[rightIndex]!.cards;
-    const leftOnly = left.filter((card) => !right.includes(card)), rightOnly = right.filter((card) => !left.includes(card));
-    if (!leftOnly.length || !rightOnly.length) continue;
-    return { leftIndex, rightIndex, leftCard: leftOnly[random.int(leftOnly.length)]!, rightCard: rightOnly[random.int(rightOnly.length)]! };
-  }
-  return null;
-}
-
-function swappedRows(state: ObjectiveState, proposal: SwapProposal): [string[], string[]] {
-  const left = state.rows[proposal.leftIndex]!.cards, right = state.rows[proposal.rightIndex]!.cards;
-  return [sorted(left.map((card) => card === proposal.leftCard ? proposal.rightCard : card)),
-    sorted(right.map((card) => card === proposal.rightCard ? proposal.leftCard : card))];
-}
-function proposalPairScore(state: ObjectiveState, proposal: SwapProposal): number[] {
-  const left = state.rows[proposal.leftIndex]!, right = state.rows[proposal.rightIndex]!;
-  const [nextLeft, nextRight] = swappedRows(state, proposal);
-  if (!ordinaryRowValid(nextLeft) || !ordinaryRowValid(nextRight)) return [Number.POSITIVE_INFINITY];
-  const deltas = new Map<string, number>();
-  const adjust = (cards: readonly string[], amount: number): void => {
-    for (const [first, second] of combinations2(cards)) {
-      const key = pairKey(first, second); deltas.set(key, (deltas.get(key) ?? 0) + amount);
-    }
-  };
-  adjust(left.cards, -1); adjust(right.cards, -1); adjust(nextLeft, 1); adjust(nextRight, 1);
-  let full = 0, validation = 0, priority = 0, validationPriority = 0;
-  for (const [key, amount] of deltas) if (amount !== 0) {
-    const old = state.pairs.get(key)!, next = old + amount;
-    full += deficit(next, 8) - deficit(old, 8);
-    if (PRIORITY_PAIR_KEYS.has(key)) priority += deficit(next, 12) - deficit(old, 12);
-    if (left.split === 'validation') {
-      const oldValidation = state.validationPairs.get(key)!, nextValidation = oldValidation + amount;
-      validation += deficit(nextValidation, 1) - deficit(oldValidation, 1);
-      if (PRIORITY_PAIR_KEYS.has(key)) {
-        validationPriority += deficit(nextValidation, 2) - deficit(oldValidation, 2);
-      }
-    }
-  }
-  return [full + validation, validation, full, priority + validationPriority, validationPriority, priority];
-}
-function scoreLess(left: readonly number[], right: readonly number[]): boolean {
-  for (let index = 0; index < Math.max(left.length, right.length); index += 1) {
-    const leftValue = left[index] ?? 0, rightValue = right[index] ?? 0;
-    if (leftValue !== rightValue) return leftValue < rightValue;
-  }
-  return false;
-}
-function targetPairSwap(state: ObjectiveState, random: Random, keys: readonly string[], target: number,
-  validationOnly: boolean): SwapProposal | null {
-  const deficits = keys.filter((key) => (validationOnly ? state.validationPairs : state.pairs).get(key)! < target);
-  if (!deficits.length) return null;
-  let best: SwapProposal | null = null, bestScore: number[] | null = null;
-  for (let attempt = 0; attempt < 16; attempt += 1) {
-    const [first, second] = deficits[random.int(deficits.length)]!.split('|') as [string, string];
-    const split = validationOnly ? 'validation' : (random.next() < 0.2 ? 'validation' : 'tuning');
-    const firstRows = state.rows.map((_row, index) => index).filter((index) => !state.rows[index]!.authored
-      && state.rows[index]!.split === split && state.rows[index]!.cards.includes(first) && !state.rows[index]!.cards.includes(second));
-    const secondRows = state.rows.map((_row, index) => index).filter((index) => !state.rows[index]!.authored
-      && state.rows[index]!.split === split && state.rows[index]!.cards.includes(second) && !state.rows[index]!.cards.includes(first));
-    if (!firstRows.length || !secondRows.length) continue;
-    const leftIndex = firstRows[random.int(firstRows.length)]!, rightIndex = secondRows[random.int(secondRows.length)]!;
-    const left = state.rows[leftIndex]!.cards, right = state.rows[rightIndex]!.cards;
-    const exchanges = random.shuffle(left.filter((card) => card !== first && !right.includes(card)));
-    for (const exchange of exchanges.slice(0, 2)) {
-      const proposal = { leftIndex, rightIndex, leftCard: exchange, rightCard: second };
-      const score = proposalPairScore(state, proposal);
-      const identity = `${leftIndex}|${rightIndex}|${exchange}|${second}`;
-      const bestIdentity = best ? `${best.leftIndex}|${best.rightIndex}|${best.leftCard}|${best.rightCard}` : '';
-      if (!bestScore || scoreLess(score, bestScore)
-        || (!scoreLess(bestScore, score) && identity < bestIdentity)) { best = proposal; bestScore = score; }
-    }
-  }
-  return best;
-}
-
-function targetTripleSwap(state: ObjectiveState, random: Random, validationOnly: boolean,
-  target: number): SwapProposal | null {
-  const counts = validationOnly ? state.validationTriples : state.triples;
-  const deficits = [...REQUIRED_TRIPLE_KEYS].filter((key) => counts.get(key)! < target);
-  if (!deficits.length) return null;
-  for (let attempt = 0; attempt < 50; attempt += 1) {
-    const cards = deficits[random.int(deficits.length)]!.split('|');
-    const split = validationOnly ? 'validation' : (random.next() < 0.2 ? 'validation' : 'tuning');
-    const candidates = state.rows.map((_row, index) => index).filter((index) => !state.rows[index]!.authored
-      && state.rows[index]!.split === split).map((index) => ({ index,
-        present: cards.filter((card) => state.rows[index]!.cards.includes(card)) }))
-      .filter((entry) => entry.present.length === 2);
-    if (!candidates.length) continue;
-    const leftEntry = candidates[random.int(candidates.length)]!;
-    const missing = cards.find((card) => !leftEntry.present.includes(card))!;
-    const rightRows = state.rows.map((_row, index) => index).filter((index) => !state.rows[index]!.authored
-      && state.rows[index]!.split === split && state.rows[index]!.cards.includes(missing)
-      && !state.rows[index]!.cards.some((card) => cards.includes(card) && card !== missing));
-    if (!rightRows.length) continue;
-    const rightIndex = rightRows[random.int(rightRows.length)]!;
-    const right = state.rows[rightIndex]!.cards;
-    const exchange = random.shuffle(state.rows[leftEntry.index]!.cards.filter((card) => !cards.includes(card)
-      && !right.includes(card)))[0];
-    if (exchange) return { leftIndex: leftEntry.index, rightIndex, leftCard: exchange, rightCard: missing };
-  }
-  return null;
-}
-
-function trySwap(state: ObjectiveState, proposal: SwapProposal,
-  objectiveForState: (state: ObjectiveState) => number[] = objective): boolean {
-  const left = state.rows[proposal.leftIndex]!, right = state.rows[proposal.rightIndex]!;
-  if (left.authored || right.authored || left.split !== right.split || left.cards.includes(proposal.rightCard)
-    || right.cards.includes(proposal.leftCard)) return false;
-  const nextLeft = sorted(left.cards.map((card) => card === proposal.leftCard ? proposal.rightCard : card));
-  const nextRight = sorted(right.cards.map((card) => card === proposal.rightCard ? proposal.leftCard : card));
-  if (!ordinaryRowValid(nextLeft) || !ordinaryRowValid(nextRight)) return false;
-  const leftKey = rowKey(left.cards), rightKey = rowKey(right.cards), nextLeftKey = rowKey(nextLeft), nextRightKey = rowKey(nextRight);
-  if (nextLeftKey === nextRightKey || (state.rowKeys.has(nextLeftKey) && nextLeftKey !== leftKey && nextLeftKey !== rightKey)
-    || (state.rowKeys.has(nextRightKey) && nextRightKey !== leftKey && nextRightKey !== rightKey)) return false;
-  let nextOverlapSix = state.overlapSix;
-  for (let index = 0; index < state.rows.length; index += 1) {
-    if (index === proposal.leftIndex || index === proposal.rightIndex) continue;
-    const other = state.rows[index]!.cards;
-    const oldLeft = overlap(left.cards, other), oldRight = overlap(right.cards, other);
-    const newLeft = overlap(nextLeft, other), newRight = overlap(nextRight, other);
-    if (newLeft > MAX_OVERLAP || newRight > MAX_OVERLAP) return false;
-    nextOverlapSix += Number(newLeft === 6) + Number(newRight === 6) - Number(oldLeft === 6) - Number(oldRight === 6);
-  }
-  if (overlap(nextLeft, nextRight) > MAX_OVERLAP) return false;
-  const before = objectiveForState(state);
-  adjustRow(state, left, -1); adjustRow(state, right, -1);
-  const oldLeftCards = left.cards, oldRightCards = right.cards;
-  left.cards = nextLeft; right.cards = nextRight;
-  adjustRow(state, left, 1); adjustRow(state, right, 1);
-  const oldOverlapSix = state.overlapSix; state.overlapSix = nextOverlapSix;
-  const after = objectiveForState(state);
-  if (!objectiveBetter(after, before)) {
-    adjustRow(state, left, -1); adjustRow(state, right, -1);
-    left.cards = oldLeftCards; right.cards = oldRightCards;
-    adjustRow(state, left, 1); adjustRow(state, right, 1);
-    state.overlapSix = oldOverlapSix;
-    return false;
-  }
-  state.rowKeys.delete(leftKey); state.rowKeys.delete(rightKey);
-  state.rowKeys.add(nextLeftKey); state.rowKeys.add(nextRightKey);
-  return true;
-}
-
-function improveValidationRows(rows: DesignRow[], count: number, restart: number): void {
-  const state = createObjectiveState(rows);
-  const random = new Random(seedFor(count ^ 0x76616c, 'validation', restart));
-  const attempts = 0;
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    let proposal: SwapProposal | null;
-    if (state.validationPairDeficit > 0) proposal = targetPairSwap(state, random, ALL_PAIR_KEYS, 1, true);
-    else if (state.validationPriorityDeficit > 0) proposal = targetPairSwap(state, random, [...PRIORITY_PAIR_KEYS], 2, true);
-    else if (state.validationRequiredDeficit > 0) proposal = targetTripleSwap(state, random, true, 1);
-    else proposal = randomSwap(state, random, 'validation');
-    if (!proposal) proposal = randomSwap(state, random, 'validation');
-    if (proposal) trySwap(state, proposal, validationObjective);
-  }
-}
-
-function improveRows(rows: DesignRow[], count: number, restart: number): DesignRow[] {
-  const state = createObjectiveState(rows);
-  const random = new Random(seedFor(count, 'validation', restart));
-  const attempts = count * (count < 160
-    ? COMPARISON_OPTIMIZATION_ATTEMPTS_PER_ROW : PASSING_OPTIMIZATION_ATTEMPTS_PER_ROW);
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    let proposal: SwapProposal | null;
-    if (state.pairDeficit > 0) proposal = targetPairSwap(state, random, ALL_PAIR_KEYS, 8, false);
-    else if (state.validationPairDeficit > 0) proposal = targetPairSwap(state, random, ALL_PAIR_KEYS, 1, true);
-    else if (state.priorityDeficit > 0) proposal = targetPairSwap(state, random, [...PRIORITY_PAIR_KEYS], 12, false);
-    else if (state.validationPriorityDeficit > 0) proposal = targetPairSwap(state, random, [...PRIORITY_PAIR_KEYS], 2, true);
-    else if (state.requiredDeficit > 0) proposal = targetTripleSwap(state, random, false, 4);
-    else if (state.validationRequiredDeficit > 0) proposal = targetTripleSwap(state, random, true, 1);
-    else proposal = randomSwap(state, random, state.validationRouteDeficit > 0 ? 'validation' : undefined);
-    if (!proposal) proposal = randomSwap(state, random);
-    if (proposal) trySwap(state, proposal);
-  }
-  return state.rows;
 }
 
 function histogram(values: readonly number[]): Record<string, number> {
@@ -1011,7 +733,7 @@ export function measureBalanceSuiteDesign(rowsInput: readonly (readonly string[]
   const overlaps: number[] = [], jaccards: number[] = [];
   for (let left = 0; left < rowsInput.length; left += 1) for (let right = left + 1; right < rowsInput.length; right += 1) {
     const amount = overlap(rowsInput[left]!, rowsInput[right]!);
-    overlaps.push(amount); jaccards.push(amount / (2 * KINGDOM_SIZE - amount));
+    overlaps.push(amount); jaccards.push(amount / (rowsInput[left]!.length + rowsInput[right]!.length - amount));
   }
   const cardValues = [...cards.values()], pairValues = [...pairs.values()], tripleValues = [...triples.values()];
   const pairMean = pairValues.reduce((sum, value) => sum + value, 0) / (pairValues.length || 1);
@@ -1034,6 +756,8 @@ export function measureBalanceSuiteDesign(rowsInput: readonly (readonly string[]
     duplicateRows, invalidRows
   };
 }
+
+function deficit(count: number, target: number): number { return Math.max(0, target - count); }
 
 function summarizeCandidate(count: number, rows: DesignRow[], full: BalanceSuiteDesign,
   tuning: BalanceSuiteDesign, validation: BalanceSuiteDesign): BalanceCandidateSummary {
@@ -1079,16 +803,19 @@ function summarizeCandidate(count: number, rows: DesignRow[], full: BalanceSuite
     validationPairMinimum: validation.pairCountMinimum, priorityPairMinimum: Math.min(...priorityFull),
     validationPriorityPairMinimum: Math.min(...priorityValidation), requiredTripleMinimum: Math.min(...requiredFull),
     validationRequiredTripleMinimum: Math.min(...requiredValidation), tripleCovered: full.tripleCovered,
-    tripleCoverage: full.tripleCoverage, largestOverlap: full.largestOverlap, overlapP99: full.overlap.p99,
+    tripleCoverage: full.tripleCoverage, largestOverlap: full.largestOverlap,
+    overlapMean: full.overlap.mean, overlapP99: full.overlap.p99, jaccardMean: full.jaccard.mean,
     pairCountStandardDeviation: full.pairCountStandardDeviation, deficits, routeCounts: full.routeCounts,
     validationRouteCounts: validation.routeCounts };
 }
 
 function replaySelectedDesign(): DesignRow[] {
   const source = rawCoveringDesign as { schemaVersion: number; designVersion: string; cardOrder: string[];
-    rowCount: number; search: Record<string, unknown>;
+    rowCount: number; digest: string; search: Record<string, unknown>;
     rows: { split: BalanceSuiteSplit; authored: boolean; cards: string[] }[] };
-  if (source.schemaVersion !== 1 || source.designVersion !== 'covering-design-v1' || source.rowCount !== 160
+  const sourceContent = { ...source } as Partial<typeof source>; delete sourceContent.digest;
+  if (source.schemaVersion !== 1 || source.designVersion !== 'covering-design-v2' || source.rowCount !== 160
+    || source.digest !== sha256Canonical(sourceContent)
     || canonicalJson(source.cardOrder) !== canonicalJson(ELIGIBLE) || source.rows.length !== 160) {
     throw new Error('The selected covering-design source is stale.');
   }
@@ -1154,6 +881,19 @@ function extendSelectedDesignTo200(): DesignRow[] {
   throw new Error('Could not build the deterministic 200-row comparison extension.');
 }
 
+export function generateBalanceSuiteCoveringSearchInput(): string {
+  const rows = buildInitialRows(160, 0);
+  const lines = [String(rows.length), ELIGIBLE.join(' ')];
+  for (const row of rows) {
+    lines.push(`${row.split === 'validation' ? 1 : 0} ${row.authored ? 1 : 0} ${row.cards.join(' ')}`);
+  }
+  lines.push(String(PRIORITY_PAIRS.length));
+  for (const pair of PRIORITY_PAIRS) lines.push(pair.cards.join(' '));
+  lines.push(String(REQUIRED_TRIPLES.length));
+  for (const triple of REQUIRED_TRIPLES) lines.push(triple.cards.join(' '));
+  return `${lines.join('\n')}\n`;
+}
+
 function candidateFromRows(count: number, rows: DesignRow[]): CandidateDesign {
   const tuningRows = rows.filter((row) => row.split === 'tuning').map((row) => row.cards);
   const validationRows = rows.filter((row) => row.split === 'validation').map((row) => row.cards);
@@ -1166,22 +906,12 @@ function candidateFromRows(count: number, rows: DesignRow[]): CandidateDesign {
 export function generateBalanceSuiteCandidate(count: number): CandidateDesign {
   if (count === 160) return candidateFromRows(count, replaySelectedDesign());
   if (count === 200) return candidateFromRows(count, extendSelectedDesignTo200());
-  let best: CandidateDesign | null = null, successful = 0;
   const errors: string[] = [];
-  for (let restart = 0; restart < CONSTRUCTION_RESTARTS && successful < OPTIMIZATION_RESTARTS; restart += 1) {
-    let rows: DesignRow[];
-    try { rows = improveRows(buildInitialRows(count, restart), count, restart); }
-    catch (error) { errors.push(error instanceof Error ? error.message : String(error)); continue; }
-    successful += 1;
-    const candidate = candidateFromRows(count, rows), summary = candidate.summary;
-    if (!best || (summary.passed && !best.summary.passed)
-      || (summary.failures.length < best.summary.failures.length)
-      || (summary.failures.length === best.summary.failures.length && summary.tripleCovered > best.summary.tripleCovered)
-      || (summary.failures.length === best.summary.failures.length && summary.tripleCovered === best.summary.tripleCovered
-        && rows.map((row) => rowKey(row.cards)).join('\n') < best.rows.map((row) => rowKey(row.cards)).join('\n'))) best = candidate;
+  for (let restart = 0; restart < CONSTRUCTION_RESTARTS; restart += 1) {
+    try { return candidateFromRows(count, buildInitialRows(count, restart)); }
+    catch (error) { errors.push(error instanceof Error ? error.message : String(error)); }
   }
-  if (!best) throw new Error(`Could not construct ${count}-row candidate after ${CONSTRUCTION_RESTARTS} attempts: ${errors.at(-1) ?? 'unknown failure'}`);
-  return best;
+  throw new Error(`Could not construct ${count}-row candidate after ${CONSTRUCTION_RESTARTS} attempts: ${errors.at(-1) ?? 'unknown failure'}`);
 }
 
 function canonicalize(value: unknown): unknown {
@@ -1213,11 +943,24 @@ function choose(n: number, k: number): number {
   for (let index = 1; index <= k; index += 1) result = result * (n - k + index) / index;
   return Math.round(result);
 }
+function binomialBelow(count: number, probability: number, minimum: number): number {
+  let total = 0;
+  for (let amount = 0; amount < minimum; amount += 1) {
+    total += choose(count, amount) * probability ** amount * (1 - probability) ** (count - amount);
+  }
+  return total;
+}
+function unionSuccessLower(count: number, probability: number, minimum: number, items: number): number {
+  return round(Math.max(0, 1 - items * binomialBelow(count, probability, minimum)));
+}
 function randomBaselines(candidateSizes: readonly number[]): BalanceSuiteManifest['randomBaselines'] {
   const cardProbability = 1 / 4, pairProbability = 3 / 52, tripleProbability = 3 / 247;
   const overlapHistogram: Record<string, number> = {};
+  let expectedJaccard = 0;
   for (let amount = 0; amount <= 10; amount += 1) {
-    overlapHistogram[String(amount)] = round(choose(10, amount) * choose(30, 10 - amount) / choose(40, 10));
+    const probability = choose(10, amount) * choose(30, 10 - amount) / choose(40, 10);
+    overlapHistogram[String(amount)] = round(probability);
+    expectedJaccard += probability * amount / (20 - amount);
   }
   return {
     assumptions: ['Rows are independent random 10-card subsets sampled with replacement.',
@@ -1230,11 +973,18 @@ function randomBaselines(candidateSizes: readonly number[]): BalanceSuiteManifes
       pairExpected: round(count * pairProbability), tripleExpected: round(count * tripleProbability),
       expectedUncoveredCards: round(40 * (1 - cardProbability) ** count),
       expectedUncoveredPairs: round(780 * (1 - pairProbability) ** count),
-      expectedUncoveredTriples: round(9880 * (1 - tripleProbability) ** count) })),
+      expectedUncoveredTriples: round(9880 * (1 - tripleProbability) ** count),
+      everyCardOnceSuccessLower: unionSuccessLower(count, cardProbability, 1, 40),
+      everyPairOnceSuccessLower: unionSuccessLower(count, pairProbability, 1, 780),
+      everyTripleOnceSuccessLower: unionSuccessLower(count, tripleProbability, 1, 9880),
+      everyCardFortySuccessLower: unionSuccessLower(count, cardProbability, 40, 40),
+      everyPairEightSuccessLower: unionSuccessLower(count, pairProbability, 8, 780),
+      priorityPairTwelveSuccessLower: unionSuccessLower(count, pairProbability, 12, 96),
+      requiredTripleFourSuccessLower: unionSuccessLower(count, tripleProbability, 4, 60) })),
     highProbabilityBounds: { everyCardOnce: 24, everyPairOnce: 163, everyTripleOnce: 998,
       everyCardFortyTimes: 236, everyPairEightTimes: 401, priorityPairsTwelveTimes: 455,
       requiredTriplesFourTimes: 1090 },
-    randomOverlap: { expected: 2.5, histogram: overlapHistogram }
+    randomOverlap: { expected: 2.5, expectedJaccard: round(expectedJaccard), histogram: overlapHistogram }
   };
 }
 
@@ -1255,7 +1005,6 @@ export function generateBalanceSuiteManifest(): BalanceSuiteManifest {
     if (candidate.summary.passed) selected = candidate;
   }
   if (!candidates.some((candidate) => candidate.count === 200)) candidates.push(generateBalanceSuiteCandidate(200));
-  if (!selected) selected = candidates.find((candidate) => candidate.summary.passed) ?? null;
   if (!selected) throw new Error(`No candidate through 200 passes: ${candidates.map((candidate) => `${candidate.count} [${candidate.summary.failures.join(', ')}]`).join('; ')}`);
   candidates.sort((left, right) => left.count - right.count);
   const rowsBySplit: Record<BalanceSuiteSplit, DesignRow[]> = {
@@ -1302,7 +1051,7 @@ export function generateBalanceSuiteManifest(): BalanceSuiteManifest {
   }
   const testedSizes = candidates.map((candidate) => candidate.count);
   const base: Omit<BalanceSuiteManifest, 'digest'> = {
-    schemaVersion: 2, suiteVersion: 'balance-suite-v4', generatorVersion: 'deterministic-covering-v1',
+    schemaVersion: 2, suiteVersion: 'balance-suite-v4', generatorVersion: 'deterministic-covering-v2',
     taxonomyVersion: 'kingdom-taxonomy-v1', interactionVersion: 'kingdom-interactions-v1',
     methodologyVersion: 'coverage-thresholds-v1', campaignProtocolStatus: 'pending-k009-consistency',
     kingdomSize: 10, chosenCount: selected.count,
@@ -1312,9 +1061,7 @@ export function generateBalanceSuiteManifest(): BalanceSuiteManifest {
     generator: { baseSeed: BASE_SEED,
       seedDerivation: 'baseSeed xor imul(count, 0x9e3779b1) xor splitSeed xor imul(restart + 1, 0x85ebca6b)',
       greedyCandidatesPerRow: GREEDY_CANDIDATES,
-      comparisonOptimizationAttemptsPerRow: COMPARISON_OPTIMIZATION_ATTEMPTS_PER_ROW,
-      passingOptimizationAttemptsPerRow: PASSING_OPTIMIZATION_ATTEMPTS_PER_ROW,
-      constructionRestarts: CONSTRUCTION_RESTARTS, optimizationRestarts: OPTIMIZATION_RESTARTS,
+      constructionRestarts: CONSTRUCTION_RESTARTS,
       selectedDesignSourceDigest: sha256Canonical(rawCoveringDesign),
       selectedDesignSearch: { ...(rawCoveringDesign as { search: Record<string, unknown> }).search },
       objectiveOrder: ['validity/duplicates/overlap', 'card quotas', 'full pair deficits', 'validation pair deficits',
@@ -1335,9 +1082,10 @@ export function generateBalanceSuiteManifest(): BalanceSuiteManifest {
     interactions, randomBaselines: randomBaselines(testedSizes),
     deterministicLowerBounds: { pairOnceSchonheim: 20, tripleOnceSchonheim: 88, everyPairEightTimes: 139,
       everyPairNineTimes: 156, cardExposureThirtyTwoPlusEight: 160 },
+    rawFeasibilityPilot: RAW_FEASIBILITY_PILOT.map((entry) => ({ ...entry })),
     splits: [
-      { name: 'tuning', seed: seedFor(selected.count, 'tuning'), size: rowsBySplit.tuning.length, design: selected.tuning },
-      { name: 'validation', seed: seedFor(selected.count, 'validation'), size: rowsBySplit.validation.length, design: selected.validation }],
+      { name: 'tuning', seed: 22_222, size: rowsBySplit.tuning.length, design: selected.tuning },
+      { name: 'validation', seed: 11_111, size: rowsBySplit.validation.length, design: selected.validation }],
     statistics: selected.full, authoredOverlapMatrix,
     residualBlindSpots: { uncoveredTripleCount: selected.full.tripleTotal - selected.full.tripleCovered,
       uncoveredByFamilyPattern: Object.fromEntries(Object.entries(uncoveredByFamilyPattern).sort(([left], [right]) => compareCodeUnits(left, right))),
@@ -1370,25 +1118,34 @@ function validateFrozenInputs(): void {
 function assertEqual(actual: unknown, expected: unknown, message: string): void {
   if (canonicalJson(actual) !== canonicalJson(expected)) throw new Error(message);
 }
+let expectedManifestCache: BalanceSuiteManifest | null = null;
+function expectedManifest(): BalanceSuiteManifest {
+  expectedManifestCache ??= generateBalanceSuiteManifest();
+  return expectedManifestCache;
+}
 
-export function validateBalanceSuiteManifest(input: BalanceSuiteManifest): BalanceSuiteManifest {
-  validateFrozenInputs();
+export function validateBalanceSuiteManifestIdentity(input: BalanceSuiteManifest): BalanceSuiteManifest {
   if (input.schemaVersion !== 2 || input.suiteVersion !== 'balance-suite-v4'
-    || input.generatorVersion !== 'deterministic-covering-v1' || input.taxonomyVersion !== 'kingdom-taxonomy-v1'
+    || input.generatorVersion !== 'deterministic-covering-v2' || input.taxonomyVersion !== 'kingdom-taxonomy-v1'
     || input.interactionVersion !== 'kingdom-interactions-v1' || input.methodologyVersion !== 'coverage-thresholds-v1') {
     throw new Error('Balance-suite provenance does not match the frozen design protocol.');
   }
   if (input.campaignProtocolStatus !== 'pending-k009-consistency') throw new Error('Unexpected campaign protocol status.');
+  if (input.chosenCount !== 160 || input.kingdoms.length !== 160 || input.kingdomSize !== 10) {
+    throw new Error('Balance-suite identity has the wrong selected size.');
+  }
+  return input;
+}
+
+export function validateBalanceSuiteManifest(input: BalanceSuiteManifest): BalanceSuiteManifest {
+  validateFrozenInputs();
+  validateBalanceSuiteManifestIdentity(input);
   if (input.digest !== manifestDigest(input)) throw new Error('Balance-suite manifest digest is invalid.');
   if (input.generator.baseSeed !== BASE_SEED || input.generator.greedyCandidatesPerRow !== GREEDY_CANDIDATES
-    || input.generator.comparisonOptimizationAttemptsPerRow !== COMPARISON_OPTIMIZATION_ATTEMPTS_PER_ROW
-    || input.generator.passingOptimizationAttemptsPerRow !== PASSING_OPTIMIZATION_ATTEMPTS_PER_ROW
     || input.generator.constructionRestarts !== CONSTRUCTION_RESTARTS
-    || input.generator.optimizationRestarts !== OPTIMIZATION_RESTARTS
     || input.generator.selectedDesignSourceDigest !== sha256Canonical(rawCoveringDesign)) {
     throw new Error('Balance-suite generator provenance is stale.');
   }
-  if (input.kingdoms.length !== input.chosenCount) throw new Error('Balance-suite kingdom count does not match selection.');
   assertEqual(input.cardPool.orderedVariableCardIds, [...VARIABLE_ACTION_IDS], 'Eligible card order is stale.');
   const expectedSemantics = {
     variable: [...VARIABLE_ACTION_IDS].map((id) => canonicalCard(CARDS[id]!)),
@@ -1402,23 +1159,21 @@ export function validateBalanceSuiteManifest(input: BalanceSuiteManifest): Balan
     expectedRows.filter((row) => row.split === split)) as DesignRow[];
   const rows: DesignRow[] = [];
   const ids = new Set<string>();
-  for (const [kingdomIndex, kingdom] of input.kingdoms.entries()) {
+  for (const kingdom of input.kingdoms) {
     if (ids.has(kingdom.id)) throw new Error(`Duplicate kingdom ID ${kingdom.id}.`);
     ids.add(kingdom.id);
     if (kingdom.rowDigest !== rowDigest(kingdom)) throw new Error(`Invalid row digest for ${kingdom.id}.`);
-    const expectedRow = expectedOrderedRows[kingdomIndex];
-    if (!expectedRow || kingdom.split !== expectedRow.split
-      || rowKey(kingdom.actionPiles.map((pile) => pile.cardId)) !== rowKey(expectedRow.cards)
-      || canonicalJson(kingdom.provenance) !== canonicalJson(expectedRow.provenance)) {
-      throw new Error(`Stale row provenance or covering design for ${kingdom.id}.`);
-    }
-    if (kingdom.startingHealth !== 40 || kingdom.actionPiles.length !== 10 || kingdom.overrides !== undefined
-      || kingdom.actionPiles.some((pile) => pile.count !== 10)
-      || new Set(kingdom.actionPiles.map((pile) => pile.cardId)).size !== 10
-      || kingdom.actionPiles.some((pile) => !ELIGIBLE_SET.has(pile.cardId))) {
-      throw new Error(`Invalid kingdom definition ${kingdom.id}.`);
+    if (kingdom.startingHealth !== 40) throw new Error(`Kingdom ${kingdom.id} must start at 40 health.`);
+    if (kingdom.actionPiles.length !== 10) throw new Error(`Kingdom ${kingdom.id} must have exactly ten piles.`);
+    if (kingdom.overrides !== undefined) throw new Error(`Kingdom ${kingdom.id} must not have overrides.`);
+    if (kingdom.actionPiles.some((pile) => pile.count !== 10)) {
+      throw new Error(`Every pile in ${kingdom.id} must contain exactly ten cards.`);
     }
     const cards = kingdom.actionPiles.map((pile) => pile.cardId);
+    if (new Set(cards).size !== 10) throw new Error(`Kingdom ${kingdom.id} has a duplicate card pile.`);
+    if (cards.some((card) => !ELIGIBLE_SET.has(card))) {
+      throw new Error(`Kingdom ${kingdom.id} contains an ineligible variable card.`);
+    }
     if (!ordinaryRowValid(cards)) throw new Error(`Kingdom ${kingdom.id} lacks an ordinary route.`);
     assertEqual(kingdom.routeLabels, routeLabels(cards), `Stale route labels for ${kingdom.id}.`);
     rows.push({ cards, split: kingdom.split, authored: kingdom.provenance.kind === 'authored', provenance: kingdom.provenance });
@@ -1427,12 +1182,19 @@ export function validateBalanceSuiteManifest(input: BalanceSuiteManifest): Balan
   const validationRows = rows.filter((row) => row.split === 'validation').map((row) => row.cards);
   const full = measureBalanceSuiteDesign(rows.map((row) => row.cards));
   const tuning = measureBalanceSuiteDesign(tuningRows), validation = measureBalanceSuiteDesign(validationRows);
+  const summary = summarizeCandidate(input.chosenCount, rows, full, tuning, validation);
+  if (!summary.passed) throw new Error(`Selected balance suite fails: ${summary.failures.join(', ')}.`);
   assertEqual(input.statistics, full, 'Balance-suite statistics are stale.');
   const splitMap = new Map(input.splits.map((split) => [split.name, split]));
   assertEqual(splitMap.get('tuning')?.design, tuning, 'Tuning statistics are stale.');
   assertEqual(splitMap.get('validation')?.design, validation, 'Validation statistics are stale.');
-  const summary = summarizeCandidate(input.chosenCount, rows, full, tuning, validation);
-  if (!summary.passed) throw new Error(`Selected balance suite fails: ${summary.failures.join(', ')}.`);
+  for (const [index, row] of rows.entries()) {
+    const expectedRow = expectedOrderedRows[index];
+    if (!expectedRow || row.split !== expectedRow.split || rowKey(row.cards) !== rowKey(expectedRow.cards)
+      || canonicalJson(row.provenance) !== canonicalJson(expectedRow.provenance)) {
+      throw new Error(`Stale row provenance or covering design at row ${index + 1}.`);
+    }
+  }
   const selected = input.selection.candidates.find((candidate) => candidate.count === input.chosenCount);
   assertEqual(selected, summary, 'Selected candidate metrics are stale.');
   if (input.selection.candidates.some((candidate) => candidate.count < input.chosenCount && candidate.passed)) {
@@ -1447,6 +1209,7 @@ export function validateBalanceSuiteManifest(input: BalanceSuiteManifest): Balan
     reason: entry.reason, count: full.tripleCounts[entry.cards.join('|')]!, validationCount: validation.tripleCounts[entry.cards.join('|')]! }));
   assertEqual(input.interactions.priorityPairs, expectedPairs, 'Priority-pair evidence is stale.');
   assertEqual(input.interactions.requiredTriples, expectedTriples, 'Required-triple evidence is stale.');
+  assertEqual(input, expectedManifest(), 'Balance-suite methodology evidence is stale.');
   return input;
 }
 
@@ -1454,6 +1217,7 @@ export const balanceSuiteDesign = Object.freeze({
   generate: generateBalanceSuiteManifest,
   measure: measureBalanceSuiteDesign,
   validate: validateBalanceSuiteManifest,
+  validateIdentity: validateBalanceSuiteManifestIdentity,
   serialize: serializeBalanceSuiteManifest,
   digest: manifestDigest
 });

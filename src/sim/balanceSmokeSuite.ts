@@ -26,12 +26,6 @@ export interface BalanceSmokeCandidate {
   maximumOverlap: number;
 }
 
-export interface BalanceSmokeAlternative extends BalanceSmokeCandidate {
-  id: string;
-  source: 'tuning' | 'tuning-and-validation';
-  reason: string;
-}
-
 export interface BalanceSmokeSuiteManifest {
   schemaVersion: 1;
   suiteVersion: 'balance-smoke-v1';
@@ -49,78 +43,55 @@ export interface BalanceSmokeSuiteManifest {
     requirements: string[];
     tieBreak: string;
     candidates: BalanceSmokeCandidate[];
-    alternatives: BalanceSmokeAlternative[];
   };
 }
 
 const CANDIDATE_IDS: Readonly<Record<number, readonly string[]>> = Object.freeze({
-  25: ['balance-tuning-003', 'balance-tuning-008', 'balance-tuning-010', 'balance-tuning-013',
-    'balance-tuning-018', 'balance-tuning-019', 'balance-tuning-020', 'balance-tuning-021',
-    'balance-tuning-025', 'balance-tuning-026', 'balance-tuning-036', 'balance-tuning-038',
-    'balance-tuning-046', 'balance-tuning-048', 'balance-tuning-053', 'balance-tuning-057',
-    'balance-tuning-058', 'balance-tuning-059', 'balance-tuning-060', 'balance-tuning-064',
-    'balance-tuning-068', 'balance-tuning-071', 'balance-tuning-078', 'balance-tuning-083',
-    'balance-tuning-112'],
-  26: ['balance-tuning-001', 'balance-tuning-003', 'balance-tuning-008', 'balance-tuning-010',
-    'balance-tuning-013', 'balance-tuning-018', 'balance-tuning-020', 'balance-tuning-021',
-    'balance-tuning-025', 'balance-tuning-026', 'balance-tuning-036', 'balance-tuning-038',
-    'balance-tuning-042', 'balance-tuning-046', 'balance-tuning-048', 'balance-tuning-057',
-    'balance-tuning-058', 'balance-tuning-060', 'balance-tuning-064', 'balance-tuning-068',
-    'balance-tuning-071', 'balance-tuning-074', 'balance-tuning-078', 'balance-tuning-083',
-    'balance-tuning-091', 'balance-tuning-112'],
-  27: ['balance-tuning-009', 'balance-tuning-013', 'balance-tuning-025', 'balance-tuning-026',
-    'balance-tuning-036', 'balance-tuning-046', 'balance-tuning-047', 'balance-tuning-048',
-    'balance-tuning-051', 'balance-tuning-057', 'balance-tuning-058', 'balance-tuning-059',
-    'balance-tuning-061', 'balance-tuning-064', 'balance-tuning-068', 'balance-tuning-073',
-    'balance-tuning-074', 'balance-tuning-078', 'balance-tuning-083', 'balance-tuning-084',
-    'balance-tuning-098', 'balance-tuning-102', 'balance-tuning-107', 'balance-tuning-112',
-    'balance-tuning-113', 'balance-tuning-114', 'balance-tuning-122'],
-  28: ['balance-tuning-001', 'balance-tuning-003', 'balance-tuning-008', 'balance-tuning-010',
-    'balance-tuning-012', 'balance-tuning-013', 'balance-tuning-020', 'balance-tuning-021',
-    'balance-tuning-025', 'balance-tuning-026', 'balance-tuning-032', 'balance-tuning-036',
-    'balance-tuning-038', 'balance-tuning-042', 'balance-tuning-046', 'balance-tuning-048',
-    'balance-tuning-057', 'balance-tuning-058', 'balance-tuning-060', 'balance-tuning-064',
-    'balance-tuning-068', 'balance-tuning-071', 'balance-tuning-074', 'balance-tuning-078',
-    'balance-tuning-083', 'balance-tuning-084', 'balance-tuning-091', 'balance-tuning-112'],
-  29: ['balance-tuning-001', 'balance-tuning-008', 'balance-tuning-010', 'balance-tuning-013',
-    'balance-tuning-018', 'balance-tuning-019', 'balance-tuning-020', 'balance-tuning-025',
-    'balance-tuning-026', 'balance-tuning-029', 'balance-tuning-036', 'balance-tuning-040',
-    'balance-tuning-042', 'balance-tuning-046', 'balance-tuning-048', 'balance-tuning-052',
-    'balance-tuning-053', 'balance-tuning-057', 'balance-tuning-058', 'balance-tuning-060',
-    'balance-tuning-062', 'balance-tuning-064', 'balance-tuning-068', 'balance-tuning-082',
-    'balance-tuning-083', 'balance-tuning-085', 'balance-tuning-102', 'balance-tuning-112',
-    'balance-tuning-113'],
-  30: ['balance-tuning-001', 'balance-tuning-002', 'balance-tuning-010', 'balance-tuning-013',
-    'balance-tuning-018', 'balance-tuning-019', 'balance-tuning-020', 'balance-tuning-021',
-    'balance-tuning-025', 'balance-tuning-026', 'balance-tuning-029', 'balance-tuning-035',
-    'balance-tuning-036', 'balance-tuning-040', 'balance-tuning-042', 'balance-tuning-046',
-    'balance-tuning-053', 'balance-tuning-055', 'balance-tuning-057', 'balance-tuning-058',
-    'balance-tuning-060', 'balance-tuning-064', 'balance-tuning-068', 'balance-tuning-071',
-    'balance-tuning-078', 'balance-tuning-082', 'balance-tuning-083', 'balance-tuning-093',
-    'balance-tuning-112', 'balance-tuning-114']
+  25: ['balance-tuning-009', 'balance-tuning-011', 'balance-tuning-013', 'balance-tuning-015',
+    'balance-tuning-022', 'balance-tuning-023', 'balance-tuning-029', 'balance-tuning-031',
+    'balance-tuning-033', 'balance-tuning-034', 'balance-tuning-037', 'balance-tuning-047',
+    'balance-tuning-056', 'balance-tuning-057', 'balance-tuning-060', 'balance-tuning-064',
+    'balance-tuning-077', 'balance-tuning-082', 'balance-tuning-085', 'balance-tuning-087',
+    'balance-tuning-090', 'balance-tuning-091', 'balance-tuning-103', 'balance-tuning-118',
+    'balance-tuning-124'],
+  26: ['balance-tuning-005', 'balance-tuning-006', 'balance-tuning-007', 'balance-tuning-008',
+    'balance-tuning-009', 'balance-tuning-010', 'balance-tuning-011', 'balance-tuning-012',
+    'balance-tuning-013', 'balance-tuning-014', 'balance-tuning-024', 'balance-tuning-029',
+    'balance-tuning-031', 'balance-tuning-033', 'balance-tuning-034', 'balance-tuning-039',
+    'balance-tuning-056', 'balance-tuning-065', 'balance-tuning-068', 'balance-tuning-082',
+    'balance-tuning-087', 'balance-tuning-090', 'balance-tuning-099', 'balance-tuning-102',
+    'balance-tuning-123', 'balance-tuning-126'],
+  27: ['balance-tuning-005', 'balance-tuning-007', 'balance-tuning-009', 'balance-tuning-010',
+    'balance-tuning-011', 'balance-tuning-013', 'balance-tuning-014', 'balance-tuning-015',
+    'balance-tuning-017', 'balance-tuning-024', 'balance-tuning-029', 'balance-tuning-031',
+    'balance-tuning-033', 'balance-tuning-034', 'balance-tuning-042', 'balance-tuning-047',
+    'balance-tuning-053', 'balance-tuning-056', 'balance-tuning-057', 'balance-tuning-064',
+    'balance-tuning-080', 'balance-tuning-082', 'balance-tuning-086', 'balance-tuning-089',
+    'balance-tuning-090', 'balance-tuning-102', 'balance-tuning-118'],
+  28: ['balance-tuning-005', 'balance-tuning-006', 'balance-tuning-007', 'balance-tuning-010',
+    'balance-tuning-012', 'balance-tuning-015', 'balance-tuning-022', 'balance-tuning-023',
+    'balance-tuning-029', 'balance-tuning-031', 'balance-tuning-032', 'balance-tuning-033',
+    'balance-tuning-034', 'balance-tuning-040', 'balance-tuning-042', 'balance-tuning-056',
+    'balance-tuning-057', 'balance-tuning-060', 'balance-tuning-062', 'balance-tuning-064',
+    'balance-tuning-065', 'balance-tuning-068', 'balance-tuning-079', 'balance-tuning-082',
+    'balance-tuning-083', 'balance-tuning-090', 'balance-tuning-102', 'balance-tuning-126'],
+  29: ['balance-tuning-005', 'balance-tuning-006', 'balance-tuning-007', 'balance-tuning-009',
+    'balance-tuning-010', 'balance-tuning-011', 'balance-tuning-013', 'balance-tuning-014',
+    'balance-tuning-015', 'balance-tuning-017', 'balance-tuning-024', 'balance-tuning-025',
+    'balance-tuning-029', 'balance-tuning-031', 'balance-tuning-033', 'balance-tuning-034',
+    'balance-tuning-036', 'balance-tuning-039', 'balance-tuning-042', 'balance-tuning-056',
+    'balance-tuning-057', 'balance-tuning-065', 'balance-tuning-067', 'balance-tuning-080',
+    'balance-tuning-082', 'balance-tuning-083', 'balance-tuning-090', 'balance-tuning-102',
+    'balance-tuning-118'],
+  30: ['balance-tuning-005', 'balance-tuning-007', 'balance-tuning-009', 'balance-tuning-010',
+    'balance-tuning-011', 'balance-tuning-013', 'balance-tuning-014', 'balance-tuning-015',
+    'balance-tuning-018', 'balance-tuning-021', 'balance-tuning-024', 'balance-tuning-029',
+    'balance-tuning-031', 'balance-tuning-033', 'balance-tuning-034', 'balance-tuning-037',
+    'balance-tuning-042', 'balance-tuning-047', 'balance-tuning-053', 'balance-tuning-056',
+    'balance-tuning-057', 'balance-tuning-064', 'balance-tuning-067', 'balance-tuning-080',
+    'balance-tuning-082', 'balance-tuning-086', 'balance-tuning-090', 'balance-tuning-097',
+    'balance-tuning-116', 'balance-tuning-126']
 });
-
-const BALANCED_30_IDS = Object.freeze([
-  'balance-tuning-001', 'balance-tuning-008', 'balance-tuning-009', 'balance-tuning-010',
-  'balance-tuning-013', 'balance-tuning-020', 'balance-tuning-025', 'balance-tuning-026',
-  'balance-tuning-032', 'balance-tuning-036', 'balance-tuning-042', 'balance-tuning-046',
-  'balance-tuning-047', 'balance-tuning-048', 'balance-tuning-052', 'balance-tuning-053',
-  'balance-tuning-057', 'balance-tuning-058', 'balance-tuning-062', 'balance-tuning-074',
-  'balance-tuning-075', 'balance-tuning-083', 'balance-tuning-084', 'balance-tuning-085',
-  'balance-tuning-089', 'balance-tuning-102', 'balance-tuning-107', 'balance-tuning-112',
-  'balance-tuning-113', 'balance-tuning-120'
-]);
-
-const ALL_SOURCE_30_IDS = Object.freeze([
-  'balance-tuning-001', 'balance-tuning-002', 'balance-tuning-010', 'balance-tuning-013',
-  'balance-tuning-018', 'balance-tuning-019', 'balance-tuning-020', 'balance-tuning-021',
-  'balance-tuning-025', 'balance-tuning-026', 'balance-tuning-029', 'balance-tuning-036',
-  'balance-tuning-040', 'balance-tuning-042', 'balance-tuning-046', 'balance-tuning-053',
-  'balance-tuning-057', 'balance-tuning-058', 'balance-tuning-060', 'balance-tuning-064',
-  'balance-tuning-068', 'balance-tuning-071', 'balance-tuning-078', 'balance-tuning-082',
-  'balance-tuning-083', 'balance-tuning-084', 'balance-tuning-112', 'balance-validation-017',
-  'balance-validation-023', 'balance-validation-029'
-]);
 
 const kingdomById = new Map(BALANCE_SUITE_MANIFEST.kingdoms.map((kingdom) => [kingdom.id, kingdom]));
 const round = (value: number): number => Number(value.toFixed(12));
@@ -138,31 +109,18 @@ function measureCandidate(ids: readonly string[]): BalanceSmokeCandidate {
   const requiredCounts = REQUIRED_TRIPLES.map((triple) => design.tripleCounts[triple.cards.join('|')]!);
   const routeCounts = design.routeCounts as Record<BalanceRouteLabel, number>;
   return {
-    count: ids.length,
-    kingdomIds: [...ids],
-    cardMinimum: design.cardCountMinimum,
-    cardMaximum: design.cardCountMaximum,
-    pairCovered: design.pairCovered,
-    pairTotal: design.pairTotal,
+    count: ids.length, kingdomIds: [...ids], cardMinimum: design.cardCountMinimum,
+    cardMaximum: design.cardCountMaximum, pairCovered: design.pairCovered, pairTotal: design.pairTotal,
     pairCoverage: round(design.pairCovered / design.pairTotal),
     priorityPairCovered: priorityCounts.filter((count) => count > 0).length,
-    priorityPairTotal: priorityCounts.length,
-    priorityPairMinimum: Math.min(...priorityCounts),
-    tripleCovered: design.tripleCovered,
-    tripleTotal: design.tripleTotal,
+    priorityPairTotal: priorityCounts.length, priorityPairMinimum: Math.min(...priorityCounts),
+    tripleCovered: design.tripleCovered, tripleTotal: design.tripleTotal,
     tripleCoverage: round(design.tripleCovered / design.tripleTotal),
     requiredTripleCovered: requiredCounts.filter((count) => count > 0).length,
-    requiredTripleTotal: requiredCounts.length,
-    requiredTripleMinimum: Math.min(...requiredCounts),
+    requiredTripleTotal: requiredCounts.length, requiredTripleMinimum: Math.min(...requiredCounts),
     routesCovered: Object.values(routeCounts).filter((count) => count > 0).length,
-    routesTotal: Object.keys(routeCounts).length,
-    maximumOverlap: design.largestOverlap
+    routesTotal: Object.keys(routeCounts).length, maximumOverlap: design.largestOverlap
   };
-}
-
-function alternative(id: string, source: BalanceSmokeAlternative['source'], reason: string,
-  ids: readonly string[]): BalanceSmokeAlternative {
-  return { id, source, reason, ...measureCandidate(ids) };
 }
 
 export function generateBalanceSmokeSuiteManifest(): BalanceSmokeSuiteManifest {
@@ -179,33 +137,20 @@ export function generateBalanceSmokeSuiteManifest(): BalanceSmokeSuiteManifest {
   }
   const selected = candidates.find((candidate) => candidate.count === 30)!;
   const content = {
-    schemaVersion: 1 as const,
-    suiteVersion: 'balance-smoke-v1' as const,
+    schemaVersion: 1 as const, suiteVersion: 'balance-smoke-v1' as const,
     sourceSuiteVersion: BALANCE_SUITE_MANIFEST.suiteVersion,
     sourceManifestDigest: BALANCE_SUITE_MANIFEST.digest,
-    selectedCount: 30 as const,
-    selectedKingdomIds: [...selected.kingdomIds],
+    selectedCount: 30 as const, selectedKingdomIds: [...selected.kingdomIds],
     selection: {
-      source: 'tuning' as const,
-      candidateSizes: candidates.map((candidate) => candidate.count),
-      rule: 'Cover every named interaction and route, keep broad card exposure, then maximize pair and triple breadth within the tuning source.',
-      method: 'Binary feasibility search followed by deterministic one-row exchange ascent.',
+      source: 'tuning' as const, candidateSizes: candidates.map((candidate) => candidate.count),
+      rule: 'Cover every named interaction and route, require broad card exposure, then maximize pair and triple breadth within the tuning source.',
+      method: 'Offline YALPS 0.6.4 binary feasibility with a kingdom-index objective, followed by deterministic one-row exchange ascent; regeneration remeasures the pinned IDs.',
       optimalityClaim: 'Best fixed design found under the stated objective; not a proof of the global combinatorial optimum.',
-      requirements: [
-        'all 40 variable cards appear, with at least 6 appearances in the selected 30',
-        'all 96 priority pairs appear at least once',
-        'all 60 required triples appear at least once',
-        'all 14 route labels appear'
-      ],
+      requirements: ['all 40 variable cards appear, with at least 6 appearances in the selected 30',
+        'all 96 priority pairs appear at least once', 'all 60 required triples appear at least once',
+        'all 14 route labels appear'],
       tieBreak: 'higher broad pair coverage, then higher broad triple coverage, then UTF-16 kingdom ID order',
-      candidates,
-      alternatives: [
-        alternative('balanced-card-30', 'tuning',
-          'Raises the card minimum from 6 to 7 but covers 22 fewer broad pairs and 23 fewer broad triples.', BALANCED_30_IDS),
-        alternative('all-source-breadth-30', 'tuning-and-validation',
-          'Adds 12 broad pairs and 10 broad triples over the tuning-only breadth design but uses three validation kingdoms.',
-          ALL_SOURCE_30_IDS)
-      ]
+      candidates
     }
   };
   return { ...content, digest: sha256Canonical(content) };

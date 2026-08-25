@@ -2,15 +2,15 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { afterEach, describe, expect, it } from 'vitest';
 import { VARIABLE_ACTION_IDS, findKingdom, resetKingdoms } from '../../src/game';
 import {
   BALANCE_CAMPAIGN_BLOCKED_MESSAGE, BALANCE_SUITE_MANIFEST, balanceSuite
 } from '../../src/sim/balanceSuite';
 import {
-  PRIORITY_PAIRS, REQUIRED_TRIPLES, generateBalanceSuiteManifest, manifestDigest,
-  measureBalanceSuiteDesign, rowDigest, serializeBalanceSuiteManifest, validateBalanceSuiteManifest
+  PRIORITY_PAIRS, REQUIRED_TRIPLES, manifestDigest,
+  measureBalanceSuiteDesign, routeLabels, rowDigest, sha256Canonical,
+  validateBalanceSuiteManifest
 } from '../../src/sim/balanceSuiteDesign';
 import type { BalanceSuiteManifest } from '../../src/sim/balanceSuiteDesign';
 import { renderKingdomSuiteDesignReport } from '../../scripts/generate_kingdom_suite_design_report';
@@ -42,7 +42,7 @@ describe('balance-suite design', () => {
     expect(new Set(Object.values(result.pairCounts))).toEqual(new Set([2]));
     expect(new Set(Object.values(result.tripleCounts))).toEqual(new Set([1]));
     expect(result.overlap).toMatchObject({ histogram: { 2: 6 }, mean: 2, p99: 2, maximum: 2 });
-    expect(result.jaccard.mean).toBeCloseTo(2 / 18, 12);
+    expect(result.jaccard.mean).toBe(0.5);
   });
 
   it('pins exact combinatorics and interaction expansion with independent arithmetic', () => {
@@ -71,16 +71,17 @@ describe('balance-suite design', () => {
     expect(manifest.selection.candidates.map((candidate) => [candidate.count, candidate.passed]))
       .toEqual([[50, false], [100, false], [150, false], [152, false], [156, false], [160, true], [200, true]]);
     expect(manifest.selection.candidates.filter((candidate) => candidate.count < 160)
-      .every((candidate) => candidate.failures.length > 0)).toBe(true);
+      .map((candidate) => [candidate.count, candidate.failures.includes('full card minimum')]))
+      .toEqual([[50, true], [100, true], [150, true], [152, true], [156, true]]);
     expect(manifest.statistics).toMatchObject({ cardCountMinimum: 40, cardCountMaximum: 40,
-      pairCountMinimum: 8, tripleCovered: 9115, largestOverlap: 6, duplicateRows: 0, invalidRows: 0 });
+      pairCountMinimum: 8, tripleCovered: 9140, largestOverlap: 6, duplicateRows: 0, invalidRows: 0 });
     expect(manifest.statistics.overlap.p99).toBe(5);
     expect(Math.min(...manifest.interactions.priorityPairs.map((pair) => pair.count))).toBe(12);
     expect(Math.min(...manifest.interactions.priorityPairs.map((pair) => pair.validationCount))).toBe(2);
     expect(Math.min(...manifest.interactions.requiredTriples.map((triple) => triple.count))).toBe(4);
     expect(Math.min(...manifest.interactions.requiredTriples.map((triple) => triple.validationCount))).toBe(1);
     expect(validateBalanceSuiteManifest(manifest)).toBe(manifest);
-  });
+  }, 120_000);
 
   it('pins row and manifest SHA-256 digests with independent canonical hashing', () => {
     const first = BALANCE_SUITE_MANIFEST.kingdoms[0]!;
@@ -90,22 +91,17 @@ describe('balance-suite design', () => {
     expect(BALANCE_SUITE_MANIFEST.digest).toBe(independentDigest(manifestContent));
   });
 
-  it('regenerates byte for byte in this and a fresh process', () => {
-    const expected = fs.readFileSync(path.resolve(import.meta.dirname, '../../src/sim/balance-suite-manifest.json'), 'utf8');
-    expect(serializeBalanceSuiteManifest(generateBalanceSuiteManifest())).toBe(expected);
-    const child = spawnSync(process.execPath, ['--import', 'tsx', 'scripts/generate_balance_suite_manifest.ts', '--check'],
-      { cwd: path.resolve(import.meta.dirname, '../..'), encoding: 'utf8', timeout: 180_000 });
-    expect(child.status, child.stderr).toBe(0);
-    expect(child.stdout).toContain('Verified');
-  }, 240_000);
-
   it('renders deterministic design evidence, formulas, blind spots, and campaign bounds', () => {
     const first = renderKingdomSuiteDesignReport(BALANCE_SUITE_MANIFEST);
     expect(first).toBe(renderKingdomSuiteDesignReport(BALANCE_SUITE_MANIFEST));
     expect(first).toContain('40 choose 10 = 847,660,528');
     expect(first).toContain('Candidate coverage curve and decision');
+    expect(first).toContain('Raw feasibility pilot');
+    expect(first).toContain('Deterministic lower bounds');
+    expect(first).toContain('Random mean Jaccard');
     expect(first).toContain('Residual blind spots');
     expect(first).toContain('Thirty-kingdom smoke suite');
+    expect(first).toContain('aria-label="9140 of 9880"');
     expect(first).toContain('<span class="bar"');
     expect(first).not.toContain('&lt;span class=&quot;bar&quot;');
     expect(first).toContain('pending the Kingdom 009 consistency protocol');
@@ -123,15 +119,15 @@ describe('balance-suite design', () => {
 });
 
 describe('balance-suite sensitive validation', () => {
-  it.each([
-    ['nine piles', (manifest: BalanceSuiteManifest) => { manifest.kingdoms[0]!.actionPiles.pop(); }],
-    ['pile count nine', (manifest: BalanceSuiteManifest) => { manifest.kingdoms[0]!.actionPiles[0]!.count = 9; }],
-    ['Scrap pile', (manifest: BalanceSuiteManifest) => { manifest.kingdoms[0]!.actionPiles[0]!.cardId = 'scrap'; }],
-    ['override', (manifest: BalanceSuiteManifest) => { manifest.kingdoms[0]!.overrides = { jab: { cost: 1 } }; }],
-    ['provenance', (manifest: BalanceSuiteManifest) => { manifest.kingdoms[0]!.provenance.reason = 'wrong'; }]
-  ])('rejects %s after semantic digests are recomputed', (_label, mutate) => {
+  it.each<[string, (manifest: BalanceSuiteManifest) => void, RegExp]>([
+    ['nine piles', (manifest) => { manifest.kingdoms[0]!.actionPiles.pop(); }, /exactly ten piles/iu],
+    ['pile count nine', (manifest) => { manifest.kingdoms[0]!.actionPiles[0]!.count = 9; }, /exactly ten cards/iu],
+    ['Scrap pile', (manifest) => { manifest.kingdoms[0]!.actionPiles[0]!.cardId = 'scrap'; }, /ineligible variable card/iu],
+    ['override', (manifest) => { manifest.kingdoms[0]!.overrides = { jab: { cost: 1 } }; }, /must not have overrides/iu],
+    ['provenance', (manifest) => { manifest.kingdoms[0]!.provenance.reason = 'wrong'; }, /stale row provenance/iu]
+  ])('rejects %s after semantic digests are recomputed', (_label, mutate, message) => {
     const manifest = clone(); mutate(manifest); rehash(manifest, 0);
-    expect(() => validateBalanceSuiteManifest(manifest)).toThrow();
+    expect(() => validateBalanceSuiteManifest(manifest)).toThrow(message);
   });
 
   it('rejects stale row and top-level digests independently', () => {
@@ -144,10 +140,58 @@ describe('balance-suite sensitive validation', () => {
   it('rejects changed generator provenance, card semantics, and candidate selection with current digests', () => {
     const generator = clone(); generator.generator.baseSeed += 1; rehash(generator);
     expect(() => validateBalanceSuiteManifest(generator)).toThrow(/generator provenance/iu);
+    const version = clone(); (version as { taxonomyVersion: string }).taxonomyVersion = 'wrong'; rehash(version);
+    expect(() => validateBalanceSuiteManifest(version)).toThrow(/frozen design protocol/iu);
     const semantics = clone(); semantics.cardPool.semantics.variable[0]!.cost += 1; rehash(semantics);
     expect(() => validateBalanceSuiteManifest(semantics)).toThrow(/semantics/iu);
     const candidate = clone(); candidate.selection.candidates.find((entry) => entry.count === 160)!.passed = false; rehash(candidate);
     expect(() => validateBalanceSuiteManifest(candidate)).toThrow(/candidate metrics/iu);
+  });
+
+  it('rejects missing, duplicate, reordered, and card-frequency-deficit content', () => {
+    const missing = clone(); missing.kingdoms.pop(); rehash(missing);
+    expect(() => validateBalanceSuiteManifest(missing)).toThrow(/wrong selected size/iu);
+    const duplicate = clone(); duplicate.kingdoms[1]!.id = duplicate.kingdoms[0]!.id; rehash(duplicate, 1);
+    expect(() => validateBalanceSuiteManifest(duplicate)).toThrow(/duplicate kingdom ID/iu);
+    const reordered = clone();
+    [reordered.cardPool.orderedVariableCardIds[0], reordered.cardPool.orderedVariableCardIds[1]] =
+      [reordered.cardPool.orderedVariableCardIds[1]!, reordered.cardPool.orderedVariableCardIds[0]!];
+    rehash(reordered);
+    expect(() => validateBalanceSuiteManifest(reordered)).toThrow(/eligible card order/iu);
+    const frequency = clone(), row = frequency.kingdoms[0]!;
+    row.actionPiles.find((pile) => pile.cardId === 'cull')!.cardId = 'adapt';
+    row.routeLabels = routeLabels(row.actionPiles.map((pile) => pile.cardId)); rehash(frequency, 0);
+    expect(() => validateBalanceSuiteManifest(frequency)).toThrow(/full card minimum/iu);
+  });
+
+  it.each<[string, (manifest: BalanceSuiteManifest) => void]>([
+    ['non-selected candidate metrics', (manifest) => { manifest.selection.candidates[0]!.tripleCovered += 1; }],
+    ['pair threshold', (manifest) => {
+      (manifest.thresholds.pair as { fullMinimum: number }).fullMinimum = 9;
+    }],
+    ['priority-pair threshold', (manifest) => {
+      (manifest.thresholds.pair as { priorityFullMinimum: number }).priorityFullMinimum = 13;
+    }],
+    ['required-triple threshold', (manifest) => {
+      (manifest.thresholds.triple as { requiredFullMinimum: number }).requiredFullMinimum = 5;
+    }],
+    ['route threshold', (manifest) => { manifest.thresholds.routes['mana-route'].fullMinimum += 1; }],
+    ['overlap threshold', (manifest) => {
+      (manifest.thresholds.distinctness as { maximumOverlap: number }).maximumOverlap = 5;
+    }],
+    ['taxonomy roles', (manifest) => {
+      manifest.taxonomy.roles.directDamage!.pop();
+      manifest.taxonomy.digest = sha256Canonical({ roles: manifest.taxonomy.roles, costBands: manifest.taxonomy.costBands });
+    }],
+    ['split size', (manifest) => { manifest.splits[0]!.size -= 1; }],
+    ['random baseline', (manifest) => { manifest.randomBaselines.candidates[0]!.pairExpected += 1; }],
+    ['deterministic lower bound', (manifest) => { manifest.deterministicLowerBounds.everyPairEightTimes = 140; }],
+    ['authored overlap', (manifest) => { manifest.authoredOverlapMatrix[0]!.overlap += 1; }],
+    ['residual blind spots', (manifest) => { manifest.residualBlindSpots.uncoveredTripleCount += 1; }],
+    ['raw pilot', (manifest) => { manifest.rawFeasibilityPilot[0]!.tripleCovered += 1; }]
+  ])('rejects rehashed %s evidence', (_label, mutate) => {
+    const manifest = clone(); mutate(manifest); rehash(manifest);
+    expect(() => validateBalanceSuiteManifest(manifest)).toThrow(/methodology evidence/iu);
   });
 });
 

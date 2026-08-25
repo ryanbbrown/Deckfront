@@ -95,11 +95,15 @@ manifest, validate it, and reproduce the design report with:
 ```sh
 npm run balance:suite:manifest
 npm run balance:suite:manifest -- --check
+npm run balance:suite:search-check
 npm run balance:smoke:manifest -- --check
 npm run balance:suite:validate
 npm run balance:suite:design-report
 npm run balance:suite:design-report -- --check
 ```
+
+`balance:suite:search-check` compiles and reruns the fixed-seed covering search. It takes about five
+minutes on an Apple M4 Pro. Normal manifest checks remeasure the pinned search result and are faster.
 
 The 30-kingdom process-smoke set uses only tuning kingdoms. Its IDs, the 25-to-30 comparison, and
 coverage statistics are in `src/sim/balance-smoke-suite-manifest.json`.
@@ -164,11 +168,10 @@ node dist-sim/experiment.mjs --kingdom current-duel --mode smoke --seed 1 \
 
 Four workers are the measured default on an Apple M4 Pro. More workers remain available with `--workers`, but short simulation jobs become slower when process messaging and result transfer exceed the saved game time.
 
-`npm run strategy:report` writes the exploratory `.html/strategy-report.html` from the completed
-80-kingdom version 2 tuning corpus. The first chart shows the selected deterministic maximum-support
-witness and the feasible archetype-share range over each full discovered matrix. The report also shows
-pure-family competitive depth and card relationships, and equilibrium-weighted card use. All equilibrium
-ranges are conditional on discovered strategies and do not cover omitted strategies.
+The committed `.html/strategy-report.html` is a historical report from the completed 80-kingdom
+version 2 tuning corpus. `npm run strategy:report` now fails closed while the Kingdom 009 production
+protocol is pending. The historical equilibrium ranges remain conditional on discovered strategies and
+do not cover omitted strategies.
 
 ## Native strategy search
 

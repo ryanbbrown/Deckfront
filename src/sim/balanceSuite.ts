@@ -4,7 +4,7 @@ import { findKingdom, registerKingdom } from '../game';
 import type { Kingdom } from '../game';
 import {
   balanceSuiteDesign, generateBalanceSuiteManifest, measureBalanceSuiteDesign,
-  validateBalanceSuiteManifest
+  validateBalanceSuiteManifest, validateBalanceSuiteManifestIdentity
 } from './balanceSuiteDesign';
 import type { BalanceSuiteManifest } from './balanceSuiteDesign';
 
@@ -40,7 +40,7 @@ export interface BalanceSuiteValidation {
 export const BALANCE_CAMPAIGN_BLOCKED_MESSAGE =
   'The balance-suite campaign is blocked: pending-k009-consistency. Accept the Kingdom 009 production protocol and get separate spending approval first.';
 
-export const BALANCE_SUITE_MANIFEST: BalanceSuiteManifest = validateBalanceSuiteManifest(
+export const BALANCE_SUITE_MANIFEST: BalanceSuiteManifest = validateBalanceSuiteManifestIdentity(
   rawManifest as unknown as BalanceSuiteManifest
 );
 const kingdomById = new Map(BALANCE_SUITE_MANIFEST.kingdoms.map((kingdom) => [kingdom.id, kingdom]));
@@ -69,7 +69,8 @@ function validateRuns(_root: string): BalanceSuiteValidation {
   return assertBalanceCampaignReady();
 }
 
-export { balanceSuiteDesign, generateBalanceSuiteManifest, measureBalanceSuiteDesign, validateBalanceSuiteManifest };
+export { balanceSuiteDesign, generateBalanceSuiteManifest, measureBalanceSuiteDesign,
+  validateBalanceSuiteManifest, validateBalanceSuiteManifestIdentity };
 export const balanceSuite = Object.freeze({
   manifest: BALANCE_SUITE_MANIFEST,
   generate: generateBalanceSuiteManifest,
