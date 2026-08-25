@@ -9,6 +9,9 @@ use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
 const DAMAGE_WEIGHT: i16 = 6;
+const MAX_CARDS: usize = 128;
+const MAX_PLAN: usize = 10;
+const MAX_MANA: usize = 4096;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -188,6 +191,23 @@ struct Card {
     tactical: bool,
     v: RawValues,
 }
+#[derive(Clone, Copy)]
+struct CardData {
+    mechanic: Mechanic,
+    family: Family,
+    tactical: bool,
+    v: RawValues,
+}
+impl Card {
+    fn data(&self) -> CardData {
+        CardData {
+            mechanic: self.mechanic,
+            family: self.family,
+            tactical: self.tactical,
+            v: self.v,
+        }
+    }
+}
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(
     tag = "kind",
@@ -255,6 +275,9 @@ struct Kingdom {
 }
 impl Kingdom {
     fn compile(raw: KingdomInput) -> Result<Self, String> {
+        if raw.cards.len() > MAX_CARDS {
+            return Err(format!("kingdom exceeds {MAX_CARDS} native cards"));
+        }
         let mut cards = Vec::with_capacity(raw.cards.len());
         for c in raw.cards {
             cards.push(Card {
@@ -285,6 +308,9 @@ impl Kingdom {
         })
     }
     fn strategy(&self, raw: RawStrategy) -> Result<Strategy, String> {
+        if raw.buy_plan.len() > MAX_PLAN {
+            return Err(format!("strategy exceeds {MAX_PLAN} purchase slots"));
+        }
         let find = |id: &str| {
             self.cards
                 .iter()
@@ -390,28 +416,36 @@ fn lcg(r: &mut u32, max: usize) -> usize {
     *r = r.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
     ((u64::from(*r) * max as u64) >> 32) as usize
 }
-fn shuffle(r: &mut u32, source: &[usize]) -> Vec<usize> {
-    let mut out = source.to_vec();
-    for i in (1..out.len()).rev() {
+fn shuffle_in_place(r: &mut u32, values: &mut [usize]) {
+    for i in (1..values.len()).rev() {
         let j = lcg(r, i + 1);
-        out.swap(i, j)
+        values.swap(i, j)
     }
-    out
+}
+fn consume_shuffle(r: &mut u32, length: usize) {
+    for i in (1..length).rev() {
+        let _ = lcg(r, i + 1);
+    }
 }
 impl<'a> State<'a> {
-    fn new(k: &'a Kingdom, s: Strategy, seed: u32) -> Self {
+    fn new(k: &'a Kingdom, s: Strategy, seed: u32, limit: i16, cap: i16) -> Self {
         let acquired = vec![0; k.cards.len()];
         let mut rng = seed;
-        let starting = [vec![k.copper; 7], vec![k.scrap; 3]].concat();
-        let draw = shuffle(&mut rng, &starting);
-        let _dummy_shuffle = shuffle(&mut rng, &starting);
+        let zone_capacity = 10usize.saturating_add(
+            usize::try_from(limit.max(0)).unwrap_or(0) * usize::try_from(cap.max(0)).unwrap_or(0),
+        );
+        let mut draw = Vec::with_capacity(zone_capacity);
+        draw.extend(std::iter::repeat_n(k.copper, 7));
+        draw.extend(std::iter::repeat_n(k.scrap, 3));
+        shuffle_in_place(&mut rng, &mut draw);
+        consume_shuffle(&mut rng, 10);
         let mut p = Player {
             strategy: s,
             draw,
             head: 0,
-            hand: vec![],
-            discard: vec![],
-            play: vec![],
+            hand: Vec::with_capacity(zone_capacity),
+            discard: Vec::with_capacity(zone_capacity),
+            play: Vec::with_capacity(zone_capacity),
             money: 0,
             mana: 0,
             acquired,
@@ -432,7 +466,7 @@ impl<'a> State<'a> {
             turn: 1,
             rng,
             tactical: 0,
-            cards_played: vec![],
+            cards_played: Vec::with_capacity(usize::try_from(cap.max(0)).unwrap_or(0)),
             moved: 0,
             mana_spent: 0,
             spells: 0,
@@ -448,9 +482,10 @@ impl<'a> State<'a> {
                 if self.p.discard.is_empty() {
                     break;
                 }
-                self.p.draw = shuffle(&mut self.rng, &self.p.discard);
-                self.p.head = 0;
-                self.p.discard.clear()
+                self.p.draw.clear();
+                std::mem::swap(&mut self.p.draw, &mut self.p.discard);
+                shuffle_in_place(&mut self.rng, &mut self.p.draw);
+                self.p.head = 0
             }
             self.p.hand.push(self.p.draw[self.p.head]);
             self.p.head += 1
@@ -513,10 +548,12 @@ impl<'a> State<'a> {
                 })
                 .sum::<i16>()
     }
-    fn projection(&self, lost: i16) -> Vec<i16> {
-        let mut acquired = self.p.acquired.clone();
-        let mut supply = self.supply.clone();
-        let mut bought = vec![0; self.p.strategy.plan.len()];
+    fn projection(&self, lost: i16) -> [i16; MAX_PLAN] {
+        let mut acquired = [0; MAX_CARDS];
+        let mut supply = [0; MAX_CARDS];
+        acquired[..self.p.acquired.len()].copy_from_slice(&self.p.acquired);
+        supply[..self.supply.len()].copy_from_slice(&self.supply);
+        let mut bought = [0; MAX_PLAN];
         let mut money = self.money_now() - lost;
         loop {
             let mut purchased = false;
@@ -737,7 +774,13 @@ impl<'a> State<'a> {
     fn hand_damage(&self, ap: i16, op: i16, mana: i16, tactical: i16) -> i16 {
         let mut total = 0;
         let mut ranged = false;
-        let mut spell = vec![0i16; mana.max(0) as usize + 1];
+        let available_mana = usize::try_from(mana.max(0)).unwrap_or(0);
+        assert!(
+            available_mana <= MAX_MANA,
+            "native mana scratch bound exceeded"
+        );
+        let mut spell = [0i16; MAX_MANA + 1];
+        let spell = &mut spell[..=available_mana];
         let mut scrap = self.copies[self.k.scrap] == 0;
         for (i, &ci) in self.p.hand.iter().enumerate() {
             let c = &self.k.cards[ci];
@@ -822,19 +865,14 @@ impl<'a> State<'a> {
     }
     fn best_move(&self, ci: usize) -> i16 {
         let c = &self.k.cards[ci];
-        let choices: Vec<i16> = match c.mechanic {
-            Mechanic::Footwork => ([-1, 0, 1])
-                .into_iter()
-                .filter(|d| self.pos[0] + d >= 1 && self.pos[0] + d <= 6)
-                .collect(),
-            _ => [-1, 1]
-                .into_iter()
-                .filter(|d| self.pos[0] + d >= 1 && self.pos[0] + d <= 6)
-                .collect(),
-        };
-        let mut best = choices[0];
+        let choices = [-1, 0, 1];
+        let mut best = 0;
         let mut key = (-1i16, i32::MIN);
         for d in choices {
+            if (d == 0 && c.mechanic != Mechanic::Footwork) || !(1..=6).contains(&(self.pos[0] + d))
+            {
+                continue;
+            }
             let ap = self.pos[0] + d;
             let mana = self.p.mana
                 + if c.mechanic == Mechanic::LeyStep {
@@ -1085,22 +1123,12 @@ impl<'a> State<'a> {
             Mechanic::SalvageShot => Family::Ranged,
             _ => return None,
         };
-        let targets: Vec<(usize, usize)> = self
-            .p
-            .hand
-            .iter()
-            .enumerate()
-            .filter_map(|(i, &x)| {
-                if i != hi && self.k.cards[x].family == f {
-                    Some((i, x))
-                } else {
-                    None
-                }
-            })
-            .collect();
         if c.mechanic == Mechanic::SalvageShot {
             let mut best = None;
-            for (i, x) in targets {
+            for (i, &x) in self.p.hand.iter().enumerate() {
+                if i == hi || self.k.cards[x].family != f {
+                    continue;
+                }
                 if best
                     .map(|(bi, bx): (usize, usize)| {
                         self.k.cards[x].cost > self.k.cards[bx].cost
@@ -1119,11 +1147,15 @@ impl<'a> State<'a> {
             }
             best.map(|(i, _)| i)
         } else {
-            targets.first().map(|(i, _)| *i)
+            self.p
+                .hand
+                .iter()
+                .enumerate()
+                .position(|(i, &x)| i != hi && self.k.cards[x].family == f)
         }
     }
     fn discard_choice(&self) -> Option<usize> {
-        let mut best: Option<(usize, Vec<i16>, i32)> = None;
+        let mut best: Option<(usize, [i16; MAX_PLAN], i32)> = None;
         for (index, &ci) in self.p.hand.iter().enumerate() {
             let projection = self.projection(self.k.cards[ci].money);
             let mut retained = 0i32;
@@ -1188,7 +1220,7 @@ impl<'a> State<'a> {
         let selected = target.and_then(|i| self.p.hand.get(i).copied());
         let after = target.map(|i| if i > hi { i - 1 } else { i });
         let ci = self.remove_hand(hi);
-        let c = self.k.cards[ci].clone();
+        let c = self.k.cards[ci].data();
         self.p.play.push(ci);
         let prev = self.tactical;
         let ranged_attack = matches!(
@@ -1214,8 +1246,8 @@ impl<'a> State<'a> {
         self.cards_played.push(ci);
         self.copies[ci] += 1;
         if matches!(
-            c.id.as_str(),
-            "arcBolt" | "fireball" | "starfire" | "discharge" | "cascade" | "overload"
+            c.mechanic,
+            Mechanic::Spell | Mechanic::Discharge | Mechanic::Cascade | Mechanic::Overload
         ) {
             self.spells += 1
         }
@@ -1508,35 +1540,37 @@ impl<'a> State<'a> {
                 }
             }
             Mechanic::Cull => {
-                let mut targets: Vec<usize> = self
-                    .p
-                    .hand
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, &x)| if x == self.k.scrap { Some(i) } else { None })
-                    .take(2)
-                    .collect();
-                let capacity = 2usize.saturating_sub(targets.len());
-                let copper: Vec<usize> = self
-                    .p
-                    .hand
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(i, &x)| if x == self.k.copper { Some(i) } else { None })
-                    .take(capacity)
-                    .collect();
+                let mut targets = [usize::MAX; 2];
+                let mut target_count = 0;
+                for (i, &x) in self.p.hand.iter().enumerate() {
+                    if x == self.k.scrap && target_count < 2 {
+                        targets[target_count] = i;
+                        target_count += 1;
+                    }
+                }
+                let mut copper = [usize::MAX; 2];
+                let mut copper_count = 0;
+                for (i, &x) in self.p.hand.iter().enumerate() {
+                    if x == self.k.copper && copper_count < 2 - target_count {
+                        copper[copper_count] = i;
+                        copper_count += 1;
+                    }
+                }
                 let base = self.projection(0);
                 let mut best_count = 0;
-                for count in 1..=copper.len() {
+                for count in 1..=copper_count {
                     if Self::compare_projection(&self.projection(count as i16), &base)
                         != Ordering::Less
                     {
                         best_count = count
                     }
                 }
-                targets.extend(copper.into_iter().take(best_count));
-                targets.sort_unstable_by(|a, b| b.cmp(a));
-                for i in targets {
+                for &index in copper.iter().take(best_count) {
+                    targets[target_count] = index;
+                    target_count += 1;
+                }
+                targets[..target_count].sort_unstable_by(|a, b| b.cmp(a));
+                for &i in &targets[..target_count] {
                     let x = self.remove_hand(i);
                     self.p.live -= 1;
                     if attack_mechanic(self.k.cards[x].mechanic) {
@@ -1549,16 +1583,17 @@ impl<'a> State<'a> {
         false
     }
     fn end_action(&mut self) {
-        let mut remain = vec![];
-        for x in self.p.hand.drain(..) {
+        let mut index = 0;
+        while index < self.p.hand.len() {
+            let x = self.p.hand[index];
             if self.k.cards[x].action {
-                remain.push(x)
+                index += 1;
             } else {
+                self.p.hand.remove(index);
                 self.p.money += self.k.cards[x].money;
                 self.p.play.push(x)
             }
         }
-        self.p.hand = remain;
         self.p.mana = 0
     }
     fn purchase(&self) -> Option<usize> {
@@ -1667,7 +1702,7 @@ struct Trial {
     unspent: i32,
 }
 fn trial(k: &Kingdom, s: &Strategy, seed: u32, profile: &str, limit: i16, cap: i16) -> Trial {
-    let mut st = State::new(k, s.clone(), seed);
+    let mut st = State::new(k, s.clone(), seed, limit, cap);
     let mut phase = false;
     let mut actions = 0;
     let mut done = 0;
