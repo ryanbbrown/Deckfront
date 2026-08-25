@@ -21,7 +21,8 @@ export const requiredBrowserFlows = [
   'playAll', 'cardTravel', 'drawTravel', 'zonePiles', 'aiPlayback', 'playbackChoicesSuppressed', 'aiAnimationSetting', 'reducedMotion',
   'cardDestinationStability', 'playbackInterruptions', 'newGameStaleResponses', 'handZoneLayout',
   'stackPlayCadence', 'purchasePreview', 'damageFeedback', 'gameReset', 'resetConfirmation',
-  'textGameControls', 'unavailableWarningGeometry'
+  'textGameControls', 'unavailableWarningGeometry', 'fullCardCatalog', 'cardArtDelivery',
+  'cardInspectionAccessibility', 'arenaAccessibility', 'aiPlaybackAnnouncements'
 ];
 export function validateManifest(manifest: CoverageManifest, discoveredIds: Set<string>): { mappings: number; tests: number } {
   const errors: string[] = [];

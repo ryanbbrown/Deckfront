@@ -77,11 +77,11 @@ test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local b
   await expect(page.locator('[data-market-card="Step"]')).toBeVisible(); await expect(page.locator('[data-market-card="Focus"]')).toBeVisible(); await expect(page.locator('[data-market-card="Scrap"]')).toHaveCount(0); await expect(page.locator('[data-market-card]')).toHaveCount(15); await expect(page.locator('[data-market-card][aria-disabled="true"]')).toHaveCount(15); await expect(page.getByLabel('Starting draft')).not.toBeChecked();
   const compactWidths = await page.locator('[data-market-card]').evaluateAll((cards) => cards.map((card) => Math.round(card.getBoundingClientRect().width)));
   expect([...new Set(compactWidths)]).toEqual([137]);
-  await page.locator('[data-market-card="Step"]').locator('..').click({ button: 'right' }); const cardPopup = page.getByRole('dialog', { name: 'Step details' }); await expect(cardPopup).toBeVisible(); await expect(cardPopup).toContainText('Move 1 space'); await expect(cardPopup.getByLabel('Cost 2')).toBeVisible(); expect(await cardPopup.evaluate((element) => element.matches(':modal'))).toBe(false); expect(Number.parseFloat(await cardPopup.locator('.card__rules').evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7); await page.keyboard.press('Escape'); await expect(cardPopup).toHaveCount(0);
+  await page.locator('[data-market-card="Step"]').locator('..').click({ button: 'right' }); const cardPopup = page.getByRole('dialog', { name: 'Step details' }); await expect(cardPopup).toBeVisible(); await expect(cardPopup).toContainText('Move 1 space'); await expect(cardPopup.getByLabel('Cost 2')).toBeVisible(); expect(await cardPopup.evaluate((element) => element.matches(':modal'))).toBe(true); expect(Number.parseFloat(await cardPopup.locator('.card__rules').evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7); await page.keyboard.press('Escape'); await expect(cardPopup).toHaveCount(0);
   const before = await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents(); await page.getByRole('button', { name: 'Refresh market' }).click(); const after = await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents(); expect(after).not.toEqual(before);
   for (const viewport of [{ width: 1690, height: 1550 }, { width: 1920, height: 1080 }, { width: 3840, height: 2160 }]) {
     await page.setViewportSize(viewport); await page.getByRole('button', { name: 'Card reference' }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.locator('.market-dialog .reference-card')).toHaveCount(15); await expect(page.locator('.market-dialog .card__image')).toHaveCount(15);
-    const layout = await marketLayout(page); expect(layout.cardWidths).toEqual([148]); expect(layout.cardHeights).toEqual([220]); expect(layout.imageHeights).toEqual([72]); expect(layout.rows).toBe(3); expect(layout.columns).toBe(5); expect(layout.surface.width).toBeLessThanOrEqual(840); expect(layout.surface.height).toBeLessThanOrEqual(780); expect(layout.surface.left).toBeGreaterThanOrEqual(0); expect(layout.surface.top).toBeGreaterThanOrEqual(0); expect(layout.surface.right).toBeLessThanOrEqual(layout.viewport.width); expect(layout.surface.bottom).toBeLessThanOrEqual(layout.viewport.height); expect(layout.centeredInTable).toBe(true); expect(layout.clearOfRail).toBe(true); expect(layout.overflow).toEqual({ horizontal: 0, vertical: 0 }); expect(layout.gridOverflow).toEqual({ horizontal: 0, vertical: 0 }); await page.getByRole('button', { name: 'Close market' }).click();
+    const layout = await marketLayout(page); expect(layout.cardWidths).toEqual([148]); expect(layout.cardHeights).toEqual([220]); expect(layout.imageHeights).toEqual([96]); expect(layout.rows).toBe(3); expect(layout.columns).toBe(5); expect(layout.surface.width).toBeLessThanOrEqual(840); expect(layout.surface.height).toBeLessThanOrEqual(780); expect(layout.surface.left).toBeGreaterThanOrEqual(0); expect(layout.surface.top).toBeGreaterThanOrEqual(0); expect(layout.surface.right).toBeLessThanOrEqual(layout.viewport.width); expect(layout.surface.bottom).toBeLessThanOrEqual(layout.viewport.height); expect(layout.centeredInTable).toBe(true); expect(layout.clearOfRail).toBe(true); expect(layout.overflow).toEqual({ horizontal: 0, vertical: 0 }); expect(layout.gridOverflow).toEqual({ horizontal: 0, vertical: 0 }); await page.getByRole('button', { name: 'Close market' }).click();
   }
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.getByLabel('Starting draft').check(); await page.getByRole('button', { name: 'Start game' }).click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Step"]').click(); await expect(page.getByTestId('build-budget')).toHaveText('2 / 12 · 3 carries');
@@ -91,6 +91,64 @@ test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local b
   await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Copper"]')).toHaveText('Copper×8'); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Step"]')).toHaveText('Step×1');
   await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible();
 });
+test('DD-E2E-074: shipped card art has valid JPEG delivery, decoding, dimensions, and cache policy', async ({ page, baseUrl }) => {
+  await page.goto(baseUrl);
+  const delivery = await page.evaluate(async () => {
+    const response = await fetch('/card-art/drive.jpg');
+    const image = new Image(); image.src = '/card-art/drive.jpg'; document.body.append(image); await image.decode();
+    const script = document.querySelector<HTMLScriptElement>('script[src*="/assets/"]')!;
+    const hashed = await fetch(script.src, { method: 'HEAD' });
+    return {
+      status: response.status, type: response.headers.get('content-type'), cache: response.headers.get('cache-control'),
+      width: image.naturalWidth, height: image.naturalHeight,
+      hashedStatus: hashed.status, hashedCache: hashed.headers.get('cache-control')
+    };
+  });
+  expect(delivery).toEqual({ status: 200, type: 'image/jpeg', cache: 'no-cache', width: 800, height: 536,
+    hashedStatus: 200, hashedCache: 'public, max-age=31536000, immutable' });
+});
+
+test('DD-E2E-075: arena semantics and focused card controls support accessible inspection', async ({ page, openGame }) => {
+  await openGame(page, (record) => { seedHand(record, ['drive']); });
+  const arena = page.getByRole('group', { name: 'Six space line arena' }); await expect(arena).toBeVisible();
+  await expect(arena.getByRole('img', { name: /Player 1, 47 health/ })).toBeVisible();
+  await expect(arena.getByRole('img', { name: /Player 2, 50 health/ })).toBeVisible();
+
+  const copper = page.locator('[data-market-card="Copper"]'); await copper.focus(); await page.keyboard.press('Shift+F10');
+  let inspector = page.getByRole('dialog', { name: 'Copper details' }); await expect(inspector).toBeVisible();
+  const close = inspector.getByRole('button', { name: 'Close card details' }); await expect(close).toBeVisible(); await close.click();
+
+  const drive = page.locator('[data-card-name="Drive"]'); await drive.focus(); await page.keyboard.press('ContextMenu');
+  inspector = page.getByRole('dialog', { name: 'Drive details' }); await expect(inspector).toBeVisible(); await inspector.getByRole('button', { name: 'Close card details' }).click();
+  await copper.click({ button: 'right', force: true }); await expect(page.getByRole('dialog', { name: 'Copper details' })).toBeVisible();
+});
+
+test('DD-E2E-073: full card catalog covers the viewport and shows all cards in approved order', async ({ page, openGame }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 }); await openGame(page);
+  const controls = page.getByRole('navigation', { name: 'Game controls' });
+  await expect(controls.locator('button')).toHaveText(['Undo', 'Reset', 'New game', 'View all cards']);
+  await controls.getByRole('button', { name: 'View all cards' }).click();
+  const dialog = page.getByRole('dialog', { name: 'All cards' }); await expect(dialog).toBeVisible();
+  await expect(dialog.locator('.catalog-card')).toHaveCount(46);
+  await expect(dialog.locator('.catalog-section > h3')).toHaveText(['Treasure', 'Engine', 'Melee', 'Ranged', 'Mana']);
+  const familyCards = async (family: string) => dialog.locator(`[data-catalog-family="${family}"] [data-card-name]`).evaluateAll((cards) => cards.map((card) => `${card.getAttribute('data-card-name')}:${card.getAttribute('data-card-cost')}`));
+  expect(await familyCards('treasure')).toEqual(['Copper:0', 'Silver:3', 'Gold:6']);
+  expect((await familyCards('engine')).slice(0, 5)).toEqual(['Scrap:0', 'Discipline:2', 'Step:2', 'Cull:3', 'Footwork:3']);
+  expect((await familyCards('melee')).slice(-3)).toEqual(['Feint:5', 'Flurry:5', 'Heavy Blow:5']);
+  expect((await familyCards('ranged')).slice(0, 3)).toEqual(['Peppering Shot:3', 'Repelling Shot:3', 'Steady Shot:3']);
+  expect((await familyCards('mana')).slice(-3)).toEqual(['Overload:5', 'Prism:5', 'Starfire:6']);
+  const layout = await dialog.evaluate((overlay) => {
+    const rect = (element: Element) => element.getBoundingClientRect(); const overlayBox = rect(overlay);
+    const cards = [...overlay.querySelectorAll('.catalog-card')].map(rect); const body = overlay.querySelector<HTMLElement>('.catalog-dialog__body')!;
+    return { overlay: { left: overlayBox.left, top: overlayBox.top, width: overlayBox.width, height: overlayBox.height }, cardWidths: [...new Set(cards.map((card) => Math.round(card.width)))], cardHeights: [...new Set(cards.map((card) => Math.round(card.height)))], bodyScrolls: body.scrollHeight > body.clientHeight, pageOverflow: { horizontal: document.documentElement.scrollWidth - innerWidth, vertical: document.documentElement.scrollHeight - innerHeight }, viewport: { width: innerWidth, height: innerHeight } };
+  });
+  expect(layout.overlay).toEqual({ left: 0, top: 0, width: layout.viewport.width, height: layout.viewport.height }); expect(layout.cardWidths).toEqual([222]); expect(layout.cardHeights).toEqual([330]); expect(layout.bodyScrolls).toBe(true); expect(layout.pageOverflow).toEqual({ horizontal: 0, vertical: 0 });
+  const headerTop = await dialog.locator('.catalog-dialog__surface > header').evaluate((header) => header.getBoundingClientRect().top); await dialog.locator('.catalog-dialog__body').evaluate((body) => { body.scrollTop = body.scrollHeight; }); await expect(dialog.getByRole('heading', { name: 'Mana' })).toBeVisible(); expect(await dialog.locator('.catalog-dialog__surface > header').evaluate((header) => header.getBoundingClientRect().top)).toBe(headerTop);
+  await dialog.getByRole('button', { name: 'Close all cards' }).click(); await expect(dialog).toHaveCount(0);
+  await controls.getByRole('button', { name: 'View all cards' }).click(); await page.keyboard.press('Escape'); await expect(dialog).toHaveCount(0);
+  await controls.getByRole('button', { name: 'View all cards' }).click(); await dialog.click({ position: { x: 5, y: 5 } }); await expect(dialog).toHaveCount(0);
+});
+
 test('DD-E2E-035: two local players draft in sequence and take complete turns on one browser', async ({ page, baseUrl }) => {
   await page.goto(baseUrl); await page.getByLabel('Starting draft').check(); await page.getByRole('button', { name: 'Start game' }).click();
   await expect(page.getByText('Player 1 starting build')).toBeVisible(); await page.locator('[data-market-card="Step"]').click(); await page.getByRole('button', { name: 'Finish starting build' }).click();
@@ -293,9 +351,9 @@ test('DD-E2E-040: large unique hands overlap and the action rail stays visible',
   await page.setViewportSize({ width: 1920, height: 1080 }); await openGame(page, (record) => { seedHand(record, ['copper', 'silver', 'gold', 'step', 'cull', 'focus', 'footwork', 'muster', 'muster', 'muster', 'feint', 'drive', 'flurry', 'aim', 'volley', 'stipend', 'reclaim', 'adapt']); });
   const before = await page.evaluate(() => { const cards = Array.from(document.querySelectorAll<HTMLElement>('.hand-card-slot')); const first = cards[0]!.getBoundingClientRect(); const second = cards[1]!.getBoundingClientRect(); return { count: cards.length, sameRow: cards.every((card) => Math.abs(card.getBoundingClientRect().top - first.top) < 1), delta: second.left - first.left, width: document.querySelector<HTMLElement>('.full-card')!.getBoundingClientRect().width, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth }; });
   expect(before).toMatchObject({ count: 16, sameRow: true, overflow: 0 }); expect(before.delta).toBeLessThan(before.width); expect(before.delta).toBeGreaterThan(0);
-  const footwork = page.locator('[data-testid="hand-grid"] [data-card-name="Footwork"]'); const resting = await footwork.evaluate((card) => getComputedStyle(card).transform); await footwork.hover(); const lifted = await footwork.evaluate((card) => getComputedStyle(card).transform); expect(lifted).not.toBe(resting); await page.mouse.move(0, 0); await footwork.focus(); const focused = await footwork.evaluate((card) => ({ transform: getComputedStyle(card).transform, zIndex: getComputedStyle(card.parentElement!.parentElement!).zIndex })); expect(focused.transform).not.toBe(resting); expect(Number(focused.zIndex)).toBe(250);
+  const footwork = page.locator('[data-testid="hand-grid"] [data-card-name="Footwork"]'); const resting = await footwork.evaluate((card) => getComputedStyle(card).transform); const hoverPoint = await footwork.evaluate((card) => { const box = card.getBoundingClientRect(); for (let x = Math.ceil(box.left); x < box.right; x += 1) { const hit = document.elementFromPoint(x, box.top + box.height / 2); if (hit && card.contains(hit)) return { x, y: box.top + box.height / 2 }; } throw new Error('Footwork has no exposed hover point.'); }); await page.mouse.move(hoverPoint.x, hoverPoint.y); await expect.poll(() => footwork.evaluate((card) => getComputedStyle(card).transform)).not.toBe(resting); await page.mouse.move(0, 0); await footwork.focus(); await expect(footwork).toBeFocused(); await expect.poll(() => footwork.evaluate((card) => getComputedStyle(card).transform)).not.toBe(resting); const focused = await footwork.evaluate((card) => ({ transform: getComputedStyle(card).transform, zIndex: getComputedStyle(card.parentElement!.parentElement!).zIndex })); expect(Number(focused.zIndex)).toBe(250);
   const controls = await page.locator('[data-card-name="Muster"]').evaluate((card) => { const frame = card.parentElement!.getBoundingClientRect(); const badge = card.parentElement!.querySelector<HTMLElement>('.quantity-badge')!.getBoundingClientRect(); const playAll = card.parentElement!.querySelector<HTMLElement>('.play-all-button')!.getBoundingClientRect(); return { frameWidth: frame.width, badgeAtRight: Math.abs(badge.right - (frame.right + 10)) < 1, playAllInside: playAll.right <= frame.right && playAll.bottom <= frame.bottom }; }); expect(controls).toEqual({ frameWidth: 148, badgeAtRight: true, playAllInside: true });
-  for (const name of ['Copper', 'Drive']) { const card = page.locator(`[data-testid="hand-grid"] [data-card-name="${name}"]`); await expect(card).toHaveAttribute('aria-disabled', 'true'); const beforeFocus = await card.evaluate((element) => getComputedStyle(element).transform); await card.focus(); await expect(card).toBeFocused(); const afterFocus = await card.evaluate((element) => ({ transform: getComputedStyle(element).transform, zIndex: getComputedStyle(element.parentElement!.parentElement!).zIndex })); expect(afterFocus.transform).not.toBe(beforeFocus); expect(Number(afterFocus.zIndex)).toBe(250); await page.keyboard.press('Enter'); await expect(card).toBeVisible(); } await expect(page.locator('[data-testid="played-row"] [data-played-card-name]')).toHaveCount(0);
+  for (const name of ['Copper', 'Drive']) { const card = page.locator(`[data-testid="hand-grid"] [data-card-name="${name}"]`); await expect(card).toHaveAttribute('aria-disabled', 'true'); const beforeFocus = await card.evaluate((element) => getComputedStyle(element).transform); await card.focus(); await expect(card).toBeFocused(); await expect.poll(() => card.evaluate((element) => getComputedStyle(element).transform)).not.toBe(beforeFocus); const afterFocus = await card.evaluate((element) => ({ transform: getComputedStyle(element).transform, zIndex: getComputedStyle(element.parentElement!.parentElement!).zIndex })); expect(Number(afterFocus.zIndex)).toBe(250); await page.keyboard.press('Enter'); await expect(card).toBeVisible(); } await expect(page.locator('[data-testid="played-row"] [data-played-card-name]')).toHaveCount(0);
   await expect(page.getByRole('complementary', { name: /Action history/ })).toBeVisible(); await expect(page.locator('.side-drawer,.edge-toggle')).toHaveCount(0); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Footwork"]')).toHaveText('Footwork×1');
 });
 
@@ -336,7 +394,7 @@ test('DD-E2E-044: every action undoes to setup and Step can take a different dir
 
 test('DD-E2E-045: the fixed action rail shows public actions from both local players', async ({ page, openGame }) => {
   await openGame(page); const rail = page.getByRole('complementary', { name: /Action history/ }); await expect(rail).toBeVisible();
-  await expect(page.locator('.side-drawer,.edge-toggle')).toHaveCount(0); await expect(rail.getByRole('navigation', { name: 'Game controls' }).locator('button')).toHaveText(['Undo', 'Reset', 'New game']);
+  await expect(page.locator('.side-drawer,.edge-toggle')).toHaveCount(0); await expect(rail.getByRole('navigation', { name: 'Game controls' }).locator('button')).toHaveText(['Undo', 'Reset', 'New game', 'View all cards']);
   await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await page.getByRole('button', { name: 'End Action phase' }).click();
   await expect(page.getByTestId('action-log').locator('li').filter({ hasText: 'Player 1' }).filter({ hasText: 'Started Buy phase' })).toHaveCount(1);
   await expect(page.getByTestId('action-log').locator('li').filter({ hasText: 'Player 2' }).filter({ hasText: 'Started Buy phase' })).toHaveCount(1);
@@ -690,7 +748,7 @@ test('DD-E2E-058: a long played row fans cards without clipping its final card a
 test('DD-E2E-070: text controls confirm and reset the same game while Cancel preserves progress', async ({ page, baseUrl }) => {
   await page.setViewportSize({ width: 1920, height: 1080 }); await page.goto(baseUrl); await page.getByRole('button', { name: 'Start game' }).click();
   const controls = page.getByRole('navigation', { name: 'Game controls' });
-  await expect(controls.locator('button')).toHaveText(['Undo', 'Reset', 'New game']);
+  await expect(controls.locator('button')).toHaveText(['Undo', 'Reset', 'New game', 'View all cards']);
   await expect(controls.locator('button').first()).toBeDisabled();
   const gameId = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'));
   const kingdom = await page.locator('.market-group').nth(1).locator('[data-market-card]').allTextContents();
@@ -710,7 +768,9 @@ test('DD-E2E-072: Reset interrupts AI playback and reuses the existing trained g
   await page.setViewportSize({ width: 1920, height: 1080 }); let createRequests = 0;
   page.on('request', (request) => { const url = new URL(request.url()); if (request.method() === 'POST' && url.pathname === '/api/games') createRequests += 1; });
   await page.goto(baseUrl); await page.getByText('Play against AI', { exact: true }).click(); await page.getByText('AI goes first', { exact: true }).click(); await page.getByRole('button', { name: 'Start game' }).click();
-  await expect(page.getByText('Playing AI turn…')).toBeVisible(); const gameId = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'));
+  const playbackStatus = page.locator('.playback-label'); await expect(playbackStatus).toHaveText('Playing AI turn…');
+  await expect(playbackStatus).toHaveAttribute('role', 'status'); await expect(playbackStatus).toHaveAttribute('aria-live', 'polite'); await expect(playbackStatus).toHaveAttribute('aria-atomic', 'true');
+  const gameId = await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'));
   await page.getByRole('button', { name: 'Reset' }).click(); await expect(page.getByRole('dialog', { name: 'Reset this game?' })).toBeVisible(); await expect(page.getByText('Playing AI turn…')).toHaveCount(0); await expect(page.locator('[data-flying-card]')).toHaveCount(0);
   const response = page.waitForResponse('**/api/games/*/reset'); await page.getByRole('button', { name: 'Yes, reset' }).click(); expect((await response).status()).toBe(200);
   await expect(page.getByText(/Turn 2 · Player 2 action/)).toBeVisible(); expect(createRequests).toBe(1); expect(await page.evaluate(() => localStorage.getItem('hexdeck.activeGameId'))).toBe(gameId); await expect(page.getByRole('navigation', { name: 'Game controls' }).locator('button').first()).toBeDisabled();

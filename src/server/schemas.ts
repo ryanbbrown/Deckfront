@@ -140,7 +140,7 @@ const trainingSchema = z.object({
 });
 
 export const gameRecordSchema = z.object({
-  schemaVersion: z.literal(13),
+  schemaVersion: z.literal(14),
   id: z.string().uuid(),
   revision: z.number().int().nonnegative(),
   createdAt: z.string().datetime(),
@@ -182,7 +182,7 @@ export const gameRecordSchema = z.object({
 export const createGameRequestSchema = z.object({
   seed: z.number().int().optional(),
   mode: z.enum(['local', 'ai']),
-  startingDraftEnabled: z.boolean().optional(),
+  startingDraftEnabled: z.boolean().default(false),
   humanPlayerId: playerId.optional(),
   aiDifficulty: z.enum(AI_DIFFICULTIES).optional(),
   variableCardIds: z.array(z.string())

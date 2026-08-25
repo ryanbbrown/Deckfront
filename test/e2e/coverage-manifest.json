@@ -75,6 +75,11 @@
     "gameReset": ["pw:DD-E2E-070", "pw:DD-E2E-072"],
     "resetConfirmation": ["pw:DD-E2E-070"],
     "textGameControls": ["pw:DD-E2E-070"],
-    "unavailableWarningGeometry": ["pw:DD-E2E-071"]
+    "unavailableWarningGeometry": ["pw:DD-E2E-071"],
+    "fullCardCatalog": ["pw:DD-E2E-073"],
+    "cardArtDelivery": ["pw:DD-E2E-074"],
+    "cardInspectionAccessibility": ["pw:DD-E2E-075"],
+    "arenaAccessibility": ["pw:DD-E2E-075"],
+    "aiPlaybackAnnouncements": ["pw:DD-E2E-072"]
   }
 }

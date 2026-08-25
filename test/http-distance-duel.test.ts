@@ -21,7 +21,7 @@ async function server(aiTrainer?: AiTrainer) {
 }
 const TEST_MARKET = ['cull','footwork','feint','drive','aim','volley','muster','prism','reclaim','starfire'];
 async function create(base: string, body: Record<string, unknown> = {}) {
-  return fetch(`${base}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 2, mode: 'local', variableCardIds: TEST_MARKET, ...body }) });
+  return fetch(`${base}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 2, mode: 'local', variableCardIds: TEST_MARKET, startingDraftEnabled: true, ...body }) });
 }
 describe('local game HTTP interface', () => {
   it('serves the setup catalog with fixed and variable cards separated', async () => {
@@ -35,13 +35,22 @@ describe('local game HTTP interface', () => {
   it('creates a game and accepts both sequential builds', async () => {
     const { base } = await server(); const createdResponse = await create(base); expect(createdResponse.status).toBe(201);
     const created = await createdResponse.json() as GameUpdateView;
-    expect(created).toMatchObject({ schemaVersion: 13, activePlayerId: 'ochre', aiDifficulty: null, presentation: { frames: [] } });
+    expect(created).toMatchObject({ schemaVersion: 14, activePlayerId: 'ochre', aiDifficulty: null, presentation: { frames: [] } });
     const playerOne = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['footwork'], complete: true }) }).then((response) => response.json()) as { revision: number; activePlayerId: string; phase: string };
     expect(playerOne).toMatchObject({ activePlayerId: 'indigo', phase: 'startingBuild' });
     const playerTwo = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: playerOne.revision, definitionIds: ['aim'], complete: true }) }).then((response) => response.json()) as { phase: string; completedBuilds: Record<string, string[]> };
     expect(playerTwo.phase).toBe('action'); expect(playerTwo.completedBuilds).toEqual({ ochre: ['footwork'], indigo: ['aim'] });
     const loaded = await fetch(`${base}/api/games/${created.id}`).then((response) => response.json()) as Record<string, unknown>;
     expect(loaded).not.toHaveProperty('presentation');
+  });
+  it('defaults an omitted draft setting to off in direct API requests', async () => {
+    const { base } = await server();
+    const response = await fetch(`${base}/api/games`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ seed: 2, mode: 'local', variableCardIds: TEST_MARKET })
+    });
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ startingDraftEnabled: false, phase: 'action', turn: 1 });
   });
   it('accepts the strict draft toggle and starts draft-off without build endpoints', async () => {
     const { base } = await server(); const response = await create(base,{ startingDraftEnabled:false }); expect(response.status).toBe(201);
@@ -51,8 +60,8 @@ describe('local game HTTP interface', () => {
     expect(build.status).toBe(403);
   });
   it('returns a specific old-save schema error', async () => {
-    const { base, games } = await server(); const id = '11111111-1111-4111-8111-111111111111'; await mkdir(games, { recursive: true }); await writeFile(path.join(games, `${id}.json`), JSON.stringify({ schemaVersion: 11 }));
-    const response = await fetch(`${base}/api/games/${id}`); expect(response.status).toBe(409); expect(await response.json()).toEqual({ error: 'Saved game schema 11 is not supported. Start a new game.' });
+    const { base, games } = await server(); const id = '11111111-1111-4111-8111-111111111111'; await mkdir(games, { recursive: true }); await writeFile(path.join(games, `${id}.json`), JSON.stringify({ schemaVersion: 13 }));
+    const response = await fetch(`${base}/api/games/${id}`); expect(response.status).toBe(409); expect(await response.json()).toEqual({ error: 'Saved game schema 13 is not supported. Start a new game.' });
   });
   it('rejects malformed random markets and unknown create-game fields', async () => {
     const { base } = await server();
@@ -115,7 +124,7 @@ describe('local game HTTP interface', () => {
     const { base } = await server(); const created = await (await create(base)).json() as { id: string; revision: number };
     const edit = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: ['feint'], complete: false }) }); expect(edit.status).toBe(200);
     const stale = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: [], complete: false }) }); expect(stale.status).toBe(409);
-    const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(13); expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
+    const exported = await fetch(`${base}/api/games/${created.id}/export`).then((response) => response.json()) as Record<string, unknown>; expect(exported.schemaVersion).toBe(14); expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
   it('exposes a revision-locked reset endpoint for the persisted game', async () => {
     const { base } = await server(); const created = await (await create(base, { startingDraftEnabled: false })).json() as GameView;

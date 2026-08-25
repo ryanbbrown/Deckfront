@@ -1,6 +1,6 @@
-# Hexdeck
+# Deckfront
 
-Hexdeck is a full-screen desktop deck-building game for two local players or one player against an AI opponent. Players build decks, move on a six-space arena, combine cards, buy improvements, and try to reduce the other fighter from 40 health to 0.
+Deckfront is a full-screen desktop deck-building game for two local players or one player against an AI opponent. Players build decks, move on a six-space arena, combine cards, buy improvements, and try to reduce the other fighter from 50 health to 0.
 
 The table is designed for a 1920×1080 screen. Mobile and smaller desktop layouts are not supported.
 
@@ -18,7 +18,7 @@ npm run dev
 
 Open `http://127.0.0.1:4173`.
 
-The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records, browser game views, and exports use schema version 13. The server rejects older saves and does not migrate them.
+The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records, browser game views, and exports use schema version 14. The server rejects older saves and does not migrate them.
 
 ## Play
 
@@ -77,14 +77,14 @@ Experiment output goes to `.experiments/<kingdom>/<mode>/`. Each run writes `run
 ignored by Git. Generated inputs and results are local experiment artifacts, not cleanup targets. The curated
 kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, and `range-rich-mixed`.
 
-After all four full runs finish, generate the committed diagnostic report:
+After all four full runs finish, generate the local diagnostic report:
 
 ```sh
 npm run balance:report
 ```
 
 The generator reads the ignored local `.experiments/` inputs, rejects stale rules fingerprints or
-incomplete runs, and writes `.html/balance-report.html`.
+incomplete runs, and writes the ignored local file `.html/balance-report.html`.
 
 The broad balance suite has 80 tuning kingdoms and 20 held-back validation kingdoms. Its variable
 card pool is the same `VARIABLE_ACTION_IDS` list used by playable random markets. Regenerate its
@@ -148,5 +148,5 @@ scripts/         E2E validation and simulator utilities
 test/            Vitest and Playwright behavior tests
 .plans/          Current plans and archived decision history
 .experiments/    Balance reports and ignored generated run data
-.html/           Kept HTML artifacts
+.html/           Ignored local HTML reports and review artifacts
 ```

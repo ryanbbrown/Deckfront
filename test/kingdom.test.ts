@@ -132,7 +132,7 @@ describe('overrides and persistence', () => {
 
   it('persists, reloads, and exposes owned plus starting-only definitions with overrides', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-kingdom-'));
-    try { const service = new GameService(new FileGameRepository(directory)); const created = await service.create({ seed:5 });
+    try { const service = new GameService(new FileGameRepository(directory)); const created = await service.create({ seed:5, startingDraftEnabled:true });
       const one = await service.updateBuild(created.id, created.revision, [], true); const both = await service.updateBuild(created.id, one.revision, [], true);
       const after = await service.commitAction(created.id, both.revision, both.actions.phases.find((entry) => entry.kind === 'endAction')!.id);
       const record = await service.getRecord(created.id); expect(after.phase).toBe('buy'); expect(record.state.kingdomId).toBe(record.kingdom.id);

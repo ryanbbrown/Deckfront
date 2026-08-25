@@ -11,7 +11,7 @@ export function Board({ game, movementChoices = [], busy = false, damageFeedback
 }) {
   const spaces = Array.from({ length: ARENA_MAX - ARENA_MIN + 1 }, (_, index) => ARENA_MIN + index);
   return (
-    <div className="arena" aria-label="Six space line arena">
+    <div className="arena" role="group" aria-label="Six space line arena">
       {spaces.map((space) => {
         const fighters = Object.values(game.fighters).filter((candidate) => candidate.position === space);
         const movement = movementChoices.find((choice) => choice.destination === space);
@@ -23,7 +23,7 @@ export function Board({ game, movementChoices = [], busy = false, damageFeedback
               const name = fighter.playerId === 'ochre' ? 'Player 1' : 'Player 2';
               const status = [fighter.aimed ? 'Aimed' : '', fighter.exposed ? 'Close-range attacks this turn: +1 damage' : ''].filter(Boolean).join(', ');
               const damage = damageFeedback?.targetId === fighter.playerId ? damageFeedback : null;
-              return <div key={fighter.playerId} className={`fighter fighter--${fighter.playerId}${damage ? ' fighter--damaged' : ''}`} data-player-id={fighter.playerId} data-position={space} data-player-score={fighter.playerId} title={name} aria-label={`${name}, ${fighter.health} health${status ? `, ${status}` : ''}`}>
+              return <div key={fighter.playerId} role="img" className={`fighter fighter--${fighter.playerId}${damage ? ' fighter--damaged' : ''}`} data-player-id={fighter.playerId} data-position={space} data-player-score={fighter.playerId} title={name} aria-label={`${name}, ${fighter.health} health${status ? `, ${status}` : ''}`}>
                 <strong>{fighter.playerId === 'ochre' ? 'P1' : 'P2'}</strong><small>{fighter.health} HP</small>{status ? <em>{status}</em> : null}{damage ? <span key={damage.id} className="damage-burst" data-damage-target={fighter.playerId} data-damage-amount={damage.amount}>−{damage.amount}</span> : null}
               </div>;
             })}

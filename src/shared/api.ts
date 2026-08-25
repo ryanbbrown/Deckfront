@@ -87,7 +87,7 @@ export interface PresentationFrame {
 export interface PresentationSequence { frames: PresentationFrame[] }
 
 export interface GameView {
-  schemaVersion: 13;
+  schemaVersion: 14;
   id: string; revision: number; createdAt: string; updatedAt: string; elapsedSeconds: number;
   completedActions: number; durationSeconds: number | null;
   activePlayerId: PlayerId; selectedFirstPlayerId: PlayerId; phase: Phase; turn: number; winner: PlayerId | null;
@@ -102,4 +102,4 @@ export interface GameView {
   buildProposal: string[]; completedBuilds: Record<PlayerId, string[]> | null;
 }
 export type GameUpdateView = GameView & { presentation: PresentationSequence };
-export interface GameExport { schemaVersion: 13; exportedAt: string; game: GameView }
+export interface GameExport { schemaVersion: 14; exportedAt: string; game: GameView }

@@ -13,7 +13,8 @@ export interface ServerOptions { dataDirectory: string; distDirectory: string; a
 export interface HexdeckServer { server: Server; service: GameService }
 const MIME_TYPES: Record<string, string> = {
   '.css': 'text/css; charset=utf-8', '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png'
+  '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg'
 };
 export function createHexdeckServer(options: ServerOptions): HexdeckServer {
   const service = new GameService(new FileGameRepository(options.dataDirectory), options.aiTrainer);
@@ -91,8 +92,9 @@ async function serveClient(request: IncomingMessage, response: ServerResponse, d
   try { if (!(await stat(candidate)).isFile()) throw new Error('Not a file.'); }
   catch { candidate = path.join(distDirectory, 'index.html'); }
   const body = await readFile(candidate); response.statusCode = 200;
-  response.setHeader('content-type', MIME_TYPES[path.extname(candidate)] ?? 'application/octet-stream');
-  response.setHeader('cache-control', path.extname(candidate) === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable');
+  response.setHeader('content-type', MIME_TYPES[path.extname(candidate).toLowerCase()] ?? 'application/octet-stream');
+  response.setHeader('cache-control', url.pathname.startsWith('/assets/')
+    ? 'public, max-age=31536000, immutable' : 'no-cache');
   response.end(request.method === 'HEAD' ? undefined : body);
 }
 function sendJson(response: ServerResponse, status: number, value: unknown): void {

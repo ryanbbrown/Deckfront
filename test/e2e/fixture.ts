@@ -27,9 +27,9 @@ export const test = base.extend<Fixtures>({
   repository: async ({ dataDirectory }, use) => { await use(new FileGameRepository(dataDirectory)); },
   openGame: async ({ baseUrl, repository }, use) => {
     await use(async (page, mutate) => {
-      const response = await fetch(`${baseUrl}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 7, mode: 'local', variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10) }) });
+      const response = await fetch(`${baseUrl}/api/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ seed: 7, mode: 'local', variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10), startingDraftEnabled: true }) });
       if (!response.ok) throw new Error(await response.text()); const created = await response.json() as { id: string }; const record = await repository.load(created.id);
-      expect(record.schemaVersion).toBe(13); expect(record.startingDraftEnabled).toBe(true);
+      expect(record.schemaVersion).toBe(14); expect(record.startingDraftEnabled).toBe(true);
       completeSetup(record); mutate?.(record); resetRecord(record); await repository.save(record);
       await page.goto(baseUrl); await page.evaluate((id) => { localStorage.setItem('hexdeck.activeGameId', id); localStorage.setItem('deckfront.animateAiTurns', 'false'); }, created.id); await page.reload(); await expect(page.getByText(/Player [12] (?:action|buy)/)).toBeVisible(); return record;
     });

@@ -21,7 +21,7 @@ class MemoryRepository implements GameRepository {
 const TEST_MARKET = ['cull','footwork','feint','drive','aim','volley','prism','reclaim','muster','starfire'];
 async function setup() {
   const repository = new MemoryRepository(); const service = new GameService(repository);
-  const game = await service.create({ seed: 3, variableCardIds: TEST_MARKET }); return { repository, service, game };
+  const game = await service.create({ seed: 3, variableCardIds: TEST_MARKET, startingDraftEnabled: true }); return { repository, service, game };
 }
 function resetReplay(record: GameRecord): void { record.initialState = structuredClone(record.state); record.committedCommands = []; record.undoHistory = []; }
 function seedPlayerHand(record: GameRecord, definitions: string[], draw: string[] = []): void {
@@ -143,6 +143,10 @@ describe('local GameService', () => {
     const completed = await service.updateBuild(game.id, edited.revision, ['aim'], true);
     await service.updateBuild(game.id, completed.revision, [], true);
     await expect(service.updateBuild(game.id, completed.revision + 1, [], false)).rejects.toThrow('already complete');
+  });
+  it('defaults an omitted draft setting to off at the service boundary', async () => {
+    const view = await new GameService(new MemoryRepository()).create({ seed: 3, variableCardIds: TEST_MARKET });
+    expect(view).toMatchObject({ startingDraftEnabled: false, phase: 'action', turn: 1 });
   });
   it('starts draft-off immediately with Scrap and rejects build commands', async () => {
     const repository = new MemoryRepository(); const service = new GameService(repository);
@@ -305,9 +309,9 @@ describe('local GameService', () => {
     expect(restored).toMatchObject({ phase: 'action', turn: 1, completedBuilds: { ochre: [], indigo: [] }, canUndo: false });
     await expect(service.undoAction(game.id, restored.revision)).rejects.toThrow('There is no action to undo.');
   });
-  it('exports the current local game view with schema 13', async () => {
+  it('exports the current local game view with schema 14', async () => {
     const { service, game } = await setup(); const exported = await service.exportGame(game.id);
-    expect(exported).toMatchObject({ schemaVersion: 13, game: { schemaVersion: 13, id: game.id } });
+    expect(exported).toMatchObject({ schemaVersion: 14, game: { schemaVersion: 14, id: game.id } });
     expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
 });
@@ -317,7 +321,7 @@ describe('persistence schema', () => {
     const directory = await mkdtemp(path.join(tmpdir(),'hexdeck-pending-'));
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository);
-      const created = await service.create({ seed:12, variableCardIds:TEST_MARKET }); await completeBuilds(service,created.id,created.revision);
+      const created = await service.create({ seed:12, variableCardIds:TEST_MARKET, startingDraftEnabled:true }); await completeBuilds(service,created.id,created.revision);
       let record = await repository.load(created.id); seedPlayerHand(record,['sharpen'],['gold']); resetReplay(record); await repository.save(record);
       let view = await service.get(created.id); const sharpen = projectedHandCard(view,record,'sharpen'); view = await service.commitAction(created.id,view.revision,sharpen.actionId!);
       expect((await repository.load(created.id)).state.pendingChoice?.type).toBe('optionalTrash');
@@ -351,7 +355,7 @@ describe('persistence schema', () => {
   it('reloads several replay-based undo entries and continues undoing exact states', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-history-'));
     try {
-      const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8 }); const ready = await completeBuilds(service, created.id, created.revision);
+      const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8, startingDraftEnabled: true }); const ready = await completeBuilds(service, created.id, created.revision);
       const states = [structuredClone((await service.getRecord(created.id)).state)];
       const buy = await service.commitAction(created.id, ready.revision, phaseAction(ready, 'endAction')); states.push(structuredClone((await service.getRecord(created.id)).state));
       const bought = await service.commitAction(created.id, buy.revision, buy.actions.buys.find((entry) => entry.definitionId === 'copper')!.id); states.push(structuredClone((await service.getRecord(created.id)).state));
@@ -365,12 +369,12 @@ describe('persistence schema', () => {
       undone = await restarted.undoAction(created.id, undone.revision); expect((await restarted.getRecord(created.id)).state).toEqual(states[0]); expect(undone.canUndo).toBe(false);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
-  it('serializes concurrent file writes and leaves valid schema 13 state', async () => {
+  it('serializes concurrent file writes and leaves valid schema 14 state', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-lock-'));
     try {
-      const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8 });
+      const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8, startingDraftEnabled: true });
       await Promise.all([1, 2].map((marker) => repository.withLock(created.id, async () => { const record = await repository.load(created.id); await new Promise((resolve) => setTimeout(resolve, marker === 1 ? 5 : 0)); record.revision += 1; await repository.save(record); })));
-      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(13);
+      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(14);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it('rejects an older save with a specific message', async () => {

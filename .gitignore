@@ -9,6 +9,8 @@ build/
 .next/
 coverage/
 *.tsbuildinfo
+__pycache__/
+*.pyc
 
 .archive/
 .data/
@@ -16,6 +18,7 @@ coverage/
 .e2e-results/
 
 .reviews/
+.html/
 
 .experiments/
 dist-sim/
