@@ -17,7 +17,20 @@ The reason is recorded in BB thread `thr_ghnwzhzcbh`:
 - Event 64756 accepted the recommendation.
 - Plan 20 then fixed 100. It did not compare other counts. It did not include a power calculation, coverage stopping rule, or campaign budget calculation.
 
-The original committed v1 suite had 19 variable cards:
+The original `balanced-swaps-v1` generator used these 19 ordered IDs: Adapt, Aim, Arc Bolt, Channel, Drive, Feint, Fireball, Flurry, Footwork, Heavy Blow, Ley Step, Muster, Prism, Quick Shot, Reclaim, Starfire, Steady Shot, Stipend, and Volley.
+
+It generated the 80-row tuning split with seed `0x51a7c3d9` and the 20-row validation split with seed `0xc04f82b1`. For each split it:
+
+1. assigned each card a floor or ceiling quota;
+2. built rows in order, forcing cards whose remaining quota had to fit in the remaining rows;
+3. tried up to 60 seeded candidates per row;
+4. favoured high remaining quotas and low existing pair pressure;
+5. required a damage card and rejected duplicates or overlap above eight;
+6. ran 500 seeded two-row card swaps that preserved card quotas and accepted only a lower sum of squared pair counts.
+
+Validation construction treated every tuning row as already forbidden for overlap. Final rows had 40 health, ten distinct ten-card piles, no overrides, and at least one damage card. This procedure balanced cards and pairs; it did not sample kingdoms randomly.
+
+The original committed v1 suite had:
 
 - `19 choose 10 = 92,378` legal card sets;
 - 52–53 appearances per card;
