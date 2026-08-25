@@ -16,9 +16,10 @@
 | Starting TypeScript, no score digest | 10 | 327ms | 27,030ms | 3,700 | not recorded |
 | Original TypeScript plus ordered digest | 10 | 583ms | 11,874ms | 8,422 | 1.15 GiB |
 | Lean TypeScript compact mode | 10 | 574ms | 11,500ms | 8,696 | 1.25 GiB |
-| Rust release | 10 | 466ms | 4,071ms | 24,562 | 150 MiB |
+| Rust release before turn-loop allocation removal | 10 | 466ms | 4,071ms | 24,562 | 150 MiB |
+| Rust release final, median of three | 10 | 469ms | 2,673ms | 37,384 | 187 MiB |
 
-All three final paths returned the same candidate and score digest. Rust was 2.92× faster than the digest-enabled original path and used about one eighth of its peak RSS. The lean TypeScript path was 3.3% faster than original in the full sample. The earlier no-digest table remains historical evidence in plan 56.
+All three final paths returned the same candidate and score digest. Final Rust was 4.44× faster than the digest-enabled original path. Its three final scoring runs were 2,673ms, 2,675ms, and 2,570ms. The lean TypeScript path was 3.3% faster than original in the full sample. The earlier no-digest table remains historical evidence in plan 56.
 
 ## Optimization loops
 
@@ -26,7 +27,20 @@ All three final paths returned the same candidate and score digest. Rust was 2.9
 2. Hoisting tactical mechanic sets was tested twice on 5,000 candidates. Results were 1,469ms and 1,672ms versus 1,425ms before the change. The change was rejected.
 3. A compiled esbuild worker was tested on 5,000 candidates. Runs were 1,309ms and 1,456ms. The benefit was mainly lower startup overhead and less loader work, so the compiled worker was retained. The remaining TypeScript cost is the tactical decision loop; Rust made further TypeScript restructuring poor expected value.
 
-The standalone Rust scorer uses integer card IDs, fixed mechanic/value records, per-thread state, Rayon batches, and no string or hash lookup in the turn loop. Exact conformance covers 1,000 frozen candidates, compact and full output, all current card mechanics, all movement profiles, shuffle output, UTF-16 order, victory/turn/action boundaries, money, damage area, and ranking fields.
+The standalone Rust scorer uses integer card IDs, fixed mechanic/value records, per-thread state, Rayon batches, and no string lookup, hash lookup, or heap allocation in the turn loop. Zones reserve their maximum trial capacity before the loop. Shuffle, purchase projection, spell damage, movement choices, family targets, discard choices, Cull targets, and action cleanup reuse vectors or fixed stack arrays. Exact conformance covers 1,000 frozen candidates, compact and full output, all current card mechanics, all movement profiles, shuffle output, UTF-16 order, victory/turn/action boundaries, money, damage area, and ranking fields.
+
+Final 100,000-candidate Rust thread scaling used the same digest:
+
+| Threads | Scoring | Strategies/s |
+|---:|---:|---:|
+| 1 | 10,399ms | 9,616 |
+| 2 | 5,981ms | 16,720 |
+| 4 | 3,752ms | 26,654 |
+| 8 | 2,773ms | 36,058 |
+| 10 | 2,581ms | 38,747 |
+| 14 | 2,566ms | 38,974 |
+
+Ten threads are the practical local default. Fourteen added only 0.6% throughput.
 
 ## Modal
 
@@ -43,12 +57,16 @@ Durable results are in Modal Volume `hexdeck-native-strategy-results` under the 
 
 ## Bounded staged product path
 
-`npm run staged-goldfish:native-pool` runs the stateful product generator as one accepted-order coordinator, sends bounded chunks to one persistent Rust scorer, retains only the global 50,000 prefilter, seeded tail, 18,000 leaders, collision records, and final 2,000 tail, then writes the schema-v2 bounded artifact. A 52,000-candidate end-to-end validation completed in 15.6 seconds, wrote a valid 20,000-entry reservoir, and recorded generated-ID digest `b5be0176b1bbf` and canonical provenance digest `565d094e9e38ba`. Chunk-size parity and collision promotion are covered by the native strategy-search tests.
+`npm run staged-goldfish:native-pool` runs the stateful product generator as one accepted-order coordinator and sends bounded chunks to one persistent Rust scorer. Stage one retains independent shard top sets for the 50,000 prefilter and 20,000 seeded tail, then merges them in traversal order. Stage two builds disjoint independent shard top sets from the combined four-seed scores and merges the 18,000 leaders. The final 2,000 entries are the first stage-one tail entries not used as leaders. Tail entries outside the bounded prefilter record a `null` stage-one score rank instead of the previous false generated-count rank.
+
+A three-shard-per-stage, 20,000-candidate product validation completed in 2.4 seconds: stage one 1.000 seconds, stage two 1.086 seconds, generated-ID digest `a15c52fe445bf`, canonical provenance digest `1d332df83ca967`. A real stateful-generator test scores real candidates and proves one-process equality for generated provenance, prefilter order, four-seed leader order, and final tail order across uneven shards. The earlier 52,000-candidate bounded validation remains valid evidence for capacity and artifact size.
 
 ## Competitive PSRO
 
-Score-only race and confirmation keep matrix telemetry on the full path. On the fixed short workload, full and score-only digests were identical. Four workers took 458ms full and 434ms score-only, a 5.7% wall-time reduction. Score-only worker scaling on 12 candidates × 2 blocks was 257ms at 4 workers, 426ms at 10, and 631ms at 16. Four remains the measured local default. The worker guard now allows an explicit maximum of 192 for measured Modal allocations.
+Score-only race and confirmation keep matrix telemetry on the full path. Each candidate's complete opponent schedule is now one compact worker unit, so its strategy is interned once and its schedule cannot split across worker messages. On 30 candidates × 4 blocks, four workers took 360ms full and 352ms score-only with identical complete digests. The new batching is 21% faster than the earlier 458ms full measurement. Score-only scaling was 576ms at one worker, 383ms at two, 364ms at four, 517ms at eight, 558ms at ten, and 721ms at fourteen. Four remains the measured local default. Scan-level tests prove full and score-only survivor, finalist, mean, match-count, and bootstrap-interval equality.
 
 ## Decision
 
 Use Rust for ordered and Modal goldfish scoring. Keep original TypeScript for reproducibility and lean TypeScript for conformance and environments without the native binary. Keep PSRO two-player matches in TypeScript and use score-only mode only for races and confirmation.
+
+Three post-required Rust experiments completed. Removing per-profile temporary metric vectors had no repeatable wall-time gain (2,838/2,612/2,571ms), a Rayon minimum batch length of 64 regressed to 3,170/3,115/3,059ms, and stack-backed compact profile aggregation was neutral at 2,721/2,561/2,564ms. All three experiments were rejected. The remaining measured cost is simulation logic, and useful local scaling is exhausted at 10 to 14 threads.
