@@ -158,7 +158,9 @@ export function retainShard(
     ordered.forEach((entry, index) => { if (index) hash.update('\n'); hash.update(select(entry)); });
     return hash.digest();
   };
-  const collisions = ordered.filter((entry) => globalCollisionIds.has(entry.displayId));
+  const collisions = applyCollisionPolicy(
+    ordered.filter((entry) => globalCollisionIds.has(entry.displayId))
+  );
   const ordinary = ordered.filter((entry) => !globalCollisionIds.has(entry.displayId));
   return { shardId, startPosition, endPosition, completeCount: records.length, leaderBound, tailBound,
     candidateDigest: fold((entry) => entry.canonicalStrategy),

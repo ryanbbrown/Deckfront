@@ -74,6 +74,14 @@ describe('bounded deterministic native strategy search', () => {
     expect(selected.find((entry) => entry.displayId === 'collision')?.traversalPosition).toBe(1);
   });
 
+  it('bounds adversarial collision retention to one score winner per display ID and shard', () => {
+    const records = Array.from({ length: 50 }, (_unused, index) => record(index, index, 'collision'));
+    const shard = retainShard(0, 0, records.length, records, 8, 8, 5,
+      new Set(['collision']));
+    expect(shard.collisions).toHaveLength(1);
+    expect(shard.collisions[0]?.traversalPosition).toBe(49);
+  });
+
   it('promotes records hidden by display-ID collisions across shard boundaries', () => {
     const records = [record(0, 100, 'collision'), record(1, 90), record(2, 80),
       record(3, 110, 'collision'), record(4, 70), record(5, 60)];
