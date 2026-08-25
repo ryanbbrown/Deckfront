@@ -107,6 +107,7 @@ export interface GoldfishTrialResult {
   moneySpent: number;
   unspentMoney: number;
   purchasesByCard: Record<string, number>;
+  playsByCard: Record<string, number>;
   damageByCard: Record<string, number>;
   reason: 'victory' | 'turnLimit' | 'actionCap';
 }
@@ -809,6 +810,7 @@ export function runGoldfishTrial(config: GoldfishTrialConfig): GoldfishTrialResu
     damageByTurn, positionsByTurn, moneySpent: state.players[0].moneySpent,
     unspentMoney: state.players[0].unspentMoney,
     purchasesByCard: state.telemetry.purchasesByCard.ochre,
+    playsByCard: state.telemetry.playsByCard.ochre,
     damageByCard: state.telemetry.damageByCard.ochre, reason
   };
 }

@@ -7,6 +7,7 @@ import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import { createOrderedCandidateSpace, orderedGoldfishCardIds,
   representativeCandidateIndices } from '../../src/sim/orderedGoldfishBenchmark';
 import { RustGoldfishScorer } from '../../src/sim/rustGoldfishScorer';
+import { runGoldfishTrial } from '../../src/sim/simulationKernel';
 import { INFINITE_COUNT, fixedBuyPlan, identify, stableHash } from '../../src/sim/strategy';
 import { compareUtf16 } from '../../src/sim/utf16';
 
@@ -74,11 +75,12 @@ describe.skipIf(!fs.existsSync(nativeBinary))('Rust goldfish scorer conformance'
     const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
     const strategy = space.candidateAt([...representativeCandidateIndices(space.candidateCount, 1)][0]!);
     const ignoredBuild = identify({ ...strategy, id: '', startingBuild: ['precisionShot'],
-      buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'precisionShot', desiredCount: 2 }]) });
+      buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'precisionShot', desiredCount: INFINITE_COUNT }]) });
     const configs = [
       { kingdomId: kingdom.id, seeds: [4_100_000], turnLimit: 30, actionCapPerTurn: 200 },
       { kingdomId: kingdom.id, seeds: [4_100_000], turnLimit: 1, actionCapPerTurn: 200 },
-      { kingdomId: kingdom.id, seeds: [4_100_000], turnLimit: 30, actionCapPerTurn: 1 }
+      { kingdomId: kingdom.id, seeds: [4_100_000], turnLimit: 30, actionCapPerTurn: 1 },
+      { kingdomId: kingdom.id, seeds: [4_100_000], turnLimit: 60, actionCapPerTurn: 200 }
     ];
     const rust = new RustGoldfishScorer(1);
     try {
@@ -88,6 +90,12 @@ describe.skipIf(!fs.existsSync(nativeBinary))('Rust goldfish scorer conformance'
           .toEqual(candidates.map((candidate) =>
             scoreMovementAwareGoldfishStrategyLean(candidate, config, 'full')));
       }
+      expect(runGoldfishTrial({ ...configs[1]!, seed: configs[1]!.seeds[0]!,
+        strategy: ignoredBuild }).reason).toBe('turnLimit');
+      expect(runGoldfishTrial({ ...configs[2]!, seed: configs[2]!.seeds[0]!,
+        strategy: ignoredBuild }).reason).toBe('actionCap');
+      expect(runGoldfishTrial({ ...configs[3]!, seed: configs[3]!.seeds[0]!,
+        strategy: ignoredBuild }).reason).toBe('victory');
     } finally { await rust.close(); }
   });
 
@@ -98,10 +106,44 @@ describe.skipIf(!fs.existsSync(nativeBinary))('Rust goldfish scorer conformance'
     const mechanicsKingdom = { id: 'native-all-mechanics', name: 'Native all mechanics', startingHealth: 50,
       actionPiles: cardIds.map((cardId) => ({ cardId, count: 10 })) };
     registerKingdom(mechanicsKingdom);
-    const strategies = cardIds.map((cardId) => identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([
-      { kind: 'buy', cardId, desiredCount: 2 },
-      { kind: 'buy', cardId: 'gold', desiredCount: INFINITE_COUNT }
-    ]) }));
+    const strategies = cardIds.map((cardId) => identify({ id: '', startingBuild: [],
+      buyPlan: fixedBuyPlan(cardId === 'leyStep'
+        ? [{ kind: 'buy', cardId, desiredCount: 2 },
+          { kind: 'buy', cardId: 'longshot', desiredCount: 2 }]
+        : cardId === 'feint'
+          ? [{ kind: 'buy', cardId: 'strike', desiredCount: 2 }, { kind: 'buy', cardId, desiredCount: 2 }]
+          : cardId === 'aim'
+            ? [{ kind: 'buy', cardId, desiredCount: 2 },
+              { kind: 'buy', cardId: 'precisionShot', desiredCount: 2 }]
+            : cardId === 'starfire'
+              ? [{ kind: 'buy', cardId: 'silver', desiredCount: 1 },
+                { kind: 'buy', cardId, desiredCount: 1 }, { kind: 'buy', cardId: 'focus', desiredCount: 5 }]
+              : ['arcBolt', 'fireball', 'cascade'].includes(cardId)
+                ? [{ kind: 'buy', cardId: 'focus', desiredCount: 2 },
+                  { kind: 'buy', cardId, desiredCount: 1 }]
+              : cardId === 'regiment'
+                ? [{ kind: 'buy', cardId: 'silver', desiredCount: 2 },
+                  { kind: 'buy', cardId: 'gold', desiredCount: 2 }, { kind: 'buy', cardId, desiredCount: 1 }]
+                : [{ kind: 'buy', cardId, desiredCount: 2 },
+                  { kind: 'buy', cardId: 'gold', desiredCount: INFINITE_COUNT }]) }));
+    const mechanicsNotPurchased: string[] = [];
+    const mechanicsNotExecuted: string[] = [];
+    for (const [index, strategy] of strategies.entries()) {
+      const cardId = cardIds[index]!;
+      let purchased = false, executed = false;
+      for (let seed = 91; seed < 111 && !executed; seed += 1) {
+        const trial = runGoldfishTrial({ kingdomId: mechanicsKingdom.id, seed, strategy,
+          turnLimit: 60, actionCapPerTurn: 200,
+          movementProfile: CARDS[cardId]!.family === 'melee' ? 'chaser' : 'stationary' });
+        purchased ||= Boolean(trial.purchasesByCard[cardId]);
+        executed ||= Boolean(trial.playsByCard[cardId]);
+      }
+      if (!purchased) mechanicsNotPurchased.push(cardId);
+      if (!executed) mechanicsNotExecuted.push(cardId);
+    }
+    expect({ mechanicsNotPurchased, mechanicsNotExecuted }).toEqual({
+      mechanicsNotPurchased: [], mechanicsNotExecuted: []
+    });
     const config = { kingdomId: mechanicsKingdom.id, seeds: [91], turnLimit: 10, actionCapPerTurn: 200 };
     const rust = new RustGoldfishScorer(4);
     try {
