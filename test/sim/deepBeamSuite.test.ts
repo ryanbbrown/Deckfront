@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -5,9 +6,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   ALWAYS_AVAILABLE_ACTION_IDS, TREASURE_IDS, VARIABLE_ACTION_IDS, resetKingdoms
 } from '../../src/game';
-import { BALANCE_SUITE_MANIFEST } from '../../src/sim/balanceSuite';
+import { BALANCE_SUITE_MANIFEST, balanceSuite } from '../../src/sim/balanceSuite';
 import {
-  DEEP_BEAM_CONFIG, DEEP_BEAM_KINGDOMS, DEEP_BEAM_SUITE_VERSION, deepBeamSuite
+  DEEP_BEAM_CONFIG, DEEP_BEAM_KINGDOMS, DEEP_BEAM_SUITE_VERSION,
+  FROZEN_DEEP_BEAM_SOURCE_MANIFEST, deepBeamSuite
 } from '../../src/sim/deepBeamSuite';
 import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from '../../src/sim/experimentConfig';
 import { matrixProtocol } from '../../src/sim/payoffMatrix';
@@ -60,6 +62,9 @@ function writeJson(file: string, value: unknown): void {
 describe('deep-beam suite design', () => {
   it('reuses the exact 100 balanced card sets at 50 health without fixed market cards', () => {
     expect(DEEP_BEAM_KINGDOMS).toHaveLength(100);
+    const frozenBytes = fs.readFileSync(path.resolve(import.meta.dirname, '../../src/sim/deep-beam-balance-suite-v3.json'));
+    expect(createHash('sha256').update(frozenBytes).digest('hex'))
+      .toBe('4e7c9c889fc40b7d52532b756f17121a247d91497ac0e49f9acd7a150a0972a6');
     const fixed = new Set([...TREASURE_IDS, ...ALWAYS_AVAILABLE_ACTION_IDS]);
     const eligible = new Set(VARIABLE_ACTION_IDS);
     const appearances = new Map(VARIABLE_ACTION_IDS.map((id) => [id, 0]));
@@ -68,7 +73,7 @@ describe('deep-beam suite design', () => {
 
     for (let index = 0; index < DEEP_BEAM_KINGDOMS.length; index += 1) {
       const kingdom = DEEP_BEAM_KINGDOMS[index]!;
-      const source = BALANCE_SUITE_MANIFEST.kingdoms[index]!;
+      const source = FROZEN_DEEP_BEAM_SOURCE_MANIFEST.kingdoms[index]!;
       const cards = kingdom.actionPiles.map((pile) => pile.cardId);
       expect(kingdom.startingHealth, kingdom.id).toBe(50);
       expect(cards).toEqual(source.actionPiles.map((pile) => pile.cardId));
@@ -99,6 +104,18 @@ describe('deep-beam suite design', () => {
     expect(Math.max(...pairs)).toBe(9);
     expect(deviation).toBeCloseTo(0.9835, 4);
     expect(largestOverlap).toBe(6);
+    expect(BALANCE_SUITE_MANIFEST.kingdoms).toHaveLength(160);
+    balanceSuite.register();
+    expect(() => deepBeamSuite.register()).not.toThrow();
+  });
+
+  it('pins the frozen Kingdom 009 cards and draft-off rules fingerprint', () => {
+    const input = deepBeamSuite.createInput('deep-beam-tuning-009');
+    expect(input.kingdom.actionPiles.map((pile) => pile.cardId)).toEqual([
+      'channel', 'improvise', 'longshot', 'precisionShot', 'reclaim', 'reforge', 'salvageShot',
+      'scour', 'sharpen', 'strike'
+    ]);
+    expect(input.rulesFingerprint.hash).toBe('b5115138db0');
   });
 
   it('creates explicit draft-off inputs with the exact standard beam config', () => {

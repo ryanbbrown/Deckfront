@@ -3,7 +3,7 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { registerKingdom } from '../game';
 import type { Kingdom } from '../game';
-import { BALANCE_SUITE_MANIFEST } from './balanceSuite';
+import rawFrozenManifest from './deep-beam-balance-suite-v3.json' with { type: 'json' };
 import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from './experimentConfig';
 import { matrixProtocol } from './payoffMatrix';
 import { rulesFingerprint } from './rulesFingerprint';
@@ -87,8 +87,11 @@ export interface DeepBeamSuiteStatus {
 }
 
 interface ResultEvidence { valid: boolean; elapsedMs: number; reason: string }
+interface FrozenSourceKingdom extends Kingdom { split: 'tuning' | 'validation' }
+interface FrozenSourceManifest { suiteVersion: string; kingdoms: FrozenSourceKingdom[] }
+export const FROZEN_DEEP_BEAM_SOURCE_MANIFEST = rawFrozenManifest as FrozenSourceManifest;
 
-function deepKingdom(source: (typeof BALANCE_SUITE_MANIFEST.kingdoms)[number]): Kingdom {
+function deepKingdom(source: FrozenSourceKingdom): Kingdom {
   return {
     id: source.id.replace(/^balance-/, 'deep-beam-'),
     name: source.name.replace(/^Balance /, 'Deep Beam '),
@@ -98,7 +101,7 @@ function deepKingdom(source: (typeof BALANCE_SUITE_MANIFEST.kingdoms)[number]): 
 }
 
 export const DEEP_BEAM_KINGDOMS: readonly Kingdom[] = Object.freeze(
-  BALANCE_SUITE_MANIFEST.kingdoms.map((kingdom) => Object.freeze(deepKingdom(kingdom)))
+  FROZEN_DEEP_BEAM_SOURCE_MANIFEST.kingdoms.map((kingdom) => Object.freeze(deepKingdom(kingdom)))
 );
 const kingdomById = new Map(DEEP_BEAM_KINGDOMS.map((kingdom) => [kingdom.id, kingdom]));
 
