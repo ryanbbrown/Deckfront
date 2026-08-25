@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import kingdomLibrary from '../src/game-data/kingdoms.json' with { type: 'json' };
 import {
   ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, CARDS, DEFAULT_KINGDOM_ID, VARIABLE_ACTION_IDS,
-  assertInvariants, checkInvariants, createGame, kingdomMarket, kingdomOf, listLegalActions,
+  applyAction, assertInvariants, checkInvariants, createGame, kingdomMarket, kingdomOf, listLegalActions,
   registerKingdom, resetKingdoms, resolveCard, submitStartingBuild
 } from '../src/game';
 import type { GameState, Kingdom } from '../src/game';
@@ -30,26 +30,35 @@ describe('kingdom registry', () => {
     const state = createGame({ seed: 1 });
     expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(state.startingHealth).toBe(50);
     expect(state.supply).toEqual({ cull:10, footwork:10, feint:10, jab:10, drive:10, flurry:10,
-      aim:10, pepperingShot:10, repellingShot:10, volley:10, step:10, focus:10 });
+      aim:10, pepperingShot:10, repellingShot:10, volley:10, step:10, focus:10, scrap:10 });
     expect(state.fighters.ochre.health).toBe(47); expect(state.fighters.indigo.health).toBe(50); assertInvariants(state);
   });
 
-  it('makes only Step and Focus universal and keeps Cull variable', () => {
-    expect(ALWAYS_AVAILABLE_ACTION_IDS).toEqual(['step', 'focus']);
+  it('makes Step, Focus, and Scrap universal and keeps Cull variable', () => {
+    expect(ALWAYS_AVAILABLE_ACTION_IDS).toEqual(['step', 'focus', 'scrap']);
     expect(VARIABLE_ACTION_IDS).toContain('cull'); expect(VARIABLE_ACTION_IDS).not.toContain('scrap');
     registerKingdom(kingdom('narrow', { actionPiles: piles(['aim']) }));
     const state = createGame({ seed: 1, kingdomId: 'narrow' });
-    expect(state.supply).toEqual({ aim:10, step:ALWAYS_AVAILABLE_COUNT, focus:ALWAYS_AVAILABLE_COUNT });
-    expect(kingdomMarket('narrow').map((card) => card.id)).toEqual(['copper','silver','gold','aim','step','focus']);
+    expect(state.supply).toEqual({ aim:10, step:ALWAYS_AVAILABLE_COUNT, focus:ALWAYS_AVAILABLE_COUNT, scrap:ALWAYS_AVAILABLE_COUNT });
+    expect(kingdomMarket('narrow').map((card) => card.id)).toEqual(['copper','silver','gold','aim','step','focus','scrap']);
   });
 
   it('offers market piles, universal actions, treasures, and End Buy only', () => {
     registerKingdom(kingdom('ten', { actionPiles: piles(VARIABLE_ACTION_IDS.slice(0, 10)) }));
     const state = ready(createGame({ seed: 1, kingdomId: 'ten' })); state.phase = 'buy'; state.players.ochre.money = 100;
     expect(listLegalActions(state).map((entry) => entry.label).sort()).toEqual([
-      'Buy Copper','Buy Silver','Buy Gold','Buy Step','Buy Focus','End Buy phase',
+      'Buy Copper','Buy Silver','Buy Gold','Buy Step','Buy Focus','Buy Scrap','End Buy phase',
       ...VARIABLE_ACTION_IDS.slice(0,10).map((id) => `Buy ${CARDS[id]!.name}`)
     ].sort());
+  });
+
+  it('buys Scrap for zero money and depletes its fixed supply', () => {
+    const state = ready(createGame({ seed: 1 })); state.phase = 'buy';
+    const buy = listLegalActions(state).find((entry) => entry.label === 'Buy Scrap')!;
+    const bought = applyAction(state, buy.id);
+    expect(bought.players.ochre.money).toBe(0);
+    expect(bought.supply.scrap).toBe(ALWAYS_AVAILABLE_COUNT - 1);
+    expect(bought.players.ochre.deck.discard.at(-1)?.definitionId).toBe('scrap');
   });
 
   it('freezes registered kingdoms and nested resolved values', () => {
@@ -85,7 +94,7 @@ describe('kingdom registry', () => {
     const over = structuredClone(state); over.supply.aim = 11; expect(checkInvariants(over)).toContain('aim has invalid supply count.');
   });
 
-  it('limits starting builds to sold cards and the two universal cards', () => {
+  it('limits starting builds to sold cards and the universal cards', () => {
     registerKingdom(kingdom('build', { actionPiles:piles(['aim','cull']) })); const state = createGame({ seed:1, kingdomId:'build' });
     expect(() => submitStartingBuild(state, 'ochre', ['aim','cull','step'])).not.toThrow();
     expect(() => submitStartingBuild(state, 'ochre', ['volley'])).toThrow('does not sell volley');
@@ -99,7 +108,7 @@ describe('curated kingdoms', () => {
       expect(kingdomOf(id).startingHealth).toBe(50);
       expect(kingdomOf(id).actionPiles).toEqual(piles(ids));
       expect(ids).toHaveLength(10); expect(ids).toContain('cull'); expect(ids).not.toContain('scrap');
-      expect(kingdomMarket(id).map((card) => card.id)).toEqual(['copper','silver','gold',...ids,'step','focus']);
+      expect(kingdomMarket(id).map((card) => card.id)).toEqual(['copper','silver','gold',...ids,'step','focus','scrap']);
     }
   });
 

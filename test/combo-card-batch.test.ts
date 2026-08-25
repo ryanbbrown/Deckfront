@@ -41,7 +41,7 @@ describe('combo card batch', () => {
   });
 
   it('uses the approved fixed piles and curated kingdoms', () => {
-    expect(ALWAYS_AVAILABLE_ACTION_IDS).toEqual(['step', 'focus']);
+    expect(ALWAYS_AVAILABLE_ACTION_IDS).toEqual(['step', 'focus', 'scrap']);
     expect(VARIABLE_ACTION_IDS).toContain('cull'); expect(VARIABLE_ACTION_IDS).not.toContain('scrap');
     for (const id of ['distance-duel','current-duel','three-way-open','three-way-engine','range-rich-mixed']) {
       const piles = kingdomOf(id).actionPiles.map((pile) => pile.cardId);
@@ -57,7 +57,8 @@ describe('combo card batch', () => {
       expect(ids.filter((id) => id === 'copper')).toHaveLength(7); expect(ids.filter((id) => id === 'scrap')).toHaveLength(3);
       expect(player).toMatchObject({ startingBuild: null, firstBuyMoney: 0, firstBuyPending: false });
     }
-    expect(kingdomMarket(state.kingdomId).map((card) => card.id)).not.toContain('scrap');
+    expect(kingdomMarket(state.kingdomId).map((card) => card.id)).toContain('scrap');
+    expect(state.supply.scrap).toBe(10);
     expect(gameStateSchema.parse(state)).toEqual(state);
   });
 
