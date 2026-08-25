@@ -112,6 +112,21 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "already used"):
                     launcher.reserve_cost("correction-again", 1, True, config)
 
+    def test_correction_continuation_replaces_failed_reservation_with_actual_spend(self):
+        with tempfile.TemporaryDirectory() as directory:
+            ledger = pathlib.Path(directory) / "ledger.json"
+            with patch.object(launcher, "LEDGER_PATH", ledger):
+                authorization = launcher.ORDERED_PRODUCT_AUTHORIZATION
+                launcher.reserve_cost("failed", 2.8, True,
+                    {"kind": "ordered-product", "authorization": authorization})
+                continued = {"kind": "ordered-product", "authorization": authorization,
+                    "continuation_run_id": "failed", "prior_actual_usd": 0.43796662}
+                launcher.reserve_cost("continued", 2.9, True, continued)
+                held = json.loads(ledger.read_text())
+                self.assertEqual(held["runs"]["failed"]["reservedUsd"], 0.43796662)
+                self.assertEqual(held["runs"]["failed"]["status"], "superseded")
+                self.assertEqual(held["runs"]["continued"]["reservedUsd"], 2.9)
+
     def test_production_typescript_helper_generates_the_ordered_shard(self):
         with tempfile.TemporaryDirectory() as directory:
             request = pathlib.Path(directory) / "request.jsonl"

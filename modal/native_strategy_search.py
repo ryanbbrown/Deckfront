@@ -122,9 +122,23 @@ def reserve_cost(run_id: str, projected: float, full_run: bool, config: dict[str
         reserved = sum(float(run["reservedUsd"]) for run in ledger["runs"].values())
         full_runs = sum(bool(run["fullRun"]) for run in ledger["runs"].values())
         authorization = config.get("authorization")
-        if authorization and any(run.get("config", {}).get("authorization") == authorization
-                                 for run in ledger["runs"].values()):
-            raise RuntimeError(f"authorization {authorization} was already used")
+        authorized_runs = [run for run in ledger["runs"].values()
+                           if run.get("config", {}).get("authorization") == authorization] \
+            if authorization else []
+        continuation_id = config.get("continuation_run_id")
+        if authorized_runs:
+            if len(authorized_runs) != 1 or not continuation_id \
+                    or authorized_runs[0].get("runId") != continuation_id:
+                raise RuntimeError(f"authorization {authorization} was already used")
+            prior = authorized_runs[0]
+            prior_actual = float(config.get("prior_actual_usd", -1))
+            if prior.get("config", {}).get("kind") != "ordered-product" \
+                    or prior_actual < 0 or prior_actual > float(prior["reservedUsd"]):
+                raise RuntimeError("ordered product continuation does not match the failed campaign")
+            prior["reservedUsd"] = round(prior_actual, 8)
+            prior["actualUsd"] = round(prior_actual, 8)
+            prior["status"] = "superseded"
+            reserved = sum(float(run["reservedUsd"]) for run in ledger["runs"].values())
         if reserved + projected > GROSS_BUDGET_USD:
             raise RuntimeError(
                 f"cumulative reservation ${reserved + projected:.4f} exceeds ${GROSS_BUDGET_USD:.2f}"
@@ -599,7 +613,8 @@ def validate_launch_limits(
     chunk_size: int, shuffles: int, scorer: str, product: bool,
     ordered_product: bool = False, retained_count: int = ORDERED_PRODUCT_RETAINED_COUNT,
     reservoir_count: int = ORDERED_PRODUCT_RESERVOIR_COUNT,
-    authorization: str = ""
+    authorization: str = "", prior_actual_usd: float = 0.0,
+    continuation_run_id: str = ""
 ) -> dict[str, Any]:
     if min(count, shard_size, cpu, memory_gib, threads, max_containers,
            timeout_seconds, chunk_size, shuffles) < 1:
@@ -619,6 +634,8 @@ def validate_launch_limits(
             raise ValueError("ordered product must score the complete ordered candidate space")
         if authorization != ORDERED_PRODUCT_AUTHORIZATION:
             raise ValueError(f"ordered product requires authorization {ORDERED_PRODUCT_AUTHORIZATION}")
+        if prior_actual_usd < 0 or (continuation_run_id and prior_actual_usd <= 0):
+            raise ValueError("ordered product continuation actual cost is invalid")
         if retained_count < 1 or reservoir_count < 1 or reservoir_count > retained_count \
                 or retained_count > count:
             raise ValueError("ordered product retained and reservoir counts are invalid")
@@ -627,6 +644,8 @@ def validate_launch_limits(
         projected = projected_ordered_product_cost_usd(stage_one_shards, stage_two_shards,
             cpu, memory_gib, timeout_seconds, max_containers)
         full_run = True
+        if projected + prior_actual_usd > 5:
+            raise ValueError("ordered product continuation gross worst-case cost exceeds $5")
         waves = math.ceil(stage_one_shards / max_containers) + math.ceil(stage_two_shards / max_containers)
         controller_timeout = (MAX_RETRIES + 1) * waves * (timeout_seconds + 30) + 3900
     elif product:
@@ -675,6 +694,8 @@ def launch(
     retained_count: int = ORDERED_PRODUCT_RETAINED_COUNT,
     reservoir_count: int = ORDERED_PRODUCT_RESERVOIR_COUNT,
     authorization: str = "",
+    continuation_run_id: str = "",
+    prior_actual_usd: float = 0.0,
 ) -> None:
     limits = validate_launch_limits(count=count, start_position=start_position,
         shard_size=shard_size, cpu=cpu, memory_gib=memory_gib, threads=threads,
@@ -682,7 +703,8 @@ def launch(
         max_cost_usd=max_cost_usd, chunk_size=chunk_size, shuffles=shuffles,
         scorer=scorer, product=product, ordered_product=ordered_product,
         retained_count=retained_count, reservoir_count=reservoir_count,
-        authorization=authorization)
+        authorization=authorization, continuation_run_id=continuation_run_id,
+        prior_actual_usd=prior_actual_usd)
     end_position = limits["end_position"]
     projected = limits["projected"]
     full_run = limits["full_run"]
@@ -696,6 +718,8 @@ def launch(
         "retained_count": retained_count,
         "reservoir_count": reservoir_count,
         "authorization": authorization,
+        "continuation_run_id": continuation_run_id,
+        "prior_actual_usd": prior_actual_usd,
         "start_position": start_position,
         "end_position": end_position,
         "shard_size": shard_size,

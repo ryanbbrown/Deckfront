@@ -222,9 +222,7 @@ After the controller stops, fetch and validate the deterministic ranked artifact
 RUN_ID=<run-id-printed-by-launch>
 mkdir -p .experiments/ordered-goldfish-product/$RUN_ID
 modal volume get hexdeck-native-strategy-results \
-  "$RUN_ID/ranked.json" ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json"
-modal volume get hexdeck-native-strategy-results \
-  "$RUN_ID/ranked.json.sha256" ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json.sha256"
+  "$RUN_ID" ".experiments/ordered-goldfish-product/$RUN_ID"
 npm run goldfish:ordered-product -- validate \
   --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json"
 npm run goldfish:ordered-product -- build-reservoir \

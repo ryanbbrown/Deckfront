@@ -1,16 +1,17 @@
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import readline from 'node:readline';
 import { registerKingdom } from '../src/game';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
-import { nativeScoreBatchRequest } from '../src/sim/nativeGoldfishProtocol';
+import { nativeRuleFingerprint, nativeScoreBatchRequest } from '../src/sim/nativeGoldfishProtocol';
 import {
-  ORDERED_PRODUCT_COLLISION_ALLOWANCE, ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES,
-  ORDERED_PRODUCT_SCHEMA_VERSION, ORDERED_PRODUCT_SEEDS, ORDERED_PRODUCT_SPACE_COUNT,
-  ORDERED_PRODUCT_VERSION, buildOrderedProductReservoir, candidateSpaceProvenanceDigest,
-  combineScoreEvidence, compactProfileEvidence, compareRankedRecords, fixedJson, provenanceDigest,
-  rankingKey, retainOrderedProductRecords, sha256Bytes, validateOrderedProductArtifact,
-  validateOrderedProductRankedRecord, validateOrderedProductReservoir,
-  validateOrderedProductStageOneRecord
+  ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST, ORDERED_PRODUCT_COLLISION_ALLOWANCE,
+  ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES, ORDERED_PRODUCT_SCHEMA_VERSION,
+  ORDERED_PRODUCT_SEEDS, ORDERED_PRODUCT_SPACE_COUNT, ORDERED_PRODUCT_VERSION,
+  candidateSpaceProvenanceDigest, combineScoreEvidence, compactProfileEvidence,
+  compareRankedRecords, compareStageOneRecords, fixedJson, provenanceDigest, rankingKey,
+  sha256Bytes, validateOrderedProductRankedRecord, validateOrderedProductStageOneRecord
 } from '../src/sim/orderedGoldfishProduct';
 import type {
   OrderedProductConfig, OrderedProductRankedArtifact, OrderedProductRankedRecord,
@@ -19,39 +20,35 @@ import type {
 import {
   coprimeTraversalConfig, createOrderedCandidateSpace, orderedGoldfishCardIds
 } from '../src/sim/orderedGoldfishBenchmark';
-import { nativeRuleFingerprint } from '../src/sim/nativeGoldfishProtocol';
 import { canonicalStrategy, stableHash } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 
-interface Checkpoint<T> {
-  schemaVersion: number;
-  version: string;
-  stage: 'stage-one' | 'stage-two';
-  runId: string;
-  buildVersion: string;
-  ruleFingerprint: string;
-  scorerVersion: string;
-  config: OrderedProductConfig;
-  shard: OrderedProductShardProvenance;
-  records: T[];
+const PART_SIZE = 10_000;
+type Stage = 'stage-one' | 'stage-two';
+interface Checkpoint {
+  schemaVersion: number; version: string; stage: Stage; runId: string; buildVersion: string;
+  ruleFingerprint: string; scorerVersion: string; config: OrderedProductConfig;
+  shard: OrderedProductShardProvenance; recordsFile: string; recordsSha256: string;
   contentDigest: string;
 }
-interface StageOneCohort {
-  schemaVersion: number;
-  version: string;
-  runId: string;
-  buildVersion: string;
-  ruleFingerprint: string;
-  scorerVersion: string;
-  config: OrderedProductConfig;
-  shards: OrderedProductShardProvenance[];
-  provenanceDigest: string;
-  records: Array<OrderedProductStageOneRecord & { stageOneRank: number }>;
-  contentDigest: string;
+interface Part { file: string; startIndex: number; endIndex: number; count: number; sha256: string }
+interface CohortManifest {
+  schemaVersion: number; version: string; runId: string; buildVersion: string;
+  ruleFingerprint: string; scorerVersion: string; config: OrderedProductConfig;
+  shards: OrderedProductShardProvenance[]; provenanceDigest: string; recordCount: number;
+  stageOneOrderDigest: string; parts: Part[]; contentDigest: string;
 }
+type RankedHeader = Omit<OrderedProductRankedArtifact, 'records'>;
+interface RankedManifest extends RankedHeader {
+  recordCount: number; stageOneOrderDigest: string; parts: Part[];
+}
+interface ReservoirArtifact {
+  schemaVersion: number; version: string; sourceArtifactSha256: string; runId: string;
+  reservoirCount: number; entries: OrderedProductRankedRecord[];
+}
+
 function option(name: string, fallback?: string): string {
-  const index = process.argv.indexOf(`--${name}`);
-  const value = index < 0 ? fallback : process.argv[index + 1];
+  const index = process.argv.indexOf(`--${name}`), value = index < 0 ? fallback : process.argv[index + 1];
   if (value === undefined || value.startsWith('--')) throw new Error(`--${name} is required.`);
   return value;
 }
@@ -66,15 +63,12 @@ function writeAtomic(file: string, text: string): void {
   const temporary = `${file}.tmp-${process.pid}`;
   fs.writeFileSync(temporary, text); fs.renameSync(temporary, file);
 }
-function writeHashedArtifact(file: string, value: unknown): string {
+function writeHashed(file: string, value: unknown): string {
   const text = fixedJson(value), digest = sha256Bytes(text);
-  writeAtomic(file, text);
-  writeAtomic(`${file}.sha256`, `${digest}  ${path.basename(file)}\n`);
-  return digest;
+  writeAtomic(file, text); writeAtomic(`${file}.sha256`, `${digest}  ${path.basename(file)}\n`); return digest;
 }
 function config(): OrderedProductConfig {
-  const retainedCount = integer('retained-count', 500_000);
-  const reservoirCount = integer('reservoir-count', 20_000);
+  const retainedCount = integer('retained-count', 500_000), reservoirCount = integer('reservoir-count', 20_000);
   if (retainedCount < 1 || reservoirCount < 1 || reservoirCount > retainedCount) {
     throw new Error('Reservoir count must be positive and no greater than retained count.');
   }
@@ -82,39 +76,81 @@ function config(): OrderedProductConfig {
     retainedCount, reservoirCount, seeds: [...ORDERED_PRODUCT_SEEDS], profiles: [...ORDERED_PRODUCT_PROFILES],
     turnLimit: 30, actionCapPerTurn: 200, collisionAllowance: ORDERED_PRODUCT_COLLISION_ALLOWANCE };
 }
-function checkpointDigest<T>(checkpoint: Omit<Checkpoint<T>, 'contentDigest'>): string {
-  return stableHash(JSON.stringify(checkpoint));
+function expectedConfig(value: OrderedProductConfig): boolean {
+  return JSON.stringify(value) === JSON.stringify(config());
 }
-function cohortDigest(cohort: Omit<StageOneCohort, 'contentDigest'>): string {
-  return stableHash(JSON.stringify(cohort));
+function unsignedDigest<T extends { contentDigest: string }>(value: T): string {
+  const unsigned = { ...value }; delete (unsigned as Partial<T>).contentDigest;
+  return stableHash(JSON.stringify(unsigned));
 }
-function cohortValid(cohort: StageOneCohort): boolean {
-  return cohort.contentDigest === cohortDigest({ ...cohort, contentDigest: undefined } as never)
-    && JSON.stringify(cohort.config) === JSON.stringify(config())
-    && cohort.provenanceDigest === provenanceDigest(cohort.shards)
-    && cohort.records.length === cohort.config.retainedCount
-    && cohort.records.every((entry, index) => validateOrderedProductStageOneRecord(entry)
-      && entry.stageOneRank === index + 1);
+function manifestFiles(): string[] {
+  const value = readJson<unknown>(option('manifest'));
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) throw new Error('Manifest must list paths.');
+  return value as string[];
 }
-function checkpointValid<T>(value: Checkpoint<T>, expectedStage: Checkpoint<T>['stage']): boolean {
+function recordFile(checkpointFile: string, checkpoint: Checkpoint): string {
+  return path.resolve(path.dirname(checkpointFile), checkpoint.recordsFile);
+}
+function lineDigestText(record: OrderedProductStageOneRecord): string {
+  return `${rankingKey(record.stageOne).join('\t')}\t${record.displayId}\t${record.canonicalStrategy}\t${record.traversalPosition}`;
+}
+function combinedDigestText(record: OrderedProductRankedRecord): string {
+  return `${rankingKey(record.combined).join('\t')}\t${record.displayId}\t${record.canonicalStrategy}\t${record.traversalPosition}`;
+}
+function stageOneEntryDigest(record: OrderedProductStageOneRecord): Buffer {
+  return createHash('sha256').update(lineDigestText(record)).digest();
+}
+function writeJsonLines<T>(file: string, records: readonly T[]): string {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  const temporary = `${file}.tmp-${process.pid}`, descriptor = fs.openSync(temporary, 'w');
+  const hash = createHash('sha256');
+  try {
+    for (const record of records) { const line = `${JSON.stringify(record)}\n`; fs.writeSync(descriptor, line); hash.update(line); }
+    fs.fsyncSync(descriptor);
+  } finally { fs.closeSync(descriptor); }
+  fs.renameSync(temporary, file); return hash.digest('hex');
+}
+async function* readLines<T>(file: string, expectedSha: string): AsyncGenerator<T> {
+  const hash = createHash('sha256'); let count = 0;
+  const input = fs.createReadStream(file, { encoding: 'utf8' });
+  const lines = readline.createInterface({ input, crlfDelay: Infinity });
+  for await (const line of lines) { hash.update(`${line}\n`); count += 1; yield JSON.parse(line) as T; }
+  if (hash.digest('hex') !== expectedSha) throw new Error(`Part digest differs: ${file}`);
+  if (!count && fs.statSync(file).size) throw new Error(`Part is unreadable: ${file}`);
+}
+async function checkpointRecords<T extends OrderedProductStageOneRecord>(
+  checkpointFile: string, checkpoint: Checkpoint, validate: (record: T) => boolean,
+  compare: (left: T, right: T) => number
+): Promise<AsyncGenerator<T>> {
+  async function* held(): AsyncGenerator<T> {
+    let count = 0, previous: T | undefined;
+    for await (const record of readLines<T>(recordFile(checkpointFile, checkpoint), checkpoint.recordsSha256)) {
+      if (!validate(record) || (previous && compare(previous, record) > 0)) throw new Error('Checkpoint records are invalid or unsorted.');
+      previous = record; count += 1; yield record;
+    }
+    if (count !== checkpoint.shard.retainedCount) throw new Error('Checkpoint retained count differs.');
+  }
+  return held();
+}
+function checkpointHeaderValid(value: Checkpoint, expectedStage: Stage): boolean {
   const unsigned = { ...value, shard: { ...value.shard, contentDigest: '' } };
-  delete (unsigned as Partial<Checkpoint<T>>).contentDigest;
-  if (value.schemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION || value.version !== ORDERED_PRODUCT_VERSION
-    || value.stage !== expectedStage || value.shard.contentDigest !== value.contentDigest
-    || value.shard.retainedCount !== value.records.length
-    || value.contentDigest !== checkpointDigest(unsigned)) return false;
-  return expectedStage === 'stage-one'
-    ? (value.records as OrderedProductStageOneRecord[]).every(validateOrderedProductStageOneRecord)
-    : (value.records as OrderedProductRankedRecord[]).every(validateOrderedProductRankedRecord);
+  delete (unsigned as Partial<Checkpoint>).contentDigest;
+  return value.schemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION && value.version === ORDERED_PRODUCT_VERSION
+    && value.stage === expectedStage && expectedConfig(value.config)
+    && value.shard.contentDigest === value.contentDigest
+    && value.contentDigest === stableHash(JSON.stringify(unsigned))
+    && value.shard.retainedCount <= value.shard.completeCount && /^[0-9a-f]{64}$/.test(value.recordsSha256);
 }
-function makeCheckpoint<T>(
-  stage: Checkpoint<T>['stage'], records: T[], shard: Omit<OrderedProductShardProvenance, 'contentDigest'>
-): Checkpoint<T> {
+function makeCheckpoint(
+  stage: Stage, shard: Omit<OrderedProductShardProvenance, 'contentDigest'>,
+  recordsFile: string, recordsSha256: string
+): Checkpoint {
   const base = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: ORDERED_PRODUCT_VERSION, stage,
-    runId: option('run-id'), buildVersion: option('build-version'),
-    ruleFingerprint: option('rule-fingerprint'), scorerVersion: option('scorer-version', 'native-goldfish-v1'),
-    config: config(), shard: { ...shard, contentDigest: '' }, records };
-  const contentDigest = checkpointDigest(base);
+    runId: option('run-id'), buildVersion: option('build-version'), ruleFingerprint: option('rule-fingerprint'),
+    scorerVersion: option('scorer-version', 'native-goldfish-v1'), config: config(),
+    shard: { ...shard, contentDigest: '' }, recordsFile: path.basename(recordsFile), recordsSha256,
+    contentDigest: '' };
+  const contentDigest = unsignedDigest(base);
   return { ...base, shard: { ...base.shard, contentDigest }, contentDigest };
 }
 function nativeScores(file: string): unknown[] {
@@ -125,39 +161,134 @@ function nativeScores(file: string): unknown[] {
 function rawIdentity(raw: unknown): { strategyId: string; collisionTieKey: string } {
   if (typeof raw !== 'object' || raw === null) throw new Error('Native score is invalid.');
   const value = raw as Record<string, unknown>;
-  if (typeof value.strategyId !== 'string' || typeof value.collisionTieKey !== 'string') {
-    throw new Error('Native score identity is invalid.');
-  }
+  if (typeof value.strategyId !== 'string' || typeof value.collisionTieKey !== 'string') throw new Error('Native identity is invalid.');
   return { strategyId: value.strategyId, collisionTieKey: value.collisionTieKey };
 }
-function scoreDigest(records: readonly OrderedProductStageOneRecord[], field: 'stageOne' | 'combined'): string {
-  return stableHash(records.map((record) => `${rankingKey(field === 'stageOne' ? record.stageOne
-    : (record as OrderedProductRankedRecord).combined).join('\t')}\t${record.displayId}\t${record.canonicalStrategy}\t${record.traversalPosition}`).join('\n'));
-}
-function shardProvenance(checkpoint: Checkpoint<unknown>): OrderedProductShardProvenance {
-  return checkpoint.shard;
-}
-function manifestFiles(): string[] {
-  const manifest = readJson<unknown>(option('manifest'));
-  if (!Array.isArray(manifest) || manifest.some((entry) => typeof entry !== 'string')) {
-    throw new Error('Manifest must be a JSON array of checkpoint paths.');
+
+interface HeapEntry<T> { value: T; source: number; iterator: AsyncIterator<T> }
+async function* mergeSorted<T>(iterators: AsyncIterator<T>[], compare: (left: T, right: T) => number): AsyncGenerator<T> {
+  const heap: HeapEntry<T>[] = [];
+  const less = (left: HeapEntry<T>, right: HeapEntry<T>): boolean => compare(left.value, right.value) < 0;
+  const push = (entry: HeapEntry<T>): void => {
+    heap.push(entry); let index = heap.length - 1;
+    while (index) { const parent = Math.floor((index - 1) / 2); if (!less(heap[index]!, heap[parent]!)) break;
+      [heap[index], heap[parent]] = [heap[parent]!, heap[index]!]; index = parent; }
+  };
+  for (let source = 0; source < iterators.length; source += 1) {
+    const iterator = iterators[source]!, next = await iterator.next();
+    if (!next.done) push({ value: next.value, source, iterator });
   }
-  return manifest as string[];
+  while (heap.length) {
+    const first = heap[0]!, last = heap.pop()!;
+    if (heap.length) { heap[0] = last; let index = 0;
+      for (;;) { const left = index * 2 + 1, right = left + 1;
+        let best = index; if (left < heap.length && less(heap[left]!, heap[best]!)) best = left;
+        if (right < heap.length && less(heap[right]!, heap[best]!)) best = right;
+        if (best === index) break; [heap[index], heap[best]] = [heap[best]!, heap[index]!]; index = best; }
+    }
+    yield first.value;
+    const next = await first.iterator.next(); if (!next.done) push({ ...first, value: next.value });
+  }
 }
-function validateCheckpointSet<T>(checkpoints: Checkpoint<T>[], stage: Checkpoint<T>['stage'], total: number): void {
-  checkpoints.sort((left, right) => left.shard.startPosition - right.shard.startPosition);
-  if (!checkpoints.length || checkpoints[0]!.shard.startPosition !== 0
-    || checkpoints.at(-1)!.shard.endPosition !== total) throw new Error(`${stage} checkpoint coverage is incomplete.`);
-  checkpoints.forEach((entry, index) => {
-    if (!checkpointValid(entry, stage) || entry.shard.shardId !== index
-      || entry.shard.completeCount !== entry.shard.endPosition - entry.shard.startPosition
-      || (index && checkpoints[index - 1]!.shard.endPosition !== entry.shard.startPosition)
-      || JSON.stringify(entry.config) !== JSON.stringify(checkpoints[0]!.config)
-      || JSON.stringify(entry.config) !== JSON.stringify(config())
-      || entry.runId !== checkpoints[0]!.runId || entry.buildVersion !== checkpoints[0]!.buildVersion
-      || entry.ruleFingerprint !== checkpoints[0]!.ruleFingerprint
-      || entry.scorerVersion !== checkpoints[0]!.scorerVersion) throw new Error(`${stage} checkpoint set is stale, corrupt, or noncontiguous.`);
+async function writeParts<T>(
+  manifestFile: string, records: AsyncIterable<T>, limit: number,
+  map: (record: T, index: number) => unknown
+): Promise<{ parts: Part[]; count: number }> {
+  const parts: Part[] = []; let buffer: unknown[] = [], count = 0;
+  const flush = (): void => {
+    if (!buffer.length) return;
+    const partFile = `${manifestFile}.part-${parts.length.toString().padStart(4, '0')}.jsonl`;
+    const startIndex = count - buffer.length, sha256 = writeJsonLines(partFile, buffer);
+    parts.push({ file: path.basename(partFile), startIndex, endIndex: count, count: buffer.length, sha256 }); buffer = [];
+  };
+  for await (const record of records) {
+    if (count === limit) break; buffer.push(map(record, count)); count += 1;
+    if (buffer.length === PART_SIZE) flush();
+  }
+  flush(); return { parts, count };
+}
+async function* readParts<T>(manifestFile: string, parts: readonly Part[]): AsyncGenerator<T> {
+  let expected = 0;
+  for (const part of parts) {
+    if (part.startIndex !== expected || part.endIndex - part.startIndex !== part.count) throw new Error('Part ranges are invalid.');
+    let count = 0;
+    for await (const record of readLines<T>(path.resolve(path.dirname(manifestFile), part.file), part.sha256)) {
+      count += 1; yield record;
+    }
+    if (count !== part.count) throw new Error('Part count differs.'); expected = part.endIndex;
+  }
+}
+function validateCheckpointSet(checkpoints: Array<{ file: string; value: Checkpoint }>, stage: Stage, total: number): void {
+  checkpoints.sort((left, right) => left.value.shard.startPosition - right.value.shard.startPosition);
+  if (!checkpoints.length || checkpoints[0]!.value.shard.startPosition !== 0
+    || checkpoints.at(-1)!.value.shard.endPosition !== total) throw new Error(`${stage} coverage is incomplete.`);
+  checkpoints.forEach(({ value }, index) => {
+    const first = checkpoints[0]!.value;
+    if (!checkpointHeaderValid(value, stage) || value.shard.shardId !== index
+      || value.shard.completeCount !== value.shard.endPosition - value.shard.startPosition
+      || (index && checkpoints[index - 1]!.value.shard.endPosition !== value.shard.startPosition)
+      || value.runId !== first.runId || value.buildVersion !== first.buildVersion
+      || value.ruleFingerprint !== first.ruleFingerprint || value.scorerVersion !== first.scorerVersion) {
+      throw new Error(`${stage} checkpoints are stale, corrupt, or noncontiguous.`);
+    }
   });
+}
+function cohortHeaderValid(value: CohortManifest): boolean {
+  return value.schemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION && value.version === ORDERED_PRODUCT_VERSION
+    && expectedConfig(value.config) && value.recordCount === value.config.retainedCount
+    && value.provenanceDigest === provenanceDigest(value.shards) && value.contentDigest === unsignedDigest(value);
+}
+async function readCohortRange(file: string, cohort: CohortManifest, start: number, end: number): Promise<Array<OrderedProductStageOneRecord & { stageOneRank: number }>> {
+  if (!cohortHeaderValid(cohort) || start < 0 || end < start || end > cohort.recordCount) throw new Error('Cohort or range is invalid.');
+  const result: Array<OrderedProductStageOneRecord & { stageOneRank: number }> = [];
+  for (const part of cohort.parts.filter((entry) => entry.endIndex > start && entry.startIndex < end)) {
+    let index = part.startIndex;
+    for await (const record of readLines<OrderedProductStageOneRecord & { stageOneRank: number }>(
+      path.resolve(path.dirname(file), part.file), part.sha256)) {
+      if (index >= start && index < end) result.push(record); index += 1;
+    }
+  }
+  if (result.length !== end - start || result.some((record, index) =>
+    !validateOrderedProductStageOneRecord(record) || record.stageOneRank !== start + index + 1)) {
+    throw new Error('Cohort records are invalid.');
+  }
+  return result;
+}
+function candidateSpace(): RankedManifest['candidateSpace'] {
+  const space = createOrderedCandidateSpace(orderedGoldfishCardIds(ORDERED_PRODUCT_KINGDOM));
+  const value = { generator: 'ordered-typescript-five-rung-v1', traversal: 'coprime-position-v1',
+    cardIds: [...space.cardIds], quantityVectors: space.quantityVectors.map((entry) => [...entry]),
+    skeletonCount: space.skeletonCount, candidateCount: space.candidateCount,
+    ...coprimeTraversalConfig(space.candidateCount), provenanceDigest: '' };
+  value.provenanceDigest = candidateSpaceProvenanceDigest(value); return value;
+}
+async function validateRankedManifest(file: string): Promise<{ manifest: RankedManifest; sha256: string }> {
+  const text = fs.readFileSync(file, 'utf8'), sha256 = sha256Bytes(text);
+  const expected = fs.readFileSync(option('sha256', `${file}.sha256`), 'utf8').trim().split(/\s+/)[0];
+  const value = JSON.parse(text) as RankedManifest;
+  if (sha256 !== expected || fixedJson(value) !== text || value.schemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION
+    || value.version !== ORDERED_PRODUCT_VERSION || !expectedConfig(value.config)
+    || value.recordCount !== value.config.retainedCount
+    || value.candidateSpace.provenanceDigest !== ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST
+    || value.candidateSpace.provenanceDigest !== candidateSpaceProvenanceDigest(value.candidateSpace)
+    || provenanceDigest(value.stageOneShards) !== value.stageOneProvenanceDigest
+    || provenanceDigest(value.stageTwoShards) !== value.stageTwoProvenanceDigest) throw new Error('Ranked manifest is invalid.');
+  const rankDigests = Buffer.alloc(value.recordCount * 32), seenRanks = new Uint8Array(value.recordCount);
+  let count = 0, previous: OrderedProductRankedRecord | undefined;
+  for await (const record of readParts<OrderedProductRankedRecord>(file, value.parts)) {
+    if (!validateOrderedProductRankedRecord(record) || record.rank !== count + 1
+      || record.stageOneRank < 1 || record.stageOneRank > value.recordCount
+      || seenRanks[record.stageOneRank - 1] || (previous && compareRankedRecords(previous, record) > 0)) {
+      throw new Error('Ranked record identity, evidence, membership, or order is invalid.');
+    }
+    seenRanks[record.stageOneRank - 1] = 1;
+    stageOneEntryDigest(record).copy(rankDigests, (record.stageOneRank - 1) * 32);
+    previous = record; count += 1;
+  }
+  if (count !== value.recordCount || createHash('sha256').update(rankDigests).digest('hex') !== value.stageOneOrderDigest) {
+    throw new Error('Ranked membership or stage-one rank digest differs.');
+  }
+  return { manifest: value, sha256 };
 }
 
 const mode = process.argv[2];
@@ -165,149 +296,141 @@ const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === ORDERED_PROD
 registerKingdom(kingdom);
 
 if (mode === 'validate-checkpoint') {
-  const checkpoint = readJson<Checkpoint<unknown>>(option('checkpoint'));
-  const stage = option('stage') as Checkpoint<unknown>['stage'];
-  if (!checkpointValid(checkpoint, stage) || checkpoint.runId !== option('run-id')
-    || checkpoint.buildVersion !== option('build-version')
-    || checkpoint.ruleFingerprint !== option('rule-fingerprint')
-    || checkpoint.scorerVersion !== option('scorer-version', 'native-goldfish-v1')
-    || checkpoint.shard.shardId !== integer('shard-id')
-    || checkpoint.shard.startPosition !== integer('start-position')
-    || checkpoint.shard.endPosition !== integer('end-position')
-    || JSON.stringify(checkpoint.config) !== JSON.stringify(config())) {
-    throw new Error('Checkpoint does not match its expected schema and configuration.');
+  const file = option('checkpoint'), value = readJson<Checkpoint>(file), stage = option('stage') as Stage;
+  if (!checkpointHeaderValid(value, stage) || value.runId !== option('run-id')
+    || value.buildVersion !== option('build-version') || value.ruleFingerprint !== option('rule-fingerprint')
+    || value.scorerVersion !== option('scorer-version', 'native-goldfish-v1')
+    || value.shard.shardId !== integer('shard-id') || value.shard.startPosition !== integer('start-position')
+    || value.shard.endPosition !== integer('end-position')) throw new Error('Checkpoint header differs.');
+  const validate = stage === 'stage-one' ? validateOrderedProductStageOneRecord : validateOrderedProductRankedRecord;
+  const compare = stage === 'stage-one' ? compareStageOneRecords : compareRankedRecords;
+  let count = 0;
+  for await (const record of await checkpointRecords(file, value, validate as never, compare as never)) {
+    void record; count += 1;
   }
-  console.log(JSON.stringify({ valid: true, contentDigest: checkpoint.contentDigest,
-    retainedCount: checkpoint.records.length }));
+  console.log(JSON.stringify({ valid: true, contentDigest: value.contentDigest, retainedCount: count }));
 } else if (mode === 'stage-one-checkpoint') {
   const request = readJson<{ payload: { strategies: Array<Strategy & { canonicalStrategy: string }> } }>(option('request'));
   const metadata = readJson<{ candidateDigest: string; completeCount: number; ruleFingerprint: string }>(option('metadata'));
-  const scores = nativeScores(option('response'));
-  const start = integer('start-position'), end = integer('end-position');
+  const scores = nativeScores(option('response')), start = integer('start-position'), end = integer('end-position');
   if (request.payload.strategies.length !== scores.length || scores.length !== end - start
-    || metadata.completeCount !== scores.length
-    || metadata.ruleFingerprint !== option('rule-fingerprint')) {
-    throw new Error('Stage-one request, response, range, or rule fingerprint differs.');
-  }
-  const all = scores.map((raw, index): OrderedProductStageOneRecord => {
-    const inputStrategy = request.payload.strategies[index]!, identity = rawIdentity(raw);
-    const strategy: Strategy = { id: inputStrategy.id, startingBuild: inputStrategy.startingBuild,
-      buyPlan: inputStrategy.buyPlan };
-    if (identity.strategyId !== strategy.id || identity.collisionTieKey !== canonicalStrategy(strategy)) {
-      throw new Error('Native stage-one identity differs from TypeScript generation.');
-    }
+    || metadata.completeCount !== scores.length || metadata.ruleFingerprint !== option('rule-fingerprint')) throw new Error('Stage-one inputs differ.');
+  const records = scores.map((raw, index): OrderedProductStageOneRecord => {
+    const input = request.payload.strategies[index]!, identity = rawIdentity(raw);
+    const strategy: Strategy = { id: input.id, startingBuild: input.startingBuild, buyPlan: input.buyPlan };
+    if (identity.strategyId !== strategy.id || identity.collisionTieKey !== canonicalStrategy(strategy)) throw new Error('Stage-one identity differs.');
     const stageOne = compactProfileEvidence(raw);
-    return { traversalPosition: start + index, displayId: strategy.id,
-      canonicalStrategy: canonicalStrategy(strategy), strategy, stageOne,
-      stageOneRankingKey: rankingKey(stageOne) };
-  });
-  const retained = retainOrderedProductRecords(all, config().retainedCount, config().collisionAllowance);
-  const checkpoint = makeCheckpoint('stage-one', retained, { shardId: integer('shard-id'),
-    startPosition: start, endPosition: end, completeCount: all.length, retainedCount: retained.length,
-    candidateDigest: metadata.candidateDigest, scoreDigest: scoreDigest(all, 'stageOne') });
-  writeAtomic(option('out'), fixedJson(checkpoint));
+    return { traversalPosition: start + index, displayId: strategy.id, canonicalStrategy: canonicalStrategy(strategy),
+      strategy, stageOne, stageOneRankingKey: rankingKey(stageOne) };
+  }).sort(compareStageOneRecords).slice(0, config().retainedCount + config().collisionAllowance);
+  const output = option('out'), recordsFile = `${output}.records.jsonl`, recordsSha256 = writeJsonLines(recordsFile, records);
+  const scoreDigest = stableHash([...records].sort((left, right) => left.traversalPosition - right.traversalPosition)
+    .map(lineDigestText).join('\n'));
+  const checkpoint = makeCheckpoint('stage-one', { shardId: integer('shard-id'), startPosition: start,
+    endPosition: end, completeCount: end - start, retainedCount: records.length,
+    candidateDigest: metadata.candidateDigest, scoreDigest }, recordsFile, recordsSha256);
+  writeAtomic(output, fixedJson(checkpoint));
 } else if (mode === 'merge-stage-one') {
-  const checkpoints = manifestFiles().map((file) => readJson<Checkpoint<OrderedProductStageOneRecord>>(file));
+  const checkpoints = manifestFiles().map((file) => ({ file, value: readJson<Checkpoint>(file) }));
   validateCheckpointSet(checkpoints, 'stage-one', ORDERED_PRODUCT_SPACE_COUNT);
-  const first = checkpoints[0]!;
-  const retained = retainOrderedProductRecords(checkpoints.flatMap((entry) => entry.records),
-    first.config.retainedCount, 0).slice(0, first.config.retainedCount);
-  if (retained.length !== first.config.retainedCount) throw new Error('Stage one did not produce the retained cohort.');
-  const records = retained.map((entry, index) => ({ ...entry, stageOneRank: index + 1 }));
+  const iterators = await Promise.all(checkpoints.map(({ file, value }) => checkpointRecords(
+    file, value, validateOrderedProductStageOneRecord, compareStageOneRecords)));
+  const merged = mergeSorted(iterators.map((entry) => entry[Symbol.asyncIterator]()), compareStageOneRecords);
+  const seenCanonical = new Set<string>(), seenDisplay = new Set<string>();
+  const selected = async function* (): AsyncGenerator<OrderedProductStageOneRecord> {
+    for await (const record of merged) {
+      if (seenCanonical.has(record.canonicalStrategy) || seenDisplay.has(record.displayId)) continue;
+      seenCanonical.add(record.canonicalStrategy); seenDisplay.add(record.displayId); yield record;
+    }
+  };
+  const output = option('out'), first = checkpoints[0]!.value;
+  const rankHash = createHash('sha256');
+  const written = await writeParts(output, selected(), first.config.retainedCount, (record, index) => {
+    rankHash.update(stageOneEntryDigest(record)); return { ...record, stageOneRank: index + 1 };
+  });
+  if (written.count !== first.config.retainedCount) throw new Error('Stage one retained cohort is incomplete.');
   const base = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: ORDERED_PRODUCT_VERSION,
     runId: first.runId, buildVersion: first.buildVersion, ruleFingerprint: first.ruleFingerprint,
-    scorerVersion: first.scorerVersion, config: first.config, shards: checkpoints.map(shardProvenance),
-    provenanceDigest: provenanceDigest(checkpoints.map(shardProvenance)), records };
-  writeAtomic(option('out'), fixedJson({ ...base, contentDigest: cohortDigest(base) }));
+    scorerVersion: first.scorerVersion, config: first.config, shards: checkpoints.map(({ value }) => value.shard),
+    provenanceDigest: provenanceDigest(checkpoints.map(({ value }) => value.shard)), recordCount: written.count,
+    stageOneOrderDigest: rankHash.digest('hex'), parts: written.parts, contentDigest: '' };
+  writeAtomic(output, fixedJson({ ...base, contentDigest: unsignedDigest(base) }));
 } else if (mode === 'stage-two-input') {
-  const cohort = readJson<StageOneCohort>(option('cohort'));
-  if (!cohortValid(cohort) || cohort.ruleFingerprint !== nativeRuleFingerprint(ORDERED_PRODUCT_KINGDOM, 30, 200)) {
-    throw new Error('Stage-one cohort is invalid.');
-  }
-  const start = integer('start-position'), end = integer('end-position');
-  if (end < start || end > cohort.records.length) throw new Error('Stage-two range is invalid.');
-  const request = nativeScoreBatchRequest(kingdom, cohort.records.slice(start, end).map((entry) => entry.strategy),
+  const file = option('cohort'), cohort = readJson<CohortManifest>(file);
+  const start = integer('start-position'), end = integer('end-position'), records = await readCohortRange(file, cohort, start, end);
+  if (cohort.ruleFingerprint !== nativeRuleFingerprint(ORDERED_PRODUCT_KINGDOM, 30, 200)) throw new Error('Cohort rules differ.');
+  const request = nativeScoreBatchRequest(kingdom, records.map((entry) => entry.strategy),
     { kingdomId: ORDERED_PRODUCT_KINGDOM, seeds: ORDERED_PRODUCT_SEEDS.slice(1), turnLimit: 30,
       actionCapPerTurn: 200 }, integer('threads'), 'full');
-  fs.writeFileSync(option('request'), fixedJson(request));
+  fs.writeFileSync(option('request'), `${JSON.stringify(request)}\n`);
   fs.writeFileSync(option('metadata'), fixedJson({ completeCount: end - start,
-    candidateDigest: stableHash(cohort.records.slice(start, end).map((entry) => entry.canonicalStrategy).join('\n')),
+    candidateDigest: stableHash(records.map((entry) => entry.canonicalStrategy).join('\n')),
     ruleFingerprint: nativeRuleFingerprint(ORDERED_PRODUCT_KINGDOM, 30, 200) }));
 } else if (mode === 'stage-two-checkpoint') {
-  const cohort = readJson<StageOneCohort>(option('cohort'));
-  if (!cohortValid(cohort)) throw new Error('Stage-one cohort is invalid.');
-  const scores = nativeScores(option('response'));
+  const cohortFile = option('cohort'), cohort = readJson<CohortManifest>(cohortFile);
   const start = integer('start-position'), end = integer('end-position');
-  const held = cohort.records.slice(start, end);
-  if (scores.length !== held.length || end - start !== held.length) throw new Error('Stage-two response and range differ.');
+  const held = await readCohortRange(cohortFile, cohort, start, end), scores = nativeScores(option('response'));
+  const metadata = readJson<{ candidateDigest: string; ruleFingerprint: string }>(option('metadata'));
+  if (scores.length !== held.length || metadata.ruleFingerprint !== cohort.ruleFingerprint) throw new Error('Stage-two inputs differ.');
   const records = scores.map((raw, index): OrderedProductRankedRecord => {
     const first = held[index]!, identity = rawIdentity(raw);
-    if (identity.strategyId !== first.displayId || identity.collisionTieKey !== first.canonicalStrategy) {
-      throw new Error('Native stage-two identity differs from retained stage one.');
-    }
-    const additional = compactProfileEvidence(raw);
-    const combined = combineScoreEvidence(first.stageOne, additional);
+    if (identity.strategyId !== first.displayId || identity.collisionTieKey !== first.canonicalStrategy) throw new Error('Stage-two identity differs.');
+    const additional = compactProfileEvidence(raw), combined = combineScoreEvidence(first.stageOne, additional);
     return { ...first, additional, combined, combinedRankingKey: rankingKey(combined), rank: 0 };
-  });
-  const metadata = readJson<{ candidateDigest: string; ruleFingerprint: string }>(option('metadata'));
-  if (metadata.ruleFingerprint !== cohort.ruleFingerprint) throw new Error('Stage-two rule fingerprint differs.');
-  const checkpoint = makeCheckpoint('stage-two', records, { shardId: integer('shard-id'),
-    startPosition: start, endPosition: end, completeCount: records.length, retainedCount: records.length,
-    candidateDigest: metadata.candidateDigest, scoreDigest: scoreDigest(records, 'combined') });
-  writeAtomic(option('out'), fixedJson(checkpoint));
+  }).sort(compareRankedRecords);
+  const output = option('out'), recordsFile = `${output}.records.jsonl`, recordsSha256 = writeJsonLines(recordsFile, records);
+  const checkpoint = makeCheckpoint('stage-two', { shardId: integer('shard-id'), startPosition: start,
+    endPosition: end, completeCount: records.length, retainedCount: records.length,
+    candidateDigest: metadata.candidateDigest, scoreDigest: stableHash(records.map(combinedDigestText).join('\n')) },
+  recordsFile, recordsSha256);
+  writeAtomic(output, fixedJson(checkpoint));
 } else if (mode === 'finalize') {
-  const cohort = readJson<StageOneCohort>(option('cohort'));
-  if (!cohortValid(cohort)) throw new Error('Stage-one cohort is invalid.');
-  const checkpoints = manifestFiles().map((file) => readJson<Checkpoint<OrderedProductRankedRecord>>(file));
+  const cohortFile = option('cohort'), cohort = readJson<CohortManifest>(cohortFile);
+  if (!cohortHeaderValid(cohort)) throw new Error('Cohort header is invalid.');
+  const checkpoints = manifestFiles().map((file) => ({ file, value: readJson<Checkpoint>(file) }));
   validateCheckpointSet(checkpoints, 'stage-two', cohort.config.retainedCount);
-  const records = checkpoints.flatMap((entry) => entry.records).sort(compareRankedRecords)
-    .map((entry, index) => ({ ...entry, rank: index + 1 }));
-  const space = createOrderedCandidateSpace(orderedGoldfishCardIds(ORDERED_PRODUCT_KINGDOM));
-  const traversal = coprimeTraversalConfig(space.candidateCount);
-  const candidateSpace = { generator: 'ordered-typescript-five-rung-v1', traversal: 'coprime-position-v1',
-    cardIds: [...space.cardIds], quantityVectors: space.quantityVectors.map((entry) => [...entry]),
-    skeletonCount: space.skeletonCount, candidateCount: space.candidateCount, ...traversal,
-    provenanceDigest: '' };
-  candidateSpace.provenanceDigest = candidateSpaceProvenanceDigest(candidateSpace);
-  const artifact: OrderedProductRankedArtifact = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION,
-    version: ORDERED_PRODUCT_VERSION, runId: cohort.runId, buildVersion: cohort.buildVersion,
-    ruleFingerprint: cohort.ruleFingerprint, scorerVersion: cohort.scorerVersion, config: cohort.config,
-    candidateSpace,
-    stageOneShards: cohort.shards, stageTwoShards: checkpoints.map(shardProvenance),
+  const iterators = await Promise.all(checkpoints.map(({ file, value }) => checkpointRecords(
+    file, value, validateOrderedProductRankedRecord, compareRankedRecords)));
+  const output = option('out'), written = await writeParts(output,
+    mergeSorted(iterators.map((entry) => entry[Symbol.asyncIterator]()), compareRankedRecords),
+    cohort.config.retainedCount, (record, index) => ({ ...record, rank: index + 1 }));
+  if (written.count !== cohort.config.retainedCount) throw new Error('Ranked artifact is incomplete.');
+  const manifest: RankedManifest = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: ORDERED_PRODUCT_VERSION,
+    runId: cohort.runId, buildVersion: cohort.buildVersion, ruleFingerprint: cohort.ruleFingerprint,
+    scorerVersion: cohort.scorerVersion, config: cohort.config, candidateSpace: candidateSpace(),
+    stageOneShards: cohort.shards, stageTwoShards: checkpoints.map(({ value }) => value.shard),
     stageOneProvenanceDigest: cohort.provenanceDigest,
-    stageTwoProvenanceDigest: provenanceDigest(checkpoints.map(shardProvenance)), records };
-  if (!validateOrderedProductArtifact(artifact)) throw new Error('Final ranked artifact failed validation.');
-  const digest = writeHashedArtifact(option('out'), artifact);
-  console.log(JSON.stringify({ artifact: option('out'), sha256: digest, retainedCount: records.length }));
+    stageTwoProvenanceDigest: provenanceDigest(checkpoints.map(({ value }) => value.shard)),
+    recordCount: written.count, stageOneOrderDigest: cohort.stageOneOrderDigest, parts: written.parts };
+  const digest = writeHashed(output, manifest);
+  console.log(JSON.stringify({ artifact: output, sha256: digest, retainedCount: written.count, partCount: written.parts.length }));
 } else if (mode === 'validate') {
-  const file = option('artifact'), text = fs.readFileSync(file, 'utf8'), artifact = JSON.parse(text) as unknown;
-  const expected = fs.readFileSync(option('sha256', `${file}.sha256`), 'utf8').trim().split(/\s+/)[0];
-  if (sha256Bytes(text) !== expected || fixedJson(artifact) !== text || !validateOrderedProductArtifact(artifact)) {
-    throw new Error('Ranked artifact bytes, SHA-256, or semantic validation failed.');
-  }
-  console.log(JSON.stringify({ artifact: file, sha256: expected,
-    retainedCount: (artifact as OrderedProductRankedArtifact).records.length }));
+  const value = await validateRankedManifest(option('artifact'));
+  console.log(JSON.stringify({ artifact: option('artifact'), sha256: value.sha256,
+    retainedCount: value.manifest.recordCount, partCount: value.manifest.parts.length }));
 } else if (mode === 'build-reservoir') {
-  const file = option('artifact'), text = fs.readFileSync(file, 'utf8'), sourceSha = sha256Bytes(text);
-  const sidecar = fs.readFileSync(option('sha256', `${file}.sha256`), 'utf8').trim().split(/\s+/)[0];
-  const artifact = JSON.parse(text) as unknown;
-  if (sourceSha !== sidecar || !validateOrderedProductArtifact(artifact)) throw new Error('Ranked artifact is invalid.');
-  const reservoir = buildOrderedProductReservoir(artifact, sourceSha);
-  if (!validateOrderedProductReservoir(reservoir, artifact, sourceSha)) throw new Error('Reservoir validation failed.');
-  const digest = writeHashedArtifact(option('out'), reservoir);
-  console.log(JSON.stringify({ reservoir: option('out'), sha256: digest,
-    count: reservoir.entries.length, sourceArtifactSha256: sourceSha }));
+  const file = option('artifact'), { manifest, sha256 } = await validateRankedManifest(file);
+  const entries: OrderedProductRankedRecord[] = [];
+  for await (const record of readParts<OrderedProductRankedRecord>(file, manifest.parts)) {
+    if (entries.length < manifest.config.reservoirCount) entries.push(record); else break;
+  }
+  const reservoir: ReservoirArtifact = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION,
+    version: ORDERED_PRODUCT_VERSION, sourceArtifactSha256: sha256, runId: manifest.runId,
+    reservoirCount: manifest.config.reservoirCount, entries };
+  if (entries.length !== reservoir.reservoirCount) throw new Error('Reservoir prefix is incomplete.');
+  const digest = writeHashed(option('out'), reservoir);
+  console.log(JSON.stringify({ reservoir: option('out'), sha256: digest, count: entries.length,
+    sourceArtifactSha256: sha256 }));
 } else if (mode === 'validate-reservoir') {
-  const artifactFile = option('artifact'), artifactText = fs.readFileSync(artifactFile, 'utf8');
-  const artifact = JSON.parse(artifactText) as OrderedProductRankedArtifact, sourceSha = sha256Bytes(artifactText);
-  const file = option('reservoir'), text = fs.readFileSync(file, 'utf8');
+  const artifactFile = option('artifact'), { manifest, sha256 } = await validateRankedManifest(artifactFile);
+  const file = option('reservoir'), text = fs.readFileSync(file, 'utf8'), value = JSON.parse(text) as ReservoirArtifact;
   const expected = fs.readFileSync(option('sha256', `${file}.sha256`), 'utf8').trim().split(/\s+/)[0];
-  const reservoir = JSON.parse(text) as unknown;
-  if (sha256Bytes(text) !== expected || fixedJson(reservoir) !== text
-    || !validateOrderedProductArtifact(artifact)
-    || !validateOrderedProductReservoir(reservoir, artifact, sourceSha)) throw new Error('Reservoir validation failed.');
-  console.log(JSON.stringify({ reservoir: file, sha256: expected,
-    count: (reservoir as { entries: unknown[] }).entries.length }));
-} else {
-  throw new Error('Mode must be validate-checkpoint, stage-one-checkpoint, merge-stage-one, stage-two-input, stage-two-checkpoint, finalize, validate, build-reservoir, or validate-reservoir.');
-}
+  const prefix: OrderedProductRankedRecord[] = [];
+  for await (const record of readParts<OrderedProductRankedRecord>(artifactFile, manifest.parts)) {
+    if (prefix.length < manifest.config.reservoirCount) prefix.push(record); else break;
+  }
+  if (sha256Bytes(text) !== expected || fixedJson(value) !== text || value.sourceArtifactSha256 !== sha256
+    || value.runId !== manifest.runId || value.reservoirCount !== manifest.config.reservoirCount
+    || JSON.stringify(value.entries) !== JSON.stringify(prefix)) throw new Error('Reservoir validation failed.');
+  console.log(JSON.stringify({ reservoir: file, sha256: expected, count: prefix.length }));
+} else throw new Error('Unknown ordered product mode.');
