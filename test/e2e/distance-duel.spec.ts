@@ -134,9 +134,11 @@ test('DD-E2E-075: tactical counters share one space and focused card controls su
 
   const copper = page.locator('[data-market-card="Copper"]'); await copper.click({ button: 'right', force: true }); let inspector = page.getByRole('dialog', { name: 'Copper details' }); await expect(inspector).toBeVisible(); await inspector.getByRole('button', { name: 'Close card details' }).click(); await expect(inspector).toHaveCount(0); await copper.focus(); await page.keyboard.press('Shift+F10');
   inspector = page.getByRole('dialog', { name: 'Copper details' }); await expect(inspector).toBeVisible();
-  const close = inspector.getByRole('button', { name: 'Close card details' }); await expect(close).toBeVisible(); await close.click();
+  const close = inspector.getByRole('button', { name: 'Close card details' }); await expect(close).toBeVisible();
+  const closePlacement = await inspector.evaluate((dialog) => { const card = dialog.querySelector('.card-inspect-frame .card')!.getBoundingClientRect(); const button = dialog.querySelector('.card-inspect-close')!.getBoundingClientRect(); return { x: Math.abs(button.left + button.width / 2 - card.right), y: Math.abs(button.top + button.height / 2 - card.top) }; });
+  expect(closePlacement.x).toBeLessThan(1); expect(closePlacement.y).toBeLessThan(1); await close.click();
 
-  const drive = page.locator('[data-card-name="Drive"]'); await drive.focus(); await page.keyboard.press('ContextMenu');
+  const drive = page.locator('[data-card-name="Drive"]'); await drive.click({ button: 'right' });
   inspector = page.getByRole('dialog', { name: 'Drive details' }); await expect(inspector).toBeVisible(); await inspector.getByRole('button', { name: 'Close card details' }).click(); await expect(inspector).toHaveCount(0);
 });
 
@@ -246,8 +248,8 @@ test('DD-E2E-011: ranged escape uses two Footwork cards then Aim and Volley for 
 });
 
 test('DD-E2E-012: winning Volley can be undone and a repeated win persists across refresh', async ({ page, openGame }) => {
-  await openGame(page, (record) => { seedHand(record, ['volley', 'copper']); record.state.fighters.ochre.position = 1; record.state.fighters.indigo.position = 5; record.state.fighters.indigo.health = 3; });
-  await page.locator('[data-card-name="Volley"]').click(); await expect(page.getByText('Player 1 wins')).toBeVisible(); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('3 HP');
+  await openGame(page, (record) => { seedHand(record, ['volley', 'scour']); record.state.fighters.ochre.position = 1; record.state.fighters.indigo.position = 5; record.state.fighters.indigo.health = 3; });
+  await page.locator('[data-card-name="Volley"]').click(); await expect(page.getByText('Player 1 wins')).toBeVisible(); await expect(page.locator('[data-card-name="Scour"] em')).toHaveCount(0); await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('3 HP');
   await page.locator('[data-card-name="Volley"]').click(); await expect(page.getByText('Player 1 wins')).toBeVisible(); await page.reload(); await expect(page.getByText('Player 1 wins')).toBeVisible(); await page.getByRole('button', { name: 'New game' }).click(); await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible();
 });
 
