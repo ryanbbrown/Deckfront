@@ -244,6 +244,16 @@ npm run ordered-reservoir:challenge:status
 
 The command accepts only `.experiments/ordered-goldfish-product/native-e760135dba6f-5625a0ff0bf6048653f9` as its ordered source. It runs the ordered-product validation CLI before the first adaptation. It validates the five historical `fixed-reservoir-psro-v1` pools and runs in read-only mode against the current rules fingerprint; it does not rewrite or regenerate them. It does not run goldfish scoring or Modal. Checkpoints, five independent held-out comparisons, and the report go under `.experiments/ordered-reservoir-challenge/ordered-reservoir-challenge-v1/`. A one-round result is not a convergence result; the report labels it incomplete when the round admits strategies.
 
+The robust ordered-only suite runs three evaluation seeds to a clean independent closure, then audits all five historical pools without admitting their strategies:
+
+```sh
+npm run ordered-reservoir:robust
+npm run ordered-reservoir:robust:status
+npm run ordered-reservoir:robust:report
+```
+
+Ordinary and closure scans each use two independent cumulative 1/2/4/8 races, a union of at most 16 finalists, and 400 fresh confirmation blocks. Atomic checkpoints and ignored reports go under `.experiments/ordered-reservoir-robust-psro/ordered-reservoir-robust-v1/`. Historical-attacker diagnostics stream the split ranked artifact, report exact ordered-space membership, and test a deterministic representable analog with fresh evidence.
+
 ## Code boundaries
 
 The arrows show import direction:
