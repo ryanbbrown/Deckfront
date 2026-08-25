@@ -63,7 +63,7 @@ A three-shard-per-stage, 20,000-candidate product validation completed in 2.4 se
 
 ## Competitive PSRO
 
-Score-only race and confirmation keep matrix telemetry on the full path. Each candidate's complete opponent schedule is now one compact worker unit, so its strategy is interned once and its schedule cannot split across worker messages. On 30 candidates × 4 blocks, four workers took 360ms full and 352ms score-only with identical complete digests. The new batching is 21% faster than the earlier 458ms full measurement. Score-only scaling was 576ms at one worker, 383ms at two, 364ms at four, 517ms at eight, 558ms at ten, and 721ms at fourteen. Four remains the measured local default. Scan-level tests prove full and score-only survivor, finalist, mean, match-count, and bootstrap-interval equality.
+Score-only race and confirmation keep matrix telemetry on the full path. Each candidate's complete opponent schedule is now one compact worker unit, so its strategy is interned once and its schedule cannot split across worker messages. On 30 candidates × 4 blocks, four final-path workers took 378ms full and 370ms score-only with identical complete digests. The new batching is 17% faster than the earlier 458ms full measurement. Score-only scaling was 576ms at one worker, 383ms at two, 364ms at four, 517ms at eight, 558ms at ten, and 721ms at fourteen. Four remains the measured local default. Scan-level tests prove full and score-only survivor, finalist, mean, match-count, and bootstrap-interval equality.
 
 ## Decision
 
