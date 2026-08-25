@@ -18,4 +18,4 @@
 
 ## Current conclusion
 
-The search produces strategies that are strong enough for useful human opponents, but it does not consistently close the strategy population. Different runs discover materially different strategic regions, and another short search can still find decisive counters. Beam search and its early pruning are the leading suspected cause. The next approved baseline is scaled random proposal generation with racing; no behavioral-vector system has been approved.
+The search produces strategies that are strong enough for useful human opponents, but it does not consistently close the strategy population. Different runs discover materially different strategic regions, and another short search can still find decisive counters. Beam search and its early pruning are the leading suspected cause. The next approved baseline is scaled random proposal generation with racing; no behavioral-vector system has been approved.okay /
