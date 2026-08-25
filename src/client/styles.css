@@ -27,23 +27,30 @@ h1,h2,h3,p { margin: 0; } h1,h2,h3 { font-family: Georgia, "Times New Roman", se
 .text-button { min-height: 26px; padding: 3px 8px; background: transparent; color: #fff; }
 .error { position: fixed; z-index: 500; top: 68px; left: 50%; max-width: 720px; padding: 8px 14px; border: 1px solid #ff9b91; border-radius: 5px; background: #7f2824; transform: translateX(-50%); }
 .table-zone { min-width: 0; overflow: hidden; border: 1px solid #ffffff20; background: #ffffff0b; }
-.arena-zone { padding: 4px 12px; }
-.range-label { position: relative; height: 18px; color: #dfe8e4; font-family: Georgia,serif; font-size: 13px; font-weight: 900; text-align: center; }
-.arena { display: grid; grid-template-columns: repeat(6,1fr); gap: 5px; max-width: 1200px; height: 64px; margin: 0 auto; }
-.arena-space { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; padding: 0; border: 1px solid #9a9b8d; border-radius: 0; background: #e1ddcf; color: #4c554f; }
+.arena-zone { display: grid; grid-template-rows: 18px minmax(0,1fr); padding: 4px 12px 6px; }
+.range-label { position: relative; color: #dfe8e4; font-family: Georgia,serif; font-size: 12px; font-weight: 900; text-align: center; }
+.arena { position: relative; display: grid; grid-template-columns: repeat(6,1fr); gap: 4px; width: min(1200px,100%); height: 64px; margin: 0 auto; overflow: hidden; border: 1px solid #a99772; background-color: #d7cfb3; background-image: linear-gradient(#756b5326 1px,transparent 1px),linear-gradient(90deg,#756b5326 1px,transparent 1px),repeating-radial-gradient(ellipse at 20% 30%,transparent 0 14px,#746b5420 15px 16px,transparent 17px 24px); background-size: 16px 16px,16px 16px,120px 70px; isolation: isolate; }
+.arena-space { position: relative; display: flex; align-items: center; justify-content: center; min-width: 0; padding: 0; border: 0; border-right: 1px dashed #5f594bbb; border-radius: 0; background: transparent; color: #49483e; }
+.arena-space:last-child { border-right: 0; }
+.arena-space--shared { padding: 0 4px; }
 .arena-space--choice { border: 3px solid #ffcf5a; background: #fff2bd; color: var(--ink); box-shadow: inset 0 0 0 2px #735b1f, 0 0 12px #ffd86b99; }
 .arena-space--choice:hover { background: #ffe692; }
 .arena-space__choice-button { position: absolute; z-index: 1; inset: 0; padding: 0; border: 0; background: transparent; color: inherit; }
 .movement-cancel { position: absolute; top: -1px; right: 2px; min-height: 18px; padding: 0 6px; border: 1px solid #ffffff66; border-radius: 3px; background: transparent; color: #fff; font-size: 9px; font-weight: 800; }
 .arena-space__number { position: absolute; z-index: 2; top: 3px; left: 5px; font-size: 10px; pointer-events: none; }
-.arena-space__fighters { position: relative; z-index: 2; display: flex; align-items: center; gap: 8px; pointer-events: none; }
-.fighter { position: relative; display: grid; min-width: 78px; height: 47px; padding: 4px 7px; border: 2px solid #fff; border-radius: 5px; color: #fff; font-size: 11px; font-weight: 900; text-align: center; box-shadow: 0 2px 5px #0004; place-items: center; }
+.arena-space__fighters { position: relative; z-index: 2; display: flex; width: 100%; min-width: 0; align-items: center; justify-content: center; gap: 4px; padding: 0 2px; pointer-events: none; }
+.fighter { --team: var(--ochre); position: relative; z-index: 4; display: flex; flex: 0 1 86px; width: 86px; min-width: 0; height: 44px; align-items: center; gap: 3px; padding: 2px 4px 2px 2px; border: 2px solid var(--team); border-radius: 24px 6px 6px 24px; background: #f2ecd7f2; color: #202824; font-weight: 900; text-align: center; box-shadow: 0 3px 7px #40392588; }
+.fighter--indigo { --team: var(--indigo); }
+.fighter__figure { position: relative; flex: 0 1 34px; width: 34px; min-width: 25px; height: 34px; overflow: hidden; border: 2px solid var(--team); border-radius: 50%; background: #27352f; }
+.fighter__figure svg { position: absolute; z-index: 2; inset: 1px; width: calc(100% - 2px); height: calc(100% - 2px); overflow: visible; filter: drop-shadow(0 1px 1px #0008); }
+.fighter__details { display: grid; flex: 1; min-width: 0; gap: 2px; }
+.fighter__details strong { overflow: hidden; font-size: 8px; line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
+.fighter__details small { display: block; height: 16px; overflow: hidden; border: 2px solid #ffffffb8; border-radius: 8px; background: linear-gradient(90deg,var(--team) 0 var(--health),#07100d var(--health) 100%); color: #fff; font-size: 9px; font-weight: 950; line-height: 12px; text-align: center; white-space: nowrap; }
 .fighter--damaged { animation: fighter-hit .22s ease-out; }
-.damage-burst { position: absolute; z-index: 5; top: -20px; left: 50%; min-width: 34px; padding: 2px 5px; border: 2px solid #fff; border-radius: 12px; background: #a72d28; color: #fff; font-size: 13px; line-height: 1; box-shadow: 0 3px 8px #0008; transform: translateX(-50%); animation: damage-burst .32s ease-out both; }
+.damage-burst { position: absolute; z-index: 5; top: -8px; left: 50%; min-width: 34px; padding: 2px 5px; border: 2px solid #fff; border-radius: 12px; background: #a72d28; color: #fff; font-size: 13px; line-height: 1; box-shadow: 0 3px 8px #0008; transform: translateX(-50%); animation: damage-burst .32s ease-out both; }
 @keyframes fighter-hit { 0%,100% { filter: none; transform: translateX(0); } 20% { filter: brightness(1.65) saturate(1.4); transform: translateX(-5px); } 45% { transform: translateX(5px); } 70% { transform: translateX(-3px); } }
 @keyframes damage-burst { 0% { opacity: 0; transform: translate(-50%,6px) scale(.8); } 25%,75% { opacity: 1; transform: translate(-50%,0) scale(1); } 100% { opacity: 0; transform: translate(-50%,-5px) scale(1.05); } }
-.fighter--ochre { background: var(--ochre); } .fighter--indigo { background: var(--indigo); }
-.fighter small { display: block; font-size: 10px; } .fighter em { font-size: 8px; font-style: normal; }
+.fighter em { position: absolute; z-index: 6; top: -7px; right: 0; max-width: 82px; padding: 1px 3px; overflow: hidden; border-radius: 6px; background: #15221ef2; color: #fff; font-size: 6px; font-style: normal; line-height: 1; text-overflow: ellipsis; white-space: nowrap; }
 .build-strip { display: grid; grid-template-columns: 125px 1fr auto; align-items: center; gap: 8px; min-width: 0; padding: 4px 9px; background: #f4eee0; color: var(--ink); }
 .build-strip > div { display: flex; min-width: 0; gap: 5px; }
 .build-strip button { padding: 3px 7px; border: 1px solid #9e8d70; border-radius: 12px; background: #fff; }

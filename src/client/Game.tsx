@@ -4,7 +4,7 @@ import type { CardDefinition, CardInstance, PlayerId } from '../game';
 import { AI_DIFFICULTIES } from '../shared/api';
 import type { AiDifficulty, BrowserAction, GameMode, GameUpdateView, GameView, PresentationFrame, PresentationSequence, PublicGameEvent, SelectionActionPresentation, SetupCatalog } from '../shared/api';
 import { resetGame, takeAction, undoAction, updateBuild } from './api';
-import { Board } from './Board';
+import { Board, FighterCounter } from './Board';
 import { groupCardCatalog } from './cardCatalog';
 import { AI_SETTLE_MS, DRAW_DURATION_MS, DRAW_STAGGER_MS, FlyingCards, HUMAN_SETTLE_MS, PLAY_DURATION_MS, PURCHASE_PREVIEW_MS, PurchasePreview, gameAtFrame, updateGame, useReducedMotion, wait } from './playback';
 import type { Flight, PurchaseReveal } from './playback';
@@ -309,7 +309,7 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
 }
 
 function TableHeader({ title, controls }: { title: string; controls: React.ReactNode }) { return <header className="table-header"><div className="brand"><h1>Deckfront</h1></div><div className="turn-banner" role="status">{title}</div><div className="table-header__controls">{controls}</div></header>; }
-function PreviewArena() { return <section className="arena-zone table-zone"><div className="range-label">Near · 1 space</div><div className="arena" role="img" aria-label="Six space line arena">{[1,2,3,4,5,6].map((space) => <div className="arena-space" key={space}><span className="arena-space__number">{space}</span>{space === 3 ? <div className="fighter fighter--ochre">P1<small>47 HP</small></div> : null}{space === 4 ? <div className="fighter fighter--indigo">P2<small>50 HP</small></div> : null}</div>)}</div></section>; }
+function PreviewArena() { return <section className="arena-zone table-zone"><div className="range-label">Tactical map · Near · 1 space</div><div className="arena battlefield" role="group" aria-label="Six space line arena">{[1,2,3,4,5,6].map((space) => <div className="arena-space" key={space}><span className="arena-space__number">{space}</span><div className="arena-space__fighters">{space === 3 ? <FighterCounter playerId="ochre" health={47} position={space} /> : null}{space === 4 ? <FighterCounter playerId="indigo" health={50} position={space} /> : null}</div></div>)}</div></section>; }
 function EmptyPlayed() { return <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2></div><div className="played-row"><p className="empty-row">Cards move here from your hand.</p></div></section>; }
 function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, onMode, onStartingDraft, onAnimateAi, onHuman, onDifficulty, onRefresh, onStart }: {
   mode: GameMode; startingDraftEnabled: boolean; animateAi: boolean; human: PlayerId; difficulty: AiDifficulty;
