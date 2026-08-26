@@ -261,12 +261,12 @@ npm run response-oracle:calibrate -- --run \
   --kingdom "$KINGDOM" \
   --ranked ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json" \
   --reservoir ".experiments/ordered-goldfish-product/$RUN_ID/reservoir.json" \
-  --p75-manifest ".experiments/initial-matrix-calibration-v2/$KINGDOM/manifest.json" \
-  --p75-report ".experiments/initial-matrix-calibration-v2/$KINGDOM/report.json" \
+  --p75-manifest ".experiments/initial-matrix-calibration-v2-125/$KINGDOM/manifest.json" \
+  --p75-report ".experiments/initial-matrix-calibration-v2-125/$KINGDOM/report.json" \
   --out ".experiments/response-oracle-calibration/$KINGDOM" --workers 4
 ```
 
-The calibration evaluates exact reservoir ranks 51–20,000 on independent shared-schedule lanes A and B. It saves fixed prefixes at 8, 16, 25, 32, and 50 seeds, replays standard cumulative Successive Halving through 16,384 seeds with top-ups after the shared 50-seed prefix, and saves one independent complete 100-seed all-candidate reference lane. Atomic 250-candidate artifacts reject corrupt resume evidence. The report contains raw cross-fit scores, regrets, ties, top-one and top-four diagnostics, games, and measured simulation time. It does not run PSRO, admit a response, confirm closure, apply a tolerance, or extend reference evidence to 200 or 400 seeds. Use `--status --out PATH` or `--report --out PATH` to inspect saved artifacts.
+The command accepts only the audited max-125 reservoir, manifest file, report file, and manifest evidence hashes pinned for Kingdoms 001, 007, and 008. The calibration evaluates exact reservoir ranks 51–20,000 on independent shared-schedule lanes A and B. It saves fixed prefixes at 8, 16, 25, 32, and 50 seeds, replays standard cumulative Successive Halving through 16,384 seeds with top-ups after the shared 50-seed prefix, and saves one independent complete 100-seed all-candidate reference lane. Atomic 250-candidate artifacts reject corrupt resume evidence. The report contains raw cross-fit scores, regrets, ties, top-one and top-four diagnostics, games, and measured simulation time. It does not run PSRO, admit a response, confirm closure, apply a tolerance, or extend reference evidence to 200 or 400 seeds. Use `--status --out PATH` or `--report --out PATH` to inspect saved artifacts.
 
 Run or resume one fixed-reservoir response round from the validated final 20,000-strategy Kingdom 009 prefix, then compare it with all five saved fixed-reservoir lotteries:
 

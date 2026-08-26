@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
-  RESPONSE_ORACLE_CANDIDATE_COUNT, RESPONSE_ORACLE_FIXED_DEPTHS,
-  RESPONSE_ORACLE_HALVING_DEPTHS, crossFitCalibrationMetrics,
+  RESPONSE_ORACLE_CALIBRATION_TARGETS, RESPONSE_ORACLE_CANDIDATE_COUNT,
+  RESPONSE_ORACLE_FIXED_DEPTHS, RESPONSE_ORACLE_HALVING_DEPTHS, crossFitCalibrationMetrics,
   createCalibrationScoreChunk, createResponseOracleCalibrationManifest,
   createSuccessiveHalvingArtifact, fixedScreenResults, nextSuccessiveHalvingRound,
   replayStandardSuccessiveHalving, reusedSuccessiveHalvingTopupCost, successiveHalvingCost,
@@ -25,8 +25,10 @@ const source: CalibrationSourceIdentity = {
   kingdomId: 'deep-beam-tuning-001', rankedPath: '/source/ranked.json',
   reservoirPath: '/source/reservoir.json', p75ManifestPath: '/source/manifest.json',
   p75ReportPath: '/source/report.json', rankedSha256: '1'.repeat(64),
-  reservoirSha256: `4357b70${'2'.repeat(57)}`, p75ManifestSha256: '3'.repeat(64),
-  p75ReportSha256: '4'.repeat(64), p75ManifestHash: '5'.repeat(64),
+  reservoirSha256: '4357b70bd6d114a4eb744b0096040a2f01f8dd9d24573fbb3811e2cd0241e9a8',
+  p75ManifestSha256: '724c8831ae96de289b25785a74692c8f2a2622380946fbf736ff4666a3cdc5a9',
+  p75ReportSha256: '732cdd4e42fd367606f88dacace27c0201307128121b6363b1af1ba2d08968d4',
+  p75ManifestHash: 'da5e59c8e3c56d61c55ca242de3db5aca9227e75b3df29c232525359fef25263',
   reservoirRunId: 'native-541cb83d1e13-568cb4cd8181f5088168',
   reservoirVersion: 'fixture-version', rulesFingerprint: 'fixture-rules'
 };
@@ -146,8 +148,37 @@ describe('cross-fit reference diagnostics', () => {
 });
 
 describe('strict source and resumable evidence validation', () => {
-  it('rejects incomplete weights, wrong ranks, stale source identities, and source hash changes', () => {
+  it('pins every approved max-125 provenance value and rejects any source hash change', () => {
+    expect(RESPONSE_ORACLE_CALIBRATION_TARGETS).toEqual({
+      'deep-beam-tuning-001': {
+        runId: 'native-541cb83d1e13-568cb4cd8181f5088168',
+        reservoirSha256: '4357b70bd6d114a4eb744b0096040a2f01f8dd9d24573fbb3811e2cd0241e9a8',
+        p75ManifestSha256: '724c8831ae96de289b25785a74692c8f2a2622380946fbf736ff4666a3cdc5a9',
+        p75ReportSha256: '732cdd4e42fd367606f88dacace27c0201307128121b6363b1af1ba2d08968d4',
+        p75ManifestHash: 'da5e59c8e3c56d61c55ca242de3db5aca9227e75b3df29c232525359fef25263'
+      },
+      'deep-beam-tuning-007': {
+        runId: 'native-1552de33e3cb-ca0b9ed1a6ebdcd051e0',
+        reservoirSha256: '17a1e34e0e4322940fa364543de96bfa44372797c2aa197cd2bb34ef97fa9ee9',
+        p75ManifestSha256: '176601ec0de344dc4f4f8d6514cc862464d7dd4b589b9e484d90d3109f91bbaf',
+        p75ReportSha256: 'b111bee25b8649abc13b28cbe092f14a12046a1af157b25002c1b81518df8c27',
+        p75ManifestHash: '9dc4e7ef37fe795fff63d4cb98e88ed2f4d7aa7b4d1490915ab316f0c9edb8ff'
+      },
+      'deep-beam-tuning-008': {
+        runId: 'native-1552de33e3cb-a9c81e98dcc9d46d5ce5',
+        reservoirSha256: '56380c680b53f32c81e5128e538ea5b206901b5557bbf1452e2d9f590c8c816d',
+        p75ManifestSha256: 'a9ade55c44860881a3c4f97ce0d9b175db779cbea7fb904ac042a59f42845536',
+        p75ReportSha256: '9965631a602908cc03a151f34f5fb16b8e7f33357b75780aa2f5ecc7b2c62ffc',
+        p75ManifestHash: 'c276da906da08dbbe1935498e9494700754be2c7be8ccaf2ea22a6e36add94a5'
+      }
+    });
     expect(validateResponseOracleCalibrationManifest(manifest)).toBe(true);
+    for (const key of ['reservoirSha256', 'p75ManifestSha256', 'p75ReportSha256',
+      'p75ManifestHash'] as const) {
+      expect(() => createResponseOracleCalibrationManifest({ source: { ...source, [key]: '9'.repeat(64) },
+        p75Strategies, p75Weights, candidates: candidateStrategies.map((entry, index) => ({
+          goldfishRank: index + 51, strategy: entry })) })).toThrow('approved P75 targets');
+    }
     expect(() => createResponseOracleCalibrationManifest({ source, p75Strategies,
       p75Weights: { [p75Strategies[0]!.id]: 1 }, candidates: candidateStrategies.map((entry, index) => ({
         goldfishRank: index + 51, strategy: entry })) })).toThrow('complete weight');

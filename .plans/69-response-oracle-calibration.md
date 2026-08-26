@@ -6,6 +6,14 @@ Implement the approved screening calibration for the three saved P75 lotteries. 
 
 The command evaluates ordered-reservoir ranks 51–20,000. Ranks 1–50 are the restricted game and are not candidates.
 
+Use only the audited max-125 P75 artifacts under `.experiments/initial-matrix-calibration-v2-125/`. Pin and require each complete value:
+
+| Kingdom | Reservoir SHA-256 | P75 manifest file SHA-256 | P75 report file SHA-256 | Manifest evidence hash |
+|---|---|---|---|---|
+| 001 | `4357b70bd6d114a4eb744b0096040a2f01f8dd9d24573fbb3811e2cd0241e9a8` | `724c8831ae96de289b25785a74692c8f2a2622380946fbf736ff4666a3cdc5a9` | `732cdd4e42fd367606f88dacace27c0201307128121b6363b1af1ba2d08968d4` | `da5e59c8e3c56d61c55ca242de3db5aca9227e75b3df29c232525359fef25263` |
+| 007 | `17a1e34e0e4322940fa364543de96bfa44372797c2aa197cd2bb34ef97fa9ee9` | `176601ec0de344dc4f4f8d6514cc862464d7dd4b589b9e484d90d3109f91bbaf` | `b111bee25b8649abc13b28cbe092f14a12046a1af157b25002c1b81518df8c27` | `9dc4e7ef37fe795fff63d4cb98e88ed2f4d7aa7b4d1490915ab316f0c9edb8ff` |
+| 008 | `56380c680b53f32c81e5128e538ea5b206901b5557bbf1452e2d9f590c8c816d` | `a9ade55c44860881a3c4f97ce0d9b175db779cbea7fb904ac042a59f42845536` | `9965631a602908cc03a151f34f5fb16b8e7f33357b75780aa2f5ecc7b2c62ffc` | `c276da906da08dbbe1935498e9494700754be2c7be8ccaf2ea22a6e36add94a5` |
+
 ## Frozen protocol
 
 - Candidate count: 19,950 per kingdom.
