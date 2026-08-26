@@ -33,15 +33,12 @@ export const CONFIRMATION_LOOKS = Object.freeze([400, 800, 1_600, 3_200, 6_400] 
 export const RESPONSE_THRESHOLD = 0.51;
 export const SCREEN_ALPHA = 0.05;
 export const CONFIRMATION_FAMILY_ALPHA = 0.05;
-export const MAX_ADMISSIONS = 12;
-export const MAX_SCANS = 12;
 const MATRIX_BLOCKS = 75;
 const EVALUATION_CHUNK = 250;
 
 type ThresholdStatus = 'below' | 'above' | 'unresolved';
 type ConfirmationStatus = 'rejected' | 'confirmed' | 'unresolved';
-type StopReason = 'running' | 'empirical-two-clean-scans' | 'screen-cap-unresolved'
-  | 'confirmation-cap-unresolved' | 'admission-cap-unresolved' | 'scan-cap-unresolved';
+type StopReason = 'running' | 'empirical-two-clean-scans' | 'screen-cap-unresolved';
 
 interface InputEntry { kingdomId: string; ranked: string; reservoir: string; p75Root: string }
 interface Inputs { schemaVersion: 1; kingdoms: InputEntry[] }
@@ -114,7 +111,7 @@ interface ScanBase {
 }
 interface ScanReport extends ScanBase {
   confirmation: ConfirmationRaceResult | null;
-  outcome: 'clean' | 'queued' | 'unresolved';
+  outcome: 'clean' | 'queued';
   games: { screening: number; confirmation: number; total: number };
   elapsedMs: { screening: number; confirmation: number; total: number };
 }
@@ -125,7 +122,7 @@ interface QueueRetestReport {
   lotteryHash: string;
   enteredStrategyIds: string[];
   confirmation: ConfirmationRaceResult;
-  outcome: 'empty' | 'queued' | 'unresolved';
+  outcome: 'empty' | 'queued';
   games: number;
   elapsedMs: number;
 }
@@ -160,8 +157,9 @@ interface Checkpoint {
     familyControl: 'bonferroni';
     opponentSchedule: 'nested-proportional-largest-deficit';
     matrixBlocks: typeof MATRIX_BLOCKS;
-    maxAdmissions: typeof MAX_ADMISSIONS;
-    maxScans: typeof MAX_SCANS;
+    cappedUnresolvedPolicy?: 'leave-unresolved-at-look-cap';
+    maxAdmissions?: number;
+    maxScans?: number;
   };
   status: 'running' | 'complete' | 'unresolved';
   stopReason: StopReason;
@@ -432,6 +430,18 @@ export function cleanScansAfter(current: number, admitted: boolean, clean: boole
   return clean ? current + 1 : current;
 }
 
+export function actionAfterScreen(
+  screen: Pick<ThresholdRaceResult, 'provisional' | 'unresolved'>
+): 'clean' | 'confirm' {
+  return screen.provisional.length ? 'confirm' : 'clean';
+}
+
+export function actionAfterConfirmation(
+  confirmation: Pick<ConfirmationRaceResult, 'confirmed' | 'unresolved'>
+): 'empty' | 'queued' {
+  return confirmation.confirmed.length ? 'queued' : 'empty';
+}
+
 function loadP75Matrix(manifest: ResponseOracleCalibrationManifest): MatrixSnapshot {
   const source = readJson<InitialMatrixManifest>(manifest.source.p75ManifestPath);
   const protocol = matrixProtocol(PILOT_KINGDOM, source.protocol.seeds.slice(0, MATRIX_BLOCKS), 30, 200, false);
@@ -598,7 +608,7 @@ function initialCheckpoint(source: Source, runId: 1 | 2 | 3): Checkpoint {
       screenAlpha: SCREEN_ALPHA, confirmationLooks: [...CONFIRMATION_LOOKS],
       confirmationFamilyAlpha: CONFIRMATION_FAMILY_ALPHA, familyControl: 'bonferroni',
       opponentSchedule: 'nested-proportional-largest-deficit', matrixBlocks: MATRIX_BLOCKS,
-      maxAdmissions: MAX_ADMISSIONS, maxScans: MAX_SCANS }, status: 'running', stopReason: 'running',
+      cappedUnresolvedPolicy: 'leave-unresolved-at-look-cap' }, status: 'running', stopReason: 'running',
     phase: 'ready', exploratory: true, formalClosure: false, matrix: source.initialMatrix, equilibrium,
     cleanScans: 0, queue: [], pending: null, scans: [], queueRetests: [], admissions: [],
     games: { screening: 0, confirmation: 0, matrix: 0, total: 0 },
@@ -606,11 +616,38 @@ function initialCheckpoint(source: Source, runId: 1 | 2 | 3): Checkpoint {
     telemetry: emptyAggregate(), evidenceHash: '' };
 }
 
+function resumeLegacyScreenCap(checkpoint: Checkpoint): boolean {
+  const changed = checkpoint.protocol.cappedUnresolvedPolicy !== 'leave-unresolved-at-look-cap'
+    || checkpoint.protocol.maxAdmissions !== undefined || checkpoint.protocol.maxScans !== undefined;
+  checkpoint.protocol.cappedUnresolvedPolicy = 'leave-unresolved-at-look-cap';
+  delete checkpoint.protocol.maxAdmissions;
+  delete checkpoint.protocol.maxScans;
+  if (checkpoint.status !== 'unresolved' || checkpoint.stopReason !== 'screen-cap-unresolved') return changed;
+  const report = checkpoint.scans.at(-1) as (Omit<ScanReport, 'outcome'> & { outcome: string }) | undefined;
+  if (!report || report.outcome !== 'unresolved' || report.confirmation !== null) {
+    throw new Error('Legacy screen-cap checkpoint cannot be resumed safely.');
+  }
+  checkpoint.scans.pop();
+  const base: ScanBase = { scan: report.scan, cycle: report.cycle, matrixSize: report.matrixSize,
+    inactiveCandidates: report.inactiveCandidates, lotteryHash: report.lotteryHash, screen: report.screen };
+  checkpoint.status = 'running';
+  checkpoint.stopReason = 'running';
+  checkpoint.pending = null;
+  if (actionAfterScreen(report.screen) === 'confirm') {
+    checkpoint.phase = 'screened';
+    checkpoint.pending = { kind: 'screened', base };
+  } else {
+    checkpoint.phase = 'ready';
+    checkpoint.scans.push({ ...base, confirmation: null, outcome: 'clean', games: report.games,
+      elapsedMs: report.elapsedMs });
+    checkpoint.cleanScans = cleanScansAfter(checkpoint.cleanScans, false, true);
+    if (checkpoint.cleanScans >= 2) terminal(checkpoint, 'complete', 'empirical-two-clean-scans');
+  }
+  return true;
+}
+
 async function admit(checkpoint: Checkpoint, source: Source, runner: PairingRunner,
   order: QueueOrder): Promise<void> {
-  if (checkpoint.admissions.length >= MAX_ADMISSIONS) {
-    terminal(checkpoint, 'unresolved', 'admission-cap-unresolved'); return;
-  }
   const selectedId = order.strongestStrategyId;
   const selected = selectedId ? candidates(source, [selectedId])[0] : null;
   if (!selected) throw new Error('Confirmed queue has no strongest response.');
@@ -647,6 +684,7 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
     const value = readJson<unknown>(file);
     if (!validCheckpoint(value, source, runId)) throw new Error(`Invalid threshold-racing checkpoint ${file}.`);
     checkpoint = value;
+    if (resumeLegacyScreenCap(checkpoint)) checkpoint = saveCheckpoint(root, checkpoint);
   } else checkpoint = saveCheckpoint(root, initialCheckpoint(source, runId));
   if (checkpoint.status !== 'running') return checkpoint;
   const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === PILOT_KINGDOM)!;
@@ -667,16 +705,12 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
         const report: QueueRetestReport = { retest, cycle: checkpoint.admissions.length + 1,
           matrixSize: checkpoint.matrix.strategies.length, lotteryHash: lottery.lotteryHash,
           enteredStrategyIds: checkpoint.queue.map((entry) => entry.strategyId), confirmation,
-          outcome: confirmation.unresolved.length ? 'unresolved'
-            : confirmation.confirmed.length ? 'queued' : 'empty',
+          outcome: actionAfterConfirmation(confirmation),
           games: confirmation.games, elapsedMs: confirmation.elapsedMs };
         checkpoint.pending = { kind: 'queue-confirmed', report }; checkpoint.phase = 'confirmed';
         checkpoint = saveCheckpoint(root, checkpoint); continue;
       }
       if (checkpoint.phase === 'ready') {
-        if (checkpoint.scans.length >= MAX_SCANS) {
-          terminal(checkpoint, 'unresolved', 'scan-cap-unresolved'); checkpoint = saveCheckpoint(root, checkpoint); continue;
-        }
         const scan = checkpoint.scans.length + 1;
         const lottery = positiveLottery(checkpoint.matrix, checkpoint.equilibrium);
         const active = new Set(checkpoint.matrix.strategies.map((strategy) => strategy.id));
@@ -691,12 +725,7 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
         const base: ScanBase = { scan, cycle: checkpoint.admissions.length + 1,
           matrixSize: checkpoint.matrix.strategies.length, inactiveCandidates: inactive.length,
           lotteryHash: lottery.lotteryHash, screen };
-        if (screen.unresolved.length) {
-          checkpoint.scans.push({ ...base, confirmation: null, outcome: 'unresolved',
-            games: { screening: screen.games, confirmation: 0, total: screen.games },
-            elapsedMs: { screening: screen.elapsedMs, confirmation: 0, total: screen.elapsedMs } });
-          terminal(checkpoint, 'unresolved', 'screen-cap-unresolved');
-        } else if (!screen.provisional.length) {
+        if (actionAfterScreen(screen) === 'clean') {
           checkpoint.scans.push({ ...base, confirmation: null, outcome: 'clean',
             games: { screening: screen.games, confirmation: 0, total: screen.games },
             elapsedMs: { screening: screen.elapsedMs, confirmation: 0, total: screen.elapsedMs } });
@@ -722,15 +751,13 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
       }
       if (checkpoint.phase === 'confirmed' && checkpoint.pending?.kind === 'scan-confirmed') {
         const { base, confirmation } = checkpoint.pending;
-        const outcome = confirmation.unresolved.length ? 'unresolved'
-          : confirmation.confirmed.length ? 'queued' : 'clean';
+        const outcome = actionAfterConfirmation(confirmation) === 'queued' ? 'queued' : 'clean';
         checkpoint.scans.push({ ...base, confirmation, outcome,
           games: { screening: base.screen.games, confirmation: confirmation.games,
             total: base.screen.games + confirmation.games },
           elapsedMs: { screening: base.screen.elapsedMs, confirmation: confirmation.elapsedMs,
             total: base.screen.elapsedMs + confirmation.elapsedMs } });
-        if (outcome === 'unresolved') terminal(checkpoint, 'unresolved', 'confirmation-cap-unresolved');
-        else if (outcome === 'clean') {
+        if (outcome === 'clean') {
           checkpoint.cleanScans = cleanScansAfter(checkpoint.cleanScans, false, true);
           checkpoint.phase = 'ready'; checkpoint.pending = null;
           if (checkpoint.cleanScans >= 2) terminal(checkpoint, 'complete', 'empirical-two-clean-scans');
@@ -743,8 +770,7 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
       if (checkpoint.phase === 'confirmed' && checkpoint.pending?.kind === 'queue-confirmed') {
         const report = checkpoint.pending.report;
         checkpoint.queueRetests.push(report);
-        if (report.outcome === 'unresolved') terminal(checkpoint, 'unresolved', 'confirmation-cap-unresolved');
-        else if (report.outcome === 'empty') {
+        if (report.outcome === 'empty') {
           checkpoint.queue = []; checkpoint.phase = 'ready'; checkpoint.pending = null;
         } else {
           checkpoint.queue = report.confirmation.confirmed;

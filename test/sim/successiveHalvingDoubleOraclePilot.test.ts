@@ -5,8 +5,8 @@ import { emptyAggregate } from '../../src/sim/pairing';
 import type { Strategy } from '../../src/sim/strategy';
 import { canonicalStrategy } from '../../src/sim/strategy';
 import {
-  cleanScansAfter, orderConfirmedQueue, parseOptions, runConfirmationRace, runThresholdRace,
-  weightedFairSchedule
+  actionAfterConfirmation, actionAfterScreen, cleanScansAfter, orderConfirmedQueue, parseOptions,
+  runConfirmationRace, runThresholdRace, weightedFairSchedule
 } from '../../scripts/successive_halving_double_oracle_pilot';
 
 function candidates(count = 3) {
@@ -83,6 +83,14 @@ describe('K007 threshold-racing Double Oracle pilot', () => {
     expect(result.looks.map((look) => [look.blocks, look.entered])).toEqual([[400, 3], [800, 1]]);
     expect(calls[0]!.seeds).toEqual(schedule.blocks.slice(0, 400).map((entry) => entry.seed));
     expect(calls[1]!.seeds).toEqual(schedule.blocks.slice(400, 800).map((entry) => entry.seed));
+  });
+
+  it('leaves capped unresolved candidates and continues with decided candidates', () => {
+    const unresolved = [{ strategyId: 'unresolved' }];
+    expect(actionAfterScreen({ provisional: [{ strategyId: 'above' }], unresolved } as never)).toBe('confirm');
+    expect(actionAfterScreen({ provisional: [], unresolved } as never)).toBe('clean');
+    expect(actionAfterConfirmation({ confirmed: [{ strategyId: 'confirmed' }], unresolved } as never)).toBe('queued');
+    expect(actionAfterConfirmation({ confirmed: [], unresolved } as never)).toBe('empty');
   });
 
   it('orders the strongest confirmed lower bound deterministically and reports ties and overlaps', () => {
