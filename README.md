@@ -239,6 +239,19 @@ npm run goldfish:ordered-product -- validate-reservoir --kingdom "$KINGDOM" \
 
 The ranked bytes contain the 500,000-candidate stage-one cohort, all four-seed score evidence, ranks, and shard provenance. Runtime and container data remain in `run-summary.json` on the Modal Volume.
 
+Build or resume a local calibration matrix for the ordered ranks 1–50:
+
+```sh
+npm run initial-matrix:calibrate -- \
+  --kingdom "$KINGDOM" \
+  --ranked ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json" \
+  --reservoir ".experiments/ordered-goldfish-product/$RUN_ID/reservoir.json" \
+  --out ".experiments/initial-matrix-calibration/$KINGDOM" \
+  --max-seeds 60 --chunk-size 5 --prefixes 5,10,25 --held-out-start 40 --workers 4
+```
+
+`--prefixes` selects training seed counts. `--held-out-start` is the number of leading seeds excluded from the held-out suffix, so every requested prefix must be no larger than it. The command validates the current kingdom rules, both ordered artifacts, their hashes, and the exact 20,000-entry reservoir before simulation. It saves atomic seed-level payoff and acquisition evidence for every distinct-strategy pair. A repeat validates and resumes missing chunks. A corrupt, stale, or different source stops the command. The report derives all requested prefixes and the disjoint held-out suffix without replaying games. It reports diagonal self-play telemetry as unavailable.
+
 Run or resume one fixed-reservoir response round from the validated final 20,000-strategy Kingdom 009 prefix, then compare it with all five saved fixed-reservoir lotteries:
 
 ```sh
