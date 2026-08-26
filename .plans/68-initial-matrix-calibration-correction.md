@@ -24,15 +24,18 @@ r^c_i(p) = p_i C^c_ii / (4S) + sum[j != i] p_j C^c_ij,i / (2S)
 E^c(p) = sum[i] p_i r^c_i(p)
 ```
 
-Use these selected-lottery-versus-itself rates with the project `classifyStrategyDamage` classifier. Report:
+For every training prefix, apply its selected equilibrium weights to the same held-out ordinals 76–100. Use only those held-out cells, including diagonal cells, for the prefix acquisition and classifier comparison. Do not use each prefix's training telemetry as the calibration metric.
 
+Use these held-out selected-lottery-versus-itself rates with the project `classifyStrategyDamage` classifier. Report:
+
+- the held-out acquisition seed range,
 - per-strategy acquisition rates,
 - classifier labels,
 - selected archetype shares,
 - expected card copies per player-game,
 - feasible archetype ranges from the existing equilibrium group-range solver.
 
-Hold classifier labels fixed while the LP varies equilibrium weights. State that these ranges are conditional on the selected-lottery labels and the discovered 50-strategy matrix.
+For each prefix, calculate labels from its selected weights and the shared held-out telemetry. Hold those labels fixed while the LP varies equilibrium weights over that prefix's discovered matrix. State that these ranges are conditional on the held-out selected-lottery labels and the discovered 50-strategy matrix.
 
 ## Schedule and costs
 

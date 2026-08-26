@@ -153,6 +153,44 @@ describe('initial-matrix calibration v2 evidence', () => {
     expect(report.heldOut.seedRange).toEqual({ startOrdinal: 76, endOrdinal: 100, count: 25 });
   });
 
+  it('compares every prefix with the same held-out acquisition cells', () => {
+    const a = strategy('a', 'drive'), b = strategy('b', 'volley');
+    const seeds = Array.from({ length: 100 }, (_unused, index) => index + 1);
+    const heldOut = (seed: number) => seed > 75;
+    const cells: InitialMatrixCellSeries[] = [
+      { purpose: DIAGONAL_PURPOSE, rowIndex: 0, columnIndex: 0,
+        records: seeds.map((seed) => record(seed, a, a,
+          { a: heldOut(seed) ? { volley: 4 } : { drive: 4 } })) },
+      { purpose: OFF_DIAGONAL_PURPOSE, rowIndex: 0, columnIndex: 1,
+        records: seeds.map((seed) => record(seed, a, b, heldOut(seed)
+          ? { a: { volley: 2 }, b: { fireball: 2 } }
+          : { a: { drive: 2 }, b: { drive: 2 } }, seed <= 50 ? 0.75 : seed <= 75 ? 0 : 0.5)) },
+      { purpose: DIAGONAL_PURPOSE, rowIndex: 1, columnIndex: 1,
+        records: seeds.map((seed) => record(seed, b, b,
+          { b: heldOut(seed) ? { fireball: 4 } : { drive: 4 } })) }
+    ];
+    const report = analyzeInitialMatrix({ strategies: [a, b], cells, seedCount: 100,
+      requestedPrefixes: [50, 75], heldOutStartSeedIndex: 75,
+      measuredChunkWallMs: { offDiagonal: 2, diagonalTelemetry: 1 } });
+    const evaluations = report.prefixes.map((prefix) => prefix.heldOutAcquisitionEvaluation);
+
+    expect(evaluations.map((evaluation) => evaluation.seedRange)).toEqual([
+      { startOrdinal: 76, endOrdinal: 100, count: 25 },
+      { startOrdinal: 76, endOrdinal: 100, count: 25 }
+    ]);
+    expect(report.prefixes[0]!.equilibrium.weights).toMatchObject({ a: 1, b: 0 });
+    expect(report.prefixes[1]!.equilibrium.weights).toMatchObject({ a: 0.5, b: 0.5 });
+    for (const evaluation of evaluations) {
+      expect(evaluation.acquisitions.strategyAcquisitionRates.a).toEqual({ volley: 1 });
+      expect(evaluation.acquisitions.strategyAcquisitionRates.b).toEqual({ fireball: 1 });
+      expect(evaluation.acquisitions.strategyLabels).toMatchObject({ a: 'Ranged', b: 'Mage' });
+    }
+    expect(evaluations[0]!.acquisitions.selectedArchetypeShares).toMatchObject({ Ranged: 1, Mage: 0 });
+    expect(evaluations[0]!.acquisitions.expectedCopiesPerPlayerGame).toEqual({ volley: 1, fireball: 0 });
+    expect(evaluations[1]!.acquisitions.selectedArchetypeShares).toMatchObject({ Ranged: 0.5, Mage: 0.5 });
+    expect(evaluations[1]!.acquisitions.expectedCopiesPerPlayerGame).toEqual({ volley: 0.5, fireball: 0.5 });
+  });
+
   it('rejects v1, stale, corrupt, mistyped, duplicate, and unexpected resume evidence', () => {
     const strategies = fiftyStrategies();
     const manifest = createInitialMatrixManifest({ source: source(), strategies, maxSeedCount: 4, chunkSize: 2 });

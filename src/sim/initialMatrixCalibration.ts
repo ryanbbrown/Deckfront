@@ -502,7 +502,10 @@ export interface InitialMatrixPrefixAnalysis {
   equilibrium: EquilibriumResult;
   heldOutRestrictedExploitability: { centeredAdvantage: number; score: number; strategyId: string };
   heldOutDirectStrength: { centeredPayoff: number; score: number; opponent: 'held-out restricted equilibrium' };
-  acquisitions: InitialMatrixAcquisitionSummary;
+  heldOutAcquisitionEvaluation: {
+    seedRange: { startOrdinal: number; endOrdinal: number; count: number };
+    acquisitions: InitialMatrixAcquisitionSummary;
+  };
 }
 
 export interface InitialMatrixAnalysisReport {
@@ -553,6 +556,9 @@ export function analyzeInitialMatrix(input: {
   let solverWallMs = 0;
   const heldEvidence = rangeEvidence(input.strategies, input.cells,
     input.heldOutStartSeedIndex, input.seedCount);
+  const heldOutSeedCount = input.seedCount - input.heldOutStartSeedIndex;
+  const heldOutSeedRange = { startOrdinal: input.heldOutStartSeedIndex + 1,
+    endOrdinal: input.seedCount, count: heldOutSeedCount };
   let started = performance.now();
   const heldEquilibrium = solveEquilibrium(ids, heldEvidence.matrix);
   solverWallMs += performance.now() - started;
@@ -575,19 +581,21 @@ export function analyzeInitialMatrix(input: {
         score: (best.centeredAdvantage + 1) / 2, strategyId: best.strategyId },
       heldOutDirectStrength: { centeredPayoff: direct, score: (direct + 1) / 2,
         opponent: 'held-out restricted equilibrium' },
-      acquisitions: summarizeInitialMatrixAcquisitions({ strategies: input.strategies,
-        cells: evidence.cells, seedCount, equilibrium, centeredPayoffs: evidence.matrix })
+      heldOutAcquisitionEvaluation: {
+        seedRange: heldOutSeedRange,
+        acquisitions: summarizeInitialMatrixAcquisitions({ strategies: input.strategies,
+          cells: heldEvidence.cells, seedCount: heldOutSeedCount, equilibrium,
+          centeredPayoffs: evidence.matrix })
+      }
     };
   });
-  const heldOutSeedCount = input.seedCount - input.heldOutStartSeedIndex;
   const fullCosts = initialMatrixGameCosts(input.strategies.length, input.seedCount);
   const offDiagonalCells = input.strategies.length * (input.strategies.length - 1) / 2;
   const diagonalCells = input.strategies.length;
   return {
     requestedPrefixes: prefixes,
     heldOut: {
-      seedRange: { startOrdinal: input.heldOutStartSeedIndex + 1,
-        endOrdinal: input.seedCount, count: heldOutSeedCount },
+      seedRange: heldOutSeedRange,
       evidenceCosts: heldEvidence.costs, equilibrium: heldEquilibrium,
       acquisitions: summarizeInitialMatrixAcquisitions({ strategies: input.strategies,
         cells: heldEvidence.cells, seedCount: heldOutSeedCount, equilibrium: heldEquilibrium,
