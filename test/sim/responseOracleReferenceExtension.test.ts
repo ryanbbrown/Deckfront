@@ -2,7 +2,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { findKingdom, resetKingdoms } from '../../src/game';
 import { mixtureSchedule } from '../../src/sim/mixtureEvaluation';
+import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
 import {
   RESPONSE_ORACLE_CALIBRATION_TARGETS, RESPONSE_ORACLE_CANDIDATE_COUNT,
   calibrationChunkBounds, calibrationChunkCount, calibrationSeed,
@@ -21,6 +23,7 @@ import {
 import type { ResponseOracleReferenceExtensionManifest } from '../../src/sim/responseOracleReferenceExtension';
 import { fixedBuyPlan, identify } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
+import { registerSavedResponseOracleCalibrationKingdom } from '../../scripts/response_oracle_calibration';
 import {
   assertResponseOracleReferenceExtensionFiles, parseResponseOracleReferenceExtensionOptions
 } from '../../scripts/response_oracle_reference_extension';
@@ -188,6 +191,19 @@ describe('200-seed folds and raw Pareto diagnostics', () => {
 });
 
 describe('extension CLI scope and output allowlist', () => {
+  it('registers only the approved saved kingdom before native source validation', () => {
+    resetKingdoms();
+    try {
+      expect(findKingdom(source.kingdomId)).toBeNull();
+      expect(() => nativeRuleFingerprint(source.kingdomId, 30, 200)).toThrow();
+      registerSavedResponseOracleCalibrationKingdom(manifest);
+      expect(findKingdom(source.kingdomId)).not.toBeNull();
+      expect(nativeRuleFingerprint(source.kingdomId, 30, 200)).toBe('af4833e2d36');
+      expect(() => registerSavedResponseOracleCalibrationKingdom({ source: { kingdomId: 'unknown' } }))
+        .toThrow('unknown kingdom');
+    } finally { resetKingdoms(); }
+  });
+
   it('supports only run, status, and report with a sibling output root', () => {
     expect(parseResponseOracleReferenceExtensionOptions([
       '--run', '--base', '/base', '--out', '/extension', '--workers', '3'

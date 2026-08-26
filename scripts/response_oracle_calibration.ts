@@ -16,8 +16,8 @@ import type { OrderedProductReservoirArtifact } from '../src/sim/orderedGoldfish
 import { GAMES_PER_SEED } from '../src/sim/pairing';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import {
-  RESPONSE_ORACLE_CALIBRATION_VERSION, RESPONSE_ORACLE_CHUNK_SIZE,
-  RESPONSE_ORACLE_HALVING_DEPTHS,
+  RESPONSE_ORACLE_CALIBRATION_TARGETS, RESPONSE_ORACLE_CALIBRATION_VERSION,
+  RESPONSE_ORACLE_CHUNK_SIZE, RESPONSE_ORACLE_HALVING_DEPTHS,
   calibrationChunkBounds, calibrationChunkCount, createCalibrationScoreChunk,
   createResponseOracleCalibrationManifest, createResponseOracleCalibrationReport,
   createSuccessiveHalvingArtifact, nextSuccessiveHalvingRound,
@@ -425,12 +425,25 @@ function status(root: string): void {
   console.log(JSON.stringify(result, null, 2));
 }
 
+export function registerSavedResponseOracleCalibrationKingdom(value: unknown): void {
+  const kingdomId = value && typeof value === 'object'
+    && 'source' in value && value.source && typeof value.source === 'object'
+    && 'kingdomId' in value.source && typeof value.source.kingdomId === 'string'
+    ? value.source.kingdomId : null;
+  const approved = kingdomId && kingdomId in RESPONSE_ORACLE_CALIBRATION_TARGETS;
+  const kingdom = approved ? deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId) : null;
+  if (!kingdom) throw new Error('Saved response-oracle calibration manifest has an unknown kingdom.');
+  registerKingdom(kingdom);
+}
+
 export function loadValidatedResponseOracleCalibration(
   root: string
 ): ValidatedResponseOracleCalibrationBundle {
   const resolvedRoot = path.resolve(root);
   assertOutputFiles(resolvedRoot);
-  const manifest = loadManifest(path.join(resolvedRoot, 'manifest.json'));
+  const manifestFile = path.join(resolvedRoot, 'manifest.json');
+  registerSavedResponseOracleCalibrationKingdom(readJson<unknown>(manifestFile));
+  const manifest = loadManifest(manifestFile);
   assertManifestSourceFiles(manifest);
   const searchAChunks = loadScoreChunks(resolvedRoot, 'search-a', manifest);
   const searchBChunks = loadScoreChunks(resolvedRoot, 'search-b', manifest);
