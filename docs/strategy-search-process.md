@@ -1,206 +1,187 @@
 # Strategy search process
 
-This document describes the proposed process for producing one representative strategy lottery for a kingdom. The process starts with every strategy allowed by the candidate grammar and ends with checks that the final lottery is competitive and repeatable.
+This is the working process for finding one representative competitive strategy lottery for each kingdom. It records the current decisions and the decisions that still need evidence.
 
-## 1. Generate every candidate strategy
+## Goal
 
-Generate all **12,972,960** legal strategies in a fixed order.
+For each kingdom:
 
-The same kingdom and candidate grammar must always produce the same candidates in the same order.
+1. Generate the complete deterministic strategy grammar.
+2. Reduce it to a practical competitive reservoir.
+3. Find a lottery that has no material known response in that reservoir.
+4. Report cards acquired, damage archetypes, and strategy shares from actual games.
+5. Produce similar results when the process uses new shuffle seeds.
 
-## 2. Reduce the candidates with goldfish scoring
+The eventual runtime target is about 20 minutes per kingdom: about 10 minutes for goldfish work and 10 minutes for competitive search. Reaching that target will probably require a Rust competitive simulator and Modal parallelism. It is an optimization target, not a requirement for calibration or process acceptance. Local calibration can take longer. An authorized overnight loop can start this optimization only after the evidence rules and competitive process are stable.
 
-Goldfish scoring tests a strategy against a fixed target rather than another strategy.
+## Necessary pipeline
 
-1. Score all 12,972,960 strategies with the first goldfish seed.
-2. Keep the best **500,000** strategies.
-3. Score those 500,000 strategies with three additional goldfish seeds.
-4. Combine the results from all four seeds.
-5. Keep the best **20,000** strategies as the competitive reservoir.
+### 1. Generate every strategy
 
-This stage gives PSRO a repeatable candidate reservoir at a practical size. PSRO is the competitive search described in the remaining sections.
+Generate all 12,972,960 legal strategies in a fixed order. The same rules, kingdom, and code must produce the same candidates.
 
-## 3. Create the first lottery
+### 2. Build the goldfish reservoir
 
-1. Take the top **50** strategies from the 20,000-strategy reservoir.
-2. Play every pair of strategies for **50 blocks**.
-3. Each block contains four games. The four games balance player seat, first player, and arena side.
-4. Each pair therefore plays **200 games**.
-5. Calculate the strategy weights that make this group hardest to exploit.
+For the current calibration runs:
 
-The weighted group is the current lottery. A strategy with 20% weight is selected in 20% of games drawn from that lottery.
+1. Score all 12,972,960 strategies with one goldfish seed.
+2. Keep the best 500,000.
+3. Score those 500,000 with three more seeds.
+4. Keep the best 20,000 as the competitive reservoir.
 
-## 4. Screen every strategy outside the lottery
+The 500,000, four-seed, and 20,000 limits are temporary engineering choices. Do not increase retention during this calibration.
 
-Test every reservoir strategy that is not already in the matrix against the current lottery. The first screen tests 19,950 strategies.
+### 3. Build the initial restricted game
 
-Create two independent test schedules, called schedule A and schedule B.
+Start with the top 50 reservoir strategies. Play every strategy pair and solve the resulting two-player zero-sum matrix for a lottery.
 
-For each schedule:
+The required number of shuffle seeds per matrix pair is not decided.
 
-1. Draw 25 opponent strategies from the current lottery according to the lottery weights.
-2. Use the same 25 opponents and game seeds for every candidate.
-3. Play one four-game block against each opponent.
+### 4. Find responses to the lottery
 
-Each candidate receives:
+Use a response-search method to find reservoir strategies that can materially beat the current lottery. Use fresh games before making an admission decision.
 
-- **100 games** in schedule A;
-- **100 games** in schedule B;
-- **200 screening games** in total.
+For each admitted strategy:
 
-Using the same schedule for every candidate makes their scores directly comparable. Using two independent schedules shows whether a candidate performed well consistently or only in one sample.
+1. Add the missing pairings between that strategy and the existing matrix.
+2. Solve the expanded matrix.
+3. Continue response search against the new lottery.
 
-## 5. Choose candidates for fresh confirmation
+The exact response-search algorithm is not decided. Do not assume that every cycle must rescreen all remaining 20,000 strategies. Do not assume that every apparent counter should enter one large batch.
 
-Calculate three scores for every screened candidate:
+### 5. Establish closure
 
-- its win rate in schedule A;
-- its win rate in schedule B;
-- its combined win rate across both schedules.
+Stop only when the chosen response-search method finds no material response with enough evidence and the matrix payoffs are precise enough for the required balance report.
 
-Build one confirmation group from the union of these selections:
+The closure rule is not decided.
 
-1. **Schedule A leaders:** include every candidate at or above the 100th-best schedule A score.
-2. **Schedule B leaders:** include every candidate at or above the 100th-best schedule B score.
-3. **Combined leaders:** include every candidate at or above the 200th-best combined score.
-4. **Near-boundary checks:** starting immediately below the combined cutoff, include complete equal-score groups until at least 64 more candidates are included.
-5. **Reservoir checks:** include 16 candidates selected by a fixed hash from each of these goldfish-rank ranges:
-   - 51 to 1,000;
-   - 1,001 to 5,000;
-   - 5,001 to 10,000;
-   - 10,001 to 20,000.
+### 6. Report the lottery
 
-If several candidates have the same score at a cutoff, include all of them. If a candidate appears in more than one selection, count it once.
+Use actual game acquisitions to report:
 
-The confirmation group has a safety limit of **512 candidates**. The run stops instead of arbitrarily removing candidates if the union exceeds that limit.
+- selected strategy weights;
+- Melee, Ranged, Mage, and mixed shares;
+- action-card acquisition shares;
+- expected copies of each card per player-game.
 
-This selection keeps:
+Use the selected deterministic equilibrium for headline results. Use feasible equilibrium ranges only as diagnostics.
 
-- candidates that performed very well in either independent schedule;
-- candidates that performed well across both schedules;
-- candidates just below the combined cutoff;
-- candidates that check whether screening missed another part of the reservoir.
+## Success priorities
 
-## 6. Confirm selected candidates with fresh games
+The pipeline has two priorities, in this order:
 
-Do not reuse screening games for admission decisions. Test the selected candidates with new opponents and game seeds.
+1. **Trustworthy results:** independent runs must produce consistent card-acquisition, card-use, and strategy-archetype distributions. The results must be consistent enough to support card-balance decisions.
+2. **Minimum work:** after the process meets the consistency requirement, reduce the number of simulated games and the runtime as far as possible without weakening that consistency.
 
-Use these cumulative confirmation stages:
+A faster process is not useful when its balance report changes materially between runs.
 
-| Stage | Blocks per remaining candidate | Games per remaining candidate |
-|---|---:|---:|
-| 1 | 200 | 800 |
-| 2 | 800 | 3,200 |
-| 3 | 3,200 | 12,800 |
-| 4 | 6,400 | 25,600 |
+## Settled decisions
 
-After each stage:
+- The candidate grammar contains 12,972,960 strategies in deterministic order.
+- The current goldfish calibration keeps 500,000 strategies after one seed and 20,000 after four seeds.
+- The initial restricted game starts with 50 strategies.
+- One shuffle seed means two games: strategy A goes first once and strategy B goes first once.
+- Each strategy keeps the same seat and starting side in both games.
+- Reflection-symmetric movement removes the need for separate left-side and right-side games.
+- Strategy equivalence must use executed behavior and actual acquisitions, not only strategy IDs or purchase-plan text.
+- Fresh progressive confirmation remains available. It is not the main measured runtime cost.
+- The selected deterministic equilibrium supplies the headline report.
 
-- **Admit** a candidate when the evidence shows that its expected score is above 50%.
-- **Remove** a candidate when the evidence shows that its expected score is below 51%.
-- Continue testing every candidate that has neither decision.
+## Decisions required before competitive calibration
 
-At most:
+### 1. Choose the PSRO or Double Oracle structure
 
-- 128 undecided candidates may continue after 200 blocks;
-- 32 may continue after 800 blocks;
-- 8 may continue after 3,200 blocks.
+Review established methods before choosing the response loop. Compare:
 
-The run stops if a continuation limit is exceeded or if any candidate remains undecided after 6,400 blocks.
+- standard Double Oracle or PSRO, which normally adds a best response and resolves the restricted game;
+- parallel or pipelined response oracles;
+- adaptive candidate racing instead of fixed full-reservoir screens;
+- controlled multi-response batches;
+- population management or pruning, only if matrix growth requires it.
 
-Admission tests correct for testing many candidates. The protocol assigns a 0.5% false-admission allowance to each of at most ten screens, for a 5% total false-admission allowance across one run.
+The method must fit a fixed reservoir of 20,000 deterministic strategies with simulation-based payoffs. The literature baseline is standard two-player zero-sum Double Oracle: add one best response, calculate only its missing matrix row and column, and solve again. Large response batches are a variant that must earn their added matrix cost. Training-focused PSRO variants are not a direct fit because these 20,000 strategies already exist.
 
-The gap from 50% to 51% is an indifference zone. The process admits proven counters above 50%, but it does not spend unlimited games distinguishing a 50.1% strategy from a 50.9% strategy.
+Primary references: [Double Oracle](http://www.cs.cmu.edu/~ggordon/mcmahan-ggordon-blum.icml2003.pdf) and [PSRO](https://mlanctot.info/files/papers/nips17-psro.pdf).
 
-## 7. Add confirmed counters to the matrix
+### 2. Choose matrix seeds per pair
 
-Make every admission decision for each strategy before combining equivalent strategies.
+Generate one larger nested payoff sample and compare smaller prefixes. Choose the first seed count where more seeds do not materially change:
 
-Two admitted strategies may share one matrix representative only when all of their saved confirmation evidence is identical, including:
+- direct lottery strength;
+- selected responses;
+- actual acquisitions;
+- archetype shares.
 
-- every block score;
-- every acquired card;
-- every reached purchase-plan position;
-- starting cards;
-- all other saved game telemetry.
+The first calibration compared 5 to 25 training seeds with 25 held-out seeds. A second calibration compared 25 and 50 training seeds with fresh held-out seeds. Protocol v2 measures lottery-versus-itself acquisitions on shared held-out seeds, including self-play. Its 50-versus-75 comparison was not stable. Its 75-versus-100 comparison was stable enough to use 75 as the provisional depth: the largest remaining direct-strength shift was 0.0035 percentage points, and the largest expected-card shift was 0.037 copies per player-game. K008 still changed restricted best-response score by 0.23 percentage points and changed best-response identity. These tests measure stability inside the initial 50 strategies, not responses from the full reservoir.
 
-The other strategies in an identical group become shadow strategies. Shadow strategies remain in later screens. If a shadow strategy later behaves differently from its representative, it separates from that representative.
+### 3. Choose how to search the reservoir
 
-Add each distinct admitted representative to the matrix, simulate its required pairings, and calculate a new lottery. Then return to section 4 and screen every strategy outside the new matrix again.
+Decide whether candidate evaluation uses a fixed screen, adaptive racing, or another established response oracle. Measure response quality, game count, and sensitivity to shuffle seeds.
 
-The first production attempt had a matrix safety limit of **128 strategies**. Its first screen found **173 distinct admitted representatives**, so the run stopped. The limit is now **256 strategies**. This is an engineering safety limit, not a statistical threshold.
+The two 100-seed reference folds removed fixed 16, fixed 25, and fixed 50 from the pooled joint frontier because Successive Halving was cheaper with no worse raw top-one or top-four regret. Fixed 8, Successive Halving, and fixed 32 remain. The selected reference leader still changed in every kingdom, and the K007 and K008 top-score tie sets were disjoint between folds.
 
-## 8. Decide when competitive search is complete
+An exploratory single-admission Successive Halving loop tested the cycle-count risk. K001 and K007 each admitted two responses and stopped on cycle 3 with a 52-strategy matrix. K008 admitted none and stopped on cycle 1 with its original 50-strategy matrix. The three runs added 2,404,186 games and about 161 seconds of measured simulation time. No run approached the 100-cycle cap. This is cycle-count evidence, not formal closure or independent-seed consistency evidence.
 
-A screen is clean when:
+### 4. Choose admission and population rules
 
-- it admits no new matrix representatives;
-- it leaves no confirmation candidate undecided.
+Decide:
 
-Matrix pairings begin at 50 blocks, or 200 games, per strategy pair.
+- what evidence makes a candidate a response;
+- whether to add one response or a controlled batch;
+- whether strategies always remain in the matrix;
+- whether any pruning rule is needed.
 
-1. After the first clean screen at 50 blocks, increase every matrix pair to **100 blocks** and screen the reservoir again.
-2. Require two consecutive clean screens at the final matrix depth.
-3. Increase every matrix pair to **200 blocks** if the result changes materially between matrix depths.
+Do not add a strategy-distance or novelty rule. The deterministic grammar already supplies broad strategy forms.
 
-A change is material when any of these conditions is true:
+### 5. Choose the closure rule
 
-- a selected archetype share changes by more than 2 percentage points;
-- an archetype's feasible weight-range endpoint changes by more than 2 percentage points;
-- a strategy with at least 0.5% selected or possible weight changes archetype label;
-- the strongest known pure counter changes by more than 0.5 percentage points.
+Define the evidence required to say that no material response remains. Also define the payoff precision required for stable acquisition and archetype reports.
 
-The run stops unresolved after ten screens. A successful stop is called **protocol closure**. It means the search passed these tests; it is not mathematical proof that no excluded strategy can win.
+### 6. Choose final reporting evidence
 
-## 9. Measure acquisitions and archetypes
+Choose the number of reporting seeds from measured stability in card acquisitions and archetype shares. Do not use a fixed panel count without evidence.
 
-After protocol closure, select every strategy that has either:
+## Game-count formulas
 
-- more than negligible weight in the chosen lottery;
-- at least 0.5% possible weight in another valid equilibrium.
+Every shuffle seed costs two games.
 
-The reporting group has a safety limit of 32 strategies.
+Let:
 
-Run three independent panels. In each panel, every reporting strategy plays 1,000 blocks against the lottery. Every panel includes self-play and at least 25 blocks against each reporting opponent.
+- `M` be the current matrix size;
+- `B` be the number of added strategies;
+- `S` be matrix shuffle seeds per pair;
+- `C` be candidates evaluated against a lottery;
+- `Q` be shuffle seeds per candidate.
 
-Add exactly two more panels if the first three are unstable.
+Then:
 
-The panels pass when:
+- Complete matrix: `2 × S × M × (M - 1) / 2` games.
+- Add `B` strategies: `2 × S × (M × B + B × (B - 1) / 2)` new games.
+- Candidate evaluation: `2 × Q × C` games.
 
-- every selected archetype share spans no more than 2 percentage points;
-- every material card's share of action-card acquisitions spans no more than 2 percentage points;
-- every material card's expected copies span no more than 0.02 copies per player-game;
-- no strategy changes archetype label.
+Examples:
 
-A card is material when it is at least 1% of action-card acquisitions or at least 0.02 expected copies per player-game.
+- Initial 50-strategy matrix at 25 seeds: 61,250 games.
+- One 100-game evaluation of 19,950 candidates: 1,995,000 games.
+- Complete 550-strategy matrix at 25 seeds: 7,548,750 games.
+- Extending a 50-strategy matrix to 550 at 25 seeds: 7,487,500 new games.
 
-All card and archetype reports use cards actually acquired during games. A card listed in a purchase plan but never acquired does not count.
+Solving the zero-sum matrix adds computation but no simulation games. Generating the pairwise payoffs is the main matrix cost. The current maximum-support solver also runs one value solve plus one witness solve per strategy, so large matrices require a separate solver benchmark.
 
-## 10. Attack the final lottery with old reservoirs
+## Later checks, not current requirements
 
-Attack the unchanged final lottery with each of the five old Kingdom 009 reservoirs. Each old reservoir contains 20,000 strategies.
+Do not add these until the core response process is credible:
 
-Use the existing historical attack process:
+- increasing matrix depth after a clean response search;
+- matrix pruning or reactivation rules;
+- fixed multi-panel reporting schedules;
+- attacks from old historical reservoirs;
+- two complete independent production runs;
+- large final cross-play schedules;
+- porting competitive simulation to Rust or distributing it through Modal.
 
-1. two independent staged screening passes;
-2. a fresh 400-block confirmation for the finalists;
-3. a confirmed attack only when the strict 95% lower confidence bound is above 50%.
+## Current order of work
 
-These attacks are audit evidence. They do not add strategies to the new matrix or change the final lottery. The report records the exact strategy, its old reservoir rank, its score, and the cards it acquired.
-
-## 11. Check whether the process is repeatable
-
-Run the complete competitive process twice with independent game seeds but the same 20,000-strategy reservoir.
-
-If both runs finish, play their final lotteries against each other for 10,000 blocks.
-
-The two runs agree only when:
-
-- direct cross-play is between 49% and 51%;
-- the 95% confidence interval contains 50%;
-- each selected archetype share differs by no more than 2 percentage points;
-- each feasible archetype range endpoint differs by no more than 2 percentage points;
-- each material card differs by no more than 2 percentage points in acquisition share and 0.02 expected copies per player-game;
-- the total-variation distance between complete action-card acquisition distributions is no more than 0.05.
-
-If every check passes, the first run is the preselected representative lottery. If a check fails, the process reports that the two runs are inconsistent and does not select a representative.
+1. Repeat the single-admission loop with independent seeds to measure cycle-count and final-lottery consistency.
+2. Set the material response-quality tolerance and formal closure evidence.
+3. Select the simplest process that meets the consistency goal, then optimize its runtime.

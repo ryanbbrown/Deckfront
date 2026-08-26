@@ -77,6 +77,7 @@ interface Checkpoint {
   schemaVersion: 1;
   experiment: 'successive-halving-double-oracle-pilot';
   version: typeof PILOT_VERSION;
+  runId?: number;
   status: 'running' | 'complete';
   exploratory: true;
   formalClosure: false;
@@ -114,14 +115,15 @@ function mean(values: readonly number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-export function pilotSeedPlan(manifest: ResponseOracleCalibrationManifest): CycleSeeds[] {
+export function pilotSeedPlan(manifest: ResponseOracleCalibrationManifest, runId = 1): CycleSeeds[] {
   const countPerCycle = RESPONSE_ORACLE_HALVING_DEPTHS.at(-1)! + CONFIRMATION_BLOCKS + 5;
   const total = countPerCycle * MAX_CYCLES;
   const reserved = new Set(manifest.seedPlan.searchA.gameSeeds.slice(0, 0));
   const matrixManifest = readJson<InitialMatrixManifest>(manifest.source.p75ManifestPath);
   matrixManifest.protocol.seeds.slice(0, MATRIX_BLOCKS).forEach((seed) => reserved.add(seed));
+  const runNamespace = runId === 1 ? '' : `:replicate:${runId}`;
   let root = Number.parseInt(stableHash(`${PILOT_VERSION}:${manifest.source.kingdomId}:`
-    + `${manifest.source.reservoirSha256}:${manifest.source.p75ManifestHash}`).slice(0, 8), 16) >>> 0;
+    + `${manifest.source.reservoirSha256}:${manifest.source.p75ManifestHash}${runNamespace}`).slice(0, 8), 16) >>> 0;
   const collides = (start: number) => {
     for (const seed of reserved) {
       const distance = (seed - start) >>> 0;
@@ -184,7 +186,7 @@ function loadP75Matrix(manifest: ResponseOracleCalibrationManifest): MatrixSnaps
   return snapshot;
 }
 
-async function loadSources(inputsFile: string): Promise<Source[]> {
+async function loadSources(inputsFile: string, runId = 1): Promise<Source[]> {
   const inputs = readJson<Inputs>(inputsFile);
   if (inputs.schemaVersion !== 1 || inputs.kingdoms.length !== 3
     || inputs.kingdoms.some((entry, index) => entry.kingdomId !== PILOT_KINGDOMS[index])) {
@@ -203,7 +205,7 @@ async function loadSources(inputsFile: string): Promise<Source[]> {
       p75ReportFile: path.join(entry.p75Root, 'report.json'), outputRoot: path.join(entry.p75Root, '.unused'), workers: 1 });
     const initialMatrix = loadP75Matrix(loaded.manifest);
     result.push({ entry, calibration: loaded.manifest, reservoir: loaded.reservoir,
-      initialMatrix, seeds: pilotSeedPlan(loaded.manifest) });
+      initialMatrix, seeds: pilotSeedPlan(loaded.manifest, runId) });
   }
   return result;
 }
@@ -250,14 +252,14 @@ export async function runStandardHalving(input: {
 
 function checkpointFile(root: string, kingdomId: string): string { return path.join(root, kingdomId, 'checkpoint.json'); }
 function reportFile(root: string, kingdomId: string): string { return path.join(root, kingdomId, 'report.json'); }
-function validCheckpoint(value: unknown, source: Source): value is Checkpoint {
+function validCheckpoint(value: unknown, source: Source, runId: number): value is Checkpoint {
   try {
     if (!validHash(value)) return false;
     const held = value as Checkpoint;
     const solved = solveEquilibrium(held.matrix.strategies.map((strategy) => strategy.id), held.matrix.centeredPayoffs);
     return held.schemaVersion === 1 && held.experiment === 'successive-halving-double-oracle-pilot'
-      && held.version === PILOT_VERSION && held.exploratory && held.formalClosure === false
-      && held.kingdomId === source.entry.kingdomId
+      && held.version === PILOT_VERSION && (held.runId ?? 1) === runId
+      && held.exploratory && held.formalClosure === false && held.kingdomId === source.entry.kingdomId
       && held.source.reservoirSha256 === source.calibration.source.reservoirSha256
       && held.source.p75ManifestHash === source.calibration.source.p75ManifestHash
       && held.matrix.complete && held.matrix.strategies.length === 50 + held.cycles.filter((cycle) => cycle.admitted).length
@@ -272,13 +274,13 @@ function saveCheckpoint(root: string, checkpoint: Checkpoint): void {
   writeAtomic(reportFile(root, checkpoint.kingdomId), checkpoint);
 }
 
-async function runKingdom(root: string, source: Source, workers: number): Promise<Checkpoint> {
+async function runKingdom(root: string, source: Source, workers: number, runId: number): Promise<Checkpoint> {
   registerKingdom(deepBeamSuite.kingdoms.find((kingdom) => kingdom.id === source.entry.kingdomId)!);
   const savedFile = checkpointFile(root, source.entry.kingdomId);
   let saved: Checkpoint | null = null;
   if (fs.existsSync(savedFile)) {
     const value = readJson<unknown>(savedFile);
-    if (!validCheckpoint(value, source)) throw new Error(`Invalid pilot checkpoint ${savedFile}.`);
+    if (!validCheckpoint(value, source, runId)) throw new Error(`Invalid pilot checkpoint ${savedFile}.`);
     saved = value;
   }
   if (saved?.status === 'complete') return saved;
@@ -330,7 +332,7 @@ async function runKingdom(root: string, source: Source, workers: number): Promis
           total: halving.elapsedMs + confirmationElapsed + matrixElapsed } };
       cycles.push(report);
       const current = withHash({ schemaVersion: 1 as const,
-        experiment: 'successive-halving-double-oracle-pilot' as const, version: PILOT_VERSION,
+        experiment: 'successive-halving-double-oracle-pilot' as const, version: PILOT_VERSION, runId,
         status: stopReason === 'running' ? 'running' as const : 'complete' as const,
         exploratory: true as const, formalClosure: false as const, kingdomId: source.entry.kingdomId,
         source: { reservoirSha256: source.calibration.source.reservoirSha256,
@@ -353,22 +355,24 @@ function parse(args: readonly string[]) {
   const mode = modes[0]!;
   const get = (name: string) => { const index = args.indexOf(name), value = args[index + 1];
     if (index < 0 || !value || value.startsWith('--')) throw new Error(`${name} needs a value.`); return value; };
-  const allowed = new Set([mode, ...(mode === '--run' ? ['--inputs', '--out', '--workers']
+  const allowed = new Set([mode, ...(mode === '--run' ? ['--inputs', '--out', '--workers', '--run-id']
     : mode === '--validate-inputs' ? ['--inputs'] : ['--out'])]);
   for (let index = 0; index < args.length; index += 1) {
     if (!allowed.has(args[index]!)) throw new Error(`Unknown pilot option ${args[index]}.`);
     if (args[index] !== mode) index += 1;
   }
   const workers = mode === '--run' && args.includes('--workers') ? Number(get('--workers')) : 4;
+  const runId = mode === '--run' && args.includes('--run-id') ? Number(get('--run-id')) : 1;
   if (!Number.isSafeInteger(workers) || workers < 1 || workers > 192) throw new Error('Invalid worker count.');
+  if (!Number.isSafeInteger(runId) || runId < 1) throw new Error('Invalid run ID.');
   return { mode, inputs: mode === '--run' || mode === '--validate-inputs' ? path.resolve(get('--inputs')) : null,
-    out: mode !== '--validate-inputs' ? path.resolve(get('--out')) : null, workers };
+    out: mode !== '--validate-inputs' ? path.resolve(get('--out')) : null, workers, runId };
 }
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
   const options = parse(args);
   if (options.mode === '--validate-inputs') {
-    const sources = await loadSources(options.inputs!);
+    const sources = await loadSources(options.inputs!, options.runId);
     console.log(JSON.stringify({ kingdoms: sources.map((source) => source.entry.kingdomId), gamesPlayed: 0 }, null, 2));
     return;
   }
@@ -380,9 +384,9 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
   if (options.mode === '--report') {
     console.log(JSON.stringify(PILOT_KINGDOMS.map((kingdomId) => readJson<unknown>(reportFile(options.out!, kingdomId))), null, 2)); return;
   }
-  const sources = await loadSources(options.inputs!);
+  const sources = await loadSources(options.inputs!, options.runId);
   const reports: Checkpoint[] = [];
-  for (const source of sources) reports.push(await runKingdom(options.out!, source, options.workers));
+  for (const source of sources) reports.push(await runKingdom(options.out!, source, options.workers, options.runId));
   console.log(JSON.stringify(reports.map((report) => ({ kingdomId: report.kingdomId,
     cycles: report.cycles.length, matrixSize: report.matrix.strategies.length,
     stopReason: report.stopReason, safetyCapReached: report.safetyCapReached,
