@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import { registerKingdom } from '../src/game';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 import { nativeScoreBatchRequest, nativeRuleFingerprint } from '../src/sim/nativeGoldfishProtocol';
+import { ORDERED_PRODUCT_KINGDOM, orderedProductTarget } from '../src/sim/orderedGoldfishProduct';
 import {
   createOrderedCandidateSpace, orderedGoldfishCardIds, representativeCandidateIndices
 } from '../src/sim/orderedGoldfishBenchmark';
@@ -13,9 +14,9 @@ function integer(name: string): number {
   if (!Number.isSafeInteger(value) || value < 0) throw new Error(`--${name} must be a nonnegative integer.`);
   return value;
 }
-function option(name: string): string {
+function option(name: string, fallback?: string): string {
   const index = process.argv.indexOf(`--${name}`);
-  const value = index < 0 ? undefined : process.argv[index + 1];
+  const value = index < 0 ? fallback : process.argv[index + 1];
   if (!value) throw new Error(`--${name} is required.`);
   return value;
 }
@@ -30,7 +31,9 @@ const mode = modeIndex < 0 ? 'compact' : process.argv[modeIndex + 1];
 if (end < start || threads < 1 || cpu < 1 || shuffles < 1 || !['full', 'compact'].includes(mode ?? '')) {
   throw new Error('Invalid shard bounds or score mode.');
 }
-const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
+const target = orderedProductTarget(option('kingdom', ORDERED_PRODUCT_KINGDOM));
+const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === target.kingdomId);
+if (!kingdom) throw new Error(`Ordered product kingdom is not registered: ${target.kingdomId}`);
 registerKingdom(kingdom);
 const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
 const strategies = [...representativeCandidateIndices(space.candidateCount, end - start, start)]
@@ -41,6 +44,7 @@ const config = { kingdomId: kingdom.id,
 const request = nativeScoreBatchRequest(kingdom, strategies, config, threads, mode as 'full' | 'compact');
 fs.writeFileSync(option('request'), `${JSON.stringify(request)}\n`);
 fs.writeFileSync(option('metadata'), `${JSON.stringify({
+  kingdomId: kingdom.id,
   completeCount: strategies.length,
   candidateDigest: stableHash(strategies.map(canonicalStrategy).join('\n')),
   ruleFingerprint: nativeRuleFingerprint(kingdom.id, 30, 200), cpu, threads,

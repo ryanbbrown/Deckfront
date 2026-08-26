@@ -25,7 +25,14 @@ MAX_PHYSICAL_CORES = 192
 MAX_FULL_RUNS = 3
 FULL_CANDIDATE_COUNT = 12_972_960
 MAX_RETRIES = 2
-ORDERED_PRODUCT_AUTHORIZATION = "k009-ordered-product-correction-v1"
+DEFAULT_ORDERED_PRODUCT_KINGDOM = "deep-beam-tuning-009"
+ORDERED_PRODUCT_AUTHORIZATIONS = {
+    "deep-beam-tuning-001": "k001-ordered-product-calibration-v1",
+    "deep-beam-tuning-007": "k007-ordered-product-calibration-v1",
+    "deep-beam-tuning-008": "k008-ordered-product-calibration-v1",
+    DEFAULT_ORDERED_PRODUCT_KINGDOM: "k009-ordered-product-correction-v1",
+}
+ORDERED_PRODUCT_AUTHORIZATION = ORDERED_PRODUCT_AUTHORIZATIONS[DEFAULT_ORDERED_PRODUCT_KINGDOM]
 ORDERED_PRODUCT_RETAINED_COUNT = 500_000
 ORDERED_PRODUCT_RESERVOIR_COUNT = 20_000
 SCORER_VERSION = "native-goldfish-v1"
@@ -122,6 +129,11 @@ def reserve_cost(run_id: str, projected: float, full_run: bool, config: dict[str
         reserved = sum(float(run["reservedUsd"]) for run in ledger["runs"].values())
         full_runs = sum(bool(run["fullRun"]) for run in ledger["runs"].values())
         authorization = config.get("authorization")
+        expected_authorization = ORDERED_PRODUCT_AUTHORIZATIONS.get(config.get("kingdom"))
+        authorized_campaign = config.get("kind") == "ordered-product" \
+            and authorization == expected_authorization
+        if authorization and not authorized_campaign:
+            raise RuntimeError("authorization does not match an ordered product kingdom")
         authorized_runs = [run for run in ledger["runs"].values()
                            if run.get("config", {}).get("authorization") == authorization] \
             if authorization else []
@@ -132,7 +144,9 @@ def reserve_cost(run_id: str, projected: float, full_run: bool, config: dict[str
                 raise RuntimeError(f"authorization {authorization} was already used")
             prior = authorized_runs[0]
             prior_actual = float(config.get("prior_actual_usd", -1))
+            prior_kingdom = prior.get("config", {}).get("kingdom", DEFAULT_ORDERED_PRODUCT_KINGDOM)
             if prior.get("config", {}).get("kind") != "ordered-product" \
+                    or prior_kingdom != config.get("kingdom") \
                     or prior_actual < 0 or prior_actual > float(prior["reservedUsd"]):
                 raise RuntimeError("ordered product continuation does not match the failed campaign")
             prior["reservedUsd"] = round(prior_actual, 8)
@@ -143,7 +157,7 @@ def reserve_cost(run_id: str, projected: float, full_run: bool, config: dict[str
             raise RuntimeError(
                 f"cumulative reservation ${reserved + projected:.4f} exceeds ${GROSS_BUDGET_USD:.2f}"
             )
-        if full_run and full_runs >= MAX_FULL_RUNS and authorization != ORDERED_PRODUCT_AUTHORIZATION:
+        if full_run and full_runs >= MAX_FULL_RUNS and not authorized_campaign:
             raise RuntimeError(f"full-space run limit {MAX_FULL_RUNS} is exhausted")
         entry = {
             "runId": run_id,
@@ -195,7 +209,7 @@ def record_controller_call(run_id: str, call_id: str) -> None:
 
 
 def _result_hash(value: dict[str, Any]) -> str:
-    held = {key: value[key] for key in ["runId", "shardId", "startPosition", "endPosition",
+    held = {key: value[key] for key in ["runId", "kingdomId", "shardId", "startPosition", "endPosition",
         "completeCount", "candidateDigest", "scoreDigest", "ruleFingerprint", "scorerVersion",
         "buildVersion", "shuffleSeeds", "movementProfiles", "requestedCpu", "threads"]}
     return hashlib.sha256(json.dumps(held, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
@@ -207,6 +221,7 @@ def valid_result(value: Any, spec: dict[str, Any]) -> bool:
             value["schemaVersion"] == RESULT_SCHEMA_VERSION
             and value["status"] == "success"
             and value["runId"] == spec["run_id"]
+            and value["kingdomId"] == spec["kingdom"]
             and value["shardId"] == spec["shard_id"]
             and value["startPosition"] == spec["start_position"]
             and value["endPosition"] == spec["end_position"]
@@ -254,14 +269,16 @@ def _native_shard(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str,
         request_path = pathlib.Path(directory) / "request.jsonl"
         metadata_path = pathlib.Path(directory) / "metadata.json"
         subprocess.run(["npx", "tsx", "scripts/native_ordered_shard_input.ts",
+            "--kingdom", spec["kingdom"],
             "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"]),
             "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]),
             "--shuffles", str(spec["shuffles"]), "--request", str(request_path),
             "--metadata", str(metadata_path)], cwd="/workspace", text=True, capture_output=True,
             timeout=generation_timeout, check=True)
         metadata = json.loads(metadata_path.read_text())
-        if metadata["ruleFingerprint"] != spec["rule_fingerprint"]:
-            raise RuntimeError("TypeScript rule fingerprint does not match the shard specification")
+        if metadata["kingdomId"] != spec["kingdom"] \
+                or metadata["ruleFingerprint"] != spec["rule_fingerprint"]:
+            raise RuntimeError("TypeScript kingdom or rule fingerprint does not match the shard specification")
         executable = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
         with request_path.open() as request:
             completed = subprocess.run([executable, "--threads", str(spec["threads"]),
@@ -297,6 +314,7 @@ def score_shard(spec: dict[str, Any]) -> dict[str, Any]:
             "schemaVersion": RESULT_SCHEMA_VERSION,
             "status": "success",
             "runId": spec["run_id"],
+            "kingdomId": spec["kingdom"],
             "shardId": spec["shard_id"],
             "startPosition": spec["start_position"],
             "endPosition": spec["end_position"],
@@ -326,6 +344,7 @@ def score_shard(spec: dict[str, Any]) -> dict[str, Any]:
             "schemaVersion": RESULT_SCHEMA_VERSION,
             "status": "failure",
             "runId": spec["run_id"],
+            "kingdomId": spec["kingdom"],
             "shardId": spec["shard_id"],
             "errorType": type(error).__name__,
             "error": str(error),
@@ -357,7 +376,8 @@ def product_search(config: dict[str, Any]) -> dict[str, Any]:
     command_summary = json.loads(lines[-1])
     rss = re.search(r"Maximum resident set size \(kbytes\):\s*(\d+)", completed.stderr)
     summary = {"schemaVersion": 1, "status": "success", "runId": config["run_id"],
-        "buildVersion": config["build_version"], "ruleFingerprint": config["rule_fingerprint"],
+        "kingdomId": config["kingdom"], "buildVersion": config["build_version"],
+        "ruleFingerprint": config["rule_fingerprint"],
         "scorerVersion": SCORER_VERSION, "generatedCount": config["count"],
         "prefilterCount": command_summary["prefilterCount"],
         "leaderCount": command_summary["leaderCount"], "tailCount": command_summary["tailCount"],
@@ -381,7 +401,8 @@ def _ordered_product_checkpoint_path(config: dict[str, Any], stage: str, shard_i
 
 def _ordered_product_cli(config: dict[str, Any]) -> list[str]:
     return ["npx", "tsx", "scripts/ordered_goldfish_product.ts",
-        "--run-id", config["run_id"], "--build-version", config["build_version"],
+        "--kingdom", config["kingdom"], "--run-id", config["run_id"],
+        "--build-version", config["build_version"],
         "--rule-fingerprint", config["rule_fingerprint"], "--scorer-version", SCORER_VERSION,
         "--retained-count", str(config["retained_count"]),
         "--reservoir-count", str(config["reservoir_count"])]
@@ -428,6 +449,7 @@ def ordered_product_stage_one(spec: dict[str, Any]) -> dict[str, Any]:
         metadata = pathlib.Path(directory) / "metadata.json"
         generation_timeout, scoring_timeout = ordered_subprocess_timeouts(spec["timeout_seconds"])
         subprocess.run(["npx", "tsx", "scripts/native_ordered_shard_input.ts",
+            "--kingdom", spec["kingdom"],
             "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"]),
             "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]), "--shuffles", "1",
             "--mode", "full", "--request", str(request), "--metadata", str(metadata)],
@@ -536,11 +558,13 @@ def ordered_product_controller(config: dict[str, Any]) -> dict[str, Any]:
                                       for spec in stage_two_specs])
     artifact = root / "ranked.json"
     finalize = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "finalize",
-        "--cohort", str(cohort), "--manifest", str(stage_two_manifest), "--out", str(artifact)]
+        "--cohort", str(cohort), "--manifest", str(stage_two_manifest), "--out", str(artifact)] \
+        + _ordered_product_cli(config)[3:]
     subprocess.run(finalize, cwd="/workspace", env=node_environment, text=True, capture_output=True,
                    timeout=1800, check=True)
     summary = {"schemaVersion": 1, "status": "success", "runId": config["run_id"],
-        "buildVersion": config["build_version"], "ruleFingerprint": config["rule_fingerprint"],
+        "kingdomId": config["kingdom"], "buildVersion": config["build_version"],
+        "ruleFingerprint": config["rule_fingerprint"],
         "scorerVersion": SCORER_VERSION, "retainedCount": config["retained_count"],
         "reservoirCount": config["reservoir_count"], "stageOneShards": stage_one_results,
         "stageTwoShards": stage_two_results, "elapsedMs": round((time.monotonic() - started) * 1000, 3),
@@ -591,6 +615,7 @@ def controller(config: dict[str, Any]) -> dict[str, Any]:
         "schemaVersion": 1,
         "status": "success",
         "runId": config["run_id"],
+        "kingdomId": config["kingdom"],
         "buildVersion": config["build_version"],
         "ruleFingerprint": config["rule_fingerprint"],
         "scorerVersion": SCORER_VERSION,
@@ -611,6 +636,7 @@ def validate_launch_limits(
     *, count: int, start_position: int, shard_size: int, cpu: int, memory_gib: int,
     threads: int, max_containers: int, timeout_seconds: int, max_cost_usd: float,
     chunk_size: int, shuffles: int, scorer: str, product: bool,
+    kingdom: str = DEFAULT_ORDERED_PRODUCT_KINGDOM,
     ordered_product: bool = False, retained_count: int = ORDERED_PRODUCT_RETAINED_COUNT,
     reservoir_count: int = ORDERED_PRODUCT_RESERVOIR_COUNT,
     authorization: str = "", prior_actual_usd: float = 0.0,
@@ -625,6 +651,12 @@ def validate_launch_limits(
         raise ValueError("Rust/worker threads cannot exceed the integer CPU request")
     if product and ordered_product:
         raise ValueError("choose only one product mode")
+    if not ordered_product and (authorization or continuation_run_id or prior_actual_usd):
+        raise ValueError("ordered product authorization is not valid for this mode")
+    if kingdom not in ORDERED_PRODUCT_AUTHORIZATIONS:
+        raise ValueError(f"unsupported ordered product kingdom {kingdom}")
+    if product and kingdom != DEFAULT_ORDERED_PRODUCT_KINGDOM:
+        raise ValueError("the seeded-random product supports only deep-beam-tuning-009")
     aggregate_cpu = cpu if product else 1 + cpu * max_containers
     if aggregate_cpu > MAX_PHYSICAL_CORES:
         raise ValueError(f"aggregate allocation exceeds {MAX_PHYSICAL_CORES} physical cores")
@@ -632,8 +664,9 @@ def validate_launch_limits(
     if ordered_product:
         if start_position != 0 or count != FULL_CANDIDATE_COUNT:
             raise ValueError("ordered product must score the complete ordered candidate space")
-        if authorization != ORDERED_PRODUCT_AUTHORIZATION:
-            raise ValueError(f"ordered product requires authorization {ORDERED_PRODUCT_AUTHORIZATION}")
+        expected_authorization = ORDERED_PRODUCT_AUTHORIZATIONS[kingdom]
+        if authorization != expected_authorization:
+            raise ValueError(f"ordered product for {kingdom} requires authorization {expected_authorization}")
         if prior_actual_usd < 0 or (continuation_run_id and prior_actual_usd <= 0):
             raise ValueError("ordered product continuation actual cost is invalid")
         if retained_count < 1 or reservoir_count < 1 or reservoir_count > retained_count \
@@ -676,6 +709,7 @@ def validate_launch_limits(
 def launch(
     build_version: str,
     rule_fingerprint: str,
+    kingdom: str = DEFAULT_ORDERED_PRODUCT_KINGDOM,
     count: int = 5_000,
     start_position: int = 0,
     shard_size: int = 2_500,
@@ -701,7 +735,7 @@ def launch(
         shard_size=shard_size, cpu=cpu, memory_gib=memory_gib, threads=threads,
         max_containers=max_containers, timeout_seconds=timeout_seconds,
         max_cost_usd=max_cost_usd, chunk_size=chunk_size, shuffles=shuffles,
-        scorer=scorer, product=product, ordered_product=ordered_product,
+        scorer=scorer, product=product, kingdom=kingdom, ordered_product=ordered_product,
         retained_count=retained_count, reservoir_count=reservoir_count,
         authorization=authorization, continuation_run_id=continuation_run_id,
         prior_actual_usd=prior_actual_usd)
@@ -711,6 +745,7 @@ def launch(
     controller_timeout = limits["controller_timeout"]
     config = {
         "kind": "ordered-product" if ordered_product else "product" if product else "ordered",
+        "kingdom": kingdom,
         "build_version": build_version,
         "rule_fingerprint": rule_fingerprint,
         "count": count,

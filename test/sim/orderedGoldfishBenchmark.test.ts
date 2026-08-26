@@ -45,7 +45,25 @@ describe('ordered unique-card goldfish candidate space', () => {
     expect(strategy.buyPlan.slice(5)).toEqual(Array.from({ length: 5 }, () => ({ kind: 'inactive' })));
   });
 
-  it('pins the frozen 100,000-candidate traversal checksum', () => {
+  it.each([
+    ['deep-beam-tuning-001', 'fe10624e178e8'],
+    ['deep-beam-tuning-007', '65257033178f5'],
+    ['deep-beam-tuning-008', 'fea778e71849c'],
+    ['deep-beam-tuning-009', 'fa0328fb18315']
+  ])('pins the first 500 traversal candidates for %s', (kingdomId, expectedChecksum) => {
+    const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!;
+    registerKingdom(kingdom);
+    const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
+    const strategies = function* () {
+      for (const index of representativeCandidateIndices(space.candidateCount, 500)) {
+        yield space.candidateAt(index);
+      }
+    };
+    expect(space.candidateCount).toBe(12_972_960);
+    expect(candidateChecksumFromIterable(strategies())).toBe(expectedChecksum);
+  });
+
+  it('pins the frozen 100,000-candidate Kingdom 009 traversal checksum', () => {
     const space = kingdom009Space();
     const strategies = function* () {
       for (const index of representativeCandidateIndices(space.candidateCount, 100_000)) {

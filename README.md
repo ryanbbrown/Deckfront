@@ -190,27 +190,30 @@ npm run goldfish:native-kingdom-check
 npm run modal:test
 ```
 
-`hexdeck-goldfish` uses versioned line-delimited JSON. It rejects a thread count above the CPU request. Get the rule fingerprint with `npm run goldfish:native-metadata`.
+`hexdeck-goldfish` uses versioned line-delimited JSON. It rejects a thread count above the CPU request. Get a supported kingdom's rule fingerprint with `npm run goldfish:native-metadata -- --kingdom <kingdom-id>`.
 
 The Modal launcher reserves the worst-case cost for all attempts before launch. It caps total reserved spend at $25, aggregate allocation at 192 physical cores, retries at two, and full-space runs at three. Ordered-run accounting includes the one-core controller. This unattended command launches a detached restart-safe controller. A repeat of the same command resumes the same run without a second reservation:
 
 ```sh
 modal profile activate ryanburnettebrown
 modal run --detach modal/native_strategy_search.py --build-version "$(git rev-parse HEAD)" \
-  --rule-fingerprint "$(npm run goldfish:native-metadata --silent)" \
+  --kingdom deep-beam-tuning-009 \
+  --rule-fingerprint "$(npm run goldfish:native-metadata --silent -- --kingdom deep-beam-tuning-009)" \
   --count 5000 --shard-size 2500 --cpu 4 --memory-gib 4 --threads 4 \
   --max-containers 2 --timeout-seconds 120 --max-cost-usd 1 --scorer rust
 ```
 
 Shard checkpoints and the ordered merge live in the `hexdeck-native-strategy-results` Modal Volume. The local reservation ledger is `~/.hexdeck-modal-cost-ledger.json`. Ordered shards call the production TypeScript candidate helper in the image and send its versioned request to Rust. Python does not generate strategies.
 
-Launch or resume the authorized ordered product correction. This configuration reserves at most $2.886 for all retry attempts, uses at most 191 physical cores, and does not launch a local full-space scorer:
+The deterministic ordered product supports `deep-beam-tuning-001`, `deep-beam-tuning-007`, `deep-beam-tuning-008`, and `deep-beam-tuning-009`. Their one-use authorizations are `k001-ordered-product-calibration-v1`, `k007-ordered-product-calibration-v1`, `k008-ordered-product-calibration-v1`, and `k009-ordered-product-correction-v1`. Do not launch a new calibration run until the movement tie-break, rules fingerprint, and Kingdom 007/008 native conformance blockers are resolved. When those blockers are resolved, set one matching pair before launch. This configuration reserves at most $2.886 for all retry attempts, uses at most 191 physical cores, and does not launch a local full-space scorer:
 
 ```sh
+KINGDOM=deep-beam-tuning-009
+AUTHORIZATION=k009-ordered-product-correction-v1
 modal run --detach modal/native_strategy_search.py --ordered-product \
-  --authorization k009-ordered-product-correction-v1 \
+  --kingdom "$KINGDOM" --authorization "$AUTHORIZATION" \
   --build-version "$(git rev-parse HEAD)" \
-  --rule-fingerprint "$(npm run goldfish:native-metadata --silent)" \
+  --rule-fingerprint "$(npm run goldfish:native-metadata --silent -- --kingdom "$KINGDOM")" \
   --count 12972960 --retained-count 500000 --reservoir-count 20000 \
   --shard-size 250000 --cpu 2 --memory-gib 4 --threads 2 \
   --max-containers 95 --timeout-seconds 420 --max-cost-usd 5 --scorer rust
@@ -219,16 +222,17 @@ modal run --detach modal/native_strategy_search.py --ordered-product \
 After the controller stops, fetch and validate the deterministic ranked artifact, then build and validate its exact ranked-prefix reservoir:
 
 ```sh
+KINGDOM=<same-kingdom-id-used-for-launch>
 RUN_ID=<run-id-printed-by-launch>
 mkdir -p .experiments/ordered-goldfish-product/$RUN_ID
 modal volume get hexdeck-native-strategy-results \
   "$RUN_ID" ".experiments/ordered-goldfish-product/$RUN_ID"
-npm run goldfish:ordered-product -- validate \
+npm run goldfish:ordered-product -- validate --kingdom "$KINGDOM" \
   --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json"
-npm run goldfish:ordered-product -- build-reservoir \
+npm run goldfish:ordered-product -- build-reservoir --kingdom "$KINGDOM" \
   --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json" \
   --out ".experiments/ordered-goldfish-product/$RUN_ID/reservoir.json"
-npm run goldfish:ordered-product -- validate-reservoir \
+npm run goldfish:ordered-product -- validate-reservoir --kingdom "$KINGDOM" \
   --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json" \
   --reservoir ".experiments/ordered-goldfish-product/$RUN_ID/reservoir.json"
 ```

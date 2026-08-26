@@ -69,6 +69,24 @@ describe.skipIf(!fs.existsSync(nativeBinary))('Rust goldfish scorer conformance'
     } finally { await rust.close(); }
   }, 60_000);
 
+  it.each([
+    'deep-beam-tuning-001',
+    'deep-beam-tuning-009'
+  ])('matches the four-seed ordered product evidence for %s', async (kingdomId) => {
+    const selectedKingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!;
+    registerKingdom(selectedKingdom);
+    const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
+    const strategies = [...representativeCandidateIndices(space.candidateCount, 32)]
+      .map((index) => space.candidateAt(index));
+    const config = { kingdomId, seeds: [4_100_000, 4_100_001, 4_100_002, 4_100_003],
+      turnLimit: 30, actionCapPerTurn: 200 };
+    const rust = new RustGoldfishScorer(2);
+    try {
+      expect(await rust.score(selectedKingdom, strategies, config, 2, 'full')).toEqual(
+        strategies.map((strategy) => scoreMovementAwareGoldfishStrategyLean(strategy, config, 'full')));
+    } finally { await rust.close(); }
+  }, 60_000);
+
   it('matches disjoint multi-seed aggregation', async () => {
     const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
     const strategies = [...representativeCandidateIndices(space.candidateCount, 12)]

@@ -3,10 +3,12 @@ import { registerKingdom } from '../../src/game';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import { scoreMovementAwareGoldfishStrategyLean } from '../../src/sim/goldfish';
 import {
-  ORDERED_PRODUCT_COLLISION_ALLOWANCE, ORDERED_PRODUCT_PROFILES, ORDERED_PRODUCT_SEEDS,
-  ORDERED_PRODUCT_SPACE_COUNT, ORDERED_PRODUCT_VERSION, buildOrderedProductReservoir,
-  candidateSpaceProvenanceDigest, combineScoreEvidence, compactProfileEvidence,
-  compareRankedRecords, fixedJson, provenanceDigest, rankingKey, retainOrderedProductRecords,
+  ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST, ORDERED_PRODUCT_COLLISION_ALLOWANCE,
+  ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES, ORDERED_PRODUCT_SEEDS,
+  ORDERED_PRODUCT_SPACE_COUNT, ORDERED_PRODUCT_SUPPORTED_KINGDOMS, ORDERED_PRODUCT_VERSION,
+  buildOrderedProductReservoir, candidateSpaceProvenanceDigest, combineScoreEvidence,
+  compactProfileEvidence, compareRankedRecords, fixedJson, orderedProductTarget, provenanceDigest,
+  rankingKey, retainOrderedProductRecords,
   sha256Bytes, validateOrderedProductArtifact,
   validateOrderedProductReservoir
 } from '../../src/sim/orderedGoldfishProduct';
@@ -21,9 +23,9 @@ import {
 import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
 import { canonicalStrategy, stableHash } from '../../src/sim/strategy';
 
-const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
+const kingdom009 = deepBeamSuite.kingdoms.find((entry) => entry.id === ORDERED_PRODUCT_KINGDOM)!;
 
-beforeAll(() => registerKingdom(kingdom));
+beforeAll(() => registerKingdom(kingdom009));
 
 function shard(
   shardId: number, startPosition: number, endPosition: number, retainedCount: number
@@ -32,7 +34,10 @@ function shard(
     retainedCount, candidateDigest: stableHash(`candidate-${shardId}`),
     scoreDigest: stableHash(`score-${shardId}`), contentDigest: stableHash(`content-${shardId}`) };
 }
-function fixture(): OrderedProductRankedArtifact {
+function fixture(kingdomId = ORDERED_PRODUCT_KINGDOM): OrderedProductRankedArtifact {
+  const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!;
+  registerKingdom(kingdom);
+  const target = orderedProductTarget(kingdomId);
   const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
   const strategies = [...representativeCandidateIndices(space.candidateCount, 8)]
     .map((index) => space.candidateAt(index));
@@ -62,7 +67,7 @@ function fixture(): OrderedProductRankedArtifact {
     quantityVectors: space.quantityVectors.map((entry) => [...entry]), skeletonCount: space.skeletonCount,
     candidateCount: space.candidateCount, ...traversal, provenanceDigest: '' };
   candidateSpace.provenanceDigest = candidateSpaceProvenanceDigest(candidateSpace);
-  return { schemaVersion: 1, version: ORDERED_PRODUCT_VERSION, runId: 'fixture', buildVersion: 'fixture',
+  return { schemaVersion: 1, version: target.version, runId: 'fixture', buildVersion: 'fixture',
     ruleFingerprint: nativeRuleFingerprint(kingdom.id, 30, 200), scorerVersion: 'native-goldfish-v1',
     config: { kingdomId: kingdom.id, candidateCount: ORDERED_PRODUCT_SPACE_COUNT,
       retainedCount: records.length, reservoirCount: 3, seeds: [...ORDERED_PRODUCT_SEEDS],
@@ -74,6 +79,29 @@ function fixture(): OrderedProductRankedArtifact {
 }
 
 describe('ordered goldfish product correction', () => {
+  it('pins the supported target contracts while preserving Kingdom 009 aliases', () => {
+    expect(ORDERED_PRODUCT_SUPPORTED_KINGDOMS).toEqual([
+      'deep-beam-tuning-001', 'deep-beam-tuning-007', 'deep-beam-tuning-008', 'deep-beam-tuning-009'
+    ]);
+    expect(orderedProductTarget(ORDERED_PRODUCT_KINGDOM)).toEqual({
+      kingdomId: ORDERED_PRODUCT_KINGDOM, version: ORDERED_PRODUCT_VERSION,
+      authorization: ORDERED_PRODUCT_VERSION,
+      candidateProvenanceDigest: ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST
+    });
+    expect(() => orderedProductTarget('deep-beam-tuning-002')).toThrow('Unsupported ordered product kingdom');
+  });
+
+  it.each(ORDERED_PRODUCT_SUPPORTED_KINGDOMS)(
+    'validates the pinned ordered grammar and staged artifact for %s', (kingdomId) => {
+      const artifact = fixture(kingdomId);
+      expect(artifact.candidateSpace.cardIds).toHaveLength(14);
+      expect(artifact.candidateSpace.candidateCount).toBe(12_972_960);
+      expect(artifact.candidateSpace.provenanceDigest)
+        .toBe(orderedProductTarget(kingdomId).candidateProvenanceDigest);
+      expect(validateOrderedProductArtifact(artifact)).toBe(true);
+    }
+  );
+
   it('has identical ranked bytes for one process and uneven bounded shards, including a tie and empty shard', () => {
     const artifact = fixture();
     const records = artifact.records.map((entry) => ({ ...entry, stageOne: entry.stageOne }));

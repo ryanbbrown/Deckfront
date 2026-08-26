@@ -4,13 +4,44 @@ import { canonicalStrategy, identify, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 
 export const ORDERED_PRODUCT_SCHEMA_VERSION = 1;
-export const ORDERED_PRODUCT_VERSION = 'k009-ordered-product-correction-v1';
 export const ORDERED_PRODUCT_KINGDOM = 'deep-beam-tuning-009';
 export const ORDERED_PRODUCT_SPACE_COUNT = 12_972_960;
 export const ORDERED_PRODUCT_SEEDS = [4_100_000, 4_100_001, 4_100_002, 4_100_003] as const;
 export const ORDERED_PRODUCT_PROFILES = ['stationary', 'chaser', 'kiter'] as const;
 export const ORDERED_PRODUCT_COLLISION_ALLOWANCE = 1_024;
-export const ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST = '5ce8adb2409';
+
+export interface OrderedProductTarget {
+  kingdomId: string;
+  version: string;
+  authorization: string;
+  candidateProvenanceDigest: string;
+}
+
+const ORDERED_PRODUCT_TARGETS: Readonly<Record<string, OrderedProductTarget>> = Object.freeze({
+  'deep-beam-tuning-001': Object.freeze({ kingdomId: 'deep-beam-tuning-001',
+    version: 'k001-ordered-product-calibration-v1', authorization: 'k001-ordered-product-calibration-v1',
+    candidateProvenanceDigest: '8a4759823fa' }),
+  'deep-beam-tuning-007': Object.freeze({ kingdomId: 'deep-beam-tuning-007',
+    version: 'k007-ordered-product-calibration-v1', authorization: 'k007-ordered-product-calibration-v1',
+    candidateProvenanceDigest: '1573ad7d3fa' }),
+  'deep-beam-tuning-008': Object.freeze({ kingdomId: 'deep-beam-tuning-008',
+    version: 'k008-ordered-product-calibration-v1', authorization: 'k008-ordered-product-calibration-v1',
+    candidateProvenanceDigest: '6561f88940b' }),
+  [ORDERED_PRODUCT_KINGDOM]: Object.freeze({ kingdomId: ORDERED_PRODUCT_KINGDOM,
+    version: 'k009-ordered-product-correction-v1', authorization: 'k009-ordered-product-correction-v1',
+    candidateProvenanceDigest: '5ce8adb2409' })
+});
+
+export const ORDERED_PRODUCT_SUPPORTED_KINGDOMS = Object.freeze(Object.keys(ORDERED_PRODUCT_TARGETS));
+export const ORDERED_PRODUCT_VERSION = ORDERED_PRODUCT_TARGETS[ORDERED_PRODUCT_KINGDOM]!.version;
+export const ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST =
+  ORDERED_PRODUCT_TARGETS[ORDERED_PRODUCT_KINGDOM]!.candidateProvenanceDigest;
+
+export function orderedProductTarget(kingdomId: string): OrderedProductTarget {
+  const target = ORDERED_PRODUCT_TARGETS[kingdomId];
+  if (!target) throw new Error(`Unsupported ordered product kingdom: ${kingdomId}`);
+  return target;
+}
 
 export interface OrderedProductProfileEvidence {
   profile: string;
@@ -234,8 +265,8 @@ export function provenanceDigest(shards: readonly OrderedProductShardProvenance[
     entry.contentDigest].join('\t')).join('\n'));
 }
 
-function validConfig(config: OrderedProductConfig): boolean {
-  return config.kingdomId === ORDERED_PRODUCT_KINGDOM && config.candidateCount === ORDERED_PRODUCT_SPACE_COUNT
+function validConfig(config: OrderedProductConfig, target: OrderedProductTarget): boolean {
+  return config.kingdomId === target.kingdomId && config.candidateCount === ORDERED_PRODUCT_SPACE_COUNT
     && integer(config.retainedCount) && config.retainedCount >= 1
     && integer(config.reservoirCount) && config.reservoirCount >= 1
     && config.reservoirCount <= config.retainedCount
@@ -258,14 +289,16 @@ function validShards(shards: readonly OrderedProductShardProvenance[], total: nu
 export function validateOrderedProductArtifact(value: unknown): value is OrderedProductRankedArtifact {
   if (!object(value)) return false;
   const artifact = value as unknown as OrderedProductRankedArtifact;
-  if (artifact.schemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION || artifact.version !== ORDERED_PRODUCT_VERSION
+  let target: OrderedProductTarget;
+  try { target = orderedProductTarget(artifact.config?.kingdomId); } catch { return false; }
+  if (artifact.schemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION || artifact.version !== target.version
     || typeof artifact.runId !== 'string' || !artifact.runId || typeof artifact.buildVersion !== 'string'
     || typeof artifact.ruleFingerprint !== 'string' || typeof artifact.scorerVersion !== 'string'
-    || !validConfig(artifact.config) || !object(artifact.candidateSpace)
+    || !validConfig(artifact.config, target) || !object(artifact.candidateSpace)
     || artifact.candidateSpace.generator !== 'ordered-typescript-five-rung-v1'
     || artifact.candidateSpace.traversal !== 'coprime-position-v1'
     || artifact.candidateSpace.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT
-    || artifact.candidateSpace.provenanceDigest !== ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST
+    || artifact.candidateSpace.provenanceDigest !== target.candidateProvenanceDigest
     || artifact.candidateSpace.provenanceDigest !== candidateSpaceProvenanceDigest(artifact.candidateSpace)
     || !Array.isArray(artifact.records) || artifact.records.length !== artifact.config.retainedCount
     || !Array.isArray(artifact.stageOneShards) || !Array.isArray(artifact.stageTwoShards)
@@ -294,7 +327,7 @@ export function buildOrderedProductReservoir(
   if (!validateOrderedProductArtifact(artifact) || !/^[0-9a-f]{64}$/.test(sourceArtifactSha256)) {
     throw new Error('Ranked artifact is invalid.');
   }
-  return { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: ORDERED_PRODUCT_VERSION,
+  return { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: artifact.version,
     sourceArtifactSha256, runId: artifact.runId, reservoirCount: artifact.config.reservoirCount,
     entries: artifact.records.slice(0, artifact.config.reservoirCount) };
 }
@@ -303,7 +336,7 @@ export function validateOrderedProductReservoir(
 ): value is OrderedProductReservoirArtifact {
   if (!object(value)) return false;
   const reservoir = value as unknown as OrderedProductReservoirArtifact;
-  if (reservoir.schemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION || reservoir.version !== ORDERED_PRODUCT_VERSION
+  if (reservoir.schemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION || reservoir.version !== artifact.version
     || reservoir.runId !== artifact.runId || reservoir.sourceArtifactSha256 !== sourceArtifactSha256
     || reservoir.reservoirCount !== artifact.config.reservoirCount || !Array.isArray(reservoir.entries)
     || reservoir.entries.length !== artifact.config.reservoirCount) return false;

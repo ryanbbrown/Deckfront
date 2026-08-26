@@ -6,12 +6,11 @@ import { registerKingdom } from '../src/game';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 import { nativeRuleFingerprint, nativeScoreBatchRequest } from '../src/sim/nativeGoldfishProtocol';
 import {
-  ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST, ORDERED_PRODUCT_COLLISION_ALLOWANCE,
-  ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES, ORDERED_PRODUCT_SCHEMA_VERSION,
-  ORDERED_PRODUCT_SEEDS, ORDERED_PRODUCT_SPACE_COUNT, ORDERED_PRODUCT_VERSION,
+  ORDERED_PRODUCT_COLLISION_ALLOWANCE, ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES,
+  ORDERED_PRODUCT_SCHEMA_VERSION, ORDERED_PRODUCT_SEEDS, ORDERED_PRODUCT_SPACE_COUNT,
   candidateSpaceProvenanceDigest, combineScoreEvidence, compactProfileEvidence,
-  compareRankedRecords, compareStageOneRecords, fixedJson, provenanceDigest, rankingKey,
-  sha256Bytes, validateOrderedProductRankedRecord, validateOrderedProductStageOneRecord
+  compareRankedRecords, compareStageOneRecords, fixedJson, orderedProductTarget, provenanceDigest,
+  rankingKey, sha256Bytes, validateOrderedProductRankedRecord, validateOrderedProductStageOneRecord
 } from '../src/sim/orderedGoldfishProduct';
 import type {
   OrderedProductConfig, OrderedProductRankedArtifact, OrderedProductRankedRecord,
@@ -67,12 +66,14 @@ function writeHashed(file: string, value: unknown): string {
   const text = fixedJson(value), digest = sha256Bytes(text);
   writeAtomic(file, text); writeAtomic(`${file}.sha256`, `${digest}  ${path.basename(file)}\n`); return digest;
 }
+const productTarget = orderedProductTarget(option('kingdom', ORDERED_PRODUCT_KINGDOM));
+
 function config(): OrderedProductConfig {
   const retainedCount = integer('retained-count', 500_000), reservoirCount = integer('reservoir-count', 20_000);
   if (retainedCount < 1 || reservoirCount < 1 || reservoirCount > retainedCount) {
     throw new Error('Reservoir count must be positive and no greater than retained count.');
   }
-  return { kingdomId: ORDERED_PRODUCT_KINGDOM, candidateCount: ORDERED_PRODUCT_SPACE_COUNT,
+  return { kingdomId: productTarget.kingdomId, candidateCount: ORDERED_PRODUCT_SPACE_COUNT,
     retainedCount, reservoirCount, seeds: [...ORDERED_PRODUCT_SEEDS], profiles: [...ORDERED_PRODUCT_PROFILES],
     turnLimit: 30, actionCapPerTurn: 200, collisionAllowance: ORDERED_PRODUCT_COLLISION_ALLOWANCE };
 }
@@ -135,7 +136,7 @@ async function checkpointRecords<T extends OrderedProductStageOneRecord>(
 function checkpointHeaderValid(value: Checkpoint, expectedStage: Stage): boolean {
   const unsigned = { ...value, shard: { ...value.shard, contentDigest: '' } };
   delete (unsigned as Partial<Checkpoint>).contentDigest;
-  return value.schemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION && value.version === ORDERED_PRODUCT_VERSION
+  return value.schemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION && value.version === productTarget.version
     && value.stage === expectedStage && expectedConfig(value.config)
     && value.shard.contentDigest === value.contentDigest
     && value.contentDigest === stableHash(JSON.stringify(unsigned))
@@ -145,7 +146,7 @@ function makeCheckpoint(
   stage: Stage, shard: Omit<OrderedProductShardProvenance, 'contentDigest'>,
   recordsFile: string, recordsSha256: string
 ): Checkpoint {
-  const base = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: ORDERED_PRODUCT_VERSION, stage,
+  const base = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: productTarget.version, stage,
     runId: option('run-id'), buildVersion: option('build-version'), ruleFingerprint: option('rule-fingerprint'),
     scorerVersion: option('scorer-version', 'native-goldfish-v1'), config: config(),
     shard: { ...shard, contentDigest: '' }, recordsFile: path.basename(recordsFile), recordsSha256,
@@ -234,7 +235,7 @@ function validateCheckpointSet(checkpoints: Array<{ file: string; value: Checkpo
   });
 }
 function cohortHeaderValid(value: CohortManifest): boolean {
-  return value.schemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION && value.version === ORDERED_PRODUCT_VERSION
+  return value.schemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION && value.version === productTarget.version
     && expectedConfig(value.config) && value.recordCount === value.config.retainedCount
     && value.provenanceDigest === provenanceDigest(value.shards) && value.contentDigest === unsignedDigest(value);
 }
@@ -255,7 +256,7 @@ async function readCohortRange(file: string, cohort: CohortManifest, start: numb
   return result;
 }
 function candidateSpace(): RankedManifest['candidateSpace'] {
-  const space = createOrderedCandidateSpace(orderedGoldfishCardIds(ORDERED_PRODUCT_KINGDOM));
+  const space = createOrderedCandidateSpace(orderedGoldfishCardIds(productTarget.kingdomId));
   const value = { generator: 'ordered-typescript-five-rung-v1', traversal: 'coprime-position-v1',
     cardIds: [...space.cardIds], quantityVectors: space.quantityVectors.map((entry) => [...entry]),
     skeletonCount: space.skeletonCount, candidateCount: space.candidateCount,
@@ -267,9 +268,9 @@ async function validateRankedManifest(file: string): Promise<{ manifest: RankedM
   const expected = fs.readFileSync(option('sha256', `${file}.sha256`), 'utf8').trim().split(/\s+/)[0];
   const value = JSON.parse(text) as RankedManifest;
   if (sha256 !== expected || fixedJson(value) !== text || value.schemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION
-    || value.version !== ORDERED_PRODUCT_VERSION || !expectedConfig(value.config)
+    || value.version !== productTarget.version || !expectedConfig(value.config)
     || value.recordCount !== value.config.retainedCount
-    || value.candidateSpace.provenanceDigest !== ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST
+    || value.candidateSpace.provenanceDigest !== productTarget.candidateProvenanceDigest
     || value.candidateSpace.provenanceDigest !== candidateSpaceProvenanceDigest(value.candidateSpace)
     || provenanceDigest(value.stageOneShards) !== value.stageOneProvenanceDigest
     || provenanceDigest(value.stageTwoShards) !== value.stageTwoProvenanceDigest) throw new Error('Ranked manifest is invalid.');
@@ -292,7 +293,8 @@ async function validateRankedManifest(file: string): Promise<{ manifest: RankedM
 }
 
 const mode = process.argv[2];
-const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === ORDERED_PRODUCT_KINGDOM)!;
+const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === productTarget.kingdomId);
+if (!kingdom) throw new Error(`Ordered product kingdom is not registered: ${productTarget.kingdomId}`);
 registerKingdom(kingdom);
 
 if (mode === 'validate-checkpoint') {
@@ -311,10 +313,12 @@ if (mode === 'validate-checkpoint') {
   console.log(JSON.stringify({ valid: true, contentDigest: value.contentDigest, retainedCount: count }));
 } else if (mode === 'stage-one-checkpoint') {
   const request = readJson<{ payload: { strategies: Array<Strategy & { canonicalStrategy: string }> } }>(option('request'));
-  const metadata = readJson<{ candidateDigest: string; completeCount: number; ruleFingerprint: string }>(option('metadata'));
+  const metadata = readJson<{ kingdomId: string; candidateDigest: string; completeCount: number;
+    ruleFingerprint: string }>(option('metadata'));
   const scores = nativeScores(option('response')), start = integer('start-position'), end = integer('end-position');
   if (request.payload.strategies.length !== scores.length || scores.length !== end - start
-    || metadata.completeCount !== scores.length || metadata.ruleFingerprint !== option('rule-fingerprint')) throw new Error('Stage-one inputs differ.');
+    || metadata.kingdomId !== productTarget.kingdomId || metadata.completeCount !== scores.length
+    || metadata.ruleFingerprint !== option('rule-fingerprint')) throw new Error('Stage-one inputs differ.');
   const records = scores.map((raw, index): OrderedProductStageOneRecord => {
     const input = request.payload.strategies[index]!, identity = rawIdentity(raw);
     const strategy: Strategy = { id: input.id, startingBuild: input.startingBuild, buyPlan: input.buyPlan };
@@ -349,7 +353,7 @@ if (mode === 'validate-checkpoint') {
     rankHash.update(stageOneEntryDigest(record)); return { ...record, stageOneRank: index + 1 };
   });
   if (written.count !== first.config.retainedCount) throw new Error('Stage one retained cohort is incomplete.');
-  const base = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: ORDERED_PRODUCT_VERSION,
+  const base = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: productTarget.version,
     runId: first.runId, buildVersion: first.buildVersion, ruleFingerprint: first.ruleFingerprint,
     scorerVersion: first.scorerVersion, config: first.config, shards: checkpoints.map(({ value }) => value.shard),
     provenanceDigest: provenanceDigest(checkpoints.map(({ value }) => value.shard)), recordCount: written.count,
@@ -358,20 +362,22 @@ if (mode === 'validate-checkpoint') {
 } else if (mode === 'stage-two-input') {
   const file = option('cohort'), cohort = readJson<CohortManifest>(file);
   const start = integer('start-position'), end = integer('end-position'), records = await readCohortRange(file, cohort, start, end);
-  if (cohort.ruleFingerprint !== nativeRuleFingerprint(ORDERED_PRODUCT_KINGDOM, 30, 200)) throw new Error('Cohort rules differ.');
+  if (cohort.ruleFingerprint !== nativeRuleFingerprint(productTarget.kingdomId, 30, 200)) throw new Error('Cohort rules differ.');
   const request = nativeScoreBatchRequest(kingdom, records.map((entry) => entry.strategy),
-    { kingdomId: ORDERED_PRODUCT_KINGDOM, seeds: ORDERED_PRODUCT_SEEDS.slice(1), turnLimit: 30,
+    { kingdomId: productTarget.kingdomId, seeds: ORDERED_PRODUCT_SEEDS.slice(1), turnLimit: 30,
       actionCapPerTurn: 200 }, integer('threads'), 'full');
   fs.writeFileSync(option('request'), `${JSON.stringify(request)}\n`);
-  fs.writeFileSync(option('metadata'), fixedJson({ completeCount: end - start,
+  fs.writeFileSync(option('metadata'), fixedJson({ kingdomId: productTarget.kingdomId,
+    completeCount: end - start,
     candidateDigest: stableHash(records.map((entry) => entry.canonicalStrategy).join('\n')),
-    ruleFingerprint: nativeRuleFingerprint(ORDERED_PRODUCT_KINGDOM, 30, 200) }));
+    ruleFingerprint: nativeRuleFingerprint(productTarget.kingdomId, 30, 200) }));
 } else if (mode === 'stage-two-checkpoint') {
   const cohortFile = option('cohort'), cohort = readJson<CohortManifest>(cohortFile);
   const start = integer('start-position'), end = integer('end-position');
   const held = await readCohortRange(cohortFile, cohort, start, end), scores = nativeScores(option('response'));
-  const metadata = readJson<{ candidateDigest: string; ruleFingerprint: string }>(option('metadata'));
-  if (scores.length !== held.length || metadata.ruleFingerprint !== cohort.ruleFingerprint) throw new Error('Stage-two inputs differ.');
+  const metadata = readJson<{ kingdomId: string; candidateDigest: string; ruleFingerprint: string }>(option('metadata'));
+  if (scores.length !== held.length || metadata.kingdomId !== productTarget.kingdomId
+    || metadata.ruleFingerprint !== cohort.ruleFingerprint) throw new Error('Stage-two inputs differ.');
   const records = scores.map((raw, index): OrderedProductRankedRecord => {
     const first = held[index]!, identity = rawIdentity(raw);
     if (identity.strategyId !== first.displayId || identity.collisionTieKey !== first.canonicalStrategy) throw new Error('Stage-two identity differs.');
@@ -395,7 +401,7 @@ if (mode === 'validate-checkpoint') {
     mergeSorted(iterators.map((entry) => entry[Symbol.asyncIterator]()), compareRankedRecords),
     cohort.config.retainedCount, (record, index) => ({ ...record, rank: index + 1 }));
   if (written.count !== cohort.config.retainedCount) throw new Error('Ranked artifact is incomplete.');
-  const manifest: RankedManifest = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: ORDERED_PRODUCT_VERSION,
+  const manifest: RankedManifest = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: productTarget.version,
     runId: cohort.runId, buildVersion: cohort.buildVersion, ruleFingerprint: cohort.ruleFingerprint,
     scorerVersion: cohort.scorerVersion, config: cohort.config, candidateSpace: candidateSpace(),
     stageOneShards: cohort.shards, stageTwoShards: checkpoints.map(({ value }) => value.shard),
@@ -415,7 +421,7 @@ if (mode === 'validate-checkpoint') {
     if (entries.length < manifest.config.reservoirCount) entries.push(record); else break;
   }
   const reservoir: ReservoirArtifact = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION,
-    version: ORDERED_PRODUCT_VERSION, sourceArtifactSha256: sha256, runId: manifest.runId,
+    version: productTarget.version, sourceArtifactSha256: sha256, runId: manifest.runId,
     reservoirCount: manifest.config.reservoirCount, entries };
   if (entries.length !== reservoir.reservoirCount) throw new Error('Reservoir prefix is incomplete.');
   const digest = writeHashed(option('out'), reservoir);
