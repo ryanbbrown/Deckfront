@@ -755,25 +755,81 @@ impl<'a> State<'a> {
     }
     fn immediate(&self, hi: usize) -> i16 {
         let ci = self.p.hand[hi];
-        let salvage = self
-            .p
-            .hand
-            .iter()
-            .enumerate()
-            .filter(|(i, x)| *i != hi && self.k.cards[**x].family == Family::Ranged)
-            .map(|(_, &x)| self.k.cards[x].cost)
-            .max()
-            .unwrap_or(0);
-        self.printed(
-            ci,
-            self.pos[0],
-            self.pos[1],
-            false,
-            self.p.mana,
-            self.tactical,
-            salvage,
-            self.aimed,
-        )
+        let card = &self.k.cards[ci];
+        let close_bonus = if self.exposed { self.k.feint_bonus } else { 0 };
+        let aim_bonus = if self.aimed { self.k.aim_bonus } else { 0 };
+        match card.mechanic {
+            Mechanic::Melee => card.v.damage + close_bonus,
+            Mechanic::Drive => {
+                card.v.damage
+                    + close_bonus
+                    + if self.pos[0] == 1 || self.pos[0] == 6 {
+                        card.v.wall_damage
+                    } else {
+                        0
+                    }
+            }
+            Mechanic::Flurry => self.tactical * card.v.per_action + close_bonus,
+            Mechanic::OpeningStrike => {
+                (if self.cards_played.is_empty() {
+                    card.v.first
+                } else {
+                    card.v.later
+                }) + close_bonus
+            }
+            Mechanic::Rally => card.v.damage + self.copies[ci] * card.v.per_copy + close_bonus,
+            Mechanic::BullRush => card.v.damage + close_bonus,
+            Mechanic::Ranged => card.v.damage + aim_bonus,
+            Mechanic::RepellingShot => {
+                (if (self.pos[0] - self.pos[1]).abs() == 1 {
+                    card.v.near
+                } else {
+                    card.v.far
+                }) + aim_bonus
+            }
+            Mechanic::Longshot => (self.pos[0] - self.pos[1]).abs() + aim_bonus,
+            Mechanic::SalvageShot => {
+                self.p
+                    .hand
+                    .iter()
+                    .enumerate()
+                    .filter(|(index, held)| {
+                        *index != hi && self.k.cards[**held].family == Family::Ranged
+                    })
+                    .map(|(_, &held)| self.k.cards[held].cost)
+                    .max()
+                    .unwrap_or(0)
+                    + aim_bonus
+            }
+            Mechanic::PrecisionShot => {
+                (if self.copies[ci] == 0 {
+                    card.v.first
+                } else {
+                    card.v.later
+                }) + aim_bonus
+            }
+            Mechanic::Spell => card.v.damage,
+            Mechanic::Discharge => self.p.mana * card.v.per_mana,
+            Mechanic::Cascade => card.v.damage + self.spells * card.v.per_spell,
+            Mechanic::Overload => self.mana_spent * card.v.per_mana_spent,
+            Mechanic::Discipline => card.v.damage,
+            Mechanic::Scrap => {
+                if self.copies[ci] == 0 {
+                    card.v.damage
+                } else {
+                    0
+                }
+            }
+            Mechanic::Improvise => self.families.count_ones() as i16 * card.v.per_family,
+            Mechanic::Volley => {
+                (if (self.pos[0] - self.pos[1]).abs() == 1 {
+                    card.v.near
+                } else {
+                    card.v.far
+                }) + aim_bonus
+            }
+            _ => 0,
+        }
     }
     fn hand_damage(&self, ap: i16, op: i16, mana: i16, tactical: i16) -> i16 {
         let mut total = 0;
@@ -867,6 +923,32 @@ impl<'a> State<'a> {
         }
         total * 10 - 6 * i32::from(self.p.live)
     }
+    fn continued_movement_spaces(movement: i16, actor: i16) -> i16 {
+        match movement {
+            -1 => actor - 1,
+            1 => 6 - actor,
+            _ => 0,
+        }
+    }
+    fn wins_final_movement_tie(
+        movement: i16,
+        actor: i16,
+        opponent: i16,
+        best_movement: i16,
+        best_actor: i16,
+        best_opponent: i16,
+    ) -> bool {
+        if movement == 0 || best_movement == 0 {
+            return movement == 0;
+        }
+        let candidate_distance = (actor - opponent).abs();
+        let best_distance = (best_actor - best_opponent).abs();
+        if candidate_distance != best_distance {
+            return candidate_distance > best_distance;
+        }
+        Self::continued_movement_spaces(movement, actor)
+            > Self::continued_movement_spaces(best_movement, best_actor)
+    }
     fn best_move(&self, ci: usize) -> i16 {
         let c = &self.k.cards[ci];
         let choices = [-1, 0, 1];
@@ -890,13 +972,14 @@ impl<'a> State<'a> {
             );
             if k > key
                 || (k == key
-                    && (d == 0
-                        || (best != 0
-                            && ((ap - self.pos[1]).abs()
-                                > (self.pos[0] + best - self.pos[1]).abs()
-                                || (ap - self.pos[1]).abs()
-                                    == (self.pos[0] + best - self.pos[1]).abs()
-                                    && d < best))))
+                    && Self::wins_final_movement_tie(
+                        d,
+                        ap,
+                        self.pos[1],
+                        best,
+                        self.pos[0] + best,
+                        self.pos[1],
+                    ))
             {
                 key = k;
                 best = d
@@ -930,6 +1013,8 @@ impl<'a> State<'a> {
     fn best_drive(&self, ci: usize) -> i16 {
         let c = &self.k.cards[ci];
         let mut best = -1;
+        let mut best_actor = self.pos[0];
+        let mut best_opponent = self.pos[1];
         let mut best_key = (i16::MIN, i32::MIN);
         for movement in [-1, 1] {
             let destination = self.pos[0] + movement;
@@ -940,9 +1025,21 @@ impl<'a> State<'a> {
                 + if self.exposed { self.k.feint_bonus } else { 0 }
                 + if collision { c.v.wall_damage } else { 0 };
             let key = (damage, self.position_value(actor, opponent));
-            if key > best_key {
+            if key > best_key
+                || (key == best_key
+                    && Self::wins_final_movement_tie(
+                        movement,
+                        actor,
+                        opponent,
+                        best,
+                        best_actor,
+                        best_opponent,
+                    ))
+            {
                 best_key = key;
-                best = movement
+                best = movement;
+                best_actor = actor;
+                best_opponent = opponent;
             }
         }
         best

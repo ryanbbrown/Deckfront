@@ -205,7 +205,7 @@ modal run --detach modal/native_strategy_search.py --build-version "$(git rev-pa
 
 Shard checkpoints and the ordered merge live in the `hexdeck-native-strategy-results` Modal Volume. The local reservation ledger is `~/.hexdeck-modal-cost-ledger.json`. Ordered shards call the production TypeScript candidate helper in the image and send its versioned request to Rust. Python does not generate strategies.
 
-The deterministic ordered product supports `deep-beam-tuning-001`, `deep-beam-tuning-007`, `deep-beam-tuning-008`, and `deep-beam-tuning-009`. Their one-use authorizations are `k001-ordered-product-calibration-v1`, `k007-ordered-product-calibration-v1`, `k008-ordered-product-calibration-v1`, and `k009-ordered-product-correction-v1`. Do not launch a new calibration run until the movement tie-break, rules fingerprint, and Kingdom 007/008 native conformance blockers are resolved. When those blockers are resolved, set one matching pair before launch. This configuration reserves at most $2.886 for all retry attempts, uses at most 191 physical cores, and does not launch a local full-space scorer:
+The deterministic ordered product supports `deep-beam-tuning-001`, `deep-beam-tuning-007`, `deep-beam-tuning-008`, and `deep-beam-tuning-009`. Their one-use authorizations are `k001-ordered-product-calibration-v2`, `k007-ordered-product-calibration-v2`, `k008-ordered-product-calibration-v2`, and `k009-ordered-product-correction-v1`. Set one matching kingdom and authorization before launch. This configuration reserves at most $2.886 for all retry attempts, uses at most 191 physical cores, and does not launch a local full-space scorer:
 
 ```sh
 KINGDOM=deep-beam-tuning-009

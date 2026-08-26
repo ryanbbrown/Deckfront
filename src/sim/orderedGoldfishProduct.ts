@@ -19,13 +19,13 @@ export interface OrderedProductTarget {
 
 const ORDERED_PRODUCT_TARGETS: Readonly<Record<string, OrderedProductTarget>> = Object.freeze({
   'deep-beam-tuning-001': Object.freeze({ kingdomId: 'deep-beam-tuning-001',
-    version: 'k001-ordered-product-calibration-v1', authorization: 'k001-ordered-product-calibration-v1',
+    version: 'k001-ordered-product-calibration-v1', authorization: 'k001-ordered-product-calibration-v2',
     candidateProvenanceDigest: '8a4759823fa' }),
   'deep-beam-tuning-007': Object.freeze({ kingdomId: 'deep-beam-tuning-007',
-    version: 'k007-ordered-product-calibration-v1', authorization: 'k007-ordered-product-calibration-v1',
+    version: 'k007-ordered-product-calibration-v1', authorization: 'k007-ordered-product-calibration-v2',
     candidateProvenanceDigest: '1573ad7d3fa' }),
   'deep-beam-tuning-008': Object.freeze({ kingdomId: 'deep-beam-tuning-008',
-    version: 'k008-ordered-product-calibration-v1', authorization: 'k008-ordered-product-calibration-v1',
+    version: 'k008-ordered-product-calibration-v1', authorization: 'k008-ordered-product-calibration-v2',
     candidateProvenanceDigest: '6561f88940b' }),
   [ORDERED_PRODUCT_KINGDOM]: Object.freeze({ kingdomId: ORDERED_PRODUCT_KINGDOM,
     version: 'k009-ordered-product-correction-v1', authorization: 'k009-ordered-product-correction-v1',

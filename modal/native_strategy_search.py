@@ -27,9 +27,9 @@ FULL_CANDIDATE_COUNT = 12_972_960
 MAX_RETRIES = 2
 DEFAULT_ORDERED_PRODUCT_KINGDOM = "deep-beam-tuning-009"
 ORDERED_PRODUCT_AUTHORIZATIONS = {
-    "deep-beam-tuning-001": "k001-ordered-product-calibration-v1",
-    "deep-beam-tuning-007": "k007-ordered-product-calibration-v1",
-    "deep-beam-tuning-008": "k008-ordered-product-calibration-v1",
+    "deep-beam-tuning-001": "k001-ordered-product-calibration-v2",
+    "deep-beam-tuning-007": "k007-ordered-product-calibration-v2",
+    "deep-beam-tuning-008": "k008-ordered-product-calibration-v2",
     DEFAULT_ORDERED_PRODUCT_KINGDOM: "k009-ordered-product-correction-v1",
 }
 ORDERED_PRODUCT_AUTHORIZATION = ORDERED_PRODUCT_AUTHORIZATIONS[DEFAULT_ORDERED_PRODUCT_KINGDOM]

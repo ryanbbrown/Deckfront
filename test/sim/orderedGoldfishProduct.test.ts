@@ -83,11 +83,18 @@ describe('ordered goldfish product correction', () => {
     expect(ORDERED_PRODUCT_SUPPORTED_KINGDOMS).toEqual([
       'deep-beam-tuning-001', 'deep-beam-tuning-007', 'deep-beam-tuning-008', 'deep-beam-tuning-009'
     ]);
-    expect(orderedProductTarget(ORDERED_PRODUCT_KINGDOM)).toEqual({
-      kingdomId: ORDERED_PRODUCT_KINGDOM, version: ORDERED_PRODUCT_VERSION,
-      authorization: ORDERED_PRODUCT_VERSION,
-      candidateProvenanceDigest: ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST
-    });
+    expect(ORDERED_PRODUCT_SUPPORTED_KINGDOMS.map((kingdomId) => orderedProductTarget(kingdomId)))
+      .toEqual([
+        { kingdomId: 'deep-beam-tuning-001', version: 'k001-ordered-product-calibration-v1',
+          authorization: 'k001-ordered-product-calibration-v2', candidateProvenanceDigest: '8a4759823fa' },
+        { kingdomId: 'deep-beam-tuning-007', version: 'k007-ordered-product-calibration-v1',
+          authorization: 'k007-ordered-product-calibration-v2', candidateProvenanceDigest: '1573ad7d3fa' },
+        { kingdomId: 'deep-beam-tuning-008', version: 'k008-ordered-product-calibration-v1',
+          authorization: 'k008-ordered-product-calibration-v2', candidateProvenanceDigest: '6561f88940b' },
+        { kingdomId: ORDERED_PRODUCT_KINGDOM, version: ORDERED_PRODUCT_VERSION,
+          authorization: ORDERED_PRODUCT_VERSION,
+          candidateProvenanceDigest: ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST }
+      ]);
     expect(() => orderedProductTarget('deep-beam-tuning-002')).toThrow('Unsupported ordered product kingdom');
   });
 

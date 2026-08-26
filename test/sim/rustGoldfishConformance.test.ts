@@ -71,6 +71,8 @@ describe.skipIf(!fs.existsSync(nativeBinary))('Rust goldfish scorer conformance'
 
   it.each([
     'deep-beam-tuning-001',
+    'deep-beam-tuning-007',
+    'deep-beam-tuning-008',
     'deep-beam-tuning-009'
   ])('matches the four-seed ordered product evidence for %s', async (kingdomId) => {
     const selectedKingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!;
