@@ -9,8 +9,9 @@ import {
   ORDERED_PRODUCT_COLLISION_ALLOWANCE, ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES,
   ORDERED_PRODUCT_SCHEMA_VERSION, ORDERED_PRODUCT_SEEDS, ORDERED_PRODUCT_SPACE_COUNT,
   candidateSpaceProvenanceDigest, combineScoreEvidence, compactProfileEvidence,
-  compareRankedRecords, compareStageOneRecords, fixedJson, orderedProductTarget, provenanceDigest,
-  rankingKey, sha256Bytes, validateOrderedProductRankedRecord, validateOrderedProductStageOneRecord
+  compareRankedRecords, compareStageOneRecords, fixedJson, orderedProductSeedsValid,
+  orderedProductTarget, provenanceDigest, rankingKey, sha256Bytes,
+  validateOrderedProductRankedRecord, validateOrderedProductStageOneRecord
 } from '../src/sim/orderedGoldfishProduct';
 import type {
   OrderedProductConfig, OrderedProductRankedArtifact, OrderedProductRankedRecord,
@@ -67,6 +68,11 @@ function writeHashed(file: string, value: unknown): string {
   writeAtomic(file, text); writeAtomic(`${file}.sha256`, `${digest}  ${path.basename(file)}\n`); return digest;
 }
 const productTarget = orderedProductTarget(option('kingdom', ORDERED_PRODUCT_KINGDOM));
+const productSeeds = option('seeds', ORDERED_PRODUCT_SEEDS.join(',')).split(',').map((value) => Number(value));
+if (productSeeds.some((seed) => !Number.isSafeInteger(seed) || seed < 0)
+  || !orderedProductSeedsValid(productTarget.kingdomId, productSeeds)) {
+  throw new Error(`--seeds is not an authorized ordered product seed set for ${productTarget.kingdomId}.`);
+}
 
 function config(): OrderedProductConfig {
   const retainedCount = integer('retained-count', 500_000), reservoirCount = integer('reservoir-count', 20_000);
@@ -74,7 +80,7 @@ function config(): OrderedProductConfig {
     throw new Error('Reservoir count must be positive and no greater than retained count.');
   }
   return { kingdomId: productTarget.kingdomId, candidateCount: ORDERED_PRODUCT_SPACE_COUNT,
-    retainedCount, reservoirCount, seeds: [...ORDERED_PRODUCT_SEEDS], profiles: [...ORDERED_PRODUCT_PROFILES],
+    retainedCount, reservoirCount, seeds: [...productSeeds], profiles: [...ORDERED_PRODUCT_PROFILES],
     turnLimit: 30, actionCapPerTurn: 200, collisionAllowance: ORDERED_PRODUCT_COLLISION_ALLOWANCE };
 }
 function expectedConfig(value: OrderedProductConfig): boolean {
@@ -312,12 +318,16 @@ if (mode === 'validate-checkpoint') {
   }
   console.log(JSON.stringify({ valid: true, contentDigest: value.contentDigest, retainedCount: count }));
 } else if (mode === 'stage-one-checkpoint') {
-  const request = readJson<{ payload: { strategies: Array<Strategy & { canonicalStrategy: string }> } }>(option('request'));
+  const request = readJson<{ payload: { kingdom: { id: string }; seeds: number[];
+    strategies: Array<Strategy & { canonicalStrategy: string }> } }>(option('request'));
   const metadata = readJson<{ kingdomId: string; candidateDigest: string; completeCount: number;
-    ruleFingerprint: string }>(option('metadata'));
+    ruleFingerprint: string; shuffleSeeds: number[] }>(option('metadata'));
   const scores = nativeScores(option('response')), start = integer('start-position'), end = integer('end-position');
   if (request.payload.strategies.length !== scores.length || scores.length !== end - start
+    || request.payload.kingdom.id !== productTarget.kingdomId
+    || JSON.stringify(request.payload.seeds) !== JSON.stringify(productSeeds.slice(0, 1))
     || metadata.kingdomId !== productTarget.kingdomId || metadata.completeCount !== scores.length
+    || JSON.stringify(metadata.shuffleSeeds) !== JSON.stringify(productSeeds.slice(0, 1))
     || metadata.ruleFingerprint !== option('rule-fingerprint')) throw new Error('Stage-one inputs differ.');
   const records = scores.map((raw, index): OrderedProductStageOneRecord => {
     const input = request.payload.strategies[index]!, identity = rawIdentity(raw);
@@ -364,19 +374,22 @@ if (mode === 'validate-checkpoint') {
   const start = integer('start-position'), end = integer('end-position'), records = await readCohortRange(file, cohort, start, end);
   if (cohort.ruleFingerprint !== nativeRuleFingerprint(productTarget.kingdomId, 30, 200)) throw new Error('Cohort rules differ.');
   const request = nativeScoreBatchRequest(kingdom, records.map((entry) => entry.strategy),
-    { kingdomId: productTarget.kingdomId, seeds: ORDERED_PRODUCT_SEEDS.slice(1), turnLimit: 30,
+    { kingdomId: productTarget.kingdomId, seeds: productSeeds.slice(1), turnLimit: 30,
       actionCapPerTurn: 200 }, integer('threads'), 'full');
   fs.writeFileSync(option('request'), `${JSON.stringify(request)}\n`);
   fs.writeFileSync(option('metadata'), fixedJson({ kingdomId: productTarget.kingdomId,
     completeCount: end - start,
     candidateDigest: stableHash(records.map((entry) => entry.canonicalStrategy).join('\n')),
-    ruleFingerprint: nativeRuleFingerprint(productTarget.kingdomId, 30, 200) }));
+    ruleFingerprint: nativeRuleFingerprint(productTarget.kingdomId, 30, 200),
+    shuffleSeeds: productSeeds.slice(1) }));
 } else if (mode === 'stage-two-checkpoint') {
   const cohortFile = option('cohort'), cohort = readJson<CohortManifest>(cohortFile);
   const start = integer('start-position'), end = integer('end-position');
   const held = await readCohortRange(cohortFile, cohort, start, end), scores = nativeScores(option('response'));
-  const metadata = readJson<{ kingdomId: string; candidateDigest: string; ruleFingerprint: string }>(option('metadata'));
+  const metadata = readJson<{ kingdomId: string; candidateDigest: string; ruleFingerprint: string;
+    shuffleSeeds: number[] }>(option('metadata'));
   if (scores.length !== held.length || metadata.kingdomId !== productTarget.kingdomId
+    || JSON.stringify(metadata.shuffleSeeds) !== JSON.stringify(productSeeds.slice(1))
     || metadata.ruleFingerprint !== cohort.ruleFingerprint) throw new Error('Stage-two inputs differ.');
   const records = scores.map((raw, index): OrderedProductRankedRecord => {
     const first = held[index]!, identity = rawIdentity(raw);

@@ -26,12 +26,25 @@ MAX_FULL_RUNS = 3
 FULL_CANDIDATE_COUNT = 12_972_960
 MAX_RETRIES = 2
 DEFAULT_ORDERED_PRODUCT_KINGDOM = "deep-beam-tuning-009"
+ORDERED_PRODUCT_SEEDS = [4_100_000, 4_100_001, 4_100_002, 4_100_003]
 ORDERED_PRODUCT_AUTHORIZATIONS = {
     "deep-beam-tuning-001": "k001-ordered-product-calibration-v2",
     "deep-beam-tuning-007": "k007-ordered-product-calibration-v2",
     "deep-beam-tuning-008": "k008-ordered-product-calibration-v2",
     DEFAULT_ORDERED_PRODUCT_KINGDOM: "k009-ordered-product-correction-v1",
 }
+ORDERED_PRODUCT_AUTHORIZATION_CONTRACTS = {
+    authorization: {"kingdom": kingdom, "shuffle_seeds": ORDERED_PRODUCT_SEEDS}
+    for kingdom, authorization in ORDERED_PRODUCT_AUTHORIZATIONS.items()
+}
+ORDERED_PRODUCT_AUTHORIZATION_CONTRACTS.update({
+    "k007-ordered-product-seed-replication-1-v1": {
+        "kingdom": "deep-beam-tuning-007", "shuffle_seeds": [5_100_000, 5_100_001, 5_100_002, 5_100_003]},
+    "k007-ordered-product-seed-replication-2-v1": {
+        "kingdom": "deep-beam-tuning-007", "shuffle_seeds": [6_100_000, 6_100_001, 6_100_002, 6_100_003]},
+    "k007-ordered-product-seed-replication-3-v1": {
+        "kingdom": "deep-beam-tuning-007", "shuffle_seeds": [7_100_000, 7_100_001, 7_100_002, 7_100_003]},
+})
 ORDERED_PRODUCT_AUTHORIZATION = ORDERED_PRODUCT_AUTHORIZATIONS[DEFAULT_ORDERED_PRODUCT_KINGDOM]
 ORDERED_PRODUCT_RETAINED_COUNT = 500_000
 ORDERED_PRODUCT_RESERVOIR_COUNT = 20_000
@@ -137,11 +150,13 @@ def reserve_cost(run_id: str, projected: float, full_run: bool, config: dict[str
         reserved = sum(float(run["reservedUsd"]) for run in ledger["runs"].values())
         full_runs = sum(bool(run["fullRun"]) for run in ledger["runs"].values())
         authorization = config.get("authorization")
-        expected_authorization = ORDERED_PRODUCT_AUTHORIZATIONS.get(config.get("kingdom"))
+        authorization_contract = ORDERED_PRODUCT_AUTHORIZATION_CONTRACTS.get(authorization)
         authorized_campaign = config.get("kind") == "ordered-product" \
-            and authorization == expected_authorization
+            and authorization_contract is not None \
+            and config.get("kingdom") == authorization_contract["kingdom"] \
+            and config.get("shuffle_seeds") == authorization_contract["shuffle_seeds"]
         if authorization and not authorized_campaign:
-            raise RuntimeError("authorization does not match an ordered product kingdom")
+            raise RuntimeError("authorization does not match its ordered product kingdom and seed set")
         authorized_runs = [run for run in ledger["runs"].values()
                            if run.get("config", {}).get("authorization") == authorization] \
             if authorization else []
@@ -152,9 +167,11 @@ def reserve_cost(run_id: str, projected: float, full_run: bool, config: dict[str
                 raise RuntimeError(f"authorization {authorization} was already used")
             prior = authorized_runs[0]
             prior_actual = float(config.get("prior_actual_usd", -1))
-            prior_kingdom = prior.get("config", {}).get("kingdom", DEFAULT_ORDERED_PRODUCT_KINGDOM)
-            if prior.get("config", {}).get("kind") != "ordered-product" \
+            prior_config = prior.get("config", {})
+            prior_kingdom = prior_config.get("kingdom", DEFAULT_ORDERED_PRODUCT_KINGDOM)
+            if prior_config.get("kind") != "ordered-product" \
                     or prior_kingdom != config.get("kingdom") \
+                    or prior_config.get("shuffle_seeds") != config.get("shuffle_seeds") \
                     or prior_actual < 0 or prior_actual > float(prior["reservedUsd"]):
                 raise RuntimeError("ordered product continuation does not match the failed campaign")
             prior["reservedUsd"] = round(prior_actual, 8)
@@ -237,7 +254,7 @@ def valid_result(value: Any, spec: dict[str, Any]) -> bool:
             and value["ruleFingerprint"] == spec["rule_fingerprint"]
             and value["scorerVersion"] == SCORER_VERSION
             and value["buildVersion"] == spec["build_version"]
-            and value["shuffleSeeds"] == [4_100_000 + index for index in range(spec["shuffles"])]
+            and value["shuffleSeeds"] == spec["shuffle_seeds"]
             and value["movementProfiles"] == ["stationary", "chaser", "kiter"]
             and value["requestedCpu"] == spec["cpu"]
             and value["threads"] == spec["threads"]
@@ -280,11 +297,13 @@ def _native_shard(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str,
             "--kingdom", spec["kingdom"],
             "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"]),
             "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]),
-            "--shuffles", str(spec["shuffles"]), "--request", str(request_path),
+            "--seeds", ",".join(str(seed) for seed in spec["shuffle_seeds"]),
+            "--request", str(request_path),
             "--metadata", str(metadata_path)], cwd="/workspace", text=True, capture_output=True,
             timeout=generation_timeout, check=True)
         metadata = json.loads(metadata_path.read_text())
         if metadata["kingdomId"] != spec["kingdom"] \
+                or metadata["shuffleSeeds"] != spec["shuffle_seeds"] \
                 or metadata["ruleFingerprint"] != spec["rule_fingerprint"]:
             raise RuntimeError("TypeScript kingdom or rule fingerprint does not match the shard specification")
         executable = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
@@ -332,7 +351,7 @@ def score_shard(spec: dict[str, Any]) -> dict[str, Any]:
             "ruleFingerprint": metadata["ruleFingerprint"],
             "scorerVersion": SCORER_VERSION,
             "buildVersion": spec["build_version"],
-            "shuffleSeeds": [4_100_000 + index for index in range(spec["shuffles"])],
+            "shuffleSeeds": spec["shuffle_seeds"],
             "movementProfiles": ["stationary", "chaser", "kiter"],
             "requestedCpu": spec["cpu"],
             "threads": spec["threads"],
@@ -413,7 +432,8 @@ def _ordered_product_cli(config: dict[str, Any]) -> list[str]:
         "--build-version", config["build_version"],
         "--rule-fingerprint", config["rule_fingerprint"], "--scorer-version", SCORER_VERSION,
         "--retained-count", str(config["retained_count"]),
-        "--reservoir-count", str(config["reservoir_count"])]
+        "--reservoir-count", str(config["reservoir_count"]),
+        "--seeds", ",".join(str(seed) for seed in config["shuffle_seeds"])]
 
 
 def _valid_ordered_product_checkpoint(path: pathlib.Path, spec: dict[str, Any], stage: str) -> bool:
@@ -459,8 +479,9 @@ def ordered_product_stage_one(spec: dict[str, Any]) -> dict[str, Any]:
         subprocess.run(["npx", "tsx", "scripts/native_ordered_shard_input.ts",
             "--kingdom", spec["kingdom"],
             "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"]),
-            "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]), "--shuffles", "1",
-            "--mode", "full", "--request", str(request), "--metadata", str(metadata)],
+            "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]),
+            "--seeds", str(spec["shuffle_seeds"][0]), "--mode", "full",
+            "--request", str(request), "--metadata", str(metadata)],
             cwd="/workspace", text=True, capture_output=True, timeout=generation_timeout, check=True)
         _run_rust(request, response, spec["threads"], spec["cpu"], scoring_timeout)
         command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "stage-one-checkpoint",
@@ -576,7 +597,8 @@ def ordered_product_controller(config: dict[str, Any]) -> dict[str, Any]:
         "kingdomId": config["kingdom"], "buildVersion": config["build_version"],
         "ruleFingerprint": config["rule_fingerprint"],
         "scorerVersion": SCORER_VERSION, "retainedCount": config["retained_count"],
-        "reservoirCount": config["reservoir_count"], "stageOneShards": stage_one_results,
+        "reservoirCount": config["reservoir_count"], "shuffleSeeds": config["shuffle_seeds"],
+        "stageOneShards": stage_one_results,
         "stageTwoShards": stage_two_results, "elapsedMs": round((time.monotonic() - started) * 1000, 3),
         "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname()),
         "artifact": f"hexdeck-native-strategy-results:/{config['run_id']}/ranked.json"}
@@ -650,11 +672,16 @@ def validate_launch_limits(
     ordered_product: bool = False, retained_count: int = ORDERED_PRODUCT_RETAINED_COUNT,
     reservoir_count: int = ORDERED_PRODUCT_RESERVOIR_COUNT,
     authorization: str = "", prior_actual_usd: float = 0.0,
-    continuation_run_id: str = ""
+    continuation_run_id: str = "", shuffle_seeds: list[int] | None = None
 ) -> dict[str, Any]:
     if min(count, shard_size, cpu, memory_gib, threads, max_containers,
            timeout_seconds, chunk_size, shuffles) < 1:
         raise ValueError("counts and resource limits must be positive")
+    if shuffle_seeds is None:
+        shuffle_seeds = [4_100_000 + index for index in range(shuffles)]
+    if not shuffle_seeds or any(not isinstance(seed, int) or seed < 0 for seed in shuffle_seeds) \
+            or len(set(shuffle_seeds)) != len(shuffle_seeds):
+        raise ValueError("shuffle seeds must be distinct nonnegative integers")
     if scorer != "rust":
         raise ValueError("Modal production supports only the standalone Rust scorer")
     if threads > cpu:
@@ -674,9 +701,10 @@ def validate_launch_limits(
     if ordered_product:
         if start_position != 0 or count != FULL_CANDIDATE_COUNT:
             raise ValueError("ordered product must score the complete ordered candidate space")
-        expected_authorization = ORDERED_PRODUCT_AUTHORIZATIONS[kingdom]
-        if authorization != expected_authorization:
-            raise ValueError(f"ordered product for {kingdom} requires authorization {expected_authorization}")
+        authorization_contract = ORDERED_PRODUCT_AUTHORIZATION_CONTRACTS.get(authorization)
+        if authorization_contract is None or authorization_contract["kingdom"] != kingdom \
+                or authorization_contract["shuffle_seeds"] != shuffle_seeds:
+            raise ValueError("ordered product authorization does not match the exact kingdom and seed set")
         if prior_actual_usd < 0 or (continuation_run_id and prior_actual_usd <= 0):
             raise ValueError("ordered product continuation actual cost is invalid")
         if retained_count < 1 or reservoir_count < 1 or reservoir_count > retained_count \
@@ -712,7 +740,8 @@ def validate_launch_limits(
     if full_run and max_cost_usd > 5:
         raise ValueError("a full production run cap cannot exceed $5")
     return {"end_position": end_position, "projected": projected, "full_run": full_run,
-            "controller_timeout": controller_timeout, "aggregate_cpu": aggregate_cpu}
+            "controller_timeout": controller_timeout, "aggregate_cpu": aggregate_cpu,
+            "shuffle_seeds": shuffle_seeds}
 
 
 @app.local_entrypoint()
@@ -740,7 +769,13 @@ def launch(
     authorization: str = "",
     continuation_run_id: str = "",
     prior_actual_usd: float = 0.0,
+    shuffle_seeds: str = "",
 ) -> None:
+    try:
+        parsed_shuffle_seeds = [int(seed) for seed in shuffle_seeds.split(",")] \
+            if shuffle_seeds else ORDERED_PRODUCT_SEEDS if ordered_product else None
+    except ValueError as error:
+        raise ValueError("--shuffle-seeds must be comma-separated integers") from error
     limits = validate_launch_limits(count=count, start_position=start_position,
         shard_size=shard_size, cpu=cpu, memory_gib=memory_gib, threads=threads,
         max_containers=max_containers, timeout_seconds=timeout_seconds,
@@ -748,7 +783,7 @@ def launch(
         scorer=scorer, product=product, kingdom=kingdom, ordered_product=ordered_product,
         retained_count=retained_count, reservoir_count=reservoir_count,
         authorization=authorization, continuation_run_id=continuation_run_id,
-        prior_actual_usd=prior_actual_usd)
+        prior_actual_usd=prior_actual_usd, shuffle_seeds=parsed_shuffle_seeds)
     end_position = limits["end_position"]
     projected = limits["projected"]
     full_run = limits["full_run"]
@@ -774,7 +809,8 @@ def launch(
         "max_containers": max_containers,
         "timeout_seconds": timeout_seconds,
         "chunk_size": chunk_size,
-        "shuffles": shuffles,
+        "shuffles": len(limits["shuffle_seeds"]),
+        "shuffle_seeds": limits["shuffle_seeds"],
         "scorer": scorer,
         "controller_timeout": controller_timeout,
     }

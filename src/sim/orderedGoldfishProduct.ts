@@ -7,6 +7,11 @@ export const ORDERED_PRODUCT_SCHEMA_VERSION = 1;
 export const ORDERED_PRODUCT_KINGDOM = 'deep-beam-tuning-009';
 export const ORDERED_PRODUCT_SPACE_COUNT = 12_972_960;
 export const ORDERED_PRODUCT_SEEDS = [4_100_000, 4_100_001, 4_100_002, 4_100_003] as const;
+export const K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS = Object.freeze([
+  Object.freeze([5_100_000, 5_100_001, 5_100_002, 5_100_003]),
+  Object.freeze([6_100_000, 6_100_001, 6_100_002, 6_100_003]),
+  Object.freeze([7_100_000, 7_100_001, 7_100_002, 7_100_003])
+] as const);
 export const ORDERED_PRODUCT_PROFILES = ['stationary', 'chaser', 'kiter'] as const;
 export const ORDERED_PRODUCT_COLLISION_ALLOWANCE = 1_024;
 
@@ -265,12 +270,18 @@ export function provenanceDigest(shards: readonly OrderedProductShardProvenance[
     entry.contentDigest].join('\t')).join('\n'));
 }
 
+export function orderedProductSeedsValid(kingdomId: string, seeds: readonly number[]): boolean {
+  const exact = (expected: readonly number[]): boolean => JSON.stringify(seeds) === JSON.stringify(expected);
+  return exact(ORDERED_PRODUCT_SEEDS) || kingdomId === 'deep-beam-tuning-007'
+    && K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS.some(exact);
+}
+
 function validConfig(config: OrderedProductConfig, target: OrderedProductTarget): boolean {
   return config.kingdomId === target.kingdomId && config.candidateCount === ORDERED_PRODUCT_SPACE_COUNT
     && integer(config.retainedCount) && config.retainedCount >= 1
     && integer(config.reservoirCount) && config.reservoirCount >= 1
     && config.reservoirCount <= config.retainedCount
-    && JSON.stringify(config.seeds) === JSON.stringify(ORDERED_PRODUCT_SEEDS)
+    && orderedProductSeedsValid(config.kingdomId, config.seeds)
     && JSON.stringify(config.profiles) === JSON.stringify(ORDERED_PRODUCT_PROFILES)
     && config.turnLimit === 30 && config.actionCapPerTurn === 200
     && config.collisionAllowance === ORDERED_PRODUCT_COLLISION_ALLOWANCE;

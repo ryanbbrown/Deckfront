@@ -205,7 +205,7 @@ modal run --detach modal/native_strategy_search.py --build-version "$(git rev-pa
 
 Shard checkpoints and the ordered merge live in the `hexdeck-native-strategy-results` Modal Volume. The local reservation ledger is `~/.hexdeck-modal-cost-ledger.json`. Ordered shards call the production TypeScript candidate helper in the image and send its versioned request to Rust. Python does not generate strategies.
 
-The deterministic ordered product supports `deep-beam-tuning-001`, `deep-beam-tuning-007`, `deep-beam-tuning-008`, and `deep-beam-tuning-009`. Their one-use authorizations are `k001-ordered-product-calibration-v2`, `k007-ordered-product-calibration-v2`, `k008-ordered-product-calibration-v2`, and `k009-ordered-product-correction-v1`. Set one matching kingdom and authorization before launch. This configuration reserves at most $2.886 for all retry attempts, uses at most 191 physical cores, and does not launch a local full-space scorer:
+The deterministic ordered product supports `deep-beam-tuning-001`, `deep-beam-tuning-007`, `deep-beam-tuning-008`, and `deep-beam-tuning-009`. Their original one-use authorizations are `k001-ordered-product-calibration-v2`, `k007-ordered-product-calibration-v2`, `k008-ordered-product-calibration-v2`, and `k009-ordered-product-correction-v1`. These contracts use seeds 4,100,000 through 4,100,003, and existing artifacts with those seeds remain valid. Set one matching kingdom and authorization before launch. This configuration reserves at most $2.88503333 for all retry attempts, uses at most 191 physical cores, and does not launch a local full-space scorer:
 
 ```sh
 KINGDOM=deep-beam-tuning-009
@@ -219,20 +219,43 @@ modal run --detach modal/native_strategy_search.py --ordered-product \
   --max-containers 95 --timeout-seconds 420 --max-cost-usd 5 --scorer rust
 ```
 
-After the controller stops, fetch and validate the deterministic ranked artifact, then build and validate its exact ranked-prefix reservoir:
+Kingdom 007 has three independent paid replication contracts. Run each command at most once:
+
+```sh
+modal run --detach modal/native_strategy_search.py --ordered-product --kingdom deep-beam-tuning-007 \
+  --authorization k007-ordered-product-seed-replication-1-v1 --shuffle-seeds 5100000,5100001,5100002,5100003 \
+  --build-version "$(git rev-parse HEAD)" --rule-fingerprint "$(npm run goldfish:native-metadata --silent -- --kingdom deep-beam-tuning-007)" \
+  --count 12972960 --retained-count 500000 --reservoir-count 20000 --shard-size 250000 \
+  --cpu 2 --memory-gib 4 --threads 2 --max-containers 95 --timeout-seconds 420 --max-cost-usd 5 --scorer rust
+
+modal run --detach modal/native_strategy_search.py --ordered-product --kingdom deep-beam-tuning-007 \
+  --authorization k007-ordered-product-seed-replication-2-v1 --shuffle-seeds 6100000,6100001,6100002,6100003 \
+  --build-version "$(git rev-parse HEAD)" --rule-fingerprint "$(npm run goldfish:native-metadata --silent -- --kingdom deep-beam-tuning-007)" \
+  --count 12972960 --retained-count 500000 --reservoir-count 20000 --shard-size 250000 \
+  --cpu 2 --memory-gib 4 --threads 2 --max-containers 95 --timeout-seconds 420 --max-cost-usd 5 --scorer rust
+
+modal run --detach modal/native_strategy_search.py --ordered-product --kingdom deep-beam-tuning-007 \
+  --authorization k007-ordered-product-seed-replication-3-v1 --shuffle-seeds 7100000,7100001,7100002,7100003 \
+  --build-version "$(git rev-parse HEAD)" --rule-fingerprint "$(npm run goldfish:native-metadata --silent -- --kingdom deep-beam-tuning-007)" \
+  --count 12972960 --retained-count 500000 --reservoir-count 20000 --shard-size 250000 \
+  --cpu 2 --memory-gib 4 --threads 2 --max-containers 95 --timeout-seconds 420 --max-cost-usd 5 --scorer rust
+```
+
+All three reservations total $8.6551, within the existing $25 ledger. After each controller stops, set its printed run ID and matching seed set. Then fetch and validate the ranked artifact and exact ranked-prefix reservoir:
 
 ```sh
 KINGDOM=<same-kingdom-id-used-for-launch>
+SEEDS=<same-comma-separated-seed-set-used-for-launch>
 RUN_ID=<run-id-printed-by-launch>
 mkdir -p .experiments/ordered-goldfish-product/$RUN_ID
 modal volume get hexdeck-native-strategy-results \
   "$RUN_ID" ".experiments/ordered-goldfish-product/$RUN_ID"
-npm run goldfish:ordered-product -- validate --kingdom "$KINGDOM" \
+npm run goldfish:ordered-product -- validate --kingdom "$KINGDOM" --seeds "$SEEDS" \
   --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json"
-npm run goldfish:ordered-product -- build-reservoir --kingdom "$KINGDOM" \
+npm run goldfish:ordered-product -- build-reservoir --kingdom "$KINGDOM" --seeds "$SEEDS" \
   --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json" \
   --out ".experiments/ordered-goldfish-product/$RUN_ID/reservoir.json"
-npm run goldfish:ordered-product -- validate-reservoir --kingdom "$KINGDOM" \
+npm run goldfish:ordered-product -- validate-reservoir --kingdom "$KINGDOM" --seeds "$SEEDS" \
   --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json" \
   --reservoir ".experiments/ordered-goldfish-product/$RUN_ID/reservoir.json"
 ```

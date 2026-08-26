@@ -3,8 +3,9 @@ import { registerKingdom } from '../../src/game';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import { scoreMovementAwareGoldfishStrategyLean } from '../../src/sim/goldfish';
 import {
-  ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST, ORDERED_PRODUCT_COLLISION_ALLOWANCE,
-  ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES, ORDERED_PRODUCT_SEEDS,
+  K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS, ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST,
+  ORDERED_PRODUCT_COLLISION_ALLOWANCE, ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES,
+  ORDERED_PRODUCT_SEEDS,
   ORDERED_PRODUCT_SPACE_COUNT, ORDERED_PRODUCT_SUPPORTED_KINGDOMS, ORDERED_PRODUCT_VERSION,
   buildOrderedProductReservoir, candidateSpaceProvenanceDigest, combineScoreEvidence,
   compactProfileEvidence, compareRankedRecords, fixedJson, orderedProductTarget, provenanceDigest,
@@ -34,7 +35,9 @@ function shard(
     retainedCount, candidateDigest: stableHash(`candidate-${shardId}`),
     scoreDigest: stableHash(`score-${shardId}`), contentDigest: stableHash(`content-${shardId}`) };
 }
-function fixture(kingdomId = ORDERED_PRODUCT_KINGDOM): OrderedProductRankedArtifact {
+function fixture(
+  kingdomId = ORDERED_PRODUCT_KINGDOM, seeds: readonly number[] = ORDERED_PRODUCT_SEEDS
+): OrderedProductRankedArtifact {
   const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!;
   registerKingdom(kingdom);
   const target = orderedProductTarget(kingdomId);
@@ -70,7 +73,7 @@ function fixture(kingdomId = ORDERED_PRODUCT_KINGDOM): OrderedProductRankedArtif
   return { schemaVersion: 1, version: target.version, runId: 'fixture', buildVersion: 'fixture',
     ruleFingerprint: nativeRuleFingerprint(kingdom.id, 30, 200), scorerVersion: 'native-goldfish-v1',
     config: { kingdomId: kingdom.id, candidateCount: ORDERED_PRODUCT_SPACE_COUNT,
-      retainedCount: records.length, reservoirCount: 3, seeds: [...ORDERED_PRODUCT_SEEDS],
+      retainedCount: records.length, reservoirCount: 3, seeds: [...seeds],
       profiles: [...ORDERED_PRODUCT_PROFILES], turnLimit: 30, actionCapPerTurn: 200,
       collisionAllowance: ORDERED_PRODUCT_COLLISION_ALLOWANCE },
     candidateSpace,
@@ -108,6 +111,17 @@ describe('ordered goldfish product correction', () => {
       expect(validateOrderedProductArtifact(artifact)).toBe(true);
     }
   );
+
+  it('accepts only the original seeds or one exact K007 replication set', () => {
+    for (const seeds of K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS) {
+      expect(validateOrderedProductArtifact(fixture('deep-beam-tuning-007', seeds))).toBe(true);
+      expect(validateOrderedProductArtifact(fixture('deep-beam-tuning-008', seeds))).toBe(false);
+    }
+    expect(validateOrderedProductArtifact(fixture('deep-beam-tuning-007',
+      [5_100_000, 5_100_001, 5_100_002, 7_100_003]))).toBe(false);
+    expect(validateOrderedProductArtifact(fixture('deep-beam-tuning-007',
+      [...K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS[0]].reverse()))).toBe(false);
+  });
 
   it('has identical ranked bytes for one process and uneven bounded shards, including a tie and empty shard', () => {
     const artifact = fixture();

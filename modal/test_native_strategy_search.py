@@ -16,6 +16,8 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                   "timeout_seconds": 600, "max_cost_usd": 100, "chunk_size": 250,
                   "shuffles": 1, "scorer": "rust", "product": False}
         values.update(overrides)
+        if values.get("ordered_product") and "shuffle_seeds" not in overrides:
+            values["shuffle_seeds"] = launcher.ORDERED_PRODUCT_SEEDS
         return launcher.validate_launch_limits(**values)
 
     def test_worst_case_includes_all_retry_attempts(self):
@@ -48,13 +50,15 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
 
     def test_ordered_product_requires_exact_scope_authorization_and_bounded_counts(self):
         values = self.launch_limits(count=launcher.FULL_CANDIDATE_COUNT, shard_size=250_000,
-            max_containers=47, timeout_seconds=420, max_cost_usd=5, ordered_product=True,
+            cpu=2, threads=2, max_containers=95, timeout_seconds=420, max_cost_usd=5, ordered_product=True,
             retained_count=500_000, reservoir_count=20_000,
             authorization=launcher.ORDERED_PRODUCT_AUTHORIZATION)
-        expected = launcher.projected_ordered_product_cost_usd(52, 2, 4, 4, 420, 47)
+        expected = launcher.projected_ordered_product_cost_usd(52, 2, 2, 4, 420, 95)
         self.assertAlmostEqual(values["projected"], expected)
+        self.assertAlmostEqual(values["projected"], 2.885033333333333)
+        self.assertLess(3 * values["projected"], launcher.GROSS_BUDGET_USD)
         self.assertTrue(values["full_run"])
-        with self.assertRaisesRegex(ValueError, "requires authorization"):
+        with self.assertRaisesRegex(ValueError, "authorization does not match"):
             self.launch_limits(count=launcher.FULL_CANDIDATE_COUNT, ordered_product=True,
                 retained_count=500_000, reservoir_count=20_000)
         with self.assertRaisesRegex(ValueError, "retained and reservoir"):
@@ -74,10 +78,22 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                 wrong_authorization = (launcher.ORDERED_PRODUCT_AUTHORIZATION
                     if kingdom != launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM
                     else launcher.ORDERED_PRODUCT_AUTHORIZATIONS["deep-beam-tuning-001"])
-                with self.assertRaisesRegex(ValueError, "requires authorization"):
+                with self.assertRaisesRegex(ValueError, "authorization does not match"):
                     self.launch_limits(kingdom=kingdom, count=launcher.FULL_CANDIDATE_COUNT,
                         shard_size=250_000, max_containers=47, timeout_seconds=420,
                         max_cost_usd=5, ordered_product=True, authorization=wrong_authorization)
+        for index in range(1, 4):
+            authorization = f"k007-ordered-product-seed-replication-{index}-v1"
+            seeds = [4_100_000 + index * 1_000_000 + offset for offset in range(4)]
+            accepted = self.launch_limits(kingdom="deep-beam-tuning-007",
+                count=launcher.FULL_CANDIDATE_COUNT, shard_size=250_000,
+                cpu=2, threads=2, max_containers=95, timeout_seconds=420, max_cost_usd=5,
+                ordered_product=True, authorization=authorization, shuffle_seeds=seeds)
+            self.assertEqual(accepted["shuffle_seeds"], seeds)
+            with self.assertRaisesRegex(ValueError, "authorization does not match"):
+                self.launch_limits(kingdom="deep-beam-tuning-007",
+                    count=launcher.FULL_CANDIDATE_COUNT, ordered_product=True,
+                    authorization=authorization, shuffle_seeds=launcher.ORDERED_PRODUCT_SEEDS)
         with self.assertRaisesRegex(ValueError, "unsupported ordered product kingdom"):
             self.launch_limits(kingdom="deep-beam-tuning-002")
         with self.assertRaisesRegex(ValueError, "not valid for this mode"):
@@ -106,6 +122,7 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         config = {"run_id": "run", "kingdom": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM,
                   "build_version": "build", "rule_fingerprint": "rules",
                   "retained_count": 500_000, "reservoir_count": 20_000,
+                  "shuffle_seeds": launcher.ORDERED_PRODUCT_SEEDS,
                   "shard_size": 250_000, "cpu": 2, "memory_gib": 4,
                   "timeout_seconds": 420, "max_containers": 95}
 
@@ -167,14 +184,16 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                     launcher.reserve_cost("full-3", 1, True, {"run": 3})
 
     def test_each_product_authorization_is_one_use_and_bypasses_only_the_full_run_cap(self):
-        for kingdom, authorization in launcher.ORDERED_PRODUCT_AUTHORIZATIONS.items():
-            with self.subTest(kingdom=kingdom), tempfile.TemporaryDirectory() as directory:
+        for authorization, contract in launcher.ORDERED_PRODUCT_AUTHORIZATION_CONTRACTS.items():
+            kingdom = contract["kingdom"]
+            with self.subTest(authorization=authorization), tempfile.TemporaryDirectory() as directory:
                 ledger = pathlib.Path(directory) / "ledger.json"
                 with patch.object(launcher, "LEDGER_PATH", ledger):
                     for index in range(3):
                         launcher.reserve_cost(f"full-{index}", 1, True, {"run": index})
                     config = {"kind": "ordered-product", "kingdom": kingdom,
-                              "authorization": authorization}
+                              "authorization": authorization,
+                              "shuffle_seeds": contract["shuffle_seeds"]}
                     launcher.reserve_cost("authorized", 1, True, config)
                     self.assertEqual(launcher.reserve_cost("authorized", 1, True, config)["runId"],
                                      "authorized")
@@ -188,10 +207,11 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                 authorization = launcher.ORDERED_PRODUCT_AUTHORIZATION
                 launcher.reserve_cost("failed", 2.8, True,
                     {"kind": "ordered-product", "kingdom": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM,
-                     "authorization": authorization})
+                     "authorization": authorization, "shuffle_seeds": launcher.ORDERED_PRODUCT_SEEDS})
                 continued = {"kind": "ordered-product",
                     "kingdom": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM,
-                    "authorization": authorization, "continuation_run_id": "failed",
+                    "authorization": authorization, "shuffle_seeds": launcher.ORDERED_PRODUCT_SEEDS,
+                    "continuation_run_id": "failed",
                     "prior_actual_usd": 0.43796662}
                 launcher.reserve_cost("continued", 2.9, True, continued)
                 held = json.loads(ledger.read_text())
@@ -210,9 +230,11 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             with self.subTest(kingdom=kingdom), tempfile.TemporaryDirectory() as directory:
                 request = pathlib.Path(directory) / "request.jsonl"
                 metadata = pathlib.Path(directory) / "metadata.json"
+                seeds = [5_100_000, 5_100_001, 5_100_002, 5_100_003] \
+                    if kingdom == "deep-beam-tuning-007" else [4_100_000]
                 subprocess.run(["npx", "tsx", "scripts/native_ordered_shard_input.ts",
                     "--kingdom", kingdom, "--start-position", "0", "--end-position", "500",
-                    "--threads", "1", "--cpu", "1", "--shuffles", "1",
+                    "--threads", "1", "--cpu", "1", "--seeds", ",".join(map(str, seeds)),
                     "--request", str(request), "--metadata", str(metadata)], check=True)
                 payload = json.loads(request.read_text())["payload"]
                 held = json.loads(metadata.read_text())
@@ -221,6 +243,8 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                 self.assertEqual(held["kingdomId"], kingdom)
                 self.assertEqual(held["candidateDigest"], digest)
                 self.assertEqual(held["completeCount"], 500)
+                self.assertEqual(payload["seeds"], seeds)
+                self.assertEqual(held["shuffleSeeds"], seeds)
 
     def test_controller_claim_blocks_duplicates_and_allows_failed_resume(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -244,8 +268,8 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
     def test_result_validation_rejects_partial_corrupt_and_stale_checkpoints(self):
         spec = {"run_id": "run", "kingdom": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM,
                 "shard_id": 1, "start_position": 10, "end_position": 20,
-                "rule_fingerprint": "rules", "build_version": "build", "shuffles": 1,
-                "cpu": 1, "threads": 1}
+                "rule_fingerprint": "rules", "build_version": "build",
+                "shuffle_seeds": [4_100_000], "cpu": 1, "threads": 1}
         result = {"schemaVersion": 1, "status": "success", "runId": "run",
                   "kingdomId": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM, "shardId": 1,
                   "startPosition": 10, "endPosition": 20, "completeCount": 10,
