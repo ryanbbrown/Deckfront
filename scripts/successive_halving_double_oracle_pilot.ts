@@ -22,6 +22,8 @@ import { GAMES_PER_SEED, emptyAggregate, mergeAggregate } from '../src/sim/pairi
 import type { PairingRunner } from '../src/sim/pairingRunner';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import type { CalibrationCandidateIdentity, ResponseOracleCalibrationManifest } from '../src/sim/responseOracleCalibration';
+import { RustCompetitiveEvaluator } from '../src/sim/rustCompetitiveEvaluator';
+import { RustGoldfishScorer } from '../src/sim/rustGoldfishScorer';
 import { stableHash } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 import type { TelemetryAggregate } from '../src/sim/types';
@@ -712,7 +714,14 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
   const confidence: ConfidenceRunner = workers === 1 ? new InlineConfidenceRunner()
     : new WorkerConfidenceRunner(workers,
       new URL('../src/server/confidenceWorker.ts', import.meta.url), ['--import', 'tsx']);
+  const nativeScorer = new RustGoldfishScorer(workers);
   try {
+    const nativeEvaluator = await RustCompetitiveEvaluator.create(nativeScorer, kingdom,
+      source.reservoir.entries.map((entry) => entry.strategy), {
+        kingdomId: PILOT_KINGDOM, turnLimitPerPlayer: 30, actionCapPerTurn: 200,
+        startingDraftEnabled: false
+      }, workers);
+    const evaluate = nativeEvaluator.evaluate.bind(nativeEvaluator);
     while (checkpoint.status === 'running') {
       if (checkpoint.phase === 'ready' && checkpoint.queue.length) {
         const lottery = positiveLottery(checkpoint.matrix, checkpoint.equilibrium);
@@ -721,7 +730,7 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
           CONFIRMATION_LOOKS.at(-1)!, lottery.weights);
         const confirmation = await runConfirmationRace({ candidates: candidates(source,
           checkpoint.queue.map((entry) => entry.strategyId)), opponents: lottery.opponents, schedule,
-        kingdomId: PILOT_KINGDOM, runner, confidence });
+        kingdomId: PILOT_KINGDOM, runner, confidence, evaluate });
         addPhase(checkpoint, 'confirmation', confirmation.games, confirmation.elapsedMs, confirmation.telemetry);
         const report: QueueRetestReport = { retest, cycle: checkpoint.admissions.length + 1,
           matrixSize: checkpoint.matrix.strategies.length, lotteryHash: lottery.lotteryHash,
@@ -741,7 +750,7 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
         }
         const schedule = scheduleFor(checkpoint, `scan:${scan}:screen`, SCREEN_DEPTHS.at(-1)!, lottery.weights);
         const screen = await runThresholdRace({ candidates: inactive, opponents: lottery.opponents,
-          schedule, kingdomId: PILOT_KINGDOM, runner, confidence });
+          schedule, kingdomId: PILOT_KINGDOM, runner, confidence, evaluate });
         addPhase(checkpoint, 'screening', screen.games, screen.elapsedMs, screen.telemetry);
         const base: ScanBase = { scan, cycle: checkpoint.admissions.length + 1,
           matrixSize: checkpoint.matrix.strategies.length, inactiveCandidates: inactive.length,
@@ -765,7 +774,7 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
           CONFIRMATION_LOOKS.at(-1)!, lottery.weights);
         const confirmation = await runConfirmationRace({ candidates: candidates(source,
           base.screen.provisional.map((entry) => entry.strategyId)), opponents: lottery.opponents,
-        schedule, kingdomId: PILOT_KINGDOM, runner, confidence });
+        schedule, kingdomId: PILOT_KINGDOM, runner, confidence, evaluate });
         addPhase(checkpoint, 'confirmation', confirmation.games, confirmation.elapsedMs, confirmation.telemetry);
         checkpoint.pending = { kind: 'scan-confirmed', base, confirmation }; checkpoint.phase = 'confirmed';
         checkpoint = saveCheckpoint(root, checkpoint); continue;
@@ -802,7 +811,7 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
       throw new Error(`Invalid checkpoint phase ${checkpoint.phase}.`);
     }
     return checkpoint;
-  } finally { await Promise.all([runner.close(), confidence.close()]); }
+  } finally { await Promise.all([runner.close(), confidence.close(), nativeScorer.close()]); }
 }
 
 export function parseOptions(args: readonly string[]): ParsedOptions {

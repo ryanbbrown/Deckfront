@@ -30,6 +30,15 @@ enum Request {
     ScoreBatch {
         payload: kernel::BatchInput,
     },
+    LoadCompetitive {
+        payload: kernel::CompetitiveLoadInput,
+    },
+    ScoreCompetitive {
+        payload: kernel::CompetitiveScoreInput,
+    },
+    FixtureCompetitive {
+        payload: kernel::CompetitiveFixtureInput,
+    },
 }
 
 #[derive(Debug, Serialize)]
@@ -119,6 +128,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let thread_budget = parse_thread_budget().map_err(io::Error::other)?;
     let stdin = io::stdin();
     let mut stdout = io::BufWriter::new(io::stdout().lock());
+    let mut competitive_session: Option<kernel::CompetitiveSession> = None;
     for line in stdin.lock().lines() {
         let line = line?;
         let parsed = serde_json::from_str::<Request>(&line);
@@ -174,6 +184,53 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     serde_json::to_value(success(serde_json::json!({ "scores": scores })))?
                 }
                 Err(message) => serde_json::to_value(failure::<Value>("score_error", message))?,
+            },
+            Ok(Request::LoadCompetitive { payload }) if payload.threads != thread_budget => {
+                serde_json::to_value(failure::<Value>(
+                    "thread_budget",
+                    "competitive payload threads must equal the process thread budget",
+                ))?
+            }
+            Ok(Request::LoadCompetitive { payload }) => {
+                let load_id = payload.load_id.clone();
+                let strategy_count = payload.strategies.len();
+                match kernel::load_competitive(payload) {
+                    Ok(session) => {
+                        competitive_session = Some(session);
+                        serde_json::to_value(success(serde_json::json!({
+                            "loadId": load_id,
+                            "strategyCount": strategy_count,
+                        })))?
+                    }
+                    Err(message) => {
+                        serde_json::to_value(failure::<Value>("competitive_load_error", message))?
+                    }
+                }
+            }
+            Ok(Request::ScoreCompetitive { payload }) => match &competitive_session {
+                Some(session) => match kernel::score_competitive(session, payload) {
+                    Ok(score) => serde_json::to_value(success(score))?,
+                    Err(message) => {
+                        serde_json::to_value(failure::<Value>("competitive_score_error", message))?
+                    }
+                },
+                None => serde_json::to_value(failure::<Value>(
+                    "competitive_not_loaded",
+                    "load competitive strategies before scoring",
+                ))?,
+            },
+            Ok(Request::FixtureCompetitive { payload }) => match &competitive_session {
+                Some(session) => match kernel::fixture_competitive(session, payload) {
+                    Ok(result) => serde_json::to_value(success(result))?,
+                    Err(message) => serde_json::to_value(failure::<Value>(
+                        "competitive_fixture_error",
+                        message,
+                    ))?,
+                },
+                None => serde_json::to_value(failure::<Value>(
+                    "competitive_not_loaded",
+                    "load competitive strategies before fixture evaluation",
+                ))?,
             },
         };
         serde_json::to_writer(&mut stdout, &output)?;

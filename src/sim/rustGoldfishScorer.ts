@@ -4,6 +4,9 @@ import readline from 'node:readline';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
 import type { Kingdom } from '../game';
 import type { GoldfishConfig, MovementAwareGoldfishScore, CompactMovementAwareGoldfishScore } from './goldfish';
+import { nativeCompetitiveFixtureRequest, nativeCompetitiveLoadRequest,
+  nativeCompetitiveScoreRequest } from './nativeCompetitiveProtocol';
+import type { CompetitiveBlock, CompetitiveKernelConfig } from './nativeCompetitiveProtocol';
 import { nativeScoreBatchRequest } from './nativeGoldfishProtocol';
 import type { Strategy } from './strategy';
 
@@ -11,6 +14,18 @@ interface NativeResponse {
   ok: boolean;
   result?: Record<string, unknown>;
   error?: { code?: string; message?: string };
+}
+
+export interface NativeCompetitiveScore {
+  scoreBytes: Uint8Array;
+  played: Uint8Array;
+  aborts: Array<{ blockIndex: number; orientationIndex: number; reason: string }>;
+}
+
+export interface NativeCompetitiveFixture {
+  outcome: 'ochre' | 'indigo' | 'draw' | 'aborted';
+  reason: 'victory' | 'turnLimit' | 'actionCap' | 'actionSearchOverflow';
+  turns: number;
 }
 
 export class RustGoldfishScorer {
@@ -111,6 +126,44 @@ export class RustGoldfishScorer {
       return { ...raw, strategy: strategies[index]! } as unknown as
         MovementAwareGoldfishScore | CompactMovementAwareGoldfishScore;
     });
+  }
+
+  async loadCompetitive(
+    kingdom: Kingdom, strategies: readonly Strategy[], config: CompetitiveKernelConfig,
+    threads: number, cpuRequest = threads
+  ): Promise<string> {
+    const request = nativeCompetitiveLoadRequest(kingdom, strategies, config, threads, cpuRequest);
+    const result = await this.request(request);
+    if (result.loadId !== request.payload.loadId || result.strategyCount !== strategies.length) {
+      throw new Error('Native competitive scorer loaded the wrong strategy table.');
+    }
+    return request.payload.loadId;
+  }
+
+  async scoreCompetitive(
+    loadId: string, blocks: readonly CompetitiveBlock[]
+  ): Promise<NativeCompetitiveScore> {
+    const result = await this.request(nativeCompetitiveScoreRequest(loadId, blocks));
+    const scoreBytes = Uint8Array.from(result.scoreBytes as number[] ?? []);
+    const played = Uint8Array.from(result.played as number[] ?? []);
+    const aborts = result.aborts as NativeCompetitiveScore['aborts'] | undefined;
+    if (scoreBytes.length !== blocks.length || played.length !== blocks.length || !Array.isArray(aborts)
+      || scoreBytes.some((value) => value > 4) || played.some((value) => value > 2)) {
+      throw new Error('Native competitive scorer returned an invalid compact result.');
+    }
+    return { scoreBytes, played, aborts };
+  }
+
+  async fixtureCompetitive(
+    loadId: string, block: CompetitiveBlock, firstPlayer: 'ochre' | 'indigo'
+  ): Promise<NativeCompetitiveFixture> {
+    const result = await this.request(nativeCompetitiveFixtureRequest(loadId, block, firstPlayer));
+    if (!['ochre', 'indigo', 'draw', 'aborted'].includes(String(result.outcome))
+      || !['victory', 'turnLimit', 'actionCap', 'actionSearchOverflow'].includes(String(result.reason))
+      || !Number.isSafeInteger(result.turns)) {
+      throw new Error('Native competitive scorer returned an invalid fixture result.');
+    }
+    return result as unknown as NativeCompetitiveFixture;
   }
 
   async close(): Promise<void> {

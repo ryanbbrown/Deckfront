@@ -177,10 +177,11 @@ npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 2
 npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 250 --scorer rust
 npm run psro:worker-benchmark -- --workers 4 --candidates 1000 --blocks 1 --mode score-only
 npm run psro:worker-benchmark -- --workers 14 --candidates 1000 --blocks 8 --mode score-only
+npm run psro:competitive-benchmark
 npm run staged-goldfish:native-pool -- --pool-seed 5 --chunk-size 1000 --shard-size 100000 --threads 10
 ```
 
-The staged product command keeps generation on one ordered TypeScript coordinator. Both scoring stages retain independent bounded shard top sets and merge them deterministically. Goldfish scoring defaults to 10 Rust threads. Competitive pairing defaults to 4 workers, based on the 1,000-candidate one-block production race shape; it is separate from the goldfish default. The native workspace pins Rust 1.98.0. The local build targets the current host. The Modal image builds the pinned Linux x86-64 target. Build and verify the local target with:
+The staged product command keeps generation on one ordered TypeScript coordinator. Both scoring stages retain independent bounded shard top sets and merge them deterministically. Goldfish scoring defaults to 10 Rust threads. The K007 threshold-racing controller loads its strategy table into the Rust process once, scores two-player blocks as exact quarter-point bytes, and keeps matrix telemetry in TypeScript. Confidence bounds run in parallel by candidate without changing the bound calculation. `psro:competitive-benchmark` checks exact parity before reporting local kernel and worker-shape timings. The native workspace pins Rust 1.98.0. The local build targets the current host. The Modal image builds the pinned Linux x86-64 target. Build and verify the local target with:
 
 ```sh
 npm run goldfish:native-build

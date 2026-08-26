@@ -14,6 +14,8 @@ const MAX_PLAN: usize = 10;
 const MAX_MANA: usize = 4096;
 const INFINITE_BUY_COUNT: i16 = 99;
 const FIRST_PLAYER_HEALTH_PENALTY: i16 = 3;
+const STARTING_BUDGET: i16 = 12;
+const MAX_FIRST_BUY_CARRY: i16 = 3;
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -239,6 +241,7 @@ enum Slot {
 struct Strategy {
     id: String,
     canonical: String,
+    build: Vec<usize>,
     plan: Vec<Slot>,
 }
 #[derive(Clone, Debug, Deserialize)]
@@ -266,6 +269,49 @@ pub struct BatchInput {
     pub threads: usize,
     pub cpu_request: usize,
     pub mode: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompetitiveLoadInput {
+    pub protocol_version: u32,
+    pub scorer_version: String,
+    pub load_id: String,
+    pub rule_fingerprint: String,
+    pub kingdom: KingdomInput,
+    pub strategies: Vec<RawStrategy>,
+    pub turn_limit_per_player: i16,
+    pub action_cap_per_turn: i16,
+    pub starting_draft_enabled: bool,
+    pub infinite_count: i16,
+    pub first_player_health_penalty: i16,
+    pub threads: usize,
+    pub cpu_request: usize,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompetitiveBlockInput {
+    pub candidate_index: usize,
+    pub opponent_index: usize,
+    pub seed: u32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompetitiveScoreInput {
+    pub load_id: String,
+    pub blocks: Vec<CompetitiveBlockInput>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CompetitiveFixtureInput {
+    pub load_id: String,
+    pub candidate_index: usize,
+    pub opponent_index: usize,
+    pub seed: u32,
+    pub first_player: String,
 }
 
 #[derive(Clone)]
@@ -321,9 +367,11 @@ impl Kingdom {
                 .position(|c| c.id == id)
                 .ok_or_else(|| format!("missing strategy card {id}"))
         };
-        for id in &raw.starting_build {
-            find(id)?;
-        }
+        let build = raw
+            .starting_build
+            .iter()
+            .map(|id| find(id))
+            .collect::<Result<Vec<_>, String>>()?;
         let plan = raw
             .buy_plan
             .into_iter()
@@ -344,6 +392,7 @@ impl Kingdom {
         Ok(Strategy {
             id: raw.id,
             canonical: raw.canonical_strategy,
+            build,
             plan,
         })
     }
@@ -359,6 +408,8 @@ struct Player {
     play: Vec<usize>,
     money: i16,
     mana: i16,
+    first_buy_money: i16,
+    first_buy_pending: bool,
     acquired: Vec<i16>,
     attack: Vec<i16>,
     live: i16,
@@ -369,10 +420,12 @@ struct Player {
 struct State<'a> {
     k: &'a Kingdom,
     p: Player,
+    op: Player,
     pos: [i16; 2],
     health: [i16; 2],
-    aimed: bool,
-    exposed: bool,
+    aimed: [bool; 2],
+    exposed: [bool; 2],
+    active_seat: u8,
     supply: Vec<i16>,
     turn: i16,
     rng: u32,
@@ -426,25 +479,39 @@ fn shuffle_in_place(r: &mut u32, values: &mut [usize]) {
         values.swap(i, j)
     }
 }
-fn consume_shuffle(r: &mut u32, length: usize) {
-    for i in (1..length).rev() {
-        let _ = lcg(r, i + 1);
-    }
-}
 impl<'a> State<'a> {
-    fn new(k: &'a Kingdom, s: Strategy, seed: u32, limit: i16, cap: i16) -> Self {
-        let acquired = vec![0; k.cards.len()];
-        let mut rng = seed;
-        let zone_capacity = 10usize.saturating_add(
-            usize::try_from(limit.max(0)).unwrap_or(0) * usize::try_from(cap.max(0)).unwrap_or(0),
-        );
+    fn player(
+        k: &Kingdom,
+        strategy: Strategy,
+        draft: bool,
+        zone_capacity: usize,
+        rng: &mut u32,
+    ) -> Player {
+        let build = if draft {
+            strategy.build.clone()
+        } else {
+            vec![k.scrap; 3]
+        };
         let mut draw = Vec::with_capacity(zone_capacity);
         draw.extend(std::iter::repeat_n(k.copper, 7));
-        draw.extend(std::iter::repeat_n(k.scrap, 3));
-        shuffle_in_place(&mut rng, &mut draw);
-        consume_shuffle(&mut rng, 10);
-        let mut p = Player {
-            strategy: s,
+        draw.extend(build.iter().copied());
+        shuffle_in_place(rng, &mut draw);
+        let mut acquired = vec![0; k.cards.len()];
+        if draft {
+            for &card in &build {
+                acquired[card] += 1;
+            }
+        }
+        let mut attack = vec![0; k.cards.len()];
+        for &card in &draw {
+            if attack_mechanic(k.cards[card].mechanic) {
+                attack[card] += 1;
+            }
+        }
+        let build_cost = build.iter().map(|&card| k.cards[card].cost).sum::<i16>();
+        Player {
+            strategy,
+            live: draw.len() as i16,
             draw,
             head: 0,
             hand: Vec::with_capacity(zone_capacity),
@@ -452,20 +519,41 @@ impl<'a> State<'a> {
             play: Vec::with_capacity(zone_capacity),
             money: 0,
             mana: 0,
+            first_buy_money: if draft {
+                (STARTING_BUDGET - build_cost).clamp(0, MAX_FIRST_BUY_CARRY)
+            } else {
+                0
+            },
+            first_buy_pending: draft,
             acquired,
-            attack: vec![0; k.cards.len()],
-            live: 10,
+            attack,
             money_spent: 0,
             unspent: 0,
+        }
+    }
+
+    fn new(k: &'a Kingdom, s: Strategy, seed: u32, limit: i16, cap: i16) -> Self {
+        let mut rng = seed;
+        let zone_capacity = 10usize.saturating_add(
+            usize::try_from(limit.max(0)).unwrap_or(0) * usize::try_from(cap.max(0)).unwrap_or(0),
+        );
+        let p = Self::player(k, s, false, zone_capacity, &mut rng);
+        let dummy = Strategy {
+            id: "goldfish-dummy".into(),
+            canonical: "goldfish-dummy".into(),
+            build: vec![],
+            plan: vec![],
         };
-        p.attack[k.scrap] = 3;
+        let op = Self::player(k, dummy, false, zone_capacity, &mut rng);
         let mut state = Self {
             k,
             p,
+            op,
             pos: [3, 4],
             health: [(k.health - FIRST_PLAYER_HEALTH_PENALTY).max(1), 50],
-            aimed: false,
-            exposed: false,
+            aimed: [false, false],
+            exposed: [false, false],
+            active_seat: 0,
             supply: k.cards.iter().map(|c| c.supply).collect(),
             turn: 1,
             rng,
@@ -478,7 +566,79 @@ impl<'a> State<'a> {
             families: 0,
         };
         state.draw(5);
+        state.swap_active();
+        state.draw(5);
+        state.swap_active();
         state
+    }
+
+    fn competitive(
+        k: &'a Kingdom,
+        ochre: Strategy,
+        indigo: Strategy,
+        seed: u32,
+        first_indigo: bool,
+        swap_sides: bool,
+        draft: bool,
+        limit: i16,
+        cap: i16,
+    ) -> Self {
+        let mut rng = seed;
+        let zone_capacity = 10usize.saturating_add(
+            usize::try_from(limit.max(0)).unwrap_or(0)
+                * 2
+                * usize::try_from(cap.max(0)).unwrap_or(0),
+        );
+        let p = Self::player(k, ochre, draft, zone_capacity, &mut rng);
+        let op = Self::player(k, indigo, draft, zone_capacity, &mut rng);
+        let mut state = Self {
+            k,
+            p,
+            op,
+            pos: if swap_sides { [4, 3] } else { [3, 4] },
+            health: [
+                if first_indigo {
+                    k.health
+                } else {
+                    (k.health - FIRST_PLAYER_HEALTH_PENALTY).max(1)
+                },
+                if first_indigo {
+                    (k.health - FIRST_PLAYER_HEALTH_PENALTY).max(1)
+                } else {
+                    k.health
+                },
+            ],
+            aimed: [false, false],
+            exposed: [false, false],
+            active_seat: 0,
+            supply: k.cards.iter().map(|c| c.supply).collect(),
+            turn: 1,
+            rng,
+            tactical: 0,
+            cards_played: Vec::with_capacity(usize::try_from(cap.max(0)).unwrap_or(0)),
+            moved: 0,
+            mana_spent: 0,
+            spells: 0,
+            copies: vec![0; k.cards.len()],
+            families: 0,
+        };
+        state.draw(5);
+        state.swap_active();
+        state.draw(5);
+        state.swap_active();
+        if first_indigo {
+            state.swap_active();
+        }
+        state
+    }
+
+    fn swap_active(&mut self) {
+        std::mem::swap(&mut self.p, &mut self.op);
+        self.pos.swap(0, 1);
+        self.health.swap(0, 1);
+        self.aimed.swap(0, 1);
+        self.exposed.swap(0, 1);
+        self.active_seat ^= 1;
     }
     fn draw(&mut self, n: i16) {
         for _ in 0..n {
@@ -539,6 +699,11 @@ impl<'a> State<'a> {
     }
     fn money_now(&self) -> i16 {
         self.p.money
+            + if self.p.first_buy_pending {
+                self.p.first_buy_money
+            } else {
+                0
+            }
             + self
                 .p
                 .hand
@@ -621,7 +786,11 @@ impl<'a> State<'a> {
         let c = &self.k.cards[ci];
         let close = ap == op;
         let aim = if aimed || public { self.k.aim_bonus } else { 0 };
-        let close_bonus = if self.exposed { self.k.feint_bonus } else { 0 };
+        let close_bonus = if !public && self.exposed[1] {
+            self.k.feint_bonus
+        } else {
+            0
+        };
         match c.mechanic {
             Mechanic::Melee => {
                 if close {
@@ -756,8 +925,12 @@ impl<'a> State<'a> {
     fn immediate(&self, hi: usize) -> i16 {
         let ci = self.p.hand[hi];
         let card = &self.k.cards[ci];
-        let close_bonus = if self.exposed { self.k.feint_bonus } else { 0 };
-        let aim_bonus = if self.aimed { self.k.aim_bonus } else { 0 };
+        let close_bonus = if self.exposed[1] {
+            self.k.feint_bonus
+        } else {
+            0
+        };
+        let aim_bonus = if self.aimed[0] { self.k.aim_bonus } else { 0 };
         match card.mechanic {
             Mechanic::Melee => card.v.damage + close_bonus,
             Mechanic::Drive => {
@@ -890,16 +1063,16 @@ impl<'a> State<'a> {
             }
         }
         total
-            + if ranged && self.aimed {
+            + if ranged && self.aimed[0] {
                 self.k.aim_bonus
             } else {
                 0
             }
             + *spell.last().unwrap_or(&0)
     }
-    fn position_value(&self, ap: i16, op: i16) -> i32 {
+    fn profile_value(&self, player: &Player, ap: i16, op: i16) -> i32 {
         let mut total = 0i32;
-        for (ci, &count) in self.p.attack.iter().enumerate() {
+        for (ci, &count) in player.attack.iter().enumerate() {
             if count == 0 {
                 continue;
             }
@@ -911,17 +1084,22 @@ impl<'a> State<'a> {
             let current = self.printed(ci, ap, op, true, 0, 0, 0, false);
             let mut best = -1;
             let mut steps = 5;
-            for p in 1..=6 {
-                let d = self.printed(ci, p, op, true, 0, 0, 0, false);
-                let s = (p - ap).abs();
-                if d > best || (d == best && s < steps) {
-                    best = d;
-                    steps = s
+            for position in 1..=6 {
+                let damage = self.printed(ci, position, op, true, 0, 0, 0, false);
+                let held_steps = (position - ap).abs();
+                if damage > best || (damage == best && held_steps < steps) {
+                    best = damage;
+                    steps = held_steps
                 }
             }
             total += i32::from(count) * i32::from(current * DAMAGE_WEIGHT - steps)
         }
-        total * 10 - 6 * i32::from(self.p.live)
+        total
+    }
+
+    fn position_value(&self, ap: i16, op: i16) -> i32 {
+        self.profile_value(&self.p, ap, op) * i32::from(self.op.live.max(1))
+            - self.profile_value(&self.op, op, ap) * i32::from(self.p.live.max(1))
     }
     fn continued_movement_spaces(movement: i16, actor: i16) -> i16 {
         match movement {
@@ -1022,7 +1200,11 @@ impl<'a> State<'a> {
             let actor = if collision { self.pos[0] } else { destination };
             let opponent = if collision { self.pos[1] } else { destination };
             let damage = c.v.damage
-                + if self.exposed { self.k.feint_bonus } else { 0 }
+                + if self.exposed[1] {
+                    self.k.feint_bonus
+                } else {
+                    0
+                }
                 + if collision { c.v.wall_damage } else { 0 };
             let key = (damage, self.position_value(actor, opponent));
             if key > best_key
@@ -1053,7 +1235,7 @@ impl<'a> State<'a> {
                 .find(|&(_, &ci)| self.enabled(ci) && self.k.cards[ci].mechanic == m)
                 .map(|(i, _)| i)
         };
-        if self.aimed {
+        if self.aimed[0] {
             if let Some(i) = find(Mechanic::Volley) {
                 return Decision::Play(i, 0, None, false);
             }
@@ -1105,7 +1287,7 @@ impl<'a> State<'a> {
             }
         }
         if let Some(i) = find(Mechanic::Feint) {
-            if !self.exposed
+            if !self.exposed[1]
                 && self.p.hand.iter().any(|&ci| {
                     self.enabled(ci)
                         && matches!(
@@ -1162,15 +1344,28 @@ impl<'a> State<'a> {
             }
         }
         if let Some(i) = best {
+            let mechanic = self.k.cards[self.p.hand[i]].mechanic;
+            let fixed_target = if mechanic == Mechanic::Discipline {
+                self.p
+                    .hand
+                    .iter()
+                    .enumerate()
+                    .find(|(index, card)| {
+                        *index != i && (**card == self.k.scrap || **card == self.k.copper)
+                    })
+                    .map(|(index, _)| index)
+            } else {
+                self.family_target(i)
+            };
             return Decision::Play(
                 i,
-                if self.k.cards[self.p.hand[i]].mechanic == Mechanic::Drive {
+                if mechanic == Mechanic::Drive {
                     self.best_drive(self.p.hand[i])
                 } else {
                     0
                 },
-                self.family_target(i),
-                false,
+                fixed_target,
+                mechanic == Mechanic::Discipline && fixed_target.is_none(),
             );
         }
         if let Some(i) = find(Mechanic::Flurry) {
@@ -1199,6 +1394,9 @@ impl<'a> State<'a> {
                 .any(|&x| x == self.k.copper || x == self.k.scrap)
             {
                 return Decision::Play(i, 0, None, false);
+            }
+            if !self.owns(self.k.copper) && !self.owns(self.k.scrap) {
+                return Decision::Play(i, 0, None, true);
             }
         }
         for m in [Mechanic::Sharpen, Mechanic::Scour, Mechanic::Reforge] {
@@ -1302,11 +1500,18 @@ impl<'a> State<'a> {
         }
         best.map(|(index, _, _)| index)
     }
+    fn owns(&self, card: usize) -> bool {
+        self.p.hand.contains(&card)
+            || self.p.draw[self.p.head..].contains(&card)
+            || self.p.discard.contains(&card)
+            || self.p.play.contains(&card)
+    }
+
     fn remove_hand(&mut self, i: usize) -> usize {
         self.p.hand.remove(i)
     }
     fn damage(&mut self, n: i16, close: bool) -> bool {
-        let actual = n + if close && self.exposed {
+        let actual = n + if close && self.exposed[1] {
             self.k.feint_bonus
         } else {
             0
@@ -1333,13 +1538,13 @@ impl<'a> State<'a> {
                 | Mechanic::PrecisionShot
                 | Mechanic::Volley
         );
-        let aim_bonus = if ranged_attack && self.aimed {
+        let aim_bonus = if ranged_attack && self.aimed[0] {
             self.k.aim_bonus
         } else {
             0
         };
         if ranged_attack {
-            self.aimed = false;
+            self.aimed[0] = false;
         }
         if c.tactical {
             self.tactical += 1
@@ -1556,7 +1761,7 @@ impl<'a> State<'a> {
             Mechanic::Rally => hit!(c.v.damage + (self.copies[ci] - 1) * c.v.per_copy, true),
             Mechanic::Flurry => hit!(prev * c.v.per_action, true),
             Mechanic::Aim => {
-                self.aimed = true;
+                self.aimed[0] = true;
                 self.draw(c.v.draw)
             }
             Mechanic::Stipend => {
@@ -1572,7 +1777,7 @@ impl<'a> State<'a> {
             }
             Mechanic::Feint => {
                 self.draw(c.v.draw);
-                self.exposed = true
+                self.exposed[1] = true
             }
             Mechanic::Discipline => {
                 let i = after.unwrap_or(0);
@@ -1641,6 +1846,14 @@ impl<'a> State<'a> {
                 }
             }
             Mechanic::Cull => {
+                if self_target {
+                    let removed = self.p.play.pop().unwrap();
+                    self.p.live -= 1;
+                    if attack_mechanic(self.k.cards[removed].mechanic) {
+                        self.p.attack[removed] -= 1
+                    }
+                    return false;
+                }
                 let mut targets = [usize::MAX; 2];
                 let mut target_count = 0;
                 for (i, &x) in self.p.hand.iter().enumerate() {
@@ -1695,6 +1908,9 @@ impl<'a> State<'a> {
                 self.p.play.push(x)
             }
         }
+        if self.p.first_buy_pending {
+            self.p.money += self.p.first_buy_money;
+        }
         self.p.mana = 0
     }
     fn purchase(&self) -> Option<usize> {
@@ -1741,8 +1957,10 @@ impl<'a> State<'a> {
         self.p.discard.append(&mut self.p.play);
         self.p.money = 0;
         self.p.mana = 0;
-        self.aimed = false;
-        self.exposed = false;
+        self.p.first_buy_money = 0;
+        self.p.first_buy_pending = false;
+        self.aimed[0] = false;
+        self.exposed[1] = false;
         self.draw(5);
         self.tactical = 0;
         self.cards_played.clear();
@@ -1753,11 +1971,229 @@ impl<'a> State<'a> {
         self.families = 0;
         self.turn += 1
     }
+
+    fn end_competitive_buy(&mut self) {
+        self.end_buy();
+        self.swap_active();
+    }
 }
 #[derive(Clone, Copy)]
 enum Decision {
     End,
     Play(usize, i16, Option<usize>, bool),
+}
+
+pub struct CompetitiveSession {
+    load_id: String,
+    kingdom: Kingdom,
+    strategies: Vec<Strategy>,
+    turn_limit_per_player: i16,
+    action_cap_per_turn: i16,
+    starting_draft_enabled: bool,
+    pool: rayon::ThreadPool,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CompetitiveMatchResult {
+    outcome: String,
+    reason: String,
+    turns: i16,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CompetitiveBatchScore {
+    score_bytes: Vec<u8>,
+    played: Vec<u8>,
+    aborts: Vec<CompetitiveAbort>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CompetitiveAbort {
+    block_index: usize,
+    orientation_index: u8,
+    reason: String,
+}
+
+fn competitive_match(
+    session: &CompetitiveSession,
+    candidate_index: usize,
+    opponent_index: usize,
+    seed: u32,
+    first_indigo: bool,
+) -> Result<CompetitiveMatchResult, String> {
+    let candidate = session
+        .strategies
+        .get(candidate_index)
+        .ok_or_else(|| format!("candidate index {candidate_index} is out of range"))?;
+    let opponent = session
+        .strategies
+        .get(opponent_index)
+        .ok_or_else(|| format!("opponent index {opponent_index} is out of range"))?;
+    let mut state = State::competitive(
+        &session.kingdom,
+        candidate.clone(),
+        opponent.clone(),
+        seed,
+        first_indigo,
+        false,
+        session.starting_draft_enabled,
+        session.turn_limit_per_player,
+        session.action_cap_per_turn,
+    );
+    let mut phase = false;
+    let mut actions = 0;
+    loop {
+        let mut changed = false;
+        if !phase {
+            match state.choose() {
+                Decision::End => {
+                    state.end_action();
+                    actions += 1;
+                    phase = true;
+                }
+                decision => {
+                    actions += 1;
+                    if state.play(decision) {
+                        return Ok(CompetitiveMatchResult {
+                            outcome: if state.active_seat == 0 {
+                                "ochre".into()
+                            } else {
+                                "indigo".into()
+                            },
+                            reason: "victory".into(),
+                            turns: state.turn - 1,
+                        });
+                    }
+                }
+            }
+        } else if let Some(card) = state.purchase() {
+            state.buy(card);
+            actions += 1;
+        } else {
+            state.end_competitive_buy();
+            actions += 1;
+            phase = false;
+            changed = true;
+        }
+        if actions > session.action_cap_per_turn {
+            return Ok(CompetitiveMatchResult {
+                outcome: "draw".into(),
+                reason: "actionCap".into(),
+                turns: state.turn - 1,
+            });
+        }
+        if state.turn > session.turn_limit_per_player * 2 {
+            return Ok(CompetitiveMatchResult {
+                outcome: "draw".into(),
+                reason: "turnLimit".into(),
+                turns: state.turn - 1,
+            });
+        }
+        if changed {
+            actions = 0;
+        }
+    }
+}
+
+pub fn load_competitive(input: CompetitiveLoadInput) -> Result<CompetitiveSession, String> {
+    if input.protocol_version != 1
+        || input.scorer_version != "native-competitive-v1"
+        || input.load_id.is_empty()
+        || input.rule_fingerprint.is_empty()
+    {
+        return Err("competitive protocol, version, load id, or rule fingerprint mismatch".into());
+    }
+    if input.infinite_count != INFINITE_BUY_COUNT
+        || input.first_player_health_penalty != FIRST_PLAYER_HEALTH_PENALTY
+    {
+        return Err("competitive strategy and health constants mismatch".into());
+    }
+    if input.threads == 0 || input.threads > input.cpu_request {
+        return Err("threads exceed CPU request".into());
+    }
+    let kingdom = Kingdom::compile(input.kingdom)?;
+    let strategies = input
+        .strategies
+        .into_iter()
+        .map(|raw| kingdom.strategy(raw))
+        .collect::<Result<Vec<_>, String>>()?;
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(input.threads)
+        .build()
+        .map_err(|error| error.to_string())?;
+    Ok(CompetitiveSession {
+        load_id: input.load_id,
+        kingdom,
+        strategies,
+        turn_limit_per_player: input.turn_limit_per_player,
+        action_cap_per_turn: input.action_cap_per_turn,
+        starting_draft_enabled: input.starting_draft_enabled,
+        pool,
+    })
+}
+
+pub fn score_competitive(
+    session: &CompetitiveSession,
+    input: CompetitiveScoreInput,
+) -> Result<CompetitiveBatchScore, String> {
+    if input.load_id != session.load_id {
+        return Err("competitive load id mismatch".into());
+    }
+    let scores = session.pool.install(|| {
+        input
+            .blocks
+            .par_iter()
+            .map(|block| {
+                let mut score = 0u8;
+                for first_indigo in [false, true] {
+                    let result = competitive_match(
+                        session,
+                        block.candidate_index,
+                        block.opponent_index,
+                        block.seed,
+                        first_indigo,
+                    )?;
+                    score += match result.outcome.as_str() {
+                        "ochre" => 2,
+                        "draw" => 1,
+                        "indigo" => 0,
+                        value => return Err(format!("invalid competitive outcome {value}")),
+                    };
+                }
+                Ok(score)
+            })
+            .collect::<Vec<Result<u8, String>>>()
+    });
+    let score_bytes = scores.into_iter().collect::<Result<Vec<_>, _>>()?;
+    Ok(CompetitiveBatchScore {
+        played: vec![2; score_bytes.len()],
+        score_bytes,
+        aborts: vec![],
+    })
+}
+
+pub fn fixture_competitive(
+    session: &CompetitiveSession,
+    input: CompetitiveFixtureInput,
+) -> Result<CompetitiveMatchResult, String> {
+    if input.load_id != session.load_id {
+        return Err("competitive load id mismatch".into());
+    }
+    let first_indigo = match input.first_player.as_str() {
+        "ochre" => false,
+        "indigo" => true,
+        value => return Err(format!("invalid first player {value}")),
+    };
+    competitive_match(
+        session,
+        input.candidate_index,
+        input.opponent_index,
+        input.seed,
+        first_indigo,
+    )
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
