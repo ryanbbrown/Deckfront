@@ -39,6 +39,7 @@
     "initial-matrix:calibrate": "tsx scripts/initial_matrix_calibration.ts",
     "response-oracle:calibrate": "tsx scripts/response_oracle_calibration.ts",
     "response-oracle:extend-reference": "tsx scripts/response_oracle_reference_extension.ts",
+    "successive-halving:double-oracle-pilot": "tsx scripts/successive_halving_double_oracle_pilot.ts",
     "psro:worker-benchmark": "tsx scripts/benchmark_psro_workers.ts",
     "goldfish:native-metadata": "tsx scripts/native_goldfish_metadata.ts",
     "goldfish:native-kingdom-write": "tsx scripts/write_native_kingdom.ts",

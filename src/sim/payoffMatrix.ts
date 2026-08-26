@@ -74,7 +74,7 @@ export function matrixProtocol(
   };
 }
 
-function pairKey(protocol: MatrixProtocol, left: Strategy, right: Strategy): string {
+export function payoffMatrixPairKey(protocol: MatrixProtocol, left: Strategy, right: Strategy): string {
   return stableHash(JSON.stringify({ protocol, strategies: [canonicalStrategy(left), canonicalStrategy(right)] }));
 }
 
@@ -106,7 +106,7 @@ export class PayoffMatrix {
 
   private cellId(left: Strategy, right: Strategy): string {
     const [first, second] = left.id < right.id ? [left, right] : [right, left];
-    return `${pairKey(this.protocol, first, second)}:${first.id}|${second.id}`;
+    return `${payoffMatrixPairKey(this.protocol, first, second)}:${first.id}|${second.id}`;
   }
 
   private pendingCell(leftInput: Strategy, rightInput: Strategy, allowEarlyStop: boolean): PendingCell | null {
@@ -143,7 +143,7 @@ export class PayoffMatrix {
     this.matches += result.matches;
     mergeAggregate(this.telemetry, result.telemetry);
     this.cells.set(id, {
-      rowId: left.id, columnId: right.id, key: pairKey(this.protocol, left, right), blocks,
+      rowId: left.id, columnId: right.id, key: payoffMatrixPairKey(this.protocol, left, right), blocks,
       complete: blocks.length === this.protocol.seeds.length,
       centeredPayoff: payoff(blocks), matches: (old?.matches ?? 0) + result.matches, telemetry
     });
@@ -203,7 +203,7 @@ export class PayoffMatrix {
     const byId = new Map(strategies.map((strategy) => [strategy.id, strategy]));
     const cells = [...this.cells.values()].filter((cell) => {
       const row = byId.get(cell.rowId), column = byId.get(cell.columnId);
-      return row && column && cell.key === pairKey(this.protocol, row, column);
+      return row && column && cell.key === payoffMatrixPairKey(this.protocol, row, column);
     })
       .sort((a, b) => a.rowId.localeCompare(b.rowId)
       || a.columnId.localeCompare(b.columnId));
