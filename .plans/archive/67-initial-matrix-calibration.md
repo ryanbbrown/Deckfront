@@ -1,3 +1,5 @@
+> Superseded by `.plans/68-initial-matrix-calibration-correction.md`. Do not use this plan for decisions.
+
 # Initial-matrix calibration harness
 
 ## Current state
