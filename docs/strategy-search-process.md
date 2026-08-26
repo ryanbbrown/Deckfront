@@ -128,7 +128,7 @@ The other strategies in an identical group become shadow strategies. Shadow stra
 
 Add each distinct admitted representative to the matrix, simulate its required pairings, and calculate a new lottery. Then return to section 4 and screen every strategy outside the new matrix again.
 
-The first production attempt had a matrix safety limit of **128 strategies**. Its first screen found **173 distinct admitted representatives**, so the run stopped. The limit of 128 was an engineering safety limit, not a statistical threshold. A replacement limit has not been approved.
+The first production attempt had a matrix safety limit of **128 strategies**. Its first screen found **173 distinct admitted representatives**, so the run stopped. The limit is now **256 strategies**. This is an engineering safety limit, not a statistical threshold.
 
 ## 8. Decide when competitive search is complete
 

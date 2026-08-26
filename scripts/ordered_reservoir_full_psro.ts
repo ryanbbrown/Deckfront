@@ -720,7 +720,7 @@ function terminalDetails(run: 1 | 2, state: FullPsroState, matrix: NestedMatrixE
   if (state.stopReason === 'matrix-width-unresolved') return { currentWidth: matrix.strategies.length,
     proposedRepresentatives: lastScan?.representatives.length,
     projectedWidth: matrix.strategies.length + (lastScan?.representatives.length ?? 0),
-    maximum: 128, summaryHash: lastScan?.evidenceHash };
+    maximum: ORDERED_FULL_PSRO_MATRIX_WIDTH, summaryHash: lastScan?.evidenceHash };
   if (state.stopReason === 'support-width-unresolved') {
     const snapshot = nestedMatrixSnapshot(matrix, state.matrixDepth);
     const equilibrium = solveEquilibrium(snapshot.strategies.map((strategy) => strategy.id), snapshot.centeredPayoffs);

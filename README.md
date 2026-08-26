@@ -274,7 +274,7 @@ npm run ordered-reservoir:full-psro -- --report
 npm run ordered-reservoir:full-psro -- --compare
 ```
 
-Each full screen gives every inactive candidate two shared 25-block lanes before tied-tier selection. Fresh adaptive confirmation uses full acquisition telemetry and multiple-testing control. Only candidates with identical complete acquisition evidence collapse behind one matrix representative; every confirmed shadow gets a synthetic-ID anchor check and remains in later screens. Matrix evidence adapts from 50 to 100 or 200 blocks. Final reports use full-telemetry self-play panels, feasible group ranges, five audit-only historical reservoir attacks, and saved direct cross-play blocks. Deep validators recompute schedules, decisions, classes, gates, and resume transitions. Artifacts live under `.experiments/ordered-reservoir-full-psro/ordered-reservoir-full-psro-v1/`. Only run IDs 1 and 2 are valid.
+Each full screen gives every inactive candidate two shared 25-block lanes before tied-tier selection. Fresh adaptive confirmation uses full acquisition telemetry and multiple-testing control. Only candidates with identical complete acquisition evidence collapse behind one matrix representative; every confirmed shadow gets a synthetic-ID anchor check and remains in later screens. Matrix evidence adapts from 50 to 100 or 200 blocks. Final reports use full-telemetry self-play panels, feasible group ranges, five audit-only historical reservoir attacks, and saved direct cross-play blocks. Deep validators recompute schedules, decisions, classes, gates, and resume transitions. Artifacts live under `.experiments/ordered-reservoir-full-psro/ordered-reservoir-full-psro-v2/`. Only run IDs 1 and 2 are valid.
 
 ## Code boundaries
 

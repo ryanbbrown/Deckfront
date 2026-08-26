@@ -5,12 +5,12 @@ import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 import { compareUtf16 } from './utf16';
 
-export const ORDERED_FULL_PSRO_VERSION = 'ordered-reservoir-full-psro-v1' as const;
+export const ORDERED_FULL_PSRO_VERSION = 'ordered-reservoir-full-psro-v2' as const;
 export const ORDERED_FULL_PSRO_RUNS = Object.freeze([1, 2] as const);
 export const ORDERED_FULL_PSRO_INITIAL_STRATEGIES = 50;
 export const ORDERED_FULL_PSRO_SCREEN_BLOCKS = 25;
 export const ORDERED_FULL_PSRO_SCREEN_CHUNK = 250;
-export const ORDERED_FULL_PSRO_MATRIX_WIDTH = 128;
+export const ORDERED_FULL_PSRO_MATRIX_WIDTH = 256;
 export const ORDERED_FULL_PSRO_CONFIRMATION_WIDTH = 512;
 export const ORDERED_FULL_PSRO_SCAN_CAP = 10;
 export const ORDERED_FULL_PSRO_CONFIRMATION_LOOKS = Object.freeze([200, 800, 3_200, 6_400] as const);
@@ -33,7 +33,7 @@ export interface OrderedFullPsroProtocol {
   admissionAlphaPerScan: 0.005;
   retirementAlpha: 0.025;
   matrixDepths: readonly [50, 100, 200];
-  matrixWidth: 128;
+  matrixWidth: 256;
   scanCap: 10;
   panelBlocks: 1_000;
   initialPanels: 3;
@@ -47,7 +47,7 @@ export const ORDERED_FULL_PSRO_PROTOCOL: Readonly<OrderedFullPsroProtocol> = Obj
   confirmationWidth: 512, confirmationLooks: [200, 800, 3_200, 6_400] as const,
   continuationWidths: [128, 32, 8] as const,
   admissionAlphaPerScan: 0.005, retirementAlpha: 0.025, matrixDepths: [50, 100, 200] as const,
-  matrixWidth: 128, scanCap: 10, panelBlocks: 1_000, initialPanels: 3, maximumPanels: 5,
+  matrixWidth: 256, scanCap: 10, panelBlocks: 1_000, initialPanels: 3, maximumPanels: 5,
   crossPlayBlocks: 10_000
 });
 
