@@ -194,6 +194,9 @@ async function loadSources(inputsFile: string): Promise<Source[]> {
   for (const held of inputs.kingdoms) {
     const entry = { ...held, ranked: path.resolve(base, held.ranked), reservoir: path.resolve(base, held.reservoir),
       p75Root: path.resolve(base, held.p75Root) };
+    const kingdom = deepBeamSuite.kingdoms.find((candidate) => candidate.id === entry.kingdomId);
+    if (!kingdom) throw new Error(`Unknown pilot kingdom ${entry.kingdomId}.`);
+    registerKingdom(kingdom);
     const loaded = loadCalibrationSources({ mode: 'run', kingdomId: entry.kingdomId,
       rankedFile: entry.ranked, reservoirFile: entry.reservoir,
       p75ManifestFile: path.join(entry.p75Root, 'manifest.json'),
