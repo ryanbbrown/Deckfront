@@ -28,7 +28,7 @@ parentPort.on('message', (request) => {
   setTimeout(() => parentPort.postMessage({
     kind: 'pairing-results', outcomes: items.map(({ id, scheduleSize }) => ({ id, outcome: {
       record: record(), candidateScore: 0, opponentScore: 0, telemetry: telemetry(),
-      matches: id, seedBlocks: scheduleSize, stopReason: 'maximum',
+      matches: id, seedsEvaluated: scheduleSize, stopReason: 'maximum',
       candidateMean: null, opponentMean: null
     } }))
   }), delay);
