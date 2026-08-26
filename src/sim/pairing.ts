@@ -1,7 +1,7 @@
 import type { PlayerId } from '../game';
 import { runSimulationMatch, runSimulationMatchScoreOnly } from './simulationKernel';
 import type { Strategy } from './strategy';
-import type { MatchResult, OrientationKey, PairRecord, SideKey, TelemetryAggregate } from './types';
+import type { MatchResult, MatchReason, OrientationKey, PairRecord, SideKey, TelemetryAggregate } from './types';
 
 export interface Orientation {
   firstPlayerId: PlayerId;
@@ -143,7 +143,15 @@ export interface SeedEvaluationResult {
 export interface PairingAbort {
   seed: number;
   orientationIndex: number;
-  reason: MatchResult['reason'];
+  reason: MatchReason;
+}
+
+/** One deterministic byte per seed: 0..4 quarter-points across both orientations. */
+export interface ScoreOnlyPairingOutcome {
+  scoreBytes: Uint8Array;
+  played: Uint8Array;
+  matches: number;
+  aborts: PairingAbort[];
 }
 
 export interface PairingOutcome {
@@ -198,8 +206,7 @@ export type PairingMatchRunner = typeof runSimulationMatch;
  * or evaluation when `aborted` is nonzero.
  */
 function playPairingMode(
-  candidate: Strategy, opponent: Strategy, options: PairingOptions,
-  scoreOnly: boolean, matchRunner?: PairingMatchRunner
+  candidate: Strategy, opponent: Strategy, options: PairingOptions, matchRunner?: PairingMatchRunner
 ): PairingOutcome {
   if (options.seeds.length < 1 || options.seeds.length > 75) {
     throw new Error(`A pairing needs 1 to 75 shared seeds, not ${options.seeds.length}.`);
@@ -224,7 +231,7 @@ function playPairingMode(
       const orientation = ORIENTATIONS[orientationIndex]!;
       const seatStrategies: Record<PlayerId, Strategy> = { ochre: candidate, indigo: opponent };
 
-      const result = (matchRunner ?? (scoreOnly ? runSimulationMatchScoreOnly : runSimulationMatch))({
+      const result = (matchRunner ?? runSimulationMatch)({
           kingdomId: options.kingdomId,
           seed,
           firstPlayerId: orientation.firstPlayerId,
@@ -235,7 +242,7 @@ function playPairingMode(
           strategies: seatStrategies
         });
       matches += 1;
-      if (!scoreOnly) recordMatch(telemetry, result, orientation, seatStrategies);
+      recordMatch(telemetry, result, orientation, seatStrategies);
 
       if (result.outcome === 'aborted') {
         record.aborted += 1;
@@ -280,11 +287,38 @@ function playPairingMode(
 export function playPairing(
   candidate: Strategy, opponent: Strategy, options: PairingOptions, matchRunner?: PairingMatchRunner
 ): PairingOutcome {
-  return playPairingMode(candidate, opponent, options, false, matchRunner);
+  return playPairingMode(candidate, opponent, options, matchRunner);
 }
 
 export function playPairingScoreOnly(
   candidate: Strategy, opponent: Strategy, options: PairingOptions
-): PairingOutcome {
-  return playPairingMode(candidate, opponent, options, true);
+): ScoreOnlyPairingOutcome {
+  if (options.seeds.length < 1 || options.seeds.length > 75) {
+    throw new Error(`A pairing needs 1 to 75 shared seeds, not ${options.seeds.length}.`);
+  }
+  const scoreBytes = new Uint8Array(options.seeds.length);
+  const played = new Uint8Array(options.seeds.length);
+  const aborts: PairingAbort[] = [];
+  let matches = 0;
+  for (let seedIndex = 0; seedIndex < options.seeds.length; seedIndex += 1) {
+    const seed = options.seeds[seedIndex]!;
+    for (let orientationIndex = 0; orientationIndex < ORIENTATIONS.length; orientationIndex += 1) {
+      const orientation = ORIENTATIONS[orientationIndex]!;
+      const result = runSimulationMatchScoreOnly({
+        kingdomId: options.kingdomId, seed, firstPlayerId: orientation.firstPlayerId,
+        swapSides: orientation.swapSides, turnLimitPerPlayer: options.turnLimitPerPlayer,
+        actionCapPerTurn: options.actionCapPerTurn,
+        startingDraftEnabled: options.startingDraftEnabled ?? true,
+        strategies: { ochre: candidate, indigo: opponent }
+      });
+      matches += 1;
+      if (result.outcome === 'aborted') {
+        aborts.push({ seed, orientationIndex, reason: result.reason });
+        return { scoreBytes, played, matches, aborts };
+      }
+      played[seedIndex]! += 1;
+      scoreBytes[seedIndex]! += result.outcome === 'ochre' ? 2 : result.outcome === 'draw' ? 1 : 0;
+    }
+  }
+  return { scoreBytes, played, matches, aborts };
 }

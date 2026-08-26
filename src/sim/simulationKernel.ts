@@ -73,7 +73,7 @@ interface KernelState {
   copiesPlayed: Int16Array;
   familiesPlayed: Set<CardFamily>;
   eventCount: number;
-  telemetry: MatchTelemetry;
+  telemetry: MatchTelemetry | null;
   collectTelemetry: boolean;
 }
 
@@ -86,6 +86,12 @@ export interface SimulationMatchConfig {
   actionCapPerTurn: number;
   startingDraftEnabled?: boolean;
   strategies: Record<PlayerId, Strategy>;
+}
+
+export interface ScoreOnlyMatchResult {
+  outcome: MatchResult['outcome'];
+  reason: MatchResult['reason'];
+  turns: number;
 }
 
 export type GoldfishMovementProfile = 'stationary' | 'chaser' | 'kiter';
@@ -230,10 +236,10 @@ function addDamage(state: KernelState, actor: 0 | 1, amount: number, close: bool
   let actual = amount;
   if (close && state.exposed[target]) actual += kingdomValue(state, 'feint', 'bonus');
   state.health[target] = Math.max(0, state.health[target] - actual);
-  if (state.collectTelemetry) bump(state.telemetry.damageByCard[playerId(actor)], state.kingdom.cards[source]!.id, actual);
+  if (state.telemetry) bump(state.telemetry.damageByCard[playerId(actor)], state.kingdom.cards[source]!.id, actual);
   event(state);
   if (state.health[target] === 0) {
-    state.telemetry.turnsToWin = state.turn - 1;
+    if (state.telemetry) state.telemetry.turnsToWin = state.turn - 1;
     event(state);
     return true;
   }
@@ -441,7 +447,7 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       ? targetAfterPlay : player.hand.findIndex((index) => state.kingdom.cards[index]!.family === family);
     return target < 0 ? undefined : removeHand(player, target);
   };
-  if (state.collectTelemetry) bump(state.telemetry.playsByCard[playerId(actor)], card.id, 1);
+  if (state.telemetry) bump(state.telemetry.playsByCard[playerId(actor)], card.id, 1);
   event(state);
   const previousTactical = state.tacticalPlayed;
   if (card.tactical) state.tacticalPlayed += 1;
@@ -641,7 +647,7 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
 }
 
 function recordDeadDraws(state: KernelState, actor: 0 | 1): void {
-  if (!state.collectTelemetry) return;
+  if (!state.telemetry) return;
   const player = state.players[actor];
   const counts = state.telemetry.deadDraws[playerId(actor)];
   const close = state.positions[actor] === state.positions[other(actor)];
@@ -702,16 +708,16 @@ function buy(state: KernelState, actor: 0 | 1, cardIndex: number): void {
   player.money -= card.cost; if (card.type === 'action') state.supply[cardIndex]!--;
   player.discard.push(cardIndex); player.purchases.push(cardIndex); player.acquired[cardIndex]! += 1;
   addProfileCard(player.attackProfile, profileCard(card));
-  if (state.collectTelemetry) bump(state.telemetry.purchasesByCard[playerId(actor)], card.id, 1);
+  if (state.telemetry) bump(state.telemetry.purchasesByCard[playerId(actor)], card.id, 1);
   player.moneySpent += card.cost;
-  if (state.collectTelemetry) state.telemetry.moneySpent[playerId(actor)] += card.cost;
+  if (state.telemetry) state.telemetry.moneySpent[playerId(actor)] += card.cost;
   event(state);
 }
 
 function endBuyPhase(state: KernelState, actor: 0 | 1): void {
   const player = state.players[actor];
   player.unspentMoney += player.money;
-  if (state.collectTelemetry) state.telemetry.unspentMoney[playerId(actor)] += player.money;
+  if (state.telemetry) state.telemetry.unspentMoney[playerId(actor)] += player.money;
   player.discard.push(...player.hand, ...player.play); player.hand = []; player.play = [];
   player.money = 0; player.mana = 0; player.firstBuyPending = false; player.firstBuyMoney = 0;
   state.aimed[actor] = false; state.exposed[other(actor)] = false;
@@ -733,7 +739,7 @@ function createState(config: SimulationMatchConfig, collectTelemetry = true): Ke
     aimed: [false, false], exposed: [false, false], supply: new Int16Array(kingdom.initialSupply),
     active: seat(config.firstPlayerId), turn: 1, rng: config.seed >>> 0, tacticalPlayed: 0,
     cardsPlayed: [], spacesMoved: 0, manaSpent: 0, spellsPlayed: 0, copiesPlayed: new Int16Array(kingdom.cards.length), familiesPlayed: new Set(), eventCount: 2,
-    telemetry: undefined as unknown as MatchTelemetry, collectTelemetry
+    telemetry: null, collectTelemetry
   };
   const copper = kingdom.index.get('copper')!; const scrap = kingdom.index.get('scrap')!;
   const starting = (player: KernelPlayer): number[] => draft
@@ -746,7 +752,7 @@ function createState(config: SimulationMatchConfig, collectTelemetry = true): Ke
   if (!draft) state.eventCount = 1;
   players[0].attackProfile = attackProfile(state, 0);
   players[1].attackProfile = attackProfile(state, 1);
-  state.telemetry = createTelemetry(players, kingdom);
+  if (collectTelemetry) state.telemetry = createTelemetry(players, kingdom);
   return state;
 }
 
@@ -812,9 +818,9 @@ export function runGoldfishTrial(config: GoldfishTrialConfig): GoldfishTrialResu
     completed: reason === 'victory', turnsTo50: reason === 'victory' ? state.turn : null,
     damageByTurn, positionsByTurn, moneySpent: state.players[0].moneySpent,
     unspentMoney: state.players[0].unspentMoney,
-    purchasesByCard: state.telemetry.purchasesByCard.ochre,
-    playsByCard: state.telemetry.playsByCard.ochre,
-    damageByCard: state.telemetry.damageByCard.ochre, reason
+    purchasesByCard: state.telemetry!.purchasesByCard.ochre,
+    playsByCard: state.telemetry!.playsByCard.ochre,
+    damageByCard: state.telemetry!.damageByCard.ochre, reason
   };
 }
 
@@ -876,9 +882,9 @@ export function runLeanGoldfishTrial(config: GoldfishTrialConfig): LeanGoldfishT
   };
 }
 
-function runSimulationMatchWithTelemetry(
+function runSimulationMatchState(
   config: SimulationMatchConfig, collectTelemetry: boolean
-): MatchResult {
+): ScoreOnlyMatchResult & { state: KernelState } {
   const state = createState(config, collectTelemetry);
   let outcome: MatchResult['outcome'] = 'draw';
   let reason: MatchResult['reason'] = 'turnLimit';
@@ -902,20 +908,23 @@ function runSimulationMatchWithTelemetry(
     if (state.turn > config.turnLimitPerPlayer * 2) { reason = 'turnLimit'; break; }
     if (turnChanged) actionsInTurn = 0;
   }
-  state.telemetry.eventCount = state.eventCount;
-  state.telemetry.finalHealth = { ochre: state.health[0], indigo: state.health[1] };
+  return { outcome, reason, turns: state.turn - 1, state };
+}
+
+export function runSimulationMatchScoreOnly(config: SimulationMatchConfig): ScoreOnlyMatchResult {
+  const { outcome, reason, turns } = runSimulationMatchState(config, false);
+  return { outcome, reason, turns };
+}
+
+export function runSimulationMatch(config: SimulationMatchConfig): MatchResult {
+  const { outcome, reason, turns, state } = runSimulationMatchState(config, true);
+  const telemetry = state.telemetry!;
+  telemetry.eventCount = state.eventCount;
+  telemetry.finalHealth = { ochre: state.health[0], indigo: state.health[1] };
   return { config: { kingdomId: config.kingdomId, seed: config.seed,
     firstPlayerId: config.firstPlayerId, swapSides: config.swapSides,
     turnLimitPerPlayer: config.turnLimitPerPlayer, actionCapPerTurn: config.actionCapPerTurn,
     startingDraftEnabled: config.startingDraftEnabled ?? true,
     agentIds: { ochre: config.strategies.ochre.id, indigo: config.strategies.indigo.id } },
-    outcome, reason, turns: state.turn - 1, telemetry: state.telemetry };
-}
-
-export function runSimulationMatchScoreOnly(config: SimulationMatchConfig): MatchResult {
-  return runSimulationMatchWithTelemetry(config, false);
-}
-
-export function runSimulationMatch(config: SimulationMatchConfig): MatchResult {
-  return runSimulationMatchWithTelemetry(config, true);
+    outcome, reason, turns, telemetry };
 }

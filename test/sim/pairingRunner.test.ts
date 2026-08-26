@@ -16,16 +16,17 @@ function jobs(count: number, failAt = -1): PairingJob[] {
 }
 
 describe('the worker pairing runner', () => {
-  it('keeps score-only outcomes equal while dropping report telemetry', async () => {
+  it('returns exact score bytes without full outcomes or telemetry', async () => {
     const runner = new InlinePairingRunner();
     const full = await runner.run(jobs(1));
-    const scoreOnlyJobs = jobs(1).map((job) => ({ ...job, scoreOnly: true }));
-    const compact = await runner.run(scoreOnlyJobs);
-    const withoutTelemetry = (value: typeof full.outcomes[number] | undefined) => value
-      ? { ...value, telemetry: undefined }
-      : value;
-    expect(withoutTelemetry(compact.outcomes[0])).toEqual(withoutTelemetry(full.outcomes[0]));
-    expect(compact.outcomes[0]?.telemetry.acquisitionsByStrategy).toEqual({});
+    const compact = await runner.runScoreOnly(jobs(1));
+    expect(compact.outcomes[0]).toEqual({
+      scoreBytes: new Uint8Array([full.outcomes[0]!.blocks[0]!.score * 4]),
+      played: new Uint8Array([full.outcomes[0]!.blocks[0]!.played]),
+      matches: full.outcomes[0]!.matches,
+      aborts: full.outcomes[0]!.aborts
+    });
+    expect(Object.keys(compact.outcomes[0]!).sort()).toEqual(['aborts', 'matches', 'played', 'scoreBytes']);
   });
 
   it('sends one candidate complete opponent schedule as one compact worker unit', async () => {

@@ -1,18 +1,26 @@
 import { isMainThread, parentPort, Worker } from 'node:worker_threads';
 import { GAMES_PER_SEED, playPairing, playPairingScoreOnly } from './pairing';
-import type { PairingOptions, PairingOutcome } from './pairing';
+import type { PairingOptions, PairingOutcome, ScoreOnlyPairingOutcome } from './pairing';
 import type { Strategy } from './strategy';
 
 export interface PairingJob {
   candidate: Strategy;
   opponent: Strategy;
   options: PairingOptions;
-  scoreOnly?: boolean;
 }
+
+interface PairingWorkJob extends PairingJob { scoreOnly: boolean }
+export type PairingResult = PairingOutcome | ScoreOnlyPairingOutcome;
 
 export interface PairingBatchResult {
   /** Submission-order slots. Null means the deadline prevented submission. */
   outcomes: readonly (PairingOutcome | null)[];
+  submitted: number;
+}
+
+export interface ScoreOnlyPairingBatchResult {
+  /** Submission-order slots. Null means the deadline prevented submission. */
+  outcomes: readonly (ScoreOnlyPairingOutcome | null)[];
   submitted: number;
 }
 
@@ -23,23 +31,35 @@ export interface PairingRunOptions {
 
 export interface PairingRunner {
   run(jobs: readonly PairingJob[], options?: PairingRunOptions): Promise<PairingBatchResult>;
+  runScoreOnly?(jobs: readonly PairingJob[], options?: PairingRunOptions): Promise<ScoreOnlyPairingBatchResult>;
   close(): Promise<void>;
 }
 
 export class InlinePairingRunner implements PairingRunner {
   async run(jobs: readonly PairingJob[], options: PairingRunOptions = {}): Promise<PairingBatchResult> {
-    const outcomes: (PairingOutcome | null)[] = Array(jobs.length).fill(null);
+    return this.runMode(jobs, false, options) as Promise<PairingBatchResult>;
+  }
+
+  async runScoreOnly(
+    jobs: readonly PairingJob[], options: PairingRunOptions = {}
+  ): Promise<ScoreOnlyPairingBatchResult> {
+    return this.runMode(jobs, true, options) as Promise<ScoreOnlyPairingBatchResult>;
+  }
+
+  private async runMode(
+    jobs: readonly PairingJob[], scoreOnly: boolean, options: PairingRunOptions
+  ): Promise<PairingBatchResult | ScoreOnlyPairingBatchResult> {
+    const outcomes: (PairingResult | null)[] = Array(jobs.length).fill(null);
     const now = options.now ?? Date.now;
     let submitted = 0;
     for (let index = 0; index < jobs.length; index += 1) {
       if (options.deadline !== undefined && now() >= options.deadline) break;
       const job = jobs[index]!;
-      outcomes[index] = job.scoreOnly
-        ? playPairingScoreOnly(job.candidate, job.opponent, job.options)
+      outcomes[index] = scoreOnly ? playPairingScoreOnly(job.candidate, job.opponent, job.options)
         : playPairing(job.candidate, job.opponent, job.options);
       submitted += 1;
     }
-    return { outcomes, submitted };
+    return { outcomes, submitted } as PairingBatchResult | ScoreOnlyPairingBatchResult;
   }
 
   async close(): Promise<void> {}
@@ -58,7 +78,7 @@ interface ScheduleWorkerRequest {
   schedules: readonly CompactWorkerSchedule[];
 }
 type WorkerRequest = ScheduleWorkerRequest;
-interface WorkerSuccess { kind: 'pairing-results'; outcomes: readonly { id: number; outcome: PairingOutcome }[] }
+interface WorkerSuccess { kind: 'pairing-results'; outcomes: readonly { id: number; outcome: PairingResult }[] }
 interface WorkerFailure { kind: 'pairing-error'; name: string; message: string; stack?: string | undefined }
 type WorkerResponse = WorkerSuccess | WorkerFailure;
 
@@ -86,18 +106,31 @@ export class WorkerPairingRunner implements PairingRunner {
   }
 
   async run(jobs: readonly PairingJob[], options: PairingRunOptions = {}): Promise<PairingBatchResult> {
+    return this.runMode(jobs.map((job) => ({ ...job, scoreOnly: false })), options) as Promise<PairingBatchResult>;
+  }
+
+  async runScoreOnly(
+    jobs: readonly PairingJob[], options: PairingRunOptions = {}
+  ): Promise<ScoreOnlyPairingBatchResult> {
+    return this.runMode(jobs.map((job) => ({ ...job, scoreOnly: true })), options) as
+      Promise<ScoreOnlyPairingBatchResult>;
+  }
+
+  private async runMode(
+    jobs: readonly PairingWorkJob[], options: PairingRunOptions
+  ): Promise<PairingBatchResult | ScoreOnlyPairingBatchResult> {
     if (this.closed) throw new Error('The pairing runner is closed.');
     if (this.pool.some((entry) => entry.busy)) throw new Error('The pairing runner already has an active batch.');
     if (!jobs.length) return { outcomes: [], submitted: 0 };
 
-    const outcomes: (PairingOutcome | null)[] = Array(jobs.length).fill(null);
+    const outcomes: (PairingResult | null)[] = Array(jobs.length).fill(null);
     const now = options.now ?? Date.now;
     let next = 0;
     let active = 0;
     let submitted = 0;
     let settled = false;
 
-    return new Promise<PairingBatchResult>((resolve, reject) => {
+    return new Promise<PairingBatchResult | ScoreOnlyPairingBatchResult>((resolve, reject) => {
       const cleanups = new Map<PoolWorker, () => void>();
       const cleanup = (): void => {
         for (const remove of cleanups.values()) remove();
@@ -107,7 +140,7 @@ export class WorkerPairingRunner implements PairingRunner {
         if (settled || active !== 0) return;
         settled = true;
         cleanup();
-        resolve({ outcomes, submitted });
+        resolve({ outcomes, submitted } as PairingBatchResult | ScoreOnlyPairingBatchResult);
       };
       const fail = (error: Error): void => {
         if (settled) return;
@@ -121,17 +154,16 @@ export class WorkerPairingRunner implements PairingRunner {
           finish();
           return;
         }
-        const scheduleJobs: Array<Array<{ id: number; job: PairingJob }>> = [];
+        const scheduleJobs: Array<Array<{ id: number; job: PairingWorkJob }>> = [];
         let estimatedGames = 0;
         const targetGames = options.now ? 1 : 32;
         while (next < jobs.length && scheduleJobs.length < 8
           && (scheduleJobs.length === 0 || estimatedGames < targetGames)) {
           const first = jobs[next]!;
-          const schedule: Array<{ id: number; job: PairingJob }> = [];
+          const schedule: Array<{ id: number; job: PairingWorkJob }> = [];
           while (next < jobs.length) {
             const job = jobs[next]!;
-            if (job.candidate !== first.candidate
-              || (job.scoreOnly ?? false) !== (first.scoreOnly ?? false)) break;
+            if (job.candidate !== first.candidate || job.scoreOnly !== first.scoreOnly) break;
             schedule.push({ id: next, job });
             estimatedGames += job.options.seeds.length * GAMES_PER_SEED;
             next += 1;
@@ -161,7 +193,7 @@ export class WorkerPairingRunner implements PairingRunner {
         };
         const schedules = scheduleJobs.map((schedule): CompactWorkerSchedule => ({
           candidate: internStrategy(schedule[0]!.job.candidate, candidates, candidateIndex),
-          scoreOnly: schedule[0]!.job.scoreOnly ?? false,
+          scoreOnly: schedule[0]!.job.scoreOnly,
           blocks: schedule.map(({ id, job }) => ({ id,
             opponent: internStrategy(job.opponent, opponents, opponentIndex),
             options: internOptions(job.options) }))
@@ -228,7 +260,9 @@ export function runPairingWorker(): void {
           : playPairing(candidate, opponent, heldOptions);
         return { id: block.id, outcome };
       }));
-      parentPort!.postMessage({ kind: 'pairing-results', outcomes } satisfies WorkerSuccess);
+      const transfers = outcomes.flatMap(({ outcome }) => 'scoreBytes' in outcome
+        ? [outcome.scoreBytes.buffer as ArrayBuffer, outcome.played.buffer as ArrayBuffer] : []);
+      parentPort!.postMessage({ kind: 'pairing-results', outcomes } satisfies WorkerSuccess, transfers);
     } catch (error) {
       const value = error instanceof Error ? error : new Error(String(error));
       parentPort!.postMessage({

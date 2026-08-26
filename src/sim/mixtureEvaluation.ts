@@ -71,13 +71,16 @@ export async function evaluateCandidates(
   const jobs = candidates.flatMap((candidate) => schedule.blocks.map((block) => {
     const opponent = opponents.get(block.opponentId);
     if (!opponent) throw new Error(`Mixture opponent ${block.opponentId} is missing.`);
-    return { candidate, opponent, scoreOnly: options.scoreOnly ?? false, options: {
+    return { candidate, opponent, options: {
       kingdomId: options.kingdomId, seeds: [block.seed],
       turnLimitPerPlayer: options.turnLimitPerPlayer, actionCapPerTurn: options.actionCapPerTurn,
       startingDraftEnabled: options.startingDraftEnabled ?? true, allowEarlyStop: false
     } };
   }));
-  const batch = await runner.run(jobs, { deadline: options.deadline });
+  const compactRunner = options.scoreOnly ? runner.runScoreOnly?.bind(runner) : undefined;
+  const batch = compactRunner
+    ? await compactRunner(jobs, { deadline: options.deadline })
+    : await runner.run(jobs, { deadline: options.deadline });
   if (batch.submitted !== jobs.length) throw new DeadlineInterruptionError('Deadline interrupted a mixture evaluation.', {
     submitted: batch.submitted, expected: jobs.length
   });
@@ -91,16 +94,30 @@ export async function evaluateCandidates(
       if (!result) throw new DeadlineInterruptionError('Mixture evaluation returned no result.', {
         strategyId: candidates[candidateIndex]!.id, block: blockIndex
       });
-      if (result.record.aborted > 0 || result.blocks[0]?.played !== GAMES_PER_SEED) {
-        throw new InvalidEvaluationError('An aborted match invalidated a mixture evaluation.', {
-          strategyId: candidates[candidateIndex]!.id, seed: schedule.blocks[blockIndex]!.seed,
-          opponentId: schedule.blocks[blockIndex]!.opponentId,
-          orientation: result.aborts[0]?.orientationIndex, reason: result.aborts[0]?.reason
-        });
+      if (compactRunner) {
+        if (!('scoreBytes' in result) || result.aborts.length > 0 || result.played[0] !== GAMES_PER_SEED) {
+          throw new InvalidEvaluationError('An aborted match invalidated a mixture evaluation.', {
+            strategyId: candidates[candidateIndex]!.id, seed: schedule.blocks[blockIndex]!.seed,
+            opponentId: schedule.blocks[blockIndex]!.opponentId,
+            orientation: result.aborts[0]?.orientationIndex, reason: result.aborts[0]?.reason
+          });
+        }
+        blockScores.push(result.scoreBytes[0]! / 4);
+        matches += result.matches;
+      } else {
+        if ('scoreBytes' in result || result.record.aborted > 0
+          || result.blocks[0]?.played !== GAMES_PER_SEED) {
+          throw new InvalidEvaluationError('An aborted match invalidated a mixture evaluation.', {
+            strategyId: candidates[candidateIndex]!.id, seed: schedule.blocks[blockIndex]!.seed,
+            opponentId: schedule.blocks[blockIndex]!.opponentId,
+            orientation: 'scoreBytes' in result ? undefined : result.aborts[0]?.orientationIndex,
+            reason: 'scoreBytes' in result ? undefined : result.aborts[0]?.reason
+          });
+        }
+        blockScores.push(result.blocks[0]!.score);
+        matches += result.matches;
+        mergeAggregate(telemetry, result.telemetry);
       }
-      blockScores.push(result.blocks[0]!.score);
-      matches += result.matches;
-      mergeAggregate(telemetry, result.telemetry);
     }
     evaluations.push({
       strategy: candidates[candidateIndex]!,
