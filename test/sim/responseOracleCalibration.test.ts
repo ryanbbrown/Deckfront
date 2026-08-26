@@ -217,4 +217,31 @@ describe('strict source and resumable evidence validation', () => {
     corrupt.rounds[0]!.survivors.reverse();
     expect(validateSuccessiveHalvingArtifact(corrupt, manifest, 'b', fixedRows)).toBe(false);
   }, 30_000);
+
+  it('resumes after the fixed-score prefix and validates the first top-up round at depth 64', () => {
+    const fixedRows = manifest.candidates.map((entry): CalibrationScoreRow => ({ ...entry,
+      blockScores: Array.from({ length: 50 }, (_unused, index) => ((entry.goldfishRank + index) % 5) / 4),
+      candidateSeedEvaluations: 50, games: 100 }));
+    let artifact = createSuccessiveHalvingArtifact({ manifest, lane: 'a', fixedRows });
+    for (let roundIndex = 0; roundIndex <= 6; roundIndex += 1) {
+      const depth = RESPONSE_ORACLE_HALVING_DEPTHS[roundIndex]!;
+      const scoreStart = depth <= 50 ? depth
+        : Math.max(50, RESPONSE_ORACLE_HALVING_DEPTHS[roundIndex - 1]!);
+      const added = depth - scoreStart;
+      if (roundIndex === 6) {
+        const resumed = JSON.parse(JSON.stringify(artifact)) as typeof artifact;
+        expect(validateSuccessiveHalvingArtifact(resumed, manifest, 'a', fixedRows)).toBe(true);
+        artifact = resumed;
+      }
+      const activeIds = roundIndex === 0 ? manifest.candidates.map((entry) => entry.strategyId)
+        : artifact.rounds.at(-1)!.survivors;
+      artifact = nextSuccessiveHalvingRound({ manifest, lane: 'a', fixedRows, artifact,
+        addedScores: Object.fromEntries(activeIds.map((id) => [id, Array<number>(added).fill(0.75)])),
+        elapsedMs: roundIndex });
+    }
+
+    const resumedAtDepth64 = JSON.parse(JSON.stringify(artifact)) as unknown;
+    expect(artifact.rounds.at(-1)).toMatchObject({ depth: 64, scoreStart: 50 });
+    expect(validateSuccessiveHalvingArtifact(resumedAtDepth64, manifest, 'a', fixedRows)).toBe(true);
+  }, 30_000);
 });

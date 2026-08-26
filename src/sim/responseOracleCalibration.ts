@@ -674,7 +674,9 @@ export function validateSuccessiveHalvingArtifact(value: unknown,
         const id = activeIds[index]!, identity = identities.get(id), prefix = fixed.get(id);
         if (!identity || !prefix || row.strategyId !== id || row.addedScores.length !== added
           || row.addedScores.some((score) => !Number.isFinite(score) || score < 0 || score > 1)) throw new Error('bad row');
-        const previous = accumulated.get(id) ?? prefix.slice(0, Math.min(depth, 50));
+        const accumulatedScores = accumulated.get(id);
+        const previous = accumulatedScores?.length === scoreStart
+          ? accumulatedScores : prefix.slice(0, scoreStart);
         const scores = depth <= 50 ? prefix.slice(0, depth) : [...previous, ...row.addedScores];
         if (scores.length !== depth || row.cumulativeMean !== mean(scores)) throw new Error('bad cumulative mean');
         accumulated.set(id, scores);
