@@ -94,6 +94,14 @@ def projected_ordered_product_cost_usd(
     return shard_cost + controller_seconds / 3600 * (CPU_RATE_PER_CORE_HOUR + 16 * MEMORY_RATE_PER_GIB_HOUR)
 
 
+def _run_checked(command: list[str], label: str, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(command, check=True, **kwargs)
+    except subprocess.CalledProcessError as error:
+        details = (error.stderr or error.stdout or "").strip() or str(error)
+        raise RuntimeError(f"{label} failed: {details}") from error
+
+
 def _atomic_json(path: pathlib.Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", dir=path.parent, delete=False) as held:
@@ -539,6 +547,7 @@ def ordered_product_controller(config: dict[str, Any]) -> dict[str, Any]:
         "end_position": min(start + config["shard_size"], FULL_CANDIDATE_COUNT)}
         for shard_id, start in enumerate(range(0, FULL_CANDIDATE_COUNT, config["shard_size"]))]
     stage_one_results = _run_product_stage(ordered_product_stage_one, stage_one_specs, config)
+    volume.reload()
     stage_one_manifest = root / "stage-one-manifest.json"
     _atomic_json(stage_one_manifest, [str(_ordered_product_checkpoint_path(config, "stage-one", spec["shard_id"]))
                                       for spec in stage_one_specs])
@@ -546,13 +555,14 @@ def ordered_product_controller(config: dict[str, Any]) -> dict[str, Any]:
     merge = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "merge-stage-one",
         "--manifest", str(stage_one_manifest), "--out", str(cohort)] + _ordered_product_cli(config)[3:]
     node_environment = {**os.environ, "NODE_OPTIONS": "--max-old-space-size=12288"}
-    subprocess.run(merge, cwd="/workspace", env=node_environment, text=True, capture_output=True,
-                   timeout=1800, check=True)
+    _run_checked(merge, "stage-one merge", cwd="/workspace", env=node_environment,
+                 text=True, capture_output=True, timeout=1800)
     volume.commit()
     stage_two_specs = [{**config, "shard_id": shard_id, "start_position": start,
         "end_position": min(start + config["shard_size"], config["retained_count"])}
         for shard_id, start in enumerate(range(0, config["retained_count"], config["shard_size"]))]
     stage_two_results = _run_product_stage(ordered_product_stage_two, stage_two_specs, config)
+    volume.reload()
     stage_two_manifest = root / "stage-two-manifest.json"
     _atomic_json(stage_two_manifest, [str(_ordered_product_checkpoint_path(config, "stage-two", spec["shard_id"]))
                                       for spec in stage_two_specs])
@@ -560,8 +570,8 @@ def ordered_product_controller(config: dict[str, Any]) -> dict[str, Any]:
     finalize = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "finalize",
         "--cohort", str(cohort), "--manifest", str(stage_two_manifest), "--out", str(artifact)] \
         + _ordered_product_cli(config)[3:]
-    subprocess.run(finalize, cwd="/workspace", env=node_environment, text=True, capture_output=True,
-                   timeout=1800, check=True)
+    _run_checked(finalize, "ordered-product finalize", cwd="/workspace", env=node_environment,
+                 text=True, capture_output=True, timeout=1800)
     summary = {"schemaVersion": 1, "status": "success", "runId": config["run_id"],
         "kingdomId": config["kingdom"], "buildVersion": config["build_version"],
         "ruleFingerprint": config["rule_fingerprint"],

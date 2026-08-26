@@ -89,6 +89,55 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         self.assertGreater(generation, 0)
         self.assertGreater(scoring, 0)
 
+    def test_product_controller_reloads_remote_stage_commits_before_each_merge(self):
+        class SnapshotVolume:
+            remote_version = 0
+            visible_version = 0
+            reload_count = 0
+
+            def reload(self):
+                self.visible_version = self.remote_version
+                self.reload_count += 1
+
+            def commit(self):
+                pass
+
+        held_volume = SnapshotVolume()
+        config = {"run_id": "run", "kingdom": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM,
+                  "build_version": "build", "rule_fingerprint": "rules",
+                  "retained_count": 500_000, "reservoir_count": 20_000,
+                  "shard_size": 250_000, "cpu": 2, "memory_gib": 4,
+                  "timeout_seconds": 420, "max_containers": 95}
+
+        def complete_stage(_function, specs, _config):
+            held_volume.remote_version += 1
+            stage = "stage-one" if len(specs) == 52 else "stage-two"
+            return [{"status": "success", "stage": stage, "shardId": spec["shard_id"],
+                     "contentDigest": f"digest-{spec['shard_id']}", "reused": True}
+                    for spec in specs]
+
+        def require_visible_snapshot(command, _label, **_kwargs):
+            required = 1 if "merge-stage-one" in command else 2
+            if held_volume.visible_version < required:
+                raise RuntimeError("remote stage commit is not visible")
+            return subprocess.CompletedProcess(command, 0, "", "")
+
+        with patch.object(launcher, "volume", held_volume), \
+                patch.object(launcher, "_run_product_stage", side_effect=complete_stage), \
+                patch.object(launcher, "_run_checked", side_effect=require_visible_snapshot), \
+                patch.object(launcher, "_atomic_json"):
+            summary = launcher.ordered_product_controller.get_raw_f()(config)
+
+        self.assertEqual(summary["status"], "success")
+        self.assertEqual(held_volume.reload_count, 3)
+        self.assertEqual(held_volume.visible_version, 2)
+
+    def test_controller_subprocess_failure_exposes_stderr(self):
+        failure = subprocess.CalledProcessError(1, ["command"], stderr="exact child failure\n")
+        with patch.object(launcher.subprocess, "run", side_effect=failure):
+            with self.assertRaisesRegex(RuntimeError, "stage-one merge failed: exact child failure"):
+                launcher._run_checked(["command"], "stage-one merge", text=True, capture_output=True)
+
     def test_reservation_is_atomic_and_resume_does_not_reserve_twice(self):
         with tempfile.TemporaryDirectory() as directory:
             ledger = pathlib.Path(directory) / "ledger.json"
