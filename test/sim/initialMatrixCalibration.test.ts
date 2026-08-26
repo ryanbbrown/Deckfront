@@ -123,12 +123,12 @@ describe('initial-matrix calibration v2 evidence', () => {
       .toBeGreaterThanOrEqual(summary.selectedArchetypeShares.Melee!);
   });
 
-  it('reports the exact max-100 prefix and held-out game costs', () => {
+  it('reports the exact max-125 prefix and held-out game costs', () => {
+    expect(initialMatrixGameCosts(50, 125)).toEqual({
+      offDiagonalGames: 306_250, diagonalTelemetryGames: 12_500, totalGames: 318_750
+    });
     expect(initialMatrixGameCosts(50, 100)).toEqual({
       offDiagonalGames: 245_000, diagonalTelemetryGames: 10_000, totalGames: 255_000
-    });
-    expect(initialMatrixGameCosts(50, 50)).toEqual({
-      offDiagonalGames: 122_500, diagonalTelemetryGames: 5_000, totalGames: 127_500
     });
     expect(initialMatrixGameCosts(50, 75)).toEqual({
       offDiagonalGames: 183_750, diagonalTelemetryGames: 7_500, totalGames: 191_250
@@ -137,26 +137,26 @@ describe('initial-matrix calibration v2 evidence', () => {
       offDiagonalGames: 61_250, diagonalTelemetryGames: 2_500, totalGames: 63_750
     });
     expect(createInitialMatrixManifest({ source: source(), strategies: fiftyStrategies(),
-      maxSeedCount: 100, chunkSize: 5 }).protocol.seeds).toHaveLength(100);
+      maxSeedCount: 125, chunkSize: 5 }).protocol.seeds).toHaveLength(125);
     expect(() => createInitialMatrixManifest({ source: source(), strategies: fiftyStrategies(),
-      maxSeedCount: 101, chunkSize: 5 })).toThrow('manifest input is invalid');
+      maxSeedCount: 126, chunkSize: 5 })).toThrow('manifest input is invalid');
 
     const small = [strategy('a', 'drive'), strategy('b', 'volley')];
     const report = analyzeInitialMatrix({ strategies: small,
-      cells: completeCells(small, Array.from({ length: 100 }, (_unused, index) => index + 1)),
-      seedCount: 100, requestedPrefixes: [50, 75], heldOutStartSeedIndex: 75,
+      cells: completeCells(small, Array.from({ length: 125 }, (_unused, index) => index + 1)),
+      seedCount: 125, requestedPrefixes: [75, 100], heldOutStartSeedIndex: 100,
       measuredChunkWallMs: { offDiagonal: 2, diagonalTelemetry: 1 } });
     expect(report.prefixes.map((entry) => entry.seedRange)).toEqual([
-      { startOrdinal: 1, endOrdinal: 50, count: 50 },
-      { startOrdinal: 1, endOrdinal: 75, count: 75 }
+      { startOrdinal: 1, endOrdinal: 75, count: 75 },
+      { startOrdinal: 1, endOrdinal: 100, count: 100 }
     ]);
-    expect(report.heldOut.seedRange).toEqual({ startOrdinal: 76, endOrdinal: 100, count: 25 });
+    expect(report.heldOut.seedRange).toEqual({ startOrdinal: 101, endOrdinal: 125, count: 25 });
   });
 
   it('compares every prefix with the same held-out acquisition cells', () => {
     const a = strategy('a', 'drive'), b = strategy('b', 'volley');
-    const seeds = Array.from({ length: 100 }, (_unused, index) => index + 1);
-    const heldOut = (seed: number) => seed > 75;
+    const seeds = Array.from({ length: 125 }, (_unused, index) => index + 1);
+    const heldOut = (seed: number) => seed > 100;
     const cells: InitialMatrixCellSeries[] = [
       { purpose: DIAGONAL_PURPOSE, rowIndex: 0, columnIndex: 0,
         records: seeds.map((seed) => record(seed, a, a,
@@ -164,19 +164,19 @@ describe('initial-matrix calibration v2 evidence', () => {
       { purpose: OFF_DIAGONAL_PURPOSE, rowIndex: 0, columnIndex: 1,
         records: seeds.map((seed) => record(seed, a, b, heldOut(seed)
           ? { a: { volley: 2 }, b: { fireball: 2 } }
-          : { a: { drive: 2 }, b: { drive: 2 } }, seed <= 50 ? 0.75 : seed <= 75 ? 0 : 0.5)) },
+          : { a: { drive: 2 }, b: { drive: 2 } }, seed <= 75 ? 2 / 3 : seed <= 100 ? 0 : 0.5)) },
       { purpose: DIAGONAL_PURPOSE, rowIndex: 1, columnIndex: 1,
         records: seeds.map((seed) => record(seed, b, b,
           { b: heldOut(seed) ? { fireball: 4 } : { drive: 4 } })) }
     ];
-    const report = analyzeInitialMatrix({ strategies: [a, b], cells, seedCount: 100,
-      requestedPrefixes: [50, 75], heldOutStartSeedIndex: 75,
+    const report = analyzeInitialMatrix({ strategies: [a, b], cells, seedCount: 125,
+      requestedPrefixes: [75, 100], heldOutStartSeedIndex: 100,
       measuredChunkWallMs: { offDiagonal: 2, diagonalTelemetry: 1 } });
     const evaluations = report.prefixes.map((prefix) => prefix.heldOutAcquisitionEvaluation);
 
     expect(evaluations.map((evaluation) => evaluation.seedRange)).toEqual([
-      { startOrdinal: 76, endOrdinal: 100, count: 25 },
-      { startOrdinal: 76, endOrdinal: 100, count: 25 }
+      { startOrdinal: 101, endOrdinal: 125, count: 25 },
+      { startOrdinal: 101, endOrdinal: 125, count: 25 }
     ]);
     expect(report.prefixes[0]!.equilibrium.weights).toMatchObject({ a: 1, b: 0 });
     expect(report.prefixes[1]!.equilibrium.weights).toMatchObject({ a: 0.5, b: 0.5 });

@@ -42,24 +42,24 @@ For each prefix, calculate labels from its selected weights and the shared held-
 Support and document:
 
 ```text
---max-seeds 100
---prefixes 50,75
---held-out-start 75
+--max-seeds 125
+--prefixes 75,100
+--held-out-start 100
 ```
 
-Prefixes use seed ordinals 1–50 and 1–75. Held-out evidence uses ordinals 76–100.
+Prefixes use seed ordinals 1–75 and 1–100. Held-out evidence uses ordinals 101–125.
 
-For 50 strategies and 100 seeds:
+For 50 strategies and 125 seeds:
 
 | Evidence | Cells | Games |
 |---|---:|---:|
-| Off-diagonal payoff and telemetry | 1,225 | 245,000 |
-| Diagonal telemetry | 50 | 10,000 |
-| Total | 1,275 | 255,000 |
+| Off-diagonal payoff and telemetry | 1,225 | 306,250 |
+| Diagonal telemetry | 50 | 12,500 |
+| Total | 1,275 | 318,750 |
 
-- Prefix 50: 122,500 payoff games + 5,000 diagonal games = 127,500.
 - Prefix 75: 183,750 payoff games + 7,500 diagonal games = 191,250.
-- Held-out 76–100: 61,250 payoff games + 2,500 diagonal games = 63,750.
+- Prefix 100: 245,000 payoff games + 10,000 diagonal games = 255,000.
+- Held-out 101–125: 61,250 payoff games + 2,500 diagonal games = 63,750.
 
 Report separate off-diagonal, diagonal, and total cell counts, game counts, and measured chunk wall times. Report solver wall time separately. Measured chunk wall time is the exact sum of saved chunk times, not estimated CPU time or complete command time.
 
@@ -68,7 +68,7 @@ Report separate off-diagonal, diagonal, and total cell counts, game counts, and 
 - `src/sim/initialMatrixCalibration.ts`: v2 protocol, validation, payoff and telemetry analysis, costs, and classifier output.
 - `scripts/initial_matrix_calibration.ts`: diagonal scheduling, strict chunk loading and resume, and v2 report output.
 - `test/sim/initialMatrixCalibration.test.ts`: focused weighting, diagonal, cost, and corruption regressions.
-- `README.md`: max-100 command, evidence basis, costs, timing, and diagnostic limits.
+- `README.md`: max-125 command, evidence basis, costs, timing, and diagnostic limits.
 
 Do not change full PSRO files or `docs/strategy-search-process.md`.
 

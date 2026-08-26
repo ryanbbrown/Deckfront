@@ -18,7 +18,7 @@ import type { TelemetryAggregate } from './types';
 
 export const INITIAL_MATRIX_CALIBRATION_VERSION = 'initial-matrix-calibration-v2' as const;
 export const INITIAL_MATRIX_STRATEGIES = 50;
-export const INITIAL_MATRIX_MAX_SEEDS = 100;
+export const INITIAL_MATRIX_MAX_SEEDS = 125;
 export const OFF_DIAGONAL_PURPOSE = 'off-diagonal-payoff-and-telemetry' as const;
 export const DIAGONAL_PURPOSE = 'diagonal-self-play-telemetry' as const;
 export type InitialMatrixCellPurpose = typeof OFF_DIAGONAL_PURPOSE | typeof DIAGONAL_PURPOSE;
