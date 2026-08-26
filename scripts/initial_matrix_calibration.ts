@@ -6,12 +6,13 @@ import { performance } from 'node:perf_hooks';
 import { registerKingdom } from '../src/game';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 import {
-  analyzeInitialMatrix, createInitialMatrixChunk, createInitialMatrixManifest,
-  seedRecordFromOutcome, validateInitialMatrixChunk, validateInitialMatrixManifest,
-  validateOrderedCalibrationSource
+  INITIAL_MATRIX_MAX_SEEDS, analyzeInitialMatrix, assertInitialMatrixOutputJsonFiles,
+  createInitialMatrixChunk, createInitialMatrixManifest, expectedInitialMatrixChunkRelativePaths,
+  initialMatrixChunkRelativePath, seedRecordFromOutcome, validateInitialMatrixChunk,
+  validateInitialMatrixManifest, validateOrderedCalibrationSource
 } from '../src/sim/initialMatrixCalibration';
 import type {
-  InitialMatrixChunk, InitialMatrixManifest, InitialMatrixPairSeries
+  InitialMatrixCellSeries, InitialMatrixChunk, InitialMatrixManifest
 } from '../src/sim/initialMatrixCalibration';
 import { orderedProductTarget } from '../src/sim/orderedGoldfishProduct';
 import { GAMES_PER_SEED } from '../src/sim/pairing';
@@ -56,6 +57,9 @@ function parseOptions(args: readonly string[]): Options {
   const maxSeedCount = integer(args, 'max-seeds');
   const prefixes = option(args, 'prefixes').split(',').map((value) => Number(value));
   const heldOutStartSeedIndex = integer(args, 'held-out-start');
+  if (maxSeedCount > INITIAL_MATRIX_MAX_SEEDS) {
+    throw new Error(`--max-seeds must be from 2 to ${INITIAL_MATRIX_MAX_SEEDS}.`);
+  }
   if (!prefixes.length || prefixes.some((value) => !Number.isSafeInteger(value) || value < 1)
     || new Set(prefixes).size !== prefixes.length || prefixes.some((value) => value > heldOutStartSeedIndex)
     || heldOutStartSeedIndex >= maxSeedCount) {
@@ -90,19 +94,7 @@ function validateOrderedArtifacts(options: Options): void {
   if (result.status !== 0) throw new Error('Ordered ranked/reservoir validation failed.');
 }
 function chunkFile(root: string, row: number, column: number, start: number): string {
-  return path.join(root, 'chunks', `pair-${String(row).padStart(2, '0')}-${String(column).padStart(2, '0')}`,
-    `chunk-${String(start).padStart(6, '0')}.json`);
-}
-function expectedChunkPaths(manifest: InitialMatrixManifest): Set<string> {
-  const paths = new Set<string>();
-  for (let row = 0; row < manifest.strategies.length; row += 1) {
-    for (let column = row + 1; column < manifest.strategies.length; column += 1) {
-      for (let start = 0; start < manifest.protocol.maxSeedCount; start += manifest.protocol.chunkSize) {
-        paths.add(path.resolve(chunkFile('', row, column, start)));
-      }
-    }
-  }
-  return paths;
+  return path.join(root, initialMatrixChunkRelativePath(row, column, start));
 }
 function existingJsonFiles(root: string): string[] {
   if (!fs.existsSync(root)) return [];
@@ -111,32 +103,27 @@ function existingJsonFiles(root: string): string[] {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
       const file = path.join(directory, entry.name);
       if (entry.isDirectory()) visit(file);
-      else if (entry.name.endsWith('.json')) result.push(path.resolve(file));
+      else if (entry.name.endsWith('.json')) result.push(path.relative(root, file));
     }
   };
   visit(root);
   return result;
 }
 function loadChunks(root: string, manifest: InitialMatrixManifest): Map<string, InitialMatrixChunk> {
-  const expectedRelative = expectedChunkPaths(manifest);
-  for (const file of existingJsonFiles(path.join(root, 'chunks'))) {
-    const relative = path.resolve(path.relative(root, file));
-    if (!expectedRelative.has(relative)) throw new Error(`Unexpected initial-matrix chunk ${file}.`);
-  }
+  assertInitialMatrixOutputJsonFiles(existingJsonFiles(root), true, manifest);
   const chunks = new Map<string, InitialMatrixChunk>();
-  for (let row = 0; row < manifest.strategies.length; row += 1) {
-    for (let column = row + 1; column < manifest.strategies.length; column += 1) {
-      for (let start = 0; start < manifest.protocol.maxSeedCount; start += manifest.protocol.chunkSize) {
-        const file = chunkFile(root, row, column, start);
-        if (!fs.existsSync(file)) continue;
-        const count = Math.min(manifest.protocol.chunkSize, manifest.protocol.maxSeedCount - start);
-        const value = readJson<unknown>(file);
-        if (!validateInitialMatrixChunk(value, manifest, row, column, start, count)) {
-          throw new Error(`Invalid or corrupt initial-matrix chunk ${file}.`);
-        }
-        chunks.set(file, value);
-      }
+  for (const relative of expectedInitialMatrixChunkRelativePaths(manifest)) {
+    const file = path.join(root, relative);
+    if (!fs.existsSync(file)) continue;
+    const match = /^chunks\/cell-(\d+)-(\d+)\/chunk-(\d+)\.json$/.exec(relative);
+    if (!match) throw new Error(`Invalid initial-matrix chunk path ${relative}.`);
+    const row = Number(match[1]), column = Number(match[2]), start = Number(match[3]);
+    const count = Math.min(manifest.protocol.chunkSize, manifest.protocol.maxSeedCount - start);
+    const value = readJson<unknown>(file);
+    if (!validateInitialMatrixChunk(value, manifest, row, column, start, count)) {
+      throw new Error(`Invalid or corrupt initial-matrix chunk ${file}.`);
     }
+    chunks.set(file, value);
   }
   return chunks;
 }
@@ -145,7 +132,7 @@ async function fillMissingChunks(options: Options, manifest: InitialMatrixManife
   chunks: Map<string, InitialMatrixChunk>, kingdom: (typeof deepBeamSuite.kingdoms)[number]): Promise<void> {
   const missing: Array<{ row: number; column: number; start: number; count: number; file: string }> = [];
   for (let row = 0; row < manifest.strategies.length; row += 1) {
-    for (let column = row + 1; column < manifest.strategies.length; column += 1) {
+    for (let column = row; column < manifest.strategies.length; column += 1) {
       for (let start = 0; start < manifest.protocol.maxSeedCount; start += manifest.protocol.chunkSize) {
         const file = chunkFile(options.outputRoot, row, column, start);
         if (!chunks.has(file)) missing.push({ row, column, start,
@@ -166,34 +153,38 @@ async function fillMissingChunks(options: Options, manifest: InitialMatrixManife
       const started = performance.now();
       const outcomes = (await runner.run(jobs)).outcomes;
       const simulationMs = performance.now() - started;
+      const purpose = item.row === item.column
+        ? manifest.protocol.diagonalPurpose : manifest.protocol.offDiagonalPurpose;
       const records = outcomes.map((outcome, outcomeIndex) => {
         if (!outcome || outcome.record.aborted !== 0 || outcome.stopReason !== 'maximum'
           || outcome.seedsEvaluated !== 1 || outcome.matches !== GAMES_PER_SEED
           || outcome.blocks.length !== 1 || outcome.blocks[0]!.seed !== seeds[outcomeIndex]) {
-          throw new Error(`Pair ${item.row}:${item.column} seed ${seeds[outcomeIndex]} returned invalid evidence.`);
+          throw new Error(`Cell ${item.row}:${item.column} seed ${seeds[outcomeIndex]} returned invalid evidence.`);
         }
-        return seedRecordFromOutcome(outcome.blocks[0]!, outcome.telemetry, outcome.matches);
+        return seedRecordFromOutcome(outcome.blocks[0]!, outcome.telemetry, outcome.matches, purpose);
       });
       const chunk = createInitialMatrixChunk({ manifest, rowIndex: item.row, columnIndex: item.column,
         startSeedIndex: item.start, records, simulationMs });
       writeAtomic(item.file, chunk);
       chunks.set(item.file, chunk);
-      console.log(`initial matrix chunk ${index + 1}/${missing.length}: ${item.row}:${item.column} seeds ${item.start + 1}-${item.start + item.count}`);
+      console.log(`initial matrix cell ${index + 1}/${missing.length}: ${item.row}:${item.column} seeds ${item.start + 1}-${item.start + item.count}`);
     }
   } finally { await runner.close(); }
 }
-function pairSeries(root: string, manifest: InitialMatrixManifest,
-  chunks: ReadonlyMap<string, InitialMatrixChunk>): InitialMatrixPairSeries[] {
-  const result: InitialMatrixPairSeries[] = [];
+function cellSeries(root: string, manifest: InitialMatrixManifest,
+  chunks: ReadonlyMap<string, InitialMatrixChunk>): InitialMatrixCellSeries[] {
+  const result: InitialMatrixCellSeries[] = [];
   for (let row = 0; row < manifest.strategies.length; row += 1) {
-    for (let column = row + 1; column < manifest.strategies.length; column += 1) {
+    for (let column = row; column < manifest.strategies.length; column += 1) {
       const records = [] as InitialMatrixChunk['records'];
+      let purpose: InitialMatrixChunk['purpose'] | undefined;
       for (let start = 0; start < manifest.protocol.maxSeedCount; start += manifest.protocol.chunkSize) {
         const held = chunks.get(chunkFile(root, row, column, start));
-        if (!held) throw new Error(`Initial matrix is incomplete at pair ${row}:${column}, seed index ${start}.`);
+        if (!held) throw new Error(`Initial matrix is incomplete at cell ${row}:${column}, seed index ${start}.`);
+        purpose ??= held.purpose;
         records.push(...held.records);
       }
-      result.push({ rowIndex: row, columnIndex: column, records });
+      result.push({ purpose: purpose!, rowIndex: row, columnIndex: column, records });
     }
   }
   return result;
@@ -219,22 +210,30 @@ if (fs.existsSync(manifestFile)) {
     throw new Error('Saved initial-matrix manifest has stale rules, protocol, source, or strategies.');
   }
   manifest = held;
+  assertInitialMatrixOutputJsonFiles(existingJsonFiles(options.outputRoot), true, manifest);
 } else {
+  assertInitialMatrixOutputJsonFiles(existingJsonFiles(options.outputRoot), false);
   fs.mkdirSync(options.outputRoot, { recursive: true });
   writeAtomic(manifestFile, manifest);
 }
 const chunks = loadChunks(options.outputRoot, manifest);
 await fillMissingChunks(options, manifest, chunks, kingdom);
 const completed = loadChunks(options.outputRoot, manifest);
-const simulationMs = [...completed.values()].reduce((sum, chunk) => sum + chunk.simulationMs, 0);
+const measuredChunkWallMs = [...completed.values()].reduce((sum, chunk) => {
+  if (chunk.purpose === manifest.protocol.diagonalPurpose) sum.diagonalTelemetry += chunk.simulationMs;
+  else sum.offDiagonal += chunk.simulationMs;
+  return sum;
+}, { offDiagonal: 0, diagonalTelemetry: 0 });
 const analysis = analyzeInitialMatrix({ strategies: manifest.strategies,
-  pairs: pairSeries(options.outputRoot, manifest, completed), seedCount: manifest.protocol.maxSeedCount,
-  requestedPrefixes: options.prefixes, heldOutStartSeedIndex: options.heldOutStartSeedIndex, simulationMs });
-const report = { schemaVersion: 1, experiment: 'initial-matrix-calibration-report',
+  cells: cellSeries(options.outputRoot, manifest, completed), seedCount: manifest.protocol.maxSeedCount,
+  requestedPrefixes: options.prefixes, heldOutStartSeedIndex: options.heldOutStartSeedIndex,
+  measuredChunkWallMs });
+const report = { schemaVersion: 2, experiment: 'initial-matrix-calibration-report',
   version: manifest.protocol.version, manifestHash: manifest.evidenceHash, source: manifest.protocol.source,
   protocol: manifest.protocol, analysis };
 writeAtomic(path.join(options.outputRoot, 'report.json'), report);
 console.log(JSON.stringify({ report: path.join(options.outputRoot, 'report.json'),
-  exactGameCount: analysis.exactGameCount, simulationMs: analysis.simulationMs, solverMs: analysis.solverMs,
-  prefixes: analysis.requestedPrefixes, heldOutSeeds: analysis.heldOut.seedCount,
-  diagonalSelfPlay: analysis.telemetryAvailability.diagonalSelfPlay }, null, 2));
+  evidenceCosts: analysis.evidenceCosts, prefixes: analysis.requestedPrefixes,
+  heldOutSeedRange: analysis.heldOut.seedRange,
+  acquisitionBasis: analysis.heldOut.acquisitions.basis,
+  feasibleRangeBasis: analysis.heldOut.acquisitions.feasibleRangeBasis }, null, 2));

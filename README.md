@@ -239,18 +239,20 @@ npm run goldfish:ordered-product -- validate-reservoir --kingdom "$KINGDOM" \
 
 The ranked bytes contain the 500,000-candidate stage-one cohort, all four-seed score evidence, ranks, and shard provenance. Runtime and container data remain in `run-summary.json` on the Modal Volume.
 
-Build or resume a local calibration matrix for the ordered ranks 1–50:
+Build or resume protocol v2 calibration for ordered ranks 1–50:
 
 ```sh
 npm run initial-matrix:calibrate -- \
   --kingdom "$KINGDOM" \
   --ranked ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json" \
   --reservoir ".experiments/ordered-goldfish-product/$RUN_ID/reservoir.json" \
-  --out ".experiments/initial-matrix-calibration/$KINGDOM" \
-  --max-seeds 60 --chunk-size 5 --prefixes 5,10,25 --held-out-start 40 --workers 4
+  --out ".experiments/initial-matrix-calibration-v2/$KINGDOM" \
+  --max-seeds 100 --chunk-size 5 --prefixes 50,75 --held-out-start 75 --workers 4
 ```
 
-`--prefixes` selects training seed counts. `--held-out-start` is the number of leading seeds excluded from the held-out suffix, so every requested prefix must be no larger than it. The command validates the current kingdom rules, both ordered artifacts, their hashes, and the exact 20,000-entry reservoir before simulation. It saves atomic seed-level payoff and acquisition evidence for every distinct-strategy pair. A repeat validates and resumes missing chunks. A corrupt, stale, or different source stops the command. The report derives all requested prefixes and the disjoint held-out suffix without replaying games. It reports diagonal self-play telemetry as unavailable.
+The maximum is 100 seeds. Prefixes use seed ordinals 1–50 and 1–75. The held-out suffix uses ordinals 76–100. The complete run has 245,000 off-diagonal payoff and telemetry games plus 10,000 diagonal telemetry games, for 255,000 games. Prefix 50 costs 122,500 + 5,000 = 127,500 games. Prefix 75 costs 183,750 + 7,500 = 191,250 games. Held-out ordinals 76–100 cost 61,250 + 2,500 = 63,750 games.
+
+The command validates the current rules, both ordered artifacts and hashes, the exact 20,000-entry reservoir, and every saved v2 cell chunk. It rejects v1, stale, corrupt, incomplete, or unexpected resume evidence. The payoff matrix uses only off-diagonal cells and always has zero diagonals. Acquisition rates represent the selected equilibrium lottery playing itself, including diagonal games, and use the project damage classifier. Feasible archetype ranges hold those selected-lottery labels fixed while equilibrium weights vary. They are conditional on the discovered 50-strategy matrix and do not cover omitted strategies. Reports separate payoff, diagonal, and total game costs. Their measured chunk wall times are exact sums of saved chunk times, not CPU estimates or complete command times.
 
 Run or resume one fixed-reservoir response round from the validated final 20,000-strategy Kingdom 009 prefix, then compare it with all five saved fixed-reservoir lotteries:
 
