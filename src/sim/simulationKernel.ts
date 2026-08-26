@@ -476,7 +476,8 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
     case 'feint': draw(state, actor, cardValue(card, 'draw')); state.exposed[other(actor)] = true; event(state); break;
     case 'drive': {
       if (addDamage(state, actor, cardValue(card, 'damage'), true, cardIndex)) return true;
-      const movement = decision.movement ?? 'left';
+      const movement = decision.movement;
+      if (movement === undefined) throw new Error('Drive has no selected direction.');
       const destination = positionAfter(state.positions[actor], movement);
       if (destination < ARENA_MIN || destination > ARENA_MAX) {
         event(state);
@@ -528,7 +529,9 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
       if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true; break;
     case 'channel': player.mana += cardValue(card, 'mana'); event(state); draw(state, actor, cardValue(card, 'draw')); break;
     case 'leyStep': case 'step': {
-      const movement = decision.movement ?? 'left'; const next = positionAfter(state.positions[actor], movement);
+      const movement = decision.movement;
+      if (movement === undefined) throw new Error(`${card.id} has no selected direction.`);
+      const next = positionAfter(state.positions[actor], movement);
       state.spacesMoved += Math.abs(next - state.positions[actor]); state.positions[actor] = next; event(state);
       const mana = cardValue(card, 'mana') + (card.mechanic === 'leyStep' && Math.abs(state.positions[actor] - state.positions[other(actor)]) >= 2 ? cardValue(card, 'farMana') : 0); if (mana) { player.mana += mana; event(state); }
       break;

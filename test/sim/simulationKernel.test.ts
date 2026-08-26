@@ -2,13 +2,28 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { registerKingdom, resetKingdoms } from '../../src/game';
 import type { GameState } from '../../src/game';
 import { tacticalAgent } from '../../src/sim/tacticalAgent';
-import { diagnosticStrategies } from '../../src/sim/baselines';
+import { diagnosticLabels, diagnosticStrategies } from '../../src/sim/baselines';
 import { CURATED_KINGDOM_IDS } from '../../src/sim/kingdoms';
 import { runMatch } from '../../src/sim/match';
 import { randomUniqueStrategies } from '../../src/sim/randomStrategy';
 import { runSimulationMatch } from '../../src/sim/simulationKernel';
 import { INFINITE_COUNT, fixedBuyPlan } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
+import type { MatchResult } from '../../src/sim/types';
+
+function matchScore(outcome: MatchResult['outcome']): Record<'ochre' | 'indigo', number> {
+  if (outcome === 'ochre') return { ochre: 1, indigo: 0 };
+  if (outcome === 'indigo') return { ochre: 0, indigo: 1 };
+  return { ochre: 0.5, indigo: 0.5 };
+}
+
+function acquisitions(result: MatchResult): Record<'ochre' | 'indigo', Record<string, number>> {
+  return Object.fromEntries((['ochre', 'indigo'] as const).map((playerId) => {
+    const counts = { ...result.telemetry.purchasesByCard[playerId] };
+    for (const cardId of result.telemetry.startingBuild[playerId]) counts[cardId] = (counts[cardId] ?? 0) + 1;
+    return [playerId, counts];
+  })) as Record<'ochre' | 'indigo', Record<string, number>>;
+}
 
 afterEach(() => { resetKingdoms(); });
 
@@ -34,6 +49,31 @@ describe('the compact simulation kernel', () => {
         expect(runSimulationMatch({ ...shared, strategies: { ochre, indigo } })).toEqual(compact);
       }
     }
+  });
+
+  it.each([
+    ['three-way-open', 'melee', 'melee', 1],
+    ['three-way-open', 'melee', 'mage', 1],
+    ['three-way-open', 'mage', 'tempo', 3]
+  ] as const)('matches the side-reflected production game for %s %s versus %s seed %i', (
+    kingdomId, ochreLabel, indigoLabel, seed
+  ) => {
+    const strategies = diagnosticStrategies(kingdomId);
+    const labels = diagnosticLabels(kingdomId);
+    const find = (label: string): Strategy => strategies.find((entry) => labels.get(entry.id) === label)!;
+    const shared = {
+      kingdomId, seed, firstPlayerId: 'ochre' as const, turnLimitPerPlayer: 30, actionCapPerTurn: 200,
+      strategies: { ochre: find(ochreLabel), indigo: find(indigoLabel) }
+    };
+    const normal = runSimulationMatch({ ...shared, swapSides: false });
+    const reflected = runSimulationMatch({ ...shared, swapSides: true });
+
+    expect(reflected.outcome).toBe(normal.outcome);
+    expect(matchScore(reflected.outcome)).toEqual(matchScore(normal.outcome));
+    expect(acquisitions(reflected)).toEqual(acquisitions(normal));
+    expect(reflected.telemetry).toEqual(normal.telemetry);
+    expect({ reason: reflected.reason, turns: reflected.turns })
+      .toEqual({ reason: normal.reason, turns: normal.turns });
   });
 
   it('matches the immutable engine for Repelling Shot movement', () => {

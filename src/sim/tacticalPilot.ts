@@ -152,12 +152,18 @@ interface MovementResult {
   positionValue: number;
 }
 
+function continuedMovementSpaces(result: MovementResult): number {
+  if (result.movement === 'left') return result.actorPosition - ARENA_MIN;
+  if (result.movement === 'right') return ARENA_MAX - result.actorPosition;
+  return 0;
+}
+
 function winsFinalTie(candidate: MovementResult, best: MovementResult): boolean {
   if (candidate.movement === 'stay' || best.movement === 'stay') return candidate.movement === 'stay';
   const candidateDistance = distance(candidate.actorPosition, candidate.opponentPosition);
   const bestDistance = distance(best.actorPosition, best.opponentPosition);
   if (candidateDistance !== bestDistance) return candidateDistance > bestDistance;
-  return candidate.movement === 'left' && best.movement !== 'left';
+  return continuedMovementSpaces(candidate) > continuedMovementSpaces(best);
 }
 
 function betterMovement(candidate: MovementResult, best: MovementResult | null): boolean {
@@ -250,7 +256,8 @@ function bestDriveDirection(card: PilotCard, view: TacticalView): MovementChoice
     };
     if (betterMovement(candidate, best)) best = candidate;
   }
-  return best?.movement ?? 'left';
+  if (!best) throw new Error('Drive has no legal direction.');
+  return best.movement;
 }
 
 function compareProjection(left: readonly number[], right: readonly number[]): number {

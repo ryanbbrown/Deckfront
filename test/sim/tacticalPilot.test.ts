@@ -19,6 +19,11 @@ function playedDefinition(state: GameState, action: LegalAction): string | null 
     : null;
 }
 
+function chosenDirection(action: LegalAction): string | undefined {
+  return 'movement' in action.command ? action.command.movement
+    : 'direction' in action.command ? action.command.direction : undefined;
+}
+
 describe('the shared tactical pilot', () => {
   it('uses an existing Aim on Volley before it draws or aims again', () => {
     const state = arena({ kingdomId: 'current-duel', hand: ['muster', 'aim', 'volley'], aimed: true });
@@ -31,7 +36,7 @@ describe('the shared tactical pilot', () => {
     expect(action.command).toMatchObject({ type: 'playFootwork', movement: 'left' });
   });
 
-  it('uses Step to move a Mage deck away from a Melee deck', () => {
+  it('moves a position-independent Mage profile away when retreat improves its public advantage over Melee', () => {
     const state = arena({
       kingdomId: 'three-way-open', hand: ['step'], draw: ['arcBolt'], ochre: 2, indigo: 3,
       indigoHand: ['heavyBlow'], indigoDraw: [], indigoDiscard: []
@@ -39,7 +44,7 @@ describe('the shared tactical pilot', () => {
     expect(choose(state).command).toMatchObject({ type: 'playMoveAction', direction: 'left' });
   });
 
-  it('uses the opponent deck to prefer Far over Near when Steady Shot damage ties', () => {
+  it('moves a Ranged profile away when retreat improves its public advantage over Melee', () => {
     const state = arena({
       kingdomId: 'range-rich-mixed', hand: ['footwork', 'steadyShot'], draw: [], ochre: 2, indigo: 3,
       indigoHand: ['heavyBlow'], indigoDraw: [], indigoDiscard: []
@@ -119,6 +124,34 @@ describe('the shared tactical pilot', () => {
     if (command.type !== 'playAction') throw new Error('Expected Heavy Blow to use playAction.');
     expect(state.players.ochre.deck.hand.find((card) => card.id === command.cardInstanceId)?.definitionId)
       .toBe('heavyBlow');
+  });
+
+  it.each([
+    ['Step', 'step'], ['Ley Step', 'leyStep'], ['Footwork', 'footwork']
+  ] as const)('chooses mirrored %s directions when only continued movement space breaks the tie', (_name, card) => {
+    const normal = arena({
+      kingdomId: 'three-way-open', hand: [card, 'steadyShot'], draw: [], ochre: 3, indigo: 3,
+      indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    const reflected = arena({
+      kingdomId: 'three-way-open', hand: [card, 'steadyShot'], draw: [], ochre: 4, indigo: 4,
+      indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    expect(chosenDirection(choose(normal))).toBe('right');
+    expect(chosenDirection(choose(reflected))).toBe('left');
+  });
+
+  it('chooses mirrored Drive directions when public position and immediate damage tie', () => {
+    const normal = arena({
+      kingdomId: 'three-way-open', hand: ['drive', 'steadyShot'], draw: [], ochre: 3, indigo: 3,
+      indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    const reflected = arena({
+      kingdomId: 'three-way-open', hand: ['drive', 'steadyShot'], draw: [], ochre: 4, indigo: 4,
+      indigoHand: [], indigoDraw: [], indigoDiscard: []
+    });
+    expect(chosenDirection(choose(normal))).toBe('right');
+    expect(chosenDirection(choose(reflected))).toBe('left');
   });
 
   it('chooses Drive wall damage at both arena walls', () => {
