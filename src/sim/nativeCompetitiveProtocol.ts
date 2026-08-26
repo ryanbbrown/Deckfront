@@ -1,9 +1,11 @@
+import { createHash } from 'node:crypto';
 import { FIRST_PLAYER_HEALTH_PENALTY } from '../game';
 import type { Kingdom } from '../game';
 import { nativeKingdomInput } from './nativeGoldfishProtocol';
 import { rulesFingerprint } from './rulesFingerprint';
 import { INFINITE_COUNT, canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
+import type { MixtureSchedule } from './mixtureEvaluation';
 
 export const NATIVE_COMPETITIVE_PROTOCOL_VERSION = 1;
 export const NATIVE_COMPETITIVE_SCORER_VERSION = 'native-competitive-v1';
@@ -67,4 +69,40 @@ export function nativeCompetitiveFixtureRequest(
     loadId, candidateIndex: block.candidateIndex, opponentIndex: block.opponentIndex,
     seed: block.seed, firstPlayer
   } };
+}
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value && typeof value === 'object') return `{${Object.entries(value).sort(([left], [right]) =>
+    left < right ? -1 : left > right ? 1 : 0).map(([key, held]) =>
+    `${JSON.stringify(key)}:${canonicalJson(held)}`).join(',')}}`;
+  return JSON.stringify(value);
+}
+
+export function nativeCompetitiveModalInput(
+  kingdom: Kingdom, candidates: readonly Strategy[], residentStrategies: readonly Strategy[],
+  schedule: MixtureSchedule, config: CompetitiveKernelConfig, threads: number, cpuRequest: number,
+  lookId: string
+) {
+  const table: Strategy[] = [];
+  const indexes = new Map<string, number>();
+  for (const strategy of [...candidates, ...residentStrategies]) {
+    const existing = indexes.get(strategy.id);
+    if (existing !== undefined) {
+      if (canonicalStrategy(table[existing]!) !== canonicalStrategy(strategy)) {
+        throw new Error(`Competitive strategy id collision: ${strategy.id}.`);
+      }
+      continue;
+    }
+    indexes.set(strategy.id, table.length);
+    table.push(strategy);
+  }
+  const loadRequest = nativeCompetitiveLoadRequest(kingdom, table, config, threads, cpuRequest);
+  const value = { schemaVersion: 1, loadRequest, candidateCount: candidates.length, lookId,
+    schedule: schedule.blocks.map((block) => {
+      const opponentIndex = indexes.get(block.opponentId);
+      if (opponentIndex === undefined) throw new Error(`Mixture opponent ${block.opponentId} is not resident.`);
+      return { seed: block.seed, opponentIndex };
+    }) };
+  return { ...value, inputHash: createHash('sha256').update(canonicalJson(value)).digest('hex') };
 }

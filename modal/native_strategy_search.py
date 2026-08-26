@@ -10,6 +10,7 @@ import os
 import pathlib
 import re
 import socket
+import struct
 import subprocess
 import tempfile
 import time
@@ -49,6 +50,10 @@ ORDERED_PRODUCT_AUTHORIZATION = ORDERED_PRODUCT_AUTHORIZATIONS[DEFAULT_ORDERED_P
 ORDERED_PRODUCT_RETAINED_COUNT = 500_000
 ORDERED_PRODUCT_RESERVOIR_COUNT = 20_000
 SCORER_VERSION = "native-goldfish-v1"
+COMPETITIVE_SCORER_VERSION = "native-competitive-v1"
+COMPETITIVE_RUN_CAP_USD = 2.0
+COMPETITIVE_TARGET_BLOCKS = 65_536
+COMPETITIVE_ARTIFACT_MAGIC = b"HPS1"
 RESULT_SCHEMA_VERSION = 1
 LEDGER_PATH = pathlib.Path.home() / ".hexdeck-modal-cost-ledger.json"
 
@@ -664,6 +669,334 @@ def controller(config: dict[str, Any]) -> dict[str, Any]:
     return merge
 
 
+def adaptive_competitive_shards(
+    candidate_count: int, schedule_count: int, max_containers: int,
+    target_blocks: int = COMPETITIVE_TARGET_BLOCKS
+) -> list[dict[str, int]]:
+    if min(candidate_count, schedule_count, max_containers, target_blocks) < 1:
+        raise ValueError("competitive shard dimensions must be positive")
+    desired = min(max_containers, math.ceil(candidate_count * schedule_count / target_blocks))
+    if candidate_count >= desired:
+        candidate_span = math.ceil(candidate_count / desired)
+        schedule_span = schedule_count
+    else:
+        candidate_span = 1
+        schedule_waves = max(1, math.ceil(desired / candidate_count))
+        schedule_span = math.ceil(schedule_count / schedule_waves)
+    shards = []
+    for candidate_start in range(0, candidate_count, candidate_span):
+        for schedule_start in range(0, schedule_count, schedule_span):
+            shards.append({
+                "shard_id": len(shards),
+                "candidate_start": candidate_start,
+                "candidate_end": min(candidate_count, candidate_start + candidate_span),
+                "schedule_start": schedule_start,
+                "schedule_end": min(schedule_count, schedule_start + schedule_span),
+            })
+    return shards
+
+
+def _competitive_input_hash(value: dict[str, Any]) -> str:
+    held = {key: value[key] for key in value if key != "inputHash"}
+    return hashlib.sha256(json.dumps(held, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def validate_competitive_input(value: Any) -> dict[str, Any]:
+    try:
+        payload = value["loadRequest"]["payload"]
+        schedule = value["schedule"]
+        valid = (
+            value["schemaVersion"] == 1
+            and value["loadRequest"]["type"] == "load_competitive"
+            and payload["protocolVersion"] == 1
+            and payload["scorerVersion"] == COMPETITIVE_SCORER_VERSION
+            and payload["startingDraftEnabled"] is False
+            and isinstance(payload["strategies"], list)
+            and value["candidateCount"] > 0
+            and value["candidateCount"] <= len(payload["strategies"])
+            and isinstance(schedule, list) and len(schedule) > 0
+            and all(isinstance(block["seed"], int) and block["seed"] >= 0
+                    and isinstance(block["opponentIndex"], int)
+                    and 0 <= block["opponentIndex"] < len(payload["strategies"])
+                    for block in schedule)
+            and re.fullmatch(r"[A-Za-z0-9._-]+", value["lookId"]) is not None
+            and value["inputHash"] == _competitive_input_hash(value)
+        )
+        if not valid:
+            raise ValueError("competitive input failed its schema or digest check")
+        return value
+    except (KeyError, TypeError, ValueError) as error:
+        if isinstance(error, ValueError):
+            raise
+        raise ValueError("competitive input failed its schema or digest check") from error
+
+
+def projected_competitive_cost_usd(
+    candidate_count: int, schedule_count: int, cpu: int, memory_gib: int,
+    timeout_seconds: int, max_containers: int, target_blocks: int = COMPETITIVE_TARGET_BLOCKS
+) -> float:
+    shards = adaptive_competitive_shards(
+        candidate_count, schedule_count, max_containers, target_blocks)
+    return projected_cost_usd(len(shards), cpu, memory_gib, timeout_seconds, max_containers)
+
+
+def validate_competitive_launch(
+    *, candidate_count: int, schedule_count: int, cpu: int, memory_gib: int,
+    threads: int, max_containers: int, timeout_seconds: int, max_cost_usd: float,
+    target_blocks: int = COMPETITIVE_TARGET_BLOCKS
+) -> dict[str, Any]:
+    if min(candidate_count, schedule_count, cpu, memory_gib, threads,
+           max_containers, timeout_seconds, target_blocks) < 1:
+        raise ValueError("competitive counts and resource limits must be positive")
+    if threads > cpu:
+        raise ValueError("Rust threads cannot exceed the CPU request")
+    if max_containers > 48 or 1 + cpu * max_containers > MAX_PHYSICAL_CORES:
+        raise ValueError("competitive fleet exceeds the 48-container or physical-core limit")
+    if max_cost_usd > COMPETITIVE_RUN_CAP_USD:
+        raise ValueError(f"competitive run cap cannot exceed ${COMPETITIVE_RUN_CAP_USD:.0f}")
+    projected = projected_competitive_cost_usd(candidate_count, schedule_count, cpu,
+        memory_gib, timeout_seconds, max_containers, target_blocks)
+    if projected > max_cost_usd:
+        raise ValueError(f"worst-case cost ${projected:.4f} exceeds run cap ${max_cost_usd:.4f}")
+    shards = adaptive_competitive_shards(candidate_count, schedule_count,
+        max_containers, target_blocks)
+    waves = math.ceil(len(shards) / max_containers)
+    return {"projected": projected, "shards": shards,
+            "controller_timeout": (MAX_RETRIES + 1) * waves * (timeout_seconds + 30) + 300,
+            "aggregate_cpu": 1 + cpu * max_containers}
+
+
+def _competitive_artifact_path(spec: dict[str, Any]) -> pathlib.Path:
+    return pathlib.Path("/results") / spec["run_id"] / "looks" / spec["look_id"] \
+        / f"shard-{spec['shard_id']:06d}.hps"
+
+
+def _competitive_artifact_digest(header: dict[str, Any], payload: bytes) -> str:
+    held = {key: header[key] for key in header if key != "digest"}
+    encoded = json.dumps(held, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded + payload).hexdigest()
+
+
+def _write_competitive_artifact(
+    path: pathlib.Path, header: dict[str, Any], score_bytes: bytes, played: bytes
+) -> None:
+    if len(score_bytes) != len(played):
+        raise ValueError("competitive score and played byte lengths differ")
+    payload = score_bytes + played
+    value = {**header, "scoreCount": len(score_bytes)}
+    value["digest"] = _competitive_artifact_digest(value, payload)
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("wb", dir=path.parent, delete=False) as held:
+        held.write(COMPETITIVE_ARTIFACT_MAGIC)
+        held.write(struct.pack(">I", len(encoded)))
+        held.write(encoded)
+        held.write(payload)
+        held.flush()
+        os.fsync(held.fileno())
+        temporary = pathlib.Path(held.name)
+    os.replace(temporary, path)
+
+
+def _read_competitive_artifact(path: pathlib.Path) -> tuple[dict[str, Any], bytes, bytes]:
+    raw = path.read_bytes()
+    if len(raw) < 8 or raw[:4] != COMPETITIVE_ARTIFACT_MAGIC:
+        raise ValueError("competitive artifact magic is invalid")
+    header_length = struct.unpack(">I", raw[4:8])[0]
+    header = json.loads(raw[8:8 + header_length])
+    payload = raw[8 + header_length:]
+    score_count = header["scoreCount"]
+    if len(payload) != score_count * 2:
+        raise ValueError("competitive artifact byte length is invalid")
+    if header["digest"] != _competitive_artifact_digest(header, payload):
+        raise ValueError("competitive artifact digest is invalid")
+    return header, payload[:score_count], payload[score_count:]
+
+
+def valid_competitive_artifact(path: pathlib.Path, spec: dict[str, Any]) -> bool:
+    try:
+        header, scores, played = _read_competitive_artifact(path)
+        expected = (spec["candidate_end"] - spec["candidate_start"]) \
+            * (spec["schedule_end"] - spec["schedule_start"])
+        return (
+            header["schemaVersion"] == 1
+            and header["runId"] == spec["run_id"]
+            and header["lookId"] == spec["look_id"]
+            and header["inputHash"] == spec["input_hash"]
+            and header["shardId"] == spec["shard_id"]
+            and header["candidateStart"] == spec["candidate_start"]
+            and header["candidateEnd"] == spec["candidate_end"]
+            and header["scheduleStart"] == spec["schedule_start"]
+            and header["scheduleEnd"] == spec["schedule_end"]
+            and header["scoreCount"] == expected
+            and all(score <= 4 for score in scores)
+            and all(value == 2 for value in played)
+        )
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return False
+
+
+def assemble_competitive_artifacts(
+    artifacts: list[tuple[pathlib.Path, dict[str, Any]]], output: pathlib.Path,
+    candidate_count: int, schedule_count: int, header: dict[str, Any]
+) -> str:
+    total = candidate_count * schedule_count
+    scores = bytearray(total)
+    played = bytearray(total)
+    seen = bytearray(total)
+    for path, spec in artifacts:
+        if not valid_competitive_artifact(path, spec):
+            raise ValueError(f"invalid competitive shard artifact {path}")
+        _, shard_scores, shard_played = _read_competitive_artifact(path)
+        source = 0
+        for candidate in range(spec["candidate_start"], spec["candidate_end"]):
+            for schedule in range(spec["schedule_start"], spec["schedule_end"]):
+                target = candidate * schedule_count + schedule
+                if seen[target]:
+                    raise ValueError("competitive shard artifacts overlap")
+                scores[target] = shard_scores[source]
+                played[target] = shard_played[source]
+                seen[target] = 1
+                source += 1
+    if not all(seen):
+        raise ValueError("competitive shard artifacts do not cover the complete look")
+    _write_competitive_artifact(output, header, bytes(scores), bytes(played))
+    complete_header, _, _ = _read_competitive_artifact(output)
+    return complete_header["digest"]
+
+
+_competitive_process: subprocess.Popen[str] | None = None
+_competitive_process_key = ""
+
+
+def _competitive_request(request: dict[str, Any], process_key: str,
+                         threads: int, cpu: int) -> dict[str, Any]:
+    global _competitive_process, _competitive_process_key
+    if _competitive_process is None or _competitive_process.poll() is not None \
+            or _competitive_process_key != process_key:
+        if _competitive_process is not None and _competitive_process.poll() is None:
+            _competitive_process.terminate()
+            _competitive_process.wait(timeout=10)
+        executable = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
+        _competitive_process = subprocess.Popen(
+            [executable, "--threads", str(threads), "--cpu-request", str(cpu)],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            text=True, bufsize=1)
+        _competitive_process_key = process_key
+    assert _competitive_process.stdin is not None and _competitive_process.stdout is not None
+    _competitive_process.stdin.write(json.dumps(request, separators=(",", ":")) + "\n")
+    _competitive_process.stdin.flush()
+    response_line = _competitive_process.stdout.readline()
+    if not response_line:
+        stderr = _competitive_process.stderr.read() if _competitive_process.stderr else ""
+        raise RuntimeError(f"competitive Rust process returned no response: {stderr[-2000:]}")
+    response = json.loads(response_line)
+    if not response.get("ok"):
+        raise RuntimeError(str(response.get("error")))
+    return response["result"]
+
+
+@app.function(image=image, cpu=1, memory=1024, timeout=300, volumes={"/results": volume})
+def stage_competitive_input(run_id: str, content: str, expected_hash: str) -> dict[str, Any]:
+    value = validate_competitive_input(json.loads(content))
+    if value["inputHash"] != expected_hash:
+        raise ValueError("staged competitive input hash differs from launch hash")
+    path = pathlib.Path("/results") / run_id / "competitive-input.json"
+    _atomic_json(path, value)
+    volume.commit()
+    return {"inputHash": value["inputHash"], "candidateCount": value["candidateCount"],
+            "scheduleCount": len(value["schedule"])}
+
+
+@app.function(image=image, cpu=4, memory=4096, timeout=3600, volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
+def competitive_score_shard(spec: dict[str, Any]) -> dict[str, Any]:
+    volume.reload()
+    output = _competitive_artifact_path(spec)
+    if valid_competitive_artifact(output, spec):
+        header, _, _ = _read_competitive_artifact(output)
+        return {"status": "success", "shardId": spec["shard_id"],
+                "digest": header["digest"], "reused": True}
+    input_path = pathlib.Path("/results") / spec["run_id"] / "competitive-input.json"
+    value = validate_competitive_input(json.loads(input_path.read_text()))
+    if value["inputHash"] != spec["input_hash"] or value["lookId"] != spec["look_id"]:
+        raise RuntimeError("competitive shard input does not match its specification")
+    process_key = hashlib.sha256(json.dumps(value["loadRequest"], sort_keys=True).encode()).hexdigest()
+    _competitive_request(value["loadRequest"], process_key, spec["threads"], spec["cpu"])
+    blocks = []
+    for candidate_index in range(spec["candidate_start"], spec["candidate_end"]):
+        for schedule_index in range(spec["schedule_start"], spec["schedule_end"]):
+            held = value["schedule"][schedule_index]
+            blocks.append({"candidateIndex": candidate_index,
+                           "opponentIndex": held["opponentIndex"], "seed": held["seed"]})
+    started = time.monotonic()
+    result = _competitive_request({"type": "score_competitive", "payload": {
+        "loadId": value["loadRequest"]["payload"]["loadId"], "blocks": blocks}},
+        process_key, spec["threads"], spec["cpu"])
+    if result["aborts"]:
+        raise RuntimeError("competitive shard returned an abort")
+    scores = bytes(result["scoreBytes"])
+    played = bytes(result["played"])
+    header = {"schemaVersion": 1, "runId": spec["run_id"], "lookId": spec["look_id"],
+        "inputHash": spec["input_hash"], "shardId": spec["shard_id"],
+        "candidateStart": spec["candidate_start"], "candidateEnd": spec["candidate_end"],
+        "scheduleStart": spec["schedule_start"], "scheduleEnd": spec["schedule_end"],
+        "scorerVersion": COMPETITIVE_SCORER_VERSION, "requestedCpu": spec["cpu"],
+        "threads": spec["threads"], "elapsedMs": round((time.monotonic() - started) * 1000, 3)}
+    _write_competitive_artifact(output, header, scores, played)
+    if not valid_competitive_artifact(output, spec):
+        raise RuntimeError("competitive shard artifact failed validation")
+    volume.commit()
+    held, _, _ = _read_competitive_artifact(output)
+    return {"status": "success", "shardId": spec["shard_id"],
+            "digest": held["digest"], "reused": False,
+            "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname())}
+
+
+@app.function(image=image, cpu=1, memory=1024, timeout=86400, volumes={"/results": volume})
+def competitive_controller(config: dict[str, Any]) -> dict[str, Any]:
+    specs = [{**config, **shard} for shard in adaptive_competitive_shards(
+        config["candidate_count"], config["schedule_count"], config["max_containers"],
+        config["target_blocks"])]
+    completed: dict[int, dict[str, Any]] = {}
+    remote = competitive_score_shard.with_options(cpu=config["cpu"],
+        memory=config["memory_gib"] * 1024, timeout=config["timeout_seconds"] + 30,
+        max_containers=config["max_containers"], retries=0)
+    for attempt in range(MAX_RETRIES + 1):
+        pending = [spec for spec in specs if spec["shard_id"] not in completed]
+        if not pending:
+            break
+        for reply in remote.map(pending, order_outputs=False, return_exceptions=True):
+            if isinstance(reply, dict) and reply.get("status") == "success":
+                completed[reply["shardId"]] = reply
+        if len(completed) < len(specs) and attempt < MAX_RETRIES:
+            time.sleep(min(30, 2 ** attempt))
+    if len(completed) != len(specs):
+        raise RuntimeError(f"{len(specs) - len(completed)} competitive shards failed")
+    ordered = [completed[index] for index in range(len(specs))]
+    volume.reload()
+    root = pathlib.Path("/results") / config["run_id"] / "looks" / config["look_id"]
+    complete_path = root / "complete.hps"
+    complete_digest = assemble_competitive_artifacts(
+        [(_competitive_artifact_path(spec), spec) for spec in specs], complete_path,
+        config["candidate_count"], config["schedule_count"],
+        {"schemaVersion": 1, "runId": config["run_id"], "lookId": config["look_id"],
+         "inputHash": config["input_hash"], "candidateCount": config["candidate_count"],
+         "scheduleCount": config["schedule_count"],
+         "scorerVersion": COMPETITIVE_SCORER_VERSION})
+    manifest = {"schemaVersion": 1, "status": "success", "runId": config["run_id"],
+        "lookId": config["look_id"], "inputHash": config["input_hash"],
+        "candidateCount": config["candidate_count"], "scheduleCount": config["schedule_count"],
+        "completeDigest": complete_digest,
+        "completeArtifact": f"hexdeck-native-strategy-results:/{config['run_id']}/looks/{config['look_id']}/complete.hps",
+        "shards": [{**spec, "digest": ordered[index]["digest"]}
+                   for index, spec in enumerate(specs)]}
+    path = root / "manifest.json"
+    _atomic_json(path, manifest)
+    volume.commit()
+    return manifest
+
+
 def validate_launch_limits(
     *, count: int, start_position: int, shard_size: int, cpu: int, memory_gib: int,
     threads: int, max_containers: int, timeout_seconds: int, max_cost_usd: float,
@@ -850,3 +1183,52 @@ def launch(
     record_controller_call(run_id, call.object_id)
     mode = "ordered-product" if ordered_product else "product" if product else "ordered"
     print(f"detached {mode} call: {call.object_id}")
+
+
+@app.local_entrypoint()
+def launch_competitive(
+    input_file: str,
+    build_version: str,
+    cpu: int = 4,
+    memory_gib: int = 4,
+    threads: int = 4,
+    max_containers: int = 16,
+    timeout_seconds: int = 180,
+    max_cost_usd: float = COMPETITIVE_RUN_CAP_USD,
+    target_blocks: int = COMPETITIVE_TARGET_BLOCKS,
+) -> None:
+    content = pathlib.Path(input_file).read_text()
+    value = validate_competitive_input(json.loads(content))
+    payload = value["loadRequest"]["payload"]
+    if payload["threads"] != threads or payload["cpuRequest"] != cpu:
+        raise ValueError("competitive input CPU and thread values differ from launch resources")
+    limits = validate_competitive_launch(candidate_count=value["candidateCount"],
+        schedule_count=len(value["schedule"]), cpu=cpu, memory_gib=memory_gib,
+        threads=threads, max_containers=max_containers, timeout_seconds=timeout_seconds,
+        max_cost_usd=max_cost_usd, target_blocks=target_blocks)
+    config = {"kind": "competitive-psro", "build_version": build_version,
+        "rule_fingerprint": payload["ruleFingerprint"], "input_hash": value["inputHash"],
+        "look_id": value["lookId"], "candidate_count": value["candidateCount"],
+        "schedule_count": len(value["schedule"]), "cpu": cpu, "memory_gib": memory_gib,
+        "threads": threads, "max_containers": max_containers,
+        "timeout_seconds": timeout_seconds, "target_blocks": target_blocks,
+        "controller_timeout": limits["controller_timeout"]}
+    identity = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()[:20]
+    run_id = f"competitive-{build_version[:12]}-{identity}"
+    config["run_id"] = run_id
+    entry = reserve_cost(run_id, limits["projected"], False, config)
+    print(json.dumps({"runId": run_id, "worstCaseCostUsd": limits["projected"],
+        "reservation": entry,
+        "resultLocation": f"hexdeck-native-strategy-results:/{run_id}/looks/{value['lookId']}/manifest.json"},
+        indent=2))
+    staged = stage_competitive_input.remote(run_id, content, value["inputHash"])
+    if staged["candidateCount"] != value["candidateCount"] \
+            or staged["scheduleCount"] != len(value["schedule"]):
+        raise RuntimeError("staged competitive input returned the wrong dimensions")
+    if not claim_controller(run_id, config["controller_timeout"]):
+        print(f"controller already owns run {run_id}; no duplicate was launched")
+        return
+    call = competitive_controller.with_options(
+        timeout=config["controller_timeout"], retries=0).spawn(config)
+    record_controller_call(run_id, call.object_id)
+    print(f"detached competitive PSRO call: {call.object_id}")

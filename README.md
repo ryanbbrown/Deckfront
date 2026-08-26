@@ -206,6 +206,15 @@ modal run --detach modal/native_strategy_search.py --build-version "$(git rev-pa
 
 Shard checkpoints and the ordered merge live in the `hexdeck-native-strategy-results` Modal Volume. The local reservation ledger is `~/.hexdeck-modal-cost-ledger.json`. Ordered shards call the production TypeScript candidate helper in the image and send its versioned request to Rust. Python does not generate strategies.
 
+`nativeCompetitiveModalInput` creates the fixed candidate-table and schedule artifact for one PSRO look. The competitive Modal entry point shards broad looks by candidates and narrow looks by contiguous schedule ranges. It keeps one loaded Rust process per warm container, retries only missing shards, writes digest-checked score-byte artifacts, and assembles exact candidate-major output. The launch rejects more than 48 containers or a cost cap above $2:
+
+```sh
+modal run --detach modal/native_strategy_search.py::launch_competitive \
+  --input-file competitive-input.json --build-version "$(git rev-parse HEAD)" \
+  --cpu 4 --memory-gib 4 --threads 4 --max-containers 16 \
+  --timeout-seconds 180 --max-cost-usd 2
+```
+
 The deterministic ordered product supports `deep-beam-tuning-001`, `deep-beam-tuning-007`, `deep-beam-tuning-008`, and `deep-beam-tuning-009`. Their original one-use authorizations are `k001-ordered-product-calibration-v2`, `k007-ordered-product-calibration-v2`, `k008-ordered-product-calibration-v2`, and `k009-ordered-product-correction-v1`. These contracts use seeds 4,100,000 through 4,100,003, and existing artifacts with those seeds remain valid. Set one matching kingdom and authorization before launch. This configuration reserves at most $2.88503333 for all retry attempts, uses at most 191 physical cores, and does not launch a local full-space scorer:
 
 ```sh

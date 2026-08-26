@@ -105,6 +105,80 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         self.assertGreater(generation, 0)
         self.assertGreater(scoring, 0)
 
+    def test_competitive_shards_adapt_from_candidates_to_schedule_ranges(self):
+        broad = launcher.adaptive_competitive_shards(20_000, 8, 48)
+        self.assertEqual(len(broad), 3)
+        self.assertTrue(all(shard["schedule_start"] == 0 and shard["schedule_end"] == 8
+                            for shard in broad))
+        narrow = launcher.adaptive_competitive_shards(2, 6_400, 16, target_blocks=1_000)
+        self.assertGreater(len(narrow), 2)
+        covered = {(candidate, schedule) for shard in narrow
+                   for candidate in range(shard["candidate_start"], shard["candidate_end"])
+                   for schedule in range(shard["schedule_start"], shard["schedule_end"])}
+        self.assertEqual(covered, {(candidate, schedule) for candidate in range(2)
+                                   for schedule in range(6_400)})
+        self.assertEqual(sum((shard["candidate_end"] - shard["candidate_start"])
+                             * (shard["schedule_end"] - shard["schedule_start"])
+                             for shard in narrow), 2 * 6_400)
+
+    def test_competitive_artifact_is_compact_restart_safe_and_digest_checked(self):
+        spec = {"run_id": "run", "look_id": "look-8", "input_hash": "a" * 64,
+                "shard_id": 0, "candidate_start": 0, "candidate_end": 2,
+                "schedule_start": 0, "schedule_end": 3}
+        header = {"schemaVersion": 1, "runId": "run", "lookId": "look-8",
+                  "inputHash": "a" * 64, "shardId": 0,
+                  "candidateStart": 0, "candidateEnd": 2,
+                  "scheduleStart": 0, "scheduleEnd": 3,
+                  "scorerVersion": launcher.COMPETITIVE_SCORER_VERSION}
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / "shard.hps"
+            launcher._write_competitive_artifact(path, header, bytes([0, 1, 2, 3, 4, 2]), bytes([2] * 6))
+            self.assertTrue(launcher.valid_competitive_artifact(path, spec))
+            held, scores, played = launcher._read_competitive_artifact(path)
+            self.assertEqual((held["scoreCount"], scores, played),
+                             (6, bytes([0, 1, 2, 3, 4, 2]), bytes([2] * 6)))
+            raw = bytearray(path.read_bytes())
+            raw[-1] ^= 1
+            path.write_bytes(raw)
+            self.assertFalse(launcher.valid_competitive_artifact(path, spec))
+
+    def test_competitive_artifact_assembly_restores_candidate_major_order(self):
+        base = {"run_id": "run", "look_id": "look", "input_hash": "b" * 64}
+        shards = [{**base, **shard} for shard in
+                  launcher.adaptive_competitive_shards(2, 5, 4, target_blocks=3)]
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            artifacts = []
+            for spec in shards:
+                scores = bytes((candidate * 5 + schedule) % 5
+                    for candidate in range(spec["candidate_start"], spec["candidate_end"])
+                    for schedule in range(spec["schedule_start"], spec["schedule_end"]))
+                path = root / f"{spec['shard_id']}.hps"
+                header = {"schemaVersion": 1, "runId": "run", "lookId": "look",
+                    "inputHash": "b" * 64, "shardId": spec["shard_id"],
+                    "candidateStart": spec["candidate_start"], "candidateEnd": spec["candidate_end"],
+                    "scheduleStart": spec["schedule_start"], "scheduleEnd": spec["schedule_end"]}
+                launcher._write_competitive_artifact(path, header, scores, bytes([2] * len(scores)))
+                artifacts.append((path, spec))
+            complete = root / "complete.hps"
+            digest = launcher.assemble_competitive_artifacts(artifacts, complete, 2, 5,
+                {"schemaVersion": 1, "runId": "run", "lookId": "look",
+                 "inputHash": "b" * 64, "candidateCount": 2, "scheduleCount": 5})
+            held, scores, played = launcher._read_competitive_artifact(complete)
+            self.assertEqual(held["digest"], digest)
+            self.assertEqual(scores, bytes([0, 1, 2, 3, 4, 0, 1, 2, 3, 4]))
+            self.assertEqual(played, bytes([2] * 10))
+
+    def test_competitive_cost_controls_keep_the_two_dollar_hard_cap(self):
+        limits = launcher.validate_competitive_launch(candidate_count=20_000, schedule_count=8,
+            cpu=4, memory_gib=4, threads=4, max_containers=16, timeout_seconds=180,
+            max_cost_usd=2)
+        self.assertLessEqual(limits["projected"], 2)
+        with self.assertRaisesRegex(ValueError, "cannot exceed \\$2"):
+            launcher.validate_competitive_launch(candidate_count=20_000, schedule_count=8,
+                cpu=4, memory_gib=4, threads=4, max_containers=16, timeout_seconds=180,
+                max_cost_usd=2.01)
+
     def test_product_controller_reloads_remote_stage_commits_before_each_merge(self):
         class SnapshotVolume:
             remote_version = 0
