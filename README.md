@@ -254,6 +254,20 @@ The maximum is 125 seeds. Prefixes use seed ordinals 1–75 and 1–100. The hel
 
 The command validates the current rules, both ordered artifacts and hashes, the exact 20,000-entry reservoir, and every saved v2 cell chunk. It rejects v1, stale, corrupt, incomplete, or unexpected resume evidence. The payoff matrix uses only off-diagonal cells and always has zero diagonals. Each prefix's acquisition metric applies that prefix's selected lottery to the same untouched ordinals 101–125, including diagonal games. This keeps P75 and P100 telemetry sampling fixed. The project damage classifier uses those held-out lottery-versus-itself rates. Feasible archetype ranges hold the resulting labels fixed while equilibrium weights vary over the prefix matrix. They are conditional on the held-out selected-lottery labels and the discovered 50-strategy matrix, and do not cover omitted strategies. Reports separate payoff, diagonal, and total game costs. Their measured chunk wall times are exact sums of saved chunk times, not CPU estimates or complete command times.
 
+Calibrate fixed screening and standard Successive Halving against one of the three approved saved P75 lotteries. Run the command once for each of Kingdoms 001, 007, and 008:
+
+```sh
+npm run response-oracle:calibrate -- --run \
+  --kingdom "$KINGDOM" \
+  --ranked ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json" \
+  --reservoir ".experiments/ordered-goldfish-product/$RUN_ID/reservoir.json" \
+  --p75-manifest ".experiments/initial-matrix-calibration-v2/$KINGDOM/manifest.json" \
+  --p75-report ".experiments/initial-matrix-calibration-v2/$KINGDOM/report.json" \
+  --out ".experiments/response-oracle-calibration/$KINGDOM" --workers 4
+```
+
+The calibration evaluates exact reservoir ranks 51–20,000 on independent shared-schedule lanes A and B. It saves fixed prefixes at 8, 16, 25, 32, and 50 seeds, replays standard cumulative Successive Halving through 16,384 seeds with top-ups after the shared 50-seed prefix, and saves one independent complete 100-seed all-candidate reference lane. Atomic 250-candidate artifacts reject corrupt resume evidence. The report contains raw cross-fit scores, regrets, ties, top-one and top-four diagnostics, games, and measured simulation time. It does not run PSRO, admit a response, confirm closure, apply a tolerance, or extend reference evidence to 200 or 400 seeds. Use `--status --out PATH` or `--report --out PATH` to inspect saved artifacts.
+
 Run or resume one fixed-reservoir response round from the validated final 20,000-strategy Kingdom 009 prefix, then compare it with all five saved fixed-reservoir lotteries:
 
 ```sh
