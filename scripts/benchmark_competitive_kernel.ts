@@ -46,8 +46,12 @@ try {
     throw new Error('Competitive benchmark parity failed.');
   }
   const opponents = new Map(strategies.slice(0, 8).map((strategy) => [strategy.id, strategy]));
+  const workerScheduleBlocks = Number(process.env.HEXDECK_PARITY_SCHEDULE_BLOCKS ?? 8);
+  if (!Number.isSafeInteger(workerScheduleBlocks) || workerScheduleBlocks < 1) {
+    throw new Error('HEXDECK_PARITY_SCHEDULE_BLOCKS must be a positive integer.');
+  }
   const schedule = mixtureSchedule(Object.fromEntries([...opponents.keys()].map((id) => [id, 1])),
-    Array.from({ length: 8 }, (_unused, index) => 6_100_000 + index), 6_200_000);
+    Array.from({ length: workerScheduleBlocks }, (_unused, index) => 6_100_000 + index), 6_200_000);
   const runner = new WorkerPairingRunner(threads, new URL('../src/server/aiWorker.ts', import.meta.url),
     { kingdom }, ['--import', 'tsx']);
   const evaluator = await RustCompetitiveEvaluator.create(rust, kingdom, strategies, config, threads);
