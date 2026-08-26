@@ -12,9 +12,9 @@ const melee = identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([{ kin
 const ranged = identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'volley', desiredCount: 1 }]) });
 function evidence(strategy = melee, opponent = ranged, card = 'drive'): FullCandidateEvidence {
   const telemetry = emptyAggregate();
-  telemetry.acquisitionsByStrategy[strategy.id] = { [card]: 4 };
-  telemetry.planPositionPurchasesByStrategy![strategy.id] = { '0': 4 };
-  return { strategy, blocks: [{ seed: 1, opponentId: opponent.id, score: 0.75, matches: 4, telemetry }] };
+  telemetry.acquisitionsByStrategy[strategy.id] = { [card]: 2 };
+  telemetry.planPositionPurchasesByStrategy![strategy.id] = { '0': 2 };
+  return { strategy, blocks: [{ seed: 1, opponentId: opponent.id, score: 0.75, matches: 2, telemetry }] };
 }
 function equilibrium(): EquilibriumResult {
   return { strategyIds: [melee.id, ranged.id].sort(), weights: { [melee.id]: 0.5, [ranged.id]: 0.5 },
@@ -25,9 +25,9 @@ function equilibrium(): EquilibriumResult {
 describe('lottery acquisition evidence', () => {
   it('rejects wrong schedules and corrupt complete telemetry', () => {
     const held = evidence();
-    for (const first of ['firstOchre', 'firstIndigo'] as const) for (const side of ['normal', 'swapped'] as const) {
-      held.blocks[0]!.telemetry.byOrientation[first][side].played = 1;
-      held.blocks[0]!.telemetry.byOrientation[first][side].draws = 1;
+    for (const first of ['firstOchre', 'firstIndigo'] as const) {
+      held.blocks[0]!.telemetry.byOrientation[first].normal.played = 1;
+      held.blocks[0]!.telemetry.byOrientation[first].normal.draws = 1;
     }
     expect(validateFullCandidateEvidence(held, { strategy: melee,
       blocks: [{ seed: 1, opponentId: ranged.id }] })).toBe(true);
@@ -36,6 +36,10 @@ describe('lottery acquisition evidence', () => {
     const corrupt = structuredClone(held);
     corrupt.blocks[0]!.telemetry.byOrientation.firstOchre.normal.played = 2;
     expect(validateFullCandidateEvidence(corrupt, { strategy: melee,
+      blocks: [{ seed: 1, opponentId: ranged.id }] })).toBe(false);
+    const oldFourGameEvidence = structuredClone(held) as unknown as { blocks: Array<{ matches: number }> };
+    oldFourGameEvidence.blocks[0]!.matches = 4;
+    expect(validateFullCandidateEvidence(oldFourGameEvidence, { strategy: melee,
       blocks: [{ seed: 1, opponentId: ranged.id }] })).toBe(false);
   });
 

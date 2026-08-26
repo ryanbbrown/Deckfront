@@ -226,7 +226,7 @@ export function wholeLotteryEvidence(
   if (!(totalWeight > 0) || blocks < 1
     || positive.some((entry) => entry.blockScores.length !== blocks
       || entry.blockScores.some((score) => !Number.isFinite(score) || score < 0 || score > 1))) {
-    throw new Error('Whole-lottery evidence needs aligned finite block scores and positive row weight.');
+    throw new Error('Whole-lottery evidence needs aligned finite seed-evaluation scores and positive row weight.');
   }
   const blockScores = Array.from({ length: blocks }, (_unused, index) => positive.reduce((sum, entry) =>
     sum + entry.blockScores[index]! * entry.weight / totalWeight, 0));

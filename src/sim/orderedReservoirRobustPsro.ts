@@ -20,7 +20,7 @@ import type {
   LegacyFixedReservoirPoolArtifact
 } from './legacyFixedReservoirV1';
 
-export const ORDERED_RESERVOIR_ROBUST_VERSION = 'ordered-reservoir-robust-v1' as const;
+export const ORDERED_RESERVOIR_ROBUST_VERSION = 'ordered-reservoir-robust-v2' as const;
 export const ORDERED_ROBUST_EVALUATION_SEEDS = Object.freeze([9_100_009, 9_200_009, 9_300_009] as const);
 export const ORDERED_ROBUST_WORKERS = 4;
 export const ORDERED_ROBUST_INITIAL_STRATEGIES = 50;

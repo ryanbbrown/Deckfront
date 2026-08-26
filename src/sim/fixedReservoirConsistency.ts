@@ -4,12 +4,13 @@ import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from './experimentConfig';
 import { evaluateCandidates, mixtureSchedule, percentileBootstrapMean } from './mixtureEvaluation';
 import type { BootstrapInterval, MixtureSchedule } from './mixtureEvaluation';
 import type { MatrixCellCache, MatrixSnapshot } from './payoffMatrix';
+import { GAMES_PER_SEED } from './pairing';
 import type { PairingRunner } from './pairingRunner';
 import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 import { compareUtf16 } from './utf16';
 
-export const FIXED_RESERVOIR_CONSISTENCY_VERSION = 'fixed-reservoir-consistency-v1' as const;
+export const FIXED_RESERVOIR_CONSISTENCY_VERSION = 'fixed-reservoir-consistency-v2' as const;
 export const CONSISTENCY_EVALUATION_SEEDS = Object.freeze([7_100_009, 7_200_009, 7_300_009] as const);
 export const CONSISTENCY_PHASES = Object.freeze(['search', 'baseline-audit', 'selected-closure', 'selected-direct'] as const);
 export type ConsistencyPhase = typeof CONSISTENCY_PHASES[number];
@@ -139,7 +140,7 @@ export interface WilsonInterval { lower: number; upper: number }
 export function wilsonScoreInterval(mean: number, blocks: number, z = 1.959963984540054): WilsonInterval {
   if (!Number.isFinite(mean) || mean < 0 || mean > 1 || !Number.isSafeInteger(blocks) || blocks < 1
     || !Number.isFinite(z) || z <= 0) throw new Error('Wilson interval input is invalid.');
-  const observations = 4 * blocks;
+  const observations = GAMES_PER_SEED * blocks;
   const denominator = 1 + z * z / observations;
   const center = (mean + z * z / (2 * observations)) / denominator;
   const radius = z * Math.sqrt(mean * (1 - mean) / observations + z * z / (4 * observations * observations))
@@ -266,7 +267,7 @@ function positiveMixture(snapshot: MatrixSnapshot, equilibrium: EquilibriumResul
 }
 function rowMean(scores: readonly number[]): number {
   if (!scores.length || scores.some((score) => !Number.isFinite(score) || score < 0 || score > 1)) {
-    throw new Error('Candidate block scores are invalid.');
+    throw new Error('Candidate seed-evaluation scores are invalid.');
   }
   return scores.reduce((sum, score) => sum + score, 0) / scores.length;
 }
@@ -318,8 +319,8 @@ export async function runProtocolScan(input: {
       if (evaluated.length !== field.length) throw new Error('Score allocation returned an incomplete candidate field.');
       const current = new Map<string, number[]>();
       for (const row of evaluated) {
-        if (row.blockScores.length !== blockCount || row.matches !== blockCount * 4 || current.has(row.strategy.id)) {
-          throw new Error('Score allocation returned an invalid block.');
+        if (row.blockScores.length !== blockCount || row.matches !== blockCount * GAMES_PER_SEED || current.has(row.strategy.id)) {
+          throw new Error('Score allocation returned an invalid seed evaluation.');
         }
         current.set(row.strategy.id, [...row.blockScores]);
         cumulative.set(row.strategy.id, [...(cumulative.get(row.strategy.id) ?? []), ...row.blockScores]);
@@ -352,7 +353,7 @@ export async function runProtocolScan(input: {
         const extra = await input.score({ candidates: boundaryStrategies, opponents, schedule: extraSchedule, scoreOnly: true });
         const extraCurrent = new Map<string, number[]>();
         for (const row of extra) {
-          if (row.blockScores.length !== blockCount || row.matches !== blockCount * 4) throw new Error('Adaptive extra allocation is invalid.');
+          if (row.blockScores.length !== blockCount || row.matches !== blockCount * GAMES_PER_SEED) throw new Error('Adaptive extra allocation is invalid.');
           extraCurrent.set(row.strategy.id, [...row.blockScores]);
           cumulative.set(row.strategy.id, [...(cumulative.get(row.strategy.id) ?? []), ...row.blockScores]);
           matches += row.matches;
@@ -402,7 +403,8 @@ export async function runProtocolScan(input: {
     if (confirmedById.size !== union.length) throw new Error('Confirmation allocation is incomplete.');
     for (let index = 0; index < union.length; index += 1) {
       const source = union[index]!, row = confirmedById.get(source.strategy.id);
-      if (!row || row.blockScores.length !== protocol.confirmationBlocks || row.matches !== 1600) {
+      if (!row || row.blockScores.length !== protocol.confirmationBlocks
+        || row.matches !== protocol.confirmationBlocks * GAMES_PER_SEED) {
         throw new Error('Confirmation allocation is invalid.');
       }
       const mean = rowMean(row.blockScores), interval95 = percentileBootstrapMean(row.blockScores, bootstrapSeeds[index]!);
@@ -451,7 +453,7 @@ export function validateProtocolScan(scan: ProtocolScanEvidence, snapshot: Matri
       if (allocation.entered !== allocation.candidates.length || allocation.seeds.length === 0
         || allocation.schedule.blocks.length !== allocation.seeds.length
         || allocation.schedule.blocks.some((block, index) => block.seed !== allocation.seeds[index])
-        || allocation.matches !== allocation.entered * allocation.seeds.length * 4) return false;
+        || allocation.matches !== allocation.entered * allocation.seeds.length * GAMES_PER_SEED) return false;
       matches += allocation.matches;
       const ordered = [...allocation.candidates].sort((left, right) => compareRankedScore(left, right));
       if (ordered.some((entry, index) => entry.strategyId !== allocation.candidates[index]!.strategyId)) return false;
@@ -547,7 +549,8 @@ export function validateProtocolScan(scan: ProtocolScanEvidence, snapshot: Matri
       const bootstrapIndex = scan.unionStrategyIds.indexOf(finalist.strategy.id);
       if (bootstrapIndex < 0) return false;
       const interval = percentileBootstrapMean(finalist.blockScores, scan.bootstrapSeeds[bootstrapIndex]!);
-      if (finalist.blockScores.length !== protocol.confirmationBlocks || finalist.matches !== 1600
+      if (finalist.blockScores.length !== protocol.confirmationBlocks
+        || finalist.matches !== protocol.confirmationBlocks * GAMES_PER_SEED
         || finalist.rank !== index + 1 || Math.abs(finalist.mean - rowMean(finalist.blockScores)) > 1e-12
         || JSON.stringify(finalist.interval95) !== JSON.stringify(interval)
         || finalist.admitted !== (interval.lower > 0.5)
@@ -587,7 +590,7 @@ export function validateConsistencyMatrix(matrix: MatrixSnapshot): boolean {
       if (row === undefined || column === undefined || !cell.complete
         || cell.blocks.length !== matrix.protocol.seeds.length
         || cell.blocks.some((block, index) => block.seed !== matrix.protocol.seeds[index]
-          || block.played !== 4 || block.aborted !== 0)) return false;
+          || block.played !== GAMES_PER_SEED || block.aborted !== 0)) return false;
       const played = cell.blocks.reduce((sum, block) => sum + block.played, 0);
       const centered = 2 * cell.blocks.reduce((sum, block) => sum + block.score * block.played, 0) / played - 1;
       if (!near(centered, cell.centeredPayoff) || !near(matrix.centeredPayoffs[row]![column]!, centered)) return false;

@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
 import { CARDS, cardDefinition, kingdomMarket } from '../src/game';
 import { CURATED_KINGDOM_IDS } from '../src/sim/kingdoms';
-import { playPairing } from '../src/sim/pairing';
+import { GAMES_PER_SEED, playPairing } from '../src/sim/pairing';
 import { rulesFingerprint } from '../src/sim/rulesFingerprint';
 import { canonicalStrategy, identify, isInfinite } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
@@ -486,7 +486,8 @@ export function selfPlayFor(artifact: ArtifactSet): Map<string, TelemetryAggrega
       turnLimitPerPlayer: artifact.matrix.protocol.turnLimitPerPlayer,
       actionCapPerTurn: artifact.matrix.protocol.actionCapPerTurn
     });
-    if (pairing.record.aborted || pairing.matches !== artifact.matrix.protocol.seeds.length * 4) {
+    if (pairing.record.aborted
+      || pairing.matches !== artifact.matrix.protocol.seeds.length * GAMES_PER_SEED) {
       throw new Error(`Invalid self-play for ${artifact.run.kingdomId} strategy ${strategy.id}.`);
     }
     results.set(strategy.id, pairing.telemetry);

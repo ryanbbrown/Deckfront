@@ -4,6 +4,7 @@ import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from './experimentConfig';
 import { validateConsistencyMatrix } from './fixedReservoirConsistency';
 import { mixtureSchedule } from './mixtureEvaluation';
 import type { MixtureSchedule } from './mixtureEvaluation';
+import { GAMES_PER_SEED } from './pairing';
 import { matrixProtocol } from './payoffMatrix';
 import type { MatrixSnapshot } from './payoffMatrix';
 import type { OrderedChallengePoolArtifact } from './orderedReservoirChallenge';
@@ -11,7 +12,7 @@ import { canonicalStrategy, stableHash } from './strategy';
 import { compareUtf16 } from './utf16';
 
 export const ORDERED_RACE_BENCHMARK_V1_VERSION = 'ordered-reservoir-race-benchmark-v1' as const;
-export const ORDERED_RACE_BENCHMARK_VERSION = 'ordered-reservoir-race-benchmark-v2' as const;
+export const ORDERED_RACE_BENCHMARK_VERSION = 'ordered-reservoir-race-benchmark-v3' as const;
 export const ORDERED_RACE_BENCHMARK_WORKERS = 4;
 export const ORDERED_RACE_BENCHMARK_KINGDOM = 'deep-beam-tuning-009';
 
@@ -22,7 +23,7 @@ export interface OrderedRaceBenchmarkProtocol {
   evaluationTrials: number;
   candidateBlocks: number;
   chunkSize: number;
-  gamesPerBlock: 4;
+  gamesPerSeedEvaluation: typeof GAMES_PER_SEED;
   startingDraftEnabled: false;
   startingHealth: 50;
   turnLimitPerPlayer: number;
@@ -39,7 +40,7 @@ export const ORDERED_RACE_BENCHMARK_PROTOCOL: Readonly<OrderedRaceBenchmarkProto
   evaluationTrials: 3,
   candidateBlocks: 25,
   chunkSize: 250,
-  gamesPerBlock: 4,
+  gamesPerSeedEvaluation: GAMES_PER_SEED,
   startingDraftEnabled: false,
   startingHealth: 50,
   turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
@@ -263,7 +264,7 @@ export function validateOrderedRaceBenchmarkChunkArtifact(
         || row.canonicalStrategy !== canonicalStrategy(entry.strategy)
         || row.blockScores.length !== protocol.candidateBlocks
         || row.blockScores.some((score) => !Number.isFinite(score) || score < 0 || score > 1)
-        || row.matches !== protocol.candidateBlocks * protocol.gamesPerBlock) return false;
+        || row.matches !== protocol.candidateBlocks * protocol.gamesPerSeedEvaluation) return false;
     }
     const held = structuredClone(artifact) as Partial<OrderedRaceBenchmarkChunkArtifact>;
     delete held.evidenceHash; delete held.elapsedMs;
@@ -424,7 +425,7 @@ export function createOrderedRaceBenchmarkReport(input: {
     schemaVersion: 1, experiment: 'ordered-reservoir-race-benchmark-report',
     version: ORDERED_RACE_BENCHMARK_VERSION, matrixEvidenceHash: input.matrix.evidenceHash,
     protocol, candidateCount,
-    matches: protocol.evaluationTrials * candidateCount * protocol.candidateBlocks * protocol.gamesPerBlock,
+    matches: protocol.evaluationTrials * candidateCount * protocol.candidateBlocks * protocol.gamesPerSeedEvaluation,
     elapsedMs: { matrix: input.matrix.elapsedMs, candidateEvaluation,
       total: input.matrix.elapsedMs + candidateEvaluation },
     depths, depthComparisons, chunkEvidenceHashes: input.chunks.map((chunk) => chunk.evidenceHash)

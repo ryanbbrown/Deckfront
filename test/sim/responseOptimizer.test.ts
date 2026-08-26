@@ -39,7 +39,7 @@ class DeterministicObjective implements ObjectiveLike {
   async evaluate(candidates: readonly Strategy[], blocks: number) {
     if (!this.canEvaluate(candidates.length, blocks)) throw new Error('over budget');
     this.blocksConsumed += candidates.length * blocks;
-    this.matchesConsumed += candidates.length * blocks * 4;
+    this.matchesConsumed += candidates.length * blocks * 2;
     this.policies.push(...candidates);
     const call = this.calls;
     const evaluations = candidates.map((strategy, index) => {
@@ -49,7 +49,7 @@ class DeterministicObjective implements ObjectiveLike {
       const held = this.totals.get(form) ?? { total: 0, blocks: 0 };
       held.total += score * blocks; held.blocks += blocks; this.totals.set(form, held);
       return { strategy, mean: score, blockScores: Array<number>(blocks).fill(score),
-        interval: null, matches: blocks * 4, telemetry: emptyAggregate() };
+        interval: null, matches: blocks * 2, telemetry: emptyAggregate() };
     });
     const best = [...this.totals.entries()].sort((left, right) =>
       right[1].total / right[1].blocks - left[1].total / left[1].blocks)[0]!;
@@ -74,11 +74,11 @@ class ScoreRunner implements PairingRunner {
     this.calls += 1;
     return { submitted: jobs.length, outcomes: jobs.map((job) => {
       const score = this.score(job, call);
-      return { record: { played: 4, wins: 0, draws: 4, losses: 0, aborted: 0 },
-        candidateScore: score * 4, opponentScore: (1 - score) * 4, telemetry: emptyAggregate(),
-        matches: 4, seedBlocks: 1, stopReason: 'maximum' as const,
+      return { record: { played: 2, wins: 0, draws: 2, losses: 0, aborted: 0 },
+        candidateScore: score * 2, opponentScore: (1 - score) * 2, telemetry: emptyAggregate(),
+        matches: 2, seedsEvaluated: 1, stopReason: 'maximum' as const,
         candidateMean: score, opponentMean: 1 - score,
-        blocks: [{ seed: job.options.seeds[0]!, score, played: 4, aborted: 0 }], aborts: [] };
+        blocks: [{ seed: job.options.seeds[0]!, score, played: 2, aborted: 0 }], aborts: [] };
     }) };
   }
   async close(): Promise<void> {}
@@ -146,7 +146,7 @@ describe('the fixed-lottery budget', () => {
       turnLimitPerPlayer: 30, actionCapPerTurn: 200 });
     await objective.evaluate([grammar.complete([], grammar.floorTokens[1]!)], 1);
     expect(objective.blocksConsumed).toBe(1);
-    expect(objective.matchesConsumed).toBe(4);
+    expect(objective.matchesConsumed).toBe(2);
     await expect(objective.evaluate([opponent], 2)).rejects.toThrow('with 1 left');
     await objective.evaluate([opponent], 1);
     expect(objective.blocksConsumed).toBe(2);
@@ -313,14 +313,14 @@ describe('complete random, beam, and MCTS search', () => {
 describe('the pilot artifact schema', () => {
   it('accepts the recorded fixed-mixture comparison shape', () => {
     const grammar = domain(); const policy = grammar.complete([], grammar.floorTokens[0]!);
-    const held = { mean: 0.6, matchCount: 4, seedBlocks: 1, interval95: { lower: 0.51, upper: 0.7 } };
-    const curve = [{ candidateBlocks: 1, matches: 4, bestMean: 0.6, policyId: policy.id }];
+    const held = { mean: 0.6, matchCount: 2, seedEvaluations: 1, interval95: { lower: 0.51, upper: 0.7 } };
+    const curve = [{ candidateBlocks: 1, matches: 2, bestMean: 0.6, policyId: policy.id }];
     const row = (optimizer: 'stratified-beam' | 'uniform-random-racing' | 'discrete-cem' | 'uct-mcts') => ({
       optimizer, selectedRestart: 0, optimizerSeed: 1, elapsedMs: 1,
-      trainingBlocksConsumed: 1, trainingMatches: 4,
+      trainingBlocksConsumed: 1, trainingMatches: 2,
       bestPolicy: policy, bestTrainingMean: 0.6, trainingCurve: curve, finalists: [policy],
       restarts: [{ restart: 0, optimizerSeed: 1, trainingScheduleSeed: 2, candidateBlocks: 1,
-        matches: 4, bestPolicy: policy, bestTrainingMean: 0.6, curve, finalists: [policy], diagnostics: {} }],
+        matches: 2, bestPolicy: policy, bestTrainingMean: 0.6, curve, finalists: [policy], diagnostics: {} }],
       diagnostics: {}, heldOut: held
     });
     const parsed = responseOptimizerPilotSchema.parse({ schemaVersion: 2,

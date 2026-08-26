@@ -5,7 +5,7 @@ import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 import { compareUtf16 } from './utf16';
 
-export const ORDERED_FULL_PSRO_VERSION = 'ordered-reservoir-full-psro-v2' as const;
+export const ORDERED_FULL_PSRO_VERSION = 'ordered-reservoir-full-psro-v3' as const;
 export const ORDERED_FULL_PSRO_RUNS = Object.freeze([1, 2] as const);
 export const ORDERED_FULL_PSRO_INITIAL_STRATEGIES = 50;
 export const ORDERED_FULL_PSRO_SCREEN_BLOCKS = 25;

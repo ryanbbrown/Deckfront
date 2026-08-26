@@ -1,9 +1,9 @@
 /**
  * Plays two strategies head to head and reports which is stronger, with an interval.
  *
- * Every cell runs in all four orientations — each strategy in each seat, and both arena sides — on
- * the same seed, so seat advantage and side advantage cancel exactly rather than statistically. The
- * reported figure is a mean score with a percentile bootstrap over seeds, because a strong deck
+ * Every shuffle seed runs twice without changing seats or positions. The left strategy moves first
+ * once, and the right strategy moves first once. The reported figure is a mean score with a
+ * percentile bootstrap over shuffle seeds, because a strong deck
  * still loses individual games to the shuffle and single matches prove nothing.
  *
  * Use it to check a claim the payoff matrix is making. If the equilibrium puts full weight on one
@@ -18,9 +18,9 @@
 import fs from 'node:fs';
 import process from 'node:process';
 import { SeededRandom, registerKingdom } from '../src/game';
-import type { Kingdom, PlayerId } from '../src/game';
+import type { Kingdom } from '../src/game';
 import { repairStrategy } from '../src/sim/mutation';
-import { runSimulationMatch } from '../src/sim/simulationKernel';
+import { playPairing } from '../src/sim/pairing';
 import { formatStrategy } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 
@@ -74,30 +74,18 @@ let matches = 0;
 let draws = 0;
 
 for (let seed = 1; seed <= seedCount; seed += 1) {
-  let score = 0;
-  let played = 0;
-  for (const leftSeat of ['ochre', 'indigo'] as const) {
-    const other: PlayerId = leftSeat === 'ochre' ? 'indigo' : 'ochre';
-    for (const firstPlayerId of ['ochre', 'indigo'] as const) {
-      for (const swapSides of [false, true]) {
-        const result = runSimulationMatch({
-          kingdomId, seed, firstPlayerId, swapSides,
-          turnLimitPerPlayer: TURN_LIMIT, actionCapPerTurn: ACTION_CAP,
-          strategies: { [leftSeat]: left, [other]: right } as Record<PlayerId, Strategy>
-        });
-        played += 1;
-        if (result.outcome === 'draw') { score += 0.5; draws += 1; }
-        else if (result.outcome === leftSeat) score += 1;
-      }
-    }
-  }
-  perSeed.push(score / played);
-  matches += played;
+  const result = playPairing(left, right, {
+    kingdomId, seeds: [seed], turnLimitPerPlayer: TURN_LIMIT, actionCapPerTurn: ACTION_CAP,
+    allowEarlyStop: false
+  });
+  perSeed.push(result.blocks[0]!.score);
+  matches += result.matches;
+  draws += result.record.draws;
 }
 
 const mean = perSeed.reduce((sum, value) => sum + value, 0) / perSeed.length;
 
-// Bootstrap over seeds. A seed is the independent unit; the four orientations within one are not.
+// A shuffle seed, not either game inside its evaluation, is the bootstrap unit.
 const random = new SeededRandom(0x5eed1234);
 const means: number[] = [];
 for (let sample = 0; sample < 2000; sample += 1) {

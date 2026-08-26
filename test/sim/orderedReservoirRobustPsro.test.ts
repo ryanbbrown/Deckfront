@@ -61,7 +61,7 @@ function queuedScore(values: number[][]): ScoreAllocation {
     if (scores.length !== candidates.length) throw new Error(`fixture mismatch at call ${call}`);
     return candidates.map((candidate, index) => ({ strategy: candidate,
       blockScores: Array.from({ length: schedule.blocks.length }, () => scores[index]!),
-      matches: schedule.blocks.length * 4 }));
+      matches: schedule.blocks.length * 2 }));
   };
 }
 

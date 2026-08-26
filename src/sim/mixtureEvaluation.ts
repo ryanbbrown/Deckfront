@@ -1,5 +1,5 @@
 import { SeededRandom } from '../game';
-import { emptyAggregate, mergeAggregate } from './pairing';
+import { GAMES_PER_SEED, emptyAggregate, mergeAggregate } from './pairing';
 import type { PairingRunner } from './pairingRunner';
 import { canonicalStrategy } from './strategy';
 import type { Strategy } from './strategy';
@@ -50,7 +50,7 @@ export function mixtureSchedule(
 export function percentileBootstrapMean(
   values: readonly number[], seed: number, samples = 2000
 ): BootstrapInterval {
-  if (!values.length) throw new Error('Bootstrap needs at least one complete block.');
+  if (!values.length) throw new Error('Bootstrap needs at least one complete seed evaluation.');
   const random = new SeededRandom(seed);
   const means = Array.from({ length: samples }, () => {
     let total = 0;
@@ -91,7 +91,7 @@ export async function evaluateCandidates(
       if (!result) throw new DeadlineInterruptionError('Mixture evaluation returned no result.', {
         strategyId: candidates[candidateIndex]!.id, block: blockIndex
       });
-      if (result.record.aborted > 0 || result.blocks[0]?.played !== 4) {
+      if (result.record.aborted > 0 || result.blocks[0]?.played !== GAMES_PER_SEED) {
         throw new InvalidEvaluationError('An aborted match invalidated a mixture evaluation.', {
           strategyId: candidates[candidateIndex]!.id, seed: schedule.blocks[blockIndex]!.seed,
           opponentId: schedule.blocks[blockIndex]!.opponentId,

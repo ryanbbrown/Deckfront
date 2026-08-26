@@ -1,8 +1,8 @@
 /**
  * Scores strategies against one fixed opponent or an exact weighted opponent mixture.
  *
- * Every seed plays all four orientations, so seat, move order and arena side cancel exactly. Mixture
- * scores average each seed across every positive-weight opponent before bootstrap sampling. Results
+ * Every shuffle seed plays two games with fixed seats and positions. Each strategy moves first once.
+ * Mixture scores average each seed across every positive-weight opponent before bootstrap sampling. Results
  * stream in slices, because a sweep can hold more candidates than memory can score at once.
  */
 import type { PairingJob, PairingRunner } from '../src/sim/pairingRunner';

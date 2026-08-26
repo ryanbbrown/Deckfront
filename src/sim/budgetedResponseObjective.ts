@@ -27,7 +27,7 @@ export interface BudgetedResponseObjectiveOptions {
 
 interface AggregateScore { strategy: Strategy; total: number; blocks: number }
 
-/** A fixed-lottery objective whose only budget unit is one candidate on one seed block. */
+/** A fixed-lottery objective whose only budget unit is one candidate on one shuffle-seed evaluation. */
 export class BudgetedResponseObjective {
   readonly budget: number;
   readonly schedule: MixtureSchedule;
@@ -70,7 +70,7 @@ export class BudgetedResponseObjective {
   async evaluate(candidates: readonly Strategy[], blocks: number): Promise<CandidateEvaluation[]> {
     if (!candidates.length) throw new Error('An objective evaluation needs candidates.');
     if (!this.canEvaluate(candidates.length, blocks)) {
-      throw new Error(`Evaluation needs ${candidates.length * blocks} blocks with ${this.remaining} left.`);
+      throw new Error(`Evaluation needs ${candidates.length * blocks} seed evaluations with ${this.remaining} left.`);
     }
     if (this.cursor + blocks > this.schedule.blocks.length) this.cursor = 0;
     const selected = this.schedule.blocks.slice(this.cursor, this.cursor + blocks);

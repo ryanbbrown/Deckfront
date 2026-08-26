@@ -24,6 +24,7 @@ import type { GoldfishConfig, MovementAwareGoldfishScore } from '../src/sim/gold
 import { percentileBootstrapMean } from '../src/sim/mixtureEvaluation';
 import { nativeRuleFingerprint } from '../src/sim/nativeGoldfishProtocol';
 import { generatedProvenance } from '../src/sim/nativeStrategySearch';
+import { GAMES_PER_SEED } from '../src/sim/pairing';
 import type { PairingJob } from '../src/sim/pairingRunner';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import { stoplessRandomDomain } from '../src/sim/randomPsro';
@@ -516,7 +517,8 @@ function validAttackArtifact(value: unknown, direction: AttackDirection, candida
         || !Number.isFinite(finalist.interval95?.lower) || finalist.interval95.lower < 0
         || !Number.isFinite(finalist.interval95?.upper) || finalist.interval95.upper > 1
         || finalist.interval95.lower > finalist.interval95.upper
-        || finalist.blocks !== ATTACK_PROTOCOL.confirmationBlocks || finalist.matches !== finalist.blocks * 4) return false;
+        || finalist.blocks !== ATTACK_PROTOCOL.confirmationBlocks
+        || finalist.matches !== finalist.blocks * GAMES_PER_SEED) return false;
       seen.add(finalist.strategy.id);
     }
     return artifact.strongestStrategyId === strongestFinalist(artifact.finalists)?.strategy.id
@@ -663,7 +665,7 @@ async function compareAndReport(kingdom: Kingdom, baseline: { pool: FixedReservo
         baseline: { family: summarizeRunFamilies(acquisition.baseline), cards: cards(acquisition.baseline, purchaseIds) },
         staged: { family: summarizeRunFamilies(acquisition.staged), cards: cards(acquisition.staged, purchaseIds) } },
       heldOutLotteryCrossPlay: lottery,
-      fixedReservoirCrossAttacks: { method: 'every non-active reservoir candidate enters a global 1/2/4/8-block staged race; up to 8 global finalists are confirmed on 400 fresh blocks with bootstrap 95% intervals',
+      fixedReservoirCrossAttacks: { method: 'every non-active reservoir candidate enters a global 1/2/4/8-shuffle-seed staged race; up to 8 global finalists are confirmed on 400 fresh shuffle seeds with bootstrap 95% intervals',
         baselineVsStaged: attackSummary(baselineAttack), stagedVsBaseline: attackSummary(stagedAttack) },
       omittedMetrics: [] as string[] };
     writeAtomic(files.report, report);
@@ -685,7 +687,7 @@ async function compareAndReport(kingdom: Kingdom, baseline: { pool: FixedReservo
       `Baseline PSRO: ${report.psro.baseline.rounds} rounds, ${report.psro.baseline.matrixSize} matrix strategies, ${report.psro.baseline.support.length} support strategies.`,
       `Staged PSRO: ${report.psro.staged.rounds} rounds, ${report.psro.staged.matrixSize} matrix strategies, ${report.psro.staged.support.length} support strategies.`, '',
       `Held-out lottery cross-play: baseline→staged ${percent(lottery.baselineVsStaged)}; staged→baseline ${percent(lottery.stagedVsBaseline)}.`,
-      'Fixed-reservoir cross-attacks use a global 1/2/4/8-block race and confirm finalists on 400 fresh blocks.',
+      'Fixed-reservoir cross-attacks use a global 1/2/4/8-shuffle-seed race and confirm finalists on 400 fresh shuffle seeds.',
       attackLine('Baseline→staged strongest confirmed finalist', baselineAttack),
       attackLine('Staged→baseline strongest confirmed finalist', stagedAttack), '',
       'Family and card usage is in report.json. It uses the same acquisition method as the fixed-reservoir five-run report.',

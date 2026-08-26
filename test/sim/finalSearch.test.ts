@@ -11,11 +11,11 @@ import { canonicalStrategy } from '../../src/sim/strategy';
 
 function outcome(job: PairingJob, score: number): PairingOutcome {
   return {
-    record: { played: 4, wins: 2, draws: 0, losses: 2, aborted: 0 },
-    candidateScore: score * 4, opponentScore: (1 - score) * 4,
-    candidateMean: score, opponentMean: 1 - score, telemetry: emptyAggregate(), matches: 4,
-    seedBlocks: 1, stopReason: 'maximum',
-    blocks: [{ seed: job.options.seeds[0]!, score, played: 4, aborted: 0 }], aborts: []
+    record: { played: 2, wins: 0, draws: 2, losses: 0, aborted: 0 },
+    candidateScore: score * 2, opponentScore: (1 - score) * 2,
+    candidateMean: score, opponentMean: 1 - score, telemetry: emptyAggregate(), matches: 2,
+    seedsEvaluated: 1, stopReason: 'maximum',
+    blocks: [{ seed: job.options.seeds[0]!, score, played: 2, aborted: 0 }], aborts: []
   };
 }
 
@@ -45,7 +45,7 @@ describe('automatic final search', () => {
       actionCapPerTurn: 200, runner });
     expect(result.result).toMatchObject({ objective: 'final', admitted: false,
       sources: { requested: 3_000, actual: 3_000, local: 0, random: 3_000 },
-      matches: 29_028 });
+      matches: 14_514 });
     expect(runner.batches.map((batch) => batch.length)).toEqual([3_000, 2_000, 1_336, 896, 25]);
     const firstRound = runner.batches[0]!;
     expect(new Set(firstRound.map((job) => canonicalStrategy(job.candidate))).size).toBe(3_000);

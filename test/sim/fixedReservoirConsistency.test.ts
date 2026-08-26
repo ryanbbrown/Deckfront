@@ -40,14 +40,14 @@ function queuedScore(values: number[][]): ScoreAllocation {
     if (held.length !== candidates.length) throw new Error('fixture field mismatch');
     return candidates.map((entry, index) => ({ strategy: entry,
       blockScores: Array.from({ length: schedule.blocks.length }, () => held[index]!),
-      matches: schedule.blocks.length * 4 }));
+      matches: schedule.blocks.length * 2 }));
   };
 }
 function idScore(reverse = false): ScoreAllocation {
   return async ({ candidates, schedule }) => {
     const rows = candidates.map((entry) => ({ strategy: entry,
       blockScores: Array.from({ length: schedule.blocks.length }, () =>
-        (Number.parseInt(entry.id.slice(3, 5), 16) % 20) / 20), matches: schedule.blocks.length * 4 }));
+        (Number.parseInt(entry.id.slice(3, 5), 16) % 20) / 20), matches: schedule.blocks.length * 2 }));
     return reverse ? rows.reverse() : rows;
   };
 }
@@ -93,8 +93,8 @@ describe('fixed-reservoir consistency protocols', () => {
 
   it('uses exact Wilson allocation, inclusive ties, fresh extras, cap, and cumulative reranking', async () => {
     const interval = wilsonScoreInterval(0.5, 1);
-    expect(interval.lower).toBeCloseTo(0.15003898915214958, 12);
-    expect(interval.upper).toBeCloseTo(0.8499610108478504, 12);
+    expect(interval.lower).toBeCloseTo(0.09453120573423074, 12);
+    expect(interval.upper).toBeCloseTo(0.9054687942657693, 12);
     const rows = Array.from({ length: 9 }, (_u, index) => ({ strategyId: `s${index}`,
       canonicalStrategy: `c${index}`, mean: 0.9 - index * 0.01 }));
     const boundary = adaptiveBoundary(rows, new Map(rows.map((entry) => [entry.strategyId, 1])));
@@ -147,10 +147,10 @@ describe('fixed-reservoir consistency protocols', () => {
     rejects((copy) => { copy.confirmationSeeds.reverse(); });
   });
 
-  it('fails invalid and incomplete block allocations instead of treating them as clean', async () => {
+  it('fails invalid and incomplete seed evaluations instead of treating them as clean', async () => {
     await expect(scan('legacy-stage-v1', async ({ candidates, schedule }) => candidates.map((entry) => ({ strategy: entry,
-      blockScores: schedule.blocks.slice(1).map(() => 0.5), matches: schedule.blocks.length * 4 })), 4))
-      .rejects.toThrow('invalid block');
+      blockScores: schedule.blocks.slice(1).map(() => 0.5), matches: schedule.blocks.length * 2 })), 4))
+      .rejects.toThrow('invalid seed evaluation');
   });
 
   it('keeps full and score-only blocks, races, unions, adaptive allocation, and confirmation equal', async () => {
@@ -197,7 +197,7 @@ describe('fixed-reservoir closure, registry, checkpoint, metrics, and decision',
 
   it('validates immutable attacker registries and rejects empty/changed evidence correctly', () => {
     const base = { schemaVersion: 1 as const, experiment: 'fixed-reservoir-consistency-attacker-registry' as const,
-      version: 'fixed-reservoir-consistency-v1' as const, reservoirHash: '98f3167850a6f9', frozen: true as const,
+      version: 'fixed-reservoir-consistency-v2' as const, reservoirHash: '98f3167850a6f9', frozen: true as const,
       entries: [], sentinelByTarget: { '7100009': [] } };
     const empty: KnownAttackerRegistry = { ...base, evidenceHash: registryHash(base) };
     expect(validateKnownAttackerRegistry(empty)).toBe(true);

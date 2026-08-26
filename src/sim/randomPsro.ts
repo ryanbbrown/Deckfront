@@ -8,6 +8,7 @@ import { evaluateCandidates, mixtureSchedule, percentileBootstrapMean } from './
 import type { BootstrapInterval, CandidateEvaluation } from './mixtureEvaluation';
 import { createMatrixCellCache, matrixProtocol, PayoffMatrix } from './payoffMatrix';
 import type { MatrixSnapshot } from './payoffMatrix';
+import { GAMES_PER_SEED } from './pairing';
 import type { PairingRunner } from './pairingRunner';
 import {
   DAMAGE_MECHANICS_BY_FAMILY, RESPONSE_PORTFOLIO_VERSION, deriveResponseCardRoles, proposeResponsePortfolio,
@@ -20,7 +21,7 @@ import type { RulesFingerprint } from './rulesFingerprint';
 import { canonicalStrategy, identify, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 
-export const RANDOM_PSRO_VERSION = 'random-psro-v6';
+export const RANDOM_PSRO_VERSION = 'random-psro-v7';
 export const RANDOM_PSRO_SUITE_SEEDS = Object.freeze([35_001, 35_002] as const);
 export const RANDOM_PSRO_DEFAULT_CONFIG = Object.freeze({
   initialStrategies: 8,
@@ -457,7 +458,7 @@ function validateConfirmedCandidate(
     || !Number.isFinite(entry.interval95?.lower) || !Number.isFinite(entry.interval95?.upper)
     || entry.interval95.lower < 0 || entry.interval95.upper > 1
     || entry.interval95.lower > entry.interval95.upper
-    || entry.blocks !== blocks || entry.matches !== blocks * 4) {
+    || entry.blocks !== blocks || entry.matches !== blocks * GAMES_PER_SEED) {
     throw new Error(`${label} confirmation evidence is invalid`);
   }
 }
@@ -520,7 +521,7 @@ export function validateRandomPsroArtifact(
         || typeof cell.key !== 'string' || !cell.key || cellKeys.has(cell.key) || !cell.complete
         || !Array.isArray(cell.blocks) || cell.blocks.length !== config.matrixBlocks
         || !exact(cell.blocks.map((block) => block.seed), matrixSeeds)
-        || cell.blocks.some((block) => block.played !== 4
+        || cell.blocks.some((block) => block.played !== GAMES_PER_SEED
           || block.aborted !== 0 || !Number.isFinite(block.score) || block.score < 0 || block.score > 1)) {
         throw new Error('matrix cell evidence is invalid');
       }
@@ -528,7 +529,7 @@ export function validateRandomPsroArtifact(
       const played = cell.blocks.reduce((sum, block) => sum + block.played, 0);
       const centered = 2 * cell.blocks.reduce((sum, block) => sum + block.score * block.played, 0) / played - 1;
       if (!near(cell.centeredPayoff, centered) || !near(payoffs[row]![column]!, centered)
-        || cell.matches !== cell.blocks.length * 4) throw new Error('matrix cell payoff is stale');
+        || cell.matches !== cell.blocks.length * GAMES_PER_SEED) throw new Error('matrix cell payoff is stale');
     }
     const computedFinal = solveEquilibrium(strategies.map((strategy) => strategy.id), payoffs);
     validateEquilibrium(artifact.equilibrium, computedFinal, 'final');

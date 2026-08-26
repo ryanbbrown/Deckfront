@@ -24,14 +24,14 @@ class ControlledRunner implements PairingRunner {
       const seeds = this.shortPreliminary && job.options.allowEarlyStop
         ? job.options.seeds.slice(0, 1) : job.options.seeds;
       return ({
-      record: { played: abort ? 0 : seeds.length * 4, wins: 0,
-        draws: abort ? 0 : seeds.length * 4, losses: 0, aborted: abort ? 1 : 0 },
+      record: { played: abort ? 0 : seeds.length * 2, wins: 0,
+        draws: abort ? 0 : seeds.length * 2, losses: 0, aborted: abort ? 1 : 0 },
       candidateScore: abort ? 0 : seeds.length * 2,
       opponentScore: abort ? 0 : seeds.length * 2,
       candidateMean: abort ? null : 0.5, opponentMean: abort ? null : 0.5,
-      telemetry: emptyAggregate(), matches: abort ? 1 : seeds.length * 4,
-      seedBlocks: abort ? 1 : seeds.length, stopReason: 'maximum' as const,
-      blocks: seeds.map((seed) => ({ seed, score: 0.5, played: abort ? 0 : 4,
+      telemetry: emptyAggregate(), matches: abort ? 1 : seeds.length * 2,
+      seedsEvaluated: abort ? 1 : seeds.length, stopReason: 'maximum' as const,
+      blocks: seeds.map((seed) => ({ seed, score: 0.5, played: abort ? 0 : 2,
         aborted: abort ? 1 : 0 })),
       aborts: abort ? [{ seed: job.options.seeds[0]!, orientationIndex: 0,
         reason: 'actionSearchOverflow' as const }] : []

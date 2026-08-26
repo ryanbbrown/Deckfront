@@ -127,11 +127,11 @@ async function main(): Promise<void> {
         stages: search.stages,
         strategy: strongest.strategy,
         searchConfirmation: {
-          mean: strongest.mean, matches: strongest.matches, seedBlocks: strongest.blockScores.length
+          mean: strongest.mean, matches: strongest.matches, seedEvaluations: strongest.blockScores.length
         },
         independentScore: {
           mean: finalScore.mean, ci95, matches: finalScore.matches,
-          seedBlocks: finalScore.blockScores.length, firstSeed: 60_000
+          seedEvaluations: finalScore.blockScores.length, firstSeed: 60_000
         },
         normalSearchContainedStrategy,
         normalMatrixMagePlanCount,

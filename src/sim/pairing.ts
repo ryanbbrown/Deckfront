@@ -6,37 +6,15 @@ import type { MatchResult, OrientationKey, PairRecord, SideKey, TelemetryAggrega
 export interface Orientation {
   firstPlayerId: PlayerId;
   swapSides: boolean;
-  candidateSeat: PlayerId;
 }
 
-/**
- * The four games a pairing plays for each shared seed: two first-player orders times two arena sides.
- *
- * There are three binary factors to balance — seat, who moves first, and arena position — so four
- * games need a half-fraction rather than the obvious assignment. `createGame` puts ochre at position
- * 3 and indigo at 4 and exchanges them when `swapSides` is true. Taking ochre in orientations 1 and
- * 3 would leave the candidate on the same side in all four games, so `swapSides` would cancel
- * nothing for it. Ochre in 1 and 4 gives seat 2/2, moves-first 2/2, and arena side 2/2.
- *
- * A candidate plays both seats, moves first twice, and starts on each arena position twice. This
- * prevents seat or arena advantages from biasing a payoff cell or response evaluation.
- */
-export const ORIENTATIONS: readonly Orientation[] = Object.freeze([
-  { firstPlayerId: 'ochre', swapSides: false, candidateSeat: 'ochre' },
-  { firstPlayerId: 'ochre', swapSides: true, candidateSeat: 'indigo' },
-  { firstPlayerId: 'indigo', swapSides: false, candidateSeat: 'indigo' },
-  { firstPlayerId: 'indigo', swapSides: true, candidateSeat: 'ochre' }
-] as const);
+/** One shuffle seed evaluates two games with fixed seats and alternating first players. */
+export const ORIENTATIONS = Object.freeze([
+  { firstPlayerId: 'ochre', swapSides: false },
+  { firstPlayerId: 'indigo', swapSides: false }
+] as const satisfies readonly Orientation[]);
 
-function mix(left: number, right: number): number {
-  let value = (left ^ Math.imul(right + 0x9e3779b9, 0x85ebca6b)) >>> 0;
-  value = Math.imul(value ^ (value >>> 15), 0x2545f491) >>> 0;
-  return value >>> 0;
-}
-
-export function matchSeed(sharedSeed: number, orientationIndex: number): number {
-  return mix(sharedSeed, orientationIndex + 0x51);
-}
+export const GAMES_PER_SEED = ORIENTATIONS.length;
 
 export function emptyPairRecord(): PairRecord {
   return { played: 0, wins: 0, draws: 0, losses: 0, aborted: 0 };
@@ -152,11 +130,11 @@ export interface PairingOptions {
   turnLimitPerPlayer: number;
   actionCapPerTurn: number;
   startingDraftEnabled?: boolean | undefined;
-  // Only preliminary payoff-matrix cells set this. Every other evaluation plays all seed blocks.
+  // Only preliminary payoff-matrix cells set this. Every other evaluation plays all shuffle seeds.
   allowEarlyStop?: boolean | undefined;
 }
 
-export interface PairingBlockResult {
+export interface SeedEvaluationResult {
   seed: number;
   score: number;
   played: number;
@@ -174,11 +152,11 @@ export interface PairingOutcome {
   opponentScore: number;
   telemetry: TelemetryAggregate;
   matches: number;           // every game played, aborted ones included
-  seedBlocks: number;
+  seedsEvaluated: number;
   stopReason: 'significant' | 'maximum';
   candidateMean: number | null;
   opponentMean: number | null;
-  blocks: PairingBlockResult[];
+  blocks: SeedEvaluationResult[];
   aborts: PairingAbort[];
 }
 
@@ -203,17 +181,18 @@ export function exactSignTest(positive: number, negative: number): number {
 }
 
 export function shouldStopPairing(
-  completedBlocks: number, maximumBlocks: number, positive: number, negative: number
+  completedSeeds: number, maximumSeeds: number, positive: number, negative: number
 ): boolean {
-  return completedBlocks >= 5 && completedBlocks < maximumBlocks
+  return completedSeeds >= 5 && completedSeeds < maximumSeeds
     && isSignificantSignTest(exactSignTest(positive, negative));
 }
 
 export type PairingMatchRunner = typeof runSimulationMatch;
 
 /**
- * Plays one pairing over every shared seed in every orientation. Production pairings use the compact
- * simulation kernel. An injected match runner keeps the immutable engine available as a test seam.
+ * Evaluates every shuffle seed in two games. Strategy A keeps the ochre seat and space 3. Strategy A
+ * moves first in game one, and strategy B moves first in game two. Both games use the seed unchanged.
+ * Production pairings use the compact simulation kernel. An injected runner is the test seam.
  *
  * An aborted game is recorded outside `played` and the mean. PSRO callers reject the complete cell
  * or evaluation when `aborted` is nonzero.
@@ -230,35 +209,30 @@ function playPairingMode(
   let candidateScore = 0;
   let opponentScore = 0;
   let matches = 0;
-  let seedBlocks = 0;
-  let positiveBlocks = 0;
-  let negativeBlocks = 0;
+  let seedsEvaluated = 0;
+  let positiveSeeds = 0;
+  let negativeSeeds = 0;
   let stopReason: PairingOutcome['stopReason'] = 'maximum';
-  const blocks: PairingBlockResult[] = [];
+  const blocks: SeedEvaluationResult[] = [];
   const aborts: PairingAbort[] = [];
   let pairingAborted = false;
 
   for (const seed of options.seeds) {
-    let blockScore = 0;
-    let blockCompleted = 0;
+    let seedScore = 0;
+    let gamesCompleted = 0;
     for (let orientationIndex = 0; orientationIndex < ORIENTATIONS.length; orientationIndex += 1) {
       const orientation = ORIENTATIONS[orientationIndex]!;
-      const candidateIsOchre = orientation.candidateSeat === 'ochre';
-      const seatStrategies: Record<PlayerId, Strategy> = candidateIsOchre
-        ? { ochre: candidate, indigo: opponent }
-        : { ochre: opponent, indigo: candidate };
+      const seatStrategies: Record<PlayerId, Strategy> = { ochre: candidate, indigo: opponent };
 
       const result = (matchRunner ?? (scoreOnly ? runSimulationMatchScoreOnly : runSimulationMatch))({
           kingdomId: options.kingdomId,
-          seed: matchSeed(seed, orientationIndex),
+          seed,
           firstPlayerId: orientation.firstPlayerId,
           swapSides: orientation.swapSides,
           turnLimitPerPlayer: options.turnLimitPerPlayer,
           actionCapPerTurn: options.actionCapPerTurn,
           startingDraftEnabled: options.startingDraftEnabled ?? true,
-          strategies: candidateIsOchre
-            ? { ochre: candidate, indigo: opponent }
-            : { ochre: opponent, indigo: candidate }
+          strategies: seatStrategies
         });
       matches += 1;
       if (!scoreOnly) recordMatch(telemetry, result, orientation, seatStrategies);
@@ -270,33 +244,33 @@ function playPairingMode(
         break;
       }
       record.played += 1;
-      blockCompleted += 1;
+      gamesCompleted += 1;
       if (result.outcome === 'draw') {
-        record.draws += 1; candidateScore += 0.5; opponentScore += 0.5; blockScore += 0.5;
-      } else if (result.outcome === orientation.candidateSeat) {
-        record.wins += 1; candidateScore += 1; blockScore += 1;
+        record.draws += 1; candidateScore += 0.5; opponentScore += 0.5; seedScore += 0.5;
+      } else if (result.outcome === 'ochre') {
+        record.wins += 1; candidateScore += 1; seedScore += 1;
       } else {
         record.losses += 1; opponentScore += 1;
       }
     }
-    seedBlocks += 1;
-    blocks.push({ seed, score: blockCompleted ? blockScore / blockCompleted : 0, played: blockCompleted,
+    seedsEvaluated += 1;
+    blocks.push({ seed, score: gamesCompleted ? seedScore / gamesCompleted : 0, played: gamesCompleted,
       aborted: pairingAborted ? 1 : 0 });
     if (pairingAborted) break;
-    if (blockCompleted > 0) {
-      const mean = blockScore / blockCompleted;
-      if (mean > 0.5) positiveBlocks += 1;
-      else if (mean < 0.5) negativeBlocks += 1;
+    if (gamesCompleted > 0) {
+      const mean = seedScore / gamesCompleted;
+      if (mean > 0.5) positiveSeeds += 1;
+      else if (mean < 0.5) negativeSeeds += 1;
     }
     if (options.allowEarlyStop === true
-      && shouldStopPairing(seedBlocks, options.seeds.length, positiveBlocks, negativeBlocks)) {
+      && shouldStopPairing(seedsEvaluated, options.seeds.length, positiveSeeds, negativeSeeds)) {
       stopReason = 'significant';
       break;
     }
   }
   return {
     record, candidateScore, opponentScore, telemetry,
-    matches, seedBlocks, stopReason,
+    matches, seedsEvaluated, stopReason,
     candidateMean: record.played ? candidateScore / record.played : null,
     opponentMean: record.played ? opponentScore / record.played : null,
     blocks, aborts

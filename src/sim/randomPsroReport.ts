@@ -207,7 +207,7 @@ export function weightedLotteryEvaluation(
   const total = evaluations.reduce((sum, entry) => sum + (candidateWeights[entry.strategy.id] ?? 0), 0);
   if (!(total > 0)) throw new Error('Lottery cross-play needs positive candidate weights.');
   const length = evaluations[0]!.blockScores.length;
-  if (evaluations.some((entry) => entry.blockScores.length !== length)) throw new Error('Cross-play block schedules differ.');
+  if (evaluations.some((entry) => entry.blockScores.length !== length)) throw new Error('Cross-play shuffle-seed schedules differ.');
   const blockScores = Array.from({ length }, (_unused, block) => evaluations.reduce((sum, entry) =>
     sum + (candidateWeights[entry.strategy.id] ?? 0) / total * entry.blockScores[block]!, 0));
   const support = evaluations.map((entry, index): ConfirmedCandidate => ({ strategy: entry.strategy,

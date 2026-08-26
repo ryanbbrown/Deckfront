@@ -75,7 +75,7 @@ describe('compiled PSRO bundle', () => {
           actionCapPerTurn: 200, allowEarlyStop: false }],
         schedules: [{ candidate: 0, scoreOnly: false, blocks: [{ id: 0, opponent: 0, options: 0 }] }] });
     });
-    expect(response).toMatchObject({ kind: 'pairing-results', outcomes: [{ id: 0, outcome: { matches: 4 } }] });
+    expect(response).toMatchObject({ kind: 'pairing-results', outcomes: [{ id: 0, outcome: { matches: 2 } }] });
     await worker.terminate();
   });
 
@@ -91,7 +91,7 @@ describe('compiled PSRO bundle', () => {
           actionCapPerTurn: 200, allowEarlyStop: false }],
         schedules: [{ candidate: 0, scoreOnly: false, blocks: [{ id: 0, opponent: 0, options: 0 }] }] });
     });
-    expect(response).toMatchObject({ kind: 'pairing-results', outcomes: [{ id: 0, outcome: { matches: 4 } }] });
+    expect(response).toMatchObject({ kind: 'pairing-results', outcomes: [{ id: 0, outcome: { matches: 2 } }] });
     await worker.terminate();
     resetKingdoms();
   });

@@ -1,6 +1,6 @@
-import { emptyAggregate, mergeAggregate } from './pairing';
+import { GAMES_PER_SEED, emptyAggregate, mergeAggregate } from './pairing';
 import { validateTelemetryAggregate } from './lotteryAcquisition';
-import type { PairingBlockResult, PairingOutcome } from './pairing';
+import type { SeedEvaluationResult, PairingOutcome } from './pairing';
 import { matrixProtocol } from './payoffMatrix';
 import type { MatrixCell, MatrixSnapshot } from './payoffMatrix';
 import { canonicalStrategy, stableHash } from './strategy';
@@ -11,7 +11,7 @@ export const NESTED_MATRIX_DEPTHS = Object.freeze([50, 100, 200] as const);
 export type NestedMatrixDepth = typeof NESTED_MATRIX_DEPTHS[number];
 
 export interface NestedMatrixProtocol {
-  version: 'ordered-reservoir-full-nested-matrix-v1';
+  version: 'ordered-reservoir-full-nested-matrix-v2';
   kingdomId: string;
   seeds: number[];
   turnLimitPerPlayer: number;
@@ -22,7 +22,7 @@ export interface NestedMatrixProtocol {
 export interface NestedMatrixBatch {
   startBlock: number;
   seeds: number[];
-  blocks: PairingBlockResult[];
+  blocks: SeedEvaluationResult[];
   matches: number;
   telemetry: TelemetryAggregate;
 }
@@ -111,8 +111,8 @@ export function appendNestedMatrixOutcome(
   evidence: NestedMatrixEvidence, work: NestedMatrixWork, outcome: PairingOutcome
 ): NestedMatrixEvidence {
   if (!validateNestedMatrixEvidence(evidence) || outcome.record.aborted || outcome.blocks.length !== work.seeds.length
-    || outcome.matches !== work.seeds.length * 4 || !exact(outcome.blocks.map((block) => block.seed), work.seeds)
-    || outcome.blocks.some((block) => block.played !== 4 || block.aborted)) {
+    || outcome.matches !== work.seeds.length * GAMES_PER_SEED || !exact(outcome.blocks.map((block) => block.seed), work.seeds)
+    || outcome.blocks.some((block) => block.played !== GAMES_PER_SEED || block.aborted)) {
     throw new Error('Nested matrix outcome is invalid.');
   }
   const [left, right] = pair(work.left, work.right);
@@ -133,7 +133,7 @@ export function appendNestedMatrixOutcome(
   return { ...base, evidenceHash: baseHash(base) };
 }
 
-function payoff(blocks: readonly PairingBlockResult[]): number {
+function payoff(blocks: readonly SeedEvaluationResult[]): number {
   const games = blocks.reduce((sum, block) => sum + block.played, 0);
   return games ? 2 * blocks.reduce((sum, block) => sum + block.score * block.played, 0) / games - 1 : 0;
 }
@@ -154,7 +154,7 @@ export function nestedMatrixSnapshot(evidence: NestedMatrixEvidence, depth: Nest
     if (rowIndex < columnIndex) cells.push({ rowId: left.id, columnId: right.id,
       key: stableHash(JSON.stringify({ protocol: evidence.protocol, left: source.rowCanonical,
         right: source.columnCanonical, depth })), blocks, complete: blocks.length === depth,
-      centeredPayoff: payoff(blocks), matches: blocks.length * 4, telemetry });
+      centeredPayoff: payoff(blocks), matches: blocks.length * GAMES_PER_SEED, telemetry });
     const value = payoff(blocks);
     return row.id === left.id ? value : -value;
   }));
@@ -170,7 +170,7 @@ export function validateNestedMatrixEvidence(value: unknown): value is NestedMat
     if (!value || typeof value !== 'object') return false;
     const evidence = value as NestedMatrixEvidence;
     if (evidence.schemaVersion !== 1 || evidence.experiment !== 'ordered-reservoir-full-nested-matrix'
-      || evidence.protocol?.version !== 'ordered-reservoir-full-nested-matrix-v1'
+      || evidence.protocol?.version !== 'ordered-reservoir-full-nested-matrix-v2'
       || evidence.protocol.seeds?.length !== 200 || new Set(evidence.protocol.seeds).size !== 200
       || evidence.protocol.startingDraftEnabled !== false || !Array.isArray(evidence.strategies)
       || !Array.isArray(evidence.cells) || new Set(evidence.strategies.map((strategy) => strategy.id)).size !== evidence.strategies.length
@@ -186,8 +186,8 @@ export function validateNestedMatrixEvidence(value: unknown): value is NestedMat
         if (batch.startBlock !== start || !batch.seeds.length || batch.seeds.length > 25
           || !exact(batch.seeds, evidence.protocol.seeds.slice(start, start + batch.seeds.length))
           || !exact(batch.blocks.map((block) => block.seed), batch.seeds)
-          || batch.blocks.some((block) => block.played !== 4 || block.aborted || block.score < 0 || block.score > 1)
-          || batch.matches !== batch.seeds.length * 4
+          || batch.blocks.some((block) => block.played !== GAMES_PER_SEED || block.aborted || block.score < 0 || block.score > 1)
+          || batch.matches !== batch.seeds.length * GAMES_PER_SEED
           || !validateTelemetryAggregate(batch.telemetry, batch.matches)) return false;
         start += batch.seeds.length;
       }

@@ -135,7 +135,7 @@ Use `--limit 10` for a resumable ten-kingdom balance pilot. At 330 seconds per k
 survive interruption. Inputs, results, and atomic status are ignored under
 `.experiments/deep-beam-suite/deep-beam-v1/`.
 
-The response-optimizer pilot compares stratified beam, uniform length-then-token policy racing, dependency-aware discrete CEM, and UCT MCTS against one validated saved target lottery. All four reserve 4,000 of the 60,000 candidate seed blocks for the same eight-candidate final training rerace. Held-out confirmation stays untouched. Run the recorded one-kingdom configuration with:
+The response-optimizer pilot compares stratified beam, uniform length-then-token policy racing, dependency-aware discrete CEM, and UCT MCTS against one validated saved target lottery. All four reserve 4,000 of the 60,000 candidate shuffle-seed evaluations for the same eight-candidate final training rerace. Held-out confirmation stays untouched. Run the recorded one-kingdom configuration with:
 
 ```sh
 npm run response-optimizer:pilot -- --kingdom deep-beam-tuning-001 \
@@ -252,7 +252,7 @@ npm run ordered-reservoir:robust:status
 npm run ordered-reservoir:robust:report
 ```
 
-Ordinary and closure scans each use two independent cumulative 1/2/4/8 races, a union of at most 16 finalists, and 400 fresh confirmation blocks. Atomic checkpoints and ignored reports go under `.experiments/ordered-reservoir-robust-psro/ordered-reservoir-robust-v1/`. Historical-attacker diagnostics stream the split ranked artifact, report exact ordered-space membership, and test a deterministic representable analog with fresh evidence.
+Ordinary and closure scans each use two independent cumulative 1/2/4/8 races, a union of at most 16 finalists, and 400 fresh confirmation shuffle seeds. Atomic checkpoints and ignored reports go under `.experiments/ordered-reservoir-robust-psro/ordered-reservoir-robust-v2/`. Historical-attacker diagnostics stream the split ranked artifact, report exact ordered-space membership, and test a deterministic representable analog with fresh evidence.
 
 Measure early-race ranking consistency without changing the fixed lottery:
 
@@ -262,7 +262,7 @@ npm run ordered-reservoir:race-benchmark:status
 npm run ordered-reservoir:race-benchmark:report
 ```
 
-The current v2 benchmark uses the same v1-seeded 25-block matrix for ordered ranks 1–50. It evaluates ranks 51–1,000 on three independent schedules shared by all candidates in each trial. Every candidate gets 25 blocks, or 100 balanced games, with no elimination. Reports compare the saved evidence after 1, 8, and 25 blocks. Resumable artifacts live under `.experiments/ordered-reservoir-race-benchmark/ordered-reservoir-race-benchmark-v2/`; the completed 5,000-rank v1 artifacts remain unchanged. The benchmark does not admit strategies or rebuild the matrix.
+The current v3 benchmark uses the same v1-seeded 25-shuffle-seed matrix for ordered ranks 1–50. It evaluates ranks 51–1,000 on three independent schedules shared by all candidates in each trial. Every candidate gets 25 shuffle seeds, or 50 games, with no elimination. Reports compare the saved evidence after 1, 8, and 25 shuffle seeds. Resumable artifacts live under `.experiments/ordered-reservoir-race-benchmark/ordered-reservoir-race-benchmark-v3/`; the completed 5,000-rank v1 artifacts remain unchanged. The benchmark does not admit strategies or rebuild the matrix.
 
 The full Kingdom 009 PSRO protocol runs two independent searches from the fixed ordered 20,000 reservoir:
 
@@ -274,7 +274,7 @@ npm run ordered-reservoir:full-psro -- --report
 npm run ordered-reservoir:full-psro -- --compare
 ```
 
-Each full screen gives every inactive candidate two shared 25-block lanes before tied-tier selection. Fresh adaptive confirmation uses full acquisition telemetry and multiple-testing control. Only candidates with identical complete acquisition evidence collapse behind one matrix representative; every confirmed shadow gets a synthetic-ID anchor check and remains in later screens. Matrix evidence adapts from 50 to 100 or 200 blocks. Final reports use full-telemetry self-play panels, feasible group ranges, five audit-only historical reservoir attacks, and saved direct cross-play blocks. Deep validators recompute schedules, decisions, classes, gates, and resume transitions. Artifacts live under `.experiments/ordered-reservoir-full-psro/ordered-reservoir-full-psro-v2/`. Only run IDs 1 and 2 are valid.
+Each full screen gives every inactive candidate two shared 25-shuffle-seed lanes before tied-tier selection. Fresh adaptive confirmation uses full acquisition telemetry and multiple-testing control. Only candidates with identical complete acquisition evidence collapse behind one matrix representative; every confirmed shadow gets a synthetic-ID anchor check and remains in later screens. Matrix evidence adapts from 50 to 100 or 200 shuffle seeds. Final reports use full-telemetry self-play panels, feasible group ranges, five audit-only historical reservoir attacks, and saved direct cross-play seed evaluations. Deep validators recompute schedules, decisions, classes, gates, and resume transitions. Artifacts live under `.experiments/ordered-reservoir-full-psro/ordered-reservoir-full-psro-v3/`. Only run IDs 1 and 2 are valid.
 
 ## Code boundaries
 

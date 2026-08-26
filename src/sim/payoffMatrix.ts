@@ -1,6 +1,6 @@
 import { kingdomMarket } from '../game';
 import { emptyAggregate, mergeAggregate } from './pairing';
-import type { PairingBlockResult, PairingOutcome } from './pairing';
+import type { SeedEvaluationResult, PairingOutcome } from './pairing';
 import type { PairingJob, PairingRunner } from './pairingRunner';
 import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
@@ -25,7 +25,7 @@ export interface MatrixCell {
   rowId: string;
   columnId: string;
   key: string;
-  blocks: PairingBlockResult[];
+  blocks: SeedEvaluationResult[];
   complete: boolean;
   centeredPayoff: number;
   matches: number;
@@ -78,7 +78,7 @@ function pairKey(protocol: MatrixProtocol, left: Strategy, right: Strategy): str
   return stableHash(JSON.stringify({ protocol, strategies: [canonicalStrategy(left), canonicalStrategy(right)] }));
 }
 
-function payoff(blocks: readonly PairingBlockResult[]): number {
+function payoff(blocks: readonly SeedEvaluationResult[]): number {
   const games = blocks.reduce((sum, block) => sum + block.played, 0);
   const score = blocks.reduce((sum, block) => sum + block.score * block.played, 0);
   return games ? 2 * score / games - 1 : 0;

@@ -118,11 +118,11 @@ describe('automatic PSRO search inputs', () => {
         allowEarlyStop: job.options.allowEarlyStop })));
       return { submitted: jobs.length, outcomes: jobs.map((job, index) => {
         const score = current === 0 ? 1 : index % 2;
-        return { record: { played: 4, wins: score ? 4 : 0, draws: 0,
-          losses: score ? 0 : 4, aborted: 0 }, candidateScore: score * 4,
-        opponentScore: (1 - score) * 4, candidateMean: score, opponentMean: 1 - score,
-        telemetry: emptyAggregate(), matches: 4, seedBlocks: 1, stopReason: 'maximum' as const,
-        blocks: [{ seed: job.options.seeds[0]!, score, played: 4, aborted: 0 }], aborts: [] };
+        return { record: { played: 2, wins: score ? 2 : 0, draws: 0,
+          losses: score ? 0 : 2, aborted: 0 }, candidateScore: score * 2,
+        opponentScore: (1 - score) * 2, candidateMean: score, opponentMean: 1 - score,
+        telemetry: emptyAggregate(), matches: 2, seedsEvaluated: 1, stopReason: 'maximum' as const,
+        blocks: [{ seed: job.options.seeds[0]!, score, played: 2, aborted: 0 }], aborts: [] };
       }) };
     }, async close() {} };
     const result = await runResponseSearch({ objective: 'global', targetWeights: {

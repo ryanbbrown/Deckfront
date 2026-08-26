@@ -4,7 +4,7 @@ import { tacticalAgent } from '../src/sim/tacticalAgent';
 import { diagnosticLabels, diagnosticStrategies } from '../src/sim/baselines';
 import { CURATED_KINGDOM_IDS } from '../src/sim/kingdoms';
 import { runMatch } from '../src/sim/match';
-import { playPairing } from '../src/sim/pairing';
+import { GAMES_PER_SEED, playPairing } from '../src/sim/pairing';
 import type { PairingMatchRunner } from '../src/sim/pairing';
 import type { SimulationMatchConfig } from '../src/sim/simulationKernel';
 import type { Strategy } from '../src/sim/strategy';
@@ -158,7 +158,7 @@ console.log(`all: action agreement ${(100 * totalAgreements / totalDecisions).to
   + ` same outcome ${(100 * sameOutcome / totalMatches).toFixed(1)}%;`
   + ` same outcome/reason ${(100 * sameResult / totalMatches).toFixed(1)}%;`
   + ` mean |turn difference| ${(absoluteTurnDifference / totalMatches).toFixed(2)} across ${totalMatches} matches`);
-console.log(`diagnostic matrix (${matrixSeedCount} seeds x 4 orientations): same cell direction `
+console.log(`diagnostic matrix (${matrixSeedCount} shuffle seeds x ${GAMES_PER_SEED} games): same cell direction `
   + `${(100 * sameCellDirection / matrixCells).toFixed(1)}%; mean |win-rate difference| `
   + `${(100 * absoluteCellDifference / matrixCells).toFixed(1)} points; maximum `
   + `${(100 * maximumCellDifference).toFixed(1)} points across ${matrixCells} cells`);

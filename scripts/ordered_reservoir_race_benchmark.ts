@@ -198,11 +198,11 @@ function renderReport(report: OrderedRaceBenchmarkReport, matrix: OrderedRaceBen
     '# Ordered-reservoir early-race consistency benchmark', '',
     '## Protocol', '',
     `The benchmark uses ordered reservoir ranks 1–${report.protocol.rankLimit.toLocaleString()}. `
-      + `Ranks 1–${report.protocol.initialStrategies} form one fixed ${report.protocol.matrixBlocks}-block matrix and lottery.`,
+      + `Ranks 1–${report.protocol.initialStrategies} form one fixed ${report.protocol.matrixBlocks}-shuffle-seed matrix and lottery.`,
     '',
     `Each of ranks ${report.protocol.initialStrategies + 1}–${report.protocol.rankLimit.toLocaleString()} is evaluated `
-      + `${report.protocol.evaluationTrials} times. Each evaluation uses ${report.protocol.candidateBlocks} blocks with no elimination. `
-      + `One block is ${report.protocol.gamesPerBlock} total balanced games against one opponent sampled from the fixed weighted lottery.`,
+      + `${report.protocol.evaluationTrials} times. Each evaluation uses ${report.protocol.candidateBlocks} shuffle seeds with no elimination. `
+      + `Each shuffle seed is ${report.protocol.gamesPerSeedEvaluation} games against one opponent sampled from the fixed weighted lottery. Strategy A and strategy B each move first once.`,
     '',
     `Candidate schedules are independent between trials and shared by all candidates in that trial. `
       + `The matrix uses the v1 matrix seed namespace, is never rebuilt, and admits no strategy. `
@@ -217,7 +217,7 @@ function renderReport(report: OrderedRaceBenchmarkReport, matrix: OrderedRaceBen
     '## Independent-trial consistency', ''
   ];
   for (const depth of report.depths) {
-    lines.push(`### Rankings after ${depth.blocks} block${depth.blocks === 1 ? '' : 's'}`, '',
+    lines.push(`### Rankings after ${depth.blocks} shuffle seed${depth.blocks === 1 ? '' : 's'}`, '',
       '| Cutoff | Pair overlaps | Pair Jaccards | Triple overlap | Triple Jaccard |',
       '|---:|---|---|---:|---:|');
     for (const cutoff of depth.cutoffs) {
@@ -234,12 +234,12 @@ function renderReport(report: OrderedRaceBenchmarkReport, matrix: OrderedRaceBen
   lines.push('## Within-trial depth retention', '',
     '| Evidence | Trial | Cutoff | Overlap | Jaccard |', '|---|---:|---:|---:|---:|');
   for (const entry of report.depthComparisons) {
-    lines.push(`| ${entry.fromBlocks}→${entry.toBlocks} blocks | ${entry.trial + 1} | ${entry.cutoff} `
+    lines.push(`| ${entry.fromBlocks}→${entry.toBlocks} shuffle seeds | ${entry.trial + 1} | ${entry.cutoff} `
       + `| ${entry.intersection}/${entry.cutoff} | ${percentage(entry.jaccard)} |`);
   }
   lines.push('',
     'Top-cutoff overlap measures selection stability. Tie-adjusted Spearman uses average ranks for equal scores, so it does not invent an order inside score ties.',
-    '', `Detailed JSON: \`${REPORT_JSON}\`. Per-candidate block scores: \`${path.join(ROOT, 'trials')}\`.`, '');
+    '', `Detailed JSON: \`${REPORT_JSON}\`. Per-candidate seed-evaluation scores: \`${path.join(ROOT, 'trials')}\`.`, '');
   return `${lines.join('\n')}\n`;
 }
 function writeReport(
@@ -259,7 +259,7 @@ function printSummary(report: OrderedRaceBenchmarkReport): void {
   console.log(`complete: ${report.candidateCount} candidates, ${report.matches} candidate games, `
     + `${(report.elapsedMs.total / 1000).toFixed(1)} recorded seconds`);
   for (const depth of report.depths) for (const cutoff of depth.cutoffs) {
-    console.log(`${depth.blocks} block top ${cutoff.cutoff}: pair overlaps `
+    console.log(`${depth.blocks} shuffle-seed top ${cutoff.cutoff}: pair overlaps `
       + `${cutoff.pairwise.map((entry) => entry.intersection).join('/')}; triple ${cutoff.triple.intersection}; `
       + `triple Jaccard ${cutoff.triple.jaccard.toFixed(3)}`);
   }

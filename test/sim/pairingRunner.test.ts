@@ -36,7 +36,7 @@ describe('the worker pairing runner', () => {
     try {
       const result = await runner.run(schedule);
       expect(result.submitted).toBe(5);
-      expect(result.outcomes.map((outcome) => outcome?.seedBlocks)).toEqual([5, 5, 5, 5, 5]);
+      expect(result.outcomes.map((outcome) => outcome?.seedsEvaluated)).toEqual([5, 5, 5, 5, 5]);
     } finally { await runner.close(); }
   });
 

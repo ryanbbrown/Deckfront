@@ -30,10 +30,10 @@ class DrawRunner implements PairingRunner {
       throw new Error('Random PSRO evaluation must keep the starting draft disabled.');
     }
     return { submitted: jobs.length, outcomes: jobs.map((job) => {
-      const blocks = job.options.seeds.map((seed) => ({ seed, score: 0.5, played: 4, aborted: 0 }));
-      return { record: { played: blocks.length * 4, wins: 0, draws: blocks.length * 4, losses: 0, aborted: 0 },
+      const blocks = job.options.seeds.map((seed) => ({ seed, score: 0.5, played: 2, aborted: 0 }));
+      return { record: { played: blocks.length * 2, wins: 0, draws: blocks.length * 2, losses: 0, aborted: 0 },
         candidateScore: blocks.length * 2, opponentScore: blocks.length * 2,
-        telemetry: emptyAggregate(), matches: blocks.length * 4, seedBlocks: blocks.length,
+        telemetry: emptyAggregate(), matches: blocks.length * 2, seedsEvaluated: blocks.length,
         stopReason: 'maximum' as const, candidateMean: 0.5, opponentMean: 0.5, blocks, aborts: [] };
     }) };
   }
@@ -43,10 +43,10 @@ class DrawRunner implements PairingRunner {
 class CandidateWinRunner implements PairingRunner {
   async run(jobs: readonly PairingJob[]) {
     return { submitted: jobs.length, outcomes: jobs.map((job) => {
-      const blocks = job.options.seeds.map((seed) => ({ seed, score: 1, played: 4, aborted: 0 }));
-      return { record: { played: blocks.length * 4, wins: blocks.length * 4, draws: 0, losses: 0, aborted: 0 },
-        candidateScore: blocks.length * 4, opponentScore: 0,
-        telemetry: emptyAggregate(), matches: blocks.length * 4, seedBlocks: blocks.length,
+      const blocks = job.options.seeds.map((seed) => ({ seed, score: 1, played: 2, aborted: 0 }));
+      return { record: { played: blocks.length * 2, wins: blocks.length * 2, draws: 0, losses: 0, aborted: 0 },
+        candidateScore: blocks.length * 2, opponentScore: 0,
+        telemetry: emptyAggregate(), matches: blocks.length * 2, seedsEvaluated: blocks.length,
         stopReason: 'maximum' as const, candidateMean: 1, opponentMean: 0, blocks, aborts: [] };
     }) };
   }
@@ -135,12 +135,12 @@ describe('random-first policy grammar and evidence', () => {
     let consumed = 0;
     const objective = {
       budget, get remaining() { return budget - consumed; }, get blocksConsumed() { return consumed; },
-      get matchesConsumed() { return consumed * 4; }, curve: [],
+      get matchesConsumed() { return consumed * 2; }, curve: [],
       canEvaluate: (count: number, blocks: number) => count * blocks <= budget - consumed,
       evaluate: async (candidates: readonly Strategy[], blocks: number) => {
         policies.push(...candidates); consumed += candidates.length * blocks;
         return candidates.map((strategy) => ({ strategy, mean: 0.5, blockScores: [0.5], interval: null,
-          matches: blocks * 4, telemetry: emptyAggregate() }));
+          matches: blocks * 2, telemetry: emptyAggregate() }));
       },
       aggregate: () => ({ mean: 0.5, blocks: 1 })
     };
@@ -296,7 +296,7 @@ describe('consistency report math and prior sources', () => {
       { id: 'b', startingBuild: [], buyPlan: [] }] as Strategy[];
     const evaluation = (strategy: Strategy, scores: number[]) => ({ strategy,
       mean: scores.reduce((sum, value) => sum + value, 0) / scores.length,
-      blockScores: scores, interval: null, matches: scores.length * 4, telemetry: emptyAggregate() });
+      blockScores: scores, interval: null, matches: scores.length * 2, telemetry: emptyAggregate() });
     const result = weightedLotteryEvaluation([
       evaluation(strategies[0]!, [1, 0]), evaluation(strategies[1]!, [0.5, 0.5])
     ], { a: 0.25, b: 0.75 }, 3);
@@ -323,7 +323,7 @@ describe('consistency report math and prior sources', () => {
     const evaluate = async (candidate: typeof current, _opponent: typeof current, label: string) => {
       calls.push(label);
       const support = candidate.strategies.map((entry) => ({ strategy: entry.strategy, mean: 0.5,
-        interval95: { lower: 0.49, upper: 0.51 }, blocks: 10, matches: 40 }));
+        interval95: { lower: 0.49, upper: 0.51 }, blocks: 10, matches: 20 }));
       return { score: 0.5, interval95: { lower: 0.49, upper: 0.51 }, support, worstSupport: support[0]! };
     };
     const comparison = await evaluateKingdom001Comparison([current], ordinary, stratified,

@@ -1,5 +1,6 @@
 import { cardDefinition } from '../game';
 import { equilibriumGroupWeightRange } from './equilibrium';
+import { GAMES_PER_SEED } from './pairing';
 import type { EquilibriumResult } from './equilibrium';
 import { damageFamily, classifyStrategyDamage, DAMAGE_FAMILIES } from './strategyDamage';
 import { canonicalStrategy, stableHash } from './strategy';
@@ -11,7 +12,7 @@ export interface ProductBlockEvidence {
   seed: number;
   opponentId: string;
   score: number;
-  matches: 4;
+  matches: typeof GAMES_PER_SEED;
   telemetry: TelemetryAggregate;
 }
 
@@ -29,7 +30,7 @@ function validCounts(value: unknown): value is Record<string, number> {
 export function validateTelemetryAggregate(telemetry: unknown, expectedMatches: number): telemetry is TelemetryAggregate {
   try {
     if (!telemetry || typeof telemetry !== 'object' || !Number.isSafeInteger(expectedMatches)
-      || expectedMatches < 4 || expectedMatches % 4) return false;
+      || expectedMatches < GAMES_PER_SEED || expectedMatches % GAMES_PER_SEED) return false;
     const held = telemetry as TelemetryAggregate;
     if (!validCounts(held.damageByCard) || !validCounts(held.playsByCard)
       || !validCounts(held.deadDraws) || held.deadDraws.range + held.deadDraws.mana > held.deadDraws.total
@@ -42,9 +43,10 @@ export function validateTelemetryAggregate(telemetry: unknown, expectedMatches: 
     let played = 0;
     for (const first of ['firstOchre', 'firstIndigo'] as const) for (const side of ['normal', 'swapped'] as const) {
       const record = held.byOrientation?.[first]?.[side];
+      const expectedPlayed = side === 'normal' ? expectedMatches / GAMES_PER_SEED : 0;
       if (!record || !Object.values(record).every((count) => Number.isSafeInteger(count) && count >= 0)
         || record.wins + record.draws + record.losses !== record.played || record.aborted !== 0
-        || record.played !== expectedMatches / 4) return false;
+        || record.played !== expectedPlayed) return false;
       played += record.played;
     }
     return played === expectedMatches;
@@ -57,9 +59,9 @@ export function validateProductBlockEvidence(block: unknown, expected?: {
   try {
     if (!block || typeof block !== 'object') return false;
     const held = block as ProductBlockEvidence;
-    if (!Number.isSafeInteger(held.seed) || held.matches !== 4 || !Number.isFinite(held.score)
+    if (!Number.isSafeInteger(held.seed) || held.matches !== GAMES_PER_SEED || !Number.isFinite(held.score)
       || held.score < 0 || held.score > 1 || !held.opponentId
-      || !validateTelemetryAggregate(held.telemetry, 4)
+      || !validateTelemetryAggregate(held.telemetry, GAMES_PER_SEED)
       || (expected && (held.seed !== expected.seed || held.opponentId !== expected.opponentId))) return false;
     return !expected || !!held.telemetry.acquisitionsByStrategy[expected.candidateTelemetryId];
   } catch { return false; }
@@ -100,7 +102,7 @@ function normalizedStrategyTelemetry(
 
 export function completeAcquisitionEvidenceKey(evidence: FullCandidateEvidence): string {
   const telemetryId = evidence.candidateTelemetryId ?? evidence.strategy.id;
-  if (!evidence.blocks.length || evidence.blocks.some((block) => block.matches !== 4
+  if (!evidence.blocks.length || evidence.blocks.some((block) => block.matches !== GAMES_PER_SEED
     || block.score < 0 || block.score > 1 || !block.telemetry.planPositionPurchasesByStrategy
     || !block.telemetry.acquisitionsByStrategy[telemetryId])) {
     throw new Error('Complete acquisition evidence is missing product telemetry.');

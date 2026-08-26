@@ -317,7 +317,7 @@ function renderReport(
       supportSize: supportEntries(run).length, elapsedMs: run.elapsedMs }, comparisons, aggregate };
   const markdown = [`# Ordered reservoir one-round challenge`, '', assessment.message, '',
     `Source: \`${ORDERED_RESERVOIR_SOURCE}\`. The ordered-product validation CLI validated the ranked artifact and its exact 20,000-entry prefix before adaptation.`, '',
-    `The response protocol kept draft off, 50 health, race blocks ${FIXED_RESERVOIR_CONFIG.raceBlocks.join('/')}, ${FIXED_RESERVOIR_CONFIG.confirmationBlocks} confirmation blocks, and ${FIXED_RESERVOIR_CONFIG.matrixBlocks} matrix blocks. It stopped after exactly one response round.`, '',
+    `The response protocol kept draft off, 50 health, race seed evaluations ${FIXED_RESERVOIR_CONFIG.raceBlocks.join('/')}, ${FIXED_RESERVOIR_CONFIG.confirmationBlocks} confirmation shuffle seeds, and ${FIXED_RESERVOIR_CONFIG.matrixBlocks} matrix shuffle seeds. It stopped after exactly one response round.`, '',
     '| Historical pool | Ordered row score | Historical row score | Ordered-pool exploits | Historical-pool exploits | Overlap |',
     '|---:|---:|---:|---:|---:|---:|',
     ...comparisons.map((entry) => `| ${entry.historicalPoolSeed} | ${percent(entry.orderedAsRow.score)} (${percent(entry.orderedAsRow.interval95.lower)}–${percent(entry.orderedAsRow.interval95.upper)}) | ${percent(entry.historicalAsRow.score)} (${percent(entry.historicalAsRow.interval95.lower)}–${percent(entry.historicalAsRow.interval95.upper)}) | ${entry.orderedAttack.exploitStrategyIds.length} | ${entry.historicalAttack.exploitStrategyIds.length} | ${entry.reservoirOverlap} |`), '',

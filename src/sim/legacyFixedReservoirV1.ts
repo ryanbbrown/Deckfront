@@ -9,6 +9,7 @@ import {
 import type {
   FixedReservoirProtocol, ReservoirEntry, ReservoirRound
 } from './fixedReservoirPsro';
+import { GAMES_PER_SEED } from './pairing';
 import { matrixProtocol } from './payoffMatrix';
 import type { MatrixSnapshot } from './payoffMatrix';
 import { RandomPsroSeedLedger } from './randomPsro';
@@ -146,7 +147,7 @@ function finalistValid(entry: ReservoirRound['finalists'][number], blocks: numbe
     && Number.isFinite(entry.interval95?.lower) && Number.isFinite(entry.interval95?.upper)
     && entry.interval95.lower >= 0 && entry.interval95.upper <= 1
     && entry.interval95.lower <= entry.interval95.upper
-    && entry.blocks === blocks && entry.matches === blocks * 4;
+    && entry.blocks === blocks && entry.matches === blocks * GAMES_PER_SEED;
 }
 
 export function validateLegacyFixedReservoirRunV1(
@@ -192,9 +193,9 @@ export function validateLegacyFixedReservoirRunV1(
       if (row === undefined || column === undefined || row >= column || pairs.has(pair)
         || !cell.complete || cell.blocks.length !== protocol.matrixBlocks
         || !exact(cell.blocks.map((block) => block.seed), matrixSeeds)
-        || cell.blocks.some((block) => block.played !== 4 || block.aborted !== 0
+        || cell.blocks.some((block) => block.played !== GAMES_PER_SEED || block.aborted !== 0
           || !Number.isFinite(block.score) || block.score < 0 || block.score > 1)
-        || cell.matches !== protocol.matrixBlocks * 4) return false;
+        || cell.matches !== protocol.matrixBlocks * GAMES_PER_SEED) return false;
       pairs.add(pair);
       const centered = 2 * cell.blocks.reduce((sum, block) => sum + block.score, 0) / cell.blocks.length - 1;
       if (!near(cell.centeredPayoff, centered)

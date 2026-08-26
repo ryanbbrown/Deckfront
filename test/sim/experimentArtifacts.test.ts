@@ -21,12 +21,12 @@ function completedResult(): PsroResult {
   const telemetry = emptyAggregate();
   const matrix = { protocol: matrixProtocol('current-duel', [1], 30, 200), strategies,
     cells: [{ rowId: strategies[0]!.id, columnId: strategies[1]!.id, key: 'fixture',
-      blocks: [{ seed: 1, score: 0.5, played: 4, aborted: 0 }], complete: true,
-      centeredPayoff: 0, matches: 4, telemetry }], complete: true,
+      blocks: [{ seed: 1, score: 0.5, played: 2, aborted: 0 }], complete: true,
+      centeredPayoff: 0, matches: 2, telemetry }], complete: true,
     centeredPayoffs: [[0, 0], [0, 0]] };
   const equilibrium = solveEquilibrium(strategies.map((strategy) => strategy.id), matrix.centeredPayoffs);
   return { valid: true, restarts: [], strategies, matrix, equilibrium, events: [], finalFailures: [],
-    restartAgreement: [], matches: 4, stopReason: 'limit', restartStatuses: [
+    restartAgreement: [], matches: 2, stopReason: 'limit', restartStatuses: [
       { restart: 0, state: 'completed', stopReason: 'iteration-limit', matrixSize: 2 }
     ], failure: null, seedNamespaces: { matrix: [1] } };
 }

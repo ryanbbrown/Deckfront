@@ -46,6 +46,7 @@ import {
 } from '../src/sim/orderedReservoirChallenge';
 import type { OrderedChallengePoolArtifact, OrderedRankedManifestHeader } from '../src/sim/orderedReservoirChallenge';
 import type { OrderedProductReservoirArtifact } from '../src/sim/orderedGoldfishProduct';
+import { GAMES_PER_SEED } from '../src/sim/pairing';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import { validateLegacyFixedReservoirPoolV1 } from '../src/sim/legacyFixedReservoirV1';
 import type { LegacyFixedReservoirPoolArtifact } from '../src/sim/legacyFixedReservoirV1';
@@ -184,7 +185,7 @@ function validateScreenChunk(value: unknown, pool: OrderedChallengePoolArtifact,
     || held.poolHash !== pool.generatedHash || held.reservoirHash !== pool.reservoirHash
     || held.snapshotHash !== snapshotHash || held.start !== start || held.end !== end
     || !exact(held.laneA, laneA) || !exact(held.laneB, laneB) || held.rows.length !== expected.length
-    || held.matches !== expected.length * 50 * 4 || !Number.isFinite(held.elapsedMs)) return false;
+    || held.matches !== expected.length * 50 * GAMES_PER_SEED || !Number.isFinite(held.elapsedMs)) return false;
   for (let index = 0; index < expected.length; index += 1) {
     const row = held.rows[index]!, source = expected[index]!;
     if (row.strategyId !== source.strategy.id || row.goldfishRank !== source.goldfishRank
@@ -242,10 +243,10 @@ async function evaluateFull(candidates: readonly Strategy[], opponents: Readonly
     const evidence: ProductBlockEvidence[] = [];
     for (let blockIndex = 0; blockIndex < blocks.length; blockIndex += 1) {
       const outcome = batch.outcomes[candidateIndex * blocks.length + blockIndex], block = blocks[blockIndex]!;
-      if (!outcome || outcome.record.aborted || outcome.blocks[0]?.played !== 4
-        || !outcome.telemetry.planPositionPurchasesByStrategy) throw new Error('Full telemetry block is invalid.');
+      if (!outcome || outcome.record.aborted || outcome.blocks[0]?.played !== GAMES_PER_SEED
+        || !outcome.telemetry.planPositionPurchasesByStrategy) throw new Error('Full telemetry seed evaluation is invalid.');
       evidence.push({ seed: block.seed, opponentId: block.opponentId, score: outcome.blocks[0]!.score,
-        matches: 4, telemetry: outcome.telemetry });
+        matches: GAMES_PER_SEED, telemetry: outcome.telemetry });
     }
     result.push({ strategy: candidates[candidateIndex]!, blocks: evidence });
   }
@@ -487,7 +488,7 @@ function validateScanSummaryDeep(input: {
       const next: FullPsroState = { ...input.state, scan: input.state.scan + 1,
         status: 'unresolved', stopReason: 'screen-width-unresolved' };
       return !held.decisions.length && !held.looks.length && !held.representatives.length
-        && held.terminalReason === 'screen-width-unresolved' && held.matches === rows.length * 200
+        && held.terminalReason === 'screen-width-unresolved' && held.matches === rows.length * 50 * GAMES_PER_SEED
         && exact(held.stateAfter, next)
         ? { state: next, activeStrategyIds: input.activeStrategyIds, shadowClasses: input.shadowClasses } : null;
     }
@@ -534,7 +535,7 @@ function validateScanSummaryDeep(input: {
     if (!exact(held.decisions, decisions)
       || (!widthFailure && field.length && held.looks.at(-1)?.blocks !== 6_400)) return null;
     const evidence = candidates.map((strategy) => ({ strategy, blocks: accumulated.get(strategy.id)! }));
-    const confirmationMatches = evidence.reduce((sum, entry) => sum + entry.blocks.length * 4, 0);
+    const confirmationMatches = evidence.reduce((sum, entry) => sum + entry.blocks.length * GAMES_PER_SEED, 0);
     const admittedIds = new Set(decisions.filter((entry) => entry.decision === 'admitted').map((entry) => entry.strategyId));
     const admitted = evidence.filter((entry) => admittedIds.has(entry.strategy.id));
     const knownShadow = new Set(input.shadowClasses.flatMap((group) => group.shadowIds));
@@ -559,7 +560,7 @@ function validateScanSummaryDeep(input: {
         const entry = artifact.evidence[index]!;
         if (entry.candidateTelemetryId !== expectedTelemetryId
           || !validateFullCandidateEvidence(entry, { strategy, blocks: full.slice(0, length) })) return null;
-        anchors.set(`${id}:${length}`, entry); anchorMatches += entry.blocks.length * 4;
+        anchors.set(`${id}:${length}`, entry); anchorMatches += entry.blocks.length * GAMES_PER_SEED;
       }
     }
     const collapsed = collapseAcquisitionEquivalentAdmissions({ evidence, admittedIds,
@@ -578,14 +579,14 @@ function validateScanSummaryDeep(input: {
       const next: FullPsroState = { ...input.state, scan: input.state.scan + 1,
         status: 'unresolved', stopReason: 'confirmation-width-unresolved' };
       return held.terminalReason === 'confirmation-width-unresolved'
-        && held.matches === rows.length * 200 + confirmationMatches + anchorMatches && exact(held.stateAfter, next)
+        && held.matches === rows.length * 50 * GAMES_PER_SEED + confirmationMatches + anchorMatches && exact(held.stateAfter, next)
         ? { state: next, activeStrategyIds: input.activeStrategyIds, shadowClasses: retainedExistingShadows } : null;
     }
     if (input.activeStrategyIds.length + collapsed.representatives.length > ORDERED_FULL_PSRO_MATRIX_WIDTH) {
       const next: FullPsroState = { ...input.state, scan: input.state.scan + 1,
         status: 'unresolved', stopReason: 'matrix-width-unresolved' };
       return held.terminalReason === 'matrix-width-unresolved'
-        && held.matches === rows.length * 200 + confirmationMatches + anchorMatches && exact(held.stateAfter, next)
+        && held.matches === rows.length * 50 * GAMES_PER_SEED + confirmationMatches + anchorMatches && exact(held.stateAfter, next)
         ? { state: next, activeStrategyIds: input.activeStrategyIds, shadowClasses: retainedExistingShadows } : null;
     }
     const nextActive = [...input.activeStrategyIds, ...collapsed.representatives.map((entry) => entry.strategy.id)].sort();
@@ -602,13 +603,13 @@ function validateScanSummaryDeep(input: {
       unresolved, ...(comparison === null ? {} : { precisionStable: comparison.passed }) });
     if (!exact(held.matrixPrecision, comparison) || !exact(held.stateAfter, next)
       || held.terminalReason !== (next.status === 'unresolved' ? next.stopReason : null)
-      || held.matches !== rows.length * 200 + confirmationMatches + anchorMatches) return null;
+      || held.matches !== rows.length * 50 * GAMES_PER_SEED + confirmationMatches + anchorMatches) return null;
     return { state: next, activeStrategyIds: nextActive, shadowClasses: nextShadows };
   } catch { return null; }
 }
 
 function initialMatrix(pool: OrderedChallengePoolArtifact, run: 1 | 2): NestedMatrixEvidence {
-  return createNestedMatrixEvidence({ version: 'ordered-reservoir-full-nested-matrix-v1', kingdomId: KINGDOM_ID,
+  return createNestedMatrixEvidence({ version: 'ordered-reservoir-full-nested-matrix-v2', kingdomId: KINGDOM_ID,
     seeds: orderedFullPsroSeeds(pool.reservoirHash, run, 'matrix', 200),
     turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER, actionCapPerTurn: ACTION_CAP_PER_TURN,
     startingDraftEnabled: false }, pool.reservoir.slice(0, 50).map((entry) => entry.strategy));
@@ -981,7 +982,7 @@ function attackerDiagnostic(historical: LegacyFixedReservoirPoolArtifact,
     }
     exposure.set(block.opponentId, [...(exposure.get(block.opponentId) ?? []), block.score]);
   }
-  const games = evidence.blocks.length * 4;
+  const games = evidence.blocks.length * GAMES_PER_SEED;
   const acquisitionRates = Object.fromEntries(Object.entries(acquisitions).map(([id, count]) => [id, count / games]));
   const planPositionRates = Object.fromEntries(Object.entries(positions).map(([id, count]) => [id, count / games]));
   const action = Object.entries(acquisitionRates).filter(([id]) => cardDefinition(id).type === 'action');
@@ -1042,7 +1043,7 @@ function validateHistoricalAudit(value: unknown, pool: OrderedChallengePoolArtif
         || !exact(diagnostic, attackerDiagnostic(historical, finalist, diagnostic.evidence))) return false;
     }
     const expectedMatches = held.scan.matches + held.diagnostics.reduce((sum, entry) =>
-      sum + entry.evidence.blocks.length * 4, 0);
+      sum + entry.evidence.blocks.length * GAMES_PER_SEED, 0);
     if (held.matches !== expectedMatches) return false;
     const copy = structuredClone(held) as Partial<HistoricalAuditArtifact>;
     delete copy.evidenceHash; delete copy.elapsedMs;
@@ -1081,7 +1082,7 @@ async function ensureHistoricalAudits(pool: OrderedChallengePoolArtifact,
       historicalReservoirHash: historical.reservoirHash, targetHash: panelTargetHash(checkpoint),
       targetSnapshotHash: lotterySnapshotHash(snapshot, equilibrium), seedRoot, seedPlan: planner.plan, scan,
       confirmedStrategyIds: admitted.map((entry) => entry.strategy.id), diagnostics,
-      matches: scan.matches + telemetry.reduce((sum, entry) => sum + entry.blocks.length * 4, 0) };
+      matches: scan.matches + telemetry.reduce((sum, entry) => sum + entry.blocks.length * GAMES_PER_SEED, 0) };
     const artifact: HistoricalAuditArtifact = { ...base, elapsedMs: performance.now() - started,
       evidenceHash: historicalAuditHash(base) };
     if (!validateHistoricalAudit(artifact, pool, checkpoint, matrix, historical)) {
@@ -1132,7 +1133,7 @@ async function runOne(pool: OrderedChallengePoolArtifact, run: 1 | 2, runner: Wo
         version: ORDERED_FULL_PSRO_VERSION, run, scan: state.scan, snapshotHash, selection,
         decisions: [], looks: [], classes: [], representatives: [], shadows: [], retainedShadowIds: [],
         divergedShadowIds: [], matrixPrecision: null, stateBefore: state, stateAfter: next,
-        terminalReason: 'screen-width-unresolved', matches: rows.length * 200,
+        terminalReason: 'screen-width-unresolved', matches: rows.length * 50 * GAMES_PER_SEED,
         children: scanChildren(run, state.scan) };
       const summary: ScanSummary = { ...base, evidenceHash: evidenceHash(base) };
       writeAtomic(scanSummaryFile(run, state.scan), summary); scanHashes.push(summary.evidenceHash);
@@ -1184,7 +1185,7 @@ async function runOne(pool: OrderedChallengePoolArtifact, run: 1 | 2, runner: Wo
           writeAtomic(file, { ...base, evidenceHash: evidenceHash(base) });
         }
         anchors.forEach((entry) => {
-          anchorEvidence.set(`${entry.strategy.id}:${length}`, entry); anchorMatches += entry.blocks.length * 4;
+          anchorEvidence.set(`${entry.strategy.id}:${length}`, entry); anchorMatches += entry.blocks.length * GAMES_PER_SEED;
         });
       }
       if (confirmedKnown.some((entry) => {
@@ -1209,7 +1210,7 @@ async function runOne(pool: OrderedChallengePoolArtifact, run: 1 | 2, runner: Wo
         retainedShadowIds: collapsed.retainedShadowIds, divergedShadowIds: collapsed.divergedShadowIds,
         matrixPrecision: null, stateBefore: state, stateAfter: next,
         terminalReason: 'confirmation-width-unresolved',
-        matches: rows.length * 200 + confirmed.evidence.reduce((sum, entry) => sum + entry.blocks.length * 4, 0)
+        matches: rows.length * 50 * GAMES_PER_SEED + confirmed.evidence.reduce((sum, entry) => sum + entry.blocks.length * GAMES_PER_SEED, 0)
           + anchorMatches, children: scanChildren(run, state.scan) };
       const summary: ScanSummary = { ...base, evidenceHash: evidenceHash(base) };
       writeAtomic(scanSummaryFile(run, state.scan), summary); scanHashes.push(summary.evidenceHash);
@@ -1224,7 +1225,7 @@ async function runOne(pool: OrderedChallengePoolArtifact, run: 1 | 2, runner: Wo
         representatives: collapsed.representatives.map((entry) => entry.strategy.id), shadows: collapsed.shadows,
         retainedShadowIds: collapsed.retainedShadowIds, divergedShadowIds: collapsed.divergedShadowIds,
         matrixPrecision: null, stateBefore: state, stateAfter: next, terminalReason: 'matrix-width-unresolved',
-        matches: rows.length * 200 + confirmed.evidence.reduce((sum, entry) => sum + entry.blocks.length * 4, 0)
+        matches: rows.length * 50 * GAMES_PER_SEED + confirmed.evidence.reduce((sum, entry) => sum + entry.blocks.length * GAMES_PER_SEED, 0)
           + anchorMatches, children: scanChildren(run, state.scan) };
       const summary: ScanSummary = { ...base, evidenceHash: evidenceHash(base) };
       writeAtomic(scanSummaryFile(run, state.scan), summary); scanHashes.push(summary.evidenceHash);
@@ -1249,7 +1250,7 @@ async function runOne(pool: OrderedChallengePoolArtifact, run: 1 | 2, runner: Wo
       shadows: collapsed.shadows, retainedShadowIds: collapsed.retainedShadowIds,
       divergedShadowIds: collapsed.divergedShadowIds, matrixPrecision: precision,
       stateBefore: state, stateAfter: next, terminalReason: next.status === 'unresolved' ? next.stopReason : null,
-      matches: rows.length * 200 + confirmed.evidence.reduce((sum, entry) => sum + entry.blocks.length * 4, 0)
+      matches: rows.length * 50 * GAMES_PER_SEED + confirmed.evidence.reduce((sum, entry) => sum + entry.blocks.length * GAMES_PER_SEED, 0)
         + anchorMatches,
       children: scanChildren(run, state.scan) };
     const summary: ScanSummary = { ...base, evidenceHash: evidenceHash(base) };
@@ -1318,7 +1319,7 @@ function runReport(pool: OrderedChallengePoolArtifact, tolerateInvalid = false):
       + cell.batches.reduce((batchSum, batch) => batchSum + batch.matches, 0), 0);
     const scanGames = scans.reduce((sum, scan) => sum + scan.matches, 0);
     const panelGames = panels.reduce((sum, panel) => sum
-      + panel.evidence.reduce((panelSum, evidence) => panelSum + evidence.blocks.length * 4, 0), 0);
+      + panel.evidence.reduce((panelSum, evidence) => panelSum + evidence.blocks.length * GAMES_PER_SEED, 0), 0);
     const finished = checkpoint.state.status === 'unresolved' || (checkpoint.state.status === 'complete'
       && panels.length > 0 && audits.length === ORDERED_RESERVOIR_HISTORICAL_SEEDS.length);
     return { run, status: finished ? checkpoint.state.status : 'running', stopReason: checkpoint.state.stopReason,
@@ -1480,7 +1481,7 @@ function writeReport(pool: OrderedChallengePoolArtifact): void {
         diagnostics: HistoricalAttackerDiagnostic[] }>;
       final?: LotteryAcquisitionSummary | null };
     const result = [`## Run ${run.run}`, '', `Status: ${run.status}${run.stopReason ? ` (${run.stopReason})` : ''}.`,
-      ...(run.matrixWidth ? [`Matrix: ${run.matrixWidth} representatives at ${run.matrixDepth} blocks.`] : []),
+      ...(run.matrixWidth ? [`Matrix: ${run.matrixWidth} representatives at ${run.matrixDepth} shuffle seeds.`] : []),
       ...(run.games ? [`Games: ${run.games.total.toLocaleString()} total (${run.games.matrix.toLocaleString()} matrix, `
         + `${run.games.scans.toLocaleString()} screen/confirmation, ${run.games.panels.toLocaleString()} panels, `
         + `${run.games.audits.toLocaleString()} historical audit).`] : [])];
@@ -1551,7 +1552,9 @@ async function compareRuns(pool: OrderedChallengePoolArtifact, runner: WorkerPai
     options: { kingdomId: KINGDOM_ID, seeds: [block.seed], turnLimitPerPlayer: TURN_LIMIT_PER_PLAYER,
       actionCapPerTurn: ACTION_CAP_PER_TURN, startingDraftEnabled: false, allowEarlyStop: false } }));
   const outcome = await runner.run(jobs), blockScores = outcome.outcomes.map((entry) => {
-    if (!entry || entry.record.aborted || entry.blocks[0]?.played !== 4) throw new Error('Cross-play block is invalid.');
+    if (!entry || entry.record.aborted || entry.blocks[0]?.played !== GAMES_PER_SEED) {
+      throw new Error('Cross-play seed evaluation is invalid.');
+    }
     return entry.blocks[0].score;
   });
   const base = comparisonBase(pool, checkpoints, schedules, blockScores);

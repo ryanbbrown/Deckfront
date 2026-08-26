@@ -8,6 +8,7 @@ import { evaluateCandidates, mixtureSchedule, percentileBootstrapMean } from './
 import type { BootstrapInterval, CandidateEvaluation } from './mixtureEvaluation';
 import { createMatrixCellCache, matrixProtocol, PayoffMatrix } from './payoffMatrix';
 import type { MatrixSnapshot } from './payoffMatrix';
+import { GAMES_PER_SEED } from './pairing';
 import type { PairingRunner } from './pairingRunner';
 import { RandomPsroSeedLedger } from './randomPsro';
 import { rulesFingerprint } from './rulesFingerprint';
@@ -324,7 +325,8 @@ export function validateFixedReservoirPsroArtifact(
     const matrixIndex=new Map(matrix.strategies.map((strategy,index)=>[strategy.id,index]));
     for(const cell of matrix.cells){const row=matrixIndex.get(cell.rowId),column=matrixIndex.get(cell.columnId);
       if(row===undefined||column===undefined||!cell.complete||cell.blocks.length!==matrixSeeds.length
-        ||cell.blocks.some((block,index)=>block.seed!==matrixSeeds[index]||block.played!==4||block.aborted!==0))return false;
+        ||cell.blocks.some((block,index)=>block.seed!==matrixSeeds[index]
+          ||block.played!==GAMES_PER_SEED||block.aborted!==0))return false;
       const played=cell.blocks.reduce((sum,block)=>sum+block.played,0);
       const centered=2*cell.blocks.reduce((sum,block)=>sum+block.score*block.played,0)/played-1;
       if(!near(centered,cell.centeredPayoff)||!near(matrix.centeredPayoffs[row]![column]!,centered))return false;

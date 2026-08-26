@@ -13,6 +13,7 @@ import {
 } from '../src/sim/fixedReservoirConsistency';
 import { evaluateCandidates, mixtureSchedule, percentileBootstrapMean } from '../src/sim/mixtureEvaluation';
 import { createMatrixCellCache, matrixProtocol, PayoffMatrix } from '../src/sim/payoffMatrix';
+import { GAMES_PER_SEED } from '../src/sim/pairing';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import {
   ORDERED_RESERVOIR_HISTORICAL_ROOT, ORDERED_RESERVOIR_HISTORICAL_SEEDS,
@@ -373,7 +374,8 @@ function validDiagnostics(
         || canonicalStrategy(direct.strategy) !== canonicalStrategy(entry.selectedAnalog)
         || JSON.stringify(direct.seedPlan) !== JSON.stringify(planner.plan)
         || JSON.stringify(direct.schedule) !== JSON.stringify(mixtureSchedule(weights, seeds, sampling))
-        || direct.bootstrapSeed !== bootstrap || direct.blockScores.length !== 400 || direct.matches !== 1600
+        || direct.bootstrapSeed !== bootstrap || direct.blockScores.length !== 400
+        || direct.matches !== direct.blockScores.length * GAMES_PER_SEED
         || direct.mean !== direct.blockScores.reduce((sum, score) => sum + score, 0) / 400
         || JSON.stringify(direct.interval95) !== JSON.stringify(
           percentileBootstrapMean(direct.blockScores, bootstrap))) return false;

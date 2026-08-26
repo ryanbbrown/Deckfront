@@ -79,7 +79,7 @@ export function renderReport(summary: RunSummary): string {
   }
   lines.push('', '## Response searches', '',
     ...table(['Restart', 'Attempt', 'Objective', 'Candidates', 'Local / random', 'Duplicate rejects',
-      'Candidate', 'Confirmed mean', '95% interval', 'Blocks', 'Result'],
+      'Candidate', 'Confirmed mean', '95% interval', 'Shuffle seeds', 'Result'],
       summary.iterations.map((event) => [String(event.restart), String(event.attempt),
         event.response?.objective ?? 'empty', event.response
           ? `${event.response.sources.actual}/${event.response.sources.requested}` : '—',

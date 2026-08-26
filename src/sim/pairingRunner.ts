@@ -1,5 +1,5 @@
 import { isMainThread, parentPort, Worker } from 'node:worker_threads';
-import { playPairing, playPairingScoreOnly } from './pairing';
+import { GAMES_PER_SEED, playPairing, playPairingScoreOnly } from './pairing';
 import type { PairingOptions, PairingOutcome } from './pairing';
 import type { Strategy } from './strategy';
 
@@ -133,7 +133,7 @@ export class WorkerPairingRunner implements PairingRunner {
             if (job.candidate !== first.candidate
               || (job.scoreOnly ?? false) !== (first.scoreOnly ?? false)) break;
             schedule.push({ id: next, job });
-            estimatedGames += job.options.seeds.length * 4;
+            estimatedGames += job.options.seeds.length * GAMES_PER_SEED;
             next += 1;
           }
           scheduleJobs.push(schedule);

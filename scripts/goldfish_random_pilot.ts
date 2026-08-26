@@ -34,7 +34,7 @@ function filesBelow(root: string): string[] {
 }
 function artifacts(): { path: string; artifact: RandomPsroArtifact }[] {
   const root = '.experiments/random-psro-consistency';
-  return ['random-psro-v4', 'random-psro-v5', 'random-psro-v6'].flatMap((version) =>
+  return ['random-psro-v4', 'random-psro-v5', 'random-psro-v6', 'random-psro-v7'].flatMap((version) =>
     filesBelow(path.join(root, version)).filter((file) => /deep-beam-tuning-009-seed-3500[12]\.json$/.test(file))
       .map((file) => ({ path: file, artifact: JSON.parse(fs.readFileSync(file, 'utf8')) as RandomPsroArtifact })))
     .sort((left, right) => left.artifact.suiteVersion.localeCompare(right.artifact.suiteVersion)

@@ -42,7 +42,7 @@ Canonical strategy identity is not behavioral identity. Infinite final buys, ext
 
 1. Cap infinite quantities at the observed purchase limit.
 2. Remove plan steps that evaluated games never reach.
-3. Compare shared-seed block outcomes and purchase telemetry.
+3. Compare shared-shuffle-seed outcomes and purchase telemetry.
 4. Look up the behavior-preserving ordered strategy's goldfish rank.
 
 Four inspected historical counters had effective equivalents in the 12,972,960-strategy space. Two finite equivalents produced identical outcomes and purchases. A six-slot counter had a stronger five-slot ordered prefix. A seven-slot counter had an ordered five-slot version with identical outcomes after its almost-unused Scour step and unused final Improvise step were removed. Three effective equivalents did not reach the top 500,000 goldfish set; one ranked 186,989.

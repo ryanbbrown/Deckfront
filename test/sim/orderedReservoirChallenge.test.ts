@@ -54,7 +54,7 @@ function record(index: number): OrderedProductRankedRecord {
 
 function finalist(id: string, mean: number, lower: number): ReservoirConfirmedCandidate {
   return { strategy: { ...record(id === 'a' ? 0 : 1).strategy, id }, mean,
-    interval95: { lower, upper: Math.min(1, mean + 0.05) }, blocks: 400, matches: 1600 };
+    interval95: { lower, upper: Math.min(1, mean + 0.05) }, blocks: 400, matches: 800 };
 }
 
 describe('ordered reservoir one-round challenge', () => {

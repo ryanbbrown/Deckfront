@@ -67,7 +67,7 @@ const optimizerResultSchema = z.object({
   finalists: z.array(strategySchema).min(1), restarts: z.array(restartResultSchema).min(1),
   diagnostics: z.record(z.string(), z.unknown()),
   heldOut: z.object({ mean: z.number(), matchCount: z.number().int().positive(),
-    seedBlocks: z.number().int().positive(), interval95: z.object({ lower: z.number(), upper: z.number() }) })
+    seedEvaluations: z.number().int().positive(), interval95: z.object({ lower: z.number(), upper: z.number() }) })
 });
 export const responseOptimizerPilotSchema = z.object({
   schemaVersion: z.literal(2), experiment: z.literal('response-optimizer-pilot'), createdAt: z.string(),
@@ -205,7 +205,7 @@ export async function runPilot(options: PilotOptions, root: string): Promise<Res
   const outputResults: z.infer<typeof optimizerResultSchema>[] = [];
   const finalRerace = reraceConfig(options.budget);
   const searchBudget = options.budget - finalRerace.reservedBlocks;
-  if (searchBudget < 1) throw new Error('The training budget must leave at least one search block before reracing.');
+  if (searchBudget < 1) throw new Error('The training budget must leave at least one search seed evaluation before reracing.');
   try {
     for (const name of OPTIMIZERS) {
       const started = Date.now();
@@ -241,11 +241,11 @@ export async function runPilot(options: PilotOptions, root: string): Promise<Res
           curve: entry.curve, finalists: entry.finalists, diagnostics: entry.diagnostics
         })), diagnostics: selected.diagnostics,
         heldOut: { mean: heldOut.mean, matchCount: heldOut.matches,
-          seedBlocks: heldOut.blockScores.length, interval95 } });
+          seedEvaluations: heldOut.blockScores.length, interval95 } });
       const latest = outputResults.at(-1)!;
       console.log(`${name}: ${(latest.heldOut.mean * 100).toFixed(2)}% `
         + `[${(latest.heldOut.interval95.lower * 100).toFixed(2)}, ${(latest.heldOut.interval95.upper * 100).toFixed(2)}] `
-        + `${latest.trainingBlocksConsumed} blocks`);
+        + `${latest.trainingBlocksConsumed} seed evaluations`);
     }
   } finally {
     await runner.close();

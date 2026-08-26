@@ -26,7 +26,7 @@ function evidence(id: string, position = '0', blocks = 1): FullCandidateEvidence
     const telemetry = emptyAggregate();
     telemetry.acquisitionsByStrategy[id] = { drive: 4 };
     telemetry.planPositionPurchasesByStrategy![id] = { [position]: 4 };
-    return { seed: index + 1, opponentId: 'target', score: 0.75, matches: 4 as const, telemetry };
+    return { seed: index + 1, opponentId: 'target', score: 0.75, matches: 2 as const, telemetry };
   }) };
 }
 

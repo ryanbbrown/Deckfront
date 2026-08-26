@@ -39,7 +39,7 @@ const smallProtocol: OrderedRaceBenchmarkProtocol = {
 function smallMatrix(source: OrderedChallengePoolArtifact): OrderedRaceBenchmarkMatrixArtifact {
   const initial = benchmarkPoolSlices(source, smallProtocol).initial;
   return { schemaVersion: 1, experiment: 'ordered-reservoir-race-benchmark-matrix',
-    version: 'ordered-reservoir-race-benchmark-v2', poolHash: source.generatedHash,
+    version: 'ordered-reservoir-race-benchmark-v3', poolHash: source.generatedHash,
     reservoirHash: source.reservoirHash, sourceRankedSha256: source.source.rankedSha256,
     protocol: smallProtocol, seedPlan: orderedRaceBenchmarkSeedPlan(source.reservoirHash, smallProtocol),
     matrix: { protocol: {} as OrderedRaceBenchmarkMatrixArtifact['matrix']['protocol'], strategies: initial,
@@ -48,7 +48,7 @@ function smallMatrix(source: OrderedChallengePoolArtifact): OrderedRaceBenchmark
 }
 
 describe('ordered reservoir early-race benchmark protocol', () => {
-  it('reuses the v1 matrix seeds and gives each candidate 25 independent blocks per trial', () => {
+  it('reuses the v1 matrix seeds and gives each candidate 25 independent shuffle seeds per trial', () => {
     const plan = orderedRaceBenchmarkSeedPlan('123456789abcdef');
     const allSeeds = [...plan.matrixSeeds,
       ...plan.trials.flatMap((trial) => [...trial.blockSeeds, trial.opponentSamplingSeed])];
@@ -66,7 +66,7 @@ describe('ordered reservoir early-race benchmark protocol', () => {
     expect(schedule.blocks).toHaveLength(25);
     expect(Object.values(schedule.realizedOpponentCounts).reduce((sum, count) => sum + count, 0)).toBe(25);
     expect(ORDERED_RACE_BENCHMARK_PROTOCOL.candidateBlocks
-      * ORDERED_RACE_BENCHMARK_PROTOCOL.gamesPerBlock).toBe(100);
+      * ORDERED_RACE_BENCHMARK_PROTOCOL.gamesPerSeedEvaluation).toBe(50);
   });
 
   it('selects one ranked prefix for the fixed matrix and the following ranks for evaluation', () => {
@@ -91,7 +91,7 @@ describe('ordered reservoir early-race benchmark protocol', () => {
         strategyId: entry.strategy.id, canonicalStrategy: JSON.stringify({
           buyPlan: entry.strategy.buyPlan.map((slot) => slot.kind === 'buy'
             ? ['buy', slot.cardId, slot.desiredCount] : ['inactive']), startingBuild: [] }),
-        blockScores: [0.5, 0.75], matches: 8 })), elapsedMs: 10
+        blockScores: [0.5, 0.75], matches: 4 })), elapsedMs: 10
     });
     expect(validateOrderedRaceBenchmarkChunkArtifact(chunk, source, matrix, smallProtocol)).toBe(true);
     const changedScore = structuredClone(chunk); changedScore.candidates[0]!.blockScores[1] = 0.5;
@@ -141,6 +141,6 @@ describe('ordered reservoir early-race consistency calculations', () => {
     expect(top16.triple).toEqual({ intersection: 4, union: 28, jaccard: 1 / 7 });
     expect(report.depthComparisons.every((entry) => entry.intersection === entry.cutoff)).toBe(true);
     expect(report.depths.map((entry) => entry.blocks)).toEqual([1, 8, 25]);
-    expect(report.matches).toBe(3 * 100 * 25 * 4);
+    expect(report.matches).toBe(3 * 100 * 25 * 2);
   });
 });

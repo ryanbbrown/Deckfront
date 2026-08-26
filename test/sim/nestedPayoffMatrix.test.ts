@@ -13,20 +13,20 @@ const left = identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([{ kind
 const right = identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'volley', desiredCount: 1 }]) });
 function outcome(seeds: number[]): PairingOutcome {
   const telemetry = emptyAggregate();
-  for (const first of ['firstOchre', 'firstIndigo'] as const) for (const side of ['normal', 'swapped'] as const) {
-    telemetry.byOrientation[first][side].played = seeds.length;
-    telemetry.byOrientation[first][side].draws = seeds.length;
+  for (const first of ['firstOchre', 'firstIndigo'] as const) {
+    telemetry.byOrientation[first].normal.played = seeds.length;
+    telemetry.byOrientation[first].normal.draws = seeds.length;
   }
-  return { record: { played: seeds.length * 4, wins: seeds.length * 2, draws: 0, losses: seeds.length * 2, aborted: 0 },
+  return { record: { played: seeds.length * 2, wins: seeds.length * 2, draws: 0, losses: seeds.length * 2, aborted: 0 },
     candidateScore: seeds.length * 2, opponentScore: seeds.length * 2, telemetry,
-    matches: seeds.length * 4, seedBlocks: seeds.length, stopReason: 'maximum', candidateMean: 0.5,
-    opponentMean: 0.5, blocks: seeds.map((seed) => ({ seed, score: 0.5, played: 4, aborted: 0 })), aborts: [] };
+    matches: seeds.length * 2, seedsEvaluated: seeds.length, stopReason: 'maximum', candidateMean: 0.5,
+    opponentMean: 0.5, blocks: seeds.map((seed) => ({ seed, score: 0.5, played: 2, aborted: 0 })), aborts: [] };
 }
 
 describe('nested payoff matrix evidence', () => {
   it('reuses exact 25-block batches in 50- and 100-block snapshots', () => {
     registerKingdom(deepBeamSuite.kingdoms.find((kingdom) => kingdom.id === 'deep-beam-tuning-009')!);
-    let matrix = createNestedMatrixEvidence({ version: 'ordered-reservoir-full-nested-matrix-v1',
+    let matrix = createNestedMatrixEvidence({ version: 'ordered-reservoir-full-nested-matrix-v2',
       kingdomId: 'deep-beam-tuning-009', seeds: Array.from({ length: 200 }, (_unused, index) => index + 1),
       turnLimitPerPlayer: 30, actionCapPerTurn: 200, startingDraftEnabled: false }, [left, right]);
     for (const work of nestedMatrixWork(matrix, 50)) matrix = appendNestedMatrixOutcome(matrix, work, outcome(work.seeds));
