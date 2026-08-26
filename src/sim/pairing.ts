@@ -201,8 +201,8 @@ function playPairingMode(
   candidate: Strategy, opponent: Strategy, options: PairingOptions,
   scoreOnly: boolean, matchRunner?: PairingMatchRunner
 ): PairingOutcome {
-  if (options.seeds.length < 1 || options.seeds.length > 25) {
-    throw new Error(`A pairing needs 1 to 25 shared seeds, not ${options.seeds.length}.`);
+  if (options.seeds.length < 1 || options.seeds.length > 75) {
+    throw new Error(`A pairing needs 1 to 75 shared seeds, not ${options.seeds.length}.`);
   }
   const record = emptyPairRecord();
   const telemetry = emptyAggregate();
