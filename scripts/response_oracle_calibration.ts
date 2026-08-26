@@ -45,6 +45,16 @@ interface RunOptions {
 interface ReadOptions { mode: 'status' | 'report'; outputRoot: string }
 type Options = RunOptions | ReadOptions;
 
+export interface ValidatedResponseOracleCalibrationBundle {
+  manifest: ResponseOracleCalibrationManifest;
+  searchAChunks: CalibrationScoreChunk[];
+  searchBChunks: CalibrationScoreChunk[];
+  referenceChunks: CalibrationScoreChunk[];
+  searchAHalving: SuccessiveHalvingArtifact;
+  searchBHalving: SuccessiveHalvingArtifact;
+  report: ResponseOracleCalibrationReport;
+}
+
 interface P75Report {
   schemaVersion: 2;
   experiment: 'initial-matrix-calibration-report';
@@ -415,25 +425,36 @@ function status(root: string): void {
   console.log(JSON.stringify(result, null, 2));
 }
 
-function printReport(root: string): void {
-  assertOutputFiles(root);
-  const manifest = loadManifest(path.join(root, 'manifest.json'));
+export function loadValidatedResponseOracleCalibration(
+  root: string
+): ValidatedResponseOracleCalibrationBundle {
+  const resolvedRoot = path.resolve(root);
+  assertOutputFiles(resolvedRoot);
+  const manifest = loadManifest(path.join(resolvedRoot, 'manifest.json'));
   assertManifestSourceFiles(manifest);
-  const searchAChunks = loadScoreChunks(root, 'search-a', manifest);
-  const searchBChunks = loadScoreChunks(root, 'search-b', manifest);
-  const referenceChunks = loadScoreChunks(root, 'reference', manifest);
-  const searchA = searchAChunks.flatMap((chunk) => chunk.rows), searchB = searchBChunks.flatMap((chunk) => chunk.rows);
-  const searchAHalvingValue = readJson<unknown>(halvingFile(root, 'a'));
-  const searchBHalvingValue = readJson<unknown>(halvingFile(root, 'b'));
+  const searchAChunks = loadScoreChunks(resolvedRoot, 'search-a', manifest);
+  const searchBChunks = loadScoreChunks(resolvedRoot, 'search-b', manifest);
+  const referenceChunks = loadScoreChunks(resolvedRoot, 'reference', manifest);
+  const searchA = searchAChunks.flatMap((chunk) => chunk.rows);
+  const searchB = searchBChunks.flatMap((chunk) => chunk.rows);
+  const searchAHalvingValue = readJson<unknown>(halvingFile(resolvedRoot, 'a'));
+  const searchBHalvingValue = readJson<unknown>(halvingFile(resolvedRoot, 'b'));
   if (!validateSuccessiveHalvingArtifact(searchAHalvingValue, manifest, 'a', searchA)
-    || !validateSuccessiveHalvingArtifact(searchBHalvingValue, manifest, 'b', searchB)) {
-    throw new Error('Saved calibration halving evidence is missing or corrupt.');
+    || !validateSuccessiveHalvingArtifact(searchBHalvingValue, manifest, 'b', searchB)
+    || !searchAHalvingValue.complete || !searchBHalvingValue.complete) {
+    throw new Error('Saved calibration halving evidence is missing, incomplete, or corrupt.');
   }
-  const input = { manifest, searchAChunks, searchBChunks, referenceChunks,
+  const reportInput = { manifest, searchAChunks, searchBChunks, referenceChunks,
     searchAHalving: searchAHalvingValue, searchBHalving: searchBHalvingValue };
-  const value = readJson<unknown>(path.join(root, 'report.json'));
-  if (!validateResponseOracleCalibrationReport(value, input)) throw new Error('Saved calibration report is corrupt.');
-  console.log(JSON.stringify(value, null, 2));
+  const reportValue = readJson<unknown>(path.join(resolvedRoot, 'report.json'));
+  if (!validateResponseOracleCalibrationReport(reportValue, reportInput)) {
+    throw new Error('Saved calibration report is corrupt.');
+  }
+  return { ...reportInput, report: reportValue };
+}
+
+function printReport(root: string): void {
+  console.log(JSON.stringify(loadValidatedResponseOracleCalibration(root).report, null, 2));
 }
 
 export async function main(args = process.argv.slice(2)): Promise<void> {

@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import {
   RESPONSE_ORACLE_CALIBRATION_TARGETS, RESPONSE_ORACLE_CANDIDATE_COUNT,
   RESPONSE_ORACLE_FIXED_DEPTHS, RESPONSE_ORACLE_HALVING_DEPTHS, crossFitCalibrationMetrics,
+  crossFitCalibrationMetricsForFolds,
   createCalibrationScoreChunk, createResponseOracleCalibrationManifest,
   createSuccessiveHalvingArtifact, fixedScreenResults, nextSuccessiveHalvingRound,
   replayStandardSuccessiveHalving, reusedSuccessiveHalvingTopupCost, successiveHalvingCost,
@@ -131,6 +132,8 @@ describe('cross-fit reference diagnostics', () => {
     });
     const outputs = [output('a', 2, [0, 1, 2, 3]), output('b', 1, [1, 2, 3, 0])];
     const metrics = crossFitCalibrationMetrics(reference, outputs, 11);
+    expect(metrics).toEqual(crossFitCalibrationMetricsForFolds({ reference, outputs, referenceTieSeed: 11,
+      folds: [{ fold: 1, start: 0, end: 50 }, { fold: 2, start: 50, end: 100 }] }));
     expect(metrics.referenceLeaders.map((entry) => [entry.selectionFold, entry.selectedId]))
       .toEqual([[1, identity(0).strategyId], [2, identity(1).strategyId]]);
     expect(metrics.referenceLeaders[0]!.heldOutScore).toBeCloseTo(0.2);

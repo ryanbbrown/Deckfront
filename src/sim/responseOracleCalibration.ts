@@ -307,7 +307,7 @@ function calibrationProtocol(): ResponseOracleCalibrationProtocol {
   };
 }
 
-function calibrationSeed(source: CalibrationSourceIdentity, label: string, index: number): number {
+export function calibrationSeed(source: CalibrationSourceIdentity, label: string, index: number): number {
   const text = `${RESPONSE_ORACLE_CALIBRATION_VERSION}:${source.kingdomId}:${source.reservoirSha256}:`
     + `${source.p75ManifestHash}:${label}:${index}`;
   return Number.parseInt(stableHash(text).slice(0, 8), 16) >>> 0;
@@ -752,26 +752,39 @@ export function nextSuccessiveHalvingRound(input: {
     completedRounds: [...input.artifact.rounds, round] });
 }
 
-function foldRange(fold: ReferenceFold): { start: number; end: number } {
-  return fold === 1 ? { start: 0, end: 50 } : { start: 50, end: 100 };
+export interface CalibrationReferenceFoldRange {
+  fold: ReferenceFold;
+  start: number;
+  end: number;
 }
 
-function scoreOnFold(row: CalibrationScoreRow, fold: ReferenceFold): number {
-  const range = foldRange(fold);
-  return mean(row.blockScores.slice(range.start, range.end));
-}
-
-export function crossFitCalibrationMetrics(reference: readonly CalibrationScoreRow[],
-  outputs: readonly CalibrationMethodOutput[], referenceTieSeed: number): {
+export function crossFitCalibrationMetricsForFolds(input: {
+  reference: readonly CalibrationScoreRow[];
+  outputs: readonly CalibrationMethodOutput[];
+  referenceTieSeed: number;
+  folds: readonly [CalibrationReferenceFoldRange, CalibrationReferenceFoldRange];
+}): {
     referenceLeaders: ResponseOracleCalibrationReport['referenceLeaders'];
     crossFitMetrics: CrossFitMetric[];
     laneAgreement: LaneAgreementDiagnostic[];
   } {
+  const { reference, outputs, referenceTieSeed, folds } = input;
+  const totalScores = Math.max(...folds.map((fold) => fold.end));
+  if (!exact(folds.map((fold) => fold.fold), [1, 2])
+    || folds.some((fold) => !Number.isSafeInteger(fold.start) || !Number.isSafeInteger(fold.end)
+      || fold.start < 0 || fold.end <= fold.start || fold.end > totalScores)
+    || folds[0].end > folds[1].start) throw new Error('Cross-fit fold ranges are invalid.');
+  const rangeByFold = new Map(folds.map((fold) => [fold.fold, fold]));
+  const scoreOnFold = (row: CalibrationScoreRow, fold: ReferenceFold): number => {
+    const range = rangeByFold.get(fold)!;
+    return mean(row.blockScores.slice(range.start, range.end));
+  };
   const referenceById = new Map(reference.map((row) => [row.strategyId, row]));
-  if (referenceById.size !== reference.length || reference.some((row) => row.blockScores.length !== 100)) {
+  if (!reference.length || referenceById.size !== reference.length
+    || reference.some((row) => row.blockScores.length !== totalScores)) {
     throw new Error('Cross-fit reference evidence is invalid.');
   }
-  const referenceLeaders = ([1, 2] as const).map((selectionFold) => {
+  const referenceLeaders = folds.map(({ fold: selectionFold }) => {
     const evaluationFold = selectionFold === 1 ? 2 as const : 1 as const;
     const ranked = reference.map((row) => ({ row, score: scoreOnFold(row, selectionFold) }))
       .sort((left, right) => right.score - left.score
@@ -798,17 +811,26 @@ export function crossFitCalibrationMetrics(reference: readonly CalibrationScoreR
       heldOutBestOfFourScore: bestScore, heldOutBestOfFourRegret: leader.heldOutScore - bestScore };
   }));
   const laneAgreement = [...new Set(outputs.map((output) => output.key))].flatMap((method) =>
-    ([1, 2] as const).map((evaluationFold): LaneAgreementDiagnostic => {
+    folds.map(({ fold: evaluationFold }): LaneAgreementDiagnostic => {
       const a = outputs.find((output) => output.key === method && output.lane === 'a');
       const b = outputs.find((output) => output.key === method && output.lane === 'b');
       if (!a || !b) throw new Error(`Cross-fit output ${method} needs lanes A and B.`);
-      const laneAScore = scoreOnFold(referenceById.get(a.selectedId)!, evaluationFold);
-      const laneBScore = scoreOnFold(referenceById.get(b.selectedId)!, evaluationFold);
+      const laneARow = referenceById.get(a.selectedId), laneBRow = referenceById.get(b.selectedId);
+      if (!laneARow || !laneBRow) throw new Error('Reference evidence is missing a lane output.');
+      const laneAScore = scoreOnFold(laneARow, evaluationFold);
+      const laneBScore = scoreOnFold(laneBRow, evaluationFold);
       return { method, evaluationFold, laneAId: a.selectedId, laneBId: b.selectedId,
         exactIdAgreement: a.selectedId === b.selectedId, laneAScore, laneBScore,
         scoreDifference: laneAScore - laneBScore };
     }));
   return { referenceLeaders, crossFitMetrics, laneAgreement };
+}
+
+export function crossFitCalibrationMetrics(reference: readonly CalibrationScoreRow[],
+  outputs: readonly CalibrationMethodOutput[], referenceTieSeed: number): ReturnType<
+    typeof crossFitCalibrationMetricsForFolds> {
+  return crossFitCalibrationMetricsForFolds({ reference, outputs, referenceTieSeed,
+    folds: [{ fold: 1, start: 0, end: 50 }, { fold: 2, start: 50, end: 100 }] });
 }
 
 function regretSummary(values: readonly number[]): { worst: number; median: number } {

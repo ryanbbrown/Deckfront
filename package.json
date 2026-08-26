@@ -38,6 +38,7 @@
     "ordered-reservoir:full-psro": "tsx scripts/ordered_reservoir_full_psro.ts",
     "initial-matrix:calibrate": "tsx scripts/initial_matrix_calibration.ts",
     "response-oracle:calibrate": "tsx scripts/response_oracle_calibration.ts",
+    "response-oracle:extend-reference": "tsx scripts/response_oracle_reference_extension.ts",
     "psro:worker-benchmark": "tsx scripts/benchmark_psro_workers.ts",
     "goldfish:native-metadata": "tsx scripts/native_goldfish_metadata.ts",
     "goldfish:native-kingdom-write": "tsx scripts/write_native_kingdom.ts",

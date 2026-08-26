@@ -268,6 +268,24 @@ npm run response-oracle:calibrate -- --run \
 
 The command accepts only the audited max-125 reservoir, manifest file, report file, and manifest evidence hashes pinned for Kingdoms 001, 007, and 008. The calibration evaluates exact reservoir ranks 51–20,000 on independent shared-schedule lanes A and B. It saves fixed prefixes at 8, 16, 25, 32, and 50 seeds, replays standard cumulative Successive Halving through 16,384 seeds with top-ups after the shared 50-seed prefix, and saves one independent complete 100-seed all-candidate reference lane. Atomic 250-candidate artifacts reject corrupt resume evidence. The report contains raw cross-fit scores, regrets, ties, top-one and top-four diagnostics, games, and measured simulation time. It does not run PSRO, admit a response, confirm closure, apply a tolerance, or extend reference evidence to 200 or 400 seeds. Use `--status --out PATH` or `--report --out PATH` to inspect saved artifacts.
 
+Extend one validated calibration from 100 to 200 reference seeds without changing the original files:
+
+```sh
+npm run response-oracle:extend-reference -- --run \
+  --base ".experiments/response-oracle-calibration/$KINGDOM" \
+  --out ".experiments/response-oracle-calibration-200/$KINGDOM" \
+  --workers 4
+```
+
+The extension reuses all saved search and first-100 reference evidence. It builds the full deterministic 200-seed opponent schedule and simulates only its second half, ordinals 101–200. Each kingdom adds exactly 1,995,000 candidate-seed evaluations and 3,990,000 games. The 80 atomic chunks and per-kingdom report go under the separate output root. The report compares folds 1–100 and 101–200 and contains raw metrics, Pareto diagnostics, and exact accounting. It does not rerun search, apply a tolerance, admit a response, test closure, pool kingdoms, or start another extension.
+
+Inspect a partial run or build and validate its report without starting simulations:
+
+```sh
+npm run response-oracle:extend-reference -- --status --base ORIGINAL_ROOT --out EXTENSION_ROOT
+npm run response-oracle:extend-reference -- --report --base ORIGINAL_ROOT --out EXTENSION_ROOT
+```
+
 Run or resume one fixed-reservoir response round from the validated final 20,000-strategy Kingdom 009 prefix, then compare it with all five saved fixed-reservoir lotteries:
 
 ```sh
