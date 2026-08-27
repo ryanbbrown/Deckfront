@@ -1294,10 +1294,34 @@ def _strategy_search_subprocess_command(entry: str, kingdom_id: str, arguments: 
         "--kingdom", kingdom_id, "--", *arguments]
 
 
+def _strategy_search_validate_psro_score_receipt(publication: dict[str, Any], artifact: pathlib.Path) -> bool:
+    transition_path = publication.get("transitionPath")
+    score_task = publication.get("scoreTask")
+    if not transition_path or not isinstance(score_task, dict):
+        raise RuntimeError("PSRO score receipt has no sealed look context")
+    with tempfile.TemporaryDirectory() as directory:
+        root = pathlib.Path(directory)
+        task, output = root / "task.json", root / "validation.json"
+        _atomic_json(task, score_task)
+        _run_checked(_strategy_search_subprocess_command("psro-score-receipt-validator",
+            publication["kingdomId"], ["--out", str(output), "--transition",
+                str(_strategy_search_path(transition_path)), "--task", str(task), "--chunk", str(artifact)]),
+            "strategy-search PSRO score receipt validation", cwd="/workspace",
+            text=True, capture_output=True, timeout=120)
+        result = _strategy_search_load(output)
+    if not isinstance(result, dict) or set(result) != {"valid"} or not isinstance(result["valid"], bool):
+        raise RuntimeError("PSRO score receipt validator returned malformed output")
+    return result["valid"]
+
+
 def _strategy_search_validate_publication(publication: dict[str, Any], temporary: pathlib.Path) -> None:
     stage = publication["stage"]
     if stage in {"goldfish-one", "goldfish-two"}:
         _strategy_search_validate_compact(publication, temporary)
+        return
+    if stage == "psro-score":
+        if not _strategy_search_validate_psro_score_receipt(publication, temporary):
+            raise RuntimeError("strategy-search PSRO score chunk does not match its sealed look")
         return
     if stage in {"goldfish-one-reduce", "goldfish-two-reduce", "matrix-reduce", "psro-reduce"}:
         _run_checked(_strategy_search_subprocess_command("validator", publication["kingdomId"], [
@@ -1553,8 +1577,28 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
                 destination = _strategy_search_path(receipt["artifactPath"])
                 if not destination.exists() or _strategy_search_sha256(destination) != receipt["sha256"]:
                     raise RuntimeError("publication receipt has no matching artifact")
-                results[task_id] = {"complete": True, "receipt": receipt}
-                continue
+                if item.get("stage") == "psro-score" \
+                        and not _strategy_search_validate_psro_score_receipt(item, destination):
+                    preserved_relative = f"evidence/{evidence_id}/invalidated/psro-score/{task_id}/" \
+                        f"{receipt['sha256']}.json"
+                    preserved = _strategy_search_path(preserved_relative)
+                    if preserved.exists() and _strategy_search_sha256(preserved) != receipt["sha256"]:
+                        raise RuntimeError("preserved PSRO score receipt conflicts")
+                    if not preserved.exists():
+                        preserved.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(destination, preserved)
+                        volume.commit()
+                    destination.unlink()
+                    invalid = {**receipt, "preservedArtifactPath": preserved_relative,
+                        "invalidatedMs": now, "reason": "sealed-look-mismatch"}
+                    state.setdefault("invalidReceipts", {}).setdefault(task_id, []).append(invalid)
+                    del state["receipts"][task_id]
+                    state["leases"].pop(task_id, None)
+                    state["intents"].pop(task_id, None)
+                    receipt = None
+                if receipt:
+                    results[task_id] = {"complete": True, "receipt": receipt}
+                    continue
             lease = state["leases"].get(task_id)
             if lease and lease["leaseUntilMs"] > now and lease["ownerId"] != request["ownerId"]:
                 results[task_id] = {"busy": True, "leaseUntilMs": lease["leaseUntilMs"]}
@@ -2464,8 +2508,14 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 temporary = f"executions/{bundle['campaignExecutionId']}/temporary/{launch_id}/{job['taskId']}"
                 temporary += ".hgs" if job["stage"] in {"goldfish-one", "goldfish-two"} \
                     else ".hgf" if job["stage"] in {"goldfish-one-reduce", "goldfish-two-reduce"} else ".json"
-                preparation_items.append({"taskId": job["taskId"], "evidenceId": job["evidenceId"],
-                    "launchId": launch_id, "temporaryPath": temporary, "artifactPath": task["artifactPath"]})
+                item = {"taskId": job["taskId"], "evidenceId": job["evidenceId"],
+                    "launchId": launch_id, "temporaryPath": temporary, "artifactPath": task["artifactPath"],
+                    "stage": job["stage"], "kingdomId": job["kingdomId"]}
+                if job["stage"] == "psro-score":
+                    metadata = task.get("metadata", {})
+                    item.update({"transitionPath": metadata.get("transitionPath"),
+                        "scoreTask": metadata.get("scoreTask")})
+                preparation_items.append(item)
             prepared = strategy_search_publisher.remote({"operation": "prepare-launch-batch",
                 "campaignExecutionId": bundle["campaignExecutionId"], "controllerOwnerId": owner_id,
                 "controllerFence": state["controllerFence"], "ownerId": owner_id,

@@ -3,13 +3,19 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { emptyAggregate } from '../../src/sim/pairing';
+import { matrixProtocol } from '../../src/sim/payoffMatrix';
 import { candidateIndexAt, createOrderedCandidateSpace,
   orderedGoldfishCardIds } from '../../src/sim/orderedGoldfishBenchmark';
+import { canonicalStrategy } from '../../src/sim/strategy';
+import { createParallelPsroCheckpoint, startParallelPsro } from '../../src/sim/strategySearchParallelPsro';
 import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import { createStrategySearchMatrixManifest } from '../../src/sim/strategySearchMatrix';
+import { createRawPsroScoreChunk, createThresholdRacingProtocol } from '../../src/sim/thresholdRacingPsro';
 
 const kingdomId = 'balance-tuning-005', evidenceId = 'a'.repeat(64);
-const entries = ['goldfish', 'matrix-manifest', 'matrix', 'psro', 'validator'] as const;
+const entries = ['goldfish', 'matrix-manifest', 'matrix', 'psro', 'validator',
+  'psro-score-receipt-validator'] as const;
 const execute = (entry: typeof entries[number], args: string[]) => spawnSync(process.execPath,
   ['--import', 'tsx', 'scripts/strategy_search_subprocess.ts', '--entry', entry,
     '--kingdom', kingdomId, '--', ...args], { encoding: 'utf8', timeout: 10_000 });
@@ -66,6 +72,54 @@ describe('deployment-only strategy-search subprocess bootstrap', () => {
       '--evidence-id', evidenceId, '--kingdom', kingdomId, '--evidence-root', '/not-used']);
     expect(result.status).not.toBe(0); expect(result.stderr).toContain('does not use validation');
     expect(result.stderr).not.toContain('Unknown kingdom');
+  });
+
+  it('validates a PSRO receipt against the current sealed look through the deployment wrapper', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-psro-receipt-'));
+    try {
+      const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
+      const candidates = Array.from({ length: 52 }, (_unused, index) => {
+        const strategy = space.candidateAt(candidateIndexAt(index, space.candidateCount));
+        return { goldfishRank: index + 1, strategyId: strategy.id,
+          canonicalStrategy: canonicalStrategy(strategy), strategy };
+      });
+      const strategies = candidates.slice(0, 50).map((candidate) => candidate.strategy);
+      const matrix = { protocol: matrixProtocol(kingdomId,
+        Array.from({ length: 75 }, (_unused, index) => index + 1), 30, 200, false),
+        strategies, cells: [], complete: true,
+        centeredPayoffs: strategies.map(() => strategies.map(() => 0)) };
+      const protocol = createThresholdRacingProtocol({ experimentName: 'receipt-fixture', runId: 'main', kingdomId,
+        reservoirCount: candidates.length, sourceIdentityHash: 'b'.repeat(64), checkpointNamespace: evidenceId,
+        matrixSeedNamespace: 'matrix-fixture', screenSeedNamespace: 'screen-fixture',
+        confirmationSeedNamespace: 'confirmation-fixture', queueRetestSeedNamespace: 'retest-fixture' });
+      const transition = startParallelPsro(createParallelPsroCheckpoint({ protocol, matrix, candidates }));
+      expect(transition.kind).toBe('score');
+      if (transition.kind !== 'score') throw new Error('Fixture transition is not a score look.');
+      const task = transition.tasks[0]!, byId = new Map(candidates.map((candidate) => [candidate.strategyId, candidate]));
+      const field = transition.look.candidateIds.slice(task.candidateStart, task.candidateEnd)
+        .map((id) => byId.get(id)!);
+      const chunk = createRawPsroScoreChunk({ protocol, raceKind: transition.look.raceKind,
+        lookId: transition.look.lookId, lookDepth: transition.look.lookDepth, familySize: transition.look.familySize,
+        alpha: transition.look.alpha, candidates: field.map((candidate) => ({ identity: candidate,
+          strategy: candidate.strategy })), candidateStart: task.candidateStart,
+        fullSchedule: transition.look.fullSchedule, suffixSchedule: transition.look.suffixSchedule,
+        scheduleStart: transition.look.scheduleStart, rows: field.map((candidate) => ({ strategy: candidate.strategy,
+          mean: 0.5, blockScores: transition.look.suffixSchedule.blocks.map(() => 0.5), interval: null,
+          matches: transition.look.suffixSchedule.blocks.length * 2, telemetry: emptyAggregate() })) });
+      const transitionFile = path.join(root, 'transition.json'), taskFile = path.join(root, 'task.json'),
+        chunkFile = path.join(root, 'chunk.json'), output = path.join(root, 'validation.json');
+      fs.writeFileSync(transitionFile, JSON.stringify(transition)); fs.writeFileSync(taskFile, JSON.stringify(task));
+      fs.writeFileSync(chunkFile, JSON.stringify(chunk));
+      const args = ['--out', output, '--transition', transitionFile, '--task', taskFile, '--chunk', chunkFile];
+      const valid = execute('psro-score-receipt-validator', args);
+      expect(valid.status, valid.stderr).toBe(0);
+      expect(JSON.parse(fs.readFileSync(output, 'utf8'))).toEqual({ valid: true });
+      fs.writeFileSync(transitionFile, JSON.stringify({ ...transition,
+        look: { ...transition.look, lookId: `${transition.look.lookId}.stale` } }));
+      const stale = execute('psro-score-receipt-validator', args);
+      expect(stale.status, stale.stderr).toBe(0);
+      expect(JSON.parse(fs.readFileSync(output, 'utf8'))).toEqual({ valid: false });
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
   });
 
   it('keeps every detached Modal command behind the wrapper', () => {

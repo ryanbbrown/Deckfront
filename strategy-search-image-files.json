@@ -18,6 +18,7 @@
   "scripts/strategy_search_goldfish.ts",
   "scripts/strategy_search_subprocess.ts",
   "scripts/strategy_search_validate_artifact.ts",
+  "scripts/strategy_search_validate_psro_score_receipt.ts",
   "scripts/successive_halving_double_oracle_pilot.ts",
   "src/game-data/cards.json",
   "src/game-data/kingdoms.json",

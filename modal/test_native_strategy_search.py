@@ -727,6 +727,61 @@ print(json.dumps(result))
             self.assertFalse(temporary.exists())
             self.assertEqual(destination.read_bytes(), b"scientific")
 
+    def test_strategy_search_prepare_preserves_stale_psro_receipts_and_rematerializes_only_them(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            evidence, execution_id = "b" * 64, "a" * 64
+            state_file, execution_file = root / "publication.json", root / "execution.json"
+            execution_file.write_text(json.dumps({"revision": 0, "controller": {
+                "ownerId": "owner", "fence": 1, "leaseUntilMs": 100}}))
+            paths, receipts, items = {}, {}, []
+            for index in range(5):
+                task_id, relative = f"score-{index}", f"evidence/{evidence}/score-{index}.json"
+                artifact = root / f"score-{index}.json"
+                artifact.write_text(json.dumps({"schemaVersion": 1, "index": index}))
+                digest = launcher._strategy_search_sha256(artifact)
+                paths[relative] = artifact
+                receipts[task_id] = {"taskId": task_id, "evidenceId": evidence,
+                    "artifactPath": relative, "sha256": digest, "fence": 1}
+                items.append({"taskId": task_id, "evidenceId": evidence, "stage": "psro-score",
+                    "kingdomId": "kingdom", "transitionPath": "transition.json",
+                    "scoreTask": {"taskIndex": index, "candidateStart": index, "candidateEnd": index + 1},
+                    "launchId": f"launch-{index}", "temporaryPath": f"temporary/{index}",
+                    "artifactPath": relative})
+            other_relative = f"evidence/{evidence}/matrix-score.json"
+            other_artifact = root / "matrix-score.json"
+            other_artifact.write_text(json.dumps({"schemaVersion": 1, "matrix": True}))
+            paths[other_relative] = other_artifact
+            receipts["other-task"] = {"taskId": "other-task", "evidenceId": evidence,
+                "artifactPath": other_relative, "sha256": launcher._strategy_search_sha256(other_artifact), "fence": 1}
+            items.append({"taskId": "other-task", "evidenceId": evidence, "stage": "matrix-score",
+                "kingdomId": "kingdom", "launchId": "other-launch", "temporaryPath": "temporary/other",
+                "artifactPath": other_relative})
+            state_file.write_text(json.dumps({"schemaVersion": 1, "evidenceId": evidence,
+                "leases": {}, "intents": {}, "receipts": receipts}))
+            def held_path(relative):
+                return paths.setdefault(relative, root / relative.replace("/", "_"))
+            raw = launcher.strategy_search_publisher.get_raw_f()
+            with patch.object(launcher, "_strategy_search_evidence_state", return_value=state_file), \
+                    patch.object(launcher, "_strategy_search_execution_file", return_value=execution_file), \
+                    patch.object(launcher, "_strategy_search_path", side_effect=held_path), \
+                    patch.object(launcher, "_strategy_search_validate_psro_score_receipt",
+                        side_effect=[False] * 5), \
+                    patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"):
+                result = raw({"operation": "prepare-launch-batch", "campaignExecutionId": execution_id,
+                    "controllerOwnerId": "owner", "controllerFence": 1, "ownerId": "owner",
+                    "nowMs": 1, "leaseMs": 100, "items": items})
+            self.assertTrue(all(not result[f"score-{index}"]["complete"] for index in range(5)))
+            self.assertTrue(result["other-task"]["complete"])
+            saved = json.loads(state_file.read_text())
+            self.assertEqual(set(saved["receipts"]), {"other-task"})
+            self.assertEqual(set(saved["invalidReceipts"]), {f"score-{index}" for index in range(5)})
+            for index in range(5):
+                task_id = f"score-{index}"
+                self.assertFalse(paths[items[index]["artifactPath"]].exists())
+                preserved = saved["invalidReceipts"][task_id][0]["preservedArtifactPath"]
+                self.assertTrue(paths[preserved].exists())
+
     def test_strategy_search_task_identity_normalizes_modal_object_key_order(self):
         evidence = "b" * 64
         forward = launcher._strategy_search_goldfish_task_id(evidence, "goldfish-one",

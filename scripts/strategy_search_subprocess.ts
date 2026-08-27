@@ -9,6 +9,7 @@ const ENTRYPOINTS = Object.freeze({
   'matrix-score': 'scripts/strategy_search_campaign_matrix_score.ts',
   'matrix-reduce': 'scripts/strategy_search_campaign_matrix_reduce.ts',
   'parallel-psro': 'scripts/strategy_search_campaign_parallel_psro.ts',
+  'psro-score-receipt-validator': 'scripts/strategy_search_validate_psro_score_receipt.ts',
   matrix: 'scripts/strategy_search_campaign_matrix.ts',
   psro: 'scripts/strategy_search_campaign_psro.ts',
   validator: 'scripts/strategy_search_validate_artifact.ts'
