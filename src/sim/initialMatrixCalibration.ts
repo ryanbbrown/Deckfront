@@ -169,13 +169,20 @@ export function initialMatrixCalibrationSeeds(source: InitialMatrixSourceIdentit
   return seeds;
 }
 
-export function validateOrderedCalibrationSource(input: {
+interface OrderedCalibrationSourceInput {
   kingdomId: string;
   ranked: unknown;
   reservoir: unknown;
   rankedSha256: string;
   reservoirSha256: string;
-}): { source: InitialMatrixSourceIdentity; strategies: Strategy[] } {
+}
+export function validateOrderedCalibrationSourceForCounts(input: OrderedCalibrationSourceInput,
+  counts: { retainedCount: number; reservoirCount: number; strategyCount: number }
+): { source: InitialMatrixSourceIdentity; strategies: Strategy[] } {
+  if (!Number.isSafeInteger(counts.retainedCount) || counts.retainedCount < 1
+    || !Number.isSafeInteger(counts.reservoirCount) || counts.reservoirCount < counts.strategyCount
+    || counts.reservoirCount > counts.retainedCount || !Number.isSafeInteger(counts.strategyCount)
+    || counts.strategyCount < 1) throw new Error('Ordered calibration source counts are invalid.');
   if (!validSha256(input.rankedSha256) || !validSha256(input.reservoirSha256)
     || !input.ranked || typeof input.ranked !== 'object' || !input.reservoir || typeof input.reservoir !== 'object') {
     throw new Error('Ordered calibration source hashes or artifacts are invalid.');
@@ -201,12 +208,14 @@ export function validateOrderedCalibrationSource(input: {
     } catch { sourceIdentityValid = false; }
   }
   if (!sourceIdentityValid || ranked.config?.kingdomId !== input.kingdomId
-    || ranked.config.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT || ranked.config.retainedCount !== 500_000
-    || ranked.recordCount !== ranked.config.retainedCount || ranked.config.reservoirCount !== 20_000
+    || ranked.config.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT
+    || ranked.config.retainedCount !== counts.retainedCount
+    || ranked.recordCount !== ranked.config.retainedCount || ranked.config.reservoirCount !== counts.reservoirCount
     || ranked.config.turnLimit !== 30 || ranked.config.actionCapPerTurn !== 200 || ranked.ruleFingerprint !== expectedRules
-    || reservoir.schemaVersion !== ranked.schemaVersion || reservoir.version !== ranked.version || reservoir.runId !== ranked.runId
-    || reservoir.sourceArtifactSha256 !== input.rankedSha256 || reservoir.reservoirCount !== 20_000
-    || !Array.isArray(reservoir.entries) || reservoir.entries.length !== 20_000) {
+    || reservoir.schemaVersion !== ranked.schemaVersion || reservoir.version !== ranked.version
+    || reservoir.productIdentityHash !== ranked.productIdentity?.identityHash || reservoir.runId !== ranked.runId
+    || reservoir.sourceArtifactSha256 !== input.rankedSha256 || reservoir.reservoirCount !== counts.reservoirCount
+    || !Array.isArray(reservoir.entries) || reservoir.entries.length !== counts.reservoirCount) {
     throw new Error('Ordered calibration source metadata, rules, or 20,000-entry reservoir is stale or invalid.');
   }
   const ids = new Set<string>();
@@ -228,8 +237,15 @@ export function validateOrderedCalibrationSource(input: {
       scorerVersion: ranked.scorerVersion, ruleFingerprint: ranked.ruleFingerprint,
       candidateProvenanceDigest: ranked.candidateSpace.provenanceDigest
     },
-    strategies: reservoir.entries.slice(0, INITIAL_MATRIX_STRATEGIES).map((entry) => structuredClone(entry.strategy))
+    strategies: reservoir.entries.slice(0, counts.strategyCount).map((entry) => structuredClone(entry.strategy))
   };
+}
+export function validateOrderedCalibrationSource(input: OrderedCalibrationSourceInput): {
+  source: InitialMatrixSourceIdentity; strategies: Strategy[]
+} {
+  return validateOrderedCalibrationSourceForCounts(input, {
+    retainedCount: 500_000, reservoirCount: 20_000, strategyCount: INITIAL_MATRIX_STRATEGIES
+  });
 }
 
 export function createInitialMatrixManifest(input: {

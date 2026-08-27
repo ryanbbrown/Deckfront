@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { diagnosticStrategies } from '../../src/sim/baselines';
 import type { CandidateEvaluation } from '../../src/sim/mixtureEvaluation';
@@ -7,7 +8,8 @@ import type { Strategy } from '../../src/sim/strategy';
 import {
   assembleRawPsroLook, createThresholdRacingProtocol, fixedProtocolTerminalReason, rawScoreRows,
   runConfirmationRace,
-  runThresholdRace, thresholdRacingProtocolHash, validateRawPsroScoreChunk, weightedFairSchedule
+  runThresholdRace, thresholdRacingProtocolHash, validateRawPsroLookArtifact,
+  validateRawPsroScoreChunk, validateThresholdRacingProtocol, weightedFairSchedule
 } from '../../src/sim/thresholdRacingPsro';
 import type {
   RawPsroCheckpointEvent, RawPsroLookArtifact, RawPsroScoreChunk
@@ -23,6 +25,10 @@ function protocol() {
   return createThresholdRacingProtocol({ experimentName: 'campaign-psro-fixture', runId: 'kingdom-run',
     kingdomId: 'current-duel', reservoirCount: 20_000, sourceIdentityHash: 'a'.repeat(64),
     checkpointNamespace: 'fixture-checkpoints', screenDepths: [8, 16], confirmationLooks: [4, 8] });
+}
+function reseal<T extends { artifactHash: string }>(value: T): T {
+  const copy = structuredClone(value); copy.artifactHash = '';
+  return { ...copy, artifactHash: createHash('sha256').update(JSON.stringify(copy)).digest('hex') };
 }
 function evaluator(score: (strategy: Strategy) => number, calls: string[]) {
   return async (field: readonly Strategy[], _opponents: unknown,
@@ -60,6 +66,7 @@ describe('kingdom-independent threshold-racing raw evidence', () => {
     expect(chunks[2]!.fullSchedule.blocks).toHaveLength(16);
     expect(chunks[2]!.suffixSchedule.blocks).toHaveLength(8);
     expect(looks.map((look) => look.lookDepth)).toEqual([8, 16]);
+    expect(looks.every((look) => validateRawPsroLookArtifact(look, heldProtocol))).toBe(true);
     expect(assembleRawPsroLook(looks[0]!, chunks.slice(0, 2), heldProtocol)).toEqual({
       [field[0]!.strategy.id]: Array(8).fill(0), [field[1]!.strategy.id]: Array(8).fill(1),
       [field[2]!.strategy.id]: Array(8).fill(0.5)
@@ -68,6 +75,42 @@ describe('kingdom-independent threshold-racing raw evidence', () => {
     expect(calls).toHaveLength(4);
     expect(thresholdRacingProtocolHash(heldProtocol)).toMatch(/^[0-9a-f]{64}$/);
     expect(fixedProtocolTerminalReason(result)).toBe('fixed-protocol-look-cap-unresolved');
+  });
+
+  it('rejects rehashed schedule, canonical, range, protocol, and look corruption', async () => {
+    const field = candidates(), chunks: RawPsroScoreChunk[] = [], looks: RawPsroLookArtifact[] = [];
+    const heldProtocol = protocol();
+    await runThresholdRace({ candidates: field, opponents: new Map(),
+      schedule: weightedFairSchedule({ opponent: 1 }, Array.from({ length: 8 }, (_unused, index) => 300 + index)),
+      kingdomId: 'current-duel', runner, depths: [8], chunkSize: 2,
+      evaluate: evaluator(() => 0.5, []) as never,
+      raw: { protocol: heldProtocol, raceKind: 'screen', sealChunk(chunk) { chunks.push(chunk); },
+        sealLook(look) { looks.push(look); } } });
+    const schedule = structuredClone(chunks[0]!);
+    schedule.suffixSchedule.blocks[0]!.seed += 10_000;
+    expect(validateRawPsroScoreChunk(reseal(schedule), heldProtocol)).toBe(false);
+    const canonical = structuredClone(chunks[0]!);
+    canonical.candidateCanonicals[0] = `${canonical.candidateCanonicals[0]}-changed`;
+    expect(validateRawPsroScoreChunk(reseal(canonical), heldProtocol)).toBe(false);
+    const protocolChanged = structuredClone(chunks[0]!); protocolChanged.protocolHash = 'b'.repeat(64);
+    expect(validateRawPsroScoreChunk(reseal(protocolChanged), heldProtocol)).toBe(false);
+    const sourceChanged = structuredClone(chunks[0]!); sourceChanged.sourceHash = 'short';
+    expect(validateRawPsroScoreChunk(reseal(sourceChanged), heldProtocol)).toBe(false);
+    const extraChunk = { ...structuredClone(chunks[0]!), unexpected: true };
+    expect(validateRawPsroScoreChunk(reseal(extraChunk), heldProtocol)).toBe(false);
+    const range = structuredClone(chunks[0]!); range.candidateStart = 1; range.candidateEnd = 3;
+    expect(() => assembleRawPsroLook(looks[0]!, [reseal(range), chunks[1]!], heldProtocol)).toThrow();
+    const lookMetadata = structuredClone(looks[0]!); lookMetadata.alpha = 0.1;
+    expect(validateRawPsroLookArtifact(reseal(lookMetadata), heldProtocol)).toBe(false);
+    const lookCanonical = structuredClone(looks[0]!);
+    lookCanonical.candidateCanonicals[0] = `${lookCanonical.candidateCanonicals[0]}-changed`;
+    expect(validateRawPsroLookArtifact(reseal(lookCanonical), heldProtocol)).toBe(false);
+    const lookRange = structuredClone(looks[0]!); lookRange.chunks[0]!.candidateStart = 1;
+    expect(validateRawPsroLookArtifact(reseal(lookRange), heldProtocol)).toBe(false);
+    const lookProtocol = structuredClone(looks[0]!); lookProtocol.protocolHash = 'b'.repeat(64);
+    expect(validateRawPsroLookArtifact(reseal(lookProtocol), heldProtocol)).toBe(false);
+    const extraLook = { ...structuredClone(looks[0]!), unexpected: true };
+    expect(validateRawPsroLookArtifact(reseal(extraLook), heldProtocol)).toBe(false);
   });
 
   it('reuses every validated chunk and does not replay a completed range', async () => {
@@ -96,8 +139,12 @@ describe('kingdom-independent threshold-racing raw evidence', () => {
     expect(saved.size).toBe(firstCalls.length);
   });
 
-  it('changes protocol identity for a fixed-look extension so old terminal evidence cannot mix', () => {
+  it('changes protocol identity for a fixed-look extension and rejects malformed protocol fields', () => {
     const base = protocol();
+    expect(validateThresholdRacingProtocol(base)).toBe(true);
+    expect(validateThresholdRacingProtocol({ ...base, extra: true })).toBe(false);
+    expect(validateThresholdRacingProtocol({ ...base, sourceIdentityHash: 'short' })).toBe(false);
+    expect(validateThresholdRacingProtocol({ ...base, screenDepths: [8, 15] })).toBe(false);
     const extended = createThresholdRacingProtocol({ ...base, protocolVersion: 'threshold-racing-psro-v3',
       confirmationLooks: [4, 8, 16] });
     expect(thresholdRacingProtocolHash(extended)).not.toBe(thresholdRacingProtocolHash(base));

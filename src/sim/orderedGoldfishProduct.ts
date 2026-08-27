@@ -3,7 +3,7 @@ import { compareUtf16 } from './utf16';
 import { canonicalStrategy, identify, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 import {
-  coprimeTraversalConfig, createOrderedCandidateSpace, orderedGoldfishCardIds
+  candidateIndexAt, coprimeTraversalConfig, createOrderedCandidateSpace, orderedGoldfishCardIds
 } from './orderedGoldfishBenchmark';
 import { nativeRuleFingerprint } from './nativeGoldfishProtocol';
 
@@ -189,6 +189,7 @@ export interface OrderedProductRankedArtifact {
 export interface OrderedProductReservoirArtifact {
   schemaVersion: number;
   version: string;
+  productIdentityHash?: string;
   sourceArtifactSha256: string;
   runId: string;
   reservoirCount: number;
@@ -391,6 +392,25 @@ export function validateLegacyOrderedProductArtifact(value: unknown): value is O
   return true;
 }
 
+function currentRecordMembershipValid(record: OrderedProductStageOneRecord,
+  identity: CurrentOrderedProductIdentity, candidateSpace: ReturnType<typeof createOrderedCandidateSpace>): boolean {
+  if (!integer(record.traversalPosition) || record.traversalPosition >= identity.candidateCount) return false;
+  const expected = candidateSpace.candidateAt(candidateIndexAt(record.traversalPosition, identity.candidateCount));
+  return record.strategy.id === expected.id && record.displayId === expected.id
+    && record.canonicalStrategy === canonicalStrategy(expected)
+    && canonicalStrategy(record.strategy) === canonicalStrategy(expected);
+}
+export function createCurrentOrderedProductMembershipValidator(identity: CurrentOrderedProductIdentity):
+  (record: OrderedProductStageOneRecord) => boolean {
+  const candidateSpace = createOrderedCandidateSpace(identity.cardIds);
+  return (record) => currentRecordMembershipValid(record, identity, candidateSpace);
+}
+export function validateCurrentOrderedProductRecordMembership(record: OrderedProductStageOneRecord,
+  identity: CurrentOrderedProductIdentity): boolean {
+  try { return createCurrentOrderedProductMembershipValidator(identity)(record); }
+  catch { return false; }
+}
+
 export function validateCurrentOrderedProductArtifact(value: unknown): value is OrderedProductRankedArtifact {
   if (!object(value)) return false;
   const artifact = value as unknown as OrderedProductRankedArtifact;
@@ -425,9 +445,12 @@ export function validateCurrentOrderedProductArtifact(value: unknown): value is 
   const stageOneOrder = [...artifact.records].sort(compareStageOneRecords);
   const stageOneRank = new Map(stageOneOrder.map((entry, index) => [entry.canonicalStrategy, index + 1]));
   const displayIds = new Set<string>(), canonicalStrategies = new Set<string>();
+  const candidateSpace = createOrderedCandidateSpace(identity.cardIds);
   for (let index = 0; index < artifact.records.length; index += 1) {
     const entry = artifact.records[index]!;
-    if (!validateOrderedProductRankedRecord(entry) || entry.stageOneRank !== stageOneRank.get(entry.canonicalStrategy)
+    if (!validateOrderedProductRankedRecord(entry)
+      || !currentRecordMembershipValid(entry, identity, candidateSpace)
+      || entry.stageOneRank !== stageOneRank.get(entry.canonicalStrategy)
       || entry.rank !== index + 1 || (index && compareRankedRecords(artifact.records[index - 1]!, entry) > 0)
       || displayIds.has(entry.displayId) || canonicalStrategies.has(entry.canonicalStrategy)) return false;
     displayIds.add(entry.displayId); canonicalStrategies.add(entry.canonicalStrategy);
@@ -447,7 +470,8 @@ export function buildOrderedProductReservoir(
   if (!validateOrderedProductArtifact(artifact) || !/^[0-9a-f]{64}$/.test(sourceArtifactSha256)) {
     throw new Error('Ranked artifact is invalid.');
   }
-  return { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: artifact.version,
+  return { schemaVersion: artifact.schemaVersion, version: artifact.version,
+    ...(artifact.productIdentity && { productIdentityHash: artifact.productIdentity.identityHash }),
     sourceArtifactSha256, runId: artifact.runId, reservoirCount: artifact.config.reservoirCount,
     entries: artifact.records.slice(0, artifact.config.reservoirCount) };
 }
@@ -456,7 +480,8 @@ export function validateOrderedProductReservoir(
 ): value is OrderedProductReservoirArtifact {
   if (!object(value)) return false;
   const reservoir = value as unknown as OrderedProductReservoirArtifact;
-  if (reservoir.schemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION || reservoir.version !== artifact.version
+  if (reservoir.schemaVersion !== artifact.schemaVersion || reservoir.version !== artifact.version
+    || reservoir.productIdentityHash !== artifact.productIdentity?.identityHash
     || reservoir.runId !== artifact.runId || reservoir.sourceArtifactSha256 !== sourceArtifactSha256
     || reservoir.reservoirCount !== artifact.config.reservoirCount || !Array.isArray(reservoir.entries)
     || reservoir.entries.length !== artifact.config.reservoirCount) return false;

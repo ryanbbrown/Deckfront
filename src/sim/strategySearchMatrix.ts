@@ -24,8 +24,10 @@ const exactKeys = (value: object, keys: readonly string[]): boolean =>
 const CHUNK_KEYS = ['schemaVersion', 'experiment', 'manifestHash', 'slot', 'purpose', 'rowIndex',
   'columnIndex', 'rowId', 'columnId', 'rowCanonical', 'columnCanonical', 'startSeedIndex', 'records',
   'matches', 'evidenceHash'] as const;
-const BATCH_TIMING_KEYS = ['schemaVersion', 'experiment', 'manifestHash', 'batchIndex', 'firstSlot',
-  'lastSlot', 'slots', 'workerCount', 'simulationMs', 'evidenceHash'] as const;
+const BATCH_TIMING_KEYS = ['schemaVersion', 'experiment', 'manifestHash', 'batchIndex', 'batchIdentity',
+  'firstSlot', 'lastSlot', 'slots', 'workerCount', 'simulationMs', 'evidenceHash'] as const;
+const P75_KEYS = ['schemaVersion', 'experiment', 'manifestHash', 'seedOrdinals', 'centeredPayoffs',
+  'equilibrium', 'cellChunkHashes', 'evidenceHash'] as const;
 function unsigned<T extends { evidenceHash: string }>(value: T): string {
   const copy = structuredClone(value); copy.evidenceHash = ''; return hash(copy);
 }
@@ -56,7 +58,7 @@ export interface StrategySearchMatrixJob {
 }
 export interface StrategySearchMatrixBatchTiming {
   schemaVersion: 3; experiment: 'strategy-search-campaign-matrix-batch-timing'; manifestHash: string;
-  batchIndex: number; firstSlot: number; lastSlot: number; slots: number[]; workerCount: number;
+  batchIndex: number; batchIdentity: string; firstSlot: number; lastSlot: number; slots: number[]; workerCount: number;
   simulationMs: number; evidenceHash: string;
 }
 export interface StrategySearchMatrixCheckpointEvent {
@@ -114,8 +116,19 @@ export function validateStrategySearchMatrixManifest(value: unknown,
   } catch { return false; }
 }
 
-export function strategySearchMatrixJobs(manifest: StrategySearchMatrixManifest): StrategySearchMatrixJob[] {
+const matrixJobCache = new WeakMap<StrategySearchMatrixManifest, readonly StrategySearchMatrixJob[]>();
+function deepFreeze<T>(value: T): T {
+  if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.values(value as Record<string, unknown>).forEach(deepFreeze);
+    Object.freeze(value);
+  }
+  return value;
+}
+function cachedMatrixJobs(manifest: StrategySearchMatrixManifest): readonly StrategySearchMatrixJob[] {
+  const cached = matrixJobCache.get(manifest);
+  if (cached) return cached;
   if (!validateStrategySearchMatrixManifest(manifest)) throw new Error('Campaign Matrix manifest is invalid.');
+  deepFreeze(manifest);
   const jobs: StrategySearchMatrixJob[] = []; let slot = 0;
   for (let rowIndex = 0; rowIndex < manifest.strategyCount; rowIndex += 1) {
     for (let columnIndex = rowIndex; columnIndex < manifest.strategyCount; columnIndex += 1) {
@@ -128,7 +141,15 @@ export function strategySearchMatrixJobs(manifest: StrategySearchMatrixManifest)
       }
     }
   }
-  return jobs;
+  const frozen = Object.freeze(jobs.map((job) => (Object.freeze({ ...job,
+    seeds: Object.freeze([...job.seeds]) }) as unknown as StrategySearchMatrixJob)));
+  matrixJobCache.set(manifest, frozen); return frozen;
+}
+export function strategySearchMatrixJobs(manifest: StrategySearchMatrixManifest): readonly StrategySearchMatrixJob[] {
+  return cachedMatrixJobs(manifest);
+}
+function matrixJobBelongs(manifest: StrategySearchMatrixManifest, job: StrategySearchMatrixJob): boolean {
+  return Number.isSafeInteger(job.slot) && job.slot >= 0 && exact(cachedMatrixJobs(manifest)[job.slot], job);
 }
 export function strategySearchMatrixChunkPath(job: Pick<StrategySearchMatrixJob,
   'rowIndex' | 'columnIndex' | 'startSeedIndex'>): string {
@@ -151,8 +172,8 @@ function recordValid(record: InitialMatrixSeedRecord, expectedSeed: number,
 export function createStrategySearchMatrixChunk(input: { manifest: StrategySearchMatrixManifest;
   job: StrategySearchMatrixJob; records: readonly InitialMatrixSeedRecord[] }): StrategySearchMatrixChunk {
   const row = input.manifest.strategies[input.job.rowIndex], column = input.manifest.strategies[input.job.columnIndex];
-  const expected = strategySearchMatrixJobs(input.manifest)[input.job.slot];
-  if (!row || !column || !expected || !exact(input.job, expected) || input.records.length !== input.job.count) {
+  if (!row || !column || !matrixJobBelongs(input.manifest, input.job)
+    || input.records.length !== input.job.count) {
     throw new Error('Campaign Matrix chunk input is invalid.');
   }
   const purpose = input.job.rowIndex === input.job.columnIndex ? DIAGONAL_PURPOSE : OFF_DIAGONAL_PURPOSE;
@@ -170,11 +191,11 @@ export function createStrategySearchMatrixChunk(input: { manifest: StrategySearc
 }
 export function validateStrategySearchMatrixChunk(value: unknown, manifest: StrategySearchMatrixManifest,
   job: StrategySearchMatrixJob): value is StrategySearchMatrixChunk {
-  if (!validateStrategySearchMatrixManifest(manifest) || !object(value) || !exactKeys(value, CHUNK_KEYS)) return false;
+  if (!object(value) || !exactKeys(value, CHUNK_KEYS)) return false;
   const held = value as unknown as StrategySearchMatrixChunk;
   const row = manifest.strategies[job.rowIndex], column = manifest.strategies[job.columnIndex];
   const purpose = job.rowIndex === job.columnIndex ? DIAGONAL_PURPOSE : OFF_DIAGONAL_PURPOSE;
-  return Boolean(row && column && exact(strategySearchMatrixJobs(manifest)[job.slot], job)
+  return Boolean(row && column && matrixJobBelongs(manifest, job)
     && held.schemaVersion === 3 && held.experiment === 'strategy-search-campaign-matrix-chunk'
     && held.manifestHash === manifest.evidenceHash && held.slot === job.slot && held.purpose === purpose
     && held.rowIndex === job.rowIndex && held.columnIndex === job.columnIndex
@@ -187,26 +208,36 @@ export function validateStrategySearchMatrixChunk(value: unknown, manifest: Stra
 export function createStrategySearchMatrixBatchTiming(input: { manifest: StrategySearchMatrixManifest;
   batchIndex: number; jobs: readonly StrategySearchMatrixJob[]; workerCount: number; simulationMs: number
 }): StrategySearchMatrixBatchTiming {
-  if (!input.jobs.length || input.jobs.some((job, index) => index && job.slot !== input.jobs[index - 1]!.slot + 1)
+  if (!input.jobs.length || !Number.isSafeInteger(input.batchIndex) || input.batchIndex < 0
+    || input.jobs.some((job, index) => !matrixJobBelongs(input.manifest, job)
+      || index > 0 && job.slot <= input.jobs[index - 1]!.slot)
     || !Number.isSafeInteger(input.workerCount) || input.workerCount < 1
     || !Number.isFinite(input.simulationMs) || input.simulationMs < 0) {
     throw new Error('Campaign Matrix batch timing input is invalid.');
   }
   const slots = input.jobs.map((job) => job.slot);
+  const batchIdentity = hash({ manifestHash: input.manifest.evidenceHash, batchIndex: input.batchIndex,
+    slots, workerCount: input.workerCount });
   const base = { schemaVersion: 3 as const, experiment: 'strategy-search-campaign-matrix-batch-timing' as const,
-    manifestHash: input.manifest.evidenceHash, batchIndex: input.batchIndex, firstSlot: slots[0]!,
+    manifestHash: input.manifest.evidenceHash, batchIndex: input.batchIndex, batchIdentity, firstSlot: slots[0]!,
     lastSlot: slots.at(-1)!, slots, workerCount: input.workerCount, simulationMs: input.simulationMs,
     evidenceHash: '' };
   return { ...base, evidenceHash: unsigned(base) };
 }
 export function validateStrategySearchMatrixBatchTiming(value: unknown, manifest: StrategySearchMatrixManifest,
-  expectedSlots: readonly number[]): value is StrategySearchMatrixBatchTiming {
+  expected: { batchIndex: number; jobs: readonly StrategySearchMatrixJob[]; workerCount: number }
+): value is StrategySearchMatrixBatchTiming {
   if (!object(value) || !exactKeys(value, BATCH_TIMING_KEYS)) return false;
   const held = value as unknown as StrategySearchMatrixBatchTiming;
-  return held.schemaVersion === 3 && held.experiment === 'strategy-search-campaign-matrix-batch-timing'
-    && held.manifestHash === manifest.evidenceHash && exact(held.slots, expectedSlots)
+  const expectedSlots = expected.jobs.map((job) => job.slot);
+  const expectedIdentity = hash({ manifestHash: manifest.evidenceHash, batchIndex: expected.batchIndex,
+    slots: expectedSlots, workerCount: expected.workerCount });
+  return expected.jobs.length > 0 && expected.jobs.every((job) => matrixJobBelongs(manifest, job))
+    && held.schemaVersion === 3 && held.experiment === 'strategy-search-campaign-matrix-batch-timing'
+    && held.manifestHash === manifest.evidenceHash && held.batchIndex === expected.batchIndex
+    && held.batchIdentity === expectedIdentity && exact(held.slots, expectedSlots)
     && held.firstSlot === expectedSlots[0] && held.lastSlot === expectedSlots.at(-1)
-    && Number.isSafeInteger(held.workerCount) && held.workerCount >= 1
+    && held.workerCount === expected.workerCount
     && Number.isFinite(held.simulationMs) && held.simulationMs >= 0 && held.evidenceHash === unsigned(held);
 }
 
@@ -220,16 +251,26 @@ export async function executeStrategySearchMatrixBatches(input: {
   commandTiming: StrategySearchMatrixCommandTiming }> {
   const commandStarted = performance.now();
   const jobs = [...(input.jobs ?? strategySearchMatrixJobs(input.manifest))].sort((left, right) => left.slot - right.slot);
-  if (!Number.isSafeInteger(input.jobsPerBatch) || input.jobsPerBatch < 1
-    || jobs.some((job, index) => index && job.slot !== jobs[index - 1]!.slot + 1)) {
+  if (!Number.isSafeInteger(input.jobsPerBatch) || input.jobsPerBatch < 1 || !jobs.length
+    || jobs.some((job, index) => !matrixJobBelongs(input.manifest, job)
+      || index > 0 && job.slot <= jobs[index - 1]!.slot)) {
     throw new Error('Campaign Matrix deterministic batch plan is invalid.');
   }
   const chunks: StrategySearchMatrixChunk[] = [], timings: StrategySearchMatrixBatchTiming[] = [];
   for (let start = 0, batchIndex = 0; start < jobs.length; start += input.jobsPerBatch, batchIndex += 1) {
     const batch = jobs.slice(start, start + input.jobsPerBatch); const started = performance.now();
     const results = await input.runBatch(batch); const simulationMs = performance.now() - started;
-    const bySlot = new Map(results.map((result) => [result.slot, result]));
-    if (bySlot.size !== batch.length) throw new Error('Campaign Matrix batch returned duplicate or missing result slots.');
+    const expectedSlots = new Set(batch.map((job) => job.slot));
+    const bySlot = new Map<number, (typeof results)[number]>();
+    for (const result of results) {
+      if (!expectedSlots.has(result.slot) || bySlot.has(result.slot)) {
+        throw new Error('Campaign Matrix batch returned an extra or duplicate result slot.');
+      }
+      bySlot.set(result.slot, result);
+    }
+    if (results.length !== batch.length || bySlot.size !== batch.length) {
+      throw new Error('Campaign Matrix batch returned missing result slots.');
+    }
     const batchChunks = batch.map((job) => {
       const result = bySlot.get(job.slot);
       if (!result) throw new Error(`Campaign Matrix batch is missing result slot ${job.slot}.`);
@@ -265,20 +306,36 @@ export function validateStrategySearchMatrixCommandTiming(value: unknown,
     && held.batchTimingHashes.every((digest) => sha(digest)) && held.evidenceHash === unsigned(held);
 }
 
+function strategySearchMatrixP75Jobs(manifest: StrategySearchMatrixManifest): readonly StrategySearchMatrixJob[] {
+  return cachedMatrixJobs(manifest).filter((job) => job.startSeedIndex < 75);
+}
 export function createStrategySearchMatrixP75Source(manifest: StrategySearchMatrixManifest,
   chunks: readonly StrategySearchMatrixChunk[]): StrategySearchMatrixP75Source {
-  const jobs = strategySearchMatrixJobs(manifest);
-  if (chunks.length !== jobs.length) throw new Error('Campaign Matrix P75 source needs every chunk.');
-  const bySlot = new Map(chunks.map((chunk) => [chunk.slot, chunk]));
-  if (bySlot.size !== jobs.length || jobs.some((job) => !validateStrategySearchMatrixChunk(bySlot.get(job.slot), manifest, job))) {
+  const jobs = strategySearchMatrixP75Jobs(manifest);
+  if (chunks.length !== jobs.length) throw new Error('Campaign Matrix P75 source needs every P75 chunk.');
+  const bySlot = new Map<number, StrategySearchMatrixChunk>();
+  for (const chunk of chunks) {
+    if (bySlot.has(chunk.slot)) throw new Error('Campaign Matrix P75 source has a duplicate chunk slot.');
+    bySlot.set(chunk.slot, chunk);
+  }
+  if (jobs.some((job) => !validateStrategySearchMatrixChunk(bySlot.get(job.slot), manifest, job))) {
     throw new Error('Campaign Matrix P75 source has missing, stale, or corrupt chunks.');
   }
   const matrix = manifest.strategies.map(() => manifest.strategies.map(() => 0));
+  const totals = new Map<string, { score: number; count: number }>();
+  for (const job of jobs) {
+    if (job.rowIndex === job.columnIndex) continue;
+    const key = `${job.rowIndex}:${job.columnIndex}`, total = totals.get(key) ?? { score: 0, count: 0 };
+    for (const record of bySlot.get(job.slot)!.records) {
+      total.score += record.payoffScore!; total.count += 1;
+    }
+    totals.set(key, total);
+  }
   for (let row = 0; row < manifest.strategyCount; row += 1) for (let column = row + 1;
     column < manifest.strategyCount; column += 1) {
-    const records = jobs.filter((job) => job.rowIndex === row && job.columnIndex === column)
-      .flatMap((job) => bySlot.get(job.slot)!.records).slice(0, 75);
-    const centered = 2 * records.reduce((sum, record) => sum + record.payoffScore!, 0) / records.length - 1;
+    const total = totals.get(`${row}:${column}`);
+    if (!total || total.count !== 75) throw new Error('Campaign Matrix P75 cell coverage is incomplete.');
+    const centered = 2 * total.score / total.count - 1;
     matrix[row]![column] = centered; matrix[column]![row] = -centered;
   }
   const equilibrium = solveEquilibrium(manifest.strategies.map((strategy) => strategy.id), matrix);
@@ -287,4 +344,11 @@ export function createStrategySearchMatrixP75Source(manifest: StrategySearchMatr
     centeredPayoffs: matrix, equilibrium, cellChunkHashes: jobs.map((job) => bySlot.get(job.slot)!.evidenceHash),
     evidenceHash: '' };
   return { ...base, evidenceHash: unsigned(base) };
+}
+export function validateStrategySearchMatrixP75Source(value: unknown, manifest: StrategySearchMatrixManifest,
+  chunks: readonly StrategySearchMatrixChunk[]): value is StrategySearchMatrixP75Source {
+  if (!object(value) || !exactKeys(value, P75_KEYS)) return false;
+  try {
+    return exact(value, createStrategySearchMatrixP75Source(manifest, chunks));
+  } catch { return false; }
 }

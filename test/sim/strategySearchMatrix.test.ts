@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { registerKingdom } from '../../src/game';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
@@ -7,9 +8,11 @@ import { emptyAggregate } from '../../src/sim/pairing';
 import { fixedBuyPlan } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import {
-  createStrategySearchMatrixChunk, createStrategySearchMatrixManifest, executeStrategySearchMatrixBatches,
-  strategySearchMatrixJobs, validateStrategySearchMatrixBatchTiming, validateStrategySearchMatrixChunk,
-  validateStrategySearchMatrixCommandTiming
+  createStrategySearchMatrixBatchTiming, createStrategySearchMatrixChunk,
+  createStrategySearchMatrixManifest, createStrategySearchMatrixP75Source,
+  executeStrategySearchMatrixBatches, strategySearchMatrixJobs, validateStrategySearchMatrixBatchTiming,
+  validateStrategySearchMatrixChunk, validateStrategySearchMatrixCommandTiming,
+  validateStrategySearchMatrixP75Source
 } from '../../src/sim/strategySearchMatrix';
 
 const kingdomId = 'deep-beam-tuning-002';
@@ -24,7 +27,11 @@ function manifest() {
     orderedProductIdentityHash: '2'.repeat(64), rankedSha256: '3'.repeat(64), reservoirSha256: '4'.repeat(64) },
   strategies: strategies() });
 }
-function records(row: Strategy, column: Strategy, seeds: readonly number[]): InitialMatrixSeedRecord[] {
+function reseal<T extends { evidenceHash: string }>(value: T): T {
+  const copy = structuredClone(value); copy.evidenceHash = '';
+  return { ...copy, evidenceHash: createHash('sha256').update(JSON.stringify(copy)).digest('hex') };
+}
+function records(row: Strategy, column: Strategy, seeds: readonly number[], payoffScore = 0.5): InitialMatrixSeedRecord[] {
   return seeds.map((seed) => {
     const telemetry = emptyAggregate();
     for (const strategy of new Map([[row.id, row], [column.id, column]]).values()) {
@@ -33,7 +40,7 @@ function records(row: Strategy, column: Strategy, seeds: readonly number[]): Ini
     }
     telemetry.byOrientation.firstOchre.normal = { played: 1, wins: 0, draws: 1, losses: 0, aborted: 0 };
     telemetry.byOrientation.firstIndigo.normal = { played: 1, wins: 0, draws: 1, losses: 0, aborted: 0 };
-    return { seed, payoffScore: row.id === column.id ? null : 0.5, played: 2 as const,
+    return { seed, payoffScore: row.id === column.id ? null : payoffScore, played: 2 as const,
       aborted: 0 as const, matches: 2 as const, telemetry };
   });
 }
@@ -42,6 +49,7 @@ describe('campaign Matrix schema and batching', () => {
   it('pins 25-seed chunks and deterministic upper-triangle result slots', () => {
     const held = manifest(), jobs = strategySearchMatrixJobs(held);
     expect(jobs).toHaveLength(6_375);
+    expect(strategySearchMatrixJobs(held)).toBe(jobs);
     expect(jobs.slice(0, 7).map((job) => [job.slot, job.rowIndex, job.columnIndex,
       job.startSeedIndex, job.count])).toEqual([
       [0, 0, 0, 0, 25], [1, 0, 0, 25, 25], [2, 0, 0, 50, 25],
@@ -63,10 +71,33 @@ describe('campaign Matrix schema and batching', () => {
       .toBe(true);
     expect(output.chunks[0]).not.toHaveProperty('simulationMs');
     expect(output.timings).toHaveLength(1);
-    expect(validateStrategySearchMatrixBatchTiming(output.timings[0], held, [4, 5, 6, 7])).toBe(true);
+    expect(validateStrategySearchMatrixBatchTiming(output.timings[0], held,
+      { batchIndex: 0, jobs, workerCount: 4 })).toBe(true);
     expect(validateStrategySearchMatrixCommandTiming(output.commandTiming, held)).toBe(true);
     expect(output.commandTiming.workerCount).toBe(4);
+    const wrongIdentity = createStrategySearchMatrixBatchTiming({ manifest: held, batchIndex: 1,
+      jobs, workerCount: 4, simulationMs: 1 });
+    expect(validateStrategySearchMatrixBatchTiming(wrongIdentity, held,
+      { batchIndex: 0, jobs, workerCount: 4 })).toBe(false);
     expect(events).toHaveLength(1);
+  });
+
+  it('rejects extra, duplicate, and foreign result slots and jobs', async () => {
+    const held = manifest(), jobs = strategySearchMatrixJobs(held).slice(0, 2);
+    const result = (job: (typeof jobs)[number]) => ({ slot: job.slot,
+      records: records(held.strategies[job.rowIndex]!, held.strategies[job.columnIndex]!, job.seeds) });
+    const run = (runBatch: (batch: readonly (typeof jobs)[number][]) => Promise<readonly ReturnType<typeof result>[]>) =>
+      executeStrategySearchMatrixBatches({ manifest: held, jobs, jobsPerBatch: 2, workerCount: 2,
+        runBatch, checkpoint() {} });
+    await expect(run(async (batch) => [result(batch[0]!), result(batch[0]!)]))
+      .rejects.toThrow('extra or duplicate');
+    await expect(run(async (batch) => [...batch.map(result), { ...result(batch[0]!), slot: 99 }]))
+      .rejects.toThrow('extra or duplicate');
+    const foreign = structuredClone(jobs);
+    foreign[0]!.seeds[0] = foreign[0]!.seeds[0]! + 1;
+    await expect(executeStrategySearchMatrixBatches({ manifest: held, jobs: foreign, jobsPerBatch: 2,
+      workerCount: 2, async runBatch() { return []; }, checkpoint() {} }))
+      .rejects.toThrow('batch plan is invalid');
   });
 
   it('keeps semantic chunk bytes independent of worker batching and fails closed on corrupt resume data', async () => {
@@ -87,4 +118,21 @@ describe('campaign Matrix schema and batching', () => {
       .toThrow('chunk evidence is invalid');
     expect(batched.chunks[0]!.purpose).toBe(DIAGONAL_PURPOSE);
   });
+
+  it('constructs and deeply validates the real 50-strategy P75 source', () => {
+    const held = manifest(), jobs = strategySearchMatrixJobs(held).filter((job) => job.startSeedIndex < 75);
+    const chunks = jobs.map((job) => createStrategySearchMatrixChunk({ manifest: held, job,
+      records: records(held.strategies[job.rowIndex]!, held.strategies[job.columnIndex]!, job.seeds,
+        job.rowIndex === 0 && job.columnIndex > 0 ? 0.75 : 0.5) }));
+    const source = createStrategySearchMatrixP75Source(held, chunks);
+    expect(source.cellChunkHashes).toHaveLength(3_825);
+    expect(source.centeredPayoffs[0]![1]).toBe(0.5);
+    expect(source.equilibrium.weights[held.strategies[0]!.id]).toBeCloseTo(1);
+    expect(validateStrategySearchMatrixP75Source(source, held, chunks)).toBe(true);
+    const corrupt = structuredClone(source); corrupt.centeredPayoffs[0]![1] = 0;
+    expect(validateStrategySearchMatrixP75Source(reseal(corrupt), held, chunks)).toBe(false);
+    const corruptChunks = [...chunks];
+    corruptChunks[0] = structuredClone(corruptChunks[0]!); corruptChunks[0]!.records[0]!.seed += 1;
+    expect(validateStrategySearchMatrixP75Source(source, held, corruptChunks)).toBe(false);
+  }, 30_000);
 });

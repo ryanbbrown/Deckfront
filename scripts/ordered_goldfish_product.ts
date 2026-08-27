@@ -10,7 +10,8 @@ import {
   ORDERED_PRODUCT_COLLISION_ALLOWANCE, ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES,
   ORDERED_PRODUCT_SCHEMA_VERSION, ORDERED_PRODUCT_SEEDS, ORDERED_PRODUCT_SPACE_COUNT,
   candidateSpaceProvenanceDigest, combineScoreEvidence, compactProfileEvidence,
-  compareRankedRecords, compareStageOneRecords, deriveCurrentOrderedProductIdentity, fixedJson,
+  compareRankedRecords, compareStageOneRecords, createCurrentOrderedProductMembershipValidator,
+  deriveCurrentOrderedProductIdentity, fixedJson,
   legacyOrderedProductSeedsValid, legacyOrderedProductTarget, provenanceDigest, rankingKey, sha256Bytes,
   validateOrderedProductRankedRecord, validateOrderedProductStageOneRecord
 } from '../src/sim/orderedGoldfishProduct';
@@ -47,7 +48,8 @@ interface RankedManifest extends RankedHeader {
   recordCount: number; stageOneOrderDigest: string; parts: Part[];
 }
 interface ReservoirArtifact {
-  schemaVersion: number; version: string; sourceArtifactSha256: string; runId: string;
+  schemaVersion: number; version: string; productIdentityHash?: string;
+  sourceArtifactSha256: string; runId: string;
   reservoirCount: number; entries: OrderedProductRankedRecord[];
 }
 
@@ -94,6 +96,7 @@ if (productSeeds.length !== 4 || new Set(productSeeds).size !== 4
   throw new Error(`--seeds is not valid for ordered product schema ${productSchemaVersion}.`);
 }
 let currentProductIdentity: CurrentOrderedProductIdentity | undefined;
+let currentMembership: ((record: OrderedProductStageOneRecord) => boolean) | undefined;
 let productTarget: OrderedProductTarget = productSchemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION
   ? legacyOrderedProductTarget(requestedKingdomId)
   : { kingdomId: requestedKingdomId, version: CURRENT_ORDERED_PRODUCT_VERSION,
@@ -164,7 +167,8 @@ async function checkpointRecords<T extends OrderedProductStageOneRecord>(
   async function* held(): AsyncGenerator<T> {
     let count = 0, previous: T | undefined;
     for await (const record of readLines<T>(recordFile(checkpointFile, checkpoint), checkpoint.recordsSha256)) {
-      if (!validate(record) || (previous && compare(previous, record) > 0)) throw new Error('Checkpoint records are invalid or unsorted.');
+      if (!validate(record) || (currentMembership && !currentMembership(record))
+        || (previous && compare(previous, record) > 0)) throw new Error('Checkpoint records are invalid or unsorted.');
       previous = record; count += 1; yield record;
     }
     if (count !== checkpoint.shard.retainedCount) throw new Error('Checkpoint retained count differs.');
@@ -315,7 +319,9 @@ async function validateRankedManifest(file: string): Promise<{ manifest: RankedM
   const rankDigests = Buffer.alloc(value.recordCount * 32), seenRanks = new Uint8Array(value.recordCount);
   let count = 0, previous: OrderedProductRankedRecord | undefined;
   for await (const record of readParts<OrderedProductRankedRecord>(file, value.parts)) {
-    if (!validateOrderedProductRankedRecord(record) || record.rank !== count + 1
+    if (!validateOrderedProductRankedRecord(record)
+      || (currentMembership && !currentMembership(record))
+      || record.rank !== count + 1
       || record.stageOneRank < 1 || record.stageOneRank > value.recordCount
       || seenRanks[record.stageOneRank - 1] || (previous && compareRankedRecords(previous, record) > 0)) {
       throw new Error('Ranked record identity, evidence, membership, or order is invalid.');
@@ -338,6 +344,7 @@ if (productSchemaVersion === CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION) {
   currentProductIdentity = deriveCurrentOrderedProductIdentity({ kingdomId: requestedKingdomId, seeds: productSeeds,
     scorerVersion: identityOption('scorer-version', 'scorerVersion', 'native-goldfish-v1'),
     buildVersion: identityOption('build-version', 'buildVersion') });
+  currentMembership = createCurrentOrderedProductMembershipValidator(currentProductIdentity);
   productTarget = { ...productTarget, candidateProvenanceDigest: currentProductIdentity.candidateProvenanceDigest };
   if (currentProductIdentity.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT) {
     throw new Error(`Derived candidate count is ${currentProductIdentity.candidateCount}; expected ${ORDERED_PRODUCT_SPACE_COUNT}.`);
@@ -475,7 +482,9 @@ if (mode === 'validate-checkpoint') {
     if (entries.length < manifest.config.reservoirCount) entries.push(record); else break;
   }
   const reservoir: ReservoirArtifact = { schemaVersion: productSchemaVersion,
-    version: productTarget.version, sourceArtifactSha256: sha256, runId: manifest.runId,
+    version: productTarget.version,
+    ...(currentProductIdentity && { productIdentityHash: currentProductIdentity.identityHash }),
+    sourceArtifactSha256: sha256, runId: manifest.runId,
     reservoirCount: manifest.config.reservoirCount, entries };
   if (entries.length !== reservoir.reservoirCount) throw new Error('Reservoir prefix is incomplete.');
   const digest = writeHashed(option('out'), reservoir);
@@ -490,6 +499,7 @@ if (mode === 'validate-checkpoint') {
     if (prefix.length < manifest.config.reservoirCount) prefix.push(record); else break;
   }
   if (sha256Bytes(text) !== expected || fixedJson(value) !== text || value.sourceArtifactSha256 !== sha256
+    || value.productIdentityHash !== currentProductIdentity?.identityHash
     || value.runId !== manifest.runId || value.reservoirCount !== manifest.config.reservoirCount
     || JSON.stringify(value.entries) !== JSON.stringify(prefix)) throw new Error('Reservoir validation failed.');
   console.log(JSON.stringify({ reservoir: file, sha256: expected, count: prefix.length }));

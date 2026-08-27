@@ -2,7 +2,10 @@ import fs from 'node:fs';
 import { registerKingdom } from '../src/game';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 import { nativeScoreBatchRequest, nativeRuleFingerprint } from '../src/sim/nativeGoldfishProtocol';
-import { ORDERED_PRODUCT_KINGDOM, orderedProductTarget } from '../src/sim/orderedGoldfishProduct';
+import {
+  CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION, ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_SCHEMA_VERSION,
+  ORDERED_PRODUCT_SPACE_COUNT, legacyOrderedProductTarget
+} from '../src/sim/orderedGoldfishProduct';
 import {
   createOrderedCandidateSpace, orderedGoldfishCardIds, representativeCandidateIndices
 } from '../src/sim/orderedGoldfishBenchmark';
@@ -21,6 +24,9 @@ function option(name: string, fallback?: string): string {
   return value;
 }
 
+const schemaVersion = Number(option('schema-version', String(ORDERED_PRODUCT_SCHEMA_VERSION)));
+if (schemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION
+  && schemaVersion !== CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION) throw new Error('--schema-version must be 1 or 2.');
 const start = integer('start-position');
 const end = integer('end-position');
 const threads = integer('threads');
@@ -33,18 +39,22 @@ if (end < start || threads < 1 || cpu < 1 || !seeds.length
   || new Set(seeds).size !== seeds.length || !['full', 'compact'].includes(mode ?? '')) {
   throw new Error('Invalid shard bounds, seeds, or score mode.');
 }
-const target = orderedProductTarget(option('kingdom', ORDERED_PRODUCT_KINGDOM));
-const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === target.kingdomId);
-if (!kingdom) throw new Error(`Ordered product kingdom is not registered: ${target.kingdomId}`);
+const kingdomId = option('kingdom', ORDERED_PRODUCT_KINGDOM);
+if (schemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION) legacyOrderedProductTarget(kingdomId);
+const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId);
+if (!kingdom) throw new Error(`Ordered product kingdom is not registered: ${kingdomId}`);
 registerKingdom(kingdom);
 const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
+if (schemaVersion === CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION && space.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT) {
+  throw new Error(`Derived candidate count is ${space.candidateCount}; expected ${ORDERED_PRODUCT_SPACE_COUNT}.`);
+}
 const strategies = [...representativeCandidateIndices(space.candidateCount, end - start, start)]
   .map((index) => space.candidateAt(index));
 const config = { kingdomId: kingdom.id, seeds, turnLimit: 30, actionCapPerTurn: 200 };
 const request = nativeScoreBatchRequest(kingdom, strategies, config, threads, mode as 'full' | 'compact');
 fs.writeFileSync(option('request'), `${JSON.stringify(request)}\n`);
 fs.writeFileSync(option('metadata'), `${JSON.stringify({
-  kingdomId: kingdom.id,
+  schemaVersion, kingdomId: kingdom.id,
   completeCount: strategies.length,
   candidateDigest: stableHash(strategies.map(canonicalStrategy).join('\n')),
   ruleFingerprint: nativeRuleFingerprint(kingdom.id, 30, 200), shuffleSeeds: seeds, cpu, threads,

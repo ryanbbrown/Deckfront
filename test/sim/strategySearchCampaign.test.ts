@@ -57,8 +57,10 @@ describe('strategy-search campaign identity and state', () => {
   it('fails before paid work for dirty or mismatched source-image bytes', () => {
     expect(() => deriveSourceImageIdentity({ gitVersion: 'dc9dffa', files: [{ path: 'src/a.ts', content: 'a' }],
       dirtyTrackedPaths: ['src/a.ts'] })).toThrow('dirty tracked paths');
-    expect(() => deriveSourceImageIdentity({ gitVersion: 'dc9dffa',
-      files: [{ path: '.env', content: 'SECRET=x' }] })).toThrow('secret-bearing');
+    for (const excluded of ['.env', '.ENV', 'Node_Modules/package.json', 'DIST/output.js']) {
+      expect(() => deriveSourceImageIdentity({ gitVersion: 'dc9dffa',
+        files: [{ path: excluded, content: 'SECRET=x' }] })).toThrow('excluded');
+    }
     const identity = fixture().evidence.sourceImage;
     expect(verifySourceImageFiles(identity, [
       { path: 'package.json', content: '{}' }, { path: 'src/sim/example.ts', content: 'export {}\n' }
@@ -94,7 +96,7 @@ describe('strategy-search campaign identity and state', () => {
     expect(third.stageIds).not.toEqual(first.stageIds);
   });
 
-  it('binds launch authorization to evidence and ceilings and permits only runtime reductions', () => {
+  it('binds every paid capacity ceiling and records later authorized increases', () => {
     const parsed = parseStrategySearchCampaignManifest(fixture());
     const ceilings = runtimeCeilings(parsed.manifest.runtime);
     const token = deriveLaunchAuthorizationToken(parsed.evidenceHash, ceilings);
@@ -106,9 +108,33 @@ describe('strategy-search campaign identity and state', () => {
       leaseMs: 100, authorization: { token, ceilings } });
     expect(claimed.controller?.fencingToken).toBe(1);
     const reduced = fixture(); reduced.runtime.maxActiveContainers = 4; reduced.runtime.stages.psro.cpu = 4;
+    reduced.runtime.stages.matrix.memoryMiB = 4096; reduced.runtime.stages.goldfish.threads = 2;
+    reduced.runtime.stages.psro.workerBatchSize = 2; reduced.runtime.stages.matrix.timeoutSeconds = 500;
     expect(runtimeFitsAuthorizedCeilings(reduced.runtime, ceilings)).toBe(true);
-    const increased = fixture(); increased.runtime.maxActiveCpus = 81;
-    expect(runtimeFitsAuthorizedCeilings(increased.runtime, ceilings)).toBe(false);
+    const increases = [
+      (value: ReturnType<typeof fixture>) => { value.runtime.maxActiveContainers += 1; },
+      (value: ReturnType<typeof fixture>) => { value.runtime.maxActiveCpus += 1; },
+      (value: ReturnType<typeof fixture>) => { value.runtime.controllerTimeoutSeconds += 1; },
+      (value: ReturnType<typeof fixture>) => { value.runtime.stages.goldfish.cpu += 1; },
+      (value: ReturnType<typeof fixture>) => { value.runtime.stages.matrix.memoryMiB += 1; },
+      (value: ReturnType<typeof fixture>) => { value.runtime.stages.psro.threads += 1; },
+      (value: ReturnType<typeof fixture>) => { value.runtime.stages.goldfish.workerBatchSize += 1; },
+      (value: ReturnType<typeof fixture>) => { value.runtime.stages.matrix.timeoutSeconds += 1; }
+    ];
+    for (const increase of increases) {
+      const increased = fixture(); increase(increased);
+      expect(runtimeFitsAuthorizedCeilings(increased.runtime, ceilings)).toBe(false);
+    }
+    const increased = fixture(); increased.runtime.stages.matrix.memoryMiB += 1024;
+    const increasedCeilings = runtimeCeilings(increased.runtime);
+    const updated = claimCampaignController({ state: claimed, expectedRevision: claimed.revision,
+      ownerId: 'first', nowMs: 2, leaseMs: 100, authorization: {
+        token: deriveLaunchAuthorizationToken(parsed.evidenceHash, increasedCeilings), ceilings: increasedCeilings } });
+    expect(updated.authorizedCeilings!.stages.matrix.memoryMiB).toBe(increased.runtime.stages.matrix.memoryMiB);
+    expect(updated.authorizedCeilings!.stages.psro.cpu).toBe(ceilings.stages.psro.cpu);
+    const attached = claimCampaignController({ state: updated, expectedRevision: updated.revision,
+      ownerId: 'first', nowMs: 3, leaseMs: 100 });
+    expect(attached.authorizedCeilings).toEqual(updated.authorizedCeilings);
   });
 
   it('fences stale owners and fails closed on illegal or unproved stage transitions', () => {
@@ -129,8 +155,35 @@ describe('strategy-search campaign identity and state', () => {
     expect(() => transitionCampaignStage({ id: 'x', status: 'active' }, 'complete'))
       .toThrow('validated artifact hashes');
     expect(validateCampaignState(takeover)).toBe(true);
-    const corrupt = structuredClone(takeover); corrupt.revision += 1;
+    const corrupt = structuredClone(takeover) as typeof takeover & { unexpected?: boolean };
+    corrupt.unexpected = true;
     expect(validateCampaignState(corrupt)).toBe(false);
+
+    const protectedMutations: Array<(draft: typeof takeover) => void> = [
+      (draft) => { draft.revision += 1; },
+      (draft) => { draft.runtimeHistory.push('f'.repeat(64)); },
+      (draft) => { draft.authorizedCeilings!.maxActiveCpus += 1; },
+      (draft) => { draft.controller!.leaseUntilMs += 1; },
+      (draft) => { draft.stages[Object.keys(draft.stages)[0]!]!.id = 'e'.repeat(64); },
+      (draft) => { (draft as typeof takeover & { unexpected?: boolean }).unexpected = true; }
+    ];
+    for (const mutation of protectedMutations) {
+      expect(() => mutateCampaignState({ state: takeover, expectedRevision: takeover.revision,
+        ownerId: 'second', fencingToken: 2, mutate: mutation })).toThrow();
+    }
+    const readyKey = Object.keys(takeover.stages).find((key) => key.endsWith(':goldfish'))!;
+    expect(() => mutateCampaignState({ state: takeover, expectedRevision: takeover.revision,
+      ownerId: 'second', fencingToken: 2,
+      mutate(draft) { draft.stages[readyKey] = { id: draft.stages[readyKey]!.id,
+        status: 'complete', artifactHashes: { output: 'a'.repeat(64) } }; } }))
+      .toThrow('Illegal campaign stage transition');
+    const active = mutateCampaignState({ state: takeover, expectedRevision: takeover.revision,
+      ownerId: 'second', fencingToken: 2, mutate(draft) {
+        draft.stages[readyKey] = transitionCampaignStage(draft.stages[readyKey]!, 'active', {
+          callId: 'call-1', controllerFence: 2, heartbeatMs: 21, resources: { containers: 1, cpus: 4 }
+        });
+      } });
+    expect(active.stages[readyKey]).toMatchObject({ status: 'active', callId: 'call-1' });
   });
 });
 

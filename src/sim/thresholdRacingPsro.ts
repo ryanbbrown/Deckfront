@@ -8,6 +8,7 @@ import type { CandidateEvaluation, MixtureSchedule } from './mixtureEvaluation';
 import { GAMES_PER_SEED, emptyAggregate, mergeAggregate } from './pairing';
 import type { PairingRunner } from './pairingRunner';
 import type { CalibrationCandidateIdentity } from './responseOracleCalibration';
+import { stableHash } from './strategy';
 import type { Strategy } from './strategy';
 import type { TelemetryAggregate } from './types';
 import { compareUtf16 } from './utf16';
@@ -29,6 +30,27 @@ export interface ThresholdRacingProtocol {
   threshold: number; screenDepths: readonly number[]; screenAlpha: number;
   confirmationLooks: readonly number[]; confirmationFamilyAlpha: number; matrixBlocks: number; cleanScans: number;
 }
+const PROTOCOL_KEYS = ['experimentName', 'protocolVersion', 'runId', 'kingdomId', 'reservoirCount',
+  'sourceIdentityHash', 'checkpointNamespace', 'threshold', 'screenDepths', 'screenAlpha',
+  'confirmationLooks', 'confirmationFamilyAlpha', 'matrixBlocks', 'cleanScans'] as const;
+const exactKeys = (value: object, keys: readonly string[]): boolean => JSON.stringify(Object.keys(value).sort())
+  === JSON.stringify([...keys].sort());
+const sha = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
+const positiveInteger = (value: unknown): value is number => Number.isSafeInteger(value) && Number(value) > 0;
+export function validateThresholdRacingProtocol(value: unknown): value is ThresholdRacingProtocol {
+  if (!value || typeof value !== 'object' || !exactKeys(value, PROTOCOL_KEYS)) return false;
+  const held = value as ThresholdRacingProtocol;
+  return Boolean(held.experimentName && held.protocolVersion && held.runId && held.kingdomId
+    && held.checkpointNamespace && positiveInteger(held.reservoirCount) && sha(held.sourceIdentityHash)
+    && held.threshold === RESPONSE_THRESHOLD && held.screenAlpha === SCREEN_ALPHA
+    && held.confirmationFamilyAlpha === CONFIRMATION_FAMILY_ALPHA && held.matrixBlocks === PSRO_MATRIX_BLOCKS
+    && held.cleanScans === 2 && Array.isArray(held.screenDepths) && held.screenDepths.length > 0
+    && held.screenDepths[0] === 8 && held.screenDepths.every((depth, index) => positiveInteger(depth)
+      && (!index || depth === held.screenDepths[index - 1]! * 2))
+    && Array.isArray(held.confirmationLooks) && held.confirmationLooks.length > 0
+    && held.confirmationLooks.every((look, index) => positiveInteger(look)
+      && (!index || look > held.confirmationLooks[index - 1]!)));
+}
 export function createThresholdRacingProtocol(input: {
   experimentName: string; protocolVersion?: string; runId: string; kingdomId: string;
   reservoirCount: number; sourceIdentityHash: string; checkpointNamespace: string;
@@ -41,19 +63,14 @@ export function createThresholdRacingProtocol(input: {
     threshold: RESPONSE_THRESHOLD, screenDepths: [...(input.screenDepths ?? SCREEN_DEPTHS)],
     screenAlpha: SCREEN_ALPHA, confirmationLooks: [...(input.confirmationLooks ?? CONFIRMATION_LOOKS)],
     confirmationFamilyAlpha: CONFIRMATION_FAMILY_ALPHA, matrixBlocks: PSRO_MATRIX_BLOCKS, cleanScans: 2 };
-  if (!protocol.experimentName || !protocol.protocolVersion || !protocol.runId || !protocol.kingdomId
-    || !Number.isSafeInteger(protocol.reservoirCount) || protocol.reservoirCount < 1
-    || !/^[0-9a-f]{64}$/.test(protocol.sourceIdentityHash) || !protocol.checkpointNamespace
-    || !protocol.screenDepths.length || protocol.screenDepths[0] !== 8
-    || protocol.screenDepths.some((depth, index) => index && depth !== protocol.screenDepths[index - 1]! * 2)
-    || !protocol.confirmationLooks.length
-    || protocol.confirmationLooks.some((look, index) => index && look <= protocol.confirmationLooks[index - 1]!)) {
+  if (!validateThresholdRacingProtocol(protocol)) {
     throw new Error('Threshold-racing PSRO protocol input is invalid.');
   }
   return protocol;
 }
 export function thresholdRacingProtocolHash(protocol: ThresholdRacingProtocol): string {
-  createThresholdRacingProtocol(protocol); return createHash('sha256').update(JSON.stringify(protocol)).digest('hex');
+  if (!validateThresholdRacingProtocol(protocol)) throw new Error('Threshold-racing PSRO protocol is invalid.');
+  return createHash('sha256').update(JSON.stringify(protocol)).digest('hex');
 }
 
 export interface CandidateRef { identity: CalibrationCandidateIdentity; strategy: Strategy }
@@ -93,7 +110,8 @@ export interface RawPsroScoreChunk {
 export interface RawPsroLookArtifact {
   schemaVersion: 1; experiment: 'threshold-racing-raw-score-look'; protocolHash: string; sourceHash: string;
   raceKind: RawPsroScoreChunk['raceKind']; lookId: string; lookDepth: number; familySize: number;
-  alpha: number; threshold: number; candidateIds: string[]; scheduleStart: number; scheduleEnd: number;
+  alpha: number; threshold: number; candidateIds: string[]; candidateCanonicals: string[];
+  scheduleStart: number; scheduleEnd: number;
   chunks: Array<{ candidateStart: number; candidateEnd: number; artifactHash: string }>;
   artifactHash: string;
 }
@@ -121,9 +139,54 @@ const RAW_CHUNK_KEYS = ['schemaVersion', 'experiment', 'protocolHash', 'sourceHa
   'lookDepth', 'familySize', 'alpha', 'threshold', 'candidateStart', 'candidateEnd', 'candidateIds',
   'candidateCanonicals', 'fullSchedule', 'suffixSchedule', 'scheduleStart', 'scheduleEnd', 'scoreBytes',
   'played', 'dimensions', 'artifactHash'] as const;
+const RAW_LOOK_KEYS = ['schemaVersion', 'experiment', 'protocolHash', 'sourceHash', 'raceKind', 'lookId',
+  'lookDepth', 'familySize', 'alpha', 'threshold', 'candidateIds', 'candidateCanonicals', 'scheduleStart',
+  'scheduleEnd', 'chunks', 'artifactHash'] as const;
+const SCHEDULE_KEYS = ['targetWeights', 'blocks', 'realizedOpponentCounts',
+  'unsampledPositiveWeightStrategies'] as const;
+function candidateIdentitiesValid(ids: readonly string[], canonicals: readonly string[]): boolean {
+  return ids.length > 0 && ids.length === canonicals.length && new Set(ids).size === ids.length
+    && new Set(canonicals).size === canonicals.length && ids.every((id, index) => typeof id === 'string'
+      && typeof canonicals[index] === 'string' && canonicals[index]!.length > 0
+      && id === `sg-${stableHash(canonicals[index]!)}`);
+}
+export function validateMixtureSchedule(value: unknown): value is MixtureSchedule {
+  if (!value || typeof value !== 'object' || !exactKeys(value, SCHEDULE_KEYS)) return false;
+  const held = value as MixtureSchedule, ids = Object.keys(held.targetWeights ?? {});
+  if (!ids.length || JSON.stringify(ids) !== JSON.stringify([...ids].sort(compareUtf16))
+    || ids.some((id) => !id || !Number.isFinite(held.targetWeights[id]) || held.targetWeights[id]! <= 0)
+    || Math.abs(ids.reduce((sum, id) => sum + held.targetWeights[id]!, 0) - 1) > 1e-12
+    || !Array.isArray(held.blocks) || !held.blocks.length
+    || held.blocks.some((block) => !block || !exactKeys(block, ['seed', 'opponentId'])
+      || !Number.isSafeInteger(block.seed) || block.seed < 0 || block.seed > 0xffff_ffff
+      || !ids.includes(block.opponentId))
+    || new Set(held.blocks.map((block) => block.seed)).size !== held.blocks.length
+    || !held.realizedOpponentCounts || typeof held.realizedOpponentCounts !== 'object'
+    || JSON.stringify(Object.keys(held.realizedOpponentCounts)) !== JSON.stringify(ids)
+    || !Array.isArray(held.unsampledPositiveWeightStrategies)) return false;
+  const counts = Object.fromEntries(ids.map((id) => [id, 0])) as Record<string, number>;
+  held.blocks.forEach((block) => { counts[block.opponentId] = counts[block.opponentId]! + 1; });
+  return JSON.stringify(counts) === JSON.stringify(held.realizedOpponentCounts)
+    && JSON.stringify(ids.filter((id) => counts[id] === 0))
+      === JSON.stringify(held.unsampledPositiveWeightStrategies);
+}
+function expectedAlpha(kind: RawPsroScoreChunk['raceKind'], familySize: number,
+  protocol?: ThresholdRacingProtocol): number {
+  if (kind === 'screen') return protocol?.screenAlpha ?? SCREEN_ALPHA;
+  return (protocol?.confirmationFamilyAlpha ?? CONFIRMATION_FAMILY_ALPHA) / familySize;
+}
+function protocolLookDepthValid(kind: RawPsroScoreChunk['raceKind'], depth: number,
+  protocol?: ThresholdRacingProtocol): boolean {
+  if (!protocol) return positiveInteger(depth);
+  return (kind === 'screen' ? protocol.screenDepths : protocol.confirmationLooks).includes(depth);
+}
 
 /** Largest deficit assigns each next block to the most under-served positive-weight opponent. */
 export function weightedFairSchedule(weights: Readonly<Record<string, number>>, seeds: readonly number[]): MixtureSchedule {
+  if (!seeds.length || new Set(seeds).size !== seeds.length
+    || seeds.some((seed) => !Number.isSafeInteger(seed) || seed < 0 || seed > 0xffff_ffff)) {
+    throw new Error('Weighted-fair schedule needs unique uint32 seeds.');
+  }
   const entries = Object.entries(weights).filter((entry) => entry[1] > 0)
     .sort(([left], [right]) => compareUtf16(left, right));
   const total = entries.reduce((sum, entry) => sum + entry[1], 0);
@@ -141,8 +204,10 @@ export function weightedFairSchedule(weights: Readonly<Record<string, number>>, 
     realizedOpponentCounts[selected] = realizedOpponentCounts[selected]! + 1;
     return { seed, opponentId: selected };
   });
-  return { targetWeights, blocks, realizedOpponentCounts,
+  const schedule = { targetWeights, blocks, realizedOpponentCounts,
     unsampledPositiveWeightStrategies: entries.map(([id]) => id).filter((id) => !realizedOpponentCounts[id]) };
+  if (!validateMixtureSchedule(schedule)) throw new Error('Weighted-fair schedule is invalid.');
+  return schedule;
 }
 export function scheduleSlice(schedule: MixtureSchedule, start: number, end: number): MixtureSchedule {
   const blocks = schedule.blocks.slice(start, end), ids = Object.keys(schedule.targetWeights);
@@ -208,52 +273,101 @@ function createRawChunk(input: { store: RawPsroArtifactStore; lookId: string; lo
   return { ...base, artifactHash: hash(base) };
 }
 export function validateRawPsroScoreChunk(value: unknown, protocol?: ThresholdRacingProtocol): value is RawPsroScoreChunk {
-  if (!value || typeof value !== 'object') return false;
+  if (protocol && !validateThresholdRacingProtocol(protocol)) return false;
+  if (!value || typeof value !== 'object' || !exactKeys(value, RAW_CHUNK_KEYS)) return false;
   const held = value as RawPsroScoreChunk;
-  if (JSON.stringify(Object.keys(held).sort()) !== JSON.stringify([...RAW_CHUNK_KEYS].sort())) return false;
+  if (!held.dimensions || !exactKeys(held.dimensions, ['candidates', 'blocks', 'scoreBytes', 'played'])) return false;
   const copy = structuredClone(held); copy.artifactHash = '';
-  const expectedSize = held.dimensions?.candidates * held.dimensions?.blocks;
+  const expectedSize = held.dimensions.candidates * held.dimensions.blocks;
+  const fullScheduleValid = validateMixtureSchedule(held.fullSchedule);
+  const suffixScheduleValid = validateMixtureSchedule(held.suffixSchedule);
+  const expectedSuffix = fullScheduleValid && Number.isSafeInteger(held.scheduleStart)
+    && Number.isSafeInteger(held.scheduleEnd) && held.scheduleStart >= 0
+    && held.scheduleEnd > held.scheduleStart && held.scheduleEnd <= held.fullSchedule.blocks.length
+    ? scheduleSlice(held.fullSchedule, held.scheduleStart, held.scheduleEnd) : null;
   return held.schemaVersion === 1 && held.experiment === 'threshold-racing-raw-score-chunk'
+    && sha(held.protocolHash) && sha(held.sourceHash) && sha(held.artifactHash)
     && (!protocol || held.protocolHash === thresholdRacingProtocolHash(protocol))
     && held.sourceHash === (protocol?.sourceIdentityHash ?? held.sourceHash)
-    && held.candidateEnd - held.candidateStart === held.dimensions?.candidates
-    && held.candidateIds?.length === held.dimensions.candidates
-    && held.candidateCanonicals?.length === held.dimensions.candidates
-    && held.suffixSchedule?.blocks.length === held.dimensions.blocks
-    && held.scheduleEnd - held.scheduleStart === held.dimensions.blocks
+    && ['screen', 'confirmation', 'queue-retest'].includes(held.raceKind) && Boolean(held.lookId)
+    && positiveInteger(held.lookDepth) && held.lookDepth === held.scheduleEnd
+    && protocolLookDepthValid(held.raceKind, held.lookDepth, protocol)
+    && positiveInteger(held.familySize) && Number.isFinite(held.alpha) && held.alpha > 0 && held.alpha <= 1
+    && held.alpha === expectedAlpha(held.raceKind, held.familySize, protocol)
+    && held.threshold === (protocol?.threshold ?? RESPONSE_THRESHOLD)
+    && Number.isSafeInteger(held.candidateStart) && held.candidateStart >= 0
+    && Number.isSafeInteger(held.candidateEnd) && held.candidateEnd > held.candidateStart
+    && held.candidateEnd <= held.familySize
+    && candidateIdentitiesValid(held.candidateIds, held.candidateCanonicals)
+    && held.candidateEnd - held.candidateStart === held.dimensions.candidates
+    && positiveInteger(held.dimensions.candidates) && positiveInteger(held.dimensions.blocks)
+    && held.dimensions.blocks === held.scheduleEnd - held.scheduleStart
+    && held.dimensions.scoreBytes === expectedSize && held.dimensions.played === expectedSize
+    && fullScheduleValid && suffixScheduleValid
+    && expectedSuffix !== null && JSON.stringify(held.suffixSchedule) === JSON.stringify(expectedSuffix)
     && held.scoreBytes?.length === expectedSize && held.played?.length === expectedSize
     && held.scoreBytes.every((score) => Number.isSafeInteger(score) && score >= 0 && score <= 4)
-    && held.played.every((played) => played === GAMES_PER_SEED) && held.artifactHash === hash(copy);
+    && held.played.every((played) => Number.isSafeInteger(played) && played === GAMES_PER_SEED)
+    && held.artifactHash === hash(copy);
 }
 export function rawScoreRows(chunk: RawPsroScoreChunk): number[][] {
   if (!validateRawPsroScoreChunk(chunk)) throw new Error('PSRO raw score chunk is invalid.');
   return Array.from({ length: chunk.dimensions.candidates }, (_unused, index) => chunk.scoreBytes
     .slice(index * chunk.dimensions.blocks, (index + 1) * chunk.dimensions.blocks).map((score) => score / 4));
 }
+export function validateRawPsroLookArtifact(value: unknown,
+  protocol?: ThresholdRacingProtocol): value is RawPsroLookArtifact {
+  if (protocol && !validateThresholdRacingProtocol(protocol)) return false;
+  if (!value || typeof value !== 'object' || !exactKeys(value, RAW_LOOK_KEYS)) return false;
+  const held = value as RawPsroLookArtifact, copy = structuredClone(held); copy.artifactHash = '';
+  if (held.schemaVersion !== 1 || held.experiment !== 'threshold-racing-raw-score-look'
+    || !sha(held.protocolHash) || !sha(held.sourceHash) || !sha(held.artifactHash)
+    || (protocol && held.protocolHash !== thresholdRacingProtocolHash(protocol))
+    || held.sourceHash !== (protocol?.sourceIdentityHash ?? held.sourceHash)
+    || !['screen', 'confirmation', 'queue-retest'].includes(held.raceKind) || !held.lookId
+    || !positiveInteger(held.lookDepth) || held.lookDepth !== held.scheduleEnd
+    || !protocolLookDepthValid(held.raceKind, held.lookDepth, protocol)
+    || !positiveInteger(held.familySize) || !candidateIdentitiesValid(held.candidateIds, held.candidateCanonicals)
+    || held.candidateIds.length > held.familySize || !Number.isFinite(held.alpha) || held.alpha <= 0 || held.alpha > 1
+    || held.alpha !== expectedAlpha(held.raceKind, held.familySize, protocol)
+    || held.threshold !== (protocol?.threshold ?? RESPONSE_THRESHOLD)
+    || !Number.isSafeInteger(held.scheduleStart) || held.scheduleStart < 0
+    || !Number.isSafeInteger(held.scheduleEnd) || held.scheduleEnd <= held.scheduleStart
+    || !Array.isArray(held.chunks) || !held.chunks.length || held.artifactHash !== hash(copy)) return false;
+  let cursor = 0; const hashes = new Set<string>();
+  for (const reference of held.chunks) {
+    if (!reference || !exactKeys(reference, ['candidateStart', 'candidateEnd', 'artifactHash'])
+      || !Number.isSafeInteger(reference.candidateStart) || reference.candidateStart !== cursor
+      || !Number.isSafeInteger(reference.candidateEnd) || reference.candidateEnd <= reference.candidateStart
+      || reference.candidateEnd > held.candidateIds.length || !sha(reference.artifactHash)
+      || hashes.has(reference.artifactHash)) return false;
+    cursor = reference.candidateEnd; hashes.add(reference.artifactHash);
+  }
+  return cursor === held.candidateIds.length;
+}
 export function assembleRawPsroLook(look: RawPsroLookArtifact,
   chunks: readonly RawPsroScoreChunk[], protocol?: ThresholdRacingProtocol): Record<string, number[]> {
-  const copy = structuredClone(look); copy.artifactHash = '';
-  const expectedLookKeys = ['schemaVersion', 'experiment', 'protocolHash', 'sourceHash', 'raceKind', 'lookId',
-    'lookDepth', 'familySize', 'alpha', 'threshold', 'candidateIds', 'scheduleStart', 'scheduleEnd',
-    'chunks', 'artifactHash'];
-  if (JSON.stringify(Object.keys(look).sort()) !== JSON.stringify(expectedLookKeys.sort())
-    || look.schemaVersion !== 1 || look.experiment !== 'threshold-racing-raw-score-look'
-    || look.artifactHash !== hash(copy) || (protocol && look.protocolHash !== thresholdRacingProtocolHash(protocol))
-    || look.sourceHash !== (protocol?.sourceIdentityHash ?? look.sourceHash)
-    || chunks.length !== look.chunks.length) throw new Error('PSRO raw look is stale or corrupt.');
+  if (!validateRawPsroLookArtifact(look, protocol) || chunks.length !== look.chunks.length) {
+    throw new Error('PSRO raw look is stale or corrupt.');
+  }
   const result: Record<string, number[]> = {}; let cursor = 0;
   for (let index = 0; index < chunks.length; index += 1) {
     const chunk = chunks[index]!, reference = look.chunks[index]!;
     if (!validateRawPsroScoreChunk(chunk, protocol) || chunk.artifactHash !== reference.artifactHash
       || chunk.candidateStart !== reference.candidateStart || chunk.candidateEnd !== reference.candidateEnd
       || chunk.candidateStart !== cursor || chunk.lookId !== look.lookId || chunk.lookDepth !== look.lookDepth
-      || chunk.raceKind !== look.raceKind || chunk.sourceHash !== look.sourceHash
-      || chunk.scheduleStart !== look.scheduleStart || chunk.scheduleEnd !== look.scheduleEnd) {
+      || chunk.raceKind !== look.raceKind || chunk.protocolHash !== look.protocolHash
+      || chunk.sourceHash !== look.sourceHash || chunk.familySize !== look.familySize
+      || chunk.alpha !== look.alpha || chunk.threshold !== look.threshold
+      || chunk.scheduleStart !== look.scheduleStart || chunk.scheduleEnd !== look.scheduleEnd
+      || (index > 0 && (JSON.stringify(chunk.fullSchedule) !== JSON.stringify(chunks[0]!.fullSchedule)
+        || JSON.stringify(chunk.suffixSchedule) !== JSON.stringify(chunks[0]!.suffixSchedule)))) {
       throw new Error('PSRO raw look chunk coverage is stale, corrupt, overlapping, or incomplete.');
     }
     const rows = rawScoreRows(chunk);
     chunk.candidateIds.forEach((id, row) => {
-      if (look.candidateIds[cursor + row] !== id || result[id]) {
+      if (look.candidateIds[cursor + row] !== id
+        || look.candidateCanonicals[cursor + row] !== chunk.candidateCanonicals[row] || result[id]) {
         throw new Error('PSRO raw look candidate order is invalid.');
       }
       result[id] = rows[row]!;
@@ -332,6 +446,7 @@ async function sealLook(raw: RawPsroArtifactStore | undefined, input: { lookId: 
     raceKind: raw.raceKind, lookId: input.lookId, lookDepth: input.lookDepth, familySize: input.familySize,
     alpha: input.alpha, threshold: RESPONSE_THRESHOLD,
     candidateIds: input.candidates.map((entry) => entry.identity.strategyId),
+    candidateCanonicals: input.candidates.map((entry) => entry.identity.canonicalStrategy),
     scheduleStart: input.scheduleStart, scheduleEnd: input.scheduleEnd,
     chunks: input.chunks.map((chunk) => ({ candidateStart: chunk.candidateStart,
       candidateEnd: chunk.candidateEnd, artifactHash: chunk.artifactHash })), artifactHash: '' };

@@ -16,6 +16,8 @@ export const CAMPAIGN_PSRO_SCHEMA_VERSION = 2 as const;
 
 const sha256 = (value: string | Uint8Array): string => createHash('sha256').update(value).digest('hex');
 const canonical = (value: unknown): string => JSON.stringify(sortValue(value));
+const exactKeys = (value: object, keys: readonly string[]): boolean =>
+  JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
 function sortValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortValue);
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value)
@@ -96,7 +98,7 @@ const EXCLUDED_SOURCE_COMPONENTS = new Set(['.git', 'node_modules', '.experiment
 function assertSourceImagePath(relative: string): void {
   const components = relative.split('/');
   const name = components.at(-1)!.toLocaleLowerCase('en-US');
-  if (components.some((component) => EXCLUDED_SOURCE_COMPONENTS.has(component))
+  if (components.some((component) => EXCLUDED_SOURCE_COMPONENTS.has(component.toLocaleLowerCase('en-US')))
     || name === '.env' || name.startsWith('.env.') || name.includes('credential')
     || name.endsWith('.pem') || name.endsWith('.key')) {
     throw new Error(`Source-image path is generated, secret-bearing, or excluded: ${relative}`);
@@ -237,38 +239,67 @@ export function campaignStagePath(campaignId: string, evidenceHash: string, king
   return `campaigns/${campaignId}/${evidenceHash}/kingdoms/${kingdomId}/${stage}`;
 }
 
+export interface RuntimeStageCeilings {
+  cpu: number; memoryMiB: number; threads: number; workerBatchSize: number; timeoutSeconds: number;
+}
 export interface RuntimeCeilings {
   controllerTimeoutSeconds: number;
   maxActiveContainers: number;
   maxActiveCpus: number;
-  stageTimeoutSeconds: { goldfish: number; matrix: number; psro: number };
-  stageCpu: { goldfish: number; matrix: number; psro: number };
+  stages: { goldfish: RuntimeStageCeilings; matrix: RuntimeStageCeilings; psro: RuntimeStageCeilings };
 }
+const runtimeStageCeilingsSchema = z.object({ cpu: positive, memoryMiB: positive, threads: positive,
+  workerBatchSize: positive, timeoutSeconds: positive }).strict();
+const runtimeCeilingsSchema = z.object({ controllerTimeoutSeconds: positive, maxActiveContainers: positive,
+  maxActiveCpus: positive, stages: z.object({ goldfish: runtimeStageCeilingsSchema,
+    matrix: runtimeStageCeilingsSchema, psro: runtimeStageCeilingsSchema }).strict() }).strict();
 export function runtimeCeilings(runtime: CampaignRuntime): RuntimeCeilings {
-  return { controllerTimeoutSeconds: runtime.controllerTimeoutSeconds,
+  const stage = (value: CampaignRuntime['stages']['goldfish']): RuntimeStageCeilings => ({
+    cpu: value.cpu, memoryMiB: value.memoryMiB, threads: value.threads,
+    workerBatchSize: value.workerBatchSize, timeoutSeconds: value.timeoutSeconds
+  });
+  return runtimeCeilingsSchema.parse({ controllerTimeoutSeconds: runtime.controllerTimeoutSeconds,
     maxActiveContainers: runtime.maxActiveContainers, maxActiveCpus: runtime.maxActiveCpus,
-    stageTimeoutSeconds: { goldfish: runtime.stages.goldfish.timeoutSeconds,
-      matrix: runtime.stages.matrix.timeoutSeconds, psro: runtime.stages.psro.timeoutSeconds },
-    stageCpu: { goldfish: runtime.stages.goldfish.cpu, matrix: runtime.stages.matrix.cpu,
-      psro: runtime.stages.psro.cpu } };
+    stages: { goldfish: stage(runtime.stages.goldfish), matrix: stage(runtime.stages.matrix),
+      psro: stage(runtime.stages.psro) } });
 }
 export function deriveLaunchAuthorizationToken(evidenceHash: string, ceilings: RuntimeCeilings): string {
   sha.parse(evidenceHash);
-  return `campaign-v1.${sha256(canonical({ evidenceHash, ceilings }))}`;
+  const validated = runtimeCeilingsSchema.parse(ceilings);
+  return `campaign-v1.${sha256(canonical({ evidenceHash, ceilings: validated }))}`;
 }
 export function validateLaunchAuthorizationToken(token: string, evidenceHash: string,
   ceilings: RuntimeCeilings): boolean {
-  const expected = deriveLaunchAuthorizationToken(evidenceHash, ceilings);
-  const left = Buffer.from(token), right = Buffer.from(expected);
-  return left.length === right.length && timingSafeEqual(left, right);
+  try {
+    const expected = deriveLaunchAuthorizationToken(evidenceHash, ceilings);
+    const left = Buffer.from(token), right = Buffer.from(expected);
+    return left.length === right.length && timingSafeEqual(left, right);
+  } catch { return false; }
 }
-export function runtimeFitsAuthorizedCeilings(runtime: CampaignRuntime, authorized: RuntimeCeilings): boolean {
-  const actual = runtimeCeilings(runtime);
+function ceilingsFit(actual: RuntimeCeilings, authorized: RuntimeCeilings): boolean {
+  const fields = ['cpu', 'memoryMiB', 'threads', 'workerBatchSize', 'timeoutSeconds'] as const;
   return actual.controllerTimeoutSeconds <= authorized.controllerTimeoutSeconds
     && actual.maxActiveContainers <= authorized.maxActiveContainers && actual.maxActiveCpus <= authorized.maxActiveCpus
     && (['goldfish', 'matrix', 'psro'] as const).every((stage) =>
-      actual.stageTimeoutSeconds[stage] <= authorized.stageTimeoutSeconds[stage]
-      && actual.stageCpu[stage] <= authorized.stageCpu[stage]);
+      fields.every((field) => actual.stages[stage][field] <= authorized.stages[stage][field]));
+}
+function mergeRuntimeCeilings(left: RuntimeCeilings, right: RuntimeCeilings): RuntimeCeilings {
+  const maximum = (a: number, b: number): number => Math.max(a, b);
+  const stage = (name: keyof RuntimeCeilings['stages']): RuntimeStageCeilings => ({
+    cpu: maximum(left.stages[name].cpu, right.stages[name].cpu),
+    memoryMiB: maximum(left.stages[name].memoryMiB, right.stages[name].memoryMiB),
+    threads: maximum(left.stages[name].threads, right.stages[name].threads),
+    workerBatchSize: maximum(left.stages[name].workerBatchSize, right.stages[name].workerBatchSize),
+    timeoutSeconds: maximum(left.stages[name].timeoutSeconds, right.stages[name].timeoutSeconds)
+  });
+  return { controllerTimeoutSeconds: maximum(left.controllerTimeoutSeconds, right.controllerTimeoutSeconds),
+    maxActiveContainers: maximum(left.maxActiveContainers, right.maxActiveContainers),
+    maxActiveCpus: maximum(left.maxActiveCpus, right.maxActiveCpus),
+    stages: { goldfish: stage('goldfish'), matrix: stage('matrix'), psro: stage('psro') } };
+}
+export function runtimeFitsAuthorizedCeilings(runtime: CampaignRuntime, authorized: RuntimeCeilings): boolean {
+  try { return ceilingsFit(runtimeCeilings(runtime), runtimeCeilingsSchema.parse(authorized)); }
+  catch { return false; }
 }
 
 export type CampaignStageStatus = 'pending' | 'ready' | 'active' | 'incomplete' | 'terminal-incomplete' | 'complete';
@@ -298,24 +329,49 @@ export function createCampaignState(input: { campaignId: string; evidenceHash: s
     runtimeHistory: [input.runtimeHash], revision: 0, fencingToken: 0, controller: null,
     authorizedCeilings: null, stages, evidenceHashSeal: '' });
 }
+function validStageState(stage: unknown): stage is CampaignStageState {
+  if (!stage || typeof stage !== 'object') return false;
+  const held = stage as CampaignStageState;
+  if (!sha.safeParse(held.id).success || !legalTransitions[held.status]) return false;
+  if (held.status === 'pending' || held.status === 'ready') return exactKeys(held, ['id', 'status']);
+  if (held.status === 'active') return exactKeys(held, ['id', 'status', 'callId', 'controllerFence',
+    'heartbeatMs', 'resources']) && Boolean(held.callId) && Number.isSafeInteger(held.controllerFence)
+    && held.controllerFence! >= 0 && Number.isSafeInteger(held.heartbeatMs) && held.heartbeatMs! >= 0
+    && Boolean(held.resources) && exactKeys(held.resources!, ['containers', 'cpus'])
+    && Number.isSafeInteger(held.resources!.containers) && held.resources!.containers > 0
+    && Number.isSafeInteger(held.resources!.cpus) && held.resources!.cpus > 0;
+  if (held.status === 'incomplete' || held.status === 'terminal-incomplete') {
+    return exactKeys(held, ['id', 'status', 'reason', 'artifactPaths']) && Boolean(held.reason)
+      && Array.isArray(held.artifactPaths) && new Set(held.artifactPaths).size === held.artifactPaths.length
+      && held.artifactPaths.every((entry) => typeof entry === 'string' && entry.length > 0);
+  }
+  return exactKeys(held, ['id', 'status', 'artifactHashes']) && Boolean(held.artifactHashes)
+    && Object.keys(held.artifactHashes!).length > 0
+    && Object.values(held.artifactHashes!).every((digest) => sha.safeParse(digest).success);
+}
 export function validateCampaignState(value: unknown): value is CampaignState {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== 'object' || !exactKeys(value,
+    ['schemaVersion', 'campaignId', 'evidenceHash', 'runtimeHistory', 'revision', 'fencingToken',
+      'controller', 'authorizedCeilings', 'stages', 'evidenceHashSeal'])) return false;
   try {
     const held = value as CampaignState;
-    if (held.schemaVersion !== 1 || !held.campaignId || !Number.isSafeInteger(held.revision) || held.revision < 0
+    if (held.schemaVersion !== 1 || !identifier.safeParse(held.campaignId).success
+      || !Number.isSafeInteger(held.revision) || held.revision < 0
       || !Number.isSafeInteger(held.fencingToken) || held.fencingToken < 0 || !sha.safeParse(held.evidenceHash).success
       || !sha.safeParse(held.evidenceHashSeal).success || !Array.isArray(held.runtimeHistory)
-      || !held.runtimeHistory.length || held.runtimeHistory.some((entry) => !sha.safeParse(entry).success)
-      || !held.stages || typeof held.stages !== 'object') return false;
-    if (held.controller && (!held.controller.ownerId || !Number.isSafeInteger(held.controller.leaseUntilMs)
-      || held.controller.fencingToken !== held.fencingToken)) return false;
-    for (const stage of Object.values(held.stages)) {
-      if (!stage || !sha.safeParse(stage.id).success || !legalTransitions[stage.status]) return false;
-      if (stage.status === 'active' && (!stage.callId || stage.controllerFence === undefined
-        || !stage.resources || !Number.isSafeInteger(stage.heartbeatMs))) return false;
-      if ((stage.status === 'incomplete' || stage.status === 'terminal-incomplete') && !stage.reason) return false;
-      if (stage.status === 'complete' && (!stage.artifactHashes || !Object.keys(stage.artifactHashes).length
-        || Object.values(stage.artifactHashes).some((digest) => !sha.safeParse(digest).success))) return false;
+      || !held.runtimeHistory.length || new Set(held.runtimeHistory).size !== held.runtimeHistory.length
+      || held.runtimeHistory.some((entry) => !sha.safeParse(entry).success)
+      || !held.stages || typeof held.stages !== 'object' || Array.isArray(held.stages)
+      || !Object.keys(held.stages).length) return false;
+    if (held.authorizedCeilings !== null && !runtimeCeilingsSchema.safeParse(held.authorizedCeilings).success) return false;
+    if (held.controller !== null && (!exactKeys(held.controller, ['ownerId', 'leaseUntilMs', 'fencingToken'])
+      || !held.controller.ownerId || !Number.isSafeInteger(held.controller.leaseUntilMs)
+      || held.controller.leaseUntilMs < 0 || held.controller.fencingToken !== held.fencingToken)) return false;
+    const ids = new Set<string>();
+    for (const [key, stage] of Object.entries(held.stages)) {
+      if (!/^[A-Za-z0-9._-]+:(goldfish|matrix|psro)$/.test(key) || !validStageState(stage)
+        || ids.has(stage.id)) return false;
+      ids.add(stage.id);
     }
     return sealState(held).evidenceHashSeal === held.evidenceHashSeal;
   } catch { return false; }
@@ -331,11 +387,13 @@ export function claimCampaignController(input: { state: CampaignState; expectedR
   }
   const state = structuredClone(input.state);
   const firstLaunch = state.authorizedCeilings === null;
-  if (firstLaunch) {
-    if (!input.authorization || !validateLaunchAuthorizationToken(input.authorization.token,
-      state.evidenceHash, input.authorization.ceilings)) throw new Error('First campaign launch is not authorized.');
-    state.authorizedCeilings = structuredClone(input.authorization.ceilings);
-  }
+  if (input.authorization) {
+    if (!validateLaunchAuthorizationToken(input.authorization.token,
+      state.evidenceHash, input.authorization.ceilings)) throw new Error('Campaign runtime increase is not authorized.');
+    const authorized = runtimeCeilingsSchema.parse(input.authorization.ceilings);
+    state.authorizedCeilings = state.authorizedCeilings
+      ? mergeRuntimeCeilings(state.authorizedCeilings, authorized) : structuredClone(authorized);
+  } else if (firstLaunch) throw new Error('First campaign launch is not authorized.');
   if (state.controller && state.controller.leaseUntilMs > input.nowMs
     && state.controller.ownerId !== input.ownerId) throw new Error('Campaign controller lease is active.');
   if (!state.controller || state.controller.ownerId !== input.ownerId) state.fencingToken += 1;
@@ -351,11 +409,35 @@ export function mutateCampaignState(input: { state: CampaignState; expectedRevis
     || input.state.fencingToken !== input.fencingToken) throw new Error('Campaign state mutation is stale or fenced out.');
   const draft = structuredClone(input.state); input.mutate(draft);
   if (draft.schemaVersion !== input.state.schemaVersion || draft.campaignId !== input.state.campaignId
-    || draft.evidenceHash !== input.state.evidenceHash || draft.fencingToken !== input.state.fencingToken
-    || draft.controller?.ownerId !== input.ownerId || draft.controller.fencingToken !== input.fencingToken) {
-    throw new Error('Campaign mutation changed fenced identity fields.');
+    || draft.evidenceHash !== input.state.evidenceHash || draft.revision !== input.state.revision
+    || draft.fencingToken !== input.state.fencingToken
+    || canonical(draft.controller) !== canonical(input.state.controller)
+    || canonical(draft.authorizedCeilings) !== canonical(input.state.authorizedCeilings)
+    || canonical(draft.runtimeHistory) !== canonical(input.state.runtimeHistory)
+    || draft.evidenceHashSeal !== input.state.evidenceHashSeal
+    || canonical(Object.keys(draft.stages).sort()) !== canonical(Object.keys(input.state.stages).sort())) {
+    throw new Error('Campaign mutation changed protected state fields.');
   }
-  return nextState(draft);
+  for (const [key, before] of Object.entries(input.state.stages)) {
+    const after = draft.stages[key];
+    if (!after || after.id !== before.id || !validStageState(after)) {
+      throw new Error('Campaign mutation changed a stage identity or produced malformed state.');
+    }
+    if (after.status !== before.status && !legalTransitions[before.status].includes(after.status)) {
+      throw new Error(`Illegal campaign stage transition ${before.status} -> ${after.status}.`);
+    }
+    if (after.status === before.status && before.status !== 'active' && canonical(after) !== canonical(before)) {
+      throw new Error('Campaign mutation changed a terminal or inactive stage without a transition.');
+    }
+    if (after.status === 'active' && before.status === 'active'
+      && (after.callId !== before.callId || after.controllerFence !== before.controllerFence
+        || canonical(after.resources) !== canonical(before.resources))) {
+      throw new Error('Campaign mutation changed an active call identity or allocation.');
+    }
+  }
+  const next = nextState(draft);
+  if (!validateCampaignState(next)) throw new Error('Campaign mutation produced invalid state.');
+  return next;
 }
 const legalTransitions: Record<CampaignStageStatus, readonly CampaignStageStatus[]> = {
   pending: ['ready'], ready: ['active'], active: ['incomplete', 'terminal-incomplete', 'complete'],
@@ -367,14 +449,19 @@ export function transitionCampaignStage(stage: CampaignStageState, status: Campa
     throw new Error(`Illegal campaign stage transition ${stage.status} -> ${status}.`);
   }
   if (status === 'active' && (!details.callId || details.controllerFence === undefined
-    || !details.resources || !details.heartbeatMs)) throw new Error('Active stage needs call, fence, heartbeat, and resources.');
-  if ((status === 'incomplete' || status === 'terminal-incomplete') && !details.reason) {
-    throw new Error('Incomplete stage needs an exact reason.');
+    || !details.resources || !Number.isSafeInteger(details.heartbeatMs))) {
+    throw new Error('Active stage needs call, fence, heartbeat, and resources.');
+  }
+  if ((status === 'incomplete' || status === 'terminal-incomplete')
+    && (!details.reason || !Array.isArray(details.artifactPaths))) {
+    throw new Error('Incomplete stage needs an exact reason and resumable artifact paths.');
   }
   if (status === 'complete' && (!details.artifactHashes || !Object.keys(details.artifactHashes).length)) {
     throw new Error('Complete stage needs validated artifact hashes.');
   }
-  return { id: stage.id, status, ...structuredClone(details) };
+  const transitioned = { id: stage.id, status, ...structuredClone(details) };
+  if (!validStageState(transitioned)) throw new Error('Campaign stage transition details are malformed.');
+  return transitioned;
 }
 
 export interface CampaignContentIndexEntry {

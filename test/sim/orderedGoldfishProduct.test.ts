@@ -12,7 +12,8 @@ import {
   compactProfileEvidence, compareRankedRecords, deriveCurrentOrderedProductIdentity, fixedJson,
   orderedProductTarget, provenanceDigest,
   rankingKey, retainOrderedProductRecords,
-  sha256Bytes, validateCurrentOrderedProductArtifact, validateOrderedProductArtifact,
+  sha256Bytes, validateCurrentOrderedProductArtifact, validateCurrentOrderedProductRecordMembership,
+  validateOrderedProductArtifact,
   validateOrderedProductReservoir
 } from '../../src/sim/orderedGoldfishProduct';
 import type {
@@ -24,6 +25,7 @@ import {
   representativeCandidateIndices
 } from '../../src/sim/orderedGoldfishBenchmark';
 import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
+import { validateOrderedCalibrationSourceForCounts } from '../../src/sim/initialMatrixCalibration';
 import { canonicalStrategy, stableHash } from '../../src/sim/strategy';
 
 const kingdom009 = deepBeamSuite.kingdoms.find((entry) => entry.id === ORDERED_PRODUCT_KINGDOM)!;
@@ -38,11 +40,14 @@ function shard(
     scoreDigest: stableHash(`score-${shardId}`), contentDigest: stableHash(`content-${shardId}`) };
 }
 function fixture(
-  kingdomId = ORDERED_PRODUCT_KINGDOM, seeds: readonly number[] = ORDERED_PRODUCT_SEEDS
+  kingdomId = ORDERED_PRODUCT_KINGDOM, seeds: readonly number[] = ORDERED_PRODUCT_SEEDS,
+  schemaVersion: 1 | 2 = 1
 ): OrderedProductRankedArtifact {
   const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!;
   registerKingdom(kingdom);
-  const target = orderedProductTarget(kingdomId);
+  const productIdentity = schemaVersion === 2 ? deriveCurrentOrderedProductIdentity({ kingdomId, seeds,
+    scorerVersion: 'native-goldfish-v1', buildVersion: 'fixture' }) : undefined;
+  const targetVersion = productIdentity?.version ?? orderedProductTarget(kingdomId).version;
   const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
   const strategies = [...representativeCandidateIndices(space.candidateCount, 8)]
     .map((index) => space.candidateAt(index));
@@ -72,7 +77,8 @@ function fixture(
     quantityVectors: space.quantityVectors.map((entry) => [...entry]), skeletonCount: space.skeletonCount,
     candidateCount: space.candidateCount, ...traversal, provenanceDigest: '' };
   candidateSpace.provenanceDigest = candidateSpaceProvenanceDigest(candidateSpace);
-  return { schemaVersion: 1, version: target.version, runId: 'fixture', buildVersion: 'fixture',
+  return { schemaVersion, version: targetVersion, ...(productIdentity && { productIdentity }),
+    runId: 'fixture', buildVersion: 'fixture',
     ruleFingerprint: nativeRuleFingerprint(kingdom.id, 30, 200), scorerVersion: 'native-goldfish-v1',
     config: { kingdomId: kingdom.id, candidateCount: ORDERED_PRODUCT_SPACE_COUNT,
       retainedCount: records.length, reservoirCount: 3, seeds: [...seeds],
@@ -114,31 +120,45 @@ describe('ordered goldfish product correction', () => {
     }
   );
 
-  it('derives current targets without a kingdom allowlist and fails closed on changed identity', () => {
-    const kingdomId = 'deep-beam-tuning-002';
+  it('derives current targets and proves each record belongs to its traversal position', () => {
+    const kingdomId = 'deep-beam-tuning-002', seeds = [11, 12, 13, 14] as const;
     registerKingdom(deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!);
-    const identity = deriveCurrentOrderedProductIdentity({ kingdomId, seeds: [11, 12, 13, 14],
-      scorerVersion: 'native-goldfish-v1', buildVersion: 'fixture' });
-    const artifact = fixture();
-    const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
-    const traversal = coprimeTraversalConfig(space.candidateCount);
-    artifact.schemaVersion = CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION;
-    artifact.version = CURRENT_ORDERED_PRODUCT_VERSION;
-    artifact.productIdentity = identity;
-    artifact.buildVersion = identity.buildVersion;
-    artifact.scorerVersion = identity.scorerVersion;
-    artifact.ruleFingerprint = identity.rulesFingerprint;
-    artifact.config.kingdomId = kingdomId;
-    artifact.config.seeds = [...identity.seeds];
-    artifact.candidateSpace = { generator: 'ordered-typescript-five-rung-v1', traversal: 'coprime-position-v1',
-      cardIds: [...space.cardIds], quantityVectors: space.quantityVectors.map((entry) => [...entry]),
-      skeletonCount: space.skeletonCount, candidateCount: space.candidateCount, ...traversal,
-      provenanceDigest: identity.candidateProvenanceDigest };
+    const artifact = fixture(kingdomId, seeds, CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION);
+    expect(artifact.version).toBe(CURRENT_ORDERED_PRODUCT_VERSION);
     expect(validateCurrentOrderedProductArtifact(artifact)).toBe(true);
     expect(validateOrderedProductArtifact(artifact)).toBe(true);
+
+    const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
+    const impossible = structuredClone(artifact), wrong = space.candidateAt(
+      [...representativeCandidateIndices(space.candidateCount, 1, 8)][0]!);
+    impossible.records[0]!.strategy = wrong;
+    impossible.records[0]!.displayId = wrong.id;
+    impossible.records[0]!.canonicalStrategy = canonicalStrategy(wrong);
+    expect(validateCurrentOrderedProductRecordMembership(artifact.records[0]!, artifact.productIdentity!)).toBe(true);
+    expect(validateCurrentOrderedProductRecordMembership(impossible.records[0]!, artifact.productIdentity!)).toBe(false);
+    expect(validateCurrentOrderedProductArtifact(impossible)).toBe(false);
+
     const stale = structuredClone(artifact);
     stale.productIdentity!.seeds[0] = stale.productIdentity!.seeds[0]! + 1;
     expect(validateCurrentOrderedProductArtifact(stale)).toBe(false);
+  });
+
+  it('builds and validates one coherent v2 reservoir and calibration source', () => {
+    const artifact = fixture('deep-beam-tuning-002', [11, 12, 13, 14], 2);
+    const rankedSha256 = 'a'.repeat(64), reservoirSha256 = 'b'.repeat(64);
+    const reservoir = buildOrderedProductReservoir(artifact, rankedSha256);
+    expect(reservoir).toMatchObject({ schemaVersion: 2,
+      productIdentityHash: artifact.productIdentity!.identityHash, reservoirCount: 3 });
+    expect(validateOrderedProductReservoir(reservoir, artifact, rankedSha256)).toBe(true);
+    const validated = validateOrderedCalibrationSourceForCounts({ kingdomId: artifact.config.kingdomId,
+      ranked: { ...artifact, recordCount: artifact.records.length }, reservoir,
+      rankedSha256, reservoirSha256 }, { retainedCount: 8, reservoirCount: 3, strategyCount: 3 });
+    expect(validated.strategies).toEqual(artifact.records.slice(0, 3).map((entry) => entry.strategy));
+    const stale = structuredClone(reservoir); stale.productIdentityHash = 'c'.repeat(64);
+    expect(() => validateOrderedCalibrationSourceForCounts({ kingdomId: artifact.config.kingdomId,
+      ranked: { ...artifact, recordCount: artifact.records.length }, reservoir: stale,
+      rankedSha256, reservoirSha256 }, { retainedCount: 8, reservoirCount: 3, strategyCount: 3 }))
+      .toThrow('stale or invalid');
   });
 
   it('accepts only the original seeds or one exact K007 replication set', () => {
