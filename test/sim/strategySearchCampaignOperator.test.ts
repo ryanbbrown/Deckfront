@@ -53,6 +53,15 @@ describe('strategy-search operator', () => {
       expect(runs).toBe(1); expect(statuses).toBe(1);
     } finally { fs.rmSync(held.root, { recursive: true, force: true }); } });
 
+  it('prepares execution state with the control app before it invokes the compute app', () => {
+    const source = fs.readFileSync('scripts/strategy_search_campaign.ts', 'utf8');
+    const prepare = source.indexOf("modal/strategy_search_status.py::prepare_entry");
+    const compute = source.indexOf("modal/native_strategy_search.py::strategy_search_run_entry");
+    expect(prepare).toBeGreaterThan(0);
+    expect(compute).toBeGreaterThan(prepare);
+    expect(source).toContain('strategy-search-execution-prepared');
+  });
+
   it('creates hundreds of pinned K007 Goldfish jobs without putting capacity in evidence identity', () => {
     const held = fixture();
     try { const bundle = createStrategySearchLaunchBundle(held.parsed), stageOne = bundle.jobs.filter((job) => job.stage === 'goldfish-one');

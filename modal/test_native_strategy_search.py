@@ -542,6 +542,32 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                 {"status": "ready", "report": None}))
             self.assertEqual(raw("a" * 64)["status"], "running")
 
+    def test_strategy_search_run_prepares_state_on_the_control_app_before_compute_deployment(self):
+        bundle = {"schemaVersion": 2, "campaignExecutionId": "a" * 64,
+            "executionRoot": "executions/" + "a" * 64,
+            "request": {"kingdomIds": ["kingdom"], "maxActiveCpus": 400},
+            "sourceImage": {"digest": "b" * 64, "files": []}, "partitions": {"one": []},
+            "jobs": [{"taskId": "task", "status": "ready"}],
+            "tasks": [{"taskId": "task", "stage": "psro", "evidenceId": "c" * 64}],
+            "controller": {"timeoutSeconds": 1140}}
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(status_launcher, "_execution_file",
+                    return_value=pathlib.Path(directory) / "state.json"), \
+                patch.object(status_launcher.volume, "reload"), \
+                patch.object(status_launcher.volume, "commit") as commit:
+            raw = status_launcher.prepare_execution.get_raw_f()
+            first = raw(bundle)
+            self.assertTrue(first["prepared"])
+            state = json.loads(pathlib.Path(directory, "state.json").read_text())
+            self.assertEqual(state["status"], "ready")
+            self.assertEqual(state["orderedEvidenceIds"], ["c" * 64])
+            changed = {**bundle, "partitions": {"different": []},
+                "jobs": [{"taskId": "different"}]}
+            self.assertFalse(raw(changed)["prepared"])
+            self.assertEqual(json.loads(pathlib.Path(directory, "state.json").read_text())["jobs"],
+                [{"taskId": "task", "status": "ready"}])
+            self.assertEqual(commit.call_count, 1)
+
     def test_strategy_search_campaign_has_no_legacy_recovery_or_budget_gate(self):
         controller_source = inspect.getsource(launcher.strategy_search_controller.get_raw_f())
         self.assertNotIn("GROSS_BUDGET_USD", controller_source)
@@ -549,6 +575,10 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         module_source = inspect.getsource(launcher)
         self.assertIn("_NODE_DEPENDENCY_FILES", module_source)
         self.assertIn("_RUST_IMAGE_FILES", module_source)
+        self.assertIn('from_registry("rust:1.98.0-slim-bookworm"', module_source)
+        self.assertNotIn("rustup toolchain install", module_source)
+        self.assertLess(module_source.index('npm ci'), module_source.index(
+            'set(_SOURCE_IMAGE_FILES) - _NODE_DEPENDENCY_FILES - _RUST_IMAGE_FILES'))
         for removed in ["campaign_recover_entry", "campaign_source_repair", "resume-plan"]:
             self.assertNotIn(removed, module_source)
 

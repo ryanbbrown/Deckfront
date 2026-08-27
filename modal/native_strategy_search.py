@@ -63,7 +63,7 @@ RESULT_SCHEMA_VERSION = 1
 CAMPAIGN_CHECKPOINT_EVENT = "strategy-search-checkpoint"
 CAMPAIGN_STAGE_STOP_EVENT = "strategy-search-stage-stop"
 CAMPAIGN_STAGES = {"goldfish", "matrix", "psro"}
-CAMPAIGN_RUST_GOLDFISH_BIN = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
+CAMPAIGN_RUST_GOLDFISH_BIN = "/workspace/rust/target/release/hexdeck-goldfish"
 CAMPAIGN_STAGE_ONE_CHUNK_SIZE = 250_000
 LEDGER_PATH = pathlib.Path.home() / ".hexdeck-modal-cost-ledger.json"
 
@@ -78,23 +78,21 @@ for _relative in _SOURCE_IMAGE_FILES:
 
 app = modal.App("hexdeck-native-strategy-search")
 volume = modal.Volume.from_name("hexdeck-native-strategy-results", create_if_missing=True)
-image = modal.Image.debian_slim(python_version="3.12") \
+image = modal.Image.from_registry("rust:1.98.0-slim-bookworm", add_python="3.12") \
     .apt_install("ca-certificates", "curl", "build-essential", "time") \
     .run_commands(
         "curl -fsSL https://deb.nodesource.com/setup_22.x | bash -",
         "apt-get install -y nodejs && node --version",
-        "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal",
-        "/root/.cargo/bin/rustup toolchain install 1.98.0 --profile minimal --component clippy,rustfmt --target x86_64-unknown-linux-gnu",
-    ).env({"PATH": "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
+    )
 _NODE_DEPENDENCY_FILES = {"package.json", "package-lock.json"}
-_RUST_IMAGE_FILES = {relative for relative in _SOURCE_IMAGE_FILES if relative.startswith("rust/")}
+_RUST_IMAGE_FILES = {relative for relative in _SOURCE_IMAGE_FILES
+    if relative.startswith("rust/") and relative != "rust/rust-toolchain.toml"}
 for _relative in sorted(_NODE_DEPENDENCY_FILES):
     image = image.add_local_file(PROJECT_ROOT / _relative, remote_path=f"/workspace/{_relative}", copy=True)
 image = image.run_commands("cd /workspace && npm ci")
 for _relative in sorted(_RUST_IMAGE_FILES):
     image = image.add_local_file(PROJECT_ROOT / _relative, remote_path=f"/workspace/{_relative}", copy=True)
-image = image.run_commands(
-    "cd /workspace/rust && cargo +1.98.0 build --release --target x86_64-unknown-linux-gnu")
+image = image.run_commands("cd /workspace/rust && cargo build --release")
 for _relative in sorted(set(_SOURCE_IMAGE_FILES) - _NODE_DEPENDENCY_FILES - _RUST_IMAGE_FILES):
     image = image.add_local_file(PROJECT_ROOT / _relative, remote_path=f"/workspace/{_relative}", copy=True)
 
@@ -333,7 +331,7 @@ def _native_shard(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str,
                 or metadata["shuffleSeeds"] != spec["shuffle_seeds"] \
                 or metadata["ruleFingerprint"] != spec["rule_fingerprint"]:
             raise RuntimeError("TypeScript kingdom or rule fingerprint does not match the shard specification")
-        executable = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
+        executable = "/workspace/rust/target/release/hexdeck-goldfish"
         with request_path.open() as request:
             completed = subprocess.run([executable, "--threads", str(spec["threads"]),
                 "--cpu-request", str(spec["cpu"])], stdin=request, text=True, capture_output=True,
@@ -418,7 +416,7 @@ def product_search(config: dict[str, Any]) -> dict[str, Any]:
         "--shard-size", str(config["shard_size"]), "--threads", str(config["threads"]),
         "--pool-seed", str(config["pool_seed"]), "--out", str(output)]
     environment = {**os.environ,
-        "HEXDECK_GOLDFISH_BIN": "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish",
+        "HEXDECK_GOLDFISH_BIN": "/workspace/rust/target/release/hexdeck-goldfish",
         "HEXDECK_BUILD_VERSION": config["build_version"]}
     started = time.monotonic()
     completed = subprocess.run(command, cwd="/workspace", env=environment, text=True,
@@ -1046,7 +1044,7 @@ def _competitive_request(request: dict[str, Any], process_key: str,
         if _competitive_process is not None and _competitive_process.poll() is None:
             _competitive_process.terminate()
             _competitive_process.wait(timeout=10)
-        executable = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
+        executable = "/workspace/rust/target/release/hexdeck-goldfish"
         _competitive_process = subprocess.Popen(
             [executable, "--threads", str(threads), "--cpu-request", str(cpu)],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,

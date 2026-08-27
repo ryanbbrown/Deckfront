@@ -57,6 +57,12 @@ export class ModalStrategySearchOperatorAdapter implements StrategySearchOperato
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-strategy-search-'));
     const bundleFile = path.join(directory, 'bundle.json'); fs.writeFileSync(bundleFile, `${JSON.stringify(input.bundle)}\n`);
     try {
+      const preparation = lastJson(execFileSync('modal', ['run', 'modal/strategy_search_status.py::prepare_entry',
+        '--launch-config', bundleFile], { encoding: 'utf8', timeout: 90_000 })) as Record<string, unknown>;
+      if (preparation.campaignExecutionId !== input.bundle.campaignExecutionId) {
+        throw new Error('Modal execution preparation returned the wrong campaign ID.');
+      }
+      process.stdout.write(`${JSON.stringify({ type: 'strategy-search-execution-prepared', ...preparation })}\n`);
       const outcome = lastJson(execFileSync('modal', ['run', 'modal/native_strategy_search.py::strategy_search_run_entry',
         '--launch-config', bundleFile, '--download-dir', input.destinationRoot], { encoding: 'utf8' }));
       for (const task of input.bundle.tasks.filter((entry) => entry.stage === 'psro')) {

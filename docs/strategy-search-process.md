@@ -166,7 +166,8 @@ Goldfish → initial matrix → PSRO → download and deep validation
 The runtime uses:
 
 - one compute image built from the exact executable allowlist in `strategy-search-image-files.json`;
-- one dependency-free control image used only for bounded read-only status;
+- cache-stable Node dependency and Rust build layers before changing TypeScript sources;
+- one dependency-free control app that prepares execution state and serves bounded read-only status;
 - one shared Modal Volume;
 - one global queue for Goldfish jobs from every ready kingdom;
 - one whole Matrix stage and one whole PSRO stage per ready kingdom;
