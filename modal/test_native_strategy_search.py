@@ -737,17 +737,38 @@ print(json.dumps(result))
         job = {"taskId": "decision", "evidenceId": evidence, "kingdomId": "kingdom",
             "stage": "psro-decision", "status": "complete",
             "receipt": {"artifactPath": "transition.json"}}
-        state = {"jobs": [job], "tasks": []}
+        state = {"maxActiveCpus": 400, "jobs": [job], "tasks": []}
         with patch.object(launcher, "_strategy_search_path", return_value=pathlib.Path("transition.json")), \
                 patch.object(launcher, "_strategy_search_load", return_value=transition):
             self.assertTrue(launcher._strategy_search_expand_transition(state, job))
             self.assertFalse(launcher._strategy_search_expand_transition(state, job))
+        self.assertTrue(launcher._strategy_search_materialize_adaptive(state,
+            {"controller": {"readyWindowWaves": 2}}))
         scores = [held for held in state["jobs"] if held["stage"] == "psro-score"]
         self.assertEqual(len(scores), 2)
         reducer = next(held for held in state["jobs"]
             if held["stage"] == "psro-decision" and held["taskId"] != "decision")
         self.assertEqual(reducer["dependencyTaskIds"], [held["taskId"] for held in scores])
         self.assertEqual(len(state["jobs"]), 4)
+
+    def test_strategy_search_materializes_only_two_adaptive_score_waves(self):
+        evidence = "b" * 64
+        tasks = [{"taskIndex": index, "candidateStart": index * 10,
+            "candidateEnd": (index + 1) * 10, "expectedTaskMs": 20000} for index in range(10)]
+        state = {"maxActiveCpus": 8, "jobs": [], "tasks": [], "dynamicScorePartitions": {
+            "d" * 64: {"kind": "score", "evidenceId": evidence, "kingdomId": "kingdom",
+                "parentTaskId": "parent", "transitionPath": "transition", "root": "root",
+                "descriptorHash": "d" * 64, "scoreBlocks": 8, "tasks": tasks,
+                "reducerCreated": False}}}
+        bundle = {"controller": {"readyWindowWaves": 2}}
+        self.assertTrue(launcher._strategy_search_materialize_adaptive(state, bundle))
+        first = [job for job in state["jobs"] if job["stage"] == "psro-score"]
+        self.assertEqual(len(first), 4)
+        self.assertFalse(any(job["stage"] == "psro-decision" for job in state["jobs"]))
+        for job in first:
+            job["status"] = "complete"
+        self.assertTrue(launcher._strategy_search_materialize_adaptive(state, bundle))
+        self.assertEqual(len([job for job in state["jobs"] if job["stage"] == "psro-score"]), 8)
 
     def test_strategy_search_materializes_only_two_global_goldfish_waves_and_then_reducer(self):
         evidence = "b" * 64

@@ -3,8 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import { GAMES_PER_SEED } from '../src/sim/pairing';
-import { RustCompetitiveEvaluator } from '../src/sim/rustCompetitiveEvaluator';
-import { RustGoldfishScorer } from '../src/sim/rustGoldfishScorer';
+import { evaluateCandidates } from '../src/sim/mixtureEvaluation';
 import { candidateIndexAt, createOrderedCandidateSpace, orderedGoldfishCardIds } from '../src/sim/orderedGoldfishBenchmark';
 import { readGoldfishReservoirV4 } from '../src/sim/strategySearchCompact';
 import { createStrategySearchPsroArtifact } from '../src/sim/strategySearchPsro';
@@ -42,7 +41,8 @@ const mode = option('mode'), output = path.resolve(option('out'));
 if (mode === 'init') {
   const evidenceId = option('evidence-id'), kingdomId = option('kingdom'), reservoirFile = path.resolve(option('reservoir')),
     matrixFile = path.resolve(option('matrix'));
-  const kingdom = strategySearchKingdom(kingdomId), space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
+  strategySearchKingdom(kingdomId);
+  const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
   const strategyAt = (position: number) => space.candidateAt(candidateIndexAt(position, space.candidateCount));
   const reservoir = readGoldfishReservoirV4(reservoirFile, strategyAt,
     { topFile: path.join(path.dirname(reservoirFile), 'top-500000.hgf') });
@@ -74,21 +74,19 @@ if (mode === 'init') {
     const strategy = checkpoint.matrix.strategies.find((entry) => entry.id === id);
     if (!strategy) throw new Error('Parallel PSRO score opponent is missing.'); return [id, strategy];
   }));
-  const resident = checkpoint.candidates.map((candidate) => candidate.strategy), kingdom = strategySearchKingdom(checkpoint.protocol.kingdomId);
-  const scorer = new RustGoldfishScorer(workers);
+  const kingdom = strategySearchKingdom(checkpoint.protocol.kingdomId);
+  const runner = new WorkerPairingRunner(workers, new URL('../src/server/aiWorker.ts', import.meta.url),
+    { kingdom }, ['--import', 'tsx']);
   try {
-    const evaluator = await RustCompetitiveEvaluator.create(scorer, kingdom, resident, {
-      kingdomId: checkpoint.protocol.kingdomId, turnLimitPerPlayer: 30, actionCapPerTurn: 200,
-      startingDraftEnabled: false }, workers);
-    const rows = await evaluator.evaluate(field.map((candidate) => candidate.strategy), opponents,
-      look.suffixSchedule, null as never, { kingdomId: checkpoint.protocol.kingdomId, turnLimitPerPlayer: 30,
-        actionCapPerTurn: 200, startingDraftEnabled: false, scoreOnly: true });
+    const rows = await evaluateCandidates(field.map((candidate) => candidate.strategy), opponents,
+      look.suffixSchedule, runner, { kingdomId: checkpoint.protocol.kingdomId, turnLimitPerPlayer: 30,
+        actionCapPerTurn: 200, startingDraftEnabled: false, scoreOnly: false });
     writeAtomic(output, createRawPsroScoreChunk({ protocol: checkpoint.protocol, raceKind: look.raceKind,
       lookId: look.lookId, lookDepth: look.lookDepth, familySize: look.familySize, alpha: look.alpha,
       candidates: field.map((candidate) => ({ identity: candidate, strategy: candidate.strategy })),
       candidateStart: task.candidateStart, fullSchedule: look.fullSchedule, suffixSchedule: look.suffixSchedule,
       scheduleStart: look.scheduleStart, rows }));
-  } finally { await scorer.close(); }
+  } finally { await runner.close(); }
 } else if (mode === 'reduce-score') {
   const checkpoint = read<ParallelPsroSemanticCheckpoint>('checkpoint'), look = read<ParallelPsroLookDescriptor>('look'),
     files = read<string[]>('chunks');

@@ -2139,6 +2139,85 @@ def _strategy_search_append_dynamic(state: dict[str, Any], *, evidence_id: str, 
     return task_id
 
 
+def _strategy_search_materialize_adaptive(state: dict[str, Any], bundle: dict[str, Any]) -> bool:
+    partitions = state.get("dynamicScorePartitions", {})
+    if not partitions:
+        return False
+    window = max(1, state["maxActiveCpus"] // 4) * bundle["controller"].get("readyWindowWaves", 2)
+    unlaunched = sum(job["stage"] in {"psro-score", "admission-row-score"}
+        and job["status"] in {"blocked", "ready"} for job in state["jobs"])
+    changed = False
+    entries = [partitions[key] for key in sorted(partitions)]
+    while unlaunched < window:
+        added = False
+        for partition in entries:
+            if unlaunched >= window:
+                break
+            for task in partition["tasks"]:
+                if partition["kind"] == "score":
+                    start, end = task["candidateStart"], task["candidateEnd"]
+                    semantic = {"look": partition["descriptorHash"],
+                        "candidateStart": start, "candidateEnd": end}
+                    stage, operation = "psro-score", "score"
+                    artifact = f"{partition['root']}/{partition['descriptorHash']}/score-{start}-{end}.json"
+                    metadata = {"operation": operation, "transitionPath": partition["transitionPath"],
+                        "scoreTask": task, "scoreBlocks": partition["scoreBlocks"]}
+                    timeout = max(60, math.ceil(task["expectedTaskMs"] * 2 / 1000 + 30))
+                else:
+                    start, end = task["opponentStart"], task["opponentEnd"]
+                    semantic = {"row": partition["descriptorHash"],
+                        "opponentStart": start, "opponentEnd": end}
+                    stage, operation, timeout = "admission-row-score", "admission-score", 120
+                    artifact = f"{partition['root']}/{partition['descriptorHash']}/row-{start}-{end}.json"
+                    metadata = {"operation": operation, "transitionPath": partition["transitionPath"],
+                        "taskIndex": task["taskIndex"]}
+                task_id = _strategy_search_dynamic_id(partition["evidenceId"], stage, semantic)
+                if any(job["taskId"] == task_id for job in state["jobs"]):
+                    continue
+                _strategy_search_append_dynamic(state, evidence_id=partition["evidenceId"],
+                    kingdom_id=partition["kingdomId"], stage=stage, cpus=4, memory_mib=8192,
+                    timeout_seconds=timeout, dependencies=[partition["parentTaskId"]],
+                    artifact_path=artifact, semantic=semantic, metadata=metadata,
+                    range_value={"start": start, "end": end})
+                unlaunched += 1
+                changed = True
+                added = True
+                break
+        if not added:
+            break
+    for partition in entries:
+        if partition["reducerCreated"]:
+            continue
+        score_ids = []
+        for task in partition["tasks"]:
+            if partition["kind"] == "score":
+                semantic = {"look": partition["descriptorHash"],
+                    "candidateStart": task["candidateStart"], "candidateEnd": task["candidateEnd"]}
+                stage = "psro-score"
+            else:
+                semantic = {"row": partition["descriptorHash"],
+                    "opponentStart": task["opponentStart"], "opponentEnd": task["opponentEnd"]}
+                stage = "admission-row-score"
+            score_ids.append(_strategy_search_dynamic_id(partition["evidenceId"], stage, semantic))
+        if not all(any(job["taskId"] == task_id for job in state["jobs"]) for task_id in score_ids):
+            continue
+        if partition["kind"] == "score":
+            semantic = {"reduceLook": partition["descriptorHash"]}
+            operation = "reduce-score"
+        else:
+            semantic = {"reduceRow": partition["descriptorHash"]}
+            operation = "admission-reduce"
+        _strategy_search_append_dynamic(state, evidence_id=partition["evidenceId"],
+            kingdom_id=partition["kingdomId"], stage="psro-decision", cpus=1, memory_mib=4096,
+            timeout_seconds=120, dependencies=score_ids,
+            artifact_path=f"{partition['root']}/{partition['descriptorHash']}/transition.json",
+            semantic=semantic, metadata={"operation": operation,
+                "transitionPath": partition["transitionPath"]})
+        partition["reducerCreated"] = True
+        changed = True
+    return changed
+
+
 def _strategy_search_expand_transition(state: dict[str, Any], job: dict[str, Any]) -> bool:
     if job["stage"] != "psro-decision" or job.get("expanded") or job.get("status") != "complete":
         return False
@@ -2154,41 +2233,19 @@ def _strategy_search_expand_transition(state: dict[str, Any], job: dict[str, Any
             f"{transition.get('checkpoint', {}).get('stopReason', 'unknown reason')}")
     if transition["kind"] == "score":
         descriptor_hash = transition["look"]["descriptorHash"]
-        score_ids = []
-        for score_task in transition["tasks"]:
-            start, end = score_task["candidateStart"], score_task["candidateEnd"]
-            semantic = {"look": descriptor_hash, "candidateStart": start, "candidateEnd": end}
-            task_id = _strategy_search_append_dynamic(state, evidence_id=evidence_id, kingdom_id=kingdom_id,
-                stage="psro-score", cpus=4, memory_mib=8192,
-                timeout_seconds=max(60, math.ceil(score_task["expectedTaskMs"] * 2 / 1000 + 30)),
-                dependencies=[job["taskId"]], artifact_path=f"{root}/{descriptor_hash}/score-{start}-{end}.json",
-                semantic=semantic, metadata={"operation": "score", "transitionPath": transition_path,
-                    "scoreTask": score_task,
-                    "scoreBlocks": transition["look"]["scheduleEnd"] - transition["look"]["scheduleStart"]},
-                range_value={"start": start, "end": end})
-            score_ids.append(task_id)
-        _strategy_search_append_dynamic(state, evidence_id=evidence_id, kingdom_id=kingdom_id,
-            stage="psro-decision", cpus=1, memory_mib=4096, timeout_seconds=120,
-            dependencies=score_ids, artifact_path=f"{root}/{descriptor_hash}/transition.json",
-            semantic={"reduceLook": descriptor_hash}, metadata={"operation": "reduce-score",
-                "transitionPath": transition_path})
+        state.setdefault("dynamicScorePartitions", {})[descriptor_hash] = {
+            "kind": "score", "evidenceId": evidence_id, "kingdomId": kingdom_id,
+            "parentTaskId": job["taskId"], "transitionPath": transition_path,
+            "root": root, "descriptorHash": descriptor_hash,
+            "scoreBlocks": transition["look"]["scheduleEnd"] - transition["look"]["scheduleStart"],
+            "tasks": transition["tasks"], "reducerCreated": False}
     elif transition["kind"] == "admission-row":
         row_hash = transition["row"]["descriptorHash"]
-        score_ids = []
-        for row_task in transition["row"]["tasks"]:
-            start, end = row_task["opponentStart"], row_task["opponentEnd"]
-            semantic = {"row": row_hash, "opponentStart": start, "opponentEnd": end}
-            task_id = _strategy_search_append_dynamic(state, evidence_id=evidence_id, kingdom_id=kingdom_id,
-                stage="admission-row-score", cpus=4, memory_mib=8192, timeout_seconds=120,
-                dependencies=[job["taskId"]], artifact_path=f"{root}/{row_hash}/row-{start}-{end}.json",
-                semantic=semantic, metadata={"operation": "admission-score", "transitionPath": transition_path,
-                    "taskIndex": row_task["taskIndex"]}, range_value={"start": start, "end": end})
-            score_ids.append(task_id)
-        _strategy_search_append_dynamic(state, evidence_id=evidence_id, kingdom_id=kingdom_id,
-            stage="psro-decision", cpus=1, memory_mib=4096, timeout_seconds=120,
-            dependencies=score_ids, artifact_path=f"{root}/{row_hash}/transition.json",
-            semantic={"reduceRow": row_hash}, metadata={"operation": "admission-reduce",
-                "transitionPath": transition_path})
+        state.setdefault("dynamicScorePartitions", {})[row_hash] = {
+            "kind": "admission-row", "evidenceId": evidence_id, "kingdomId": kingdom_id,
+            "parentTaskId": job["taskId"], "transitionPath": transition_path,
+            "root": root, "descriptorHash": row_hash,
+            "tasks": transition["row"]["tasks"], "reducerCreated": False}
     else:
         _strategy_search_append_dynamic(state, evidence_id=evidence_id, kingdom_id=kingdom_id,
             stage="psro-reduce", cpus=1, memory_mib=8192, timeout_seconds=180,
@@ -2272,7 +2329,13 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     last_saved_ms = int(time.time() * 1000)
     while True:
         now_ms = int(time.time() * 1000)
-        if _strategy_search_materialize_goldfish(state, bundle):
+        recovered_transitions = [_strategy_search_expand_transition(state, job)
+            for job in list(state["jobs"]) if job["stage"] == "psro-decision"
+            and job.get("status") == "complete" and not job.get("expanded")]
+        materialized = any(recovered_transitions)
+        materialized = _strategy_search_materialize_goldfish(state, bundle) or materialized
+        materialized = _strategy_search_materialize_adaptive(state, bundle) or materialized
+        if materialized:
             state = strategy_search_publisher.remote({"operation": "execution-save",
                 "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
                 "ownerId": owner_id, "nowMs": now_ms, "leaseMs": 120000, "state": state})

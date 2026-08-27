@@ -15,8 +15,7 @@ import type { StrategySearchPsroLook } from './strategySearchPsro';
 import {
   CONFIRMATION_FAMILY_ALPHA, CONFIRMATION_LOOKS, PSRO_MATRIX_BLOCKS, RESPONSE_THRESHOLD,
   SCREEN_ALPHA, SCREEN_DEPTHS, assembleRawPsroLook, createRawPsroLookArtifact, orderConfirmedQueue,
-  rawScoreRows, scheduleSlice, thresholdRacingSeedLabel, validateRawPsroScoreChunk,
-  validateThresholdRacingProtocol, weightedFairSchedule
+  scheduleSlice, thresholdRacingSeedLabel, validateThresholdRacingProtocol, weightedFairSchedule
 } from './thresholdRacingPsro';
 import type {
   ConfirmationDecision, QueueOrder, RawPsroScoreChunk, ThresholdDecision, ThresholdRacingProtocol
@@ -161,7 +160,7 @@ function lookDescriptor(checkpoint: ParallelPsroSemanticCheckpoint): ParallelPsr
 }
 export function partitionParallelPsroLook(look: ParallelPsroLookDescriptor, input: {
   targetTaskMs?: number; measuredCandidateBlocksPerSecond?: number } = {}): ParallelPsroScoreTaskDescriptor[] {
-  const targetMs = input.targetTaskMs ?? 20_000, rate = input.measuredCandidateBlocksPerSecond ?? 4_134;
+  const targetMs = input.targetTaskMs ?? 20_000, rate = input.measuredCandidateBlocksPerSecond ?? 1_653;
   if (targetMs < 15_000 || targetMs > 60_000 || !(rate > 0)) throw new Error('PSRO score-task sizing is invalid.');
   const blocks = look.scheduleEnd - look.scheduleStart;
   const totalMs = look.candidateIds.length * blocks / rate * 1000;

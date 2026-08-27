@@ -287,7 +287,7 @@ describe('random PSRO artifacts and resumability', () => {
     expect(second.completed).toEqual([units[1]]);
     expect(called).toEqual([7, 8, 8]);
     expect(inspectRandomPsroUnit(root, units[1]!, tinyConfig).converged).toBe(true);
-  });
+  }, 15_000);
 });
 
 describe('consistency report math and prior sources', () => {

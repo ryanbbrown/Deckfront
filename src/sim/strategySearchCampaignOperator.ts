@@ -60,7 +60,6 @@ export function createStrategySearchLaunchBundle(parsed: ParsedStrategySearchReq
     initialGoldfishByKingdom.push(one.jobs.map((range, index) => job({ taskId: oneIds[index]!,
       evidenceId: kingdom.evidenceId, kingdomId: kingdom.kingdomId, stage: 'goldfish-one', range,
       cpus: policy.goldfishJobCpus, dependencyTaskIds: [] })));
-    const reduceOneId = taskIdentity(kingdom.evidenceId, 'goldfish-one-reduce', null);
     const reduceTwoId = taskIdentity(kingdom.evidenceId, 'goldfish-two-reduce', null);
     const manifestId = taskIdentity(kingdom.evidenceId, 'matrix-manifest', null);
     add(job({ taskId: manifestId, evidenceId: kingdom.evidenceId, kingdomId: kingdom.kingdomId,

@@ -7,8 +7,8 @@ import { matrixProtocol } from '../../src/sim/payoffMatrix';
 import { fixedBuyPlan, identify } from '../../src/sim/strategy';
 import { canonicalStrategy } from '../../src/sim/strategy';
 import {
-  createParallelAdmissionRowChunk, createParallelPsroCheckpoint, reduceParallelAdmissionRow,
-  reduceParallelPsroLook, startParallelPsro
+  createParallelAdmissionRowChunk, createParallelPsroCheckpoint, partitionParallelPsroLook,
+  reduceParallelAdmissionRow, reduceParallelPsroLook, startParallelPsro
 } from '../../src/sim/strategySearchParallelPsro';
 import type {
   ParallelPsroLookDescriptor, ParallelPsroSemanticCheckpoint, ParallelPsroTransition
@@ -65,6 +65,18 @@ function finishRace(transition: ParallelPsroTransition, value: number): Parallel
 }
 
 describe('parallel PSRO production transition', () => {
+  it('sizes the full first screen into useful four-core score tasks', () => {
+    const transition = asScore(initial());
+    const look = { ...transition.look,
+      candidateIds: Array.from({ length: 20_000 }, (_unused, index) => `candidate-${index}`),
+      candidateCanonicals: Array.from({ length: 20_000 }, (_unused, index) => `canonical-${index}`) };
+    const tasks = partitionParallelPsroLook(look);
+    expect(tasks.length).toBeGreaterThan(2);
+    expect(tasks.every((task) => task.expectedTaskMs >= 15_000 && task.expectedTaskMs <= 60_000)).toBe(true);
+    expect(tasks[0]!.candidateStart).toBe(0);
+    expect(tasks.at(-1)!.candidateEnd).toBe(20_000);
+  });
+
   it('preserves candidate-major score order across shuffled chunks and finishes after two clean searches', () => {
     const complete = finishRace(initial(), 0);
     expect(complete.kind).toBe('complete');
