@@ -1,6 +1,8 @@
+> Archived: replaced by `.plans/74-scalable-strategy-search-runtime.md`. Do not use this document for current decisions.
+
 # Thirty-kingdom strategy-search campaign
 
-Status: ready for implementation. This plan does not authorize a paid Modal smoke or full campaign launch.
+Status: archived. This plan does not authorize a paid Modal smoke or full campaign launch.
 
 ## Goal
 
