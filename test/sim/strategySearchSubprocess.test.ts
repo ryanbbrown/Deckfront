@@ -77,6 +77,7 @@ describe('deployment-only strategy-search subprocess bootstrap', () => {
   it('validates a PSRO receipt against the current sealed look through the deployment wrapper', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-psro-receipt-'));
     try {
+      strategySearchKingdom(kingdomId);
       const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
       const candidates = Array.from({ length: 52 }, (_unused, index) => {
         const strategy = space.candidateAt(candidateIndexAt(index, space.candidateCount));
@@ -108,7 +109,9 @@ describe('deployment-only strategy-search subprocess bootstrap', () => {
           matches: transition.look.suffixSchedule.blocks.length * 2, telemetry: emptyAggregate() })) });
       const transitionFile = path.join(root, 'transition.json'), taskFile = path.join(root, 'task.json'),
         chunkFile = path.join(root, 'chunk.json'), output = path.join(root, 'validation.json');
-      fs.writeFileSync(transitionFile, JSON.stringify(transition)); fs.writeFileSync(taskFile, JSON.stringify(task));
+      fs.writeFileSync(transitionFile, JSON.stringify(transition));
+      fs.writeFileSync(taskFile, JSON.stringify({ candidateEnd: task.candidateEnd,
+        candidateStart: task.candidateStart, expectedTaskMs: task.expectedTaskMs, taskIndex: task.taskIndex }));
       fs.writeFileSync(chunkFile, JSON.stringify(chunk));
       const args = ['--out', output, '--transition', transitionFile, '--task', taskFile, '--chunk', chunkFile];
       const valid = execute('psro-score-receipt-validator', args);

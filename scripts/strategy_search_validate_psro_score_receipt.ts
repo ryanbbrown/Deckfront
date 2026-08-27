@@ -32,8 +32,12 @@ let valid = false;
 if (transition.kind === 'score' && validateParallelPsroCheckpoint(transition.checkpoint)) {
   const expected = startParallelPsro(transition.checkpoint);
   const expectedTask = expected.kind === 'score' ? expected.tasks[task.taskIndex] : undefined;
+  const taskKeys = ['candidateEnd', 'candidateStart', 'expectedTaskMs', 'taskIndex'];
+  const taskValid = expectedTask !== undefined && exact(Object.keys(task).sort(), taskKeys)
+    && task.taskIndex === expectedTask.taskIndex && task.candidateStart === expectedTask.candidateStart
+    && task.candidateEnd === expectedTask.candidateEnd && task.expectedTaskMs === expectedTask.expectedTaskMs;
   const look = transition.look;
-  valid = expected.kind === 'score' && exact(expected.look, look) && exact(expectedTask, task)
+  valid = expected.kind === 'score' && exact(expected.look, look) && taskValid
     && validateRawPsroScoreChunk(chunk, transition.checkpoint.protocol)
     && chunk.protocolHash === thresholdRacingProtocolHash(transition.checkpoint.protocol)
     && chunk.sourceHash === transition.checkpoint.protocol.sourceIdentityHash
