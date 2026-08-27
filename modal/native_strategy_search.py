@@ -982,8 +982,9 @@ def competitive_controller(config: dict[str, Any]) -> dict[str, Any]:
         config["candidate_count"], config["schedule_count"],
         {"schemaVersion": 1, "runId": config["run_id"], "lookId": config["look_id"],
          "inputHash": config["input_hash"], "candidateCount": config["candidate_count"],
-         "scheduleCount": config["schedule_count"],
-         "scorerVersion": COMPETITIVE_SCORER_VERSION})
+         "scheduleCount": config["schedule_count"], "buildVersion": config["build_version"],
+         "ruleFingerprint": config["rule_fingerprint"], "requestedCpu": config["cpu"],
+         "threads": config["threads"], "scorerVersion": COMPETITIVE_SCORER_VERSION})
     manifest = {"schemaVersion": 1, "status": "success", "runId": config["run_id"],
         "lookId": config["look_id"], "inputHash": config["input_hash"],
         "candidateCount": config["candidate_count"], "scheduleCount": config["schedule_count"],
@@ -1185,19 +1186,10 @@ def launch(
     print(f"detached {mode} call: {call.object_id}")
 
 
-@app.local_entrypoint()
-def launch_competitive(
-    input_file: str,
-    build_version: str,
-    cpu: int = 4,
-    memory_gib: int = 4,
-    threads: int = 4,
-    max_containers: int = 16,
-    timeout_seconds: int = 180,
-    max_cost_usd: float = COMPETITIVE_RUN_CAP_USD,
-    target_blocks: int = COMPETITIVE_TARGET_BLOCKS,
-) -> None:
-    content = pathlib.Path(input_file).read_text()
+def _competitive_launch_data(
+    content: str, build_version: str, cpu: int, memory_gib: int, threads: int,
+    max_containers: int, timeout_seconds: int, max_cost_usd: float, target_blocks: int
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], str]:
     value = validate_competitive_input(json.loads(content))
     payload = value["loadRequest"]["payload"]
     if payload["threads"] != threads or payload["cpuRequest"] != cpu:
@@ -1216,19 +1208,107 @@ def launch_competitive(
     identity = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()[:20]
     run_id = f"competitive-{build_version[:12]}-{identity}"
     config["run_id"] = run_id
+    return value, limits, config, run_id
+
+
+def _stage_competitive_input(content: str, value: dict[str, Any], run_id: str) -> None:
+    staged = stage_competitive_input.remote(run_id, content, value["inputHash"])
+    if staged["candidateCount"] != value["candidateCount"] \
+            or staged["scheduleCount"] != len(value["schedule"]):
+        raise RuntimeError("staged competitive input returned the wrong dimensions")
+
+
+def _competitive_controller_call(config: dict[str, Any], entry: dict[str, Any]) -> Any:
+    call_id = entry.get("controllerCallId")
+    if call_id and entry.get("status") in {"launched", "complete"}:
+        return modal.FunctionCall.from_id(call_id)
+    if not claim_controller(config["run_id"], config["controller_timeout"]):
+        raise RuntimeError("competitive controller is launching without a recorded call; retry this command")
+    call = competitive_controller.with_options(
+        timeout=config["controller_timeout"], retries=0).spawn(config)
+    record_controller_call(config["run_id"], call.object_id)
+    return call
+
+
+def _download_competitive_artifact(remote_path: str, output_file: pathlib.Path) -> None:
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile("wb", dir=output_file.parent, delete=False) as held:
+        for chunk in volume.read_file(remote_path):
+            held.write(chunk)
+        held.flush()
+        os.fsync(held.fileno())
+        temporary = pathlib.Path(held.name)
+    os.replace(temporary, output_file)
+
+
+@app.local_entrypoint()
+def launch_competitive(
+    input_file: str,
+    build_version: str,
+    cpu: int = 4,
+    memory_gib: int = 4,
+    threads: int = 4,
+    max_containers: int = 16,
+    timeout_seconds: int = 180,
+    max_cost_usd: float = COMPETITIVE_RUN_CAP_USD,
+    target_blocks: int = COMPETITIVE_TARGET_BLOCKS,
+) -> None:
+    content = pathlib.Path(input_file).read_text()
+    value, limits, config, run_id = _competitive_launch_data(content, build_version, cpu,
+        memory_gib, threads, max_containers, timeout_seconds, max_cost_usd, target_blocks)
     entry = reserve_cost(run_id, limits["projected"], False, config)
     print(json.dumps({"runId": run_id, "worstCaseCostUsd": limits["projected"],
         "reservation": entry,
         "resultLocation": f"hexdeck-native-strategy-results:/{run_id}/looks/{value['lookId']}/manifest.json"},
         indent=2))
-    staged = stage_competitive_input.remote(run_id, content, value["inputHash"])
-    if staged["candidateCount"] != value["candidateCount"] \
-            or staged["scheduleCount"] != len(value["schedule"]):
-        raise RuntimeError("staged competitive input returned the wrong dimensions")
-    if not claim_controller(run_id, config["controller_timeout"]):
-        print(f"controller already owns run {run_id}; no duplicate was launched")
-        return
-    call = competitive_controller.with_options(
-        timeout=config["controller_timeout"], retries=0).spawn(config)
-    record_controller_call(run_id, call.object_id)
+    _stage_competitive_input(content, value, run_id)
+    call = _competitive_controller_call(config, entry)
     print(f"detached competitive PSRO call: {call.object_id}")
+
+
+@app.local_entrypoint()
+def run_competitive(
+    input_file: str,
+    output_file: str,
+    build_version: str,
+    cpu: int = 4,
+    memory_gib: int = 4,
+    threads: int = 4,
+    max_containers: int = 16,
+    timeout_seconds: int = 180,
+    max_cost_usd: float = COMPETITIVE_RUN_CAP_USD,
+    target_blocks: int = COMPETITIVE_TARGET_BLOCKS,
+) -> None:
+    content = pathlib.Path(input_file).read_text()
+    value, limits, config, run_id = _competitive_launch_data(content, build_version, cpu,
+        memory_gib, threads, max_containers, timeout_seconds, max_cost_usd, target_blocks)
+    entry = reserve_cost(run_id, limits["projected"], False, config)
+    print(json.dumps({"runId": run_id, "worstCaseCostUsd": limits["projected"],
+        "reservation": entry}, indent=2))
+    _stage_competitive_input(content, value, run_id)
+    call = _competitive_controller_call(config, entry)
+    try:
+        manifest = call.get(timeout=config["controller_timeout"] + 60)
+    except ModalTimeoutError as error:
+        raise RuntimeError(f"competitive controller {call.object_id} is still running; rerun to resume") from error
+    except Exception:
+        update_run_status(run_id, "reserved")
+        raise
+    if manifest.get("status") != "success" or manifest.get("runId") != run_id \
+            or manifest.get("lookId") != value["lookId"] \
+            or manifest.get("inputHash") != value["inputHash"] \
+            or manifest.get("candidateCount") != value["candidateCount"] \
+            or manifest.get("scheduleCount") != len(value["schedule"]):
+        update_run_status(run_id, "reserved")
+        raise RuntimeError("competitive controller returned an invalid manifest")
+    remote_path = f"{run_id}/looks/{value['lookId']}/complete.hps"
+    local_path = pathlib.Path(output_file)
+    _download_competitive_artifact(remote_path, local_path)
+    header, _, _ = _read_competitive_artifact(local_path)
+    if header["digest"] != manifest["completeDigest"] or header["inputHash"] != value["inputHash"]:
+        local_path.unlink(missing_ok=True)
+        update_run_status(run_id, "reserved")
+        raise RuntimeError("downloaded competitive artifact failed manifest validation")
+    update_run_status(run_id, "complete")
+    print(json.dumps({"runId": run_id, "completeDigest": header["digest"],
+        "outputFile": str(local_path)}, indent=2))

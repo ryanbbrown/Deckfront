@@ -42,6 +42,7 @@
     "successive-halving:double-oracle-pilot": "tsx scripts/successive_halving_double_oracle_pilot.ts",
     "psro:worker-benchmark": "tsx scripts/benchmark_psro_workers.ts",
     "psro:competitive-benchmark": "tsx scripts/benchmark_competitive_kernel.ts",
+    "psro:modal-digest-smoke": "npm run goldfish:native-build --silent && tsx scripts/competitive_modal_digest_smoke.ts",
     "goldfish:native-metadata": "tsx scripts/native_goldfish_metadata.ts",
     "goldfish:native-kingdom-write": "tsx scripts/write_native_kingdom.ts",
     "goldfish:native-kingdom-check": "tsx scripts/write_native_kingdom.ts --check",

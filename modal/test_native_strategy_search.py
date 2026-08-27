@@ -179,6 +179,38 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                 cpu=4, memory_gib=4, threads=4, max_containers=16, timeout_seconds=180,
                 max_cost_usd=2.01)
 
+    def test_competitive_launch_identity_is_stable_for_restart(self):
+        value = {"schemaVersion": 1, "candidateCount": 1, "lookId": "screen-8",
+            "loadRequest": {"type": "load_competitive", "payload": {
+                "protocolVersion": 1, "scorerVersion": launcher.COMPETITIVE_SCORER_VERSION,
+                "startingDraftEnabled": False, "strategies": [{"id": "candidate"}],
+                "threads": 4, "cpuRequest": 4, "ruleFingerprint": "rules"}},
+            "schedule": [{"seed": 1, "opponentIndex": 0}]}
+        value["inputHash"] = launcher._competitive_input_hash(value)
+        content = json.dumps(value)
+        first = launcher._competitive_launch_data(content, "build", 4, 4, 4, 16, 180, 2, 65_536)
+        second = launcher._competitive_launch_data(content, "build", 4, 4, 4, 16, 180, 2, 65_536)
+        self.assertEqual(first[2:], second[2:])
+        self.assertTrue(first[3].startswith("competitive-build-"))
+
+    def test_competitive_controller_resume_attaches_to_the_recorded_call(self):
+        expected = object()
+        entry = {"status": "launched", "controllerCallId": "fc-existing"}
+        with patch.object(launcher.modal.FunctionCall, "from_id", return_value=expected) as attach, \
+                patch.object(launcher, "claim_controller") as claim:
+            held = launcher._competitive_controller_call(
+                {"run_id": "run", "controller_timeout": 60}, entry)
+        self.assertIs(held, expected)
+        attach.assert_called_once_with("fc-existing")
+        claim.assert_not_called()
+
+    def test_competitive_download_replaces_output_atomically(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory) / "nested" / "complete.hps"
+            with patch.object(launcher.volume, "read_file", return_value=iter([b"HPS1", b"payload"])):
+                launcher._download_competitive_artifact("remote/complete.hps", output)
+            self.assertEqual(output.read_bytes(), b"HPS1payload")
+
     def test_product_controller_reloads_remote_stage_commits_before_each_merge(self):
         class SnapshotVolume:
             remote_version = 0

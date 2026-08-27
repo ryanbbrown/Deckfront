@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -15,6 +16,7 @@ import { validateInitialMatrixChunk } from '../src/sim/initialMatrixCalibration'
 import type { InitialMatrixChunk, InitialMatrixManifest } from '../src/sim/initialMatrixCalibration';
 import { evaluateCandidates } from '../src/sim/mixtureEvaluation';
 import type { CandidateEvaluation, MixtureSchedule } from '../src/sim/mixtureEvaluation';
+import { ModalCompetitiveEvaluator } from '../src/sim/modalCompetitiveEvaluator';
 import type { OrderedProductReservoirArtifact } from '../src/sim/orderedGoldfishProduct';
 import { matrixProtocol, payoffMatrixPairKey, PayoffMatrix } from '../src/sim/payoffMatrix';
 import type { MatrixCell, MatrixSnapshot } from '../src/sim/payoffMatrix';
@@ -189,14 +191,21 @@ interface ParsedOptions {
   out: string | null;
   workers: number;
   runId: 1 | 2 | 3 | null;
+  execution: 'local' | 'modal';
+}
+
+interface EvaluationOptions {
+  kingdomId: string;
+  turnLimitPerPlayer: number;
+  actionCapPerTurn: number;
+  startingDraftEnabled: boolean;
+  scoreOnly: true;
+  lookId: string;
 }
 
 type Evaluate = (
   candidates: readonly Strategy[], opponents: ReadonlyMap<string, Strategy>, schedule: MixtureSchedule,
-  runner: PairingRunner, options: {
-    kingdomId: string; turnLimitPerPlayer: number; actionCapPerTurn: number;
-    startingDraftEnabled: boolean; scoreOnly: true;
-  }
+  runner: PairingRunner, options: EvaluationOptions
 ) => Promise<CandidateEvaluation[]>;
 
 function exact(left: unknown, right: unknown): boolean { return JSON.stringify(left) === JSON.stringify(right); }
@@ -316,6 +325,7 @@ async function evaluateField(input: {
   runner: PairingRunner;
   evaluate: Evaluate;
   chunkSize: number;
+  lookId: string;
 }): Promise<{ rows: CandidateEvaluation[]; games: number; elapsedMs: number; telemetry: TelemetryAggregate }> {
   const rows: CandidateEvaluation[] = [];
   const telemetry = emptyAggregate();
@@ -326,7 +336,7 @@ async function evaluateField(input: {
     const started = performance.now();
     const evaluated = await input.evaluate(field.map((entry) => entry.strategy), input.opponents,
       input.schedule, input.runner, { kingdomId: input.kingdomId, turnLimitPerPlayer: 30,
-        actionCapPerTurn: 200, startingDraftEnabled: false, scoreOnly: true });
+        actionCapPerTurn: 200, startingDraftEnabled: false, scoreOnly: true, lookId: input.lookId });
     elapsedMs += performance.now() - started;
     if (evaluated.length !== field.length) throw new Error('Candidate evaluation returned an incomplete field.');
     for (let index = 0; index < evaluated.length; index += 1) {
@@ -351,6 +361,7 @@ export async function runThresholdRace(input: {
   evaluate?: Evaluate;
   confidence?: ConfidenceRunner;
   chunkSize?: number;
+  lookIdPrefix?: string;
 }): Promise<ThresholdRaceResult> {
   const depths = input.depths ?? SCREEN_DEPTHS;
   if (!depths.length || depths[0] !== 8 || depths.some((depth, index) => index > 0 && depth !== depths[index - 1]! * 2)
@@ -367,7 +378,8 @@ export async function runThresholdRace(input: {
     if (!active.length) break;
     const evaluated = await evaluateField({ candidates: active, opponents: input.opponents,
       schedule: scheduleSlice(input.schedule, previous, depth), kingdomId: input.kingdomId,
-      runner: input.runner, evaluate, chunkSize: input.chunkSize ?? EVALUATION_CHUNK });
+      runner: input.runner, evaluate, chunkSize: input.chunkSize ?? EVALUATION_CHUNK,
+      lookId: `${input.lookIdPrefix ?? 'threshold'}.blocks-${depth}` });
     games += evaluated.games; elapsedMs += evaluated.elapsedMs; mergeAggregate(telemetry, evaluated.telemetry);
     for (const row of evaluated.rows) scores.get(row.strategy.id)!.push(...row.blockScores);
     const intervals = await confidence.run(evaluated.rows.map((row) => ({
@@ -400,6 +412,7 @@ export async function runConfirmationRace(input: {
   evaluate?: Evaluate;
   confidence?: ConfidenceRunner;
   chunkSize?: number;
+  lookIdPrefix?: string;
 }): Promise<ConfirmationRaceResult> {
   if (!input.candidates.length) throw new Error('Confirmation needs a non-empty family.');
   const looksInput = input.looks ?? CONFIRMATION_LOOKS;
@@ -421,7 +434,8 @@ export async function runConfirmationRace(input: {
     if (!active.length) break;
     const evaluated = await evaluateField({ candidates: active, opponents: input.opponents,
       schedule: scheduleSlice(input.schedule, previous, blocks), kingdomId: input.kingdomId,
-      runner: input.runner, evaluate, chunkSize: input.chunkSize ?? EVALUATION_CHUNK });
+      runner: input.runner, evaluate, chunkSize: input.chunkSize ?? EVALUATION_CHUNK,
+      lookId: `${input.lookIdPrefix ?? 'confirmation'}.blocks-${blocks}` });
     games += evaluated.games; elapsedMs += evaluated.elapsedMs; mergeAggregate(telemetry, evaluated.telemetry);
     for (const row of evaluated.rows) scores.get(row.strategy.id)!.push(...row.blockScores);
     const intervals = await confidence.run(evaluated.rows.map((row) => ({
@@ -697,7 +711,8 @@ async function admit(checkpoint: Checkpoint, source: Source, runner: PairingRunn
   addPhase(checkpoint, 'matrix', games, elapsedMs, matrix.telemetry, equilibriumElapsedMs);
 }
 
-async function runPilot(root: string, source: Source, workers: number, runId: 1 | 2 | 3): Promise<Checkpoint> {
+async function runPilot(root: string, source: Source, workers: number, runId: 1 | 2 | 3,
+  execution: 'local' | 'modal'): Promise<Checkpoint> {
   const file = checkpointFile(root, runId);
   let checkpoint: Checkpoint;
   if (fs.existsSync(file)) {
@@ -714,14 +729,24 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
   const confidence: ConfidenceRunner = workers === 1 ? new InlineConfidenceRunner()
     : new WorkerConfidenceRunner(workers,
       new URL('../src/server/confidenceWorker.ts', import.meta.url), ['--import', 'tsx']);
-  const nativeScorer = new RustGoldfishScorer(workers);
+  const competitiveConfig = { kingdomId: PILOT_KINGDOM, turnLimitPerPlayer: 30,
+    actionCapPerTurn: 200, startingDraftEnabled: false };
+  const residentStrategies = source.reservoir.entries.map((entry) => entry.strategy);
+  const nativeScorer = execution === 'local' ? new RustGoldfishScorer(workers) : null;
   try {
-    const nativeEvaluator = await RustCompetitiveEvaluator.create(nativeScorer, kingdom,
-      source.reservoir.entries.map((entry) => entry.strategy), {
-        kingdomId: PILOT_KINGDOM, turnLimitPerPlayer: 30, actionCapPerTurn: 200,
-        startingDraftEnabled: false
-      }, workers);
-    const evaluate = nativeEvaluator.evaluate.bind(nativeEvaluator);
+    let evaluate: Evaluate;
+    if (nativeScorer) {
+      const nativeEvaluator = await RustCompetitiveEvaluator.create(nativeScorer, kingdom,
+        residentStrategies, competitiveConfig, workers);
+      evaluate = nativeEvaluator.evaluate.bind(nativeEvaluator);
+    } else {
+      const buildVersion = process.env.HEXDECK_BUILD_VERSION
+        ?? execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+      const modalEvaluator = new ModalCompetitiveEvaluator(kingdom, residentStrategies,
+        competitiveConfig, path.join(runRoot(root, runId), 'modal'), buildVersion);
+      evaluate = modalEvaluator.evaluate.bind(modalEvaluator);
+    }
+    const chunkSize = execution === 'modal' ? Number.MAX_SAFE_INTEGER : EVALUATION_CHUNK;
     while (checkpoint.status === 'running') {
       if (checkpoint.phase === 'ready' && checkpoint.queue.length) {
         const lottery = positiveLottery(checkpoint.matrix, checkpoint.equilibrium);
@@ -730,7 +755,8 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
           CONFIRMATION_LOOKS.at(-1)!, lottery.weights);
         const confirmation = await runConfirmationRace({ candidates: candidates(source,
           checkpoint.queue.map((entry) => entry.strategyId)), opponents: lottery.opponents, schedule,
-        kingdomId: PILOT_KINGDOM, runner, confidence, evaluate });
+          kingdomId: PILOT_KINGDOM, runner, confidence, evaluate, chunkSize,
+          lookIdPrefix: `run-${runId}.queue-retest-${retest}.confirmation` });
         addPhase(checkpoint, 'confirmation', confirmation.games, confirmation.elapsedMs, confirmation.telemetry);
         const report: QueueRetestReport = { retest, cycle: checkpoint.admissions.length + 1,
           matrixSize: checkpoint.matrix.strategies.length, lotteryHash: lottery.lotteryHash,
@@ -750,7 +776,8 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
         }
         const schedule = scheduleFor(checkpoint, `scan:${scan}:screen`, SCREEN_DEPTHS.at(-1)!, lottery.weights);
         const screen = await runThresholdRace({ candidates: inactive, opponents: lottery.opponents,
-          schedule, kingdomId: PILOT_KINGDOM, runner, confidence, evaluate });
+          schedule, kingdomId: PILOT_KINGDOM, runner, confidence, evaluate, chunkSize,
+          lookIdPrefix: `run-${runId}.scan-${scan}.screen` });
         addPhase(checkpoint, 'screening', screen.games, screen.elapsedMs, screen.telemetry);
         const base: ScanBase = { scan, cycle: checkpoint.admissions.length + 1,
           matrixSize: checkpoint.matrix.strategies.length, inactiveCandidates: inactive.length,
@@ -774,7 +801,8 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
           CONFIRMATION_LOOKS.at(-1)!, lottery.weights);
         const confirmation = await runConfirmationRace({ candidates: candidates(source,
           base.screen.provisional.map((entry) => entry.strategyId)), opponents: lottery.opponents,
-        schedule, kingdomId: PILOT_KINGDOM, runner, confidence, evaluate });
+          schedule, kingdomId: PILOT_KINGDOM, runner, confidence, evaluate, chunkSize,
+          lookIdPrefix: `run-${runId}.scan-${base.scan}.confirmation` });
         addPhase(checkpoint, 'confirmation', confirmation.games, confirmation.elapsedMs, confirmation.telemetry);
         checkpoint.pending = { kind: 'scan-confirmed', base, confirmation }; checkpoint.phase = 'confirmed';
         checkpoint = saveCheckpoint(root, checkpoint); continue;
@@ -811,7 +839,9 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
       throw new Error(`Invalid checkpoint phase ${checkpoint.phase}.`);
     }
     return checkpoint;
-  } finally { await Promise.all([runner.close(), confidence.close(), nativeScorer.close()]); }
+  } finally {
+    await Promise.all([runner.close(), confidence.close(), ...(nativeScorer ? [nativeScorer.close()] : [])]);
+  }
 }
 
 export function parseOptions(args: readonly string[]): ParsedOptions {
@@ -823,7 +853,7 @@ export function parseOptions(args: readonly string[]): ParsedOptions {
     if (index < 0 || !held || held.startsWith('--')) throw new Error(`${name} needs a value.`);
     return held;
   };
-  const valueFlags = mode === '--run' ? ['--inputs', '--out', '--workers', '--run-id']
+  const valueFlags = mode === '--run' ? ['--inputs', '--out', '--workers', '--run-id', '--execution']
     : mode === '--validate-inputs' ? ['--inputs'] : ['--out', '--run-id'];
   const allowed = new Set([mode, ...valueFlags]);
   for (let index = 0; index < args.length; index += 1) {
@@ -832,6 +862,10 @@ export function parseOptions(args: readonly string[]): ParsedOptions {
   }
   const workers = mode === '--run' && args.includes('--workers') ? Number(value('--workers')) : 4;
   if (!Number.isSafeInteger(workers) || workers < 1 || workers > 192) throw new Error('Invalid worker count.');
+  const execution = mode === '--run' && args.includes('--execution') ? value('--execution') : 'local';
+  if (execution !== 'local' && execution !== 'modal') {
+    throw new Error('Execution must be local or modal.');
+  }
   const needsRunId = mode !== '--validate-inputs';
   const rawRunId = needsRunId ? Number(value('--run-id')) : null;
   if (rawRunId !== null && rawRunId !== 1 && rawRunId !== 2 && rawRunId !== 3) {
@@ -839,7 +873,7 @@ export function parseOptions(args: readonly string[]): ParsedOptions {
   }
   return { mode, inputs: mode === '--run' || mode === '--validate-inputs' ? path.resolve(value('--inputs')) : null,
     out: mode !== '--validate-inputs' ? path.resolve(value('--out')) : null, workers,
-    runId: rawRunId as 1 | 2 | 3 | null };
+    runId: rawRunId as 1 | 2 | 3 | null, execution: execution as 'local' | 'modal' };
 }
 
 export async function main(args = process.argv.slice(2)): Promise<void> {
@@ -859,13 +893,14 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     console.log(JSON.stringify(readJson<unknown>(reportFile(options.out!, options.runId!)), null, 2)); return;
   }
   const source = await loadSource(options.inputs!);
-  const result = await runPilot(options.out!, source, options.workers, options.runId!);
+  const result = await runPilot(options.out!, source, options.workers, options.runId!, options.execution);
   const cycles = Math.max(0, ...result.scans.map((scan) => scan.cycle),
     ...result.queueRetests.map((retest) => retest.cycle), ...result.admissions.map((entry) => entry.cycle));
   console.log(JSON.stringify({ runId: result.runId, kingdomId: PILOT_KINGDOM, status: result.status,
     stopReason: result.stopReason, cycles, scans: result.scans.length, admissions: result.admissions.length,
     matrixSize: result.matrix.strategies.length, cleanScans: result.cleanScans,
-    games: result.games, elapsedMs: result.elapsedMs, formalClosure: false }, null, 2));
+    execution: options.execution, games: result.games, elapsedMs: result.elapsedMs,
+    formalClosure: false }, null, 2));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();

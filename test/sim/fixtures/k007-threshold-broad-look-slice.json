@@ -1,0 +1,935 @@
+{
+  "schemaVersion": 1,
+  "kind": "k007-threshold-broad-look-slice",
+  "provenance": {
+    "pilotVersion": "k007-threshold-racing-double-oracle-v1",
+    "runId": 1,
+    "scan": 1,
+    "blocks": 8,
+    "checkpointEvidenceHash": "8d19762c75ecfccc3a44e159f0d3ff9f4b4f9c08d1c46c9f121a03bbaca8fdb9",
+    "reservoirSha256": "17a1e34e0e4322940fa364543de96bfa44372797c2aa197cd2bb34ef97fa9ee9",
+    "candidateRanks": [
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66
+    ]
+  },
+  "kingdomId": "deep-beam-tuning-007",
+  "lookId": "digest-smoke.run-1.scan-1.screen.blocks-8.slice-ranks-51-66",
+  "candidates": [
+    {
+      "id": "sg-30732bd5c3",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 2
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "leyStep",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "silver",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-9c0f02bdc4",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 2
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "leyStep",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "channel",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-19bcc5fac2",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 2
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "leyStep",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "rally",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-2831fa36c6",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 2
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "leyStep",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "discharge",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-329bdb36c1",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 2
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "leyStep",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "gold",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-4446ba1bc2",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 2
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "leyStep",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "prism",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-51bf166fc2",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 2
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "prism",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "leyStep",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-7bee896cc1",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 2
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "gold",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "leyStep",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-9b6c7136c3",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 2
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "flurry",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "leyStep",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-cbe02164c3",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 2
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "leyStep",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "flurry",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-cbf5eddfc3",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 2
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "volley",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "leyStep",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-db24f13dc3",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 2
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "leyStep",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "volley",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-562c4082c4",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "prism",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "silver",
+          "desiredCount": 1
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 1
+        },
+        {
+          "kind": "buy",
+          "cardId": "discharge",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "channel",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-5dece112c4",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "silver",
+          "desiredCount": 1
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 1
+        },
+        {
+          "kind": "buy",
+          "cardId": "prism",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "discharge",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "channel",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-741d56e2c4",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "silver",
+          "desiredCount": 1
+        },
+        {
+          "kind": "buy",
+          "cardId": "prism",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 1
+        },
+        {
+          "kind": "buy",
+          "cardId": "discharge",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "channel",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    },
+    {
+      "id": "sg-0ac33c2dc4",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "silver",
+          "desiredCount": 1
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 1
+        },
+        {
+          "kind": "buy",
+          "cardId": "prism",
+          "desiredCount": 4
+        },
+        {
+          "kind": "buy",
+          "cardId": "discharge",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "channel",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    }
+  ],
+  "opponents": [
+    {
+      "id": "sg-d38a4fc7bf",
+      "startingBuild": [],
+      "buyPlan": [
+        {
+          "kind": "buy",
+          "cardId": "drive",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "footwork",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "step",
+          "desiredCount": 1
+        },
+        {
+          "kind": "buy",
+          "cardId": "prism",
+          "desiredCount": 3
+        },
+        {
+          "kind": "buy",
+          "cardId": "reclaim",
+          "desiredCount": 3
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        },
+        {
+          "kind": "inactive"
+        }
+      ]
+    }
+  ],
+  "schedule": {
+    "targetWeights": {
+      "sg-0cc5715cc0": 6e-7,
+      "sg-0cedbc31c3": 6.000000000000001e-8,
+      "sg-14c1c13dc3": 6.000000000000001e-8,
+      "sg-271c6db2bf": 1.5e-7,
+      "sg-2d122035c0": 6e-7,
+      "sg-39b07955c0": 6.000000000000001e-8,
+      "sg-3a2003d8c1": 4.2856000000000003e-8,
+      "sg-3a6c9665c1": 1e-7,
+      "sg-46e0167dbf": 6.000000000000001e-8,
+      "sg-470e43c6be": 6e-7,
+      "sg-52eddbe1c0": 6e-7,
+      "sg-890d333cc0": 6.000000000000001e-8,
+      "sg-89160b4ebe": 6e-7,
+      "sg-a68f74f4c0": 7.5e-8,
+      "sg-a732cca3bf": 6e-7,
+      "sg-b5dd888cbf": 6.000000000000001e-8,
+      "sg-bfa4c3b4c0": 2e-7,
+      "sg-bfc3313ec3": 7.5e-8,
+      "sg-c783ead9c0": 6.000000000000001e-8,
+      "sg-c9d22ae7be": 6.000000000000001e-8,
+      "sg-d38a4fc7bf": 0.9999950392880002,
+      "sg-d74bd8f0bf": 6.000000000000001e-8,
+      "sg-de53bbdbbe": 6.000000000000001e-8,
+      "sg-fc4e1cf7c1": 4.2856000000000003e-8,
+      "sg-fedfc59dbf": 7.5e-8
+    },
+    "blocks": [
+      {
+        "seed": 3376216784,
+        "opponentId": "sg-d38a4fc7bf"
+      },
+      {
+        "seed": 1536641987,
+        "opponentId": "sg-d38a4fc7bf"
+      },
+      {
+        "seed": 740925934,
+        "opponentId": "sg-d38a4fc7bf"
+      },
+      {
+        "seed": 3525915081,
+        "opponentId": "sg-d38a4fc7bf"
+      },
+      {
+        "seed": 3349730540,
+        "opponentId": "sg-d38a4fc7bf"
+      },
+      {
+        "seed": 308618223,
+        "opponentId": "sg-d38a4fc7bf"
+      },
+      {
+        "seed": 1937247258,
+        "opponentId": "sg-d38a4fc7bf"
+      },
+      {
+        "seed": 3750785733,
+        "opponentId": "sg-d38a4fc7bf"
+      }
+    ],
+    "realizedOpponentCounts": {
+      "sg-0cc5715cc0": 0,
+      "sg-0cedbc31c3": 0,
+      "sg-14c1c13dc3": 0,
+      "sg-271c6db2bf": 0,
+      "sg-2d122035c0": 0,
+      "sg-39b07955c0": 0,
+      "sg-3a2003d8c1": 0,
+      "sg-3a6c9665c1": 0,
+      "sg-46e0167dbf": 0,
+      "sg-470e43c6be": 0,
+      "sg-52eddbe1c0": 0,
+      "sg-890d333cc0": 0,
+      "sg-89160b4ebe": 0,
+      "sg-a68f74f4c0": 0,
+      "sg-a732cca3bf": 0,
+      "sg-b5dd888cbf": 0,
+      "sg-bfa4c3b4c0": 0,
+      "sg-bfc3313ec3": 0,
+      "sg-c783ead9c0": 0,
+      "sg-c9d22ae7be": 0,
+      "sg-d38a4fc7bf": 8,
+      "sg-d74bd8f0bf": 0,
+      "sg-de53bbdbbe": 0,
+      "sg-fc4e1cf7c1": 0,
+      "sg-fedfc59dbf": 0
+    },
+    "unsampledPositiveWeightStrategies": [
+      "sg-0cc5715cc0",
+      "sg-0cedbc31c3",
+      "sg-14c1c13dc3",
+      "sg-271c6db2bf",
+      "sg-2d122035c0",
+      "sg-39b07955c0",
+      "sg-3a2003d8c1",
+      "sg-3a6c9665c1",
+      "sg-46e0167dbf",
+      "sg-470e43c6be",
+      "sg-52eddbe1c0",
+      "sg-890d333cc0",
+      "sg-89160b4ebe",
+      "sg-a68f74f4c0",
+      "sg-a732cca3bf",
+      "sg-b5dd888cbf",
+      "sg-bfa4c3b4c0",
+      "sg-bfc3313ec3",
+      "sg-c783ead9c0",
+      "sg-c9d22ae7be",
+      "sg-d74bd8f0bf",
+      "sg-de53bbdbbe",
+      "sg-fc4e1cf7c1",
+      "sg-fedfc59dbf"
+    ]
+  },
+  "expectedScoreDigest": "7ab2878fa58d4d230c238b76d7bf90330455e5c9e8b722405fc6220282be5b70"
+}

@@ -110,12 +110,16 @@ describe('K007 threshold-racing Double Oracle pilot', () => {
     expect(cleanScansAfter(1, false, true)).toBe(2);
   });
 
-  it('requires one of three independent run IDs and rejects unrelated options', () => {
+  it('keeps local Rust as the default and selects Modal only through the run CLI', () => {
     expect(parseOptions(['--run', '--inputs', 'inputs.json', '--out', 'out', '--run-id', '3']))
-      .toMatchObject({ mode: '--run', workers: 4, runId: 3 });
+      .toMatchObject({ mode: '--run', workers: 4, runId: 3, execution: 'local' });
+    expect(parseOptions(['--run', '--inputs', 'inputs.json', '--out', 'out', '--run-id', '1',
+      '--execution', 'modal'])).toMatchObject({ execution: 'modal' });
     expect(() => parseOptions(['--run', '--inputs', 'inputs.json', '--out', 'out', '--run-id', '4']))
       .toThrow('Run ID must be 1, 2, or 3.');
-    expect(() => parseOptions(['--status', '--out', 'out', '--run-id', '1', '--workers', '2']))
-      .toThrow('Unknown pilot option --workers.');
+    expect(() => parseOptions(['--run', '--inputs', 'inputs.json', '--out', 'out', '--run-id', '1',
+      '--execution', 'gpu'])).toThrow('Execution must be local or modal.');
+    expect(() => parseOptions(['--status', '--out', 'out', '--run-id', '1', '--execution', 'modal']))
+      .toThrow('Unknown pilot option --execution.');
   });
 });

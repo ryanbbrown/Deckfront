@@ -181,7 +181,18 @@ npm run psro:competitive-benchmark
 npm run staged-goldfish:native-pool -- --pool-seed 5 --chunk-size 1000 --shard-size 100000 --threads 10
 ```
 
-The staged product command keeps generation on one ordered TypeScript coordinator. Both scoring stages retain independent bounded shard top sets and merge them deterministically. Goldfish scoring defaults to 10 Rust threads. The K007 threshold-racing controller loads its strategy table into the Rust process once, scores two-player blocks as exact quarter-point bytes, and keeps matrix telemetry in TypeScript. Confidence bounds run in parallel by candidate without changing the bound calculation. `psro:competitive-benchmark` checks exact parity before reporting local kernel and worker-shape timings. The native workspace pins Rust 1.98.0. The local build targets the current host. The Modal image builds the pinned Linux x86-64 target. Build and verify the local target with:
+The staged product command keeps generation on one ordered TypeScript coordinator. Both scoring stages retain independent bounded shard top sets and merge them deterministically. Goldfish scoring defaults to 10 Rust threads. The K007 threshold-racing controller loads its strategy table into the Rust process once, scores two-player blocks as exact quarter-point bytes, and keeps matrix telemetry in TypeScript. Confidence bounds run in parallel by candidate without changing the bound calculation. Local Rust is the default execution mode. Pass `--execution modal` to submit each screening and confirmation look to the restart-safe Modal adapter; matrix telemetry stays on the local TypeScript runner:
+
+```sh
+npm run successive-halving:double-oracle-pilot -- --run --inputs INPUTS.json --out OUTPUT \
+  --run-id 1 --workers 4
+npm run successive-halving:double-oracle-pilot -- --run --inputs INPUTS.json --out OUTPUT \
+  --run-id 1 --workers 4 --execution modal
+npm run psro:modal-digest-smoke -- --local
+npm run psro:modal-digest-smoke -- --modal --out .experiments/modal-competitive-digest-smoke
+```
+
+The digest smoke uses a saved 16-candidate slice of the first run-1 broad eight-block look. `--local` runs no paid work. `--modal` compares the downloaded candidate-major score digest with local Rust. `psro:competitive-benchmark` checks exact parity before reporting local kernel and worker-shape timings. The native workspace pins Rust 1.98.0. The local build targets the current host. The Modal image builds the pinned Linux x86-64 target. Build and verify the local target with:
 
 ```sh
 npm run goldfish:native-build
@@ -206,7 +217,7 @@ modal run --detach modal/native_strategy_search.py --build-version "$(git rev-pa
 
 Shard checkpoints and the ordered merge live in the `hexdeck-native-strategy-results` Modal Volume. The local reservation ledger is `~/.hexdeck-modal-cost-ledger.json`. Ordered shards call the production TypeScript candidate helper in the image and send its versioned request to Rust. Python does not generate strategies.
 
-`nativeCompetitiveModalInput` creates the fixed candidate-table and schedule artifact for one PSRO look. The competitive Modal entry point shards broad looks by candidates and narrow looks by contiguous schedule ranges. It keeps one loaded Rust process per warm container, retries only missing shards, writes digest-checked score-byte artifacts, and assembles exact candidate-major output. The launch rejects more than 48 containers or a cost cap above $2:
+`nativeCompetitiveModalInput` creates the fixed candidate-table and schedule artifact for one PSRO look. The competitive Modal entry point shards broad looks by candidates and narrow looks by contiguous schedule ranges. It keeps one loaded Rust process per warm container, retries only missing shards, writes digest-checked score-byte artifacts, and assembles exact candidate-major output. The automatic adapter waits for the detached controller, resumes its existing call and valid shards after interruption, and validates `complete.hps` before confidence calculation. The launch rejects more than 48 containers or a cost cap above $2:
 
 ```sh
 modal run --detach modal/native_strategy_search.py::launch_competitive \
