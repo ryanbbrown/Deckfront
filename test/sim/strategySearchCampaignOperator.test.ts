@@ -6,7 +6,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { deriveStrategySearch } from '../../src/sim/strategySearchCampaign';
 import { createStrategySearchLaunchBundle } from '../../src/sim/strategySearchCampaignOperator';
 import {
-  deriveTrackedStrategySearchSourceImage, executeStrategySearchOperation, streamProcess
+  deriveTrackedStrategySearchSourceImage, executeStrategySearchOperation, streamProcess,
+  validateStrategySearchImageClosure
 } from '../../scripts/strategy_search_campaign';
 import type {
   StrategySearchOperatorAdapter, StrategySearchRemoteStatus
@@ -27,6 +28,17 @@ function fixture() { const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck
     sourceImage: deriveTrackedStrategySearchSourceImage(root) });
   return { root, requestFile, parsed }; }
 describe('strategy-search operator', () => {
+  it('requires every transitive runtime source and data dependency in the image allowlist', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-image-closure-'));
+    try {
+      fs.writeFileSync(path.join(root, 'entry.ts'), "import data from './runtime.json' with { type: 'json' };\nvoid data;\n");
+      fs.writeFileSync(path.join(root, 'runtime.json'), '{}\n');
+      expect(() => validateStrategySearchImageClosure(root, ['entry.ts']))
+        .toThrow('omits runtime dependency runtime.json');
+      expect(() => validateStrategySearchImageClosure(root, ['entry.ts', 'runtime.json'])).not.toThrow();
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  });
+
   it('plans without remote work and binds the exact ordered request', async () => { const held = fixture(); let calls = 0;
     const adapter: StrategySearchOperatorAdapter = { status() { calls += 1; throw new Error('not called'); },
       run() { calls += 1; throw new Error('not called'); } };

@@ -81,7 +81,11 @@ if (!/^[0-9a-f]{64}$/.test(evidenceId)) throw new Error('Goldfish evidence ID is
 const kingdom = strategySearchKingdom(kingdomId), space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
 if (space.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT) throw new Error('Goldfish candidate count differs.');
 const strategyAt = (position: number) => space.candidateAt(candidateIndexAt(position, space.candidateCount));
-if (mode === 'score-one') {
+if (mode === 'readiness') {
+  const probe = strategyAt(0);
+  if (!probe.id || canonicalStrategy(probe).length < 1) throw new Error('Goldfish readiness strategy is invalid.');
+  process.stdout.write(`${JSON.stringify({ ready: true, kingdomId, candidateCount: space.candidateCount })}\n`);
+} else if (mode === 'score-one') {
   const started = performance.now(), start = integer('start'), end = integer('end'), cpu = integer('cpu'), threads = integer('threads');
   if (end <= start || end > space.candidateCount || cpu < 1 || threads < 1 || threads > cpu) throw new Error('Stage-one range is invalid.');
   const generationStarted = performance.now(), strategies = Array.from({ length: end - start }, (_unused, index) =>
@@ -136,4 +140,4 @@ if (mode === 'score-one') {
   const elapsedMs = performance.now() - started;
   writeAtomic(path.resolve(option('phases')), phases({ intermediateSerializationAndReadMs: intermediateReadMs,
     reductionComputeMs, finalTop20000WriteMs: performance.now() - writing }, elapsedMs));
-} else throw new Error('Use score-one, reduce-one, score-two, or reduce-two.');
+} else throw new Error('Use readiness, score-one, reduce-one, score-two, or reduce-two.');

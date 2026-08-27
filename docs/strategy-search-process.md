@@ -169,7 +169,7 @@ The runtime uses:
 
 - one compute image built from the exact executable allowlist in `strategy-search-image-files.json`;
 - exactly three allowlist-backed source-copy layers: Node manifests, Rust build inputs, and final application sources;
-- one explicit versioned deployment boundary that streams image-build progress and verifies the exact deployed readiness function;
+- one explicit versioned deployment boundary that streams image-build progress, checks the runtime import closure, and starts the real Goldfish module path during deployed readiness;
 - one dependency-free control app that prepares execution state after readiness and serves bounded read-only status;
 - one lightweight runtime that calls the deployed controller and accepts startup only after a fenced submitted or completed task;
 - one shared Modal Volume;
@@ -181,7 +181,7 @@ A per-kingdom evidence ID uses the scientific source digest and final-format inp
 
 Matrix schema 4 stores cells, seed ordinals, telemetry, and equilibrium inputs in fixed semantic order. Runtime Matrix chunks do not enter final identity. PSRO schema 3 removes candidate chunk ranges, chunk hashes, paths, workers, and timings before final serialization.
 
-Worker start and finish events determine running CPU intervals. Submitted CPUs are reported separately, so Modal queue time cannot appear as running CPU use. Every unused running-CPU interval has one reason, including Modal queue delay, Modal rejection, retry backoff, reserved downstream work, minimum useful job size, insufficient ready work, or the final tail.
+Worker start and finish events determine running CPU intervals. Submitted CPUs are reported separately, so Modal queue time cannot appear as running CPU use. Status reports every job state, the common last error, and whether the controller lease is live. Every unused running-CPU interval has one reason, including Modal queue delay, Modal rejection, retry backoff, reserved downstream work, minimum useful job size, insufficient ready work, or the final tail.
 
 ## Cost and failure policy
 
@@ -189,6 +189,6 @@ Modal image build time is preflight time, not campaign runtime. A clean `npm ci`
 
 The command reports a cost estimate and actual Modal compute cost. It does not use the historical reservation ledger and does not claim to check an external workspace budget.
 
-A timeout or invalid artifact fails the run. A `terminal-incomplete` PSRO result is not complete. Retries rerun one atomic job after its lease expires. There is no paused-campaign import, source repair, or manual ambiguous-launch recovery.
+A timeout or invalid artifact fails the run. A `terminal-incomplete` PSRO result is not complete. A job gets at most three retryable worker or launch failures. Deterministic module, package, syntax, source-image, and runtime-asset startup failures stop immediately and cancel the active sibling wave. Admission recovery does not consume this retry limit. There is no paused-campaign import, source repair, or manual ambiguous-launch recovery.
 
 The paid acceptance run is one explicitly authorized K007 request at 400 through 800 CPUs. It is not a code default. A paid multi-kingdom run needs separate approval.

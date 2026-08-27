@@ -142,14 +142,33 @@ def read_status(campaign_execution_id: str) -> dict[str, Any]:
     jobs = state.get("jobs", [])
     active = [job for job in jobs if job.get("status") == "active"]
     complete = [job for job in jobs if job.get("status") == "complete"]
+    job_status_counts = {}
+    error_counts = {}
+    for job in jobs:
+        job_status_counts[job.get("status", "unknown")] = job_status_counts.get(
+            job.get("status", "unknown"), 0) + 1
+        if job.get("lastError"):
+            error_counts[job["lastError"]] = error_counts.get(job["lastError"], 0) + 1
+    common_last_error = None
+    if error_counts:
+        message, count = max(error_counts.items(), key=lambda entry: (entry[1], entry[0]))
+        common_last_error = {"count": count, "message": message}
     stage_counts = {}
     for job in jobs:
         stage = stage_counts.setdefault(job["stage"], {"active": 0, "complete": 0, "total": 0})
         stage["total"] += 1
         if job.get("status") in {"active", "complete"}:
             stage[job["status"]] += 1
+    now_ms = int(time.time() * 1000)
+    controller = state.get("controller")
+    controller_lease_until_ms = controller.get("leaseUntilMs") if controller else None
+    controller_lease_live = isinstance(controller_lease_until_ms, int) \
+        and controller_lease_until_ms > now_ms \
+        and controller.get("fence") == state.get("controllerFence")
     if state["status"] in {"complete", "failed"}:
         status, phase = state["status"], state["status"]
+    elif controller and not controller_lease_live:
+        status, phase = "stale", "controller-stale"
     elif state.get("usefulWorkStartedMs") is not None:
         status, phase = "running", "controller-running"
     else:
@@ -158,7 +177,15 @@ def read_status(campaign_execution_id: str) -> dict[str, Any]:
         "phase": phase, "report": state.get("report"), "startedMs": state.get("startedMs"),
         "usefulWorkStartedMs": state.get("usefulWorkStartedMs"),
         "controllerFence": state.get("controllerFence", 0),
+        "controllerLeaseUntilMs": controller_lease_until_ms,
+        "controllerLeaseLive": controller_lease_live,
         "activeTaskCount": None, "submittedTaskCount": len(active), "completedTaskCount": len(complete),
+        "readyTaskCount": job_status_counts.get("ready", 0),
+        "launchingTaskCount": job_status_counts.get("launching", 0),
+        "retryBackoffTaskCount": job_status_counts.get("retry-backoff", 0),
+        "failedTaskCount": job_status_counts.get("failed", 0),
+        "blockedTaskCount": job_status_counts.get("blocked", 0),
+        "jobStatusCounts": job_status_counts, "commonLastError": common_last_error,
         "activeCpus": None,
         "submittedCpus": sum(job.get("cpu", job.get("cpus", 0)) for job in active),
         "runningCpuObservation": "worker-events-available-after-attempt",

@@ -15,12 +15,16 @@ import type { StrategySearchLaunchBundle } from '../src/sim/strategySearchCampai
 
 export interface StrategySearchRemoteStatus {
   exists: boolean; campaignExecutionId: string;
-  status: 'missing' | 'preparing' | 'starting' | 'running' | 'complete' | 'failed';
+  status: 'missing' | 'preparing' | 'starting' | 'running' | 'stale' | 'complete' | 'failed';
   phase: 'missing' | 'image-preparing' | 'startup-failed' | 'controller-starting' | 'controller-running'
-    | 'complete' | 'failed';
+    | 'controller-stale' | 'complete' | 'failed';
   report?: Record<string, unknown>; startedMs?: number; usefulWorkStartedMs?: number;
   failedMs?: number; failure?: string;
   activeTaskCount?: number | null; submittedTaskCount?: number; completedTaskCount?: number;
+  readyTaskCount?: number; launchingTaskCount?: number; retryBackoffTaskCount?: number;
+  failedTaskCount?: number; blockedTaskCount?: number; jobStatusCounts?: Record<string, number>;
+  commonLastError?: { count: number; message: string } | null;
+  controllerLeaseUntilMs?: number | null; controllerLeaseLive?: boolean;
   activeCpus?: number | null; submittedCpus?: number; activeStages?: string[];
 }
 type Awaitable<T> = T | Promise<T>;
@@ -38,8 +42,28 @@ export function executableSourcePaths(root: string): string[] {
     || !value.includes('strategy-search-image-files.json')) throw new Error('Executable image allowlist is invalid.');
   return [...value].sort();
 }
+export function validateStrategySearchImageClosure(root: string, expectedPaths: readonly string[]): void {
+  const allowed = new Set(expectedPaths), dependencyPattern = /(?:from\s*|import\s*\()\s*['"]([^'"]+)['"]|new\s+URL\(\s*['"]([^'"]+)['"]/g;
+  for (const source of expectedPaths.filter((entry) => /\.(?:[cm]?js|tsx?)$/.test(entry))) {
+    const text = fs.readFileSync(path.join(root, source), 'utf8'); dependencyPattern.lastIndex = 0;
+    for (const match of text.matchAll(dependencyPattern)) {
+      const specifier = match[1] ?? match[2];
+      if (!specifier?.startsWith('.')) continue;
+      const base = path.resolve(root, path.dirname(source), specifier);
+      const candidates = [base, `${base}.ts`, `${base}.tsx`, `${base}.json`, path.join(base, 'index.ts'),
+        path.join(base, 'index.tsx')];
+      const dependency = candidates.find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
+      if (!dependency) throw new Error(`Runtime dependency ${specifier} imported by ${source} cannot be resolved.`);
+      const relative = path.relative(root, dependency).split(path.sep).join('/');
+      if (relative.startsWith('../') || !allowed.has(relative)) {
+        throw new Error(`Executable image allowlist omits runtime dependency ${relative} imported by ${source}.`);
+      }
+    }
+  }
+}
 export function deriveTrackedStrategySearchSourceImage(root: string): SourceImageIdentity {
   const expectedPaths = executableSourcePaths(root);
+  validateStrategySearchImageClosure(root, expectedPaths);
   const scientificPaths = JSON.parse(fs.readFileSync(path.join(root,
     'strategy-search-scientific-files.json'), 'utf8')) as unknown;
   if (!Array.isArray(scientificPaths) || scientificPaths.some((entry) => typeof entry !== 'string')

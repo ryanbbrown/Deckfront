@@ -3,6 +3,7 @@ import inspect
 import json
 import os
 import pathlib
+import shutil
 import struct
 import subprocess
 import tempfile
@@ -418,23 +419,27 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         campaign_source = inspect.getsource(launcher.verify_strategy_search_source)
         self.assertIn("_strategy_search_source_digest", campaign_source)
 
-    def test_deployed_container_layout_imports_and_runs_readiness_from_workspace(self):
+    def deployed_worker_readiness(self, omitted=()):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             container_module = root / "root" / "native_strategy_search.py"
             workspace = root / "workspace"
             container_module.parent.mkdir()
             container_module.write_bytes(pathlib.Path(launcher.__file__).read_bytes())
-            allowlist = json.loads(pathlib.Path("strategy-search-image-files.json").read_text())
+            allowlist = [relative for relative in json.loads(
+                pathlib.Path("strategy-search-image-files.json").read_text()) if relative not in omitted]
+            scientific = [relative for relative in json.loads(
+                pathlib.Path("strategy-search-scientific-files.json").read_text()) if relative not in omitted]
             for relative in allowlist:
                 target = workspace / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
-                if relative in {"strategy-search-image-files.json", "strategy-search-scientific-files.json"}:
-                    target.write_bytes(pathlib.Path(relative).read_bytes())
-                elif relative == "modal/native_strategy_search.py":
+                if relative == "modal/native_strategy_search.py":
                     target.write_bytes(container_module.read_bytes())
                 else:
-                    target.write_text(f"container fixture: {relative}\n")
+                    shutil.copyfile(relative, target)
+            (workspace / "strategy-search-image-files.json").write_text(json.dumps(allowlist))
+            (workspace / "strategy-search-scientific-files.json").write_text(json.dumps(scientific))
+            (workspace / "node_modules").symlink_to(pathlib.Path("node_modules").resolve(), target_is_directory=True)
             script = """
 import hashlib, json, modal, runpy
 modal.is_local = lambda: False
@@ -456,10 +461,19 @@ identity = {"digest": hashlib.sha256(lines.encode()).hexdigest(),
 result = namespace["strategy_search_compute_ready"].get_raw_f()(identity)
 print(json.dumps(result))
 """ % str(container_module)
-            completed = subprocess.run([sys.executable, "-c", script], text=True, capture_output=True,
-                env={**os.environ, "HEXDECK_STRATEGY_WORKSPACE": str(workspace)}, timeout=30)
-            self.assertEqual(completed.returncode, 0, completed.stderr)
-            self.assertTrue(json.loads(completed.stdout.splitlines()[-1])["ready"])
+            return subprocess.run([sys.executable, "-c", script], text=True, capture_output=True,
+                env={**os.environ, "HEXDECK_STRATEGY_WORKSPACE": str(workspace)}, timeout=60)
+
+    def test_deployed_container_readiness_starts_the_real_goldfish_module_path(self):
+        completed = self.deployed_worker_readiness()
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertTrue(json.loads(completed.stdout.splitlines()[-1])["ready"])
+
+    def test_deployed_container_readiness_fails_fast_when_a_transitive_asset_is_absent(self):
+        completed = self.deployed_worker_readiness({"src/game-data/cards.json"})
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn("ERR_MODULE_NOT_FOUND", completed.stderr)
+        self.assertIn("src/game-data/cards.json", completed.stderr)
 
     def test_strategy_search_execution_reuses_pinned_partitions_when_capacity_changes(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -523,6 +537,21 @@ print(json.dumps(result))
         self.assertEqual(observed[-1], 400)
         self.assertLessEqual(len(observed), 12)
         self.assertEqual(launcher._strategy_search_recover_admission(396, 400, 4), 400)
+
+    def test_strategy_search_worker_startup_failures_are_terminal_and_retries_are_bounded(self):
+        self.assertTrue(launcher._strategy_search_is_terminal_worker_error(
+            RuntimeError("ERR_MODULE_NOT_FOUND: /workspace/src/game-data/cards.json")))
+        self.assertTrue(launcher._strategy_search_is_terminal_worker_error(
+            RuntimeError("Cannot find package tsx")))
+        self.assertFalse(launcher._strategy_search_is_terminal_worker_error(
+            RuntimeError("temporary network error")))
+        attempts = [{"status": "failed"}, {"status": "admission-failed"}, {"status": "launch-failed"}]
+        self.assertEqual(launcher._strategy_search_retryable_failure_count({"attempts": attempts}), 2)
+        self.assertEqual(launcher.STRATEGY_SEARCH_MAX_JOB_ATTEMPTS, 3)
+        controller = inspect.getsource(launcher._strategy_search_controller_impl)
+        self.assertIn("cancel(terminate_containers=True)", controller)
+        self.assertIn("cancelled-terminal-sibling", controller)
+        self.assertIn("worker retry limit exhausted", controller)
 
     def test_strategy_search_controller_failure_persists_terminal_state(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -757,15 +786,37 @@ print(json.dumps(result))
             starting = raw("a" * 64)
             self.assertEqual(starting["status"], "starting")
             self.assertEqual(starting["phase"], "controller-starting")
+            jobs = [{"stage": "goldfish-one", "status": "active", "cpu": 4},
+                {"stage": "goldfish-one", "status": "ready"},
+                {"stage": "goldfish-one", "status": "launching"},
+                {"stage": "goldfish-one", "status": "retry-backoff", "lastError": "worker import failed"},
+                {"stage": "goldfish-one", "status": "failed", "lastError": "worker import failed"},
+                {"stage": "goldfish-one-reduce", "status": "blocked"}]
             state_file.write_text(json.dumps({"status": "running", "report": None,
                 "usefulWorkStartedMs": 2, "controllerFence": 1,
-                "jobs": [{"stage": "goldfish-one", "status": "active", "cpu": 4}]}))
+                "controller": {"ownerId": "owner", "fence": 1, "leaseUntilMs": 9_000_000_000_000},
+                "jobs": jobs}))
             running = raw("a" * 64)
             self.assertEqual(running["phase"], "controller-running")
+            self.assertTrue(running["controllerLeaseLive"])
             self.assertIsNone(running["activeTaskCount"])
             self.assertIsNone(running["activeCpus"])
             self.assertEqual(running["submittedTaskCount"], 1)
             self.assertEqual(running["submittedCpus"], 4)
+            self.assertEqual(running["readyTaskCount"], 1)
+            self.assertEqual(running["launchingTaskCount"], 1)
+            self.assertEqual(running["retryBackoffTaskCount"], 1)
+            self.assertEqual(running["failedTaskCount"], 1)
+            self.assertEqual(running["blockedTaskCount"], 1)
+            self.assertEqual(running["commonLastError"], {"count": 2, "message": "worker import failed"})
+            jobs[0]["status"] = "retry-backoff"
+            state_file.write_text(json.dumps({"status": "running", "report": None,
+                "usefulWorkStartedMs": 2, "controllerFence": 1,
+                "controller": {"ownerId": "owner", "fence": 1, "leaseUntilMs": 1}, "jobs": jobs}))
+            stale = raw("a" * 64)
+            self.assertEqual(stale["status"], "stale")
+            self.assertEqual(stale["phase"], "controller-stale")
+            self.assertFalse(stale["controllerLeaseLive"])
 
     def test_strategy_search_run_prepares_state_only_after_verified_compute_deployment(self):
         bundle = {"schemaVersion": 2, "campaignExecutionId": "a" * 64,

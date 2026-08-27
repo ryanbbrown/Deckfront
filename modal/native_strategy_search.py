@@ -64,6 +64,7 @@ RESULT_SCHEMA_VERSION = 1
 CAMPAIGN_CHECKPOINT_EVENT = "strategy-search-checkpoint"
 CAMPAIGN_STAGE_STOP_EVENT = "strategy-search-stage-stop"
 CAMPAIGN_STAGES = {"goldfish", "matrix", "psro"}
+STRATEGY_SEARCH_MAX_JOB_ATTEMPTS = 3
 CAMPAIGN_RUST_GOLDFISH_BIN = "/workspace/rust/target/release/hexdeck-goldfish"
 CAMPAIGN_STAGE_ONE_CHUNK_SIZE = 250_000
 LEDGER_PATH = pathlib.Path.home() / ".hexdeck-modal-cost-ledger.json"
@@ -1323,9 +1324,17 @@ def verify_strategy_search_source(identity: dict[str, Any]) -> None:
     _VERIFIED_STRATEGY_SEARCH_DIGESTS.add(identity["digest"])
 
 
+def _strategy_search_verify_goldfish_startup() -> None:
+    _run_checked(["npx", "tsx", "scripts/strategy_search_goldfish.ts", "readiness",
+        "--evidence-id", "0" * 64, "--kingdom", "deep-beam-tuning-007"],
+        "strategy-search Goldfish worker readiness", cwd=RUNTIME_WORKSPACE_ROOT,
+        text=True, capture_output=True, timeout=60)
+
+
 @app.function(image=image, cpu=1, memory=2048, timeout=90, max_containers=1)
 def strategy_search_compute_ready(source_identity: dict[str, Any]) -> dict[str, Any]:
     verify_strategy_search_source(source_identity)
+    _strategy_search_verify_goldfish_startup()
     return {"ready": True, "sourceDigest": source_identity["digest"],
         "readyMs": int(time.time() * 1000)}
 
@@ -1771,6 +1780,18 @@ def _strategy_search_is_admission_error(error: BaseException) -> bool:
         or "cpu limit" in message or "workspace limit" in message
 
 
+def _strategy_search_is_terminal_worker_error(error: BaseException) -> bool:
+    message = str(error).lower()
+    return any(marker in message for marker in ["err_module_not_found", "module_not_found",
+        "cannot find module", "cannot find package", "syntaxerror", "unknown file extension",
+        "strategy-search source differs inside", "image allowlist file is missing"])
+
+
+def _strategy_search_retryable_failure_count(job: dict[str, Any]) -> int:
+    return sum(attempt.get("status") in {"failed", "launch-failed", "terminal-failed"}
+        for attempt in job.get("attempts", []))
+
+
 def _strategy_search_recover_admission(limit_cpus: int, max_cpus: int,
                                         job_cpus: int) -> int:
     if min(limit_cpus, max_cpus, job_cpus) < 1 or limit_cpus > max_cpus:
@@ -1902,6 +1923,34 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 "callId": None, "lastError": "controller-refenced-task"})
             job.pop("activeConfig", None)
     active: dict[str, tuple[Any, dict[str, Any]]] = {}
+    def fail_active_wave(failure: str, root_task_id: str) -> None:
+        failed_ms = int(time.time() * 1000)
+        active_items = list(active.items())
+        def cancel_active(item: tuple[str, tuple[Any, dict[str, Any]]]) -> None:
+            try:
+                item[1][0].cancel(terminate_containers=True)
+            except Exception:
+                pass
+        if active_items:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(32, len(active_items))) as pool:
+                list(pool.map(cancel_active, active_items))
+        for task_id, (_call, _config) in active_items:
+            job = next(held for held in state["jobs"] if held["taskId"] == task_id)
+            attempt = job.setdefault("attempts", [])[-1]
+            attempt.update({"finishedMs": failed_ms,
+                "status": "terminal-failed" if task_id == root_task_id else "cancelled-terminal-sibling",
+                "error": failure[-2000:]})
+            job.update({"status": "failed", "finishedMs": failed_ms,
+                "lastError": failure[-2000:]})
+            job.pop("activeConfig", None)
+        active.clear()
+        state.update({"status": "failed", "failedMs": failed_ms, "failure": failure[-4000:],
+            "admissionFailures": admission_failures, "publisherCommitMs": publisher_commit_ms,
+            "admissionLimitCpus": admission_limit_cpus})
+        strategy_search_publisher.remote({"operation": "execution-save",
+            "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
+            "ownerId": owner_id, "nowMs": failed_ms, "leaseMs": 120000, "state": state})
+        raise RuntimeError(failure)
     intervals = state.get("utilizationIntervals", [])
     interval_started = int(time.time() * 1000)
     interval_allocated = 0
@@ -1936,6 +1985,10 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 poll_results = list(pool.map(poll_active, active_items))
         else:
             poll_results = []
+        terminal_poll = next(((task_id, error) for task_id, _config, _result, error in poll_results
+            if error is not None and _strategy_search_is_terminal_worker_error(error)), None)
+        if terminal_poll:
+            fail_active_wave(f"non-retryable worker startup failure: {terminal_poll[1]}", terminal_poll[0])
         for task_id, config, result, error in poll_results:
             if error is None and result is None:
                 continue
@@ -1953,6 +2006,8 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 job["attemptCount"] = job.get("attemptCount", 0) + 1
                 job["retryNotBeforeMs"] = now_ms + min(30000, 1000 * 2 ** min(job["attemptCount"], 5))
                 job["lastError"] = str(error)[-2000:]
+                if _strategy_search_retryable_failure_count(job) >= STRATEGY_SEARCH_MAX_JOB_ATTEMPTS:
+                    fail_active_wave(f"worker retry limit exhausted for {task_id}: {error}", task_id)
                 del active[task_id]
                 continue
             finished.append((task_id, config, result))
@@ -2042,6 +2097,7 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                     launch_results = list(pool.map(spawn_task, pending_launches))
             else:
                 launch_results = []
+            fatal_launch: tuple[str, str] | None = None
             for (job, task, config, _function), (call, error) in zip(pending_launches, launch_results, strict=True):
                 submitted_ms = config["enqueuedEpochMs"]
                 attempt = {"attempt": len(job.setdefault("attempts", [])) + 1, "submittedMs": submitted_ms,
@@ -2063,6 +2119,10 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                         job["retryNotBeforeMs"] = failed_ms \
                             + min(30000, 1000 * 2 ** min(job["attemptCount"], 5))
                     job["lastError"] = str(error)[-2000:]
+                    if not admission_error and (_strategy_search_is_terminal_worker_error(error)
+                            or _strategy_search_retryable_failure_count(job) >= STRATEGY_SEARCH_MAX_JOB_ATTEMPTS):
+                        job["status"] = "failed"
+                        fatal_launch = (job["taskId"], f"non-retryable launch failure for {job['taskId']}: {error}")
                     continue
                 job["status"] = "active"
                 job["startedMs"] = submitted_ms
@@ -2073,6 +2133,8 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 attempt.update({"status": "submitted", "callId": call.object_id})
                 active[job["taskId"]] = (call, config)
                 allocated += task["cpu"]
+            if fatal_launch:
+                fail_active_wave(fatal_launch[1], fatal_launch[0])
         if interval_admission_rejected:
             clean_admission_ticks = 0
         elif admission_limit_cpus < state["maxActiveCpus"]:
