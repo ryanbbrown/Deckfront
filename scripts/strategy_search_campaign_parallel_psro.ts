@@ -64,8 +64,8 @@ if (mode === 'init') {
       canonicalStrategy: entry.canonicalStrategy, strategy: entry.strategy })) });
   writeAtomic(output, startParallelPsro(checkpoint));
 } else if (mode === 'score') {
-  const transition = read<{ checkpoint: ParallelPsroSemanticCheckpoint; look: ParallelPsroLookDescriptor }>('transition');
-  const { checkpoint, look } = transition, task = read<ParallelPsroScoreTaskDescriptor>('task'), workers = integer('workers', 1);
+  const checkpoint = read<ParallelPsroSemanticCheckpoint>('checkpoint'), look = read<ParallelPsroLookDescriptor>('look'),
+    task = read<ParallelPsroScoreTaskDescriptor>('task'), workers = integer('workers', 1);
   const candidates = new Map(checkpoint.candidates.map((candidate) => [candidate.strategyId, candidate]));
   const field = look.candidateIds.slice(task.candidateStart, task.candidateEnd).map((id) => candidates.get(id)!);
   if (!field.length || field.some((candidate, index) => candidate.canonicalStrategy
@@ -88,14 +88,13 @@ if (mode === 'init') {
       scheduleStart: look.scheduleStart, rows }));
   } finally { await runner.close(); }
 } else if (mode === 'reduce-score') {
-  const transition = read<{ checkpoint: ParallelPsroSemanticCheckpoint; look: ParallelPsroLookDescriptor }>('transition');
-  const { checkpoint, look } = transition, files = read<string[]>('chunks');
+  const checkpoint = read<ParallelPsroSemanticCheckpoint>('checkpoint'), look = read<ParallelPsroLookDescriptor>('look'),
+    files = read<string[]>('chunks');
   const chunks = files.map((file) => JSON.parse(fs.readFileSync(path.resolve(file), 'utf8')) as RawPsroScoreChunk);
   writeAtomic(output, reduceParallelPsroLook({ checkpoint, look, chunks }));
 } else if (mode === 'admission-score') {
-  const transition = read<{ checkpoint: ParallelPsroSemanticCheckpoint; row: ParallelAdmissionRowDescriptor }>('transition');
-  const { checkpoint, row } = transition, taskIndex = integer('task-index'), workers = integer('workers', 1),
-    task = row.tasks[taskIndex];
+  const checkpoint = read<ParallelPsroSemanticCheckpoint>('checkpoint'), row = read<ParallelAdmissionRowDescriptor>('row'),
+    taskIndex = integer('task-index'), workers = integer('workers', 1), task = row.tasks[taskIndex];
   if (!task) throw new Error('Admission-row task does not exist.');
   const selected = checkpoint.candidates.find((candidate) => candidate.strategyId === row.candidateId);
   if (!selected || selected.canonicalStrategy !== row.candidateCanonical) throw new Error('Admission candidate is stale.');
@@ -118,8 +117,8 @@ if (mode === 'init') {
     writeAtomic(output, createParallelAdmissionRowChunk({ row, taskIndex, cells }));
   } finally { await runner.close(); }
 } else if (mode === 'admission-reduce') {
-  const transition = read<{ checkpoint: ParallelPsroSemanticCheckpoint; row: ParallelAdmissionRowDescriptor }>('transition');
-  const { checkpoint, row } = transition, files = read<string[]>('chunks');
+  const checkpoint = read<ParallelPsroSemanticCheckpoint>('checkpoint'), row = read<ParallelAdmissionRowDescriptor>('row'),
+    files = read<string[]>('chunks');
   const chunks = files.map((file) => JSON.parse(fs.readFileSync(path.resolve(file), 'utf8')) as ParallelAdmissionRowChunk);
   writeAtomic(output, reduceParallelAdmissionRow({ checkpoint, row, chunks }));
 } else if (mode === 'finalize') {

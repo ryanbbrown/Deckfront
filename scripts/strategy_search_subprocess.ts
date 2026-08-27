@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
@@ -27,5 +28,20 @@ if (!(entry in ENTRYPOINTS)) throw new Error(`Unknown strategy-search subprocess
 if (wrapperArgs.length !== 4) throw new Error('Strategy-search subprocess wrapper options differ.');
 const kingdomId = option(wrapperArgs, 'kingdom'), target = path.resolve(ENTRYPOINTS[entry as StrategySearchSubprocess]);
 strategySearchKingdom(kingdomId);
-process.argv = [process.execPath, target, ...process.argv.slice(separator + 1)];
-await import(pathToFileURL(target).href);
+const targetArgs = process.argv.slice(separator + 1), temporaryFiles: string[] = [];
+if (entry === 'parallel-psro' && targetArgs.includes('--transition')
+  && targetArgs[targetArgs.indexOf('--mode') + 1] !== 'finalize') {
+  const transitionIndex = targetArgs.indexOf('--transition'), transitionFile = targetArgs[transitionIndex + 1]!;
+  const transition = JSON.parse(fs.readFileSync(transitionFile, 'utf8')) as {
+    checkpoint: unknown; look?: unknown; row?: unknown };
+  const writePart = (label: 'checkpoint' | 'look' | 'row', value: unknown): string => {
+    const file = `${transitionFile}.${label}-${process.pid}.json`;
+    fs.writeFileSync(file, `${JSON.stringify(value)}\n`); temporaryFiles.push(file); return file;
+  };
+  targetArgs.splice(transitionIndex, 2, '--checkpoint', writePart('checkpoint', transition.checkpoint));
+  if (transition.look) targetArgs.push('--look', writePart('look', transition.look));
+  if (transition.row) targetArgs.push('--row', writePart('row', transition.row));
+}
+process.argv = [process.execPath, target, ...targetArgs];
+try { await import(pathToFileURL(target).href); }
+finally { temporaryFiles.forEach((file) => fs.rmSync(file, { force: true })); }
