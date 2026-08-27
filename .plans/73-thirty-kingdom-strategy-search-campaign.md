@@ -25,7 +25,7 @@ npm run strategy-search:campaign -- run --manifest PATH
 
 The manifest contains the exact kingdom IDs, four goldfish seeds, retention limits, code and rules identity, execution mode, and campaign cost cap. `plan` performs no paid work. `status` deeply validates saved stages. `run` resumes only missing work.
 
-The first production manifest will list `deep-beam-tuning-001` through `deep-beam-tuning-030`. The command must also accept another explicit kingdom list.
+The user will supply the exact 30 kingdom IDs before launch. The command must accept any explicit list of registered kingdoms and must never choose kingdoms on the user's behalf.
 
 ## 1. Support every requested ordered kingdom
 
