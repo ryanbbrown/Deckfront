@@ -189,7 +189,8 @@ describe('strategy-search campaign identity and state', () => {
 
 describe('campaign content index', () => {
   it('normalizes, seals, and rejects unsafe or colliding paths', () => {
-    const entry = { bytes: 3, sha256: 'a'.repeat(64), stageId: 'stage', completeness: 'complete' as const };
+    const entry = { bytes: 3, sha256: 'a'.repeat(64), stageId: 'b'.repeat(64),
+      completeness: 'complete' as const };
     const index = createCampaignContentIndex([{ path: 'matrix/chunk.json', ...entry }]);
     expect(validateCampaignContentIndex(index)).toBe(true);
     expect(contentIndexDestination('/tmp/campaign', 'matrix/chunk.json'))
@@ -203,5 +204,14 @@ describe('campaign content index', () => {
       { path: 'cafe\u0301/file', ...entry }])).toThrow();
     const corrupt = structuredClone(index); corrupt.entries[0]!.bytes = 4;
     expect(validateCampaignContentIndex(corrupt)).toBe(false);
+    expect(validateCampaignContentIndex({ ...index, extra: true })).toBe(false);
+    expect(validateCampaignContentIndex({ ...index,
+      entries: [{ ...index.entries[0]!, extra: true }] })).toBe(false);
+    expect(validateCampaignContentIndex({ ...index,
+      entries: [{ ...index.entries[0]!, stageId: 'stage' }] })).toBe(false);
+    expect(validateCampaignContentIndex({ ...index,
+      entries: [{ ...index.entries[0]!, completeness: 'partial' }] })).toBe(false);
+    expect(() => createCampaignContentIndex([{ ...entry, path: 'x', stageId: 'stage' }])).toThrow();
+    expect(() => createCampaignContentIndex([{ ...entry, path: 'x', completeness: 'partial' as never }])).toThrow();
   });
 });

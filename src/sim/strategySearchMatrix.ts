@@ -156,8 +156,9 @@ export function strategySearchMatrixChunkPath(job: Pick<StrategySearchMatrixJob,
   return `chunks/cell-${String(job.rowIndex).padStart(2, '0')}-${String(job.columnIndex).padStart(2, '0')}`
     + `/chunk-${String(job.startSeedIndex).padStart(6, '0')}.json`;
 }
-export function strategySearchMatrixTimingPath(batchIndex: number): string {
-  return `timing/batch-${String(batchIndex).padStart(6, '0')}.json`;
+export function strategySearchMatrixTimingPath(batchIdentity: string): string {
+  if (!sha(batchIdentity)) throw new Error('Campaign Matrix batch identity is invalid.');
+  return `timing/batch-${batchIdentity}.json`;
 }
 function recordValid(record: InitialMatrixSeedRecord, expectedSeed: number,
   purpose: InitialMatrixCellPurpose, rowId: string, columnId: string): boolean {
@@ -216,7 +217,7 @@ export function createStrategySearchMatrixBatchTiming(input: { manifest: Strateg
     throw new Error('Campaign Matrix batch timing input is invalid.');
   }
   const slots = input.jobs.map((job) => job.slot);
-  const batchIdentity = hash({ manifestHash: input.manifest.evidenceHash, batchIndex: input.batchIndex,
+  const batchIdentity = hash({ manifestHash: input.manifest.evidenceHash,
     slots, workerCount: input.workerCount });
   const base = { schemaVersion: 3 as const, experiment: 'strategy-search-campaign-matrix-batch-timing' as const,
     manifestHash: input.manifest.evidenceHash, batchIndex: input.batchIndex, batchIdentity, firstSlot: slots[0]!,
@@ -230,7 +231,7 @@ export function validateStrategySearchMatrixBatchTiming(value: unknown, manifest
   if (!object(value) || !exactKeys(value, BATCH_TIMING_KEYS)) return false;
   const held = value as unknown as StrategySearchMatrixBatchTiming;
   const expectedSlots = expected.jobs.map((job) => job.slot);
-  const expectedIdentity = hash({ manifestHash: manifest.evidenceHash, batchIndex: expected.batchIndex,
+  const expectedIdentity = hash({ manifestHash: manifest.evidenceHash,
     slots: expectedSlots, workerCount: expected.workerCount });
   return expected.jobs.length > 0 && expected.jobs.every((job) => matrixJobBelongs(manifest, job))
     && held.schemaVersion === 3 && held.experiment === 'strategy-search-campaign-matrix-batch-timing'
@@ -282,7 +283,7 @@ export async function executeStrategySearchMatrixBatches(input: {
       manifestHash: input.manifest.evidenceHash, batchIndex,
       chunkHashes: batch.map((job, index) => ({ slot: job.slot, path: strategySearchMatrixChunkPath(job),
         sha256: batchChunks[index]!.evidenceHash })),
-      timing: { path: strategySearchMatrixTimingPath(batchIndex), sha256: timing.evidenceHash } };
+      timing: { path: strategySearchMatrixTimingPath(timing.batchIdentity), sha256: timing.evidenceHash } };
     const event = { ...eventBase, eventHash: hash(eventBase) };
     await input.checkpoint(event, batchChunks, timing);
     chunks.push(...batchChunks); timings.push(timing);

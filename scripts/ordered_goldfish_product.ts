@@ -292,7 +292,8 @@ async function readCohortRange(file: string, cohort: CohortManifest, start: numb
     }
   }
   if (result.length !== end - start || result.some((record, index) =>
-    !validateOrderedProductStageOneRecord(record) || record.stageOneRank !== start + index + 1)) {
+    !validateOrderedProductStageOneRecord(record) || currentMembership && !currentMembership(record)
+      || record.stageOneRank !== start + index + 1)) {
     throw new Error('Cohort records are invalid.');
   }
   return result;

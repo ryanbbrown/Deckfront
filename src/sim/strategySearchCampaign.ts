@@ -469,11 +469,20 @@ export interface CampaignContentIndexEntry {
   completeness: 'complete' | 'incomplete' | 'terminal-incomplete';
 }
 export interface CampaignContentIndex { schemaVersion: 1; entries: CampaignContentIndexEntry[]; indexHash: string }
+const CONTENT_INDEX_KEYS = ['schemaVersion', 'entries', 'indexHash'] as const;
+const CONTENT_INDEX_ENTRY_KEYS = ['path', 'bytes', 'sha256', 'stageId', 'completeness'] as const;
+const CONTENT_COMPLETENESS = new Set(['complete', 'incomplete', 'terminal-incomplete']);
 export function createCampaignContentIndex(entries: readonly CampaignContentIndexEntry[]): CampaignContentIndex {
-  const normalized = entries.map((entry) => ({ ...entry, path: normalizedRelativePath(entry.path) }));
+  const normalized = entries.map((entry) => {
+    if (!entry || typeof entry !== 'object' || !exactKeys(entry, CONTENT_INDEX_ENTRY_KEYS)) {
+      throw new Error('Content-index entry has unexpected fields.');
+    }
+    return { ...entry, path: normalizedRelativePath(entry.path) };
+  });
   const exactPaths = new Set<string>(), folded = new Set<string>();
   for (const entry of normalized) {
-    if (!Number.isSafeInteger(entry.bytes) || entry.bytes < 0 || !sha.safeParse(entry.sha256).success || !entry.stageId) {
+    if (!Number.isSafeInteger(entry.bytes) || entry.bytes < 0 || !sha.safeParse(entry.sha256).success
+      || !sha.safeParse(entry.stageId).success || !CONTENT_COMPLETENESS.has(entry.completeness)) {
       throw new Error(`Content-index entry is invalid: ${entry.path}`);
     }
     const collisionKey = entry.path.normalize('NFC').toLocaleLowerCase('en-US');
@@ -484,10 +493,10 @@ export function createCampaignContentIndex(entries: readonly CampaignContentInde
   return { schemaVersion: 1, entries: normalized, indexHash: sha256(canonical(normalized)) };
 }
 export function validateCampaignContentIndex(value: unknown): value is CampaignContentIndex {
-  if (!value || typeof value !== 'object') return false;
+  if (!value || typeof value !== 'object' || !exactKeys(value, CONTENT_INDEX_KEYS)) return false;
   try {
     const held = value as CampaignContentIndex;
-    return held.schemaVersion === 1 && Array.isArray(held.entries)
+    return held.schemaVersion === 1 && sha.safeParse(held.indexHash).success && Array.isArray(held.entries)
       && canonical(createCampaignContentIndex(held.entries)) === canonical(held);
   } catch { return false; }
 }

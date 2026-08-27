@@ -21,7 +21,7 @@ import type {
   OrderedProductStageOneRecord
 } from '../../src/sim/orderedGoldfishProduct';
 import {
-  coprimeTraversalConfig, createOrderedCandidateSpace, orderedGoldfishCardIds,
+  candidateIndexAt, coprimeTraversalConfig, createOrderedCandidateSpace, orderedGoldfishCardIds,
   representativeCandidateIndices
 } from '../../src/sim/orderedGoldfishBenchmark';
 import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
@@ -159,6 +159,16 @@ describe('ordered goldfish product correction', () => {
       ranked: { ...artifact, recordCount: artifact.records.length }, reservoir: stale,
       rankedSha256, reservoirSha256 }, { retainedCount: 8, reservoirCount: 3, strategyCount: 3 }))
       .toThrow('stale or invalid');
+    const impossible = structuredClone(reservoir);
+    const space = createOrderedCandidateSpace(orderedGoldfishCardIds(artifact.config.kingdomId));
+    const wrong = space.candidateAt(candidateIndexAt(1, space.candidateCount));
+    impossible.entries[0]!.strategy = wrong;
+    impossible.entries[0]!.displayId = wrong.id;
+    impossible.entries[0]!.canonicalStrategy = canonicalStrategy(wrong);
+    expect(() => validateOrderedCalibrationSourceForCounts({ kingdomId: artifact.config.kingdomId,
+      ranked: { ...artifact, recordCount: artifact.records.length }, reservoir: impossible,
+      rankedSha256, reservoirSha256 }, { retainedCount: 8, reservoirCount: 3, strategyCount: 3 }))
+      .toThrow('entry 1 is invalid');
   });
 
   it('accepts only the original seeds or one exact K007 replication set', () => {

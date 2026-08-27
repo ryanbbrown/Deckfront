@@ -10,9 +10,9 @@ import type { Strategy } from '../../src/sim/strategy';
 import {
   createStrategySearchMatrixBatchTiming, createStrategySearchMatrixChunk,
   createStrategySearchMatrixManifest, createStrategySearchMatrixP75Source,
-  executeStrategySearchMatrixBatches, strategySearchMatrixJobs, validateStrategySearchMatrixBatchTiming,
-  validateStrategySearchMatrixChunk, validateStrategySearchMatrixCommandTiming,
-  validateStrategySearchMatrixP75Source
+  executeStrategySearchMatrixBatches, strategySearchMatrixJobs, strategySearchMatrixTimingPath,
+  validateStrategySearchMatrixBatchTiming, validateStrategySearchMatrixChunk,
+  validateStrategySearchMatrixCommandTiming, validateStrategySearchMatrixP75Source
 } from '../../src/sim/strategySearchMatrix';
 
 const kingdomId = 'deep-beam-tuning-002';
@@ -80,6 +80,23 @@ describe('campaign Matrix schema and batching', () => {
     expect(validateStrategySearchMatrixBatchTiming(wrongIdentity, held,
       { batchIndex: 0, jobs, workerCount: 4 })).toBe(false);
     expect(events).toHaveLength(1);
+  });
+
+  it('gives resumed subsets immutable noncolliding timing paths', async () => {
+    const held = manifest(), all = strategySearchMatrixJobs(held);
+    const paths: string[] = [];
+    const execute = (jobs: readonly (typeof all)[number][], jobsPerBatch: number, workerCount: number) =>
+      executeStrategySearchMatrixBatches({ manifest: held, jobs, jobsPerBatch, workerCount,
+        async runBatch(batch) { return batch.map((job) => ({ slot: job.slot,
+          records: records(held.strategies[job.rowIndex]!, held.strategies[job.columnIndex]!, job.seeds) })); },
+        checkpoint(event) { paths.push(event.timing.path); } });
+    const first = await execute(all.slice(0, 4), 2, 4);
+    const resumed = await execute([all[1]!, all[3]!, all[5]!], 3, 2);
+    expect(first.timings[0]!.batchIndex).toBe(0);
+    expect(resumed.timings[0]!.batchIndex).toBe(0);
+    expect(new Set(paths).size).toBe(paths.length);
+    expect(paths).toEqual([...first.timings, ...resumed.timings]
+      .map((timing) => strategySearchMatrixTimingPath(timing.batchIdentity)));
   });
 
   it('rejects extra, duplicate, and foreign result slots and jobs', async () => {

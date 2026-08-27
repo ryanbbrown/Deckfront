@@ -8,8 +8,9 @@ import { validateTelemetryAggregate } from './lotteryAcquisition';
 import { nativeRuleFingerprint } from './nativeGoldfishProtocol';
 import {
   CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION, CURRENT_ORDERED_PRODUCT_VERSION,
-  ORDERED_PRODUCT_SPACE_COUNT, deriveCurrentOrderedProductIdentity,
-  legacyOrderedProductSeedsValid, legacyOrderedProductTarget, validateOrderedProductRankedRecord
+  ORDERED_PRODUCT_SPACE_COUNT, createCurrentOrderedProductMembershipValidator,
+  deriveCurrentOrderedProductIdentity, legacyOrderedProductSeedsValid, legacyOrderedProductTarget,
+  validateOrderedProductRankedRecord
 } from './orderedGoldfishProduct';
 import type { OrderedProductReservoirArtifact } from './orderedGoldfishProduct';
 import { canonicalStrategy } from './strategy';
@@ -218,12 +219,14 @@ export function validateOrderedCalibrationSourceForCounts(input: OrderedCalibrat
     || !Array.isArray(reservoir.entries) || reservoir.entries.length !== counts.reservoirCount) {
     throw new Error('Ordered calibration source metadata, rules, or 20,000-entry reservoir is stale or invalid.');
   }
+  const currentMembership = ranked.schemaVersion === CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION
+    ? createCurrentOrderedProductMembershipValidator(ranked.productIdentity!) : undefined;
   const ids = new Set<string>();
   const canonicals = new Set<string>();
   for (let index = 0; index < reservoir.entries.length; index += 1) {
     const entry = reservoir.entries[index]!;
-    if (!validateOrderedProductRankedRecord(entry) || entry.rank !== index + 1
-      || ids.has(entry.strategy.id) || canonicals.has(entry.canonicalStrategy)) {
+    if (!validateOrderedProductRankedRecord(entry) || currentMembership && !currentMembership(entry)
+      || entry.rank !== index + 1 || ids.has(entry.strategy.id) || canonicals.has(entry.canonicalStrategy)) {
       throw new Error(`Ordered calibration reservoir entry ${index + 1} is invalid or out of order.`);
     }
     ids.add(entry.strategy.id);
