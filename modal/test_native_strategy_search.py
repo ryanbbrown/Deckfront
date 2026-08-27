@@ -2,6 +2,7 @@ import hashlib
 import inspect
 import json
 import pathlib
+import struct
 import subprocess
 import tempfile
 import unittest
@@ -395,551 +396,141 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                     launcher._atomic_json(target, {"complete": False})
             self.assertEqual(json.loads(target.read_text()), {"complete": True})
 
-    def test_corrupt_campaign_evidence_is_preserved_by_hash_before_retry(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory); source = root / "stage" / "shard.json"
-            source.parent.mkdir(); source.write_text("corrupt raw evidence")
-            destination = launcher._preserve_corrupt_file(source, root / "control")
-            self.assertFalse(source.exists()); self.assertTrue(destination.exists())
-            self.assertEqual(destination.read_text(), "corrupt raw evidence")
-            self.assertIn(hashlib.sha256(b"corrupt raw evidence").hexdigest(), destination.name)
 
-    def test_campaign_source_identity_recomputes_exact_image_bytes(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory)
-            (root / "src").mkdir(); (root / "src" / "a.ts").write_text("export {}\n")
-            content = (root / "src" / "a.ts").read_bytes()
-            files = [{"path": "src/a.ts", "bytes": len(content),
-                      "sha256": hashlib.sha256(content).hexdigest()}]
-            digest = hashlib.sha256(
-                f"src/a.ts\0{len(content)}\0{files[0]['sha256']}\n".encode()).hexdigest()
-            self.assertEqual(launcher._campaign_source_digest(files, root), digest)
-            files[0]["bytes"] += 1
-            with self.assertRaisesRegex(RuntimeError, "source-image file differs"):
-                launcher._campaign_source_digest(files, root)
+    def test_strategy_search_image_uses_the_exact_committed_allowlist(self):
+        source = inspect.getsource(launcher)
+        self.assertIn("strategy-search-image-files.json", source)
+        self.assertIn("image.add_local_file", source)
+        campaign_source = inspect.getsource(launcher.verify_strategy_search_source)
+        self.assertIn("_strategy_search_source_digest", campaign_source)
 
-    def test_whole_stage_keeps_one_process_and_commits_each_checkpoint_event(self):
-        class HeldVolume:
-            def __init__(self): self.commits = 0
-            def commit(self): self.commits += 1
-        class Pipe:
-            def __init__(self, lines): self.lines = lines; self.drained = False
-            def __iter__(self): return iter(self.lines)
-            def read(self, _size=-1):
-                if self.drained: return ""
-                self.drained = True; return "".join(self.lines)
-        class Process:
-            def __init__(self):
-                self.stdout = Pipe([json.dumps({"type": launcher.CAMPAIGN_CHECKPOINT_EVENT,
-                    "stage": "matrix", "eventHash": "a" * 64}) + "\n",
-                    json.dumps({"type": launcher.CAMPAIGN_STAGE_STOP_EVENT,
-                    "stage": "matrix", "status": "complete", "markerHash": "b" * 64}) + "\n"])
-                self.stderr = Pipe(["Maximum resident set size (kbytes): 12345\n"]); self.terminated = False
-            def wait(self): return 0
-            def terminate(self): self.terminated = True
-        held_volume = HeldVolume(); process = Process()
-        marker = tempfile.NamedTemporaryFile("w", delete=False)
-        json.dump({"status": "complete", "markerHash": "b" * 64,
-                   "artifactHashes": {"output/file.json": "d" * 64}}, marker); marker.close()
-        config = {"stage": "matrix", "controller_fence": 2, "source_image": {},
-            "timeout_seconds": 30, "shutdown_margin_seconds": 5, "campaign_root": "campaign/root",
-            "manifest_path": "matrix/manifest.json", "output_path": "matrix/output",
-            "control_path": "matrix/control", "threads": 4, "worker_batch_size": 4,
-            "stage_id": "c" * 64, "memory_mib": 8192}
-        with patch.object(launcher, "volume", held_volume), \
-                patch.object(launcher, "verify_campaign_source_image"), \
-                patch.object(launcher, "_campaign_stage_command", return_value=["trusted"]), \
-                patch.object(launcher, "_campaign_path", return_value=pathlib.Path(marker.name)), \
-                patch.object(launcher, "_reject_campaign_symlinks"), \
-                patch.object(launcher.subprocess, "Popen", return_value=process) as spawn:
-            result = launcher._run_campaign_stage("matrix", config)
-        pathlib.Path(marker.name).unlink()
-        self.assertEqual(result["status"], "complete")
-        self.assertEqual(result["checkpointCommits"], 1)
-        self.assertEqual(held_volume.commits, 2)
-        self.assertEqual(result["peakRssKib"], 12345)
-        self.assertEqual(result["nodeHeapMiB"], 6144)
-        spawn.assert_called_once()
-        self.assertEqual(spawn.call_args.kwargs["env"]["NODE_OPTIONS"], "--max-old-space-size=6144")
-
-    def test_whole_stage_stderr_drain_handles_more_than_one_pipe_buffer_with_a_bounded_tail(self):
-        process = subprocess.Popen(["python3", "-c",
-            "import sys; sys.stderr.write('x' * 262144 + 'exact-tail'); sys.stderr.flush(); print('done')"],
-            text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        tail, thread = launcher._drain_bounded_text(process.stderr, 64 * 1024)
-        self.assertEqual(process.stdout.readline().strip(), "done")
-        self.assertEqual(process.wait(timeout=10), 0)
-        thread.join(timeout=10)
-        process.stdout.close(); process.stderr.close()
-        self.assertFalse(thread.is_alive())
-        self.assertLessEqual(len(tail[0]), 64 * 1024)
-        self.assertTrue(tail[0].endswith("exact-tail"))
-
-    def test_campaign_goldfish_completion_hashes_sidecars_and_uses_stage_timeout(self):
+    def test_strategy_search_execution_reuses_pinned_partitions_when_capacity_changes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
-            ranked, reservoir = root / "ranked.json", root / "reservoir.json"
-            ranked.write_text('{"parts":[]}\n'); reservoir.write_text('{"entries":[]}\n')
-            ranked_digest = hashlib.sha256(ranked.read_bytes()).hexdigest()
-            reservoir_digest = hashlib.sha256(reservoir.read_bytes()).hexdigest()
-            ranked.with_suffix(".json.sha256").write_text(f"{ranked_digest}  ranked.json\n")
-            reservoir.with_suffix(".json.sha256").write_text(f"{reservoir_digest}  reservoir.json\n")
-            hashes = launcher._campaign_goldfish_complete_hashes(ranked, reservoir, {"parts": []})
-            self.assertEqual(hashes["output/ranked.json"], ranked_digest)
-            self.assertEqual(hashes["output/ranked.json.sha256"], hashlib.sha256(
-                ranked.with_suffix(".json.sha256").read_bytes()).hexdigest())
-            ranked.with_suffix(".json.sha256").write_text(f"{'0' * 64}  ranked.json\n")
-            with self.assertRaisesRegex(RuntimeError, "sidecar differs"):
-                launcher._campaign_goldfish_complete_hashes(ranked, reservoir, {"parts": []})
-        source = inspect.getsource(launcher.campaign_goldfish_finalize.get_raw_f())
-        self.assertIn('timeout=config["timeout_seconds"]', source)
-        self.assertNotIn("timeout=300", source)
+            state_file = root / "state.json"
+            def execution_file(_execution_id):
+                return state_file
+            request = {"operation": "execution-init", "campaignExecutionId": "a" * 64,
+                "orderedEvidenceIds": ["b" * 64], "partitions": {"one": [1]},
+                "jobs": [{"taskId": "old"}], "tasks": [{"taskId": "old"}], "maxActiveCpus": 400}
+            with patch.object(launcher, "_strategy_search_execution_file", execution_file), \
+                    patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"):
+                first = launcher.strategy_search_publisher.get_raw_f()(request)
+                changed = launcher.strategy_search_publisher.get_raw_f()({**request,
+                    "partitions": {"different": [2]}, "jobs": [{"taskId": "new"}],
+                    "tasks": [{"taskId": "new"}], "maxActiveCpus": 800})
+            self.assertEqual(first["partitions"], {"one": [1]})
+            self.assertEqual(changed["partitions"], {"one": [1]})
+            self.assertEqual(changed["jobs"], [{"taskId": "old"}])
+            self.assertEqual(changed["maxActiveCpus"], 800)
 
-    def test_campaign_psro_uses_the_built_resident_rust_binary(self):
-        class Pipe:
-            def __init__(self, lines): self.lines = lines
-            def __iter__(self): return iter(self.lines)
-            def read(self, _size=-1): return ""
-        class Process:
-            def __init__(self):
-                self.stdout = Pipe([json.dumps({"type": launcher.CAMPAIGN_STAGE_STOP_EVENT,
-                    "stage": "psro", "status": "incomplete", "markerHash": "b" * 64}) + "\n"])
-                self.stderr = Pipe([])
-            def wait(self): return 2
-            def terminate(self): pass
-        marker = tempfile.NamedTemporaryFile("w", delete=False)
-        json.dump({"status": "incomplete", "markerHash": "b" * 64,
-                   "reason": "shutdown margin", "artifactHashes": {"output/protocol.json": "d" * 64}}, marker)
-        marker.close()
-        config = {"stage": "psro", "controller_fence": 2, "source_image": {},
-            "timeout_seconds": 30, "shutdown_margin_seconds": 5, "campaign_root": "campaign/root",
-            "stage_config_path": "kingdom/psro/config.json", "control_path": "kingdom/psro/control",
-            "stage_id": "c" * 64, "memory_mib": 8192}
-        command = launcher._campaign_stage_command("psro", config, 123)
-        self.assertEqual(command[:3], ["npx", "tsx", "scripts/strategy_search_campaign_psro.ts"])
-        with patch.object(launcher, "verify_campaign_source_image"), \
-                patch.object(launcher, "_campaign_stage_command", return_value=command), \
-                patch.object(launcher, "_campaign_path", return_value=pathlib.Path(marker.name)), \
-                patch.object(launcher, "_reject_campaign_symlinks"), \
-                patch.object(launcher.volume, "commit"), \
-                patch.object(launcher.subprocess, "Popen", return_value=Process()) as spawn:
-            result = launcher._run_campaign_stage("psro", config)
-        pathlib.Path(marker.name).unlink()
-        self.assertEqual(result["reason"], "shutdown margin")
-        self.assertEqual(spawn.call_args.kwargs["env"]["HEXDECK_GOLDFISH_BIN"],
-            "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish")
-
-    def test_campaign_call_observation_reattaches_and_isolates_failures(self):
-        class Call:
-            def __init__(self, result=None, error=None): self.result, self.error = result, error
-            def get(self, timeout):
-                if self.error: raise self.error
-                return self.result
-        calls = {"call-ok": Call({"status": "complete"}), "call-bad": Call(error=RuntimeError("failed"))}
-        checkpoint = {"tasks": [
-            {"taskId": "ok", "status": "active", "callId": "call-ok"},
-            {"taskId": "bad", "status": "active", "callId": "call-bad"}]}
-        configs = {"ok": {"stage": "matrix"}, "bad": {"stage": "psro"}}
-        validated = {"status": "complete", "artifactPaths": ["output/file.json"],
-                     "artifactHashes": {"output/file.json": "a" * 64}}
-        with patch.object(launcher.modal.FunctionCall, "from_id", side_effect=lambda call_id: calls[call_id]), \
-                patch.object(launcher.volume, "reload"), \
-                patch.object(launcher, "_deep_validate_campaign_result", return_value=validated):
-            observations = launcher._campaign_call_observations(checkpoint, "campaign/root", configs)
-        self.assertEqual(observations[0], {"callId": "call-ok", "state": "succeeded",
-            "artifactStatus": "complete", "reason": None, "artifactPaths": ["output/file.json"],
-            "artifactHashes": {"output/file.json": "a" * 64}})
-        self.assertEqual(observations[1]["state"], "failed")
-        self.assertIn("RuntimeError", observations[1]["reason"])
-
-    def test_campaign_call_poll_treats_both_modal_timeouts_as_running_only_at_get(self):
-        class Call:
-            def __init__(self, error=None, result=None): self.error, self.result = error, result
-            def get(self, timeout):
-                self.assert_timeout = timeout
-                if self.error is not None: raise self.error
-                return self.result
-        self.assertIsNot(TimeoutError, launcher.ModalTimeoutError)
-        calls = {"built-in": Call(error=TimeoutError()),
-                 "modal": Call(error=launcher.ModalTimeoutError()),
-                 "deep": Call(result={"status": "complete"})}
-        checkpoint = {"tasks": [
-            {"taskId": "built-in", "status": "active", "callId": "fc-built-in"},
-            {"taskId": "modal", "status": "active", "callId": "fc-modal"},
-            {"taskId": "deep", "status": "active", "callId": "fc-deep"},
-            {"taskId": "lookup", "status": "active", "callId": "fc-lookup"}]}
-        configs = {task["taskId"]: {"stage": "matrix"} for task in checkpoint["tasks"]}
-        def from_id(call_id):
-            if call_id == "fc-lookup": raise TimeoutError("lookup failed")
-            return calls[call_id.removeprefix("fc-")]
-        with patch.object(launcher.modal.FunctionCall, "from_id", side_effect=from_id), \
-                patch.object(launcher.volume, "reload"), \
-                patch.object(launcher, "_deep_validate_campaign_result",
-                    side_effect=TimeoutError("validation timed out")):
-            observations = launcher._campaign_call_observations(checkpoint, "campaign/root", configs)
-        self.assertEqual(observations[:2], [
-            {"callId": "fc-built-in", "state": "running"},
-            {"callId": "fc-modal", "state": "running"}])
-        self.assertEqual(observations[2], {"callId": "fc-deep", "state": "failed",
-            "reason": "deep validation failed: TimeoutError: validation timed out"})
-        self.assertEqual(observations[3], {"callId": "fc-lookup", "state": "failed",
-            "reason": "TimeoutError: lookup failed"})
-
-    def test_production_stage_one_is_bounded_and_resumes_committed_internal_chunks(self):
-        ranges = launcher._campaign_stage_one_ranges(0, launcher.FULL_CANDIDATE_COUNT)
-        self.assertEqual(len(ranges), 52)
-        self.assertEqual(ranges[0], (0, 250_000))
-        self.assertEqual(ranges[-1], (12_750_000, launcher.FULL_CANDIDATE_COUNT))
-        self.assertEqual(sum(end - start for start, end in ranges), launcher.FULL_CANDIDATE_COUNT)
-        self.assertLessEqual(max(end - start for start, end in ranges), 250_000)
-        class HeldVolume:
-            def __init__(self): self.commits = 0
-            def reload(self): pass
-            def commit(self): self.commits += 1
-        held_volume = HeldVolume(); input_ranges = []; interrupt = {"pending": True}
+    def test_strategy_search_publisher_batches_exact_bytes_and_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
-            output = pathlib.Path(directory) / "stage-one" / "shard-000000.json"
-            output.parent.mkdir()
-            def run_checked(command, _label, **_kwargs):
-                if any(value.endswith("native_ordered_shard_input.ts") for value in command):
-                    start = int(command[command.index("--start-position") + 1])
-                    end = int(command[command.index("--end-position") + 1])
-                    if start == 750_000 and interrupt["pending"]:
-                        interrupt["pending"] = False
-                        raise RuntimeError("fixture interruption")
-                    input_ranges.append((start, end))
-                    pathlib.Path(command[command.index("--metadata") + 1]).write_text("{}")
-                elif "stage-one-checkpoint" in command:
-                    partial = pathlib.Path(command[command.index("--out") + 1])
-                    partial.write_text(json.dumps({"contentDigest": "chunk"}))
-                    pathlib.Path(f"{partial}.records.jsonl").write_text("record\n")
-                elif "stage-one-merge-shard" in command:
-                    pathlib.Path(command[command.index("--out") + 1]).write_text(
-                        json.dumps({"contentDigest": "final"}))
-                    end = int(command[command.index("--end-position") + 1])
-                    pathlib.Path(command[command.index("--metadata-out") + 1]).write_text(
-                        json.dumps({"endPosition": end}))
-                return subprocess.CompletedProcess(command, 0, "", "")
-            def metadata(path, checkpoint, spec, prior):
-                if not path.exists() or not checkpoint.exists(): return None
-                self.assertIsNone(prior)
-                chunk = (spec["end_position"] - 1) // launcher.CAMPAIGN_STAGE_ONE_CHUNK_SIZE
-                return f"{chunk:08x}1"
-            spec = {"campaign_root": "campaign/root", "run_id": "campaign/root/kingdom/goldfish",
-                "schema_version": 2, "kingdom": "balance-tuning-056", "start_position": 0,
-                "end_position": launcher.FULL_CANDIDATE_COUNT, "shard_id": 0, "threads": 4, "cpu": 4,
-                "shuffle_seeds": [4_100_000, 4_100_001, 4_100_002, 4_100_003],
-                "timeout_seconds": 86_400, "memory_mib": 8192,
-                "retained_count": 500_000, "reservoir_count": 20_000,
-                "build_version": "build", "rule_fingerprint": "rules"}
-            with patch.object(launcher, "volume", held_volume), \
-                    patch.object(launcher, "_ordered_product_checkpoint_path", return_value=output), \
-                    patch.object(launcher, "_valid_ordered_product_checkpoint",
-                        side_effect=lambda path, _spec, _stage: path.exists()), \
-                    patch.object(launcher, "_valid_stage_one_chunk_metadata", side_effect=metadata), \
-                    patch.object(launcher, "_run_checked", side_effect=run_checked), \
-                    patch.object(launcher, "_run_rust"):
-                with self.assertRaisesRegex(RuntimeError, "fixture interruption"):
-                    launcher.ordered_product_stage_one.get_raw_f()(spec)
-                result = launcher.ordered_product_stage_one.get_raw_f()(spec)
-            self.assertFalse(result["reused"])
-            self.assertEqual(input_ranges, ranges)
-            self.assertEqual(held_volume.commits, len(ranges) + 1)
+            root = pathlib.Path(directory)
+            evidence, execution_id = "b" * 64, "a" * 64
+            state_file, execution_file = root / "publication.json", root / "execution.json"
+            execution_file.write_text(json.dumps({"controller": {"ownerId": "owner", "fence": 1, "leaseUntilMs": 100}}))
+            paths = {}
+            def held_path(relative):
+                return paths.setdefault(relative, root / relative.replace("/", "_"))
+            raw = launcher.strategy_search_publisher.get_raw_f()
+            controller = {"campaignExecutionId": execution_id, "controllerOwnerId": "owner", "controllerFence": 1}
+            common = {"evidenceId": evidence, "taskId": "task", "ownerId": "owner", **controller}
+            with patch.object(launcher, "_strategy_search_evidence_state", return_value=state_file), \
+                    patch.object(launcher, "_strategy_search_execution_file", return_value=execution_file), \
+                    patch.object(launcher, "_strategy_search_path", side_effect=held_path), \
+                    patch.object(launcher, "_strategy_search_validate_publication"), \
+                    patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit") as commit:
+                lease = raw({"operation": "claim", **common, "nowMs": 0, "leaseMs": 100})
+                raw({"operation": "intent", **common, "fence": lease["fence"], "launchId": "launch",
+                    "artifactPath": "evidence/final", "temporaryPath": "temporary/launch", "nowMs": 1})
+                temporary = held_path("temporary/launch")
+                temporary.write_bytes(b"scientific")
+                digest = hashlib.sha256(b"scientific").hexdigest()
+                publication = {"evidenceId": evidence, "taskId": "task", "fence": lease["fence"],
+                    "launchId": "launch", "sha256": digest, "stage": "goldfish-one",
+                    "range": {"start": 0, "end": 1}, **controller}
+                result = raw({"operation": "publish-batch", "nowMs": 1, "publications": [publication]})
+                self.assertEqual(result["receipts"]["task"]["sha256"], digest)
+                self.assertEqual(held_path("evidence/final").read_bytes(), b"scientific")
+                self.assertGreaterEqual(commit.call_count, 4)
+                held_path("temporary/launch").write_bytes(b"conflict")
+                with self.assertRaisesRegex(RuntimeError, "receipt conflicts"):
+                    raw({"operation": "publish-batch", "nowMs": 2, "publications": [
+                        {**publication, "sha256": hashlib.sha256(b"conflict").hexdigest()}]})
 
-    def test_fenced_run_reconciliation_repairs_corrupt_completed_goldfish_matrix_and_psro(self):
-        for stage in ["goldfish", "matrix", "psro"]:
-            with self.subTest(stage=stage):
-                requests = []
-                task = {"taskId": f"k:{stage}", "status": "complete",
-                    "artifactPaths": ["output/evidence.json"],
-                    "artifactHashes": {"output/evidence.json": "a" * 64}}
-                state = {"revision": 7}; checkpoint = {"revision": 9, "tasks": [task]}
-                configs = {task["taskId"]: {"config": {"stage_key": f"k:{stage}"}}}
-                class Mutator:
-                    @staticmethod
-                    def remote(request):
-                        requests.append(request)
-                        return {"state": {"revision": 8}, "scheduler": {"revision": 10}}
-                with patch.object(launcher.volume, "reload"), \
-                        patch.object(launcher, "_deep_validate_campaign_result",
-                            side_effect=RuntimeError(f"{stage} bytes differ")), \
-                        patch.object(launcher, "campaign_state_mutator", Mutator):
-                    changed_state, changed_scheduler, repaired = launcher._reconcile_campaign_completed(
-                        campaign_root="campaign/root", owner_id="owner", fence=3, state=state,
-                        checkpoint=checkpoint, task_configs=configs)
-                self.assertTrue(repaired)
-                self.assertEqual(changed_state["revision"], 8)
-                self.assertEqual(changed_scheduler["revision"], 10)
-                self.assertEqual(requests[0]["operation"], "repair-completed")
-                self.assertEqual(requests[0]["payload"]["repair"]["stageKey"], f"k:{stage}")
-                self.assertIn(f"{stage} bytes differ", requests[0]["payload"]["repair"]["reason"])
-
-    def test_operator_recovery_requires_exact_assertion_and_handles_controller_and_task_intents(self):
-        with patch.object(launcher.campaign_read_status, "remote") as status:
-            with self.assertRaisesRegex(ValueError, "exact no-live-call assertion"):
-                launcher._recover_campaign_launch("campaign/root", "a" * 64, "controller", "maybe")
-            status.assert_not_called()
-        controller_status = {"controllerCall": {"ownerId": "owner", "callId": None}}
-        with patch.object(launcher.campaign_read_status, "remote", return_value=controller_status), \
-                patch.object(launcher.campaign_controller_call_mutator, "remote",
-                    return_value={"controllerCall": None}) as clear:
-            recovered = launcher._recover_campaign_launch("campaign/root", "a" * 64,
-                "controller", "no-live-modal-call-exists")
-        self.assertEqual(recovered, {"status": "recovered", "target": "controller",
-            "controllerCall": None})
-        self.assertEqual(clear.call_args.args[0]["operation"], "clear")
-        task_status = {"controllerCall": None, "state": {"revision": 2}, "scheduler": {"tasks": [{
-            "taskId": "k:matrix", "kingdomId": "k", "stage": "matrix", "status": "launching",
-            "callId": None}]}}
-        changed = {"state": {"revision": 3, "fencingToken": 5},
-            "scheduler": {"revision": 4, "tasks": task_status["scheduler"]["tasks"]}}
-        recovered_changed = {"state": {"fencingToken": 5},
-            "scheduler": {"tasks": [{**task_status["scheduler"]["tasks"][0], "status": "ready"}]}}
-        with patch.object(launcher.campaign_read_status, "remote", return_value=task_status), \
-                patch.object(launcher.campaign_state_mutator, "remote",
-                    side_effect=[changed, recovered_changed]) as mutate:
-            recovered = launcher._recover_campaign_launch("campaign/root", "a" * 64,
-                "k:matrix", "no-live-modal-call-exists")
-        self.assertEqual(recovered["taskStatus"], "ready")
-        self.assertEqual([call.args[0]["operation"] for call in mutate.call_args_list],
-            ["claim", "recover-launch"])
-
-    def test_controller_launch_reservation_allows_one_spawn_and_binds_one_call(self):
-        class HeldVolume:
-            def reload(self): pass
-            def commit(self): pass
-        with tempfile.TemporaryDirectory() as directory, \
-                patch.object(launcher, "volume", HeldVolume()), \
-                patch.object(launcher, "_campaign_path",
-                    return_value=pathlib.Path(directory) / "controller-call.json"):
-            request = {"campaign_root": "campaign/root", "evidence_hash": "a" * 64,
-                "operation": "reserve", "call_id": "", "owner_id": "owner-one"}
-            first = launcher.campaign_controller_call_mutator.get_raw_f()(request)
-            second = launcher.campaign_controller_call_mutator.get_raw_f()({**request, "owner_id": "owner-two"})
-            self.assertEqual(first["controllerCall"], second["controllerCall"])
-            self.assertIsNone(first["controllerCall"]["callId"])
-            bound = launcher.campaign_controller_call_mutator.get_raw_f()({**request,
-                "operation": "bind", "call_id": "fc-one"})
-            self.assertEqual(bound["controllerCall"]["callId"], "fc-one")
-            with self.assertRaisesRegex(RuntimeError, "stale or ambiguous"):
-                launcher.campaign_controller_call_mutator.get_raw_f()({**request,
-                    "operation": "bind", "call_id": "fc-two"})
-
-    def test_launch_intent_is_durable_before_spawn_and_ambiguous_crash_is_not_bound(self):
-        calls = []
-        state = {"revision": 1}; checkpoint = {"revision": 2, "checkpointHash": "a" * 64}
-        class Mutator:
-            @staticmethod
-            def remote(request):
-                calls.append(request["operation"])
-                return {"state": {"revision": 2},
-                        "scheduler": {"revision": 3, "checkpointHash": "b" * 64}}
-        class Function:
-            def with_options(self, **_options): return self
-            def spawn(self, _config): raise RuntimeError("crash after paid spawn boundary")
-        entry = {"cpu": 4, "memory_mib": 4096, "timeout_seconds": 60,
-                 "config": {"stage_key": "k:matrix"}}
-        action = {"taskId": "matrix", "stage": "matrix"}
-        with patch.object(launcher, "campaign_state_mutator", Mutator), \
-                patch.object(launcher, "_campaign_function", return_value=Function()):
-            with self.assertRaisesRegex(RuntimeError, "crash after"):
-                launcher._durably_spawn_campaign_task(campaign_root="campaign/root", owner_id="owner",
-                    fence=3, state=state, checkpoint=checkpoint, action=action, entry=entry,
-                    source_image={})
-        self.assertEqual(calls, ["launch-intent"])
-
-    def test_saved_call_is_bound_under_the_same_fence_after_spawn(self):
-        operations = []
-        class Mutator:
-            @staticmethod
-            def remote(request):
-                operations.append(request)
-                revision = 2 if request["operation"] == "launch-intent" else 3
-                return {"state": {"revision": revision},
-                        "scheduler": {"revision": revision + 1, "checkpointHash": "b" * 64}}
-        class Call: object_id = "fc-saved"
-        class Function:
-            def with_options(self, **_options): return self
-            def spawn(self, _config): return Call()
-        entry = {"cpu": 4, "memory_mib": 4096, "timeout_seconds": 60,
-                 "config": {"stage_key": "k:matrix"}}
-        with patch.object(launcher, "campaign_state_mutator", Mutator), \
-                patch.object(launcher, "_campaign_function", return_value=Function()):
-            launcher._durably_spawn_campaign_task(campaign_root="campaign/root", owner_id="owner",
-                fence=3, state={"revision": 1}, checkpoint={"revision": 2, "checkpointHash": "a" * 64},
-                action={"taskId": "matrix", "stage": "matrix"}, entry=entry, source_image={})
-        self.assertEqual([request["operation"] for request in operations], ["launch-intent", "bind-call"])
-        self.assertEqual(operations[1]["payload"]["callId"], "fc-saved")
-        self.assertEqual(operations[1]["payload"]["fencingToken"], 3)
-
-    def test_campaign_initialize_preserves_existing_state_and_scheduler_for_exact_resume(self):
-        class HeldVolume:
-            def reload(self): pass
-            def commit(self): pass
+    def test_strategy_search_shared_lease_joins_receipt_and_refences_takeover(self):
         with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory); state_file = root / "state.json"
-            scheduler_file = root / "scheduler.json"
-            saved_state = {"evidenceHash": "a" * 64, "revision": 19, "saved": "state"}
-            saved_scheduler = {"evidenceHash": "a" * 64, "revision": 23,
-                "tasks": [{"taskId": "complete", "status": "complete"}], "saved": "scheduler"}
-            state_file.write_text(json.dumps(saved_state)); scheduler_file.write_text(json.dumps(saved_scheduler))
-            request = {"campaign_root": "campaign/root", "evidence_hash": "a" * 64,
-                "state": {"evidenceHash": "a" * 64, "revision": 0},
-                "scheduler": {"evidenceHash": "a" * 64, "revision": 0},
-                "tasks": [], "files": {}}
-            with patch.object(launcher, "volume", HeldVolume()), \
-                    patch.object(launcher, "_campaign_root", return_value=root), \
-                    patch.object(launcher, "_campaign_state_file", return_value=state_file), \
-                    patch.object(launcher, "_campaign_scheduler_file", return_value=scheduler_file), \
-                    patch.object(launcher, "_campaign_path",
-                        side_effect=lambda _campaign, relative: root / relative), \
-                    patch.object(launcher, "_reject_campaign_symlinks"), \
-                    patch.object(launcher, "_campaign_node",
-                        side_effect=lambda _command, payload, **_kwargs: payload["state"]), \
-                    patch.object(launcher, "_campaign_scheduler_operation",
-                        side_effect=lambda _operation, checkpoint, **_values: checkpoint):
-                result = launcher.campaign_initialize.get_raw_f()(request)
-            self.assertEqual(result["status"], "initialized")
-            self.assertEqual(json.loads(state_file.read_text()), saved_state)
-            self.assertEqual(json.loads(scheduler_file.read_text()), saved_scheduler)
+            root = pathlib.Path(directory)
+            evidence, first_execution, second_execution = "b" * 64, "a" * 64, "c" * 64
+            state_file = root / "publication.json"
+            execution_files = {first_execution: root / "first.json", second_execution: root / "second.json"}
+            execution_files[first_execution].write_text(json.dumps({"controller": {"ownerId": "one", "fence": 1, "leaseUntilMs": 100}}))
+            execution_files[second_execution].write_text(json.dumps({"controller": {"ownerId": "two", "fence": 1, "leaseUntilMs": 100}}))
+            artifact = root / "artifact"
+            raw = launcher.strategy_search_publisher.get_raw_f()
+            def execution_file(execution_id):
+                return execution_files[execution_id]
+            def held_path(relative):
+                return artifact if relative == "evidence/final" else root / relative.replace("/", "_")
+            first = {"campaignExecutionId": first_execution, "controllerOwnerId": "one", "controllerFence": 1}
+            second = {"campaignExecutionId": second_execution, "controllerOwnerId": "two", "controllerFence": 1}
+            with patch.object(launcher, "_strategy_search_evidence_state", return_value=state_file), \
+                    patch.object(launcher, "_strategy_search_execution_file", side_effect=execution_file), \
+                    patch.object(launcher, "_strategy_search_path", side_effect=held_path), \
+                    patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"):
+                lease = raw({"operation": "claim", "evidenceId": evidence, "taskId": "task", "ownerId": "one",
+                    "nowMs": 0, "leaseMs": 100, **first})
+                busy = raw({"operation": "claim", "evidenceId": evidence, "taskId": "task", "ownerId": "two",
+                    "nowMs": 1, "leaseMs": 100, **second})
+                self.assertTrue(busy["busy"])
+                execution_files[first_execution].write_text(json.dumps({"controller": {"ownerId": "new", "fence": 2, "leaseUntilMs": 100}}))
+                taken = raw({"operation": "claim", "evidenceId": evidence, "taskId": "task", "ownerId": "two",
+                    "nowMs": 2, "leaseMs": 100, **second})
+                self.assertEqual(taken["fence"], lease["fence"] + 1)
+                with self.assertRaisesRegex(RuntimeError, "fenced"):
+                    raw({"operation": "heartbeat", "evidenceId": evidence, "taskId": "task", "ownerId": "one",
+                        "fence": lease["fence"], "nowMs": 3, "leaseMs": 100, **first})
+                digest = hashlib.sha256(b"done").hexdigest()
+                artifact.write_bytes(b"done")
+                state = json.loads(state_file.read_text())
+                state["receipts"]["task"] = {"taskId": "task", "evidenceId": evidence,
+                    "artifactPath": "evidence/final", "sha256": digest, "fence": taken["fence"]}
+                state_file.write_text(json.dumps(state))
+                joined = raw({"operation": "claim", "evidenceId": evidence, "taskId": "task", "ownerId": "two",
+                    "nowMs": 4, "leaseMs": 100, **second})
+                self.assertTrue(joined["complete"])
 
-    def test_campaign_paths_and_task_resources_fail_closed_before_launch(self):
-        for unsafe in ["../escape", "/absolute", "a/../../escape", "a\\b"]:
-            with self.assertRaises(ValueError): launcher._campaign_path("campaign/root", unsafe)
-        safe_run = "campaign/root/kingdom/goldfish"
-        self.assertEqual(launcher._campaign_ordered_run_root("campaign/root", safe_run),
-            pathlib.Path("/results/campaign/root/kingdom/goldfish"))
-        safe_checkpoint = launcher._ordered_product_checkpoint_path({"campaign_root": "campaign/root",
-            "run_id": safe_run}, "stage-one", 2)
-        self.assertEqual(safe_checkpoint,
-            pathlib.Path("/results/campaign/root/kingdom/goldfish/stage-one/shard-000002.json"))
-        for unsafe_run in ["../escape", "/absolute", "other-campaign/run", "campaign/root/../../escape"]:
-            with self.assertRaises(ValueError):
-                launcher._campaign_ordered_run_root("campaign/root", unsafe_run)
-        checkpoint = {"tasks": [{"taskId": "task", "kingdomId": "k", "stage": "matrix",
-            "cpus": 4, "containers": 1}]}
-        valid = {"task_id": "task", "kingdom_id": "k", "stage": "matrix", "cpu": 4,
-            "memory_mib": 4096, "timeout_seconds": 60, "stage_terminal": True,
-            "config": {}, "validation": {}}
-        self.assertEqual(launcher._validate_campaign_task_configs(checkpoint, [valid])["task"], valid)
-        with self.assertRaisesRegex(ValueError, "differs"):
-            launcher._validate_campaign_task_configs(checkpoint, [{**valid, "cpu": 8}])
-        goldfish_checkpoint = {"tasks": [{"taskId": "goldfish", "kingdomId": "k", "stage": "goldfish",
-            "cpus": 4, "containers": 1}]}
-        unsafe_goldfish = {"task_id": "goldfish", "kingdom_id": "k", "stage": "goldfish", "cpu": 4,
-            "memory_mib": 4096, "timeout_seconds": 60, "stage_terminal": False,
-            "config": {"campaign_root": "campaign/root", "run_id": "outside/run",
-                       "ordered_stage": "stage-one"}, "validation": {}}
-        with self.assertRaisesRegex(ValueError, "escapes"):
-            launcher._validate_campaign_task_configs(goldfish_checkpoint, [unsafe_goldfish])
-
-    def test_terminal_psro_does_not_stop_unrelated_kingdom_work(self):
-        terminal = {"taskId": "k1-psro", "status": "terminal-incomplete", "reason": "look cap",
-            "artifactPaths": ["k1/look.json"], "artifactHashes": {"k1/look.json": "a" * 64}}
-        ready = {"taskId": "k2-matrix", "status": "ready", "reason": None,
-            "artifactPaths": [], "artifactHashes": {}}
-        self.assertIsNone(launcher._terminal_campaign_outcome({"tasks": [terminal, ready]}))
-        complete = {"taskId": "k2-psro", "status": "complete", "reason": None,
-            "artifactPaths": ["k2/report.json"], "artifactHashes": {"k2/report.json": "b" * 64}}
-        outcome = launcher._terminal_campaign_outcome({"tasks": [terminal, complete]})
-        self.assertEqual(outcome["taskId"], "k1-psro")
-        self.assertEqual(outcome["reason"], "look cap")
-
-    def test_successful_incomplete_call_keeps_exact_marker_reason_and_hashes(self):
-        class Call:
-            def get(self, timeout): return {"status": "incomplete", "reason": "shutdown margin"}
-        validated = {"status": "incomplete", "reason": "shutdown margin",
-            "artifactPaths": ["output/chunk.json"],
-            "artifactHashes": {"output/chunk.json": "a" * 64}}
-        checkpoint = {"tasks": [{"taskId": "matrix", "status": "active", "callId": "fc"}]}
-        with patch.object(launcher.modal.FunctionCall, "from_id", return_value=Call()), \
-                patch.object(launcher.volume, "reload"), \
-                patch.object(launcher, "_deep_validate_campaign_result", return_value=validated):
-            observations = launcher._campaign_call_observations(checkpoint, "campaign/root",
-                {"matrix": {"stage": "matrix"}})
-        self.assertEqual(observations[0]["reason"], "shutdown margin")
-        self.assertEqual(observations[0]["artifactHashes"], validated["artifactHashes"])
-
-    def test_campaign_controller_has_no_cost_ledger_gate(self):
-        source = inspect.getsource(launcher.campaign_controller.get_raw_f())
-        for forbidden in ["reserve_cost", "LEDGER_PATH", "GROSS_BUDGET_USD", "max_cost_usd", "MAX_RETRIES"]:
-            self.assertNotIn(forbidden, source)
-        self.assertIn('launch_actions[:config["dispatch_batch_size"]]', source)
-        self.assertIn('config["retry_backoff_seconds"]', source)
-        self.assertIn('config["retry_backoff_max_seconds"]', source)
-
-    def test_campaign_status_is_bounded_and_read_only(self):
-        source = inspect.getsource(launcher.campaign_read_status.get_raw_f())
-        for forbidden in ["campaign_controller", "campaign_matrix_stage", "campaign_psro_stage",
-                          "ordered_product_stage_one", "ordered_product_stage_two", ".spawn("]:
-            self.assertNotIn(forbidden, source)
-        self.assertIn("summary.json", source)
-        self.assertNotIn("content-index.json", source)
-
-    def test_packaging_returns_only_compact_hashes_across_the_modal_result_boundary(self):
-        source = inspect.getsource(launcher.campaign_package_download.get_raw_f())
-        self.assertIn("return summary", source)
-        self.assertNotIn('return {"contentIndex"', source)
-        self.assertNotIn('"members": sorted(members)', source)
-
-    def test_compact_archive_membership_hash_matches_the_typescript_index_contract(self):
-        entries = [{"path": "a.json", "bytes": 1, "sha256": "a" * 64,
-            "stageId": "b" * 64, "completeness": "complete"},
-            {"path": "z.json", "bytes": 2, "sha256": "c" * 64,
-             "stageId": "b" * 64, "completeness": "complete"}]
-        self.assertEqual(launcher._campaign_archive_member_hash(entries),
-            "970be64f0e9398306212066d231b6f1301b95ec3b8308c2b1fad0ce3a6f619ba")
-
-    def test_repackaging_prunes_superseded_archives_without_touching_current_evidence(self):
+    def test_strategy_search_compact_validator_checks_semantic_coverage_and_checksum(self):
         with tempfile.TemporaryDirectory() as directory:
-            download = pathlib.Path(directory); archives = download / "archives"; archives.mkdir()
-            current = archives / "current-complete.tar"; old = archives / "old-incomplete.tar"
-            current.write_bytes(b"current"); old.write_bytes(b"old")
-            launcher._prune_campaign_archives(download, {"archives/current-complete.tar"})
-            self.assertTrue(current.exists()); self.assertFalse(old.exists())
+            file = pathlib.Path(directory) / "job.hgs"
+            metrics = [1, 1, 30, 10, 5] * 3
+            record = struct.pack(">I15I", 7, *metrics) + "sg-0000000007".encode("utf-16-be") + bytes(6)
+            digest = hashlib.sha256(record).hexdigest()
+            header = {"schemaVersion": 1, "magic": "HGS1", "stage": "stage-one", "evidenceId": "b" * 64,
+                "semanticStart": 7, "semanticEnd": 8, "recordCount": 1, "recordBytes": 96,
+                "payloadSha256": digest}
+            encoded = json.dumps(header, separators=(",", ":")).encode()
+            file.write_bytes(b"HGS1" + struct.pack(">I", len(encoded)) + encoded
+                + bytes(512 - 8 - len(encoded)) + record)
+            publication = {"stage": "goldfish-one", "evidenceId": "b" * 64,
+                "range": {"start": 7, "end": 8}}
+            launcher._strategy_search_validate_compact(publication, file)
+            changed = bytearray(file.read_bytes())
+            changed[-1] = 1
+            file.write_bytes(changed)
+            with self.assertRaisesRegex(RuntimeError, "padding differs"):
+                launcher._strategy_search_validate_compact(publication, file)
 
-    def test_campaign_status_returns_only_a_bounded_summary_without_opening_the_full_index(self):
-        class HeldVolume:
-            def reload(self): pass
-        with tempfile.TemporaryDirectory() as directory:
-            root = pathlib.Path(directory); download = root / "download"; download.mkdir()
-            (download / "summary.json").write_text(json.dumps({"schemaVersion": 1,
-                "indexHash": "a" * 64, "indexBytes": 250_000_000, "entryCount": 191_250,
-                "archiveManifestHash": "b" * 64, "archiveCount": 91}))
-            (download / "content-index.json").symlink_to(root / "must-not-be-opened")
-            with patch.object(launcher, "volume", HeldVolume()), \
-                    patch.object(launcher, "_campaign_state_file", return_value=root / "missing-state"), \
-                    patch.object(launcher, "_campaign_scheduler_file", return_value=root / "missing-scheduler"), \
-                    patch.object(launcher, "_campaign_root", return_value=root):
-                result = launcher.campaign_read_status.get_raw_f()({"campaign_root": "campaign/root",
-                    "evidence_hash": "c" * 64})
-            self.assertEqual(result["download"]["entryCount"], 191_250)
-            self.assertLess(len(json.dumps(result)), 1024)
-
-    def test_result_validation_rejects_partial_corrupt_and_stale_checkpoints(self):
-        spec = {"run_id": "run", "kingdom": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM,
-                "shard_id": 1, "start_position": 10, "end_position": 20,
-                "rule_fingerprint": "rules", "build_version": "build",
-                "shuffle_seeds": [4_100_000], "cpu": 1, "threads": 1}
-        result = {"schemaVersion": 1, "status": "success", "runId": "run",
-                  "kingdomId": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM, "shardId": 1,
-                  "startPosition": 10, "endPosition": 20, "completeCount": 10,
-                  "candidateDigest": "123456789", "scoreDigest": "abcdefabc",
-                  "ruleFingerprint": "rules", "scorerVersion": launcher.SCORER_VERSION,
-                  "buildVersion": "build", "shuffleSeeds": [4_100_000],
-                  "movementProfiles": ["stationary", "chaser", "kiter"],
-                  "requestedCpu": 1, "threads": 1}
-        result["resultHash"] = launcher._result_hash(result)
-        self.assertTrue(launcher.valid_result(result, spec))
-        self.assertFalse(launcher.valid_result({**result, "completeCount": 9}, spec))
-        self.assertFalse(launcher.valid_result({**result, "buildVersion": "stale"}, spec))
-        self.assertFalse(launcher.valid_result({**result, "resultHash": "corrupt"}, spec))
-        mutations = {"kingdomId": "deep-beam-tuning-001", "shuffleSeeds": [9],
-                     "movementProfiles": ["stationary"], "requestedCpu": 2, "threads": 2}
-        for key, mutation in mutations.items():
-            changed = {**result, key: mutation}
-            changed["resultHash"] = launcher._result_hash(changed)
-            self.assertFalse(launcher.valid_result(changed, spec), key)
+    def test_strategy_search_status_is_read_only_and_campaign_has_no_legacy_recovery(self):
+        status_source = inspect.getsource(launcher.strategy_search_read_status.get_raw_f())
+        self.assertNotIn("spawn", status_source)
+        controller_source = inspect.getsource(launcher.strategy_search_controller.get_raw_f())
+        self.assertNotIn("GROSS_BUDGET_USD", controller_source)
+        self.assertNotIn("MAX_FULL_RUNS", controller_source)
+        module_source = inspect.getsource(launcher)
+        for removed in ["campaign_recover_entry", "campaign_source_repair", "resume-plan"]:
+            self.assertNotIn(removed, module_source)
 
 
 if __name__ == "__main__":

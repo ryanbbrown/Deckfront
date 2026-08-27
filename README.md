@@ -175,15 +175,15 @@ do not cover omitted strategies.
 
 ## Native strategy search
 
-The resumable multi-kingdom campaign takes an explicit campaign manifest and a separate supplied selection manifest. It does not choose kingdom IDs or run analytics. Plan before any launch:
+The scalable command accepts one strict request with `kingdomIds` and `maxActiveCpus`. It derives all seeds, protocols, jobs, resources, and paths. Plan before any launch:
 
 ```sh
-npm run strategy-search:campaign -- plan --manifest CAMPAIGN.json --selection-manifest SELECTION.json
-npm run strategy-search:campaign -- status --manifest CAMPAIGN.json --selection-manifest SELECTION.json
-npm run strategy-search:campaign -- run --manifest CAMPAIGN.json --selection-manifest SELECTION.json --authorize TOKEN
+npm run strategy-search:campaign -- plan --request REQUEST.json
+npm run strategy-search:campaign -- status --request REQUEST.json
+npm run strategy-search:campaign -- run --request REQUEST.json --authorize TOKEN
 ```
 
-`plan` makes no Modal call. The first `run`, and any runtime-capacity increase, needs the exact token printed by `plan`. `status` is bounded and read-only. `recover` needs an explicit assertion that an ambiguous launch has no live Modal call. Retries use manifest backoff with no attempt or spend cap, and the campaign has no code-level cost gate. Use [the campaign operator guide](docs/strategy-search-campaign-operator.md) for authorization, recovery, resume, archive download, and local validation.
+`plan` makes no Modal call. Every `run` needs the exact token printed for that request and capacity. `status` is bounded and read-only. The runtime has no paused-campaign import, source repair, manual launch recovery, or code-level cost gate. Final artifacts live under per-kingdom evidence IDs, so a later request can reuse a complete matching kingdom. Use [the operator guide](docs/strategy-search-campaign-operator.md) for the request contract, authorization, status, output, and the K007 smoke boundary.
 
 The ordered Kingdom 009 benchmark streams bounded chunks and folds candidate and ranking digests in traversal order. The original, lean TypeScript, and standalone Rust paths must return the same digest.
 

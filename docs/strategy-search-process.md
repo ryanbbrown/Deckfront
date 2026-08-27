@@ -24,16 +24,21 @@ Goldfish ranking uses three movement profiles: stationary, chaser, and kiter.
 
 ### Stage 1
 
-- Score all 12,972,960 strategies with one shuffle seed and all three movement profiles.
-- Keep the best 500,000 strategies.
+- Score all 12,972,960 strategies with the first fixed seed and all three movement profiles.
+- Each runtime job writes every score in its contiguous range once to a sorted 96-byte binary record.
+- One reducer reads each compact record once, checks exact range coverage, and keeps the best 500,000 unique strategies.
+- The schema-3 top-500,000 artifact contains first-seed evidence and stage-one rank. It does not contain provisional four-seed ranks.
 - Work: 38,918,880 goldfish profile trials.
 
 ### Stage 2
 
-- Score the retained 500,000 strategies with three more shuffle seeds and all three movement profiles.
-- Combine all four seeds.
+- Read the retained top 500,000 once in one measured 10-CPU job.
+- Score each retained strategy once with the other three fixed seeds and all three movement profiles.
+- Combine all four seeds in one deterministic reducer.
 - Keep the best 20,000 strategies in ranked order.
 - Work: 4,500,000 additional goldfish profile trials.
+
+The four seeds are `4,100,000` through `4,100,003` for every kingdom. Runtime range size, CPU count, task count, completion order, retries, and Modal call IDs do not change final bytes.
 
 Total: 43,418,880 goldfish profile trials per kingdom.
 
@@ -150,72 +155,32 @@ Local analysis can calculate expected acquisitions, plays, damage, dead-draw rat
 
 K007 showed stable Footwork, Reclaim, Volley, and Silver acquisition rates across four compared results. Drive changed from zero copies in three results to 0.91 copies and about 25% of damage in one result. This is material uncertainty for Drive, but it does not invalidate the stable evidence for the other cards.
 
-## Thirty-kingdom campaign execution
+## Scalable campaign execution
 
-The user supplies the exact kingdom IDs. The campaign must never select or hard-code kingdoms.
-
-Use one dependency-driven Modal campaign:
+The request has only `kingdomIds` and `maxActiveCpus`. The command derives seeds, protocols, resource shapes, job ranges, timeouts, and paths.
 
 ```text
-Goldfish → initial matrix → PSRO → download and validate raw artifacts
+Goldfish → initial matrix → PSRO → download and deep validation
 ```
 
-A kingdom starts its next stage as soon as its previous artifact validates. The campaign does not wait for all kingdoms to complete one global stage.
+The runtime uses:
 
-Use:
+- one image built from the exact executable allowlist in `strategy-search-image-files.json`;
+- one shared Modal Volume;
+- one global queue for Goldfish jobs from every ready kingdom;
+- one whole Matrix stage and one whole PSRO stage per ready kingdom;
+- per-task leases, controller fences, launch-scoped temporary files, and serialized publication receipts.
 
-- one shared image containing the Node and Rust implementations;
-- one shared Modal Volume for immutable intermediate artifacts;
-- one global goldfish shard queue across all kingdoms;
-- one complete matrix job per ready kingdom;
-- one complete PSRO job per ready kingdom;
-- atomic checkpoints and exact hash-based resume.
+A per-kingdom evidence ID contains only scientific and final-format inputs. A campaign execution ID contains the ordered evidence IDs. Capacity and runtime topology are not scientific identity. A later request reuses a complete matching kingdom directly.
 
-Runtime capacity is configuration, not evidence identity. Changing CPU count, container count, shard size, or timeout while resuming must not invalidate completed game evidence.
+Matrix schema 4 stores cells, seed ordinals, telemetry, and equilibrium inputs in fixed semantic order. Runtime Matrix chunks do not enter final identity. PSRO schema 3 removes candidate chunk ranges, chunk hashes, paths, workers, and timings before final serialization.
 
-Example runtime configuration:
-
-```json
-{
-  "kingdomIds": ["supplied-by-user"],
-  "maxContainers": 100,
-  "reservedDownstreamContainers": 10
-}
-```
-
-The scheduler uses unreserved capacity for goldfish shards. Reserved downstream capacity allows completed reservoirs to continue through matrix and PSRO while other goldfish work remains.
-
-Estimated 30-kingdom wall time:
-
-| Modal capacity | Estimated total |
-|---|---:|
-| 100 containers | 45–75 minutes |
-| Up to 5,000 containers | 15–25 minutes |
-
-These are planning estimates. Measure a paid three-kingdom campaign before the full launch.
+Every unused CPU interval has exactly one reason: Modal rejection, retry backoff, reserved downstream work, minimum useful job size, insufficient ready work, or the final tail.
 
 ## Cost and failure policy
 
-Do not use the existing cumulative worst-case reservation ledger as a campaign gate. It counts reservations as spend and can block valid resumable work.
+The command reports a cost estimate and actual Modal compute cost. It does not use the historical reservation ledger and does not claim to check an external workspace budget.
 
-The launch policy is:
+A timeout or invalid artifact fails the run. A `terminal-incomplete` PSRO result is not complete. Retries rerun one atomic job after its lease expires. There is no paused-campaign import, source repair, or manual ambiguous-launch recovery.
 
-1. Run an explicitly authorized three-kingdom smoke campaign.
-2. Check actual Modal billing.
-3. Ask for explicit approval before the 30-kingdom launch.
-4. Use an optional high Modal workspace budget only as catastrophic protection.
-
-Every goldfish shard, matrix batch, PSRO look, admission, and scan must commit atomically to the shared Volume. A stopped campaign must retain completed work. `status` must identify complete, incomplete, failed, and missing stages. `run` must schedule only missing work. Download and local validation copy the raw artifacts without changing campaign completion.
-
-## Locked campaign decisions
-
-- The user supplies the exact kingdom IDs.
-- One goldfish run and one threshold-racing PSRO run are used per kingdom for the first balance pass.
-- Repeat only flagged kingdoms or cards.
-- Runtime capacity settings are separate from game-evidence identity.
-- Two clean scans are the operational closure rule.
-- Operational limits produce an incomplete resumable result, never a complete result.
-- Card acquisition, play, damage, and dead-draw metrics drive balance decisions.
-- Strategy archetype labels are diagnostics.
-- There is no default code-level cumulative cost cap.
-- Paid three-kingdom and 30-kingdom launches each require explicit authorization.
+The paid acceptance run is one explicitly authorized K007 request at 400 through 800 CPUs. It is not a code default. A paid multi-kingdom run needs separate approval.

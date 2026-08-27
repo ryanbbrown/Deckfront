@@ -237,10 +237,10 @@ describe('ordered goldfish product correction', () => {
 
       const matrixSource = await loadValidatedOrderedProductSplitSource({ kingdomId: artifact.config.kingdomId,
         rankedPath, reservoirPath, counts: { retainedCount: 50, reservoirCount: 50, strategyCount: 50 } });
-      const matrixManifest = createStrategySearchMatrixManifest({ stageId: 'd'.repeat(64), source: {
-        kingdomId: artifact.config.kingdomId,
-        orderedProductIdentityHash: artifact.productIdentity!.identityHash,
-        rankedSha256, reservoirSha256, matrixSeedNamespace: 'initial-matrix-calibration-v2' },
+      const matrixManifest = createStrategySearchMatrixManifest({ source: {
+        kingdomId: artifact.config.kingdomId, evidenceId: 'd'.repeat(64),
+        reservoirIdentityHash: artifact.productIdentity!.identityHash,
+        reservoirContentHash: reservoirSha256, matrixSeedNamespace: 'initial-matrix-calibration-v2' },
       strategies: matrixSource.strategies });
       expect(validateStrategySearchMatrixManifest(matrixManifest)).toBe(true);
       const psroSource = await loadValidatedOrderedProductSplitSource({ kingdomId: artifact.config.kingdomId,

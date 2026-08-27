@@ -1,361 +1,283 @@
 import { createHash } from 'node:crypto';
+import { ORDERED_PRODUCT_SPACE_COUNT } from './orderedGoldfishProduct';
+import { compareUtf16 } from './utf16';
 
-const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-const sha = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
-const object = (value: unknown): value is Record<string, unknown> => Boolean(value)
-  && typeof value === 'object' && !Array.isArray(value);
-const exact = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right);
-const exactKeys = (value: object, keys: readonly string[]): boolean =>
-  exact(Object.keys(value).sort(), [...keys].sort());
-
-export type CampaignSchedulerStage = 'goldfish' | 'matrix' | 'psro';
-export type CampaignSchedulerTaskStatus = 'blocked' | 'ready' | 'launching' | 'active' | 'incomplete'
-  | 'terminal-incomplete' | 'complete';
-export interface CampaignSchedulerTask {
-  taskId: string; kingdomId: string; stage: CampaignSchedulerStage; shardId: string | null;
-  dependencyTaskIds: string[]; status: CampaignSchedulerTaskStatus; readySinceMs: number;
-  containers: number; cpus: number; launchIntentId: string | null; callId: string | null;
-  controllerFence: number | null; reason: string | null; artifactPaths: string[];
-  artifactHashes: Record<string, string>; attemptCount: number; retryNotBeforeMs: number;
+export const STRATEGY_SEARCH_POLICY_VERSION = 'strategy-search-policy-v1' as const;
+export const BOOTSTRAP_GOLDFISH_PROFILE = Object.freeze({
+  cpus: 4, candidates: 150_000, elapsedMs: 41_800, minimumJobMs: 15_000, targetJobMs: 30_000,
+  maximumJobMs: 60_000
+});
+export const GOLDFISH_STAGE_TWO_USEFUL_CPUS = 10;
+export const MATRIX_USEFUL_CPUS = 4;
+export const PSRO_USEFUL_CPUS = 4;
+export type StrategySearchStage = 'goldfish-one' | 'goldfish-one-reduce' | 'goldfish-two'
+  | 'goldfish-two-reduce' | 'matrix' | 'psro';
+export interface CandidateRange { start: number; end: number }
+export interface RuntimeJob {
+  taskId: string; evidenceId: string; kingdomId: string; stage: StrategySearchStage;
+  range: CandidateRange | null; cpus: number; status: 'blocked' | 'ready' | 'launching' | 'active'
+    | 'retry-backoff' | 'complete' | 'terminal-incomplete';
+  dependencyTaskIds: string[]; launchIntentId: string | null; callId: string | null;
+  leaseUntilMs: number | null; attemptCount: number;
 }
-export interface CampaignSchedulerLimits { maxActiveContainers: number; maxActiveCpus: number }
-export interface CampaignSchedulerObservation {
-  callId: string; state: 'running' | 'succeeded' | 'failed';
-  artifactStatus?: 'complete' | 'incomplete' | 'terminal-incomplete'; reason?: string;
-  artifactPaths?: string[]; artifactHashes?: Record<string, string>;
+export interface StagePartition {
+  policyVersion: typeof STRATEGY_SEARCH_POLICY_VERSION; evidenceId: string;
+  stage: 'goldfish-one' | 'goldfish-two'; total: number; jobs: CandidateRange[];
+  pinnedAtRevision: number; repartitions: Array<{ fromPosition: number; previousJobs: number; nextJobs: number }>;
 }
-export type CampaignSchedulerAction =
-  | { kind: 'reattach'; taskId: string; callId: string }
-  | { kind: 'ambiguous-launch'; taskId: string; launchIntentId: string; reason: string }
-  | { kind: 'complete'; taskId: string; callId: string; artifactPaths: string[];
-    artifactHashes: Record<string, string> }
-  | { kind: 'incomplete' | 'terminal-incomplete'; taskId: string; callId: string; reason: string;
-    artifactPaths: string[]; artifactHashes: Record<string, string> }
-  | { kind: 'launch'; taskId: string; stage: CampaignSchedulerStage; kingdomId: string;
-    shardId: string | null; containers: number; cpus: number; controllerFence: number };
-
-const TASK_KEYS = ['taskId', 'kingdomId', 'stage', 'shardId', 'dependencyTaskIds', 'status',
-  'readySinceMs', 'containers', 'cpus', 'launchIntentId', 'callId', 'controllerFence', 'reason',
-  'artifactPaths', 'artifactHashes', 'attemptCount', 'retryNotBeforeMs'] as const;
-function validArtifacts(task: CampaignSchedulerTask): boolean {
-  return Array.isArray(task.artifactPaths) && new Set(task.artifactPaths).size === task.artifactPaths.length
-    && task.artifactPaths.every((entry) => typeof entry === 'string' && entry.length > 0)
-    && object(task.artifactHashes) && Object.values(task.artifactHashes).every(sha);
+export interface ThroughputObservation { candidates: number; elapsedMs: number; cpus: number }
+export interface ExecutionPolicy {
+  goldfishJobCpus: number; candidatesPerJob: number; expectedJobMs: number;
+  goldfishStageTwoCpus: number; stageTwoCandidatesPerJob: number; expectedStageTwoJobMs: number;
+  matrixCpus: number; psroCpus: number; capacityFloor: number; maxActiveGoldfishJobs: number;
 }
-function validTask(task: unknown): task is CampaignSchedulerTask {
-  if (!object(task) || !exactKeys(task, TASK_KEYS)) return false;
-  const held = task as unknown as CampaignSchedulerTask;
-  const inactiveIdentity = held.launchIntentId === null && held.callId === null && held.controllerFence === null;
-  const emptyOutcome = held.reason === null && held.artifactPaths.length === 0
-    && Object.keys(held.artifactHashes).length === 0;
-  return typeof held.taskId === 'string' && held.taskId.length > 0
-    && typeof held.kingdomId === 'string' && held.kingdomId.length > 0
-    && ['goldfish', 'matrix', 'psro'].includes(held.stage)
-    && (held.stage === 'goldfish' ? typeof held.shardId === 'string' && held.shardId.length > 0 : held.shardId === null)
-    && Array.isArray(held.dependencyTaskIds)
-    && held.dependencyTaskIds.every((id) => typeof id === 'string' && id.length > 0)
-    && new Set(held.dependencyTaskIds).size === held.dependencyTaskIds.length
-    && ['blocked', 'ready', 'launching', 'active', 'incomplete', 'terminal-incomplete', 'complete']
-      .includes(held.status)
-    && (held.status === 'blocked' ? held.dependencyTaskIds.length > 0 : true)
-    && Number.isSafeInteger(held.readySinceMs) && held.readySinceMs >= 0
-    && Number.isSafeInteger(held.containers) && held.containers > 0
-    && Number.isSafeInteger(held.cpus) && held.cpus > 0 && validArtifacts(held)
-    && Number.isSafeInteger(held.attemptCount) && held.attemptCount >= 0
-    && Number.isSafeInteger(held.retryNotBeforeMs) && held.retryNotBeforeMs >= 0
-    && (held.status === 'launching'
-      ? Boolean(held.launchIntentId) && held.callId === null && Number.isSafeInteger(held.controllerFence)
-        && held.controllerFence! >= 1 && emptyOutcome
-      : held.status === 'active'
-        ? Boolean(held.launchIntentId) && Boolean(held.callId) && Number.isSafeInteger(held.controllerFence)
-          && held.controllerFence! >= 1 && emptyOutcome
-        : held.status === 'complete'
-          ? inactiveIdentity && held.reason === null && Object.keys(held.artifactHashes).length > 0
-          : held.status === 'incomplete' || held.status === 'terminal-incomplete'
-            ? inactiveIdentity && Boolean(held.reason)
-            : inactiveIdentity && emptyOutcome);
+function positiveSafe(value: number, label: string): void {
+  if (!Number.isSafeInteger(value) || value < 1) throw new Error(`${label} must be a positive safe integer.`);
 }
-function stagePriority(stage: CampaignSchedulerStage): number {
-  return stage === 'psro' ? 0 : stage === 'matrix' ? 1 : 2;
-}
-function taskOrder(left: CampaignSchedulerTask, right: CampaignSchedulerTask): number {
-  const stage = stagePriority(left.stage) - stagePriority(right.stage);
-  if (stage) return stage;
-  const ready = left.readySinceMs - right.readySinceMs;
-  if (ready) return ready;
-  if (left.stage === 'goldfish' && right.stage === 'goldfish') {
-    const shard = left.shardId! < right.shardId! ? -1 : left.shardId! > right.shardId! ? 1 : 0;
-    if (shard) return shard;
+export function deriveExecutionPolicy(input: { maxActiveCpus: number; remainingCandidates?: number;
+  throughput?: readonly ThroughputObservation[]; modalAdmissionLimitCpus?: number }): ExecutionPolicy {
+  positiveSafe(input.maxActiveCpus, 'maxActiveCpus');
+  const floor = Math.max(BOOTSTRAP_GOLDFISH_PROFILE.cpus, GOLDFISH_STAGE_TWO_USEFUL_CPUS,
+    MATRIX_USEFUL_CPUS, PSRO_USEFUL_CPUS);
+  if (input.maxActiveCpus < floor) throw new Error(`maxActiveCpus must be at least ${floor} to fit every whole-stage shape.`);
+  const observations = (input.throughput ?? []).filter((entry) => entry.candidates > 0 && entry.elapsedMs > 0
+    && entry.cpus > 0);
+  const candidatesPerCpuMs = observations.length
+    ? observations.reduce((sum, entry) => sum + entry.candidates / entry.elapsedMs / entry.cpus, 0)
+      / observations.length
+    : BOOTSTRAP_GOLDFISH_PROFILE.candidates / BOOTSTRAP_GOLDFISH_PROFILE.elapsedMs
+      / BOOTSTRAP_GOLDFISH_PROFILE.cpus;
+  const cpus = BOOTSTRAP_GOLDFISH_PROFILE.cpus;
+  const minimum = Math.ceil(candidatesPerCpuMs * cpus * BOOTSTRAP_GOLDFISH_PROFILE.minimumJobMs);
+  const maximum = Math.floor(candidatesPerCpuMs * cpus * BOOTSTRAP_GOLDFISH_PROFILE.maximumJobMs);
+  const target = Math.round(candidatesPerCpuMs * cpus * BOOTSTRAP_GOLDFISH_PROFILE.targetJobMs);
+  const admittedCpus = Math.min(input.maxActiveCpus, input.modalAdmissionLimitCpus ?? input.maxActiveCpus);
+  const usefulSlots = Math.max(1, Math.floor(admittedCpus / cpus));
+  const remaining = input.remainingCandidates ?? ORDERED_PRODUCT_SPACE_COUNT;
+  positiveSafe(remaining, 'remainingCandidates');
+  const exposeParallelism = Math.ceil(remaining / Math.max(usefulSlots * 2, 1));
+  const candidatesPerJob = Math.max(1, Math.min(maximum, Math.max(minimum, Math.min(target, exposeParallelism))));
+  const expectedStageTwoJobMs = 500_000 / (candidatesPerCpuMs * GOLDFISH_STAGE_TWO_USEFUL_CPUS) * 0.75;
+  if (expectedStageTwoJobMs < BOOTSTRAP_GOLDFISH_PROFILE.minimumJobMs
+    || expectedStageTwoJobMs > BOOTSTRAP_GOLDFISH_PROFILE.maximumJobMs) {
+    throw new Error('Measured stage-two whole-job shape is outside the 15-to-60-second policy bound.');
   }
-  return (left.kingdomId < right.kingdomId ? -1 : left.kingdomId > right.kingdomId ? 1 : 0)
-    || (left.taskId < right.taskId ? -1 : left.taskId > right.taskId ? 1 : 0);
+  return { goldfishJobCpus: cpus, candidatesPerJob,
+    expectedJobMs: candidatesPerJob / (candidatesPerCpuMs * cpus),
+    goldfishStageTwoCpus: GOLDFISH_STAGE_TWO_USEFUL_CPUS, stageTwoCandidatesPerJob: 500_000,
+    expectedStageTwoJobMs, matrixCpus: MATRIX_USEFUL_CPUS,
+    psroCpus: PSRO_USEFUL_CPUS, capacityFloor: floor,
+    maxActiveGoldfishJobs: Math.floor(admittedCpus / cpus) };
 }
-function activeStageKey(task: CampaignSchedulerTask): string {
-  return task.stage === 'goldfish' ? `goldfish:${task.taskId}` : `${task.kingdomId}:${task.stage}`;
+export function createStagePartition(input: { evidenceId: string; stage: 'goldfish-one' | 'goldfish-two';
+  total: number; candidatesPerJob: number; revision?: number }): StagePartition {
+  if (!/^[0-9a-f]{64}$/.test(input.evidenceId)) throw new Error('Partition evidence ID is invalid.');
+  positiveSafe(input.total, 'partition total'); positiveSafe(input.candidatesPerJob, 'partition job size');
+  const jobs: CandidateRange[] = [];
+  for (let start = 0; start < input.total; start += input.candidatesPerJob) {
+    jobs.push({ start, end: Math.min(start + input.candidatesPerJob, input.total) });
+  }
+  return { policyVersion: STRATEGY_SEARCH_POLICY_VERSION, evidenceId: input.evidenceId, stage: input.stage,
+    total: input.total, jobs, pinnedAtRevision: input.revision ?? 0, repartitions: [] };
+}
+export function validateStagePartition(value: StagePartition): boolean {
+  return value.policyVersion === STRATEGY_SEARCH_POLICY_VERSION && /^[0-9a-f]{64}$/.test(value.evidenceId)
+    && Number.isSafeInteger(value.total) && value.total > 0 && value.jobs.length > 0
+    && value.jobs.every((range, index) => Number.isSafeInteger(range.start) && Number.isSafeInteger(range.end)
+      && range.start === (index ? value.jobs[index - 1]!.end : 0) && range.end > range.start
+      && range.end <= value.total) && value.jobs.at(-1)!.end === value.total;
+}
+export function repartitionUnlaunchedSuffix(partition: StagePartition, input: {
+  fromPosition: number; candidatesPerJob: number; touchedRanges: readonly CandidateRange[] }): StagePartition {
+  if (!validateStagePartition(partition)) throw new Error('Pinned stage partition is invalid.');
+  positiveSafe(input.candidatesPerJob, 'partition job size');
+  const prefix = partition.jobs.filter((range) => range.end <= input.fromPosition);
+  if ((prefix.at(-1)?.end ?? 0) !== input.fromPosition
+    || partition.jobs.some((range) => range.start < input.fromPosition && range.end > input.fromPosition)
+    || input.touchedRanges.some((range) => range.start >= input.fromPosition)) {
+    throw new Error('Only an untouched contiguous suffix can be repartitioned.');
+  }
+  const suffix = createStagePartition({ evidenceId: partition.evidenceId, stage: partition.stage,
+    total: partition.total - input.fromPosition, candidatesPerJob: input.candidatesPerJob }).jobs
+    .map((range) => ({ start: range.start + input.fromPosition, end: range.end + input.fromPosition }));
+  return { ...structuredClone(partition), jobs: [...prefix, ...suffix], repartitions: [...partition.repartitions,
+    { fromPosition: input.fromPosition, previousJobs: partition.jobs.length - prefix.length,
+      nextJobs: suffix.length }] };
 }
 
-export function validateCampaignSchedulerTasks(tasks: readonly unknown[]): tasks is readonly CampaignSchedulerTask[] {
-  const ids = new Set<string>(), goldfish = new Set<string>();
-  for (const task of tasks) {
-    if (!validTask(task) || ids.has(task.taskId)) return false;
-    ids.add(task.taskId);
-    if (task.stage === 'goldfish') {
-      const key = `${task.kingdomId}:${task.shardId}`;
-      if (goldfish.has(key)) return false;
-      goldfish.add(key);
+function stagePriority(stage: StrategySearchStage): number {
+  if (stage === 'psro') return 0;
+  if (stage === 'matrix') return 1;
+  if (stage.endsWith('reduce')) return 2;
+  return 3;
+}
+function roundRobinReady(jobs: readonly RuntimeJob[]): RuntimeJob[] {
+  const stages = new Map<number, Map<string, RuntimeJob[]>>();
+  for (const job of jobs) {
+    const kingdoms = stages.get(stagePriority(job.stage)) ?? new Map<string, RuntimeJob[]>();
+    const held = kingdoms.get(job.kingdomId) ?? [];
+    held.push(job); kingdoms.set(job.kingdomId, held); stages.set(stagePriority(job.stage), kingdoms);
+  }
+  const ordered: RuntimeJob[] = [];
+  for (const priority of [...stages.keys()].sort((left, right) => left - right)) {
+    const kingdoms = stages.get(priority)!;
+    const ids = [...kingdoms.keys()].sort(compareUtf16);
+    for (const jobsForKingdom of kingdoms.values()) jobsForKingdom.sort((left, right) =>
+      compareUtf16(left.taskId, right.taskId));
+    for (let index = 0; ids.some((id) => index < kingdoms.get(id)!.length); index += 1) {
+      for (const id of ids) { const job = kingdoms.get(id)![index]; if (job) ordered.push(job); }
     }
   }
-  const held = tasks as readonly CampaignSchedulerTask[];
-  const byId = new Map(held.map((task) => [task.taskId, task]));
-  return held.every((task) => task.dependencyTaskIds.every((id) => ids.has(id) && id !== task.taskId)
-    && (task.status === 'blocked' || task.dependencyTaskIds.every((id) => byId.get(id)?.status === 'complete')));
+  return ordered;
 }
-
-export function planCampaignSchedulerTick(input: {
-  tasks: readonly CampaignSchedulerTask[]; observations: readonly CampaignSchedulerObservation[];
-  limits: CampaignSchedulerLimits; controllerFence: number; stopLaunching: boolean;
-}): CampaignSchedulerAction[] {
-  if (!validateCampaignSchedulerTasks(input.tasks) || !Number.isSafeInteger(input.controllerFence)
-    || input.controllerFence < 1 || !Number.isSafeInteger(input.limits.maxActiveContainers)
-    || input.limits.maxActiveContainers < 1 || !Number.isSafeInteger(input.limits.maxActiveCpus)
-    || input.limits.maxActiveCpus < 1) throw new Error('Campaign scheduler input is invalid.');
-  const observationByCall = new Map(input.observations.map((entry) => [entry.callId, entry]));
-  if (observationByCall.size !== input.observations.length) throw new Error('Campaign scheduler observations collide.');
-  const actions: CampaignSchedulerAction[] = [];
-  let containers = 0, cpus = 0;
-  const occupied = new Set<string>();
-  for (const task of input.tasks.filter((entry) => entry.status === 'launching' || entry.status === 'active')
-    .sort(taskOrder)) {
-    containers += task.containers; cpus += task.cpus; occupied.add(activeStageKey(task));
-    if (task.status === 'launching') {
-      actions.push({ kind: 'ambiguous-launch', taskId: task.taskId, launchIntentId: task.launchIntentId!,
-        reason: 'durable launch intent has no bound Modal call ID; automatic relaunch is unsafe' });
+export interface SchedulerPlan { launches: RuntimeJob[]; allocatedCpus: number; unusedCpus: number;
+  unusedReason: UtilizationReason | null }
+export type UtilizationReason = 'modal-workspace-rejection' | 'failure-or-retry-backoff'
+  | 'reserved-ready-downstream' | 'minimum-useful-job-size' | 'insufficient-ready-work' | 'final-tail';
+export function planRuntimeTick(input: { jobs: readonly RuntimeJob[]; maxActiveCpus: number;
+  modalWorkspaceRejected?: boolean; finalTail?: boolean }): SchedulerPlan {
+  positiveSafe(input.maxActiveCpus, 'maxActiveCpus');
+  const active = input.jobs.filter((job) => job.status === 'launching' || job.status === 'active');
+  let allocatedCpus = active.reduce((sum, job) => sum + job.cpus, 0);
+  if (allocatedCpus > input.maxActiveCpus) throw new Error('Active jobs exceed maxActiveCpus.');
+  const ready = roundRobinReady(input.jobs.filter((job) => job.status === 'ready'));
+  const launches: RuntimeJob[] = [];
+  let reservedDownstream = false;
+  const firstGoldfish = ready.find((job) => job.stage === 'goldfish-one' || job.stage === 'goldfish-two');
+  const first = ready[0];
+  const launchOrder = firstGoldfish && first && firstGoldfish !== first
+    && allocatedCpus + first.cpus + firstGoldfish.cpus <= input.maxActiveCpus
+    ? [first, firstGoldfish, ...ready.filter((job) => job !== first && job !== firstGoldfish)] : ready;
+  for (const job of launchOrder) {
+    if (job.cpus > input.maxActiveCpus) throw new Error(`maxActiveCpus cannot fit ${job.stage}; requires ${job.cpus}.`);
+    if (allocatedCpus + job.cpus > input.maxActiveCpus) {
+      if (job.stage === 'matrix' || job.stage === 'psro') reservedDownstream = true;
       continue;
     }
-    const observation = observationByCall.get(task.callId!);
-    if (!observation || observation.state === 'running') {
-      actions.push({ kind: 'reattach', taskId: task.taskId, callId: task.callId! });
-    } else if (observation.state === 'succeeded' && observation.artifactStatus === 'complete') {
-      actions.push({ kind: 'complete', taskId: task.taskId, callId: task.callId!,
-        artifactPaths: observation.artifactPaths ?? [], artifactHashes: observation.artifactHashes ?? {} });
-      containers -= task.containers; cpus -= task.cpus; occupied.delete(activeStageKey(task));
-    } else if (observation.state === 'succeeded' && observation.artifactStatus === 'terminal-incomplete') {
-      actions.push({ kind: 'terminal-incomplete', taskId: task.taskId, callId: task.callId!,
-        reason: observation.reason || 'fixed protocol ended without an evidence decision',
-        artifactPaths: observation.artifactPaths ?? [], artifactHashes: observation.artifactHashes ?? {} });
-      containers -= task.containers; cpus -= task.cpus; occupied.delete(activeStageKey(task));
-    } else {
-      actions.push({ kind: 'incomplete', taskId: task.taskId, callId: task.callId!,
-        reason: observation.reason || (observation.state === 'succeeded'
-          ? 'completed call produced incomplete or invalid stage evidence' : 'saved Modal call failed'),
-        artifactPaths: observation.artifactPaths ?? [], artifactHashes: observation.artifactHashes ?? {} });
-      containers -= task.containers; cpus -= task.cpus; occupied.delete(activeStageKey(task));
+    launches.push(structuredClone(job)); allocatedCpus += job.cpus;
+  }
+  const unusedCpus = input.maxActiveCpus - allocatedCpus;
+  let unusedReason: UtilizationReason | null = null;
+  if (unusedCpus) {
+    if (input.modalWorkspaceRejected) unusedReason = 'modal-workspace-rejection';
+    else if (input.jobs.some((job) => job.status === 'retry-backoff')) unusedReason = 'failure-or-retry-backoff';
+    else if (reservedDownstream) unusedReason = 'reserved-ready-downstream';
+    else if (ready.some((job) => job.cpus > unusedCpus)) unusedReason = 'minimum-useful-job-size';
+    else if (input.finalTail) unusedReason = 'final-tail';
+    else unusedReason = 'insufficient-ready-work';
+  }
+  return { launches, allocatedCpus, unusedCpus, unusedReason };
+}
+export interface UtilizationInterval { startMs: number; endMs: number; allocatedCpus: number;
+  unusedCpus: number; reason: UtilizationReason | null }
+export interface UtilizationSummary { wallMs: number; allocatedCpuSeconds: number; unusedCpuSeconds: number;
+  unusedCpuSecondsByReason: Record<UtilizationReason, number>; averageActiveCpus: number; peakActiveCpus: number }
+export function summarizeUtilization(intervals: readonly UtilizationInterval[], maxActiveCpus: number): UtilizationSummary {
+  positiveSafe(maxActiveCpus, 'maxActiveCpus');
+  const byReason = Object.fromEntries((['modal-workspace-rejection', 'failure-or-retry-backoff',
+    'reserved-ready-downstream', 'minimum-useful-job-size', 'insufficient-ready-work', 'final-tail'] as const)
+    .map((reason) => [reason, 0])) as Record<UtilizationReason, number>;
+  let wallMs = 0, allocatedCpuMs = 0, unusedCpuMs = 0, peakActiveCpus = 0;
+  for (const interval of intervals) {
+    const duration = interval.endMs - interval.startMs;
+    if (!Number.isSafeInteger(duration) || duration < 0 || interval.allocatedCpus + interval.unusedCpus !== maxActiveCpus
+      || interval.allocatedCpus < 0 || interval.unusedCpus < 0
+      || (interval.unusedCpus === 0) !== (interval.reason === null)) {
+      throw new Error('CPU utilization interval violates exact accounting.');
     }
+    wallMs += duration; allocatedCpuMs += duration * interval.allocatedCpus;
+    unusedCpuMs += duration * interval.unusedCpus; peakActiveCpus = Math.max(peakActiveCpus, interval.allocatedCpus);
+    if (interval.reason) byReason[interval.reason] += duration * interval.unusedCpus / 1000;
   }
-  if (containers > input.limits.maxActiveContainers || cpus > input.limits.maxActiveCpus) {
-    throw new Error('Saved campaign calls or launch intents exceed current runtime limits.');
-  }
-  if (input.stopLaunching || actions.some((action) => action.kind === 'ambiguous-launch')) return actions;
-  const ready = input.tasks.filter((task) => task.status === 'ready').sort(taskOrder);
-  const smallest = ready.reduce<{ containers: number; cpus: number } | null>((held, task) => !held
-    || task.containers < held.containers || task.containers === held.containers && task.cpus < held.cpus
-    ? { containers: task.containers, cpus: task.cpus } : held, null);
-  if (smallest && (smallest.containers > input.limits.maxActiveContainers
-    || smallest.cpus > input.limits.maxActiveCpus)) {
-    throw new Error('Runtime profile cannot fit its smallest eligible campaign stage.');
-  }
-  let waitingWholeStage = false;
-  for (const task of ready) {
-    if (task.stage === 'goldfish' && waitingWholeStage) continue;
-    if (occupied.has(activeStageKey(task))
-      || containers + task.containers > input.limits.maxActiveContainers
-      || cpus + task.cpus > input.limits.maxActiveCpus) {
-      if (task.stage !== 'goldfish') waitingWholeStage = true;
-      continue;
-    }
-    actions.push({ kind: 'launch', taskId: task.taskId, stage: task.stage, kingdomId: task.kingdomId,
-      shardId: task.shardId, containers: task.containers, cpus: task.cpus,
-      controllerFence: input.controllerFence });
-    containers += task.containers; cpus += task.cpus; occupied.add(activeStageKey(task));
-  }
-  return actions;
+  return { wallMs, allocatedCpuSeconds: allocatedCpuMs / 1000, unusedCpuSeconds: unusedCpuMs / 1000,
+    unusedCpuSecondsByReason: byReason, averageActiveCpus: wallMs ? allocatedCpuMs / wallMs : 0,
+    peakActiveCpus };
 }
 
-export type CampaignSchedulerUpdate =
-  | { kind: 'intent'; taskId: string; launchIntentId: string; controllerFence: number }
-  | { kind: 'bind'; taskId: string; launchIntentId: string; callId: string; controllerFence: number }
-  | { kind: 'completed'; taskId: string; callId: string; artifactPaths: string[];
-    artifactHashes: Record<string, string> }
-  | { kind: 'incomplete' | 'terminal-incomplete'; taskId: string; callId: string; reason: string;
-    artifactPaths: string[]; artifactHashes: Record<string, string>; retryNotBeforeMs?: number }
-  | { kind: 'ready'; taskId: string; nowMs?: number };
-function clearCall(task: CampaignSchedulerTask): void {
-  task.launchIntentId = null; task.callId = null; task.controllerFence = null;
+export interface MonotonicPhases {
+  generationMs: number; scoringMs: number; intermediateSerializationAndReadMs: number;
+  temporaryVolumeWriteCommitMs: number; publisherWaitMs: number; publicationCommitMs: number;
+  reductionComputeMs: number; finalTop500000WriteMs: number; finalTop20000WriteMs: number;
+  orchestrationQueueMs: number; elapsedMs: number;
 }
-export function applyCampaignSchedulerUpdates(tasks: readonly CampaignSchedulerTask[],
-  updates: readonly CampaignSchedulerUpdate[]): CampaignSchedulerTask[] {
-  if (!validateCampaignSchedulerTasks(tasks) || new Set(updates.map((entry) => entry.taskId)).size !== updates.length) {
-    throw new Error('Campaign scheduler updates are invalid.');
-  }
-  const byId = new Map(tasks.map((task) => [task.taskId, structuredClone(task)]));
-  for (const update of updates) {
-    const task = byId.get(update.taskId);
-    if (!task) throw new Error(`Unknown campaign scheduler task ${update.taskId}.`);
-    if (update.kind === 'intent') {
-      if (task.status !== 'ready' || !sha(update.launchIntentId) || !Number.isSafeInteger(update.controllerFence)
-        || update.controllerFence < 1) throw new Error('Campaign scheduler launch intent is stale.');
-      task.status = 'launching'; task.launchIntentId = update.launchIntentId;
-      task.controllerFence = update.controllerFence; task.attemptCount += 1; task.retryNotBeforeMs = 0;
-    } else if (update.kind === 'bind') {
-      if (task.status !== 'launching' || task.launchIntentId !== update.launchIntentId
-        || task.controllerFence !== update.controllerFence || !update.callId) {
-        throw new Error('Campaign scheduler call binding is stale or ambiguous.');
-      }
-      task.status = 'active'; task.callId = update.callId;
-    } else if (update.kind === 'completed' || update.kind === 'incomplete'
-      || update.kind === 'terminal-incomplete') {
-      if (task.status !== 'active' || task.callId !== update.callId) {
-        throw new Error('Campaign scheduler call result update is stale.');
-      }
-      task.status = update.kind === 'completed' ? 'complete' : update.kind;
-      task.reason = update.kind === 'completed' ? null : update.reason;
-      task.artifactPaths = [...update.artifactPaths]; task.artifactHashes = { ...update.artifactHashes };
-      task.retryNotBeforeMs = update.kind === 'incomplete' ? update.retryNotBeforeMs ?? 0 : 0;
-      if (!Number.isSafeInteger(task.retryNotBeforeMs) || task.retryNotBeforeMs < 0) {
-        throw new Error('Campaign scheduler retry time is invalid.');
-      }
-      clearCall(task);
-    } else {
-      if (update.kind !== 'ready') throw new Error('Unknown campaign scheduler update.');
-      if (task.status !== 'incomplete' || (update.nowMs ?? task.retryNotBeforeMs) < task.retryNotBeforeMs) {
-        throw new Error('Only due incomplete campaign work can become ready.');
-      }
-      task.status = 'ready'; task.reason = null; task.artifactPaths = []; task.artifactHashes = {};
-      task.readySinceMs = update.nowMs ?? task.retryNotBeforeMs; task.retryNotBeforeMs = 0;
-      clearCall(task);
-    }
-  }
-  const result = [...byId.values()];
-  for (const task of result) {
-    if (task.status === 'blocked' && task.dependencyTaskIds.every((id) => byId.get(id)?.status === 'complete')) {
-      task.status = 'ready';
-    }
-  }
-  if (!validateCampaignSchedulerTasks(result)) throw new Error('Campaign scheduler updates produced invalid tasks.');
-  return result;
+const PHASE_KEYS: Array<keyof Omit<MonotonicPhases, 'elapsedMs'>> = ['generationMs', 'scoringMs',
+  'intermediateSerializationAndReadMs', 'temporaryVolumeWriteCommitMs', 'publisherWaitMs',
+  'publicationCommitMs', 'reductionComputeMs', 'finalTop500000WriteMs', 'finalTop20000WriteMs',
+  'orchestrationQueueMs'];
+export function validateMonotonicPhases(phases: MonotonicPhases): boolean {
+  if (PHASE_KEYS.some((key) => !Number.isFinite(phases[key]) || phases[key] < 0)
+    || !Number.isFinite(phases.elapsedMs) || phases.elapsedMs < 0) return false;
+  const sum = PHASE_KEYS.reduce((total, key) => total + phases[key], 0);
+  return phases.elapsedMs === 0 ? sum === 0 : Math.abs(sum - phases.elapsedMs) / phases.elapsedMs <= 0.01;
+}
+export function goldfishIoRatio(phases: readonly MonotonicPhases[]): number {
+  if (!phases.every(validateMonotonicPhases)) throw new Error('Goldfish phase accounting is invalid.');
+  const io = phases.reduce((sum, value) => sum + value.intermediateSerializationAndReadMs
+    + value.temporaryVolumeWriteCommitMs + value.publicationCommitMs, 0);
+  const denominator = phases.reduce((sum, value) => sum + value.generationMs + value.scoringMs
+    + value.intermediateSerializationAndReadMs + value.temporaryVolumeWriteCommitMs
+    + value.publicationCommitMs + value.reductionComputeMs, 0);
+  return denominator ? io / denominator : 0;
 }
 
-export function recoverCampaignAmbiguousLaunch(tasks: readonly CampaignSchedulerTask[], input: {
-  taskId: string; nowMs: number }): CampaignSchedulerTask[] {
-  if (!validateCampaignSchedulerTasks(tasks)) throw new Error('Campaign scheduler recovery input is invalid.');
-  const recovered = tasks.map((task) => structuredClone(task)),
-    target = recovered.find((task) => task.taskId === input.taskId);
-  if (!Number.isSafeInteger(input.nowMs) || input.nowMs < 0 || !target || target.status !== 'launching' || target.callId !== null || !target.launchIntentId) {
-    throw new Error('Campaign task has no ambiguous unbound launch intent.');
+export interface TaskLease { taskId: string; evidenceId: string; ownerId: string; fence: number;
+  leaseUntilMs: number; heartbeatMs: number }
+export interface LaunchIntent { taskId: string; evidenceId: string; launchId: string; fence: number;
+  temporaryPath: string; temporarySha256: string; intendedPath: string }
+export interface PublicationReceipt { taskId: string; evidenceId: string; artifactPath: string;
+  sha256: string; fence: number }
+export interface PublicationState { controllerFence: number; leases: Record<string, TaskLease>;
+  intents: Record<string, LaunchIntent>; artifacts: Record<string, string>; receipts: Record<string, PublicationReceipt> }
+export function claimTaskLease(state: PublicationState, input: { taskId: string; evidenceId: string;
+  ownerId: string; nowMs: number; leaseMs: number }): PublicationState {
+  const existing = state.leases[input.taskId];
+  if (existing && existing.leaseUntilMs > input.nowMs && existing.ownerId !== input.ownerId) {
+    throw new Error('Scientific task lease is active.');
   }
-  target.status = 'ready'; target.readySinceMs = input.nowMs; target.reason = null;
-  target.artifactPaths = []; target.artifactHashes = {}; target.retryNotBeforeMs = 0; clearCall(target);
-  if (!validateCampaignSchedulerTasks(recovered)) throw new Error('Campaign scheduler recovery produced invalid tasks.');
-  return recovered;
+  const fence = (existing?.fence ?? 0) + 1, next = structuredClone(state);
+  next.leases[input.taskId] = { taskId: input.taskId, evidenceId: input.evidenceId,
+    ownerId: input.ownerId, fence, heartbeatMs: input.nowMs, leaseUntilMs: input.nowMs + input.leaseMs };
+  return next;
 }
-
-export function repairCampaignSchedulerTask(tasks: readonly CampaignSchedulerTask[], input: {
-  taskId: string; reason: string; artifactPaths: string[]; artifactHashes: Record<string, string>
-}): CampaignSchedulerTask[] {
-  if (!validateCampaignSchedulerTasks(tasks) || !input.reason || !Array.isArray(input.artifactPaths)
-    || !object(input.artifactHashes) || Object.values(input.artifactHashes).some((value) => !sha(value))) {
-    throw new Error('Campaign scheduler repair input is invalid.');
+export function heartbeatTaskLease(state: PublicationState, input: { taskId: string; ownerId: string;
+  fence: number; nowMs: number; leaseMs: number }): PublicationState {
+  const lease = state.leases[input.taskId];
+  if (!lease || lease.ownerId !== input.ownerId || lease.fence !== input.fence || lease.leaseUntilMs <= input.nowMs) {
+    throw new Error('Scientific task heartbeat is stale or expired.');
   }
-  const byId = new Map(tasks.map((task) => [task.taskId, structuredClone(task)]));
-  const target = byId.get(input.taskId);
-  if (!target || target.status !== 'complete') throw new Error('Only completed campaign work can be repaired.');
-  const affected = new Set([target.taskId]);
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const task of byId.values()) if (!affected.has(task.taskId)
-      && task.dependencyTaskIds.some((id) => affected.has(id))) {
-      if (task.status === 'active' || task.status === 'launching') {
-        throw new Error('Campaign repair waits for active dependent work to stop.');
-      }
-      affected.add(task.taskId); changed = true;
-    }
+  const next = structuredClone(state); next.leases[input.taskId] = { ...lease, heartbeatMs: input.nowMs,
+    leaseUntilMs: input.nowMs + input.leaseMs }; return next;
+}
+export function bindLaunchIntent(state: PublicationState, intent: LaunchIntent): PublicationState {
+  const lease = state.leases[intent.taskId];
+  if (!lease || lease.evidenceId !== intent.evidenceId || lease.fence !== intent.fence
+    || !/^[0-9a-f]{64}$/.test(intent.temporarySha256) || !intent.launchId
+    || state.intents[intent.taskId]) throw new Error('Launch intent is stale, duplicate, or unleased.');
+  const next = structuredClone(state); next.intents[intent.taskId] = structuredClone(intent); return next;
+}
+export function publishTaskBatch(state: PublicationState, input: { controllerFence: number; nowMs: number;
+  temporaryHashes: Readonly<Record<string, string>>; taskIds: readonly string[] }): PublicationState {
+  if (input.controllerFence !== state.controllerFence) throw new Error('Artifact publisher is fenced out.');
+  const next = structuredClone(state), intended = new Set<string>();
+  for (const taskId of input.taskIds) {
+    const intent = state.intents[taskId], lease = state.leases[taskId], receipt = state.receipts[taskId];
+    if (!intent || !lease || lease.fence !== intent.fence || lease.leaseUntilMs <= input.nowMs
+      || input.temporaryHashes[intent.temporaryPath] !== intent.temporarySha256
+      || intended.has(intent.intendedPath)) throw new Error('Publication validation failed.');
+    intended.add(intent.intendedPath);
+    const existing = state.artifacts[intent.intendedPath];
+    if (receipt && (!existing || existing !== receipt.sha256)) throw new Error('Receipt and artifact differ.');
+    if (existing && existing !== intent.temporarySha256) throw new Error('Conflicting deterministic artifact bytes.');
+    if (receipt && receipt.sha256 !== intent.temporarySha256) throw new Error('Conflicting publication receipt.');
   }
-  target.status = 'incomplete'; target.reason = input.reason;
-  target.artifactPaths = [...input.artifactPaths]; target.artifactHashes = { ...input.artifactHashes };
-  target.retryNotBeforeMs = 0; clearCall(target);
-  for (const taskId of affected) {
-    if (taskId === target.taskId) continue;
-    const task = byId.get(taskId)!;
-    task.status = 'blocked'; task.reason = null; task.artifactPaths = []; task.artifactHashes = {};
-    task.retryNotBeforeMs = 0; clearCall(task);
+  for (const taskId of input.taskIds) {
+    const intent = state.intents[taskId]!;
+    next.artifacts[intent.intendedPath] = intent.temporarySha256;
+    next.receipts[taskId] = { taskId, evidenceId: intent.evidenceId,
+      artifactPath: intent.intendedPath, sha256: intent.temporarySha256, fence: intent.fence };
   }
-  const result = [...byId.values()];
-  if (!validateCampaignSchedulerTasks(result)) throw new Error('Campaign scheduler repair produced invalid tasks.');
-  return result;
+  return next;
 }
-
-export function reconfigureCampaignSchedulerTasks(tasks: readonly CampaignSchedulerTask[],
-  resources: Readonly<Record<string, { containers: number; cpus: number }>>): CampaignSchedulerTask[] {
-  if (!validateCampaignSchedulerTasks(tasks) || !object(resources)
-    || !exact(Object.keys(resources).sort(), tasks.map((task) => task.taskId).sort())) {
-    throw new Error('Campaign scheduler runtime resources do not match its tasks.');
-  }
-  const configured = tasks.map((task) => {
-    const resource = resources[task.taskId]!;
-    if (!Number.isSafeInteger(resource.containers) || resource.containers < 1
-      || !Number.isSafeInteger(resource.cpus) || resource.cpus < 1) {
-      throw new Error(`Campaign scheduler runtime resource is invalid for ${task.taskId}.`);
-    }
-    return task.status === 'active' || task.status === 'launching' ? structuredClone(task)
-      : { ...structuredClone(task), containers: resource.containers, cpus: resource.cpus };
-  });
-  if (!validateCampaignSchedulerTasks(configured)) throw new Error('Campaign scheduler runtime update is invalid.');
-  return configured;
-}
-
-export interface CampaignSchedulerCheckpoint {
-  schemaVersion: 1; experiment: 'strategy-search-campaign-scheduler'; evidenceHash: string;
-  controllerFence: number; revision: number; tasks: CampaignSchedulerTask[]; checkpointHash: string;
-}
-function checkpointTask(task: CampaignSchedulerTask): CampaignSchedulerTask {
-  // This property order preserves schema-v1 checkpoint hashes across JSON serializers.
-  return { taskId: task.taskId, kingdomId: task.kingdomId, stage: task.stage, shardId: task.shardId,
-    dependencyTaskIds: [...task.dependencyTaskIds], status: task.status, cpus: task.cpus,
-    readySinceMs: task.readySinceMs, containers: task.containers, launchIntentId: task.launchIntentId,
-    callId: task.callId, controllerFence: task.controllerFence, reason: task.reason,
-    artifactPaths: [...task.artifactPaths], artifactHashes: Object.fromEntries(
-      Object.entries(task.artifactHashes).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)),
-    attemptCount: task.attemptCount, retryNotBeforeMs: task.retryNotBeforeMs };
-}
-export function createCampaignSchedulerCheckpoint(input: Omit<CampaignSchedulerCheckpoint,
-  'schemaVersion' | 'experiment' | 'checkpointHash'>): CampaignSchedulerCheckpoint {
-  if (!sha(input.evidenceHash) || !Number.isSafeInteger(input.controllerFence) || input.controllerFence < 1
-    || !Number.isSafeInteger(input.revision) || input.revision < 0 || !validateCampaignSchedulerTasks(input.tasks)) {
-    throw new Error('Campaign scheduler checkpoint input is invalid.');
-  }
-  const base = { schemaVersion: 1 as const, experiment: 'strategy-search-campaign-scheduler' as const,
-    evidenceHash: input.evidenceHash, controllerFence: input.controllerFence, revision: input.revision,
-    tasks: input.tasks.map(checkpointTask).sort((left, right) =>
-      left.taskId < right.taskId ? -1 : left.taskId > right.taskId ? 1 : 0), checkpointHash: '' };
-  return { ...base, checkpointHash: hash(base) };
-}
-export function refenceCampaignSchedulerCheckpoint(checkpoint: CampaignSchedulerCheckpoint,
-  controllerFence: number): CampaignSchedulerCheckpoint {
-  if (!validateCampaignSchedulerCheckpoint(checkpoint) || !Number.isSafeInteger(controllerFence)
-    || controllerFence <= checkpoint.controllerFence) throw new Error('Campaign scheduler takeover fence is invalid.');
-  const tasks = checkpoint.tasks.map((task) => ({ ...structuredClone(task),
-    ...((task.status === 'active' || task.status === 'launching') ? { controllerFence } : {}) }));
-  return createCampaignSchedulerCheckpoint({ evidenceHash: checkpoint.evidenceHash, controllerFence,
-    revision: checkpoint.revision + 1, tasks });
-}
-export function validateCampaignSchedulerCheckpoint(value: unknown): value is CampaignSchedulerCheckpoint {
-  if (!object(value) || !exactKeys(value, ['schemaVersion', 'experiment', 'evidenceHash',
-    'controllerFence', 'revision', 'tasks', 'checkpointHash'])) return false;
-  try {
-    const held = value as unknown as CampaignSchedulerCheckpoint;
-    const expected = createCampaignSchedulerCheckpoint({ evidenceHash: held.evidenceHash,
-      controllerFence: held.controllerFence, revision: held.revision, tasks: held.tasks });
-    return held.checkpointHash === expected.checkpointHash;
-  } catch { return false; }
+export function taskIdentity(evidenceId: string, stage: StrategySearchStage, range: CandidateRange | null): string {
+  return createHash('sha256').update(JSON.stringify({ evidenceId, stage, range })).digest('hex');
 }

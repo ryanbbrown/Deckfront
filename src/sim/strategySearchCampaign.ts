@@ -4,21 +4,25 @@ import { z } from 'zod';
 import { strategySearchKingdom, strategySearchKingdoms } from './strategySearchKingdoms';
 import { nativeRuleFingerprint, NATIVE_GOLDFISH_SCORER_VERSION } from './nativeGoldfishProtocol';
 import {
-  deriveCurrentOrderedProductIdentity, ORDERED_PRODUCT_GENERATOR, ORDERED_PRODUCT_SPACE_COUNT,
-  ORDERED_PRODUCT_TRAVERSAL
+  deriveCurrentOrderedProductIdentity, ORDERED_PRODUCT_COLLISION_ALLOWANCE,
+  ORDERED_PRODUCT_GENERATOR, ORDERED_PRODUCT_PROFILES, ORDERED_PRODUCT_SEEDS,
+  ORDERED_PRODUCT_SPACE_COUNT, ORDERED_PRODUCT_TRAVERSAL
 } from './orderedGoldfishProduct';
 
-export const STRATEGY_SEARCH_CAMPAIGN_SCHEMA_VERSION = 1 as const;
-export const STRATEGY_SEARCH_ARTIFACT_SCHEMA_VERSION = 1 as const;
-export const STRATEGY_SEARCH_SIMULATOR_VERSION = 'strategy-search-simulator-v1' as const;
-export const CAMPAIGN_MATRIX_SCHEMA_VERSION = 3 as const;
-export const CAMPAIGN_PSRO_SCHEMA_VERSION = 2 as const;
+export const STRATEGY_SEARCH_CAMPAIGN_SCHEMA_VERSION = 2 as const;
+export const STRATEGY_SEARCH_ARTIFACT_SCHEMA_VERSION = 3 as const;
+export const CAMPAIGN_MATRIX_SCHEMA_VERSION = 4 as const;
+export const CAMPAIGN_PSRO_SCHEMA_VERSION = 3 as const;
+export const STRATEGY_SEARCH_SIMULATOR_VERSION = 'strategy-search-simulator-v2' as const;
 export const STRATEGY_SEARCH_CAMPAIGN_VOLUME_NAME = 'hexdeck-native-strategy-results' as const;
+export const STRATEGY_SEARCH_DOWNLOAD_ROOT = '.data/strategy-search' as const;
+export const STRATEGY_SEARCH_MIN_CAPACITY = 10;
+export const MATRIX_SEED_NAMESPACE = 'strategy-search-matrix-v2' as const;
+export const PSRO_SCREEN_SEED_NAMESPACE = 'strategy-search-psro-screen-v2' as const;
+export const PSRO_CONFIRMATION_SEED_NAMESPACE = 'strategy-search-psro-confirmation-v2' as const;
+export const PSRO_QUEUE_RETEST_SEED_NAMESPACE = 'strategy-search-psro-queue-retest-v2' as const;
 
 const sha256 = (value: string | Uint8Array): string => createHash('sha256').update(value).digest('hex');
-const canonical = (value: unknown): string => JSON.stringify(sortValue(value));
-const exactKeys = (value: object, keys: readonly string[]): boolean =>
-  JSON.stringify(Object.keys(value).sort()) === JSON.stringify([...keys].sort());
 function sortValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortValue);
   if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value)
@@ -26,653 +30,174 @@ function sortValue(value: unknown): unknown {
     .map(([key, held]) => [key, sortValue(held)]));
   return value;
 }
-
-const nonnegative = z.number().int().nonnegative();
-const positive = z.number().int().positive();
+export const canonicalStrategySearchJson = (value: unknown): string => JSON.stringify(sortValue(value));
 const sha = z.string().regex(/^[0-9a-f]{64}$/);
 const identifier = z.string().min(1).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
-const runtimeStageSchema = z.object({
-  cpu: positive, memoryMiB: positive, threads: positive, workerBatchSize: positive,
-  timeoutSeconds: positive, checkpointIntervalSeconds: positive
-}).strict();
-const shardSchema = z.object({ id: identifier, start: nonnegative, end: positive }).strict();
-const kingdomEvidenceSchema = z.object({
-  ruleFingerprint: z.string().min(1), goldfishSeeds: z.tuple([nonnegative, nonnegative, nonnegative, nonnegative])
-}).strict();
+const nonnegative = z.number().int().nonnegative().safe();
+
+export const strategySearchRequestSchema = z.object({
+  kingdomIds: z.array(identifier).min(1),
+  maxActiveCpus: z.number().int().safe().min(STRATEGY_SEARCH_MIN_CAPACITY)
+}).strict().superRefine((request, context) => {
+  if (new Set(request.kingdomIds).size !== request.kingdomIds.length) {
+    context.addIssue({ code: 'custom', path: ['kingdomIds'], message: 'Kingdom IDs must be unique.' });
+  }
+  const registered = new Set(strategySearchKingdoms.map((kingdom) => kingdom.id));
+  request.kingdomIds.forEach((kingdomId, index) => {
+    if (!registered.has(kingdomId)) context.addIssue({ code: 'custom', path: ['kingdomIds', index],
+      message: `Unknown registered kingdom ${kingdomId}.` });
+  });
+});
+export type StrategySearchRequest = z.infer<typeof strategySearchRequestSchema>;
+export function parseStrategySearchRequest(value: unknown): StrategySearchRequest {
+  const request = strategySearchRequestSchema.parse(value);
+  for (const kingdomId of request.kingdomIds) strategySearchKingdom(kingdomId);
+  return request;
+}
+
 const sourceImageSchema = z.object({
-  gitVersion: z.string().min(1), digest: sha,
+  digest: sha,
   files: z.array(z.object({ path: z.string().min(1), bytes: nonnegative, sha256: sha }).strict()).min(1)
 }).strict();
-
-export const strategySearchCampaignManifestSchema = z.object({
-  schemaVersion: z.literal(STRATEGY_SEARCH_CAMPAIGN_SCHEMA_VERSION),
-  deployment: z.object({ volumeName: z.literal(STRATEGY_SEARCH_CAMPAIGN_VOLUME_NAME) }).strict(),
-  evidence: z.object({
-    campaignId: identifier,
-    selectionManifest: z.object({ sha256: sha, digest: sha }).strict(),
-    kingdomIds: z.array(identifier).min(1),
-    sourceImage: sourceImageSchema,
-    kingdoms: z.record(identifier, kingdomEvidenceSchema),
-    orderedProduct: z.object({
-      generator: z.string().min(1), traversal: z.string().min(1), scorerVersion: z.string().min(1),
-      candidateCount: positive, retainedCount: positive, reservoirCount: positive,
-      canonicalShards: z.array(shardSchema).min(1)
-    }).strict(),
-    matrix: z.object({
-      schemaVersion: z.literal(CAMPAIGN_MATRIX_SCHEMA_VERSION), strategyCount: z.literal(50),
-      maxSeedCount: z.literal(125), chunkSize: z.literal(25), trainingPrefixes: z.tuple([z.literal(75), z.literal(100)]),
-      heldOutStartOrdinal: z.literal(101)
-    }).strict(),
-    psro: z.object({
-      schemaVersion: z.literal(CAMPAIGN_PSRO_SCHEMA_VERSION), protocolVersion: z.string().min(1),
-      threshold: z.literal(0.51), screenDepths: z.tuple([z.literal(8), z.literal(16), z.literal(32),
-        z.literal(64), z.literal(128), z.literal(256), z.literal(512)]),
-      screenAlpha: z.literal(0.05), confirmationLooks: z.tuple([z.literal(400), z.literal(800),
-        z.literal(1600), z.literal(3200), z.literal(6400)]), confirmationFamilyAlpha: z.literal(0.05),
-      matrixSeedCount: z.literal(75), cleanScans: z.literal(2),
-      screenSeedNamespace: identifier, confirmationSeedNamespace: identifier,
-      queueRetestSeedNamespace: identifier, matrixSeedNamespace: identifier
-    }).strict(),
-    simulatorVersion: z.literal(STRATEGY_SEARCH_SIMULATOR_VERSION),
-    artifactSchemaVersion: z.literal(STRATEGY_SEARCH_ARTIFACT_SCHEMA_VERSION)
-  }).strict(),
-  runtime: z.object({
-    executionMode: z.enum(['local-fixture', 'modal']), downloadRoot: z.string().min(1),
-    controllerTimeoutSeconds: positive, maxActiveContainers: positive, maxActiveCpus: positive,
-    dispatchBatchSize: positive, retryBackoffSeconds: positive, retryBackoffMaxSeconds: positive,
-    stages: z.object({ goldfish: runtimeStageSchema, matrix: runtimeStageSchema, psro: runtimeStageSchema }).strict()
-  }).strict()
-}).strict();
-
-export type StrategySearchCampaignManifest = z.infer<typeof strategySearchCampaignManifestSchema>;
-export type CampaignRuntime = StrategySearchCampaignManifest['runtime'];
-export type SourceImageIdentity = StrategySearchCampaignManifest['evidence']['sourceImage'];
-export interface CampaignSelectionManifest {
-  schemaVersion: 1; suiteVersion: string; sourceSuiteVersion: string; sourceManifestDigest: string;
-  selectedCount: number; selectedKingdomIds: string[]; selection: unknown; digest: string;
-}
-export interface ParsedCampaignSelectionManifest {
-  manifest: CampaignSelectionManifest; sha256: string; digest: string; kingdomIds: string[];
-}
-
-export interface ParsedCampaignManifest {
-  manifest: StrategySearchCampaignManifest;
-  evidenceHash: string;
-  runtimeHash: string;
-  stageIds: Record<string, { goldfish: string; matrix: string; psro: string }>;
-}
-
-const EXCLUDED_SOURCE_COMPONENTS = new Set(['.git', 'node_modules', '.experiments', '.reviews', '.data',
-  'dist', 'dist-sim', 'dist-benchmark', 'target']);
-function assertSourceImagePath(relative: string): void {
-  const components = relative.split('/');
-  const name = components.at(-1)!.toLocaleLowerCase('en-US');
-  if (components.some((component) => EXCLUDED_SOURCE_COMPONENTS.has(component.toLocaleLowerCase('en-US')))
-    || name === '.env' || name.startsWith('.env.') || name.includes('credential')
-    || name.endsWith('.pem') || name.endsWith('.key')) {
-    throw new Error(`Source-image path is generated, secret-bearing, or excluded: ${relative}`);
-  }
-}
-
-export function parseCampaignSelectionManifest(content: string | Uint8Array): ParsedCampaignSelectionManifest {
-  const bytes = typeof content === 'string' ? Buffer.from(content) : Buffer.from(content);
-  let value: unknown;
-  try { value = JSON.parse(bytes.toString('utf8')) as unknown; } catch { throw new Error('Selection manifest is not JSON.'); }
-  if (!value || typeof value !== 'object' || Array.isArray(value) || !exactKeys(value,
-    ['schemaVersion', 'suiteVersion', 'sourceSuiteVersion', 'sourceManifestDigest', 'selectedCount',
-      'selectedKingdomIds', 'selection', 'digest'])) throw new Error('Selection manifest has unexpected fields.');
-  const held = value as CampaignSelectionManifest;
-  if (held.schemaVersion !== 1 || typeof held.suiteVersion !== 'string' || !held.suiteVersion
-    || typeof held.sourceSuiteVersion !== 'string' || !held.sourceSuiteVersion
-    || !sha.safeParse(held.sourceManifestDigest).success || !sha.safeParse(held.digest).success
-    || !Number.isSafeInteger(held.selectedCount) || held.selectedCount < 1
-    || !Array.isArray(held.selectedKingdomIds) || held.selectedKingdomIds.length !== held.selectedCount
-    || held.selectedKingdomIds.some((id) => !identifier.safeParse(id).success)
-    || new Set(held.selectedKingdomIds).size !== held.selectedKingdomIds.length
-    || !held.selection || typeof held.selection !== 'object' || Array.isArray(held.selection)) {
-    throw new Error('Selection manifest identity or kingdom list is invalid.');
-  }
-  const unsigned = structuredClone(held) as Partial<CampaignSelectionManifest>; delete unsigned.digest;
-  if (sha256(canonical(unsigned)) !== held.digest) throw new Error('Selection manifest digest differs.');
-  return { manifest: held, sha256: sha256(bytes), digest: held.digest, kingdomIds: [...held.selectedKingdomIds] };
-}
-
+export type SourceImageIdentity = z.infer<typeof sourceImageSchema>;
 export function normalizedRelativePath(raw: string): string {
   if (!raw || raw.includes('\\') || raw.startsWith('/') || /^[A-Za-z]:/.test(raw)) {
     throw new Error(`Content path is not a normalized relative path: ${raw}`);
   }
-  const components = raw.split('/');
-  if (components.some((part) => !part || part === '.' || part === '..')) {
-    throw new Error(`Content path contains an empty or traversal component: ${raw}`);
+  const parts = raw.split('/');
+  if (parts.some((part) => !part || part === '.' || part === '..')) {
+    throw new Error(`Content path contains traversal: ${raw}`);
   }
-  const normalized = components.join('/').normalize('NFC');
-  if (normalized !== raw || path.posix.normalize(raw) !== raw) {
-    throw new Error(`Content path is not NFC-normalized: ${raw}`);
-  }
+  const normalized = parts.join('/').normalize('NFC');
+  if (normalized !== raw || path.posix.normalize(raw) !== raw) throw new Error(`Content path is not normalized: ${raw}`);
   return normalized;
 }
-
 export function deriveSourceImageIdentity(input: {
-  gitVersion: string;
   files: readonly { path: string; content: string | Uint8Array }[];
-  dirtyTrackedPaths?: readonly string[];
+  dirtyExecutablePaths?: readonly string[];
+  expectedPaths?: readonly string[];
 }): SourceImageIdentity {
-  if (input.dirtyTrackedPaths?.length) {
-    throw new Error(`Source-image worktree has dirty tracked paths: ${input.dirtyTrackedPaths.join(', ')}`);
+  if (input.dirtyExecutablePaths?.length) {
+    throw new Error(`Executable source has dirty paths: ${input.dirtyExecutablePaths.join(', ')}`);
   }
-  if (!input.gitVersion || !input.files.length) throw new Error('Source-image identity needs a Git version and files.');
   const seen = new Set<string>();
   const files = input.files.map((file) => {
     const relative = normalizedRelativePath(file.path);
-    assertSourceImagePath(relative);
-    if (seen.has(relative)) throw new Error(`Duplicate source-image path ${relative}.`);
+    if (seen.has(relative)) throw new Error(`Duplicate executable source path ${relative}.`);
     seen.add(relative);
-    const bytes = typeof file.content === 'string' ? Buffer.from(file.content) : Buffer.from(file.content);
+    const bytes = Buffer.from(file.content);
     return { path: relative, bytes: bytes.byteLength, sha256: sha256(bytes) };
   }).sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
-  const digest = sha256(files.map((file) => `${file.path}\0${file.bytes}\0${file.sha256}\n`).join(''));
-  return sourceImageSchema.parse({ gitVersion: input.gitVersion, digest, files });
+  if (!files.length) throw new Error('Executable source allowlist is empty.');
+  if (input.expectedPaths) {
+    const expected = [...input.expectedPaths].map(normalizedRelativePath).sort();
+    if (JSON.stringify(files.map((file) => file.path)) !== JSON.stringify(expected)) {
+      throw new Error('Executable source files differ from the image allowlist.');
+    }
+  }
+  return sourceImageSchema.parse({ files,
+    digest: sha256(files.map((file) => `${file.path}\0${file.bytes}\0${file.sha256}\n`).join('')) });
 }
 export function validateSourceImageIdentity(value: unknown): value is SourceImageIdentity {
   const parsed = sourceImageSchema.safeParse(value);
   if (!parsed.success) return false;
   try {
-    const seen = new Set<string>();
-    for (const file of parsed.data.files) {
-      normalizedRelativePath(file.path);
-      assertSourceImagePath(file.path);
-      if (seen.has(file.path)) return false;
-      seen.add(file.path);
-    }
-    const sorted = [...parsed.data.files].sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
-    return JSON.stringify(sorted) === JSON.stringify(parsed.data.files)
-      && parsed.data.digest === sha256(sorted.map((file) =>
-        `${file.path}\0${file.bytes}\0${file.sha256}\n`).join(''));
+    const files = parsed.data.files;
+    if (new Set(files.map((file) => normalizedRelativePath(file.path))).size !== files.length) return false;
+    const sorted = [...files].sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
+    return JSON.stringify(files) === JSON.stringify(sorted)
+      && parsed.data.digest === sha256(files.map((file) => `${file.path}\0${file.bytes}\0${file.sha256}\n`).join(''));
   } catch { return false; }
 }
 export function verifySourceImageFiles(identity: SourceImageIdentity,
   files: readonly { path: string; content: string | Uint8Array }[]): boolean {
-  try {
-    return canonical(deriveSourceImageIdentity({ gitVersion: identity.gitVersion, files })) === canonical(identity);
-  } catch { return false; }
-}
-
-function validateShardPartition(shards: readonly { id: string; start: number; end: number }[], total: number): void {
-  let cursor = 0;
-  const ids = new Set<string>();
-  for (const shard of shards) {
-    if (ids.has(shard.id) || shard.start !== cursor || shard.end <= shard.start || shard.end > total) {
-      throw new Error('Canonical Goldfish shard partition has a gap, overlap, duplicate, or invalid bound.');
-    }
-    ids.add(shard.id); cursor = shard.end;
-  }
-  if (cursor !== total) throw new Error('Canonical Goldfish shard partition does not cover the candidate space.');
-}
-
-export function parseStrategySearchCampaignManifest(value: unknown): ParsedCampaignManifest {
-  const manifest = strategySearchCampaignManifestSchema.parse(value);
-  if (!validateSourceImageIdentity(manifest.evidence.sourceImage)) {
-    throw new Error('Campaign source-image identity is stale, corrupt, or not canonical.');
-  }
-  if (new Set(manifest.evidence.kingdomIds).size !== manifest.evidence.kingdomIds.length) {
-    throw new Error('Campaign kingdom IDs must be unique.');
-  }
-  if (Object.keys(manifest.evidence.kingdoms).length !== manifest.evidence.kingdomIds.length
-    || manifest.evidence.kingdomIds.some((id) => !manifest.evidence.kingdoms[id])) {
-    throw new Error('Campaign evidence must map exactly four Goldfish seeds to every requested kingdom.');
-  }
-  const registered = new Set(strategySearchKingdoms.map((kingdom) => kingdom.id));
-  for (const kingdomId of manifest.evidence.kingdomIds) {
-    if (!registered.has(kingdomId)) throw new Error(`Unknown campaign kingdom ${kingdomId}.`);
-    strategySearchKingdom(kingdomId);
-    const evidence = manifest.evidence.kingdoms[kingdomId]!;
-    const expectedRules = nativeRuleFingerprint(kingdomId, 30, 200);
-    if (evidence.ruleFingerprint !== expectedRules) throw new Error(`Rule fingerprint differs for ${kingdomId}.`);
-    const identity = deriveCurrentOrderedProductIdentity({ kingdomId, seeds: evidence.goldfishSeeds,
-      scorerVersion: manifest.evidence.orderedProduct.scorerVersion,
-      buildVersion: manifest.evidence.sourceImage.gitVersion });
-    if (identity.candidateCount !== manifest.evidence.orderedProduct.candidateCount) {
-      throw new Error(`Derived ordered-product candidate count differs for ${kingdomId}.`);
-    }
-  }
-  if (manifest.evidence.orderedProduct.generator !== ORDERED_PRODUCT_GENERATOR
-    || manifest.evidence.orderedProduct.traversal !== ORDERED_PRODUCT_TRAVERSAL
-    || manifest.evidence.orderedProduct.scorerVersion !== NATIVE_GOLDFISH_SCORER_VERSION) {
-    throw new Error('Campaign ordered-product implementation identity differs from the executable implementation.');
-  }
-  if (manifest.evidence.orderedProduct.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT
-    || manifest.evidence.orderedProduct.retainedCount !== 500_000
-    || manifest.evidence.orderedProduct.reservoirCount !== 20_000) {
-    throw new Error('Campaign ordered-product counts differ from the settled protocol.');
-  }
-  const seedNamespaces = [manifest.evidence.psro.matrixSeedNamespace,
-    manifest.evidence.psro.screenSeedNamespace, manifest.evidence.psro.confirmationSeedNamespace,
-    manifest.evidence.psro.queueRetestSeedNamespace];
-  if (new Set(seedNamespaces).size !== seedNamespaces.length) {
-    throw new Error('Campaign seed namespaces must be distinct.');
-  }
-  if (manifest.runtime.retryBackoffMaxSeconds < manifest.runtime.retryBackoffSeconds) {
-    throw new Error('Campaign retry backoff maximum is below its initial delay.');
-  }
-  validateShardPartition(manifest.evidence.orderedProduct.canonicalShards,
-    manifest.evidence.orderedProduct.candidateCount);
-  for (const [stage, runtime] of Object.entries(manifest.runtime.stages)) {
-    if (runtime.threads > runtime.cpu || runtime.cpu > manifest.runtime.maxActiveCpus) {
-      throw new Error(`Campaign runtime cannot fit or over-threads its ${stage} stage.`);
-    }
-  }
-  const evidenceHash = sha256(canonical(manifest.evidence));
-  const runtimeHash = sha256(canonical(manifest.runtime));
-  const stageIds = Object.fromEntries(manifest.evidence.kingdomIds.map((kingdomId) => {
-    const root = sha256(canonical({ evidenceHash, kingdomId }));
-    return [kingdomId, {
-      goldfish: sha256(canonical({ root, stage: 'goldfish' })),
-      matrix: sha256(canonical({ root, stage: 'matrix' })),
-      psro: sha256(canonical({ root, stage: 'psro' }))
-    }];
-  }));
-  return { manifest, evidenceHash, runtimeHash, stageIds };
-}
-
-export function contentIndexDestination(root: string, relative: string): string {
-  const normalized = normalizedRelativePath(relative);
-  const resolvedRoot = path.resolve(root), destination = path.resolve(resolvedRoot, ...normalized.split('/'));
-  if (destination === resolvedRoot || !destination.startsWith(`${resolvedRoot}${path.sep}`)) {
-    throw new Error(`Content path resolves outside the campaign root: ${relative}`);
-  }
-  return destination;
-}
-
-export function campaignStagePath(campaignId: string, evidenceHash: string, kingdomId: string,
-  stage: 'goldfish' | 'matrix' | 'psro'): string {
-  identifier.parse(campaignId); identifier.parse(kingdomId); sha.parse(evidenceHash);
-  return `campaigns/${campaignId}/${evidenceHash}/kingdoms/${kingdomId}/${stage}`;
-}
-
-export interface RuntimeStageCeilings {
-  cpu: number; memoryMiB: number; threads: number; workerBatchSize: number; timeoutSeconds: number;
-}
-export interface RuntimeCeilings {
-  controllerTimeoutSeconds: number;
-  maxActiveContainers: number;
-  maxActiveCpus: number;
-  stages: { goldfish: RuntimeStageCeilings; matrix: RuntimeStageCeilings; psro: RuntimeStageCeilings };
-}
-const runtimeStageCeilingsSchema = z.object({ cpu: positive, memoryMiB: positive, threads: positive,
-  workerBatchSize: positive, timeoutSeconds: positive }).strict();
-const runtimeCeilingsSchema = z.object({ controllerTimeoutSeconds: positive, maxActiveContainers: positive,
-  maxActiveCpus: positive, stages: z.object({ goldfish: runtimeStageCeilingsSchema,
-    matrix: runtimeStageCeilingsSchema, psro: runtimeStageCeilingsSchema }).strict() }).strict();
-export function runtimeCeilings(runtime: CampaignRuntime): RuntimeCeilings {
-  const stage = (value: CampaignRuntime['stages']['goldfish']): RuntimeStageCeilings => ({
-    cpu: value.cpu, memoryMiB: value.memoryMiB, threads: value.threads,
-    workerBatchSize: value.workerBatchSize, timeoutSeconds: value.timeoutSeconds
-  });
-  return runtimeCeilingsSchema.parse({ controllerTimeoutSeconds: runtime.controllerTimeoutSeconds,
-    maxActiveContainers: runtime.maxActiveContainers, maxActiveCpus: runtime.maxActiveCpus,
-    stages: { goldfish: stage(runtime.stages.goldfish), matrix: stage(runtime.stages.matrix),
-      psro: stage(runtime.stages.psro) } });
-}
-export function deriveLaunchAuthorizationToken(evidenceHash: string, ceilings: RuntimeCeilings): string {
-  sha.parse(evidenceHash);
-  const validated = runtimeCeilingsSchema.parse(ceilings);
-  return `campaign-v1.${sha256(canonical({ evidenceHash, ceilings: validated }))}`;
-}
-export function validateLaunchAuthorizationToken(token: string, evidenceHash: string,
-  ceilings: RuntimeCeilings): boolean {
-  try {
-    const expected = deriveLaunchAuthorizationToken(evidenceHash, ceilings);
-    const left = Buffer.from(token), right = Buffer.from(expected);
-    return left.length === right.length && timingSafeEqual(left, right);
-  } catch { return false; }
-}
-function ceilingsFit(actual: RuntimeCeilings, authorized: RuntimeCeilings): boolean {
-  const fields = ['cpu', 'memoryMiB', 'threads', 'workerBatchSize', 'timeoutSeconds'] as const;
-  return actual.controllerTimeoutSeconds <= authorized.controllerTimeoutSeconds
-    && actual.maxActiveContainers <= authorized.maxActiveContainers && actual.maxActiveCpus <= authorized.maxActiveCpus
-    && (['goldfish', 'matrix', 'psro'] as const).every((stage) =>
-      fields.every((field) => actual.stages[stage][field] <= authorized.stages[stage][field]));
-}
-function mergeRuntimeCeilings(left: RuntimeCeilings, right: RuntimeCeilings): RuntimeCeilings {
-  const maximum = (a: number, b: number): number => Math.max(a, b);
-  const stage = (name: keyof RuntimeCeilings['stages']): RuntimeStageCeilings => ({
-    cpu: maximum(left.stages[name].cpu, right.stages[name].cpu),
-    memoryMiB: maximum(left.stages[name].memoryMiB, right.stages[name].memoryMiB),
-    threads: maximum(left.stages[name].threads, right.stages[name].threads),
-    workerBatchSize: maximum(left.stages[name].workerBatchSize, right.stages[name].workerBatchSize),
-    timeoutSeconds: maximum(left.stages[name].timeoutSeconds, right.stages[name].timeoutSeconds)
-  });
-  return { controllerTimeoutSeconds: maximum(left.controllerTimeoutSeconds, right.controllerTimeoutSeconds),
-    maxActiveContainers: maximum(left.maxActiveContainers, right.maxActiveContainers),
-    maxActiveCpus: maximum(left.maxActiveCpus, right.maxActiveCpus),
-    stages: { goldfish: stage('goldfish'), matrix: stage('matrix'), psro: stage('psro') } };
-}
-export function runtimeFitsAuthorizedCeilings(runtime: CampaignRuntime, authorized: RuntimeCeilings): boolean {
-  try { return ceilingsFit(runtimeCeilings(runtime), runtimeCeilingsSchema.parse(authorized)); }
+  try { return canonicalStrategySearchJson(deriveSourceImageIdentity({ files,
+    expectedPaths: identity.files.map((file) => file.path) })) === canonicalStrategySearchJson(identity); }
   catch { return false; }
 }
 
-export type CampaignStageStatus = 'pending' | 'ready' | 'active' | 'incomplete' | 'terminal-incomplete' | 'complete';
-export interface CampaignStageState {
-  id: string; status: CampaignStageStatus; callId?: string; controllerFence?: number;
-  heartbeatMs?: number; resources?: { containers: number; cpus: number };
-  reason?: string; artifactPaths?: string[]; artifactHashes?: Record<string, string>;
+export interface KingdomEvidenceIdentity {
+  schemaVersion: 1;
+  kingdomId: string;
+  sourceDigest: string;
+  rulesFingerprint: string;
+  orderedProduct: {
+    generator: typeof ORDERED_PRODUCT_GENERATOR;
+    traversal: typeof ORDERED_PRODUCT_TRAVERSAL;
+    scorerVersion: typeof NATIVE_GOLDFISH_SCORER_VERSION;
+    candidateCount: typeof ORDERED_PRODUCT_SPACE_COUNT;
+    retainedCount: 500000;
+    reservoirCount: 20000;
+    collisionAllowance: typeof ORDERED_PRODUCT_COLLISION_ALLOWANCE;
+    profiles: typeof ORDERED_PRODUCT_PROFILES;
+    seeds: typeof ORDERED_PRODUCT_SEEDS;
+    candidateProvenanceDigest: string;
+  };
+  matrix: { schemaVersion: 4; seedNamespace: typeof MATRIX_SEED_NAMESPACE; strategyCount: 50; seedCount: 125 };
+  psro: {
+    schemaVersion: 3; protocolVersion: 'threshold-racing-psro-v2';
+    screenSeedNamespace: typeof PSRO_SCREEN_SEED_NAMESPACE;
+    confirmationSeedNamespace: typeof PSRO_CONFIRMATION_SEED_NAMESPACE;
+    queueRetestSeedNamespace: typeof PSRO_QUEUE_RETEST_SEED_NAMESPACE;
+  };
+  evidenceId: string;
 }
-export interface CampaignState {
-  schemaVersion: 1; campaignId: string; evidenceHash: string; runtimeHistory: string[];
-  revision: number; fencingToken: number; controller: null | { ownerId: string; leaseUntilMs: number; fencingToken: number };
-  authorizedCeilings: RuntimeCeilings | null; stages: Record<string, CampaignStageState>; evidenceHashSeal: string;
+export interface ParsedStrategySearchRequest {
+  request: StrategySearchRequest;
+  sourceImage: SourceImageIdentity;
+  kingdoms: KingdomEvidenceIdentity[];
+  campaignExecutionId: string;
+  authorizationToken: string;
+  downloadRoot: string;
 }
-function sealState(state: Omit<CampaignState, 'evidenceHashSeal'> | CampaignState): CampaignState {
-  const copy = structuredClone(state) as CampaignState; copy.evidenceHashSeal = '';
-  return { ...copy, evidenceHashSeal: sha256(canonical(copy)) };
+function kingdomEvidenceIdentity(kingdomId: string, source: SourceImageIdentity): KingdomEvidenceIdentity {
+  const ordered = deriveCurrentOrderedProductIdentity({ kingdomId, seeds: ORDERED_PRODUCT_SEEDS,
+    scorerVersion: NATIVE_GOLDFISH_SCORER_VERSION, buildVersion: source.digest });
+  if (ordered.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT) {
+    throw new Error(`Registered kingdom ${kingdomId} derives ${ordered.candidateCount} candidates; expected ${ORDERED_PRODUCT_SPACE_COUNT}.`);
+  }
+  const base = { schemaVersion: 1 as const, kingdomId, sourceDigest: source.digest,
+    rulesFingerprint: nativeRuleFingerprint(kingdomId, 30, 200), orderedProduct: {
+      generator: ORDERED_PRODUCT_GENERATOR, traversal: ORDERED_PRODUCT_TRAVERSAL,
+      scorerVersion: NATIVE_GOLDFISH_SCORER_VERSION, candidateCount: ORDERED_PRODUCT_SPACE_COUNT,
+      retainedCount: 500_000 as const, reservoirCount: 20_000 as const,
+      collisionAllowance: ORDERED_PRODUCT_COLLISION_ALLOWANCE, profiles: ORDERED_PRODUCT_PROFILES,
+      seeds: ORDERED_PRODUCT_SEEDS, candidateProvenanceDigest: ordered.candidateProvenanceDigest
+    } as const, matrix: { schemaVersion: 4 as const, seedNamespace: MATRIX_SEED_NAMESPACE,
+      strategyCount: 50 as const, seedCount: 125 as const }, psro: { schemaVersion: 3 as const,
+      protocolVersion: 'threshold-racing-psro-v2' as const, screenSeedNamespace: PSRO_SCREEN_SEED_NAMESPACE,
+      confirmationSeedNamespace: PSRO_CONFIRMATION_SEED_NAMESPACE,
+      queueRetestSeedNamespace: PSRO_QUEUE_RETEST_SEED_NAMESPACE } };
+  return { ...base, evidenceId: sha256(canonicalStrategySearchJson(base)) };
 }
-export function createCampaignState(input: { campaignId: string; evidenceHash: string; runtimeHash: string;
-  stageIds: ParsedCampaignManifest['stageIds'] }): CampaignState {
-  const stages: Record<string, CampaignStageState> = {};
-  for (const [kingdomId, ids] of Object.entries(input.stageIds)) {
-    stages[`${kingdomId}:goldfish`] = { id: ids.goldfish, status: 'ready' };
-    stages[`${kingdomId}:matrix`] = { id: ids.matrix, status: 'pending' };
-    stages[`${kingdomId}:psro`] = { id: ids.psro, status: 'pending' };
-  }
-  return sealState({ schemaVersion: 1, campaignId: input.campaignId, evidenceHash: input.evidenceHash,
-    runtimeHistory: [input.runtimeHash], revision: 0, fencingToken: 0, controller: null,
-    authorizedCeilings: null, stages, evidenceHashSeal: '' });
+export function deriveStrategySearch(input: { request: unknown; sourceImage: SourceImageIdentity }): ParsedStrategySearchRequest {
+  const request = parseStrategySearchRequest(input.request);
+  if (!validateSourceImageIdentity(input.sourceImage)) throw new Error('Executable source identity is invalid.');
+  const kingdoms = request.kingdomIds.map((kingdomId) => kingdomEvidenceIdentity(kingdomId, input.sourceImage));
+  const campaignExecutionId = sha256(canonicalStrategySearchJson(kingdoms.map((entry) => entry.evidenceId)));
+  const authorizationToken = deriveLaunchAuthorizationToken({ request, sourceDigest: input.sourceImage.digest,
+    orderedEvidenceIds: kingdoms.map((entry) => entry.evidenceId) });
+  return { request, sourceImage: structuredClone(input.sourceImage), kingdoms, campaignExecutionId,
+    authorizationToken, downloadRoot: `${STRATEGY_SEARCH_DOWNLOAD_ROOT}/${campaignExecutionId}` };
 }
-function validStageState(stage: unknown): stage is CampaignStageState {
-  if (!stage || typeof stage !== 'object') return false;
-  const held = stage as CampaignStageState;
-  if (!sha.safeParse(held.id).success || !legalTransitions[held.status]) return false;
-  if (held.status === 'pending' || held.status === 'ready') return exactKeys(held, ['id', 'status']);
-  if (held.status === 'active') return exactKeys(held, ['id', 'status', 'callId', 'controllerFence',
-    'heartbeatMs', 'resources']) && Boolean(held.callId) && Number.isSafeInteger(held.controllerFence)
-    && held.controllerFence! >= 0 && Number.isSafeInteger(held.heartbeatMs) && held.heartbeatMs! >= 0
-    && Boolean(held.resources) && exactKeys(held.resources!, ['containers', 'cpus'])
-    && Number.isSafeInteger(held.resources!.containers) && held.resources!.containers > 0
-    && Number.isSafeInteger(held.resources!.cpus) && held.resources!.cpus > 0;
-  if (held.status === 'incomplete' || held.status === 'terminal-incomplete') {
-    return exactKeys(held, ['id', 'status', 'reason', 'artifactPaths', 'artifactHashes']) && Boolean(held.reason)
-      && Array.isArray(held.artifactPaths) && new Set(held.artifactPaths).size === held.artifactPaths.length
-      && held.artifactPaths.every((entry) => typeof entry === 'string' && entry.length > 0)
-      && Boolean(held.artifactHashes) && Object.values(held.artifactHashes!).every((digest) =>
-        sha.safeParse(digest).success);
+export function deriveLaunchAuthorizationToken(input: { request: StrategySearchRequest; sourceDigest: string;
+  orderedEvidenceIds: readonly string[] }): string {
+  const request = parseStrategySearchRequest(input.request);
+  sha.parse(input.sourceDigest);
+  if (input.orderedEvidenceIds.length !== request.kingdomIds.length
+    || input.orderedEvidenceIds.some((entry) => !sha.safeParse(entry).success)) {
+    throw new Error('Authorization evidence IDs differ from the request.');
   }
-  return exactKeys(held, ['id', 'status', 'artifactHashes']) && Boolean(held.artifactHashes)
-    && Object.keys(held.artifactHashes!).length > 0
-    && Object.values(held.artifactHashes!).every((digest) => sha.safeParse(digest).success);
+  return `strategy-search-v2.${sha256(canonicalStrategySearchJson({ request,
+    sourceDigest: input.sourceDigest, orderedEvidenceIds: input.orderedEvidenceIds }))}`;
 }
-export function validateCampaignState(value: unknown): value is CampaignState {
-  if (!value || typeof value !== 'object' || !exactKeys(value,
-    ['schemaVersion', 'campaignId', 'evidenceHash', 'runtimeHistory', 'revision', 'fencingToken',
-      'controller', 'authorizedCeilings', 'stages', 'evidenceHashSeal'])) return false;
-  try {
-    const held = value as CampaignState;
-    if (held.schemaVersion !== 1 || !identifier.safeParse(held.campaignId).success
-      || !Number.isSafeInteger(held.revision) || held.revision < 0
-      || !Number.isSafeInteger(held.fencingToken) || held.fencingToken < 0 || !sha.safeParse(held.evidenceHash).success
-      || !sha.safeParse(held.evidenceHashSeal).success || !Array.isArray(held.runtimeHistory)
-      || !held.runtimeHistory.length || new Set(held.runtimeHistory).size !== held.runtimeHistory.length
-      || held.runtimeHistory.some((entry) => !sha.safeParse(entry).success)
-      || !held.stages || typeof held.stages !== 'object' || Array.isArray(held.stages)
-      || !Object.keys(held.stages).length) return false;
-    if (held.authorizedCeilings !== null && !runtimeCeilingsSchema.safeParse(held.authorizedCeilings).success) return false;
-    if (held.controller !== null && (!exactKeys(held.controller, ['ownerId', 'leaseUntilMs', 'fencingToken'])
-      || !held.controller.ownerId || !Number.isSafeInteger(held.controller.leaseUntilMs)
-      || held.controller.leaseUntilMs < 0 || held.controller.fencingToken !== held.fencingToken)) return false;
-    const ids = new Set<string>();
-    for (const [key, stage] of Object.entries(held.stages)) {
-      if (!/^[A-Za-z0-9._-]+:(goldfish|matrix|psro)$/.test(key) || !validStageState(stage)
-        || ids.has(stage.id)) return false;
-      ids.add(stage.id);
-    }
-    return sealState(held).evidenceHashSeal === held.evidenceHashSeal;
-  } catch { return false; }
+export function validateLaunchAuthorizationToken(token: string, parsed: ParsedStrategySearchRequest): boolean {
+  const expected = parsed.authorizationToken, left = Buffer.from(token), right = Buffer.from(expected);
+  return left.length === right.length && timingSafeEqual(left, right);
 }
-function nextState(state: CampaignState): CampaignState {
-  return sealState({ ...structuredClone(state), revision: state.revision + 1 });
+export function kingdomArtifactRoot(evidenceId: string): string {
+  sha.parse(evidenceId); return `evidence/${evidenceId}`;
 }
-export function claimCampaignController(input: { state: CampaignState; expectedRevision: number; ownerId: string;
-  nowMs: number; leaseMs: number; requestedCeilings?: RuntimeCeilings; runtimeHash?: string;
-  authorization?: { token: string; ceilings: RuntimeCeilings } }): CampaignState {
-  if (!validateCampaignState(input.state) || input.state.revision !== input.expectedRevision
-    || !input.ownerId || !Number.isSafeInteger(input.nowMs) || !Number.isSafeInteger(input.leaseMs) || input.leaseMs < 1) {
-    throw new Error('Campaign controller claim has stale or invalid state.');
-  }
-  const state = structuredClone(input.state);
-  const firstLaunch = state.authorizedCeilings === null;
-  if (input.authorization) {
-    if (!validateLaunchAuthorizationToken(input.authorization.token,
-      state.evidenceHash, input.authorization.ceilings)) throw new Error('Campaign runtime increase is not authorized.');
-    const authorized = runtimeCeilingsSchema.parse(input.authorization.ceilings);
-    state.authorizedCeilings = state.authorizedCeilings
-      ? mergeRuntimeCeilings(state.authorizedCeilings, authorized) : structuredClone(authorized);
-  } else if (firstLaunch) throw new Error('First campaign launch is not authorized.');
-  if (input.requestedCeilings && (!state.authorizedCeilings
-    || !ceilingsFit(runtimeCeilingsSchema.parse(input.requestedCeilings), state.authorizedCeilings))) {
-    throw new Error('Campaign runtime increase is not authorized.');
-  }
-  if (input.runtimeHash !== undefined) {
-    sha.parse(input.runtimeHash);
-    if (!state.runtimeHistory.includes(input.runtimeHash)) state.runtimeHistory.push(input.runtimeHash);
-  }
-  if (state.controller && state.controller.leaseUntilMs > input.nowMs
-    && state.controller.ownerId !== input.ownerId) throw new Error('Campaign controller lease is active.');
-  const takeover = !state.controller || state.controller.ownerId !== input.ownerId;
-  if (takeover) {
-    state.fencingToken += 1;
-    for (const stage of Object.values(state.stages)) {
-      if (stage.status === 'active') stage.controllerFence = state.fencingToken;
-    }
-  }
-  state.controller = { ownerId: input.ownerId, leaseUntilMs: input.nowMs + input.leaseMs,
-    fencingToken: state.fencingToken };
-  return nextState(state);
-}
-export function mutateCampaignState(input: { state: CampaignState; expectedRevision: number;
-  ownerId: string; fencingToken: number; mutate: (draft: CampaignState) => void }): CampaignState {
-  if (!validateCampaignState(input.state) || input.state.revision !== input.expectedRevision
-    || input.state.controller?.ownerId !== input.ownerId
-    || input.state.controller.fencingToken !== input.fencingToken
-    || input.state.fencingToken !== input.fencingToken) throw new Error('Campaign state mutation is stale or fenced out.');
-  const draft = structuredClone(input.state); input.mutate(draft);
-  if (draft.schemaVersion !== input.state.schemaVersion || draft.campaignId !== input.state.campaignId
-    || draft.evidenceHash !== input.state.evidenceHash || draft.revision !== input.state.revision
-    || draft.fencingToken !== input.state.fencingToken
-    || canonical(draft.controller) !== canonical(input.state.controller)
-    || canonical(draft.authorizedCeilings) !== canonical(input.state.authorizedCeilings)
-    || canonical(draft.runtimeHistory) !== canonical(input.state.runtimeHistory)
-    || draft.evidenceHashSeal !== input.state.evidenceHashSeal
-    || canonical(Object.keys(draft.stages).sort()) !== canonical(Object.keys(input.state.stages).sort())) {
-    throw new Error('Campaign mutation changed protected state fields.');
-  }
-  for (const [key, before] of Object.entries(input.state.stages)) {
-    const after = draft.stages[key];
-    if (!after || after.id !== before.id || !validStageState(after)) {
-      throw new Error('Campaign mutation changed a stage identity or produced malformed state.');
-    }
-    if (after.status !== before.status && !legalTransitions[before.status].includes(after.status)) {
-      throw new Error(`Illegal campaign stage transition ${before.status} -> ${after.status}.`);
-    }
-    if (after.status === before.status && before.status !== 'active' && canonical(after) !== canonical(before)) {
-      throw new Error('Campaign mutation changed a terminal or inactive stage without a transition.');
-    }
-    if (after.status === 'active' && before.status === 'active'
-      && (after.callId !== before.callId || after.controllerFence !== before.controllerFence
-        || canonical(after.resources) !== canonical(before.resources))) {
-      throw new Error('Campaign mutation changed an active call identity or allocation.');
-    }
-  }
-  const next = nextState(draft);
-  if (!validateCampaignState(next)) throw new Error('Campaign mutation produced invalid state.');
-  return next;
-}
-function assertCampaignOwner(state: CampaignState, expectedRevision: number, ownerId: string,
-  fencingToken: number): void {
-  if (!validateCampaignState(state) || state.revision !== expectedRevision
-    || state.controller?.ownerId !== ownerId || state.controller.fencingToken !== fencingToken
-    || state.fencingToken !== fencingToken) throw new Error('Campaign state update is stale or fenced out.');
-}
-export function recordCampaignStageLaunchIntent(input: { state: CampaignState; expectedRevision: number;
-  ownerId: string; fencingToken: number; stageKey: string; launchIntentId: string;
-  nowMs: number; resources: { containers: number; cpus: number } }): CampaignState {
-  assertCampaignOwner(input.state, input.expectedRevision, input.ownerId, input.fencingToken);
-  if (!sha.safeParse(input.launchIntentId).success || !Number.isSafeInteger(input.nowMs) || input.nowMs < 0) {
-    throw new Error('Campaign stage launch intent is invalid.');
-  }
-  const draft = structuredClone(input.state), stage = draft.stages[input.stageKey];
-  if (!stage || (stage.status !== 'ready' && stage.status !== 'active')) {
-    throw new Error(`Campaign stage ${input.stageKey} is not launchable.`);
-  }
-  if (stage.status === 'ready') draft.stages[input.stageKey] = transitionCampaignStage(stage, 'active', {
-    callId: input.launchIntentId, controllerFence: input.fencingToken, heartbeatMs: input.nowMs,
-    resources: input.resources });
-  else {
-    stage.heartbeatMs = input.nowMs;
-    stage.resources = { containers: Math.max(stage.resources!.containers, input.resources.containers),
-      cpus: Math.max(stage.resources!.cpus, input.resources.cpus) };
-  }
-  const result = nextState(draft);
-  if (!validateCampaignState(result)) throw new Error('Campaign stage launch intent produced invalid state.');
-  return result;
-}
-export function bindCampaignStageCall(input: { state: CampaignState; expectedRevision: number;
-  ownerId: string; fencingToken: number; stageKey: string; launchIntentId: string; callId: string;
-  nowMs: number }): CampaignState {
-  assertCampaignOwner(input.state, input.expectedRevision, input.ownerId, input.fencingToken);
-  const draft = structuredClone(input.state), stage = draft.stages[input.stageKey];
-  if (!stage || stage.status !== 'active' || !input.callId || !Number.isSafeInteger(input.nowMs)) {
-    throw new Error('Campaign stage call binding is invalid.');
-  }
-  if (stage.callId === input.launchIntentId) stage.callId = input.callId;
-  stage.heartbeatMs = input.nowMs;
-  const result = nextState(draft);
-  if (!validateCampaignState(result)) throw new Error('Campaign stage call binding produced invalid state.');
-  return result;
-}
-export function recordCampaignStageOutcome(input: { state: CampaignState; expectedRevision: number;
-  ownerId: string; fencingToken: number; stageKey: string;
-  status: 'complete' | 'incomplete' | 'terminal-incomplete'; reason?: string;
-  artifactPaths: string[]; artifactHashes: Record<string, string> }): CampaignState {
-  assertCampaignOwner(input.state, input.expectedRevision, input.ownerId, input.fencingToken);
-  const draft = structuredClone(input.state), stage = draft.stages[input.stageKey];
-  if (!stage || stage.status !== 'active') throw new Error(`Campaign stage ${input.stageKey} is not active.`);
-  if (input.status === 'complete') {
-    draft.stages[input.stageKey] = transitionCampaignStage(stage, 'complete', {
-      artifactHashes: input.artifactHashes });
-    const [kingdomId, completedStage] = input.stageKey.split(':') as [string, 'goldfish' | 'matrix' | 'psro'];
-    const nextStage = completedStage === 'goldfish' ? 'matrix' : completedStage === 'matrix' ? 'psro' : null;
-    if (nextStage) {
-      const key = `${kingdomId}:${nextStage}`, next = draft.stages[key];
-      if (!next || next.status !== 'pending') throw new Error(`Campaign dependency stage ${key} is not pending.`);
-      draft.stages[key] = transitionCampaignStage(next, 'ready');
-    }
-  } else {
-    draft.stages[input.stageKey] = transitionCampaignStage(stage, input.status, {
-      ...(input.reason === undefined ? {} : { reason: input.reason }), artifactPaths: input.artifactPaths,
-      artifactHashes: input.artifactHashes });
-  }
-  const result = nextState(draft);
-  if (!validateCampaignState(result)) throw new Error('Campaign stage outcome produced invalid state.');
-  return result;
-}
-export function recoverCampaignStageLaunchIntent(input: { state: CampaignState; expectedRevision: number;
-  ownerId: string; fencingToken: number; stageKey: string }): CampaignState {
-  assertCampaignOwner(input.state, input.expectedRevision, input.ownerId, input.fencingToken);
-  const draft = structuredClone(input.state), stage = draft.stages[input.stageKey];
-  if (!stage || stage.status !== 'active') throw new Error('Campaign stage has no active launch intent to recover.');
-  draft.stages[input.stageKey] = { id: stage.id, status: 'ready' };
-  const result = nextState(draft);
-  if (!validateCampaignState(result)) throw new Error('Campaign stage launch recovery produced invalid state.');
-  return result;
-}
-
-export function repairCampaignCompletedStage(input: { state: CampaignState; expectedRevision: number;
-  ownerId: string; fencingToken: number; stageKey: string; reason: string;
-  artifactPaths: string[]; artifactHashes: Record<string, string> }): CampaignState {
-  assertCampaignOwner(input.state, input.expectedRevision, input.ownerId, input.fencingToken);
-  const draft = structuredClone(input.state), stage = draft.stages[input.stageKey];
-  if (!stage || !input.reason || !Array.isArray(input.artifactPaths)
-    || Object.values(input.artifactHashes).some((digest) => !sha.safeParse(digest).success)
-    || !['active', 'complete'].includes(stage.status)) {
-    throw new Error('Campaign completed-stage repair is invalid.');
-  }
-  draft.stages[input.stageKey] = { id: stage.id, status: 'incomplete', reason: input.reason,
-    artifactPaths: [...input.artifactPaths], artifactHashes: { ...input.artifactHashes } };
-  const [kingdomId, kind] = input.stageKey.split(':') as [string, 'goldfish' | 'matrix' | 'psro'];
-  const downstream = kind === 'goldfish' ? ['matrix', 'psro'] : kind === 'matrix' ? ['psro'] : [];
-  for (const downstreamKind of downstream) {
-    const key = `${kingdomId}:${downstreamKind}`, held = draft.stages[key];
-    if (!held || held.status === 'active') throw new Error('Campaign repair waits for active downstream work.');
-    draft.stages[key] = { id: held.id, status: 'pending' };
-  }
-  const result = nextState(draft);
-  if (!validateCampaignState(result)) throw new Error('Campaign completed-stage repair produced invalid state.');
-  return result;
-}
-
-export function campaignEvidenceComplete(state: CampaignState): boolean {
-  return validateCampaignState(state) && Object.entries(state.stages)
-    .filter(([key]) => key.endsWith(':psro')).every(([, stage]) => stage.status === 'complete');
-}
-
-const legalTransitions: Record<CampaignStageStatus, readonly CampaignStageStatus[]> = {
-  pending: ['ready'], ready: ['active'], active: ['incomplete', 'terminal-incomplete', 'complete'],
-  incomplete: ['ready'], 'terminal-incomplete': [], complete: []
-};
-export function transitionCampaignStage(stage: CampaignStageState, status: CampaignStageStatus,
-  details: Omit<CampaignStageState, 'id' | 'status'> = {}): CampaignStageState {
-  if (!legalTransitions[stage.status].includes(status)) {
-    throw new Error(`Illegal campaign stage transition ${stage.status} -> ${status}.`);
-  }
-  if (status === 'active' && (!details.callId || details.controllerFence === undefined
-    || !details.resources || !Number.isSafeInteger(details.heartbeatMs))) {
-    throw new Error('Active stage needs call, fence, heartbeat, and resources.');
-  }
-  if ((status === 'incomplete' || status === 'terminal-incomplete')
-    && (!details.reason || !Array.isArray(details.artifactPaths) || !details.artifactHashes)) {
-    throw new Error('Incomplete stage needs an exact reason and resumable artifact paths and hashes.');
-  }
-  if (status === 'complete' && (!details.artifactHashes || !Object.keys(details.artifactHashes).length)) {
-    throw new Error('Complete stage needs validated artifact hashes.');
-  }
-  const transitioned = { id: stage.id, status, ...structuredClone(details) };
-  if (!validStageState(transitioned)) throw new Error('Campaign stage transition details are malformed.');
-  return transitioned;
-}
-
-export interface CampaignContentIndexEntry {
-  path: string; bytes: number; sha256: string; stageId: string;
-  completeness: 'complete' | 'incomplete' | 'terminal-incomplete';
-}
-export interface CampaignContentIndex { schemaVersion: 1; entries: CampaignContentIndexEntry[]; indexHash: string }
-const CONTENT_INDEX_KEYS = ['schemaVersion', 'entries', 'indexHash'] as const;
-const CONTENT_INDEX_ENTRY_KEYS = ['path', 'bytes', 'sha256', 'stageId', 'completeness'] as const;
-const CONTENT_COMPLETENESS = new Set(['complete', 'incomplete', 'terminal-incomplete']);
-export function createCampaignContentIndex(entries: readonly CampaignContentIndexEntry[]): CampaignContentIndex {
-  const normalized = entries.map((entry) => {
-    if (!entry || typeof entry !== 'object' || !exactKeys(entry, CONTENT_INDEX_ENTRY_KEYS)) {
-      throw new Error('Content-index entry has unexpected fields.');
-    }
-    return { ...entry, path: normalizedRelativePath(entry.path) };
-  });
-  const exactPaths = new Set<string>(), folded = new Set<string>();
-  for (const entry of normalized) {
-    if (!Number.isSafeInteger(entry.bytes) || entry.bytes < 0 || !sha.safeParse(entry.sha256).success
-      || !sha.safeParse(entry.stageId).success || !CONTENT_COMPLETENESS.has(entry.completeness)) {
-      throw new Error(`Content-index entry is invalid: ${entry.path}`);
-    }
-    const collisionKey = entry.path.normalize('NFC').toLocaleLowerCase('en-US');
-    if (exactPaths.has(entry.path) || folded.has(collisionKey)) throw new Error(`Content-index path collides: ${entry.path}`);
-    exactPaths.add(entry.path); folded.add(collisionKey);
-  }
-  normalized.sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
-  return { schemaVersion: 1, entries: normalized, indexHash: sha256(canonical(normalized)) };
-}
-export function validateCampaignContentIndex(value: unknown): value is CampaignContentIndex {
-  if (!value || typeof value !== 'object' || !exactKeys(value, CONTENT_INDEX_KEYS)) return false;
-  try {
-    const held = value as CampaignContentIndex;
-    return held.schemaVersion === 1 && sha.safeParse(held.indexHash).success && Array.isArray(held.entries)
-      && canonical(createCampaignContentIndex(held.entries)) === canonical(held);
-  } catch { return false; }
+export function campaignExecutionRoot(campaignExecutionId: string): string {
+  sha.parse(campaignExecutionId); return `executions/${campaignExecutionId}`;
 }
