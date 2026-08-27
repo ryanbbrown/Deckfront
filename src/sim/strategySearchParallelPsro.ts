@@ -161,15 +161,19 @@ function lookDescriptor(checkpoint: ParallelPsroSemanticCheckpoint): ParallelPsr
 }
 export function partitionParallelPsroLook(look: ParallelPsroLookDescriptor, input: {
   targetTaskMs?: number; measuredCandidateBlocksPerSecond?: number } = {}): ParallelPsroScoreTaskDescriptor[] {
-  const targetMs = input.targetTaskMs ?? 30_000, rate = input.measuredCandidateBlocksPerSecond ?? 4_134;
+  const targetMs = input.targetTaskMs ?? 20_000, rate = input.measuredCandidateBlocksPerSecond ?? 4_134;
   if (targetMs < 15_000 || targetMs > 60_000 || !(rate > 0)) throw new Error('PSRO score-task sizing is invalid.');
   const blocks = look.scheduleEnd - look.scheduleStart;
-  const perTask = Math.max(1, Math.floor(rate * targetMs / 1000 / blocks));
-  const tasks: ParallelPsroScoreTaskDescriptor[] = [];
-  for (let start = 0; start < look.candidateIds.length; start += perTask) {
-    const end = Math.min(start + perTask, look.candidateIds.length);
-    tasks.push({ taskIndex: tasks.length, candidateStart: start, candidateEnd: end,
-      expectedTaskMs: (end - start) * blocks / rate * 1000 });
+  const totalMs = look.candidateIds.length * blocks / rate * 1000;
+  const minimumTasks = Math.max(1, Math.ceil(totalMs / 60_000));
+  const maximumTasks = Math.max(1, Math.floor(totalMs / 15_000));
+  const taskCount = Math.max(minimumTasks, Math.min(maximumTasks, Math.round(totalMs / targetMs)));
+  const tasks: ParallelPsroScoreTaskDescriptor[] = []; let cursor = 0;
+  for (let taskIndex = 0; taskIndex < taskCount; taskIndex += 1) {
+    const count = Math.floor(look.candidateIds.length / taskCount)
+      + (taskIndex < look.candidateIds.length % taskCount ? 1 : 0);
+    tasks.push({ taskIndex, candidateStart: cursor, candidateEnd: cursor + count,
+      expectedTaskMs: count * blocks / rate * 1000 }); cursor += count;
   }
   return tasks;
 }
@@ -272,7 +276,10 @@ export function reduceParallelPsroLook(input: { checkpoint: ParallelPsroSemantic
   }
   const confirmed = allRaceDecisions.filter((decision): decision is ConfirmationDecision => decision.status === 'confirmed');
   checkpoint.currentRace = null;
-  if (!confirmed.length) return race.raceKind === 'confirmation' ? finishClean(checkpoint) : requestNext(checkpoint);
+  if (!confirmed.length) {
+    if (race.raceKind === 'confirmation') return finishClean(checkpoint);
+    checkpoint.queue = []; return requestNext(checkpoint);
+  }
   checkpoint.queue = confirmed; return requestNext(checkpoint);
 }
 export function createParallelAdmissionRowChunk(input: { row: ParallelAdmissionRowDescriptor; taskIndex: number;

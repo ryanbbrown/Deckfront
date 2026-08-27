@@ -110,26 +110,26 @@ export function strategySearchMatrixJobs(manifest: StrategySearchMatrixManifest,
 }
 export function strategySearchMatrixScoreTasks(manifest: StrategySearchMatrixManifest, input: {
   targetTaskMs?: number; measuredGamesPerSecond?: number; semanticSeedChunkSize?: number } = {}): readonly StrategySearchMatrixScoreTask[] {
-  const targetTaskMs = input.targetTaskMs ?? 30_000, measuredGamesPerSecond = input.measuredGamesPerSecond ?? 3_307,
+  const targetTaskMs = input.targetTaskMs ?? 24_000, measuredGamesPerSecond = input.measuredGamesPerSecond ?? 3_307,
     semanticSeedChunkSize = input.semanticSeedChunkSize ?? 25;
   if (!Number.isFinite(targetTaskMs) || targetTaskMs < 15_000 || targetTaskMs > 60_000
     || !Number.isFinite(measuredGamesPerSecond) || measuredGamesPerSecond <= 0) {
     throw new Error('Matrix score-task sizing input is invalid.');
   }
   const jobs = strategySearchMatrixJobs(manifest, semanticSeedChunkSize);
-  const targetGames = targetTaskMs / 1000 * measuredGamesPerSecond;
-  const tasks: StrategySearchMatrixScoreTask[] = []; let held: StrategySearchMatrixJob[] = [], games = 0;
-  const flush = (): void => {
-    if (!held.length) return;
-    tasks.push({ taskIndex: tasks.length, startSlot: held[0]!.slot, endSlot: held.at(-1)!.slot + 1,
-      expectedGames: games, jobs: held }); held = []; games = 0;
-  };
-  for (const job of jobs) {
-    const jobGames = job.count * GAMES_PER_SEED;
-    if (held.length && games + jobGames > targetGames) flush();
-    held.push(job); games += jobGames;
+  const totalGames = jobs.reduce((sum, job) => sum + job.count * GAMES_PER_SEED, 0);
+  const totalMs = totalGames / measuredGamesPerSecond * 1000;
+  const minimumTasks = Math.max(1, Math.ceil(totalMs / 60_000));
+  const maximumTasks = Math.max(1, Math.floor(totalMs / 15_000));
+  const taskCount = Math.max(minimumTasks, Math.min(maximumTasks, Math.round(totalMs / targetTaskMs)));
+  const tasks: StrategySearchMatrixScoreTask[] = []; let cursor = 0;
+  for (let taskIndex = 0; taskIndex < taskCount; taskIndex += 1) {
+    const count = Math.floor(jobs.length / taskCount) + (taskIndex < jobs.length % taskCount ? 1 : 0);
+    const held = jobs.slice(cursor, cursor + count), expectedGames = held.reduce((sum, job) =>
+      sum + job.count * GAMES_PER_SEED, 0);
+    tasks.push({ taskIndex, startSlot: held[0]!.slot, endSlot: held.at(-1)!.slot + 1,
+      expectedGames, jobs: held }); cursor += count;
   }
-  flush();
   return tasks;
 }
 export function createStrategySearchMatrixScoreTaskChunk(input: { manifest: StrategySearchMatrixManifest;

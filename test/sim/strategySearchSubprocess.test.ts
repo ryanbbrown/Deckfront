@@ -70,8 +70,12 @@ describe('deployment-only strategy-search subprocess bootstrap', () => {
 
   it('keeps every detached Modal command behind the wrapper', () => {
     const source = fs.readFileSync('modal/native_strategy_search.py', 'utf8');
+    const wrapper = fs.readFileSync('scripts/strategy_search_subprocess.ts', 'utf8');
     expect(source).toContain('scripts/strategy_search_subprocess.ts');
-    for (const entry of entries) expect(source).toContain(`_strategy_search_subprocess_command("${entry}"`);
+    expect(source).toContain('_strategy_search_subprocess_command(entry');
+    for (const entry of [...entries, 'matrix-score', 'matrix-reduce', 'parallel-psro']) {
+      expect(wrapper).toMatch(new RegExp(`(?:^|\\s)(?:'${entry}'|${entry}):`, 'm'));
+    }
     for (const direct of ['scripts/strategy_search_goldfish.ts', 'scripts/strategy_search_campaign_matrix_manifest.ts',
       'scripts/strategy_search_campaign_matrix.ts', 'scripts/strategy_search_campaign_psro.ts',
       'scripts/strategy_search_validate_artifact.ts']) expect(source).not.toContain(`"${direct}"`);

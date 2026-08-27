@@ -98,6 +98,10 @@ describe('parallel PSRO production transition', () => {
     expect(retest.checkpoint.matrix.strategies.map((strategy) => strategy.id))
       .toEqual([...retest.checkpoint.matrix.strategies.map((strategy) => strategy.id)].sort());
     if (retest.kind === 'score') expect(retest.look.raceKind).toBe('queue-retest');
+    const nextScreen = finishRace(retest, 0);
+    expect(nextScreen.kind).toBe('score');
+    if (nextScreen.kind === 'score') expect(nextScreen.look.raceKind).toBe('screen');
+    expect(nextScreen.checkpoint.queue).toHaveLength(0);
     expect(() => reduceParallelAdmissionRow({ checkpoint: admission.checkpoint,
       row: admission.row, chunks: [rowChunk, rowChunk] })).toThrow('stale');
   });
