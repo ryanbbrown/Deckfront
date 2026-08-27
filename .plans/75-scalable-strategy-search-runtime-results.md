@@ -32,3 +32,9 @@ This is synthetic format and I/O evidence. It is not campaign evidence. The pare
 The complete `npm test` command passed 82 files and 756 tests, then failed one unrelated pre-existing test in `test/sim/randomPsro.test.ts`. The ignored K001 source artifact has saved rules hash `d2b18864d32`; the current unchanged validator requires `af4833e2d36`. This implementation does not change the random-PSRO test, protocol, runner, validator, or evidence. The stale ignored evidence was not changed, relabelled, regenerated, or weakened.
 
 The implementation acceptance suite therefore excludes only `test/sim/randomPsro.test.ts`. All other repository test files remain required.
+
+## Status preflight correction
+
+The first parent-owned K007 attempt did not reach `strategy_search_run_entry`. Its separate status preflight waited on the full compute image for more than 29 minutes. No strategy-search scoring started.
+
+The corrected operator validates run authorization and starts `run` without a status preflight. Explicit `status` uses a separate dependency-free Modal app and control image, reads execution state directly from the Volume, has a 30-second remote timeout, and has a 90-second local process timeout. The compute image now installs Node dependencies and builds unchanged Rust sources in cacheable layers before it copies changing TypeScript sources. Local architecture tests cover these boundaries. This document does not claim a successful remote status or campaign run; the parent owns the retry.

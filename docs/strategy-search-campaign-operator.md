@@ -42,7 +42,7 @@ npm run strategy-search:campaign -- run \
   --authorize 'strategy-search-v2.REPLACE_WITH_PLAN_TOKEN'
 ```
 
-`run` uses Modal Volume `hexdeck-native-strategy-results`. It stores scientific artifacts under `evidence/<kingdom-evidence-id>/`. It stores execution state under `executions/<campaign-execution-id>/`.
+`run` validates the token before any Modal call. It does not run `status` as a preflight. It uses Modal Volume `hexdeck-native-strategy-results`. It stores scientific artifacts under `evidence/<kingdom-evidence-id>/`. It stores execution state under `executions/<campaign-execution-id>/`.
 
 A changed `maxActiveCpus` value needs a new token. The existing execution keeps its pinned Goldfish ranges. The new value changes admission concurrency only.
 
@@ -58,7 +58,7 @@ A complete kingdom is reusable by any later request that has the same per-kingdo
 npm run strategy-search:campaign -- status --request /tmp/strategy-search-request.json
 ```
 
-`status` calls one bounded read-only Modal function. It cannot start a controller or enqueue work.
+`status` calls one bounded read-only Modal function in a separate small control app and image. It reads execution state directly from the Volume. It does not depend on the Node, Rust, or simulation image and cannot start a controller or enqueue work. The local Modal command also has a 90-second hard timeout.
 
 The final report includes:
 

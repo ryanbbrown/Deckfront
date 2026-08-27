@@ -49,8 +49,9 @@ function lastJson(output: string): unknown {
 }
 export class ModalStrategySearchOperatorAdapter implements StrategySearchOperatorAdapter {
   status(input: { campaignExecutionId: string }): StrategySearchRemoteStatus {
-    return lastJson(execFileSync('modal', ['run', 'modal/native_strategy_search.py::strategy_search_status_entry',
-      '--campaign-execution-id', input.campaignExecutionId], { encoding: 'utf8' })) as StrategySearchRemoteStatus;
+    return lastJson(execFileSync('modal', ['run', 'modal/strategy_search_status.py::status_entry',
+      '--campaign-execution-id', input.campaignExecutionId],
+    { encoding: 'utf8', timeout: 90_000 })) as StrategySearchRemoteStatus;
   }
   run(input: { bundle: StrategySearchLaunchBundle; destinationRoot: string }): unknown {
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-strategy-search-'));
@@ -82,9 +83,11 @@ export function executeStrategySearchOperation(input: { operation: 'plan' | 'sta
   const root = input.root ?? process.cwd(), parsed = parseInput(input.requestFile, root);
   if (input.operation === 'plan') return { ...createStrategySearchPlanSummary(parsed) };
   const adapter = input.adapter ?? new ModalStrategySearchOperatorAdapter();
-  const status = adapter.status({ campaignExecutionId: parsed.campaignExecutionId });
-  if (status.campaignExecutionId !== parsed.campaignExecutionId) throw new Error('Remote execution identity differs.');
-  if (input.operation === 'status') return { ...status, orderedEvidenceIds: parsed.kingdoms.map((entry) => entry.evidenceId) };
+  if (input.operation === 'status') {
+    const status = adapter.status({ campaignExecutionId: parsed.campaignExecutionId });
+    if (status.campaignExecutionId !== parsed.campaignExecutionId) throw new Error('Remote execution identity differs.');
+    return { ...status, orderedEvidenceIds: parsed.kingdoms.map((entry) => entry.evidenceId) };
+  }
   if (!input.authorizationToken || !validateLaunchAuthorizationToken(input.authorizationToken, parsed)) {
     throw new Error('Run requires the exact authorization token printed by plan.');
   }

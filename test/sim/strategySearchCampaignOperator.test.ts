@@ -34,13 +34,15 @@ describe('strategy-search operator', () => {
       expect(plan.authorizationToken).toBe(held.parsed.authorizationToken); expect(calls).toBe(0);
     } finally { fs.rmSync(held.root, { recursive: true, force: true }); } });
 
-  it('uses status as a read-only seam and requires authorization before run', () => { const held = fixture();
-    let runs = 0; const status: StrategySearchRemoteStatus = { exists: false,
+  it('uses status as a read-only seam and never puts run authorization behind status deployment', () => {
+    const held = fixture();
+    let runs = 0, statuses = 0; const status: StrategySearchRemoteStatus = { exists: false,
       campaignExecutionId: held.parsed.campaignExecutionId, status: 'missing' };
-    const adapter: StrategySearchOperatorAdapter = { status() { return status; }, run() { runs += 1; return { complete: true }; } };
+    const adapter: StrategySearchOperatorAdapter = { status() { statuses += 1; return status; },
+      run() { runs += 1; return { complete: true }; } };
     try { expect(executeStrategySearchOperation({ operation: 'status', requestFile: held.requestFile,
       root: held.root, adapter })).toMatchObject({ exists: false, status: 'missing' });
-      expect(runs).toBe(0);
+      expect(runs).toBe(0); expect(statuses).toBe(1);
       expect(() => executeStrategySearchOperation({ operation: 'run', requestFile: held.requestFile,
         root: held.root, adapter })).toThrow('exact authorization');
       expect(() => executeStrategySearchOperation({ operation: 'run', requestFile: held.requestFile,
@@ -48,7 +50,7 @@ describe('strategy-search operator', () => {
       expect(executeStrategySearchOperation({ operation: 'run', requestFile: held.requestFile,
         authorizationToken: held.parsed.authorizationToken, root: held.root, adapter })).toMatchObject({
           campaignExecutionId: held.parsed.campaignExecutionId });
-      expect(runs).toBe(1);
+      expect(runs).toBe(1); expect(statuses).toBe(1);
     } finally { fs.rmSync(held.root, { recursive: true, force: true }); } });
 
   it('creates hundreds of pinned K007 Goldfish jobs without putting capacity in evidence identity', () => {

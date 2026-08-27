@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import patch
 
 import native_strategy_search as launcher
+import strategy_search_status as status_launcher
 
 
 class NativeStrategySearchLauncherTest(unittest.TestCase):
@@ -522,13 +523,32 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "padding differs"):
                 launcher._strategy_search_validate_compact(publication, file)
 
-    def test_strategy_search_status_is_read_only_and_campaign_has_no_legacy_recovery(self):
-        status_source = inspect.getsource(launcher.strategy_search_read_status.get_raw_f())
-        self.assertNotIn("spawn", status_source)
+    def test_strategy_search_status_uses_only_its_bounded_control_app(self):
+        status_source = inspect.getsource(status_launcher)
+        self.assertNotIn("native_strategy_search", status_source)
+        self.assertNotIn("strategy_search_publisher", status_source)
+        self.assertNotIn("run_commands", status_source)
+        self.assertIn("@app.function(image=control_image, cpu=0.25, memory=512, timeout=30", status_source)
+        compute_source = inspect.getsource(launcher)
+        self.assertNotIn("strategy_search_status_entry", compute_source)
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(status_launcher, "_execution_file",
+                    return_value=pathlib.Path(directory) / "state.json"), \
+                patch.object(status_launcher.volume, "reload"):
+            raw = status_launcher.read_status.get_raw_f()
+            missing = raw("a" * 64)
+            self.assertEqual(missing["status"], "missing")
+            pathlib.Path(directory, "state.json").write_text(json.dumps(
+                {"status": "ready", "report": None}))
+            self.assertEqual(raw("a" * 64)["status"], "running")
+
+    def test_strategy_search_campaign_has_no_legacy_recovery_or_budget_gate(self):
         controller_source = inspect.getsource(launcher.strategy_search_controller.get_raw_f())
         self.assertNotIn("GROSS_BUDGET_USD", controller_source)
         self.assertNotIn("MAX_FULL_RUNS", controller_source)
         module_source = inspect.getsource(launcher)
+        self.assertIn("_NODE_DEPENDENCY_FILES", module_source)
+        self.assertIn("_RUST_IMAGE_FILES", module_source)
         for removed in ["campaign_recover_entry", "campaign_source_repair", "resume-plan"]:
             self.assertNotIn(removed, module_source)
 

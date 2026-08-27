@@ -86,12 +86,17 @@ image = modal.Image.debian_slim(python_version="3.12") \
         "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal",
         "/root/.cargo/bin/rustup toolchain install 1.98.0 --profile minimal --component clippy,rustfmt --target x86_64-unknown-linux-gnu",
     ).env({"PATH": "/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"})
-for _relative in _SOURCE_IMAGE_FILES:
+_NODE_DEPENDENCY_FILES = {"package.json", "package-lock.json"}
+_RUST_IMAGE_FILES = {relative for relative in _SOURCE_IMAGE_FILES if relative.startswith("rust/")}
+for _relative in sorted(_NODE_DEPENDENCY_FILES):
+    image = image.add_local_file(PROJECT_ROOT / _relative, remote_path=f"/workspace/{_relative}", copy=True)
+image = image.run_commands("cd /workspace && npm ci")
+for _relative in sorted(_RUST_IMAGE_FILES):
     image = image.add_local_file(PROJECT_ROOT / _relative, remote_path=f"/workspace/{_relative}", copy=True)
 image = image.run_commands(
-    "cd /workspace && npm ci",
-    "cd /workspace/rust && cargo +1.98.0 build --release --target x86_64-unknown-linux-gnu",
-)
+    "cd /workspace/rust && cargo +1.98.0 build --release --target x86_64-unknown-linux-gnu")
+for _relative in sorted(set(_SOURCE_IMAGE_FILES) - _NODE_DEPENDENCY_FILES - _RUST_IMAGE_FILES):
+    image = image.add_local_file(PROJECT_ROOT / _relative, remote_path=f"/workspace/{_relative}", copy=True)
 
 
 def projected_cost_usd(
@@ -1992,21 +1997,6 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
         "fence": state["controllerFence"], "ownerId": owner_id, "nowMs": int(time.time() * 1000),
         "leaseMs": 120000, "state": state})
     return report
-
-
-@app.function(image=image, cpu=0.25, memory=512, timeout=60, volumes={"/results": volume})
-def strategy_search_read_status(campaign_execution_id: str) -> dict[str, Any]:
-    state = strategy_search_publisher.remote({"operation": "status", "campaignExecutionId": campaign_execution_id})
-    if state is None:
-        return {"exists": False, "campaignExecutionId": campaign_execution_id, "status": "missing"}
-    status = "running" if state["status"] == "ready" else state["status"]
-    return {"exists": True, "campaignExecutionId": campaign_execution_id, "status": status,
-        "report": state.get("report")}
-
-
-@app.local_entrypoint()
-def strategy_search_status_entry(campaign_execution_id: str) -> None:
-    print(json.dumps(strategy_search_read_status.remote(campaign_execution_id)))
 
 
 @app.local_entrypoint()
