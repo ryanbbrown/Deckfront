@@ -29,6 +29,7 @@ interface Options {
   prefixes: number[];
   heldOutStartSeedIndex: number;
   workers: number;
+  shuffleSeeds: string | undefined;
 }
 
 function option(args: readonly string[], name: string, fallback?: string): string {
@@ -49,7 +50,7 @@ function integer(args: readonly string[], name: string, fallback?: number): numb
 }
 function parseOptions(args: readonly string[]): Options {
   const known = new Set(['--kingdom', '--ranked', '--reservoir', '--out', '--max-seeds', '--chunk-size',
-    '--prefixes', '--held-out-start', '--workers']);
+    '--prefixes', '--held-out-start', '--workers', '--seeds']);
   for (let index = 0; index < args.length; index += 2) {
     if (!known.has(args[index]!)) throw new Error(`Unknown option ${args[index]}.`);
     if (index + 1 >= args.length) throw new Error(`${args[index]} needs a value.`);
@@ -70,7 +71,8 @@ function parseOptions(args: readonly string[]): Options {
   if (workers > 192) throw new Error('--workers must be from 1 to 192.');
   return { kingdomId: option(args, 'kingdom'), rankedFile: path.resolve(option(args, 'ranked')),
     reservoirFile: path.resolve(option(args, 'reservoir')), outputRoot: path.resolve(option(args, 'out')),
-    maxSeedCount, chunkSize, prefixes, heldOutStartSeedIndex, workers };
+    maxSeedCount, chunkSize, prefixes, heldOutStartSeedIndex, workers,
+    shuffleSeeds: args.includes('--seeds') ? option(args, 'seeds') : undefined };
 }
 function readJson<T>(file: string): T { return JSON.parse(fs.readFileSync(file, 'utf8')) as T; }
 function sha256File(file: string): string {
@@ -87,9 +89,10 @@ function validateOrderedArtifacts(options: Options): void {
     `${options.reservoirFile}.sha256`]) {
     if (!fs.existsSync(file)) throw new Error(`Missing ordered artifact input ${file}.`);
   }
+  const seedArgs = options.shuffleSeeds ? ['--seeds', options.shuffleSeeds] : [];
   const result = spawnSync('npm', ['run', 'goldfish:ordered-product', '--', 'validate-reservoir',
-    '--kingdom', options.kingdomId, '--artifact', options.rankedFile, '--reservoir', options.reservoirFile],
-  { stdio: 'inherit' });
+    '--kingdom', options.kingdomId, ...seedArgs, '--artifact', options.rankedFile,
+    '--reservoir', options.reservoirFile], { stdio: 'inherit' });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error('Ordered ranked/reservoir validation failed.');
 }
