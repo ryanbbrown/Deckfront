@@ -12,8 +12,14 @@ import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 import { solveEquilibrium } from '../src/sim/equilibrium';
 import type { EquilibriumResult } from '../src/sim/equilibrium';
 import { reconstructMatrixCache } from '../src/sim/fixedReservoirConsistency';
-import { validateInitialMatrixChunk } from '../src/sim/initialMatrixCalibration';
-import type { InitialMatrixChunk, InitialMatrixManifest } from '../src/sim/initialMatrixCalibration';
+import {
+  assertInitialMatrixOutputJsonFiles, expectedInitialMatrixChunkRelativePaths,
+  initialMatrixChunkRelativePath, validateInitialMatrixChunk, validateInitialMatrixManifest,
+  validateOrderedCalibrationSource
+} from '../src/sim/initialMatrixCalibration';
+import type {
+  InitialMatrixChunk, InitialMatrixManifest, InitialMatrixSourceIdentity
+} from '../src/sim/initialMatrixCalibration';
 import { evaluateCandidates } from '../src/sim/mixtureEvaluation';
 import type { CandidateEvaluation, MixtureSchedule } from '../src/sim/mixtureEvaluation';
 import { ModalCompetitiveEvaluator } from '../src/sim/modalCompetitiveEvaluator';
@@ -23,14 +29,15 @@ import type { MatrixCell, MatrixSnapshot } from '../src/sim/payoffMatrix';
 import { GAMES_PER_SEED, emptyAggregate, mergeAggregate } from '../src/sim/pairing';
 import type { PairingRunner } from '../src/sim/pairingRunner';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
-import type { CalibrationCandidateIdentity, ResponseOracleCalibrationManifest } from '../src/sim/responseOracleCalibration';
+import type {
+  CalibrationCandidateIdentity, CalibrationSourceIdentity
+} from '../src/sim/responseOracleCalibration';
 import { RustCompetitiveEvaluator } from '../src/sim/rustCompetitiveEvaluator';
 import { RustGoldfishScorer } from '../src/sim/rustGoldfishScorer';
 import { stableHash } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 import type { TelemetryAggregate } from '../src/sim/types';
 import { compareUtf16 } from '../src/sim/utf16';
-import { loadCalibrationSources } from './response_oracle_calibration';
 
 export const PILOT_VERSION = 'k007-threshold-racing-double-oracle-v1' as const;
 export const PILOT_KINGDOM = 'deep-beam-tuning-007' as const;
@@ -50,9 +57,21 @@ interface InputEntry { kingdomId: string; ranked: string; reservoir: string; p75
 interface Inputs { schemaVersion: 1; kingdoms: InputEntry[] }
 interface Source {
   entry: InputEntry;
-  calibration: ResponseOracleCalibrationManifest;
+  source: CalibrationSourceIdentity;
   reservoir: OrderedProductReservoirArtifact;
   initialMatrix: MatrixSnapshot;
+}
+interface InitialMatrixReport {
+  schemaVersion: 2;
+  experiment: 'initial-matrix-calibration-report';
+  version: string;
+  manifestHash: string;
+  source: unknown;
+  protocol: unknown;
+  analysis?: { prefixes?: Array<{
+    seedRange: { startOrdinal: number; endOrdinal: number; count: number };
+    equilibrium: EquilibriumResult;
+  }> };
 }
 interface CandidateRef { identity: CalibrationCandidateIdentity; strategy: Strategy }
 export interface ThresholdDecision extends CalibrationCandidateIdentity {
@@ -153,7 +172,7 @@ interface Checkpoint {
   experiment: 'k007-threshold-racing-double-oracle';
   version: typeof PILOT_VERSION;
   runId: 1 | 2 | 3;
-  source: ResponseOracleCalibrationManifest['source'];
+  source: CalibrationSourceIdentity;
   protocol: {
     threshold: typeof RESPONSE_THRESHOLD;
     screenDepths: readonly number[];
@@ -211,6 +230,9 @@ type Evaluate = (
 function exact(left: unknown, right: unknown): boolean { return JSON.stringify(left) === JSON.stringify(right); }
 function hash(value: unknown): string { return createHash('sha256').update(JSON.stringify(value)).digest('hex'); }
 function readJson<T>(file: string): T { return JSON.parse(fs.readFileSync(file, 'utf8')) as T; }
+function sha256File(file: string): string {
+  return createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+}
 function writeAtomic(file: string, value: unknown): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const temporary = `${file}.tmp-${process.pid}`;
@@ -476,24 +498,87 @@ export function actionAfterConfirmation(
   return confirmation.confirmed.length ? 'queued' : 'empty';
 }
 
-function loadP75Matrix(manifest: ResponseOracleCalibrationManifest): MatrixSnapshot {
-  const source = readJson<InitialMatrixManifest>(manifest.source.p75ManifestPath);
-  const protocol = matrixProtocol(PILOT_KINGDOM, source.protocol.seeds.slice(0, MATRIX_BLOCKS), 30, 200, false);
-  const centeredPayoffs = source.strategies.map(() => source.strategies.map(() => 0));
+export function validatePilotInitialMatrixMetadata(input: {
+  orderedSource: InitialMatrixSourceIdentity;
+  topStrategies: readonly Strategy[];
+  manifest: unknown;
+  report: unknown;
+}): { manifest: InitialMatrixManifest; p75Weights: Record<string, number> } {
+  if (!validateInitialMatrixManifest(input.manifest)) {
+    throw new Error('Pilot initial-matrix manifest is invalid.');
+  }
+  const manifest = input.manifest;
+  const report = input.report as InitialMatrixReport;
+  if (manifest.protocol.kingdomId !== PILOT_KINGDOM || manifest.protocol.maxSeedCount < MATRIX_BLOCKS
+    || !exact(manifest.protocol.source, input.orderedSource)
+    || !exact(manifest.strategies, input.topStrategies)) {
+    throw new Error('Pilot initial matrix does not match the validated K007 ordered top 50.');
+  }
+  if (!report || report.schemaVersion !== 2 || report.experiment !== 'initial-matrix-calibration-report'
+    || report.version !== manifest.protocol.version || report.manifestHash !== manifest.evidenceHash
+    || !exact(report.source, manifest.protocol.source) || !exact(report.protocol, manifest.protocol)) {
+    throw new Error('Pilot initial-matrix report does not match its manifest and ordered source.');
+  }
+  const p75 = report.analysis?.prefixes?.find((entry) => entry.seedRange.startOrdinal === 1
+    && entry.seedRange.endOrdinal === MATRIX_BLOCKS && entry.seedRange.count === MATRIX_BLOCKS);
+  const ids = manifest.strategies.map((strategy) => strategy.id);
+  const weights = p75?.equilibrium.weights;
+  if (!p75 || !exact([...p75.equilibrium.strategyIds].sort(), [...ids].sort()) || !weights
+    || !exact(Object.keys(weights).sort(), [...ids].sort())
+    || ids.some((id) => !Number.isFinite(weights[id]) || weights[id]! < 0)
+    || Math.abs(ids.reduce((sum, id) => sum + weights[id]!, 0) - 1) > 1e-7) {
+    throw new Error('Pilot initial-matrix report does not contain the complete P75 lottery.');
+  }
+  return { manifest, p75Weights: weights };
+}
+
+function initialMatrixJsonFiles(root: string): string[] {
+  const files: string[] = [];
+  const visit = (directory: string): void => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const file = path.join(directory, entry.name);
+      if (entry.isDirectory()) visit(file);
+      else if (entry.name.endsWith('.json')) files.push(path.relative(root, file));
+    }
+  };
+  visit(root);
+  return files;
+}
+
+function loadInitialMatrixChunks(root: string, manifest: InitialMatrixManifest): Map<string, InitialMatrixChunk> {
+  assertInitialMatrixOutputJsonFiles(initialMatrixJsonFiles(root), true, manifest);
+  const chunks = new Map<string, InitialMatrixChunk>();
+  for (const relative of expectedInitialMatrixChunkRelativePaths(manifest)) {
+    const match = /^chunks\/cell-(\d+)-(\d+)\/chunk-(\d+)\.json$/.exec(relative);
+    if (!match) throw new Error(`Invalid initial-matrix chunk path ${relative}.`);
+    const row = Number(match[1]), column = Number(match[2]), start = Number(match[3]);
+    const count = Math.min(manifest.protocol.chunkSize, manifest.protocol.maxSeedCount - start);
+    const file = path.join(root, relative);
+    if (!fs.existsSync(file)) throw new Error(`Pilot initial-matrix chunk is missing: ${file}`);
+    const value = readJson<unknown>(file);
+    if (!validateInitialMatrixChunk(value, manifest, row, column, start, count)) {
+      throw new Error(`Pilot initial-matrix chunk is invalid: ${file}`);
+    }
+    chunks.set(relative, value);
+  }
+  return chunks;
+}
+
+function loadP75Matrix(manifest: InitialMatrixManifest, p75Weights: Readonly<Record<string, number>>,
+  chunks: ReadonlyMap<string, InitialMatrixChunk>): MatrixSnapshot {
+  const protocol = matrixProtocol(PILOT_KINGDOM, manifest.protocol.seeds.slice(0, MATRIX_BLOCKS), 30, 200, false);
+  const centeredPayoffs = manifest.strategies.map(() => manifest.strategies.map(() => 0));
   const cells: MatrixCell[] = [];
   for (let rowIndex = 0; rowIndex < 50; rowIndex += 1) for (let columnIndex = rowIndex + 1;
     columnIndex < 50; columnIndex += 1) {
     const records: InitialMatrixChunk['records'] = [];
-    for (let start = 0; start < MATRIX_BLOCKS; start += source.protocol.chunkSize) {
-      const file = path.join(path.dirname(manifest.source.p75ManifestPath), 'chunks',
-        `cell-${String(rowIndex).padStart(2, '0')}-${String(columnIndex).padStart(2, '0')}`,
-        `chunk-${String(start).padStart(6, '0')}.json`);
-      const value = readJson<unknown>(file);
-      if (!validateInitialMatrixChunk(value, source, rowIndex, columnIndex, start,
-        Math.min(source.protocol.chunkSize, MATRIX_BLOCKS - start))) throw new Error(`Invalid P75 matrix chunk ${file}.`);
-      records.push(...value.records);
+    for (let start = 0; start < MATRIX_BLOCKS; start += manifest.protocol.chunkSize) {
+      const relative = initialMatrixChunkRelativePath(rowIndex, columnIndex, start);
+      const value = chunks.get(relative);
+      if (!value) throw new Error(`Validated P75 matrix chunk is missing: ${relative}`);
+      records.push(...value.records.slice(0, MATRIX_BLOCKS - start));
     }
-    const row = source.strategies[rowIndex]!, column = source.strategies[columnIndex]!;
+    const row = manifest.strategies[rowIndex]!, column = manifest.strategies[columnIndex]!;
     const originalScores = records.map((record) => record.payoffScore!);
     const centered = 2 * mean(originalScores) - 1;
     centeredPayoffs[rowIndex]![columnIndex] = centered;
@@ -508,15 +593,28 @@ function loadP75Matrix(manifest: ResponseOracleCalibrationManifest): MatrixSnaps
   }
   cells.sort((left, right) => compareUtf16(left.rowId, right.rowId)
     || compareUtf16(left.columnId, right.columnId));
-  const snapshot = { protocol, strategies: source.strategies, cells, complete: true, centeredPayoffs };
-  const equilibrium = solveEquilibrium(source.strategies.map((strategy) => strategy.id), centeredPayoffs);
-  if (!exact(equilibrium.strategyIds, [...source.strategies.map((strategy) => strategy.id)].sort())
-    || source.strategies.some((strategy) => Math.abs((equilibrium.weights[strategy.id] ?? 0)
-      - (manifest.p75Weights[strategy.id] ?? 0)) > 1e-7)) {
+  const snapshot = { protocol, strategies: manifest.strategies, cells, complete: true, centeredPayoffs };
+  const equilibrium = solveEquilibrium(manifest.strategies.map((strategy) => strategy.id), centeredPayoffs);
+  if (!exact(equilibrium.strategyIds, [...manifest.strategies.map((strategy) => strategy.id)].sort())
+    || manifest.strategies.some((strategy) => Math.abs((equilibrium.weights[strategy.id] ?? 0)
+      - (p75Weights[strategy.id] ?? 0)) > 1e-7)) {
     throw new Error('Rebuilt K007 P75 matrix does not reproduce the validated lottery.');
   }
   reconstructMatrixCache(snapshot);
   return snapshot;
+}
+
+function validateOrderedArtifacts(entry: InputEntry): void {
+  for (const file of [entry.ranked, `${entry.ranked}.sha256`, entry.reservoir, `${entry.reservoir}.sha256`]) {
+    if (!fs.existsSync(file)) throw new Error(`Missing ordered pilot input ${file}.`);
+  }
+  const seeds = readJson<{ config?: { seeds?: unknown } }>(entry.ranked).config?.seeds;
+  if (!Array.isArray(seeds) || seeds.some((seed) => !Number.isSafeInteger(seed) || Number(seed) < 0)) {
+    throw new Error('Ordered pilot ranked seeds are invalid.');
+  }
+  execFileSync('npm', ['run', 'goldfish:ordered-product', '--', 'validate-reservoir',
+    '--kingdom', PILOT_KINGDOM, '--artifact', entry.ranked, '--reservoir', entry.reservoir,
+    '--seeds', seeds.join(',')], { stdio: 'inherit' });
 }
 
 async function loadSource(inputsFile: string): Promise<Source> {
@@ -530,18 +628,30 @@ async function loadSource(inputsFile: string): Promise<Source> {
   const kingdom = deepBeamSuite.kingdoms.find((candidate) => candidate.id === PILOT_KINGDOM);
   if (!kingdom) throw new Error('Kingdom 007 is missing.');
   registerKingdom(kingdom);
-  const loaded = loadCalibrationSources({ mode: 'run', kingdomId: PILOT_KINGDOM,
-    rankedFile: entry.ranked, reservoirFile: entry.reservoir,
-    p75ManifestFile: path.join(entry.p75Root, 'manifest.json'),
-    p75ReportFile: path.join(entry.p75Root, 'report.json'), outputRoot: path.join(entry.p75Root, '.unused'), workers: 1 });
-  if (loaded.reservoir.reservoirCount !== 20_000 || loaded.reservoir.entries.length !== 20_000
-    || loaded.manifest.p75Strategies.length !== 50
-    || loaded.reservoir.entries.slice(0, 50).some((item, index) =>
-      !exact(item.strategy, loaded.manifest.p75Strategies[index]))) {
-    throw new Error('Pilot needs the exact validated K007 top 50 and 20,000-strategy reservoir.');
+  validateOrderedArtifacts(entry);
+  const ranked = readJson<unknown>(entry.ranked);
+  const reservoir = readJson<OrderedProductReservoirArtifact>(entry.reservoir);
+  const rankedSha256 = sha256File(entry.ranked), reservoirSha256 = sha256File(entry.reservoir);
+  const validated = validateOrderedCalibrationSource({ kingdomId: PILOT_KINGDOM, ranked, reservoir,
+    rankedSha256, reservoirSha256 });
+  const manifestFile = path.join(entry.p75Root, 'manifest.json');
+  const reportFile = path.join(entry.p75Root, 'report.json');
+  if (!fs.existsSync(manifestFile) || !fs.existsSync(reportFile)) {
+    throw new Error('Pilot initial-matrix manifest or report is missing.');
   }
-  return { entry, calibration: loaded.manifest, reservoir: loaded.reservoir,
-    initialMatrix: loadP75Matrix(loaded.manifest) };
+  const metadata = validatePilotInitialMatrixMetadata({ orderedSource: validated.source,
+    topStrategies: validated.strategies, manifest: readJson<unknown>(manifestFile),
+    report: readJson<unknown>(reportFile) });
+  const chunks = loadInitialMatrixChunks(entry.p75Root, metadata.manifest);
+  const source: CalibrationSourceIdentity = {
+    kingdomId: PILOT_KINGDOM, rankedPath: entry.ranked, reservoirPath: entry.reservoir,
+    p75ManifestPath: manifestFile, p75ReportPath: reportFile, rankedSha256, reservoirSha256,
+    p75ManifestSha256: sha256File(manifestFile), p75ReportSha256: sha256File(reportFile),
+    p75ManifestHash: metadata.manifest.evidenceHash, reservoirRunId: validated.source.runId,
+    reservoirVersion: validated.source.productVersion, rulesFingerprint: validated.source.ruleFingerprint
+  };
+  return { entry, source, reservoir,
+    initialMatrix: loadP75Matrix(metadata.manifest, metadata.p75Weights, chunks) };
 }
 
 function candidates(source: Source, ids?: readonly string[]): CandidateRef[] {
@@ -622,8 +732,9 @@ function validCheckpoint(value: unknown, source: Source, runId: 1 | 2 | 3): valu
     const matrixMs = held.admissions.reduce((sum, admission) => sum + admission.elapsedMs, 0);
     const equilibriumMs = held.admissions.reduce((sum, admission) => sum + admission.equilibriumElapsedMs, 0);
     return held.schemaVersion === 1 && held.experiment === 'k007-threshold-racing-double-oracle'
-      && held.version === PILOT_VERSION && held.runId === runId && held.source.reservoirSha256 === source.calibration.source.reservoirSha256
-      && held.source.p75ManifestHash === source.calibration.source.p75ManifestHash && held.matrix.complete
+      && held.version === PILOT_VERSION && held.runId === runId
+      && held.source.reservoirSha256 === source.source.reservoirSha256
+      && held.source.p75ManifestHash === source.source.p75ManifestHash && held.matrix.complete
       && held.matrix.strategies.length === 50 + held.admissions.length && exact(held.equilibrium.weights, solved.weights)
       && exact(held.games, { screening: screeningGames, confirmation: confirmationGames,
         matrix: matrixGames, total: screeningGames + confirmationGames + matrixGames })
@@ -638,7 +749,7 @@ function initialCheckpoint(source: Source, runId: 1 | 2 | 3): Checkpoint {
   const equilibrium = solveEquilibrium(source.initialMatrix.strategies.map((strategy) => strategy.id),
     source.initialMatrix.centeredPayoffs);
   return { schemaVersion: 1, experiment: 'k007-threshold-racing-double-oracle', version: PILOT_VERSION, runId,
-    source: source.calibration.source, protocol: { threshold: RESPONSE_THRESHOLD, screenDepths: [...SCREEN_DEPTHS],
+    source: source.source, protocol: { threshold: RESPONSE_THRESHOLD, screenDepths: [...SCREEN_DEPTHS],
       screenAlpha: SCREEN_ALPHA, confirmationLooks: [...CONFIRMATION_LOOKS],
       confirmationFamilyAlpha: CONFIRMATION_FAMILY_ALPHA, familyControl: 'bonferroni',
       opponentSchedule: 'nested-proportional-largest-deficit', matrixBlocks: MATRIX_BLOCKS,

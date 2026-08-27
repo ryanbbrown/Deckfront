@@ -14,7 +14,7 @@ import {
 import type {
   InitialMatrixCellSeries, InitialMatrixChunk, InitialMatrixManifest
 } from '../src/sim/initialMatrixCalibration';
-import { ORDERED_PRODUCT_SEEDS, orderedProductTarget } from '../src/sim/orderedGoldfishProduct';
+import { orderedProductTarget } from '../src/sim/orderedGoldfishProduct';
 import { GAMES_PER_SEED } from '../src/sim/pairing';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import type { PairingJob } from '../src/sim/pairingRunner';
@@ -29,7 +29,6 @@ interface Options {
   prefixes: number[];
   heldOutStartSeedIndex: number;
   workers: number;
-  shuffleSeeds: string | undefined;
 }
 
 function option(args: readonly string[], name: string, fallback?: string): string {
@@ -50,7 +49,7 @@ function integer(args: readonly string[], name: string, fallback?: number): numb
 }
 function parseOptions(args: readonly string[]): Options {
   const known = new Set(['--kingdom', '--ranked', '--reservoir', '--out', '--max-seeds', '--chunk-size',
-    '--prefixes', '--held-out-start', '--workers', '--seeds']);
+    '--prefixes', '--held-out-start', '--workers']);
   for (let index = 0; index < args.length; index += 2) {
     if (!known.has(args[index]!)) throw new Error(`Unknown option ${args[index]}.`);
     if (index + 1 >= args.length) throw new Error(`${args[index]} needs a value.`);
@@ -71,8 +70,7 @@ function parseOptions(args: readonly string[]): Options {
   if (workers > 192) throw new Error('--workers must be from 1 to 192.');
   return { kingdomId: option(args, 'kingdom'), rankedFile: path.resolve(option(args, 'ranked')),
     reservoirFile: path.resolve(option(args, 'reservoir')), outputRoot: path.resolve(option(args, 'out')),
-    maxSeedCount, chunkSize, prefixes, heldOutStartSeedIndex, workers,
-    shuffleSeeds: args.includes('--seeds') ? option(args, 'seeds') : undefined };
+    maxSeedCount, chunkSize, prefixes, heldOutStartSeedIndex, workers };
 }
 function readJson<T>(file: string): T { return JSON.parse(fs.readFileSync(file, 'utf8')) as T; }
 function sha256File(file: string): string {
@@ -89,10 +87,13 @@ function validateOrderedArtifacts(options: Options): void {
     `${options.reservoirFile}.sha256`]) {
     if (!fs.existsSync(file)) throw new Error(`Missing ordered artifact input ${file}.`);
   }
-  const seedArgs = options.shuffleSeeds ? ['--seeds', options.shuffleSeeds] : [];
+  const seeds = readJson<{ config?: { seeds?: unknown } }>(options.rankedFile).config?.seeds;
+  if (!Array.isArray(seeds) || seeds.some((seed) => !Number.isSafeInteger(seed) || Number(seed) < 0)) {
+    throw new Error('Ordered ranked artifact seeds are invalid.');
+  }
   const result = spawnSync('npm', ['run', 'goldfish:ordered-product', '--', 'validate-reservoir',
-    '--kingdom', options.kingdomId, ...seedArgs, '--artifact', options.rankedFile,
-    '--reservoir', options.reservoirFile], { stdio: 'inherit' });
+    '--kingdom', options.kingdomId, '--artifact', options.rankedFile, '--reservoir', options.reservoirFile,
+    '--seeds', seeds.join(',')], { stdio: 'inherit' });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error('Ordered ranked/reservoir validation failed.');
 }
@@ -200,11 +201,9 @@ if (!kingdom) throw new Error(`Supported ordered kingdom is not registered: ${op
 registerKingdom(kingdom);
 validateOrderedArtifacts(options);
 const rankedSha256 = sha256File(options.rankedFile), reservoirSha256 = sha256File(options.reservoirFile);
-const expectedSeeds = options.shuffleSeeds
-  ? options.shuffleSeeds.split(',').map((seed) => Number(seed)) : ORDERED_PRODUCT_SEEDS;
 const validated = validateOrderedCalibrationSource({ kingdomId: options.kingdomId,
   ranked: readJson<unknown>(options.rankedFile), reservoir: readJson<unknown>(options.reservoirFile),
-  rankedSha256, reservoirSha256, expectedSeeds });
+  rankedSha256, reservoirSha256 });
 const expectedManifest = createInitialMatrixManifest({ source: validated.source, strategies: validated.strategies,
   maxSeedCount: options.maxSeedCount, chunkSize: options.chunkSize });
 const manifestFile = path.join(options.outputRoot, 'manifest.json');

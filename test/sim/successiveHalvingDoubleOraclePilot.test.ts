@@ -1,12 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { registerKingdom } from '../../src/game';
 import { diagnosticStrategies } from '../../src/sim/baselines';
+import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { createInitialMatrixManifest } from '../../src/sim/initialMatrixCalibration';
+import type { InitialMatrixSourceIdentity } from '../../src/sim/initialMatrixCalibration';
 import type { CandidateEvaluation } from '../../src/sim/mixtureEvaluation';
+import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
+import { orderedProductTarget } from '../../src/sim/orderedGoldfishProduct';
 import { emptyAggregate } from '../../src/sim/pairing';
 import type { Strategy } from '../../src/sim/strategy';
-import { canonicalStrategy } from '../../src/sim/strategy';
+import { canonicalStrategy, fixedBuyPlan, identify } from '../../src/sim/strategy';
 import {
   actionAfterConfirmation, actionAfterScreen, cleanScansAfter, orderConfirmedQueue, parseOptions,
-  runConfirmationRace, runThresholdRace, weightedFairSchedule
+  runConfirmationRace, runThresholdRace, validatePilotInitialMatrixMetadata, weightedFairSchedule
 } from '../../scripts/successive_halving_double_oracle_pilot';
 
 function candidates(count = 3) {
@@ -26,6 +32,31 @@ function evaluator(score: (strategy: Strategy) => number,
   };
 }
 const runner = { async run() { throw new Error('fake evaluator owns the smoke test'); }, async close() {} };
+
+beforeAll(() => registerKingdom(deepBeamSuite.kingdoms.find((kingdom) =>
+  kingdom.id === 'deep-beam-tuning-007')!));
+
+function matrixMetadata(reservoirSha256 = 'b'.repeat(64)) {
+  const target = orderedProductTarget('deep-beam-tuning-007');
+  const source: InitialMatrixSourceIdentity = {
+    kingdomId: 'deep-beam-tuning-007', rankedSha256: 'a'.repeat(64), reservoirSha256,
+    runId: 'native-replication-fixture', productVersion: target.version, buildVersion: 'fixture',
+    scorerVersion: 'native-goldfish-v1', ruleFingerprint: nativeRuleFingerprint('deep-beam-tuning-007', 30, 200),
+    candidateProvenanceDigest: target.candidateProvenanceDigest
+  };
+  const strategies = Array.from({ length: 50 }, (_unused, index) => identify({ id: '', startingBuild: [],
+    buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'footwork', desiredCount: index + 1 }]) }));
+  const manifest = createInitialMatrixManifest({ source, strategies, maxSeedCount: 125, chunkSize: 5 });
+  const strategyIds = strategies.map((strategy) => strategy.id).sort();
+  const weights = Object.fromEntries(strategyIds.map((id, index) => [id, index ? 0 : 1]));
+  const equilibrium = { strategyIds, weights, maximumEquilibriumWeight: { ...weights }, value: 0,
+    maximumKnownAdvantage: 0, residuals: { nonnegative: 0, totalWeight: 0, value: 0, payoff: 0 } };
+  const report = { schemaVersion: 2, experiment: 'initial-matrix-calibration-report',
+    version: manifest.protocol.version, manifestHash: manifest.evidenceHash, source: manifest.protocol.source,
+    protocol: manifest.protocol, analysis: { prefixes: [{ seedRange: { startOrdinal: 1, endOrdinal: 75, count: 75 },
+      equilibrium }] } };
+  return { source, strategies, manifest, report };
+}
 
 describe('K007 threshold-racing Double Oracle pilot', () => {
   it('builds nested proportional largest-deficit prefixes without random opponent sampling', () => {
@@ -108,6 +139,22 @@ describe('K007 threshold-racing Double Oracle pilot', () => {
     expect(order.strongestOverlapIds).toEqual([field[1]!.strategy.id, field[2]!.strategy.id]);
     expect(cleanScansAfter(1, true, false)).toBe(0);
     expect(cleanScansAfter(1, false, true)).toBe(2);
+  });
+
+  it('accepts an unpinned K007 matrix only when its source, top 50, and report all match', () => {
+    const fixture = matrixMetadata();
+    const result = validatePilotInitialMatrixMetadata({ orderedSource: fixture.source,
+      topStrategies: fixture.strategies, manifest: fixture.manifest, report: fixture.report });
+    expect(result.manifest).toEqual(fixture.manifest);
+    expect(result.p75Weights).toEqual(fixture.report.analysis.prefixes[0]!.equilibrium.weights);
+
+    expect(() => validatePilotInitialMatrixMetadata({ orderedSource: fixture.source,
+      topStrategies: [...fixture.strategies].reverse(), manifest: fixture.manifest,
+      report: fixture.report })).toThrow('does not match the validated K007 ordered top 50');
+    const other = matrixMetadata('c'.repeat(64));
+    expect(() => validatePilotInitialMatrixMetadata({ orderedSource: fixture.source,
+      topStrategies: fixture.strategies, manifest: fixture.manifest,
+      report: other.report })).toThrow('report does not match its manifest and ordered source');
   });
 
   it('keeps local Rust as the default and selects Modal only through the run CLI', () => {
