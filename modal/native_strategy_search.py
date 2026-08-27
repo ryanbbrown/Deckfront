@@ -1823,18 +1823,14 @@ def strategy_search_downstream_job(config: dict[str, Any]) -> dict[str, Any]:
         arguments = ["--mode", config["operation"], "--out", str(output)]
         transition = None
         if config.get("transitionPath"):
-            transition = _strategy_search_load(_strategy_search_path(config["transitionPath"]))
-            checkpoint = work / "checkpoint.json"
-            _atomic_json(checkpoint, transition["checkpoint"])
-            arguments += ["--checkpoint", str(checkpoint)]
+            transition_path = _strategy_search_path(config["transitionPath"])
+            transition = _strategy_search_load(transition_path)
+            arguments += ["--transition", str(transition_path)]
         if stage == "psro-decision" and config["operation"] == "init":
             arguments += ["--evidence-id", config["evidenceId"], "--kingdom", config["kingdomId"],
                 "--reservoir", str(_strategy_search_path(config["reservoirPath"])),
                 "--matrix", str(_strategy_search_path(config["matrixPath"]))]
         elif config["operation"] in {"score", "reduce-score"}:
-            look = work / "look.json"
-            _atomic_json(look, transition["look"])
-            arguments += ["--look", str(look)]
             if config["operation"] == "score":
                 task = work / "task.json"
                 _atomic_json(task, config["scoreTask"])
@@ -1844,9 +1840,6 @@ def strategy_search_downstream_job(config: dict[str, Any]) -> dict[str, Any]:
                 _atomic_json(chunks, [str(_strategy_search_path(held)) for held in config["chunkPaths"]])
                 arguments += ["--chunks", str(chunks)]
         elif config["operation"] in {"admission-score", "admission-reduce"}:
-            row = work / "row.json"
-            _atomic_json(row, transition["row"])
-            arguments += ["--row", str(row)]
             if config["operation"] == "admission-score":
                 arguments += ["--task-index", str(config["taskIndex"]), "--workers", str(config["cpu"])]
             else:
