@@ -9,11 +9,12 @@ import subprocess
 import tempfile
 import unittest
 import sys
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import native_strategy_search as launcher
 import strategy_search_runtime as runtime_launcher
 import strategy_search_status as status_launcher
+from modal.exception import FunctionTimeoutError
 
 
 class NativeStrategySearchLauncherTest(unittest.TestCase):
@@ -458,7 +459,7 @@ scientific_lines = "".join(f"{entry['path']}\\0{entry['bytes']}\\0{entry['sha256
 identity = {"digest": hashlib.sha256(lines.encode()).hexdigest(),
     "scientificDigest": hashlib.sha256(scientific_lines.encode()).hexdigest(),
     "scientificPaths": scientific_paths, "files": files}
-result = namespace["strategy_search_compute_ready"].get_raw_f()(identity)
+result = namespace["_strategy_search_compute_readiness_impl"](identity, False)
 print(json.dumps(result))
 """ % str(container_module)
             return subprocess.run([sys.executable, "-c", script], text=True, capture_output=True,
@@ -537,6 +538,57 @@ print(json.dumps(result))
         self.assertEqual(observed[-1], 400)
         self.assertLessEqual(len(observed), 12)
         self.assertEqual(launcher._strategy_search_recover_admission(396, 400, 4), 400)
+
+    def test_strategy_search_poll_treats_builtin_timeout_as_pending_and_keeps_empty_failures_diagnostic(self):
+        class PendingCall:
+            def get(self, timeout):
+                self.timeout = timeout
+                raise TimeoutError()
+        pending = PendingCall()
+        self.assertEqual(launcher._strategy_search_poll_function_call(pending), {"state": "pending"})
+        self.assertEqual(pending.timeout, 0)
+
+        class RemoteTimeoutCall:
+            def get(self, timeout):
+                raise FunctionTimeoutError()
+        remote_timeout = launcher._strategy_search_poll_function_call(RemoteTimeoutCall())
+        self.assertEqual(remote_timeout["state"], "failed")
+        self.assertIn("modal.exception.FunctionTimeoutError", remote_timeout["diagnostic"]["error"])
+
+        class EmptyWorkerFailure(Exception):
+            pass
+        class FailedCall:
+            def get(self, timeout):
+                raise EmptyWorkerFailure()
+        failed = launcher._strategy_search_poll_function_call(FailedCall())
+        self.assertEqual(failed["state"], "failed")
+        self.assertIsInstance(failed["exception"], EmptyWorkerFailure)
+        self.assertIn("EmptyWorkerFailure", failed["diagnostic"]["error"])
+        self.assertIn("<empty message>", failed["diagnostic"]["error"])
+        self.assertEqual(failed["diagnostic"]["errorRepr"], "EmptyWorkerFailure()")
+        self.assertIn("test_strategy_search_poll", failed["diagnostic"]["errorTraceback"])
+
+    def test_strategy_search_readiness_runs_one_remote_worker_canary_through_poll_and_completion(self):
+        class CanaryCall:
+            object_id = "fc-canary"
+            def __init__(self):
+                self.timeouts = []
+            def get(self, timeout):
+                self.timeouts.append(timeout)
+                if timeout == 0:
+                    raise TimeoutError()
+                return {"sha256": "a" * 64, "validatedSha256": "a" * 64}
+        call, worker = CanaryCall(), MagicMock()
+        worker.with_options.return_value.spawn.return_value = call
+        identity = {"digest": "b" * 64, "scientificDigest": "c" * 64}
+        with patch.object(launcher, "strategy_search_goldfish_job", worker), \
+                patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"):
+            launcher._strategy_search_remote_goldfish_canary(identity)
+        self.assertEqual(call.timeouts, [0, 120])
+        config = worker.with_options.return_value.spawn.call_args.args[0]
+        self.assertEqual(config["range"], {"start": 0, "end": 1})
+        self.assertEqual(config["mode"], "score-one")
+        worker.with_options.assert_called_once_with(cpu=1, memory=4096, timeout=120, retries=0)
 
     def test_strategy_search_worker_startup_failures_are_terminal_and_retries_are_bounded(self):
         self.assertTrue(launcher._strategy_search_is_terminal_worker_error(

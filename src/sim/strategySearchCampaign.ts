@@ -195,7 +195,8 @@ export function deriveStrategySearch(input: { request: unknown; sourceImage: Sou
   const request = parseStrategySearchRequest(input.request);
   if (!validateSourceImageIdentity(input.sourceImage)) throw new Error('Executable source identity is invalid.');
   const kingdoms = request.kingdomIds.map((kingdomId) => kingdomEvidenceIdentity(kingdomId, input.sourceImage));
-  const campaignExecutionId = sha256(canonicalStrategySearchJson(kingdoms.map((entry) => entry.evidenceId)));
+  const campaignExecutionId = sha256(canonicalStrategySearchJson({ deploymentDigest: input.sourceImage.digest,
+    orderedEvidenceIds: kingdoms.map((entry) => entry.evidenceId) }));
   const authorizationToken = deriveLaunchAuthorizationToken({ request, sourceDigest: input.sourceImage.digest,
     orderedEvidenceIds: kingdoms.map((entry) => entry.evidenceId) });
   return { request, sourceImage: structuredClone(input.sourceImage), kingdoms, campaignExecutionId,

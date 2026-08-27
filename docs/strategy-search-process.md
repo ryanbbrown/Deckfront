@@ -169,7 +169,7 @@ The runtime uses:
 
 - one compute image built from the exact executable allowlist in `strategy-search-image-files.json`;
 - exactly three allowlist-backed source-copy layers: Node manifests, Rust build inputs, and final application sources;
-- one explicit versioned deployment boundary that streams image-build progress, checks the runtime import closure, and starts the real Goldfish module path during deployed readiness;
+- one explicit versioned deployment boundary that streams image-build progress, checks the runtime import closure, and runs a one-candidate canary through the exact remote Goldfish worker lifecycle before the acceptance clock;
 - one dependency-free control app that prepares execution state after readiness and serves bounded read-only status;
 - one lightweight runtime that calls the deployed controller and accepts startup only after a fenced submitted or completed task;
 - one shared Modal Volume;
@@ -177,7 +177,7 @@ The runtime uses:
 - one whole Matrix stage and one whole PSRO stage per ready kingdom;
 - per-task leases, controller fences, launch-scoped temporary files, and serialized publication receipts. Workers validate temporary artifacts before publication. The publisher checks the validation digest, lease, fence, path, and bytes, then performs the atomic rename.
 
-A per-kingdom evidence ID uses the scientific source digest and final-format inputs. The deployment digest also covers the scheduler, controller, publisher, and status code. A runtime-only change creates a new deployment but keeps the same evidence ID. A campaign execution ID contains the ordered evidence IDs. Capacity and runtime topology are not scientific identity.
+A per-kingdom evidence ID uses the scientific source digest and final-format inputs. The deployment digest also covers the scheduler, controller, publisher, and status code. A runtime-only change creates a new deployment and campaign execution ID but keeps the same evidence ID, so valid completed kingdom evidence remains reusable while failed operational state cannot cross deployments. Capacity and runtime topology are not scientific identity.
 
 Matrix schema 4 stores cells, seed ordinals, telemetry, and equilibrium inputs in fixed semantic order. Runtime Matrix chunks do not enter final identity. PSRO schema 3 removes candidate chunk ranges, chunk hashes, paths, workers, and timings before final serialization.
 
@@ -189,6 +189,6 @@ Modal image build time is preflight time, not campaign runtime. A clean `npm ci`
 
 The command reports a cost estimate and actual Modal compute cost. It does not use the historical reservation ledger and does not claim to check an external workspace budget.
 
-A timeout or invalid artifact fails the run. A `terminal-incomplete` PSRO result is not complete. A job gets at most three retryable worker or launch failures. Deterministic module, package, syntax, source-image, and runtime-asset startup failures stop immediately and cancel the active sibling wave. Admission recovery does not consume this retry limit. There is no paused-campaign import, source repair, or manual ambiguous-launch recovery.
+A timeout or invalid artifact fails the run. A `terminal-incomplete` PSRO result is not complete. A job gets at most three retryable worker or launch failures. Deterministic module, package, syntax, source-image, and runtime-asset startup failures stop immediately and cancel the active sibling wave. Polling treats only the built-in timeout used by the installed Modal `FunctionCall.get(timeout=0)` contract as pending. Failures retain the exception type, nonempty diagnostic, `repr`, traceback, and FunctionCall link. Admission recovery does not consume this retry limit. There is no paused-campaign import, source repair, or manual ambiguous-launch recovery.
 
 The paid acceptance run is one explicitly authorized K007 request at 400 through 800 CPUs. It is not a code default. A paid multi-kingdom run needs separate approval.

@@ -63,6 +63,7 @@ describe('strategy-search request and semantic identity', () => {
     expect(firstSource.digest).not.toBe(secondSource.digest);
     expect(firstSource.scientificDigest).toBe(secondSource.scientificDigest);
     expect(first.kingdoms[0]!.evidenceId).toBe(second.kingdoms[0]!.evidenceId);
+    expect(first.campaignExecutionId).not.toBe(second.campaignExecutionId);
     expect(first.authorizationToken).not.toBe(second.authorizationToken);
   });
 

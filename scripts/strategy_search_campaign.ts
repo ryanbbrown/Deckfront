@@ -143,7 +143,7 @@ export class ModalStrategySearchOperatorAdapter implements StrategySearchOperato
       try {
         await streamModal({ phase: 'strategy-search-compute-deploy', timeoutMs: 900_000,
           args: ['deploy', '--name', computeApp, 'modal/native_strategy_search.py'] });
-        await streamModal({ phase: 'strategy-search-compute-readiness', timeoutMs: 180_000,
+        await streamModal({ phase: 'strategy-search-compute-readiness', timeoutMs: 240_000,
           args: ['run', 'modal/strategy_search_runtime.py::compute_preflight_entry', '--launch-config', bundleFile,
             '--compute-app-name', computeApp, '--result-file', preflightFile] });
       } catch (error) {

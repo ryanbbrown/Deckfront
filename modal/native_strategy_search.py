@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import concurrent.futures
 import fcntl
 import hashlib
@@ -19,11 +20,11 @@ import tarfile
 import tempfile
 import threading
 import time
+import traceback
 import uuid
 from typing import Any
 
 import modal
-from modal.exception import TimeoutError as ModalTimeoutError
 
 CPU_RATE_PER_CORE_HOUR = 0.0473
 MEMORY_RATE_PER_GIB_HOUR = 0.008
@@ -1331,12 +1332,49 @@ def _strategy_search_verify_goldfish_startup() -> None:
         text=True, capture_output=True, timeout=60)
 
 
-@app.function(image=image, cpu=1, memory=2048, timeout=90, max_containers=1)
-def strategy_search_compute_ready(source_identity: dict[str, Any]) -> dict[str, Any]:
+def _strategy_search_remote_goldfish_canary(source_identity: dict[str, Any]) -> None:
+    relative = f"preflight/{source_identity['digest']}/goldfish-canary.hgs"
+    config = {"taskId": "deployment-goldfish-canary", "evidenceId": source_identity["scientificDigest"],
+        "kingdomId": "deep-beam-tuning-007", "temporaryPath": relative,
+        "sourceImage": source_identity, "cpu": 1, "timeoutSeconds": 90,
+        "stage": "goldfish-one", "mode": "score-one", "range": {"start": 0, "end": 1},
+        "enqueuedEpochMs": int(time.time() * 1000)}
+    call = strategy_search_goldfish_job.with_options(
+        cpu=1, memory=4096, timeout=120, retries=0).spawn(config)
+    try:
+        polled = _strategy_search_poll_function_call(call)
+        if polled["state"] == "failed":
+            raise RuntimeError(f"Goldfish canary {call.object_id} failed during first poll: "
+                f"{polled['diagnostic']['error']}") from polled["exception"]
+        result = polled.get("result") if polled["state"] == "complete" else call.get(timeout=120)
+        if result.get("sha256") != result.get("validatedSha256") \
+                or not re.fullmatch(r"[0-9a-f]{64}", result.get("sha256", "")):
+            raise RuntimeError(f"Goldfish canary {call.object_id} returned invalid validation evidence")
+    except Exception as error:
+        diagnostic = _strategy_search_exception_diagnostic(error)
+        raise RuntimeError(f"Goldfish canary {call.object_id} failed: {diagnostic['error']}; "
+            f"repr={diagnostic['errorRepr']}") from error
+    finally:
+        volume.reload()
+        output = pathlib.Path("/results") / relative
+        for held in [output, output.with_suffix(output.suffix + ".phases.json")]:
+            held.unlink(missing_ok=True)
+        volume.commit()
+
+
+def _strategy_search_compute_readiness_impl(source_identity: dict[str, Any], remote_canary: bool) -> dict[str, Any]:
     verify_strategy_search_source(source_identity)
     _strategy_search_verify_goldfish_startup()
+    if remote_canary:
+        _strategy_search_remote_goldfish_canary(source_identity)
     return {"ready": True, "sourceDigest": source_identity["digest"],
         "readyMs": int(time.time() * 1000)}
+
+
+@app.function(image=image, cpu=1, memory=2048, timeout=180, max_containers=1,
+              volumes={"/results": volume})
+def strategy_search_compute_ready(source_identity: dict[str, Any]) -> dict[str, Any]:
+    return _strategy_search_compute_readiness_impl(source_identity, True)
 
 
 def _strategy_search_execution_file(execution_id: str) -> pathlib.Path:
@@ -1774,6 +1812,34 @@ def _strategy_search_attempt_cost(attempt: dict[str, Any], until_ms: int) -> dic
         "basis": "worker-measured" if measured else "submitted-upper-bound"}
 
 
+def _strategy_search_exception_diagnostic(error: BaseException) -> dict[str, str]:
+    error_type = f"{type(error).__module__}.{type(error).__qualname__}"
+    message = str(error).strip() or "<empty message>"
+    display = f"{error_type}: {message}"
+    if len(display) > 2000:
+        display = f"{error_type}: [message tail] {message[-1800:]}"
+    representation = repr(error).strip() or f"<{error_type} with empty repr>"
+    formatted_traceback = "".join(traceback.format_exception(
+        type(error), error, error.__traceback__)).strip() or f"{error_type}: <no traceback>"
+    return {"error": display, "errorType": error_type, "errorRepr": representation[-2000:],
+        "errorTraceback": formatted_traceback[-8000:]}
+
+
+def _strategy_search_contextual_diagnostic(context: str, diagnostic: dict[str, str]) -> dict[str, str]:
+    return {**diagnostic, "error": f"{context}: {diagnostic['error']}"[-2000:]}
+
+
+def _strategy_search_poll_function_call(call: Any) -> dict[str, Any]:
+    try:
+        return {"state": "complete", "result": call.get(timeout=0)}
+    except builtins.TimeoutError:
+        # Modal 1.5.x uses the built-in TimeoutError, not modal.exception.TimeoutError, for pending calls.
+        return {"state": "pending"}
+    except Exception as error:
+        return {"state": "failed", "exception": error,
+            "diagnostic": _strategy_search_exception_diagnostic(error)}
+
+
 def _strategy_search_is_admission_error(error: BaseException) -> bool:
     message = str(error).lower()
     return "admission" in message or "quota" in message \
@@ -1923,7 +1989,7 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 "callId": None, "lastError": "controller-refenced-task"})
             job.pop("activeConfig", None)
     active: dict[str, tuple[Any, dict[str, Any]]] = {}
-    def fail_active_wave(failure: str, root_task_id: str) -> None:
+    def fail_active_wave(failure: dict[str, str], root_task_id: str) -> None:
         failed_ms = int(time.time() * 1000)
         active_items = list(active.items())
         def cancel_active(item: tuple[str, tuple[Any, dict[str, Any]]]) -> None:
@@ -1939,18 +2005,18 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
             attempt = job.setdefault("attempts", [])[-1]
             attempt.update({"finishedMs": failed_ms,
                 "status": "terminal-failed" if task_id == root_task_id else "cancelled-terminal-sibling",
-                "error": failure[-2000:]})
+                **failure})
             job.update({"status": "failed", "finishedMs": failed_ms,
-                "lastError": failure[-2000:]})
+                "lastError": failure["error"], "lastErrorType": failure["errorType"]})
             job.pop("activeConfig", None)
         active.clear()
-        state.update({"status": "failed", "failedMs": failed_ms, "failure": failure[-4000:],
-            "admissionFailures": admission_failures, "publisherCommitMs": publisher_commit_ms,
-            "admissionLimitCpus": admission_limit_cpus})
+        state.update({"status": "failed", "failedMs": failed_ms, "failure": failure["error"],
+            "failureDiagnostic": failure, "admissionFailures": admission_failures,
+            "publisherCommitMs": publisher_commit_ms, "admissionLimitCpus": admission_limit_cpus})
         strategy_search_publisher.remote({"operation": "execution-save",
             "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
             "ownerId": owner_id, "nowMs": failed_ms, "leaseMs": 120000, "state": state})
-        raise RuntimeError(failure)
+        raise RuntimeError(failure["error"])
     intervals = state.get("utilizationIntervals", [])
     interval_started = int(time.time() * 1000)
     interval_allocated = 0
@@ -1971,28 +2037,25 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
         interval_started = now_ms
         interval_admission_rejected = False
         finished = []
-        def poll_active(item: tuple[str, tuple[Any, dict[str, Any]]]) -> tuple[str, dict[str, Any], Any, Exception | None]:
+        def poll_active(item: tuple[str, tuple[Any, dict[str, Any]]]) -> tuple[str, dict[str, Any], dict[str, Any]]:
             task_id, (call, config) = item
-            try:
-                return task_id, config, call.get(timeout=0), None
-            except ModalTimeoutError:
-                return task_id, config, None, None
-            except Exception as error:
-                return task_id, config, None, error
+            return task_id, config, _strategy_search_poll_function_call(call)
         active_items = list(active.items())
         if active_items:
             with concurrent.futures.ThreadPoolExecutor(max_workers=min(32, len(active_items))) as pool:
                 poll_results = list(pool.map(poll_active, active_items))
         else:
             poll_results = []
-        terminal_poll = next(((task_id, error) for task_id, _config, _result, error in poll_results
-            if error is not None and _strategy_search_is_terminal_worker_error(error)), None)
+        terminal_poll = next(((task_id, polled) for task_id, _config, polled in poll_results
+            if polled["state"] == "failed" and _strategy_search_is_terminal_worker_error(polled["exception"])), None)
         if terminal_poll:
-            fail_active_wave(f"non-retryable worker startup failure: {terminal_poll[1]}", terminal_poll[0])
-        for task_id, config, result, error in poll_results:
-            if error is None and result is None:
+            fail_active_wave(_strategy_search_contextual_diagnostic(
+                "non-retryable worker startup failure", terminal_poll[1]["diagnostic"]), terminal_poll[0])
+        for task_id, config, polled in poll_results:
+            if polled["state"] == "pending":
                 continue
-            if error is not None:
+            if polled["state"] == "failed":
+                error, diagnostic = polled["exception"], polled["diagnostic"]
                 job = next(held for held in state["jobs"] if held["taskId"] == task_id)
                 if _strategy_search_is_admission_error(error):
                     admission_failures += 1
@@ -2001,16 +2064,18 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                         in active.items() if held_id != task_id)
                     admission_limit_cpus = max(4, remaining_cpus + config["cpu"])
                 attempt = job.setdefault("attempts", [])[-1]
-                attempt.update({"finishedMs": now_ms, "status": "failed", "error": str(error)[-2000:]})
+                attempt.update({"finishedMs": now_ms, "status": "failed", **diagnostic})
                 job["status"] = "retry-backoff"
                 job["attemptCount"] = job.get("attemptCount", 0) + 1
                 job["retryNotBeforeMs"] = now_ms + min(30000, 1000 * 2 ** min(job["attemptCount"], 5))
-                job["lastError"] = str(error)[-2000:]
+                job["lastError"] = diagnostic["error"]
+                job["lastErrorType"] = diagnostic["errorType"]
                 if _strategy_search_retryable_failure_count(job) >= STRATEGY_SEARCH_MAX_JOB_ATTEMPTS:
-                    fail_active_wave(f"worker retry limit exhausted for {task_id}: {error}", task_id)
+                    fail_active_wave(_strategy_search_contextual_diagnostic(
+                        f"worker retry limit exhausted for {task_id}", diagnostic), task_id)
                 del active[task_id]
                 continue
-            finished.append((task_id, config, result))
+            finished.append((task_id, config, polled["result"]))
         if finished:
             publication = strategy_search_publisher.remote({"operation": "publish-batch",
                 "nowMs": int(time.time() * 1000), "publications": [{"evidenceId": config["evidenceId"],
@@ -2097,7 +2162,7 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                     launch_results = list(pool.map(spawn_task, pending_launches))
             else:
                 launch_results = []
-            fatal_launch: tuple[str, str] | None = None
+            fatal_launch: tuple[str, dict[str, str]] | None = None
             for (job, task, config, _function), (call, error) in zip(pending_launches, launch_results, strict=True):
                 submitted_ms = config["enqueuedEpochMs"]
                 attempt = {"attempt": len(job.setdefault("attempts", [])) + 1, "submittedMs": submitted_ms,
@@ -2105,24 +2170,26 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 job["attempts"].append(attempt)
                 if error is not None:
                     failed_ms = int(time.time() * 1000)
+                    diagnostic = _strategy_search_exception_diagnostic(error)
                     admission_error = _strategy_search_is_admission_error(error)
                     if admission_error:
                         admission_failures += 1
                         interval_admission_rejected = True
                         admission_limit_cpus = max(4, allocated + task["cpu"])
                     attempt.update({"finishedMs": failed_ms,
-                        "status": "admission-failed" if admission_error else "launch-failed",
-                        "error": str(error)[-2000:]})
+                        "status": "admission-failed" if admission_error else "launch-failed", **diagnostic})
                     job["attemptCount"] = job.get("attemptCount", 0) + 1
                     job["status"] = "ready" if admission_error else "retry-backoff"
                     if not admission_error:
                         job["retryNotBeforeMs"] = failed_ms \
                             + min(30000, 1000 * 2 ** min(job["attemptCount"], 5))
-                    job["lastError"] = str(error)[-2000:]
+                    job["lastError"] = diagnostic["error"]
+                    job["lastErrorType"] = diagnostic["errorType"]
                     if not admission_error and (_strategy_search_is_terminal_worker_error(error)
                             or _strategy_search_retryable_failure_count(job) >= STRATEGY_SEARCH_MAX_JOB_ATTEMPTS):
                         job["status"] = "failed"
-                        fatal_launch = (job["taskId"], f"non-retryable launch failure for {job['taskId']}: {error}")
+                        fatal_launch = (job["taskId"], _strategy_search_contextual_diagnostic(
+                            f"non-retryable launch failure for {job['taskId']}", diagnostic))
                     continue
                 job["status"] = "active"
                 job["startedMs"] = submitted_ms
@@ -2130,7 +2197,8 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 job["cpu"] = task["cpu"]
                 job["memoryMiB"] = task["memoryMiB"]
                 job["callId"] = call.object_id
-                attempt.update({"status": "submitted", "callId": call.object_id})
+                attempt.update({"status": "submitted", "callId": call.object_id,
+                    "functionCallUrl": f"https://modal.com/id/{call.object_id}"})
                 active[job["taskId"]] = (call, config)
                 allocated += task["cpu"]
             if fatal_launch:
@@ -2485,7 +2553,7 @@ def launch(
     if entry.get("status") == "launched" and entry.get("controllerCallId"):
         try:
             modal.FunctionCall.from_id(entry["controllerCallId"]).get(timeout=0)
-        except ModalTimeoutError:
+        except builtins.TimeoutError:
             print(f"controller still owns run {run_id}; no duplicate was launched")
             return
         except Exception:
@@ -2612,7 +2680,7 @@ def run_competitive(
     call = _competitive_controller_call(config, entry)
     try:
         manifest = call.get(timeout=config["controller_timeout"] + 60)
-    except ModalTimeoutError as error:
+    except builtins.TimeoutError as error:
         raise RuntimeError(f"competitive controller {call.object_id} is still running; rerun to resume") from error
     except Exception:
         update_run_status(run_id, "reserved")

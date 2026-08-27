@@ -60,7 +60,7 @@ Eight workers improved PSRO wall time by 9.0%. The runtime selects the faster ei
 
 ## Local validation exception
 
-The first complete `npm test` run passed 82 files and 758 tests. Two tests in `test/sim/randomPsro.test.ts` failed. The resumability test exceeded its default five-second limit under full-suite load; three focused repeats then passed in 2.865, 2.884, and 2.984 seconds. After the worker-startup remediation, the applicable suite passed all 82 other files and 743 tests, then passed 17 of the 18 random-PSRO tests. The 41 Modal tests, production build, native verification, typecheck, lint, and Python compile also passed. This distinguishes the timeout from a strategy-search regression.
+The first complete `npm test` run passed 82 files and 758 tests. Two tests in `test/sim/randomPsro.test.ts` failed. The resumability test exceeded its default five-second limit under full-suite load; three focused repeats then passed in 2.865, 2.884, and 2.984 seconds. After the worker-startup remediation, the applicable suite passed all 82 other files and 743 tests, then passed 17 of the 18 random-PSRO tests. The 43 Modal tests, production build, native verification, typecheck, lint, and Python compile also passed. This distinguishes the timeout from a strategy-search regression.
 
 The one excluded test requires an ignored K001 source artifact whose saved rules hash is `d2b18864d32`; the current unchanged validator requires `af4833e2d36`. Its loader remains a current input to the random-PSRO report and K001 consistency commands, so the path is not obsolete. Valid replacement evidence is intentionally absent. The stale evidence was not changed, relabelled, regenerated, or weakened. The acceptance suite excludes only this documented stale-fixture assertion.
 
@@ -69,6 +69,12 @@ The one excluded test requires an ignored K001 source artifact whose saved rules
 The first live K007 execution reached 400 submitted CPUs, then made no scientific progress. Direct state inspection found 200 stage-one jobs at ten attempts each and 1,649 recorded instances of the same `ERR_MODULE_NOT_FOUND`: `/workspace/src/game-data/cards.json`, imported by `src/game/config.ts`. The run and its deployed app were stopped.
 
 The executable and scientific allowlists now include both game-data JSON files and the PSRO confidence worker. Local planning checks every relative static import and worker URL from every allowlisted TypeScript file. Deployed readiness starts the real Goldfish script path and reconstructs one registered strategy. A missing transitive asset therefore fails before execution state or paid worker waves exist. Deterministic startup and import errors stop the campaign and cancel sibling work; other worker and launch errors stop after three attempts. This remediation made no Modal call.
+
+## Second K007 polling failure
+
+The second live K007 smoke passed deployed module readiness, submitted 100 workers, and failed in 73 seconds. Its state held 400 false failed-attempt records with empty errors; no worker had returned a result. Installed Modal 1.5.4 documents `FunctionCall.get(timeout=0)` as an immediate poll and implements an unfinished result by raising the built-in `TimeoutError`. The controller caught `modal.exception.TimeoutError` instead, so every in-flight call was misclassified as a failed worker. The retry cap then correctly cancelled the sibling wave.
+
+Polling now has one tested seam that treats the built-in timeout as pending and treats Modal function timeouts and all other exceptions as failures. Failure records include a qualified exception type, nonempty message, `repr`, traceback, FunctionCall ID, and dashboard URL. An empty-message exception remains diagnostic. Deployed readiness now runs a one-candidate canary through the exact remote Goldfish worker wrapper, subprocess, immediate poll, bounded completion retrieval, output validation, Volume commit, and cleanup before execution state and the acceptance clock exist. Campaign execution identity now includes the deployment digest, so this runtime fix cannot reopen the failed operational state while the scientific evidence ID stays stable. This remediation made no Modal call.
 
 ## Compute startup corrections
 
