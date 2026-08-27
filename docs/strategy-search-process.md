@@ -10,9 +10,11 @@ For each kingdom:
 2. Reduce the full set to a 20,000-strategy reservoir.
 3. Build an initial 50-strategy game matrix.
 4. Add responses until the search produces two clean scans.
-5. Report actual card acquisitions, plays, damage, dead draws, and damage-family shares.
+5. Preserve and download the complete raw evidence for local analysis.
 
-The result is a practical balance estimate. Two clean scans are empirical closure inside the saved 20,000-strategy reservoir. They are not proof that no response exists outside the reservoir or that the exact game has one unique equilibrium.
+The paid campaign ends after the PSRO artifacts validate. Analytics and balance reports run locally and do not gate campaign completion.
+
+The result supports practical balance estimates. Two clean scans are empirical closure inside the saved 20,000-strategy reservoir. They are not proof that no response exists outside the reservoir or that the exact game has one unique equilibrium.
 
 ## 1. Build the goldfish reservoir
 
@@ -129,21 +131,22 @@ Current K007 evidence:
 
 The optimized local Rust K007 replication run took 3 minutes 34 seconds.
 
-## 5. Report card-balance evidence
+## Raw data and local analytics
 
-The primary balance report uses actual game telemetry, not purchase-plan text or strategy IDs.
+The Modal campaign preserves and downloads the raw evidence needed for arbitrary local analysis:
 
-Report for every card:
+- strategy tables and equilibrium weights;
+- complete matrix cells;
+- schedules and seeds;
+- screening and confirmation scores;
+- acquisitions and plays by card;
+- damage and dead draws by card;
+- turns and orientation telemetry;
+- source identities and evidence hashes.
 
-- expected copies acquired per player-game;
-- plays per player-game;
-- damage per player-game;
-- dead-draw rate;
-- variation across independent reporting panels.
+Balance reports, archetype labels, card summaries, plots, and comparisons run locally. They are not Modal stages and do not affect campaign status.
 
-Also report total Melee, Ranged, and Mage damage shares. Strategy-level archetype labels and feasible equilibrium ranges are diagnostics, not the main balance decision.
-
-Use three fresh reporting panels of 2,000 seeds each for the first balance pass. Repeat a kingdom only when a card is close to a balance decision or the panels show material variation.
+Local analysis can calculate expected acquisitions, plays, damage, dead-draw rates, damage-family shares, equilibrium ranges, and variation across kingdoms. Optional fresh reporting panels also run locally. The current diagnostic uses three panels of 2,000 seeds each, but the campaign does not require that panel count.
 
 K007 showed stable Footwork, Reclaim, Volley, and Silver acquisition rates across four compared results. Drive changed from zero copies in three results to 0.91 copies and about 25% of damage in one result. This is material uncertainty for Drive, but it does not invalidate the stable evidence for the other cards.
 
@@ -154,7 +157,7 @@ The user supplies the exact kingdom IDs. The campaign must never select or hard-
 Use one dependency-driven Modal campaign:
 
 ```text
-Goldfish → initial matrix → PSRO → report
+Goldfish → initial matrix → PSRO → download and validate raw artifacts
 ```
 
 A kingdom starts its next stage as soon as its previous artifact validates. The campaign does not wait for all kingdoms to complete one global stage.
@@ -202,7 +205,7 @@ The launch policy is:
 3. Ask for explicit approval before the 30-kingdom launch.
 4. Use an optional high Modal workspace budget only as catastrophic protection.
 
-Every goldfish shard, matrix batch, PSRO look, admission, scan, and final report must commit atomically to the shared Volume. A stopped campaign must retain completed work. `status` must identify complete, incomplete, failed, and missing stages. `run` must schedule only missing work.
+Every goldfish shard, matrix batch, PSRO look, admission, and scan must commit atomically to the shared Volume. A stopped campaign must retain completed work. `status` must identify complete, incomplete, failed, and missing stages. `run` must schedule only missing work. Download and local validation copy the raw artifacts without changing campaign completion.
 
 ## Locked campaign decisions
 
