@@ -1,0 +1,2640 @@
+{
+  "schemaVersion": 1,
+  "designVersion": "covering-design-v2",
+  "cardOrder": [
+    "adapt",
+    "aim",
+    "arcBolt",
+    "attune",
+    "bullRush",
+    "cascade",
+    "channel",
+    "cull",
+    "discharge",
+    "discipline",
+    "drive",
+    "feint",
+    "fireball",
+    "flurry",
+    "footwork",
+    "heavyBlow",
+    "improvise",
+    "jab",
+    "leyStep",
+    "longshot",
+    "muster",
+    "openingStrike",
+    "overload",
+    "pepperingShot",
+    "precisionShot",
+    "prism",
+    "rally",
+    "reclaim",
+    "reforge",
+    "regiment",
+    "regroup",
+    "repellingShot",
+    "salvageShot",
+    "scour",
+    "sharpen",
+    "starfire",
+    "steadyShot",
+    "stipend",
+    "strike",
+    "volley"
+  ],
+  "rowCount": 160,
+  "search": {
+    "method": "deterministic greedy quota construction followed by split-isolated two-row swaps",
+    "initialConstruction": {
+      "baseSeed": 2108903718,
+      "restart": 0,
+      "greedyCandidatesPerRow": 200,
+      "inputDigest": "d85cf0c14fd5ffed2e5836678003abd9deee6926665d905c063765c60be8b10e"
+    },
+    "implementation": "scripts/balance_suite_covering_search.cpp",
+    "implementationDigest": "7b7ef9a63586c6305515bb38e00dddd25e45e95ba50760c1c3a36ace1c7b442e",
+    "compilerFlags": [
+      "-O3",
+      "-std=c++20"
+    ],
+    "stages": [
+      {
+        "name": "validation",
+        "attempts": 10000000,
+        "seed": 11111,
+        "mode": "validation"
+      },
+      {
+        "name": "tuning",
+        "attempts": 15000000,
+        "seed": 22222,
+        "mode": "tuning"
+      }
+    ],
+    "tieBreak": "direct UTF-16 code-unit order for construction; fixed PRNG sequence for swaps"
+  },
+  "rows": [
+    {
+      "split": "validation",
+      "authored": true,
+      "cards": [
+        "aim",
+        "cull",
+        "drive",
+        "feint",
+        "flurry",
+        "footwork",
+        "jab",
+        "pepperingShot",
+        "repellingShot",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": true,
+      "cards": [
+        "aim",
+        "arcBolt",
+        "attune",
+        "cascade",
+        "channel",
+        "cull",
+        "feint",
+        "improvise",
+        "precisionShot",
+        "rally"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": true,
+      "cards": [
+        "cull",
+        "discharge",
+        "drive",
+        "fireball",
+        "footwork",
+        "improvise",
+        "leyStep",
+        "longshot",
+        "stipend",
+        "volley"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": true,
+      "cards": [
+        "attune",
+        "channel",
+        "cull",
+        "improvise",
+        "jab",
+        "overload",
+        "pepperingShot",
+        "precisionShot",
+        "rally",
+        "regroup"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": true,
+      "cards": [
+        "adapt",
+        "aim",
+        "bullRush",
+        "cull",
+        "fireball",
+        "heavyBlow",
+        "leyStep",
+        "longshot",
+        "repellingShot",
+        "salvageShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": true,
+      "cards": [
+        "channel",
+        "improvise",
+        "longshot",
+        "precisionShot",
+        "reclaim",
+        "reforge",
+        "salvageShot",
+        "scour",
+        "sharpen",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": true,
+      "cards": [
+        "arcBolt",
+        "cascade",
+        "discharge",
+        "fireball",
+        "jab",
+        "overload",
+        "pepperingShot",
+        "reclaim",
+        "starfire",
+        "stipend"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": true,
+      "cards": [
+        "bullRush",
+        "feint",
+        "flurry",
+        "heavyBlow",
+        "jab",
+        "longshot",
+        "openingStrike",
+        "rally",
+        "strike",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": true,
+      "cards": [
+        "cascade",
+        "channel",
+        "flurry",
+        "heavyBlow",
+        "overload",
+        "prism",
+        "regiment",
+        "starfire",
+        "strike",
+        "volley"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "discipline",
+        "footwork",
+        "leyStep",
+        "openingStrike",
+        "overload",
+        "pepperingShot",
+        "regroup",
+        "salvageShot",
+        "strike"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "cascade",
+        "discharge",
+        "drive",
+        "footwork",
+        "improvise",
+        "longshot",
+        "muster",
+        "regiment",
+        "repellingShot",
+        "salvageShot"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "attune",
+        "channel",
+        "drive",
+        "jab",
+        "longshot",
+        "openingStrike",
+        "reclaim",
+        "reforge",
+        "repellingShot",
+        "scour"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "aim",
+        "bullRush",
+        "cascade",
+        "flurry",
+        "improvise",
+        "jab",
+        "regiment",
+        "regroup",
+        "sharpen",
+        "stipend"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "aim",
+        "discharge",
+        "heavyBlow",
+        "longshot",
+        "precisionShot",
+        "prism",
+        "salvageShot",
+        "starfire",
+        "steadyShot",
+        "strike"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "aim",
+        "fireball",
+        "muster",
+        "pepperingShot",
+        "precisionShot",
+        "reclaim",
+        "repellingShot",
+        "scour",
+        "steadyShot",
+        "stipend"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "discipline",
+        "drive",
+        "feint",
+        "jab",
+        "leyStep",
+        "precisionShot",
+        "reclaim",
+        "salvageShot",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "arcBolt",
+        "cascade",
+        "cull",
+        "discipline",
+        "jab",
+        "prism",
+        "reforge",
+        "stipend",
+        "volley"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "aim",
+        "arcBolt",
+        "attune",
+        "cascade",
+        "channel",
+        "fireball",
+        "footwork",
+        "leyStep",
+        "longshot",
+        "overload"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "cascade",
+        "channel",
+        "feint",
+        "footwork",
+        "leyStep",
+        "overload",
+        "reclaim",
+        "reforge",
+        "regiment",
+        "volley"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "flurry",
+        "improvise",
+        "muster",
+        "openingStrike",
+        "precisionShot",
+        "reclaim",
+        "regiment",
+        "scour",
+        "strike"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "attune",
+        "channel",
+        "discharge",
+        "discipline",
+        "fireball",
+        "jab",
+        "muster",
+        "prism",
+        "starfire"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "attune",
+        "cascade",
+        "fireball",
+        "openingStrike",
+        "pepperingShot",
+        "repellingShot",
+        "sharpen",
+        "starfire",
+        "strike"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "aim",
+        "cull",
+        "muster",
+        "openingStrike",
+        "pepperingShot",
+        "reforge",
+        "salvageShot",
+        "stipend",
+        "strike"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "arcBolt",
+        "discharge",
+        "discipline",
+        "openingStrike",
+        "prism",
+        "rally",
+        "regiment",
+        "regroup",
+        "repellingShot"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "attune",
+        "bullRush",
+        "channel",
+        "heavyBlow",
+        "muster",
+        "regiment",
+        "sharpen",
+        "steadyShot",
+        "stipend"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "bullRush",
+        "drive",
+        "flurry",
+        "footwork",
+        "rally",
+        "reclaim",
+        "reforge",
+        "sharpen",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "drive",
+        "feint",
+        "fireball",
+        "flurry",
+        "improvise",
+        "overload",
+        "prism",
+        "regroup",
+        "scour",
+        "strike"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "cull",
+        "discharge",
+        "heavyBlow",
+        "longshot",
+        "pepperingShot",
+        "reclaim",
+        "reforge",
+        "regiment",
+        "regroup",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "channel",
+        "discharge",
+        "drive",
+        "feint",
+        "pepperingShot",
+        "prism",
+        "starfire",
+        "stipend",
+        "strike"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "discharge",
+        "improvise",
+        "leyStep",
+        "precisionShot",
+        "rally",
+        "salvageShot",
+        "scour",
+        "sharpen",
+        "volley"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "attune",
+        "discharge",
+        "flurry",
+        "leyStep",
+        "overload",
+        "rally",
+        "reforge",
+        "starfire",
+        "stipend"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "cascade",
+        "fireball",
+        "heavyBlow",
+        "improvise",
+        "overload",
+        "precisionShot",
+        "rally",
+        "scour",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "cull",
+        "drive",
+        "feint",
+        "heavyBlow",
+        "openingStrike",
+        "regroup",
+        "sharpen",
+        "steadyShot",
+        "volley"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "discipline",
+        "fireball",
+        "footwork",
+        "heavyBlow",
+        "improvise",
+        "precisionShot",
+        "reforge",
+        "regiment",
+        "starfire",
+        "volley"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "aim",
+        "attune",
+        "channel",
+        "discipline",
+        "feint",
+        "flurry",
+        "muster",
+        "rally",
+        "salvageShot",
+        "volley"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "cull",
+        "discipline",
+        "footwork",
+        "longshot",
+        "prism",
+        "reclaim",
+        "scour",
+        "sharpen",
+        "starfire",
+        "stipend"
+      ]
+    },
+    {
+      "split": "validation",
+      "authored": false,
+      "cards": [
+        "cascade",
+        "leyStep",
+        "muster",
+        "overload",
+        "prism",
+        "regroup",
+        "repellingShot",
+        "scour",
+        "sharpen",
+        "starfire"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "fireball",
+        "footwork",
+        "longshot",
+        "prism",
+        "rally",
+        "reforge",
+        "repellingShot",
+        "salvageShot",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "bullRush",
+        "cascade",
+        "discharge",
+        "feint",
+        "flurry",
+        "heavyBlow",
+        "improvise",
+        "stipend",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "arcBolt",
+        "attune",
+        "discharge",
+        "leyStep",
+        "pepperingShot",
+        "reforge",
+        "repellingShot",
+        "salvageShot",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "discipline",
+        "drive",
+        "feint",
+        "heavyBlow",
+        "longshot",
+        "openingStrike",
+        "precisionShot",
+        "prism",
+        "starfire"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "bullRush",
+        "cull",
+        "flurry",
+        "jab",
+        "leyStep",
+        "overload",
+        "precisionShot",
+        "repellingShot",
+        "starfire"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "bullRush",
+        "heavyBlow",
+        "improvise",
+        "jab",
+        "openingStrike",
+        "prism",
+        "reclaim",
+        "regroup",
+        "scour"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "cascade",
+        "channel",
+        "discharge",
+        "jab",
+        "openingStrike",
+        "pepperingShot",
+        "rally",
+        "regroup",
+        "steadyShot",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "cascade",
+        "discipline",
+        "feint",
+        "heavyBlow",
+        "improvise",
+        "overload",
+        "precisionShot",
+        "rally",
+        "salvageShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "cull",
+        "discipline",
+        "feint",
+        "heavyBlow",
+        "jab",
+        "pepperingShot",
+        "reclaim",
+        "reforge",
+        "sharpen"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "discipline",
+        "jab",
+        "leyStep",
+        "overload",
+        "reclaim",
+        "salvageShot",
+        "steadyShot",
+        "stipend",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "aim",
+        "attune",
+        "discharge",
+        "longshot",
+        "overload",
+        "precisionShot",
+        "regroup",
+        "scour",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "fireball",
+        "flurry",
+        "leyStep",
+        "muster",
+        "pepperingShot",
+        "prism",
+        "reclaim",
+        "regroup",
+        "repellingShot",
+        "sharpen"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "attune",
+        "bullRush",
+        "cascade",
+        "discharge",
+        "drive",
+        "footwork",
+        "leyStep",
+        "overload",
+        "prism"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "flurry",
+        "footwork",
+        "improvise",
+        "openingStrike",
+        "precisionShot",
+        "rally",
+        "reclaim",
+        "repellingShot",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "cull",
+        "feint",
+        "longshot",
+        "openingStrike",
+        "overload",
+        "pepperingShot",
+        "prism",
+        "reforge",
+        "sharpen"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "channel",
+        "cull",
+        "fireball",
+        "jab",
+        "muster",
+        "precisionShot",
+        "repellingShot",
+        "steadyShot",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "cull",
+        "feint",
+        "flurry",
+        "heavyBlow",
+        "improvise",
+        "jab",
+        "pepperingShot",
+        "precisionShot",
+        "reforge"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "cull",
+        "drive",
+        "footwork",
+        "heavyBlow",
+        "precisionShot",
+        "reclaim",
+        "repellingShot",
+        "starfire",
+        "stipend",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "cascade",
+        "channel",
+        "discharge",
+        "drive",
+        "fireball",
+        "leyStep",
+        "reclaim",
+        "regroup",
+        "scour",
+        "sharpen"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "cull",
+        "discipline",
+        "openingStrike",
+        "rally",
+        "reclaim",
+        "regroup",
+        "salvageShot",
+        "scour",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "cascade",
+        "cull",
+        "drive",
+        "muster",
+        "overload",
+        "prism",
+        "scour",
+        "sharpen",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "improvise",
+        "longshot",
+        "overload",
+        "pepperingShot",
+        "reforge",
+        "regiment",
+        "scour",
+        "starfire",
+        "steadyShot",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "bullRush",
+        "fireball",
+        "improvise",
+        "openingStrike",
+        "pepperingShot",
+        "prism",
+        "salvageShot",
+        "scour",
+        "sharpen"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "cull",
+        "flurry",
+        "improvise",
+        "muster",
+        "openingStrike",
+        "overload",
+        "prism",
+        "reforge",
+        "regroup"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "cascade",
+        "flurry",
+        "improvise",
+        "leyStep",
+        "longshot",
+        "muster",
+        "openingStrike",
+        "salvageShot",
+        "starfire",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "bullRush",
+        "cull",
+        "drive",
+        "flurry",
+        "footwork",
+        "longshot",
+        "muster",
+        "regiment",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "channel",
+        "discharge",
+        "feint",
+        "heavyBlow",
+        "muster",
+        "openingStrike",
+        "overload",
+        "prism",
+        "scour",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "arcBolt",
+        "attune",
+        "cascade",
+        "channel",
+        "fireball",
+        "flurry",
+        "improvise",
+        "overload",
+        "starfire"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "aim",
+        "longshot",
+        "muster",
+        "pepperingShot",
+        "precisionShot",
+        "regroup",
+        "salvageShot",
+        "sharpen",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "cascade",
+        "fireball",
+        "footwork",
+        "jab",
+        "pepperingShot",
+        "prism",
+        "repellingShot",
+        "salvageShot",
+        "sharpen",
+        "starfire"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "cascade",
+        "discipline",
+        "drive",
+        "improvise",
+        "overload",
+        "rally",
+        "regiment",
+        "regroup",
+        "sharpen",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "feint",
+        "fireball",
+        "jab",
+        "openingStrike",
+        "pepperingShot",
+        "rally",
+        "reforge",
+        "regiment",
+        "salvageShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "feint",
+        "flurry",
+        "footwork",
+        "jab",
+        "longshot",
+        "reforge",
+        "regiment",
+        "sharpen",
+        "starfire"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "feint",
+        "flurry",
+        "footwork",
+        "jab",
+        "muster",
+        "regroup",
+        "repellingShot",
+        "scour",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "attune",
+        "bullRush",
+        "cascade",
+        "feint",
+        "jab",
+        "rally",
+        "repellingShot",
+        "salvageShot",
+        "sharpen"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "cascade",
+        "drive",
+        "fireball",
+        "jab",
+        "pepperingShot",
+        "precisionShot",
+        "reforge",
+        "regiment",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "attune",
+        "cull",
+        "leyStep",
+        "regiment",
+        "regroup",
+        "scour",
+        "steadyShot",
+        "stipend",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "arcBolt",
+        "bullRush",
+        "channel",
+        "drive",
+        "improvise",
+        "pepperingShot",
+        "rally",
+        "starfire",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "discipline",
+        "footwork",
+        "improvise",
+        "overload",
+        "pepperingShot",
+        "prism",
+        "rally",
+        "reclaim",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "bullRush",
+        "drive",
+        "heavyBlow",
+        "muster",
+        "overload",
+        "reforge",
+        "repellingShot",
+        "sharpen",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "cascade",
+        "channel",
+        "cull",
+        "discharge",
+        "heavyBlow",
+        "improvise",
+        "leyStep",
+        "reforge",
+        "regiment",
+        "starfire"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "discharge",
+        "discipline",
+        "footwork",
+        "improvise",
+        "pepperingShot",
+        "repellingShot",
+        "salvageShot",
+        "scour",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "cascade",
+        "feint",
+        "leyStep",
+        "openingStrike",
+        "rally",
+        "reclaim",
+        "regiment",
+        "scour",
+        "starfire"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "cascade",
+        "discipline",
+        "longshot",
+        "openingStrike",
+        "reclaim",
+        "reforge",
+        "repellingShot",
+        "scour",
+        "stipend",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "attune",
+        "channel",
+        "cull",
+        "discharge",
+        "fireball",
+        "openingStrike",
+        "reforge",
+        "starfire",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "attune",
+        "drive",
+        "feint",
+        "flurry",
+        "leyStep",
+        "regiment",
+        "repellingShot",
+        "starfire",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "feint",
+        "longshot",
+        "overload",
+        "precisionShot",
+        "regroup",
+        "repellingShot",
+        "salvageShot",
+        "stipend",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "feint",
+        "flurry",
+        "jab",
+        "leyStep",
+        "longshot",
+        "muster",
+        "rally",
+        "scour",
+        "steadyShot",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "channel",
+        "discharge",
+        "flurry",
+        "footwork",
+        "precisionShot",
+        "regroup",
+        "sharpen",
+        "strike",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "bullRush",
+        "cascade",
+        "drive",
+        "fireball",
+        "openingStrike",
+        "precisionShot",
+        "regroup",
+        "sharpen",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "fireball",
+        "heavyBlow",
+        "improvise",
+        "jab",
+        "leyStep",
+        "openingStrike",
+        "reforge",
+        "starfire",
+        "stipend",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "arcBolt",
+        "discharge",
+        "discipline",
+        "footwork",
+        "longshot",
+        "openingStrike",
+        "precisionShot",
+        "reclaim",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "bullRush",
+        "cull",
+        "discharge",
+        "discipline",
+        "flurry",
+        "reforge",
+        "regroup",
+        "starfire",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "discipline",
+        "drive",
+        "flurry",
+        "jab",
+        "longshot",
+        "muster",
+        "prism",
+        "rally",
+        "regroup"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "cascade",
+        "discharge",
+        "feint",
+        "fireball",
+        "flurry",
+        "leyStep",
+        "muster",
+        "prism",
+        "rally",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "fireball",
+        "leyStep",
+        "reclaim",
+        "reforge",
+        "regiment",
+        "regroup",
+        "sharpen",
+        "starfire",
+        "stipend",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "discharge",
+        "drive",
+        "feint",
+        "jab",
+        "openingStrike",
+        "regroup",
+        "repellingShot",
+        "scour",
+        "starfire"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "drive",
+        "feint",
+        "jab",
+        "muster",
+        "pepperingShot",
+        "precisionShot",
+        "rally",
+        "starfire",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "discipline",
+        "fireball",
+        "flurry",
+        "improvise",
+        "jab",
+        "regiment",
+        "regroup",
+        "scour",
+        "sharpen"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "cascade",
+        "channel",
+        "discipline",
+        "feint",
+        "footwork",
+        "heavyBlow",
+        "pepperingShot",
+        "reforge",
+        "regroup"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "arcBolt",
+        "channel",
+        "heavyBlow",
+        "leyStep",
+        "muster",
+        "pepperingShot",
+        "rally",
+        "reclaim",
+        "starfire"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "channel",
+        "discharge",
+        "discipline",
+        "flurry",
+        "openingStrike",
+        "pepperingShot",
+        "repellingShot",
+        "sharpen",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "attune",
+        "cascade",
+        "improvise",
+        "pepperingShot",
+        "reclaim",
+        "salvageShot",
+        "scour",
+        "starfire",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "discipline",
+        "drive",
+        "muster",
+        "openingStrike",
+        "pepperingShot",
+        "reclaim",
+        "regiment",
+        "steadyShot",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "feint",
+        "footwork",
+        "muster",
+        "openingStrike",
+        "precisionShot",
+        "rally",
+        "regiment",
+        "repellingShot",
+        "sharpen",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "channel",
+        "discipline",
+        "jab",
+        "leyStep",
+        "overload",
+        "precisionShot",
+        "reforge",
+        "repellingShot",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "drive",
+        "fireball",
+        "footwork",
+        "longshot",
+        "muster",
+        "rally",
+        "stipend",
+        "strike",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "cascade",
+        "cull",
+        "discipline",
+        "flurry",
+        "footwork",
+        "pepperingShot",
+        "regroup",
+        "salvageShot",
+        "starfire",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "aim",
+        "cull",
+        "feint",
+        "fireball",
+        "heavyBlow",
+        "improvise",
+        "reclaim",
+        "regroup",
+        "sharpen"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "attune",
+        "bullRush",
+        "channel",
+        "discipline",
+        "fireball",
+        "improvise",
+        "muster",
+        "overload",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "cull",
+        "footwork",
+        "heavyBlow",
+        "improvise",
+        "jab",
+        "leyStep",
+        "longshot",
+        "regroup",
+        "repellingShot",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "cascade",
+        "channel",
+        "flurry",
+        "footwork",
+        "heavyBlow",
+        "jab",
+        "reforge",
+        "scour",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "discipline",
+        "flurry",
+        "footwork",
+        "precisionShot",
+        "reclaim",
+        "reforge",
+        "regroup",
+        "scour",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "cull",
+        "discharge",
+        "drive",
+        "prism",
+        "rally",
+        "reclaim",
+        "sharpen",
+        "strike",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "arcBolt",
+        "bullRush",
+        "channel",
+        "feint",
+        "fireball",
+        "longshot",
+        "reclaim",
+        "scour",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "bullRush",
+        "discharge",
+        "discipline",
+        "drive",
+        "improvise",
+        "leyStep",
+        "longshot",
+        "muster",
+        "repellingShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "cascade",
+        "drive",
+        "heavyBlow",
+        "leyStep",
+        "longshot",
+        "pepperingShot",
+        "repellingShot",
+        "scour",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "aim",
+        "channel",
+        "discharge",
+        "footwork",
+        "jab",
+        "longshot",
+        "rally",
+        "regiment",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "discharge",
+        "discipline",
+        "heavyBlow",
+        "leyStep",
+        "pepperingShot",
+        "reforge",
+        "regiment",
+        "repellingShot",
+        "scour"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "arcBolt",
+        "drive",
+        "feint",
+        "heavyBlow",
+        "improvise",
+        "regiment",
+        "repellingShot",
+        "stipend",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "fireball",
+        "footwork",
+        "heavyBlow",
+        "jab",
+        "prism",
+        "rally",
+        "reforge",
+        "regiment",
+        "scour"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "bullRush",
+        "discharge",
+        "jab",
+        "muster",
+        "reclaim",
+        "regiment",
+        "salvageShot",
+        "steadyShot",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "cascade",
+        "channel",
+        "cull",
+        "discipline",
+        "fireball",
+        "leyStep",
+        "longshot",
+        "precisionShot",
+        "prism"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "aim",
+        "channel",
+        "drive",
+        "footwork",
+        "muster",
+        "reforge",
+        "repellingShot",
+        "starfire",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "discipline",
+        "heavyBlow",
+        "muster",
+        "rally",
+        "reforge",
+        "scour",
+        "sharpen",
+        "starfire",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "channel",
+        "discharge",
+        "feint",
+        "flurry",
+        "prism",
+        "reclaim",
+        "salvageShot",
+        "sharpen",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "channel",
+        "drive",
+        "flurry",
+        "heavyBlow",
+        "pepperingShot",
+        "precisionShot",
+        "regroup",
+        "salvageShot",
+        "scour"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "bullRush",
+        "feint",
+        "fireball",
+        "flurry",
+        "footwork",
+        "leyStep",
+        "openingStrike",
+        "pepperingShot",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "cull",
+        "drive",
+        "footwork",
+        "muster",
+        "rally",
+        "reforge",
+        "regroup",
+        "salvageShot",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "attune",
+        "drive",
+        "fireball",
+        "leyStep",
+        "overload",
+        "prism",
+        "reclaim",
+        "repellingShot",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "aim",
+        "cull",
+        "discharge",
+        "flurry",
+        "heavyBlow",
+        "openingStrike",
+        "overload",
+        "regiment",
+        "sharpen"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "arcBolt",
+        "attune",
+        "footwork",
+        "prism",
+        "rally",
+        "regroup",
+        "repellingShot",
+        "starfire",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "aim",
+        "discharge",
+        "jab",
+        "overload",
+        "precisionShot",
+        "prism",
+        "reclaim",
+        "regiment",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "cull",
+        "discharge",
+        "leyStep",
+        "openingStrike",
+        "precisionShot",
+        "rally",
+        "regiment",
+        "scour",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "heavyBlow",
+        "longshot",
+        "pepperingShot",
+        "precisionShot",
+        "prism",
+        "regiment",
+        "salvageShot",
+        "sharpen",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "arcBolt",
+        "cascade",
+        "cull",
+        "discipline",
+        "longshot",
+        "precisionShot",
+        "reclaim",
+        "regiment",
+        "repellingShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "bullRush",
+        "discharge",
+        "muster",
+        "pepperingShot",
+        "precisionShot",
+        "prism",
+        "reforge",
+        "regiment",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "attune",
+        "channel",
+        "leyStep",
+        "longshot",
+        "openingStrike",
+        "overload",
+        "precisionShot",
+        "sharpen",
+        "starfire"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "drive",
+        "flurry",
+        "jab",
+        "longshot",
+        "muster",
+        "openingStrike",
+        "overload",
+        "pepperingShot",
+        "salvageShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "channel",
+        "fireball",
+        "flurry",
+        "improvise",
+        "overload",
+        "prism",
+        "repellingShot",
+        "salvageShot",
+        "steadyShot",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "bullRush",
+        "channel",
+        "discipline",
+        "feint",
+        "leyStep",
+        "longshot",
+        "regroup",
+        "strike",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "improvise",
+        "jab",
+        "rally",
+        "reforge",
+        "repellingShot",
+        "salvageShot",
+        "stipend",
+        "strike",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "aim",
+        "cascade",
+        "leyStep",
+        "longshot",
+        "overload",
+        "pepperingShot",
+        "sharpen",
+        "steadyShot",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "cull",
+        "discipline",
+        "drive",
+        "feint",
+        "overload",
+        "prism",
+        "reforge",
+        "regroup",
+        "starfire",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "bullRush",
+        "channel",
+        "cull",
+        "footwork",
+        "heavyBlow",
+        "overload",
+        "salvageShot",
+        "scour",
+        "starfire"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "channel",
+        "discharge",
+        "drive",
+        "feint",
+        "fireball",
+        "openingStrike",
+        "regiment",
+        "salvageShot",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "cull",
+        "discipline",
+        "feint",
+        "fireball",
+        "pepperingShot",
+        "rally",
+        "scour",
+        "sharpen",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "discharge",
+        "feint",
+        "footwork",
+        "improvise",
+        "muster",
+        "openingStrike",
+        "overload",
+        "steadyShot",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "attune",
+        "cascade",
+        "channel",
+        "discipline",
+        "fireball",
+        "openingStrike",
+        "prism",
+        "regiment",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "arcBolt",
+        "discharge",
+        "footwork",
+        "jab",
+        "leyStep",
+        "openingStrike",
+        "prism",
+        "sharpen",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "cascade",
+        "muster",
+        "precisionShot",
+        "prism",
+        "reforge",
+        "salvageShot",
+        "steadyShot",
+        "stipend",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "arcBolt",
+        "cull",
+        "flurry",
+        "heavyBlow",
+        "muster",
+        "overload",
+        "rally",
+        "reclaim",
+        "regiment",
+        "regroup"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "channel",
+        "drive",
+        "heavyBlow",
+        "longshot",
+        "rally",
+        "regroup",
+        "repellingShot",
+        "salvageShot",
+        "starfire",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "bullRush",
+        "discipline",
+        "drive",
+        "footwork",
+        "openingStrike",
+        "reforge",
+        "scour",
+        "steadyShot",
+        "stipend",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "arcBolt",
+        "bullRush",
+        "cascade",
+        "heavyBlow",
+        "improvise",
+        "muster",
+        "openingStrike",
+        "prism",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "cull",
+        "feint",
+        "fireball",
+        "heavyBlow",
+        "reclaim",
+        "regiment",
+        "salvageShot",
+        "steadyShot",
+        "strike"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "attune",
+        "bullRush",
+        "footwork",
+        "heavyBlow",
+        "jab",
+        "longshot",
+        "overload",
+        "rally",
+        "scour",
+        "stipend"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "aim",
+        "arcBolt",
+        "flurry",
+        "footwork",
+        "precisionShot",
+        "sharpen",
+        "steadyShot",
+        "stipend",
+        "strike",
+        "volley"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "attune",
+        "cascade",
+        "cull",
+        "muster",
+        "prism",
+        "reclaim",
+        "scour",
+        "starfire",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "discharge",
+        "discipline",
+        "fireball",
+        "heavyBlow",
+        "leyStep",
+        "muster",
+        "rally",
+        "regroup",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "discipline",
+        "drive",
+        "fireball",
+        "flurry",
+        "improvise",
+        "longshot",
+        "precisionShot",
+        "reclaim",
+        "salvageShot",
+        "sharpen"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "channel",
+        "cull",
+        "jab",
+        "overload",
+        "reclaim",
+        "regiment",
+        "repellingShot",
+        "salvageShot",
+        "sharpen",
+        "steadyShot"
+      ]
+    },
+    {
+      "split": "tuning",
+      "authored": false,
+      "cards": [
+        "adapt",
+        "improvise",
+        "leyStep",
+        "precisionShot",
+        "prism",
+        "regiment",
+        "salvageShot",
+        "starfire",
+        "steadyShot",
+        "volley"
+      ]
+    }
+  ],
+  "digest": "437ea5757aad65c1c66793fb7ac24c2308fee72a39a862e00d7516c42f9e5f31"
+}

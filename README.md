@@ -88,25 +88,32 @@ npm run balance:report
 The generator reads the ignored local `.experiments/` inputs, rejects stale rules fingerprints or
 incomplete runs, and writes `.html/balance-report.html`.
 
-The broad balance suite has 80 tuning kingdoms and 20 held-back validation kingdoms. Its variable
-card pool is the same `VARIABLE_ACTION_IDS` list used by playable random markets. Regenerate its
-committed manifest, resume its full searches, validate the artifacts, and build its report with:
+The deterministic `balance-suite-v4` design has 128 tuning kingdoms and 32 held-back validation
+kingdoms. It uses the same 40 variable cards as playable random markets. Regenerate or check its
+manifest, validate it, and reproduce the design report with:
 
 ```sh
 npm run balance:suite:manifest
-npm run balance:suite:run
-npm run balance:suite:run -- --tuning-only
+npm run balance:suite:manifest -- --check
+npm run balance:suite:search-check
+npm run balance:smoke:manifest -- --check
 npm run balance:suite:validate
-npm run balance:suite:report
-npm run strategy:report
+npm run balance:suite:design-report
+npm run balance:suite:design-report -- --check
 ```
 
-The batch runs two kingdoms at once with four workers each, so it uses at most eight pairing workers.
-It keeps complete current results and reruns missing, failed, incomplete, or stale results. Raw output
-is ignored under `.experiments/balance-suite/balance-suite-v3/`. Use the tuning split for repeated card
-changes. Use the validation split only to confirm a proposed change.
+`balance:suite:search-check` compiles and reruns the fixed-seed covering search. It takes about five
+minutes on an Apple M4 Pro. Normal manifest checks remeasure the pinned search result and are faster.
 
-The 50-health, draft-off deep-beam suite reuses the same 100 ten-pile card sets. Each player starts
+The 30-kingdom process-smoke set uses only tuning kingdoms. Its IDs, the 25-to-30 comparison, and
+coverage statistics are in `src/sim/balance-smoke-suite-manifest.json`.
+
+The report is `.html/kingdom-suite-design.html`. The production balance campaign is blocked on the
+Kingdom 009 consistency protocol and needs separate spending approval. `balance:suite:run`, the old
+corpus loader, and the old strategy report fail closed while that protocol is pending.
+
+The 50-health, draft-off deep-beam suite uses the frozen 100-row v3 strategy-search manifest, not the
+active v4 balance manifest. Each player starts
 with 7 Copper and 3 Scrap. It runs one kingdom at a time with 10 workers, 3 iterations, beam width 32,
 4 confirmations, and at most 8 active purchase
 slots. Run or resume it and check its status with:
@@ -161,11 +168,10 @@ node dist-sim/experiment.mjs --kingdom current-duel --mode smoke --seed 1 \
 
 Four workers are the measured default on an Apple M4 Pro. More workers remain available with `--workers`, but short simulation jobs become slower when process messaging and result transfer exceed the saved game time.
 
-`npm run strategy:report` writes the exploratory `.html/strategy-report.html` from the completed
-80-kingdom version 2 tuning corpus. The first chart shows the selected deterministic maximum-support
-witness and the feasible archetype-share range over each full discovered matrix. The report also shows
-pure-family competitive depth and card relationships, and equilibrium-weighted card use. All equilibrium
-ranges are conditional on discovered strategies and do not cover omitted strategies.
+The committed `.html/strategy-report.html` is a historical report from the completed 80-kingdom
+version 2 tuning corpus. `npm run strategy:report` now fails closed while the Kingdom 009 production
+protocol is pending. The historical equilibrium ranges remain conditional on discovered strategies and
+do not cover omitted strategies.
 
 ## Native strategy search
 

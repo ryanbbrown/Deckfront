@@ -1,6 +1,9 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  buildStrategyReportModel, renderStrategyReport
+  buildStrategyReportModel, generateStrategyReport, renderStrategyReport
 } from '../../scripts/generate_strategy_report';
 import type {
   StrategyReportInput, StrategyReportStrategyInput
@@ -24,6 +27,13 @@ function strategy(
 }
 
 describe('strategy distribution report', () => {
+  it('fails closed before it reads or writes v4 campaign artifacts', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-strategy-report-block-'));
+    const output = path.join(root, 'report.html');
+    expect(() => generateStrategyReport(root, output)).toThrow(/pending-k009-consistency/iu);
+    expect(fs.existsSync(output)).toBe(false);
+  });
+
   it('uses only final-lottery equilibrium weights for strategy types and global card use', () => {
     const model = buildStrategyReportModel({ suiteVersion: 'test', cards, kingdoms: [
       { id: 'one', availableCardIds: ['a', 'b', 'm1', 'm2', 'r1', 'r2', 'e'], strategies: [

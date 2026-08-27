@@ -1,10 +1,17 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  buildBalanceCorpusModel, buildStrategyGroups, classifyStrategyDamage, renderBalanceCorpus,
-  selectCorpusKingdoms
+  buildBalanceCorpusModel, buildStrategyGroups, classifyStrategyDamage, generateBalanceCorpus,
+  renderBalanceCorpus, selectCorpusKingdoms
 } from '../../scripts/generate_balance_corpus';
 import type { CorpusKingdomReport } from '../../scripts/generate_balance_corpus';
 import { BALANCE_SUITE_MANIFEST } from '../../src/sim/balanceSuite';
+
+const TUNING_SIZE = BALANCE_SUITE_MANIFEST.splits.find((split) => split.name === 'tuning')!.size;
+const VALIDATION_SIZE = BALANCE_SUITE_MANIFEST.splits.find((split) => split.name === 'validation')!.size;
+const TOTAL_SIZE = BALANCE_SUITE_MANIFEST.chosenCount;
 
 function kingdom(
   id: string, split: 'tuning' | 'validation', effective: number, ranged: number,
@@ -35,19 +42,26 @@ function corpus(): CorpusKingdomReport[] {
 }
 
 describe('balance-corpus aggregation', () => {
+  it('fails closed before it reads or writes v4 campaign artifacts', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-corpus-block-'));
+    const output = path.join(root, 'report.html');
+    expect(() => generateBalanceCorpus(root, output)).toThrow(/pending-k009-consistency/iu);
+    expect(fs.existsSync(output)).toBe(false);
+  });
+
   it('keeps tuning, validation, and combined calculations separate', () => {
     const model = buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, corpus());
-    expect(model.summaries.tuning).toMatchObject({ kingdoms: 80, lotteryDistribution: { 1: 80 },
+    expect(model.summaries.tuning).toMatchObject({ kingdoms: TUNING_SIZE, lotteryDistribution: { 1: TUNING_SIZE },
       effectiveMinimum: 1, effectiveMedian: 1, effectiveMean: 1, effectiveMaximum: 1,
-      multipleViableRate: 0, damageStrategyCounts: { 'No damage package': 80 },
+      multipleViableRate: 0, damageStrategyCounts: { 'No damage package': TUNING_SIZE },
       drawRate: 0, winnerTurnsPerPlayer: 8 });
-    expect(model.summaries.validation).toMatchObject({ kingdoms: 20, lotteryDistribution: { 2: 20 },
+    expect(model.summaries.validation).toMatchObject({ kingdoms: VALIDATION_SIZE, lotteryDistribution: { 2: VALIDATION_SIZE },
       effectiveMinimum: 2, effectiveMedian: 2, effectiveMean: 2, effectiveMaximum: 2,
-      multipleViableRate: 1, damageStrategyCounts: { Ranged: 40 },
+      multipleViableRate: 1, damageStrategyCounts: { Ranged: VALIDATION_SIZE * 2 },
       winnerTurnsPerPlayer: 10 });
-    expect(model.summaries.combined).toMatchObject({ kingdoms: 100, effectiveMedian: 1,
+    expect(model.summaries.combined).toMatchObject({ kingdoms: TOTAL_SIZE, effectiveMedian: 1,
       effectiveMean: 1.2, multipleViableRate: 0.2,
-      damageStrategyCounts: { 'No damage package': 80, Ranged: 40 },
+      damageStrategyCounts: { 'No damage package': TUNING_SIZE, Ranged: VALIDATION_SIZE * 2 },
       winnerTurnsPerPlayer: 8.4 });
     expect(model.summaries.tuning.firstPlayerScore).toBeCloseTo(0.6, 12);
     expect(model.summaries.validation!.drawRate).toBeCloseTo(0.1, 12);
@@ -56,10 +70,10 @@ describe('balance-corpus aggregation', () => {
     expect(model.summaries.combined.firstPlayerScore).toBeCloseTo(0.56, 12);
     const footwork = model.cards.find((card) => card.cardId === 'footwork')!;
     const volley = model.cards.find((card) => card.cardId === 'volley')!;
-    expect(footwork.tuning).toMatchObject({ buildPlans: 80, infinitePlans: 80,
-      acquiredStrategies: 80, familyAcquisitionShare: 1 });
-    expect(volley.validation).toMatchObject({ buildPlans: 40, infinitePlans: 40,
-      acquiredStrategies: 40, familyAcquisitionShare: 1 });
+    expect(footwork.tuning).toMatchObject({ buildPlans: TUNING_SIZE, infinitePlans: TUNING_SIZE,
+      acquiredStrategies: TUNING_SIZE, familyAcquisitionShare: 1 });
+    expect(volley.validation).toMatchObject({ buildPlans: VALIDATION_SIZE * 2, infinitePlans: VALIDATION_SIZE * 2,
+      acquiredStrategies: VALIDATION_SIZE * 2, familyAcquisitionShare: 1 });
   });
 
   it('classifies strategy damage from its starting deck and evaluated acquisitions', () => {
@@ -94,7 +108,7 @@ describe('balance-corpus aggregation', () => {
       acquisitionRates: { drive: 2, footwork: 1 }, acquiredCards: ['drive', 'footwork'] };
     const groups = buildStrategyGroups(buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, tuning));
     const melee = groups.find((group) => group.label === 'Melee')!;
-    expect(melee).toMatchObject({ strategies: 1, share: 1 / 80 });
+    expect(melee).toMatchObject({ strategies: 1, share: 1 / TUNING_SIZE });
     expect(melee.cards.find((card) => card.cardId === 'drive')).toMatchObject({
       acquiredStrategies: 1, averageCopiesWhenAcquired: 2, buildPlans: 1
     });
@@ -134,9 +148,9 @@ describe('balance-corpus aggregation', () => {
     const model = buildBalanceCorpusModel(BALANCE_SUITE_MANIFEST, tuning);
     expect(model.scope).toBe('tuning');
     expect(model.summaries.validation).toBeNull();
-    expect(model.summaries.combined.kingdoms).toBe(80);
+    expect(model.summaries.combined.kingdoms).toBe(TUNING_SIZE);
     const html = renderBalanceCorpus(model);
-    expect(html).toContain('Eighty-kingdom tuning report');
+    expect(html).toContain(`${TUNING_SIZE}-kingdom tuning report`);
     expect(html).toContain('Balance at a glance');
     expect(html).toContain('Strategy types');
     expect(html).toContain('No damage package strategies');
@@ -147,9 +161,9 @@ describe('balance-corpus aggregation', () => {
     expect(html).toContain('Copies when used');
     expect(html).toContain('Movement, drawing, money, and other support');
     expect(html).not.toContain('This is an incomplete historical card pool');
-    expect(html).toContain('All 80 kingdoms');
+    expect(html).toContain(`All ${TUNING_SIZE} kingdoms`);
     expect(html).toContain('The held-back validation kingdoms were not run');
-    expect(html).not.toContain('<td>Validation</td><td>20</td>');
+    expect(html).not.toContain(`<td>Validation</td><td>${VALIDATION_SIZE}</td>`);
   });
 
   it('selects five unique kingdoms with stable id tie breaks', () => {
@@ -189,7 +203,7 @@ describe('balance-corpus aggregation', () => {
     const first = renderBalanceCorpus(model), second = renderBalanceCorpus(model);
     expect(first).toBe(second);
     expect(first).toContain('Kingdom diversity');
-    expect(first).toContain('All 100 kingdoms');
+    expect(first).toContain(`All ${TOTAL_SIZE} kingdoms`);
     expect(first).toContain('Five selected kingdom details');
     expect(first).not.toMatch(/rigged|calibration/iu);
   });
