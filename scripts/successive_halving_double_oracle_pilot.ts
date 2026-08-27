@@ -4,10 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { pathToFileURL } from 'node:url';
-import { registerKingdom } from '../src/game';
 import { InlineConfidenceRunner, WorkerConfidenceRunner } from '../src/sim/confidenceRunner';
 import type { ConfidenceRunner } from '../src/sim/confidenceRunner';
-import { deepBeamSuite } from '../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
 import { solveEquilibrium } from '../src/sim/equilibrium';
 import type { EquilibriumResult } from '../src/sim/equilibrium';
 import { reconstructMatrixCache } from '../src/sim/fixedReservoirConsistency';
@@ -50,15 +49,25 @@ const EVALUATION_CHUNK = thresholdRacing.DEFAULT_PSRO_EVALUATION_CHUNK;
 
 type ThresholdStatus = 'below' | 'above' | 'unresolved';
 type ConfirmationStatus = 'rejected' | 'confirmed' | 'unresolved';
-type StopReason = 'running' | 'empirical-two-clean-scans' | 'screen-cap-unresolved';
+type StopReason = 'running' | 'empirical-two-clean-scans' | 'screen-cap-unresolved'
+  | 'fixed-protocol-look-cap-unresolved';
 
 interface InputEntry { kingdomId: string; ranked: string; reservoir: string; p75Root: string }
 interface Inputs { schemaVersion: 1; kingdoms: InputEntry[] }
-interface Source {
+export interface ThresholdRacingSource {
   entry: InputEntry;
   source: CalibrationSourceIdentity;
   reservoir: OrderedProductReservoirArtifact;
   initialMatrix: MatrixSnapshot;
+  kingdomId: string;
+  experimentName: string;
+  protocolVersion: string;
+  rawProtocol?: thresholdRacing.ThresholdRacingProtocol;
+  onRawCheckpoint?: (event: thresholdRacing.RawPsroCheckpointEvent | {
+    type: 'strategy-search-checkpoint'; stage: 'psro'; eventHash: string; protocolHash: string;
+    sourceHash: string; lookId: string; chunkHash: string }) => void;
+  deadlineMs?: number;
+  terminalOnUnresolved?: boolean;
 }
 interface InitialMatrixReport {
   schemaVersion: 2;
@@ -135,7 +144,7 @@ interface ScanBase {
 }
 interface ScanReport extends ScanBase {
   confirmation: ConfirmationRaceResult | null;
-  outcome: 'clean' | 'queued';
+  outcome: 'clean' | 'queued' | 'terminal-incomplete';
   games: { screening: number; confirmation: number; total: number };
   elapsedMs: { screening: number; confirmation: number; total: number };
 }
@@ -146,7 +155,7 @@ interface QueueRetestReport {
   lotteryHash: string;
   enteredStrategyIds: string[];
   confirmation: ConfirmationRaceResult;
-  outcome: 'empty' | 'queued';
+  outcome: 'empty' | 'queued' | 'terminal-incomplete';
   games: number;
   elapsedMs: number;
 }
@@ -168,9 +177,9 @@ type Pending = { kind: 'screened'; base: ScanBase }
   | { kind: 'queue-confirmed'; report: QueueRetestReport };
 interface Checkpoint {
   schemaVersion: 1;
-  experiment: 'k007-threshold-racing-double-oracle';
-  version: typeof PILOT_VERSION;
-  runId: 1 | 2 | 3;
+  experiment: string;
+  version: string;
+  runId: string | number;
   source: CalibrationSourceIdentity;
   protocol: {
     threshold: typeof RESPONSE_THRESHOLD;
@@ -219,6 +228,7 @@ interface EvaluationOptions {
   startingDraftEnabled: boolean;
   scoreOnly: true;
   lookId: string;
+  deadline?: number;
 }
 
 type Evaluate = (
@@ -241,9 +251,9 @@ function writeAtomic(file: string, value: unknown): void {
 function mean(values: readonly number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
-function runRoot(root: string, runId: number): string { return path.join(root, `run-${runId}`); }
-function checkpointFile(root: string, runId: number): string { return path.join(runRoot(root, runId), 'checkpoint.json'); }
-function reportFile(root: string, runId: number): string { return path.join(runRoot(root, runId), 'report.json'); }
+function runRoot(root: string, runId: string | number): string { return path.join(root, `run-${runId}`); }
+function checkpointFile(root: string, runId: string | number): string { return path.join(runRoot(root, runId), 'checkpoint.json'); }
+function reportFile(root: string, runId: string | number): string { return path.join(runRoot(root, runId), 'report.json'); }
 function sealed(checkpoint: Checkpoint): Checkpoint {
   const copy = structuredClone(checkpoint);
   copy.evidenceHash = '';
@@ -341,7 +351,8 @@ function loadInitialMatrixChunks(root: string, manifest: InitialMatrixManifest):
 
 function loadP75Matrix(manifest: InitialMatrixManifest, p75Weights: Readonly<Record<string, number>>,
   chunks: ReadonlyMap<string, InitialMatrixChunk>): MatrixSnapshot {
-  const protocol = matrixProtocol(PILOT_KINGDOM, manifest.protocol.seeds.slice(0, MATRIX_BLOCKS), 30, 200, false);
+  const protocol = matrixProtocol(manifest.protocol.kingdomId,
+    manifest.protocol.seeds.slice(0, MATRIX_BLOCKS), 30, 200, false);
   const centeredPayoffs = manifest.strategies.map(() => manifest.strategies.map(() => 0));
   const cells: MatrixCell[] = [];
   for (let rowIndex = 0; rowIndex < 50; rowIndex += 1) for (let columnIndex = rowIndex + 1;
@@ -392,7 +403,7 @@ function validateOrderedArtifacts(entry: InputEntry): void {
     '--seeds', seeds.join(',')], { stdio: 'inherit' });
 }
 
-async function loadSource(inputsFile: string): Promise<Source> {
+async function loadSource(inputsFile: string): Promise<ThresholdRacingSource> {
   const inputs = readJson<Inputs>(inputsFile);
   const matches = inputs.schemaVersion === 1 && Array.isArray(inputs.kingdoms)
     ? inputs.kingdoms.filter((entry) => entry.kingdomId === PILOT_KINGDOM) : [];
@@ -400,9 +411,7 @@ async function loadSource(inputsFile: string): Promise<Source> {
   const base = path.dirname(inputsFile), held = matches[0]!;
   const entry = { ...held, ranked: path.resolve(base, held.ranked), reservoir: path.resolve(base, held.reservoir),
     p75Root: path.resolve(base, held.p75Root) };
-  const kingdom = deepBeamSuite.kingdoms.find((candidate) => candidate.id === PILOT_KINGDOM);
-  if (!kingdom) throw new Error('Kingdom 007 is missing.');
-  registerKingdom(kingdom);
+  strategySearchKingdom(PILOT_KINGDOM);
   validateOrderedArtifacts(entry);
   const ranked = readJson<unknown>(entry.ranked);
   const reservoir = readJson<OrderedProductReservoirArtifact>(entry.reservoir);
@@ -426,10 +435,65 @@ async function loadSource(inputsFile: string): Promise<Source> {
     reservoirVersion: validated.source.productVersion, rulesFingerprint: validated.source.ruleFingerprint
   };
   return { entry, source, reservoir,
-    initialMatrix: loadP75Matrix(metadata.manifest, metadata.p75Weights, chunks) };
+    initialMatrix: loadP75Matrix(metadata.manifest, metadata.p75Weights, chunks),
+    kingdomId: PILOT_KINGDOM, experimentName: 'k007-threshold-racing-double-oracle',
+    protocolVersion: PILOT_VERSION };
 }
 
-function candidates(source: Source, ids?: readonly string[]): CandidateRef[] {
+function rawArtifactStore(root: string, runId: string | number, source: ThresholdRacingSource,
+  raceKind: 'screen' | 'confirmation' | 'queue-retest'): thresholdRacing.RawPsroArtifactStore | undefined {
+  if (!source.rawProtocol) return undefined;
+  const rawRoot = path.join(runRoot(root, runId), 'raw');
+  const safeLook = (lookId: string): string => {
+    if (!/^[A-Za-z0-9._-]+$/.test(lookId)) throw new Error(`Raw PSRO look ID is invalid: ${lookId}`);
+    return lookId;
+  };
+  return { protocol: source.rawProtocol, raceKind,
+    loadChunk(identity) {
+      const file = path.join(rawRoot, 'chunks', safeLook(identity.lookId),
+        `${identity.candidateStart}-${identity.candidateEnd}.json`);
+      if (!fs.existsSync(file)) return undefined;
+      try {
+        const value = readJson<thresholdRacing.RawPsroScoreChunk>(file);
+        if (thresholdRacing.validateRawPsroScoreChunk(value, source.rawProtocol)
+          && value.lookId === identity.lookId && value.candidateStart === identity.candidateStart
+          && value.candidateEnd === identity.candidateEnd) return value;
+      } catch { /* Preserve malformed bytes below. */ }
+      const digest = createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+      const destination = path.join(runRoot(root, runId), 'control', 'corrupt',
+        `${safeLook(identity.lookId)}.${path.basename(file)}.${digest}`);
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      if (fs.existsSync(destination)) fs.unlinkSync(file); else fs.renameSync(file, destination);
+      return undefined;
+    }, sealChunk(chunk) {
+      writeAtomic(path.join(rawRoot, 'chunks', safeLook(chunk.lookId),
+        `${chunk.candidateStart}-${chunk.candidateEnd}.json`), chunk);
+      const eventBase = { type: 'strategy-search-checkpoint' as const, stage: 'psro' as const,
+        protocolHash: chunk.protocolHash, sourceHash: chunk.sourceHash, lookId: chunk.lookId,
+        chunkHash: chunk.artifactHash };
+      source.onRawCheckpoint?.({ ...eventBase, eventHash: hash(eventBase) });
+    }, sealLook(look, event) {
+      const file = path.join(rawRoot, 'looks', `${safeLook(look.lookId)}.json`);
+      if (fs.existsSync(file)) {
+        let valid = false;
+        try {
+          const saved = readJson<thresholdRacing.RawPsroLookArtifact>(file);
+          valid = thresholdRacing.validateRawPsroLookArtifact(saved, source.rawProtocol)
+            && JSON.stringify(saved) === JSON.stringify(look);
+        } catch { valid = false; }
+        if (!valid) {
+          const digest = createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+          const destination = path.join(runRoot(root, runId), 'control', 'corrupt',
+            `${safeLook(look.lookId)}.${digest}.json`);
+          fs.mkdirSync(path.dirname(destination), { recursive: true });
+          if (fs.existsSync(destination)) fs.unlinkSync(file); else fs.renameSync(file, destination);
+        }
+      }
+      writeAtomic(file, look); source.onRawCheckpoint?.(event);
+    } };
+}
+
+function candidates(source: ThresholdRacingSource, ids?: readonly string[]): CandidateRef[] {
   const wanted = ids ? new Set(ids) : null;
   return source.reservoir.entries.filter((entry) => !wanted || wanted.has(entry.strategy.id)).map((entry) => ({
     strategy: entry.strategy, identity: { goldfishRank: entry.rank, strategyId: entry.strategy.id,
@@ -466,7 +530,7 @@ function scheduleFor(checkpoint: Checkpoint, label: string, count: number,
   const seeds = Array.from({ length: count }, (_unused, index) => {
     let nonce = 0;
     for (;;) {
-      const seed = Number.parseInt(stableHash(`${PILOT_VERSION}:${checkpoint.source.reservoirSha256}:run:`
+      const seed = Number.parseInt(stableHash(`${checkpoint.version}:${checkpoint.source.reservoirSha256}:run:`
         + `${checkpoint.runId}:${label}:${index}:nonce:${nonce}`).slice(0, 8), 16) >>> 0;
       if (!used.has(seed)) { used.add(seed); return seed; }
       nonce += 1;
@@ -486,7 +550,8 @@ function addPhase(checkpoint: Checkpoint, phase: 'screening' | 'confirmation' | 
 function terminal(checkpoint: Checkpoint, status: 'complete' | 'unresolved', reason: StopReason): void {
   checkpoint.status = status; checkpoint.stopReason = reason; checkpoint.phase = 'terminal'; checkpoint.pending = null;
 }
-function validCheckpoint(value: unknown, source: Source, runId: 1 | 2 | 3): value is Checkpoint {
+function validCheckpoint(value: unknown, source: ThresholdRacingSource,
+  runId: string | number): value is Checkpoint {
   try {
     if (!validHash(value)) return false;
     const held = value;
@@ -507,7 +572,7 @@ function validCheckpoint(value: unknown, source: Source, runId: 1 | 2 | 3): valu
     const matrixMs = held.admissions.reduce((sum, admission) => sum + admission.elapsedMs, 0);
     const equilibriumMs = held.admissions.reduce((sum, admission) => sum + admission.equilibriumElapsedMs, 0);
     return held.schemaVersion === 1 && held.experiment === 'k007-threshold-racing-double-oracle'
-      && held.version === PILOT_VERSION && held.runId === runId
+      && held.version === source.protocolVersion && held.experiment === source.experimentName && held.runId === runId
       && held.source.reservoirSha256 === source.source.reservoirSha256
       && held.source.p75ManifestHash === source.source.p75ManifestHash && held.matrix.complete
       && held.matrix.strategies.length === 50 + held.admissions.length && exact(held.equilibrium.weights, solved.weights)
@@ -520,10 +585,10 @@ function validCheckpoint(value: unknown, source: Source, runId: 1 | 2 | 3): valu
       && Math.abs(held.elapsedMs.total - screeningMs - confirmationMs - matrixMs - equilibriumMs) < 1e-6;
   } catch { return false; }
 }
-function initialCheckpoint(source: Source, runId: 1 | 2 | 3): Checkpoint {
+function initialCheckpoint(source: ThresholdRacingSource, runId: string | number): Checkpoint {
   const equilibrium = solveEquilibrium(source.initialMatrix.strategies.map((strategy) => strategy.id),
     source.initialMatrix.centeredPayoffs);
-  return { schemaVersion: 1, experiment: 'k007-threshold-racing-double-oracle', version: PILOT_VERSION, runId,
+  return { schemaVersion: 1, experiment: source.experimentName, version: source.protocolVersion, runId,
     source: source.source, protocol: { threshold: RESPONSE_THRESHOLD, screenDepths: [...SCREEN_DEPTHS],
       screenAlpha: SCREEN_ALPHA, confirmationLooks: [...CONFIRMATION_LOOKS],
       confirmationFamilyAlpha: CONFIRMATION_FAMILY_ALPHA, familyControl: 'bonferroni',
@@ -566,7 +631,7 @@ function resumeLegacyScreenCap(checkpoint: Checkpoint): boolean {
   return true;
 }
 
-async function admit(checkpoint: Checkpoint, source: Source, runner: PairingRunner,
+async function admit(checkpoint: Checkpoint, source: ThresholdRacingSource, runner: PairingRunner,
   order: QueueOrder): Promise<void> {
   const selectedId = order.strongestStrategyId;
   const selected = selectedId ? candidates(source, [selectedId])[0] : null;
@@ -597,8 +662,8 @@ async function admit(checkpoint: Checkpoint, source: Source, runner: PairingRunn
   addPhase(checkpoint, 'matrix', games, elapsedMs, matrix.telemetry, equilibriumElapsedMs);
 }
 
-async function runPilot(root: string, source: Source, workers: number, runId: 1 | 2 | 3,
-  execution: 'local' | 'modal'): Promise<Checkpoint> {
+export async function runThresholdRacingCampaign(root: string, source: ThresholdRacingSource,
+  workers: number, runId: string | number, execution: 'local' | 'modal'): Promise<Checkpoint> {
   const file = checkpointFile(root, runId);
   let checkpoint: Checkpoint;
   if (fs.existsSync(file)) {
@@ -608,14 +673,13 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
     if (resumeLegacyScreenCap(checkpoint)) checkpoint = saveCheckpoint(root, checkpoint);
   } else checkpoint = saveCheckpoint(root, initialCheckpoint(source, runId));
   if (checkpoint.status !== 'running') return checkpoint;
-  const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === PILOT_KINGDOM)!;
-  registerKingdom(kingdom);
+  const kingdom = strategySearchKingdom(source.kingdomId);
   const runner = new WorkerPairingRunner(workers, new URL('../src/server/aiWorker.ts', import.meta.url),
     { kingdom }, ['--import', 'tsx']);
   const confidence: ConfidenceRunner = workers === 1 ? new InlineConfidenceRunner()
     : new WorkerConfidenceRunner(workers,
       new URL('../src/server/confidenceWorker.ts', import.meta.url), ['--import', 'tsx']);
-  const competitiveConfig = { kingdomId: PILOT_KINGDOM, turnLimitPerPlayer: 30,
+  const competitiveConfig = { kingdomId: source.kingdomId, turnLimitPerPlayer: 30,
     actionCapPerTurn: 200, startingDraftEnabled: false };
   const residentStrategies = source.reservoir.entries.map((entry) => entry.strategy);
   const nativeScorer = execution === 'local' ? new RustGoldfishScorer(workers) : null;
@@ -639,17 +703,24 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
         const retest = checkpoint.queueRetests.length + 1;
         const schedule = scheduleFor(checkpoint, `queue-retest:${retest}:confirmation`,
           CONFIRMATION_LOOKS.at(-1)!, lottery.weights);
+        const queueRaw = rawArtifactStore(root, runId, source, 'queue-retest');
         const confirmation = await runConfirmationRace({ candidates: candidates(source,
           checkpoint.queue.map((entry) => entry.strategyId)), opponents: lottery.opponents, schedule,
-          kingdomId: PILOT_KINGDOM, runner, confidence, evaluate, chunkSize,
-          lookIdPrefix: `run-${runId}.queue-retest-${retest}.confirmation` });
+          kingdomId: source.kingdomId, runner, confidence, evaluate, chunkSize,
+          lookIdPrefix: `run-${runId}.queue-retest-${retest}.confirmation`,
+          ...(source.deadlineMs === undefined ? {} : { deadline: source.deadlineMs }),
+          ...(queueRaw && { raw: queueRaw }) });
         addPhase(checkpoint, 'confirmation', confirmation.games, confirmation.elapsedMs, confirmation.telemetry);
+        const capped = source.terminalOnUnresolved && confirmation.unresolved.length > 0;
         const report: QueueRetestReport = { retest, cycle: checkpoint.admissions.length + 1,
           matrixSize: checkpoint.matrix.strategies.length, lotteryHash: lottery.lotteryHash,
           enteredStrategyIds: checkpoint.queue.map((entry) => entry.strategyId), confirmation,
-          outcome: actionAfterConfirmation(confirmation),
+          outcome: capped ? 'terminal-incomplete' : actionAfterConfirmation(confirmation),
           games: confirmation.games, elapsedMs: confirmation.elapsedMs };
-        checkpoint.pending = { kind: 'queue-confirmed', report }; checkpoint.phase = 'confirmed';
+        if (capped) {
+          checkpoint.queueRetests.push(report);
+          terminal(checkpoint, 'unresolved', 'fixed-protocol-look-cap-unresolved');
+        } else { checkpoint.pending = { kind: 'queue-confirmed', report }; checkpoint.phase = 'confirmed'; }
         checkpoint = saveCheckpoint(root, checkpoint); continue;
       }
       if (checkpoint.phase === 'ready') {
@@ -657,18 +728,26 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
         const lottery = positiveLottery(checkpoint.matrix, checkpoint.equilibrium);
         const active = new Set(checkpoint.matrix.strategies.map((strategy) => strategy.id));
         const inactive = candidates(source).filter((entry) => !active.has(entry.strategy.id));
-        if (inactive.length !== 20_000 - checkpoint.matrix.strategies.length) {
-          throw new Error('Inactive K007 reservoir coverage is incomplete.');
+        if (inactive.length !== source.reservoir.entries.length - checkpoint.matrix.strategies.length) {
+          throw new Error('Inactive campaign reservoir coverage is incomplete.');
         }
         const schedule = scheduleFor(checkpoint, `scan:${scan}:screen`, SCREEN_DEPTHS.at(-1)!, lottery.weights);
+        const screenRaw = rawArtifactStore(root, runId, source, 'screen');
         const screen = await runThresholdRace({ candidates: inactive, opponents: lottery.opponents,
-          schedule, kingdomId: PILOT_KINGDOM, runner, confidence, evaluate, chunkSize,
-          lookIdPrefix: `run-${runId}.scan-${scan}.screen` });
+          schedule, kingdomId: source.kingdomId, runner, confidence, evaluate, chunkSize,
+          lookIdPrefix: `run-${runId}.scan-${scan}.screen`,
+          ...(source.deadlineMs === undefined ? {} : { deadline: source.deadlineMs }),
+          ...(screenRaw && { raw: screenRaw }) });
         addPhase(checkpoint, 'screening', screen.games, screen.elapsedMs, screen.telemetry);
         const base: ScanBase = { scan, cycle: checkpoint.admissions.length + 1,
           matrixSize: checkpoint.matrix.strategies.length, inactiveCandidates: inactive.length,
           lotteryHash: lottery.lotteryHash, screen };
-        if (actionAfterScreen(screen) === 'clean') {
+        if (source.terminalOnUnresolved && screen.unresolved.length > 0) {
+          checkpoint.scans.push({ ...base, confirmation: null, outcome: 'terminal-incomplete',
+            games: { screening: screen.games, confirmation: 0, total: screen.games },
+            elapsedMs: { screening: screen.elapsedMs, confirmation: 0, total: screen.elapsedMs } });
+          terminal(checkpoint, 'unresolved', 'fixed-protocol-look-cap-unresolved');
+        } else if (actionAfterScreen(screen) === 'clean') {
           checkpoint.scans.push({ ...base, confirmation: null, outcome: 'clean',
             games: { screening: screen.games, confirmation: 0, total: screen.games },
             elapsedMs: { screening: screen.elapsedMs, confirmation: 0, total: screen.elapsedMs } });
@@ -685,12 +764,22 @@ async function runPilot(root: string, source: Source, workers: number, runId: 1 
         if (lottery.lotteryHash !== base.lotteryHash) throw new Error('Lottery changed inside a reservoir scan.');
         const schedule = scheduleFor(checkpoint, `scan:${base.scan}:confirmation`,
           CONFIRMATION_LOOKS.at(-1)!, lottery.weights);
+        const confirmationRaw = rawArtifactStore(root, runId, source, 'confirmation');
         const confirmation = await runConfirmationRace({ candidates: candidates(source,
           base.screen.provisional.map((entry) => entry.strategyId)), opponents: lottery.opponents,
-          schedule, kingdomId: PILOT_KINGDOM, runner, confidence, evaluate, chunkSize,
-          lookIdPrefix: `run-${runId}.scan-${base.scan}.confirmation` });
+          schedule, kingdomId: source.kingdomId, runner, confidence, evaluate, chunkSize,
+          lookIdPrefix: `run-${runId}.scan-${base.scan}.confirmation`,
+          ...(source.deadlineMs === undefined ? {} : { deadline: source.deadlineMs }),
+          ...(confirmationRaw && { raw: confirmationRaw }) });
         addPhase(checkpoint, 'confirmation', confirmation.games, confirmation.elapsedMs, confirmation.telemetry);
-        checkpoint.pending = { kind: 'scan-confirmed', base, confirmation }; checkpoint.phase = 'confirmed';
+        if (source.terminalOnUnresolved && confirmation.unresolved.length > 0) {
+          checkpoint.scans.push({ ...base, confirmation, outcome: 'terminal-incomplete',
+            games: { screening: base.screen.games, confirmation: confirmation.games,
+              total: base.screen.games + confirmation.games },
+            elapsedMs: { screening: base.screen.elapsedMs, confirmation: confirmation.elapsedMs,
+              total: base.screen.elapsedMs + confirmation.elapsedMs } });
+          terminal(checkpoint, 'unresolved', 'fixed-protocol-look-cap-unresolved');
+        } else { checkpoint.pending = { kind: 'scan-confirmed', base, confirmation }; checkpoint.phase = 'confirmed'; }
         checkpoint = saveCheckpoint(root, checkpoint); continue;
       }
       if (checkpoint.phase === 'confirmed' && checkpoint.pending?.kind === 'scan-confirmed') {
@@ -779,7 +868,8 @@ export async function main(args = process.argv.slice(2)): Promise<void> {
     console.log(JSON.stringify(readJson<unknown>(reportFile(options.out!, options.runId!)), null, 2)); return;
   }
   const source = await loadSource(options.inputs!);
-  const result = await runPilot(options.out!, source, options.workers, options.runId!, options.execution);
+  const result = await runThresholdRacingCampaign(options.out!, source, options.workers,
+    options.runId!, options.execution);
   const cycles = Math.max(0, ...result.scans.map((scan) => scan.cycle),
     ...result.queueRetests.map((retest) => retest.cycle), ...result.admissions.map((entry) => entry.cycle));
   console.log(JSON.stringify({ runId: result.runId, kingdomId: PILOT_KINGDOM, status: result.status,

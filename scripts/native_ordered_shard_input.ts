@@ -1,6 +1,5 @@
 import fs from 'node:fs';
-import { registerKingdom } from '../src/game';
-import { deepBeamSuite } from '../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
 import { nativeScoreBatchRequest, nativeRuleFingerprint } from '../src/sim/nativeGoldfishProtocol';
 import {
   CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION, ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_SCHEMA_VERSION,
@@ -41,9 +40,7 @@ if (end < start || threads < 1 || cpu < 1 || !seeds.length
 }
 const kingdomId = option('kingdom', ORDERED_PRODUCT_KINGDOM);
 if (schemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION) legacyOrderedProductTarget(kingdomId);
-const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId);
-if (!kingdom) throw new Error(`Ordered product kingdom is not registered: ${kingdomId}`);
-registerKingdom(kingdom);
+const kingdom = strategySearchKingdom(kingdomId);
 const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
 if (schemaVersion === CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION && space.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT) {
   throw new Error(`Derived candidate count is ${space.candidateCount}; expected ${ORDERED_PRODUCT_SPACE_COUNT}.`);

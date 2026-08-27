@@ -9,11 +9,16 @@ import { fixedBuyPlan } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import {
   createStrategySearchMatrixBatchTiming, createStrategySearchMatrixChunk,
-  createStrategySearchMatrixManifest, createStrategySearchMatrixP75Source,
-  executeStrategySearchMatrixBatches, strategySearchMatrixJobs, strategySearchMatrixTimingPath,
+  createStrategySearchMatrixCommandTiming, createStrategySearchMatrixManifest,
+  createStrategySearchMatrixP75Source,
+  executeStrategySearchMatrixBatches, strategySearchMatrixChunkPath, strategySearchMatrixJobs,
+  strategySearchMatrixTimingPath,
   validateStrategySearchMatrixBatchTiming, validateStrategySearchMatrixChunk,
   validateStrategySearchMatrixCommandTiming, validateStrategySearchMatrixP75Source
 } from '../../src/sim/strategySearchMatrix';
+import {
+  createCampaignStageControlMarker, validateCampaignMatrixStage
+} from '../../src/sim/strategySearchStages';
 
 const kingdomId = 'deep-beam-tuning-002';
 beforeAll(() => registerKingdom(deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!));
@@ -137,18 +142,35 @@ describe('campaign Matrix schema and batching', () => {
   });
 
   it('constructs and deeply validates the real 50-strategy P75 source', () => {
-    const held = manifest(), jobs = strategySearchMatrixJobs(held).filter((job) => job.startSeedIndex < 75);
-    const chunks = jobs.map((job) => createStrategySearchMatrixChunk({ manifest: held, job,
+    const held = manifest(), allJobs = strategySearchMatrixJobs(held);
+    const chunks = allJobs.map((job) => createStrategySearchMatrixChunk({ manifest: held, job,
       records: records(held.strategies[job.rowIndex]!, held.strategies[job.columnIndex]!, job.seeds,
         job.rowIndex === 0 && job.columnIndex > 0 ? 0.75 : 0.5) }));
-    const source = createStrategySearchMatrixP75Source(held, chunks);
+    const p75Chunks = chunks.filter((chunk) => chunk.startSeedIndex < 75);
+    const source = createStrategySearchMatrixP75Source(held, p75Chunks);
     expect(source.cellChunkHashes).toHaveLength(3_825);
     expect(source.centeredPayoffs[0]![1]).toBe(0.5);
     expect(source.equilibrium.weights[held.strategies[0]!.id]).toBeCloseTo(1);
-    expect(validateStrategySearchMatrixP75Source(source, held, chunks)).toBe(true);
+    expect(validateStrategySearchMatrixP75Source(source, held, p75Chunks)).toBe(true);
+    const timing = createStrategySearchMatrixBatchTiming({ manifest: held, batchIndex: 0,
+      jobs: allJobs, workerCount: 4, simulationMs: 1 });
+    const command = createStrategySearchMatrixCommandTiming({ manifest: held, workerCount: 4,
+      commandWallMs: 2, batchTimingHashes: [timing.evidenceHash] });
+    const artifactHashes: Record<string, string> = {
+      'output/manifest.json': held.evidenceHash, 'output/p75.json': source.evidenceHash,
+      [`output/timing/batch-${timing.batchIdentity}.json`]: timing.evidenceHash,
+      [`output/commands/${command.evidenceHash}.json`]: command.evidenceHash
+    };
+    for (const chunk of chunks) {
+      artifactHashes[`output/${strategySearchMatrixChunkPath(allJobs[chunk.slot]!)}`] = chunk.evidenceHash;
+    }
+    const marker = createCampaignStageControlMarker({ stage: 'matrix', stageId: held.stageId,
+      status: 'complete', artifactHashes });
+    expect(validateCampaignMatrixStage({ stageId: held.stageId, manifest: held, chunks,
+      timings: [timing], commandTimings: [command], p75: source, marker })).toBe(true);
     const corrupt = structuredClone(source); corrupt.centeredPayoffs[0]![1] = 0;
     expect(validateStrategySearchMatrixP75Source(reseal(corrupt), held, chunks)).toBe(false);
-    const corruptChunks = [...chunks];
+    const corruptChunks = [...p75Chunks];
     corruptChunks[0] = structuredClone(corruptChunks[0]!); corruptChunks[0]!.records[0]!.seed += 1;
     expect(validateStrategySearchMatrixP75Source(source, held, corruptChunks)).toBe(false);
   }, 30_000);

@@ -3,8 +3,8 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { registerKingdom } from '../src/game';
-import { deepBeamSuite } from '../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
+import type { StrategySearchKingdom } from '../src/sim/strategySearchKingdoms';
 import {
   INITIAL_MATRIX_MAX_SEEDS, analyzeInitialMatrix, assertInitialMatrixOutputJsonFiles,
   createInitialMatrixChunk, createInitialMatrixManifest, expectedInitialMatrixChunkRelativePaths,
@@ -133,7 +133,7 @@ function loadChunks(root: string, manifest: InitialMatrixManifest): Map<string, 
 }
 
 async function fillMissingChunks(options: Options, manifest: InitialMatrixManifest,
-  chunks: Map<string, InitialMatrixChunk>, kingdom: (typeof deepBeamSuite.kingdoms)[number]): Promise<void> {
+  chunks: Map<string, InitialMatrixChunk>, kingdom: StrategySearchKingdom): Promise<void> {
   const missing: Array<{ row: number; column: number; start: number; count: number; file: string }> = [];
   for (let row = 0; row < manifest.strategies.length; row += 1) {
     for (let column = row; column < manifest.strategies.length; column += 1) {
@@ -195,9 +195,7 @@ function cellSeries(root: string, manifest: InitialMatrixManifest,
 }
 
 const options = parseOptions(process.argv.slice(2));
-const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === options.kingdomId);
-if (!kingdom) throw new Error(`Ordered kingdom is not registered: ${options.kingdomId}.`);
-registerKingdom(kingdom);
+const kingdom = strategySearchKingdom(options.kingdomId);
 validateOrderedArtifacts(options);
 const rankedSha256 = sha256File(options.rankedFile), reservoirSha256 = sha256File(options.reservoirFile);
 const validated = validateOrderedCalibrationSource({ kingdomId: options.kingdomId,

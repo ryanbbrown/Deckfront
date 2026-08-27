@@ -129,7 +129,7 @@ export interface RawPsroArtifactStore {
 }
 interface EvaluationOptions {
   kingdomId: string; turnLimitPerPlayer: number; actionCapPerTurn: number;
-  startingDraftEnabled: boolean; scoreOnly: true; lookId: string;
+  startingDraftEnabled: boolean; scoreOnly: true; lookId: string; deadline?: number;
 }
 type Evaluate = (candidates: readonly Strategy[], opponents: ReadonlyMap<string, Strategy>,
   schedule: MixtureSchedule, runner: PairingRunner, options: EvaluationOptions) => Promise<CandidateEvaluation[]>;
@@ -381,12 +381,15 @@ export function assembleRawPsroLook(look: RawPsroLookArtifact,
 async function evaluateField(input: { candidates: readonly CandidateRef[]; opponents: ReadonlyMap<string, Strategy>;
   fullSchedule: MixtureSchedule; suffixSchedule: MixtureSchedule; scheduleStart: number; kingdomId: string;
   runner: PairingRunner; evaluate: Evaluate; chunkSize: number; lookId: string; lookDepth: number;
-  familySize: number; alpha: number; raw?: RawPsroArtifactStore }): Promise<{
+  familySize: number; alpha: number; deadline?: number; raw?: RawPsroArtifactStore }): Promise<{
     rows: CandidateEvaluation[]; games: number; elapsedMs: number; telemetry: TelemetryAggregate;
     rawChunks: RawPsroScoreChunk[] }> {
   const rows: CandidateEvaluation[] = [], telemetry = emptyAggregate(), rawChunks: RawPsroScoreChunk[] = [];
   let games = 0, elapsedMs = 0;
   for (let start = 0; start < input.candidates.length; start += input.chunkSize) {
+    if (input.deadline !== undefined && Date.now() >= input.deadline) {
+      throw new Error('Operational deadline interrupted a threshold-racing look.');
+    }
     const field = input.candidates.slice(start, start + input.chunkSize);
     const loaded = input.raw ? await input.raw.loadChunk?.({ lookId: input.lookId,
       candidateStart: start, candidateEnd: start + field.length }) : undefined;
@@ -416,7 +419,8 @@ async function evaluateField(input: { candidates: readonly CandidateRef[]; oppon
     const started = performance.now();
     const evaluated = await input.evaluate(field.map((entry) => entry.strategy), input.opponents,
       input.suffixSchedule, input.runner, { kingdomId: input.kingdomId, turnLimitPerPlayer: 30,
-        actionCapPerTurn: 200, startingDraftEnabled: false, scoreOnly: true, lookId: input.lookId });
+        actionCapPerTurn: 200, startingDraftEnabled: false, scoreOnly: true, lookId: input.lookId,
+      ...(input.deadline === undefined ? {} : { deadline: input.deadline }) });
     elapsedMs += performance.now() - started;
     if (evaluated.length !== field.length) throw new Error('Candidate evaluation returned an incomplete field.');
     for (let index = 0; index < evaluated.length; index += 1) {
@@ -460,7 +464,7 @@ async function sealLook(raw: RawPsroArtifactStore | undefined, input: { lookId: 
 export async function runThresholdRace(input: { candidates: readonly CandidateRef[];
   opponents: ReadonlyMap<string, Strategy>; schedule: MixtureSchedule; kingdomId: string; runner: PairingRunner;
   depths?: readonly number[]; evaluate?: Evaluate; confidence?: ConfidenceRunner; chunkSize?: number;
-  lookIdPrefix?: string; raw?: RawPsroArtifactStore }): Promise<ThresholdRaceResult> {
+  lookIdPrefix?: string; deadline?: number; raw?: RawPsroArtifactStore }): Promise<ThresholdRaceResult> {
   const depths = input.depths ?? SCREEN_DEPTHS;
   if (!depths.length || depths[0] !== 8 || depths.some((depth, index) => index > 0
     && depth !== depths[index - 1]! * 2) || input.schedule.blocks.length < depths.at(-1)!) {
@@ -479,7 +483,8 @@ export async function runThresholdRace(input: { candidates: readonly CandidateRe
       fullSchedule: input.schedule, suffixSchedule: scheduleSlice(input.schedule, previous, depth),
       scheduleStart: previous, kingdomId: input.kingdomId, runner: input.runner, evaluate,
       chunkSize: input.chunkSize ?? DEFAULT_PSRO_EVALUATION_CHUNK, lookId, lookDepth: depth,
-      familySize: input.candidates.length, alpha: SCREEN_ALPHA, ...(input.raw && { raw: input.raw }) });
+      familySize: input.candidates.length, alpha: SCREEN_ALPHA,
+      ...(input.deadline === undefined ? {} : { deadline: input.deadline }), ...(input.raw && { raw: input.raw }) });
     games += evaluated.games; elapsedMs += evaluated.elapsedMs; mergeAggregate(telemetry, evaluated.telemetry);
     for (const row of evaluated.rows) scores.get(row.strategy.id)!.push(...row.blockScores);
     const rawLook = await sealLook(input.raw, { lookId, lookDepth: depth, familySize: input.candidates.length,
@@ -505,7 +510,7 @@ export async function runThresholdRace(input: { candidates: readonly CandidateRe
 export async function runConfirmationRace(input: { candidates: readonly CandidateRef[];
   opponents: ReadonlyMap<string, Strategy>; schedule: MixtureSchedule; kingdomId: string; runner: PairingRunner;
   looks?: readonly number[]; evaluate?: Evaluate; confidence?: ConfidenceRunner; chunkSize?: number;
-  lookIdPrefix?: string; raw?: RawPsroArtifactStore }): Promise<ConfirmationRaceResult> {
+  lookIdPrefix?: string; deadline?: number; raw?: RawPsroArtifactStore }): Promise<ConfirmationRaceResult> {
   if (!input.candidates.length) throw new Error('Confirmation needs a non-empty family.');
   const looksInput = input.looks ?? CONFIRMATION_LOOKS;
   if (!looksInput.length || input.schedule.blocks.length < looksInput.at(-1)!
@@ -526,7 +531,8 @@ export async function runConfirmationRace(input: { candidates: readonly Candidat
       fullSchedule: input.schedule, suffixSchedule: scheduleSlice(input.schedule, previous, blocks),
       scheduleStart: previous, kingdomId: input.kingdomId, runner: input.runner, evaluate,
       chunkSize: input.chunkSize ?? DEFAULT_PSRO_EVALUATION_CHUNK, lookId, lookDepth: blocks,
-      familySize, alpha: alphaPerCandidate, ...(input.raw && { raw: input.raw }) });
+      familySize, alpha: alphaPerCandidate,
+      ...(input.deadline === undefined ? {} : { deadline: input.deadline }), ...(input.raw && { raw: input.raw }) });
     games += evaluated.games; elapsedMs += evaluated.elapsedMs; mergeAggregate(telemetry, evaluated.telemetry);
     for (const row of evaluated.rows) scores.get(row.strategy.id)!.push(...row.blockScores);
     const rawLook = await sealLook(input.raw, { lookId, lookDepth: blocks, familySize,

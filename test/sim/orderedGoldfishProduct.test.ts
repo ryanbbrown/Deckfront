@@ -26,6 +26,9 @@ import {
 } from '../../src/sim/orderedGoldfishBenchmark';
 import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
 import { validateOrderedCalibrationSourceForCounts } from '../../src/sim/initialMatrixCalibration';
+import {
+  createCampaignStageControlMarker, validateCampaignGoldfishStage
+} from '../../src/sim/strategySearchStages';
 import { canonicalStrategy, stableHash } from '../../src/sim/strategy';
 
 const kingdom009 = deepBeamSuite.kingdoms.find((entry) => entry.id === ORDERED_PRODUCT_KINGDOM)!;
@@ -150,6 +153,13 @@ describe('ordered goldfish product correction', () => {
     expect(reservoir).toMatchObject({ schemaVersion: 2,
       productIdentityHash: artifact.productIdentity!.identityHash, reservoirCount: 3 });
     expect(validateOrderedProductReservoir(reservoir, artifact, rankedSha256)).toBe(true);
+    const stageId = 'c'.repeat(64);
+    const marker = createCampaignStageControlMarker({ stage: 'goldfish', stageId, status: 'complete',
+      artifactHashes: { 'output/ranked.json': rankedSha256, 'output/reservoir.json': reservoirSha256 } });
+    expect(validateCampaignGoldfishStage({ stageId, ranked: artifact, rankedSha256,
+      reservoir, reservoirSha256, marker })).toBe(true);
+    expect(validateCampaignGoldfishStage({ stageId, ranked: artifact, rankedSha256,
+      reservoir, reservoirSha256, marker: { ...marker, extra: true } })).toBe(false);
     const validated = validateOrderedCalibrationSourceForCounts({ kingdomId: artifact.config.kingdomId,
       ranked: { ...artifact, recordCount: artifact.records.length }, reservoir,
       rankedSha256, reservoirSha256 }, { retainedCount: 8, reservoirCount: 3, strategyCount: 3 });

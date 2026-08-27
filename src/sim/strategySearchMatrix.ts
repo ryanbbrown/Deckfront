@@ -288,12 +288,25 @@ export async function executeStrategySearchMatrixBatches(input: {
     await input.checkpoint(event, batchChunks, timing);
     chunks.push(...batchChunks); timings.push(timing);
   }
-  const timingBase = { schemaVersion: 3 as const,
+  return { chunks, timings, commandTiming: createStrategySearchMatrixCommandTiming({ manifest: input.manifest,
+    workerCount: input.workerCount, commandWallMs: performance.now() - commandStarted,
+    batchTimingHashes: timings.map((timing) => timing.evidenceHash) }) };
+}
+
+export function createStrategySearchMatrixCommandTiming(input: { manifest: StrategySearchMatrixManifest;
+  workerCount: number; commandWallMs: number; batchTimingHashes: readonly string[]
+}): StrategySearchMatrixCommandTiming {
+  if (!validateStrategySearchMatrixManifest(input.manifest) || !Number.isSafeInteger(input.workerCount)
+    || input.workerCount < 1 || !Number.isFinite(input.commandWallMs) || input.commandWallMs < 0
+    || !input.batchTimingHashes.length || new Set(input.batchTimingHashes).size !== input.batchTimingHashes.length
+    || input.batchTimingHashes.some((digest) => !sha(digest))) {
+    throw new Error('Campaign Matrix command timing input is invalid.');
+  }
+  const base = { schemaVersion: 3 as const,
     experiment: 'strategy-search-campaign-matrix-command-timing' as const,
     manifestHash: input.manifest.evidenceHash, workerCount: input.workerCount,
-    commandWallMs: performance.now() - commandStarted,
-    batchTimingHashes: timings.map((timing) => timing.evidenceHash), evidenceHash: '' };
-  return { chunks, timings, commandTiming: { ...timingBase, evidenceHash: unsigned(timingBase) } };
+    commandWallMs: input.commandWallMs, batchTimingHashes: [...input.batchTimingHashes], evidenceHash: '' };
+  return { ...base, evidenceHash: unsigned(base) };
 }
 
 export function validateStrategySearchMatrixCommandTiming(value: unknown,

@@ -3,6 +3,7 @@ import { registerKingdom } from '../../src/game';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
 import { deriveCurrentOrderedProductIdentity } from '../../src/sim/orderedGoldfishProduct';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import {
   claimCampaignController, contentIndexDestination, createCampaignContentIndex, createCampaignState,
   deriveLaunchAuthorizationToken, deriveSourceImageIdentity, mutateCampaignState,
@@ -52,6 +53,16 @@ describe('strategy-search campaign identity and state', () => {
       skeletonCount: 240_240, schemaVersion: 2 });
     expect(identity.cardIds).toHaveLength(14);
     expect(identity.identityHash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('accepts an explicitly supplied registered balance-suite kingdom without hard-coded IDs', () => {
+    const kingdomId = 'balance-tuning-005'; strategySearchKingdom(kingdomId);
+    const value = fixture(); value.evidence.kingdomIds = [kingdomId];
+    value.evidence.kingdoms = { [kingdomId]: { ruleFingerprint: nativeRuleFingerprint(kingdomId, 30, 200),
+      goldfishSeeds: [101, 102, 103, 104] } };
+    const parsed = parseStrategySearchCampaignManifest(value);
+    expect(parsed.manifest.evidence.kingdomIds).toEqual([kingdomId]);
+    expect(parsed.stageIds[kingdomId]?.goldfish).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('fails before paid work for dirty or mismatched source-image bytes', () => {

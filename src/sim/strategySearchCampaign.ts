@@ -1,8 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
 import { z } from 'zod';
-import { registerKingdom } from '../game';
-import { deepBeamSuite } from './deepBeamSuite';
+import { strategySearchKingdom, strategySearchKingdoms } from './strategySearchKingdoms';
 import { nativeRuleFingerprint } from './nativeGoldfishProtocol';
 import {
   deriveCurrentOrderedProductIdentity, ORDERED_PRODUCT_SPACE_COUNT
@@ -189,11 +188,10 @@ export function parseStrategySearchCampaignManifest(value: unknown): ParsedCampa
     || manifest.evidence.kingdomIds.some((id) => !manifest.evidence.kingdoms[id])) {
     throw new Error('Campaign evidence must map exactly four Goldfish seeds to every requested kingdom.');
   }
-  const registered = new Map(deepBeamSuite.kingdoms.map((kingdom) => [kingdom.id, kingdom]));
+  const registered = new Set(strategySearchKingdoms.map((kingdom) => kingdom.id));
   for (const kingdomId of manifest.evidence.kingdomIds) {
-    const kingdom = registered.get(kingdomId);
-    if (!kingdom) throw new Error(`Unknown campaign kingdom ${kingdomId}.`);
-    registerKingdom(kingdom);
+    if (!registered.has(kingdomId)) throw new Error(`Unknown campaign kingdom ${kingdomId}.`);
+    strategySearchKingdom(kingdomId);
     const evidence = manifest.evidence.kingdoms[kingdomId]!;
     const expectedRules = nativeRuleFingerprint(kingdomId, 30, 200);
     if (evidence.ruleFingerprint !== expectedRules) throw new Error(`Rule fingerprint differs for ${kingdomId}.`);

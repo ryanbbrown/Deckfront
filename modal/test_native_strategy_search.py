@@ -1,3 +1,5 @@
+import hashlib
+import inspect
 import json
 import pathlib
 import subprocess
@@ -370,6 +372,85 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                 with self.assertRaises(OSError):
                     launcher._atomic_json(target, {"complete": False})
             self.assertEqual(json.loads(target.read_text()), {"complete": True})
+
+    def test_corrupt_campaign_evidence_is_preserved_by_hash_before_retry(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory); source = root / "stage" / "shard.json"
+            source.parent.mkdir(); source.write_text("corrupt raw evidence")
+            destination = launcher._preserve_corrupt_file(source, root / "control")
+            self.assertFalse(source.exists()); self.assertTrue(destination.exists())
+            self.assertEqual(destination.read_text(), "corrupt raw evidence")
+            self.assertIn(hashlib.sha256(b"corrupt raw evidence").hexdigest(), destination.name)
+
+    def test_campaign_source_identity_recomputes_exact_image_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            (root / "src").mkdir(); (root / "src" / "a.ts").write_text("export {}\n")
+            content = (root / "src" / "a.ts").read_bytes()
+            files = [{"path": "src/a.ts", "bytes": len(content),
+                      "sha256": hashlib.sha256(content).hexdigest()}]
+            digest = hashlib.sha256(
+                f"src/a.ts\0{len(content)}\0{files[0]['sha256']}\n".encode()).hexdigest()
+            self.assertEqual(launcher._campaign_source_digest(files, root), digest)
+            files[0]["bytes"] += 1
+            with self.assertRaisesRegex(RuntimeError, "source-image file differs"):
+                launcher._campaign_source_digest(files, root)
+
+    def test_whole_stage_keeps_one_process_and_commits_each_checkpoint_event(self):
+        class HeldVolume:
+            def __init__(self): self.commits = 0
+            def commit(self): self.commits += 1
+        class Pipe:
+            def __init__(self, lines): self.lines = lines
+            def __iter__(self): return iter(self.lines)
+            def read(self): return ""
+        class Process:
+            def __init__(self):
+                self.stdout = Pipe([json.dumps({"type": launcher.CAMPAIGN_CHECKPOINT_EVENT,
+                    "stage": "matrix", "eventHash": "a" * 64}) + "\n",
+                    json.dumps({"type": launcher.CAMPAIGN_STAGE_STOP_EVENT,
+                    "stage": "matrix", "status": "complete", "markerHash": "b" * 64}) + "\n"])
+                self.stderr = Pipe([]); self.terminated = False
+            def wait(self): return 0
+            def terminate(self): self.terminated = True
+        held_volume = HeldVolume(); process = Process()
+        config = {"stage": "matrix", "controller_fence": 2, "source_image": {},
+            "timeout_seconds": 30, "shutdown_margin_seconds": 5, "campaign_root": "campaign/root",
+            "manifest_path": "matrix/manifest.json", "output_path": "matrix/output",
+            "control_path": "matrix/control", "threads": 4, "worker_batch_size": 4,
+            "stage_id": "c" * 64}
+        with patch.object(launcher, "volume", held_volume), \
+                patch.object(launcher, "verify_campaign_source_image"), \
+                patch.object(launcher, "_campaign_stage_command", return_value=["trusted"]), \
+                patch.object(launcher.subprocess, "Popen", return_value=process) as spawn:
+            result = launcher._run_campaign_stage("matrix", config)
+        self.assertEqual(result["status"], "complete")
+        self.assertEqual(result["checkpointCommits"], 1)
+        self.assertEqual(held_volume.commits, 2)
+        spawn.assert_called_once()
+
+    def test_campaign_call_observation_reattaches_and_isolates_failures(self):
+        class Call:
+            def __init__(self, result=None, error=None): self.result, self.error = result, error
+            def get(self, timeout):
+                if self.error: raise self.error
+                return self.result
+        calls = {"call-ok": Call({"status": "complete"}), "call-bad": Call(error=RuntimeError("failed"))}
+        checkpoint = {"tasks": [
+            {"taskId": "ok", "status": "active", "callId": "call-ok"},
+            {"taskId": "bad", "status": "active", "callId": "call-bad"}]}
+        configs = {"ok": {"stage": "matrix"}, "bad": {"stage": "psro"}}
+        with patch.object(launcher.modal.FunctionCall, "from_id", side_effect=lambda call_id: calls[call_id]):
+            observations = launcher._campaign_call_observations(checkpoint, configs)
+        self.assertEqual(observations[0], {"callId": "call-ok", "state": "succeeded",
+                                                   "artifactStatus": "complete"})
+        self.assertEqual(observations[1]["state"], "failed")
+        self.assertIn("RuntimeError", observations[1]["reason"])
+
+    def test_campaign_controller_has_no_cost_ledger_gate(self):
+        source = inspect.getsource(launcher.campaign_controller.get_raw_f())
+        for forbidden in ["reserve_cost", "LEDGER_PATH", "GROSS_BUDGET_USD", "max_cost_usd"]:
+            self.assertNotIn(forbidden, source)
 
     def test_result_validation_rejects_partial_corrupt_and_stale_checkpoints(self):
         spec = {"run_id": "run", "kingdom": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM,

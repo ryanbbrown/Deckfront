@@ -55,6 +55,9 @@ COMPETITIVE_RUN_CAP_USD = 2.0
 COMPETITIVE_TARGET_BLOCKS = 65_536
 COMPETITIVE_ARTIFACT_MAGIC = b"HPS1"
 RESULT_SCHEMA_VERSION = 1
+CAMPAIGN_CHECKPOINT_EVENT = "strategy-search-checkpoint"
+CAMPAIGN_STAGE_STOP_EVENT = "strategy-search-stage-stop"
+CAMPAIGN_STAGES = {"goldfish", "matrix", "psro"}
 LEDGER_PATH = pathlib.Path.home() / ".hexdeck-modal-cost-ledger.json"
 
 app = modal.App("hexdeck-native-strategy-search")
@@ -433,6 +436,7 @@ def _ordered_product_checkpoint_path(config: dict[str, Any], stage: str, shard_i
 
 def _ordered_product_cli(config: dict[str, Any]) -> list[str]:
     return ["npx", "tsx", "scripts/ordered_goldfish_product.ts",
+        "--schema-version", str(config.get("schema_version", 1)),
         "--kingdom", config["kingdom"], "--run-id", config["run_id"],
         "--build-version", config["build_version"],
         "--rule-fingerprint", config["rule_fingerprint"], "--scorer-version", SCORER_VERSION,
@@ -457,6 +461,17 @@ def _valid_ordered_product_checkpoint(path: pathlib.Path, spec: dict[str, Any], 
         return False
 
 
+def _preserve_corrupt_file(path: pathlib.Path, control_root: pathlib.Path) -> pathlib.Path:
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    destination = control_root / "corrupt" / f"{path.name}.{digest}"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    if not destination.exists():
+        os.replace(path, destination)
+    else:
+        path.unlink()
+    return destination
+
+
 def _run_rust(request_path: pathlib.Path, response_path: pathlib.Path,
               threads: int, cpu: int, timeout_seconds: int) -> None:
     executable = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
@@ -470,11 +485,16 @@ def _run_rust(request_path: pathlib.Path, response_path: pathlib.Path,
 @modal.concurrent(max_inputs=1)
 def ordered_product_stage_one(spec: dict[str, Any]) -> dict[str, Any]:
     volume.reload()
+    if "source_image" in spec:
+        verify_campaign_source_image(spec["source_image"])
     output = _ordered_product_checkpoint_path(spec, "stage-one", spec["shard_id"])
     if _valid_ordered_product_checkpoint(output, spec, "stage-one"):
         held = json.loads(output.read_text())
         return {"status": "success", "stage": "stage-one", "shardId": spec["shard_id"],
                 "contentDigest": held["contentDigest"], "reused": True}
+    for corrupt in [output, pathlib.Path(f"{output}.records.jsonl")]:
+        if corrupt.exists():
+            _preserve_corrupt_file(corrupt, output.parent.parent / "control")
     started = time.monotonic()
     with tempfile.TemporaryDirectory() as directory:
         request = pathlib.Path(directory) / "request.jsonl"
@@ -482,6 +502,7 @@ def ordered_product_stage_one(spec: dict[str, Any]) -> dict[str, Any]:
         metadata = pathlib.Path(directory) / "metadata.json"
         generation_timeout, scoring_timeout = ordered_subprocess_timeouts(spec["timeout_seconds"])
         subprocess.run(["npx", "tsx", "scripts/native_ordered_shard_input.ts",
+            "--schema-version", str(spec.get("schema_version", 1)),
             "--kingdom", spec["kingdom"],
             "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"]),
             "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]),
@@ -509,11 +530,16 @@ def ordered_product_stage_one(spec: dict[str, Any]) -> dict[str, Any]:
 @modal.concurrent(max_inputs=1)
 def ordered_product_stage_two(spec: dict[str, Any]) -> dict[str, Any]:
     volume.reload()
+    if "source_image" in spec:
+        verify_campaign_source_image(spec["source_image"])
     output = _ordered_product_checkpoint_path(spec, "stage-two", spec["shard_id"])
     if _valid_ordered_product_checkpoint(output, spec, "stage-two"):
         held = json.loads(output.read_text())
         return {"status": "success", "stage": "stage-two", "shardId": spec["shard_id"],
                 "contentDigest": held["contentDigest"], "reused": True}
+    for corrupt in [output, pathlib.Path(f"{output}.records.jsonl")]:
+        if corrupt.exists():
+            _preserve_corrupt_file(corrupt, output.parent.parent / "control")
     root = pathlib.Path("/results") / spec["run_id"]
     cohort = root / "stage-one-cohort.json"
     started = time.monotonic()
@@ -996,6 +1022,349 @@ def competitive_controller(config: dict[str, Any]) -> dict[str, Any]:
     _atomic_json(path, manifest)
     volume.commit()
     return manifest
+
+
+def _campaign_root(relative: str) -> pathlib.Path:
+    if not relative or relative.startswith("/") or "\\" in relative \
+            or any(part in {"", ".", ".."} for part in relative.split("/")):
+        raise ValueError("campaign root must be a normalized relative Volume path")
+    return pathlib.Path("/results") / relative
+
+
+def _campaign_source_digest(files: list[dict[str, Any]],
+                            workspace: pathlib.Path = pathlib.Path("/workspace")) -> str:
+    lines = []
+    seen = set()
+    for entry in sorted(files, key=lambda item: item["path"]):
+        relative = entry["path"]
+        if relative in seen or relative.startswith("/") or "\\" in relative \
+                or any(part in {"", ".", ".."} for part in relative.split("/")):
+            raise ValueError("campaign source-image path is invalid or duplicated")
+        seen.add(relative)
+        source = workspace / relative
+        content = source.read_bytes()
+        digest = hashlib.sha256(content).hexdigest()
+        if len(content) != entry["bytes"] or digest != entry["sha256"]:
+            raise RuntimeError(f"campaign source-image file differs: {relative}")
+        lines.append(f"{relative}\0{len(content)}\0{digest}\n")
+    return hashlib.sha256("".join(lines).encode()).hexdigest()
+
+
+def verify_campaign_source_image(identity: dict[str, Any]) -> None:
+    if set(identity) != {"gitVersion", "digest", "files"} \
+            or not re.fullmatch(r"[0-9a-f]{64}", identity["digest"]):
+        raise ValueError("campaign source-image identity is malformed")
+    if _campaign_source_digest(identity["files"]) != identity["digest"]:
+        raise RuntimeError("campaign source-image digest differs inside the Modal image")
+
+
+def _campaign_node(command: list[str], request: dict[str, Any], timeout: int = 120) -> Any:
+    completed = _run_checked(command, "campaign evidence operation", cwd="/workspace",
+        input=json.dumps(request), text=True, capture_output=True, timeout=timeout)
+    return json.loads(completed.stdout)
+
+
+def _campaign_state_file(campaign_root: str) -> pathlib.Path:
+    return _campaign_root(campaign_root) / "state.json"
+
+
+@app.function(image=image, cpu=1, memory=1024, timeout=300, max_containers=1,
+              volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
+def campaign_state_mutator(request: dict[str, Any]) -> dict[str, Any]:
+    volume.reload()
+    if set(request) != {"campaign_root", "operation", "payload"}:
+        raise ValueError("campaign state mutation request has unexpected fields")
+    state_file = _campaign_state_file(request["campaign_root"])
+    if not state_file.exists():
+        raise RuntimeError("campaign state does not exist")
+    payload = {**request["payload"], "state": json.loads(state_file.read_text())}
+    state = _campaign_node(["npx", "tsx", "scripts/strategy_search_campaign_state.ts",
+        request["operation"]], payload)
+    _atomic_json(state_file, state)
+    volume.commit()
+    return state
+
+
+def _campaign_stage_command(stage: str, config: dict[str, Any], shutdown_at_ms: int) -> list[str]:
+    root = _campaign_root(config["campaign_root"])
+    if stage == "matrix":
+        return ["npx", "tsx", "scripts/strategy_search_campaign_matrix.ts",
+            "--manifest", str(root / config["manifest_path"]),
+            "--out", str(root / config["output_path"]),
+            "--control", str(root / config["control_path"]),
+            "--workers", str(config["threads"]), "--jobs-per-batch", str(config["worker_batch_size"]),
+            "--shutdown-at-ms", str(shutdown_at_ms)]
+    if stage == "psro":
+        return ["npx", "tsx", "scripts/strategy_search_campaign_psro.ts",
+            "--config", str(root / config["stage_config_path"]),
+            "--shutdown-at-ms", str(shutdown_at_ms)]
+    raise ValueError(f"unsupported whole campaign stage {stage}")
+
+
+def _run_campaign_stage(stage: str, config: dict[str, Any]) -> dict[str, Any]:
+    if stage not in {"matrix", "psro"} or config.get("stage") != stage \
+            or not isinstance(config.get("controller_fence"), int) or config["controller_fence"] < 1:
+        raise ValueError("campaign whole-stage configuration is malformed")
+    verify_campaign_source_image(config["source_image"])
+    timeout_seconds = int(config["timeout_seconds"])
+    shutdown_margin_seconds = int(config["shutdown_margin_seconds"])
+    if timeout_seconds < 2 or shutdown_margin_seconds < 1 or shutdown_margin_seconds >= timeout_seconds:
+        raise ValueError("campaign stage shutdown margin is invalid")
+    shutdown_at_ms = int((time.time() + timeout_seconds - shutdown_margin_seconds) * 1000)
+    command = _campaign_stage_command(stage, config, shutdown_at_ms)
+    process = subprocess.Popen(command, cwd="/workspace", text=True, stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE, bufsize=1)
+    checkpoint_count = 0
+    terminal = None
+    assert process.stdout is not None
+    for line in process.stdout:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if event.get("type") == CAMPAIGN_CHECKPOINT_EVENT:
+            if event.get("stage") != stage or not re.fullmatch(r"[0-9a-f]{64}", event.get("eventHash", "")):
+                process.terminate()
+                raise RuntimeError("campaign stage emitted a stale or malformed checkpoint event")
+            volume.commit()
+            checkpoint_count += 1
+        elif event.get("type") == CAMPAIGN_STAGE_STOP_EVENT:
+            if event.get("stage") != stage or event.get("status") not in {
+                    "complete", "incomplete", "terminal-incomplete"} \
+                    or not re.fullmatch(r"[0-9a-f]{64}", event.get("markerHash", "")):
+                process.terminate()
+                raise RuntimeError("campaign stage emitted a malformed stop event")
+            terminal = event
+    return_code = process.wait()
+    stderr = process.stderr.read() if process.stderr else ""
+    if terminal is None:
+        raise RuntimeError(f"campaign {stage} process stopped without a control marker: {stderr[-2000:]}")
+    if terminal["status"] == "complete" and return_code != 0:
+        raise RuntimeError(f"campaign {stage} claimed completion after process failure: {stderr[-2000:]}")
+    volume.commit()
+    return {"status": terminal["status"], "stage": stage, "stageId": config["stage_id"],
+        "controllerFence": config["controller_fence"], "markerHash": terminal["markerHash"],
+        "checkpointCommits": checkpoint_count,
+        "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname())}
+
+
+@app.function(image=image, cpu=4, memory=8192, timeout=86400, retries=0, volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
+def campaign_matrix_stage(config: dict[str, Any]) -> dict[str, Any]:
+    volume.reload()
+    return _run_campaign_stage("matrix", config)
+
+
+@app.function(image=image, cpu=4, memory=8192, timeout=86400, retries=0, volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
+def campaign_psro_stage(config: dict[str, Any]) -> dict[str, Any]:
+    volume.reload()
+    return _run_campaign_stage("psro", config)
+
+
+def _campaign_scheduler_file(campaign_root: str) -> pathlib.Path:
+    return _campaign_root(campaign_root) / "scheduler.json"
+
+
+def _campaign_scheduler_operation(operation: str, checkpoint: dict[str, Any], **values: Any) -> Any:
+    return _campaign_node(["npx", "tsx", "scripts/strategy_search_campaign_scheduler.ts", operation],
+        {"checkpoint": checkpoint, **values})
+
+
+def _campaign_marker(stage: str, stage_id: str, status: str,
+                     artifact_hashes: dict[str, str], reason: str | None = None) -> dict[str, Any]:
+    request = {"stage": stage, "stageId": stage_id, "status": status,
+        "artifactHashes": artifact_hashes}
+    if reason is not None:
+        request["reason"] = reason
+    return _campaign_node(["npx", "tsx", "scripts/strategy_search_campaign_stages.ts"], request)
+
+
+@app.function(image=image, cpu=1, memory=16384, timeout=7200, retries=0, volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
+def campaign_goldfish_finalize(config: dict[str, Any]) -> dict[str, Any]:
+    volume.reload()
+    verify_campaign_source_image(config["source_image"])
+    root = _campaign_root(config["campaign_root"])
+    stage_root = root / config["stage_path"]
+    stage_root.mkdir(parents=True, exist_ok=True)
+    mode = config["ordered_stage"]
+    node_environment = {**os.environ, "NODE_OPTIONS": "--max-old-space-size=12288"}
+    if mode == "merge-stage-one":
+        manifest = stage_root / "stage-one-manifest.json"
+        _atomic_json(manifest, [str(root / held) for held in config["checkpoint_paths"]])
+        cohort = stage_root / "stage-one-cohort.json"
+        command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "merge-stage-one",
+            "--manifest", str(manifest), "--out", str(cohort)] + _ordered_product_cli(config)[3:]
+        _run_checked(command, "campaign Goldfish stage-one merge", cwd="/workspace",
+            env=node_environment, text=True, capture_output=True, timeout=config["timeout_seconds"])
+        validate = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "validate-cohort",
+            "--cohort", str(cohort)] + _ordered_product_cli(config)[3:]
+        _run_checked(validate, "campaign Goldfish cohort validation", cwd="/workspace",
+            env=node_environment, text=True, capture_output=True, timeout=config["timeout_seconds"])
+        volume.commit()
+        return {"status": "success", "stage": "goldfish", "operation": mode,
+            "controllerFence": config["controller_fence"], "cohort": str(cohort)}
+    if mode != "finalize":
+        raise ValueError(f"unknown campaign Goldfish finalization operation {mode}")
+    manifest = stage_root / "stage-two-manifest.json"
+    _atomic_json(manifest, [str(root / held) for held in config["checkpoint_paths"]])
+    cohort = stage_root / "stage-one-cohort.json"
+    ranked = stage_root / "output" / "ranked.json"
+    reservoir = stage_root / "output" / "reservoir.json"
+    finalize = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "finalize",
+        "--cohort", str(cohort), "--manifest", str(manifest), "--out", str(ranked)] \
+        + _ordered_product_cli(config)[3:]
+    _run_checked(finalize, "campaign Goldfish finalize", cwd="/workspace", env=node_environment,
+        text=True, capture_output=True, timeout=config["timeout_seconds"])
+    build = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "build-reservoir",
+        "--artifact", str(ranked), "--out", str(reservoir)] + _ordered_product_cli(config)[3:]
+    _run_checked(build, "campaign Goldfish reservoir build", cwd="/workspace", env=node_environment,
+        text=True, capture_output=True, timeout=config["timeout_seconds"])
+    validate = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "validate-reservoir",
+        "--artifact", str(ranked), "--reservoir", str(reservoir)] + _ordered_product_cli(config)[3:]
+    _run_checked(validate, "campaign Goldfish deep validation", cwd="/workspace", env=node_environment,
+        text=True, capture_output=True, timeout=config["timeout_seconds"])
+    ranked_digest = ranked.with_suffix(".json.sha256").read_text().split()[0]
+    reservoir_digest = reservoir.with_suffix(".json.sha256").read_text().split()[0]
+    marker = _campaign_marker("goldfish", config["stage_id"], "complete",
+        {"output/ranked.json": ranked_digest, "output/reservoir.json": reservoir_digest})
+    control = stage_root / "control" / "complete.json"
+    _atomic_json(control, marker)
+    matrix_manifest = root / config["matrix_manifest_path"]
+    prepare_matrix = ["npx", "tsx", "scripts/strategy_search_campaign_matrix_manifest.ts",
+        "--kingdom", config["kingdom"], "--ranked", str(ranked), "--reservoir", str(reservoir),
+        "--stage-id", config["matrix_stage_id"], "--out", str(matrix_manifest)]
+    _run_checked(prepare_matrix, "campaign Matrix manifest preparation", cwd="/workspace",
+        env=node_environment, text=True, capture_output=True, timeout=300)
+    volume.commit()
+    return {"status": "success", "stage": "goldfish", "operation": mode,
+        "controllerFence": config["controller_fence"], "markerHash": marker["markerHash"],
+        "rankedSha256": ranked_digest, "reservoirSha256": reservoir_digest}
+
+
+def _campaign_function(task: dict[str, Any]) -> Any:
+    if task["stage"] == "matrix":
+        return campaign_matrix_stage
+    if task["stage"] == "psro":
+        return campaign_psro_stage
+    if task["stage"] == "goldfish" and task["config"]["ordered_stage"] == "stage-one":
+        return ordered_product_stage_one
+    if task["stage"] == "goldfish" and task["config"]["ordered_stage"] == "stage-two":
+        return ordered_product_stage_two
+    if task["stage"] == "goldfish" and task["config"]["ordered_stage"] in {"merge-stage-one", "finalize"}:
+        return campaign_goldfish_finalize
+    raise ValueError(f"campaign scheduler task {task['taskId']} has no trusted entrypoint")
+
+
+def _campaign_call_observations(checkpoint: dict[str, Any],
+                                task_configs: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    observations = []
+    for task in checkpoint["tasks"]:
+        if task["status"] != "active":
+            continue
+        try:
+            result = modal.FunctionCall.from_id(task["callId"]).get(timeout=0)
+        except ModalTimeoutError:
+            observations.append({"callId": task["callId"], "state": "running"})
+        except Exception as error:
+            observations.append({"callId": task["callId"], "state": "failed",
+                "reason": f"{type(error).__name__}: {error}"})
+        else:
+            status = result.get("status") if isinstance(result, dict) else None
+            artifact_status = "complete" if task_configs[task["taskId"]]["stage"] == "goldfish" \
+                and status == "success" else status if status in {
+                    "complete", "incomplete", "terminal-incomplete"} else "incomplete"
+            observations.append({"callId": task["callId"], "state": "succeeded",
+                "artifactStatus": artifact_status})
+    return observations
+
+
+def _write_campaign_scheduler(path: pathlib.Path, checkpoint: dict[str, Any]) -> None:
+    _atomic_json(path, checkpoint)
+    volume.commit()
+
+
+@app.function(image=image, cpu=1, memory=2048, timeout=86400, retries=0, volumes={"/results": volume})
+def campaign_controller(config: dict[str, Any]) -> dict[str, Any]:
+    volume.reload()
+    initial_claim = {**config["claim"], "nowMs": int(time.time() * 1000)}
+    state = campaign_state_mutator.remote({"campaign_root": config["campaign_root"], "operation": "claim",
+        "payload": initial_claim})
+    fence = state["fencingToken"]
+    if config["lease_renew_interval_seconds"] <= 0 \
+            or config["lease_renew_interval_seconds"] * 2000 > config["claim"]["leaseMs"]:
+        raise ValueError("campaign lease renewal interval must not exceed half the lease")
+    scheduler_path = _campaign_scheduler_file(config["campaign_root"])
+    checkpoint = json.loads(scheduler_path.read_text())
+    if checkpoint["controllerFence"] != fence or checkpoint["evidenceHash"] != config["evidence_hash"]:
+        raise RuntimeError("campaign scheduler checkpoint is stale or fenced out")
+    task_configs = {entry["task_id"]: entry for entry in config["tasks"]}
+    deadline = time.monotonic() + config["controller_timeout_seconds"] - config["shutdown_margin_seconds"]
+    renewed_at = time.monotonic()
+    while True:
+        volume.reload()
+        if time.monotonic() - renewed_at >= config["lease_renew_interval_seconds"]:
+            state = campaign_state_mutator.remote({"campaign_root": config["campaign_root"],
+                "operation": "claim", "payload": {"expectedRevision": state["revision"],
+                    "ownerId": config["claim"]["ownerId"], "nowMs": int(time.time() * 1000),
+                    "leaseMs": config["claim"]["leaseMs"]}})
+            if state["fencingToken"] != fence:
+                raise RuntimeError("campaign controller lost its fencing token during lease renewal")
+            renewed_at = time.monotonic()
+        resumable = [{"kind": "ready", "taskId": task["taskId"]}
+                     for task in checkpoint["tasks"] if task["status"] == "incomplete"]
+        if resumable:
+            checkpoint = _campaign_scheduler_operation("apply", checkpoint, updates=resumable)
+            _write_campaign_scheduler(scheduler_path, checkpoint)
+        observations = _campaign_call_observations(checkpoint, task_configs)
+        stop_launching = time.monotonic() >= deadline
+        actions = _campaign_scheduler_operation("plan", checkpoint, observations=observations,
+            limits=config["limits"], stopLaunching=stop_launching)
+        updates = []
+        for action in actions:
+            if action["kind"] == "reattach":
+                continue
+            if action["kind"] == "complete":
+                updates.append({"kind": "completed", "taskId": action["taskId"], "callId": action["callId"]})
+            elif action["kind"] in {"incomplete", "terminal-incomplete"}:
+                updates.append({"kind": action["kind"], "taskId": action["taskId"],
+                    "callId": action["callId"]})
+            elif action["kind"] == "launch":
+                campaign_state_mutator.remote({"campaign_root": config["campaign_root"],
+                    "operation": "assert-fence", "payload": {"ownerId": config["claim"]["ownerId"],
+                    "fencingToken": fence}})
+                held = task_configs[action["taskId"]]
+                if action["containers"] != 1 or action["cpus"] != held["cpu"]:
+                    raise RuntimeError("campaign task resources differ from the fenced scheduler checkpoint")
+                stage_config = {**held["config"], "controller_fence": fence,
+                    "source_image": config["source_image"]}
+                function = _campaign_function({**action, "config": held["config"]})
+                call = function.with_options(cpu=held["cpu"], memory=held["memory_mib"],
+                    timeout=held["timeout_seconds"], retries=0).spawn(stage_config)
+                updates.append({"kind": "launched", "taskId": action["taskId"],
+                    "callId": call.object_id, "controllerFence": fence})
+        if updates:
+            checkpoint = _campaign_scheduler_operation("apply", checkpoint, updates=updates)
+            _write_campaign_scheduler(scheduler_path, checkpoint)
+        statuses = {task["status"] for task in checkpoint["tasks"]}
+        if statuses == {"complete"}:
+            return {"status": "complete", "evidenceHash": config["evidence_hash"],
+                "controllerFence": fence, "schedulerHash": checkpoint["checkpointHash"]}
+        if statuses.issubset({"complete", "terminal-incomplete"}) and "terminal-incomplete" in statuses:
+            return {"status": "incomplete", "reason": "fixed protocol ended terminal-incomplete",
+                "evidenceHash": config["evidence_hash"], "controllerFence": fence,
+                "schedulerHash": checkpoint["checkpointHash"]}
+        if stop_launching:
+            return {"status": "incomplete", "reason": "controller timeout margin stopped new launches",
+                "evidenceHash": config["evidence_hash"], "controllerFence": fence,
+                "schedulerHash": checkpoint["checkpointHash"]}
+        if not actions or all(action["kind"] == "reattach" for action in actions):
+            time.sleep(min(5, config["poll_interval_seconds"]))
 
 
 def validate_launch_limits(

@@ -2,8 +2,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
-import { registerKingdom } from '../src/game';
-import { deepBeamSuite } from '../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
 import { nativeRuleFingerprint, nativeScoreBatchRequest } from '../src/sim/nativeGoldfishProtocol';
 import {
   CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION, CURRENT_ORDERED_PRODUCT_VERSION,
@@ -338,9 +337,7 @@ async function validateRankedManifest(file: string): Promise<{ manifest: RankedM
 }
 
 const mode = process.argv[2];
-const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === productTarget.kingdomId);
-if (!kingdom) throw new Error(`Ordered product kingdom is not registered: ${productTarget.kingdomId}`);
-registerKingdom(kingdom);
+const kingdom = strategySearchKingdom(productTarget.kingdomId);
 if (productSchemaVersion === CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION) {
   currentProductIdentity = deriveCurrentOrderedProductIdentity({ kingdomId: requestedKingdomId, seeds: productSeeds,
     scorerVersion: identityOption('scorer-version', 'scorerVersion', 'native-goldfish-v1'),
@@ -418,6 +415,19 @@ if (mode === 'validate-checkpoint') {
     provenanceDigest: provenanceDigest(checkpoints.map(({ value }) => value.shard)), recordCount: written.count,
     stageOneOrderDigest: rankHash.digest('hex'), parts: written.parts, contentDigest: '' };
   writeAtomic(output, fixedJson({ ...base, contentDigest: unsignedDigest(base) }));
+} else if (mode === 'validate-cohort') {
+  const file = option('cohort'), cohort = readJson<CohortManifest>(file);
+  if (!cohortHeaderValid(cohort)) throw new Error('Cohort header is invalid.');
+  const rankHash = createHash('sha256'); let count = 0;
+  for await (const record of readParts<OrderedProductStageOneRecord & { stageOneRank: number }>(file, cohort.parts)) {
+    if (!validateOrderedProductStageOneRecord(record) || currentMembership && !currentMembership(record)
+      || record.stageOneRank !== count + 1) throw new Error('Cohort membership or rank is invalid.');
+    rankHash.update(stageOneEntryDigest(record)); count += 1;
+  }
+  if (count !== cohort.recordCount || rankHash.digest('hex') !== cohort.stageOneOrderDigest) {
+    throw new Error('Cohort count or stage-one order digest differs.');
+  }
+  console.log(JSON.stringify({ cohort: file, retainedCount: count, contentDigest: cohort.contentDigest }));
 } else if (mode === 'stage-two-input') {
   const file = option('cohort'), cohort = readJson<CohortManifest>(file);
   const start = integer('start-position'), end = integer('end-position'), records = await readCohortRange(file, cohort, start, end);
