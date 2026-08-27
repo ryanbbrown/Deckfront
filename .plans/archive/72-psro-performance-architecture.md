@@ -1,3 +1,5 @@
+> Archived: superseded by `.plans/76-global-matrix-psro-runtime.md`.
+
 # PSRO performance architecture
 
 ## Goal

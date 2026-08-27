@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hexdeck AI optimizer architecture and runtime review</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose", flowchart: { curve: "basis" } });
+  </script>
+  <style>
+    .deep { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; }
+    .seam { border-style: dashed; }
+    .module { border: 1px solid #cbd5e1; background: white; border-radius: .7rem; padding: .7rem; }
+    .internal { border: 1px solid #475569; background: #334155; border-radius: .45rem; padding: .45rem; }
+    .file-link { color: #334155; text-decoration: underline; text-decoration-color: #cbd5e1; text-underline-offset: 3px; }
+    .file-link:hover { color: #047857; text-decoration-color: #34d399; }
+    .metric-good { background: #ecfdf5; color: #065f46; }
+    .metric-neutral { background: #f8fafc; color: #475569; }
+    .metric-risk { background: #fff7ed; color: #9a3412; }
+    .status-dot { width: .55rem; height: .55rem; border-radius: 999px; display: inline-block; }
+  </style>
+</head>
+<body class="bg-stone-50 text-slate-900 font-sans">
+<main class="mx-auto max-w-6xl space-y-12 px-6 py-12">
+  <header class="space-y-5 border-b border-slate-300 pb-8">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="text-xs uppercase tracking-[0.22em] text-emerald-700">Hexdeck · AI optimizer</p>
+        <h1 class="mt-2 text-4xl font-serif tracking-tight">Architecture, runtime, and consistency</h1>
+      </div>
+      <p class="font-mono text-xs text-slate-500">Committed snapshot 82fcc0a · 27 August 2026</p>
+    </div>
+    <div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+      Current uncommitted work is excluded. The in-flight kingdom ID consolidation is neither assessed nor recommended here.
+    </div>
+    <div class="grid gap-3 sm:grid-cols-3">
+      <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4"><p class="text-xs uppercase tracking-wider text-emerald-700">Hard constraint</p><p class="mt-1 font-semibold">No added runtime work</p></div>
+      <div class="rounded-lg border border-indigo-200 bg-indigo-50 p-4"><p class="text-xs uppercase tracking-wider text-indigo-700">Primary quality goal</p><p class="mt-1 font-semibold">One rule owner</p></div>
+      <div class="rounded-lg border border-slate-200 bg-white p-4"><p class="text-xs uppercase tracking-wider text-slate-600">Allowed result</p><p class="mt-1 font-semibold">Neutral time, fewer bugs</p></div>
+    </div>
+    <div class="flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-600">
+      <span class="inline-flex items-center gap-2"><i class="inline-block h-5 w-8 rounded border border-slate-300 bg-white"></i>module</span>
+      <span class="inline-flex items-center gap-2"><i class="inline-block h-5 w-8 rounded border border-dashed border-slate-500"></i>seam</span>
+      <span class="inline-flex items-center gap-2"><i class="inline-block h-0.5 w-8 bg-red-600"></i>duplicated rule</span>
+      <span class="inline-flex items-center gap-2"><i class="inline-block h-5 w-8 rounded bg-slate-800"></i>deep module</span>
+    </div>
+  </header>
+
+  <section class="space-y-5">
+    <div><p class="text-xs uppercase tracking-wider text-indigo-700">Measurement model</p><h2 class="mt-1 text-3xl font-serif">Where time is spent</h2></div>
+    <div class="grid gap-4 md:grid-cols-3">
+      <div class="rounded-xl border border-slate-200 bg-white p-5"><p class="text-xs uppercase tracking-wider text-slate-500">Before acceptance clock</p><h3 class="mt-1 font-semibold">Deployment and startup</h3><p class="mt-2 text-sm text-slate-600">Source checks, image build, readiness, state creation.</p></div>
+      <div class="rounded-xl border-2 border-emerald-300 bg-emerald-50 p-5"><p class="text-xs uppercase tracking-wider text-emerald-700">Inside acceptance clock</p><h3 class="mt-1 font-semibold">Campaign wall time</h3><p class="mt-2 text-sm text-slate-600">Goldfish, Matrix, PSRO, downloads, and deep local validation.</p></div>
+      <div class="rounded-xl border border-slate-200 bg-white p-5"><p class="text-xs uppercase tracking-wider text-slate-500">Reported subset</p><h3 class="mt-1 font-semibold">Critical path</h3><p class="mt-2 text-sm text-slate-600">Stops at controller completion, before downloads and local validation.</p></div>
+    </div>
+    <div class="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-600">
+      Candidate consistency, payoff consistency, and equilibrium consistency are separate. None of these architecture candidates changes the scientific meaning of those results.
+    </div>
+  </section>
+
+  <section class="space-y-6">
+    <div><p class="text-xs uppercase tracking-wider text-emerald-700">Revised priority</p><h2 class="mt-1 text-3xl font-serif">Safety-adjusted leverage</h2></div>
+    <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div class="grid grid-cols-[3rem_1fr_auto] items-center gap-3 border-b border-slate-100 p-4"><span class="text-2xl font-serif text-emerald-700">1</span><a href="#stage-markers" class="font-semibold underline decoration-slate-300 underline-offset-4">Delete shallow Matrix and PSRO stage markers</a><span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Faster + fewer rules</span></div>
+      <div class="grid grid-cols-[3rem_1fr_auto] items-center gap-3 border-b border-slate-100 p-4"><span class="text-2xl font-serif text-emerald-700">2</span><a href="#psro" class="font-semibold underline decoration-slate-300 underline-offset-4">Deepen the complete PSRO handoff</a><span class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800">Neutral + fewer bugs</span></div>
+      <div class="grid grid-cols-[3rem_1fr_auto] items-center gap-3 border-b border-slate-100 p-4"><span class="text-2xl font-serif text-emerald-700">3</span><a href="#goldfish" class="font-semibold underline decoration-slate-300 underline-offset-4">Deepen final Goldfish artifacts</a><span class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800">Neutral or faster</span></div>
+      <div class="grid grid-cols-[3rem_1fr_auto] items-center gap-3 border-b border-slate-100 p-4"><span class="text-2xl font-serif text-emerald-700">4</span><a href="#runtime-control" class="font-semibold underline decoration-slate-300 underline-offset-4">Deepen pure runtime-control rules</a><span class="rounded-full bg-indigo-100 px-3 py-1 text-xs font-semibold text-indigo-800">Neutral + fewer bugs</span></div>
+      <div class="grid grid-cols-[3rem_1fr_auto] items-center gap-3 p-4"><span class="text-2xl font-serif text-amber-700">5</span><a href="#packaging" class="font-semibold underline decoration-slate-300 underline-offset-4">Deepen executable-source packaging</a><span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Conditional</span></div>
+    </div>
+  </section>
+
+  <section id="candidates" class="space-y-12">
+    <article id="stage-markers" class="space-y-7 rounded-2xl border border-emerald-200 bg-white p-7 shadow-sm">
+      <div class="flex flex-wrap items-start justify-between gap-4">
+        <div><p class="text-xs uppercase tracking-wider text-emerald-700">Priority 1</p><h2 class="mt-1 text-2xl font-serif">Delete shallow Matrix and PSRO stage markers</h2></div>
+        <div class="flex gap-2"><span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Very strong</span><span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">in-process</span></div>
+      </div>
+      <div class="font-mono text-xs leading-6 text-slate-600"><a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/scripts/strategy_search_campaign_matrix.ts">scripts/strategy_search_campaign_matrix.ts:68–77</a> · <a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/scripts/strategy_search_campaign_psro.ts">scripts/strategy_search_campaign_psro.ts:104–112</a><br /><a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/modal/native_strategy_search.py">modal/native_strategy_search.py:1777–1818</a> · <a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/src/sim/strategySearchStages.ts">src/sim/strategySearchStages.ts:30–92</a></div>
+
+      <div class="grid gap-5 lg:grid-cols-2">
+        <figure class="rounded-xl border border-red-200 bg-red-50/40 p-5"><figcaption class="mb-4 text-xs font-semibold uppercase tracking-wider text-red-700">Current production path</figcaption><pre class="mermaid">
+flowchart TB
+  S[Matrix or PSRO script] --> H1[hash final evidence]
+  H1 --> M[write complete.json]
+  M --> E[emit marker hash]
+  E -. ignored .-> W[production worker]
+  W --> H2[hash final evidence again]
+  H2 --> V[deep validation]
+  V --> P[publication receipt]
+  classDef waste stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class H1,M,E waste
+        </pre></figure>
+        <figure class="rounded-xl border border-slate-700 bg-slate-900 p-5 text-white"><figcaption class="mb-4 text-xs font-semibold uppercase tracking-wider text-emerald-300">Deep result through deletion</figcaption><div class="flex h-56 items-center justify-center"><div class="seam w-4/5 rounded-xl border-2 border-emerald-400 p-3"><div class="deep rounded-lg border border-slate-600 p-6 text-center"><p class="text-xs uppercase tracking-wider text-emerald-300">One completion seam</p><p class="mt-2 font-semibold">Final evidence + validated receipt</p><div class="mt-4 grid grid-cols-3 gap-2 text-xs"><span class="internal">hash</span><span class="internal">validate</span><span class="internal">publish</span></div></div></div></div></figure>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="metric-good rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Campaign wall</p><p class="mt-1 font-semibold">Decreases slightly</p><p class="mt-1 text-xs">One full-file hash and one write vanish per Matrix and PSRO stage.</p></div>
+        <div class="metric-good rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Paid compute</p><p class="mt-1 font-semibold">Decreases slightly</p><p class="mt-1 text-xs">The removed work runs inside paid workers.</p></div>
+        <div class="metric-good rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Worker hot path</p><p class="mt-1 font-semibold">Less I/O</p><p class="mt-1 text-xs">No extra read for the unused marker hash.</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Controller</p><p class="mt-1 font-semibold">No change</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Deployment</p><p class="mt-1 font-semibold">No change</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Local validation</p><p class="mt-1 font-semibold">No change</p></div>
+      </div>
+
+      <div class="grid gap-5 lg:grid-cols-2">
+        <div class="rounded-xl border border-slate-200 p-5"><h3 class="font-semibold">Consistency gain</h3><p class="mt-2 text-sm text-slate-600">The validated publication receipt becomes the only completion rule owner. The unused marker module is shallow: deleting it makes complexity vanish instead of moving it.</p><h3 class="mt-5 font-semibold">Required work that remains</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>temporary digest at the trust seam</li><li>deep final-evidence validation</li><li>publication fencing</li><li>atomic publication and receipt</li><li>post-download validation</li></ul></div>
+        <div class="rounded-xl border border-slate-200 p-5"><h3 class="font-semibold">Regression risks</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>an external tool reads the event</li><li>a log test expects markerHash</li><li>shared deletion harms legacy Goldfish markers</li></ul><h3 class="mt-5 font-semibold">No-regression gates</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>repository search finds no production reader</li><li>final evidence stays byte-identical</li><li>publication and receipt tests pass</li><li>read bytes fall by one full hash</li><li>legacy Goldfish path stays unchanged</li></ul></div>
+      </div>
+    </article>
+
+    <article id="psro" class="space-y-7 rounded-2xl border border-indigo-200 bg-white p-7 shadow-sm">
+      <div class="flex flex-wrap items-start justify-between gap-4"><div><p class="text-xs uppercase tracking-wider text-indigo-700">Priority 2</p><h2 class="mt-1 text-2xl font-serif">Deepen the complete PSRO handoff</h2></div><div class="flex gap-2"><span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Very strong</span><span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">in-process</span></div></div>
+      <div class="font-mono text-xs leading-6 text-slate-600"><a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/modal/native_strategy_search.py">modal/native_strategy_search.py:1949–1970</a> · <a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/scripts/strategy_search_campaign_psro.ts">scripts/strategy_search_campaign_psro.ts:38–112</a><br /><a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/src/sim/strategySearchPsro.ts">src/sim/strategySearchPsro.ts:38–103</a> · <a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/src/sim/thresholdRacingPsro.ts">src/sim/thresholdRacingPsro.ts:17–24, 68–92</a></div>
+
+      <div class="grid gap-5 lg:grid-cols-2">
+        <figure class="rounded-xl border border-red-200 bg-red-50/40 p-5"><figcaption class="mb-4 text-xs font-semibold uppercase tracking-wider text-red-700">Current rule ownership</figcaption><div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-xs"><div class="module border-red-300 space-y-2"><p class="font-semibold">Python compute implementation</p><p>protocol constants</p><p>paths and receipts</p></div><div class="font-bold text-red-600">⇄</div><div class="module border-red-300 space-y-2"><p class="font-semibold">TypeScript script</p><p>75-record prefix</p><p>score reversal</p><p>telemetry merge</p><p>pair ordering</p><p>cache reconstruction</p></div></div><div class="mt-4 module text-center text-xs"><p class="font-semibold">PSRO module</p><p class="mt-1 text-slate-500">raw-look and final-evidence construction only</p></div></figure>
+        <figure class="rounded-xl border border-slate-700 bg-slate-900 p-5 text-white"><figcaption class="mb-4 text-xs font-semibold uppercase tracking-wider text-emerald-300">One scientific rule owner</figcaption><div class="flex h-64 items-center gap-3"><div class="module text-xs text-slate-900">script adapter<br /><span class="text-slate-500">files · process · deadline</span></div><div class="text-slate-400">→</div><div class="seam flex-1 rounded-xl border-2 border-emerald-400 p-3"><div class="deep rounded-lg border border-slate-600 p-5 text-center"><p class="text-xs uppercase tracking-wider text-emerald-300">Deep PSRO module</p><div class="mt-4 grid grid-cols-2 gap-2 text-xs"><span class="internal">protocol</span><span class="internal">Matrix handoff</span><span class="internal">source identity</span><span class="internal">raw looks</span><span class="internal">checkpoints</span><span class="internal">final evidence</span></div></div></div></div></figure>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Campaign wall</p><p class="mt-1 font-semibold">Must remain equal</p><p class="mt-1 text-xs">Existing conversion work moves; no work is added.</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Paid compute</p><p class="mt-1 font-semibold">Must remain equal</p><p class="mt-1 text-xs">The handoff stays in the same PSRO worker.</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Worker hot path</p><p class="mt-1 font-semibold">Same reads and allocations</p><p class="mt-1 text-xs">Do not add a second Matrix rebuild.</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Controller</p><p class="mt-1 font-semibold">No change</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Deployment</p><p class="mt-1 font-semibold">No change</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Local validation</p><p class="mt-1 font-semibold">No change</p></div>
+      </div>
+      <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950"><span class="font-semibold">Performance baseline:</span> PSRO scoring measured 1.760 seconds for 1,000 candidates at eight blocks with eight workers. This deepening must not reduce that throughput.</div>
+
+      <div class="grid gap-5 lg:grid-cols-2">
+        <div class="rounded-xl border border-slate-200 p-5"><h3 class="font-semibold">Consistency gain</h3><p class="mt-2 text-sm text-slate-600">One deep PSRO module owns score orientation, diagonal exclusion, the 75-seed prefix, telemetry, protocol identity, checkpoint meaning, and final evidence. A bug fix gains locality instead of requiring matching edits across Python and script code.</p><h3 class="mt-5 font-semibold">Required work that remains</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>receipt hash checks at input</li><li>Matrix identity check at input</li><li>filesystem and process adapters</li><li>checkpoint persistence</li></ul></div>
+        <div class="rounded-xl border border-slate-200 p-5"><h3 class="font-semibold">Regression risks</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>score inversion changes</li><li>pair ordering changes</li><li>diagonal cells enter the matrix</li><li>seed prefix or telemetry changes</li><li>resume identity changes</li><li>final ordering changes</li></ul><h3 class="mt-5 font-semibold">No-regression gates</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>byte equality for protocol and evidence fixtures</li><li>exactly 75 blocks per off-diagonal cell</li><li>unchanged file-read count and RSS</li><li>no deep Matrix rebuild during handoff</li><li>unchanged scoring throughput</li></ul></div>
+      </div>
+    </article>
+
+    <article id="goldfish" class="space-y-7 rounded-2xl border border-indigo-200 bg-white p-7 shadow-sm">
+      <div class="flex flex-wrap items-start justify-between gap-4"><div><p class="text-xs uppercase tracking-wider text-indigo-700">Priority 3</p><h2 class="mt-1 text-2xl font-serif">Deepen final Goldfish artifacts</h2></div><div class="flex gap-2"><span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Strong</span><span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">ports &amp; adapters</span></div></div>
+      <div class="font-mono text-xs leading-6 text-slate-600"><a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/src/sim/strategySearchCompact.ts">src/sim/strategySearchCompact.ts:363–595</a> · <a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/scripts/strategy_search_validate_artifact.ts">scripts/strategy_search_validate_artifact.ts:23–76</a><br /><a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/modal/native_strategy_search.py">modal/native_strategy_search.py:1230–1302, 1738–1772</a> · <a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/scripts/strategy_search_goldfish.ts">scripts/strategy_search_goldfish.ts:88–142</a></div>
+
+      <div class="grid gap-5 lg:grid-cols-2">
+        <figure class="rounded-xl border border-red-200 bg-red-50/40 p-5"><figcaption class="mb-4 text-xs font-semibold uppercase tracking-wider text-red-700">Current final-artifact knowledge</figcaption><pre class="mermaid">
+flowchart TB
+  C[strategySearchCompact] --> F[HGF4 framing]
+  C --> O[ordering and source binding]
+  V[standalone validator] --> D[decoding]
+  V --> K[checksum and identity]
+  F -. duplicate format rules .-> D
+  O -. duplicate validation rules .-> K
+  P[Python HGS1 validator] --> J[per-job validation]
+  classDef dup stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class F,O,D,K dup
+        </pre></figure>
+        <figure class="rounded-xl border border-slate-700 bg-slate-900 p-5 text-white"><figcaption class="mb-4 text-xs font-semibold uppercase tracking-wider text-emerald-300">Scoped deepening</figcaption><div class="seam rounded-xl border-2 border-emerald-400 p-3"><div class="deep rounded-lg border border-slate-600 p-5 text-center"><p class="text-xs uppercase tracking-wider text-emerald-300">Deep HGF4 artifact module</p><div class="mt-4 grid grid-cols-2 gap-2 text-xs"><span class="internal">streaming validation</span><span class="internal">range reads</span><span class="internal">source binding</span><span class="internal">ordering</span><span class="internal">reconstruction</span><span class="internal">checksums</span></div></div></div><div class="mt-4 flex justify-center gap-3 text-xs text-slate-900"><span class="module">CLI adapter</span><span class="module">Matrix adapter</span><span class="module">PSRO adapter</span></div><p class="mt-3 text-center text-xs text-slate-300">Keep the in-process Python HGS1 validator.</p></figure>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Campaign wall</p><p class="mt-1 font-semibold">Equal or lower</p><p class="mt-1 text-xs">One implementation, same required trust-seam runs.</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Paid compute</p><p class="mt-1 font-semibold">Must not rise</p><p class="mt-1 text-xs">No new process or validation pass.</p></div>
+        <div class="metric-risk rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Worker hot path</p><p class="mt-1 font-semibold">Main risk</p><p class="mt-1 text-xs">Avoid full materialization and duplicate checksums.</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Controller</p><p class="mt-1 font-semibold">No change</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Deployment</p><p class="mt-1 font-semibold">No change</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Local validation</p><p class="mt-1 font-semibold">Same implementation</p></div>
+      </div>
+      <div class="grid gap-3 sm:grid-cols-3"><div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4"><p class="text-xs uppercase tracking-wider text-emerald-700">Fan-in baseline</p><p class="mt-1 text-xl font-semibold">19.074 s</p><p class="text-xs text-emerald-900">one read per record</p></div><div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4"><p class="text-xs uppercase tracking-wider text-emerald-700">Top validation</p><p class="mt-1 text-xl font-semibold">2.11 s</p><p class="text-xs text-emerald-900">K007 artifact</p></div><div class="rounded-lg border border-emerald-200 bg-emerald-50 p-4"><p class="text-xs uppercase tracking-wider text-emerald-700">Peak RSS</p><p class="mt-1 text-xl font-semibold">199.8 MiB</p><p class="text-xs text-emerald-900">209,534,976-byte ceiling</p></div></div>
+
+      <div class="grid gap-5 lg:grid-cols-2">
+        <div class="rounded-xl border border-slate-200 p-5"><h3 class="font-semibold">Consistency gain</h3><p class="mt-2 text-sm text-slate-600">HGF4 framing, ordering, checksums, source binding, range reads, and reconstruction gain one rule owner. The CLI becomes an adapter at the same seam.</p><h3 class="mt-5 font-semibold">Required duplication that remains</h3><p class="mt-2 text-sm text-slate-600">The Python HGS1 validator stays in-process. Starting a TypeScript process for every Goldfish job would add paid worker time. Prove both implementations agree with shared fixtures.</p></div>
+        <div class="rounded-xl border border-slate-200 p-5"><h3 class="font-semibold">Regression risks</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>second checksum pass</li><li>500,000 records held in memory</li><li>UTF-16 ordering changes</li><li>source binding weakens</li><li>range reads scan whole files</li></ul><h3 class="mt-5 font-semibold">No-regression gates</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>exact bytes across job layouts</li><li>one-pass read-volume invariant</li><li>2.11-second and 199.8-MiB ceilings</li><li>unchanged stage-two read bytes</li><li>no added process or Volume operation</li></ul></div>
+      </div>
+    </article>
+
+    <article id="runtime-control" class="space-y-7 rounded-2xl border border-indigo-200 bg-white p-7 shadow-sm">
+      <div class="flex flex-wrap items-start justify-between gap-4"><div><p class="text-xs uppercase tracking-wider text-indigo-700">Priority 4</p><h2 class="mt-1 text-2xl font-serif">Deepen pure runtime-control rules</h2></div><div class="flex gap-2"><span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">Strong, narrow scope</span><span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">ports &amp; adapters</span></div></div>
+      <div class="font-mono text-xs leading-6 text-slate-600"><a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/scripts/strategy_search_campaign.ts">scripts/strategy_search_campaign.ts:123–195</a> · <a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/modal/strategy_search_status.py">modal/strategy_search_status.py:40–192</a><br /><a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/modal/strategy_search_runtime.py">modal/strategy_search_runtime.py:22–142</a> · <a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/modal/native_strategy_search.py">modal/native_strategy_search.py:1413–1683, 1976–2410</a></div>
+
+      <div class="grid gap-5 lg:grid-cols-2">
+        <figure class="rounded-xl border border-red-200 bg-red-50/40 p-5"><figcaption class="mb-4 text-xs font-semibold uppercase tracking-wider text-red-700">Current repeated rules</figcaption><div class="space-y-3 text-xs"><div class="grid grid-cols-3 gap-2"><div class="module border-red-300 text-center">status adapter</div><div class="module border-red-300 text-center">runtime adapter</div><div class="module border-red-300 text-center">compute implementation</div></div><div class="text-center font-bold text-red-600">same facts derived in several places</div><div class="grid grid-cols-3 gap-2 text-center"><div class="module">state validity</div><div class="module">job and CPU counts</div><div class="module">startup meaning</div></div><div class="grid grid-cols-3 gap-2 text-center"><div class="module">app identity</div><div class="module">atomic state</div><div class="module">lease status</div></div></div></figure>
+        <figure class="rounded-xl border border-slate-700 bg-slate-900 p-5 text-white"><figcaption class="mb-4 text-xs font-semibold uppercase tracking-wider text-emerald-300">Pure shared implementation</figcaption><div class="seam rounded-xl border-2 border-emerald-400 p-3"><div class="deep rounded-lg border border-slate-600 p-5 text-center"><p class="text-xs uppercase tracking-wider text-emerald-300">Lightweight runtime-control module</p><div class="mt-4 grid grid-cols-2 gap-2 text-xs"><span class="internal">state validation</span><span class="internal">transitions</span><span class="internal">derived status</span><span class="internal">startup facts</span></div></div></div><div class="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-slate-900"><span class="module">status adapter</span><span class="module">runtime adapter</span><span class="module">compute adapter</span></div><p class="mt-3 text-center text-xs text-slate-300">No new Modal call. No status import of compute code.</p></figure>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Campaign wall</p><p class="mt-1 font-semibold">Must remain equal</p><p class="mt-1 text-xs">No added Modal or Volume call.</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Paid compute</p><p class="mt-1 font-semibold">Must remain equal</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Worker hot path</p><p class="mt-1 font-semibold">No change</p></div>
+        <div class="metric-risk rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Controller</p><p class="mt-1 font-semibold">Protect call counts</p><p class="mt-1 text-xs">Pure rules only; no new I/O per tick.</p></div>
+        <div class="metric-risk rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Deployment</p><p class="mt-1 font-semibold">Protect status speed</p><p class="mt-1 text-xs">Keep dependency-free control image.</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Local validation</p><p class="mt-1 font-semibold">No change</p></div>
+      </div>
+
+      <div class="grid gap-5 lg:grid-cols-2">
+        <div class="rounded-xl border border-slate-200 p-5"><h3 class="font-semibold">Consistency gain</h3><p class="mt-2 text-sm text-slate-600">Execution-path checks, saved-state facts, job counts, CPU counts, and startup meaning gain locality. The earlier immediate-poll timeout bug shows the cost of inconsistent control rules.</p><h3 class="mt-5 font-semibold">Required checks that remain</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>identity checks at each trust seam</li><li>fence checks before publication</li><li>independent remote readiness</li><li>lightweight status adapter</li></ul></div>
+        <div class="rounded-xl border border-slate-200 p-5"><h3 class="font-semibold">Regression risks</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>status builds the compute image</li><li>stale leases look live</li><li>publication fencing weakens</li><li>controller ticks gain Volume work</li><li>useful work starts before fencing</li></ul><h3 class="mt-5 font-semibold">No-regression gates</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>replay state traces through all adapters</li><li>identical derived facts</li><li>unchanged remote-call counts</li><li>unchanged Volume-commit counts</li><li>status stays 0.25 CPU, 512 MiB, 30 s</li><li>takeover and stale-lease tests pass</li></ul></div>
+      </div>
+    </article>
+
+    <article id="packaging" class="space-y-7 rounded-2xl border border-amber-200 bg-white p-7 shadow-sm">
+      <div class="flex flex-wrap items-start justify-between gap-4"><div><p class="text-xs uppercase tracking-wider text-amber-700">Priority 5</p><h2 class="mt-1 text-2xl font-serif">Deepen executable-source packaging</h2></div><div class="flex gap-2"><span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Conditional</span><span class="rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700">ports &amp; adapters</span></div></div>
+      <div class="font-mono text-xs leading-6 text-slate-600"><a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/scripts/strategy_search_campaign.ts">scripts/strategy_search_campaign.ts:38–80</a> · <a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/src/sim/strategySearchCampaign.ts">src/sim/strategySearchCampaign.ts:58–135</a><br /><a class="file-link" href="file:///Users/ryanbrown/.bb/worktrees/env_6mdy85bzr5/hexdeck/modal/native_strategy_search.py">modal/native_strategy_search.py:73–124, 1305–1342</a></div>
+
+      <div class="grid gap-5 lg:grid-cols-2">
+        <figure class="rounded-xl border border-red-200 bg-red-50/40 p-5"><figcaption class="mb-4 text-xs font-semibold uppercase tracking-wider text-red-700">Current source knowledge</figcaption><pre class="mermaid">
+flowchart TB
+  T[TypeScript packaging] --> A[allowlists]
+  T --> C[import closure]
+  T --> G[Git state and digests]
+  P[Python packaging] --> A2[allowlists]
+  P --> R[path classification]
+  P --> B[three copy groups]
+  D[deployed verifier] --> V[bytes and digests]
+  A -. repeated rules .-> A2
+  G -. digest parity .-> V
+  classDef dup stroke:#dc2626,stroke-width:2px,color:#991b1b;
+  class A,A2,G,V dup
+        </pre></figure>
+        <figure class="rounded-xl border border-slate-700 bg-slate-900 p-5 text-white"><figcaption class="mb-4 text-xs font-semibold uppercase tracking-wider text-emerald-300">Safe depth</figcaption><div class="seam rounded-xl border-2 border-emerald-400 p-3"><div class="deep rounded-lg border border-slate-600 p-5 text-center"><p class="text-xs uppercase tracking-wider text-emerald-300">Deep packaging module</p><div class="mt-4 grid grid-cols-2 gap-2 text-xs"><span class="internal">checkout inspection</span><span class="internal">path classification</span><span class="internal">import closure</span><span class="internal">digest construction</span><span class="internal">copy grouping</span><span class="internal">source identity</span></div></div></div><div class="mt-4 grid grid-cols-2 gap-3 text-center text-xs text-slate-900"><span class="module">Git adapter</span><span class="module border-emerald-300">independent deployed verifier</span></div></figure>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Campaign wall</p><p class="mt-1 font-semibold">Outside acceptance clock</p></div>
+        <div class="metric-risk rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Paid compute</p><p class="mt-1 font-semibold">Protect fresh-container checks</p><p class="mt-1 text-xs">One scan, no new process.</p></div>
+        <div class="metric-risk rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Worker hot path</p><p class="mt-1 font-semibold">Startup only</p><p class="mt-1 text-xs">Still paid for each fresh worker.</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Controller</p><p class="mt-1 font-semibold">No change</p></div>
+        <div class="metric-risk rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Deployment</p><p class="mt-1 font-semibold">Main risk</p><p class="mt-1 text-xs">Preserve cache locality and three copy groups.</p></div>
+        <div class="metric-neutral rounded-lg p-4"><p class="text-xs uppercase tracking-wider">Local validation</p><p class="mt-1 font-semibold">May decrease</p><p class="mt-1 text-xs">Avoid repeated scans.</p></div>
+      </div>
+      <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><span class="font-semibold">Cold-build baseline:</span> 78.4 seconds. The deepened module must preserve three copy groups and must not worsen cold or warm deployment time.</div>
+
+      <div class="grid gap-5 lg:grid-cols-2">
+        <div class="rounded-xl border border-slate-200 p-5"><h3 class="font-semibold">Consistency gain</h3><p class="mt-2 text-sm text-slate-600">Checkout inspection, path classification, closure, digest framing, and copy grouping gain one rule owner. This targets prior missing-asset, excessive-copy-group, and wrong-remote-root failures.</p><h3 class="mt-5 font-semibold">Required independent check</h3><p class="mt-2 text-sm text-slate-600">The deployed verifier remains separate at the deployment trust seam. It proves the bytes that arrived, rather than trusting the packaging implementation.</p></div>
+        <div class="rounded-xl border border-slate-200 p-5"><h3 class="font-semibold">Regression risks</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>scientific digest changes incorrectly</li><li>dirty files are accepted</li><li>dynamic assets are omitted</li><li>build cache locality weakens</li><li>remote root depends on __file__</li></ul><h3 class="mt-5 font-semibold">No-regression gates</h3><ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600"><li>planned, copied, and deployed paths match</li><li>dirty and missing mutation tests</li><li>scientific and runtime digest invariants</li><li>exactly three source-copy groups</li><li>cold and warm timings do not rise</li><li>one source scan per fresh container</li></ul></div>
+      </div>
+    </article>
+  </section>
+
+  <section class="space-y-5 rounded-2xl bg-slate-900 p-8 text-white shadow-xl">
+    <p class="text-xs uppercase tracking-[0.2em] text-emerald-300">Recommended sequence</p>
+    <h2 class="text-3xl font-serif">Remove waste, then consolidate scientific rules</h2>
+    <ol class="grid gap-3 md:grid-cols-2 text-sm">
+      <li class="internal"><span class="text-emerald-300">1.</span> Delete Matrix and PSRO markers.</li>
+      <li class="internal"><span class="text-emerald-300">2.</span> Deepen the PSRO handoff with byte-equality gates.</li>
+      <li class="internal"><span class="text-emerald-300">3.</span> Deepen HGF4 without another pass or process.</li>
+      <li class="internal"><span class="text-emerald-300">4.</span> Unify pure runtime-control rules without new I/O.</li>
+      <li class="internal md:col-span-2"><span class="text-amber-300">5.</span> Revisit packaging only with cold and warm deployment benchmarks.</li>
+    </ol>
+    <p class="text-slate-300">This order gives immediate runtime reduction first, then high bug-prevention leverage with explicit proof that runtime stays equal.</p>
+  </section>
+
+  <footer class="pb-4 text-xs text-slate-500">Read-only architecture analysis. No repository files changed.</footer>
+</main>
+</body>
+</html>

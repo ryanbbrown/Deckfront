@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Strategy search: conceptual process and 400-CPU design</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #5b6876;
+      --paper: #f6f3ed;
+      --card: #fffdf9;
+      --line: #d8d1c5;
+      --blue: #155eef;
+      --blue-soft: #eaf1ff;
+      --green: #087a55;
+      --green-soft: #e8f7f0;
+      --amber: #9a5b00;
+      --amber-soft: #fff3d9;
+      --red: #b42318;
+      --shadow: 0 12px 30px rgba(23, 33, 43, 0.08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: var(--blue); }
+    .layout {
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    nav {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow: auto;
+      padding: 28px 20px;
+      border-right: 1px solid var(--line);
+      background: #eee9df;
+    }
+    nav .eyebrow { margin-bottom: 20px; }
+    nav a {
+      display: block;
+      padding: 8px 10px;
+      margin: 2px 0;
+      color: #344252;
+      text-decoration: none;
+      border-radius: 8px;
+    }
+    nav a:hover { background: rgba(255,255,255,.7); color: var(--ink); }
+    nav .sub { padding-left: 24px; font-size: 14px; }
+    main { width: min(1180px, 100%); padding: 56px 54px 100px; }
+    h1 { font-size: clamp(34px, 5vw, 62px); line-height: 1.03; letter-spacing: -0.04em; margin: 10px 0 20px; }
+    h2 { font-size: 34px; line-height: 1.15; letter-spacing: -0.025em; margin: 0 0 20px; }
+    h3 { font-size: 21px; margin: 26px 0 10px; }
+    h4 { font-size: 16px; margin: 20px 0 8px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+    p { margin: 0 0 14px; }
+    ul, ol { margin: 8px 0 18px; padding-left: 24px; }
+    li { margin: 7px 0; }
+    code { background: #eee9df; padding: 2px 5px; border-radius: 5px; }
+    .eyebrow { font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--blue); }
+    .lede { font-size: 20px; color: #3c4957; max-width: 850px; }
+    .hero { padding-bottom: 42px; border-bottom: 1px solid var(--line); }
+    .hero-note {
+      margin-top: 26px;
+      padding: 16px 18px;
+      background: var(--amber-soft);
+      border-left: 4px solid var(--amber);
+      border-radius: 8px;
+      max-width: 900px;
+    }
+    section { scroll-margin-top: 24px; padding: 56px 0 16px; border-bottom: 1px solid var(--line); }
+    .two-col { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .concept { border-top: 5px solid var(--blue); }
+    .optimize { border-top: 5px solid var(--green); }
+    .card-label {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 5px 9px;
+      border-radius: 99px;
+      margin-bottom: 14px;
+    }
+    .concept .card-label { color: #1649a8; background: var(--blue-soft); }
+    .optimize .card-label { color: #076344; background: var(--green-soft); }
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: stretch;
+      gap: 8px;
+      margin: 22px 0;
+    }
+    .flow .node {
+      flex: 1 1 150px;
+      min-width: 135px;
+      padding: 14px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      font-weight: 700;
+      text-align: center;
+    }
+    .flow .arrow { align-self: center; color: var(--muted); font-size: 22px; }
+    .principles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 24px; }
+    .principle { padding: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+    .principle strong { display: block; margin-bottom: 6px; }
+    .callout {
+      margin: 18px 0;
+      padding: 16px 18px;
+      border-radius: 10px;
+      background: var(--green-soft);
+      border: 1px solid #b7e4d0;
+    }
+    .warning { background: var(--amber-soft); border-color: #ead19a; }
+    .metric { background: #f2f4f7; border-color: #d8dee6; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; background: var(--card); }
+    th, td { padding: 12px 14px; border: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: #eee9df; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+    .big-number { font-size: 28px; font-weight: 800; line-height: 1; display: block; margin-bottom: 6px; }
+    .workload { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0; }
+    .workload > div { padding: 18px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
+    .checklist li::marker { color: var(--green); }
+    .exact-note { font-size: 13px; color: var(--muted); margin-bottom: 14px; }
+    .question { background: #fff0ed; color: var(--red); padding: 2px 4px; border-radius: 4px; }
+    footer { padding-top: 40px; color: var(--muted); font-size: 14px; }
+    @media (max-width: 900px) {
+      .layout { display: block; }
+      nav { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+      nav a { display: inline-block; }
+      main { padding: 36px 20px 70px; }
+      .two-col, .principles, .workload { grid-template-columns: 1fr; }
+      .flow .arrow { display: none; }
+    }
+    @media print {
+      nav { display: none; }
+      .layout { display: block; }
+      main { width: 100%; padding: 20px; }
+      .card { box-shadow: none; break-inside: avoid; }
+      section { break-before: page; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <nav aria-label="Document sections">
+    <div class="eyebrow">Strategy search</div>
+    <a href="#overview">Process overview</a>
+    <a href="#cpu-model">400-CPU model</a>
+    <a href="#goldfish">1. Goldfish</a>
+    <a href="#matrix">2. Initial matrix</a>
+    <a href="#psro">3. PSRO</a>
+    <a class="sub" href="#screen">Screen</a>
+    <a class="sub" href="#confirm">Confirm</a>
+    <a class="sub" href="#admit">Admit</a>
+    <a class="sub" href="#stop">Stop</a>
+    <a href="#evidence">Save evidence</a>
+    <a href="#proof">Prove the design</a>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="eyebrow">Greenfield target design</div>
+      <h1>Strategy search<br>at 400 CPUs</h1>
+      <p class="lede">The approved scientific process is shown unchanged. Each section then explains how to execute that process across one global pool of up to 400 physical CPU cores for 30 kingdoms now and 160 kingdoms later.</p>
+      <div class="hero-note"><strong>No anchoring:</strong> this design does not preserve the current runtime, task layout, worker counts, file formats, or timeout choices. Scientific decisions stay fixed. Operational choices must earn their place through measured throughput.</div>
+    </header>
+
+    <section id="overview">
+      <h2>Process overview</h2>
+      <div class="two-col">
+        <article class="card concept">
+          <div class="card-label">Approved conceptual process</div>
+          <p class="exact-note">Exact text from <code>docs/strategy-search-process.md</code>.</p>
+          <h3>Strategy search process</h3>
+          <p>This document explains how strategy search produces card-balance evidence for each supplied kingdom. It describes what each stage does, not how the work is divided across computers.</p>
+          <h3>Process overview</h3>
+          <p>For each kingdom:</p>
+          <ol>
+            <li>Use Goldfish scoring to reduce every legal strategy to a 20,000-strategy reservoir.</li>
+            <li>Use head-to-head games to build a matrix for the best 50 strategies.</li>
+            <li>Search the reservoir for strategies that can beat the current equilibrium.</li>
+            <li>Add confirmed responses to the matrix and repeat the search.</li>
+            <li>Stop after two consecutive searches find no confirmed response.</li>
+            <li>Save and validate the evidence for local balance analysis.</li>
+          </ol>
+        </article>
+        <article class="card optimize">
+          <div class="card-label">Optimization and parallelization</div>
+          <h3>One campaign, one global CPU pool</h3>
+          <ul>
+            <li>Submit all 30 kingdoms together. The later 160-kingdom campaign uses the same design.</li>
+            <li>Put every independent piece of ready work into one global queue.</li>
+            <li>Do not reserve a fixed number of CPUs for a kingdom or a stage.</li>
+            <li>Give priority to small tasks that unlock the next scientific step, while spare CPUs continue bulk work.</li>
+            <li>Let each kingdom advance as soon as its own dependency is complete. Never wait for every kingdom to finish a stage.</li>
+          </ul>
+          <div class="callout"><strong>Primary objective:</strong> minimize the time until all kingdoms finish. High CPU use matters because it serves that objective, not as a goal by itself.</div>
+        </article>
+      </div>
+      <div class="flow" aria-label="Global campaign flow">
+        <div class="node">Goldfish chunks<br>from all kingdoms</div><div class="arrow">→</div>
+        <div class="node">Per-kingdom<br>top 500,000</div><div class="arrow">→</div>
+        <div class="node">Per-kingdom<br>top 20,000</div><div class="arrow">→</div>
+        <div class="node">Matrix<br>pairing chunks</div><div class="arrow">→</div>
+        <div class="node">Adaptive<br>PSRO rounds</div>
+      </div>
+    </section>
+
+    <section id="cpu-model">
+      <h2>The 400-CPU execution model</h2>
+      <div class="principles">
+        <div class="principle"><strong>Parallelize scientific units</strong>Candidate scores, pair-and-seed games, and response games are independent. Those are the work units.</div>
+        <div class="principle"><strong>Keep only true barriers</strong>Wait only when a ranking, equilibrium, or statistical decision needs all evidence from the current step.</div>
+        <div class="principle"><strong>Hide barriers across kingdoms</strong>When one kingdom reduces results or solves an equilibrium, run simulations for other kingdoms.</div>
+      </div>
+
+      <h3>Recommended worker shape</h3>
+      <p>Treat one CPU core as one simulation lane. A practical starting shape is 100 four-core containers, each running four independent native simulation lanes. This uses all 400 cores without relying on one simulation job to scale across several threads.</p>
+      <p>That container shape is not a scientific rule. Before production, benchmark one, two, four, and eight cores per container on the same work. Choose the shape with the highest completed games per billed CPU-second, provided it can still fill all 400 cores. If four independent lanes in one container interfere with each other, use smaller containers.</p>
+
+      <h3>Keep the pool useful</h3>
+      <ul>
+        <li>Build and deploy one image per software version before campaign timing starts.</li>
+        <li>Initialize the native simulation engine when a container starts, then reuse it for many work chunks.</li>
+        <li>Keep containers warm between adjacent Goldfish, matrix, and PSRO bursts instead of rebuilding the pool for each stage.</li>
+        <li>Size chunks from measured throughput. Increase chunk size until startup, dispatch, and result overhead are a small part of wall time; keep enough chunks to fill at least 400 cores.</li>
+        <li>Use completion-order scheduling: assign the next ready chunk as soon as any lane becomes free.</li>
+      </ul>
+
+      <h3>Why multiple kingdoms help</h3>
+      <table>
+        <thead><tr><th>Campaign</th><th>Effect on parallelism</th><th>Scheduling approach</th></tr></thead>
+        <tbody>
+          <tr><td>1 kingdom</td><td>Some reductions and equilibrium solves cannot use 400 cores. The pool can briefly be underused.</td><td>Split simulations widely, but do not invent work merely to keep CPUs busy.</td></tr>
+          <tr><td>30 kingdoms</td><td>Bulk work and adaptive pauses overlap. There should almost always be enough independent work for 400 cores.</td><td>Start all kingdoms and schedule from one queue.</td></tr>
+          <tr><td>160 kingdoms</td><td>The ready queue is much deeper. Startup and task metadata can become the limit.</td><td>Keep a bounded ready queue in front of the same 400-core pool; do not create every future task at once.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="callout warning"><strong>Important:</strong> asking one process to use more cores is not the same as parallelizing the work. Independent simulation lanes are the default. Multi-threaded speedups must be measured, not assumed.</div>
+    </section>
+
+    <section id="goldfish">
+      <h2>1. Build the Goldfish reservoir</h2>
+      <div class="two-col">
+        <article class="card concept">
+          <div class="card-label">Approved conceptual process</div>
+          <p>Goldfish scoring is a fast first filter. It measures each strategy against three movement profiles: stationary, chaser, and kiter. It does not measure how well the strategy performs against the other strategies.</p>
+          <ol>
+            <li>Generate and score all 12,972,960 legal strategies with the first fixed shuffle seed against all three movement profiles.</li>
+            <li>Take the best 500,000 unique strategies and save them with their results.</li>
+            <li>Score each of the saved 500,000 strategies with three more fixed shuffle seeds against the same movement profiles.</li>
+            <li>Combine the results from all four shuffle seeds.</li>
+            <li>Take the best 20,000 unique strategies and save them with their results as the reservoir.</li>
+          </ol>
+          <p>The reservoir is the candidate set for the competitive search. A high Goldfish rank does not prove that a strategy is competitively strong. The later stages test that through head-to-head games.</p>
+        </article>
+        <article class="card optimize">
+          <div class="card-label">Optimization and parallelization</div>
+          <h3>Stage 1: all strategies to 500,000</h3>
+          <ol>
+            <li>Divide each kingdom's ordered strategy positions into independent ranges.</li>
+            <li>Generate strategies inside the worker that scores them. Do not create or transfer strategy JSON before scoring.</li>
+            <li>Run one scoring lane per CPU core. Score a batch in memory across all three movement profiles.</li>
+            <li>Keep only the range's best 500,000 candidates in a compact sorted stream. Never save per-game or repeated full-strategy data.</li>
+            <li>Store that stream temporarily only because it is too large for a routine function result.</li>
+            <li>Perform one exact multiway merge to select the global best 500,000 unique strategies.</li>
+            <li>Write the final top-500,000 file once, validate it, then delete the temporary streams.</li>
+          </ol>
+          <h3>Stage 2: 500,000 to 20,000</h3>
+          <ol>
+            <li>Split the 500,000 retained positions into independent candidate-and-seed ranges.</li>
+            <li>Score the three new seeds in parallel across the global pool.</li>
+            <li>Combine each candidate's four-seed result once.</li>
+            <li>Keep only each range's best 20,000 candidates in a compact temporary stream.</li>
+            <li>Merge only the candidates that can still enter the global top 20,000.</li>
+            <li>Write the final reservoir once, validate it, then delete the temporary streams.</li>
+          </ol>
+        </article>
+      </div>
+
+      <div class="workload">
+        <div><span class="big-number">38.9M</span>profile trials per kingdom in stage 1</div>
+        <div><span class="big-number">4.5M</span>additional profile trials per kingdom in stage 2</div>
+        <div><span class="big-number">30×</span>independent kingdom work available to the same pool</div>
+      </div>
+
+      <h3>How to use 400 CPUs</h3>
+      <ul class="checklist">
+        <li>For 30 kingdoms, make ranges large enough to amortize overhead but keep at least several hundred ranges ready across the campaign.</li>
+        <li>Do not force 400 tiny files from one kingdom when ranges from 30 kingdoms already fill the pool.</li>
+        <li>Start a kingdom's stage 2 as soon as its top 500,000 merge finishes, even while other kingdoms remain in stage 1.</li>
+        <li>Run each kingdom's merge as soon as its final range arrives. Continue scoring other kingdoms during the merge.</li>
+      </ul>
+
+      <div class="callout metric"><strong>Measure:</strong> candidates per CPU-second; profile trials per CPU-second; container startup; queue delay; bytes written per candidate; merge read time; merge CPU time; final file write time; and useful CPU occupancy over the whole campaign.</div>
+    </section>
+
+    <section id="matrix">
+      <h2>2. Build the initial game matrix</h2>
+      <div class="two-col">
+        <article class="card concept">
+          <div class="card-label">Approved conceptual process</div>
+          <p>A game matrix records how each selected strategy performs against every other selected strategy.</p>
+          <ol>
+            <li>Take the top 50 strategies from the reservoir.</li>
+            <li>Play every pair of strategies, including each strategy against itself.</li>
+            <li>For each pair, use 125 fixed shuffle seeds. Play twice per seed so that each strategy goes first once.</li>
+            <li>Record the results and gameplay evidence for each pairing.</li>
+            <li>Use the first 75 seeds to calculate the initial equilibrium.</li>
+            <li>Keep seeds 76–100 as a depth check and seeds 101–125 as independent evidence for later analysis.</li>
+          </ol>
+          <p>The equilibrium is a weighted lottery over strategies. Its weights describe how often each strategy should be selected when no strategy in the current matrix has an advantage over the lottery.</p>
+        </article>
+        <article class="card optimize">
+          <div class="card-label">Optimization and parallelization</div>
+          <h3>Parallel unit: pair × seed range</h3>
+          <ol>
+            <li>Represent the matrix as 1,275 independent strategy pairs, including 50 self-play pairs.</li>
+            <li>Split each pair's 125 seeds into work chunks large enough to amortize dispatch.</li>
+            <li>Run both first-player orders together so each chunk returns a balanced result.</li>
+            <li>Send all ready chunks from all kingdoms to the global pool.</li>
+            <li>Return compact integer totals and required gameplay evidence, not one record per game.</li>
+            <li>Combine chunks by pair and seed order with deterministic integer addition.</li>
+            <li>Solve the equilibrium after the first 75 seeds for every required pair are complete.</li>
+          </ol>
+          <div class="callout"><strong>Key point:</strong> there is no reason to run an entire kingdom's matrix inside one container. The games are independent until the equilibrium solve.</div>
+        </article>
+      </div>
+
+      <div class="workload">
+        <div><span class="big-number">1,275</span>strategy pairs per kingdom</div>
+        <div><span class="big-number">318,750</span>games per kingdom</div>
+        <div><span class="big-number">9.56M</span>games across 30 kingdoms</div>
+      </div>
+
+      <h3>Barrier and critical path</h3>
+      <p>The matrix has one true barrier: the initial equilibrium cannot be solved until the required 75-seed results are complete. Seeds 76–125 can run at the same time, but they must not delay the equilibrium if the scientific process does not require them for PSRO.</p>
+      <p>The equilibrium solve is small and sequential. Give it immediate priority, then release that kingdom's first PSRO screen. Other CPUs continue matrix or Goldfish games for other kingdoms.</p>
+
+      <div class="callout metric"><strong>Measure:</strong> games per CPU-second; chunk dispatch overhead; pair aggregation time; equilibrium solve time; time from the last required game to PSRO release; and CPU use while each kingdom crosses the barrier.</div>
+    </section>
+
+    <section id="psro">
+      <h2>3. Search for responses with PSRO</h2>
+      <div class="two-col">
+        <article class="card concept">
+          <div class="card-label">Approved conceptual process</div>
+          <p>Policy-space response oracles (PSRO) repeatedly search for strategies that can beat the current equilibrium. A response is a reservoir strategy that appears to beat the equilibrium by more than the 51% threshold.</p>
+          <p>Each search follows three steps: screening, confirmation, and admission.</p>
+        </article>
+        <article class="card optimize">
+          <div class="card-label">Optimization and parallelization</div>
+          <h3>Adaptive global work</h3>
+          <ul>
+            <li>Freeze the current equilibrium for one look.</li>
+            <li>Create work only for candidates and seed ranges needed at that look.</li>
+            <li>Run those games across all free CPU lanes.</li>
+            <li>Reduce candidate results and make the scientific decision.</li>
+            <li>Create the next look only for unresolved candidates.</li>
+          </ul>
+          <p>This preserves the approved adaptive process and avoids paying for deeper evidence that rejected or confirmed candidates do not need.</p>
+        </article>
+      </div>
+
+      <div id="screen" class="two-col" style="margin-top:22px">
+        <article class="card concept">
+          <div class="card-label">Approved conceptual process: screen</div>
+          <h3>Screen the reservoir</h3>
+          <ol>
+            <li>Exclude strategies that are already in the matrix.</li>
+            <li>Play every remaining reservoir strategy against the current equilibrium.</li>
+            <li>Start with 8 shuffle seeds and increase the evidence through 16, 32, 64, 128, 256, and 512 seeds when the result is still uncertain.</li>
+            <li>Reject a strategy when the evidence shows that it does not exceed the 51% threshold.</li>
+            <li>Send a strategy to confirmation when the evidence shows that it exceeds the threshold.</li>
+            <li>Mark a strategy as unresolved when the maximum screening evidence is not enough to make either decision.</li>
+          </ol>
+          <p>Each shuffle seed produces two games with opposite first players. The search follows the equilibrium weights as closely as the available number of games allows.</p>
+        </article>
+        <article class="card optimize">
+          <div class="card-label">Optimization and parallelization: screen</div>
+          <ol>
+            <li>At each depth, split active candidates into chunks and distribute them globally.</li>
+            <li>Within each candidate, split large seed work only when needed to expose enough parallelism.</li>
+            <li>Keep the opponent schedule fixed and send its compact representation once per worker, not once per game.</li>
+            <li>Aggregate scores by candidate with exact integer counts.</li>
+            <li>Make all decisions for that depth in one pass, then immediately release the next-depth work.</li>
+          </ol>
+          <div class="callout"><strong>Available parallelism:</strong> the first look has nearly 20,000 candidates per kingdom. Thirty kingdoms provide almost 600,000 candidate evaluations before any deeper look.</div>
+        </article>
+      </div>
+
+      <div id="confirm" class="two-col" style="margin-top:22px">
+        <article class="card concept">
+          <div class="card-label">Approved conceptual process: confirm</div>
+          <h3>Confirm possible responses</h3>
+          <ol>
+            <li>Test every possible response again with fresh shuffle seeds.</li>
+            <li>Increase confirmation evidence through 400, 800, 1,600, 3,200, and 6,400 seeds when needed. <span class="question">(when needed to get 95% CI above 51%?)</span></li>
+            <li>Account for the number of possible responses being tested in the same search. <span class="question">(what is this? statistical thing to account for false positives given testing a lot of items?)</span></li>
+            <li>Confirm only strategies whose adjusted evidence remains above the 51% threshold.</li>
+            <li>Leave strategies unresolved when the maximum confirmation evidence is not enough to confirm them.</li>
+          </ol>
+          <p>Fresh confirmation prevents screening results from also serving as final proof.</p>
+        </article>
+        <article class="card optimize">
+          <div class="card-label">Optimization and parallelization: confirm</div>
+          <ol>
+            <li>Use separate fresh-seed tasks; do not mix screening and confirmation evidence.</li>
+            <li>Parallelize candidate × seed-range work exactly as in screening.</li>
+            <li>Schedule only the additional seeds needed to reach the next cumulative look.</li>
+            <li>Reduce all provisional candidates before applying the across-candidate statistical adjustment.</li>
+            <li>Stop scheduling a candidate as soon as the scientific rule reaches a terminal decision.</li>
+          </ol>
+          <div class="callout warning"><strong>Scientific boundary:</strong> the confidence rule and multiple-testing adjustment are not optimization choices. They must be answered and fixed separately. Parallel execution must produce the same candidate decisions as serial execution.</div>
+        </article>
+      </div>
+
+      <div id="admit" class="two-col" style="margin-top:22px">
+        <article class="card concept">
+          <div class="card-label">Approved conceptual process: admit</div>
+          <h3>Admit a confirmed response</h3>
+          <ol>
+            <li>Order confirmed responses by confidence lower bound, mean score, confidence upper bound, Goldfish rank, and deterministic strategy identity.</li>
+            <li>Admit the strongest response to the matrix.</li>
+            <li>Play the admitted strategy against every strategy already in the matrix.</li>
+            <li>Add the new results as a row and column in the matrix.</li>
+            <li>Calculate a new equilibrium from the expanded matrix.</li>
+            <li>Retest the other confirmed responses against the new equilibrium.</li>
+            <li>Run another full reservoir search after the confirmed queue is empty.</li>
+          </ol>
+          <p>Only one response is admitted at a time because each admission can change the equilibrium and make other responses irrelevant.</p>
+        </article>
+        <article class="card optimize">
+          <div class="card-label">Optimization and parallelization: admit</div>
+          <ol>
+            <li>Keep the admission order serial because the next equilibrium depends on the chosen response.</li>
+            <li>Parallelize the new matrix row by existing opponent × seed range.</li>
+            <li>Run the equilibrium solve immediately when the row is complete.</li>
+            <li>Parallelize retesting of the remaining confirmed queue against the new equilibrium.</li>
+            <li>Reuse only scientific evidence that remains valid for the new equilibrium; never reuse an old response score as if the opponent lottery had not changed.</li>
+          </ol>
+          <p>The admission decision is sequential. The thousands of games around it are not.</p>
+        </article>
+      </div>
+
+      <div id="stop" class="two-col" style="margin-top:22px">
+        <article class="card concept">
+          <div class="card-label">Approved conceptual process: stop</div>
+          <h3>Stop after two clean searches</h3>
+          <p>A search is clean when it finds no confirmed response.</p>
+          <ol>
+            <li>Count the first clean search.</li>
+            <li>Search the same reservoir again against the same matrix and equilibrium.</li>
+            <li>Finish when the second consecutive search is also clean.</li>
+            <li>Reset the clean-search count whenever a response is admitted.</li>
+          </ol>
+          <p>Two clean searches are evidence that the saved 20,000-strategy reservoir contains no response that this process can confirm against the final equilibrium. They do not prove that no response exists outside the reservoir or that the game has only one equilibrium.</p>
+          <p>An interrupted or inconclusive search is incomplete. A time limit, failed task, or manual stop must not count as a clean search.</p>
+        </article>
+        <article class="card optimize">
+          <div class="card-label">Optimization and parallelization: stop</div>
+          <p>This is a decision inside PSRO, not a separate compute stage.</p>
+          <ul>
+            <li>Begin the second clean search as soon as the first clean search validates.</li>
+            <li>Use the same parallel screen and confirmation machinery.</li>
+            <li>Record the stopping decision after all required evidence is complete.</li>
+            <li>Do not add delay, shutdown margins, or separate compute allocation for stopping.</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="callout metric"><strong>Measure:</strong> games per CPU-second at every look; surviving candidates by depth; dispatch and reduction time per barrier; equilibrium-solve delay; matrix-row refill time; idle CPU-seconds while a kingdom waits; and total PSRO critical-path time.</div>
+    </section>
+
+    <section id="evidence">
+      <h2>Save and validate the evidence</h2>
+      <div class="two-col">
+        <article class="card concept">
+          <div class="card-label">Approved conceptual process</div>
+          <p>When done, save enough evidence to reproduce and inspect every scientific decision:</p>
+          <ul>
+            <li>the top 500,000 Goldfish results;</li>
+            <li>the final 20,000-strategy reservoir;</li>
+            <li>all game-matrix results;</li>
+            <li>the equilibrium after each matrix change;</li>
+            <li>screening and confirmation games, seeds, scores, and decisions;</li>
+            <li>admitted responses;</li>
+            <li>the final stopping result;</li>
+            <li>gameplay evidence used for card-balance analysis.</li>
+          </ul>
+          <p>Validate these files before the campaign is complete. Download the validated evidence, then produce balance reports and comparisons locally. Reporting does not change the strategy search or its completion result.</p>
+        </article>
+        <article class="card optimize">
+          <div class="card-label">Optimization and parallelization</div>
+          <h3>Save decisions, not task mechanics</h3>
+          <ul>
+            <li>Return small worker results directly as compact numeric data. Do not create a file for every Matrix or PSRO task.</li>
+            <li>Never save one record per game. Save the exact aggregate evidence needed to reproduce each scientific decision.</li>
+            <li>Use temporary files only for large Goldfish streams that do not fit comfortably in a function result.</li>
+            <li>Save one compact kingdom checkpoint at each scientific barrier: top 500,000, top 20,000, completed Matrix, completed PSRO look, admission, and final stop.</li>
+            <li>Write each final scientific artifact once. Validate it immediately, then delete its temporary inputs.</li>
+            <li>Download only final scientific evidence. Download completed kingdoms concurrently, capped at measured network throughput.</li>
+          </ul>
+          <div class="callout"><strong>Minimal storage model:</strong> ephemeral worker result → compact scientific checkpoint → final validated evidence. If a worker result is lost before the next checkpoint, rerun that small task instead of making every task durable.</div>
+        </article>
+      </div>
+    </section>
+
+    <section id="proof">
+      <h2>How to prove the design is optimal enough</h2>
+      <p>“Uses 400 CPUs” is not proof. The campaign must show where time and CPU-seconds went.</p>
+      <table>
+        <thead><tr><th>Experiment</th><th>Question answered</th><th>Required output</th></tr></thead>
+        <tbody>
+          <tr><td>Worker shape: 1, 2, 4, 8 cores</td><td>Does packing more lanes into a container improve or reduce throughput?</td><td>Games or trials per billed CPU-second, wall time, memory, startup.</td></tr>
+          <tr><td>Chunk-size sweep</td><td>What is the smallest chunk that makes dispatch and startup negligible?</td><td>Compute time, queue time, dispatch time, bytes, failure retry cost.</td></tr>
+          <tr><td>One-kingdom stage benchmark</td><td>Can each bulk stage scale on its own, and where does it stop scaling?</td><td>Throughput at 25, 50, 100, 200, and 400 CPUs.</td></tr>
+          <tr><td>30-kingdom dry run and smoke</td><td>Does global scheduling keep the pool busy across real barriers?</td><td>Timeline by kingdom and stage; active, queued, and idle CPU-seconds.</td></tr>
+          <tr><td>Layout-parity test</td><td>Does changing task and container layout preserve scientific results?</td><td>Byte-identical final evidence and identical decisions.</td></tr>
+          <tr><td>Failure test</td><td>Can one task retry without repeating valid work or changing results?</td><td>Attempt history, reused outputs, final parity, added cost.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Metrics shown on one campaign timeline</h3>
+      <ul>
+        <li>image build and container warm-up before scientific work;</li>
+        <li>queue delay, startup, simulation, temporary I/O, reduction, validation, final write, and download time;</li>
+        <li>running CPUs and useful simulation CPUs over time;</li>
+        <li>idle CPU-seconds classified by scientific barrier, insufficient ready work, platform queueing, failure backoff, or final tail;</li>
+        <li>per-kingdom completion time and total campaign completion time;</li>
+        <li>actual compute cost and retry cost.</li>
+      </ul>
+
+      <div class="callout"><strong>Success condition for 30 and 160 kingdoms:</strong> during bulk simulation windows, the global scheduler keeps close to 400 CPU cores doing useful work. During true serial barriers, other kingdoms absorb the spare capacity. Any remaining under-use has a measured reason.</div>
+    </section>
+
+    <footer>
+      <p><strong>Modal facts used by this design:</strong> Modal can parallelize independent inputs with <code>Function.map()</code>; autoscaling exposes <code>max_containers</code>, <code>buffer_containers</code>, and <code>scaledown_window</code>; CPU requests refer to physical cores; warm containers can be reused; and Volume writers should use distinct files.</p>
+      <p>Sources: <a href="https://modal.com/docs/guide/scale">Scaling out</a>, <a href="https://modal.com/docs/guide/resources">CPU resources</a>, <a href="https://modal.com/docs/guide/cold-start">Cold start performance</a>, and <a href="https://modal.com/docs/guide/volumes">Volumes</a>.</p>
+    </footer>
+  </main>
+</div>
+</body>
+</html>
