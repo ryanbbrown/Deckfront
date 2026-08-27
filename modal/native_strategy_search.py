@@ -2034,13 +2034,16 @@ def _strategy_search_task_config(bundle: dict[str, Any], state: dict[str, Any], 
 
 def _strategy_search_goldfish_task_id(evidence_id: str, stage: str,
                                       range_value: dict[str, int] | None) -> str:
-    value = {"evidenceId": evidence_id, "stage": stage, "range": range_value}
+    normalized_range = None if range_value is None else {
+        "start": range_value["start"], "end": range_value["end"]}
+    value = {"evidenceId": evidence_id, "stage": stage, "range": normalized_range}
     return hashlib.sha256(json.dumps(value, separators=(",", ":")).encode()).hexdigest()
 
 
 def _strategy_search_materialize_goldfish(state: dict[str, Any], bundle: dict[str, Any]) -> bool:
     window = max(1, state["maxActiveCpus"] // 4) * bundle["controller"].get("readyWindowWaves", 2)
-    unlaunched = sum(job["stage"] in {"goldfish-one", "goldfish-two"}
+    unlaunched = sum(job["stage"] in {"goldfish-one", "goldfish-two", "matrix-score",
+            "psro-score", "admission-row-score"}
         and job["status"] in {"blocked", "ready"} for job in state["jobs"])
     changed = False
     kingdom_by_evidence = {}
@@ -2137,7 +2140,8 @@ def _strategy_search_materialize_adaptive(state: dict[str, Any], bundle: dict[st
     if not partitions:
         return False
     window = max(1, state["maxActiveCpus"] // 4) * bundle["controller"].get("readyWindowWaves", 2)
-    unlaunched = sum(job["stage"] in {"psro-score", "admission-row-score"}
+    unlaunched = sum(job["stage"] in {"goldfish-one", "goldfish-two", "matrix-score",
+            "psro-score", "admission-row-score"}
         and job["status"] in {"blocked", "ready"} for job in state["jobs"])
     changed = False
     entries = [partitions[key] for key in sorted(partitions)]
@@ -2327,8 +2331,8 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
             for job in list(state["jobs"]) if job["stage"] == "psro-decision"
             and job.get("status") == "complete" and not job.get("expanded")]
         materialized = any(recovered_transitions)
-        materialized = _strategy_search_materialize_goldfish(state, bundle) or materialized
         materialized = _strategy_search_materialize_adaptive(state, bundle) or materialized
+        materialized = _strategy_search_materialize_goldfish(state, bundle) or materialized
         if materialized:
             state = strategy_search_publisher.remote({"operation": "execution-save",
                 "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],

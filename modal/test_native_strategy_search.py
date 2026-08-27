@@ -727,6 +727,17 @@ print(json.dumps(result))
             self.assertFalse(temporary.exists())
             self.assertEqual(destination.read_bytes(), b"scientific")
 
+    def test_strategy_search_task_identity_normalizes_modal_object_key_order(self):
+        evidence = "b" * 64
+        forward = launcher._strategy_search_goldfish_task_id(evidence, "goldfish-one",
+            {"start": 0, "end": 10})
+        reversed_keys = launcher._strategy_search_goldfish_task_id(evidence, "goldfish-one",
+            {"end": 10, "start": 0})
+        expected = hashlib.sha256(json.dumps({"evidenceId": evidence, "stage": "goldfish-one",
+            "range": {"start": 0, "end": 10}}, separators=(",", ":")).encode()).hexdigest()
+        self.assertEqual(forward, expected)
+        self.assertEqual(reversed_keys, expected)
+
     def test_strategy_search_expands_one_sealed_psro_look_into_bounded_score_and_reduce_jobs(self):
         evidence = "b" * 64
         transition = {"kind": "score", "checkpoint": {"evidenceHash": "c" * 64},
