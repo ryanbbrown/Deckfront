@@ -436,6 +436,26 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         spawn.assert_called_once()
         self.assertIsNone(spawn.call_args.kwargs["env"])
 
+    def test_campaign_goldfish_completion_hashes_sidecars_and_uses_stage_timeout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            ranked, reservoir = root / "ranked.json", root / "reservoir.json"
+            ranked.write_text('{"parts":[]}\n'); reservoir.write_text('{"entries":[]}\n')
+            ranked_digest = hashlib.sha256(ranked.read_bytes()).hexdigest()
+            reservoir_digest = hashlib.sha256(reservoir.read_bytes()).hexdigest()
+            ranked.with_suffix(".json.sha256").write_text(f"{ranked_digest}  ranked.json\n")
+            reservoir.with_suffix(".json.sha256").write_text(f"{reservoir_digest}  reservoir.json\n")
+            hashes = launcher._campaign_goldfish_complete_hashes(ranked, reservoir, {"parts": []})
+            self.assertEqual(hashes["output/ranked.json"], ranked_digest)
+            self.assertEqual(hashes["output/ranked.json.sha256"], hashlib.sha256(
+                ranked.with_suffix(".json.sha256").read_bytes()).hexdigest())
+            ranked.with_suffix(".json.sha256").write_text(f"{'0' * 64}  ranked.json\n")
+            with self.assertRaisesRegex(RuntimeError, "sidecar differs"):
+                launcher._campaign_goldfish_complete_hashes(ranked, reservoir, {"parts": []})
+        source = inspect.getsource(launcher.campaign_goldfish_finalize.get_raw_f())
+        self.assertIn('timeout=config["timeout_seconds"]', source)
+        self.assertNotIn("timeout=300", source)
+
     def test_campaign_psro_uses_the_built_resident_rust_binary(self):
         class Pipe:
             def __init__(self, lines): self.lines = lines
@@ -492,6 +512,27 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             "artifactHashes": {"output/file.json": "a" * 64}})
         self.assertEqual(observations[1]["state"], "failed")
         self.assertIn("RuntimeError", observations[1]["reason"])
+
+    def test_controller_launch_reservation_allows_one_spawn_and_binds_one_call(self):
+        class HeldVolume:
+            def reload(self): pass
+            def commit(self): pass
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(launcher, "volume", HeldVolume()), \
+                patch.object(launcher, "_campaign_path",
+                    return_value=pathlib.Path(directory) / "controller-call.json"):
+            request = {"campaign_root": "campaign/root", "evidence_hash": "a" * 64,
+                "operation": "reserve", "call_id": "", "owner_id": "owner-one"}
+            first = launcher.campaign_controller_call_mutator.get_raw_f()(request)
+            second = launcher.campaign_controller_call_mutator.get_raw_f()({**request, "owner_id": "owner-two"})
+            self.assertEqual(first["controllerCall"], second["controllerCall"])
+            self.assertIsNone(first["controllerCall"]["callId"])
+            bound = launcher.campaign_controller_call_mutator.get_raw_f()({**request,
+                "operation": "bind", "call_id": "fc-one"})
+            self.assertEqual(bound["controllerCall"]["callId"], "fc-one")
+            with self.assertRaisesRegex(RuntimeError, "stale or ambiguous"):
+                launcher.campaign_controller_call_mutator.get_raw_f()({**request,
+                    "operation": "bind", "call_id": "fc-two"})
 
     def test_launch_intent_is_durable_before_spawn_and_ambiguous_crash_is_not_bound(self):
         calls = []
@@ -601,6 +642,14 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         source = inspect.getsource(launcher.campaign_controller.get_raw_f())
         for forbidden in ["reserve_cost", "LEDGER_PATH", "GROSS_BUDGET_USD", "max_cost_usd"]:
             self.assertNotIn(forbidden, source)
+        self.assertIn('launch_actions[:config["dispatch_batch_size"]]', source)
+
+    def test_campaign_status_is_bounded_and_read_only(self):
+        source = inspect.getsource(launcher.campaign_read_status.get_raw_f())
+        for forbidden in ["campaign_controller", "campaign_matrix_stage", "campaign_psro_stage",
+                          "ordered_product_stage_one", "ordered_product_stage_two", ".spawn("]:
+            self.assertNotIn(forbidden, source)
+        self.assertIn("content-index.json", source)
 
     def test_result_validation_rejects_partial_corrupt_and_stale_checkpoints(self):
         spec = {"run_id": "run", "kingdom": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM,

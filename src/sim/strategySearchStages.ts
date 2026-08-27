@@ -90,7 +90,8 @@ export function validateCampaignStageControlMarker(value: unknown,
 }
 
 export function validateCampaignGoldfishStage(input: {
-  stageId: string; ranked: unknown; rankedSha256: string; reservoir: unknown; reservoirSha256: string;
+  stageId: string; ranked: unknown; rankedSha256: string; rankedSidecarContent: string;
+  reservoir: unknown; reservoirSha256: string; reservoirSidecarContent: string;
   fileHashes: Readonly<Record<string, string>>; marker: unknown;
 }): input is typeof input & { ranked: OrderedProductRankedArtifact;
   reservoir: OrderedProductReservoirArtifact; marker: CampaignStageControlMarker } {
@@ -98,8 +99,25 @@ export function validateCampaignGoldfishStage(input: {
     || !validateOrderedProductArtifact(input.ranked)) return false;
   const ranked = input.ranked;
   if (!validateOrderedProductReservoir(input.reservoir, ranked, input.rankedSha256)) return false;
-  if (input.fileHashes['output/ranked.json'] !== input.rankedSha256
+  const rankedSidecar = `${input.rankedSha256}  ranked.json\n`;
+  const reservoirSidecar = `${input.reservoirSha256}  reservoir.json\n`;
+  const expectedPaths = new Set(['output/ranked.json', 'output/ranked.json.sha256',
+    'output/reservoir.json', 'output/reservoir.json.sha256']);
+  const parts = (ranked as OrderedProductRankedArtifact & { parts?: unknown }).parts;
+  if (parts !== undefined) {
+    if (!Array.isArray(parts)) return false;
+    for (const part of parts) {
+      if (!object(part) || typeof part.file !== 'string' || !sha(part.sha256)
+        || input.fileHashes[`output/${part.file}`] !== part.sha256) return false;
+      expectedPaths.add(`output/${part.file}`);
+    }
+  }
+  if (input.rankedSidecarContent !== rankedSidecar || input.reservoirSidecarContent !== reservoirSidecar
+    || input.fileHashes['output/ranked.json'] !== input.rankedSha256
+    || input.fileHashes['output/ranked.json.sha256'] !== createHash('sha256').update(rankedSidecar).digest('hex')
     || input.fileHashes['output/reservoir.json'] !== input.reservoirSha256
+    || input.fileHashes['output/reservoir.json.sha256'] !== createHash('sha256').update(reservoirSidecar).digest('hex')
+    || !exact(Object.keys(input.fileHashes).sort(), [...expectedPaths].sort())
     || Object.values(input.fileHashes).some((digest) => !sha(digest))) return false;
   const expected = createCampaignStageControlMarker({ stage: 'goldfish', stageId: input.stageId,
     status: 'complete', artifactHashes: input.fileHashes });

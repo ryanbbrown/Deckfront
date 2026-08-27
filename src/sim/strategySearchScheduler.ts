@@ -229,6 +229,25 @@ export function applyCampaignSchedulerUpdates(tasks: readonly CampaignSchedulerT
   return result;
 }
 
+export function reconfigureCampaignSchedulerTasks(tasks: readonly CampaignSchedulerTask[],
+  resources: Readonly<Record<string, { containers: number; cpus: number }>>): CampaignSchedulerTask[] {
+  if (!validateCampaignSchedulerTasks(tasks) || !object(resources)
+    || !exact(Object.keys(resources).sort(), tasks.map((task) => task.taskId).sort())) {
+    throw new Error('Campaign scheduler runtime resources do not match its tasks.');
+  }
+  const configured = tasks.map((task) => {
+    const resource = resources[task.taskId]!;
+    if (!Number.isSafeInteger(resource.containers) || resource.containers < 1
+      || !Number.isSafeInteger(resource.cpus) || resource.cpus < 1) {
+      throw new Error(`Campaign scheduler runtime resource is invalid for ${task.taskId}.`);
+    }
+    return task.status === 'active' || task.status === 'launching' ? structuredClone(task)
+      : { ...structuredClone(task), containers: resource.containers, cpus: resource.cpus };
+  });
+  if (!validateCampaignSchedulerTasks(configured)) throw new Error('Campaign scheduler runtime update is invalid.');
+  return configured;
+}
+
 export interface CampaignSchedulerCheckpoint {
   schemaVersion: 1; experiment: 'strategy-search-campaign-scheduler'; evidenceHash: string;
   controllerFence: number; revision: number; tasks: CampaignSchedulerTask[]; checkpointHash: string;

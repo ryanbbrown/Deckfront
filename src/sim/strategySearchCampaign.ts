@@ -12,6 +12,7 @@ export const STRATEGY_SEARCH_ARTIFACT_SCHEMA_VERSION = 1 as const;
 export const STRATEGY_SEARCH_SIMULATOR_VERSION = 'strategy-search-simulator-v1' as const;
 export const CAMPAIGN_MATRIX_SCHEMA_VERSION = 3 as const;
 export const CAMPAIGN_PSRO_SCHEMA_VERSION = 2 as const;
+export const STRATEGY_SEARCH_CAMPAIGN_VOLUME_NAME = 'hexdeck-native-strategy-results' as const;
 
 const sha256 = (value: string | Uint8Array): string => createHash('sha256').update(value).digest('hex');
 const canonical = (value: unknown): string => JSON.stringify(sortValue(value));
@@ -44,9 +45,10 @@ const sourceImageSchema = z.object({
 
 export const strategySearchCampaignManifestSchema = z.object({
   schemaVersion: z.literal(STRATEGY_SEARCH_CAMPAIGN_SCHEMA_VERSION),
-  deployment: z.object({ volumeName: identifier }).strict(),
+  deployment: z.object({ volumeName: z.literal(STRATEGY_SEARCH_CAMPAIGN_VOLUME_NAME) }).strict(),
   evidence: z.object({
     campaignId: identifier,
+    selectionManifest: z.object({ sha256: sha, digest: sha }).strict(),
     kingdomIds: z.array(identifier).min(1),
     sourceImage: sourceImageSchema,
     kingdoms: z.record(identifier, kingdomEvidenceSchema),
@@ -84,6 +86,13 @@ export const strategySearchCampaignManifestSchema = z.object({
 export type StrategySearchCampaignManifest = z.infer<typeof strategySearchCampaignManifestSchema>;
 export type CampaignRuntime = StrategySearchCampaignManifest['runtime'];
 export type SourceImageIdentity = StrategySearchCampaignManifest['evidence']['sourceImage'];
+export interface CampaignSelectionManifest {
+  schemaVersion: 1; suiteVersion: string; sourceSuiteVersion: string; sourceManifestDigest: string;
+  selectedCount: number; selectedKingdomIds: string[]; selection: unknown; digest: string;
+}
+export interface ParsedCampaignSelectionManifest {
+  manifest: CampaignSelectionManifest; sha256: string; digest: string; kingdomIds: string[];
+}
 
 export interface ParsedCampaignManifest {
   manifest: StrategySearchCampaignManifest;
@@ -102,6 +111,29 @@ function assertSourceImagePath(relative: string): void {
     || name.endsWith('.pem') || name.endsWith('.key')) {
     throw new Error(`Source-image path is generated, secret-bearing, or excluded: ${relative}`);
   }
+}
+
+export function parseCampaignSelectionManifest(content: string | Uint8Array): ParsedCampaignSelectionManifest {
+  const bytes = typeof content === 'string' ? Buffer.from(content) : Buffer.from(content);
+  let value: unknown;
+  try { value = JSON.parse(bytes.toString('utf8')) as unknown; } catch { throw new Error('Selection manifest is not JSON.'); }
+  if (!value || typeof value !== 'object' || Array.isArray(value) || !exactKeys(value,
+    ['schemaVersion', 'suiteVersion', 'sourceSuiteVersion', 'sourceManifestDigest', 'selectedCount',
+      'selectedKingdomIds', 'selection', 'digest'])) throw new Error('Selection manifest has unexpected fields.');
+  const held = value as CampaignSelectionManifest;
+  if (held.schemaVersion !== 1 || typeof held.suiteVersion !== 'string' || !held.suiteVersion
+    || typeof held.sourceSuiteVersion !== 'string' || !held.sourceSuiteVersion
+    || !sha.safeParse(held.sourceManifestDigest).success || !sha.safeParse(held.digest).success
+    || !Number.isSafeInteger(held.selectedCount) || held.selectedCount < 1
+    || !Array.isArray(held.selectedKingdomIds) || held.selectedKingdomIds.length !== held.selectedCount
+    || held.selectedKingdomIds.some((id) => !identifier.safeParse(id).success)
+    || new Set(held.selectedKingdomIds).size !== held.selectedKingdomIds.length
+    || !held.selection || typeof held.selection !== 'object' || Array.isArray(held.selection)) {
+    throw new Error('Selection manifest identity or kingdom list is invalid.');
+  }
+  const unsigned = structuredClone(held) as Partial<CampaignSelectionManifest>; delete unsigned.digest;
+  if (sha256(canonical(unsigned)) !== held.digest) throw new Error('Selection manifest digest differs.');
+  return { manifest: held, sha256: sha256(bytes), digest: held.digest, kingdomIds: [...held.selectedKingdomIds] };
 }
 
 export function normalizedRelativePath(raw: string): string {
@@ -209,6 +241,11 @@ export function parseStrategySearchCampaignManifest(value: unknown): ParsedCampa
   }
   validateShardPartition(manifest.evidence.orderedProduct.canonicalShards,
     manifest.evidence.orderedProduct.candidateCount);
+  for (const [stage, runtime] of Object.entries(manifest.runtime.stages)) {
+    if (runtime.threads > runtime.cpu || runtime.cpu > manifest.runtime.maxActiveCpus) {
+      throw new Error(`Campaign runtime cannot fit or over-threads its ${stage} stage.`);
+    }
+  }
   const evidenceHash = sha256(canonical(manifest.evidence));
   const runtimeHash = sha256(canonical(manifest.runtime));
   const stageIds = Object.fromEntries(manifest.evidence.kingdomIds.map((kingdomId) => {
@@ -380,7 +417,8 @@ function nextState(state: CampaignState): CampaignState {
   return sealState({ ...structuredClone(state), revision: state.revision + 1 });
 }
 export function claimCampaignController(input: { state: CampaignState; expectedRevision: number; ownerId: string;
-  nowMs: number; leaseMs: number; authorization?: { token: string; ceilings: RuntimeCeilings } }): CampaignState {
+  nowMs: number; leaseMs: number; requestedCeilings?: RuntimeCeilings; runtimeHash?: string;
+  authorization?: { token: string; ceilings: RuntimeCeilings } }): CampaignState {
   if (!validateCampaignState(input.state) || input.state.revision !== input.expectedRevision
     || !input.ownerId || !Number.isSafeInteger(input.nowMs) || !Number.isSafeInteger(input.leaseMs) || input.leaseMs < 1) {
     throw new Error('Campaign controller claim has stale or invalid state.');
@@ -394,6 +432,14 @@ export function claimCampaignController(input: { state: CampaignState; expectedR
     state.authorizedCeilings = state.authorizedCeilings
       ? mergeRuntimeCeilings(state.authorizedCeilings, authorized) : structuredClone(authorized);
   } else if (firstLaunch) throw new Error('First campaign launch is not authorized.');
+  if (input.requestedCeilings && (!state.authorizedCeilings
+    || !ceilingsFit(runtimeCeilingsSchema.parse(input.requestedCeilings), state.authorizedCeilings))) {
+    throw new Error('Campaign runtime increase is not authorized.');
+  }
+  if (input.runtimeHash !== undefined) {
+    sha.parse(input.runtimeHash);
+    if (!state.runtimeHistory.includes(input.runtimeHash)) state.runtimeHistory.push(input.runtimeHash);
+  }
   if (state.controller && state.controller.leaseUntilMs > input.nowMs
     && state.controller.ownerId !== input.ownerId) throw new Error('Campaign controller lease is active.');
   const takeover = !state.controller || state.controller.ownerId !== input.ownerId;

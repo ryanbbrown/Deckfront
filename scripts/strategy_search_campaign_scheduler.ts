@@ -1,7 +1,8 @@
 import fs from 'node:fs';
 import {
   applyCampaignSchedulerUpdates, createCampaignSchedulerCheckpoint,
-  planCampaignSchedulerTick, refenceCampaignSchedulerCheckpoint, validateCampaignSchedulerCheckpoint
+  planCampaignSchedulerTick, reconfigureCampaignSchedulerTasks, refenceCampaignSchedulerCheckpoint,
+  validateCampaignSchedulerCheckpoint
 } from '../src/sim/strategySearchScheduler';
 import type {
   CampaignSchedulerCheckpoint, CampaignSchedulerObservation, CampaignSchedulerUpdate
@@ -25,5 +26,10 @@ if (process.argv[2] === 'validate') {
       (request.updates ?? []) as CampaignSchedulerUpdate[]) });
 } else if (process.argv[2] === 'refence') {
   result = refenceCampaignSchedulerCheckpoint(checkpoint, Number(request.controllerFence));
+} else if (process.argv[2] === 'runtime') {
+  result = createCampaignSchedulerCheckpoint({ evidenceHash: checkpoint.evidenceHash,
+    controllerFence: checkpoint.controllerFence, revision: checkpoint.revision + 1,
+    tasks: reconfigureCampaignSchedulerTasks(checkpoint.tasks,
+      request.resources as Record<string, { containers: number; cpus: number }>) });
 } else throw new Error(`Unknown campaign scheduler operation ${process.argv[2]}.`);
 process.stdout.write(`${JSON.stringify(result)}\n`);

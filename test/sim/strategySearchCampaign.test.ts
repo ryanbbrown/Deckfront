@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { registerKingdom } from '../../src/game';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
@@ -7,7 +8,8 @@ import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import {
   claimCampaignController, contentIndexDestination, createCampaignContentIndex, createCampaignState,
   bindCampaignStageCall, campaignEvidenceComplete, deriveLaunchAuthorizationToken,
-  deriveSourceImageIdentity, mutateCampaignState, parseStrategySearchCampaignManifest,
+  deriveSourceImageIdentity, mutateCampaignState, parseCampaignSelectionManifest,
+  parseStrategySearchCampaignManifest,
   recordCampaignStageLaunchIntent, recordCampaignStageOutcome, runtimeCeilings,
   runtimeFitsAuthorizedCeilings, transitionCampaignStage, validateCampaignContentIndex,
   validateCampaignState, verifySourceImageFiles
@@ -20,8 +22,9 @@ function fixture() {
   const sourceImage = deriveSourceImageIdentity({ gitVersion: 'dc9dffa', files: [
     { path: 'package.json', content: '{}' }, { path: 'src/sim/example.ts', content: 'export {}\n' }
   ] });
-  return { schemaVersion: 1 as const, deployment: { volumeName: 'campaign-fixture-volume' }, evidence: {
-    campaignId: 'campaign-fixture', kingdomIds: [...kingdoms], sourceImage,
+  return { schemaVersion: 1 as const, deployment: { volumeName: 'hexdeck-native-strategy-results' }, evidence: {
+    campaignId: 'campaign-fixture', selectionManifest: { sha256: 'a'.repeat(64), digest: 'b'.repeat(64) },
+    kingdomIds: [...kingdoms], sourceImage,
     kingdoms: Object.fromEntries(kingdoms.map((id, index) => [id, {
       ruleFingerprint: nativeRuleFingerprint(id, 30, 200),
       goldfishSeeds: [index * 10 + 1, index * 10 + 2, index * 10 + 3, index * 10 + 4]
@@ -48,6 +51,23 @@ function fixture() {
 }
 
 describe('strategy-search campaign identity and state', () => {
+  it('consumes an exact supplied selection manifest without selecting kingdoms itself', () => {
+    const unsigned = { schemaVersion: 1, suiteVersion: 'fixture-selection-v1',
+      sourceSuiteVersion: 'fixture-source-v1', sourceManifestDigest: 'c'.repeat(64), selectedCount: 2,
+      selectedKingdomIds: [...kingdoms], selection: { source: 'fixture' } };
+    const sorted = (value: unknown): unknown => Array.isArray(value) ? value.map(sorted)
+      : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value)
+        .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
+        .map(([key, held]) => [key, sorted(held)])) : value;
+    const digest = createHash('sha256').update(JSON.stringify(sorted(unsigned))).digest('hex');
+    const content = `${JSON.stringify({ ...unsigned, digest }, null, 2)}\n`;
+    const parsed = parseCampaignSelectionManifest(content);
+    expect(parsed.kingdomIds).toEqual(kingdoms);
+    expect(parsed.sha256).toBe(createHash('sha256').update(content).digest('hex'));
+    expect(() => parseCampaignSelectionManifest(JSON.stringify({ ...unsigned, digest: 'd'.repeat(64) })))
+      .toThrow('digest differs');
+  });
+
   it('derives K002 ordered identity from registered data without candidates or games', () => {
     const identity = deriveCurrentOrderedProductIdentity({ kingdomId: 'deep-beam-tuning-002',
       seeds: [1, 2, 3, 4], scorerVersion: 'native-goldfish-v1', buildVersion: 'dc9dffa' });
@@ -145,9 +165,14 @@ describe('strategy-search campaign identity and state', () => {
         token: deriveLaunchAuthorizationToken(parsed.evidenceHash, increasedCeilings), ceilings: increasedCeilings } });
     expect(updated.authorizedCeilings!.stages.matrix.memoryMiB).toBe(increased.runtime.stages.matrix.memoryMiB);
     expect(updated.authorizedCeilings!.stages.psro.cpu).toBe(ceilings.stages.psro.cpu);
+    expect(() => claimCampaignController({ state: claimed, expectedRevision: claimed.revision,
+      ownerId: 'first', nowMs: 2, leaseMs: 100, requestedCeilings: increasedCeilings }))
+      .toThrow('runtime increase is not authorized');
+    const runtimeHash = 'f'.repeat(64);
     const attached = claimCampaignController({ state: updated, expectedRevision: updated.revision,
-      ownerId: 'first', nowMs: 3, leaseMs: 100 });
+      ownerId: 'first', nowMs: 3, leaseMs: 100, requestedCeilings: ceilings, runtimeHash });
     expect(attached.authorizedCeilings).toEqual(updated.authorizedCeilings);
+    expect(attached.runtimeHistory).toContain(runtimeHash);
   });
 
   it('fences stale owners and fails closed on illegal or unproved stage transitions', () => {

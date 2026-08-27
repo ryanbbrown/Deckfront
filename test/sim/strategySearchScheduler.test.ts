@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyCampaignSchedulerUpdates, createCampaignSchedulerCheckpoint,
-  planCampaignSchedulerTick, refenceCampaignSchedulerCheckpoint, validateCampaignSchedulerCheckpoint
+  planCampaignSchedulerTick, reconfigureCampaignSchedulerTasks, refenceCampaignSchedulerCheckpoint,
+  validateCampaignSchedulerCheckpoint
 } from '../../src/sim/strategySearchScheduler';
 import type { CampaignSchedulerTask } from '../../src/sim/strategySearchScheduler';
 
@@ -133,6 +134,17 @@ describe('fenced global campaign scheduler', () => {
     expect(planCampaignSchedulerTick({ tasks: updated, observations: [],
       limits: { maxActiveContainers: 1, maxActiveCpus: 4 }, controllerFence: 3,
       stopLaunching: false })).toEqual([]);
+  });
+
+  it('updates pending runtime resources but preserves saved active allocations', () => {
+    const active = task({ taskId: 'active', kingdomId: 'k1', stage: 'matrix', status: 'active', cpus: 4 });
+    const ready = task({ taskId: 'ready', kingdomId: 'k2', stage: 'psro', cpus: 4 });
+    const changed = reconfigureCampaignSchedulerTasks([active, ready], {
+      active: { containers: 1, cpus: 8 }, ready: { containers: 1, cpus: 8 } });
+    expect(changed.find((entry) => entry.taskId === 'active')?.cpus).toBe(4);
+    expect(changed.find((entry) => entry.taskId === 'ready')?.cpus).toBe(8);
+    expect(() => reconfigureCampaignSchedulerTasks([active, ready], {
+      active: { containers: 1, cpus: 8 } })).toThrow('do not match');
   });
 
   it('fails closed when the runtime cannot fit the smallest eligible stage', () => {

@@ -30,7 +30,10 @@ if (operation === 'validate' || operation === 'assert-fence') {
   const authorization = input.authorization as { token: string; ceilings: RuntimeCeilings } | undefined;
   result = claimCampaignController({ state, expectedRevision: integer(input.expectedRevision, 'expectedRevision'),
     ownerId: String(input.ownerId ?? ''), nowMs: integer(input.nowMs, 'nowMs'),
-    leaseMs: integer(input.leaseMs, 'leaseMs'), ...(authorization ? { authorization } : {}) });
+    leaseMs: integer(input.leaseMs, 'leaseMs'),
+    ...(input.requestedCeilings ? { requestedCeilings: input.requestedCeilings as RuntimeCeilings } : {}),
+    ...(input.runtimeHash ? { runtimeHash: String(input.runtimeHash) } : {}),
+    ...(authorization ? { authorization } : {}) });
 } else if (operation === 'launch-intent') {
   result = recordCampaignStageLaunchIntent({ state,
     expectedRevision: integer(input.expectedRevision, 'expectedRevision'), ownerId: String(input.ownerId ?? ''),

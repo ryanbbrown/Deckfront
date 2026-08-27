@@ -73,9 +73,12 @@ if (request.stage === 'goldfish') {
   }
   const ranked = { ...manifest, records } as unknown as OrderedProductRankedArtifact;
   const reservoirFile = path.join(stageRoot, 'output', 'reservoir.json');
+  const rankedSidecarFile = `${rankedFile}.sha256`, reservoirSidecarFile = `${reservoirFile}.sha256`;
   const reservoir = read<OrderedProductReservoirArtifact>(reservoirFile);
   if (!validateCampaignGoldfishStage({ stageId: request.stageId, ranked, rankedSha256: sha(rankedFile),
-    reservoir, reservoirSha256: sha(reservoirFile), fileHashes: marker.artifactHashes, marker })) throw new Error('Goldfish deep stage validation failed.');
+    rankedSidecarContent: fs.readFileSync(rankedSidecarFile, 'utf8'), reservoir,
+    reservoirSha256: sha(reservoirFile), reservoirSidecarContent: fs.readFileSync(reservoirSidecarFile, 'utf8'),
+    fileHashes: marker.artifactHashes, marker })) throw new Error('Goldfish deep stage validation failed.');
 } else if (request.stage === 'matrix') {
   const output = path.join(stageRoot, 'output'), manifest = read<unknown>(path.join(output, 'manifest.json'));
   if (!validateStrategySearchMatrixManifest(manifest)) throw new Error('Matrix manifest is invalid.');

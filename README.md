@@ -169,6 +169,16 @@ ranges are conditional on discovered strategies and do not cover omitted strateg
 
 ## Native strategy search
 
+The resumable multi-kingdom campaign takes an explicit campaign manifest and a separate supplied selection manifest. It does not choose kingdom IDs or run analytics. Plan before any launch:
+
+```sh
+npm run strategy-search:campaign -- plan --manifest CAMPAIGN.json --selection-manifest SELECTION.json
+npm run strategy-search:campaign -- status --manifest CAMPAIGN.json --selection-manifest SELECTION.json
+npm run strategy-search:campaign -- run --manifest CAMPAIGN.json --selection-manifest SELECTION.json --authorize TOKEN
+```
+
+`plan` makes no Modal call. The first `run`, and any runtime-capacity increase, needs the exact token printed by `plan`. The campaign has no code-level cost cap. Use [the campaign operator guide](docs/strategy-search-campaign-operator.md) for authorization, resume, archive download, and local validation.
+
 The ordered Kingdom 009 benchmark streams bounded chunks and folds candidate and ranking digests in traversal order. The original, lean TypeScript, and standalone Rust paths must return the same digest.
 
 ```sh

@@ -161,14 +161,21 @@ describe('ordered goldfish product correction', () => {
     expect(reservoir).toMatchObject({ schemaVersion: 2,
       productIdentityHash: artifact.productIdentity!.identityHash, reservoirCount: 3 });
     expect(validateOrderedProductReservoir(reservoir, artifact, rankedSha256)).toBe(true);
-    const stageId = 'c'.repeat(64);
+    const stageId = 'c'.repeat(64), rankedSidecarContent = `${rankedSha256}  ranked.json\n`,
+      reservoirSidecarContent = `${reservoirSha256}  reservoir.json\n`;
     const marker = createCampaignStageControlMarker({ stage: 'goldfish', stageId, status: 'complete',
-      artifactHashes: { 'output/ranked.json': rankedSha256, 'output/reservoir.json': reservoirSha256 } });
-    expect(validateCampaignGoldfishStage({ stageId, ranked: artifact, rankedSha256,
-      reservoir, reservoirSha256, fileHashes: marker.artifactHashes, marker })).toBe(true);
-    expect(validateCampaignGoldfishStage({ stageId, ranked: artifact, rankedSha256,
-      reservoir, reservoirSha256, fileHashes: marker.artifactHashes,
+      artifactHashes: { 'output/ranked.json': rankedSha256,
+        'output/ranked.json.sha256': sha256Bytes(rankedSidecarContent),
+        'output/reservoir.json': reservoirSha256,
+        'output/reservoir.json.sha256': sha256Bytes(reservoirSidecarContent) } });
+    expect(validateCampaignGoldfishStage({ stageId, ranked: artifact, rankedSha256, rankedSidecarContent,
+      reservoir, reservoirSha256, reservoirSidecarContent, fileHashes: marker.artifactHashes, marker })).toBe(true);
+    expect(validateCampaignGoldfishStage({ stageId, ranked: artifact, rankedSha256, rankedSidecarContent,
+      reservoir, reservoirSha256, reservoirSidecarContent, fileHashes: marker.artifactHashes,
       marker: { ...marker, extra: true } })).toBe(false);
+    expect(validateCampaignGoldfishStage({ stageId, ranked: artifact, rankedSha256,
+      rankedSidecarContent: rankedSidecarContent.replace('ranked.json', 'changed.json'), reservoir,
+      reservoirSha256, reservoirSidecarContent, fileHashes: marker.artifactHashes, marker })).toBe(false);
     const validated = validateOrderedCalibrationSourceForCounts({ kingdomId: artifact.config.kingdomId,
       ranked: { ...artifact, recordCount: artifact.records.length }, reservoir,
       rankedSha256, reservoirSha256 }, { retainedCount: 8, reservoirCount: 3, strategyCount: 3 });
