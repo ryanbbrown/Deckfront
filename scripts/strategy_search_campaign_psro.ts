@@ -2,12 +2,10 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  runThresholdRacingCampaign
+  readValidatedThresholdRacingCheckpointPair, runThresholdRacingCampaign
 } from './successive_halving_double_oracle_pilot';
 import type { ThresholdRacingSource } from './successive_halving_double_oracle_pilot';
-import {
-  validateOrderedCalibrationSourceForCounts
-} from '../src/sim/initialMatrixCalibration';
+import { loadValidatedOrderedProductSplitSource } from '../src/sim/orderedGoldfishSplitArtifact';
 import type { CalibrationSourceIdentity } from '../src/sim/responseOracleCalibration';
 import {
   strategySearchMatrixChunkPath, strategySearchMatrixJobs,
@@ -112,7 +110,8 @@ const config = readJson<Config>(configFile), shutdownAtMs = Number(option('shutd
 config.rankedPath = confined(config.rankedPath); config.reservoirPath = confined(config.reservoirPath);
 config.matrixRoot = confined(config.matrixRoot); config.outputRoot = confined(config.outputRoot);
 config.controlRoot = confined(config.controlRoot);
-if (!/^[0-9a-f]{64}$/.test(config.stageId) || !config.runId || !Number.isSafeInteger(config.workers)
+if (!/^[0-9a-f]{64}$/.test(config.stageId) || !/^[0-9A-Za-z][0-9A-Za-z._-]*$/.test(config.runId)
+  || !Number.isSafeInteger(config.workers)
   || config.workers < 1 || config.execution !== 'local' || !Number.isSafeInteger(shutdownAtMs)
   || config.outputRoot === config.controlRoot || config.outputRoot.startsWith(`${config.controlRoot}${path.sep}`)
   || config.controlRoot.startsWith(`${config.outputRoot}${path.sep}`)
@@ -124,10 +123,9 @@ strategySearchKingdom(config.kingdomId);
 for (const file of [config.rankedPath, config.reservoirPath]) if (!fs.existsSync(file)) {
   throw new Error(`Campaign PSRO source is missing: ${file}`);
 }
-const ranked = readJson<unknown>(config.rankedPath), reservoir = readJson<unknown>(config.reservoirPath);
-const rankedSha256 = sha256File(config.rankedPath), reservoirSha256 = sha256File(config.reservoirPath);
-const ordered = validateOrderedCalibrationSourceForCounts({ kingdomId: config.kingdomId, ranked, reservoir,
-  rankedSha256, reservoirSha256 }, { retainedCount: 500_000, reservoirCount: 20_000, strategyCount: 50 });
+const ordered = await loadValidatedOrderedProductSplitSource({ kingdomId: config.kingdomId,
+  rankedPath: config.rankedPath, reservoirPath: config.reservoirPath });
+const { rankedSha256, reservoirSha256, reservoir } = ordered;
 const manifest = readJson<unknown>(path.join(config.matrixRoot, 'manifest.json'));
 if (!validateStrategySearchMatrixManifest(manifest) || manifest.source.kingdomId !== config.kingdomId
   || manifest.source.rankedSha256 !== rankedSha256 || manifest.source.reservoirSha256 !== reservoirSha256
@@ -155,7 +153,7 @@ const protocol = createThresholdRacingProtocol({ ...config.protocolInput, runId:
 if (!validateThresholdRacingProtocol(protocol)) throw new Error('Campaign PSRO protocol is invalid.');
 const source: ThresholdRacingSource = { entry: { kingdomId: config.kingdomId, ranked: config.rankedPath,
   reservoir: config.reservoirPath, p75Root: config.matrixRoot }, source: sourceIdentity,
-  reservoir: reservoir as ThresholdRacingSource['reservoir'], initialMatrix: initialMatrix(manifest, p75, chunks),
+  reservoir, initialMatrix: initialMatrix(manifest, p75, chunks),
   kingdomId: config.kingdomId, experimentName: protocol.experimentName,
   protocolVersion: protocol.protocolVersion, rawProtocol: protocol,
   onRawCheckpoint(event) { process.stdout.write(`${JSON.stringify(event)}\n`); }, deadlineMs: shutdownAtMs,
@@ -165,17 +163,24 @@ rejectSymlinks(config.outputRoot); rejectSymlinks(config.controlRoot);
 writeAtomic(path.join(config.outputRoot, 'protocol.json'), protocol);
 try {
   if (Date.now() >= shutdownAtMs) throw new Error('campaign-psro-shutdown-margin');
-  const checkpoint = await runThresholdRacingCampaign(config.outputRoot, source, config.workers,
+  const returnedCheckpoint = await runThresholdRacingCampaign(config.outputRoot, source, config.workers,
     config.runId, config.execution);
-  const runRoot = path.join(config.outputRoot, `run-${config.runId}`), rawRoot = path.join(runRoot, 'raw');
+  const runRoot = confined(path.join(config.outputRoot, `run-${config.runId}`)), rawRoot = path.join(runRoot, 'raw');
   const rawChunks = files(path.join(rawRoot, 'chunks')).filter((file) => file.endsWith('.json'))
     .map((file) => readJson<RawPsroScoreChunk>(file));
   const looks = files(path.join(rawRoot, 'looks')).filter((file) => file.endsWith('.json'))
     .map((file) => readJson<RawPsroLookArtifact>(file));
+  const saved = readValidatedThresholdRacingCheckpointPair(config.outputRoot, source, config.runId);
+  if (!saved || JSON.stringify(saved.checkpoint) !== JSON.stringify(returnedCheckpoint)) {
+    throw new Error('Campaign PSRO checkpoint/report pair is missing, stale, or invalid.');
+  }
+  const checkpoint = saved.checkpoint, report = saved.report;
+  if (checkpoint.status !== 'complete' && checkpoint.status !== 'unresolved') {
+    throw new Error('Campaign PSRO returned without a terminal checkpoint decision.');
+  }
   const status = checkpoint.status === 'complete' ? 'complete' as const : 'terminal-incomplete' as const;
   const reason = status === 'complete' ? null : 'fixed-protocol-look-cap-unresolved';
-  const checkpointFile = path.join(runRoot, 'checkpoint.json'), reportFile = path.join(runRoot, 'report.json');
-  const checkpointSha256 = sha256File(checkpointFile), reportSha256 = sha256File(reportFile);
+  const checkpointSha256 = saved.checkpointSha256, reportSha256 = saved.reportSha256;
   const closure = createCampaignPsroClosure({ stageId: config.stageId,
     protocolHash: thresholdRacingProtocolHash(protocol), sourceHash: protocol.sourceIdentityHash,
     status, cleanScans: checkpoint.cleanScans, admissions: checkpoint.admissions.length,
@@ -198,7 +203,7 @@ try {
   const marker = createCampaignStageControlMarker({ stage: 'psro', stageId: config.stageId,
     status, artifactHashes, ...(reason ? { reason } : {}) });
   if (!validateCampaignPsroStage({ stageId: config.stageId, protocol,
-    chunks: rawChunks, looks, checkpoint, report: readJson<unknown>(reportFile), checkpointSha256,
+    chunks: rawChunks, looks, checkpoint, report, checkpointSha256,
     reportSha256, closure, fileHashes: artifactHashes, marker })) {
     throw new Error('Campaign PSRO deep validation failed.');
   }
@@ -210,7 +215,12 @@ try {
   const artifactHashes: Record<string, string> = {
     'output/protocol.json': sha256File(path.join(config.outputRoot, 'protocol.json'))
   };
-  const partialRoot = path.join(config.outputRoot, `run-${protocol.runId}`, 'raw');
+  const saved = readValidatedThresholdRacingCheckpointPair(config.outputRoot, source, config.runId);
+  if (saved) {
+    artifactHashes[`output/run-${protocol.runId}/checkpoint.json`] = saved.checkpointSha256;
+    artifactHashes[`output/run-${protocol.runId}/report.json`] = saved.reportSha256;
+  }
+  const partialRoot = confined(path.join(config.outputRoot, `run-${protocol.runId}`, 'raw'));
   for (const file of files(path.join(partialRoot, 'chunks')).filter((entry) => entry.endsWith('.json'))) {
     try {
       const chunk = readJson<RawPsroScoreChunk>(file);

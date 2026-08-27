@@ -58,6 +58,7 @@ RESULT_SCHEMA_VERSION = 1
 CAMPAIGN_CHECKPOINT_EVENT = "strategy-search-checkpoint"
 CAMPAIGN_STAGE_STOP_EVENT = "strategy-search-stage-stop"
 CAMPAIGN_STAGES = {"goldfish", "matrix", "psro"}
+CAMPAIGN_RUST_GOLDFISH_BIN = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
 LEDGER_PATH = pathlib.Path.home() / ".hexdeck-modal-cost-ledger.json"
 
 app = modal.App("hexdeck-native-strategy-search")
@@ -431,7 +432,9 @@ def product_search(config: dict[str, Any]) -> dict[str, Any]:
 
 
 def _ordered_product_checkpoint_path(config: dict[str, Any], stage: str, shard_id: int) -> pathlib.Path:
-    return pathlib.Path("/results") / config["run_id"] / stage / f"shard-{shard_id:06d}.json"
+    root = _campaign_ordered_run_root(config["campaign_root"], config["run_id"]) \
+        if "campaign_root" in config else pathlib.Path("/results") / config["run_id"]
+    return root / stage / f"shard-{shard_id:06d}.json"
 
 
 def _ordered_product_cli(config: dict[str, Any]) -> list[str]:
@@ -474,9 +477,9 @@ def _preserve_corrupt_file(path: pathlib.Path, control_root: pathlib.Path) -> pa
 
 def _run_rust(request_path: pathlib.Path, response_path: pathlib.Path,
               threads: int, cpu: int, timeout_seconds: int) -> None:
-    executable = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
     with request_path.open() as request:
-        completed = subprocess.run([executable, "--threads", str(threads), "--cpu-request", str(cpu)],
+        completed = subprocess.run([CAMPAIGN_RUST_GOLDFISH_BIN, "--threads", str(threads),
+            "--cpu-request", str(cpu)],
             stdin=request, text=True, capture_output=True, timeout=timeout_seconds, check=True)
     response_path.write_text(completed.stdout)
 
@@ -540,7 +543,8 @@ def ordered_product_stage_two(spec: dict[str, Any]) -> dict[str, Any]:
     for corrupt in [output, pathlib.Path(f"{output}.records.jsonl")]:
         if corrupt.exists():
             _preserve_corrupt_file(corrupt, output.parent.parent / "control")
-    root = pathlib.Path("/results") / spec["run_id"]
+    root = _campaign_ordered_run_root(spec["campaign_root"], spec["run_id"]) \
+        if "campaign_root" in spec else pathlib.Path("/results") / spec["run_id"]
     cohort = root / "stage-one-cohort.json"
     started = time.monotonic()
     with tempfile.TemporaryDirectory() as directory:
@@ -1035,6 +1039,17 @@ def _campaign_root(relative: str) -> pathlib.Path:
     return root
 
 
+def _campaign_ordered_run_root(campaign_root: str, run_id: str) -> pathlib.Path:
+    root = _campaign_root(campaign_root)
+    if not isinstance(run_id, str) or not run_id or run_id.startswith("/") or "\\" in run_id \
+            or any(part in {"", ".", ".."} for part in run_id.split("/")):
+        raise ValueError("campaign ordered run ID must be a normalized relative Volume path")
+    destination = (pathlib.Path("/results") / run_id).resolve()
+    if destination != root and root not in destination.parents:
+        raise ValueError("campaign ordered run ID escapes its deterministic campaign root")
+    return destination
+
+
 def _campaign_path(campaign_root: str, relative: str) -> pathlib.Path:
     root = _campaign_root(campaign_root)
     if not isinstance(relative, str) or not relative or relative.startswith("/") or "\\" in relative \
@@ -1190,8 +1205,10 @@ def _run_campaign_stage(stage: str, config: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("campaign stage shutdown margin is invalid")
     shutdown_at_ms = int((time.time() + timeout_seconds - shutdown_margin_seconds) * 1000)
     command = _campaign_stage_command(stage, config, shutdown_at_ms)
+    environment = None if stage != "psro" else {
+        **os.environ, "HEXDECK_GOLDFISH_BIN": CAMPAIGN_RUST_GOLDFISH_BIN}
     process = subprocess.Popen(command, cwd="/workspace", text=True, stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE, bufsize=1)
+        stderr=subprocess.PIPE, bufsize=1, env=environment)
     checkpoint_count = 0
     terminal = None
     assert process.stdout is not None
@@ -1334,7 +1351,7 @@ def campaign_goldfish_finalize(config: dict[str, Any]) -> dict[str, Any]:
         "--kingdom", config["kingdom"], "--ranked", str(ranked), "--reservoir", str(reservoir),
         "--stage-id", config["matrix_stage_id"], "--out", str(matrix_manifest)]
     _run_checked(prepare_matrix, "campaign Matrix manifest preparation", cwd="/workspace",
-        env=node_environment, text=True, capture_output=True, timeout=300)
+        env=node_environment, text=True, capture_output=True, timeout=config["timeout_seconds"])
     volume.commit()
     return {"status": "success", "stage": "goldfish", "operation": mode,
         "controllerFence": config["controller_fence"], "markerHash": marker["markerHash"],
@@ -1374,6 +1391,9 @@ def _validate_campaign_task_configs(checkpoint: dict[str, Any], entries: list[di
             raise ValueError(f"campaign task configuration differs for {task['taskId']}")
         expected_terminal = task["stage"] in {"matrix", "psro"} \
             or entry["config"].get("ordered_stage") == "finalize"
+        if task["stage"] == "goldfish":
+            _campaign_ordered_run_root(entry["config"].get("campaign_root", ""),
+                entry["config"].get("run_id"))
         if entry["stage_terminal"] != expected_terminal:
             raise ValueError(f"campaign terminal task declaration differs for {task['taskId']}")
         for values in [entry["config"], entry["validation"]]:
@@ -1484,6 +1504,18 @@ def _durably_spawn_campaign_task(*, campaign_root: str, owner_id: str, fence: in
     return changed["state"], changed["scheduler"], call
 
 
+def _terminal_campaign_outcome(checkpoint: dict[str, Any]) -> dict[str, Any] | None:
+    tasks = checkpoint["tasks"]
+    if not tasks or any(task["status"] not in {"complete", "terminal-incomplete"} for task in tasks):
+        return None
+    terminal = next((task for task in tasks if task["status"] == "terminal-incomplete"), None)
+    if terminal is None:
+        return None
+    return {"status": "incomplete", "reason": terminal["reason"],
+        "artifactPaths": terminal["artifactPaths"], "artifactHashes": terminal["artifactHashes"],
+        "taskId": terminal["taskId"]}
+
+
 @app.function(image=image, cpu=1, memory=2048, timeout=86400, retries=0, volumes={"/results": volume})
 def campaign_controller(config: dict[str, Any]) -> dict[str, Any]:
     volume.reload()
@@ -1571,11 +1603,9 @@ def campaign_controller(config: dict[str, Any]) -> dict[str, Any]:
             return {"status": "complete", "evidenceHash": config["evidence_hash"],
                 "stateRevision": state["revision"], "controllerFence": fence,
                 "schedulerHash": checkpoint["checkpointHash"]}
-        if "terminal-incomplete" in statuses:
-            terminal = next(task for task in checkpoint["tasks"] if task["status"] == "terminal-incomplete")
-            return {"status": "incomplete", "reason": terminal["reason"],
-                "artifactPaths": terminal["artifactPaths"], "artifactHashes": terminal["artifactHashes"],
-                "evidenceHash": config["evidence_hash"],
+        terminal_outcome = _terminal_campaign_outcome(checkpoint)
+        if terminal_outcome:
+            return {**terminal_outcome, "evidenceHash": config["evidence_hash"],
                 "controllerFence": fence, "schedulerHash": checkpoint["checkpointHash"]}
         if stop_launching:
             return {"status": "incomplete", "reason": "controller timeout margin stopped new launches",

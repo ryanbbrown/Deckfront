@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { registerKingdom } from '../../src/game';
 import { diagnosticStrategies } from '../../src/sim/baselines';
@@ -13,7 +16,8 @@ import { canonicalStrategy, fixedBuyPlan, identify } from '../../src/sim/strateg
 import {
   actionAfterConfirmation, actionAfterScreen, cleanScansAfter,
   createThresholdRacingInitialCheckpoint, orderConfirmedQueue, parseOptions,
-  runConfirmationRace, runThresholdRace, validatePilotInitialMatrixMetadata,
+  readValidatedThresholdRacingCheckpointPair, runConfirmationRace, runThresholdRace,
+  validatePilotInitialMatrixMetadata,
   validateThresholdRacingCheckpoint, weightedFairSchedule
 } from '../../scripts/successive_halving_double_oracle_pilot';
 
@@ -172,6 +176,21 @@ describe('K007 threshold-racing Double Oracle pilot', () => {
     expect(validateThresholdRacingCheckpoint(checkpoint, source, 'run-generic')).toBe(true);
     expect(validateThresholdRacingCheckpoint({ ...checkpoint,
       experiment: 'k007-threshold-racing-double-oracle' }, source, 'run-generic')).toBe(false);
+
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-psro-seal-'));
+    try {
+      const runRoot = path.join(root, 'run-run-generic');
+      fs.mkdirSync(runRoot, { recursive: true });
+      fs.writeFileSync(path.join(runRoot, 'checkpoint.json'), `${JSON.stringify(checkpoint, null, 2)}\n`);
+      fs.writeFileSync(path.join(runRoot, 'report.json'), `${JSON.stringify(checkpoint, null, 2)}\n`);
+      const saved = readValidatedThresholdRacingCheckpointPair(root, source, 'run-generic');
+      expect(saved?.checkpoint).toEqual(checkpoint);
+      expect(saved?.checkpointSha256).toMatch(/^[0-9a-f]{64}$/);
+      expect(saved?.reportSha256).toBe(saved?.checkpointSha256);
+      fs.writeFileSync(path.join(runRoot, 'report.json'), `${JSON.stringify({ ...checkpoint,
+        experiment: 'changed' }, null, 2)}\n`);
+      expect(readValidatedThresholdRacingCheckpointPair(root, source, 'run-generic')).toBeNull();
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
   });
 
   it('keeps local Rust as the default and selects Modal only through the run CLI', () => {

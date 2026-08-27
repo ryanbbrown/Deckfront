@@ -92,7 +92,10 @@ if (request.stage === 'goldfish') {
   }
 } else {
   const output = path.join(stageRoot, 'output'), protocol = read<{ runId: string }>(path.join(output, 'protocol.json'));
-  const runRoot = path.join(output, `run-${protocol.runId}`), chunks: RawPsroScoreChunk[] = [], looks: RawPsroLookArtifact[] = [];
+  if (!/^[0-9A-Za-z][0-9A-Za-z._-]*$/.test(protocol.runId)) throw new Error('Campaign PSRO run ID is invalid.');
+  const runRoot = path.resolve(output, `run-${protocol.runId}`);
+  if (!runRoot.startsWith(`${path.resolve(output)}${path.sep}`)) throw new Error('Campaign PSRO run path escapes output.');
+  const chunks: RawPsroScoreChunk[] = [], looks: RawPsroLookArtifact[] = [];
   const visit = (directory: string, target: unknown[]): void => {
     if (!fs.existsSync(directory)) return;
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {

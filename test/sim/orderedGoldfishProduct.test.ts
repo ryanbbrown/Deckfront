@@ -1,3 +1,7 @@
+import { createHash } from 'node:crypto';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { registerKingdom } from '../../src/game';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
@@ -26,6 +30,10 @@ import {
 } from '../../src/sim/orderedGoldfishBenchmark';
 import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
 import { validateOrderedCalibrationSourceForCounts } from '../../src/sim/initialMatrixCalibration';
+import { loadValidatedOrderedProductSplitSource } from '../../src/sim/orderedGoldfishSplitArtifact';
+import {
+  createStrategySearchMatrixManifest, validateStrategySearchMatrixManifest
+} from '../../src/sim/strategySearchMatrix';
 import {
   createCampaignStageControlMarker, validateCampaignGoldfishStage
 } from '../../src/sim/strategySearchStages';
@@ -44,7 +52,7 @@ function shard(
 }
 function fixture(
   kingdomId = ORDERED_PRODUCT_KINGDOM, seeds: readonly number[] = ORDERED_PRODUCT_SEEDS,
-  schemaVersion: 1 | 2 = 1
+  schemaVersion: 1 | 2 = 1, recordCount = 8, reservoirCount = 3
 ): OrderedProductRankedArtifact {
   const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!;
   registerKingdom(kingdom);
@@ -52,7 +60,7 @@ function fixture(
     scorerVersion: 'native-goldfish-v1', buildVersion: 'fixture' }) : undefined;
   const targetVersion = productIdentity?.version ?? orderedProductTarget(kingdomId).version;
   const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
-  const strategies = [...representativeCandidateIndices(space.candidateCount, 8)]
+  const strategies = [...representativeCandidateIndices(space.candidateCount, recordCount)]
     .map((index) => space.candidateAt(index));
   const first = strategies.map((strategy) => compactProfileEvidence(scoreMovementAwareGoldfishStrategyLean(
     strategy, { kingdomId: kingdom.id, seeds: [101], turnLimit: 8, actionCapPerTurn: 40 }, 'full')));
@@ -84,7 +92,7 @@ function fixture(
     runId: 'fixture', buildVersion: 'fixture',
     ruleFingerprint: nativeRuleFingerprint(kingdom.id, 30, 200), scorerVersion: 'native-goldfish-v1',
     config: { kingdomId: kingdom.id, candidateCount: ORDERED_PRODUCT_SPACE_COUNT,
-      retainedCount: records.length, reservoirCount: 3, seeds: [...seeds],
+      retainedCount: records.length, reservoirCount, seeds: [...seeds],
       profiles: [...ORDERED_PRODUCT_PROFILES], turnLimit: 30, actionCapPerTurn: 200,
       collisionAllowance: ORDERED_PRODUCT_COLLISION_ALLOWANCE },
     candidateSpace,
@@ -180,6 +188,54 @@ describe('ordered goldfish product correction', () => {
       ranked: { ...artifact, recordCount: artifact.records.length }, reservoir: impossible,
       rankedSha256, reservoirSha256 }, { retainedCount: 8, reservoirCount: 3, strategyCount: 3 }))
       .toThrow('entry 1 is invalid');
+  });
+
+  it('deeply loads real split Goldfish output for Matrix and PSRO source preparation', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-split-ranked-'));
+    try {
+      const artifact = fixture('deep-beam-tuning-002', [11, 12, 13, 14], 2, 50, 50);
+      const rankedPath = path.join(root, 'ranked.json'), reservoirPath = path.join(root, 'reservoir.json');
+      const partRecords = [artifact.records.slice(0, 25), artifact.records.slice(25)];
+      const parts = partRecords.map((records, index) => {
+        const file = `ranked.json.part-${String(index).padStart(4, '0')}.jsonl`;
+        const text = records.map((record) => JSON.stringify(record)).join('\n') + '\n';
+        fs.writeFileSync(path.join(root, file), text);
+        return { file, startIndex: index * 25, endIndex: index * 25 + records.length,
+          count: records.length, sha256: createHash('sha256').update(text).digest('hex') };
+      });
+      const stageOneDigests = Buffer.alloc(artifact.records.length * 32);
+      for (const record of artifact.records) createHash('sha256').update(
+        `${record.stageOneRankingKey.join('\t')}\t${record.displayId}\t${record.canonicalStrategy}`
+          + `\t${record.traversalPosition}`).digest().copy(stageOneDigests, (record.stageOneRank - 1) * 32);
+      const header = structuredClone(artifact) as Partial<OrderedProductRankedArtifact>;
+      delete header.records;
+      const manifest = { ...header, recordCount: artifact.records.length,
+        stageOneOrderDigest: createHash('sha256').update(stageOneDigests).digest('hex'), parts };
+      const rankedText = fixedJson(manifest), rankedSha256 = sha256Bytes(rankedText);
+      fs.writeFileSync(rankedPath, rankedText);
+      fs.writeFileSync(`${rankedPath}.sha256`, `${rankedSha256}  ranked.json\n`);
+      const reservoir = buildOrderedProductReservoir(artifact, rankedSha256);
+      const reservoirText = fixedJson(reservoir), reservoirSha256 = sha256Bytes(reservoirText);
+      fs.writeFileSync(reservoirPath, reservoirText);
+      fs.writeFileSync(`${reservoirPath}.sha256`, `${reservoirSha256}  reservoir.json\n`);
+
+      const matrixSource = await loadValidatedOrderedProductSplitSource({ kingdomId: artifact.config.kingdomId,
+        rankedPath, reservoirPath, counts: { retainedCount: 50, reservoirCount: 50, strategyCount: 50 } });
+      const matrixManifest = createStrategySearchMatrixManifest({ stageId: 'd'.repeat(64), source: {
+        kingdomId: artifact.config.kingdomId,
+        orderedProductIdentityHash: artifact.productIdentity!.identityHash,
+        rankedSha256, reservoirSha256 }, strategies: matrixSource.strategies });
+      expect(validateStrategySearchMatrixManifest(matrixManifest)).toBe(true);
+      const psroSource = await loadValidatedOrderedProductSplitSource({ kingdomId: artifact.config.kingdomId,
+        rankedPath, reservoirPath, counts: { retainedCount: 50, reservoirCount: 50, strategyCount: 50 } });
+      expect(psroSource.strategies).toEqual(matrixManifest.strategies);
+      expect(psroSource.reservoir.entries).toEqual(artifact.records);
+
+      fs.appendFileSync(path.join(root, parts[1]!.file), '{}\n');
+      await expect(loadValidatedOrderedProductSplitSource({ kingdomId: artifact.config.kingdomId,
+        rankedPath, reservoirPath, counts: { retainedCount: 50, reservoirCount: 50, strategyCount: 50 } }))
+        .rejects.toThrow('hash differs');
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
   });
 
   it('accepts only the original seeds or one exact K007 replication set', () => {

@@ -175,7 +175,7 @@ interface AdmissionReport {
 type Pending = { kind: 'screened'; base: ScanBase }
   | { kind: 'scan-confirmed'; base: ScanBase; confirmation: ConfirmationRaceResult }
   | { kind: 'queue-confirmed'; report: QueueRetestReport };
-interface Checkpoint {
+export interface Checkpoint {
   schemaVersion: 1;
   experiment: string;
   version: string;
@@ -272,6 +272,18 @@ function saveCheckpoint(root: string, checkpoint: Checkpoint): Checkpoint {
   writeAtomic(checkpointFile(root, checkpoint.runId), value);
   writeAtomic(reportFile(root, checkpoint.runId), value);
   return value;
+}
+export function readValidatedThresholdRacingCheckpointPair(root: string, source: ThresholdRacingSource,
+  runId: string | number): { checkpoint: Checkpoint; report: Checkpoint;
+    checkpointFile: string; reportFile: string; checkpointSha256: string; reportSha256: string } | null {
+  const checkpointPath = checkpointFile(root, runId), reportPath = reportFile(root, runId);
+  if (!fs.existsSync(checkpointPath) || !fs.existsSync(reportPath)) return null;
+  try {
+    const checkpoint = readJson<unknown>(checkpointPath), report = readJson<unknown>(reportPath);
+    if (!validateThresholdRacingCheckpoint(checkpoint, source, runId) || !exact(checkpoint, report)) return null;
+    return { checkpoint, report: report as Checkpoint, checkpointFile: checkpointPath, reportFile: reportPath,
+      checkpointSha256: sha256File(checkpointPath), reportSha256: sha256File(reportPath) };
+  } catch { return null; }
 }
 
 export const weightedFairSchedule = thresholdRacing.weightedFairSchedule;

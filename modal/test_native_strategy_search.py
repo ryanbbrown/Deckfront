@@ -434,6 +434,41 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         self.assertEqual(result["checkpointCommits"], 1)
         self.assertEqual(held_volume.commits, 2)
         spawn.assert_called_once()
+        self.assertIsNone(spawn.call_args.kwargs["env"])
+
+    def test_campaign_psro_uses_the_built_resident_rust_binary(self):
+        class Pipe:
+            def __init__(self, lines): self.lines = lines
+            def __iter__(self): return iter(self.lines)
+            def read(self): return ""
+        class Process:
+            def __init__(self):
+                self.stdout = Pipe([json.dumps({"type": launcher.CAMPAIGN_STAGE_STOP_EVENT,
+                    "stage": "psro", "status": "incomplete", "markerHash": "b" * 64}) + "\n"])
+                self.stderr = Pipe([])
+            def wait(self): return 2
+            def terminate(self): pass
+        marker = tempfile.NamedTemporaryFile("w", delete=False)
+        json.dump({"status": "incomplete", "markerHash": "b" * 64,
+                   "reason": "shutdown margin", "artifactHashes": {"output/protocol.json": "d" * 64}}, marker)
+        marker.close()
+        config = {"stage": "psro", "controller_fence": 2, "source_image": {},
+            "timeout_seconds": 30, "shutdown_margin_seconds": 5, "campaign_root": "campaign/root",
+            "stage_config_path": "kingdom/psro/config.json", "control_path": "kingdom/psro/control",
+            "stage_id": "c" * 64}
+        command = launcher._campaign_stage_command("psro", config, 123)
+        self.assertEqual(command[:3], ["npx", "tsx", "scripts/strategy_search_campaign_psro.ts"])
+        with patch.object(launcher, "verify_campaign_source_image"), \
+                patch.object(launcher, "_campaign_stage_command", return_value=command), \
+                patch.object(launcher, "_campaign_path", return_value=pathlib.Path(marker.name)), \
+                patch.object(launcher, "_reject_campaign_symlinks"), \
+                patch.object(launcher.volume, "commit"), \
+                patch.object(launcher.subprocess, "Popen", return_value=Process()) as spawn:
+            result = launcher._run_campaign_stage("psro", config)
+        pathlib.Path(marker.name).unlink()
+        self.assertEqual(result["reason"], "shutdown margin")
+        self.assertEqual(spawn.call_args.kwargs["env"]["HEXDECK_GOLDFISH_BIN"],
+            "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish")
 
     def test_campaign_call_observation_reattaches_and_isolates_failures(self):
         class Call:
@@ -508,6 +543,16 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
     def test_campaign_paths_and_task_resources_fail_closed_before_launch(self):
         for unsafe in ["../escape", "/absolute", "a/../../escape", "a\\b"]:
             with self.assertRaises(ValueError): launcher._campaign_path("campaign/root", unsafe)
+        safe_run = "campaign/root/kingdom/goldfish"
+        self.assertEqual(launcher._campaign_ordered_run_root("campaign/root", safe_run),
+            pathlib.Path("/results/campaign/root/kingdom/goldfish"))
+        safe_checkpoint = launcher._ordered_product_checkpoint_path({"campaign_root": "campaign/root",
+            "run_id": safe_run}, "stage-one", 2)
+        self.assertEqual(safe_checkpoint,
+            pathlib.Path("/results/campaign/root/kingdom/goldfish/stage-one/shard-000002.json"))
+        for unsafe_run in ["../escape", "/absolute", "other-campaign/run", "campaign/root/../../escape"]:
+            with self.assertRaises(ValueError):
+                launcher._campaign_ordered_run_root("campaign/root", unsafe_run)
         checkpoint = {"tasks": [{"taskId": "task", "kingdomId": "k", "stage": "matrix",
             "cpus": 4, "containers": 1}]}
         valid = {"task_id": "task", "kingdom_id": "k", "stage": "matrix", "cpu": 4,
@@ -516,6 +561,26 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         self.assertEqual(launcher._validate_campaign_task_configs(checkpoint, [valid])["task"], valid)
         with self.assertRaisesRegex(ValueError, "differs"):
             launcher._validate_campaign_task_configs(checkpoint, [{**valid, "cpu": 8}])
+        goldfish_checkpoint = {"tasks": [{"taskId": "goldfish", "kingdomId": "k", "stage": "goldfish",
+            "cpus": 4, "containers": 1}]}
+        unsafe_goldfish = {"task_id": "goldfish", "kingdom_id": "k", "stage": "goldfish", "cpu": 4,
+            "memory_mib": 4096, "timeout_seconds": 60, "stage_terminal": False,
+            "config": {"campaign_root": "campaign/root", "run_id": "outside/run",
+                       "ordered_stage": "stage-one"}, "validation": {}}
+        with self.assertRaisesRegex(ValueError, "escapes"):
+            launcher._validate_campaign_task_configs(goldfish_checkpoint, [unsafe_goldfish])
+
+    def test_terminal_psro_does_not_stop_unrelated_kingdom_work(self):
+        terminal = {"taskId": "k1-psro", "status": "terminal-incomplete", "reason": "look cap",
+            "artifactPaths": ["k1/look.json"], "artifactHashes": {"k1/look.json": "a" * 64}}
+        ready = {"taskId": "k2-matrix", "status": "ready", "reason": None,
+            "artifactPaths": [], "artifactHashes": {}}
+        self.assertIsNone(launcher._terminal_campaign_outcome({"tasks": [terminal, ready]}))
+        complete = {"taskId": "k2-psro", "status": "complete", "reason": None,
+            "artifactPaths": ["k2/report.json"], "artifactHashes": {"k2/report.json": "b" * 64}}
+        outcome = launcher._terminal_campaign_outcome({"tasks": [terminal, complete]})
+        self.assertEqual(outcome["taskId"], "k1-psro")
+        self.assertEqual(outcome["reason"], "look cap")
 
     def test_successful_incomplete_call_keeps_exact_marker_reason_and_hashes(self):
         class Call:
