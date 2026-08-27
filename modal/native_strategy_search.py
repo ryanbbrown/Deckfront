@@ -157,14 +157,30 @@ def projected_ordered_product_cost_usd(
     return shard_cost + controller_seconds / 3600 * (CPU_RATE_PER_CORE_HOUR + 16 * MEMORY_RATE_PER_GIB_HOUR)
 
 
+def _called_process_details(error: subprocess.CalledProcessError) -> str:
+    captured = []
+    for name in ("stdout", "stderr"):
+        value = getattr(error, name, None)
+        if isinstance(value, bytes):
+            value = value.decode(errors="replace")
+        if isinstance(value, str) and value.strip():
+            captured.append((name, value.strip()))
+    if len(captured) == 1:
+        details = captured[0][1]
+    elif captured:
+        details = "\n".join(f"[{name}]\n{value}" for name, value in captured)
+    else:
+        details = repr(error).strip() or str(error).strip() or "CalledProcessError with no diagnostic"
+    if len(details) > 64 * 1024:
+        details = f"[subprocess output tail; {len(details)} characters total]\n{details[-64 * 1024:]}"
+    return details
+
+
 def _run_checked(command: list[str], label: str, **kwargs: Any) -> subprocess.CompletedProcess[str]:
     try:
         return subprocess.run(command, check=True, **kwargs)
     except subprocess.CalledProcessError as error:
-        details = (error.stderr or error.stdout or "").strip() or str(error)
-        if len(details) > 64 * 1024:
-            details = f"[stderr tail; {len(details)} characters total]\n{details[-64 * 1024:]}"
-        raise RuntimeError(f"{label} failed: {details}") from error
+        raise RuntimeError(f"{label} failed: {_called_process_details(error)}") from error
 
 
 def _atomic_json(path: pathlib.Path, value: Any) -> None:
@@ -1278,11 +1294,12 @@ def _strategy_search_validate_publication(publication: dict[str, Any], temporary
     if stage in {"goldfish-one", "goldfish-two"}:
         _strategy_search_validate_compact(publication, temporary)
         return
-    subprocess.run(["npx", "tsx", "scripts/strategy_search_validate_artifact.ts", "--stage", stage,
+    _run_checked(["npx", "tsx", "scripts/strategy_search_validate_artifact.ts", "--stage", stage,
         "--file", str(temporary), "--evidence-id", publication["evidenceId"],
         "--kingdom", publication["kingdomId"], "--evidence-root",
-        str(_strategy_search_path(f"evidence/{publication['evidenceId']}"))], cwd="/workspace",
-        text=True, capture_output=True, timeout=600, check=True)
+        str(_strategy_search_path(f"evidence/{publication['evidenceId']}"))],
+        f"strategy-search {stage} artifact validation", cwd="/workspace",
+        text=True, capture_output=True, timeout=600)
 
 
 def _strategy_search_source_digest(files: list[dict[str, Any]]) -> str:
@@ -1815,6 +1832,10 @@ def _strategy_search_attempt_cost(attempt: dict[str, Any], until_ms: int) -> dic
 def _strategy_search_exception_diagnostic(error: BaseException) -> dict[str, str]:
     error_type = f"{type(error).__module__}.{type(error).__qualname__}"
     message = str(error).strip() or "<empty message>"
+    if isinstance(error, subprocess.CalledProcessError):
+        details = _called_process_details(error)
+        if details not in message:
+            message = f"{message}; captured output: {details}"
     display = f"{error_type}: {message}"
     if len(display) > 2000:
         display = f"{error_type}: [message tail] {message[-1800:]}"

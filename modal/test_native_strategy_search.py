@@ -276,9 +276,28 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             with self.assertRaises(RuntimeError) as raised:
                 launcher._run_checked(["command"], "stage-two checkpoint", text=True, capture_output=True)
         message = str(raised.exception)
-        self.assertIn("stderr tail", message)
+        self.assertIn("subprocess output tail", message)
         self.assertTrue(message.endswith("exact-tail"))
         self.assertLess(len(message), 66 * 1024)
+
+    def test_artifact_validator_failure_exposes_captured_stdout_and_stderr(self):
+        failure = subprocess.CalledProcessError(1, ["validator"], output="validation started\n",
+                                                stderr="Unknown kingdom: deep-beam-tuning-007\n")
+        publication = {"stage": "goldfish-one-reduce", "evidenceId": "b" * 64,
+                       "kingdomId": "deep-beam-tuning-007"}
+        with patch.object(launcher.subprocess, "run", side_effect=failure), \
+                patch.object(launcher, "_strategy_search_path", return_value=pathlib.Path("/evidence")):
+            with self.assertRaises(RuntimeError) as raised:
+                launcher._strategy_search_validate_publication(publication, pathlib.Path("/temporary/top.hgf"))
+        message = str(raised.exception)
+        self.assertIn("[stdout]\nvalidation started", message)
+        self.assertIn("[stderr]\nUnknown kingdom: deep-beam-tuning-007", message)
+
+    def test_called_process_diagnostic_is_nonblank_and_includes_captured_output(self):
+        failure = subprocess.CalledProcessError(1, ["validator"], output="", stderr="exact validator failure")
+        diagnostic = launcher._strategy_search_exception_diagnostic(failure)
+        self.assertIn("subprocess.CalledProcessError", diagnostic["error"])
+        self.assertIn("exact validator failure", diagnostic["error"])
 
     def test_stage_two_requests_the_streaming_rust_score_protocol(self):
         with tempfile.TemporaryDirectory() as directory:
