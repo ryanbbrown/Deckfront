@@ -42,7 +42,11 @@ npm run strategy-search:campaign -- run \
   --authorize 'strategy-search-v2.REPLACE_WITH_PLAN_TOKEN'
 ```
 
-`run` validates the token before any Modal call. It does not run `status` as a preflight. A bounded control call creates execution state before compute-image deployment, so status can report preparation immediately. It uses Modal Volume `hexdeck-native-strategy-results`. It stores scientific artifacts under `evidence/<kingdom-evidence-id>/`. It stores execution state under `executions/<campaign-execution-id>/`.
+`run` validates the token before any Modal call. It first records the `image-preparing` phase, then deploys a versioned compute app named from the source digest. The deployment has a 15-minute local timeout. Modal stdout and stderr stream as they arrive; the operator retains only a bounded tail for the final result. The image recipe has three source-copy layers: Node dependency manifests, Rust build sources, and final application sources. A separate lightweight runtime then invokes the deployed readiness function with a 3-minute local timeout. Readiness proves that the exact compute image can start and that its source digest matches the authorized bundle.
+
+The acceptance clock does not include compute deployment or readiness. After readiness succeeds, a bounded control call creates pinned execution state and starts the acceptance clock. The lightweight runtime invokes the deployed controller without importing or rebuilding the compute app. It requires a fenced state update with an active or completed task within 2 minutes. It prints the function call ID and the accepted task, stage, and CPU counts.
+
+The runtime uses Modal Volume `hexdeck-native-strategy-results`. It stores scientific artifacts under `evidence/<kingdom-evidence-id>/`. It stores execution state under `executions/<campaign-execution-id>/`.
 
 A changed `maxActiveCpus` value needs a new token. The existing execution keeps its pinned Goldfish ranges. The new value changes admission concurrency only.
 
@@ -58,7 +62,9 @@ A complete kingdom is reusable by any later request that has the same per-kingdo
 npm run strategy-search:campaign -- status --request /tmp/strategy-search-request.json
 ```
 
-`status` calls one bounded read-only Modal function in the same separate small control app and image. It reads execution state directly from the Volume. It does not depend on the Node, Rust, or simulation image and cannot start a controller or enqueue work. The local Modal command also has a 90-second hard timeout.
+`status` calls one bounded read-only Modal function in the separate small control app and image. It reads execution state directly from the Volume. It does not depend on the Node, Rust, or simulation image and cannot start a controller or enqueue work. The local Modal command also has a 90-second hard timeout.
+
+Status reports the exact phase: `image-preparing`, `controller-starting`, `controller-running`, `complete`, or `failed`. It uses `running` only after a fenced state save proves that a task is active or complete. It reports the acceptance-clock start, useful-work start, controller fence, active and completed task counts, active CPUs, active stages, and per-stage totals before the final report exists.
 
 The final report includes:
 

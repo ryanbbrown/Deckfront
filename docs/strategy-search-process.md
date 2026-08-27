@@ -166,8 +166,10 @@ Goldfish → initial matrix → PSRO → download and deep validation
 The runtime uses:
 
 - one compute image built from the exact executable allowlist in `strategy-search-image-files.json`;
-- cache-stable Node dependency and Rust build layers before changing TypeScript sources;
-- one dependency-free control app that prepares execution state and serves bounded read-only status;
+- exactly three allowlist-backed source-copy layers: Node manifests, Rust build inputs, and final application sources;
+- one explicit versioned deployment boundary that streams image-build progress and verifies the exact deployed readiness function;
+- one dependency-free control app that prepares execution state after readiness and serves bounded read-only status;
+- one lightweight runtime that calls the deployed controller and accepts startup only after a fenced active or completed task;
 - one shared Modal Volume;
 - one global queue for Goldfish jobs from every ready kingdom;
 - one whole Matrix stage and one whole PSRO stage per ready kingdom;
@@ -180,6 +182,8 @@ Matrix schema 4 stores cells, seed ordinals, telemetry, and equilibrium inputs i
 Every unused CPU interval has exactly one reason: Modal rejection, retry backoff, reserved downstream work, minimum useful job size, insufficient ready work, or the final tail.
 
 ## Cost and failure policy
+
+Modal image build time is preflight time, not campaign runtime. A clean `npm ci` and Rust release build can take minutes. Source files are grouped into three image layers instead of one layer per file, so one invalidated group does not create more than 100 serialized build steps. The timed campaign starts only after the versioned compute app is deployed and its exact source identity passes a live readiness call.
 
 The command reports a cost estimate and actual Modal compute cost. It does not use the historical reservation ledger and does not claim to check an external workspace budget.
 

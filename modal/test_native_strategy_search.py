@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import patch
 
 import native_strategy_search as launcher
+import strategy_search_runtime as runtime_launcher
 import strategy_search_status as status_launcher
 
 
@@ -401,7 +402,17 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
     def test_strategy_search_image_uses_the_exact_committed_allowlist(self):
         source = inspect.getsource(launcher)
         self.assertIn("strategy-search-image-files.json", source)
-        self.assertIn("image.add_local_file", source)
+        self.assertNotIn("image.add_local_file", source)
+        self.assertEqual(source.count("image.add_local_dir"), 3)
+        layered = launcher._NODE_DEPENDENCY_FILES | launcher._RUST_IMAGE_FILES \
+            | launcher._APPLICATION_IMAGE_FILES
+        self.assertEqual(layered, set(launcher._SOURCE_IMAGE_FILES))
+        self.assertFalse(launcher._ignore_image_paths_except({"src/sim/file.ts"})(
+            launcher.PROJECT_ROOT / "src"))
+        self.assertFalse(launcher._ignore_image_paths_except({"src/sim/file.ts"})(
+            launcher.PROJECT_ROOT / "src/sim/file.ts"))
+        self.assertTrue(launcher._ignore_image_paths_except({"src/sim/file.ts"})(
+            launcher.PROJECT_ROOT / "src/other.ts"))
         campaign_source = inspect.getsource(launcher.verify_strategy_search_source)
         self.assertIn("_strategy_search_source_digest", campaign_source)
 
@@ -411,19 +422,59 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             state_file = root / "state.json"
             def execution_file(_execution_id):
                 return state_file
-            request = {"operation": "execution-init", "campaignExecutionId": "a" * 64,
+            state_file.write_text(json.dumps({"schemaVersion": 2, "campaignExecutionId": "a" * 64,
                 "orderedEvidenceIds": ["b" * 64], "partitions": {"one": [1]},
-                "jobs": [{"taskId": "old"}], "tasks": [{"taskId": "old"}], "maxActiveCpus": 400}
+                "jobs": [{"taskId": "old"}], "tasks": [{"taskId": "old"}],
+                "maxActiveCpus": 400, "admissionLimitCpus": 400, "revision": 0,
+                "computePreflight": {"sourceDigest": "c" * 64}}))
+            request = {"operation": "execution-init", "campaignExecutionId": "a" * 64,
+                "orderedEvidenceIds": ["b" * 64], "partitions": {"different": [2]},
+                "jobs": [{"taskId": "new"}], "tasks": [{"taskId": "new"}], "maxActiveCpus": 800,
+                "sourceDigest": "c" * 64}
             with patch.object(launcher, "_strategy_search_execution_file", execution_file), \
                     patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"):
-                first = launcher.strategy_search_publisher.get_raw_f()(request)
-                changed = launcher.strategy_search_publisher.get_raw_f()({**request,
-                    "partitions": {"different": [2]}, "jobs": [{"taskId": "new"}],
-                    "tasks": [{"taskId": "new"}], "maxActiveCpus": 800})
-            self.assertEqual(first["partitions"], {"one": [1]})
+                raw = launcher.strategy_search_publisher.get_raw_f()
+                changed = raw(request)
+                with self.assertRaisesRegex(RuntimeError, "compute identity"):
+                    raw({**request, "sourceDigest": "d" * 64})
             self.assertEqual(changed["partitions"], {"one": [1]})
             self.assertEqual(changed["jobs"], [{"taskId": "old"}])
             self.assertEqual(changed["maxActiveCpus"], 800)
+
+    def test_strategy_search_controller_startup_is_accepted_only_after_fenced_useful_work(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state_file = pathlib.Path(directory) / "state.json"
+            state = {"schemaVersion": 2, "campaignExecutionId": "a" * 64,
+                "orderedEvidenceIds": ["b" * 64], "partitions": {}, "tasks": [],
+                "jobs": [{"taskId": "task", "stage": "goldfish-one", "status": "active",
+                    "cpu": 4}], "maxActiveCpus": 400, "revision": 1, "controllerFence": 1,
+                "controller": {"ownerId": "owner", "fence": 1, "leaseUntilMs": 1000},
+                "status": "running", "report": None, "startedMs": 100,
+                "usefulWorkStartedMs": None}
+            state_file.write_text(json.dumps(state))
+            with patch.object(launcher, "_strategy_search_execution_file", return_value=state_file), \
+                    patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"):
+                saved = launcher.strategy_search_publisher.get_raw_f()({"operation": "execution-save",
+                    "campaignExecutionId": "a" * 64, "fence": 1, "ownerId": "owner",
+                    "nowMs": 200, "leaseMs": 100, "state": state})
+            self.assertEqual(saved["usefulWorkStartedMs"], 200)
+            with patch.object(runtime_launcher, "_execution_file", return_value=state_file), \
+                    patch.object(runtime_launcher.volume, "reload"):
+                progress = runtime_launcher.read_startup.get_raw_f()("a" * 64)
+            self.assertTrue(progress["usefulWorkStarted"])
+            self.assertEqual(progress["activeTaskCount"], 1)
+            self.assertEqual(progress["activeCpus"], 4)
+
+    def test_strategy_search_controller_requires_verified_preflight_state(self):
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(launcher, "_strategy_search_execution_file",
+                    return_value=pathlib.Path(directory) / "missing.json"), \
+                patch.object(launcher.volume, "reload"):
+            with self.assertRaisesRegex(RuntimeError, "verified compute preflight"):
+                launcher.strategy_search_publisher.get_raw_f()({"operation": "execution-init",
+                    "campaignExecutionId": "a" * 64, "orderedEvidenceIds": ["b" * 64],
+                    "partitions": {}, "jobs": [], "tasks": [], "maxActiveCpus": 400,
+                    "sourceDigest": "c" * 64})
 
     def test_strategy_search_publisher_batches_exact_bytes_and_fails_closed(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -537,12 +588,26 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                 patch.object(status_launcher.volume, "reload"):
             raw = status_launcher.read_status.get_raw_f()
             missing = raw("a" * 64)
-            self.assertEqual(missing["status"], "missing")
-            pathlib.Path(directory, "state.json").write_text(json.dumps(
-                {"status": "ready", "report": None}))
-            self.assertEqual(raw("a" * 64)["status"], "running")
+            self.assertEqual(missing["phase"], "missing")
+            pathlib.Path(directory, "compute-preflight.json").write_text(json.dumps({
+                "phase": "image-preparing", "operatorStartedMs": 1, "computeAppName": "compute"}))
+            preparing = raw("a" * 64)
+            self.assertEqual(preparing["status"], "preparing")
+            self.assertEqual(preparing["phase"], "image-preparing")
+            state_file = pathlib.Path(directory, "state.json")
+            state_file.write_text(json.dumps({"status": "ready", "report": None, "jobs": []}))
+            starting = raw("a" * 64)
+            self.assertEqual(starting["status"], "starting")
+            self.assertEqual(starting["phase"], "controller-starting")
+            state_file.write_text(json.dumps({"status": "running", "report": None,
+                "usefulWorkStartedMs": 2, "controllerFence": 1,
+                "jobs": [{"stage": "goldfish-one", "status": "active", "cpu": 4}]}))
+            running = raw("a" * 64)
+            self.assertEqual(running["phase"], "controller-running")
+            self.assertEqual(running["activeTaskCount"], 1)
+            self.assertEqual(running["activeCpus"], 4)
 
-    def test_strategy_search_run_prepares_state_on_the_control_app_before_compute_deployment(self):
+    def test_strategy_search_run_prepares_state_only_after_verified_compute_deployment(self):
         bundle = {"schemaVersion": 2, "campaignExecutionId": "a" * 64,
             "executionRoot": "executions/" + "a" * 64,
             "request": {"kingdomIds": ["kingdom"], "maxActiveCpus": 400},
@@ -555,30 +620,48 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                     return_value=pathlib.Path(directory) / "state.json"), \
                 patch.object(status_launcher.volume, "reload"), \
                 patch.object(status_launcher.volume, "commit") as commit:
+            compute_app = "hexdeck-strategy-" + "b" * 24
+            begun = status_launcher.begin_compute_preflight.get_raw_f()(
+                "a" * 64, "b" * 64, compute_app)
+            self.assertEqual(begun["phase"], "image-preparing")
+            self.assertFalse(pathlib.Path(directory, "state.json").exists())
+            self.assertEqual(json.loads(pathlib.Path(directory,
+                "compute-preflight.json").read_text())["computeAppName"], compute_app)
             raw = status_launcher.prepare_execution.get_raw_f()
-            first = raw(bundle)
+            preflight = {"ready": True, "sourceDigest": "b" * 64, "readyMs": 10,
+                "computeAppName": compute_app, "preflightElapsedMs": 20.0}
+            first = raw(bundle, preflight)
             self.assertTrue(first["prepared"])
             state = json.loads(pathlib.Path(directory, "state.json").read_text())
             self.assertEqual(state["status"], "ready")
             self.assertEqual(state["orderedEvidenceIds"], ["c" * 64])
+            self.assertEqual(state["computePreflight"], preflight)
             changed = {**bundle, "partitions": {"different": []},
                 "jobs": [{"taskId": "different"}]}
-            self.assertFalse(raw(changed)["prepared"])
+            self.assertFalse(raw(changed, preflight)["prepared"])
             self.assertEqual(json.loads(pathlib.Path(directory, "state.json").read_text())["jobs"],
                 [{"taskId": "task", "status": "ready"}])
-            self.assertEqual(commit.call_count, 1)
+            self.assertEqual(commit.call_count, 2)
 
     def test_strategy_search_campaign_has_no_legacy_recovery_or_budget_gate(self):
         controller_source = inspect.getsource(launcher.strategy_search_controller.get_raw_f())
         self.assertNotIn("GROSS_BUDGET_USD", controller_source)
         self.assertNotIn("MAX_FULL_RUNS", controller_source)
         module_source = inspect.getsource(launcher)
+        runtime_source = inspect.getsource(runtime_launcher)
+        self.assertIn("strategy_search_compute_ready", module_source)
+        self.assertNotIn("strategy_search_run_entry", module_source)
+        self.assertIn('Function.from_name(compute_app_name, "strategy_search_controller")', runtime_source)
+        self.assertIn("strategy-search-useful-work-started", runtime_source)
         self.assertIn("_NODE_DEPENDENCY_FILES", module_source)
         self.assertIn("_RUST_IMAGE_FILES", module_source)
+        self.assertIn("_APPLICATION_IMAGE_FILES", module_source)
+        self.assertEqual(module_source.count("image.add_local_dir"), 3)
+        self.assertNotIn("image.add_local_file", module_source)
         self.assertIn('from_registry("rust:1.98.0-slim-bookworm"', module_source)
         self.assertNotIn("rustup toolchain install", module_source)
         self.assertLess(module_source.index('npm ci'), module_source.index(
-            'set(_SOURCE_IMAGE_FILES) - _NODE_DEPENDENCY_FILES - _RUST_IMAGE_FILES'))
+            'ignore=_ignore_image_paths_except(_APPLICATION_IMAGE_FILES)'))
         for removed in ["campaign_recover_entry", "campaign_source_repair", "resume-plan"]:
             self.assertNotIn(removed, module_source)
 

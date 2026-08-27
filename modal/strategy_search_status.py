@@ -22,6 +22,10 @@ def _execution_file(campaign_execution_id: str) -> pathlib.Path:
     return pathlib.Path("/results/executions") / campaign_execution_id / "state.json"
 
 
+def _preflight_file(campaign_execution_id: str) -> pathlib.Path:
+    return _execution_file(campaign_execution_id).with_name("compute-preflight.json")
+
+
 def _atomic_json(file: pathlib.Path, value: Any) -> None:
     file.parent.mkdir(parents=True, exist_ok=True)
     temporary = file.with_name(f".{file.name}.{os.getpid()}.tmp")
@@ -36,11 +40,35 @@ def _atomic_json(file: pathlib.Path, value: Any) -> None:
 @app.function(image=control_image, cpu=0.25, memory=512, timeout=30, max_containers=1,
               volumes={"/results": volume})
 @modal.concurrent(max_inputs=1)
-def prepare_execution(bundle: dict[str, Any]) -> dict[str, Any]:
+def begin_compute_preflight(campaign_execution_id: str, source_digest: str,
+                            compute_app_name: str) -> dict[str, Any]:
+    if not re.fullmatch(r"[0-9a-f]{64}", source_digest) \
+            or compute_app_name != f"hexdeck-strategy-{source_digest[:24]}":
+        raise ValueError("strategy-search compute app name differs from source identity")
+    preflight = {"schemaVersion": 1, "campaignExecutionId": campaign_execution_id,
+        "phase": "image-preparing", "sourceDigest": source_digest,
+        "computeAppName": compute_app_name, "operatorStartedMs": int(time.time() * 1000)}
+    volume.reload()
+    _atomic_json(_preflight_file(campaign_execution_id), preflight)
+    volume.commit()
+    return preflight
+
+
+@app.function(image=control_image, cpu=0.25, memory=512, timeout=30, max_containers=1,
+              volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
+def prepare_execution(bundle: dict[str, Any], compute_preflight: dict[str, Any]) -> dict[str, Any]:
     required = {"schemaVersion", "campaignExecutionId", "executionRoot", "request", "sourceImage",
         "partitions", "jobs", "tasks", "controller"}
     if set(bundle) != required or bundle["schemaVersion"] != 2:
         raise ValueError("strategy-search launch bundle is malformed")
+    preflight_fields = {"ready", "sourceDigest", "readyMs", "computeAppName", "preflightElapsedMs"}
+    source_digest = bundle["sourceImage"]["digest"]
+    expected_app = f"hexdeck-strategy-{source_digest[:24]}"
+    if set(compute_preflight) != preflight_fields or compute_preflight["ready"] is not True \
+            or compute_preflight["sourceDigest"] != source_digest \
+            or compute_preflight["computeAppName"] != expected_app:
+        raise ValueError("strategy-search compute preflight is invalid")
     execution_id = bundle["campaignExecutionId"]
     state_file = _execution_file(execution_id)
     ordered_evidence_ids = [task["evidenceId"] for task in bundle["tasks"] if task["stage"] == "psro"]
@@ -51,18 +79,24 @@ def prepare_execution(bundle: dict[str, Any]) -> dict[str, Any]:
         state = json.loads(state_file.read_text())
         if state.get("orderedEvidenceIds") != ordered_evidence_ids:
             raise RuntimeError("saved execution scientific identity differs")
-        return {"prepared": False, "campaignExecutionId": execution_id, "status": state["status"]}
+        if state.get("computePreflight", {}).get("sourceDigest") != source_digest:
+            raise RuntimeError("saved execution compute identity differs")
+        return {"prepared": False, "campaignExecutionId": execution_id, "status": state["status"],
+            "startedMs": state["startedMs"]}
+    started_ms = int(time.time() * 1000)
     state = {"schemaVersion": 2, "campaignExecutionId": execution_id,
         "orderedEvidenceIds": ordered_evidence_ids, "partitions": bundle["partitions"],
         "jobs": bundle["jobs"], "tasks": bundle["tasks"],
         "maxActiveCpus": bundle["request"]["maxActiveCpus"], "revision": 0,
         "controllerFence": 0, "controller": None, "status": "ready", "report": None,
-        "startedMs": int(time.time() * 1000), "utilizationIntervals": [],
+        "startedMs": started_ms, "usefulWorkStartedMs": None,
+        "computePreflight": compute_preflight, "utilizationIntervals": [],
         "admissionFailures": 0, "publisherCommitMs": 0.0,
         "admissionLimitCpus": bundle["request"]["maxActiveCpus"]}
     _atomic_json(state_file, state)
     volume.commit()
-    return {"prepared": True, "campaignExecutionId": execution_id, "status": "ready"}
+    return {"prepared": True, "campaignExecutionId": execution_id, "status": "ready",
+        "startedMs": started_ms}
 
 
 @app.function(image=control_image, cpu=0.25, memory=512, timeout=30, volumes={"/results": volume})
@@ -71,10 +105,38 @@ def read_status(campaign_execution_id: str) -> dict[str, Any]:
     state_file = _execution_file(campaign_execution_id)
     state = json.loads(state_file.read_text()) if state_file.exists() else None
     if state is None:
-        return {"exists": False, "campaignExecutionId": campaign_execution_id, "status": "missing"}
-    status = "running" if state["status"] == "ready" else state["status"]
+        preflight_file = _preflight_file(campaign_execution_id)
+        if preflight_file.exists():
+            preflight = json.loads(preflight_file.read_text())
+            return {"exists": False, "campaignExecutionId": campaign_execution_id,
+                "status": "preparing", "phase": preflight["phase"], "report": None,
+                "operatorStartedMs": preflight["operatorStartedMs"],
+                "computeAppName": preflight["computeAppName"], "activeTaskCount": 0,
+                "completedTaskCount": 0, "activeCpus": 0, "activeStages": [], "stageCounts": {}}
+        return {"exists": False, "campaignExecutionId": campaign_execution_id,
+            "status": "missing", "phase": "missing"}
+    jobs = state.get("jobs", [])
+    active = [job for job in jobs if job.get("status") == "active"]
+    complete = [job for job in jobs if job.get("status") == "complete"]
+    stage_counts = {}
+    for job in jobs:
+        stage = stage_counts.setdefault(job["stage"], {"active": 0, "complete": 0, "total": 0})
+        stage["total"] += 1
+        if job.get("status") in {"active", "complete"}:
+            stage[job["status"]] += 1
+    if state["status"] in {"complete", "failed"}:
+        status, phase = state["status"], state["status"]
+    elif state.get("usefulWorkStartedMs") is not None:
+        status, phase = "running", "controller-running"
+    else:
+        status, phase = "starting", "controller-starting"
     return {"exists": True, "campaignExecutionId": campaign_execution_id, "status": status,
-        "report": state.get("report")}
+        "phase": phase, "report": state.get("report"), "startedMs": state.get("startedMs"),
+        "usefulWorkStartedMs": state.get("usefulWorkStartedMs"),
+        "controllerFence": state.get("controllerFence", 0),
+        "activeTaskCount": len(active), "completedTaskCount": len(complete),
+        "activeCpus": sum(job.get("cpu", job.get("cpus", 0)) for job in active),
+        "activeStages": sorted({job["stage"] for job in active}), "stageCounts": stage_counts}
 
 
 @app.local_entrypoint()
@@ -83,6 +145,14 @@ def status_entry(campaign_execution_id: str) -> None:
 
 
 @app.local_entrypoint()
-def prepare_entry(launch_config: str) -> None:
+def begin_preflight_entry(campaign_execution_id: str, source_digest: str,
+                          compute_app_name: str) -> None:
+    print(json.dumps(begin_compute_preflight.remote(
+        campaign_execution_id, source_digest, compute_app_name)))
+
+
+@app.local_entrypoint()
+def prepare_entry(launch_config: str, compute_preflight: str) -> None:
     bundle = json.loads(pathlib.Path(launch_config).read_text())
-    print(json.dumps(prepare_execution.remote(bundle)))
+    preflight = json.loads(pathlib.Path(compute_preflight).read_text())
+    print(json.dumps(prepare_execution.remote(bundle, preflight)))

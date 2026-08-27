@@ -33,10 +33,14 @@ The complete `npm test` command passed 82 files and 756 tests, then failed one u
 
 The implementation acceptance suite therefore excludes only `test/sim/randomPsro.test.ts`. All other repository test files remain required.
 
-## Status preflight correction
+## Compute startup corrections
 
 The first parent-owned K007 attempt did not reach `strategy_search_run_entry`. Its separate status preflight waited on the full compute image for more than 29 minutes. No strategy-search scoring started.
 
 The corrected operator validates run authorization and starts `run` without a status preflight. Explicit `status` uses a separate dependency-free Modal app and control image, reads execution state directly from the Volume, has a 30-second remote timeout, and has a 90-second local process timeout.
 
-A second parent-owned attempt proved that status returned promptly, but execution state stayed missing for 5 minutes 43 seconds while the compute app prepared. No strategy-search scoring started. The control app now creates pinned schema-2 execution state before compute deployment and emits a visible preparation event. The compute image starts from the official Rust 1.98 image instead of downloading Rust with rustup. It installs Node dependencies and builds unchanged Rust sources in cacheable layers before it copies changing TypeScript sources. Local architecture tests cover state creation, pin preservation, control/compute ordering, and image build placement. This document does not claim a successful remote campaign run; the parent owns the retry.
+A second parent-owned attempt proved that status returned promptly, but execution state stayed missing for 5 minutes 43 seconds while the compute app prepared. No strategy-search scoring started. A third parent-owned attempt created state promptly, but the inline compute build did not reach useful controller work in 5 minutes 56 seconds. No strategy-search scoring started.
+
+These waits occurred during Modal image build, not measured campaign execution. A clean `npm ci` and Rust release build can take minutes even though a built container starts quickly. Build-log inspection then found that 122 allowlisted files were added with separate `add_local_file(copy=True)` calls, which serialized roughly 122 image layers.
+
+The image now uses exactly three allowlist-backed source-copy layers: Node manifests, Rust build inputs, and final application sources. The operator exposes a bounded versioned deployment as a separate preflight and streams Modal output instead of buffering the build. Status reports `image-preparing` during this work. A live readiness call verifies the deployed compute function and exact source digest. Only then does the control app create pinned schema-2 execution state and start the campaign acceptance clock. A lightweight runtime calls the deployed controller without inline compute-image construction and requires a fenced active or completed task within 2 minutes. Status changes to `controller-running` only after that fenced save and includes live task and CPU counts. Local tests cover layer count, allowlist coverage, streamed progress, truthful phases, preflight identity, state creation, pin preservation, deployment order, and fenced useful-work acceptance. This document does not claim a successful remote deployment or campaign run; the parent owns both.

@@ -2,11 +2,11 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { deriveStrategySearch } from '../../src/sim/strategySearchCampaign';
 import { createStrategySearchLaunchBundle } from '../../src/sim/strategySearchCampaignOperator';
 import {
-  deriveTrackedStrategySearchSourceImage, executeStrategySearchOperation
+  deriveTrackedStrategySearchSourceImage, executeStrategySearchOperation, streamProcess
 } from '../../scripts/strategy_search_campaign';
 import type {
   StrategySearchOperatorAdapter, StrategySearchRemoteStatus
@@ -24,42 +24,75 @@ function fixture() { const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck
     sourceImage: deriveTrackedStrategySearchSourceImage(root) });
   return { root, requestFile, parsed }; }
 describe('strategy-search operator', () => {
-  it('plans without remote work and binds the exact ordered request', () => { const held = fixture(); let calls = 0;
+  it('plans without remote work and binds the exact ordered request', async () => { const held = fixture(); let calls = 0;
     const adapter: StrategySearchOperatorAdapter = { status() { calls += 1; throw new Error('not called'); },
       run() { calls += 1; throw new Error('not called'); } };
-    try { const plan = executeStrategySearchOperation({ operation: 'plan', requestFile: held.requestFile,
+    try { const plan = await executeStrategySearchOperation({ operation: 'plan', requestFile: held.requestFile,
       root: held.root, adapter });
       expect(plan).toMatchObject({ schemaVersion: 2, kingdomCount: 1, maxActiveCpus: 400,
         workspaceBudgetVerification: 'not-performed' });
       expect(plan.authorizationToken).toBe(held.parsed.authorizationToken); expect(calls).toBe(0);
     } finally { fs.rmSync(held.root, { recursive: true, force: true }); } });
 
-  it('uses status as a read-only seam and never puts run authorization behind status deployment', () => {
+  it('uses status as a read-only seam and never puts run authorization behind status deployment', async () => {
     const held = fixture();
     let runs = 0, statuses = 0; const status: StrategySearchRemoteStatus = { exists: false,
-      campaignExecutionId: held.parsed.campaignExecutionId, status: 'missing' };
+      campaignExecutionId: held.parsed.campaignExecutionId, status: 'missing', phase: 'missing' };
     const adapter: StrategySearchOperatorAdapter = { status() { statuses += 1; return status; },
       run() { runs += 1; return { complete: true }; } };
-    try { expect(executeStrategySearchOperation({ operation: 'status', requestFile: held.requestFile,
+    try { expect(await executeStrategySearchOperation({ operation: 'status', requestFile: held.requestFile,
       root: held.root, adapter })).toMatchObject({ exists: false, status: 'missing' });
       expect(runs).toBe(0); expect(statuses).toBe(1);
-      expect(() => executeStrategySearchOperation({ operation: 'run', requestFile: held.requestFile,
-        root: held.root, adapter })).toThrow('exact authorization');
-      expect(() => executeStrategySearchOperation({ operation: 'run', requestFile: held.requestFile,
-        authorizationToken: 'strategy-search-v2.wrong', root: held.root, adapter })).toThrow('exact authorization');
-      expect(executeStrategySearchOperation({ operation: 'run', requestFile: held.requestFile,
+      await expect(executeStrategySearchOperation({ operation: 'run', requestFile: held.requestFile,
+        root: held.root, adapter })).rejects.toThrow('exact authorization');
+      await expect(executeStrategySearchOperation({ operation: 'run', requestFile: held.requestFile,
+        authorizationToken: 'strategy-search-v2.wrong', root: held.root, adapter })).rejects.toThrow('exact authorization');
+      expect(await executeStrategySearchOperation({ operation: 'run', requestFile: held.requestFile,
         authorizationToken: held.parsed.authorizationToken, root: held.root, adapter })).toMatchObject({
           campaignExecutionId: held.parsed.campaignExecutionId });
       expect(runs).toBe(1); expect(statuses).toBe(1);
     } finally { fs.rmSync(held.root, { recursive: true, force: true }); } });
 
-  it('prepares execution state with the control app before it invokes the compute app', () => {
+  it('deploys and verifies a versioned compute app before it starts the acceptance clock', () => {
     const source = fs.readFileSync('scripts/strategy_search_campaign.ts', 'utf8');
-    const prepare = source.indexOf("modal/strategy_search_status.py::prepare_entry");
-    const compute = source.indexOf("modal/native_strategy_search.py::strategy_search_run_entry");
-    expect(prepare).toBeGreaterThan(0);
-    expect(compute).toBeGreaterThan(prepare);
-    expect(source).toContain('strategy-search-execution-prepared');
+    const preflightState = source.indexOf("phase: 'strategy-search-preflight-state'");
+    const deploy = source.indexOf("phase: 'strategy-search-compute-deploy'");
+    const readiness = source.indexOf("phase: 'strategy-search-compute-readiness'");
+    const prepare = source.indexOf("phase: 'strategy-search-execution-prepare'");
+    const clock = source.indexOf('strategy-search-acceptance-clock-started');
+    const run = source.indexOf("phase: 'strategy-search-deployed-run'");
+    expect(preflightState).toBeGreaterThan(0);
+    expect(deploy).toBeGreaterThan(preflightState);
+    expect(readiness).toBeGreaterThan(deploy);
+    expect(prepare).toBeGreaterThan(readiness);
+    expect(clock).toBeGreaterThan(prepare);
+    expect(run).toBeGreaterThan(clock);
+    expect(source).toContain("args: ['deploy', '--name'");
+    expect(source).toContain('modal/strategy_search_runtime.py::run_deployed_entry');
+    expect(source).toContain('spawn(input.executable, input.args');
+    expect(source).toContain("child.stdout.on('data'");
+    expect(source).toContain('process.stdout.write(chunk)');
+    expect(source).not.toContain("execFileSync('modal'");
+    expect(source).not.toContain('native_strategy_search.py::strategy_search_run_entry');
+  });
+
+  it('streams child progress before the final result resolves', async () => {
+    const chunks: string[] = [];
+    let markFirstSeen: () => void = () => undefined;
+    const firstSeen = new Promise<void>((resolve) => { markFirstSeen = resolve; });
+    const write = vi.spyOn(process.stdout, 'write').mockImplementation(((chunk: string | Uint8Array) => {
+      const text = chunk.toString(); chunks.push(text); if (text.includes('first')) markFirstSeen(); return true;
+    }) as typeof process.stdout.write);
+    try {
+      let resolved = false;
+      const pending = streamProcess({ executable: process.execPath, phase: 'stream-fixture', timeoutMs: 1000,
+        args: ['-e', "process.stdout.write('first\\n');setTimeout(()=>process.stdout.write('final\\n'),100)"]
+      }).then((output) => { resolved = true; return output; });
+      await firstSeen;
+      expect(chunks.join('')).toContain('first');
+      expect(resolved).toBe(false);
+      expect(await pending).toContain('final');
+    } finally { write.mockRestore(); }
   });
 
   it('creates hundreds of pinned K007 Goldfish jobs without putting capacity in evidence identity', () => {

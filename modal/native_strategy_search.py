@@ -87,14 +87,35 @@ image = modal.Image.from_registry("rust:1.98.0-slim-bookworm", add_python="3.12"
 _NODE_DEPENDENCY_FILES = {"package.json", "package-lock.json"}
 _RUST_IMAGE_FILES = {relative for relative in _SOURCE_IMAGE_FILES
     if relative.startswith("rust/") and relative != "rust/rust-toolchain.toml"}
-for _relative in sorted(_NODE_DEPENDENCY_FILES):
-    image = image.add_local_file(PROJECT_ROOT / _relative, remote_path=f"/workspace/{_relative}", copy=True)
+_APPLICATION_IMAGE_FILES = set(_SOURCE_IMAGE_FILES) - _NODE_DEPENDENCY_FILES - _RUST_IMAGE_FILES
+if _NODE_DEPENDENCY_FILES | _RUST_IMAGE_FILES | _APPLICATION_IMAGE_FILES != set(_SOURCE_IMAGE_FILES):
+    raise RuntimeError("strategy-search image layers differ from the source allowlist")
+
+
+def _ignore_image_paths_except(allowed: set[str]):
+    parents = {"."}
+    for relative in allowed:
+        parent = pathlib.PurePosixPath(relative).parent
+        while parent.as_posix() != ".":
+            parents.add(parent.as_posix())
+            parent = parent.parent
+    def ignore(path: pathlib.Path) -> bool:
+        try:
+            relative = path.relative_to(PROJECT_ROOT).as_posix()
+        except ValueError:
+            relative = path.as_posix()
+        return relative not in allowed and relative not in parents
+    return ignore
+
+
+image = image.add_local_dir(PROJECT_ROOT, remote_path="/workspace", copy=True,
+    ignore=_ignore_image_paths_except(_NODE_DEPENDENCY_FILES))
 image = image.run_commands("cd /workspace && npm ci")
-for _relative in sorted(_RUST_IMAGE_FILES):
-    image = image.add_local_file(PROJECT_ROOT / _relative, remote_path=f"/workspace/{_relative}", copy=True)
+image = image.add_local_dir(PROJECT_ROOT, remote_path="/workspace", copy=True,
+    ignore=_ignore_image_paths_except(_RUST_IMAGE_FILES))
 image = image.run_commands("cd /workspace/rust && cargo build --release")
-for _relative in sorted(set(_SOURCE_IMAGE_FILES) - _NODE_DEPENDENCY_FILES - _RUST_IMAGE_FILES):
-    image = image.add_local_file(PROJECT_ROOT / _relative, remote_path=f"/workspace/{_relative}", copy=True)
+image = image.add_local_dir(PROJECT_ROOT, remote_path="/workspace", copy=True,
+    ignore=_ignore_image_paths_except(_APPLICATION_IMAGE_FILES))
 
 
 def projected_cost_usd(
@@ -1279,6 +1300,13 @@ def verify_strategy_search_source(identity: dict[str, Any]) -> None:
         raise RuntimeError("strategy-search source digest differs inside the Modal image")
 
 
+@app.function(image=image, cpu=1, memory=2048, timeout=90, max_containers=1)
+def strategy_search_compute_ready(source_identity: dict[str, Any]) -> dict[str, Any]:
+    verify_strategy_search_source(source_identity)
+    return {"ready": True, "sourceDigest": source_identity["digest"],
+        "readyMs": int(time.time() * 1000)}
+
+
 def _strategy_search_execution_file(execution_id: str) -> pathlib.Path:
     if not re.fullmatch(r"[0-9a-f]{64}", execution_id):
         raise ValueError("campaign execution ID is invalid")
@@ -1306,20 +1334,14 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
         state_file = _strategy_search_execution_file(execution_id)
         saved = _strategy_search_load(state_file)
         if saved is None:
-            saved = {"schemaVersion": 2, "campaignExecutionId": execution_id,
-                "orderedEvidenceIds": request["orderedEvidenceIds"], "partitions": request["partitions"],
-                "jobs": request["jobs"], "tasks": request["tasks"],
-                "maxActiveCpus": request["maxActiveCpus"], "revision": 0,
-                "controllerFence": 0, "controller": None, "status": "ready", "report": None,
-                "startedMs": int(time.time() * 1000), "utilizationIntervals": [],
-                "admissionFailures": 0, "publisherCommitMs": 0.0,
-                "admissionLimitCpus": request["maxActiveCpus"]}
-        else:
-            if saved["orderedEvidenceIds"] != request["orderedEvidenceIds"]:
-                raise RuntimeError("saved execution scientific identity differs")
-            saved["maxActiveCpus"] = request["maxActiveCpus"]
-            saved["admissionLimitCpus"] = request["maxActiveCpus"]
-            saved["revision"] += 1
+            raise RuntimeError("strategy-search execution has no verified compute preflight")
+        if saved["orderedEvidenceIds"] != request["orderedEvidenceIds"]:
+            raise RuntimeError("saved execution scientific identity differs")
+        if saved.get("computePreflight", {}).get("sourceDigest") != request["sourceDigest"]:
+            raise RuntimeError("saved execution compute identity differs")
+        saved["maxActiveCpus"] = request["maxActiveCpus"]
+        saved["admissionLimitCpus"] = request["maxActiveCpus"]
+        saved["revision"] += 1
         _atomic_json(state_file, saved)
         volume.commit()
         return saved
@@ -1351,6 +1373,9 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
             raise RuntimeError("strategy-search execution save is fenced out")
         state["maxActiveCpus"] = saved["maxActiveCpus"]
         state["controller"]["leaseUntilMs"] = request["nowMs"] + request["leaseMs"]
+        if state.get("usefulWorkStartedMs") is None and state.get("status") == "running" \
+                and any(job.get("status") in {"active", "complete"} for job in state["jobs"]):
+            state["usefulWorkStartedMs"] = request["nowMs"]
         state["revision"] = saved["revision"] + 1
         _atomic_json(state_file, state)
         volume.commit()
@@ -1761,6 +1786,14 @@ def _strategy_search_task_config(bundle: dict[str, Any], state: dict[str, Any], 
 @app.function(image=image, cpu=1, memory=2048, timeout=1800, retries=0, volumes={"/results": volume})
 def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
     verify_strategy_search_source(bundle["sourceImage"])
+    initialized = strategy_search_publisher.remote({"operation": "execution-init",
+        "campaignExecutionId": bundle["campaignExecutionId"],
+        "orderedEvidenceIds": [task["evidenceId"] for task in bundle["tasks"] if task["stage"] == "psro"],
+        "partitions": bundle["partitions"], "jobs": bundle["jobs"], "tasks": bundle["tasks"],
+        "maxActiveCpus": bundle["request"]["maxActiveCpus"],
+        "sourceDigest": bundle["sourceImage"]["digest"]})
+    if initialized["status"] == "complete":
+        return initialized["report"]
     owner_id = uuid.uuid4().hex
     state = strategy_search_publisher.remote({"operation": "controller-claim",
         "campaignExecutionId": bundle["campaignExecutionId"], "ownerId": owner_id,
@@ -1995,48 +2028,6 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
         "fence": state["controllerFence"], "ownerId": owner_id, "nowMs": int(time.time() * 1000),
         "leaseMs": 120000, "state": state})
     return report
-
-
-@app.local_entrypoint()
-def strategy_search_run_entry(launch_config: str, download_dir: str) -> None:
-    bundle = json.loads(pathlib.Path(launch_config).read_text())
-    if set(bundle) != {"schemaVersion", "campaignExecutionId", "executionRoot", "request", "sourceImage",
-            "partitions", "jobs", "tasks", "controller"} or bundle["schemaVersion"] != 2:
-        raise ValueError("strategy-search launch bundle is malformed")
-    state = strategy_search_publisher.remote({"operation": "execution-init",
-        "campaignExecutionId": bundle["campaignExecutionId"],
-        "orderedEvidenceIds": [held["evidenceId"] for held in bundle["tasks"] if held["stage"] == "psro"],
-        "partitions": bundle["partitions"], "jobs": bundle["jobs"], "tasks": bundle["tasks"],
-        "maxActiveCpus": bundle["request"]["maxActiveCpus"]})
-    if state["status"] != "complete":
-        report = strategy_search_controller.remote(bundle)
-    else:
-        report = state["report"]
-    evidence_ids = [held["evidenceId"] for held in bundle["tasks"] if held["stage"] == "psro"]
-    for evidence_id in evidence_ids:
-        evidence_root = _strategy_search_path(f"evidence/{evidence_id}")
-        for stage, relative in [("goldfish-one-reduce", "goldfish/top-500000.json"),
-                                ("goldfish-two-reduce", "goldfish/reservoir.json"),
-                                ("matrix", "matrix/evidence.json"), ("psro", "psro/evidence.json")]:
-            subprocess.run(["npx", "tsx", "scripts/strategy_search_validate_artifact.ts", "--stage", stage,
-                "--file", str(evidence_root / relative), "--evidence-id", evidence_id,
-                "--kingdom", next(held["kingdomId"] for held in bundle["tasks"]
-                    if held["evidenceId"] == evidence_id), "--evidence-root", str(evidence_root)],
-                cwd="/workspace", text=True,
-                capture_output=True, timeout=600, check=True)
-    destination = pathlib.Path(download_dir)
-    destination.mkdir(parents=True, exist_ok=True)
-    _atomic_json(destination / "report.json", report)
-    for evidence_id in evidence_ids:
-        for relative in ["goldfish/top-500000.json", "goldfish/reservoir.json",
-                         "matrix/evidence.json", "psro/evidence.json"]:
-            remote = _strategy_search_path(f"evidence/{evidence_id}/{relative}")
-            local = destination / "evidence" / evidence_id / relative
-            local.parent.mkdir(parents=True, exist_ok=True)
-            with local.open("wb") as stream:
-                for chunk in volume.read_file(remote.relative_to("/results").as_posix()):
-                    stream.write(chunk)
-    print(json.dumps(report))
 
 
 def validate_launch_limits(
