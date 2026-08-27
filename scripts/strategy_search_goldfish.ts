@@ -3,9 +3,10 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { createStrategySearchContext } from '../src/sim/strategySearchContext';
+import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
 import { nativeScoreBatchRequest } from '../src/sim/nativeGoldfishProtocol';
 import { NATIVE_SCORE_STREAM_MAX_LINE_BYTES, readNativeScoreStreams } from '../src/sim/nativeScoreStream';
+import { candidateIndexAt, createOrderedCandidateSpace, orderedGoldfishCardIds } from '../src/sim/orderedGoldfishBenchmark';
 import {
   compactProfileEvidence, ORDERED_PRODUCT_COLLISION_ALLOWANCE, ORDERED_PRODUCT_SEEDS,
   ORDERED_PRODUCT_SPACE_COUNT
@@ -77,15 +78,16 @@ async function collectScores(scored: { file: string }, input: { start: number; d
 const mode = process.argv[2];
 const evidenceId = option('evidence-id'), kingdomId = option('kingdom');
 if (!/^[0-9a-f]{64}$/.test(evidenceId)) throw new Error('Goldfish evidence ID is invalid.');
-const { kingdom, candidateSpace, strategyAt } = createStrategySearchContext(kingdomId);
-if (candidateSpace.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT) throw new Error('Goldfish candidate count differs.');
+const kingdom = strategySearchKingdom(kingdomId), space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
+if (space.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT) throw new Error('Goldfish candidate count differs.');
+const strategyAt = (position: number) => space.candidateAt(candidateIndexAt(position, space.candidateCount));
 if (mode === 'readiness') {
   const probe = strategyAt(0);
   if (!probe.id || canonicalStrategy(probe).length < 1) throw new Error('Goldfish readiness strategy is invalid.');
-  process.stdout.write(`${JSON.stringify({ ready: true, kingdomId, candidateCount: candidateSpace.candidateCount })}\n`);
+  process.stdout.write(`${JSON.stringify({ ready: true, kingdomId, candidateCount: space.candidateCount })}\n`);
 } else if (mode === 'score-one') {
   const started = performance.now(), start = integer('start'), end = integer('end'), cpu = integer('cpu'), threads = integer('threads');
-  if (end <= start || end > candidateSpace.candidateCount || cpu < 1 || threads < 1 || threads > cpu) throw new Error('Stage-one range is invalid.');
+  if (end <= start || end > space.candidateCount || cpu < 1 || threads < 1 || threads > cpu) throw new Error('Stage-one range is invalid.');
   const generationStarted = performance.now(), strategies = Array.from({ length: end - start }, (_unused, index) =>
     strategyAt(start + index)), generationMs = performance.now() - generationStarted;
   const scored = await score({ strategies, seeds: [ORDERED_PRODUCT_SEEDS[0]], threads, cpu });
@@ -99,12 +101,12 @@ if (mode === 'readiness') {
       + performance.now() - serializationStarted }, elapsedMs));
 } else if (mode === 'reduce-one') {
   const started = performance.now(), reduceStarted = performance.now(); let intermediateReadMs = 0;
-  const records = reduceCompactStageOne({ files: manifestFiles(), evidenceId, total: candidateSpace.candidateCount,
+  const records = reduceCompactStageOne({ files: manifestFiles(), evidenceId, total: space.candidateCount,
     retainCount: integer('retained-count', 500_000), collisionAllowance: ORDERED_PRODUCT_COLLISION_ALLOWANCE,
     strategyAt, onIntermediateReadMs: (milliseconds) => { intermediateReadMs = milliseconds; } });
   const reductionComputeMs = performance.now() - reduceStarted - intermediateReadMs, writing = performance.now();
   writeGoldfishArtifactV4(path.resolve(option('out')), { evidenceId, kingdomId,
-    candidateCount: candidateSpace.candidateCount, seeds: [ORDERED_PRODUCT_SEEDS[0]],
+    candidateCount: space.candidateCount, seeds: [ORDERED_PRODUCT_SEEDS[0]],
     reservoirCount: integer('reservoir-count', 20_000), records });
   const elapsedMs = performance.now() - started;
   writeAtomic(path.resolve(option('phases')), phases({ intermediateSerializationAndReadMs: intermediateReadMs,

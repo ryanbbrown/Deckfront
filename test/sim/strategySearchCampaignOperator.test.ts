@@ -1,13 +1,14 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { deriveStrategySearch } from '../../src/sim/strategySearchCampaign';
+import { deriveSourceImageIdentity, deriveStrategySearch } from '../../src/sim/strategySearchCampaign';
 import { createStrategySearchLaunchBundle } from '../../src/sim/strategySearchCampaignOperator';
 import {
-  deriveTrackedStrategySearchSourceImage, executeStrategySearchOperation, measurePostDownloadValidations,
-  streamProcess, validateStrategySearchImageClosure
+  deriveTrackedStrategySearchSourceImage, executableSourcePaths, executeStrategySearchOperation,
+  measurePostDownloadValidations, streamProcess, validateStrategySearchImageClosure
 } from '../../scripts/strategy_search_campaign';
 import type {
   StrategySearchOperatorAdapter, StrategySearchRemoteStatus
@@ -110,6 +111,21 @@ describe('strategy-search operator', () => {
       expect(resolved).toBe(false);
       expect(await pending).toContain('final');
     } finally { write.mockRestore(); }
+  });
+
+  it('keeps the real K007 scientific evidence and task identities stable across deployment refactors', () => {
+    const root = process.cwd(), expectedPaths = executableSourcePaths(root);
+    const tracked = new Set(execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean));
+    expect(expectedPaths.every((relative) => tracked.has(relative))).toBe(true);
+    const scientificPaths = JSON.parse(fs.readFileSync('strategy-search-scientific-files.json', 'utf8')) as string[];
+    const sourceImage = deriveSourceImageIdentity({ expectedPaths, scientificPaths,
+      files: expectedPaths.map((relative) => ({ path: relative, content: fs.readFileSync(relative) })) });
+    const parsed = deriveStrategySearch({ request: { kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 400 },
+      sourceImage }), bundle = createStrategySearchLaunchBundle(parsed);
+    const taskIdDigest = createHash('sha256').update(bundle.tasks.map((task) => task.taskId).join('\n')).digest('hex');
+    expect(parsed.kingdoms[0]!.evidenceId).toBe('d2e1daef8244113e1cad27458a49855cd2a28aa90414367b5c1ac7587bc68d69');
+    expect(bundle.tasks).toHaveLength(232);
+    expect(taskIdDigest).toBe('69df71f723855d7e38d35bced2c9e77297069acf32e82167c58efe4b3cdb84f4');
   });
 
   it('measures every post-download deep validator separately', () => {

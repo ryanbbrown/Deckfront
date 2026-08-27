@@ -1289,15 +1289,20 @@ def _strategy_search_validate_compact(publication: dict[str, Any], temporary: pa
             raise RuntimeError("compact publication coverage or checksum differs")
 
 
+def _strategy_search_subprocess_command(entry: str, kingdom_id: str, arguments: list[str]) -> list[str]:
+    return ["npx", "tsx", "scripts/strategy_search_subprocess.ts", "--entry", entry,
+        "--kingdom", kingdom_id, "--", *arguments]
+
+
 def _strategy_search_validate_publication(publication: dict[str, Any], temporary: pathlib.Path) -> None:
     stage = publication["stage"]
     if stage in {"goldfish-one", "goldfish-two"}:
         _strategy_search_validate_compact(publication, temporary)
         return
-    _run_checked(["npx", "tsx", "scripts/strategy_search_validate_artifact.ts", "--stage", stage,
-        "--file", str(temporary), "--evidence-id", publication["evidenceId"],
+    _run_checked(_strategy_search_subprocess_command("validator", publication["kingdomId"], [
+        "--stage", stage, "--file", str(temporary), "--evidence-id", publication["evidenceId"],
         "--kingdom", publication["kingdomId"], "--evidence-root",
-        str(_strategy_search_path(f"evidence/{publication['evidenceId']}"))],
+        str(_strategy_search_path(f"evidence/{publication['evidenceId']}"))]),
         f"strategy-search {stage} artifact validation", cwd="/workspace",
         text=True, capture_output=True, timeout=600)
 
@@ -1343,8 +1348,8 @@ def verify_strategy_search_source(identity: dict[str, Any]) -> None:
 
 
 def _strategy_search_verify_goldfish_startup() -> None:
-    _run_checked(["npx", "tsx", "scripts/strategy_search_goldfish.ts", "readiness",
-        "--evidence-id", "0" * 64, "--kingdom", "deep-beam-tuning-007"],
+    _run_checked(_strategy_search_subprocess_command("goldfish", "deep-beam-tuning-007", ["readiness",
+        "--evidence-id", "0" * 64, "--kingdom", "deep-beam-tuning-007"]),
         "strategy-search Goldfish worker readiness", cwd=RUNTIME_WORKSPACE_ROOT,
         text=True, capture_output=True, timeout=60)
 
@@ -1743,9 +1748,9 @@ def strategy_search_goldfish_job(config: dict[str, Any]) -> dict[str, Any]:
     output = _strategy_search_path(config["temporaryPath"])
     phases = output.with_suffix(output.suffix + ".phases.json")
     output.parent.mkdir(parents=True, exist_ok=True)
-    command = ["npx", "tsx", "scripts/strategy_search_goldfish.ts", config["mode"],
+    command = _strategy_search_subprocess_command("goldfish", config["kingdomId"], [config["mode"],
         "--evidence-id", config["evidenceId"], "--kingdom", config["kingdomId"],
-        "--out", str(output), "--phases", str(phases)]
+        "--out", str(output), "--phases", str(phases)])
     if config.get("range"):
         command += ["--start", str(config["range"]["start"]), "--end", str(config["range"]["end"]),
             "--cpu", str(config["cpu"]), "--threads", str(config["cpu"])]
@@ -1785,25 +1790,26 @@ def strategy_search_downstream_job(config: dict[str, Any]) -> dict[str, Any]:
     if config["stage"] == "matrix":
         manifest = work / "manifest.json"
         reservoir = _strategy_search_path(config["reservoirPath"])
-        prepare = ["npx", "tsx", "scripts/strategy_search_campaign_matrix_manifest.ts",
+        prepare = _strategy_search_subprocess_command("matrix-manifest", config["kingdomId"], [
             "--evidence-id", config["evidenceId"], "--kingdom", config["kingdomId"],
             "--reservoir", str(reservoir), "--reservoir-sha256", config["reservoirSha256"],
-            "--seed-namespace", "strategy-search-matrix-v2", "--out", str(manifest)]
+            "--seed-namespace", "strategy-search-matrix-v2", "--out", str(manifest)])
         _strategy_search_run_subprocess(prepare, config)
         evidence = work / "output"
         control = work / "control"
-        command = ["npx", "tsx", "scripts/strategy_search_campaign_matrix.ts",
+        command = _strategy_search_subprocess_command("matrix", config["kingdomId"], [
             "--manifest", str(manifest), "--out", str(evidence), "--control", str(control),
             "--workers", str(config["cpu"]), "--jobs-per-batch", str(max(1, config["cpu"])),
             "--runtime-chunk-size", "25", "--shutdown-at-ms",
-            str(int((time.time() + config["timeoutSeconds"] - 20) * 1000))]
+            str(int((time.time() + config["timeoutSeconds"] - 20) * 1000))])
         result = _strategy_search_run_subprocess(command, config)
         shutil.copyfile(evidence / "evidence.json", output)
     else:
         stage_config = work / "psro-config.json"
         _atomic_json(stage_config, config["psroConfig"])
-        command = ["npx", "tsx", "scripts/strategy_search_campaign_psro.ts", "--config", str(stage_config),
-            "--shutdown-at-ms", str(int((time.time() + config["timeoutSeconds"] - 20) * 1000))]
+        command = _strategy_search_subprocess_command("psro", config["kingdomId"], [
+            "--config", str(stage_config),
+            "--shutdown-at-ms", str(int((time.time() + config["timeoutSeconds"] - 20) * 1000))])
         result = _strategy_search_run_subprocess(command, config)
         shutil.copyfile(pathlib.Path(config["psroConfig"]["outputRoot"]) / "evidence.json", output)
     validated_sha256 = _strategy_search_sha256(output)

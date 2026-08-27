@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 function run(kingdomId: string) {
   const missing = path.join(os.tmpdir(), `hexdeck-missing-reservoir-${process.pid}.hgf`);
-  return spawnSync(process.execPath, ['--import', 'tsx', 'scripts/strategy_search_campaign_matrix_manifest.ts',
+  return spawnSync(process.execPath, ['--import', 'tsx', 'scripts/strategy_search_subprocess.ts',
+    '--entry', 'matrix-manifest', '--kingdom', kingdomId, '--',
     '--evidence-id', 'a'.repeat(64), '--kingdom', kingdomId, '--reservoir', missing,
     '--reservoir-sha256', 'b'.repeat(64), '--seed-namespace', 'fixture', '--out', `${missing}.json`],
   { encoding: 'utf8' });

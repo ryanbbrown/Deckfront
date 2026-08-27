@@ -102,8 +102,9 @@ export function measurePostDownloadValidations(input: { bundle: StrategySearchLa
       ['psro', 'psro/evidence.json']] as const) {
       const file = path.join(evidenceRoot, relative), validationStarted = now(), bytes = fs.statSync(file).size;
       try {
-        run('npx', ['tsx', 'scripts/strategy_search_validate_artifact.ts', '--stage', stage,
-          '--file', file, '--evidence-id', task.evidenceId, '--kingdom', task.kingdomId,
+        run('npx', ['tsx', 'scripts/strategy_search_subprocess.ts', '--entry', 'validator',
+          '--kingdom', task.kingdomId, '--', '--stage', stage, '--file', file,
+          '--evidence-id', task.evidenceId, '--kingdom', task.kingdomId,
           '--evidence-root', evidenceRoot], { cwd: process.cwd(), stdio: 'pipe' });
         artifacts.push({ evidenceId: task.evidenceId, stage, path: path.relative(input.destinationRoot, file),
           bytes, wallMs: Number((now() - validationStarted).toFixed(3)), status: 'success' });

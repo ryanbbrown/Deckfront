@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { readGoldfishReservoirV4 } from '../src/sim/strategySearchCompact';
-import { createStrategySearchContext } from '../src/sim/strategySearchContext';
+import { candidateIndexAt, createOrderedCandidateSpace, orderedGoldfishCardIds } from '../src/sim/orderedGoldfishBenchmark';
 import { createStrategySearchMatrixManifest } from '../src/sim/strategySearchMatrix';
+import { readGoldfishReservoirV4 } from '../src/sim/strategySearchCompact';
 
 function option(name: string): string {
   const index = process.argv.indexOf(`--${name}`), value = index < 0 ? undefined : process.argv[index + 1];
@@ -14,7 +14,8 @@ function writeAtomic(file: string, value: unknown): void {
   fs.writeFileSync(temporary, `${JSON.stringify(value)}\n`); fs.renameSync(temporary, file);
 }
 const evidenceId = option('evidence-id'), kingdomId = option('kingdom'), reservoirFile = path.resolve(option('reservoir'));
-const { strategyAt } = createStrategySearchContext(kingdomId);
+const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
+const strategyAt = (position: number) => space.candidateAt(candidateIndexAt(position, space.candidateCount));
 const reservoir = readGoldfishReservoirV4(reservoirFile, strategyAt);
 if (reservoir.header.evidenceId !== evidenceId || reservoir.records.length < 50) {
   throw new Error('Goldfish reservoir is invalid for Matrix.');
