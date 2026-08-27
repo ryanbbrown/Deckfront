@@ -51,6 +51,27 @@ def _atomic_json(file: pathlib.Path, value: Any) -> None:
     os.replace(temporary, file)
 
 
+def _download_final_artifacts(destination: pathlib.Path, evidence_ids: list[str]) -> dict[str, Any]:
+    started = time.monotonic()
+    artifacts = []
+    for evidence_id in evidence_ids:
+        for relative in ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
+                         "matrix/evidence.json", "psro/evidence.json"]:
+            remote = f"evidence/{evidence_id}/{relative}"
+            local = destination / remote
+            local.parent.mkdir(parents=True, exist_ok=True)
+            artifact_started = time.monotonic()
+            byte_count = 0
+            with local.open("wb") as stream:
+                for chunk in volume.read_file(remote):
+                    stream.write(chunk)
+                    byte_count += len(chunk)
+            artifacts.append({"evidenceId": evidence_id, "path": remote, "bytes": byte_count,
+                "wallMs": round((time.monotonic() - artifact_started) * 1000, 3)})
+    return {"bytes": sum(artifact["bytes"] for artifact in artifacts),
+        "wallMs": round((time.monotonic() - started) * 1000, 3), "artifacts": artifacts}
+
+
 def _startup_progress(state: dict[str, Any] | None) -> dict[str, Any]:
     if state is None:
         return {"exists": False, "usefulWorkStarted": False, "activeTaskCount": 0,
@@ -128,15 +149,8 @@ def run_deployed_entry(launch_config: str, compute_app_name: str, download_dir: 
     report = call.get(timeout=bundle["controller"]["timeoutSeconds"] + 60)
     destination = pathlib.Path(download_dir)
     destination.mkdir(parents=True, exist_ok=True)
-    _atomic_json(destination / "report.json", report)
     evidence_ids = [task["evidenceId"] for task in bundle["tasks"] if task["stage"] == "psro"]
-    for evidence_id in evidence_ids:
-        for relative in ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
-                         "matrix/evidence.json", "psro/evidence.json"]:
-            remote = f"evidence/{evidence_id}/{relative}"
-            local = destination / remote
-            local.parent.mkdir(parents=True, exist_ok=True)
-            with local.open("wb") as stream:
-                for chunk in volume.read_file(remote):
-                    stream.write(chunk)
+    downloads = _download_final_artifacts(destination, evidence_ids)
+    report = {**report, "clientOperations": {"downloads": downloads}}
+    _atomic_json(destination / "report.json", report)
     print(json.dumps(report), flush=True)

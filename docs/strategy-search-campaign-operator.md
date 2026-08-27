@@ -86,7 +86,7 @@ The final report includes:
 .data/strategy-search/<campaign-execution-id>/
 ```
 
-The directory contains `report.json`, `goldfish/top-500000.hgf`, `goldfish/reservoir.hgf`, and the final Matrix and PSRO JSON evidence for each requested evidence ID. Runtime chunks and temporary launch files stay on the Volume.
+The directory contains `report.json`, `goldfish/top-500000.hgf`, `goldfish/reservoir.hgf`, and the final Matrix and PSRO JSON evidence for each requested evidence ID. `report.json.clientOperations` measures each final download and post-download validator by path, bytes, and wall time. Runtime chunks and temporary launch files stay on the Volume.
 
 A `terminal-incomplete` PSRO result is a failed run. Analytics and balance reports run later and do not change strategy-search completion.
 

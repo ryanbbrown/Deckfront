@@ -1,14 +1,13 @@
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { candidateIndexAt, createOrderedCandidateSpace, orderedGoldfishCardIds } from '../src/sim/orderedGoldfishBenchmark';
+import { createStrategySearchContext } from '../src/sim/strategySearchContext';
 import type { OrderedProductProfileEvidence, OrderedProductStageOneRecord } from '../src/sim/orderedGoldfishProduct';
 import { compareStageOneRecords, deriveScoreEvidence, rankingKey } from '../src/sim/orderedGoldfishProduct';
 import { COMPACT_GOLDFISH_BUFFER_BYTES, GOLDFISH_ARTIFACT_HEADER_BYTES, GOLDFISH_TOP_RECORD_BYTES,
   readGoldfishArtifactRangeV4, readGoldfishArtifactV4, readGoldfishReservoirV4 } from '../src/sim/strategySearchCompact';
 import { canonicalStrategy } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
-import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
 import { validateStrategySearchMatrixArtifact, validateStrategySearchMatrixArtifactIdentity,
   validateStrategySearchMatrixManifest } from '../src/sim/strategySearchMatrix';
 import type { StrategySearchMatrixArtifact } from '../src/sim/strategySearchMatrix';
@@ -78,9 +77,7 @@ function validateGoldfishTop(file: string, strategyAt: (position: number) => Str
 const stage = option('stage'), file = path.resolve(option('file')), evidenceId = option('evidence-id'),
   kingdomId = option('kingdom'), evidenceRoot = path.resolve(option('evidence-root'));
 if (!/^[0-9a-f]{64}$/.test(evidenceId)) throw new Error('Evidence ID is invalid.');
-strategySearchKingdom(kingdomId);
-const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
-const strategyAt = (position: number) => space.candidateAt(candidateIndexAt(position, space.candidateCount));
+const { strategyAt } = createStrategySearchContext(kingdomId);
 if (stage === 'goldfish-one-reduce') {
   validateGoldfishTop(file, strategyAt, { evidenceId, kingdomId, candidateCount: 12_972_960 });
 } else if (stage === 'goldfish-two-reduce') {

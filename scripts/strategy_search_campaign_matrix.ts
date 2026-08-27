@@ -9,7 +9,7 @@ import {
   strategySearchMatrixJobs, validateStrategySearchMatrixChunk, validateStrategySearchMatrixManifest
 } from '../src/sim/strategySearchMatrix';
 import type { StrategySearchMatrixChunk } from '../src/sim/strategySearchMatrix';
-import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
+import { createStrategySearchContext } from '../src/sim/strategySearchContext';
 import { createCampaignStageControlMarker } from '../src/sim/strategySearchStages';
 
 function option(name: string): string { const index = process.argv.indexOf(`--${name}`);
@@ -25,9 +25,12 @@ const manifestFile = path.resolve(option('manifest')), outputRoot = path.resolve
   jobsPerBatch = integer('jobs-per-batch'), runtimeChunkSize = integer('runtime-chunk-size'),
   shutdownAtMs = Number(option('shutdown-at-ms'));
 const manifest = JSON.parse(fs.readFileSync(manifestFile, 'utf8')) as unknown;
-if (!validateStrategySearchMatrixManifest(manifest) || !Number.isSafeInteger(shutdownAtMs)
-  || shutdownAtMs <= Date.now()) throw new Error('Matrix execution input is invalid.');
-const kingdom = strategySearchKingdom(manifest.source.kingdomId), jobs = strategySearchMatrixJobs(manifest, runtimeChunkSize);
+if (!validateStrategySearchMatrixManifest(manifest) || !Number.isSafeInteger(shutdownAtMs)) {
+  throw new Error('Matrix execution input is invalid.');
+}
+const { kingdom } = createStrategySearchContext(manifest.source.kingdomId);
+if (shutdownAtMs <= Date.now()) throw new Error('Matrix execution input is invalid.');
+const jobs = strategySearchMatrixJobs(manifest, runtimeChunkSize);
 const chunks = new Map<number, StrategySearchMatrixChunk>();
 for (const job of jobs) {
   const file = path.join(outputRoot, strategySearchMatrixChunkPath(job));

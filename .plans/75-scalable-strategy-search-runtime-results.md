@@ -82,6 +82,12 @@ The third live K007 smoke completed all 200 stage-one scoring jobs without a ret
 
 The validator now resolves every supplied kingdom through the canonical `strategySearchKingdom` seam before it constructs the ordered candidate space. The validator has no per-kingdom branch or separate allowlist: it accepts requested IDs from the shared registry, including the authoritative 160-definition balance-suite manifest; the 30-ID process-smoke manifest stays a caller-owned list. Acceptance tests cover an authoritative balance-tuning ID and run the real CLI against the exact rejected K007 schema-4 reducer artifact. Validation reconstructs and checksums records in one 1 MiB buffered pass, retains only the current record plus position and display-identity indexes, and does not change scientific identity. On the downloaded 32,001,152-byte artifact, `/usr/bin/time -lp` measured 2.11 seconds wall time and 209,534,976 bytes peak RSS. Worker subprocess handling now reports both captured stdout and stderr, with a 64 KiB bound, so a remote validation failure includes the child process cause. This remediation made no Modal call.
 
+## Fourth K007 Matrix-manifest startup failure
+
+The fourth live K007 smoke completed both Goldfish stages, then the detached Matrix-manifest process called `orderedGoldfishCardIds` before it registered the requested kingdom. The shared `createStrategySearchContext` seam now resolves the supplied ID through the authoritative strategy-search registry, registers the kingdom, constructs the ordered candidate space, and exposes `strategyAt`. Every detached Goldfish, Matrix-manifest, Matrix, PSRO, and artifact-validation entrypoint uses this seam and is forbidden by an enforcement test from calling registry-dependent candidate lookups directly. Fresh-process tests cover every entrypoint with an authoritative balance-tuning ID, with K007 as secondary fixture coverage. This remediation made no Modal call.
+
+Client operations now report each final artifact download with path, bytes, and wall time, plus totals. Each post-download deep validator reports stage, path, bytes, wall time, and success or failure. These measurements are written only to the local execution report. Unit tests use fake Volume data and validator runners, so no paid rerun is needed to validate the timers.
+
 ## Compute startup corrections
 
 The first parent-owned K007 attempt did not reach `strategy_search_run_entry`. Its separate status preflight waited on the full compute image for more than 29 minutes. No strategy-search scoring started.

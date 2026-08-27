@@ -7,7 +7,7 @@ import {
 import type { ThresholdRacingSource } from './successive_halving_double_oracle_pilot';
 import type { CalibrationSourceIdentity } from '../src/sim/responseOracleCalibration';
 import { readGoldfishReservoirV4 } from '../src/sim/strategySearchCompact';
-import { candidateIndexAt, createOrderedCandidateSpace, orderedGoldfishCardIds } from '../src/sim/orderedGoldfishBenchmark';
+import { createStrategySearchContext } from '../src/sim/strategySearchContext';
 import { validateStrategySearchMatrixArtifactIdentity, validateStrategySearchMatrixManifest } from '../src/sim/strategySearchMatrix';
 import type { StrategySearchMatrixArtifact } from '../src/sim/strategySearchMatrix';
 import { matrixProtocol, payoffMatrixPairKey } from '../src/sim/payoffMatrix';
@@ -19,7 +19,6 @@ import { createThresholdRacingProtocol } from '../src/sim/thresholdRacingPsro';
 import type { RawPsroLookArtifact, RawPsroScoreChunk } from '../src/sim/thresholdRacingPsro';
 import { createStrategySearchPsroArtifact, createStrategySearchPsroLook } from '../src/sim/strategySearchPsro';
 import { createCampaignStageControlMarker } from '../src/sim/strategySearchStages';
-import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
 
 interface Config { evidenceId: string; kingdomId: string; runId: string; reservoirPath: string;
   reservoirSha256: string; matrixEvidencePath: string; matrixSha256: string;
@@ -39,9 +38,7 @@ const config = JSON.parse(fs.readFileSync(path.resolve(option('config')), 'utf8'
 const shutdownAtMs = Number(option('shutdown-at-ms'));
 if (!/^[0-9a-f]{64}$/.test(config.evidenceId) || !Number.isSafeInteger(config.workers) || config.workers < 1
   || !Number.isSafeInteger(shutdownAtMs) || shutdownAtMs <= Date.now()) throw new Error('PSRO execution input is invalid.');
-strategySearchKingdom(config.kingdomId);
-const candidateSpace = createOrderedCandidateSpace(orderedGoldfishCardIds(config.kingdomId));
-const strategyAt = (position: number) => candidateSpace.candidateAt(candidateIndexAt(position, candidateSpace.candidateCount));
+const { strategyAt } = createStrategySearchContext(config.kingdomId);
 const topFile = path.join(path.dirname(config.reservoirPath), 'top-500000.hgf');
 const reservoir = readGoldfishReservoirV4(config.reservoirPath, strategyAt, { topFile });
 const reservoirSha256 = fileHash(config.reservoirPath), matrixSha256 = fileHash(config.matrixEvidencePath);

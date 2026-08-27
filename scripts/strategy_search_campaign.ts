@@ -2,6 +2,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { performance } from 'node:perf_hooks';
 import { pathToFileURL } from 'node:url';
 import {
   deriveSourceImageIdentity, deriveStrategySearch, parseStrategySearchRequest,
@@ -83,6 +84,40 @@ function lastJson(output: string): unknown {
     try { return JSON.parse(line) as unknown; } catch { /* Modal can emit progress lines. */ }
   }
   throw new Error('Modal strategy-search adapter returned no JSON.');
+}
+function writeAtomicJson(file: string, value: unknown): void {
+  const temporary = `${file}.tmp-${process.pid}`;
+  fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`); fs.renameSync(temporary, file);
+}
+type DeepValidatorRunner = (executable: string, args: readonly string[], options: {
+  cwd: string; stdio: 'pipe' }) => unknown;
+export function measurePostDownloadValidations(input: { bundle: StrategySearchLaunchBundle;
+  destinationRoot: string }, run: DeepValidatorRunner = execFileSync,
+  now: () => number = () => performance.now()): { metrics: Record<string, unknown>; error?: unknown } {
+  const started = now(), artifacts: Array<Record<string, unknown>> = []; let failure: unknown;
+  for (const task of input.bundle.tasks.filter((entry) => entry.stage === 'psro')) {
+    const evidenceRoot = path.join(input.destinationRoot, 'evidence', task.evidenceId);
+    for (const [stage, relative] of [['goldfish-one-reduce', 'goldfish/top-500000.hgf'],
+      ['goldfish-two-reduce', 'goldfish/reservoir.hgf'], ['matrix', 'matrix/evidence.json'],
+      ['psro', 'psro/evidence.json']] as const) {
+      const file = path.join(evidenceRoot, relative), validationStarted = now(), bytes = fs.statSync(file).size;
+      try {
+        run('npx', ['tsx', 'scripts/strategy_search_validate_artifact.ts', '--stage', stage,
+          '--file', file, '--evidence-id', task.evidenceId, '--kingdom', task.kingdomId,
+          '--evidence-root', evidenceRoot], { cwd: process.cwd(), stdio: 'pipe' });
+        artifacts.push({ evidenceId: task.evidenceId, stage, path: path.relative(input.destinationRoot, file),
+          bytes, wallMs: Number((now() - validationStarted).toFixed(3)), status: 'success' });
+      } catch (error) {
+        artifacts.push({ evidenceId: task.evidenceId, stage, path: path.relative(input.destinationRoot, file),
+          bytes, wallMs: Number((now() - validationStarted).toFixed(3)), status: 'failed',
+          error: error instanceof Error ? error.message : String(error) });
+        failure = error; break;
+      }
+    }
+    if (failure) break;
+  }
+  return { metrics: { bytes: artifacts.reduce((sum, artifact) => sum + Number(artifact.bytes), 0),
+    wallMs: Number((now() - started).toFixed(3)), artifacts }, ...(failure ? { error: failure } : {}) };
 }
 function computeAppName(sourceDigest: string): string {
   return `hexdeck-strategy-${sourceDigest.slice(0, 24)}`;
@@ -178,19 +213,15 @@ export class ModalStrategySearchOperatorAdapter implements StrategySearchOperato
         args: ['run', 'modal/strategy_search_runtime.py::run_deployed_entry', '--launch-config', bundleFile,
           '--compute-app-name', computeApp, '--download-dir', input.destinationRoot,
           '--startup-timeout-seconds', '120'] });
-      const outcome = JSON.parse(fs.readFileSync(path.join(input.destinationRoot, 'report.json'), 'utf8')) as unknown;
-      for (const task of input.bundle.tasks.filter((entry) => entry.stage === 'psro')) {
-        const evidenceRoot = path.join(input.destinationRoot, 'evidence', task.evidenceId);
-        for (const [stage, relative] of [['goldfish-one-reduce', 'goldfish/top-500000.hgf'],
-          ['goldfish-two-reduce', 'goldfish/reservoir.hgf'], ['matrix', 'matrix/evidence.json'],
-          ['psro', 'psro/evidence.json']] as const) {
-          execFileSync('npx', ['tsx', 'scripts/strategy_search_validate_artifact.ts', '--stage', stage,
-            '--file', path.join(evidenceRoot, relative), '--evidence-id', task.evidenceId,
-            '--kingdom', task.kingdomId, '--evidence-root', evidenceRoot],
-          { cwd: process.cwd(), stdio: 'pipe' });
-        }
-      }
-      return outcome;
+      const reportFile = path.join(input.destinationRoot, 'report.json');
+      const outcome = JSON.parse(fs.readFileSync(reportFile, 'utf8')) as Record<string, unknown>;
+      const validation = measurePostDownloadValidations(input);
+      const finalOutcome = { ...outcome, clientOperations: {
+        ...(outcome.clientOperations as Record<string, unknown> | undefined),
+        postDownloadValidation: validation.metrics } };
+      writeAtomicJson(reportFile, finalOutcome);
+      if (validation.error) throw validation.error;
+      return finalOutcome;
     } finally { fs.rmSync(directory, { recursive: true, force: true }); }
   }
 }

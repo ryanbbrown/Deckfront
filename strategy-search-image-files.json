@@ -108,6 +108,7 @@
   "src/sim/strategySearchCampaign.ts",
   "src/sim/strategySearchCampaignOperator.ts",
   "src/sim/strategySearchCompact.ts",
+  "src/sim/strategySearchContext.ts",
   "src/sim/strategySearchKingdoms.ts",
   "src/sim/strategySearchMatrix.ts",
   "src/sim/strategySearchPsro.ts",

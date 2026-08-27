@@ -6,8 +6,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { deriveStrategySearch } from '../../src/sim/strategySearchCampaign';
 import { createStrategySearchLaunchBundle } from '../../src/sim/strategySearchCampaignOperator';
 import {
-  deriveTrackedStrategySearchSourceImage, executeStrategySearchOperation, streamProcess,
-  validateStrategySearchImageClosure
+  deriveTrackedStrategySearchSourceImage, executeStrategySearchOperation, measurePostDownloadValidations,
+  streamProcess, validateStrategySearchImageClosure
 } from '../../scripts/strategy_search_campaign';
 import type {
   StrategySearchOperatorAdapter, StrategySearchRemoteStatus
@@ -110,6 +110,27 @@ describe('strategy-search operator', () => {
       expect(resolved).toBe(false);
       expect(await pending).toContain('final');
     } finally { write.mockRestore(); }
+  });
+
+  it('measures every post-download deep validator separately', () => {
+    const held = fixture(), destinationRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-search-download-'));
+    try {
+      const bundle = createStrategySearchLaunchBundle(held.parsed), psro = bundle.tasks.find((task) => task.stage === 'psro')!;
+      const root = path.join(destinationRoot, 'evidence', psro.evidenceId);
+      const files = ['goldfish/top-500000.hgf', 'goldfish/reservoir.hgf', 'matrix/evidence.json', 'psro/evidence.json'];
+      files.forEach((relative, index) => { const file = path.join(root, relative); fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, Buffer.alloc(index + 1)); });
+      let clock = 0, calls = 0;
+      const result = measurePostDownloadValidations({ bundle, destinationRoot }, () => { calls += 1; }, () => clock++);
+      expect(result.error).toBeUndefined(); expect(calls).toBe(4);
+      expect(result.metrics).toMatchObject({ bytes: 10, wallMs: 9 });
+      expect(result.metrics.artifacts).toEqual([
+        expect.objectContaining({ stage: 'goldfish-one-reduce', bytes: 1, wallMs: 1, status: 'success' }),
+        expect.objectContaining({ stage: 'goldfish-two-reduce', bytes: 2, wallMs: 1, status: 'success' }),
+        expect.objectContaining({ stage: 'matrix', bytes: 3, wallMs: 1, status: 'success' }),
+        expect.objectContaining({ stage: 'psro', bytes: 4, wallMs: 1, status: 'success' })
+      ]);
+    } finally { fs.rmSync(destinationRoot, { recursive: true, force: true }); fs.rmSync(held.root, { recursive: true, force: true }); }
   });
 
   it('creates hundreds of pinned K007 Goldfish jobs without putting capacity in evidence identity', () => {
