@@ -8,7 +8,7 @@ import {
 import {
   createOrderedCandidateSpace, orderedGoldfishCardIds, representativeCandidateIndices
 } from '../src/sim/orderedGoldfishBenchmark';
-import { canonicalStrategy, stableHash } from '../src/sim/strategy';
+import { canonicalStrategy, StableHashAccumulator } from '../src/sim/strategy';
 
 function integer(name: string): number {
   const index = process.argv.indexOf(`--${name}`);
@@ -20,6 +20,13 @@ function option(name: string, fallback?: string): string {
   const index = process.argv.indexOf(`--${name}`);
   const value = index < 0 ? fallback : process.argv[index + 1];
   if (!value) throw new Error(`--${name} is required.`);
+  return value;
+}
+function optional(name: string): string | undefined {
+  const index = process.argv.indexOf(`--${name}`);
+  if (index < 0) return undefined;
+  const value = process.argv[index + 1];
+  if (!value || value.startsWith('--')) throw new Error(`--${name} requires a value.`);
   return value;
 }
 
@@ -47,13 +54,20 @@ if (schemaVersion === CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION && space.candidateC
 }
 const strategies = [...representativeCandidateIndices(space.candidateCount, end - start, start)]
   .map((index) => space.candidateAt(index));
+const previousCandidateDigest = optional('candidate-digest');
+const candidateHash = previousCandidateDigest
+  ? StableHashAccumulator.fromDigest(previousCandidateDigest) : new StableHashAccumulator();
+strategies.forEach((strategy, index) => {
+  if (previousCandidateDigest || index) candidateHash.update('\n');
+  candidateHash.update(canonicalStrategy(strategy));
+});
 const config = { kingdomId: kingdom.id, seeds, turnLimit: 30, actionCapPerTurn: 200 };
 const request = nativeScoreBatchRequest(kingdom, strategies, config, threads, mode as 'full' | 'compact');
 fs.writeFileSync(option('request'), `${JSON.stringify(request)}\n`);
 fs.writeFileSync(option('metadata'), `${JSON.stringify({
-  schemaVersion, kingdomId: kingdom.id,
-  completeCount: strategies.length,
-  candidateDigest: stableHash(strategies.map(canonicalStrategy).join('\n')),
+  schemaVersion, kingdomId: kingdom.id, startPosition: start, endPosition: end,
+  completeCount: strategies.length, priorCandidateDigest: previousCandidateDigest ?? null,
+  candidateDigest: candidateHash.digest(),
   ruleFingerprint: nativeRuleFingerprint(kingdom.id, 30, 200), shuffleSeeds: seeds, cpu, threads,
   firstCanonical: strategies.length ? canonicalStrategy(strategies[0]!) : null,
   lastCanonical: strategies.length ? canonicalStrategy(strategies.at(-1)!) : null

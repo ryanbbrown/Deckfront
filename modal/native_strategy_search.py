@@ -9,6 +9,7 @@ import math
 import os
 import pathlib
 import re
+import shutil
 import socket
 import struct
 import subprocess
@@ -62,6 +63,7 @@ CAMPAIGN_CHECKPOINT_EVENT = "strategy-search-checkpoint"
 CAMPAIGN_STAGE_STOP_EVENT = "strategy-search-stage-stop"
 CAMPAIGN_STAGES = {"goldfish", "matrix", "psro"}
 CAMPAIGN_RUST_GOLDFISH_BIN = "/workspace/rust/target/x86_64-unknown-linux-gnu/release/hexdeck-goldfish"
+CAMPAIGN_STAGE_ONE_CHUNK_SIZE = 250_000
 LEDGER_PATH = pathlib.Path.home() / ".hexdeck-modal-cost-ledger.json"
 
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -488,7 +490,7 @@ def _valid_ordered_product_checkpoint(path: pathlib.Path, spec: dict[str, Any], 
         "--end-position", str(spec["end_position"])]
     try:
         subprocess.run(command, cwd="/workspace", text=True, capture_output=True,
-                       timeout=120, check=True)
+                       timeout=spec["timeout_seconds"], check=True)
         return True
     except (OSError, subprocess.SubprocessError):
         return False
@@ -507,11 +509,50 @@ def _preserve_corrupt_file(path: pathlib.Path, control_root: pathlib.Path) -> pa
 
 def _run_rust(request_path: pathlib.Path, response_path: pathlib.Path,
               threads: int, cpu: int, timeout_seconds: int) -> None:
-    with request_path.open() as request:
-        completed = subprocess.run([CAMPAIGN_RUST_GOLDFISH_BIN, "--threads", str(threads),
-            "--cpu-request", str(cpu)],
-            stdin=request, text=True, capture_output=True, timeout=timeout_seconds, check=True)
-    response_path.write_text(completed.stdout)
+    with request_path.open() as request, response_path.open("w") as response:
+        subprocess.run([CAMPAIGN_RUST_GOLDFISH_BIN, "--threads", str(threads),
+            "--cpu-request", str(cpu)], stdin=request, stdout=response, stderr=subprocess.PIPE,
+            text=True, timeout=timeout_seconds, check=True)
+
+
+def _campaign_stage_one_ranges(start: int, end: int,
+                               chunk_size: int = CAMPAIGN_STAGE_ONE_CHUNK_SIZE) -> list[tuple[int, int]]:
+    if not all(isinstance(value, int) for value in [start, end, chunk_size]) \
+            or start < 0 or end <= start or chunk_size < 1:
+        raise ValueError("campaign stage-one chunk bounds are invalid")
+    return [(position, min(position + chunk_size, end)) for position in range(start, end, chunk_size)]
+
+
+def _remaining_stage_seconds(deadline: float) -> int:
+    remaining = math.floor(deadline - time.monotonic())
+    if remaining < 1:
+        raise TimeoutError("campaign Goldfish stage-one authorized timeout elapsed")
+    return remaining
+
+
+def _valid_stage_one_chunk_metadata(path: pathlib.Path, checkpoint: pathlib.Path,
+                                    spec: dict[str, Any], prior_digest: str | None) -> str | None:
+    try:
+        value = json.loads(path.read_text())
+        held = json.loads(checkpoint.read_text())
+    except (OSError, ValueError):
+        return None
+    keys = {"schemaVersion", "kingdomId", "startPosition", "endPosition", "completeCount",
+        "priorCandidateDigest", "candidateDigest", "ruleFingerprint", "shuffleSeeds", "cpu", "threads",
+        "firstCanonical", "lastCanonical"}
+    if not isinstance(value, dict) or not isinstance(held, dict) or set(value) != keys \
+            or value.get("schemaVersion") != spec.get("schema_version", 1) \
+            or value.get("kingdomId") != spec["kingdom"] or value.get("startPosition") != spec["start_position"] \
+            or value.get("endPosition") != spec["end_position"] \
+            or value.get("completeCount") != spec["end_position"] - spec["start_position"] \
+            or value.get("priorCandidateDigest") != prior_digest \
+            or not isinstance(value.get("candidateDigest"), str) \
+            or not re.fullmatch(r"[0-9a-f]{9,16}", value["candidateDigest"]) \
+            or value.get("ruleFingerprint") != spec["rule_fingerprint"] \
+            or value.get("shuffleSeeds") != [spec["shuffle_seeds"][0]] \
+            or held.get("shard", {}).get("candidateDigest") != value.get("candidateDigest"):
+        return None
+    return value["candidateDigest"]
 
 
 @app.function(image=image, cpu=4, memory=4096, timeout=7200, volumes={"/results": volume})
@@ -522,6 +563,10 @@ def ordered_product_stage_one(spec: dict[str, Any]) -> dict[str, Any]:
         verify_campaign_source_image(spec["source_image"])
     output = _ordered_product_checkpoint_path(spec, "stage-one", spec["shard_id"])
     if _valid_ordered_product_checkpoint(output, spec, "stage-one"):
+        work = pathlib.Path(f"{output}.work")
+        if work.exists():
+            shutil.rmtree(work)
+            volume.commit()
         held = json.loads(output.read_text())
         return {"status": "success", "stage": "stage-one", "shardId": spec["shard_id"],
                 "contentDigest": held["contentDigest"], "reused": True}
@@ -529,28 +574,91 @@ def ordered_product_stage_one(spec: dict[str, Any]) -> dict[str, Any]:
         if corrupt.exists():
             _preserve_corrupt_file(corrupt, output.parent.parent / "control")
     started = time.monotonic()
-    with tempfile.TemporaryDirectory() as directory:
-        request = pathlib.Path(directory) / "request.jsonl"
-        response = pathlib.Path(directory) / "response.json"
-        metadata = pathlib.Path(directory) / "metadata.json"
-        generation_timeout, scoring_timeout = ordered_subprocess_timeouts(spec["timeout_seconds"])
-        subprocess.run(["npx", "tsx", "scripts/native_ordered_shard_input.ts",
-            "--schema-version", str(spec.get("schema_version", 1)),
-            "--kingdom", spec["kingdom"],
-            "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"]),
-            "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]),
-            "--seeds", str(spec["shuffle_seeds"][0]), "--mode", "full",
-            "--request", str(request), "--metadata", str(metadata)],
-            cwd="/workspace", text=True, capture_output=True, timeout=generation_timeout, check=True)
-        _run_rust(request, response, spec["threads"], spec["cpu"], scoring_timeout)
-        command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "stage-one-checkpoint",
-            "--request", str(request), "--response", str(response), "--metadata", str(metadata),
-            "--out", str(output), "--shard-id", str(spec["shard_id"]),
-            "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"])]
-        command += _ordered_product_cli(spec)[3:]
-        subprocess.run(command, cwd="/workspace", text=True, capture_output=True, timeout=300, check=True)
+    deadline = started + spec["timeout_seconds"]
+    work = pathlib.Path(f"{output}.work")
+    work.mkdir(parents=True, exist_ok=True)
+    memory_mib = spec.get("memory_mib", spec.get("memory_gib", 4) * 1024)
+    node_environment = {**os.environ, "NODE_OPTIONS":
+        f"--max-old-space-size={max(256, math.floor(memory_mib * 0.75))}"}
+    aggregates = []
+    for slot in range(2):
+        checkpoint = work / f"aggregate-{slot}.json"
+        metadata = work / f"aggregate-{slot}.metadata.json"
+        try:
+            held_metadata = json.loads(metadata.read_text())
+            aggregate_end = held_metadata["endPosition"]
+        except (OSError, ValueError, KeyError, TypeError):
+            aggregate_end = None
+        aggregate_spec = {**spec, "shard_id": 0, "start_position": spec["start_position"],
+            "end_position": aggregate_end, "timeout_seconds": _remaining_stage_seconds(deadline)}
+        digest = _valid_stage_one_chunk_metadata(metadata, checkpoint, aggregate_spec, None) \
+            if isinstance(aggregate_end, int) and spec["start_position"] < aggregate_end < spec["end_position"] \
+            and _valid_ordered_product_checkpoint(checkpoint, aggregate_spec, "stage-one") else None
+        if digest is not None:
+            aggregates.append((aggregate_end, checkpoint, metadata, digest))
+        elif checkpoint.exists() or metadata.exists() or pathlib.Path(f"{checkpoint}.records.jsonl").exists():
+            for corrupt in [checkpoint, pathlib.Path(f"{checkpoint}.records.jsonl"), metadata]:
+                if corrupt.exists():
+                    _preserve_corrupt_file(corrupt, output.parent.parent / "control")
+    current = max(aggregates, default=None, key=lambda entry: entry[0])
+    current_end = current[0] if current else spec["start_position"]
+    for start, end in _campaign_stage_one_ranges(current_end, spec["end_position"]):
+        with tempfile.TemporaryDirectory() as directory:
+            temporary = pathlib.Path(directory)
+            request, response = temporary / "request.jsonl", temporary / "response.json"
+            chunk_metadata, chunk_checkpoint = temporary / "metadata.json", temporary / "checkpoint.json"
+            prior_digest = current[3] if current else None
+            input_command = ["npx", "tsx", "scripts/native_ordered_shard_input.ts",
+                "--schema-version", str(spec.get("schema_version", 1)), "--kingdom", spec["kingdom"],
+                "--start-position", str(start), "--end-position", str(end),
+                "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]),
+                "--seeds", str(spec["shuffle_seeds"][0]), "--mode", "full",
+                "--request", str(request), "--metadata", str(chunk_metadata)]
+            if prior_digest is not None:
+                input_command += ["--candidate-digest", prior_digest]
+            _run_checked(input_command, "campaign bounded stage-one input", cwd="/workspace",
+                env=node_environment, text=True, capture_output=True,
+                timeout=_remaining_stage_seconds(deadline))
+            _run_rust(request, response, spec["threads"], spec["cpu"],
+                _remaining_stage_seconds(deadline))
+            checkpoint_command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts",
+                "stage-one-checkpoint", "--request", str(request), "--response", str(response),
+                "--metadata", str(chunk_metadata), "--out", str(chunk_checkpoint),
+                "--shard-id", "1" if current else "0", "--start-position", str(start),
+                "--end-position", str(end)] + _ordered_product_cli(spec)[3:]
+            _run_checked(checkpoint_command, "campaign bounded stage-one checkpoint", cwd="/workspace",
+                env=node_environment, text=True, capture_output=True,
+                timeout=_remaining_stage_seconds(deadline))
+            manifest = temporary / "manifest.json"
+            entries = ([{"checkpoint": str(current[1]), "metadata": str(current[2])}]
+                if current else []) + [{"checkpoint": str(chunk_checkpoint), "metadata": str(chunk_metadata)}]
+            _atomic_json(manifest, entries)
+            final = end == spec["end_position"]
+            next_slot = 0 if current is None or current[1].name == "aggregate-1.json" else 1
+            merged = output if final else work / f"aggregate-{next_slot}.json"
+            merged_metadata = temporary / "merged.metadata.json" if final \
+                else work / f"aggregate-{next_slot}.metadata.json"
+            merge_command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts",
+                "stage-one-merge-shard", "--manifest", str(manifest), "--out", str(merged),
+                "--metadata-out", str(merged_metadata), "--shard-id", str(spec["shard_id"] if final else 0),
+                "--start-position", str(spec["start_position"]), "--end-position", str(end)]
+            merge_command += _ordered_product_cli(spec)[3:]
+            _run_checked(merge_command, "campaign bounded stage-one merge", cwd="/workspace",
+                env=node_environment, text=True, capture_output=True,
+                timeout=_remaining_stage_seconds(deadline))
+            merged_spec = {**spec, "shard_id": spec["shard_id"] if final else 0,
+                "start_position": spec["start_position"], "end_position": end,
+                "timeout_seconds": _remaining_stage_seconds(deadline)}
+            if not _valid_ordered_product_checkpoint(merged, merged_spec, "stage-one"):
+                raise RuntimeError("new bounded stage-one aggregate failed validation")
+            digest = _valid_stage_one_chunk_metadata(merged_metadata, merged, merged_spec, None)
+            if digest is None:
+                raise RuntimeError("new bounded stage-one aggregate metadata failed validation")
+            volume.commit()
+            current = (end, merged, merged_metadata, digest)
     if not _valid_ordered_product_checkpoint(output, spec, "stage-one"):
         raise RuntimeError("new stage-one checkpoint failed validation")
+    shutil.rmtree(work)
     volume.commit()
     held = json.loads(output.read_text())
     return {"status": "success", "stage": "stage-one", "shardId": spec["shard_id"],
@@ -1593,28 +1701,35 @@ def _campaign_call_observations(checkpoint: dict[str, Any], campaign_root: str,
         if task["status"] != "active":
             continue
         try:
-            result = modal.FunctionCall.from_id(task["callId"]).get(timeout=0)
-        except ModalTimeoutError:
-            observations.append({"callId": task["callId"], "state": "running"})
+            call = modal.FunctionCall.from_id(task["callId"])
         except Exception as error:
             observations.append({"callId": task["callId"], "state": "failed",
                 "reason": f"{type(error).__name__}: {error}"})
-        else:
-            try:
-                volume.reload()
-                normalized = dict(result) if isinstance(result, dict) else {}
-                if task_configs[task["taskId"]]["stage"] == "goldfish" \
-                        and normalized.get("status") == "success":
-                    normalized["status"] = "complete"
-                validated = _deep_validate_campaign_result(campaign_root,
-                    task_configs[task["taskId"]], normalized)
-                observations.append({"callId": task["callId"], "state": "succeeded",
-                    "artifactStatus": validated["status"], "reason": validated.get("reason"),
-                    "artifactPaths": validated.get("artifactPaths", []),
-                    "artifactHashes": validated.get("artifactHashes", {})})
-            except Exception as error:
-                observations.append({"callId": task["callId"], "state": "failed",
-                    "reason": f"deep validation failed: {type(error).__name__}: {error}"})
+            continue
+        try:
+            result = call.get(timeout=0)
+        except (ModalTimeoutError, TimeoutError):
+            observations.append({"callId": task["callId"], "state": "running"})
+            continue
+        except Exception as error:
+            observations.append({"callId": task["callId"], "state": "failed",
+                "reason": f"{type(error).__name__}: {error}"})
+            continue
+        try:
+            volume.reload()
+            normalized = dict(result) if isinstance(result, dict) else {}
+            if task_configs[task["taskId"]]["stage"] == "goldfish" \
+                    and normalized.get("status") == "success":
+                normalized["status"] = "complete"
+            validated = _deep_validate_campaign_result(campaign_root,
+                task_configs[task["taskId"]], normalized)
+            observations.append({"callId": task["callId"], "state": "succeeded",
+                "artifactStatus": validated["status"], "reason": validated.get("reason"),
+                "artifactPaths": validated.get("artifactPaths", []),
+                "artifactHashes": validated.get("artifactHashes", {})})
+        except Exception as error:
+            observations.append({"callId": task["callId"], "state": "failed",
+                "reason": f"deep validation failed: {type(error).__name__}: {error}"})
     return observations
 
 

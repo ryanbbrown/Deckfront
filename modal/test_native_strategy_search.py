@@ -530,6 +530,100 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         self.assertEqual(observations[1]["state"], "failed")
         self.assertIn("RuntimeError", observations[1]["reason"])
 
+    def test_campaign_call_poll_treats_both_modal_timeouts_as_running_only_at_get(self):
+        class Call:
+            def __init__(self, error=None, result=None): self.error, self.result = error, result
+            def get(self, timeout):
+                self.assert_timeout = timeout
+                if self.error is not None: raise self.error
+                return self.result
+        self.assertIsNot(TimeoutError, launcher.ModalTimeoutError)
+        calls = {"built-in": Call(error=TimeoutError()),
+                 "modal": Call(error=launcher.ModalTimeoutError()),
+                 "deep": Call(result={"status": "complete"})}
+        checkpoint = {"tasks": [
+            {"taskId": "built-in", "status": "active", "callId": "fc-built-in"},
+            {"taskId": "modal", "status": "active", "callId": "fc-modal"},
+            {"taskId": "deep", "status": "active", "callId": "fc-deep"},
+            {"taskId": "lookup", "status": "active", "callId": "fc-lookup"}]}
+        configs = {task["taskId"]: {"stage": "matrix"} for task in checkpoint["tasks"]}
+        def from_id(call_id):
+            if call_id == "fc-lookup": raise TimeoutError("lookup failed")
+            return calls[call_id.removeprefix("fc-")]
+        with patch.object(launcher.modal.FunctionCall, "from_id", side_effect=from_id), \
+                patch.object(launcher.volume, "reload"), \
+                patch.object(launcher, "_deep_validate_campaign_result",
+                    side_effect=TimeoutError("validation timed out")):
+            observations = launcher._campaign_call_observations(checkpoint, "campaign/root", configs)
+        self.assertEqual(observations[:2], [
+            {"callId": "fc-built-in", "state": "running"},
+            {"callId": "fc-modal", "state": "running"}])
+        self.assertEqual(observations[2], {"callId": "fc-deep", "state": "failed",
+            "reason": "deep validation failed: TimeoutError: validation timed out"})
+        self.assertEqual(observations[3], {"callId": "fc-lookup", "state": "failed",
+            "reason": "TimeoutError: lookup failed"})
+
+    def test_production_stage_one_is_bounded_and_resumes_committed_internal_chunks(self):
+        ranges = launcher._campaign_stage_one_ranges(0, launcher.FULL_CANDIDATE_COUNT)
+        self.assertEqual(len(ranges), 52)
+        self.assertEqual(ranges[0], (0, 250_000))
+        self.assertEqual(ranges[-1], (12_750_000, launcher.FULL_CANDIDATE_COUNT))
+        self.assertEqual(sum(end - start for start, end in ranges), launcher.FULL_CANDIDATE_COUNT)
+        self.assertLessEqual(max(end - start for start, end in ranges), 250_000)
+        class HeldVolume:
+            def __init__(self): self.commits = 0
+            def reload(self): pass
+            def commit(self): self.commits += 1
+        held_volume = HeldVolume(); input_ranges = []; interrupt = {"pending": True}
+        with tempfile.TemporaryDirectory() as directory:
+            output = pathlib.Path(directory) / "stage-one" / "shard-000000.json"
+            output.parent.mkdir()
+            def run_checked(command, _label, **_kwargs):
+                if any(value.endswith("native_ordered_shard_input.ts") for value in command):
+                    start = int(command[command.index("--start-position") + 1])
+                    end = int(command[command.index("--end-position") + 1])
+                    if start == 750_000 and interrupt["pending"]:
+                        interrupt["pending"] = False
+                        raise RuntimeError("fixture interruption")
+                    input_ranges.append((start, end))
+                    pathlib.Path(command[command.index("--metadata") + 1]).write_text("{}")
+                elif "stage-one-checkpoint" in command:
+                    partial = pathlib.Path(command[command.index("--out") + 1])
+                    partial.write_text(json.dumps({"contentDigest": "chunk"}))
+                    pathlib.Path(f"{partial}.records.jsonl").write_text("record\n")
+                elif "stage-one-merge-shard" in command:
+                    pathlib.Path(command[command.index("--out") + 1]).write_text(
+                        json.dumps({"contentDigest": "final"}))
+                    end = int(command[command.index("--end-position") + 1])
+                    pathlib.Path(command[command.index("--metadata-out") + 1]).write_text(
+                        json.dumps({"endPosition": end}))
+                return subprocess.CompletedProcess(command, 0, "", "")
+            def metadata(path, checkpoint, spec, prior):
+                if not path.exists() or not checkpoint.exists(): return None
+                self.assertIsNone(prior)
+                chunk = (spec["end_position"] - 1) // launcher.CAMPAIGN_STAGE_ONE_CHUNK_SIZE
+                return f"{chunk:08x}1"
+            spec = {"campaign_root": "campaign/root", "run_id": "campaign/root/kingdom/goldfish",
+                "schema_version": 2, "kingdom": "balance-tuning-056", "start_position": 0,
+                "end_position": launcher.FULL_CANDIDATE_COUNT, "shard_id": 0, "threads": 4, "cpu": 4,
+                "shuffle_seeds": [4_100_000, 4_100_001, 4_100_002, 4_100_003],
+                "timeout_seconds": 86_400, "memory_mib": 8192,
+                "retained_count": 500_000, "reservoir_count": 20_000,
+                "build_version": "build", "rule_fingerprint": "rules"}
+            with patch.object(launcher, "volume", held_volume), \
+                    patch.object(launcher, "_ordered_product_checkpoint_path", return_value=output), \
+                    patch.object(launcher, "_valid_ordered_product_checkpoint",
+                        side_effect=lambda path, _spec, _stage: path.exists()), \
+                    patch.object(launcher, "_valid_stage_one_chunk_metadata", side_effect=metadata), \
+                    patch.object(launcher, "_run_checked", side_effect=run_checked), \
+                    patch.object(launcher, "_run_rust"):
+                with self.assertRaisesRegex(RuntimeError, "fixture interruption"):
+                    launcher.ordered_product_stage_one.get_raw_f()(spec)
+                result = launcher.ordered_product_stage_one.get_raw_f()(spec)
+            self.assertFalse(result["reused"])
+            self.assertEqual(input_ranges, ranges)
+            self.assertEqual(held_volume.commits, len(ranges) + 1)
+
     def test_fenced_run_reconciliation_repairs_corrupt_completed_goldfish_matrix_and_psro(self):
         for stage in ["goldfish", "matrix", "psro"]:
             with self.subTest(stage=stage):

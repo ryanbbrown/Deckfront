@@ -22,7 +22,7 @@ import type {
 import {
   coprimeTraversalConfig, createOrderedCandidateSpace, orderedGoldfishCardIds
 } from '../src/sim/orderedGoldfishBenchmark';
-import { canonicalStrategy, stableHash } from '../src/sim/strategy';
+import { canonicalStrategy, StableHashAccumulator, stableHash } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 
 const PART_SIZE = 10_000;
@@ -51,6 +51,13 @@ interface ReservoirArtifact {
   sourceArtifactSha256: string; runId: string;
   reservoirCount: number; entries: OrderedProductRankedRecord[];
 }
+interface StageOneInputMetadata {
+  schemaVersion: number; kingdomId: string; startPosition: number; endPosition: number;
+  completeCount: number; priorCandidateDigest: string | null; candidateDigest: string;
+  ruleFingerprint: string; shuffleSeeds: number[]; cpu: number; threads: number;
+  firstCanonical: string | null; lastCanonical: string | null;
+}
+interface StageOneChunkManifestEntry { checkpoint: string; metadata: string }
 
 function option(name: string, fallback?: string): string {
   const index = process.argv.indexOf(`--${name}`), value = index < 0 ? fallback : process.argv[index + 1];
@@ -275,6 +282,48 @@ function validateCheckpointSet(checkpoints: Array<{ file: string; value: Checkpo
     }
   });
 }
+function stageOneChunkSet(): Array<{ file: string; value: Checkpoint; metadata: StageOneInputMetadata }> {
+  const raw = readJson<unknown>(option('manifest'));
+  if (!Array.isArray(raw) || raw.some((entry) => !entry || typeof entry !== 'object' || Array.isArray(entry)
+    || JSON.stringify(Object.keys(entry).sort()) !== JSON.stringify(['checkpoint', 'metadata']))) {
+    throw new Error('Stage-one chunk manifest is invalid.');
+  }
+  const entries = (raw as StageOneChunkManifestEntry[]).map((entry) => ({ file: entry.checkpoint,
+    value: readJson<Checkpoint>(entry.checkpoint), metadata: readJson<StageOneInputMetadata>(entry.metadata) }))
+    .sort((left, right) => left.value.shard.startPosition - right.value.shard.startPosition);
+  const start = integer('start-position'), end = integer('end-position');
+  if (!entries.length || entries[0]!.value.shard.startPosition !== start
+    || entries.at(-1)!.value.shard.endPosition !== end) throw new Error('Stage-one chunk coverage is incomplete.');
+  entries.forEach(({ value, metadata }, index) => {
+    const first = entries[0]!.value, previous = entries[index - 1];
+    const metadataKeys = ['schemaVersion', 'kingdomId', 'startPosition', 'endPosition', 'completeCount',
+      'priorCandidateDigest', 'candidateDigest', 'ruleFingerprint', 'shuffleSeeds', 'cpu', 'threads',
+      'firstCanonical', 'lastCanonical'];
+    if (JSON.stringify(Object.keys(metadata).sort()) !== JSON.stringify(metadataKeys.sort())
+      || !checkpointHeaderValid(value, 'stage-one') || value.shard.shardId !== index
+      || value.shard.completeCount !== value.shard.endPosition - value.shard.startPosition
+      || value.shard.retainedCount !== Math.min(value.shard.completeCount,
+        config().retainedCount + config().collisionAllowance)
+      || (index > 0 && previous!.value.shard.endPosition !== value.shard.startPosition)
+      || value.runId !== first.runId || value.buildVersion !== first.buildVersion
+      || value.ruleFingerprint !== first.ruleFingerprint || value.scorerVersion !== first.scorerVersion
+      || metadata.schemaVersion !== productSchemaVersion || metadata.kingdomId !== productTarget.kingdomId
+      || metadata.startPosition !== value.shard.startPosition || metadata.endPosition !== value.shard.endPosition
+      || metadata.completeCount !== value.shard.completeCount || metadata.completeCount < 1
+      || metadata.candidateDigest !== value.shard.candidateDigest
+      || metadata.priorCandidateDigest !== (previous?.metadata.candidateDigest ?? null)
+      || !/^[0-9a-f]{9,16}$/.test(metadata.candidateDigest)
+      || metadata.ruleFingerprint !== value.ruleFingerprint
+      || JSON.stringify(metadata.shuffleSeeds) !== JSON.stringify(productSeeds.slice(0, 1))
+      || !Number.isSafeInteger(metadata.cpu) || metadata.cpu < 1
+      || !Number.isSafeInteger(metadata.threads) || metadata.threads < 1
+      || metadata.cpu !== entries[0]!.metadata.cpu || metadata.threads !== entries[0]!.metadata.threads
+      || typeof metadata.firstCanonical !== 'string' || typeof metadata.lastCanonical !== 'string') {
+      throw new Error('Stage-one chunks are stale, corrupt, or noncontiguous.');
+    }
+  });
+  return entries;
+}
 function cohortHeaderValid(value: CohortManifest): boolean {
   return value.schemaVersion === productSchemaVersion && value.version === productTarget.version
     && identityValid(value) && expectedConfig(value.config) && value.recordCount === value.config.retainedCount
@@ -365,16 +414,32 @@ if (mode === 'validate-checkpoint') {
   console.log(JSON.stringify({ valid: true, contentDigest: value.contentDigest, retainedCount: count }));
 } else if (mode === 'stage-one-checkpoint') {
   const request = readJson<{ payload: { kingdom: { id: string }; seeds: number[];
-    strategies: Array<Strategy & { canonicalStrategy: string }> } }>(option('request'));
-  const metadata = readJson<{ kingdomId: string; candidateDigest: string; completeCount: number;
-    ruleFingerprint: string; shuffleSeeds: number[] }>(option('metadata'));
+    strategies: Array<Strategy & { canonicalStrategy: string }>; threads: number; cpuRequest: number } }>(option('request'));
+  const metadata = readJson<StageOneInputMetadata>(option('metadata'));
+  const metadataKeys = ['schemaVersion', 'kingdomId', 'startPosition', 'endPosition', 'completeCount',
+    'priorCandidateDigest', 'candidateDigest', 'ruleFingerprint', 'shuffleSeeds', 'cpu', 'threads',
+    'firstCanonical', 'lastCanonical'];
   const scores = nativeScores(option('response')), start = integer('start-position'), end = integer('end-position');
-  if (request.payload.strategies.length !== scores.length || scores.length !== end - start
+  const candidateHash = metadata.priorCandidateDigest
+    ? StableHashAccumulator.fromDigest(metadata.priorCandidateDigest) : new StableHashAccumulator();
+  request.payload.strategies.forEach((strategy, index) => {
+    if (metadata.priorCandidateDigest || index) candidateHash.update('\n');
+    candidateHash.update(canonicalStrategy(strategy));
+  });
+  if (JSON.stringify(Object.keys(metadata).sort()) !== JSON.stringify(metadataKeys.sort())
+    || scores.length < 1 || request.payload.strategies.length !== scores.length || scores.length !== end - start
     || request.payload.kingdom.id !== productTarget.kingdomId
     || JSON.stringify(request.payload.seeds) !== JSON.stringify(productSeeds.slice(0, 1))
-    || metadata.kingdomId !== productTarget.kingdomId || metadata.completeCount !== scores.length
+    || metadata.schemaVersion !== productSchemaVersion || metadata.kingdomId !== productTarget.kingdomId
+    || metadata.startPosition !== start || metadata.endPosition !== end
+    || metadata.completeCount !== scores.length || metadata.candidateDigest !== candidateHash.digest()
     || JSON.stringify(metadata.shuffleSeeds) !== JSON.stringify(productSeeds.slice(0, 1))
-    || metadata.ruleFingerprint !== option('rule-fingerprint')) throw new Error('Stage-one inputs differ.');
+    || metadata.ruleFingerprint !== option('rule-fingerprint')
+    || metadata.cpu !== request.payload.cpuRequest || metadata.threads !== request.payload.threads
+    || metadata.firstCanonical !== canonicalStrategy(request.payload.strategies[0]!)
+    || metadata.lastCanonical !== canonicalStrategy(request.payload.strategies.at(-1)!)) {
+    throw new Error('Stage-one inputs differ.');
+  }
   const records = scores.map((raw, index): OrderedProductStageOneRecord => {
     const input = request.payload.strategies[index]!, identity = rawIdentity(raw);
     const strategy: Strategy = { id: input.id, startingBuild: input.startingBuild, buyPlan: input.buyPlan };
@@ -390,6 +455,34 @@ if (mode === 'validate-checkpoint') {
     endPosition: end, completeCount: end - start, retainedCount: records.length,
     candidateDigest: metadata.candidateDigest, scoreDigest }, recordsFile, recordsSha256);
   writeAtomic(output, fixedJson(checkpoint));
+} else if (mode === 'stage-one-merge-shard') {
+  const chunks = stageOneChunkSet();
+  const iterators = await Promise.all(chunks.map(({ file, value }) => checkpointRecords(
+    file, value, validateOrderedProductStageOneRecord, compareStageOneRecords)));
+  const merged = mergeSorted(iterators.map((entry) => entry[Symbol.asyncIterator]()), compareStageOneRecords);
+  const records: OrderedProductStageOneRecord[] = [], limit = config().retainedCount + config().collisionAllowance;
+  for await (const record of merged) {
+    if (records.length === limit) break;
+    records.push(record);
+  }
+  const output = option('out'), recordsFile = `${output}.records.jsonl`;
+  const recordsSha256 = writeJsonLines(recordsFile, records);
+  const scoreHash = new StableHashAccumulator();
+  records.sort((left, right) => left.traversalPosition - right.traversalPosition)
+    .forEach((record, index) => { if (index) scoreHash.update('\n'); scoreHash.update(lineDigestText(record)); });
+  const start = integer('start-position'), end = integer('end-position');
+  const checkpoint = makeCheckpoint('stage-one', { shardId: integer('shard-id'),
+    startPosition: start, endPosition: end, completeCount: end - start, retainedCount: records.length,
+    candidateDigest: chunks.at(-1)!.metadata.candidateDigest, scoreDigest: scoreHash.digest() },
+  recordsFile, recordsSha256);
+  writeAtomic(output, fixedJson(checkpoint));
+  const first = chunks[0]!.metadata, last = chunks.at(-1)!.metadata;
+  writeAtomic(option('metadata-out'), fixedJson({ schemaVersion: productSchemaVersion,
+    kingdomId: productTarget.kingdomId, startPosition: start, endPosition: end,
+    completeCount: end - start, priorCandidateDigest: null, candidateDigest: last.candidateDigest,
+    ruleFingerprint: checkpoint.ruleFingerprint, shuffleSeeds: productSeeds.slice(0, 1),
+    cpu: first.cpu, threads: first.threads, firstCanonical: first.firstCanonical,
+    lastCanonical: last.lastCanonical } satisfies StageOneInputMetadata));
 } else if (mode === 'merge-stage-one') {
   const checkpoints = manifestFiles().map((file) => ({ file, value: readJson<Checkpoint>(file) }));
   validateCheckpointSet(checkpoints, 'stage-one', ORDERED_PRODUCT_SPACE_COUNT);

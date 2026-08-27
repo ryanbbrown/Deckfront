@@ -63,8 +63,20 @@ export function canonicalStrategy(strategy: Strategy): string {
 
 /** Incremental FNV-1a with the same output contract as stableHash. */
 export class StableHashAccumulator {
-  private hash = 0x811c9dc5;
-  private length = 0;
+  private hash: number;
+  private length: number;
+
+  constructor(state: { hash: number; length: number } = { hash: 0x811c9dc5, length: 0 }) {
+    if (![state.hash, state.length].every((value) => Number.isSafeInteger(value)
+      && value >= 0 && value <= 0xffff_ffff)) throw new Error('Stable hash state is invalid.');
+    this.hash = state.hash; this.length = state.length;
+  }
+
+  static fromDigest(digest: string): StableHashAccumulator {
+    if (!/^[0-9a-f]{9,16}$/.test(digest)) throw new Error('Stable hash digest is invalid.');
+    return new StableHashAccumulator({ hash: Number.parseInt(digest.slice(0, 8), 16),
+      length: Number.parseInt(digest.slice(8), 16) });
+  }
 
   update(text: string): this {
     for (let index = 0; index < text.length; index += 1) {
