@@ -14,7 +14,6 @@ import {
 import type {
   InitialMatrixCellSeries, InitialMatrixChunk, InitialMatrixManifest
 } from '../src/sim/initialMatrixCalibration';
-import { orderedProductTarget } from '../src/sim/orderedGoldfishProduct';
 import { GAMES_PER_SEED } from '../src/sim/pairing';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import type { PairingJob } from '../src/sim/pairingRunner';
@@ -87,13 +86,14 @@ function validateOrderedArtifacts(options: Options): void {
     `${options.reservoirFile}.sha256`]) {
     if (!fs.existsSync(file)) throw new Error(`Missing ordered artifact input ${file}.`);
   }
-  const seeds = readJson<{ config?: { seeds?: unknown } }>(options.rankedFile).config?.seeds;
+  const ranked = readJson<{ schemaVersion?: unknown; config?: { seeds?: unknown } }>(options.rankedFile);
+  const seeds = ranked.config?.seeds;
   if (!Array.isArray(seeds) || seeds.some((seed) => !Number.isSafeInteger(seed) || Number(seed) < 0)) {
     throw new Error('Ordered ranked artifact seeds are invalid.');
   }
   const result = spawnSync('npm', ['run', 'goldfish:ordered-product', '--', 'validate-reservoir',
     '--kingdom', options.kingdomId, '--artifact', options.rankedFile, '--reservoir', options.reservoirFile,
-    '--seeds', seeds.join(',')], { stdio: 'inherit' });
+    '--seeds', seeds.join(','), '--schema-version', String(ranked.schemaVersion)], { stdio: 'inherit' });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error('Ordered ranked/reservoir validation failed.');
 }
@@ -195,9 +195,8 @@ function cellSeries(root: string, manifest: InitialMatrixManifest,
 }
 
 const options = parseOptions(process.argv.slice(2));
-orderedProductTarget(options.kingdomId);
 const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === options.kingdomId);
-if (!kingdom) throw new Error(`Supported ordered kingdom is not registered: ${options.kingdomId}.`);
+if (!kingdom) throw new Error(`Ordered kingdom is not registered: ${options.kingdomId}.`);
 registerKingdom(kingdom);
 validateOrderedArtifacts(options);
 const rankedSha256 = sha256File(options.rankedFile), reservoirSha256 = sha256File(options.reservoirFile);

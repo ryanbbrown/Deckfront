@@ -6,16 +6,18 @@ import { registerKingdom } from '../src/game';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 import { nativeRuleFingerprint, nativeScoreBatchRequest } from '../src/sim/nativeGoldfishProtocol';
 import {
+  CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION, CURRENT_ORDERED_PRODUCT_VERSION,
   ORDERED_PRODUCT_COLLISION_ALLOWANCE, ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES,
   ORDERED_PRODUCT_SCHEMA_VERSION, ORDERED_PRODUCT_SEEDS, ORDERED_PRODUCT_SPACE_COUNT,
   candidateSpaceProvenanceDigest, combineScoreEvidence, compactProfileEvidence,
-  compareRankedRecords, compareStageOneRecords, fixedJson, orderedProductSeedsValid,
-  orderedProductTarget, provenanceDigest, rankingKey, sha256Bytes,
+  compareRankedRecords, compareStageOneRecords, deriveCurrentOrderedProductIdentity, fixedJson,
+  legacyOrderedProductSeedsValid, legacyOrderedProductTarget, provenanceDigest, rankingKey, sha256Bytes,
   validateOrderedProductRankedRecord, validateOrderedProductStageOneRecord
 } from '../src/sim/orderedGoldfishProduct';
 import type {
-  OrderedProductConfig, OrderedProductRankedArtifact, OrderedProductRankedRecord,
-  OrderedProductShardProvenance, OrderedProductStageOneRecord
+  CurrentOrderedProductIdentity, OrderedProductConfig, OrderedProductRankedArtifact,
+  OrderedProductRankedRecord, OrderedProductShardProvenance, OrderedProductStageOneRecord,
+  OrderedProductTarget
 } from '../src/sim/orderedGoldfishProduct';
 import {
   coprimeTraversalConfig, createOrderedCandidateSpace, orderedGoldfishCardIds
@@ -26,14 +28,16 @@ import type { Strategy } from '../src/sim/strategy';
 const PART_SIZE = 10_000;
 type Stage = 'stage-one' | 'stage-two';
 interface Checkpoint {
-  schemaVersion: number; version: string; stage: Stage; runId: string; buildVersion: string;
+  schemaVersion: number; version: string; productIdentity?: CurrentOrderedProductIdentity;
+  stage: Stage; runId: string; buildVersion: string;
   ruleFingerprint: string; scorerVersion: string; config: OrderedProductConfig;
   shard: OrderedProductShardProvenance; recordsFile: string; recordsSha256: string;
   contentDigest: string;
 }
 interface Part { file: string; startIndex: number; endIndex: number; count: number; sha256: string }
 interface CohortManifest {
-  schemaVersion: number; version: string; runId: string; buildVersion: string;
+  schemaVersion: number; version: string; productIdentity?: CurrentOrderedProductIdentity;
+  runId: string; buildVersion: string;
   ruleFingerprint: string; scorerVersion: string; config: OrderedProductConfig;
   shards: OrderedProductShardProvenance[]; provenanceDigest: string; recordCount: number;
   stageOneOrderDigest: string; parts: Part[]; contentDigest: string;
@@ -67,11 +71,39 @@ function writeHashed(file: string, value: unknown): string {
   const text = fixedJson(value), digest = sha256Bytes(text);
   writeAtomic(file, text); writeAtomic(`${file}.sha256`, `${digest}  ${path.basename(file)}\n`); return digest;
 }
-const productTarget = orderedProductTarget(option('kingdom', ORDERED_PRODUCT_KINGDOM));
+function identityOption(optionName: string, artifactKey: 'buildVersion' | 'scorerVersion', fallback?: string): string {
+  const index = process.argv.indexOf(`--${optionName}`);
+  if (index >= 0) return option(optionName);
+  const artifactIndex = process.argv.indexOf('--artifact');
+  if (artifactIndex >= 0) {
+    const value = readJson<Record<string, unknown>>(process.argv[artifactIndex + 1]!)[artifactKey];
+    if (typeof value === 'string' && value) return value;
+  }
+  if (fallback !== undefined) return fallback;
+  throw new Error(`--${optionName} is required for current ordered-product evidence.`);
+}
+const productSchemaVersion = Number(option('schema-version', String(ORDERED_PRODUCT_SCHEMA_VERSION)));
+if (productSchemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION
+  && productSchemaVersion !== CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION) throw new Error('--schema-version must be 1 or 2.');
+const requestedKingdomId = option('kingdom', ORDERED_PRODUCT_KINGDOM);
 const productSeeds = option('seeds', ORDERED_PRODUCT_SEEDS.join(',')).split(',').map((value) => Number(value));
-if (productSeeds.some((seed) => !Number.isSafeInteger(seed) || seed < 0)
-  || !orderedProductSeedsValid(productTarget.kingdomId, productSeeds)) {
-  throw new Error(`--seeds is not an authorized ordered product seed set for ${productTarget.kingdomId}.`);
+if (productSeeds.length !== 4 || new Set(productSeeds).size !== 4
+  || productSeeds.some((seed) => !Number.isSafeInteger(seed) || seed < 0)
+  || productSchemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION
+    && !legacyOrderedProductSeedsValid(requestedKingdomId, productSeeds)) {
+  throw new Error(`--seeds is not valid for ordered product schema ${productSchemaVersion}.`);
+}
+let currentProductIdentity: CurrentOrderedProductIdentity | undefined;
+let productTarget: OrderedProductTarget = productSchemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION
+  ? legacyOrderedProductTarget(requestedKingdomId)
+  : { kingdomId: requestedKingdomId, version: CURRENT_ORDERED_PRODUCT_VERSION,
+    authorization: '', candidateProvenanceDigest: '' };
+function identityFields(): { productIdentity?: CurrentOrderedProductIdentity } {
+  return currentProductIdentity ? { productIdentity: currentProductIdentity } : {};
+}
+function identityValid(value: { productIdentity?: CurrentOrderedProductIdentity }): boolean {
+  return productSchemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION ? value.productIdentity === undefined
+    : JSON.stringify(value.productIdentity) === JSON.stringify(currentProductIdentity);
 }
 
 function config(): OrderedProductConfig {
@@ -142,8 +174,8 @@ async function checkpointRecords<T extends OrderedProductStageOneRecord>(
 function checkpointHeaderValid(value: Checkpoint, expectedStage: Stage): boolean {
   const unsigned = { ...value, shard: { ...value.shard, contentDigest: '' } };
   delete (unsigned as Partial<Checkpoint>).contentDigest;
-  return value.schemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION && value.version === productTarget.version
-    && value.stage === expectedStage && expectedConfig(value.config)
+  return value.schemaVersion === productSchemaVersion && value.version === productTarget.version
+    && identityValid(value) && value.stage === expectedStage && expectedConfig(value.config)
     && value.shard.contentDigest === value.contentDigest
     && value.contentDigest === stableHash(JSON.stringify(unsigned))
     && value.shard.retainedCount <= value.shard.completeCount && /^[0-9a-f]{64}$/.test(value.recordsSha256);
@@ -152,7 +184,7 @@ function makeCheckpoint(
   stage: Stage, shard: Omit<OrderedProductShardProvenance, 'contentDigest'>,
   recordsFile: string, recordsSha256: string
 ): Checkpoint {
-  const base = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: productTarget.version, stage,
+  const base = { schemaVersion: productSchemaVersion, version: productTarget.version, ...identityFields(), stage,
     runId: option('run-id'), buildVersion: option('build-version'), ruleFingerprint: option('rule-fingerprint'),
     scorerVersion: option('scorer-version', 'native-goldfish-v1'), config: config(),
     shard: { ...shard, contentDigest: '' }, recordsFile: path.basename(recordsFile), recordsSha256,
@@ -241,8 +273,8 @@ function validateCheckpointSet(checkpoints: Array<{ file: string; value: Checkpo
   });
 }
 function cohortHeaderValid(value: CohortManifest): boolean {
-  return value.schemaVersion === ORDERED_PRODUCT_SCHEMA_VERSION && value.version === productTarget.version
-    && expectedConfig(value.config) && value.recordCount === value.config.retainedCount
+  return value.schemaVersion === productSchemaVersion && value.version === productTarget.version
+    && identityValid(value) && expectedConfig(value.config) && value.recordCount === value.config.retainedCount
     && value.provenanceDigest === provenanceDigest(value.shards) && value.contentDigest === unsignedDigest(value);
 }
 async function readCohortRange(file: string, cohort: CohortManifest, start: number, end: number): Promise<Array<OrderedProductStageOneRecord & { stageOneRank: number }>> {
@@ -273,8 +305,8 @@ async function validateRankedManifest(file: string): Promise<{ manifest: RankedM
   const text = fs.readFileSync(file, 'utf8'), sha256 = sha256Bytes(text);
   const expected = fs.readFileSync(option('sha256', `${file}.sha256`), 'utf8').trim().split(/\s+/)[0];
   const value = JSON.parse(text) as RankedManifest;
-  if (sha256 !== expected || fixedJson(value) !== text || value.schemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION
-    || value.version !== productTarget.version || !expectedConfig(value.config)
+  if (sha256 !== expected || fixedJson(value) !== text || value.schemaVersion !== productSchemaVersion
+    || value.version !== productTarget.version || !identityValid(value) || !expectedConfig(value.config)
     || value.recordCount !== value.config.retainedCount
     || value.candidateSpace.provenanceDigest !== productTarget.candidateProvenanceDigest
     || value.candidateSpace.provenanceDigest !== candidateSpaceProvenanceDigest(value.candidateSpace)
@@ -302,6 +334,15 @@ const mode = process.argv[2];
 const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === productTarget.kingdomId);
 if (!kingdom) throw new Error(`Ordered product kingdom is not registered: ${productTarget.kingdomId}`);
 registerKingdom(kingdom);
+if (productSchemaVersion === CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION) {
+  currentProductIdentity = deriveCurrentOrderedProductIdentity({ kingdomId: requestedKingdomId, seeds: productSeeds,
+    scorerVersion: identityOption('scorer-version', 'scorerVersion', 'native-goldfish-v1'),
+    buildVersion: identityOption('build-version', 'buildVersion') });
+  productTarget = { ...productTarget, candidateProvenanceDigest: currentProductIdentity.candidateProvenanceDigest };
+  if (currentProductIdentity.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT) {
+    throw new Error(`Derived candidate count is ${currentProductIdentity.candidateCount}; expected ${ORDERED_PRODUCT_SPACE_COUNT}.`);
+  }
+}
 
 if (mode === 'validate-checkpoint') {
   const file = option('checkpoint'), value = readJson<Checkpoint>(file), stage = option('stage') as Stage;
@@ -363,7 +404,7 @@ if (mode === 'validate-checkpoint') {
     rankHash.update(stageOneEntryDigest(record)); return { ...record, stageOneRank: index + 1 };
   });
   if (written.count !== first.config.retainedCount) throw new Error('Stage one retained cohort is incomplete.');
-  const base = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: productTarget.version,
+  const base = { schemaVersion: productSchemaVersion, version: productTarget.version, ...identityFields(),
     runId: first.runId, buildVersion: first.buildVersion, ruleFingerprint: first.ruleFingerprint,
     scorerVersion: first.scorerVersion, config: first.config, shards: checkpoints.map(({ value }) => value.shard),
     provenanceDigest: provenanceDigest(checkpoints.map(({ value }) => value.shard)), recordCount: written.count,
@@ -414,8 +455,8 @@ if (mode === 'validate-checkpoint') {
     mergeSorted(iterators.map((entry) => entry[Symbol.asyncIterator]()), compareRankedRecords),
     cohort.config.retainedCount, (record, index) => ({ ...record, rank: index + 1 }));
   if (written.count !== cohort.config.retainedCount) throw new Error('Ranked artifact is incomplete.');
-  const manifest: RankedManifest = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION, version: productTarget.version,
-    runId: cohort.runId, buildVersion: cohort.buildVersion, ruleFingerprint: cohort.ruleFingerprint,
+  const manifest: RankedManifest = { schemaVersion: productSchemaVersion, version: productTarget.version,
+    ...identityFields(), runId: cohort.runId, buildVersion: cohort.buildVersion, ruleFingerprint: cohort.ruleFingerprint,
     scorerVersion: cohort.scorerVersion, config: cohort.config, candidateSpace: candidateSpace(),
     stageOneShards: cohort.shards, stageTwoShards: checkpoints.map(({ value }) => value.shard),
     stageOneProvenanceDigest: cohort.provenanceDigest,
@@ -433,7 +474,7 @@ if (mode === 'validate-checkpoint') {
   for await (const record of readParts<OrderedProductRankedRecord>(file, manifest.parts)) {
     if (entries.length < manifest.config.reservoirCount) entries.push(record); else break;
   }
-  const reservoir: ReservoirArtifact = { schemaVersion: ORDERED_PRODUCT_SCHEMA_VERSION,
+  const reservoir: ReservoirArtifact = { schemaVersion: productSchemaVersion,
     version: productTarget.version, sourceArtifactSha256: sha256, runId: manifest.runId,
     reservoirCount: manifest.config.reservoirCount, entries };
   if (entries.length !== reservoir.reservoirCount) throw new Error('Reservoir prefix is incomplete.');

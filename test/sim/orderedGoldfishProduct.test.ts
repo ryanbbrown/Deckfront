@@ -3,14 +3,16 @@ import { registerKingdom } from '../../src/game';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import { scoreMovementAwareGoldfishStrategyLean } from '../../src/sim/goldfish';
 import {
+  CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION, CURRENT_ORDERED_PRODUCT_VERSION,
   K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS, ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST,
   ORDERED_PRODUCT_COLLISION_ALLOWANCE, ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES,
   ORDERED_PRODUCT_SEEDS,
   ORDERED_PRODUCT_SPACE_COUNT, ORDERED_PRODUCT_SUPPORTED_KINGDOMS, ORDERED_PRODUCT_VERSION,
   buildOrderedProductReservoir, candidateSpaceProvenanceDigest, combineScoreEvidence,
-  compactProfileEvidence, compareRankedRecords, fixedJson, orderedProductTarget, provenanceDigest,
+  compactProfileEvidence, compareRankedRecords, deriveCurrentOrderedProductIdentity, fixedJson,
+  orderedProductTarget, provenanceDigest,
   rankingKey, retainOrderedProductRecords,
-  sha256Bytes, validateOrderedProductArtifact,
+  sha256Bytes, validateCurrentOrderedProductArtifact, validateOrderedProductArtifact,
   validateOrderedProductReservoir
 } from '../../src/sim/orderedGoldfishProduct';
 import type {
@@ -111,6 +113,33 @@ describe('ordered goldfish product correction', () => {
       expect(validateOrderedProductArtifact(artifact)).toBe(true);
     }
   );
+
+  it('derives current targets without a kingdom allowlist and fails closed on changed identity', () => {
+    const kingdomId = 'deep-beam-tuning-002';
+    registerKingdom(deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!);
+    const identity = deriveCurrentOrderedProductIdentity({ kingdomId, seeds: [11, 12, 13, 14],
+      scorerVersion: 'native-goldfish-v1', buildVersion: 'fixture' });
+    const artifact = fixture();
+    const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
+    const traversal = coprimeTraversalConfig(space.candidateCount);
+    artifact.schemaVersion = CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION;
+    artifact.version = CURRENT_ORDERED_PRODUCT_VERSION;
+    artifact.productIdentity = identity;
+    artifact.buildVersion = identity.buildVersion;
+    artifact.scorerVersion = identity.scorerVersion;
+    artifact.ruleFingerprint = identity.rulesFingerprint;
+    artifact.config.kingdomId = kingdomId;
+    artifact.config.seeds = [...identity.seeds];
+    artifact.candidateSpace = { generator: 'ordered-typescript-five-rung-v1', traversal: 'coprime-position-v1',
+      cardIds: [...space.cardIds], quantityVectors: space.quantityVectors.map((entry) => [...entry]),
+      skeletonCount: space.skeletonCount, candidateCount: space.candidateCount, ...traversal,
+      provenanceDigest: identity.candidateProvenanceDigest };
+    expect(validateCurrentOrderedProductArtifact(artifact)).toBe(true);
+    expect(validateOrderedProductArtifact(artifact)).toBe(true);
+    const stale = structuredClone(artifact);
+    stale.productIdentity!.seeds[0] = stale.productIdentity!.seeds[0]! + 1;
+    expect(validateCurrentOrderedProductArtifact(stale)).toBe(false);
+  });
 
   it('accepts only the original seeds or one exact K007 replication set', () => {
     for (const seeds of K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS) {

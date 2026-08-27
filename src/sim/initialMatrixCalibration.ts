@@ -7,8 +7,9 @@ import type { EquilibriumResult } from './equilibrium';
 import { validateTelemetryAggregate } from './lotteryAcquisition';
 import { nativeRuleFingerprint } from './nativeGoldfishProtocol';
 import {
-  ORDERED_PRODUCT_SPACE_COUNT, ORDERED_PRODUCT_SUPPORTED_KINGDOMS,
-  orderedProductSeedsValid, orderedProductTarget, validateOrderedProductRankedRecord
+  CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION, CURRENT_ORDERED_PRODUCT_VERSION,
+  ORDERED_PRODUCT_SPACE_COUNT, deriveCurrentOrderedProductIdentity,
+  legacyOrderedProductSeedsValid, legacyOrderedProductTarget, validateOrderedProductRankedRecord
 } from './orderedGoldfishProduct';
 import type { OrderedProductReservoirArtifact } from './orderedGoldfishProduct';
 import { canonicalStrategy } from './strategy';
@@ -51,6 +52,7 @@ export interface OrderedCalibrationRankedHeader {
     actionCapPerTurn: number;
   };
   candidateSpace: { provenanceDigest: string };
+  productIdentity?: ReturnType<typeof deriveCurrentOrderedProductIdentity>;
   recordCount: number;
 }
 
@@ -174,24 +176,35 @@ export function validateOrderedCalibrationSource(input: {
   rankedSha256: string;
   reservoirSha256: string;
 }): { source: InitialMatrixSourceIdentity; strategies: Strategy[] } {
-  if (!ORDERED_PRODUCT_SUPPORTED_KINGDOMS.includes(input.kingdomId)) {
-    throw new Error(`Unsupported ordered product kingdom: ${input.kingdomId}`);
-  }
   if (!validSha256(input.rankedSha256) || !validSha256(input.reservoirSha256)
     || !input.ranked || typeof input.ranked !== 'object' || !input.reservoir || typeof input.reservoir !== 'object') {
     throw new Error('Ordered calibration source hashes or artifacts are invalid.');
   }
   const ranked = input.ranked as OrderedCalibrationRankedHeader;
   const reservoir = input.reservoir as OrderedProductReservoirArtifact;
-  const target = orderedProductTarget(input.kingdomId);
   const expectedRules = nativeRuleFingerprint(input.kingdomId, 30, 200);
-  if (ranked.schemaVersion !== 1 || ranked.version !== target.version || ranked.config?.kingdomId !== input.kingdomId
+  let sourceIdentityValid = false;
+  if (ranked.schemaVersion === 1) {
+    try {
+      const target = legacyOrderedProductTarget(input.kingdomId);
+      sourceIdentityValid = ranked.version === target.version
+        && legacyOrderedProductSeedsValid(input.kingdomId, ranked.config.seeds)
+        && ranked.candidateSpace?.provenanceDigest === target.candidateProvenanceDigest;
+    } catch { sourceIdentityValid = false; }
+  } else if (ranked.schemaVersion === CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION && ranked.productIdentity) {
+    try {
+      const expected = deriveCurrentOrderedProductIdentity({ kingdomId: input.kingdomId,
+        seeds: ranked.config.seeds, scorerVersion: ranked.scorerVersion, buildVersion: ranked.buildVersion });
+      sourceIdentityValid = ranked.version === CURRENT_ORDERED_PRODUCT_VERSION
+        && exact(ranked.productIdentity, expected)
+        && ranked.candidateSpace?.provenanceDigest === expected.candidateProvenanceDigest;
+    } catch { sourceIdentityValid = false; }
+  }
+  if (!sourceIdentityValid || ranked.config?.kingdomId !== input.kingdomId
     || ranked.config.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT || ranked.config.retainedCount !== 500_000
     || ranked.recordCount !== ranked.config.retainedCount || ranked.config.reservoirCount !== 20_000
-    || !orderedProductSeedsValid(input.kingdomId, ranked.config.seeds) || ranked.config.turnLimit !== 30
-    || ranked.config.actionCapPerTurn !== 200 || ranked.ruleFingerprint !== expectedRules
-    || ranked.candidateSpace?.provenanceDigest !== target.candidateProvenanceDigest
-    || reservoir.schemaVersion !== 1 || reservoir.version !== ranked.version || reservoir.runId !== ranked.runId
+    || ranked.config.turnLimit !== 30 || ranked.config.actionCapPerTurn !== 200 || ranked.ruleFingerprint !== expectedRules
+    || reservoir.schemaVersion !== ranked.schemaVersion || reservoir.version !== ranked.version || reservoir.runId !== ranked.runId
     || reservoir.sourceArtifactSha256 !== input.rankedSha256 || reservoir.reservoirCount !== 20_000
     || !Array.isArray(reservoir.entries) || reservoir.entries.length !== 20_000) {
     throw new Error('Ordered calibration source metadata, rules, or 20,000-entry reservoir is stale or invalid.');

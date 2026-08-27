@@ -5,9 +5,8 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { pathToFileURL } from 'node:url';
 import { registerKingdom } from '../src/game';
-import { anytimeConfidenceBounds } from '../src/sim/anytimeMeanEvidence';
 import { InlineConfidenceRunner, WorkerConfidenceRunner } from '../src/sim/confidenceRunner';
-import type { ConfidenceBounds, ConfidenceRunner } from '../src/sim/confidenceRunner';
+import type { ConfidenceRunner } from '../src/sim/confidenceRunner';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
 import { solveEquilibrium } from '../src/sim/equilibrium';
 import type { EquilibriumResult } from '../src/sim/equilibrium';
@@ -20,7 +19,6 @@ import {
 import type {
   InitialMatrixChunk, InitialMatrixManifest, InitialMatrixSourceIdentity
 } from '../src/sim/initialMatrixCalibration';
-import { evaluateCandidates } from '../src/sim/mixtureEvaluation';
 import type { CandidateEvaluation, MixtureSchedule } from '../src/sim/mixtureEvaluation';
 import { ModalCompetitiveEvaluator } from '../src/sim/modalCompetitiveEvaluator';
 import type { OrderedProductReservoirArtifact } from '../src/sim/orderedGoldfishProduct';
@@ -38,16 +36,17 @@ import { stableHash } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 import type { TelemetryAggregate } from '../src/sim/types';
 import { compareUtf16 } from '../src/sim/utf16';
+import * as thresholdRacing from '../src/sim/thresholdRacingPsro';
 
 export const PILOT_VERSION = 'k007-threshold-racing-double-oracle-v1' as const;
 export const PILOT_KINGDOM = 'deep-beam-tuning-007' as const;
-export const SCREEN_DEPTHS = Object.freeze([8, 16, 32, 64, 128, 256, 512] as const);
-export const CONFIRMATION_LOOKS = Object.freeze([400, 800, 1_600, 3_200, 6_400] as const);
-export const RESPONSE_THRESHOLD = 0.51;
-export const SCREEN_ALPHA = 0.05;
-export const CONFIRMATION_FAMILY_ALPHA = 0.05;
-const MATRIX_BLOCKS = 75;
-const EVALUATION_CHUNK = 250;
+export const SCREEN_DEPTHS = thresholdRacing.SCREEN_DEPTHS;
+export const CONFIRMATION_LOOKS = thresholdRacing.CONFIRMATION_LOOKS;
+export const RESPONSE_THRESHOLD = thresholdRacing.RESPONSE_THRESHOLD;
+export const SCREEN_ALPHA = thresholdRacing.SCREEN_ALPHA;
+export const CONFIRMATION_FAMILY_ALPHA = thresholdRacing.CONFIRMATION_FAMILY_ALPHA;
+const MATRIX_BLOCKS = thresholdRacing.PSRO_MATRIX_BLOCKS;
+const EVALUATION_CHUNK = thresholdRacing.DEFAULT_PSRO_EVALUATION_CHUNK;
 
 type ThresholdStatus = 'below' | 'above' | 'unresolved';
 type ConfirmationStatus = 'rejected' | 'confirmed' | 'unresolved';
@@ -265,238 +264,14 @@ function saveCheckpoint(root: string, checkpoint: Checkpoint): Checkpoint {
   return value;
 }
 
-/** Largest deficit assigns each next block to the most under-served positive-weight opponent. */
-export function weightedFairSchedule(
-  weights: Readonly<Record<string, number>>, seeds: readonly number[]
-): MixtureSchedule {
-  const entries = Object.entries(weights).filter((entry) => entry[1] > 0)
-    .sort(([left], [right]) => compareUtf16(left, right));
-  const total = entries.reduce((sum, entry) => sum + entry[1], 0);
-  if (!entries.length || !(total > 0) || entries.some((entry) => !Number.isFinite(entry[1]))) {
-    throw new Error('Weighted-fair schedule needs finite positive weight.');
-  }
-  const targetWeights = Object.fromEntries(entries.map(([id, weight]) => [id, weight / total]));
-  const realizedOpponentCounts = Object.fromEntries(entries.map(([id]) => [id, 0])) as Record<string, number>;
-  const blocks = seeds.map((seed, index) => {
-    let selected = entries[0]![0];
-    let largest = Number.NEGATIVE_INFINITY;
-    for (const [id] of entries) {
-      const deficit = targetWeights[id]! * (index + 1) - realizedOpponentCounts[id]!;
-      if (deficit > largest) { largest = deficit; selected = id; }
-    }
-    realizedOpponentCounts[selected] = realizedOpponentCounts[selected]! + 1;
-    return { seed, opponentId: selected };
-  });
-  return { targetWeights, blocks, realizedOpponentCounts,
-    unsampledPositiveWeightStrategies: entries.map(([id]) => id).filter((id) => !realizedOpponentCounts[id]) };
-}
-
-function scheduleSlice(schedule: MixtureSchedule, start: number, end: number): MixtureSchedule {
-  const blocks = schedule.blocks.slice(start, end);
-  const ids = Object.keys(schedule.targetWeights);
-  const realizedOpponentCounts = Object.fromEntries(ids.map((id) => [id, 0])) as Record<string, number>;
-  blocks.forEach((block) => { realizedOpponentCounts[block.opponentId] = realizedOpponentCounts[block.opponentId]! + 1; });
-  return { targetWeights: { ...schedule.targetWeights }, blocks, realizedOpponentCounts,
-    unsampledPositiveWeightStrategies: ids.filter((id) => !realizedOpponentCounts[id]) };
-}
-
-function thresholdDecision(
-  input: CalibrationCandidateIdentity, scores: readonly number[], interval: ConfidenceBounds
-): ThresholdDecision {
-  const status: ThresholdStatus = interval.upper <= RESPONSE_THRESHOLD ? 'below'
-    : interval.lower > RESPONSE_THRESHOLD ? 'above' : 'unresolved';
-  return { ...input, blocks: scores.length, mean: mean(scores), interval, status };
-}
-
-export function classifyThreshold(input: CalibrationCandidateIdentity, scores: readonly number[],
-  alpha = SCREEN_ALPHA): ThresholdDecision {
-  return thresholdDecision(input, scores, anytimeConfidenceBounds(scores, alpha));
-}
-
-function confirmationDecisionWithBounds(
-  input: CalibrationCandidateIdentity, scores: readonly number[], interval: ConfidenceBounds
-): ConfirmationDecision {
-  const status: ConfirmationStatus = interval.lower > RESPONSE_THRESHOLD ? 'confirmed'
-    : interval.upper <= RESPONSE_THRESHOLD ? 'rejected' : 'unresolved';
-  return { ...input, blocks: scores.length, mean: mean(scores), interval, status };
-}
-
-export function orderConfirmedQueue(rows: readonly ConfirmationDecision[]): QueueOrder {
-  const ordered = [...rows].sort((left, right) => right.interval.lower - left.interval.lower
-    || right.mean - left.mean || right.interval.upper - left.interval.upper
-    || left.goldfishRank - right.goldfishRank || compareUtf16(left.strategyId, right.strategyId)
-    || compareUtf16(left.canonicalStrategy, right.canonicalStrategy));
-  const strongest = ordered[0];
-  if (!strongest) return { orderedStrategyIds: [], strongestStrategyId: null,
-    strongestTieIds: [], strongestOverlapIds: [] };
-  const tied = ordered.filter((entry) => entry.strategyId !== strongest.strategyId
-    && entry.interval.lower === strongest.interval.lower && entry.interval.upper === strongest.interval.upper
-    && entry.mean === strongest.mean).map((entry) => entry.strategyId);
-  const overlapping = ordered.filter((entry) => entry.strategyId !== strongest.strategyId
-    && entry.interval.lower <= strongest.interval.upper && strongest.interval.lower <= entry.interval.upper)
-    .map((entry) => entry.strategyId);
-  return { orderedStrategyIds: ordered.map((entry) => entry.strategyId),
-    strongestStrategyId: strongest.strategyId, strongestTieIds: tied, strongestOverlapIds: overlapping };
-}
-
-async function evaluateField(input: {
-  candidates: readonly CandidateRef[];
-  opponents: ReadonlyMap<string, Strategy>;
-  schedule: MixtureSchedule;
-  kingdomId: string;
-  runner: PairingRunner;
-  evaluate: Evaluate;
-  chunkSize: number;
-  lookId: string;
-}): Promise<{ rows: CandidateEvaluation[]; games: number; elapsedMs: number; telemetry: TelemetryAggregate }> {
-  const rows: CandidateEvaluation[] = [];
-  const telemetry = emptyAggregate();
-  let games = 0;
-  let elapsedMs = 0;
-  for (let start = 0; start < input.candidates.length; start += input.chunkSize) {
-    const field = input.candidates.slice(start, start + input.chunkSize);
-    const started = performance.now();
-    const evaluated = await input.evaluate(field.map((entry) => entry.strategy), input.opponents,
-      input.schedule, input.runner, { kingdomId: input.kingdomId, turnLimitPerPlayer: 30,
-        actionCapPerTurn: 200, startingDraftEnabled: false, scoreOnly: true, lookId: input.lookId });
-    elapsedMs += performance.now() - started;
-    if (evaluated.length !== field.length) throw new Error('Candidate evaluation returned an incomplete field.');
-    for (let index = 0; index < evaluated.length; index += 1) {
-      const row = evaluated[index]!;
-      if (row.strategy.id !== field[index]!.strategy.id || row.blockScores.length !== input.schedule.blocks.length
-        || row.matches !== input.schedule.blocks.length * GAMES_PER_SEED) {
-        throw new Error('Candidate evaluation returned invalid shared-schedule evidence.');
-      }
-      rows.push(row); games += row.matches; mergeAggregate(telemetry, row.telemetry);
-    }
-  }
-  return { rows, games, elapsedMs, telemetry };
-}
-
-export async function runThresholdRace(input: {
-  candidates: readonly CandidateRef[];
-  opponents: ReadonlyMap<string, Strategy>;
-  schedule: MixtureSchedule;
-  kingdomId: string;
-  runner: PairingRunner;
-  depths?: readonly number[];
-  evaluate?: Evaluate;
-  confidence?: ConfidenceRunner;
-  chunkSize?: number;
-  lookIdPrefix?: string;
-}): Promise<ThresholdRaceResult> {
-  const depths = input.depths ?? SCREEN_DEPTHS;
-  if (!depths.length || depths[0] !== 8 || depths.some((depth, index) => index > 0 && depth !== depths[index - 1]! * 2)
-    || input.schedule.blocks.length < depths.at(-1)!) throw new Error('Threshold screen depths are invalid.');
-  const evaluate = input.evaluate ?? evaluateCandidates;
-  const confidence = input.confidence ?? new InlineConfidenceRunner();
-  const byId = new Map(input.candidates.map((entry) => [entry.strategy.id, entry]));
-  const scores = new Map(input.candidates.map((entry) => [entry.strategy.id, [] as number[]]));
-  const below: ThresholdDecision[] = [], provisional: ThresholdDecision[] = [];
-  const telemetry = emptyAggregate(), looks: LookReport[] = [];
-  const latest = new Map<string, ThresholdDecision>();
-  let active = [...input.candidates], previous = 0, games = 0, elapsedMs = 0;
-  for (const depth of depths) {
-    if (!active.length) break;
-    const evaluated = await evaluateField({ candidates: active, opponents: input.opponents,
-      schedule: scheduleSlice(input.schedule, previous, depth), kingdomId: input.kingdomId,
-      runner: input.runner, evaluate, chunkSize: input.chunkSize ?? EVALUATION_CHUNK,
-      lookId: `${input.lookIdPrefix ?? 'threshold'}.blocks-${depth}` });
-    games += evaluated.games; elapsedMs += evaluated.elapsedMs; mergeAggregate(telemetry, evaluated.telemetry);
-    for (const row of evaluated.rows) scores.get(row.strategy.id)!.push(...row.blockScores);
-    const intervals = await confidence.run(evaluated.rows.map((row) => ({
-      values: scores.get(row.strategy.id)!, alpha: SCREEN_ALPHA
-    })));
-    const decisions = evaluated.rows.map((row, index) => thresholdDecision(
-      byId.get(row.strategy.id)!.identity, scores.get(row.strategy.id)!, intervals[index]!
-    ));
-    decisions.forEach((decision) => latest.set(decision.strategyId, decision));
-    const low = decisions.filter((entry) => entry.status === 'below');
-    const high = decisions.filter((entry) => entry.status === 'above');
-    const unresolved = decisions.filter((entry) => entry.status === 'unresolved');
-    below.push(...low); provisional.push(...high);
-    looks.push({ blocks: depth, entered: active.length, below: low.length, above: high.length,
-      unresolved: unresolved.length, games: evaluated.games, elapsedMs: evaluated.elapsedMs });
-    active = unresolved.map((entry) => byId.get(entry.strategyId)!);
-    previous = depth;
-  }
-  const unresolved = active.map((entry) => latest.get(entry.strategy.id)!);
-  return { schedule: input.schedule, looks, below, provisional, unresolved, games, elapsedMs, telemetry };
-}
-
-export async function runConfirmationRace(input: {
-  candidates: readonly CandidateRef[];
-  opponents: ReadonlyMap<string, Strategy>;
-  schedule: MixtureSchedule;
-  kingdomId: string;
-  runner: PairingRunner;
-  looks?: readonly number[];
-  evaluate?: Evaluate;
-  confidence?: ConfidenceRunner;
-  chunkSize?: number;
-  lookIdPrefix?: string;
-}): Promise<ConfirmationRaceResult> {
-  if (!input.candidates.length) throw new Error('Confirmation needs a non-empty family.');
-  const looksInput = input.looks ?? CONFIRMATION_LOOKS;
-  if (!looksInput.length || input.schedule.blocks.length < looksInput.at(-1)!
-    || looksInput.some((look, index) => index > 0 && look <= looksInput[index - 1]!)) {
-    throw new Error('Confirmation looks are invalid.');
-  }
-  const familySize = input.candidates.length;
-  const alphaPerCandidate = CONFIRMATION_FAMILY_ALPHA / familySize;
-  const evaluate = input.evaluate ?? evaluateCandidates;
-  const confidence = input.confidence ?? new InlineConfidenceRunner();
-  const byId = new Map(input.candidates.map((entry) => [entry.strategy.id, entry]));
-  const scores = new Map(input.candidates.map((entry) => [entry.strategy.id, [] as number[]]));
-  const rejected: ConfirmationDecision[] = [], confirmed: ConfirmationDecision[] = [];
-  const telemetry = emptyAggregate(), looks: LookReport[] = [];
-  const latest = new Map<string, ConfirmationDecision>();
-  let active = [...input.candidates], previous = 0, games = 0, elapsedMs = 0;
-  for (const blocks of looksInput) {
-    if (!active.length) break;
-    const evaluated = await evaluateField({ candidates: active, opponents: input.opponents,
-      schedule: scheduleSlice(input.schedule, previous, blocks), kingdomId: input.kingdomId,
-      runner: input.runner, evaluate, chunkSize: input.chunkSize ?? EVALUATION_CHUNK,
-      lookId: `${input.lookIdPrefix ?? 'confirmation'}.blocks-${blocks}` });
-    games += evaluated.games; elapsedMs += evaluated.elapsedMs; mergeAggregate(telemetry, evaluated.telemetry);
-    for (const row of evaluated.rows) scores.get(row.strategy.id)!.push(...row.blockScores);
-    const intervals = await confidence.run(evaluated.rows.map((row) => ({
-      values: scores.get(row.strategy.id)!, alpha: alphaPerCandidate
-    })));
-    const decisions = evaluated.rows.map((row, index) => confirmationDecisionWithBounds(
-      byId.get(row.strategy.id)!.identity, scores.get(row.strategy.id)!, intervals[index]!
-    ));
-    decisions.forEach((decision) => latest.set(decision.strategyId, decision));
-    const low = decisions.filter((entry) => entry.status === 'rejected');
-    const high = decisions.filter((entry) => entry.status === 'confirmed');
-    const unresolved = decisions.filter((entry) => entry.status === 'unresolved');
-    rejected.push(...low); confirmed.push(...high);
-    looks.push({ blocks, entered: active.length, rejected: low.length, confirmed: high.length,
-      unresolved: unresolved.length, games: evaluated.games, elapsedMs: evaluated.elapsedMs });
-    active = unresolved.map((entry) => byId.get(entry.strategyId)!);
-    previous = blocks;
-  }
-  const unresolved = active.map((entry) => latest.get(entry.strategy.id)!);
-  return { schedule: input.schedule, familySize, alphaPerCandidate, looks, rejected, confirmed, unresolved,
-    order: orderConfirmedQueue(confirmed), games, elapsedMs, telemetry };
-}
-
-export function cleanScansAfter(current: number, admitted: boolean, clean: boolean): number {
-  if (admitted) return 0;
-  return clean ? current + 1 : current;
-}
-
-export function actionAfterScreen(
-  screen: Pick<ThresholdRaceResult, 'provisional' | 'unresolved'>
-): 'clean' | 'confirm' {
-  return screen.provisional.length ? 'confirm' : 'clean';
-}
-
-export function actionAfterConfirmation(
-  confirmation: Pick<ConfirmationRaceResult, 'confirmed' | 'unresolved'>
-): 'empty' | 'queued' {
-  return confirmation.confirmed.length ? 'queued' : 'empty';
-}
+export const weightedFairSchedule = thresholdRacing.weightedFairSchedule;
+export const classifyThreshold = thresholdRacing.classifyThreshold;
+export const orderConfirmedQueue = thresholdRacing.orderConfirmedQueue;
+export const runThresholdRace = thresholdRacing.runThresholdRace;
+export const runConfirmationRace = thresholdRacing.runConfirmationRace;
+export const cleanScansAfter = thresholdRacing.cleanScansAfter;
+export const actionAfterScreen = thresholdRacing.actionAfterScreen;
+export const actionAfterConfirmation = thresholdRacing.actionAfterConfirmation;
 
 export function validatePilotInitialMatrixMetadata(input: {
   orderedSource: InitialMatrixSourceIdentity;

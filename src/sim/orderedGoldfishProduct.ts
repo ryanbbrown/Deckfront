@@ -2,8 +2,16 @@ import { createHash } from 'node:crypto';
 import { compareUtf16 } from './utf16';
 import { canonicalStrategy, identify, stableHash } from './strategy';
 import type { Strategy } from './strategy';
+import {
+  coprimeTraversalConfig, createOrderedCandidateSpace, orderedGoldfishCardIds
+} from './orderedGoldfishBenchmark';
+import { nativeRuleFingerprint } from './nativeGoldfishProtocol';
 
 export const ORDERED_PRODUCT_SCHEMA_VERSION = 1;
+export const CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION = 2;
+export const CURRENT_ORDERED_PRODUCT_VERSION = 'derived-ordered-product-v2' as const;
+export const ORDERED_PRODUCT_GENERATOR = 'ordered-typescript-five-rung-v1' as const;
+export const ORDERED_PRODUCT_TRAVERSAL = 'coprime-position-v1' as const;
 export const ORDERED_PRODUCT_KINGDOM = 'deep-beam-tuning-009';
 export const ORDERED_PRODUCT_SPACE_COUNT = 12_972_960;
 export const ORDERED_PRODUCT_SEEDS = [4_100_000, 4_100_001, 4_100_002, 4_100_003] as const;
@@ -20,6 +28,53 @@ export interface OrderedProductTarget {
   version: string;
   authorization: string;
   candidateProvenanceDigest: string;
+}
+
+export interface CurrentOrderedProductIdentity {
+  schemaVersion: typeof CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION;
+  version: typeof CURRENT_ORDERED_PRODUCT_VERSION;
+  kingdomId: string;
+  cardIds: string[];
+  quantityVectors: number[][];
+  skeletonCount: number;
+  candidateCount: number;
+  generator: typeof ORDERED_PRODUCT_GENERATOR;
+  traversal: typeof ORDERED_PRODUCT_TRAVERSAL;
+  traversalConfig: { strideSeed: number; offsetSeed: number; stride: number; offset: number };
+  rulesFingerprint: string;
+  seeds: number[];
+  scorerVersion: string;
+  buildVersion: string;
+  candidateProvenanceDigest: string;
+  identityHash: string;
+}
+
+export function deriveCurrentOrderedProductIdentity(input: {
+  kingdomId: string; seeds: readonly number[]; scorerVersion: string; buildVersion: string;
+}): CurrentOrderedProductIdentity {
+  if (!input.kingdomId || !input.scorerVersion || !input.buildVersion || input.seeds.length !== 4
+    || new Set(input.seeds).size !== 4
+    || input.seeds.some((seed) => !Number.isSafeInteger(seed) || seed < 0)) {
+    throw new Error('Current ordered-product identity input is invalid.');
+  }
+  const space = createOrderedCandidateSpace(orderedGoldfishCardIds(input.kingdomId));
+  const candidateSpace = { generator: ORDERED_PRODUCT_GENERATOR, traversal: ORDERED_PRODUCT_TRAVERSAL,
+    cardIds: [...space.cardIds], quantityVectors: space.quantityVectors.map((vector) => [...vector]),
+    skeletonCount: space.skeletonCount, candidateCount: space.candidateCount,
+    ...coprimeTraversalConfig(space.candidateCount), provenanceDigest: '' };
+  candidateSpace.provenanceDigest = candidateSpaceProvenanceDigest(candidateSpace);
+  const base: Omit<CurrentOrderedProductIdentity, 'identityHash'> = {
+    schemaVersion: CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION,
+    version: CURRENT_ORDERED_PRODUCT_VERSION, kingdomId: input.kingdomId,
+    cardIds: candidateSpace.cardIds, quantityVectors: candidateSpace.quantityVectors,
+    skeletonCount: candidateSpace.skeletonCount, candidateCount: candidateSpace.candidateCount,
+    generator: candidateSpace.generator, traversal: candidateSpace.traversal,
+    traversalConfig: { strideSeed: candidateSpace.strideSeed, offsetSeed: candidateSpace.offsetSeed,
+      stride: candidateSpace.stride, offset: candidateSpace.offset },
+    rulesFingerprint: nativeRuleFingerprint(input.kingdomId, 30, 200), seeds: [...input.seeds],
+    scorerVersion: input.scorerVersion, buildVersion: input.buildVersion,
+    candidateProvenanceDigest: candidateSpace.provenanceDigest };
+  return { ...base, identityHash: sha256Bytes(JSON.stringify(base)) };
 }
 
 const ORDERED_PRODUCT_TARGETS: Readonly<Record<string, OrderedProductTarget>> = Object.freeze({
@@ -42,11 +97,12 @@ export const ORDERED_PRODUCT_VERSION = ORDERED_PRODUCT_TARGETS[ORDERED_PRODUCT_K
 export const ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST =
   ORDERED_PRODUCT_TARGETS[ORDERED_PRODUCT_KINGDOM]!.candidateProvenanceDigest;
 
-export function orderedProductTarget(kingdomId: string): OrderedProductTarget {
+export function legacyOrderedProductTarget(kingdomId: string): OrderedProductTarget {
   const target = ORDERED_PRODUCT_TARGETS[kingdomId];
   if (!target) throw new Error(`Unsupported ordered product kingdom: ${kingdomId}`);
   return target;
 }
+export const orderedProductTarget = legacyOrderedProductTarget;
 
 export interface OrderedProductProfileEvidence {
   profile: string;
@@ -104,6 +160,7 @@ export interface OrderedProductConfig {
 }
 export interface OrderedProductRankedArtifact {
   schemaVersion: number;
+  productIdentity?: CurrentOrderedProductIdentity;
   version: string;
   runId: string;
   buildVersion: string;
@@ -270,18 +327,20 @@ export function provenanceDigest(shards: readonly OrderedProductShardProvenance[
     entry.contentDigest].join('\t')).join('\n'));
 }
 
-export function orderedProductSeedsValid(kingdomId: string, seeds: readonly number[]): boolean {
+export function legacyOrderedProductSeedsValid(kingdomId: string, seeds: readonly number[]): boolean {
   const exact = (expected: readonly number[]): boolean => JSON.stringify(seeds) === JSON.stringify(expected);
   return exact(ORDERED_PRODUCT_SEEDS) || kingdomId === 'deep-beam-tuning-007'
     && K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS.some(exact);
 }
+
+export const orderedProductSeedsValid = legacyOrderedProductSeedsValid;
 
 function validConfig(config: OrderedProductConfig, target: OrderedProductTarget): boolean {
   return config.kingdomId === target.kingdomId && config.candidateCount === ORDERED_PRODUCT_SPACE_COUNT
     && integer(config.retainedCount) && config.retainedCount >= 1
     && integer(config.reservoirCount) && config.reservoirCount >= 1
     && config.reservoirCount <= config.retainedCount
-    && orderedProductSeedsValid(config.kingdomId, config.seeds)
+    && legacyOrderedProductSeedsValid(config.kingdomId, config.seeds)
     && JSON.stringify(config.profiles) === JSON.stringify(ORDERED_PRODUCT_PROFILES)
     && config.turnLimit === 30 && config.actionCapPerTurn === 200
     && config.collisionAllowance === ORDERED_PRODUCT_COLLISION_ALLOWANCE;
@@ -297,11 +356,11 @@ function validShards(shards: readonly OrderedProductShardProvenance[], total: nu
     && (index === 0 || shards[index - 1]!.endPosition === entry.startPosition));
 }
 
-export function validateOrderedProductArtifact(value: unknown): value is OrderedProductRankedArtifact {
+export function validateLegacyOrderedProductArtifact(value: unknown): value is OrderedProductRankedArtifact {
   if (!object(value)) return false;
   const artifact = value as unknown as OrderedProductRankedArtifact;
   let target: OrderedProductTarget;
-  try { target = orderedProductTarget(artifact.config?.kingdomId); } catch { return false; }
+  try { target = legacyOrderedProductTarget(artifact.config?.kingdomId); } catch { return false; }
   if (artifact.schemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION || artifact.version !== target.version
     || typeof artifact.runId !== 'string' || !artifact.runId || typeof artifact.buildVersion !== 'string'
     || typeof artifact.ruleFingerprint !== 'string' || typeof artifact.scorerVersion !== 'string'
@@ -330,6 +389,56 @@ export function validateOrderedProductArtifact(value: unknown): value is Ordered
     displayIds.add(entry.displayId); canonicalStrategies.add(entry.canonicalStrategy);
   }
   return true;
+}
+
+export function validateCurrentOrderedProductArtifact(value: unknown): value is OrderedProductRankedArtifact {
+  if (!object(value)) return false;
+  const artifact = value as unknown as OrderedProductRankedArtifact;
+  const identity = artifact.productIdentity;
+  if (artifact.schemaVersion !== CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION || artifact.version !== CURRENT_ORDERED_PRODUCT_VERSION
+    || !identity || artifact.config?.kingdomId !== identity.kingdomId || artifact.config.candidateCount !== identity.candidateCount
+    || JSON.stringify(artifact.config.seeds) !== JSON.stringify(identity.seeds)
+    || artifact.ruleFingerprint !== identity.rulesFingerprint || artifact.scorerVersion !== identity.scorerVersion
+    || artifact.buildVersion !== identity.buildVersion || artifact.candidateSpace?.provenanceDigest !== identity.candidateProvenanceDigest) {
+    return false;
+  }
+  try {
+    const expected = deriveCurrentOrderedProductIdentity({ kingdomId: identity.kingdomId, seeds: identity.seeds,
+      scorerVersion: identity.scorerVersion, buildVersion: identity.buildVersion });
+    if (JSON.stringify(identity) !== JSON.stringify(expected) || identity.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT) return false;
+  } catch { return false; }
+  if (artifact.candidateSpace.generator !== ORDERED_PRODUCT_GENERATOR
+    || artifact.candidateSpace.traversal !== ORDERED_PRODUCT_TRAVERSAL
+    || candidateSpaceProvenanceDigest(artifact.candidateSpace) !== identity.candidateProvenanceDigest
+    || !integer(artifact.config.retainedCount) || artifact.config.retainedCount < 1
+    || !integer(artifact.config.reservoirCount) || artifact.config.reservoirCount < 1
+    || artifact.config.reservoirCount > artifact.config.retainedCount
+    || JSON.stringify(artifact.config.profiles) !== JSON.stringify(ORDERED_PRODUCT_PROFILES)
+    || artifact.config.turnLimit !== 30 || artifact.config.actionCapPerTurn !== 200
+    || artifact.config.collisionAllowance !== ORDERED_PRODUCT_COLLISION_ALLOWANCE
+    || !Array.isArray(artifact.records) || artifact.records.length !== artifact.config.retainedCount
+    || !Array.isArray(artifact.stageOneShards) || !Array.isArray(artifact.stageTwoShards)
+    || !validShards(artifact.stageOneShards, identity.candidateCount)
+    || !validShards(artifact.stageTwoShards, artifact.config.retainedCount)
+    || provenanceDigest(artifact.stageOneShards) !== artifact.stageOneProvenanceDigest
+    || provenanceDigest(artifact.stageTwoShards) !== artifact.stageTwoProvenanceDigest) return false;
+  const stageOneOrder = [...artifact.records].sort(compareStageOneRecords);
+  const stageOneRank = new Map(stageOneOrder.map((entry, index) => [entry.canonicalStrategy, index + 1]));
+  const displayIds = new Set<string>(), canonicalStrategies = new Set<string>();
+  for (let index = 0; index < artifact.records.length; index += 1) {
+    const entry = artifact.records[index]!;
+    if (!validateOrderedProductRankedRecord(entry) || entry.stageOneRank !== stageOneRank.get(entry.canonicalStrategy)
+      || entry.rank !== index + 1 || (index && compareRankedRecords(artifact.records[index - 1]!, entry) > 0)
+      || displayIds.has(entry.displayId) || canonicalStrategies.has(entry.canonicalStrategy)) return false;
+    displayIds.add(entry.displayId); canonicalStrategies.add(entry.canonicalStrategy);
+  }
+  return true;
+}
+
+export function validateOrderedProductArtifact(value: unknown): value is OrderedProductRankedArtifact {
+  if (!object(value)) return false;
+  return value.schemaVersion === CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION
+    ? validateCurrentOrderedProductArtifact(value) : validateLegacyOrderedProductArtifact(value);
 }
 
 export function buildOrderedProductReservoir(
