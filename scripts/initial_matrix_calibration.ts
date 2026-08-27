@@ -14,7 +14,7 @@ import {
 import type {
   InitialMatrixCellSeries, InitialMatrixChunk, InitialMatrixManifest
 } from '../src/sim/initialMatrixCalibration';
-import { orderedProductTarget } from '../src/sim/orderedGoldfishProduct';
+import { ORDERED_PRODUCT_SEEDS, orderedProductTarget } from '../src/sim/orderedGoldfishProduct';
 import { GAMES_PER_SEED } from '../src/sim/pairing';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import type { PairingJob } from '../src/sim/pairingRunner';
@@ -200,9 +200,11 @@ if (!kingdom) throw new Error(`Supported ordered kingdom is not registered: ${op
 registerKingdom(kingdom);
 validateOrderedArtifacts(options);
 const rankedSha256 = sha256File(options.rankedFile), reservoirSha256 = sha256File(options.reservoirFile);
+const expectedSeeds = options.shuffleSeeds
+  ? options.shuffleSeeds.split(',').map((seed) => Number(seed)) : ORDERED_PRODUCT_SEEDS;
 const validated = validateOrderedCalibrationSource({ kingdomId: options.kingdomId,
   ranked: readJson<unknown>(options.rankedFile), reservoir: readJson<unknown>(options.reservoirFile),
-  rankedSha256, reservoirSha256 });
+  rankedSha256, reservoirSha256, expectedSeeds });
 const expectedManifest = createInitialMatrixManifest({ source: validated.source, strategies: validated.strategies,
   maxSeedCount: options.maxSeedCount, chunkSize: options.chunkSize });
 const manifestFile = path.join(options.outputRoot, 'manifest.json');

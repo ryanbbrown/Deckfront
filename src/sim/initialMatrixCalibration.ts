@@ -173,6 +173,7 @@ export function validateOrderedCalibrationSource(input: {
   reservoir: unknown;
   rankedSha256: string;
   reservoirSha256: string;
+  expectedSeeds?: readonly number[];
 }): { source: InitialMatrixSourceIdentity; strategies: Strategy[] } {
   if (!ORDERED_PRODUCT_SUPPORTED_KINGDOMS.includes(input.kingdomId)) {
     throw new Error(`Unsupported ordered product kingdom: ${input.kingdomId}`);
@@ -188,7 +189,7 @@ export function validateOrderedCalibrationSource(input: {
   if (ranked.schemaVersion !== 1 || ranked.version !== target.version || ranked.config?.kingdomId !== input.kingdomId
     || ranked.config.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT || ranked.config.retainedCount !== 500_000
     || ranked.recordCount !== ranked.config.retainedCount || ranked.config.reservoirCount !== 20_000
-    || !exact(ranked.config.seeds, ORDERED_PRODUCT_SEEDS) || ranked.config.turnLimit !== 30
+    || !exact(ranked.config.seeds, input.expectedSeeds ?? ORDERED_PRODUCT_SEEDS) || ranked.config.turnLimit !== 30
     || ranked.config.actionCapPerTurn !== 200 || ranked.ruleFingerprint !== expectedRules
     || ranked.candidateSpace?.provenanceDigest !== target.candidateProvenanceDigest
     || reservoir.schemaVersion !== 1 || reservoir.version !== ranked.version || reservoir.runId !== ranked.runId
