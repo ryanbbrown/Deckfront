@@ -20,7 +20,8 @@ export interface StrategySearchRemoteStatus {
     | 'complete' | 'failed';
   report?: Record<string, unknown>; startedMs?: number; usefulWorkStartedMs?: number;
   failedMs?: number; failure?: string;
-  activeTaskCount?: number; completedTaskCount?: number; activeCpus?: number; activeStages?: string[];
+  activeTaskCount?: number | null; submittedTaskCount?: number; completedTaskCount?: number;
+  activeCpus?: number | null; submittedCpus?: number; activeStages?: string[];
 }
 type Awaitable<T> = T | Promise<T>;
 export interface StrategySearchOperatorAdapter {
@@ -39,12 +40,18 @@ export function executableSourcePaths(root: string): string[] {
 }
 export function deriveTrackedStrategySearchSourceImage(root: string): SourceImageIdentity {
   const expectedPaths = executableSourcePaths(root);
+  const scientificPaths = JSON.parse(fs.readFileSync(path.join(root,
+    'strategy-search-scientific-files.json'), 'utf8')) as unknown;
+  if (!Array.isArray(scientificPaths) || scientificPaths.some((entry) => typeof entry !== 'string')
+    || scientificPaths.some((entry) => !expectedPaths.includes(entry))) {
+    throw new Error('Scientific source allowlist is invalid.');
+  }
   const tracked = new Set(git(root, ['ls-files', '-z']).split('\0').filter(Boolean));
   const missing = expectedPaths.filter((entry) => !tracked.has(entry) || !fs.existsSync(path.join(root, entry)));
   if (missing.length) throw new Error(`Executable image allowlist has missing or untracked files: ${missing.join(', ')}`);
   const dirty = git(root, ['status', '--porcelain=v1', '-z', '--untracked-files=all']).split('\0').filter(Boolean)
     .map((entry) => entry.slice(3)).filter((entry) => expectedPaths.includes(entry));
-  return deriveSourceImageIdentity({ expectedPaths, dirtyExecutablePaths: dirty,
+  return deriveSourceImageIdentity({ expectedPaths, scientificPaths, dirtyExecutablePaths: dirty,
     files: expectedPaths.map((relative) => ({ path: relative, content: fs.readFileSync(path.join(root, relative)) })) });
 }
 function lastJson(output: string): unknown {
@@ -150,8 +157,8 @@ export class ModalStrategySearchOperatorAdapter implements StrategySearchOperato
       const outcome = JSON.parse(fs.readFileSync(path.join(input.destinationRoot, 'report.json'), 'utf8')) as unknown;
       for (const task of input.bundle.tasks.filter((entry) => entry.stage === 'psro')) {
         const evidenceRoot = path.join(input.destinationRoot, 'evidence', task.evidenceId);
-        for (const [stage, relative] of [['goldfish-one-reduce', 'goldfish/top-500000.json'],
-          ['goldfish-two-reduce', 'goldfish/reservoir.json'], ['matrix', 'matrix/evidence.json'],
+        for (const [stage, relative] of [['goldfish-one-reduce', 'goldfish/top-500000.hgf'],
+          ['goldfish-two-reduce', 'goldfish/reservoir.hgf'], ['matrix', 'matrix/evidence.json'],
           ['psro', 'psro/evidence.json']] as const) {
           execFileSync('npx', ['tsx', 'scripts/strategy_search_validate_artifact.ts', '--stage', stage,
             '--file', path.join(evidenceRoot, relative), '--evidence-id', task.evidenceId,

@@ -9,7 +9,7 @@ The command accepts one JSON request with exactly two fields:
 }
 ```
 
-`kingdomIds` must be a nonempty ordered list of unique registered IDs. `maxActiveCpus` must be a safe integer of at least 10. Ten CPUs are required for the measured whole-stage Goldfish stage-two shape. The command rejects all other fields.
+`kingdomIds` must be a nonempty ordered list of unique registered IDs. `maxActiveCpus` must be a safe integer of at least 4. Four CPUs are the smallest measured useful whole-stage shape. The command rejects all other fields.
 
 The command has no kingdom, seed, shard, worker, or container defaults from operator input. It derives those values from the registered kingdoms, fixed protocols, the measured Goldfish profile, and observed runtime performance.
 
@@ -21,7 +21,7 @@ Run `plan` from a clean committed worktree:
 npm run strategy-search:campaign -- plan --request /tmp/strategy-search-request.json
 ```
 
-`plan` makes no Modal call. It checks every requested kingdom, derives its 12,972,960-candidate space, and checks the exact executable image allowlist in `strategy-search-image-files.json`.
+`plan` makes no Modal call. It checks every requested kingdom, derives its 12,972,960-candidate space, and checks the deployment allowlist in `strategy-search-image-files.json` and scientific allowlist in `strategy-search-scientific-files.json`.
 
 The output includes:
 
@@ -52,7 +52,7 @@ A changed `maxActiveCpus` value needs a new token. The existing execution keeps 
 
 The scheduler pools ready Goldfish jobs across all kingdoms. A kingdom starts Matrix as soon as its reservoir validates, then starts PSRO as soon as its Matrix validates. Ready Matrix and PSRO work has priority, but the scheduler continues to admit bounded Goldfish work.
 
-Workers write only launch-scoped temporary files. One serialized publisher validates the task lease, controller fence, launch intent, bytes, and deterministic path. The publisher then renames and commits a batch of ready files and writes publication receipts. A retry cannot overwrite different bytes.
+Workers write only launch-scoped temporary files. Each worker validates its temporary file once and returns the file digest. One serialized publisher checks that digest, the task lease, controller fence, launch intent, bytes, and deterministic path. The publisher then renames and commits a batch of ready files and writes publication receipts. A retry cannot overwrite different bytes.
 
 A complete kingdom is reusable by any later request that has the same per-kingdom evidence ID. No campaign-state import or source repair exists.
 
@@ -64,13 +64,14 @@ npm run strategy-search:campaign -- status --request /tmp/strategy-search-reques
 
 `status` calls one bounded read-only Modal function in the separate small control app and image. It reads execution state directly from the Volume. It does not depend on the Node, Rust, or simulation image and cannot start a controller or enqueue work. The local Modal command also has a 90-second hard timeout.
 
-Status reports the exact phase: `image-preparing`, `startup-failed`, `controller-starting`, `controller-running`, `complete`, or `failed`. A deploy or readiness failure persists `startup-failed` with the bounded Modal error instead of leaving the phase as `image-preparing`. Status uses `running` only after a fenced state save proves that a task is active or complete. It reports the acceptance-clock start, useful-work start, controller fence, active and completed task counts, active CPUs, active stages, and per-stage totals before the final report exists.
+Status reports the exact phase: `image-preparing`, `startup-failed`, `controller-starting`, `controller-running`, `complete`, or `failed`. A deploy or readiness failure persists `startup-failed` with the bounded Modal error instead of leaving the phase as `image-preparing`. Status uses `running` only after a fenced launch preparation or completion. Before worker events return, status reports submitted tasks and submitted CPUs instead of claiming that containers are running. It reports the acceptance-clock start, useful-work start, controller fence, submitted and completed task counts, submitted CPUs, stages, and per-stage totals before the final report exists.
 
 The final report includes:
 
 - critical-path and stage wall time;
-- peak and average active CPUs;
-- CPU use and one reason for every unused CPU interval;
+- peak and average running CPUs from worker start and finish events;
+- peak and average submitted CPUs as separate values;
+- CPU use and one reason for every unused running-CPU interval;
 - candidate throughput;
 - bytes read and written;
 - Goldfish intermediate I/O ratio;
@@ -85,7 +86,7 @@ The final report includes:
 .data/strategy-search/<campaign-execution-id>/
 ```
 
-The directory contains `report.json` and the final Goldfish, Matrix, and PSRO evidence for each requested evidence ID. Runtime chunks and temporary launch files stay on the Volume.
+The directory contains `report.json`, `goldfish/top-500000.hgf`, `goldfish/reservoir.hgf`, and the final Matrix and PSRO JSON evidence for each requested evidence ID. Runtime chunks and temporary launch files stay on the Volume.
 
 A `terminal-incomplete` PSRO result is a failed run. Analytics and balance reports run later and do not change strategy-search completion.
 

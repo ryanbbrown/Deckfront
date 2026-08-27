@@ -1,6 +1,4 @@
 import { createHash } from 'node:crypto';
-import type { GoldfishArtifactV3, GoldfishReservoirV3 } from './strategySearchCompact';
-import { validateGoldfishArtifactV3, validateGoldfishReservoirV3 } from './strategySearchCompact';
 import {
   ORDERED_PRODUCT_GENERATOR, ORDERED_PRODUCT_TRAVERSAL, validateOrderedProductArtifact,
   validateOrderedProductReservoir
@@ -55,19 +53,13 @@ export function validateCampaignStageControlMarker(value: unknown,
   } catch { return false; }
 }
 export function validateCampaignGoldfishStage(input: { evidenceId?: string; stageId?: string;
-  ranked: GoldfishArtifactV3 | unknown; reservoir: GoldfishReservoirV3 | unknown;
+  ranked: unknown; reservoir: unknown;
   rankedSha256?: string; reservoirSha256?: string; rankedSidecarContent?: string;
   reservoirSidecarContent?: string; fileHashes: Readonly<Record<string, string>>; marker: unknown }): boolean {
   const evidenceId = input.evidenceId ?? input.stageId ?? '';
   const expected = createCampaignStageControlMarker({ stage: 'goldfish', evidenceId, status: 'complete',
     artifactHashes: input.fileHashes });
   if (!validateCampaignStageControlMarker(input.marker, expected)) return false;
-  const ranked = input.ranked as GoldfishArtifactV3;
-  if (ranked.schemaVersion === 3) {
-    const reservoir = input.reservoir as GoldfishReservoirV3;
-    return ranked.evidenceId === evidenceId && validateGoldfishArtifactV3(ranked)
-      && reservoir.evidenceId === evidenceId && validateGoldfishReservoirV3(reservoir, ranked);
-  }
   if (!validateOrderedProductArtifact(input.ranked) || !input.rankedSha256 || !input.reservoirSha256
     || !validateOrderedProductReservoir(input.reservoir, input.ranked, input.rankedSha256)
     || input.ranked.scorerVersion !== NATIVE_GOLDFISH_SCORER_VERSION

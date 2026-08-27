@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  bindLaunchIntent, claimTaskLease, createStagePartition, deriveExecutionPolicy, goldfishIoRatio,
-  heartbeatTaskLease, planRuntimeTick, publishTaskBatch, repartitionUnlaunchedSuffix,
+  bindLaunchIntent, claimTaskLease, createStagePartition, deriveExecutionPolicy, deriveRunningCpuIntervals,
+  goldfishIoRatio, heartbeatTaskLease, planRuntimeTick, publishTaskBatch, repartitionUnlaunchedSuffix,
   summarizeUtilization, validateMonotonicPhases
 } from '../../src/sim/strategySearchScheduler';
 import type { PublicationState, RuntimeJob } from '../../src/sim/strategySearchScheduler';
@@ -16,14 +16,15 @@ const evidenceId = 'a'.repeat(64);
 describe('scalable strategy-search execution policy', () => {
   it('derives useful 15-to-60-second jobs and a precise capacity floor', () => {
     const policy = deriveExecutionPolicy({ maxActiveCpus: 400 });
-    expect(policy).toMatchObject({ goldfishJobCpus: 4, goldfishStageTwoCpus: 10,
-      stageTwoCandidatesPerJob: 500_000, matrixCpus: 4, psroCpus: 4,
-      capacityFloor: 10, maxActiveGoldfishJobs: 100 });
+    expect(policy).toMatchObject({ goldfishJobCpus: 4, goldfishStageTwoCpus: 4,
+      matrixCpus: 4, psroCpus: 8, capacityFloor: 4, maxActiveGoldfishJobs: 100 });
+    expect(policy.stageTwoCandidatesPerJob).toBeLessThanOrEqual(60_000);
+    expect(policy.stageTwoCandidatesPerJob).toBeGreaterThan(10_000);
     expect(policy.expectedJobMs).toBeGreaterThanOrEqual(15_000);
     expect(policy.expectedJobMs).toBeLessThanOrEqual(60_000);
     expect(policy.expectedStageTwoJobMs).toBeGreaterThanOrEqual(15_000);
     expect(policy.expectedStageTwoJobMs).toBeLessThanOrEqual(60_000);
-    expect(() => deriveExecutionPolicy({ maxActiveCpus: 9 })).toThrow('at least 10');
+    expect(() => deriveExecutionPolicy({ maxActiveCpus: 3 })).toThrow('at least 4');
   });
 
   it('pins a complete partition and changes only an untouched suffix', () => {
@@ -78,6 +79,21 @@ describe('scalable strategy-search execution policy', () => {
     expect(validateMonotonicPhases(phases)).toBe(true);
     expect(goldfishIoRatio([phases])).toBeLessThan(0.05);
     expect(validateMonotonicPhases({ ...phases, elapsedMs: 90 })).toBe(false);
+  });
+
+  it('reports running CPU from worker events and submitted CPU separately', () => {
+    const submitted = [{ startMs: 0, endMs: 100, allocatedCpus: 8, unusedCpus: 0, reason: null }];
+    const running = deriveRunningCpuIntervals({ startMs: 0, endMs: 100, maxActiveCpus: 8, submitted,
+      attempts: [{ submittedMs: 0, workerStartedMs: 20, workerFinishedMs: 80, cpus: 4 },
+        { submittedMs: 0, workerStartedMs: 40, workerFinishedMs: 90, cpus: 4 }] });
+    expect(running).toEqual([
+      { startMs: 0, endMs: 20, allocatedCpus: 0, unusedCpus: 8, reason: 'modal-queue-delay' },
+      { startMs: 20, endMs: 40, allocatedCpus: 4, unusedCpus: 4, reason: 'modal-queue-delay' },
+      { startMs: 40, endMs: 80, allocatedCpus: 8, unusedCpus: 0, reason: null },
+      { startMs: 80, endMs: 90, allocatedCpus: 4, unusedCpus: 4, reason: 'modal-queue-delay' },
+      { startMs: 90, endMs: 100, allocatedCpus: 0, unusedCpus: 8, reason: 'modal-queue-delay' }
+    ]);
+    expect(summarizeUtilization(running, 8).allocatedCpuSeconds).toBe(0.44);
   });
 });
 

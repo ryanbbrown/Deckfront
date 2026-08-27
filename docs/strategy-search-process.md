@@ -27,15 +27,15 @@ Goldfish ranking uses three movement profiles: stationary, chaser, and kiter.
 - Score all 12,972,960 strategies with the first fixed seed and all three movement profiles.
 - Each runtime job writes every score in its contiguous range once to a sorted 96-byte binary record.
 - One reducer reads each compact record once, checks exact range coverage, and keeps the best 500,000 unique strategies.
-- The schema-3 top-500,000 artifact contains first-seed evidence and stage-one rank. It does not contain provisional four-seed ranks.
+- The schema-4 top-500,000 artifact is a streamed fixed-frame binary file. Each 64-byte record stores only traversal position and primitive profile metrics. Record order supplies stage-one rank. Strategy JSON, canonical strategy, display ID, and ranking keys are reconstructed from traversal position when needed.
 - Work: 38,918,880 goldfish profile trials.
 
 ### Stage 2
 
-- Read the retained top 500,000 once in one measured 10-CPU job.
-- Score each retained strategy once with the other three fixed seeds and all three movement profiles.
+- Split the retained top 500,000 into four-CPU jobs sized for 15 to 60 seconds. Each job reads only its fixed-width range.
+- Score each retained strategy once with the other three fixed seeds and all three movement profiles. Native scorer request frames contain at most 4,096 strategies and 8 MiB.
 - Combine all four seeds in one deterministic reducer.
-- Keep the best 20,000 strategies in ranked order.
+- Keep the best 20,000 strategies in ranked order. The schema-4 reservoir stores only traversal position and the two sets of primitive profile metrics.
 - Work: 4,500,000 additional goldfish profile trials.
 
 The four seeds are `4,100,000` through `4,100,003` for every kingdom. Runtime range size, CPU count, task count, completion order, retries, and Modal call IDs do not change final bytes.
@@ -60,13 +60,15 @@ The matrix uses:
 - ordinals 1–100 as a saved depth diagnostic;
 - ordinals 101–125 for held-out lottery-versus-itself acquisition evidence.
 
-The clean K007 build took 2 minutes 54 seconds in the current TypeScript implementation. Simulation calls took 102.6 seconds. Most remaining time came from tiny checkpoint files and orchestration. Balanced worker batches and larger checkpoints should reduce this stage to 45–75 seconds locally. Full-telemetry Rust can be considered later if repeated work justifies a 25–50 second target.
+A local production-shape benchmark evaluated all 318,750 games in 96.375 seconds with four workers and 92.723 seconds with eight workers. Eight workers improved wall time by only 3.8%, so the runtime selects four Matrix workers as the smallest shape within 10% of the fastest measured result.
 
 ## 3. Search for responses
 
 Start with the P75 equilibrium over the initial 50 strategies. Every candidate plays a deterministic schedule that follows the current lottery weights as closely as integer seed counts allow. Opponents are not sampled independently at random.
 
 The material-response threshold is 51%.
+
+A local K007 benchmark used the production 30-turn limit for 1,000 candidates and eight blocks. It took 1.935 seconds with four workers and 1.760 seconds with eight workers. The runtime therefore selects the faster eight-worker PSRO shape when capacity permits. PSRO Volume checkpoints are committed in batches of 20 checkpoint events instead of after every candidate chunk.
 
 ### Screening
 
@@ -169,17 +171,17 @@ The runtime uses:
 - exactly three allowlist-backed source-copy layers: Node manifests, Rust build inputs, and final application sources;
 - one explicit versioned deployment boundary that streams image-build progress and verifies the exact deployed readiness function;
 - one dependency-free control app that prepares execution state after readiness and serves bounded read-only status;
-- one lightweight runtime that calls the deployed controller and accepts startup only after a fenced active or completed task;
+- one lightweight runtime that calls the deployed controller and accepts startup only after a fenced submitted or completed task;
 - one shared Modal Volume;
 - one global queue for Goldfish jobs from every ready kingdom;
 - one whole Matrix stage and one whole PSRO stage per ready kingdom;
-- per-task leases, controller fences, launch-scoped temporary files, and serialized publication receipts.
+- per-task leases, controller fences, launch-scoped temporary files, and serialized publication receipts. Workers validate temporary artifacts before publication. The publisher checks the validation digest, lease, fence, path, and bytes, then performs the atomic rename.
 
-A per-kingdom evidence ID contains only scientific and final-format inputs. A campaign execution ID contains the ordered evidence IDs. Capacity and runtime topology are not scientific identity. A later request reuses a complete matching kingdom directly.
+A per-kingdom evidence ID uses the scientific source digest and final-format inputs. The deployment digest also covers the scheduler, controller, publisher, and status code. A runtime-only change creates a new deployment but keeps the same evidence ID. A campaign execution ID contains the ordered evidence IDs. Capacity and runtime topology are not scientific identity.
 
 Matrix schema 4 stores cells, seed ordinals, telemetry, and equilibrium inputs in fixed semantic order. Runtime Matrix chunks do not enter final identity. PSRO schema 3 removes candidate chunk ranges, chunk hashes, paths, workers, and timings before final serialization.
 
-Every unused CPU interval has exactly one reason: Modal rejection, retry backoff, reserved downstream work, minimum useful job size, insufficient ready work, or the final tail.
+Worker start and finish events determine running CPU intervals. Submitted CPUs are reported separately, so Modal queue time cannot appear as running CPU use. Every unused running-CPU interval has one reason, including Modal queue delay, Modal rejection, retry backoff, reserved downstream work, minimum useful job size, insufficient ready work, or the final tail.
 
 ## Cost and failure policy
 

@@ -16,7 +16,10 @@ function fixture() { const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck
   execFileSync('git', ['init', '-q'], { cwd: root }); execFileSync('git', ['config', 'user.email', 'fixture@example.com'], { cwd: root });
   execFileSync('git', ['config', 'user.name', 'Fixture'], { cwd: root });
   fs.writeFileSync(path.join(root, 'package.json'), '{"name":"fixture"}\n');
-  fs.writeFileSync(path.join(root, 'strategy-search-image-files.json'), '["package.json","strategy-search-image-files.json"]\n');
+  fs.writeFileSync(path.join(root, 'strategy-search-scientific-files.json'),
+    '["package.json","strategy-search-scientific-files.json"]\n');
+  fs.writeFileSync(path.join(root, 'strategy-search-image-files.json'),
+    '["package.json","strategy-search-image-files.json","strategy-search-scientific-files.json"]\n');
   execFileSync('git', ['add', '.'], { cwd: root }); execFileSync('git', ['commit', '-qm', 'fixture'], { cwd: root });
   const requestFile = path.join(root, 'request.json'); fs.writeFileSync(requestFile,
     '{"kingdomIds":["deep-beam-tuning-007"],"maxActiveCpus":400}\n');
@@ -102,9 +105,10 @@ describe('strategy-search operator', () => {
     try { const bundle = createStrategySearchLaunchBundle(held.parsed), stageOne = bundle.jobs.filter((job) => job.stage === 'goldfish-one');
       expect(stageOne.length).toBeGreaterThan(100);
       expect(bundle.partitions[`${held.parsed.kingdoms[0]!.evidenceId}:goldfish-one`]?.jobs).toHaveLength(stageOne.length);
-      expect(bundle.jobs.filter((job) => job.stage === 'goldfish-two')).toHaveLength(1);
-      expect(bundle.jobs.find((job) => job.stage === 'goldfish-two')).toMatchObject({ cpus: 10,
-        range: { start: 0, end: 500_000 } });
+      const stageTwo = bundle.jobs.filter((job) => job.stage === 'goldfish-two');
+      expect(stageTwo.length).toBeGreaterThan(10);
+      expect(stageTwo.every((job) => job.cpus === 4
+        && job.range && job.range.end - job.range.start <= 60_000)).toBe(true);
       expect(JSON.stringify(held.parsed.kingdoms[0])).not.toContain('maxActiveCpus');
       expect(JSON.stringify(held.parsed.kingdoms[0])).not.toContain('worker');
       expect(bundle.tasks.every((task) => task.artifactPath.startsWith(`evidence/${task.evidenceId}/`))).toBe(true);

@@ -158,8 +158,10 @@ def read_status(campaign_execution_id: str) -> dict[str, Any]:
         "phase": phase, "report": state.get("report"), "startedMs": state.get("startedMs"),
         "usefulWorkStartedMs": state.get("usefulWorkStartedMs"),
         "controllerFence": state.get("controllerFence", 0),
-        "activeTaskCount": len(active), "completedTaskCount": len(complete),
-        "activeCpus": sum(job.get("cpu", job.get("cpus", 0)) for job in active),
+        "activeTaskCount": None, "submittedTaskCount": len(active), "completedTaskCount": len(complete),
+        "activeCpus": None,
+        "submittedCpus": sum(job.get("cpu", job.get("cpus", 0)) for job in active),
+        "runningCpuObservation": "worker-events-available-after-attempt",
         "activeStages": sorted({job["stage"] for job in active}), "stageCounts": stage_counts}
 
 

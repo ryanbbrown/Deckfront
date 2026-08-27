@@ -183,7 +183,7 @@ npm run strategy-search:campaign -- status --request REQUEST.json
 npm run strategy-search:campaign -- run --request REQUEST.json --authorize TOKEN
 ```
 
-`plan` makes no Modal call. Every `run` needs the exact token printed for that request and capacity. `run` explicitly deploys and verifies a versioned compute app before it starts the timed campaign. `status` is bounded and read-only. The runtime has no paused-campaign import, source repair, manual launch recovery, or code-level cost gate. Final artifacts live under per-kingdom evidence IDs, so a later request can reuse a complete matching kingdom. Use [the operator guide](docs/strategy-search-campaign-operator.md) for the request contract, authorization, status, output, and the K007 smoke boundary.
+`plan` makes no Modal call. Every `run` needs the exact token printed for that request and capacity. `run` deploys and verifies a versioned compute app before it starts the timed campaign. `status` is bounded and read-only. Goldfish schema 4 streams fixed binary records and reconstructs strategies from traversal positions. Scientific source identity is separate from deployment identity. The runtime has no paused-campaign import, source repair, manual launch recovery, or code-level cost gate. Use [the operator guide](docs/strategy-search-campaign-operator.md) for the request contract, authorization, status, output, and K007 smoke boundary.
 
 The ordered Kingdom 009 benchmark streams bounded chunks and folds candidate and ranking digests in traversal order. The original, lean TypeScript, and standalone Rust paths must return the same digest.
 

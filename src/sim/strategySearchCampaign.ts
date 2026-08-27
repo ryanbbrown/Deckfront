@@ -10,13 +10,13 @@ import {
 } from './orderedGoldfishProduct';
 
 export const STRATEGY_SEARCH_CAMPAIGN_SCHEMA_VERSION = 2 as const;
-export const STRATEGY_SEARCH_ARTIFACT_SCHEMA_VERSION = 3 as const;
+export const STRATEGY_SEARCH_ARTIFACT_SCHEMA_VERSION = 4 as const;
 export const CAMPAIGN_MATRIX_SCHEMA_VERSION = 4 as const;
 export const CAMPAIGN_PSRO_SCHEMA_VERSION = 3 as const;
 export const STRATEGY_SEARCH_SIMULATOR_VERSION = 'strategy-search-simulator-v2' as const;
 export const STRATEGY_SEARCH_CAMPAIGN_VOLUME_NAME = 'hexdeck-native-strategy-results' as const;
 export const STRATEGY_SEARCH_DOWNLOAD_ROOT = '.data/strategy-search' as const;
-export const STRATEGY_SEARCH_MIN_CAPACITY = 10;
+export const STRATEGY_SEARCH_MIN_CAPACITY = 4;
 export const MATRIX_SEED_NAMESPACE = 'strategy-search-matrix-v2' as const;
 export const PSRO_SCREEN_SEED_NAMESPACE = 'strategy-search-psro-screen-v2' as const;
 export const PSRO_CONFIRMATION_SEED_NAMESPACE = 'strategy-search-psro-confirmation-v2' as const;
@@ -57,6 +57,8 @@ export function parseStrategySearchRequest(value: unknown): StrategySearchReques
 
 const sourceImageSchema = z.object({
   digest: sha,
+  scientificDigest: sha,
+  scientificPaths: z.array(z.string().min(1)).min(1),
   files: z.array(z.object({ path: z.string().min(1), bytes: nonnegative, sha256: sha }).strict()).min(1)
 }).strict();
 export type SourceImageIdentity = z.infer<typeof sourceImageSchema>;
@@ -76,6 +78,7 @@ export function deriveSourceImageIdentity(input: {
   files: readonly { path: string; content: string | Uint8Array }[];
   dirtyExecutablePaths?: readonly string[];
   expectedPaths?: readonly string[];
+  scientificPaths?: readonly string[];
 }): SourceImageIdentity {
   if (input.dirtyExecutablePaths?.length) {
     throw new Error(`Executable source has dirty paths: ${input.dirtyExecutablePaths.join(', ')}`);
@@ -95,8 +98,16 @@ export function deriveSourceImageIdentity(input: {
       throw new Error('Executable source files differ from the image allowlist.');
     }
   }
-  return sourceImageSchema.parse({ files,
-    digest: sha256(files.map((file) => `${file.path}\0${file.bytes}\0${file.sha256}\n`).join('')) });
+  const scientificPaths = input.scientificPaths ? [...input.scientificPaths].map(normalizedRelativePath).sort()
+    : files.map((file) => file.path);
+  const scientific = files.filter((file) => scientificPaths.includes(file.path));
+  if (!scientific.length || JSON.stringify(scientific.map((file) => file.path)) !== JSON.stringify(scientificPaths)) {
+    throw new Error('Scientific source files differ from the scientific allowlist.');
+  }
+  const digestInput = (held: typeof files): string => held.map((file) =>
+    `${file.path}\0${file.bytes}\0${file.sha256}\n`).join('');
+  return sourceImageSchema.parse({ files, digest: sha256(digestInput(files)), scientificPaths,
+    scientificDigest: sha256(digestInput(scientific)) });
 }
 export function validateSourceImageIdentity(value: unknown): value is SourceImageIdentity {
   const parsed = sourceImageSchema.safeParse(value);
@@ -105,26 +116,35 @@ export function validateSourceImageIdentity(value: unknown): value is SourceImag
     const files = parsed.data.files;
     if (new Set(files.map((file) => normalizedRelativePath(file.path))).size !== files.length) return false;
     const sorted = [...files].sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
+    const scientificPaths = parsed.data.scientificPaths.map(normalizedRelativePath);
+    const scientific = files.filter((file) => scientificPaths.includes(file.path));
+    const digestInput = (held: typeof files): string => held.map((file) =>
+      `${file.path}\0${file.bytes}\0${file.sha256}\n`).join('');
     return JSON.stringify(files) === JSON.stringify(sorted)
-      && parsed.data.digest === sha256(files.map((file) => `${file.path}\0${file.bytes}\0${file.sha256}\n`).join(''));
+      && JSON.stringify(scientificPaths) === JSON.stringify([...scientificPaths].sort())
+      && JSON.stringify(scientific.map((file) => file.path)) === JSON.stringify(scientificPaths)
+      && parsed.data.digest === sha256(digestInput(files))
+      && parsed.data.scientificDigest === sha256(digestInput(scientific));
   } catch { return false; }
 }
 export function verifySourceImageFiles(identity: SourceImageIdentity,
-  files: readonly { path: string; content: string | Uint8Array }[]): boolean {
+  files: readonly { path: string; content: string | Uint8Array }[], scientificPaths?: readonly string[]): boolean {
   try { return canonicalStrategySearchJson(deriveSourceImageIdentity({ files,
-    expectedPaths: identity.files.map((file) => file.path) })) === canonicalStrategySearchJson(identity); }
+    expectedPaths: identity.files.map((file) => file.path),
+    scientificPaths: scientificPaths ?? identity.scientificPaths })) === canonicalStrategySearchJson(identity); }
   catch { return false; }
 }
 
 export interface KingdomEvidenceIdentity {
   schemaVersion: 1;
   kingdomId: string;
-  sourceDigest: string;
+  scientificDigest: string;
   rulesFingerprint: string;
   orderedProduct: {
     generator: typeof ORDERED_PRODUCT_GENERATOR;
     traversal: typeof ORDERED_PRODUCT_TRAVERSAL;
     scorerVersion: typeof NATIVE_GOLDFISH_SCORER_VERSION;
+    artifactSchemaVersion: typeof STRATEGY_SEARCH_ARTIFACT_SCHEMA_VERSION;
     candidateCount: typeof ORDERED_PRODUCT_SPACE_COUNT;
     retainedCount: 500000;
     reservoirCount: 20000;
@@ -152,14 +172,15 @@ export interface ParsedStrategySearchRequest {
 }
 function kingdomEvidenceIdentity(kingdomId: string, source: SourceImageIdentity): KingdomEvidenceIdentity {
   const ordered = deriveCurrentOrderedProductIdentity({ kingdomId, seeds: ORDERED_PRODUCT_SEEDS,
-    scorerVersion: NATIVE_GOLDFISH_SCORER_VERSION, buildVersion: source.digest });
+    scorerVersion: NATIVE_GOLDFISH_SCORER_VERSION, buildVersion: source.scientificDigest });
   if (ordered.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT) {
     throw new Error(`Registered kingdom ${kingdomId} derives ${ordered.candidateCount} candidates; expected ${ORDERED_PRODUCT_SPACE_COUNT}.`);
   }
-  const base = { schemaVersion: 1 as const, kingdomId, sourceDigest: source.digest,
+  const base = { schemaVersion: 1 as const, kingdomId, scientificDigest: source.scientificDigest,
     rulesFingerprint: nativeRuleFingerprint(kingdomId, 30, 200), orderedProduct: {
       generator: ORDERED_PRODUCT_GENERATOR, traversal: ORDERED_PRODUCT_TRAVERSAL,
-      scorerVersion: NATIVE_GOLDFISH_SCORER_VERSION, candidateCount: ORDERED_PRODUCT_SPACE_COUNT,
+      scorerVersion: NATIVE_GOLDFISH_SCORER_VERSION, artifactSchemaVersion: STRATEGY_SEARCH_ARTIFACT_SCHEMA_VERSION,
+      candidateCount: ORDERED_PRODUCT_SPACE_COUNT,
       retainedCount: 500_000 as const, reservoirCount: 20_000 as const,
       collisionAllowance: ORDERED_PRODUCT_COLLISION_ALLOWANCE, profiles: ORDERED_PRODUCT_PROFILES,
       seeds: ORDERED_PRODUCT_SEEDS, candidateProvenanceDigest: ordered.candidateProvenanceDigest

@@ -40,34 +40,38 @@ function parse(line: string, label: string): Record<string, unknown> {
   return value;
 }
 
-export async function* readNativeScoreStream(file: string): AsyncGenerator<unknown> {
+export async function* readNativeScoreStreams(file: string): AsyncGenerator<unknown> {
   const lines = boundedLines(file)[Symbol.asyncIterator]();
   const nextContent = async (): Promise<string | undefined> => {
-    for (;;) {
-      const next = await lines.next();
-      if (next.done) return undefined;
-      if (next.value.trim()) return next.value;
-    }
+    for (;;) { const next = await lines.next(); if (next.done) return undefined;
+      if (next.value.trim()) return next.value; }
   };
-  const headerLine = await nextContent();
-  if (headerLine === undefined) throw new Error('Native score stream is empty.');
-  const header = parse(headerLine, 'header');
-  if (!exactKeys(header, ['schemaVersion', 'type', 'scoreCount'])
-    || header.schemaVersion !== NATIVE_SCORE_STREAM_SCHEMA_VERSION || header.type !== 'score-batch-start'
-    || !Number.isSafeInteger(header.scoreCount) || Number(header.scoreCount) < 0) {
-    throw new Error('Native score stream header differs.');
+  let batch = 0;
+  for (;;) {
+    const headerLine = await nextContent();
+    if (headerLine === undefined) { if (!batch) throw new Error('Native score stream is empty.'); return; }
+    const header = parse(headerLine, `batch ${batch} header`);
+    if (!exactKeys(header, ['schemaVersion', 'type', 'scoreCount'])
+      || header.schemaVersion !== NATIVE_SCORE_STREAM_SCHEMA_VERSION || header.type !== 'score-batch-start'
+      || !Number.isSafeInteger(header.scoreCount) || Number(header.scoreCount) < 0) {
+      throw new Error('Native score stream header differs.');
+    }
+    const scoreCount = Number(header.scoreCount);
+    for (let index = 0; index < scoreCount; index += 1) {
+      const line = await nextContent();
+      if (line === undefined) throw new Error('Native score stream ended before every score.');
+      yield parse(line, `batch ${batch} score ${index}`);
+    }
+    const footerLine = await nextContent();
+    if (footerLine === undefined) throw new Error('Native score stream footer is missing.');
+    const footer = parse(footerLine, `batch ${batch} footer`);
+    if (!exactKeys(footer, ['schemaVersion', 'type', 'scoreCount'])
+      || footer.schemaVersion !== NATIVE_SCORE_STREAM_SCHEMA_VERSION || footer.type !== 'score-batch-end'
+      || footer.scoreCount !== scoreCount) throw new Error('Native score stream footer differs.');
+    batch += 1;
   }
-  const scoreCount = Number(header.scoreCount);
-  for (let index = 0; index < scoreCount; index += 1) {
-    const line = await nextContent();
-    if (line === undefined) throw new Error('Native score stream ended before every score.');
-    yield parse(line, `score ${index}`);
-  }
-  const footerLine = await nextContent();
-  if (footerLine === undefined) throw new Error('Native score stream footer is missing.');
-  const footer = parse(footerLine, 'footer');
-  if (!exactKeys(footer, ['schemaVersion', 'type', 'scoreCount'])
-    || footer.schemaVersion !== NATIVE_SCORE_STREAM_SCHEMA_VERSION || footer.type !== 'score-batch-end'
-    || footer.scoreCount !== scoreCount) throw new Error('Native score stream footer differs.');
-  if (await nextContent() !== undefined) throw new Error('Native score stream has trailing content.');
+}
+
+export async function* readNativeScoreStream(file: string): AsyncGenerator<unknown> {
+  yield* readNativeScoreStreams(file);
 }

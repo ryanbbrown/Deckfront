@@ -6,8 +6,9 @@ import {
 } from './successive_halving_double_oracle_pilot';
 import type { ThresholdRacingSource } from './successive_halving_double_oracle_pilot';
 import type { CalibrationSourceIdentity } from '../src/sim/responseOracleCalibration';
-import type { GoldfishReservoirV3 } from '../src/sim/strategySearchCompact';
-import { validateStrategySearchMatrixArtifact, validateStrategySearchMatrixManifest } from '../src/sim/strategySearchMatrix';
+import { readGoldfishReservoirV4 } from '../src/sim/strategySearchCompact';
+import { candidateIndexAt, createOrderedCandidateSpace, orderedGoldfishCardIds } from '../src/sim/orderedGoldfishBenchmark';
+import { validateStrategySearchMatrixArtifactIdentity, validateStrategySearchMatrixManifest } from '../src/sim/strategySearchMatrix';
 import type { StrategySearchMatrixArtifact } from '../src/sim/strategySearchMatrix';
 import { matrixProtocol, payoffMatrixPairKey } from '../src/sim/payoffMatrix';
 import type { MatrixCell, MatrixSnapshot } from '../src/sim/payoffMatrix';
@@ -21,7 +22,8 @@ import { createCampaignStageControlMarker } from '../src/sim/strategySearchStage
 import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
 
 interface Config { evidenceId: string; kingdomId: string; runId: string; reservoirPath: string;
-  matrixEvidencePath: string; outputRoot: string; controlRoot: string; workers: number;
+  reservoirSha256: string; matrixEvidencePath: string; matrixSha256: string;
+  outputRoot: string; controlRoot: string; workers: number;
   protocolInput: { experimentName: string; protocolVersion: string; checkpointNamespace: string;
     screenDepths: number[]; confirmationLooks: number[]; matrixSeedNamespace: string;
     screenSeedNamespace: string; confirmationSeedNamespace: string; queueRetestSeedNamespace: string } }
@@ -38,13 +40,20 @@ const shutdownAtMs = Number(option('shutdown-at-ms'));
 if (!/^[0-9a-f]{64}$/.test(config.evidenceId) || !Number.isSafeInteger(config.workers) || config.workers < 1
   || !Number.isSafeInteger(shutdownAtMs) || shutdownAtMs <= Date.now()) throw new Error('PSRO execution input is invalid.');
 strategySearchKingdom(config.kingdomId);
-const reservoir = JSON.parse(fs.readFileSync(config.reservoirPath, 'utf8')) as GoldfishReservoirV3;
+const candidateSpace = createOrderedCandidateSpace(orderedGoldfishCardIds(config.kingdomId));
+const strategyAt = (position: number) => candidateSpace.candidateAt(candidateIndexAt(position, candidateSpace.candidateCount));
+const topFile = path.join(path.dirname(config.reservoirPath), 'top-500000.hgf');
+const reservoir = readGoldfishReservoirV4(config.reservoirPath, strategyAt, { topFile });
+const reservoirSha256 = fileHash(config.reservoirPath), matrixSha256 = fileHash(config.matrixEvidencePath);
+if (reservoirSha256 !== config.reservoirSha256 || matrixSha256 !== config.matrixSha256) {
+  throw new Error('PSRO source publication hash differs.');
+}
 const matrix = JSON.parse(fs.readFileSync(config.matrixEvidencePath, 'utf8')) as unknown;
 if (!matrix || typeof matrix !== 'object' || Array.isArray(matrix)) throw new Error('PSRO Matrix evidence is malformed.');
 const manifest = (matrix as StrategySearchMatrixArtifact).manifest;
-if (reservoir.schemaVersion !== 3 || reservoir.evidenceId !== config.evidenceId
+if (reservoir.header.evidenceId !== config.evidenceId
   || !validateStrategySearchMatrixManifest(manifest) || manifest.source.evidenceId !== config.evidenceId
-  || !validateStrategySearchMatrixArtifact(matrix, manifest)) throw new Error('PSRO scientific source is invalid.');
+  || !validateStrategySearchMatrixArtifactIdentity(matrix, manifest)) throw new Error('PSRO scientific source is invalid.');
 function initialMatrix(artifact: StrategySearchMatrixArtifact): MatrixSnapshot {
   const protocol = matrixProtocol(config.kingdomId, manifest.seeds.slice(0, 75), 30, 200, false);
   const cells: MatrixCell[] = artifact.cells.filter((cell) => cell.rowIndex !== cell.columnIndex).map((cell) => {
@@ -65,15 +74,15 @@ function initialMatrix(artifact: StrategySearchMatrixArtifact): MatrixSnapshot {
 const sourceIdentity: CalibrationSourceIdentity = { kingdomId: config.kingdomId,
   rankedPath: config.reservoirPath, reservoirPath: config.reservoirPath,
   p75ManifestPath: config.matrixEvidencePath, p75ReportPath: config.matrixEvidencePath,
-  rankedSha256: reservoir.sourceArtifactHash, reservoirSha256: fileHash(config.reservoirPath),
-  p75ManifestSha256: fileHash(config.matrixEvidencePath), p75ReportSha256: fileHash(config.matrixEvidencePath),
+  rankedSha256: reservoir.header.sourceArtifactHash!, reservoirSha256,
+  p75ManifestSha256: matrixSha256, p75ReportSha256: matrixSha256,
   p75ManifestHash: manifest.evidenceHash, reservoirRunId: config.evidenceId,
-  reservoirVersion: 'strategy-search-goldfish-v3', rulesFingerprint: manifest.rulesFingerprint };
+  reservoirVersion: 'strategy-search-goldfish-v4', rulesFingerprint: manifest.rulesFingerprint };
 const protocol = createThresholdRacingProtocol({ ...config.protocolInput, runId: config.runId,
-  kingdomId: config.kingdomId, reservoirCount: reservoir.entries.length, sourceIdentityHash: hash(sourceIdentity) });
+  kingdomId: config.kingdomId, reservoirCount: reservoir.records.length, sourceIdentityHash: hash(sourceIdentity) });
 const source: ThresholdRacingSource = { entry: { kingdomId: config.kingdomId, ranked: config.reservoirPath,
   reservoir: config.reservoirPath, p75Root: path.dirname(config.matrixEvidencePath) }, source: sourceIdentity,
-  reservoir: reservoir as never, initialMatrix: initialMatrix(matrix), kingdomId: config.kingdomId,
+  reservoir: { entries: reservoir.records } as never, initialMatrix: initialMatrix(matrix), kingdomId: config.kingdomId,
   experimentName: protocol.experimentName, protocolVersion: protocol.protocolVersion, rawProtocol: protocol,
   deadlineMs: shutdownAtMs, terminalOnUnresolved: true,
   onRawCheckpoint(event) { process.stdout.write(`${JSON.stringify(event)}\n`); } };
@@ -93,7 +102,7 @@ const rawLooks = fs.readdirSync(lookRoot).filter((file) => file.endsWith('.json'
 });
 if (!rawLooks.length) throw new Error('PSRO complete checkpoint has an empty raw-look set.');
 const artifact = createStrategySearchPsroArtifact({ evidenceId: config.evidenceId,
-  matrixEvidenceHash: matrix.evidenceHash, candidateIds: reservoir.entries.map((entry) => entry.displayId),
+  matrixEvidenceHash: matrix.evidenceHash, candidateIds: reservoir.records.map((entry) => entry.displayId),
   rawLooks, checkpoint, finalStatus: 'complete' });
 const artifactFile = path.join(config.outputRoot, 'evidence.json'); writeAtomic(artifactFile, artifact);
 const marker = createCampaignStageControlMarker({ stage: 'psro', evidenceId: config.evidenceId,

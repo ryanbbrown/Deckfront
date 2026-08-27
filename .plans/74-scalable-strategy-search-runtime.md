@@ -27,7 +27,7 @@ In scope:
 - one required runtime capacity setting, `maxActiveCpus`;
 - globally pooled Goldfish work with per-kingdom Matrix and PSRO dependencies;
 - atomic retries, fenced exactly-once publication, deterministic reduction, performance telemetry, and deep final validation;
-- campaign request schema 2, Goldfish artifact schema 3, Matrix artifact schema 4, and PSRO artifact schema 3;
+- campaign request schema 2, Goldfish artifact schema 4, Matrix artifact schema 4, and PSRO artifact schema 3;
 - one authorized paid K007 acceptance run.
 
 Out of scope:
@@ -107,9 +107,9 @@ After all stage-one jobs validate, one reducer performs a k-way merge over sorte
 
 The reducer keeps exactly 500,000 unique stage-one records. Jobs retain the existing bounded 1,024 collision overflow in compact form only when needed; exhausting that allowance fails closed instead of silently changing membership. A cutoff collision spanning jobs and a tie group spanning jobs must match the reference reducer.
 
-The reducer writes the final schema-3 top-500,000 artifact once in canonical stage-one rank order. This is an intentional clean-schema contract change: the top-500,000 artifact contains first-seed evidence and stage-one ranks. It does not contain combined four-seed ranks 20,001 through 500,000. That data is not required by the documented process or Matrix.
+The reducer streams the final schema-4 top-500,000 artifact once in canonical stage-one rank order. Fixed binary records contain only traversal position and primitive profile metrics. Record order supplies rank. Strategy JSON, canonical strategy, display ID, and ranking keys are reconstructed from traversal position. The artifact does not contain combined four-seed ranks 20,001 through 500,000.
 
-Stage two reads the selected top 500,000 once, scores each selected candidate once for the remaining three seeds, and emits immutable sorted compact full-range results. Its reducer combines all four seeds, applies the same uniqueness and comparator rules, and writes the final schema-3 top-20,000 reservoir once. Matrix identity binds the semantic reservoir identity and canonical reservoir content, not runtime part hashes.
+Stage two splits the selected top 500,000 into 15-to-60-second candidate-seed jobs and reads each fixed-width range directly. Each job scores its selected candidates once for the remaining three seeds and emits immutable sorted compact results. Its reducer combines all four seeds, applies the same uniqueness and comparator rules, and streams the final schema-4 top-20,000 reservoir once. Matrix identity binds the semantic reservoir identity and content, not runtime part hashes.
 
 A retained candidate is written a bounded number of times: once in a compact score stream for each required scoring stage, once in the final top-500,000 artifact, and once in the top-20,000 artifact when retained there. The pipeline never rereads and rewrites a growing 500,000-record set.
 
@@ -135,7 +135,7 @@ Batch ready publications when possible so one serialized call and Volume commit 
 
 Scientific task bytes are a pure function of kingdom evidence ID, stage, and semantic candidate positions. Timings, call IDs, container identity, ranges-as-scheduler-state, and retry history live in sibling operational records. An identical retry produces identical task bytes. A valid artifact plus receipt completes without work; a receipt without matching bytes or conflicting bytes fails closed.
 
-A worker claims its task lease before scoring and heartbeats it. An unbound launch intent is safe to retry only after its task lease expires. A stale orphan may finish computation, but the publisher rejects it; no duplicate evidence can commit. Failures rerun the whole small job. Goldfish has no continuous checkpoint and no aggregate rewrite.
+A worker claims its task lease before scoring. The fixed lease exceeds every bounded worker timeout, so workers do not heartbeat or commit control state. An unbound launch intent is safe to retry only after its task lease expires. A stale orphan may finish computation, but the publisher rejects it; no duplicate evidence can commit. Failures rerun the whole small job. Goldfish has no continuous checkpoint and no aggregate rewrite.
 
 Preserve refencing on controller takeover and repair of newly completed schema-2 execution tasks. Remove old source-repair/import operations. Replace explicit ambiguous-launch recovery with lease-expiry retry plus exactly-once publisher tests.
 
@@ -209,7 +209,7 @@ Implementation review starts only after check 11 passes. One successful implemen
 
 1. Replace the request, authorization, executable-source identity, semantic identity, artifact path, and runtime-policy model. Add contract tests.
 2. Add compact full-range score encoding and validation. Run the synthetic format benchmark before Modal work.
-3. Add the trusted reference path, deterministic reducers, uniqueness policy, and schema-3 Goldfish artifacts. Prove parity and layout-independent bytes.
+3. Add the trusted reference path, deterministic reducers, uniqueness policy, and streaming schema-4 Goldfish artifacts. Prove parity and layout-independent bytes.
 4. Replace static Goldfish task creation with pinned dynamic partitions, the global queue, changed-capacity handling, and utilization accounting.
 5. Add task leases, launch-scoped temporary artifacts, the serialized batched publisher, refencing, idempotent receipts, and concurrency tests.
 6. Remove runtime topology from Matrix schema 4 and PSRO schema 3 identities and final bytes. Derive their runtime resources and add parity tests.

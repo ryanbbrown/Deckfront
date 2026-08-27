@@ -63,8 +63,8 @@ def _startup_progress(state: dict[str, Any] | None) -> dict[str, Any]:
         "controllerFence": state.get("controllerFence", 0),
         "usefulWorkStarted": isinstance(useful_started_ms, int),
         "usefulWorkStartedMs": useful_started_ms,
-        "activeTaskCount": len(active), "completedTaskCount": len(complete),
-        "activeCpus": sum(job.get("cpu", job.get("cpus", 0)) for job in active),
+        "submittedTaskCount": len(active), "completedTaskCount": len(complete),
+        "submittedCpus": sum(job.get("cpu", job.get("cpus", 0)) for job in active),
         "activeStages": sorted({job["stage"] for job in active})}
 
 
@@ -114,7 +114,7 @@ def run_deployed_entry(launch_config: str, compute_app_name: str, download_dir: 
         if progress.get("status") == "failed":
             call.cancel(terminate_containers=True)
             raise RuntimeError("strategy-search controller failed before useful work started")
-        if progress.get("usefulWorkStarted") and (progress.get("activeTaskCount", 0) > 0
+        if progress.get("usefulWorkStarted") and (progress.get("submittedTaskCount", 0) > 0
                 or progress.get("completedTaskCount", 0) > 0):
             print(json.dumps({"type": "strategy-search-useful-work-started",
                 "campaignExecutionId": bundle["campaignExecutionId"], **progress}), flush=True)
@@ -131,7 +131,7 @@ def run_deployed_entry(launch_config: str, compute_app_name: str, download_dir: 
     _atomic_json(destination / "report.json", report)
     evidence_ids = [task["evidenceId"] for task in bundle["tasks"] if task["stage"] == "psro"]
     for evidence_id in evidence_ids:
-        for relative in ["goldfish/top-500000.json", "goldfish/reservoir.json",
+        for relative in ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
                          "matrix/evidence.json", "psro/evidence.json"]:
             remote = f"evidence/{evidence_id}/{relative}"
             local = destination / remote

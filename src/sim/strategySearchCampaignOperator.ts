@@ -28,8 +28,8 @@ function taskPath(evidenceId: string, stage: RuntimeJob['stage'], range: Runtime
   if (stage === 'goldfish-one' || stage === 'goldfish-two') {
     return `${root}/tasks/${stage}/${range!.start}-${range!.end}.hgs`;
   }
-  if (stage === 'goldfish-one-reduce') return `${root}/goldfish/top-500000.json`;
-  if (stage === 'goldfish-two-reduce') return `${root}/goldfish/reservoir.json`;
+  if (stage === 'goldfish-one-reduce') return `${root}/goldfish/top-500000.hgf`;
+  if (stage === 'goldfish-two-reduce') return `${root}/goldfish/reservoir.hgf`;
   return `${root}/${stage}/evidence.json`;
 }
 export function createStrategySearchLaunchBundle(parsed: ParsedStrategySearchRequest): StrategySearchLaunchBundle {
@@ -52,19 +52,19 @@ export function createStrategySearchLaunchBundle(parsed: ParsedStrategySearchReq
     const oneIds = one.jobs.map((range) => taskIdentity(kingdom.evidenceId, 'goldfish-one', range));
     one.jobs.forEach((range, index) => add(job({ taskId: oneIds[index]!, evidenceId: kingdom.evidenceId,
       kingdomId: kingdom.kingdomId, stage: 'goldfish-one', range, cpus: policy.goldfishJobCpus,
-      dependencyTaskIds: [] }), 4096, 90));
+      dependencyTaskIds: [] }), 4096, policy.goldfishTimeoutSeconds));
     const reduceOneId = taskIdentity(kingdom.evidenceId, 'goldfish-one-reduce', null);
     add(job({ taskId: reduceOneId, evidenceId: kingdom.evidenceId, kingdomId: kingdom.kingdomId,
       stage: 'goldfish-one-reduce', range: null, cpus: policy.goldfishJobCpus,
-      dependencyTaskIds: oneIds }), 8192, 120);
+      dependencyTaskIds: oneIds }), 8192, 300);
     const twoIds = two.jobs.map((range) => taskIdentity(kingdom.evidenceId, 'goldfish-two', range));
     two.jobs.forEach((range, index) => add(job({ taskId: twoIds[index]!, evidenceId: kingdom.evidenceId,
       kingdomId: kingdom.kingdomId, stage: 'goldfish-two', range, cpus: policy.goldfishStageTwoCpus,
-      dependencyTaskIds: [reduceOneId] }), 8192, 90));
+      dependencyTaskIds: [reduceOneId] }), 4096, policy.stageTwoTimeoutSeconds));
     const reduceTwoId = taskIdentity(kingdom.evidenceId, 'goldfish-two-reduce', null);
     add(job({ taskId: reduceTwoId, evidenceId: kingdom.evidenceId, kingdomId: kingdom.kingdomId,
       stage: 'goldfish-two-reduce', range: null, cpus: policy.goldfishJobCpus,
-      dependencyTaskIds: twoIds }), 8192, 120);
+      dependencyTaskIds: twoIds }), 8192, 180);
     const matrixId = taskIdentity(kingdom.evidenceId, 'matrix', null);
     add(job({ taskId: matrixId, evidenceId: kingdom.evidenceId, kingdomId: kingdom.kingdomId,
       stage: 'matrix', range: null, cpus: policy.matrixCpus, dependencyTaskIds: [reduceTwoId] }), 8192, 300);

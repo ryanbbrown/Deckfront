@@ -429,7 +429,7 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             for relative in allowlist:
                 target = workspace / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
-                if relative == "strategy-search-image-files.json":
+                if relative in {"strategy-search-image-files.json", "strategy-search-scientific-files.json"}:
                     target.write_bytes(pathlib.Path(relative).read_bytes())
                 elif relative == "modal/native_strategy_search.py":
                     target.write_bytes(container_module.read_bytes())
@@ -447,7 +447,12 @@ for relative in sorted(paths):
     files.append({"path": relative, "bytes": len(content),
         "sha256": hashlib.sha256(content).hexdigest()})
 lines = "".join(f"{entry['path']}\\0{entry['bytes']}\\0{entry['sha256']}\\n" for entry in files)
-identity = {"digest": hashlib.sha256(lines.encode()).hexdigest(), "files": files}
+scientific_paths = sorted(json.loads((root / "strategy-search-scientific-files.json").read_text()))
+scientific = [entry for entry in files if entry["path"] in scientific_paths]
+scientific_lines = "".join(f"{entry['path']}\\0{entry['bytes']}\\0{entry['sha256']}\\n" for entry in scientific)
+identity = {"digest": hashlib.sha256(lines.encode()).hexdigest(),
+    "scientificDigest": hashlib.sha256(scientific_lines.encode()).hexdigest(),
+    "scientificPaths": scientific_paths, "files": files}
 result = namespace["strategy_search_compute_ready"].get_raw_f()(identity)
 print(json.dumps(result))
 """ % str(container_module)
@@ -502,8 +507,38 @@ print(json.dumps(result))
                     patch.object(runtime_launcher.volume, "reload"):
                 progress = runtime_launcher.read_startup.get_raw_f()("a" * 64)
             self.assertTrue(progress["usefulWorkStarted"])
-            self.assertEqual(progress["activeTaskCount"], 1)
-            self.assertEqual(progress["activeCpus"], 4)
+            self.assertEqual(progress["submittedTaskCount"], 1)
+            self.assertEqual(progress["submittedCpus"], 4)
+
+    def test_strategy_search_admission_recovery_distinguishes_failures_and_probes_upward(self):
+        self.assertTrue(launcher._strategy_search_is_admission_error(
+            RuntimeError("workspace CPU limit reached")))
+        self.assertFalse(launcher._strategy_search_is_admission_error(
+            RuntimeError("workspace source file is missing")))
+        limit = 4
+        observed = []
+        while limit < 400:
+            limit = launcher._strategy_search_recover_admission(limit, 400, 4)
+            observed.append(limit)
+        self.assertEqual(observed[-1], 400)
+        self.assertLessEqual(len(observed), 12)
+        self.assertEqual(launcher._strategy_search_recover_admission(396, 400, 4), 400)
+
+    def test_strategy_search_controller_failure_persists_terminal_state(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state_file = pathlib.Path(directory) / "state.json"
+            state_file.write_text(json.dumps({"status": "running", "revision": 2,
+                "jobs": [{"attempts": [{"submittedMs": 10, "finishedMs": 40, "cpu": 4,
+                    "memoryMiB": 4096, "status": "failed"}]}]}))
+            with patch.object(launcher, "_strategy_search_execution_file", return_value=state_file), \
+                    patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"):
+                failed = launcher.strategy_search_publisher.get_raw_f()({"operation": "execution-fail",
+                    "campaignExecutionId": "a" * 64, "nowMs": 50, "failure": "worker exploded"})
+            self.assertEqual(failed["status"], "failed")
+            self.assertEqual(failed["failedMs"], 50)
+            self.assertEqual(failed["failure"], "worker exploded")
+            self.assertEqual(failed["failureAttemptCosts"][0]["basis"], "submitted-upper-bound")
+            self.assertGreater(failed["failureAttemptCostUsdUpperBound"], 0)
 
     def test_strategy_search_controller_requires_verified_preflight_state(self):
         with tempfile.TemporaryDirectory() as directory, \
@@ -540,7 +575,7 @@ print(json.dumps(result))
                 temporary.write_bytes(b"scientific")
                 digest = hashlib.sha256(b"scientific").hexdigest()
                 publication = {"evidenceId": evidence, "taskId": "task", "fence": lease["fence"],
-                    "launchId": "launch", "sha256": digest, "stage": "goldfish-one",
+                    "launchId": "launch", "sha256": digest, "validatedSha256": digest, "stage": "goldfish-one",
                     "range": {"start": 0, "end": 1}, **controller}
                 result = raw({"operation": "publish-batch", "nowMs": 1, "publications": [publication]})
                 self.assertEqual(result["receipts"]["task"]["sha256"], digest)
@@ -549,7 +584,74 @@ print(json.dumps(result))
                 held_path("temporary/launch").write_bytes(b"conflict")
                 with self.assertRaisesRegex(RuntimeError, "receipt conflicts"):
                     raw({"operation": "publish-batch", "nowMs": 2, "publications": [
-                        {**publication, "sha256": hashlib.sha256(b"conflict").hexdigest()}]})
+                        {**publication, "sha256": hashlib.sha256(b"conflict").hexdigest(),
+                            "validatedSha256": hashlib.sha256(b"conflict").hexdigest()}]})
+
+    def test_strategy_search_publication_retries_after_artifact_commit_before_receipt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            evidence, execution_id = "b" * 64, "a" * 64
+            state_file, execution_file = root / "publication.json", root / "execution.json"
+            execution_file.write_text(json.dumps({"controller": {
+                "ownerId": "owner", "fence": 1, "leaseUntilMs": 100}}))
+            paths = {}
+            def held_path(relative):
+                return paths.setdefault(relative, root / relative.replace("/", "_"))
+            controller = {"campaignExecutionId": execution_id,
+                "controllerOwnerId": "owner", "controllerFence": 1}
+            common = {"evidenceId": evidence, "taskId": "task", "ownerId": "owner", **controller}
+            raw = launcher.strategy_search_publisher.get_raw_f()
+            with patch.object(launcher, "_strategy_search_evidence_state", return_value=state_file), \
+                    patch.object(launcher, "_strategy_search_execution_file", return_value=execution_file), \
+                    patch.object(launcher, "_strategy_search_path", side_effect=held_path), \
+                    patch.object(launcher.volume, "reload"), \
+                    patch.object(launcher.volume, "commit") as commit:
+                lease = raw({"operation": "claim", **common, "nowMs": 0, "leaseMs": 100})
+                raw({"operation": "intent", **common, "fence": lease["fence"], "launchId": "launch",
+                    "artifactPath": "evidence/final", "temporaryPath": "temporary/launch", "nowMs": 1})
+                temporary, destination = held_path("temporary/launch"), held_path("evidence/final")
+                temporary.write_bytes(b"scientific")
+                digest = hashlib.sha256(b"scientific").hexdigest()
+                publication = {"evidenceId": evidence, "taskId": "task", "fence": lease["fence"],
+                    "launchId": "launch", "sha256": digest, "validatedSha256": digest,
+                    "stage": "goldfish-one", "range": {"start": 0, "end": 1}, **controller}
+                commit.side_effect = RuntimeError("commit interrupted")
+                with self.assertRaisesRegex(RuntimeError, "commit interrupted"):
+                    raw({"operation": "publish-batch", "nowMs": 1, "publications": [publication]})
+                self.assertEqual(destination.read_bytes(), b"scientific")
+                self.assertFalse(temporary.exists())
+                temporary.write_bytes(b"scientific")
+                commit.side_effect = None
+                result = raw({"operation": "publish-batch", "nowMs": 2, "publications": [publication]})
+            self.assertEqual(result["receipts"]["task"]["sha256"], digest)
+            self.assertFalse(temporary.exists())
+            self.assertEqual(destination.read_bytes(), b"scientific")
+
+    def test_strategy_search_complete_evidence_is_reused_across_campaigns(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            evidence = "b" * 64
+            state_file = root / "publication.json"
+            task_ids = {stage: f"task-{stage}" for stage in
+                ["goldfish-one-reduce", "goldfish-two-reduce", "matrix", "psro"]}
+            receipts = {}
+            paths = {}
+            for stage, task_id in task_ids.items():
+                artifact = root / f"{stage}.artifact"
+                artifact.write_bytes(stage.encode())
+                relative = f"evidence/{evidence}/{stage}"
+                paths[relative] = artifact
+                receipts[task_id] = {"taskId": task_id, "evidenceId": evidence,
+                    "artifactPath": relative, "sha256": hashlib.sha256(stage.encode()).hexdigest(), "fence": 1}
+            state_file.write_text(json.dumps({"schemaVersion": 1, "evidenceId": evidence,
+                "leases": {}, "intents": {}, "receipts": receipts}))
+            with patch.object(launcher, "_strategy_search_evidence_state", return_value=state_file), \
+                    patch.object(launcher, "_strategy_search_path", side_effect=lambda relative: paths[relative]), \
+                    patch.object(launcher.volume, "reload"):
+                result = launcher.strategy_search_publisher.get_raw_f()({"operation": "evidence-complete",
+                    "evidenceId": evidence, "taskIds": task_ids})
+            self.assertTrue(result["complete"])
+            self.assertEqual(set(result["receipts"]), set(task_ids))
 
     def test_strategy_search_shared_lease_joins_receipt_and_refences_takeover(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -592,6 +694,14 @@ print(json.dumps(result))
                 joined = raw({"operation": "claim", "evidenceId": evidence, "taskId": "task", "ownerId": "two",
                     "nowMs": 4, "leaseMs": 100, **second})
                 self.assertTrue(joined["complete"])
+
+    def test_strategy_search_validation_and_heartbeat_work_stay_outside_publisher_lock(self):
+        publisher_source = inspect.getsource(launcher.strategy_search_publisher.get_raw_f())
+        goldfish_worker_source = inspect.getsource(launcher.strategy_search_goldfish_job.get_raw_f())
+        subprocess_source = inspect.getsource(launcher._strategy_search_run_subprocess)
+        self.assertNotIn("_strategy_search_validate_publication(publication", publisher_source)
+        self.assertIn("_strategy_search_validate_publication(config, output)", goldfish_worker_source)
+        self.assertNotIn("heartbeat", subprocess_source)
 
     def test_strategy_search_compact_validator_checks_semantic_coverage_and_checksum(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -652,8 +762,10 @@ print(json.dumps(result))
                 "jobs": [{"stage": "goldfish-one", "status": "active", "cpu": 4}]}))
             running = raw("a" * 64)
             self.assertEqual(running["phase"], "controller-running")
-            self.assertEqual(running["activeTaskCount"], 1)
-            self.assertEqual(running["activeCpus"], 4)
+            self.assertIsNone(running["activeTaskCount"])
+            self.assertIsNone(running["activeCpus"])
+            self.assertEqual(running["submittedTaskCount"], 1)
+            self.assertEqual(running["submittedCpus"], 4)
 
     def test_strategy_search_run_prepares_state_only_after_verified_compute_deployment(self):
         bundle = {"schemaVersion": 2, "campaignExecutionId": "a" * 64,

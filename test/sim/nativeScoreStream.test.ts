@@ -32,7 +32,7 @@ describe('streaming native score response', () => {
     } finally { fs.rmSync(root, { recursive: true, force: true }); }
   }, 120_000);
 
-  it('rejects count, footer, trailing-content, and oversized-line corruption', async () => {
+  it('accepts repeated bounded batches and rejects count, footer, and oversized-line corruption', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-native-score-corrupt-'));
     const write = (name: string, lines: string[]): string => {
       const file = path.join(root, name); fs.writeFileSync(file, `${lines.join('\n')}\n`); return file;
@@ -46,10 +46,16 @@ describe('streaming native score response', () => {
         '{"schemaVersion":1,"type":"score-batch-start","scoreCount":0}',
         '{"schemaVersion":1,"type":"score-batch-end","scoreCount":1}'
       ]))).rejects.toThrow('footer differs');
+      await expect(collect(write('multiple', [
+        '{"schemaVersion":1,"type":"score-batch-start","scoreCount":1}', '{"value":1}',
+        '{"schemaVersion":1,"type":"score-batch-end","scoreCount":1}',
+        '{"schemaVersion":1,"type":"score-batch-start","scoreCount":1}', '{"value":2}',
+        '{"schemaVersion":1,"type":"score-batch-end","scoreCount":1}'
+      ]))).resolves.toEqual([{ value: 1 }, { value: 2 }]);
       await expect(collect(write('trailing', [
         '{"schemaVersion":1,"type":"score-batch-start","scoreCount":0}',
         '{"schemaVersion":1,"type":"score-batch-end","scoreCount":0}', '{}'
-      ]))).rejects.toThrow('trailing content');
+      ]))).rejects.toThrow('header differs');
       const oversized = path.join(root, 'oversized');
       const descriptor = fs.openSync(oversized, 'w');
       try {

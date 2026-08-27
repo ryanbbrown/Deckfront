@@ -2,14 +2,14 @@ import { createHash } from 'node:crypto';
 import { ORDERED_PRODUCT_SPACE_COUNT } from './orderedGoldfishProduct';
 import { compareUtf16 } from './utf16';
 
-export const STRATEGY_SEARCH_POLICY_VERSION = 'strategy-search-policy-v1' as const;
+export const STRATEGY_SEARCH_POLICY_VERSION = 'strategy-search-policy-v2' as const;
 export const BOOTSTRAP_GOLDFISH_PROFILE = Object.freeze({
   cpus: 4, candidates: 150_000, elapsedMs: 41_800, minimumJobMs: 15_000, targetJobMs: 30_000,
   maximumJobMs: 60_000
 });
-export const GOLDFISH_STAGE_TWO_USEFUL_CPUS = 10;
-export const MATRIX_USEFUL_CPUS = 4;
-export const PSRO_USEFUL_CPUS = 4;
+export const GOLDFISH_STAGE_TWO_SEED_COUNT = 3;
+export const MATRIX_CPU_PROFILE = Object.freeze({ minimum: 4, measuredUsefulMaximum: 4 });
+export const PSRO_CPU_PROFILE = Object.freeze({ minimum: 4, measuredUsefulMaximum: 8 });
 export type StrategySearchStage = 'goldfish-one' | 'goldfish-one-reduce' | 'goldfish-two'
   | 'goldfish-two-reduce' | 'matrix' | 'psro';
 export interface CandidateRange { start: number; end: number }
@@ -30,6 +30,7 @@ export interface ExecutionPolicy {
   goldfishJobCpus: number; candidatesPerJob: number; expectedJobMs: number;
   goldfishStageTwoCpus: number; stageTwoCandidatesPerJob: number; expectedStageTwoJobMs: number;
   matrixCpus: number; psroCpus: number; capacityFloor: number; maxActiveGoldfishJobs: number;
+  goldfishTimeoutSeconds: number; stageTwoTimeoutSeconds: number;
 }
 function positiveSafe(value: number, label: string): void {
   if (!Number.isSafeInteger(value) || value < 1) throw new Error(`${label} must be a positive safe integer.`);
@@ -37,8 +38,8 @@ function positiveSafe(value: number, label: string): void {
 export function deriveExecutionPolicy(input: { maxActiveCpus: number; remainingCandidates?: number;
   throughput?: readonly ThroughputObservation[]; modalAdmissionLimitCpus?: number }): ExecutionPolicy {
   positiveSafe(input.maxActiveCpus, 'maxActiveCpus');
-  const floor = Math.max(BOOTSTRAP_GOLDFISH_PROFILE.cpus, GOLDFISH_STAGE_TWO_USEFUL_CPUS,
-    MATRIX_USEFUL_CPUS, PSRO_USEFUL_CPUS);
+  const floor = Math.max(BOOTSTRAP_GOLDFISH_PROFILE.cpus, MATRIX_CPU_PROFILE.minimum,
+    PSRO_CPU_PROFILE.minimum);
   if (input.maxActiveCpus < floor) throw new Error(`maxActiveCpus must be at least ${floor} to fit every whole-stage shape.`);
   const observations = (input.throughput ?? []).filter((entry) => entry.candidates > 0 && entry.elapsedMs > 0
     && entry.cpus > 0);
@@ -57,17 +58,24 @@ export function deriveExecutionPolicy(input: { maxActiveCpus: number; remainingC
   positiveSafe(remaining, 'remainingCandidates');
   const exposeParallelism = Math.ceil(remaining / Math.max(usefulSlots * 2, 1));
   const candidatesPerJob = Math.max(1, Math.min(maximum, Math.max(minimum, Math.min(target, exposeParallelism))));
-  const expectedStageTwoJobMs = 500_000 / (candidatesPerCpuMs * GOLDFISH_STAGE_TWO_USEFUL_CPUS) * 0.75;
-  if (expectedStageTwoJobMs < BOOTSTRAP_GOLDFISH_PROFILE.minimumJobMs
-    || expectedStageTwoJobMs > BOOTSTRAP_GOLDFISH_PROFILE.maximumJobMs) {
-    throw new Error('Measured stage-two whole-job shape is outside the 15-to-60-second policy bound.');
-  }
-  return { goldfishJobCpus: cpus, candidatesPerJob,
-    expectedJobMs: candidatesPerJob / (candidatesPerCpuMs * cpus),
-    goldfishStageTwoCpus: GOLDFISH_STAGE_TWO_USEFUL_CPUS, stageTwoCandidatesPerJob: 500_000,
-    expectedStageTwoJobMs, matrixCpus: MATRIX_USEFUL_CPUS,
-    psroCpus: PSRO_USEFUL_CPUS, capacityFloor: floor,
-    maxActiveGoldfishJobs: Math.floor(admittedCpus / cpus) };
+  const stageTwoCpus = cpus;
+  const stageTwoWorkRate = candidatesPerCpuMs * stageTwoCpus / GOLDFISH_STAGE_TWO_SEED_COUNT;
+  const stageTwoMinimum = Math.ceil(stageTwoWorkRate * BOOTSTRAP_GOLDFISH_PROFILE.minimumJobMs);
+  const stageTwoMaximum = Math.floor(stageTwoWorkRate * BOOTSTRAP_GOLDFISH_PROFILE.maximumJobMs);
+  const stageTwoTarget = Math.round(stageTwoWorkRate * BOOTSTRAP_GOLDFISH_PROFILE.targetJobMs);
+  const stageTwoSlots = Math.max(1, Math.floor(admittedCpus / stageTwoCpus));
+  const stageTwoExposeParallelism = Math.ceil(500_000 / Math.max(stageTwoSlots * 2, 1));
+  const stageTwoCandidatesPerJob = Math.max(1, Math.min(stageTwoMaximum,
+    Math.max(stageTwoMinimum, Math.min(stageTwoTarget, stageTwoExposeParallelism))));
+  const expectedStageTwoJobMs = stageTwoCandidatesPerJob / stageTwoWorkRate;
+  const expectedJobMs = candidatesPerJob / (candidatesPerCpuMs * cpus);
+  const timeout = (expectedMs: number): number => Math.ceil((expectedMs * 2 + 30_000) / 1000);
+  return { goldfishJobCpus: cpus, candidatesPerJob, expectedJobMs,
+    goldfishStageTwoCpus: stageTwoCpus, stageTwoCandidatesPerJob, expectedStageTwoJobMs,
+    matrixCpus: Math.min(input.maxActiveCpus, MATRIX_CPU_PROFILE.measuredUsefulMaximum),
+    psroCpus: Math.min(input.maxActiveCpus, PSRO_CPU_PROFILE.measuredUsefulMaximum), capacityFloor: floor,
+    maxActiveGoldfishJobs: Math.floor(admittedCpus / cpus), goldfishTimeoutSeconds: timeout(expectedJobMs),
+    stageTwoTimeoutSeconds: timeout(expectedStageTwoJobMs) };
 }
 export function createStagePartition(input: { evidenceId: string; stage: 'goldfish-one' | 'goldfish-two';
   total: number; candidatesPerJob: number; revision?: number }): StagePartition {
@@ -132,7 +140,7 @@ function roundRobinReady(jobs: readonly RuntimeJob[]): RuntimeJob[] {
 }
 export interface SchedulerPlan { launches: RuntimeJob[]; allocatedCpus: number; unusedCpus: number;
   unusedReason: UtilizationReason | null }
-export type UtilizationReason = 'modal-workspace-rejection' | 'failure-or-retry-backoff'
+export type UtilizationReason = 'modal-workspace-rejection' | 'modal-queue-delay' | 'failure-or-retry-backoff'
   | 'reserved-ready-downstream' | 'minimum-useful-job-size' | 'insufficient-ready-work' | 'final-tail';
 export function planRuntimeTick(input: { jobs: readonly RuntimeJob[]; maxActiveCpus: number;
   modalWorkspaceRejected?: boolean; finalTail?: boolean }): SchedulerPlan {
@@ -174,7 +182,7 @@ export interface UtilizationSummary { wallMs: number; allocatedCpuSeconds: numbe
   unusedCpuSecondsByReason: Record<UtilizationReason, number>; averageActiveCpus: number; peakActiveCpus: number }
 export function summarizeUtilization(intervals: readonly UtilizationInterval[], maxActiveCpus: number): UtilizationSummary {
   positiveSafe(maxActiveCpus, 'maxActiveCpus');
-  const byReason = Object.fromEntries((['modal-workspace-rejection', 'failure-or-retry-backoff',
+  const byReason = Object.fromEntries((['modal-workspace-rejection', 'modal-queue-delay', 'failure-or-retry-backoff',
     'reserved-ready-downstream', 'minimum-useful-job-size', 'insufficient-ready-work', 'final-tail'] as const)
     .map((reason) => [reason, 0])) as Record<UtilizationReason, number>;
   let wallMs = 0, allocatedCpuMs = 0, unusedCpuMs = 0, peakActiveCpus = 0;
@@ -192,6 +200,36 @@ export function summarizeUtilization(intervals: readonly UtilizationInterval[], 
   return { wallMs, allocatedCpuSeconds: allocatedCpuMs / 1000, unusedCpuSeconds: unusedCpuMs / 1000,
     unusedCpuSecondsByReason: byReason, averageActiveCpus: wallMs ? allocatedCpuMs / wallMs : 0,
     peakActiveCpus };
+}
+
+export interface WorkerAttemptInterval { submittedMs: number; workerStartedMs?: number; workerFinishedMs?: number;
+  cpus: number }
+export function deriveRunningCpuIntervals(input: { attempts: readonly WorkerAttemptInterval[];
+  submitted: readonly UtilizationInterval[]; startMs: number; endMs: number; maxActiveCpus: number }): UtilizationInterval[] {
+  positiveSafe(input.maxActiveCpus, 'maxActiveCpus');
+  const events = new Map<number, number>();
+  for (const attempt of input.attempts) {
+    if (attempt.workerStartedMs === undefined || attempt.workerFinishedMs === undefined) continue;
+    if (!Number.isSafeInteger(attempt.workerStartedMs) || !Number.isSafeInteger(attempt.workerFinishedMs)
+      || attempt.workerFinishedMs < attempt.workerStartedMs || !Number.isSafeInteger(attempt.cpus) || attempt.cpus < 1) {
+      throw new Error('Worker attempt interval is invalid.');
+    }
+    events.set(attempt.workerStartedMs, (events.get(attempt.workerStartedMs) ?? 0) + attempt.cpus);
+    events.set(attempt.workerFinishedMs, (events.get(attempt.workerFinishedMs) ?? 0) - attempt.cpus);
+  }
+  const times = [...new Set([input.startMs, input.endMs, ...events.keys()])].sort((left, right) => left - right);
+  let running = 0; const intervals: UtilizationInterval[] = [];
+  for (let index = 0; index < times.length - 1; index += 1) {
+    const startMs = times[index]!, endMs = times[index + 1]!; running += events.get(startMs) ?? 0;
+    if (endMs <= startMs) continue;
+    const submitted = input.submitted.find((entry) => entry.startMs <= startMs && startMs < entry.endMs);
+    const reason: UtilizationReason | null = running === input.maxActiveCpus ? null
+      : submitted && submitted.allocatedCpus > running ? 'modal-queue-delay'
+        : submitted?.reason ?? 'insufficient-ready-work';
+    intervals.push({ startMs, endMs, allocatedCpus: running,
+      unusedCpus: input.maxActiveCpus - running, reason });
+  }
+  return intervals;
 }
 
 export interface MonotonicPhases {

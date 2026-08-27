@@ -49,6 +49,23 @@ describe('strategy-search request and semantic identity', () => {
       orderedEvidenceIds: [] })).toThrow();
   });
 
+  it('keeps scientific evidence stable when only deployment code changes', () => {
+    const firstSource = deriveSourceImageIdentity({ expectedPaths: ['scientific', 'runtime'],
+      scientificPaths: ['scientific'], files: [{ path: 'scientific', content: 'rules' },
+        { path: 'runtime', content: 'scheduler one' }] });
+    const secondSource = deriveSourceImageIdentity({ expectedPaths: ['scientific', 'runtime'],
+      scientificPaths: ['scientific'], files: [{ path: 'scientific', content: 'rules' },
+        { path: 'runtime', content: 'scheduler two' }] });
+    const first = deriveStrategySearch({ request: { kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 400 },
+      sourceImage: firstSource });
+    const second = deriveStrategySearch({ request: { kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 400 },
+      sourceImage: secondSource });
+    expect(firstSource.digest).not.toBe(secondSource.digest);
+    expect(firstSource.scientificDigest).toBe(secondSource.scientificDigest);
+    expect(first.kingdoms[0]!.evidenceId).toBe(second.kingdoms[0]!.evidenceId);
+    expect(first.authorizationToken).not.toBe(second.authorizationToken);
+  });
+
   it('uses one exact fail-closed executable image allowlist', () => {
     const identity = source();
     expect(identity.files.map((entry) => entry.path)).toEqual(['a', 'b']);

@@ -179,6 +179,17 @@ export function reduceStrategySearchMatrix(input: { manifest: StrategySearchMatr
     centeredPayoffs, equilibrium, evidenceHash: '' };
   return { ...base, evidenceHash: sealField(base, 'evidenceHash') };
 }
+export function validateStrategySearchMatrixArtifactIdentity(value: unknown,
+  manifest: StrategySearchMatrixManifest): value is StrategySearchMatrixArtifact {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const held = value as StrategySearchMatrixArtifact;
+  return validateStrategySearchMatrixManifest(manifest) && held.schemaVersion === 4
+    && held.experiment === 'strategy-search-matrix-evidence' && held.manifestHash === manifest.evidenceHash
+    && exact(held.manifest, manifest) && exact(held.source, manifest.source) && sha(held.evidenceHash)
+    && Array.isArray(held.cells) && held.cells.length === 1_275
+    && Array.isArray(held.seedOrdinals) && held.seedOrdinals.length === 125
+    && Array.isArray(held.centeredPayoffs) && held.centeredPayoffs.length === 50;
+}
 export function validateStrategySearchMatrixArtifact(value: unknown,
   manifest: StrategySearchMatrixManifest): value is StrategySearchMatrixArtifact {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;

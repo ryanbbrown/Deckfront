@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import concurrent.futures
 import fcntl
 import hashlib
 import json
@@ -1296,11 +1297,30 @@ def _strategy_search_source_digest(files: list[dict[str, Any]]) -> str:
     return hashlib.sha256("".join(lines).encode()).hexdigest()
 
 
+_VERIFIED_STRATEGY_SEARCH_DIGESTS: set[str] = set()
+
+
 def verify_strategy_search_source(identity: dict[str, Any]) -> None:
-    if set(identity) != {"digest", "files"} or not re.fullmatch(r"[0-9a-f]{64}", identity["digest"]):
+    if set(identity) != {"digest", "scientificDigest", "scientificPaths", "files"} \
+            or not re.fullmatch(r"[0-9a-f]{64}", identity["digest"]) \
+            or not re.fullmatch(r"[0-9a-f]{64}", identity["scientificDigest"]):
         raise ValueError("strategy-search source identity is malformed")
+    if identity["digest"] in _VERIFIED_STRATEGY_SEARCH_DIGESTS:
+        return
     if _strategy_search_source_digest(identity["files"]) != identity["digest"]:
         raise RuntimeError("strategy-search source digest differs inside the Modal image")
+    scientific_paths = sorted(json.loads((RUNTIME_WORKSPACE_ROOT /
+        "strategy-search-scientific-files.json").read_text()))
+    if identity["scientificPaths"] != scientific_paths:
+        raise RuntimeError("strategy-search scientific allowlist differs inside the Modal image")
+    entries = {entry["path"]: entry for entry in identity["files"]}
+    if any(relative not in entries for relative in scientific_paths):
+        raise RuntimeError("strategy-search scientific file is absent from deployment identity")
+    scientific_lines = "".join(f"{relative}\0{entries[relative]['bytes']}\0{entries[relative]['sha256']}\n"
+        for relative in scientific_paths)
+    if hashlib.sha256(scientific_lines.encode()).hexdigest() != identity["scientificDigest"]:
+        raise RuntimeError("strategy-search scientific digest differs inside the Modal image")
+    _VERIFIED_STRATEGY_SEARCH_DIGESTS.add(identity["digest"])
 
 
 @app.function(image=image, cpu=1, memory=2048, timeout=90, max_containers=1)
@@ -1343,7 +1363,8 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
         if saved.get("computePreflight", {}).get("sourceDigest") != request["sourceDigest"]:
             raise RuntimeError("saved execution compute identity differs")
         saved["maxActiveCpus"] = request["maxActiveCpus"]
-        saved["admissionLimitCpus"] = request["maxActiveCpus"]
+        saved["admissionLimitCpus"] = min(request["maxActiveCpus"],
+            max(4, saved.get("admissionLimitCpus", request["maxActiveCpus"])))
         saved["revision"] += 1
         _atomic_json(state_file, saved)
         volume.commit()
@@ -1385,6 +1406,39 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
         return state
     if operation == "status":
         return _strategy_search_load(_strategy_search_execution_file(request["campaignExecutionId"]))
+    if operation == "evidence-complete":
+        evidence_id = request["evidenceId"]
+        state = _strategy_search_load(_strategy_search_evidence_state(evidence_id))
+        task_ids = request.get("taskIds", {})
+        if state is None or set(task_ids) != {"goldfish-one-reduce", "goldfish-two-reduce", "matrix", "psro"}:
+            return {"complete": False}
+        receipts = {}
+        for stage, task_id in task_ids.items():
+            receipt = state.get("receipts", {}).get(task_id)
+            if not receipt:
+                return {"complete": False}
+            artifact = _strategy_search_path(receipt["artifactPath"])
+            if not artifact.exists() or _strategy_search_sha256(artifact) != receipt["sha256"]:
+                raise RuntimeError(f"complete evidence receipt differs for {stage}")
+            receipts[stage] = receipt
+        return {"complete": True, "receipts": receipts}
+    if operation == "execution-fail":
+        state_file = _strategy_search_execution_file(request["campaignExecutionId"])
+        state = _strategy_search_load(state_file)
+        if state is None:
+            raise RuntimeError("strategy-search execution is missing during failure persistence")
+        failed_ms = request.get("nowMs", int(time.time() * 1000))
+        attempts = [attempt for job in state.get("jobs", []) for attempt in job.get("attempts", [])]
+        costs = [_strategy_search_attempt_cost(attempt, failed_ms) for attempt in attempts
+            if attempt.get("status") != "admission-failed"]
+        state.update({"status": "failed", "failedMs": failed_ms,
+            "failure": str(request.get("failure", "unknown controller failure"))[-4000:],
+            "failureAttemptCosts": costs,
+            "failureAttemptCostUsdUpperBound": sum(entry["costUsd"] for entry in costs)})
+        state["revision"] += 1
+        _atomic_json(state_file, state)
+        volume.commit()
+        return state
     if operation == "prepare-launch-batch":
         items = request.get("items")
         if not isinstance(items, list) or not items:
@@ -1430,6 +1484,10 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
                 "temporaryPath": item["temporaryPath"]}
         for evidence_id, state in states.items():
             _atomic_json(_strategy_search_evidence_state(evidence_id), state)
+        if execution.get("usefulWorkStartedMs") is None:
+            execution["usefulWorkStartedMs"] = now
+            execution["revision"] += 1
+            _atomic_json(_strategy_search_execution_file(request["campaignExecutionId"]), execution)
         volume.commit()
         return results
     if operation == "publish-batch":
@@ -1468,7 +1526,8 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
                 raise RuntimeError("publication batch receipt conflicts")
             if destination.exists() and _strategy_search_sha256(destination) != digest:
                 raise RuntimeError("publication batch deterministic bytes conflict")
-            _strategy_search_validate_publication(publication, temporary)
+            if publication.get("validatedSha256") != digest:
+                raise RuntimeError("publication batch lacks matching out-of-lock validation")
             validated.append((publication, state_file, state, intent, temporary, destination, digest, receipt))
         for _publication, _state_file, _state, _intent, temporary, destination, _digest, receipt in validated:
             if receipt:
@@ -1560,25 +1619,8 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
     raise ValueError(f"unknown strategy-search publisher operation {operation}")
 
 
-def _strategy_search_heartbeat(config: dict[str, Any], stop: threading.Event,
-                               lease_lost: threading.Event) -> None:
-    while not stop.wait(30):
-        try:
-            strategy_search_publisher.remote({"operation": "heartbeat", "evidenceId": config["evidenceId"],
-                "taskId": config["taskId"], "ownerId": config["ownerId"], "fence": config["taskFence"],
-                "campaignExecutionId": config["campaignExecutionId"],
-                "controllerOwnerId": config["controllerOwnerId"], "controllerFence": config["controllerFence"],
-                "nowMs": int(time.time() * 1000), "leaseMs": config["leaseMs"]})
-        except Exception:
-            lease_lost.set()
-            return
-
-
 def _strategy_search_run_subprocess(command: list[str], config: dict[str, Any]) -> dict[str, Any]:
     verify_strategy_search_source(config["sourceImage"])
-    stop, lease_lost = threading.Event(), threading.Event()
-    heartbeat = threading.Thread(target=_strategy_search_heartbeat, args=(config, stop, lease_lost), daemon=True)
-    heartbeat.start()
     started = time.monotonic()
     process = subprocess.Popen(command, cwd="/workspace", text=True, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, env={**os.environ, "HEXDECK_GOLDFISH_BIN": CAMPAIGN_RUST_GOLDFISH_BIN})
@@ -1594,9 +1636,9 @@ def _strategy_search_run_subprocess(command: list[str], config: dict[str, Any]) 
     stdout_tail, stderr_tail, closed, checkpoint_count = "", "", set(), 0
     try:
         while process.poll() is None or len(closed) < 2:
-            if lease_lost.is_set() or time.monotonic() - started > config["timeoutSeconds"]:
+            if time.monotonic() - started > config["timeoutSeconds"]:
                 process.kill()
-                raise RuntimeError("strategy-search task lost its lease or exceeded its timeout")
+                raise RuntimeError("strategy-search task exceeded its bounded timeout")
             try:
                 label, line = output.get(timeout=0.25)
             except queue.Empty:
@@ -1623,12 +1665,10 @@ def _strategy_search_run_subprocess(command: list[str], config: dict[str, Any]) 
         if process.poll() is None:
             process.kill()
             process.wait()
-        stop.set()
-        heartbeat.join(timeout=30)
         for reader in readers:
             reader.join(timeout=5)
     return {"elapsedMs": round((time.monotonic() - started) * 1000, 3),
-        "workerFinishedEpochMs": int(time.time() * 1000), "stdoutTail": stdout_tail}
+        "workerFinishedEpochMs": int(time.time() * 1000), "checkpointCount": checkpoint_count}
 
 
 @app.function(image=image, cpu=4, memory=4096, timeout=900, retries=0, volumes={"/results": volume})
@@ -1653,6 +1693,8 @@ def strategy_search_goldfish_job(config: dict[str, Any]) -> dict[str, Any]:
         command += ["--top", str(_strategy_search_path(config["topPath"]))]
     result = _strategy_search_run_subprocess(command, config)
     phase_report = _strategy_search_load(phases)
+    validated_sha256 = _strategy_search_sha256(output)
+    _strategy_search_validate_publication(config, output)
     commit_started = time.monotonic()
     volume.commit()
     commit_ms = (time.monotonic() - commit_started) * 1000
@@ -1661,7 +1703,8 @@ def strategy_search_goldfish_job(config: dict[str, Any]) -> dict[str, Any]:
     phase_report["orchestrationQueueMs"] += queue_ms
     phase_report["elapsedMs"] += commit_ms + queue_ms
     return {**result, "modalWorkerElapsedMs": result["elapsedMs"] + commit_ms,
-        "sha256": _strategy_search_sha256(output), "phases": phase_report,
+        "sha256": validated_sha256, "validatedSha256": validated_sha256, "phases": phase_report,
+        "workerStartedEpochMs": config["workerStartedEpochMs"],
         "workerFinishedEpochMs": int(time.time() * 1000), "temporaryPath": config["temporaryPath"]}
 
 
@@ -1680,8 +1723,8 @@ def strategy_search_downstream_job(config: dict[str, Any]) -> dict[str, Any]:
         reservoir = _strategy_search_path(config["reservoirPath"])
         prepare = ["npx", "tsx", "scripts/strategy_search_campaign_matrix_manifest.ts",
             "--evidence-id", config["evidenceId"], "--kingdom", config["kingdomId"],
-            "--reservoir", str(reservoir), "--seed-namespace", "strategy-search-matrix-v2",
-            "--out", str(manifest)]
+            "--reservoir", str(reservoir), "--reservoir-sha256", config["reservoirSha256"],
+            "--seed-namespace", "strategy-search-matrix-v2", "--out", str(manifest)]
         _strategy_search_run_subprocess(prepare, config)
         evidence = work / "output"
         control = work / "control"
@@ -1699,13 +1742,41 @@ def strategy_search_downstream_job(config: dict[str, Any]) -> dict[str, Any]:
             "--shutdown-at-ms", str(int((time.time() + config["timeoutSeconds"] - 20) * 1000))]
         result = _strategy_search_run_subprocess(command, config)
         shutil.copyfile(pathlib.Path(config["psroConfig"]["outputRoot"]) / "evidence.json", output)
+    validated_sha256 = _strategy_search_sha256(output)
+    _strategy_search_validate_publication(config, output)
     commit_started = time.monotonic()
     volume.commit()
     result["modalWorkerElapsedMs"] = (time.monotonic() - stage_started) * 1000
     result["elapsedMs"] = result["modalWorkerElapsedMs"] \
         + max(0, worker_started_ms - config["enqueuedEpochMs"])
     result["workerFinishedEpochMs"] = int(time.time() * 1000)
-    return {**result, "sha256": _strategy_search_sha256(output), "temporaryPath": config["temporaryPath"]}
+    return {**result, "sha256": validated_sha256, "validatedSha256": validated_sha256,
+        "workerStartedEpochMs": worker_started_ms, "temporaryPath": config["temporaryPath"]}
+
+
+def _strategy_search_attempt_cost(attempt: dict[str, Any], until_ms: int) -> dict[str, Any]:
+    elapsed_ms = attempt.get("modalWorkerElapsedMs")
+    measured = isinstance(elapsed_ms, (int, float)) and elapsed_ms >= 0
+    if not measured:
+        elapsed_ms = max(0, attempt.get("finishedMs", until_ms) - attempt["submittedMs"])
+    cost = elapsed_ms / 3_600_000 * (attempt["cpu"] * CPU_RATE_PER_CORE_HOUR
+        + attempt["memoryMiB"] / 1024 * MEMORY_RATE_PER_GIB_HOUR)
+    return {"elapsedMs": elapsed_ms, "costUsd": cost,
+        "basis": "worker-measured" if measured else "submitted-upper-bound"}
+
+
+def _strategy_search_is_admission_error(error: BaseException) -> bool:
+    message = str(error).lower()
+    return "admission" in message or "quota" in message \
+        or "cpu limit" in message or "workspace limit" in message
+
+
+def _strategy_search_recover_admission(limit_cpus: int, max_cpus: int,
+                                        job_cpus: int) -> int:
+    if min(limit_cpus, max_cpus, job_cpus) < 1 or limit_cpus > max_cpus:
+        raise ValueError("strategy-search admission recovery input is invalid")
+    grown = max(limit_cpus + job_cpus, math.ceil(limit_cpus * 1.5 / job_cpus) * job_cpus)
+    return min(max_cpus, grown)
 
 
 def _strategy_search_ready_jobs(state: dict[str, Any]) -> list[dict[str, Any]]:
@@ -1752,26 +1823,34 @@ def _strategy_search_task_config(bundle: dict[str, Any], state: dict[str, Any], 
         config.update({"mode": "score-one", "range": job["range"]})
     elif job["stage"] == "goldfish-two":
         config.update({"mode": "score-two", "range": job["range"],
-            "topPath": f"evidence/{job['evidenceId']}/goldfish/top-500000.json"})
+            "topPath": f"evidence/{job['evidenceId']}/goldfish/top-500000.hgf"})
     elif job["stage"] in {"goldfish-one-reduce", "goldfish-two-reduce"}:
         dependencies = [next(held for held in state["jobs"] if held["taskId"] == dependency)
                         for dependency in job["dependencyTaskIds"]]
         config.update({"mode": "reduce-one" if job["stage"] == "goldfish-one-reduce" else "reduce-two",
             "manifest": [held["receipt"]["artifactPath"] for held in dependencies]})
         if job["stage"] == "goldfish-two-reduce":
-            config["topPath"] = f"evidence/{job['evidenceId']}/goldfish/top-500000.json"
+            config["topPath"] = f"evidence/{job['evidenceId']}/goldfish/top-500000.hgf"
     elif job["stage"] == "matrix":
-        config.update({"reservoirPath": f"evidence/{job['evidenceId']}/goldfish/reservoir.json",
-            "checkpointCommits": 25,
+        reservoir_job = next(held for held in state["jobs"]
+            if held["evidenceId"] == job["evidenceId"] and held["stage"] == "goldfish-two-reduce")
+        config.update({"reservoirPath": f"evidence/{job['evidenceId']}/goldfish/reservoir.hgf",
+            "reservoirSha256": reservoir_job["receipt"]["sha256"], "checkpointCommits": 25,
             "workRoot": f"executions/{bundle['campaignExecutionId']}/runtime/{job['evidenceId']}/matrix"})
     else:
         relative_root = f"executions/{bundle['campaignExecutionId']}/runtime/{job['evidenceId']}/psro"
         root = f"/results/{relative_root}"
-        config["checkpointCommits"] = 1
+        config["checkpointCommits"] = 20
         config["workRoot"] = relative_root
+        matrix_job = next(held for held in state["jobs"]
+            if held["evidenceId"] == job["evidenceId"] and held["stage"] == "matrix")
+        reservoir_job = next(held for held in state["jobs"]
+            if held["evidenceId"] == job["evidenceId"] and held["stage"] == "goldfish-two-reduce")
         config["psroConfig"] = {"evidenceId": job["evidenceId"], "kingdomId": job["kingdomId"],
-            "runId": "main", "reservoirPath": f"/results/evidence/{job['evidenceId']}/goldfish/reservoir.json",
+            "runId": "main", "reservoirPath": f"/results/evidence/{job['evidenceId']}/goldfish/reservoir.hgf",
+            "reservoirSha256": reservoir_job["receipt"]["sha256"],
             "matrixEvidencePath": f"/results/evidence/{job['evidenceId']}/matrix/evidence.json",
+            "matrixSha256": matrix_job["receipt"]["sha256"],
             "outputRoot": f"{root}/output", "controlRoot": f"{root}/control", "workers": task["cpu"],
             "protocolInput": {"experimentName": f"strategy-search-{job['evidenceId']}",
                 "protocolVersion": "threshold-racing-psro-v2", "checkpointNamespace": job["evidenceId"],
@@ -1786,8 +1865,7 @@ def _strategy_search_task_config(bundle: dict[str, Any], state: dict[str, Any], 
     return config
 
 
-@app.function(image=image, cpu=1, memory=2048, timeout=1800, retries=0, volumes={"/results": volume})
-def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
+def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     verify_strategy_search_source(bundle["sourceImage"])
     initialized = strategy_search_publisher.remote({"operation": "execution-init",
         "campaignExecutionId": bundle["campaignExecutionId"],
@@ -1802,8 +1880,24 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
         "campaignExecutionId": bundle["campaignExecutionId"], "ownerId": owner_id,
         "nowMs": int(time.time() * 1000), "leaseMs": 120000})
     state["status"] = "running"
+    reused_evidence_ids = set(state.get("reusedEvidenceIds", []))
+    for evidence_id in {job["evidenceId"] for job in state["jobs"]}:
+        final_tasks = {task["stage"]: task["taskId"] for task in state["tasks"]
+            if task["evidenceId"] == evidence_id
+            and task["stage"] in {"goldfish-one-reduce", "goldfish-two-reduce", "matrix", "psro"}}
+        complete_evidence = strategy_search_publisher.remote({"operation": "evidence-complete",
+            "evidenceId": evidence_id, "taskIds": final_tasks})
+        if complete_evidence.get("complete"):
+            reused_evidence_ids.add(evidence_id)
+            for job in state["jobs"]:
+                if job["evidenceId"] != evidence_id:
+                    continue
+                job.update({"status": "complete", "reused": True})
+                if job["stage"] in complete_evidence["receipts"]:
+                    job["receipt"] = complete_evidence["receipts"][job["stage"]]
+    state["reusedEvidenceIds"] = sorted(reused_evidence_ids)
     for job in state["jobs"]:
-        if job["status"] in {"launching", "active"}:
+        if not job.get("reused") and job["status"] in {"launching", "active"}:
             job.update({"status": "retry-backoff", "retryNotBeforeMs": int(time.time() * 1000) + 35000,
                 "callId": None, "lastError": "controller-refenced-task"})
             job.pop("activeConfig", None)
@@ -1815,8 +1909,12 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
     admission_failures = state.get("admissionFailures", 0)
     publisher_commit_ms = state.get("publisherCommitMs", 0.0)
     admission_limit_cpus = min(state.get("admissionLimitCpus", state["maxActiveCpus"]), state["maxActiveCpus"])
+    clean_admission_ticks = 0
+    last_saved_ms = int(time.time() * 1000)
     while True:
         now_ms = int(time.time() * 1000)
+        transition_before = [(job["taskId"], job["status"], job.get("callId"), job.get("attemptCount", 0),
+            len(job.get("attempts", []))) for job in state["jobs"]]
         if now_ms > interval_started:
             intervals.append({"startMs": interval_started, "endMs": now_ms,
                 "allocatedCpus": interval_allocated, "unusedCpus": state["maxActiveCpus"] - interval_allocated,
@@ -1824,21 +1922,36 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
         interval_started = now_ms
         interval_admission_rejected = False
         finished = []
-        for task_id, (call, config) in list(active.items()):
+        def poll_active(item: tuple[str, tuple[Any, dict[str, Any]]]) -> tuple[str, dict[str, Any], Any, Exception | None]:
+            task_id, (call, config) = item
             try:
-                result = call.get(timeout=0)
+                return task_id, config, call.get(timeout=0), None
             except ModalTimeoutError:
-                continue
+                return task_id, config, None, None
             except Exception as error:
+                return task_id, config, None, error
+        active_items = list(active.items())
+        if active_items:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=min(32, len(active_items))) as pool:
+                poll_results = list(pool.map(poll_active, active_items))
+        else:
+            poll_results = []
+        for task_id, config, result, error in poll_results:
+            if error is None and result is None:
+                continue
+            if error is not None:
                 job = next(held for held in state["jobs"] if held["taskId"] == task_id)
-                if any(word in str(error).lower() for word in ["workspace", "quota", "admission", "cpu limit"]):
+                if _strategy_search_is_admission_error(error):
                     admission_failures += 1
                     interval_admission_rejected = True
-                    admission_limit_cpus = max(10, sum(config["cpu"] for held_id, (_call, config)
-                        in active.items() if held_id != task_id))
+                    remaining_cpus = sum(held_config["cpu"] for held_id, (_call, held_config)
+                        in active.items() if held_id != task_id)
+                    admission_limit_cpus = max(4, remaining_cpus + config["cpu"])
+                attempt = job.setdefault("attempts", [])[-1]
+                attempt.update({"finishedMs": now_ms, "status": "failed", "error": str(error)[-2000:]})
                 job["status"] = "retry-backoff"
                 job["attemptCount"] = job.get("attemptCount", 0) + 1
-                job["retryNotBeforeMs"] = int(time.time() * 1000) + min(30000, 1000 * 2 ** min(job["attemptCount"], 5))
+                job["retryNotBeforeMs"] = now_ms + min(30000, 1000 * 2 ** min(job["attemptCount"], 5))
                 job["lastError"] = str(error)[-2000:]
                 del active[task_id]
                 continue
@@ -1847,7 +1960,8 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
             publication = strategy_search_publisher.remote({"operation": "publish-batch",
                 "nowMs": int(time.time() * 1000), "publications": [{"evidenceId": config["evidenceId"],
                     "taskId": task_id, "fence": config["taskFence"], "launchId": config["launchId"],
-                    "sha256": result["sha256"], "stage": config["stage"], "range": config.get("range"),
+                    "sha256": result["sha256"], "validatedSha256": result["validatedSha256"],
+                    "stage": config["stage"], "range": config.get("range"),
                     "kingdomId": config["kingdomId"],
                     "campaignExecutionId": bundle["campaignExecutionId"], "controllerOwnerId": owner_id,
                     "controllerFence": state["controllerFence"]} for task_id, config, result in finished]})
@@ -1862,6 +1976,10 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
                     result["phases"]["elapsedMs"] += waiting_ms + publication_share_ms
                     result["elapsedMs"] = result["phases"]["elapsedMs"]
                 job = next(held for held in state["jobs"] if held["taskId"] == task_id)
+                job.setdefault("attempts", [])[-1].update({"status": "complete",
+                    "workerStartedMs": result.get("workerStartedEpochMs"),
+                    "workerFinishedMs": result.get("workerFinishedEpochMs"),
+                    "finishedMs": int(time.time() * 1000), "modalWorkerElapsedMs": result.get("modalWorkerElapsedMs", 0)})
                 job.update({"status": "complete", "receipt": publication["receipts"][task_id], "result": result,
                     "finishedMs": int(time.time() * 1000)})
                 job.pop("activeConfig", None)
@@ -1888,13 +2006,15 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
             for job, task in selected:
                 launch_id = uuid.uuid4().hex + uuid.uuid4().hex
                 temporary = f"executions/{bundle['campaignExecutionId']}/temporary/{launch_id}/{job['taskId']}"
-                temporary += ".hgs" if job["stage"] in {"goldfish-one", "goldfish-two"} else ".json"
+                temporary += ".hgs" if job["stage"] in {"goldfish-one", "goldfish-two"} \
+                    else ".hgf" if job["stage"] in {"goldfish-one-reduce", "goldfish-two-reduce"} else ".json"
                 preparation_items.append({"taskId": job["taskId"], "evidenceId": job["evidenceId"],
                     "launchId": launch_id, "temporaryPath": temporary, "artifactPath": task["artifactPath"]})
             prepared = strategy_search_publisher.remote({"operation": "prepare-launch-batch",
                 "campaignExecutionId": bundle["campaignExecutionId"], "controllerOwnerId": owner_id,
                 "controllerFence": state["controllerFence"], "ownerId": owner_id,
                 "nowMs": int(time.time() * 1000), "leaseMs": 600000, "items": preparation_items})
+            pending_launches = []
             for job, task in selected:
                 preparation = prepared[job["taskId"]]
                 if preparation.get("complete"):
@@ -1909,24 +2029,59 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
                 function = strategy_search_downstream_job if job["stage"] in {"matrix", "psro"} \
                     else strategy_search_goldfish_job
                 config["enqueuedEpochMs"] = int(time.time() * 1000)
+                pending_launches.append((job, task, config, function))
+            def spawn_task(item: tuple[dict[str, Any], dict[str, Any], dict[str, Any], Any]) -> tuple[Any, Any]:
+                _job, task, config, function = item
                 try:
-                    call = function.with_options(cpu=task["cpu"], memory=task["memoryMiB"],
-                        timeout=task["timeoutSeconds"] + 30, retries=0).spawn(config)
+                    return function.with_options(cpu=task["cpu"], memory=task["memoryMiB"],
+                        timeout=task["timeoutSeconds"] + 30, retries=0).spawn(config), None
                 except Exception as error:
-                    admission_failures += 1
-                    interval_admission_rejected = True
-                    admission_limit_cpus = max(10, allocated)
-                    job["status"] = "ready"
+                    return None, error
+            if pending_launches:
+                with concurrent.futures.ThreadPoolExecutor(max_workers=min(32, len(pending_launches))) as pool:
+                    launch_results = list(pool.map(spawn_task, pending_launches))
+            else:
+                launch_results = []
+            for (job, task, config, _function), (call, error) in zip(pending_launches, launch_results, strict=True):
+                submitted_ms = config["enqueuedEpochMs"]
+                attempt = {"attempt": len(job.setdefault("attempts", [])) + 1, "submittedMs": submitted_ms,
+                    "cpu": task["cpu"], "memoryMiB": task["memoryMiB"], "stage": job["stage"]}
+                job["attempts"].append(attempt)
+                if error is not None:
+                    failed_ms = int(time.time() * 1000)
+                    admission_error = _strategy_search_is_admission_error(error)
+                    if admission_error:
+                        admission_failures += 1
+                        interval_admission_rejected = True
+                        admission_limit_cpus = max(4, allocated + task["cpu"])
+                    attempt.update({"finishedMs": failed_ms,
+                        "status": "admission-failed" if admission_error else "launch-failed",
+                        "error": str(error)[-2000:]})
+                    job["attemptCount"] = job.get("attemptCount", 0) + 1
+                    job["status"] = "ready" if admission_error else "retry-backoff"
+                    if not admission_error:
+                        job["retryNotBeforeMs"] = failed_ms \
+                            + min(30000, 1000 * 2 ** min(job["attemptCount"], 5))
                     job["lastError"] = str(error)[-2000:]
                     continue
                 job["status"] = "active"
-                job["startedMs"] = int(time.time() * 1000)
+                job["startedMs"] = submitted_ms
                 job.setdefault("firstStartedMs", job["startedMs"])
                 job["cpu"] = task["cpu"]
                 job["memoryMiB"] = task["memoryMiB"]
                 job["callId"] = call.object_id
+                attempt.update({"status": "submitted", "callId": call.object_id})
                 active[job["taskId"]] = (call, config)
                 allocated += task["cpu"]
+        if interval_admission_rejected:
+            clean_admission_ticks = 0
+        elif admission_limit_cpus < state["maxActiveCpus"]:
+            clean_admission_ticks += 1
+            if clean_admission_ticks >= 2:
+                probe_shape = min((task["cpu"] for task in state["tasks"]), default=4)
+                admission_limit_cpus = _strategy_search_recover_admission(
+                    admission_limit_cpus, state["maxActiveCpus"], probe_shape)
+                clean_admission_ticks = 0
         interval_allocated = allocated
         if interval_admission_rejected or admission_limit_cpus < state["maxActiveCpus"]:
             interval_reason = "modal-workspace-rejection"
@@ -1941,13 +2096,18 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
             interval_reason = "final-tail"
         else:
             interval_reason = "insufficient-ready-work"
-        state["utilizationIntervals"] = intervals
-        state["admissionFailures"] = admission_failures
-        state["publisherCommitMs"] = publisher_commit_ms
-        state["admissionLimitCpus"] = admission_limit_cpus
-        state = strategy_search_publisher.remote({"operation": "execution-save",
-            "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
-            "ownerId": owner_id, "nowMs": int(time.time() * 1000), "leaseMs": 120000, "state": state})
+        transition_after = [(job["taskId"], job["status"], job.get("callId"), job.get("attemptCount", 0),
+            len(job.get("attempts", []))) for job in state["jobs"]]
+        save_now = transition_after != transition_before or now_ms - last_saved_ms >= 30000
+        if save_now:
+            state["utilizationIntervals"] = intervals
+            state["admissionFailures"] = admission_failures
+            state["publisherCommitMs"] = publisher_commit_ms
+            state["admissionLimitCpus"] = admission_limit_cpus
+            state = strategy_search_publisher.remote({"operation": "execution-save",
+                "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
+                "ownerId": owner_id, "nowMs": int(time.time() * 1000), "leaseMs": 120000, "state": state})
+            last_saved_ms = now_ms
         if all(job["status"] == "complete" for job in state["jobs"]):
             break
         if int(time.time() * 1000) - state["startedMs"] >= bundle["controller"]["timeoutSeconds"] * 1000:
@@ -1961,31 +2121,73 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
     critical_elapsed_ms = finished_ms - state["startedMs"]
     phase_reports = [job.get("result", {}).get("phases") for job in state["jobs"]
                      if job.get("result", {}).get("phases")]
-    compute_cost = sum(job.get("result", {}).get("modalWorkerElapsedMs", 0) / 3_600_000 *
-        (job.get("cpu", 0) * CPU_RATE_PER_CORE_HOUR
-         + job.get("memoryMiB", 0) / 1024 * MEMORY_RATE_PER_GIB_HOUR) for job in state["jobs"])
-    compute_cost += critical_elapsed_ms / 3_600_000 * (CPU_RATE_PER_CORE_HOUR + 2 * MEMORY_RATE_PER_GIB_HOUR) \
-        + publisher_commit_ms / 3_600_000 * (CPU_RATE_PER_CORE_HOUR + 8 * MEMORY_RATE_PER_GIB_HOUR)
+    attempts = [attempt for job in state["jobs"] for attempt in job.get("attempts", [])]
+    attempt_costs = []
+    for attempt in attempts:
+        if attempt.get("status") == "admission-failed":
+            attempt.update({"costUsd": 0.0, "costBasis": "not-admitted"})
+            continue
+        cost = _strategy_search_attempt_cost(attempt, finished_ms)
+        attempt.update({"costUsd": cost["costUsd"], "costBasis": cost["basis"]})
+        attempt_costs.append(cost)
+    measured_attempt_cost = sum(entry["costUsd"] for entry in attempt_costs
+        if entry["basis"] == "worker-measured")
+    unmeasured_failure_cost = sum(entry["costUsd"] for entry in attempt_costs
+        if entry["basis"] == "submitted-upper-bound")
+    controller_cost = critical_elapsed_ms / 3_600_000 \
+        * (CPU_RATE_PER_CORE_HOUR + 2 * MEMORY_RATE_PER_GIB_HOUR)
+    publisher_cost = publisher_commit_ms / 3_600_000 \
+        * (CPU_RATE_PER_CORE_HOUR + 8 * MEMORY_RATE_PER_GIB_HOUR)
+    compute_cost = measured_attempt_cost + unmeasured_failure_cost + controller_cost + publisher_cost
     stage_wall = {}
     for stage in ["goldfish-one", "goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce", "matrix", "psro"]:
         held = [job for job in state["jobs"] if job["stage"] == stage and job.get("firstStartedMs")]
         stage_wall[stage] = max((job.get("finishedMs", job["firstStartedMs"]) for job in held), default=0) \
             - min((job["firstStartedMs"] for job in held), default=0) if held else 0
-    allocated_cpu_ms = sum((entry["endMs"] - entry["startMs"]) * entry["allocatedCpus"] for entry in intervals)
-    wall_ms = sum(entry["endMs"] - entry["startMs"] for entry in intervals)
+    submitted_cpu_ms = sum((entry["endMs"] - entry["startMs"]) * entry["allocatedCpus"] for entry in intervals)
+    submitted_wall_ms = sum(entry["endMs"] - entry["startMs"] for entry in intervals)
+    running_events = []
+    for attempt in attempts:
+        start, end = attempt.get("workerStartedMs"), attempt.get("workerFinishedMs")
+        if isinstance(start, int) and isinstance(end, int) and end >= start:
+            running_events.extend([(start, attempt["cpu"]), (end, -attempt["cpu"])])
+    event_times = sorted({state["startedMs"], finished_ms, *[event[0] for event in running_events]})
+    running_intervals, running_cpus = [], 0
+    events_by_time = {}
+    for event_ms, delta in running_events:
+        events_by_time[event_ms] = events_by_time.get(event_ms, 0) + delta
+    for index, start in enumerate(event_times[:-1]):
+        running_cpus += events_by_time.get(start, 0)
+        end = event_times[index + 1]
+        if end <= start:
+            continue
+        submitted = next((entry for entry in intervals if entry["startMs"] <= start < entry["endMs"]), None)
+        if running_cpus == state["maxActiveCpus"]:
+            reason = None
+        elif submitted and submitted["allocatedCpus"] > running_cpus:
+            reason = "modal-queue-delay"
+        else:
+            reason = submitted.get("reason") if submitted else "insufficient-ready-work"
+        running_intervals.append({"startMs": start, "endMs": end, "allocatedCpus": running_cpus,
+            "unusedCpus": state["maxActiveCpus"] - running_cpus, "reason": reason})
+    allocated_cpu_ms = sum((entry["endMs"] - entry["startMs"]) * entry["allocatedCpus"]
+        for entry in running_intervals)
+    wall_ms = sum(entry["endMs"] - entry["startMs"] for entry in running_intervals)
     unused_by_reason = {}
-    for entry in intervals:
+    for entry in running_intervals:
         if entry["reason"]:
             unused_by_reason[entry["reason"]] = unused_by_reason.get(entry["reason"], 0) \
                 + (entry["endMs"] - entry["startMs"]) * entry["unusedCpus"] / 1000
-    artifacts = [_strategy_search_path(job["receipt"]["artifactPath"]) for job in state["jobs"]]
+    artifact_paths = sorted({job["receipt"]["artifactPath"] for job in state["jobs"] if job.get("receipt")})
+    artifacts = [_strategy_search_path(relative) for relative in artifact_paths]
     bytes_written = sum(held.stat().st_size for held in artifacts)
     bytes_read = sum(_strategy_search_path(dependency["receipt"]["artifactPath"]).stat().st_size
-        for job in state["jobs"] if job["stage"] in {"goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce", "matrix", "psro"}
+        for job in state["jobs"] if not job.get("reused")
+        and job["stage"] in {"goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce", "matrix", "psro"}
         for dependency in [next(held for held in state["jobs"] if held["taskId"] == task_id)
-                           for task_id in job["dependencyTaskIds"]])
-    bytes_read += sum(_strategy_search_path(f"evidence/{job['evidenceId']}/goldfish/reservoir.json").stat().st_size
-        for job in state["jobs"] if job["stage"] == "psro")
+                           for task_id in job["dependencyTaskIds"]] if dependency.get("receipt"))
+    bytes_read += sum(_strategy_search_path(f"evidence/{job['evidenceId']}/goldfish/reservoir.hgf").stat().st_size
+        for job in state["jobs"] if not job.get("reused") and job["stage"] == "psro")
     io_ms = sum(held.get("intermediateSerializationAndReadMs", 0)
         + held.get("temporaryVolumeWriteCommitMs", 0) + held.get("publicationCommitMs", 0)
         for held in phase_reports)
@@ -2009,9 +2211,11 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
     report = {"schemaVersion": 2, "campaignExecutionId": bundle["campaignExecutionId"],
         "status": "complete", "criticalPathWallMs": critical_elapsed_ms,
         "stageWallMs": stage_wall, "maxActiveCpus": state["maxActiveCpus"],
-        "peakActiveCpus": max((entry["allocatedCpus"] for entry in intervals), default=0),
+        "peakActiveCpus": max((entry["allocatedCpus"] for entry in running_intervals), default=0),
         "averageActiveCpus": allocated_cpu_ms / wall_ms if wall_ms else 0,
         "cpuUtilization": allocated_cpu_ms / (wall_ms * state["maxActiveCpus"]) if wall_ms else 0,
+        "peakSubmittedCpus": max((entry["allocatedCpus"] for entry in intervals), default=0),
+        "averageSubmittedCpus": submitted_cpu_ms / submitted_wall_ms if submitted_wall_ms else 0,
         "unusedCpuSecondsByReason": unused_by_reason,
         "candidateThroughputPerSecond": scored_candidates / (scoring_ms / 1000) if scoring_ms else 0,
         "bytesRead": bytes_read, "bytesWritten": bytes_written,
@@ -2020,10 +2224,18 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
                             for held in phase_reports),
         "admissionFailures": admission_failures,
         "taskCount": len(state["jobs"]), "retries": sum(job.get("attemptCount", 0) for job in state["jobs"]),
-        "actualModalCostUsd": compute_cost, "utilizationIntervals": intervals, "goldfishPhases": phase_reports}
+        "actualModalCostUsd": compute_cost,
+        "modalCostAccounting": {"measuredAttemptUsd": measured_attempt_cost,
+            "unmeasuredFailureUpperBoundUsd": unmeasured_failure_cost,
+            "controllerUsd": controller_cost, "publisherUsd": publisher_cost,
+            "totalUsd": compute_cost},
+        "attempts": attempts, "utilizationIntervals": running_intervals,
+        "submittedUtilizationIntervals": intervals,
+        "goldfishPhases": phase_reports}
     state["status"] = "complete"
     state["report"] = report
-    state["utilizationIntervals"] = intervals
+    state["utilizationIntervals"] = running_intervals
+    state["submittedUtilizationIntervals"] = intervals
     state["admissionFailures"] = admission_failures
     state["publisherCommitMs"] = publisher_commit_ms
     state["admissionLimitCpus"] = admission_limit_cpus
@@ -2031,6 +2243,20 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
         "fence": state["controllerFence"], "ownerId": owner_id, "nowMs": int(time.time() * 1000),
         "leaseMs": 120000, "state": state})
     return report
+
+
+@app.function(image=image, cpu=1, memory=2048, timeout=1800, retries=0, volumes={"/results": volume})
+def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
+    try:
+        return _strategy_search_controller_impl(bundle)
+    except Exception as error:
+        try:
+            strategy_search_publisher.remote({"operation": "execution-fail",
+                "campaignExecutionId": bundle["campaignExecutionId"],
+                "nowMs": int(time.time() * 1000), "failure": str(error)})
+        except Exception:
+            pass
+        raise
 
 
 def validate_launch_limits(
