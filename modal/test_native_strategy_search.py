@@ -1,11 +1,13 @@
 import hashlib
 import inspect
 import json
+import os
 import pathlib
 import struct
 import subprocess
 import tempfile
 import unittest
+import sys
 from unittest.mock import patch
 
 import native_strategy_search as launcher
@@ -416,6 +418,44 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         campaign_source = inspect.getsource(launcher.verify_strategy_search_source)
         self.assertIn("_strategy_search_source_digest", campaign_source)
 
+    def test_deployed_container_layout_imports_and_runs_readiness_from_workspace(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            container_module = root / "root" / "native_strategy_search.py"
+            workspace = root / "workspace"
+            container_module.parent.mkdir()
+            container_module.write_bytes(pathlib.Path(launcher.__file__).read_bytes())
+            allowlist = json.loads(pathlib.Path("strategy-search-image-files.json").read_text())
+            for relative in allowlist:
+                target = workspace / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if relative == "strategy-search-image-files.json":
+                    target.write_bytes(pathlib.Path(relative).read_bytes())
+                elif relative == "modal/native_strategy_search.py":
+                    target.write_bytes(container_module.read_bytes())
+                else:
+                    target.write_text(f"container fixture: {relative}\n")
+            script = """
+import hashlib, json, modal, runpy
+modal.is_local = lambda: False
+namespace = runpy.run_path(%r)
+root = namespace["RUNTIME_WORKSPACE_ROOT"]
+paths = namespace["_SOURCE_IMAGE_FILES"]
+files = []
+for relative in sorted(paths):
+    content = (root / relative).read_bytes()
+    files.append({"path": relative, "bytes": len(content),
+        "sha256": hashlib.sha256(content).hexdigest()})
+lines = "".join(f"{entry['path']}\\0{entry['bytes']}\\0{entry['sha256']}\\n" for entry in files)
+identity = {"digest": hashlib.sha256(lines.encode()).hexdigest(), "files": files}
+result = namespace["strategy_search_compute_ready"].get_raw_f()(identity)
+print(json.dumps(result))
+""" % str(container_module)
+            completed = subprocess.run([sys.executable, "-c", script], text=True, capture_output=True,
+                env={**os.environ, "HEXDECK_STRATEGY_WORKSPACE": str(workspace)}, timeout=30)
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertTrue(json.loads(completed.stdout.splitlines()[-1])["ready"])
+
     def test_strategy_search_execution_reuses_pinned_partitions_when_capacity_changes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
@@ -585,15 +625,23 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, \
                 patch.object(status_launcher, "_execution_file",
                     return_value=pathlib.Path(directory) / "state.json"), \
-                patch.object(status_launcher.volume, "reload"):
+                patch.object(status_launcher.volume, "reload"), \
+                patch.object(status_launcher.volume, "commit"):
             raw = status_launcher.read_status.get_raw_f()
             missing = raw("a" * 64)
             self.assertEqual(missing["phase"], "missing")
             pathlib.Path(directory, "compute-preflight.json").write_text(json.dumps({
-                "phase": "image-preparing", "operatorStartedMs": 1, "computeAppName": "compute"}))
+                "phase": "image-preparing", "operatorStartedMs": 1, "computeAppName": "compute",
+                "sourceDigest": "b" * 64}))
             preparing = raw("a" * 64)
             self.assertEqual(preparing["status"], "preparing")
             self.assertEqual(preparing["phase"], "image-preparing")
+            status_launcher.fail_compute_preflight.get_raw_f()(
+                "a" * 64, "b" * 64, "compute", "FileNotFoundError: /strategy-search-image-files.json")
+            failed = raw("a" * 64)
+            self.assertEqual(failed["status"], "failed")
+            self.assertEqual(failed["phase"], "startup-failed")
+            self.assertIn("FileNotFoundError", failed["failure"])
             state_file = pathlib.Path(directory, "state.json")
             state_file.write_text(json.dumps({"status": "ready", "report": None, "jobs": []}))
             starting = raw("a" * 64)

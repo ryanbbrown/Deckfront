@@ -183,7 +183,7 @@ Every unused CPU interval has exactly one reason: Modal rejection, retry backoff
 
 ## Cost and failure policy
 
-Modal image build time is preflight time, not campaign runtime. A clean `npm ci` and Rust release build can take minutes. Source files are grouped into three image layers instead of one layer per file, so one invalidated group does not create more than 100 serialized build steps. The timed campaign starts only after the versioned compute app is deployed and its exact source identity passes a live readiness call.
+Modal image build time is preflight time, not campaign runtime. A clean `npm ci` and Rust release build can take minutes. Source files are grouped into three image layers instead of one layer per file, so one invalidated group does not create more than 100 serialized build steps. Image-layer construction runs only in the local deployment process. A deployed container imports the function module from `/root` but reads its built allowlist and executable source from `/workspace`. The timed campaign starts only after the versioned compute app is deployed and its exact source identity passes a live readiness call.
 
 The command reports a cost estimate and actual Modal compute cost. It does not use the historical reservation ledger and does not claim to check an external workspace budget.
 

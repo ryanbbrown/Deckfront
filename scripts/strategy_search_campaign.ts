@@ -16,8 +16,10 @@ import type { StrategySearchLaunchBundle } from '../src/sim/strategySearchCampai
 export interface StrategySearchRemoteStatus {
   exists: boolean; campaignExecutionId: string;
   status: 'missing' | 'preparing' | 'starting' | 'running' | 'complete' | 'failed';
-  phase: 'missing' | 'image-preparing' | 'controller-starting' | 'controller-running' | 'complete' | 'failed';
+  phase: 'missing' | 'image-preparing' | 'startup-failed' | 'controller-starting' | 'controller-running'
+    | 'complete' | 'failed';
   report?: Record<string, unknown>; startedMs?: number; usefulWorkStartedMs?: number;
+  failedMs?: number; failure?: string;
   activeTaskCount?: number; completedTaskCount?: number; activeCpus?: number; activeStages?: string[];
 }
 type Awaitable<T> = T | Promise<T>;
@@ -78,7 +80,8 @@ export function streamProcess(input: { executable: string; phase: string; args: 
       } else {
         process.stdout.write(`${JSON.stringify({ type: `${input.phase}-failed`, ...event,
           code, signal, timedOut })}\n`);
-        reject(new Error(`Modal ${input.phase} failed: ${stderrTail.slice(-2000)}`));
+        const failureTail = `${stderrTail}\n${stdoutTail}`.slice(-4000);
+        reject(new Error(`Modal ${input.phase} failed: ${failureTail}`));
       }
     });
   });
@@ -96,6 +99,7 @@ export class ModalStrategySearchOperatorAdapter implements StrategySearchOperato
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-strategy-search-'));
     const bundleFile = path.join(directory, 'bundle.json');
     const preflightFile = path.join(directory, 'compute-preflight.json');
+    const failureFile = path.join(directory, 'compute-failure.json');
     fs.writeFileSync(bundleFile, `${JSON.stringify(input.bundle)}\n`);
     const computeApp = computeAppName(input.bundle.sourceImage.digest);
     try {
@@ -105,11 +109,26 @@ export class ModalStrategySearchOperatorAdapter implements StrategySearchOperato
         args: ['run', 'modal/strategy_search_status.py::begin_preflight_entry',
           '--campaign-execution-id', input.bundle.campaignExecutionId,
           '--source-digest', input.bundle.sourceImage.digest, '--compute-app-name', computeApp] });
-      await streamModal({ phase: 'strategy-search-compute-deploy', timeoutMs: 900_000,
-        args: ['deploy', '--name', computeApp, 'modal/native_strategy_search.py'] });
-      await streamModal({ phase: 'strategy-search-compute-readiness', timeoutMs: 180_000,
-        args: ['run', 'modal/strategy_search_runtime.py::compute_preflight_entry', '--launch-config', bundleFile,
-          '--compute-app-name', computeApp, '--result-file', preflightFile] });
+      try {
+        await streamModal({ phase: 'strategy-search-compute-deploy', timeoutMs: 900_000,
+          args: ['deploy', '--name', computeApp, 'modal/native_strategy_search.py'] });
+        await streamModal({ phase: 'strategy-search-compute-readiness', timeoutMs: 180_000,
+          args: ['run', 'modal/strategy_search_runtime.py::compute_preflight_entry', '--launch-config', bundleFile,
+            '--compute-app-name', computeApp, '--result-file', preflightFile] });
+      } catch (error) {
+        const failure = error instanceof Error ? error.message : String(error);
+        fs.writeFileSync(failureFile, `${JSON.stringify({ error: failure })}\n`);
+        try {
+          await streamModal({ phase: 'strategy-search-preflight-failure', timeoutMs: 90_000,
+            args: ['run', 'modal/strategy_search_status.py::fail_preflight_entry',
+              '--campaign-execution-id', input.bundle.campaignExecutionId,
+              '--source-digest', input.bundle.sourceImage.digest, '--compute-app-name', computeApp,
+              '--failure-file', failureFile] });
+        } catch (persistenceError) {
+          process.stderr.write(`Could not persist strategy-search preflight failure: ${String(persistenceError)}\n`);
+        }
+        throw error;
+      }
       const preflight = JSON.parse(fs.readFileSync(preflightFile, 'utf8')) as Record<string, unknown>;
       if (preflight.ready !== true || preflight.sourceDigest !== input.bundle.sourceImage.digest
         || preflight.computeAppName !== computeApp) {

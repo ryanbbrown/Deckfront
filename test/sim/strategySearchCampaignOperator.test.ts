@@ -69,6 +69,8 @@ describe('strategy-search operator', () => {
     expect(run).toBeGreaterThan(clock);
     expect(source).toContain("args: ['deploy', '--name'");
     expect(source).toContain('modal/strategy_search_runtime.py::run_deployed_entry');
+    expect(source).toContain('modal/strategy_search_status.py::fail_preflight_entry');
+    expect(source).toContain("phase: 'strategy-search-preflight-failure'");
     expect(source).toContain('spawn(input.executable, input.args');
     expect(source).toContain("child.stdout.on('data'");
     expect(source).toContain('process.stdout.write(chunk)');

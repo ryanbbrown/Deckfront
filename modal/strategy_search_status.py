@@ -57,6 +57,28 @@ def begin_compute_preflight(campaign_execution_id: str, source_digest: str,
 @app.function(image=control_image, cpu=0.25, memory=512, timeout=30, max_containers=1,
               volumes={"/results": volume})
 @modal.concurrent(max_inputs=1)
+def fail_compute_preflight(campaign_execution_id: str, source_digest: str,
+                           compute_app_name: str, failure: str) -> dict[str, Any]:
+    volume.reload()
+    preflight_file = _preflight_file(campaign_execution_id)
+    if not preflight_file.exists():
+        raise RuntimeError("strategy-search compute preflight state is missing")
+    preflight = json.loads(preflight_file.read_text())
+    if preflight.get("sourceDigest") != source_digest \
+            or preflight.get("computeAppName") != compute_app_name:
+        raise RuntimeError("strategy-search compute preflight identity differs")
+    if not failure.strip():
+        raise ValueError("strategy-search compute preflight failure is empty")
+    preflight.update({"phase": "startup-failed", "failedMs": int(time.time() * 1000),
+        "failure": failure[-4000:]})
+    _atomic_json(preflight_file, preflight)
+    volume.commit()
+    return preflight
+
+
+@app.function(image=control_image, cpu=0.25, memory=512, timeout=30, max_containers=1,
+              volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
 def prepare_execution(bundle: dict[str, Any], compute_preflight: dict[str, Any]) -> dict[str, Any]:
     required = {"schemaVersion", "campaignExecutionId", "executionRoot", "request", "sourceImage",
         "partitions", "jobs", "tasks", "controller"}
@@ -108,9 +130,11 @@ def read_status(campaign_execution_id: str) -> dict[str, Any]:
         preflight_file = _preflight_file(campaign_execution_id)
         if preflight_file.exists():
             preflight = json.loads(preflight_file.read_text())
+            failed = preflight["phase"] == "startup-failed"
             return {"exists": False, "campaignExecutionId": campaign_execution_id,
-                "status": "preparing", "phase": preflight["phase"], "report": None,
-                "operatorStartedMs": preflight["operatorStartedMs"],
+                "status": "failed" if failed else "preparing", "phase": preflight["phase"],
+                "report": None, "operatorStartedMs": preflight["operatorStartedMs"],
+                "failedMs": preflight.get("failedMs"), "failure": preflight.get("failure"),
                 "computeAppName": preflight["computeAppName"], "activeTaskCount": 0,
                 "completedTaskCount": 0, "activeCpus": 0, "activeStages": [], "stageCounts": {}}
         return {"exists": False, "campaignExecutionId": campaign_execution_id,
@@ -149,6 +173,16 @@ def begin_preflight_entry(campaign_execution_id: str, source_digest: str,
                           compute_app_name: str) -> None:
     print(json.dumps(begin_compute_preflight.remote(
         campaign_execution_id, source_digest, compute_app_name)))
+
+
+@app.local_entrypoint()
+def fail_preflight_entry(campaign_execution_id: str, source_digest: str,
+                         compute_app_name: str, failure_file: str) -> None:
+    failure = json.loads(pathlib.Path(failure_file).read_text())
+    if set(failure) != {"error"} or not isinstance(failure["error"], str):
+        raise ValueError("strategy-search compute failure file is malformed")
+    print(json.dumps(fail_compute_preflight.remote(
+        campaign_execution_id, source_digest, compute_app_name, failure["error"])))
 
 
 @app.local_entrypoint()

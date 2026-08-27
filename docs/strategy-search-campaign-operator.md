@@ -42,7 +42,7 @@ npm run strategy-search:campaign -- run \
   --authorize 'strategy-search-v2.REPLACE_WITH_PLAN_TOKEN'
 ```
 
-`run` validates the token before any Modal call. It first records the `image-preparing` phase, then deploys a versioned compute app named from the source digest. The deployment has a 15-minute local timeout. Modal stdout and stderr stream as they arrive; the operator retains only a bounded tail for the final result. The image recipe has three source-copy layers: Node dependency manifests, Rust build sources, and final application sources. A separate lightweight runtime then invokes the deployed readiness function with a 3-minute local timeout. Readiness proves that the exact compute image can start and that its source digest matches the authorized bundle.
+`run` validates the token before any Modal call. It first records the `image-preparing` phase, then deploys a versioned compute app named from the source digest. The deployment has a 15-minute local timeout. Modal stdout and stderr stream as they arrive; the operator retains only a bounded tail for the final result. The image recipe has three source-copy layers: Node dependency manifests, Rust build sources, and final application sources. A separate lightweight runtime then invokes the deployed readiness function with a 3-minute local timeout. Container module initialization reads the built allowlist and source files from `/workspace`; only local deployment initialization reads the checkout and constructs source-copy layers. Readiness proves that the exact compute image can import, start, and match the authorized source digest.
 
 The acceptance clock does not include compute deployment or readiness. After readiness succeeds, a bounded control call creates pinned execution state and starts the acceptance clock. The lightweight runtime invokes the deployed controller without importing or rebuilding the compute app. It requires a fenced state update with an active or completed task within 2 minutes. It prints the function call ID and the accepted task, stage, and CPU counts.
 
@@ -64,7 +64,7 @@ npm run strategy-search:campaign -- status --request /tmp/strategy-search-reques
 
 `status` calls one bounded read-only Modal function in the separate small control app and image. It reads execution state directly from the Volume. It does not depend on the Node, Rust, or simulation image and cannot start a controller or enqueue work. The local Modal command also has a 90-second hard timeout.
 
-Status reports the exact phase: `image-preparing`, `controller-starting`, `controller-running`, `complete`, or `failed`. It uses `running` only after a fenced state save proves that a task is active or complete. It reports the acceptance-clock start, useful-work start, controller fence, active and completed task counts, active CPUs, active stages, and per-stage totals before the final report exists.
+Status reports the exact phase: `image-preparing`, `startup-failed`, `controller-starting`, `controller-running`, `complete`, or `failed`. A deploy or readiness failure persists `startup-failed` with the bounded Modal error instead of leaving the phase as `image-preparing`. Status uses `running` only after a fenced state save proves that a task is active or complete. It reports the acceptance-clock start, useful-work start, controller fence, active and completed task counts, active CPUs, active stages, and per-stage totals before the final report exists.
 
 The final report includes:
 
