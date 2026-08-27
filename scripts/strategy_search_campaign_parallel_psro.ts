@@ -125,8 +125,9 @@ if (mode === 'init') {
   const transition = read<{ checkpoint: ParallelPsroSemanticCheckpoint }>('transition'), checkpoint = transition.checkpoint;
   if (checkpoint.status !== 'complete') throw new Error('Cannot finalize incomplete PSRO evidence.');
   const matrix = read<StrategySearchMatrixArtifact>('matrix');
+  const { candidates, looks, ...semanticCheckpoint } = checkpoint;
   writeAtomic(output, createStrategySearchPsroArtifact({ evidenceId: checkpoint.protocol.checkpointNamespace,
-    matrixEvidenceHash: matrix.evidenceHash, candidateIds: checkpoint.candidates.map((candidate) => candidate.strategyId),
-    rawLooks: checkpoint.looks, checkpoint, finalStatus: 'complete' }));
+    matrixEvidenceHash: matrix.evidenceHash, candidateIds: candidates.map((candidate) => candidate.strategyId),
+    rawLooks: looks, checkpoint: semanticCheckpoint, finalStatus: 'complete' }));
 } else throw new Error(`Unknown parallel PSRO mode ${mode}.`);
 void canonicalStrategy;

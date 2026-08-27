@@ -1308,7 +1308,10 @@ def _strategy_search_validate_publication(publication: dict[str, Any], temporary
             text=True, capture_output=True, timeout=600)
         return
     value = json.loads(temporary.read_text())
-    if not isinstance(value, dict) or not value.get("schemaVersion"):
+    transition_valid = stage == "psro-decision" and isinstance(value, dict) \
+        and value.get("kind") in {"score", "admission-row", "complete", "terminal-incomplete"} \
+        and isinstance(value.get("checkpoint"), dict) and value["checkpoint"].get("schemaVersion") == 1
+    if not isinstance(value, dict) or not value.get("schemaVersion") and not transition_valid:
         raise RuntimeError(f"strategy-search {stage} runtime artifact is malformed")
 
 
@@ -1553,12 +1556,7 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
                 results[task_id] = {"complete": True, "receipt": receipt}
                 continue
             lease = state["leases"].get(task_id)
-            lease_execution = _strategy_search_load(_strategy_search_execution_file(
-                lease["campaignExecutionId"])) if lease and lease.get("campaignExecutionId") else None
-            lease_controller = lease_execution.get("controller") if lease_execution else None
-            lease_is_current = lease_controller and lease_controller["fence"] == lease.get("controllerFence") \
-                and lease_controller["ownerId"] == lease.get("controllerOwnerId")
-            if lease and lease["leaseUntilMs"] > now and lease["ownerId"] != request["ownerId"] and lease_is_current:
+            if lease and lease["leaseUntilMs"] > now and lease["ownerId"] != request["ownerId"]:
                 results[task_id] = {"busy": True, "leaseUntilMs": lease["leaseUntilMs"]}
                 continue
             fence = (lease["fence"] if lease else 0) + 1
@@ -1661,12 +1659,7 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
                 raise RuntimeError("publication receipt has no matching artifact")
             return {"complete": True, "receipt": receipt}
         lease = state["leases"].get(task_id)
-        lease_execution = _strategy_search_load(_strategy_search_execution_file(
-            lease["campaignExecutionId"])) if lease and lease.get("campaignExecutionId") else None
-        lease_controller = lease_execution.get("controller") if lease_execution else None
-        lease_is_current = lease_controller and lease_controller["fence"] == lease.get("controllerFence") \
-            and lease_controller["ownerId"] == lease.get("controllerOwnerId")
-        if lease and lease["leaseUntilMs"] > now and lease["ownerId"] != request["ownerId"] and lease_is_current:
+        if lease and lease["leaseUntilMs"] > now and lease["ownerId"] != request["ownerId"]:
             return {"busy": True, "leaseUntilMs": lease["leaseUntilMs"]}
         fence = (lease["fence"] if lease else 0) + 1
         state["leases"][task_id] = {"ownerId": request["ownerId"], "fence": fence,
@@ -2222,6 +2215,7 @@ def _strategy_search_expand_transition(state: dict[str, Any], job: dict[str, Any
     if job["stage"] != "psro-decision" or job.get("expanded") or job.get("status") != "complete":
         return False
     transition_path = job["receipt"]["artifactPath"]
+    volume.reload()
     transition = _strategy_search_load(_strategy_search_path(transition_path))
     if not isinstance(transition, dict) or transition.get("kind") not in {
             "score", "admission-row", "complete", "terminal-incomplete"}:
@@ -2431,12 +2425,16 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 strategy_search_publisher.remote({"operation": "evidence-finalize", "evidenceId": evidence_id,
                     "taskIds": finals, "nowMs": int(time.time() * 1000)})
             if expanded:
+                _strategy_search_materialize_adaptive(state, bundle)
                 state = strategy_search_publisher.remote({"operation": "execution-save",
                     "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
                     "ownerId": owner_id, "nowMs": int(time.time() * 1000), "leaseMs": 120000,
                     "state": state})
                 last_saved_ms = int(time.time() * 1000)
-        allocated = sum(config["cpu"] for _, config in active.values())
+        orphan_reserved_cpus = sum(job.get("cpu", 0) for job in state["jobs"]
+            if job.get("lastError") == "controller-refenced-task"
+            and job.get("leaseUntilMs", 0) > int(time.time() * 1000))
+        allocated = orphan_reserved_cpus + sum(config["cpu"] for _, config in active.values())
         ready_jobs = _strategy_search_ready_jobs(state)
         first_goldfish = next((job for job in ready_jobs if job["stage"] in {"goldfish-one", "goldfish-two"}), None)
         if first_goldfish and not any(config["stage"] in {"goldfish-one", "goldfish-two"}
@@ -2481,6 +2479,8 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 if preparation.get("complete"):
                     job.update({"status": "complete", "receipt": preparation["receipt"],
                         "finishedMs": int(time.time() * 1000)})
+                    if _strategy_search_expand_transition(state, job):
+                        _strategy_search_materialize_adaptive(state, bundle)
                     continue
                 if preparation.get("busy"):
                     job.update({"status": "retry-backoff", "retryNotBeforeMs": min(
@@ -2585,6 +2585,17 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 "ownerId": owner_id, "nowMs": int(time.time() * 1000), "leaseMs": 120000, "state": state})
             last_saved_ms = now_ms
         if all(job["status"] == "complete" for job in state["jobs"]):
+            if _strategy_search_materialize_adaptive(state, bundle):
+                state = strategy_search_publisher.remote({"operation": "execution-save",
+                    "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
+                    "ownerId": owner_id, "nowMs": int(time.time() * 1000), "leaseMs": 120000,
+                    "state": state})
+                continue
+            final_evidence = {job["evidenceId"] for job in state["jobs"] if job["stage"] == "psro-reduce"}
+            final_evidence.update(state.get("reusedEvidenceIds", []))
+            expected_evidence = {job["evidenceId"] for job in state["jobs"]}
+            if final_evidence != expected_evidence:
+                raise RuntimeError("strategy-search reached an empty queue before final PSRO evidence")
             break
         if int(time.time() * 1000) - state["startedMs"] >= bundle["controller"]["timeoutSeconds"] * 1000:
             raise TimeoutError("strategy-search controller exceeded its derived budget")
@@ -2656,6 +2667,7 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
         if entry["reason"]:
             unused_by_reason[entry["reason"]] = unused_by_reason.get(entry["reason"], 0) \
                 + (entry["endMs"] - entry["startMs"]) * entry["unusedCpus"] / 1000
+    volume.reload()
     artifact_paths = sorted({job["receipt"]["artifactPath"] for job in state["jobs"] if job.get("receipt")})
     artifacts = [_strategy_search_path(relative) for relative in artifact_paths]
     bytes_written = sum(held.stat().st_size for held in artifacts)

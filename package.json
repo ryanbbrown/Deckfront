@@ -9,7 +9,7 @@
     "start": "tsx src/server/main.ts",
     "build": "tsc -b && vite build",
     "build:sim": "esbuild src/sim/cli.ts --bundle --platform=node --format=esm --target=node24 --outfile=dist-sim/experiment.mjs",
-    "test": "vitest run --exclude 'test/e2e/**' --exclude 'test/sim/randomPsro.test.ts' && vitest run test/sim/randomPsro.test.ts --testNamePattern='^(?!.*requires exact membership, content, and weights from the saved stratified source).*$'",
+    "test": "vitest run --maxWorkers=4 --exclude 'test/e2e/**' --exclude 'test/sim/randomPsro.test.ts' && vitest run test/sim/randomPsro.test.ts --testNamePattern='^(?!.*requires exact membership, content, and weights from the saved stratified source).*$'",
     "test:native": "npm run goldfish:native-build --silent && vitest run test/sim/rustGoldfishConformance.test.ts test/sim/nativeStrategySearch.test.ts test/sim/orderedGoldfishBenchmark.test.ts",
     "experiment": "npm run build:sim && node dist-sim/experiment.mjs",
     "compare:pilots": "tsx scripts/compare_pilots.ts",

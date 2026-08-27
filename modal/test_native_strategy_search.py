@@ -739,7 +739,8 @@ print(json.dumps(result))
             "receipt": {"artifactPath": "transition.json"}}
         state = {"maxActiveCpus": 400, "jobs": [job], "tasks": []}
         with patch.object(launcher, "_strategy_search_path", return_value=pathlib.Path("transition.json")), \
-                patch.object(launcher, "_strategy_search_load", return_value=transition):
+                patch.object(launcher, "_strategy_search_load", return_value=transition), \
+                patch.object(launcher.volume, "reload"):
             self.assertTrue(launcher._strategy_search_expand_transition(state, job))
             self.assertFalse(launcher._strategy_search_expand_transition(state, job))
         self.assertTrue(launcher._strategy_search_materialize_adaptive(state,
@@ -835,7 +836,7 @@ print(json.dumps(result))
             state_file = root / "publication.json"
             execution_files = {first_execution: root / "first.json", second_execution: root / "second.json"}
             execution_files[first_execution].write_text(json.dumps({"controller": {"ownerId": "one", "fence": 1, "leaseUntilMs": 100}}))
-            execution_files[second_execution].write_text(json.dumps({"controller": {"ownerId": "two", "fence": 1, "leaseUntilMs": 100}}))
+            execution_files[second_execution].write_text(json.dumps({"controller": {"ownerId": "two", "fence": 1, "leaseUntilMs": 1000}}))
             artifact = root / "artifact"
             raw = launcher.strategy_search_publisher.get_raw_f()
             def execution_file(execution_id):
@@ -854,8 +855,11 @@ print(json.dumps(result))
                     "nowMs": 1, "leaseMs": 100, **second})
                 self.assertTrue(busy["busy"])
                 execution_files[first_execution].write_text(json.dumps({"controller": {"ownerId": "new", "fence": 2, "leaseUntilMs": 100}}))
+                stale_controller_busy = raw({"operation": "claim", "evidenceId": evidence, "taskId": "task",
+                    "ownerId": "two", "nowMs": 2, "leaseMs": 100, **second})
+                self.assertTrue(stale_controller_busy["busy"])
                 taken = raw({"operation": "claim", "evidenceId": evidence, "taskId": "task", "ownerId": "two",
-                    "nowMs": 2, "leaseMs": 100, **second})
+                    "nowMs": 101, "leaseMs": 100, **second})
                 self.assertEqual(taken["fence"], lease["fence"] + 1)
                 with self.assertRaisesRegex(RuntimeError, "fenced"):
                     raw({"operation": "heartbeat", "evidenceId": evidence, "taskId": "task", "ownerId": "one",
