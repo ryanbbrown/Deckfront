@@ -1333,7 +1333,7 @@ def _strategy_search_validate_publication(publication: dict[str, Any], temporary
         return
     value = json.loads(temporary.read_text())
     transition_valid = stage == "psro-decision" and isinstance(value, dict) \
-        and value.get("kind") in {"score", "admission-row", "complete", "terminal-incomplete"} \
+        and value.get("kind") in {"score", "admission-row", "complete"} \
         and isinstance(value.get("checkpoint"), dict) and value["checkpoint"].get("schemaVersion") == 1
     if not isinstance(value, dict) or not value.get("schemaVersion") and not transition_valid:
         raise RuntimeError(f"strategy-search {stage} runtime artifact is malformed")
@@ -1835,7 +1835,8 @@ def strategy_search_goldfish_job(config: dict[str, Any]) -> dict[str, Any]:
         "workerFinishedEpochMs": int(time.time() * 1000), "temporaryPath": config["temporaryPath"]}
 
 
-@app.function(image=image, cpu=4, memory=8192, timeout=900, retries=0, volumes={"/results": volume})
+@app.function(image=image, cpu=4, memory=8192, timeout=900, retries=0,
+              scaledown_window=300, volumes={"/results": volume})
 @modal.concurrent(max_inputs=1)
 def strategy_search_downstream_job(config: dict[str, Any]) -> dict[str, Any]:
     volume.reload()
@@ -1855,16 +1856,19 @@ def strategy_search_downstream_job(config: dict[str, Any]) -> dict[str, Any]:
     elif stage == "matrix-score":
         command = _strategy_search_subprocess_command("matrix-score", config["kingdomId"], [
             "--manifest", str(_strategy_search_path(config["manifestPath"])),
-            "--task-index", str(config["taskIndex"]), "--workers", str(config["cpu"]), "--out", str(output)])
+            "--task-index", str(config["taskIndex"]), "--task-count", str(config["taskCount"]),
+            "--workers", str(config["cpu"]), "--out", str(output)])
     elif stage == "matrix-reduce":
         chunks = work / "chunks.json"
         _atomic_json(chunks, [str(_strategy_search_path(held)) for held in config["chunkPaths"]])
         command = _strategy_search_subprocess_command("matrix-reduce", config["kingdomId"], [
             "--manifest", str(_strategy_search_path(config["manifestPath"])),
-            "--chunks", str(chunks), "--out", str(output)])
+            "--chunks", str(chunks), "--task-count", str(config["taskCount"]), "--out", str(output)])
     else:
         entry = "parallel-psro"
         arguments = ["--mode", config["operation"], "--out", str(output)]
+        if config["operation"] != "finalize":
+            arguments += ["--target-tasks", str(config["targetTasks"])]
         transition = None
         if config.get("transitionPath"):
             transition_path = _strategy_search_path(config["transitionPath"])
@@ -1920,6 +1924,73 @@ def _strategy_search_attempt_cost(attempt: dict[str, Any], until_ms: int) -> dic
         + attempt["memoryMiB"] / 1024 * MEMORY_RATE_PER_GIB_HOUR)
     return {"elapsedMs": elapsed_ms, "costUsd": cost,
         "basis": "worker-measured" if measured else "submitted-upper-bound"}
+
+
+def _strategy_search_score_look_utilization(state: dict[str, Any], until_ms: int) -> list[dict[str, Any]]:
+    tasks = {task["taskId"]: task for task in state.get("tasks", [])}
+    groups: dict[tuple[str, str, str, str], list[dict[str, Any]]] = {}
+    for job in state.get("jobs", []):
+        if job.get("stage") not in {"matrix-score", "psro-score"}:
+            continue
+        metadata = tasks.get(job["taskId"], {}).get("metadata", {})
+        look_id = metadata.get("lookDescriptorHash", "matrix")
+        key = (job["evidenceId"], job["kingdomId"], job["stage"], look_id)
+        groups.setdefault(key, []).append(job)
+    def peak(jobs: list[dict[str, Any]], start_key: str, end_key: str) -> int:
+        deltas: dict[int, int] = {}
+        for job in jobs:
+            for attempt in job.get("attempts", []):
+                start = attempt.get(start_key)
+                if not isinstance(start, int):
+                    continue
+                end = attempt.get(end_key, until_ms)
+                if not isinstance(end, int) or end < start:
+                    continue
+                deltas[start] = deltas.get(start, 0) + attempt["cpu"]
+                deltas[end] = deltas.get(end, 0) - attempt["cpu"]
+        running = maximum = 0
+        for held in sorted(deltas):
+            running += deltas[held]
+            maximum = max(maximum, running)
+        return maximum
+    def distribution(values: list[float]) -> dict[str, float] | None:
+        if not values:
+            return None
+        held = sorted(values)
+        percentile = lambda fraction: held[round((len(held) - 1) * fraction)]
+        return {"min": held[0], "p50": percentile(0.5), "p95": percentile(0.95), "max": held[-1]}
+    result = []
+    for (evidence_id, kingdom_id, stage, look_id), jobs in sorted(groups.items()):
+        attempts = [attempt for job in jobs for attempt in job.get("attempts", [])]
+        worker_durations = [attempt["workerFinishedMs"] - attempt["workerStartedMs"] for attempt in attempts
+            if isinstance(attempt.get("workerStartedMs"), int)
+            and isinstance(attempt.get("workerFinishedMs"), int)]
+        queue_delays = [attempt["workerStartedMs"] - attempt["submittedMs"] for attempt in attempts
+            if isinstance(attempt.get("submittedMs"), int) and isinstance(attempt.get("workerStartedMs"), int)]
+        task_ids = {job["taskId"] for job in jobs}
+        reduce_stage = "matrix-reduce" if stage == "matrix-score" else "psro-decision"
+        reducer = next((job for job in state.get("jobs", []) if job.get("stage") == reduce_stage
+            and set(job.get("dependencyTaskIds", [])) == task_ids), None)
+        reducer_attempts = reducer.get("attempts", []) if reducer else []
+        reducer_finished = max((attempt.get("finishedMs", 0) for attempt in reducer_attempts), default=0)
+        worker_finished = max((attempt.get("workerFinishedMs", 0) for attempt in attempts), default=0)
+        first_submitted = min((attempt.get("submittedMs", until_ms) for attempt in attempts), default=until_ms)
+        last_finished = max(reducer_finished,
+            max((attempt.get("finishedMs", 0) for attempt in attempts), default=0))
+        reduction_worker_ms = sum(attempt.get("modalWorkerElapsedMs",
+            max(0, attempt.get("workerFinishedMs", 0) - attempt.get("workerStartedMs", 0)))
+            for attempt in reducer_attempts)
+        result.append({"evidenceId": evidence_id, "kingdomId": kingdom_id, "stage": stage,
+            "lookId": look_id, "taskCount": len(jobs),
+            "requestedCpus": sum(tasks.get(job["taskId"], {}).get("cpu", job.get("cpus", 4)) for job in jobs),
+            "peakSubmittedCpus": peak(jobs, "submittedMs", "finishedMs"),
+            "peakRunningCpus": peak(jobs, "workerStartedMs", "workerFinishedMs"),
+            "admissionFailureCount": sum(attempt.get("status") == "admission-failed" for attempt in attempts),
+            "workerDurationMs": distribution(worker_durations), "queueDelayMs": distribution(queue_delays),
+            "coordinationAndReductionMs": max(0, reducer_finished - worker_finished) if reducer_finished else None,
+            "reductionWorkerMs": reduction_worker_ms if reducer_attempts else None,
+            "totalWallMs": max(0, last_finished - first_submitted) if last_finished else None})
+    return result
 
 
 def _strategy_search_exception_diagnostic(error: BaseException) -> dict[str, str]:
@@ -2044,17 +2115,20 @@ def _strategy_search_task_config(bundle: dict[str, Any], state: dict[str, Any], 
         manifest_job = next(held for held in state["jobs"]
             if held["evidenceId"] == job["evidenceId"] and held["stage"] == "matrix-manifest")
         config.update({"manifestPath": manifest_job["receipt"]["artifactPath"],
-            "taskIndex": task.get("metadata", {}).get("taskIndex", job["range"]["start"])})
+            "taskIndex": task.get("metadata", {}).get("taskIndex", job["range"]["start"]),
+            "taskCount": task.get("metadata", {})["taskCount"]})
     elif job["stage"] == "matrix-reduce":
         dependencies = [next(held for held in state["jobs"] if held["taskId"] == dependency)
                         for dependency in job["dependencyTaskIds"]]
         manifest_job = next(held for held in state["jobs"]
             if held["evidenceId"] == job["evidenceId"] and held["stage"] == "matrix-manifest")
         config.update({"manifestPath": manifest_job["receipt"]["artifactPath"],
-            "chunkPaths": [held["receipt"]["artifactPath"] for held in dependencies]})
+            "chunkPaths": [held["receipt"]["artifactPath"] for held in dependencies],
+            "taskCount": len(dependencies)})
     else:
         metadata = task.get("metadata", {})
         config.update(metadata)
+        config["targetTasks"] = max(1, min(50, state["maxActiveCpus"] // 4))
         if job["stage"] == "psro-decision" and metadata.get("operation") == "init":
             config.update({"reservoirPath": f"evidence/{job['evidenceId']}/goldfish/reservoir.hgf",
                 "matrixPath": f"evidence/{job['evidenceId']}/matrix/evidence.json"})
@@ -2190,12 +2264,16 @@ def _strategy_search_materialize_adaptive(state: dict[str, Any], bundle: dict[st
             for task in partition["tasks"]:
                 if partition["kind"] == "score":
                     start, end = task["candidateStart"], task["candidateEnd"]
+                    schedule_start, schedule_end = task["scheduleStart"], task["scheduleEnd"]
                     semantic = {"look": partition["descriptorHash"],
-                        "candidateStart": start, "candidateEnd": end}
+                        "candidateStart": start, "candidateEnd": end,
+                        "scheduleStart": schedule_start, "scheduleEnd": schedule_end}
                     stage, operation = "psro-score", "score"
-                    artifact = f"{partition['root']}/{partition['descriptorHash']}/score-{start}-{end}.json"
+                    artifact = f"{partition['root']}/{partition['descriptorHash']}/" \
+                        f"score-{start}-{end}-blocks-{schedule_start}-{schedule_end}.json"
                     metadata = {"operation": operation, "transitionPath": partition["transitionPath"],
-                        "scoreTask": task, "scoreBlocks": partition["scoreBlocks"]}
+                        "scoreTask": task, "scoreBlocks": schedule_end - schedule_start,
+                        "lookDescriptorHash": partition["descriptorHash"]}
                     timeout = max(60, math.ceil(task["expectedTaskMs"] * 2 / 1000 + 30))
                 else:
                     start, end = task["opponentStart"], task["opponentEnd"]
@@ -2226,7 +2304,8 @@ def _strategy_search_materialize_adaptive(state: dict[str, Any], bundle: dict[st
         for task in partition["tasks"]:
             if partition["kind"] == "score":
                 semantic = {"look": partition["descriptorHash"],
-                    "candidateStart": task["candidateStart"], "candidateEnd": task["candidateEnd"]}
+                    "candidateStart": task["candidateStart"], "candidateEnd": task["candidateEnd"],
+                    "scheduleStart": task["scheduleStart"], "scheduleEnd": task["scheduleEnd"]}
                 stage = "psro-score"
             else:
                 semantic = {"row": partition["descriptorHash"],
@@ -2259,13 +2338,10 @@ def _strategy_search_expand_transition(state: dict[str, Any], job: dict[str, Any
     volume.reload()
     transition = _strategy_search_load(_strategy_search_path(transition_path))
     if not isinstance(transition, dict) or transition.get("kind") not in {
-            "score", "admission-row", "complete", "terminal-incomplete"}:
+            "score", "admission-row", "complete"}:
         raise RuntimeError("PSRO decision returned an invalid transition")
     evidence_id, kingdom_id = job["evidenceId"], job["kingdomId"]
     root = f"evidence/{evidence_id}/psro/runtime"
-    if transition["kind"] == "terminal-incomplete":
-        raise RuntimeError(f"PSRO {evidence_id} ended terminal-incomplete: "
-            f"{transition.get('checkpoint', {}).get('stopReason', 'unknown reason')}")
     if transition["kind"] == "score":
         descriptor_hash = transition["look"]["descriptorHash"]
         state.setdefault("dynamicScorePartitions", {})[descriptor_hash] = {
@@ -2644,8 +2720,6 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
             if final_evidence != expected_evidence:
                 raise RuntimeError("strategy-search reached an empty queue before final PSRO evidence")
             break
-        if int(time.time() * 1000) - state["startedMs"] >= bundle["controller"]["timeoutSeconds"] * 1000:
-            raise TimeoutError("strategy-search controller exceeded its derived budget")
         time.sleep(bundle["controller"]["pollIntervalSeconds"])
     finished_ms = int(time.time() * 1000)
     if finished_ms > interval_started:
@@ -2814,6 +2888,7 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
         "admissionFailures": admission_failures, "retryCostUsd": retry_cost,
         "matrixScoreWorkerCount": sum(job["stage"] == "matrix-score" for job in state["jobs"]),
         "psroScoreWorkerCount": sum(job["stage"] == "psro-score" for job in state["jobs"]),
+        "scoreLookUtilization": _strategy_search_score_look_utilization(state, finished_ms),
         "taskCount": len(state["jobs"]), "retries": sum(job.get("attemptCount", 0) for job in state["jobs"]),
         "actualModalCostUsd": compute_cost,
         "modalCostAccounting": {"measuredAttemptUsd": measured_attempt_cost,
@@ -2836,7 +2911,7 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     return report
 
 
-@app.function(image=image, cpu=1, memory=2048, timeout=1800, retries=0, volumes={"/results": volume})
+@app.function(image=image, cpu=1, memory=2048, timeout=86400, retries=0, volumes={"/results": volume})
 def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
     try:
         return _strategy_search_controller_impl(bundle)

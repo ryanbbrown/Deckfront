@@ -5,6 +5,7 @@ import {
   createStagePartition, deriveExecutionPolicy, taskIdentity
 } from './strategySearchScheduler';
 import type { RuntimeJob, StagePartition } from './strategySearchScheduler';
+import { STRATEGY_SEARCH_MATRIX_SCORE_TASK_COUNT } from './strategySearchMatrix';
 
 export interface StrategySearchTaskConfiguration {
   taskId: string; kingdomId: string; evidenceId: string; stage: RuntimeJob['stage'];
@@ -15,7 +16,7 @@ export interface StrategySearchLaunchBundle {
   schemaVersion: 3; campaignExecutionId: string; executionRoot: string; request: ParsedStrategySearchRequest['request'];
   sourceImage: ParsedStrategySearchRequest['sourceImage']; partitions: Record<string, StagePartition>;
   jobs: RuntimeJob[]; tasks: StrategySearchTaskConfiguration[];
-  controller: { maxActiveCpus: number; timeoutSeconds: number; shutdownMarginSeconds: number;
+  controller: { maxActiveCpus: number; timeoutSeconds: number;
     pollIntervalSeconds: number; volumeName: 'hexdeck-native-strategy-results'; readyWindowWaves: 2;
     maxReducerMemoryMiB: number };
 }
@@ -64,11 +65,13 @@ export function createStrategySearchLaunchBundle(parsed: ParsedStrategySearchReq
     const manifestId = taskIdentity(kingdom.evidenceId, 'matrix-manifest', null);
     add(job({ taskId: manifestId, evidenceId: kingdom.evidenceId, kingdomId: kingdom.kingdomId,
       stage: 'matrix-manifest', range: null, cpus: 1, dependencyTaskIds: [reduceTwoId] }), 2048, 120);
-    const matrixScoreIds = Array.from({ length: 4 }, (_unused, taskIndex) => {
+    const matrixTaskCount = Math.min(STRATEGY_SEARCH_MATRIX_SCORE_TASK_COUNT,
+      Math.max(1, Math.floor(parsed.request.maxActiveCpus / 4)));
+    const matrixScoreIds = Array.from({ length: matrixTaskCount }, (_unused, taskIndex) => {
       const range = { start: taskIndex, end: taskIndex + 1 }, taskId = taskIdentity(kingdom.evidenceId, 'matrix-score', range);
       add(job({ taskId, evidenceId: kingdom.evidenceId, kingdomId: kingdom.kingdomId,
         stage: 'matrix-score', range, cpus: 4, dependencyTaskIds: [manifestId] }), 8192, 180,
-      { taskIndex }); return taskId;
+      { taskIndex, taskCount: matrixTaskCount }); return taskId;
     });
     const matrixReduceId = taskIdentity(kingdom.evidenceId, 'matrix-reduce', null);
     add(job({ taskId: matrixReduceId, evidenceId: kingdom.evidenceId, kingdomId: kingdom.kingdomId,
@@ -92,8 +95,8 @@ export function createStrategySearchLaunchBundle(parsed: ParsedStrategySearchReq
   return { schemaVersion: 3, campaignExecutionId: parsed.campaignExecutionId,
     executionRoot: campaignExecutionRoot(parsed.campaignExecutionId), request: structuredClone(parsed.request),
     sourceImage: structuredClone(parsed.sourceImage), partitions, jobs, tasks,
-    controller: { maxActiveCpus: parsed.request.maxActiveCpus, timeoutSeconds: 1_140,
-      shutdownMarginSeconds: 30, pollIntervalSeconds: 1, volumeName: 'hexdeck-native-strategy-results',
+    controller: { maxActiveCpus: parsed.request.maxActiveCpus, timeoutSeconds: 86_340,
+      pollIntervalSeconds: 1, volumeName: 'hexdeck-native-strategy-results',
       readyWindowWaves: 2, maxReducerMemoryMiB: 8192 } };
 }
 export interface StrategySearchPlanSummary {

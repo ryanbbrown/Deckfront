@@ -627,7 +627,3 @@ export function actionAfterConfirmation(confirmation: Pick<ConfirmationRaceResul
   'confirmed' | 'unresolved'>): 'empty' | 'queued' {
   return confirmation.confirmed.length ? 'queued' : 'empty';
 }
-export function fixedProtocolTerminalReason(result: Pick<ThresholdRaceResult | ConfirmationRaceResult,
-  'unresolved'>): 'fixed-protocol-look-cap-unresolved' | null {
-  return result.unresolved.length ? 'fixed-protocol-look-cap-unresolved' : null;
-}

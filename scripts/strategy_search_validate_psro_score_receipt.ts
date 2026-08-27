@@ -1,11 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { startParallelPsro, validateParallelPsroCheckpoint } from '../src/sim/strategySearchParallelPsro';
-import type {
-  ParallelPsroScoreTaskDescriptor, ParallelPsroTransition
+import {
+  startParallelPsro, validateParallelPsroCheckpoint, validateParallelPsroScoreTaskChunk
 } from '../src/sim/strategySearchParallelPsro';
-import { thresholdRacingProtocolHash, validateRawPsroScoreChunk } from '../src/sim/thresholdRacingPsro';
-import type { RawPsroScoreChunk } from '../src/sim/thresholdRacingPsro';
+import type {
+  ParallelPsroScoreTaskChunk, ParallelPsroScoreTaskDescriptor, ParallelPsroTransition
+} from '../src/sim/strategySearchParallelPsro';
 
 function option(name: string): string {
   const index = process.argv.indexOf(`--${name}`), value = process.argv[index + 1];
@@ -27,26 +27,19 @@ function writeAtomic(file: string, value: unknown): void {
 
 const transition = read<ParallelPsroTransition>('transition');
 const task = read<ParallelPsroScoreTaskDescriptor>('task');
-const chunk = read<RawPsroScoreChunk>('chunk');
+const chunk = read<ParallelPsroScoreTaskChunk>('chunk');
 let valid = false;
 if (transition.kind === 'score' && validateParallelPsroCheckpoint(transition.checkpoint)) {
-  const expected = startParallelPsro(transition.checkpoint);
+  const expected = startParallelPsro(transition.checkpoint, { targetTasks: transition.tasks.length });
   const expectedTask = expected.kind === 'score' ? expected.tasks[task.taskIndex] : undefined;
-  const taskKeys = ['candidateEnd', 'candidateStart', 'expectedTaskMs', 'taskIndex'];
+  const taskKeys = ['candidateEnd', 'candidateStart', 'expectedTaskMs', 'scheduleEnd',
+    'scheduleStart', 'taskIndex'];
   const taskValid = expectedTask !== undefined && exact(Object.keys(task).sort(), taskKeys)
     && task.taskIndex === expectedTask.taskIndex && task.candidateStart === expectedTask.candidateStart
-    && task.candidateEnd === expectedTask.candidateEnd && task.expectedTaskMs === expectedTask.expectedTaskMs;
+    && task.candidateEnd === expectedTask.candidateEnd && task.scheduleStart === expectedTask.scheduleStart
+    && task.scheduleEnd === expectedTask.scheduleEnd && task.expectedTaskMs === expectedTask.expectedTaskMs;
   const look = transition.look;
   valid = expected.kind === 'score' && exact(expected.look, look) && taskValid
-    && validateRawPsroScoreChunk(chunk, transition.checkpoint.protocol)
-    && chunk.protocolHash === thresholdRacingProtocolHash(transition.checkpoint.protocol)
-    && chunk.sourceHash === transition.checkpoint.protocol.sourceIdentityHash
-    && chunk.raceKind === look.raceKind && chunk.lookId === look.lookId && chunk.lookDepth === look.lookDepth
-    && chunk.familySize === look.familySize && chunk.alpha === look.alpha && chunk.threshold === look.threshold
-    && chunk.candidateStart === task.candidateStart && chunk.candidateEnd === task.candidateEnd
-    && exact(chunk.candidateIds, look.candidateIds.slice(task.candidateStart, task.candidateEnd))
-    && exact(chunk.candidateCanonicals, look.candidateCanonicals.slice(task.candidateStart, task.candidateEnd))
-    && exact(chunk.fullSchedule, look.fullSchedule) && exact(chunk.suffixSchedule, look.suffixSchedule)
-    && chunk.scheduleStart === look.scheduleStart && chunk.scheduleEnd === look.scheduleEnd;
+    && validateParallelPsroScoreTaskChunk(chunk, transition.checkpoint, look, task);
 }
 writeAtomic(option('out'), { valid });

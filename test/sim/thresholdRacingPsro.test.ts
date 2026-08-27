@@ -6,7 +6,7 @@ import { emptyAggregate } from '../../src/sim/pairing';
 import { canonicalStrategy } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import {
-  assembleRawPsroLook, createThresholdRacingProtocol, fixedProtocolTerminalReason, rawScoreRows,
+  assembleRawPsroLook, createThresholdRacingProtocol, rawScoreRows,
   runConfirmationRace,
   runThresholdRace, thresholdRacingProtocolHash, thresholdRacingSeedLabel, validateRawPsroLookArtifact,
   validateRawPsroScoreChunk, validateThresholdRacingProtocol, weightedFairSchedule
@@ -74,7 +74,6 @@ describe('kingdom-independent threshold-racing raw evidence', () => {
     expect(events.map((event) => event.lookHash)).toEqual(looks.map((look) => look.artifactHash));
     expect(calls).toHaveLength(4);
     expect(thresholdRacingProtocolHash(heldProtocol)).toMatch(/^[0-9a-f]{64}$/);
-    expect(fixedProtocolTerminalReason(result)).toBe('fixed-protocol-look-cap-unresolved');
   });
 
   it('rejects rehashed schedule, canonical, range, protocol, and look corruption', async () => {

@@ -8,17 +8,15 @@ import { candidateIndexAt, createOrderedCandidateSpace, orderedGoldfishCardIds }
 import { readGoldfishReservoirV4 } from '../src/sim/strategySearchCompact';
 import { createStrategySearchPsroArtifact } from '../src/sim/strategySearchPsro';
 import {
-  createParallelAdmissionRowChunk, createParallelPsroCheckpoint, matrixSnapshotFromStrategySearchArtifact,
-  reduceParallelAdmissionRow, reduceParallelPsroLook, startParallelPsro
+  createParallelAdmissionRowChunk, createParallelPsroCheckpoint, createParallelPsroScoreTaskChunk,
+  matrixSnapshotFromStrategySearchArtifact, partitionParallelPsroLook, reduceParallelAdmissionRow,
+  reduceParallelPsroLook, startParallelPsro
 } from '../src/sim/strategySearchParallelPsro';
 import type {
   ParallelAdmissionRowDescriptor, ParallelAdmissionRowChunk, ParallelPsroLookDescriptor,
-  ParallelPsroScoreTaskDescriptor, ParallelPsroSemanticCheckpoint
+  ParallelPsroScoreTaskChunk, ParallelPsroScoreTaskDescriptor, ParallelPsroSemanticCheckpoint
 } from '../src/sim/strategySearchParallelPsro';
-import {
-  createRawPsroScoreChunk, createThresholdRacingProtocol
-} from '../src/sim/thresholdRacingPsro';
-import type { RawPsroScoreChunk } from '../src/sim/thresholdRacingPsro';
+import { createThresholdRacingProtocol, scheduleSlice } from '../src/sim/thresholdRacingPsro';
 import {
   validateStrategySearchMatrixArtifact, validateStrategySearchMatrixArtifactIdentity,
   validateStrategySearchMatrixManifest
@@ -32,6 +30,9 @@ function option(name: string): string { const index = process.argv.indexOf(`--${
   if (index < 0 || !value || value.startsWith('--')) throw new Error(`--${name} is required.`); return value; }
 function integer(name: string, minimum = 0): number { const value = Number(option(name));
   if (!Number.isSafeInteger(value) || value < minimum) throw new Error(`--${name} is invalid.`); return value; }
+function optionalInteger(name: string): number | undefined {
+  return process.argv.includes(`--${name}`) ? integer(name, 1) : undefined;
+}
 function read<T>(name: string): T { return JSON.parse(fs.readFileSync(path.resolve(option(name)), 'utf8')) as T; }
 function writeAtomic(file: string, value: unknown): void { fs.mkdirSync(path.dirname(file), { recursive: true });
   const temporary = `${file}.tmp-${process.pid}`; fs.writeFileSync(temporary, `${JSON.stringify(value)}\n`);
@@ -62,7 +63,8 @@ if (mode === 'init') {
     matrix: matrixSnapshotFromStrategySearchArtifact(matrix),
     candidates: reservoir.records.map((entry) => ({ goldfishRank: entry.rank, strategyId: entry.strategy.id,
       canonicalStrategy: entry.canonicalStrategy, strategy: entry.strategy })) });
-  writeAtomic(output, startParallelPsro(checkpoint));
+  const targetTasks = optionalInteger('target-tasks');
+  writeAtomic(output, startParallelPsro(checkpoint, targetTasks === undefined ? {} : { targetTasks }));
 } else if (mode === 'score') {
   const checkpoint = read<ParallelPsroSemanticCheckpoint>('checkpoint'), look = read<ParallelPsroLookDescriptor>('look'),
     task = read<ParallelPsroScoreTaskDescriptor>('task'), workers = integer('workers', 1);
@@ -78,20 +80,21 @@ if (mode === 'init') {
   const runner = new WorkerPairingRunner(workers, new URL('../src/server/aiWorker.ts', import.meta.url),
     { kingdom }, ['--import', 'tsx']);
   try {
+    const suffixSchedule = scheduleSlice(look.fullSchedule, task.scheduleStart, task.scheduleEnd);
     const rows = await evaluateCandidates(field.map((candidate) => candidate.strategy), opponents,
-      look.suffixSchedule, runner, { kingdomId: checkpoint.protocol.kingdomId, turnLimitPerPlayer: 30,
+      suffixSchedule, runner, { kingdomId: checkpoint.protocol.kingdomId, turnLimitPerPlayer: 30,
         actionCapPerTurn: 200, startingDraftEnabled: false, scoreOnly: false });
-    writeAtomic(output, createRawPsroScoreChunk({ protocol: checkpoint.protocol, raceKind: look.raceKind,
-      lookId: look.lookId, lookDepth: look.lookDepth, familySize: look.familySize, alpha: look.alpha,
-      candidates: field.map((candidate) => ({ identity: candidate, strategy: candidate.strategy })),
-      candidateStart: task.candidateStart, fullSchedule: look.fullSchedule, suffixSchedule: look.suffixSchedule,
-      scheduleStart: look.scheduleStart, rows }));
+    writeAtomic(output, createParallelPsroScoreTaskChunk({ checkpoint, look, task, rows }));
   } finally { await runner.close(); }
 } else if (mode === 'reduce-score') {
   const checkpoint = read<ParallelPsroSemanticCheckpoint>('checkpoint'), look = read<ParallelPsroLookDescriptor>('look'),
-    files = read<string[]>('chunks');
-  const chunks = files.map((file) => JSON.parse(fs.readFileSync(path.resolve(file), 'utf8')) as RawPsroScoreChunk);
-  writeAtomic(output, reduceParallelPsroLook({ checkpoint, look, chunks }));
+    files = read<string[]>('chunks'), targetTasks = optionalInteger('target-tasks'),
+    taskOptions = targetTasks === undefined ? {} : { targetTasks },
+    tasks = partitionParallelPsroLook(look, taskOptions);
+  const chunks: ParallelPsroScoreTaskChunk[] = files.map((file) =>
+    JSON.parse(fs.readFileSync(path.resolve(file), 'utf8')) as ParallelPsroScoreTaskChunk);
+  writeAtomic(output, reduceParallelPsroLook({ checkpoint, look, tasks, chunks,
+    ...(targetTasks === undefined ? {} : { targetTasks }) }));
 } else if (mode === 'admission-score') {
   const checkpoint = read<ParallelPsroSemanticCheckpoint>('checkpoint'), row = read<ParallelAdmissionRowDescriptor>('row'),
     taskIndex = integer('task-index'), workers = integer('workers', 1), task = row.tasks[taskIndex];
@@ -120,7 +123,9 @@ if (mode === 'init') {
   const checkpoint = read<ParallelPsroSemanticCheckpoint>('checkpoint'), row = read<ParallelAdmissionRowDescriptor>('row'),
     files = read<string[]>('chunks');
   const chunks = files.map((file) => JSON.parse(fs.readFileSync(path.resolve(file), 'utf8')) as ParallelAdmissionRowChunk);
-  writeAtomic(output, reduceParallelAdmissionRow({ checkpoint, row, chunks }));
+  const targetTasks = optionalInteger('target-tasks');
+  writeAtomic(output, reduceParallelAdmissionRow({ checkpoint, row, chunks,
+    ...(targetTasks === undefined ? {} : { targetTasks }) }));
 } else if (mode === 'finalize') {
   const transition = read<{ checkpoint: ParallelPsroSemanticCheckpoint }>('transition'), checkpoint = transition.checkpoint;
   if (checkpoint.status !== 'complete') throw new Error('Cannot finalize incomplete PSRO evidence.');

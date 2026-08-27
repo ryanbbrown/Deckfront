@@ -49,8 +49,7 @@ const EVALUATION_CHUNK = thresholdRacing.DEFAULT_PSRO_EVALUATION_CHUNK;
 
 type ThresholdStatus = 'below' | 'above' | 'unresolved';
 type ConfirmationStatus = 'rejected' | 'confirmed' | 'unresolved';
-type StopReason = 'running' | 'empirical-two-clean-scans' | 'screen-cap-unresolved'
-  | 'fixed-protocol-look-cap-unresolved';
+type StopReason = 'running' | 'empirical-two-clean-scans';
 
 interface InputEntry { kingdomId: string; ranked: string; reservoir: string; p75Root: string }
 interface Inputs { schemaVersion: 1; kingdoms: InputEntry[] }
@@ -66,8 +65,6 @@ export interface ThresholdRacingSource {
   onRawCheckpoint?: (event: thresholdRacing.RawPsroCheckpointEvent | {
     type: 'strategy-search-checkpoint'; stage: 'psro'; eventHash: string; protocolHash: string;
     sourceHash: string; lookId: string; chunkHash: string }) => void;
-  deadlineMs?: number;
-  terminalOnUnresolved?: boolean;
 }
 interface InitialMatrixReport {
   schemaVersion: 2;
@@ -144,7 +141,7 @@ interface ScanBase {
 }
 interface ScanReport extends ScanBase {
   confirmation: ConfirmationRaceResult | null;
-  outcome: 'clean' | 'queued' | 'terminal-incomplete';
+  outcome: 'clean' | 'queued';
   games: { screening: number; confirmation: number; total: number };
   elapsedMs: { screening: number; confirmation: number; total: number };
 }
@@ -155,7 +152,7 @@ interface QueueRetestReport {
   lotteryHash: string;
   enteredStrategyIds: string[];
   confirmation: ConfirmationRaceResult;
-  outcome: 'empty' | 'queued' | 'terminal-incomplete';
+  outcome: 'empty' | 'queued';
   games: number;
   elapsedMs: number;
 }
@@ -195,7 +192,7 @@ export interface Checkpoint {
     maxScans?: number;
     seedNamespaces?: { matrix: string; screen: string; confirmation: string; queueRetest: string };
   };
-  status: 'running' | 'complete' | 'unresolved';
+  status: 'running' | 'complete';
   stopReason: StopReason;
   phase: 'ready' | 'screened' | 'confirmed' | 'terminal';
   exploratory: true;
@@ -562,7 +559,7 @@ function addPhase(checkpoint: Checkpoint, phase: 'screening' | 'confirmation' | 
   checkpoint.elapsedMs.total += elapsedMs + equilibriumElapsedMs;
   mergeAggregate(checkpoint.telemetry, telemetry);
 }
-function terminal(checkpoint: Checkpoint, status: 'complete' | 'unresolved', reason: StopReason): void {
+function terminal(checkpoint: Checkpoint, status: 'complete', reason: StopReason): void {
   checkpoint.status = status; checkpoint.stopReason = reason; checkpoint.phase = 'terminal'; checkpoint.pending = null;
 }
 export function validateThresholdRacingCheckpoint(value: unknown, source: ThresholdRacingSource,
@@ -659,36 +656,6 @@ export function createThresholdRacingInitialCheckpoint(source: ThresholdRacingSo
     telemetry: emptyAggregate(), evidenceHash: '' });
 }
 
-function resumeLegacyScreenCap(checkpoint: Checkpoint): boolean {
-  const changed = checkpoint.protocol.cappedUnresolvedPolicy !== 'leave-unresolved-at-look-cap'
-    || checkpoint.protocol.maxAdmissions !== undefined || checkpoint.protocol.maxScans !== undefined;
-  checkpoint.protocol.cappedUnresolvedPolicy = 'leave-unresolved-at-look-cap';
-  delete checkpoint.protocol.maxAdmissions;
-  delete checkpoint.protocol.maxScans;
-  if (checkpoint.status !== 'unresolved' || checkpoint.stopReason !== 'screen-cap-unresolved') return changed;
-  const report = checkpoint.scans.at(-1) as (Omit<ScanReport, 'outcome'> & { outcome: string }) | undefined;
-  if (!report || report.outcome !== 'unresolved' || report.confirmation !== null) {
-    throw new Error('Legacy screen-cap checkpoint cannot be resumed safely.');
-  }
-  checkpoint.scans.pop();
-  const base: ScanBase = { scan: report.scan, cycle: report.cycle, matrixSize: report.matrixSize,
-    inactiveCandidates: report.inactiveCandidates, lotteryHash: report.lotteryHash, screen: report.screen };
-  checkpoint.status = 'running';
-  checkpoint.stopReason = 'running';
-  checkpoint.pending = null;
-  if (actionAfterScreen(report.screen) === 'confirm') {
-    checkpoint.phase = 'screened';
-    checkpoint.pending = { kind: 'screened', base };
-  } else {
-    checkpoint.phase = 'ready';
-    checkpoint.scans.push({ ...base, confirmation: null, outcome: 'clean', games: report.games,
-      elapsedMs: report.elapsedMs });
-    checkpoint.cleanScans = cleanScansAfter(checkpoint.cleanScans, false, true);
-    if (checkpoint.cleanScans >= 2) terminal(checkpoint, 'complete', 'empirical-two-clean-scans');
-  }
-  return true;
-}
-
 async function admit(checkpoint: Checkpoint, source: ThresholdRacingSource, runner: PairingRunner,
   order: QueueOrder): Promise<void> {
   const selectedId = order.strongestStrategyId;
@@ -730,7 +697,6 @@ export async function runThresholdRacingCampaign(root: string, source: Threshold
       throw new Error(`Invalid threshold-racing checkpoint ${file}.`);
     }
     checkpoint = value;
-    if (resumeLegacyScreenCap(checkpoint)) checkpoint = saveCheckpoint(root, checkpoint);
   } else checkpoint = saveCheckpoint(root, createThresholdRacingInitialCheckpoint(source, runId));
   if (checkpoint.status !== 'running') return checkpoint;
   const kingdom = strategySearchKingdom(source.kingdomId);
@@ -768,19 +734,13 @@ export async function runThresholdRacingCampaign(root: string, source: Threshold
           checkpoint.queue.map((entry) => entry.strategyId)), opponents: lottery.opponents, schedule,
           kingdomId: source.kingdomId, runner, confidence, evaluate, chunkSize,
           lookIdPrefix: `run-${runId}.queue-retest-${retest}.confirmation`,
-          ...(source.deadlineMs === undefined ? {} : { deadline: source.deadlineMs }),
           ...(queueRaw && { raw: queueRaw }) });
         addPhase(checkpoint, 'confirmation', confirmation.games, confirmation.elapsedMs, confirmation.telemetry);
-        const capped = source.terminalOnUnresolved && confirmation.unresolved.length > 0;
         const report: QueueRetestReport = { retest, cycle: checkpoint.admissions.length + 1,
           matrixSize: checkpoint.matrix.strategies.length, lotteryHash: lottery.lotteryHash,
           enteredStrategyIds: checkpoint.queue.map((entry) => entry.strategyId), confirmation,
-          outcome: capped ? 'terminal-incomplete' : actionAfterConfirmation(confirmation),
-          games: confirmation.games, elapsedMs: confirmation.elapsedMs };
-        if (capped) {
-          checkpoint.queueRetests.push(report);
-          terminal(checkpoint, 'unresolved', 'fixed-protocol-look-cap-unresolved');
-        } else { checkpoint.pending = { kind: 'queue-confirmed', report }; checkpoint.phase = 'confirmed'; }
+          outcome: actionAfterConfirmation(confirmation), games: confirmation.games, elapsedMs: confirmation.elapsedMs };
+        checkpoint.pending = { kind: 'queue-confirmed', report }; checkpoint.phase = 'confirmed';
         checkpoint = saveCheckpoint(root, checkpoint); continue;
       }
       if (checkpoint.phase === 'ready') {
@@ -796,19 +756,12 @@ export async function runThresholdRacingCampaign(root: string, source: Threshold
         const screenRaw = rawArtifactStore(root, runId, source, 'screen');
         const screen = await runThresholdRace({ candidates: inactive, opponents: lottery.opponents,
           schedule, kingdomId: source.kingdomId, runner, confidence, evaluate, chunkSize,
-          lookIdPrefix: `run-${runId}.scan-${scan}.screen`,
-          ...(source.deadlineMs === undefined ? {} : { deadline: source.deadlineMs }),
-          ...(screenRaw && { raw: screenRaw }) });
+          lookIdPrefix: `run-${runId}.scan-${scan}.screen`, ...(screenRaw && { raw: screenRaw }) });
         addPhase(checkpoint, 'screening', screen.games, screen.elapsedMs, screen.telemetry);
         const base: ScanBase = { scan, cycle: checkpoint.admissions.length + 1,
           matrixSize: checkpoint.matrix.strategies.length, inactiveCandidates: inactive.length,
           lotteryHash: lottery.lotteryHash, screen };
-        if (source.terminalOnUnresolved && screen.unresolved.length > 0) {
-          checkpoint.scans.push({ ...base, confirmation: null, outcome: 'terminal-incomplete',
-            games: { screening: screen.games, confirmation: 0, total: screen.games },
-            elapsedMs: { screening: screen.elapsedMs, confirmation: 0, total: screen.elapsedMs } });
-          terminal(checkpoint, 'unresolved', 'fixed-protocol-look-cap-unresolved');
-        } else if (actionAfterScreen(screen) === 'clean') {
+        if (actionAfterScreen(screen) === 'clean') {
           checkpoint.scans.push({ ...base, confirmation: null, outcome: 'clean',
             games: { screening: screen.games, confirmation: 0, total: screen.games },
             elapsedMs: { screening: screen.elapsedMs, confirmation: 0, total: screen.elapsedMs } });
@@ -830,17 +783,9 @@ export async function runThresholdRacingCampaign(root: string, source: Threshold
           base.screen.provisional.map((entry) => entry.strategyId)), opponents: lottery.opponents,
           schedule, kingdomId: source.kingdomId, runner, confidence, evaluate, chunkSize,
           lookIdPrefix: `run-${runId}.scan-${base.scan}.confirmation`,
-          ...(source.deadlineMs === undefined ? {} : { deadline: source.deadlineMs }),
           ...(confirmationRaw && { raw: confirmationRaw }) });
         addPhase(checkpoint, 'confirmation', confirmation.games, confirmation.elapsedMs, confirmation.telemetry);
-        if (source.terminalOnUnresolved && confirmation.unresolved.length > 0) {
-          checkpoint.scans.push({ ...base, confirmation, outcome: 'terminal-incomplete',
-            games: { screening: base.screen.games, confirmation: confirmation.games,
-              total: base.screen.games + confirmation.games },
-            elapsedMs: { screening: base.screen.elapsedMs, confirmation: confirmation.elapsedMs,
-              total: base.screen.elapsedMs + confirmation.elapsedMs } });
-          terminal(checkpoint, 'unresolved', 'fixed-protocol-look-cap-unresolved');
-        } else { checkpoint.pending = { kind: 'scan-confirmed', base, confirmation }; checkpoint.phase = 'confirmed'; }
+        checkpoint.pending = { kind: 'scan-confirmed', base, confirmation }; checkpoint.phase = 'confirmed';
         checkpoint = saveCheckpoint(root, checkpoint); continue;
       }
       if (checkpoint.phase === 'confirmed' && checkpoint.pending?.kind === 'scan-confirmed') {

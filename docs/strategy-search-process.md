@@ -90,7 +90,7 @@ A search is clean when it finds no confirmed response.
 
 Two clean searches are evidence that the saved 20,000-strategy reservoir contains no response that this process can confirm against the final equilibrium. They do not prove that no response exists outside the reservoir or that the game has only one equilibrium.
 
-An interrupted or inconclusive search is incomplete. An unresolved screen, confirmation, or queue retest makes the kingdom `terminal-incomplete`. A time limit, failed task, manual stop, or `terminal-incomplete` result must not count as a clean search.
+A completed search is clean when it has no confirmed response. Candidates can remain unresolved at the screening, confirmation, or queue-retest cap. The evidence keeps each unresolved decision, but uncertainty does not make the search incomplete and does not block a clean-search count. Missing, corrupt, failed, or interrupted work is incomplete. The runtime records elapsed time but does not change a scientific result because of elapsed time alone.
 
 # Save and validate the evidence
 

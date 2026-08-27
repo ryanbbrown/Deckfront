@@ -2,8 +2,9 @@ import { createHash } from 'node:crypto';
 import { anytimeConfidenceBounds } from './anytimeMeanEvidence';
 import { solveEquilibrium } from './equilibrium';
 import type { EquilibriumResult } from './equilibrium';
-import type { MixtureSchedule } from './mixtureEvaluation';
+import type { CandidateEvaluation, MixtureSchedule } from './mixtureEvaluation';
 import { GAMES_PER_SEED, emptyAggregate, mergeAggregate } from './pairing';
+import { validateTelemetryAggregate } from './lotteryAcquisition';
 import { matrixProtocol, payoffMatrixPairKey } from './payoffMatrix';
 import type { MatrixCell, MatrixSnapshot } from './payoffMatrix';
 import type { CalibrationCandidateIdentity } from './responseOracleCalibration';
@@ -14,16 +15,18 @@ import { createStrategySearchPsroLook } from './strategySearchPsro';
 import type { StrategySearchPsroLook } from './strategySearchPsro';
 import {
   CONFIRMATION_FAMILY_ALPHA, CONFIRMATION_LOOKS, PSRO_MATRIX_BLOCKS, RESPONSE_THRESHOLD,
-  SCREEN_ALPHA, SCREEN_DEPTHS, assembleRawPsroLook, createRawPsroLookArtifact, orderConfirmedQueue,
+  SCREEN_ALPHA, SCREEN_DEPTHS, assembleRawPsroLook, createRawPsroLookArtifact, createRawPsroScoreChunk,
+  orderConfirmedQueue,
   scheduleSlice, thresholdRacingSeedLabel, validateThresholdRacingProtocol, weightedFairSchedule
 } from './thresholdRacingPsro';
 import type {
-  ConfirmationDecision, QueueOrder, RawPsroScoreChunk, ThresholdDecision, ThresholdRacingProtocol
+  ConfirmationDecision, QueueOrder, ThresholdDecision, ThresholdRacingProtocol
 } from './thresholdRacingPsro';
 import type { TelemetryAggregate } from './types';
 import { compareUtf16 } from './utf16';
 
 export const STRATEGY_SEARCH_PARALLEL_PSRO_VERSION = 'strategy-search-parallel-psro-v1' as const;
+export const PARALLEL_PSRO_MAX_SCORE_TASKS = 50;
 const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const exact = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right);
 const mean = (values: readonly number[]): number => values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -45,8 +48,8 @@ export interface ParallelPsroRaceState {
 export interface ParallelPsroSemanticCheckpoint {
   schemaVersion: 1; experiment: 'strategy-search-parallel-psro';
   version: typeof STRATEGY_SEARCH_PARALLEL_PSRO_VERSION; protocol: ThresholdRacingProtocol; seedSourceHash: string;
-  status: 'running' | 'complete' | 'terminal-incomplete'; stopReason: 'running' | 'empirical-two-clean-scans'
-    | 'fixed-protocol-look-cap-unresolved'; matrix: MatrixSnapshot; equilibrium: EquilibriumResult;
+  status: 'running' | 'complete'; stopReason: 'running' | 'empirical-two-clean-scans';
+  matrix: MatrixSnapshot; equilibrium: EquilibriumResult;
   candidates: ParallelPsroCandidate[]; cleanSearches: number; scanCount: number; queueRetestCount: number;
   queue: ConfirmationDecision[]; currentRace: ParallelPsroRaceState | null;
   decisions: ParallelPsroDecisionRecord[]; looks: StrategySearchPsroLook[]; admissions: ParallelPsroAdmission[];
@@ -59,7 +62,15 @@ export interface ParallelPsroLookDescriptor {
   scheduleStart: number; scheduleEnd: number;
 }
 export interface ParallelPsroScoreTaskDescriptor {
-  taskIndex: number; candidateStart: number; candidateEnd: number; expectedTaskMs: number;
+  taskIndex: number; candidateStart: number; candidateEnd: number;
+  scheduleStart: number; scheduleEnd: number; expectedTaskMs: number;
+}
+export interface ParallelPsroScoreTaskChunk {
+  schemaVersion: 1; experiment: 'strategy-search-parallel-psro-score-task-chunk'; descriptorHash: string;
+  taskIndex: number; candidateStart: number; candidateEnd: number; scheduleStart: number; scheduleEnd: number;
+  candidateIds: string[]; candidateCanonicals: string[]; scoreBytes: number[]; played: number[];
+  telemetryByCandidate: TelemetryAggregate[];
+  dimensions: { candidates: number; blocks: number; scoreBytes: number; played: number }; contentHash: string;
 }
 export interface ParallelAdmissionRowDescriptor {
   descriptorHash: string; admission: number; candidateId: string; candidateCanonical: string;
@@ -76,7 +87,7 @@ export type ParallelPsroTransition =
   | { kind: 'score'; checkpoint: ParallelPsroSemanticCheckpoint; look: ParallelPsroLookDescriptor;
       tasks: ParallelPsroScoreTaskDescriptor[] }
   | { kind: 'admission-row'; checkpoint: ParallelPsroSemanticCheckpoint; row: ParallelAdmissionRowDescriptor }
-  | { kind: 'complete' | 'terminal-incomplete'; checkpoint: ParallelPsroSemanticCheckpoint };
+  | { kind: 'complete'; checkpoint: ParallelPsroSemanticCheckpoint };
 
 function seal(checkpoint: ParallelPsroSemanticCheckpoint): ParallelPsroSemanticCheckpoint {
   const copy = structuredClone(checkpoint); copy.evidenceHash = '';
@@ -158,25 +169,108 @@ function lookDescriptor(checkpoint: ParallelPsroSemanticCheckpoint): ParallelPsr
     scheduleStart: previous, scheduleEnd: depth };
   return { ...base, descriptorHash: hash(base) };
 }
+function axisRanges(start: number, end: number, count: number): Array<{ start: number; end: number }> {
+  const length = end - start, ranges = []; let cursor = start;
+  for (let index = 0; index < count; index += 1) {
+    const size = Math.floor(length / count) + (index < length % count ? 1 : 0);
+    ranges.push({ start: cursor, end: cursor + size }); cursor += size;
+  }
+  return ranges;
+}
 export function partitionParallelPsroLook(look: ParallelPsroLookDescriptor, input: {
-  targetTaskMs?: number; measuredCandidateBlocksPerSecond?: number } = {}): ParallelPsroScoreTaskDescriptor[] {
-  const targetMs = input.targetTaskMs ?? 20_000, rate = input.measuredCandidateBlocksPerSecond ?? 1_653;
-  if (targetMs < 15_000 || targetMs > 60_000 || !(rate > 0)) throw new Error('PSRO score-task sizing is invalid.');
-  const blocks = look.scheduleEnd - look.scheduleStart;
-  const totalMs = look.candidateIds.length * blocks / rate * 1000;
-  const minimumTasks = Math.max(1, Math.ceil(totalMs / 60_000));
-  const maximumTasks = Math.max(1, Math.floor(totalMs / 15_000));
-  const taskCount = Math.max(minimumTasks, Math.min(maximumTasks, Math.round(totalMs / targetMs)));
-  const tasks: ParallelPsroScoreTaskDescriptor[] = []; let cursor = 0;
-  for (let taskIndex = 0; taskIndex < taskCount; taskIndex += 1) {
-    const count = Math.floor(look.candidateIds.length / taskCount)
-      + (taskIndex < look.candidateIds.length % taskCount ? 1 : 0);
-    tasks.push({ taskIndex, candidateStart: cursor, candidateEnd: cursor + count,
-      expectedTaskMs: count * blocks / rate * 1000 }); cursor += count;
+  targetTasks?: number; maxTasks?: number; measuredCandidateBlocksPerSecond?: number;
+  coordinationMsPerTask?: number } = {}): ParallelPsroScoreTaskDescriptor[] {
+  const maxTasks = input.maxTasks ?? PARALLEL_PSRO_MAX_SCORE_TASKS;
+  const rate = input.measuredCandidateBlocksPerSecond ?? 1_653;
+  const coordinationMsPerTask = input.coordinationMsPerTask ?? 10;
+  const candidateCount = look.candidateIds.length, blockCount = look.scheduleEnd - look.scheduleStart;
+  const measuredWorkMs = candidateCount * blockCount / rate * 1000;
+  const adaptiveTasks = Math.max(1, Math.round(Math.sqrt(measuredWorkMs / coordinationMsPerTask)));
+  const target = input.targetTasks ?? Math.min(maxTasks, adaptiveTasks);
+  if (!Number.isSafeInteger(maxTasks) || maxTasks < 1 || !Number.isSafeInteger(target) || target < 1
+    || target > maxTasks || !(rate > 0) || !(coordinationMsPerTask > 0)
+    || candidateCount < 1 || blockCount < 1) throw new Error('PSRO score-task sizing is invalid.');
+  const taskLimit = Math.min(target, candidateCount * blockCount);
+  let candidateParts = 1, scheduleParts = 1, bestCount = 1, bestBalance = 1;
+  for (let heldScheduleParts = 1; heldScheduleParts <= Math.min(blockCount, taskLimit); heldScheduleParts += 1) {
+    const heldCandidateParts = Math.min(candidateCount, Math.floor(taskLimit / heldScheduleParts));
+    const count = heldCandidateParts * heldScheduleParts;
+    const balance = Math.min(heldCandidateParts, heldScheduleParts);
+    if (count > bestCount || count === bestCount && balance > bestBalance) {
+      candidateParts = heldCandidateParts; scheduleParts = heldScheduleParts;
+      bestCount = count; bestBalance = balance;
+    }
+  }
+  const candidateRanges = axisRanges(0, candidateCount, candidateParts);
+  const scheduleRanges = axisRanges(look.scheduleStart, look.scheduleEnd, scheduleParts);
+  const tasks: ParallelPsroScoreTaskDescriptor[] = []; let taskIndex = 0;
+  for (const candidate of candidateRanges) for (const schedule of scheduleRanges) {
+    const units = (candidate.end - candidate.start) * (schedule.end - schedule.start);
+    tasks.push({ taskIndex, candidateStart: candidate.start, candidateEnd: candidate.end,
+      scheduleStart: schedule.start, scheduleEnd: schedule.end, expectedTaskMs: units / rate * 1000 });
+    taskIndex += 1;
   }
   return tasks;
 }
-function requestNext(checkpoint: ParallelPsroSemanticCheckpoint): ParallelPsroTransition {
+function scoreTaskMatchesLook(task: ParallelPsroScoreTaskDescriptor, look: ParallelPsroLookDescriptor): boolean {
+  return Number.isSafeInteger(task.taskIndex) && task.taskIndex >= 0
+    && Number.isSafeInteger(task.candidateStart) && Number.isSafeInteger(task.candidateEnd)
+    && task.candidateStart >= 0 && task.candidateEnd > task.candidateStart
+    && task.candidateEnd <= look.candidateIds.length
+    && Number.isSafeInteger(task.scheduleStart) && Number.isSafeInteger(task.scheduleEnd)
+    && task.scheduleStart >= look.scheduleStart && task.scheduleEnd > task.scheduleStart
+    && task.scheduleEnd <= look.scheduleEnd && Number.isFinite(task.expectedTaskMs) && task.expectedTaskMs > 0;
+}
+export function createParallelPsroScoreTaskChunk(input: { checkpoint: ParallelPsroSemanticCheckpoint;
+  look: ParallelPsroLookDescriptor; task: ParallelPsroScoreTaskDescriptor;
+  rows: readonly CandidateEvaluation[] }): ParallelPsroScoreTaskChunk {
+  if (!validateParallelPsroCheckpoint(input.checkpoint)
+    || lookDescriptor(structuredClone(input.checkpoint)).descriptorHash !== input.look.descriptorHash
+    || !scoreTaskMatchesLook(input.task, input.look)) throw new Error('Parallel PSRO score task is stale.');
+  const ids = input.look.candidateIds.slice(input.task.candidateStart, input.task.candidateEnd);
+  const canonicals = input.look.candidateCanonicals.slice(input.task.candidateStart, input.task.candidateEnd);
+  const candidates = candidateMap(input.checkpoint), blocks = input.task.scheduleEnd - input.task.scheduleStart;
+  if (input.rows.length !== ids.length || input.rows.some((row, index) => row.strategy.id !== ids[index]
+    || candidates.get(ids[index]!)?.canonicalStrategy !== canonicals[index]
+    || row.blockScores.length !== blocks || row.matches !== blocks * GAMES_PER_SEED
+    || row.blockScores.some((score) => ![0, 0.25, 0.5, 0.75, 1].includes(score))
+    || !(validateTelemetryAggregate(row.telemetry, blocks * GAMES_PER_SEED)
+      || exact(row.telemetry, emptyAggregate())))) throw new Error('Parallel PSRO score task result is invalid.');
+  const scoreBytes = input.rows.flatMap((row) => row.blockScores.map((score) => score * 4));
+  const base = { schemaVersion: 1 as const, experiment: 'strategy-search-parallel-psro-score-task-chunk' as const,
+    descriptorHash: input.look.descriptorHash, taskIndex: input.task.taskIndex,
+    candidateStart: input.task.candidateStart, candidateEnd: input.task.candidateEnd,
+    scheduleStart: input.task.scheduleStart, scheduleEnd: input.task.scheduleEnd,
+    candidateIds: ids, candidateCanonicals: canonicals, scoreBytes,
+    played: scoreBytes.map(() => GAMES_PER_SEED),
+    telemetryByCandidate: input.rows.map((row) => structuredClone(row.telemetry)),
+    dimensions: { candidates: ids.length, blocks, scoreBytes: scoreBytes.length, played: scoreBytes.length },
+    contentHash: '' };
+  return { ...base, contentHash: hash(base) };
+}
+export function validateParallelPsroScoreTaskChunk(value: unknown, checkpoint: ParallelPsroSemanticCheckpoint,
+  look: ParallelPsroLookDescriptor, task: ParallelPsroScoreTaskDescriptor): value is ParallelPsroScoreTaskChunk {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  try {
+    const held = value as ParallelPsroScoreTaskChunk, blocks = held.scheduleEnd - held.scheduleStart;
+    if (!held.dimensions || held.dimensions.candidates !== held.candidateIds?.length
+      || held.dimensions.blocks !== blocks || held.scoreBytes?.length !== held.dimensions.scoreBytes
+      || held.played?.length !== held.dimensions.played || held.dimensions.scoreBytes !== held.dimensions.candidates * blocks
+      || held.dimensions.played !== held.dimensions.scoreBytes
+      || held.scoreBytes.some((score) => !Number.isSafeInteger(score) || score < 0 || score > 4)
+      || held.played.some((played) => played !== GAMES_PER_SEED)) return false;
+    const candidates = candidateMap(checkpoint);
+    const rows = held.candidateIds.map((id, index) => {
+      const strategy = candidates.get(id)?.strategy;
+      if (!strategy) throw new Error('candidate missing');
+      const scores = held.scoreBytes.slice(index * blocks, (index + 1) * blocks).map((score) => score / 4);
+      return { strategy, mean: mean(scores), blockScores: scores, interval: null,
+        matches: blocks * GAMES_PER_SEED, telemetry: held.telemetryByCandidate[index]! };
+    });
+    return exact(held, createParallelPsroScoreTaskChunk({ checkpoint, look, task, rows }));
+  } catch { return false; }
+}
+function requestNext(checkpoint: ParallelPsroSemanticCheckpoint, targetTasks = PARALLEL_PSRO_MAX_SCORE_TASKS): ParallelPsroTransition {
   if (checkpoint.status !== 'running') return { kind: checkpoint.status, checkpoint: seal(checkpoint) };
   if (checkpoint.queue.length && !checkpoint.currentRace) {
     const order = orderConfirmedQueue(checkpoint.queue), selected = order.strongestStrategyId;
@@ -190,7 +284,8 @@ function requestNext(checkpoint: ParallelPsroSemanticCheckpoint): ParallelPsroTr
   }
   if (!checkpoint.currentRace) beginScreen(checkpoint);
   const look = lookDescriptor(checkpoint);
-  return { kind: 'score', checkpoint: seal(checkpoint), look, tasks: partitionParallelPsroLook(look) };
+  return { kind: 'score', checkpoint: seal(checkpoint), look,
+    tasks: partitionParallelPsroLook(look, { targetTasks }) };
 }
 export function createParallelPsroCheckpoint(input: { protocol: ThresholdRacingProtocol; seedSourceHash?: string;
   matrix: MatrixSnapshot; candidates: readonly ParallelPsroCandidate[] }): ParallelPsroSemanticCheckpoint {
@@ -209,45 +304,106 @@ export function createParallelPsroCheckpoint(input: { protocol: ThresholdRacingP
     queueRetestCount: 0, queue: [], currentRace: null, decisions: [], looks: [], admissions: [],
     telemetry: emptyAggregate(), evidenceHash: '' });
 }
-export function startParallelPsro(checkpoint: ParallelPsroSemanticCheckpoint): ParallelPsroTransition {
+export function startParallelPsro(checkpoint: ParallelPsroSemanticCheckpoint,
+  input: { targetTasks?: number } = {}): ParallelPsroTransition {
   if (!validateParallelPsroCheckpoint(checkpoint)) throw new Error('Parallel PSRO checkpoint is invalid.');
-  return requestNext(structuredClone(checkpoint));
+  return requestNext(structuredClone(checkpoint), input.targetTasks);
 }
-function finishClean(checkpoint: ParallelPsroSemanticCheckpoint): ParallelPsroTransition {
+function finishClean(checkpoint: ParallelPsroSemanticCheckpoint, targetTasks: number): ParallelPsroTransition {
   checkpoint.cleanSearches += 1; checkpoint.currentRace = null;
   if (checkpoint.cleanSearches >= 2) {
     checkpoint.status = 'complete'; checkpoint.stopReason = 'empirical-two-clean-scans';
   }
-  return requestNext(checkpoint);
+  return requestNext(checkpoint, targetTasks);
 }
 export function reduceParallelPsroLook(input: { checkpoint: ParallelPsroSemanticCheckpoint;
-  look: ParallelPsroLookDescriptor; chunks: readonly RawPsroScoreChunk[] }): ParallelPsroTransition {
+  look: ParallelPsroLookDescriptor; tasks: readonly ParallelPsroScoreTaskDescriptor[];
+  chunks: readonly ParallelPsroScoreTaskChunk[]; targetTasks?: number }): ParallelPsroTransition {
   if (!validateParallelPsroCheckpoint(input.checkpoint)) throw new Error('Parallel PSRO checkpoint is invalid.');
   const checkpoint = structuredClone(input.checkpoint), race = checkpoint.currentRace;
   if (!race || lookDescriptor(checkpoint).descriptorHash !== input.look.descriptorHash) {
     throw new Error('Parallel PSRO look is stale.');
   }
-  const chunks = [...input.chunks].sort((left, right) => left.candidateStart - right.candidateStart);
-  const candidates = candidateMap(checkpoint), refs = race.activeCandidateIds.map((id) => {
+  if (!input.tasks.length || input.tasks.length !== input.chunks.length
+    || input.tasks.some((task, index) => task.taskIndex !== index || !scoreTaskMatchesLook(task, input.look))) {
+    throw new Error('Parallel PSRO score-task coverage is incomplete.');
+  }
+  const byTask = new Map<number, ParallelPsroScoreTaskChunk>();
+  for (const chunk of input.chunks) {
+    const task = input.tasks[chunk.taskIndex];
+    if (!task || byTask.has(chunk.taskIndex)
+      || !validateParallelPsroScoreTaskChunk(chunk, input.checkpoint, input.look, task)) {
+      throw new Error('Parallel PSRO score-task chunks are missing, duplicate, stale, or corrupt.');
+    }
+    byTask.set(chunk.taskIndex, chunk);
+  }
+  const blockCount = input.look.scheduleEnd - input.look.scheduleStart;
+  const scores = input.look.candidateIds.map(() => Array(blockCount).fill(-1) as number[]);
+  const telemetry = input.look.candidateIds.map(() => emptyAggregate());
+  for (const task of input.tasks) {
+    const chunk = byTask.get(task.taskIndex)!;
+    const taskBlocks = task.scheduleEnd - task.scheduleStart;
+    for (let candidate = task.candidateStart; candidate < task.candidateEnd; candidate += 1) {
+      const row = candidate - task.candidateStart;
+      for (let block = task.scheduleStart; block < task.scheduleEnd; block += 1) {
+        const offset = row * taskBlocks + block - task.scheduleStart;
+        const target = block - input.look.scheduleStart;
+        if (scores[candidate]![target] !== -1) throw new Error('Parallel PSRO score-task chunks overlap.');
+        scores[candidate]![target] = chunk.scoreBytes[offset]! / 4;
+      }
+      mergeAggregate(telemetry[candidate]!, chunk.telemetryByCandidate[row]!);
+    }
+  }
+  if (scores.some((row) => row.some((score) => score < 0))) {
+    throw new Error('Parallel PSRO score-task coverage is incomplete.');
+  }
+  const candidates = candidateMap(checkpoint);
+  const candidateRanges = [...new Map(input.tasks.map((task) => [
+    `${task.candidateStart}:${task.candidateEnd}`,
+    { start: task.candidateStart, end: task.candidateEnd }
+  ])).values()].sort((left, right) => left.start - right.start);
+  let candidateCursor = 0;
+  const semanticChunks = candidateRanges.map((range) => {
+    if (range.start !== candidateCursor || range.end <= range.start) {
+      throw new Error('Parallel PSRO candidate ranges overlap or are incomplete.');
+    }
+    candidateCursor = range.end;
+    const field = input.look.candidateIds.slice(range.start, range.end).map((id) => candidates.get(id)!);
+    return createRawPsroScoreChunk({ protocol: checkpoint.protocol, raceKind: race.raceKind,
+      lookId: input.look.lookId, lookDepth: input.look.lookDepth, familySize: input.look.familySize,
+      alpha: input.look.alpha, candidates: field.map((candidate) => ({ identity: candidate,
+        strategy: candidate.strategy })), candidateStart: range.start, fullSchedule: input.look.fullSchedule,
+      suffixSchedule: input.look.suffixSchedule, scheduleStart: input.look.scheduleStart,
+      rows: field.map((candidate, index) => ({ strategy: candidate.strategy,
+        mean: mean(scores[range.start + index]!), blockScores: scores[range.start + index]!, interval: null,
+        matches: blockCount * GAMES_PER_SEED, telemetry: telemetry[range.start + index]! })) });
+  });
+  if (candidateCursor !== input.look.candidateIds.length) {
+    throw new Error('Parallel PSRO candidate ranges are incomplete.');
+  }
+  const refs = race.activeCandidateIds.map((id) => {
     const candidate = candidates.get(id)!; return { identity: candidate, strategy: candidate.strategy };
   });
   const rawLook = createRawPsroLookArtifact({ protocol: checkpoint.protocol, raceKind: race.raceKind,
     lookId: input.look.lookId, lookDepth: input.look.lookDepth, familySize: input.look.familySize,
     alpha: input.look.alpha, candidates: refs, scheduleStart: input.look.scheduleStart,
-    scheduleEnd: input.look.scheduleEnd, chunks });
-  const suffixScores = assembleRawPsroLook(rawLook, chunks, checkpoint.protocol);
-  checkpoint.looks.push(createStrategySearchPsroLook({ look: rawLook, chunks, protocol: checkpoint.protocol }));
-  chunks.forEach((chunk) => chunk.telemetryByCandidate.forEach((telemetry) => mergeAggregate(checkpoint.telemetry, telemetry)));
+    scheduleEnd: input.look.scheduleEnd, chunks: semanticChunks });
+  const suffixScores = assembleRawPsroLook(rawLook, semanticChunks, checkpoint.protocol);
+  checkpoint.looks.push(createStrategySearchPsroLook({ look: rawLook,
+    chunks: semanticChunks, protocol: checkpoint.protocol }));
+  semanticChunks.forEach((chunk) => chunk.telemetryByCandidate
+    .forEach((held) => mergeAggregate(checkpoint.telemetry, held)));
   for (const id of race.activeCandidateIds) race.scoresByCandidate[id]!.push(...suffixScores[id]!);
   const decisions = race.activeCandidateIds.map((id) => {
-    const candidate = candidates.get(id)!, scores = race.scoresByCandidate[id]!, interval = anytimeConfidenceBounds(scores,
+    const candidate = candidates.get(id)!, heldScores = race.scoresByCandidate[id]!;
+    const interval = anytimeConfidenceBounds(heldScores,
       race.raceKind === 'screen' ? SCREEN_ALPHA : CONFIRMATION_FAMILY_ALPHA / race.familyCandidateIds.length);
     if (race.raceKind === 'screen') return { goldfishRank: candidate.goldfishRank, strategyId: id,
-      canonicalStrategy: candidate.canonicalStrategy, blocks: scores.length, mean: mean(scores), interval,
+      canonicalStrategy: candidate.canonicalStrategy, blocks: heldScores.length, mean: mean(heldScores), interval,
       status: interval.upper <= RESPONSE_THRESHOLD ? 'below' as const
         : interval.lower > RESPONSE_THRESHOLD ? 'above' as const : 'unresolved' as const };
     return { goldfishRank: candidate.goldfishRank, strategyId: id, canonicalStrategy: candidate.canonicalStrategy,
-      blocks: scores.length, mean: mean(scores), interval, status: interval.lower > RESPONSE_THRESHOLD
+      blocks: heldScores.length, mean: mean(heldScores), interval, status: interval.lower > RESPONSE_THRESHOLD
         ? 'confirmed' as const : interval.upper <= RESPONSE_THRESHOLD ? 'rejected' as const : 'unresolved' as const };
   });
   checkpoint.decisions.push({ raceKind: race.raceKind, lookId: input.look.lookId,
@@ -259,27 +415,24 @@ export function reduceParallelPsroLook(input: { checkpoint: ParallelPsroSemantic
   race.lookIndex += 1;
   const depths = race.raceKind === 'screen' ? SCREEN_DEPTHS : CONFIRMATION_LOOKS;
   const finalLook = race.lookIndex === depths.length;
-  if (race.activeCandidateIds.length && !finalLook) return requestNext(checkpoint);
-  if (race.activeCandidateIds.length) {
-    checkpoint.status = 'terminal-incomplete'; checkpoint.stopReason = 'fixed-protocol-look-cap-unresolved';
-    checkpoint.currentRace = null; return requestNext(checkpoint);
-  }
+  const targetTasks = input.targetTasks ?? PARALLEL_PSRO_MAX_SCORE_TASKS;
+  if (race.activeCandidateIds.length && !finalLook) return requestNext(checkpoint, targetTasks);
   const allRaceDecisions = checkpoint.decisions.filter((record) => record.raceKind === race.raceKind
     && record.lookId.startsWith(race.lookIdPrefix)).flatMap((record) => record.decisions);
   if (race.raceKind === 'screen') {
     const provisional = allRaceDecisions.filter((decision): decision is ThresholdDecision => decision.status === 'above');
     checkpoint.currentRace = null;
-    if (!provisional.length) return finishClean(checkpoint);
+    if (!provisional.length) return finishClean(checkpoint, targetTasks);
     beginConfirmation(checkpoint, provisional.map((decision) => decision.strategyId), 'confirmation');
-    return requestNext(checkpoint);
+    return requestNext(checkpoint, targetTasks);
   }
   const confirmed = allRaceDecisions.filter((decision): decision is ConfirmationDecision => decision.status === 'confirmed');
   checkpoint.currentRace = null;
   if (!confirmed.length) {
-    if (race.raceKind === 'confirmation') return finishClean(checkpoint);
-    checkpoint.queue = []; return requestNext(checkpoint);
+    if (race.raceKind === 'confirmation') return finishClean(checkpoint, targetTasks);
+    checkpoint.queue = []; return requestNext(checkpoint, targetTasks);
   }
-  checkpoint.queue = confirmed; return requestNext(checkpoint);
+  checkpoint.queue = confirmed; return requestNext(checkpoint, targetTasks);
 }
 export function createParallelAdmissionRowChunk(input: { row: ParallelAdmissionRowDescriptor; taskIndex: number;
   cells: readonly ParallelAdmissionRowCell[] }): ParallelAdmissionRowChunk {
@@ -302,7 +455,8 @@ export function validateParallelAdmissionRowChunk(value: unknown, row: ParallelA
   } catch { return false; }
 }
 export function reduceParallelAdmissionRow(input: { checkpoint: ParallelPsroSemanticCheckpoint;
-  row: ParallelAdmissionRowDescriptor; chunks: readonly ParallelAdmissionRowChunk[] }): ParallelPsroTransition {
+  row: ParallelAdmissionRowDescriptor; chunks: readonly ParallelAdmissionRowChunk[];
+  targetTasks?: number }): ParallelPsroTransition {
   if (!validateParallelPsroCheckpoint(input.checkpoint)) throw new Error('Parallel PSRO checkpoint is invalid.');
   const checkpoint = structuredClone(input.checkpoint), order = orderConfirmedQueue(checkpoint.queue);
   if (order.strongestStrategyId !== input.row.candidateId || input.row.admission !== checkpoint.admissions.length + 1
@@ -350,8 +504,9 @@ export function reduceParallelAdmissionRow(input: { checkpoint: ParallelPsroSema
     matrixSizeBefore: before, matrixSizeAfter: before + 1 });
   checkpoint.queue = checkpoint.queue.filter((decision) => decision.strategyId !== selected.strategyId);
   checkpoint.cleanSearches = 0;
-  if (checkpoint.queue.length) beginConfirmation(checkpoint, checkpoint.queue.map((decision) => decision.strategyId), 'queue-retest');
-  return requestNext(checkpoint);
+  if (checkpoint.queue.length) beginConfirmation(checkpoint,
+    checkpoint.queue.map((decision) => decision.strategyId), 'queue-retest');
+  return requestNext(checkpoint, input.targetTasks);
 }
 export function matrixSnapshotFromStrategySearchArtifact(artifact: StrategySearchMatrixArtifact): MatrixSnapshot {
   const seeds = artifact.manifest.seeds.slice(0, PSRO_MATRIX_BLOCKS);

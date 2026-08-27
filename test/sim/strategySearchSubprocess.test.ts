@@ -8,10 +8,12 @@ import { matrixProtocol } from '../../src/sim/payoffMatrix';
 import { candidateIndexAt, createOrderedCandidateSpace,
   orderedGoldfishCardIds } from '../../src/sim/orderedGoldfishBenchmark';
 import { canonicalStrategy } from '../../src/sim/strategy';
-import { createParallelPsroCheckpoint, startParallelPsro } from '../../src/sim/strategySearchParallelPsro';
+import {
+  createParallelPsroCheckpoint, createParallelPsroScoreTaskChunk, startParallelPsro
+} from '../../src/sim/strategySearchParallelPsro';
 import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import { createStrategySearchMatrixManifest } from '../../src/sim/strategySearchMatrix';
-import { createRawPsroScoreChunk, createThresholdRacingProtocol } from '../../src/sim/thresholdRacingPsro';
+import { createThresholdRacingProtocol } from '../../src/sim/thresholdRacingPsro';
 
 const kingdomId = 'balance-tuning-005', evidenceId = 'a'.repeat(64);
 const entries = ['goldfish', 'matrix-manifest', 'matrix', 'psro', 'validator',
@@ -61,7 +63,7 @@ describe('deployment-only strategy-search subprocess bootstrap', () => {
         matrixSha256: 'c'.repeat(64), outputRoot: path.join(root, 'out'), controlRoot: path.join(root, 'control'),
         workers: 1, protocolInput: {} };
       const file = path.join(root, 'config.json'); fs.writeFileSync(file, JSON.stringify(config));
-      const result = execute('psro', ['--config', file, '--shutdown-at-ms', String(Date.now() + 10_000)]);
+      const result = execute('psro', ['--config', file]);
       expect(result.status).not.toBe(0); expect(result.stderr).toContain('ENOENT');
       expect(result.stderr).not.toContain('Unknown kingdom');
     } finally { fs.rmSync(root, { recursive: true, force: true }); }
@@ -99,19 +101,17 @@ describe('deployment-only strategy-search subprocess bootstrap', () => {
       const task = transition.tasks[0]!, byId = new Map(candidates.map((candidate) => [candidate.strategyId, candidate]));
       const field = transition.look.candidateIds.slice(task.candidateStart, task.candidateEnd)
         .map((id) => byId.get(id)!);
-      const chunk = createRawPsroScoreChunk({ protocol, raceKind: transition.look.raceKind,
-        lookId: transition.look.lookId, lookDepth: transition.look.lookDepth, familySize: transition.look.familySize,
-        alpha: transition.look.alpha, candidates: field.map((candidate) => ({ identity: candidate,
-          strategy: candidate.strategy })), candidateStart: task.candidateStart,
-        fullSchedule: transition.look.fullSchedule, suffixSchedule: transition.look.suffixSchedule,
-        scheduleStart: transition.look.scheduleStart, rows: field.map((candidate) => ({ strategy: candidate.strategy,
-          mean: 0.5, blockScores: transition.look.suffixSchedule.blocks.map(() => 0.5), interval: null,
-          matches: transition.look.suffixSchedule.blocks.length * 2, telemetry: emptyAggregate() })) });
+      const blocks = task.scheduleEnd - task.scheduleStart;
+      const chunk = createParallelPsroScoreTaskChunk({ checkpoint: transition.checkpoint,
+        look: transition.look, task, rows: field.map((candidate) => ({ strategy: candidate.strategy,
+          mean: 0.5, blockScores: Array(blocks).fill(0.5), interval: null,
+          matches: blocks * 2, telemetry: emptyAggregate() })) });
       const transitionFile = path.join(root, 'transition.json'), taskFile = path.join(root, 'task.json'),
         chunkFile = path.join(root, 'chunk.json'), output = path.join(root, 'validation.json');
       fs.writeFileSync(transitionFile, JSON.stringify(transition));
       fs.writeFileSync(taskFile, JSON.stringify({ candidateEnd: task.candidateEnd,
-        candidateStart: task.candidateStart, expectedTaskMs: task.expectedTaskMs, taskIndex: task.taskIndex }));
+        candidateStart: task.candidateStart, expectedTaskMs: task.expectedTaskMs,
+        scheduleEnd: task.scheduleEnd, scheduleStart: task.scheduleStart, taskIndex: task.taskIndex }));
       fs.writeFileSync(chunkFile, JSON.stringify(chunk));
       const args = ['--out', output, '--transition', transitionFile, '--task', taskFile, '--chunk', chunkFile];
       const valid = execute('psro-score-receipt-validator', args);

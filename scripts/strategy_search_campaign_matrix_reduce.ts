@@ -7,12 +7,14 @@ import {
 
 function option(name: string): string { const index = process.argv.indexOf(`--${name}`), value = process.argv[index + 1];
   if (index < 0 || !value || value.startsWith('--')) throw new Error(`--${name} is required.`); return value; }
+function integer(name: string, minimum = 0): number { const value = Number(option(name));
+  if (!Number.isSafeInteger(value) || value < minimum) throw new Error(`--${name} is invalid.`); return value; }
 function writeAtomic(file: string, value: unknown): void { fs.mkdirSync(path.dirname(file), { recursive: true });
   const temporary = `${file}.tmp-${process.pid}`; fs.writeFileSync(temporary, `${JSON.stringify(value)}\n`);
   fs.renameSync(temporary, file); }
 const manifest = JSON.parse(fs.readFileSync(path.resolve(option('manifest')), 'utf8')) as unknown;
 if (!validateStrategySearchMatrixManifest(manifest)) throw new Error('Matrix reduction manifest is invalid.');
-const tasks = strategySearchMatrixScoreTasks(manifest);
+const tasks = strategySearchMatrixScoreTasks(manifest, { targetTasks: integer('task-count', 1) });
 const files = JSON.parse(fs.readFileSync(path.resolve(option('chunks')), 'utf8')) as unknown;
 if (!Array.isArray(files) || files.some((file) => typeof file !== 'string') || files.length !== tasks.length) {
   throw new Error('Matrix reduction chunk manifest is invalid.');

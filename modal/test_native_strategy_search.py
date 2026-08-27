@@ -745,7 +745,8 @@ print(json.dumps(result))
                     "artifactPath": relative, "sha256": digest, "fence": 1}
                 items.append({"taskId": task_id, "evidenceId": evidence, "stage": "psro-score",
                     "kingdomId": "kingdom", "transitionPath": "transition.json",
-                    "scoreTask": {"taskIndex": index, "candidateStart": index, "candidateEnd": index + 1},
+                    "scoreTask": {"taskIndex": index, "candidateStart": index, "candidateEnd": index + 1,
+                        "scheduleStart": 0, "scheduleEnd": 8, "expectedTaskMs": 1},
                     "launchId": f"launch-{index}", "temporaryPath": f"temporary/{index}",
                     "artifactPath": relative})
             other_relative = f"evidence/{evidence}/matrix-score.json"
@@ -798,8 +799,9 @@ print(json.dumps(result))
         transition = {"kind": "score", "checkpoint": {"evidenceHash": "c" * 64},
             "look": {"descriptorHash": "d" * 64, "scheduleStart": 0, "scheduleEnd": 8},
             "tasks": [{"taskIndex": 0, "candidateStart": 0, "candidateEnd": 100,
-                "expectedTaskMs": 15000}, {"taskIndex": 1, "candidateStart": 100,
-                "candidateEnd": 200, "expectedTaskMs": 15000}]}
+                "scheduleStart": 0, "scheduleEnd": 8, "expectedTaskMs": 15000},
+                {"taskIndex": 1, "candidateStart": 100, "candidateEnd": 200,
+                    "scheduleStart": 0, "scheduleEnd": 8, "expectedTaskMs": 15000}]}
         job = {"taskId": "decision", "evidenceId": evidence, "kingdomId": "kingdom",
             "stage": "psro-decision", "status": "complete",
             "receipt": {"artifactPath": "transition.json"}}
@@ -821,7 +823,8 @@ print(json.dumps(result))
     def test_strategy_search_materializes_only_two_adaptive_score_waves(self):
         evidence = "b" * 64
         tasks = [{"taskIndex": index, "candidateStart": index * 10,
-            "candidateEnd": (index + 1) * 10, "expectedTaskMs": 20000} for index in range(10)]
+            "candidateEnd": (index + 1) * 10, "scheduleStart": 0, "scheduleEnd": 8,
+            "expectedTaskMs": 20000} for index in range(10)]
         state = {"maxActiveCpus": 8, "jobs": [], "tasks": [], "dynamicScorePartitions": {
             "d" * 64: {"kind": "score", "evidenceId": evidence, "kingdomId": "kingdom",
                 "parentTaskId": "parent", "transitionPath": "transition", "root": "root",
@@ -836,6 +839,27 @@ print(json.dumps(result))
             job["status"] = "complete"
         self.assertTrue(launcher._strategy_search_materialize_adaptive(state, bundle))
         self.assertEqual(len([job for job in state["jobs"] if job["stage"] == "psro-score"]), 8)
+
+    def test_strategy_search_reports_running_and_submitted_cpus_for_each_score_look(self):
+        jobs, tasks = [], []
+        for index in range(2):
+            task_id = f"score-{index}"
+            jobs.append({"taskId": task_id, "evidenceId": "b" * 64, "kingdomId": "kingdom",
+                "stage": "psro-score", "attempts": [{"submittedMs": 10 + index * 10,
+                    "finishedMs": 90 - index * 10, "workerStartedMs": 20 + index * 10,
+                    "workerFinishedMs": 80 - index * 10, "cpu": 4}]})
+            tasks.append({"taskId": task_id, "metadata": {"lookDescriptorHash": "c" * 64}})
+        jobs.append({"taskId": "reduce", "evidenceId": "b" * 64, "kingdomId": "kingdom",
+            "stage": "psro-decision", "dependencyTaskIds": ["score-0", "score-1"],
+            "attempts": [{"submittedMs": 90, "finishedMs": 100, "workerStartedMs": 91,
+                "workerFinishedMs": 99, "modalWorkerElapsedMs": 8, "cpu": 1}]})
+        result = launcher._strategy_search_score_look_utilization({"jobs": jobs, "tasks": tasks}, 100)
+        self.assertEqual(result, [{"evidenceId": "b" * 64, "kingdomId": "kingdom",
+            "stage": "psro-score", "lookId": "c" * 64, "taskCount": 2, "requestedCpus": 8,
+            "peakSubmittedCpus": 8, "peakRunningCpus": 8, "admissionFailureCount": 0,
+            "workerDurationMs": {"min": 40, "p50": 40, "p95": 60, "max": 60},
+            "queueDelayMs": {"min": 10, "p50": 10, "p95": 10, "max": 10},
+            "coordinationAndReductionMs": 20, "reductionWorkerMs": 8, "totalWallMs": 90}])
 
     def test_strategy_search_materializes_only_two_global_goldfish_waves_and_then_reducer(self):
         evidence = "b" * 64

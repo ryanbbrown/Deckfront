@@ -14,7 +14,7 @@ import type {
   StrategySearchOperatorAdapter, StrategySearchRemoteStatus
 } from '../../scripts/strategy_search_campaign';
 
-function fixture(kingdomIds = ['deep-beam-tuning-007']) { const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-search-operator-'));
+function fixture(kingdomIds = ['deep-beam-tuning-007'], maxActiveCpus = 400) { const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-search-operator-'));
   execFileSync('git', ['init', '-q'], { cwd: root }); execFileSync('git', ['config', 'user.email', 'fixture@example.com'], { cwd: root });
   execFileSync('git', ['config', 'user.name', 'Fixture'], { cwd: root });
   fs.writeFileSync(path.join(root, 'package.json'), '{"name":"fixture"}\n');
@@ -24,7 +24,7 @@ function fixture(kingdomIds = ['deep-beam-tuning-007']) { const root = fs.mkdtem
     '["package.json","strategy-search-image-files.json","strategy-search-scientific-files.json"]\n');
   execFileSync('git', ['add', '.'], { cwd: root }); execFileSync('git', ['commit', '-qm', 'fixture'], { cwd: root });
   const requestFile = path.join(root, 'request.json'); fs.writeFileSync(requestFile,
-    `${JSON.stringify({ kingdomIds, maxActiveCpus: 400 })}\n`);
+    `${JSON.stringify({ kingdomIds, maxActiveCpus })}\n`);
   const parsed = deriveStrategySearch({ request: JSON.parse(fs.readFileSync(requestFile, 'utf8')),
     sourceImage: deriveTrackedStrategySearchSourceImage(root) });
   return { root, requestFile, parsed }; }
@@ -124,9 +124,13 @@ describe('strategy-search operator', () => {
       sourceImage }), bundle = createStrategySearchLaunchBundle(parsed);
     const taskIdDigest = createHash('sha256').update(bundle.tasks.map((task) => task.taskId).join('\n')).digest('hex');
     expect(parsed.kingdoms[0]!.evidenceId).toMatch(/^[0-9a-f]{64}$/);
-    expect(bundle.tasks.filter((task) => task.stage === 'matrix-score')).toHaveLength(4);
+    expect(bundle.tasks.filter((task) => task.stage === 'matrix-score').length).toBeGreaterThan(9);
+    expect(bundle.tasks.filter((task) => task.stage === 'matrix-score').length).toBeLessThanOrEqual(100);
+    expect(bundle.controller.timeoutSeconds).toBeGreaterThan(20 * 60);
     expect(bundle.tasks.filter((task) => task.stage === 'psro-decision')).toHaveLength(1);
     expect(taskIdDigest).toMatch(/^[0-9a-f]{64}$/);
+    expect(fs.readFileSync('modal/native_strategy_search.py', 'utf8'))
+      .not.toContain('strategy-search controller exceeded its derived budget');
   });
 
   it('measures every post-download deep validator separately', () => {
@@ -160,6 +164,16 @@ describe('strategy-search operator', () => {
         'balance-tuning-007', 'balance-tuning-009', 'balance-tuning-010']));
       expect(Object.values(bundle.partitions).filter((partition) => partition.stage === 'goldfish-one')
         .reduce((sum, partition) => sum + partition.jobs.length, 0)).toBeGreaterThan(200);
+    } finally { fs.rmSync(held.root, { recursive: true, force: true }); }
+  });
+
+  it('bounds Matrix fan-out by the global CPU cap', () => {
+    const held = fixture(['deep-beam-tuning-007'], 40);
+    try {
+      const bundle = createStrategySearchLaunchBundle(held.parsed);
+      expect(bundle.tasks.filter((task) => task.stage === 'matrix-score')).toHaveLength(10);
+      expect(bundle.tasks.filter((task) => task.stage === 'matrix-score')
+        .reduce((sum, task) => sum + task.cpu, 0)).toBe(40);
     } finally { fs.rmSync(held.root, { recursive: true, force: true }); }
   });
 

@@ -36,9 +36,9 @@ function writeAtomic(file: string, value: unknown): void { fs.mkdirSync(path.dir
   fs.renameSync(temporary, file); }
 function fileHash(file: string): string { return createHash('sha256').update(fs.readFileSync(file)).digest('hex'); }
 const config = JSON.parse(fs.readFileSync(path.resolve(option('config')), 'utf8')) as Config;
-const shutdownAtMs = Number(option('shutdown-at-ms'));
-if (!/^[0-9a-f]{64}$/.test(config.evidenceId) || !Number.isSafeInteger(config.workers) || config.workers < 1
-  || !Number.isSafeInteger(shutdownAtMs) || shutdownAtMs <= Date.now()) throw new Error('PSRO execution input is invalid.');
+if (!/^[0-9a-f]{64}$/.test(config.evidenceId) || !Number.isSafeInteger(config.workers) || config.workers < 1) {
+  throw new Error('PSRO execution input is invalid.');
+}
 strategySearchKingdom(config.kingdomId);
 const candidateSpace = createOrderedCandidateSpace(orderedGoldfishCardIds(config.kingdomId));
 const strategyAt = (position: number) => candidateSpace.candidateAt(candidateIndexAt(position, candidateSpace.candidateCount));
@@ -84,12 +84,11 @@ const source: ThresholdRacingSource = { entry: { kingdomId: config.kingdomId, ra
   reservoir: config.reservoirPath, p75Root: path.dirname(config.matrixEvidencePath) }, source: sourceIdentity,
   reservoir: { entries: reservoir.records } as never, initialMatrix: initialMatrix(matrix), kingdomId: config.kingdomId,
   experimentName: protocol.experimentName, protocolVersion: protocol.protocolVersion, rawProtocol: protocol,
-  deadlineMs: shutdownAtMs, terminalOnUnresolved: true,
   onRawCheckpoint(event) { process.stdout.write(`${JSON.stringify(event)}\n`); } };
 const checkpoint = await runThresholdRacingCampaign(config.outputRoot, source, config.workers, config.runId, 'local');
 const saved = readValidatedThresholdRacingCheckpointPair(config.outputRoot, source, config.runId);
 if (!saved || JSON.stringify(saved.checkpoint) !== JSON.stringify(checkpoint) || checkpoint.status !== 'complete') {
-  throw new Error('PSRO ended terminal-incomplete or without a validated checkpoint.');
+  throw new Error('PSRO ended without a complete validated checkpoint.');
 }
 const rawRoot = path.join(config.outputRoot, `run-${config.runId}`, 'raw');
 const lookRoot = path.join(rawRoot, 'looks');

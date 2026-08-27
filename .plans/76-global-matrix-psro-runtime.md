@@ -24,8 +24,9 @@ The runtime can change task layout. It cannot change these results:
 - Queue retests use fresh queue-retest seeds and the same fixed-family Bonferroni rule.
 - Each candidate's score bytes stay in schedule order. Confidence calculations see the same ordered prefixes as the serial implementation.
 - One confirmed response is admitted at a time. Each admission adds a 75-seed row and column, solves the deterministic maximum-support equilibrium, and retests the remaining queue.
-- Any unresolved screen, confirmation, or queue retest makes the kingdom `terminal-incomplete`. It does not increment the clean-search count.
-- Two consecutive complete searches with no confirmed response finish the kingdom. An admission resets the clean-search count.
+- A candidate that remains unresolved at a fixed look cap stays unresolved. It is not confirmed, does not block confirmation of provisional responses, and does not make the search incomplete.
+- Two consecutive completed searches with no confirmed response finish the kingdom, even when capped candidates remain unresolved. An admission resets the clean-search count.
+- Missing, corrupt, interrupted, or failed evidence remains incomplete. Scientific uncertainty is not an operational failure.
 
 ## Capacity model
 
@@ -33,9 +34,9 @@ The runtime can change task layout. It cannot change these results:
 
 One controller owns all worker-capacity tokens. No Matrix or PSRO coordinator can spawn work outside this admission path. The sum of running Goldfish, Matrix score, Matrix reduction, PSRO score, admission-row score, and PSRO reduction cores must not exceed `maxActiveCpus`.
 
-Use four-core score workers. Existing measurements show that one larger threaded Matrix or PSRO process has little gain above four to eight workers. Fan-out comes from independent score tasks, not a larger process.
+Use four-core score workers. Existing measurements show that one larger threaded Matrix or PSRO process has little gain above four to eight workers. Fan-out comes from many independent score tasks, not a larger process.
 
-Create tasks from semantic work until the estimated task time is between 15 and 60 seconds. Use measured games per CPU-second, candidate count, and new schedule blocks. Group many tiny Matrix cell ranges or admission-row ranges into one task. Do not create one task for each pair or seed range.
+Wall time is the primary objective. Choose Matrix and PSRO task counts from measured scoring throughput and coordination cost, bounded by `maxActiveCpus`. Use 200 requested worker CPUs as the first production experiment and upper target, not a required minimum. Do not impose a minimum task duration that limits useful fan-out. Keep containers warm across adjacent looks so smaller tasks do not pay a cold start each time. Use smoke evidence to lower or raise the target when that reduces total wall time.
 
 Keep a bounded ready window. Store the complete deterministic partition descriptor, but materialize only enough unlaunched jobs to keep two worker-pool waves ready. Refill the window after task transitions. This bound applies to 1, 30, and 160 kingdoms.
 
@@ -54,7 +55,7 @@ Deepen `src/sim/strategySearchMatrix.ts` so its interface covers deterministic p
 
 1. Build and publish the validated Matrix manifest after the reservoir validates.
 2. Enumerate the canonical 1,275 cells and 125 seed ordinals.
-3. Partition contiguous canonical Matrix jobs into four-core task groups sized for 15 to 60 seconds. Runtime groups do not enter scientific identity.
+3. Partition canonical Matrix work into four-core task groups with an adaptive concurrency target. The first production target is up to 200 requested worker CPUs. Runtime groups do not enter scientific identity. Reassemble records by canonical cell and seed ordinal, independent of completion order.
 4. Each score worker reads the manifest and evaluates its assigned nonoverlapping jobs. It returns seed records with exact ordinals and complete acquisition telemetry.
 5. Each worker writes one validated immutable runtime chunk to a launch-scoped temporary path. The publisher moves it to the deterministic task path and records a receipt.
 6. The Matrix reducer starts after all score-task receipts validate. It rejects missing, duplicate, overlapping, stale, or corrupt cell and ordinal evidence.
@@ -69,20 +70,21 @@ Move the adaptive scientific transition logic behind one small interface in a ne
 
 - score-task descriptors for the next screen, confirmation, or queue-retest look;
 - admission-row Matrix task descriptors;
-- a complete checkpoint;
-- a `terminal-incomplete` checkpoint.
+- a complete checkpoint.
+
+Missing, corrupt, failed, or interrupted work stops before a scientific transition is complete and remains an operational failure.
 
 The module, not the Modal controller, owns candidate order, schedules, confidence decisions, family size, admission order, equilibrium changes, clean-search state, and terminal status. The existing local serial command must use the same transition module or compare against it through a parity adapter. Do not duplicate the scientific rules in Python.
 
 For each look:
 
 1. Freeze the equilibrium, candidate list, full schedule, suffix schedule, family size, alpha, threshold, and look identity in a validated descriptor.
-2. Partition only contiguous candidate ranges. Size ranges from candidate count times new schedule blocks so the expected four-core task takes 15 to 60 seconds. Materialize a bounded two-wave ready window.
-3. Each score worker evaluates its candidate range in candidate-major and schedule-block order. It publishes quarter-point score bytes, played counts, schedule ordinals, and telemetry as one `RawPsroScoreChunk`.
+2. Partition candidate and contiguous schedule-block ranges into four-core tasks using measured scoring and coordination costs. The first production target is up to 200 requested worker CPUs. Materialize a bounded two-wave ready window. A smaller surviving candidate set can split its new schedule suffix into contiguous block ranges to preserve useful fan-out.
+3. Each score worker evaluates its assigned candidate and schedule-block range in candidate-major and schedule-block order. The reducer reassembles each candidate's bytes in schedule order. Each worker publishes quarter-point score bytes, played counts, schedule ordinals, and telemetry as one validated runtime chunk.
 4. A reduction task validates complete, nonoverlapping candidate coverage and assembles chunks in candidate order. It appends suffix scores to prior ordered scores before it calls the existing confidence implementation.
 5. Publish the sealed look and semantic checkpoint atomically before the next look becomes ready.
 6. Screening must finish for the whole kingdom before confirmation starts because confirmation alpha needs the final provisional family size.
-7. At the evidence cap, any unresolved candidate produces `terminal-incomplete`.
+7. At an evidence cap, preserve unresolved decisions and continue the protocol. After screening, confirm provisional responses. After confirmation or queue retest, admit only confirmed responses. Unresolved candidates do not block a clean search.
 8. Admission-row score work uses the same global worker queue and deterministic publication rules. After row reduction and the equilibrium solve, queue retest work returns to the same look path.
 9. The final schema-3 PSRO artifact contains semantic looks and checkpoint state only. Runtime ranges, task IDs, call IDs, retries, timings, and chunk paths stay outside final identity.
 
@@ -111,15 +113,15 @@ Tests must cover:
 - stale completion after a new fence;
 - interruption between temporary validation, rename, Volume commit, and receipt write;
 - terminal startup error versus retryable worker error;
-- unresolved candidates producing `terminal-incomplete` and never a clean search;
+- unresolved candidates staying recorded without blocking confirmation or a clean search;
 - resume launching only missing work and producing byte-identical final evidence.
 
 ## Local acceptance checks
 
-1. Scheduler tests prove the global worker cap, bounded ready window, round-robin fairness, Goldfish progress, reducer admission, dynamic task insertion, and exact unused-CPU reasons.
+1. Scheduler tests prove the global worker cap, high-concurrency Matrix and PSRO partitions for abundant work, bounded ready windows, round-robin fairness, Goldfish progress, reducer admission, dynamic task insertion, and exact unused-CPU reasons. Tests must not make 200 CPUs a hard minimum.
 2. Matrix integration tests use at least two materially different group sizes, shuffled completion order, and injected retries. Final schema-4 bytes must be identical to the serial reference.
 3. PSRO integration fixtures compare every screen, confirmation, admission, queue-retest, clean-search, and terminal transition with the serial path. Final schema-3 bytes must be identical across candidate chunk sizes and completion orders.
-4. Tests prove that confidence receives the same candidate-major ordered score prefixes, that confirmation waits for the completed screen family, and that all strict 0.51 boundaries match.
+4. Tests prove that confidence receives the same candidate-major ordered score prefixes, that confirmation waits for the completed screen family, that unresolved candidates remain nonterminal, and that all strict 0.51 boundaries match.
 5. Modal tests run real controller state transitions with fake external calls. They prove global capacity accounting and resume behavior through the production seam, not only private helpers.
 6. Repository verification passes: focused tests, `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, `npm run verify:native`, `npm run modal:test`, and `git diff --check`.
 
@@ -133,10 +135,11 @@ Run `balance-tuning-005` with `maxActiveCpus: 400` through Goldfish, Matrix, PSR
 
 Pass conditions:
 
-- final status is complete, not `terminal-incomplete`;
+- final status is complete; unresolved scientific decisions are preserved in the final evidence;
 - every downloaded artifact validates;
-- timed campaign work completes in less than 20 minutes;
-- Matrix and PSRO each launch more than one score worker and exceed the old one-kingdom ceilings of 4 Matrix cores and 8 PSRO cores when enough ready work exists;
+- the report records timed campaign work without turning elapsed time alone into an incomplete scientific result;
+- Matrix and production-size PSRO looks use substantial measured parallelism and do not collapse to the old 36-CPU ceiling when abundant work exists;
+- the report records per-look task count, requested and running CPUs, worker duration distribution, queue or admission delay, coordination and reduction time, and total wall time;
 - running worker CPUs never exceed 400;
 - every unused worker CPU-second has one recorded reason;
 - the report includes stage barrier latency and retry cost.
@@ -149,7 +152,7 @@ Pass conditions:
 
 - all three kingdoms complete Goldfish, Matrix, PSRO, download, and deep validation;
 - work from at least two kingdoms overlaps after Goldfish begins, and Matrix or PSRO score work from different kingdoms overlaps when dependencies permit;
-- the global running-worker peak exceeds 120 CPUs during a declared bulk window unless the report proves fewer than 120 useful cores were ready under the 15-second minimum task rule;
+- Matrix and PSRO bulk windows use the concurrency target supported by the one-kingdom timing evidence, without exceeding the global cap;
 - running worker CPUs never exceed 400;
 - no kingdom waits for a cross-kingdom stage barrier;
 - retries rerun only missing work;
@@ -175,10 +178,10 @@ Do not run the 30- or 160-kingdom campaign. The three-kingdom smoke proves the p
 Stop and report the exact blocker if:
 
 - distributed evidence differs from the serial reference;
-- an unresolved result can become a clean search;
+- an unresolved result is dropped, relabelled as confirmed, or omitted from final evidence;
 - a stale or corrupt chunk can enter final evidence;
 - running worker CPUs can exceed `maxActiveCpus`;
 - a retry repeats completed scientific work without a documented corrupt artifact;
-- the one-kingdom smoke takes 20 minutes or more;
-- either smoke ends incomplete or fails deep validation;
+- either smoke ends incomplete because required work or evidence failed, rather than because a valid candidate decision stayed unresolved or an arbitrary elapsed-time gate fired;
+- either smoke fails deep validation;
 - Modal capacity prevents the required worker fan-out.

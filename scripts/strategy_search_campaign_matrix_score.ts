@@ -20,7 +20,8 @@ function writeAtomic(file: string, value: unknown): void { fs.mkdirSync(path.dir
   fs.renameSync(temporary, file); }
 const manifest = JSON.parse(fs.readFileSync(path.resolve(option('manifest')), 'utf8')) as unknown;
 if (!validateStrategySearchMatrixManifest(manifest)) throw new Error('Matrix score manifest is invalid.');
-const tasks = strategySearchMatrixScoreTasks(manifest), task = tasks[integer('task-index')];
+const tasks = strategySearchMatrixScoreTasks(manifest, { targetTasks: integer('task-count', 1) });
+const task = tasks[integer('task-index')];
 if (!task) throw new Error('Matrix score task does not exist.');
 const workers = integer('workers', 1), kingdom = strategySearchKingdom(manifest.source.kingdomId);
 const runner = new WorkerPairingRunner(workers, new URL('../src/server/aiWorker.ts', import.meta.url),

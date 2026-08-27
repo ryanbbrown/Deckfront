@@ -35,11 +35,11 @@ function execute(runtimeChunkSize: number) { const held = manifest(), jobs = str
   const chunks = jobs.map((job) => createStrategySearchMatrixChunk({ manifest: held, job,
     records: job.seeds.map((seed) => record(seed, held.strategies[job.rowIndex]!, held.strategies[job.columnIndex]!)) }));
   return { manifest: held, artifact: reduceStrategySearchMatrix({ manifest: held, chunks }) }; }
-function executeScoreTasks(targetTaskMs: number) {
+function executeScoreTasks(targetTasks: number) {
   const held = manifest(), semanticJobs = strategySearchMatrixJobs(held, 25);
   const chunks = semanticJobs.map((job) => createStrategySearchMatrixChunk({ manifest: held, job,
     records: job.seeds.map((seed) => record(seed, held.strategies[job.rowIndex]!, held.strategies[job.columnIndex]!)) }));
-  const tasks = strategySearchMatrixScoreTasks(held, { targetTaskMs });
+  const tasks = strategySearchMatrixScoreTasks(held, { targetTasks });
   const taskChunks = tasks.map((task) => createStrategySearchMatrixScoreTaskChunk({ manifest: held, task,
     chunks: task.jobs.map((job) => chunks[job.slot]!) })).reverse();
   return { manifest: held, tasks, taskChunks,
@@ -65,8 +65,11 @@ describe('Matrix and PSRO semantic topology', () => {
     expect(JSON.stringify(coarse.artifact)).not.toContain('workerCount');
   }, 120_000);
 
-  it('reduces materially different grouped score tasks and shuffled completion to identical evidence', () => {
-    const fine = executeScoreTasks(15_000), coarse = executeScoreTasks(60_000);
+  it('exposes substantial Matrix concurrency and preserves evidence across task layouts', () => {
+    const fine = executeScoreTasks(50), coarse = executeScoreTasks(25);
+    expect(strategySearchMatrixScoreTasks(fine.manifest).length * 4).toBeGreaterThan(36);
+    expect(strategySearchMatrixScoreTasks(fine.manifest).length * 4).toBeLessThanOrEqual(400);
+    expect(strategySearchMatrixScoreTasks(fine.manifest, { maxTasks: 10 })).toHaveLength(10);
     expect(fine.tasks.length).toBeGreaterThan(coarse.tasks.length);
     expect(fine.artifact).toEqual(coarse.artifact);
     expect(() => reduceStrategySearchMatrixScoreTasks({ manifest: fine.manifest, tasks: fine.tasks,

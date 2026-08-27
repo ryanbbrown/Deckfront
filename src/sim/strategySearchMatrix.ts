@@ -11,6 +11,7 @@ import { compareUtf16 } from './utf16';
 
 export const STRATEGY_SEARCH_MATRIX_SCHEMA_VERSION = 4 as const;
 export const STRATEGY_SEARCH_MATRIX_VERSION = 'strategy-search-matrix-v2' as const;
+export const STRATEGY_SEARCH_MATRIX_SCORE_TASK_COUNT = 50;
 const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const exact = (left: unknown, right: unknown): boolean => JSON.stringify(left) === JSON.stringify(right);
 const sha = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
@@ -109,19 +110,23 @@ export function strategySearchMatrixJobs(manifest: StrategySearchMatrixManifest,
   return jobs;
 }
 export function strategySearchMatrixScoreTasks(manifest: StrategySearchMatrixManifest, input: {
-  targetTaskMs?: number; measuredGamesPerSecond?: number; semanticSeedChunkSize?: number } = {}): readonly StrategySearchMatrixScoreTask[] {
-  const targetTaskMs = input.targetTaskMs ?? 24_000, measuredGamesPerSecond = input.measuredGamesPerSecond ?? 3_307,
-    semanticSeedChunkSize = input.semanticSeedChunkSize ?? 25;
-  if (!Number.isFinite(targetTaskMs) || targetTaskMs < 15_000 || targetTaskMs > 60_000
-    || !Number.isFinite(measuredGamesPerSecond) || measuredGamesPerSecond <= 0) {
-    throw new Error('Matrix score-task sizing input is invalid.');
-  }
+  targetTasks?: number; maxTasks?: number; measuredGamesPerSecond?: number;
+  coordinationMsPerTask?: number; semanticSeedChunkSize?: number } = {}): readonly StrategySearchMatrixScoreTask[] {
+  const maxTasks = input.maxTasks ?? STRATEGY_SEARCH_MATRIX_SCORE_TASK_COUNT;
+  const measuredGamesPerSecond = input.measuredGamesPerSecond ?? 3_307;
+  const coordinationMsPerTask = input.coordinationMsPerTask ?? 10;
+  const semanticSeedChunkSize = input.semanticSeedChunkSize ?? 25;
+  if (!Number.isSafeInteger(maxTasks) || maxTasks < 1 || !(measuredGamesPerSecond > 0)
+    || !(coordinationMsPerTask > 0)) throw new Error('Matrix score-task sizing input is invalid.');
   const jobs = strategySearchMatrixJobs(manifest, semanticSeedChunkSize);
   const totalGames = jobs.reduce((sum, job) => sum + job.count * GAMES_PER_SEED, 0);
-  const totalMs = totalGames / measuredGamesPerSecond * 1000;
-  const minimumTasks = Math.max(1, Math.ceil(totalMs / 60_000));
-  const maximumTasks = Math.max(1, Math.floor(totalMs / 15_000));
-  const taskCount = Math.max(minimumTasks, Math.min(maximumTasks, Math.round(totalMs / targetTaskMs)));
+  const measuredWorkMs = totalGames / measuredGamesPerSecond * 1000;
+  const adaptiveTasks = Math.max(1, Math.round(Math.sqrt(measuredWorkMs / coordinationMsPerTask)));
+  const targetTasks = input.targetTasks ?? Math.min(maxTasks, adaptiveTasks);
+  if (!Number.isSafeInteger(targetTasks) || targetTasks < 1 || targetTasks > maxTasks) {
+    throw new Error('Matrix score-task target is invalid.');
+  }
+  const taskCount = Math.min(targetTasks, jobs.length);
   const tasks: StrategySearchMatrixScoreTask[] = []; let cursor = 0;
   for (let taskIndex = 0; taskIndex < taskCount; taskIndex += 1) {
     const count = Math.floor(jobs.length / taskCount) + (taskIndex < jobs.length % taskCount ? 1 : 0);
