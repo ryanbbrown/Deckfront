@@ -339,9 +339,11 @@ function validStageState(stage: unknown): stage is CampaignStageState {
     && Number.isSafeInteger(held.resources!.containers) && held.resources!.containers > 0
     && Number.isSafeInteger(held.resources!.cpus) && held.resources!.cpus > 0;
   if (held.status === 'incomplete' || held.status === 'terminal-incomplete') {
-    return exactKeys(held, ['id', 'status', 'reason', 'artifactPaths']) && Boolean(held.reason)
+    return exactKeys(held, ['id', 'status', 'reason', 'artifactPaths', 'artifactHashes']) && Boolean(held.reason)
       && Array.isArray(held.artifactPaths) && new Set(held.artifactPaths).size === held.artifactPaths.length
-      && held.artifactPaths.every((entry) => typeof entry === 'string' && entry.length > 0);
+      && held.artifactPaths.every((entry) => typeof entry === 'string' && entry.length > 0)
+      && Boolean(held.artifactHashes) && Object.values(held.artifactHashes!).every((digest) =>
+        sha.safeParse(digest).success);
   }
   return exactKeys(held, ['id', 'status', 'artifactHashes']) && Boolean(held.artifactHashes)
     && Object.keys(held.artifactHashes!).length > 0
@@ -394,7 +396,13 @@ export function claimCampaignController(input: { state: CampaignState; expectedR
   } else if (firstLaunch) throw new Error('First campaign launch is not authorized.');
   if (state.controller && state.controller.leaseUntilMs > input.nowMs
     && state.controller.ownerId !== input.ownerId) throw new Error('Campaign controller lease is active.');
-  if (!state.controller || state.controller.ownerId !== input.ownerId) state.fencingToken += 1;
+  const takeover = !state.controller || state.controller.ownerId !== input.ownerId;
+  if (takeover) {
+    state.fencingToken += 1;
+    for (const stage of Object.values(state.stages)) {
+      if (stage.status === 'active') stage.controllerFence = state.fencingToken;
+    }
+  }
   state.controller = { ownerId: input.ownerId, leaseUntilMs: input.nowMs + input.leaseMs,
     fencingToken: state.fencingToken };
   return nextState(state);
@@ -437,6 +445,80 @@ export function mutateCampaignState(input: { state: CampaignState; expectedRevis
   if (!validateCampaignState(next)) throw new Error('Campaign mutation produced invalid state.');
   return next;
 }
+function assertCampaignOwner(state: CampaignState, expectedRevision: number, ownerId: string,
+  fencingToken: number): void {
+  if (!validateCampaignState(state) || state.revision !== expectedRevision
+    || state.controller?.ownerId !== ownerId || state.controller.fencingToken !== fencingToken
+    || state.fencingToken !== fencingToken) throw new Error('Campaign state update is stale or fenced out.');
+}
+export function recordCampaignStageLaunchIntent(input: { state: CampaignState; expectedRevision: number;
+  ownerId: string; fencingToken: number; stageKey: string; launchIntentId: string;
+  nowMs: number; resources: { containers: number; cpus: number } }): CampaignState {
+  assertCampaignOwner(input.state, input.expectedRevision, input.ownerId, input.fencingToken);
+  if (!sha.safeParse(input.launchIntentId).success || !Number.isSafeInteger(input.nowMs) || input.nowMs < 0) {
+    throw new Error('Campaign stage launch intent is invalid.');
+  }
+  const draft = structuredClone(input.state), stage = draft.stages[input.stageKey];
+  if (!stage || (stage.status !== 'ready' && stage.status !== 'active')) {
+    throw new Error(`Campaign stage ${input.stageKey} is not launchable.`);
+  }
+  if (stage.status === 'ready') draft.stages[input.stageKey] = transitionCampaignStage(stage, 'active', {
+    callId: input.launchIntentId, controllerFence: input.fencingToken, heartbeatMs: input.nowMs,
+    resources: input.resources });
+  else {
+    stage.heartbeatMs = input.nowMs;
+    stage.resources = { containers: Math.max(stage.resources!.containers, input.resources.containers),
+      cpus: Math.max(stage.resources!.cpus, input.resources.cpus) };
+  }
+  const result = nextState(draft);
+  if (!validateCampaignState(result)) throw new Error('Campaign stage launch intent produced invalid state.');
+  return result;
+}
+export function bindCampaignStageCall(input: { state: CampaignState; expectedRevision: number;
+  ownerId: string; fencingToken: number; stageKey: string; launchIntentId: string; callId: string;
+  nowMs: number }): CampaignState {
+  assertCampaignOwner(input.state, input.expectedRevision, input.ownerId, input.fencingToken);
+  const draft = structuredClone(input.state), stage = draft.stages[input.stageKey];
+  if (!stage || stage.status !== 'active' || !input.callId || !Number.isSafeInteger(input.nowMs)) {
+    throw new Error('Campaign stage call binding is invalid.');
+  }
+  if (stage.callId === input.launchIntentId) stage.callId = input.callId;
+  stage.heartbeatMs = input.nowMs;
+  const result = nextState(draft);
+  if (!validateCampaignState(result)) throw new Error('Campaign stage call binding produced invalid state.');
+  return result;
+}
+export function recordCampaignStageOutcome(input: { state: CampaignState; expectedRevision: number;
+  ownerId: string; fencingToken: number; stageKey: string;
+  status: 'complete' | 'incomplete' | 'terminal-incomplete'; reason?: string;
+  artifactPaths: string[]; artifactHashes: Record<string, string> }): CampaignState {
+  assertCampaignOwner(input.state, input.expectedRevision, input.ownerId, input.fencingToken);
+  const draft = structuredClone(input.state), stage = draft.stages[input.stageKey];
+  if (!stage || stage.status !== 'active') throw new Error(`Campaign stage ${input.stageKey} is not active.`);
+  if (input.status === 'complete') {
+    draft.stages[input.stageKey] = transitionCampaignStage(stage, 'complete', {
+      artifactHashes: input.artifactHashes });
+    const [kingdomId, completedStage] = input.stageKey.split(':') as [string, 'goldfish' | 'matrix' | 'psro'];
+    const nextStage = completedStage === 'goldfish' ? 'matrix' : completedStage === 'matrix' ? 'psro' : null;
+    if (nextStage) {
+      const key = `${kingdomId}:${nextStage}`, next = draft.stages[key];
+      if (!next || next.status !== 'pending') throw new Error(`Campaign dependency stage ${key} is not pending.`);
+      draft.stages[key] = transitionCampaignStage(next, 'ready');
+    }
+  } else {
+    draft.stages[input.stageKey] = transitionCampaignStage(stage, input.status, {
+      ...(input.reason === undefined ? {} : { reason: input.reason }), artifactPaths: input.artifactPaths,
+      artifactHashes: input.artifactHashes });
+  }
+  const result = nextState(draft);
+  if (!validateCampaignState(result)) throw new Error('Campaign stage outcome produced invalid state.');
+  return result;
+}
+export function campaignEvidenceComplete(state: CampaignState): boolean {
+  return validateCampaignState(state) && Object.entries(state.stages)
+    .filter(([key]) => key.endsWith(':psro')).every(([, stage]) => stage.status === 'complete');
+}
+
 const legalTransitions: Record<CampaignStageStatus, readonly CampaignStageStatus[]> = {
   pending: ['ready'], ready: ['active'], active: ['incomplete', 'terminal-incomplete', 'complete'],
   incomplete: ['ready'], 'terminal-incomplete': [], complete: []
@@ -451,8 +533,8 @@ export function transitionCampaignStage(stage: CampaignStageState, status: Campa
     throw new Error('Active stage needs call, fence, heartbeat, and resources.');
   }
   if ((status === 'incomplete' || status === 'terminal-incomplete')
-    && (!details.reason || !Array.isArray(details.artifactPaths))) {
-    throw new Error('Incomplete stage needs an exact reason and resumable artifact paths.');
+    && (!details.reason || !Array.isArray(details.artifactPaths) || !details.artifactHashes)) {
+    throw new Error('Incomplete stage needs an exact reason and resumable artifact paths and hashes.');
   }
   if (status === 'complete' && (!details.artifactHashes || !Object.keys(details.artifactHashes).length)) {
     throw new Error('Complete stage needs validated artifact hashes.');

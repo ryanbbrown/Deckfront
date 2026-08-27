@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import {
-  claimCampaignController, mutateCampaignState, transitionCampaignStage, validateCampaignState
+  bindCampaignStageCall, claimCampaignController, mutateCampaignState,
+  recordCampaignStageLaunchIntent, recordCampaignStageOutcome,
+  transitionCampaignStage, validateCampaignState
 } from '../src/sim/strategySearchCampaign';
 import type {
   CampaignStageState, CampaignStageStatus, CampaignState, RuntimeCeilings
@@ -29,6 +31,24 @@ if (operation === 'validate' || operation === 'assert-fence') {
   result = claimCampaignController({ state, expectedRevision: integer(input.expectedRevision, 'expectedRevision'),
     ownerId: String(input.ownerId ?? ''), nowMs: integer(input.nowMs, 'nowMs'),
     leaseMs: integer(input.leaseMs, 'leaseMs'), ...(authorization ? { authorization } : {}) });
+} else if (operation === 'launch-intent') {
+  result = recordCampaignStageLaunchIntent({ state,
+    expectedRevision: integer(input.expectedRevision, 'expectedRevision'), ownerId: String(input.ownerId ?? ''),
+    fencingToken: integer(input.fencingToken, 'fencingToken'), stageKey: String(input.stageKey ?? ''),
+    launchIntentId: String(input.launchIntentId ?? ''), nowMs: integer(input.nowMs, 'nowMs'),
+    resources: input.resources as { containers: number; cpus: number } });
+} else if (operation === 'bind-call') {
+  result = bindCampaignStageCall({ state, expectedRevision: integer(input.expectedRevision, 'expectedRevision'),
+    ownerId: String(input.ownerId ?? ''), fencingToken: integer(input.fencingToken, 'fencingToken'),
+    stageKey: String(input.stageKey ?? ''), launchIntentId: String(input.launchIntentId ?? ''),
+    callId: String(input.callId ?? ''), nowMs: integer(input.nowMs, 'nowMs') });
+} else if (operation === 'stage-outcome') {
+  result = recordCampaignStageOutcome({ state,
+    expectedRevision: integer(input.expectedRevision, 'expectedRevision'), ownerId: String(input.ownerId ?? ''),
+    fencingToken: integer(input.fencingToken, 'fencingToken'), stageKey: String(input.stageKey ?? ''),
+    status: input.status as 'complete' | 'incomplete' | 'terminal-incomplete',
+    ...(input.reason === undefined ? {} : { reason: String(input.reason) }),
+    artifactPaths: input.artifactPaths as string[], artifactHashes: input.artifactHashes as Record<string, string> });
 } else if (operation === 'transition') {
   const key = String(input.stageKey ?? ''), status = String(input.status ?? '') as CampaignStageStatus;
   result = mutateCampaignState({ state, expectedRevision: integer(input.expectedRevision, 'expectedRevision'),

@@ -91,22 +91,25 @@ export function validateCampaignStageControlMarker(value: unknown,
 
 export function validateCampaignGoldfishStage(input: {
   stageId: string; ranked: unknown; rankedSha256: string; reservoir: unknown; reservoirSha256: string;
-  marker: unknown;
+  fileHashes: Readonly<Record<string, string>>; marker: unknown;
 }): input is typeof input & { ranked: OrderedProductRankedArtifact;
   reservoir: OrderedProductReservoirArtifact; marker: CampaignStageControlMarker } {
   if (!sha(input.stageId) || !sha(input.rankedSha256) || !sha(input.reservoirSha256)
     || !validateOrderedProductArtifact(input.ranked)) return false;
   const ranked = input.ranked;
   if (!validateOrderedProductReservoir(input.reservoir, ranked, input.rankedSha256)) return false;
+  if (input.fileHashes['output/ranked.json'] !== input.rankedSha256
+    || input.fileHashes['output/reservoir.json'] !== input.reservoirSha256
+    || Object.values(input.fileHashes).some((digest) => !sha(digest))) return false;
   const expected = createCampaignStageControlMarker({ stage: 'goldfish', stageId: input.stageId,
-    status: 'complete', artifactHashes: { 'output/ranked.json': input.rankedSha256,
-      'output/reservoir.json': input.reservoirSha256 } });
+    status: 'complete', artifactHashes: input.fileHashes });
   return validateCampaignStageControlMarker(input.marker, expected);
 }
 
 export function validateCampaignMatrixStage(input: {
   stageId: string; manifest: unknown; chunks: readonly unknown[]; timings: readonly unknown[];
-  commandTimings: readonly unknown[]; p75: unknown; marker: unknown;
+  commandTimings: readonly unknown[]; p75: unknown; fileHashes: Readonly<Record<string, string>>;
+  marker: unknown;
 }): input is typeof input & { manifest: StrategySearchMatrixManifest; chunks: StrategySearchMatrixChunk[];
   timings: StrategySearchMatrixBatchTiming[]; commandTimings: StrategySearchMatrixCommandTiming[];
   p75: StrategySearchMatrixP75Source; marker: CampaignStageControlMarker } {
@@ -146,33 +149,36 @@ export function validateCampaignMatrixStage(input: {
   if (!exact([...commandHashes].sort(), [...timingHashes].sort())
     || !validateStrategySearchMatrixP75Source(input.p75, manifest,
       jobs.filter((job) => job.startSeedIndex < 75).map((job) => chunksBySlot.get(job.slot)!))) return false;
-  const artifactHashes: Record<string, string> = {
-    'output/manifest.json': manifest.evidenceHash, 'output/p75.json': input.p75.evidenceHash
-  };
+  const expectedPaths = new Set(['output/manifest.json', 'output/p75.json']);
   for (const chunk of chunksBySlot.values()) {
-    artifactHashes[`output/${strategySearchMatrixChunkPath(jobs[chunk.slot]!)}`] = chunk.evidenceHash;
+    expectedPaths.add(`output/${strategySearchMatrixChunkPath(jobs[chunk.slot]!)}`);
   }
   for (const timing of input.timings as StrategySearchMatrixBatchTiming[]) {
-    artifactHashes[`output/timing/batch-${timing.batchIdentity}.json`] = timing.evidenceHash;
+    expectedPaths.add(`output/timing/batch-${timing.batchIdentity}.json`);
   }
   for (const timing of input.commandTimings as StrategySearchMatrixCommandTiming[]) {
-    artifactHashes[`output/commands/${timing.evidenceHash}.json`] = timing.evidenceHash;
+    expectedPaths.add(`output/commands/${timing.evidenceHash}.json`);
   }
+  if (!exact(Object.keys(input.fileHashes).sort(), [...expectedPaths].sort())
+    || Object.values(input.fileHashes).some((digest) => !sha(digest))) return false;
   const expected = createCampaignStageControlMarker({ stage: 'matrix', stageId: input.stageId,
-    status: 'complete', artifactHashes });
+    status: 'complete', artifactHashes: input.fileHashes });
   return validateCampaignStageControlMarker(input.marker, expected);
 }
 
 const PSRO_CLOSURE_KEYS = ['schemaVersion', 'experiment', 'stageId', 'protocolHash', 'sourceHash',
-  'status', 'cleanScans', 'admissions', 'matrixHash', 'reason', 'artifactHash'] as const;
+  'status', 'cleanScans', 'admissions', 'matrixHash', 'checkpointHash', 'reportHash', 'reason',
+  'artifactHash'] as const;
 export interface CampaignPsroClosure {
   schemaVersion: 1; experiment: 'strategy-search-campaign-psro-closure'; stageId: string;
   protocolHash: string; sourceHash: string; status: CampaignStageCompleteness; cleanScans: number;
-  admissions: number; matrixHash: string; reason: string | null; artifactHash: string;
+  admissions: number; matrixHash: string; checkpointHash: string; reportHash: string;
+  reason: string | null; artifactHash: string;
 }
 export function createCampaignPsroClosure(input: Omit<CampaignPsroClosure,
   'schemaVersion' | 'experiment' | 'artifactHash'>): CampaignPsroClosure {
   if (!sha(input.stageId) || !sha(input.protocolHash) || !sha(input.sourceHash) || !sha(input.matrixHash)
+    || !sha(input.checkpointHash) || !sha(input.reportHash)
     || !Number.isSafeInteger(input.cleanScans) || input.cleanScans < 0
     || !Number.isSafeInteger(input.admissions) || input.admissions < 0
     || input.status === 'complete' && (input.cleanScans < 2 || input.reason !== null)
@@ -190,15 +196,32 @@ export function validateCampaignPsroClosure(value: unknown, protocol: ThresholdR
       && held.sourceHash === protocol.sourceIdentityHash && exact(held, createCampaignPsroClosure({
         stageId: held.stageId, protocolHash: held.protocolHash, sourceHash: held.sourceHash,
         status: held.status, cleanScans: held.cleanScans, admissions: held.admissions,
-        matrixHash: held.matrixHash, reason: held.reason }));
+        matrixHash: held.matrixHash, checkpointHash: held.checkpointHash, reportHash: held.reportHash,
+        reason: held.reason }));
   } catch { return false; }
 }
 export function validateCampaignPsroStage(input: {
   stageId: string; protocol: unknown; chunks: readonly unknown[]; looks: readonly unknown[];
-  closure: unknown; marker: unknown;
+  checkpoint: unknown; report: unknown; checkpointSha256: string; reportSha256: string;
+  closure: unknown; fileHashes: Readonly<Record<string, string>>; marker: unknown;
 }): boolean {
   if (!sha(input.stageId) || !validateThresholdRacingProtocol(input.protocol)
-    || !validateCampaignPsroClosure(input.closure, input.protocol, input.stageId)) return false;
+    || !validateCampaignPsroClosure(input.closure, input.protocol, input.stageId)
+    || !sha(input.checkpointSha256) || !sha(input.reportSha256)
+    || input.closure.checkpointHash !== input.checkpointSha256
+    || input.closure.reportHash !== input.reportSha256 || !exact(input.checkpoint, input.report)
+    || !object(input.checkpoint)) return false;
+  const checkpoint = input.checkpoint as Record<string, unknown>;
+  const checkpointUnsigned = structuredClone(checkpoint); checkpointUnsigned.evidenceHash = '';
+  if (!sha(checkpoint.evidenceHash) || checkpoint.evidenceHash !== hash(checkpointUnsigned)
+    || !object(checkpoint.matrix) || input.closure.matrixHash !== hash(checkpoint.matrix)
+    || checkpoint.runId !== input.protocol.runId || checkpoint.version !== input.protocol.protocolVersion
+    || checkpoint.experiment !== input.protocol.experimentName
+    || checkpoint.cleanScans !== input.closure.cleanScans
+    || !Array.isArray(checkpoint.admissions) || checkpoint.admissions.length !== input.closure.admissions
+    || (input.closure.status === 'complete' ? checkpoint.status !== 'complete' : checkpoint.status !== 'unresolved')) {
+    return false;
+  }
   const protocol = input.protocol, chunks = input.chunks as RawPsroScoreChunk[], looks = input.looks as RawPsroLookArtifact[];
   const byHash = new Map<string, RawPsroScoreChunk>();
   for (const chunk of chunks) {
@@ -217,19 +240,27 @@ export function validateCampaignPsroStage(input: {
     }
   }
   if (used.size !== chunks.length) return false;
-  const artifactHashes: Record<string, string> = {
-    'output/protocol.json': thresholdRacingProtocolHash(protocol),
-    [`output/run-${protocol.runId}/closure.json`]: input.closure.artifactHash
+  const referencedLooks = new Set<string>();
+  const collectRawLooks = (value: unknown): void => {
+    if (Array.isArray(value)) value.forEach(collectRawLooks);
+    else if (object(value)) {
+      if (object(value.rawLook) && sha(value.rawLook.artifactHash)) {
+        referencedLooks.add(value.rawLook.artifactHash as string);
+      }
+      Object.values(value).forEach(collectRawLooks);
+    }
   };
-  for (const chunk of chunks) {
-    artifactHashes[`output/run-${protocol.runId}/raw/chunks/${chunk.lookId}`
-      + `/${chunk.candidateStart}-${chunk.candidateEnd}.json`] = chunk.artifactHash;
-  }
-  for (const look of looks) {
-    artifactHashes[`output/run-${protocol.runId}/raw/looks/${look.lookId}.json`] = look.artifactHash;
-  }
+  collectRawLooks(checkpoint);
+  if (!exact([...referencedLooks].sort(), looks.map((look) => look.artifactHash).sort())) return false;
+  const expectedPaths = new Set(['output/protocol.json', `output/run-${protocol.runId}/closure.json`,
+    `output/run-${protocol.runId}/checkpoint.json`, `output/run-${protocol.runId}/report.json`]);
+  for (const chunk of chunks) expectedPaths.add(`output/run-${protocol.runId}/raw/chunks/${chunk.lookId}`
+    + `/${chunk.candidateStart}-${chunk.candidateEnd}.json`);
+  for (const look of looks) expectedPaths.add(`output/run-${protocol.runId}/raw/looks/${look.lookId}.json`);
+  if (!exact(Object.keys(input.fileHashes).sort(), [...expectedPaths].sort())
+    || Object.values(input.fileHashes).some((digest) => !sha(digest))) return false;
   const expected = createCampaignStageControlMarker({ stage: 'psro', stageId: input.stageId,
-    status: input.closure.status, artifactHashes,
+    status: input.closure.status, artifactHashes: input.fileHashes,
     ...(input.closure.reason === null ? {} : { reason: input.closure.reason }) });
   return validateCampaignStageControlMarker(input.marker, expected);
 }

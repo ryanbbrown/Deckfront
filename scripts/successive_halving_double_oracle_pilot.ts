@@ -550,7 +550,7 @@ function addPhase(checkpoint: Checkpoint, phase: 'screening' | 'confirmation' | 
 function terminal(checkpoint: Checkpoint, status: 'complete' | 'unresolved', reason: StopReason): void {
   checkpoint.status = status; checkpoint.stopReason = reason; checkpoint.phase = 'terminal'; checkpoint.pending = null;
 }
-function validCheckpoint(value: unknown, source: ThresholdRacingSource,
+export function validateThresholdRacingCheckpoint(value: unknown, source: ThresholdRacingSource,
   runId: string | number): value is Checkpoint {
   try {
     if (!validHash(value)) return false;
@@ -571,8 +571,19 @@ function validCheckpoint(value: unknown, source: ThresholdRacingSource,
       + held.queueRetests.reduce((sum, retest) => sum + retest.elapsedMs, 0) + (pendingConfirmation?.elapsedMs ?? 0);
     const matrixMs = held.admissions.reduce((sum, admission) => sum + admission.elapsedMs, 0);
     const equilibriumMs = held.admissions.reduce((sum, admission) => sum + admission.equilibriumElapsedMs, 0);
-    return held.schemaVersion === 1 && held.experiment === 'k007-threshold-racing-double-oracle'
-      && held.version === source.protocolVersion && held.experiment === source.experimentName && held.runId === runId
+    const telemetry = emptyAggregate();
+    held.scans.forEach((scan) => {
+      mergeAggregate(telemetry, scan.screen.telemetry);
+      if (scan.confirmation) mergeAggregate(telemetry, scan.confirmation.telemetry);
+    });
+    held.queueRetests.forEach((retest) => mergeAggregate(telemetry, retest.confirmation.telemetry));
+    if (pendingScreen) mergeAggregate(telemetry, pendingScreen.telemetry);
+    if (pendingConfirmation) mergeAggregate(telemetry, pendingConfirmation.telemetry);
+    const admittedIds = new Set(held.admissions.map((entry) => entry.strategyId));
+    held.matrix.cells.filter((cell) => admittedIds.has(cell.rowId) || admittedIds.has(cell.columnId))
+      .forEach((cell) => mergeAggregate(telemetry, cell.telemetry));
+    return held.schemaVersion === 1 && held.version === source.protocolVersion
+      && held.experiment === source.experimentName && held.runId === runId
       && held.source.reservoirSha256 === source.source.reservoirSha256
       && held.source.p75ManifestHash === source.source.p75ManifestHash && held.matrix.complete
       && held.matrix.strategies.length === 50 + held.admissions.length && exact(held.equilibrium.weights, solved.weights)
@@ -582,13 +593,15 @@ function validCheckpoint(value: unknown, source: ThresholdRacingSource,
       && Math.abs(held.elapsedMs.confirmation - confirmationMs) < 1e-6
       && Math.abs(held.elapsedMs.matrix - matrixMs) < 1e-6
       && Math.abs(held.elapsedMs.equilibrium - equilibriumMs) < 1e-6
-      && Math.abs(held.elapsedMs.total - screeningMs - confirmationMs - matrixMs - equilibriumMs) < 1e-6;
+      && Math.abs(held.elapsedMs.total - screeningMs - confirmationMs - matrixMs - equilibriumMs) < 1e-6
+      && exact(held.telemetry, telemetry);
   } catch { return false; }
 }
-function initialCheckpoint(source: ThresholdRacingSource, runId: string | number): Checkpoint {
+export function createThresholdRacingInitialCheckpoint(source: ThresholdRacingSource,
+  runId: string | number): Checkpoint {
   const equilibrium = solveEquilibrium(source.initialMatrix.strategies.map((strategy) => strategy.id),
     source.initialMatrix.centeredPayoffs);
-  return { schemaVersion: 1, experiment: source.experimentName, version: source.protocolVersion, runId,
+  return sealed({ schemaVersion: 1, experiment: source.experimentName, version: source.protocolVersion, runId,
     source: source.source, protocol: { threshold: RESPONSE_THRESHOLD, screenDepths: [...SCREEN_DEPTHS],
       screenAlpha: SCREEN_ALPHA, confirmationLooks: [...CONFIRMATION_LOOKS],
       confirmationFamilyAlpha: CONFIRMATION_FAMILY_ALPHA, familyControl: 'bonferroni',
@@ -598,7 +611,7 @@ function initialCheckpoint(source: ThresholdRacingSource, runId: string | number
     cleanScans: 0, queue: [], pending: null, scans: [], queueRetests: [], admissions: [],
     games: { screening: 0, confirmation: 0, matrix: 0, total: 0 },
     elapsedMs: { screening: 0, confirmation: 0, matrix: 0, equilibrium: 0, total: 0 },
-    telemetry: emptyAggregate(), evidenceHash: '' };
+    telemetry: emptyAggregate(), evidenceHash: '' });
 }
 
 function resumeLegacyScreenCap(checkpoint: Checkpoint): boolean {
@@ -668,10 +681,12 @@ export async function runThresholdRacingCampaign(root: string, source: Threshold
   let checkpoint: Checkpoint;
   if (fs.existsSync(file)) {
     const value = readJson<unknown>(file);
-    if (!validCheckpoint(value, source, runId)) throw new Error(`Invalid threshold-racing checkpoint ${file}.`);
+    if (!validateThresholdRacingCheckpoint(value, source, runId)) {
+      throw new Error(`Invalid threshold-racing checkpoint ${file}.`);
+    }
     checkpoint = value;
     if (resumeLegacyScreenCap(checkpoint)) checkpoint = saveCheckpoint(root, checkpoint);
-  } else checkpoint = saveCheckpoint(root, initialCheckpoint(source, runId));
+  } else checkpoint = saveCheckpoint(root, createThresholdRacingInitialCheckpoint(source, runId));
   if (checkpoint.status !== 'running') return checkpoint;
   const kingdom = strategySearchKingdom(source.kingdomId);
   const runner = new WorkerPairingRunner(workers, new URL('../src/server/aiWorker.ts', import.meta.url),

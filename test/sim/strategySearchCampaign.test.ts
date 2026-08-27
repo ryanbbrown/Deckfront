@@ -6,9 +6,11 @@ import { deriveCurrentOrderedProductIdentity } from '../../src/sim/orderedGoldfi
 import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import {
   claimCampaignController, contentIndexDestination, createCampaignContentIndex, createCampaignState,
-  deriveLaunchAuthorizationToken, deriveSourceImageIdentity, mutateCampaignState,
-  parseStrategySearchCampaignManifest, runtimeCeilings, runtimeFitsAuthorizedCeilings,
-  transitionCampaignStage, validateCampaignContentIndex, validateCampaignState, verifySourceImageFiles
+  bindCampaignStageCall, campaignEvidenceComplete, deriveLaunchAuthorizationToken,
+  deriveSourceImageIdentity, mutateCampaignState, parseStrategySearchCampaignManifest,
+  recordCampaignStageLaunchIntent, recordCampaignStageOutcome, runtimeCeilings,
+  runtimeFitsAuthorizedCeilings, transitionCampaignStage, validateCampaignContentIndex,
+  validateCampaignState, verifySourceImageFiles
 } from '../../src/sim/strategySearchCampaign';
 
 const kingdoms = ['deep-beam-tuning-002', 'deep-beam-tuning-007'];
@@ -195,6 +197,45 @@ describe('strategy-search campaign identity and state', () => {
         });
       } });
     expect(active.stages[readyKey]).toMatchObject({ status: 'active', callId: 'call-1' });
+  });
+
+  it('durably records launch intent, binding, takeover, and deep stage completion in state', () => {
+    const parsed = parseStrategySearchCampaignManifest(fixture()), kingdomId = kingdoms[0]!;
+    const stageIds = { [kingdomId]: parsed.stageIds[kingdomId]! }, ceilings = runtimeCeilings(parsed.manifest.runtime);
+    const initial = createCampaignState({ campaignId: parsed.manifest.evidence.campaignId,
+      evidenceHash: parsed.evidenceHash, runtimeHash: parsed.runtimeHash, stageIds });
+    const claimed = claimCampaignController({ state: initial, expectedRevision: 0, ownerId: 'first',
+      nowMs: 1, leaseMs: 10, authorization: {
+        token: deriveLaunchAuthorizationToken(parsed.evidenceHash, ceilings), ceilings } });
+    const goldfishKey = `${kingdomId}:goldfish`;
+    const intent = recordCampaignStageLaunchIntent({ state: claimed, expectedRevision: claimed.revision,
+      ownerId: 'first', fencingToken: 1, stageKey: goldfishKey, launchIntentId: 'a'.repeat(64),
+      nowMs: 2, resources: { containers: 1, cpus: 4 } });
+    expect(intent.stages[goldfishKey]).toMatchObject({ status: 'active', callId: 'a'.repeat(64) });
+    const bound = bindCampaignStageCall({ state: intent, expectedRevision: intent.revision,
+      ownerId: 'first', fencingToken: 1, stageKey: goldfishKey, launchIntentId: 'a'.repeat(64),
+      callId: 'fc-saved', nowMs: 3 });
+    const takeover = claimCampaignController({ state: bound, expectedRevision: bound.revision,
+      ownerId: 'second', nowMs: 20, leaseMs: 10 });
+    expect(takeover.stages[goldfishKey]).toMatchObject({ callId: 'fc-saved', controllerFence: 2 });
+    expect(() => bindCampaignStageCall({ state: takeover, expectedRevision: takeover.revision,
+      ownerId: 'first', fencingToken: 1, stageKey: goldfishKey, launchIntentId: 'a'.repeat(64),
+      callId: 'fc-old', nowMs: 21 })).toThrow('fenced out');
+    let state = recordCampaignStageOutcome({ state: takeover, expectedRevision: takeover.revision,
+      ownerId: 'second', fencingToken: 2, stageKey: goldfishKey, status: 'complete',
+      artifactPaths: ['output/ranked.json'], artifactHashes: { 'output/ranked.json': 'b'.repeat(64) } });
+    expect(state.stages[`${kingdomId}:matrix`]?.status).toBe('ready');
+    for (const stage of ['matrix', 'psro'] as const) {
+      const key = `${kingdomId}:${stage}`;
+      state = recordCampaignStageLaunchIntent({ state, expectedRevision: state.revision, ownerId: 'second',
+        fencingToken: 2, stageKey: key, launchIntentId: 'c'.repeat(64), nowMs: 22,
+        resources: { containers: 1, cpus: 4 } });
+      state = recordCampaignStageOutcome({ state, expectedRevision: state.revision, ownerId: 'second',
+        fencingToken: 2, stageKey: key, status: 'complete', artifactPaths: [`output/${stage}.json`],
+        artifactHashes: { [`output/${stage}.json`]: 'd'.repeat(64) } });
+    }
+    expect(campaignEvidenceComplete(state)).toBe(true);
+    expect(validateCampaignState(state)).toBe(true);
   });
 });
 

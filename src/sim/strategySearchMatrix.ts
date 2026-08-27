@@ -4,6 +4,7 @@ import { nativeRuleFingerprint } from './nativeGoldfishProtocol';
 import { solveEquilibrium } from './equilibrium';
 import type { EquilibriumResult } from './equilibrium';
 import { GAMES_PER_SEED } from './pairing';
+import type { PairingJob, PairingRunner } from './pairingRunner';
 import { validateTelemetryAggregate } from './lotteryAcquisition';
 import {
   DIAGONAL_PURPOSE, INITIAL_MATRIX_MAX_SEEDS, INITIAL_MATRIX_STRATEGIES, OFF_DIAGONAL_PURPOSE
@@ -240,6 +241,51 @@ export function validateStrategySearchMatrixBatchTiming(value: unknown, manifest
     && held.firstSlot === expectedSlots[0] && held.lastSlot === expectedSlots.at(-1)
     && held.workerCount === expected.workerCount
     && Number.isFinite(held.simulationMs) && held.simulationMs >= 0 && held.evidenceHash === unsigned(held);
+}
+
+export function reconcileStrategySearchMatrixResume(input: { manifest: StrategySearchMatrixManifest;
+  chunks: readonly StrategySearchMatrixChunk[]; timings: readonly StrategySearchMatrixBatchTiming[]
+}): { acceptedChunkSlots: number[]; acceptedTimingHashes: string[]; quarantineChunkSlots: number[];
+  quarantineTimingHashes: string[]; missingJobs: StrategySearchMatrixJob[] } {
+  const jobs = strategySearchMatrixJobs(input.manifest), chunks = new Map<number, StrategySearchMatrixChunk>();
+  const quarantineChunkSlots = new Set<number>(), quarantineTimingHashes = new Set<string>();
+  for (const chunk of input.chunks) {
+    const job = jobs[chunk.slot];
+    if (!job || chunks.has(chunk.slot) || !validateStrategySearchMatrixChunk(chunk, input.manifest, job)) {
+      if (Number.isSafeInteger(chunk.slot) && chunk.slot >= 0) quarantineChunkSlots.add(chunk.slot);
+    } else chunks.set(chunk.slot, chunk);
+  }
+  const acceptedTimingHashes: string[] = [], covered = new Set<number>();
+  for (const timing of input.timings) {
+    const timingJobs = timing.slots.map((slot) => jobs[slot]);
+    const valid = timingJobs.every((job): job is StrategySearchMatrixJob => job !== undefined)
+      && validateStrategySearchMatrixBatchTiming(timing, input.manifest, {
+        batchIndex: timing.batchIndex, jobs: timingJobs as StrategySearchMatrixJob[], workerCount: timing.workerCount })
+      && timing.slots.every((slot) => chunks.has(slot)) && timing.slots.every((slot) => !covered.has(slot));
+    if (!valid) {
+      quarantineTimingHashes.add(timing.evidenceHash);
+      if (timing.slots.some((slot) => !chunks.has(slot))) {
+        timing.slots.forEach((slot) => { if (chunks.has(slot)) quarantineChunkSlots.add(slot); });
+      }
+      continue;
+    }
+    timing.slots.forEach((slot) => covered.add(slot)); acceptedTimingHashes.push(timing.evidenceHash);
+  }
+  for (const slot of chunks.keys()) if (!covered.has(slot)) quarantineChunkSlots.add(slot);
+  const acceptedChunkSlots = [...covered].filter((slot) => !quarantineChunkSlots.has(slot)).sort((a, b) => a - b);
+  const accepted = new Set(acceptedChunkSlots);
+  return { acceptedChunkSlots, acceptedTimingHashes,
+    quarantineChunkSlots: [...quarantineChunkSlots].sort((a, b) => a - b),
+    quarantineTimingHashes: [...quarantineTimingHashes].sort(),
+    missingJobs: jobs.filter((job) => !accepted.has(job.slot)) };
+}
+
+export async function runStrategySearchMatrixPairingBatch(runner: PairingRunner,
+  jobs: readonly PairingJob[], deadline: number): Promise<Awaited<ReturnType<PairingRunner['run']>>> {
+  if (!Number.isSafeInteger(deadline) || deadline <= 0) throw new Error('Campaign Matrix deadline is invalid.');
+  const result = await runner.run(jobs, { deadline });
+  if (result.submitted !== jobs.length) throw new Error('campaign-matrix-shutdown-margin');
+  return result;
 }
 
 export async function executeStrategySearchMatrixBatches(input: {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyCampaignSchedulerUpdates, createCampaignSchedulerCheckpoint,
-  planCampaignSchedulerTick, validateCampaignSchedulerCheckpoint
+  planCampaignSchedulerTick, refenceCampaignSchedulerCheckpoint, validateCampaignSchedulerCheckpoint
 } from '../../src/sim/strategySearchScheduler';
 import type { CampaignSchedulerTask } from '../../src/sim/strategySearchScheduler';
 
@@ -12,8 +12,13 @@ function task(input: Partial<CampaignSchedulerTask> & Pick<CampaignSchedulerTask
     dependencyTaskIds: input.dependencyTaskIds ?? [], status: input.status ?? 'ready',
     readySinceMs: input.readySinceMs ?? 1,
     containers: input.containers ?? 1, cpus: input.cpus ?? 4,
+    launchIntentId: input.status === 'active' || input.status === 'launching'
+      ? input.launchIntentId ?? 'd'.repeat(64) : null,
     callId: input.status === 'active' ? input.callId ?? `call-${input.taskId}` : null,
-    controllerFence: input.status === 'active' ? input.controllerFence ?? 3 : null };
+    controllerFence: input.status === 'active' || input.status === 'launching'
+      ? input.controllerFence ?? 3 : null,
+    reason: input.reason ?? null, artifactPaths: input.artifactPaths ?? [],
+    artifactHashes: input.artifactHashes ?? {} };
 }
 
 describe('fenced global campaign scheduler', () => {
@@ -40,6 +45,37 @@ describe('fenced global campaign scheduler', () => {
       .toEqual(['psro', 'matrix', 'g2', 'g1']);
   });
 
+  it('runs independent canonical shards from the same kingdom concurrently', () => {
+    const tasks = [task({ taskId: 'g1', kingdomId: 'k', stage: 'goldfish', shardId: 'stage-one-1' }),
+      task({ taskId: 'g2', kingdomId: 'k', stage: 'goldfish', shardId: 'stage-one-2' })];
+    const actions = planCampaignSchedulerTick({ tasks, observations: [],
+      limits: { maxActiveContainers: 2, maxActiveCpus: 8 }, controllerFence: 4, stopLaunching: false });
+    expect(actions.filter((entry) => entry.kind === 'launch').map((entry) => entry.taskId))
+      .toEqual(['g1', 'g2']);
+  });
+
+  it('never relaunches a durable but unbound launch intent after a crash', () => {
+    const ready = task({ taskId: 'g', kingdomId: 'k', stage: 'goldfish' });
+    const launching = applyCampaignSchedulerUpdates([ready], [{ kind: 'intent', taskId: 'g',
+      launchIntentId: 'c'.repeat(64), controllerFence: 3 }]);
+    const actions = planCampaignSchedulerTick({ tasks: launching, observations: [],
+      limits: { maxActiveContainers: 2, maxActiveCpus: 8 }, controllerFence: 3, stopLaunching: false });
+    expect(actions).toEqual([{ kind: 'ambiguous-launch', taskId: 'g', launchIntentId: 'c'.repeat(64),
+      reason: 'durable launch intent has no bound Modal call ID; automatic relaunch is unsafe' }]);
+  });
+
+  it('re-fences takeover state while keeping saved active call IDs for reattachment', () => {
+    const active = task({ taskId: 'matrix', kingdomId: 'k', stage: 'matrix', status: 'active',
+      callId: 'fc-saved', controllerFence: 2 });
+    const checkpoint = createCampaignSchedulerCheckpoint({ evidenceHash: 'a'.repeat(64),
+      controllerFence: 2, revision: 4, tasks: [active] });
+    const takeover = refenceCampaignSchedulerCheckpoint(checkpoint, 3);
+    expect(takeover.tasks[0]).toMatchObject({ status: 'active', callId: 'fc-saved', controllerFence: 3 });
+    expect(planCampaignSchedulerTick({ tasks: takeover.tasks, observations: [],
+      limits: { maxActiveContainers: 1, maxActiveCpus: 4 }, controllerFence: 3,
+      stopLaunching: false })).toEqual([{ kind: 'reattach', taskId: 'matrix', callId: 'fc-saved' }]);
+  });
+
   it('reserves tight capacity for waiting whole stages and proves one-container progress', () => {
     const occupied = task({ taskId: 'occupied', kingdomId: 'k0', stage: 'goldfish', status: 'active', cpus: 2 });
     const waiting = task({ taskId: 'matrix', kingdomId: 'k1', stage: 'matrix', cpus: 5 });
@@ -59,7 +95,8 @@ describe('fenced global campaign scheduler', () => {
       { callId: 'call-failed', state: 'failed', reason: 'worker process failed' }
     ], limits: { maxActiveContainers: 1, maxActiveCpus: 4 }, controllerFence: 9, stopLaunching: false });
     expect(actions).toEqual([
-      { kind: 'incomplete', taskId: 'failed', callId: 'call-failed', reason: 'worker process failed' },
+      { kind: 'incomplete', taskId: 'failed', callId: 'call-failed', reason: 'worker process failed',
+        artifactPaths: [], artifactHashes: {} },
       { kind: 'launch', taskId: 'ready', stage: 'matrix', kingdomId: 'k2', shardId: null,
         containers: 1, cpus: 4, controllerFence: 9 }
     ]);
@@ -76,7 +113,8 @@ describe('fenced global campaign scheduler', () => {
     const matrix = task({ taskId: 'matrix', kingdomId: 'k', stage: 'matrix', status: 'blocked',
       dependencyTaskIds: ['goldfish'] });
     const updated = applyCampaignSchedulerUpdates([goldfish, matrix], [
-      { kind: 'completed', taskId: 'goldfish', callId: 'call-goldfish' }
+      { kind: 'completed', taskId: 'goldfish', callId: 'call-goldfish',
+        artifactPaths: ['goldfish.json'], artifactHashes: { 'goldfish.json': 'a'.repeat(64) } }
     ]);
     expect(updated.find((entry) => entry.taskId === 'matrix')?.status).toBe('ready');
   });
@@ -88,7 +126,8 @@ describe('fenced global campaign scheduler', () => {
     ], limits: { maxActiveContainers: 1, maxActiveCpus: 4 }, controllerFence: 3, stopLaunching: false });
     expect(actions[0]).toMatchObject({ kind: 'terminal-incomplete', taskId: 'psro' });
     const updated = applyCampaignSchedulerUpdates([active], [
-      { kind: 'terminal-incomplete', taskId: 'psro', callId: 'call-psro' }
+      { kind: 'terminal-incomplete', taskId: 'psro', callId: 'call-psro', reason: 'look cap',
+        artifactPaths: ['look.json'], artifactHashes: { 'look.json': 'b'.repeat(64) } }
     ]);
     expect(updated[0]?.status).toBe('terminal-incomplete');
     expect(planCampaignSchedulerTick({ tasks: updated, observations: [],

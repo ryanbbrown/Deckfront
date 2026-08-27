@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import {
   applyCampaignSchedulerUpdates, createCampaignSchedulerCheckpoint,
-  planCampaignSchedulerTick, validateCampaignSchedulerCheckpoint
+  planCampaignSchedulerTick, refenceCampaignSchedulerCheckpoint, validateCampaignSchedulerCheckpoint
 } from '../src/sim/strategySearchScheduler';
 import type {
   CampaignSchedulerCheckpoint, CampaignSchedulerObservation, CampaignSchedulerUpdate
@@ -11,7 +11,9 @@ const request = JSON.parse(fs.readFileSync(0, 'utf8')) as Record<string, unknown
 const checkpoint = request.checkpoint as CampaignSchedulerCheckpoint;
 if (!validateCampaignSchedulerCheckpoint(checkpoint)) throw new Error('Campaign scheduler checkpoint is invalid.');
 let result: unknown;
-if (process.argv[2] === 'plan') {
+if (process.argv[2] === 'validate') {
+  result = checkpoint;
+} else if (process.argv[2] === 'plan') {
   result = planCampaignSchedulerTick({ tasks: checkpoint.tasks,
     observations: (request.observations ?? []) as CampaignSchedulerObservation[],
     limits: request.limits as { maxActiveContainers: number; maxActiveCpus: number },
@@ -21,5 +23,7 @@ if (process.argv[2] === 'plan') {
     controllerFence: checkpoint.controllerFence, revision: checkpoint.revision + 1,
     tasks: applyCampaignSchedulerUpdates(checkpoint.tasks,
       (request.updates ?? []) as CampaignSchedulerUpdate[]) });
+} else if (process.argv[2] === 'refence') {
+  result = refenceCampaignSchedulerCheckpoint(checkpoint, Number(request.controllerFence));
 } else throw new Error(`Unknown campaign scheduler operation ${process.argv[2]}.`);
 process.stdout.write(`${JSON.stringify(result)}\n`);

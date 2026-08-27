@@ -157,9 +157,10 @@ describe('ordered goldfish product correction', () => {
     const marker = createCampaignStageControlMarker({ stage: 'goldfish', stageId, status: 'complete',
       artifactHashes: { 'output/ranked.json': rankedSha256, 'output/reservoir.json': reservoirSha256 } });
     expect(validateCampaignGoldfishStage({ stageId, ranked: artifact, rankedSha256,
-      reservoir, reservoirSha256, marker })).toBe(true);
+      reservoir, reservoirSha256, fileHashes: marker.artifactHashes, marker })).toBe(true);
     expect(validateCampaignGoldfishStage({ stageId, ranked: artifact, rankedSha256,
-      reservoir, reservoirSha256, marker: { ...marker, extra: true } })).toBe(false);
+      reservoir, reservoirSha256, fileHashes: marker.artifactHashes,
+      marker: { ...marker, extra: true } })).toBe(false);
     const validated = validateOrderedCalibrationSourceForCounts({ kingdomId: artifact.config.kingdomId,
       ranked: { ...artifact, recordCount: artifact.records.length }, reservoir,
       rankedSha256, reservoirSha256 }, { retainedCount: 8, reservoirCount: 3, strategyCount: 3 });

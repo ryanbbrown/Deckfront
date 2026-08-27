@@ -92,6 +92,9 @@ describe('kingdom-independent threshold-racing raw evidence', () => {
     const canonical = structuredClone(chunks[0]!);
     canonical.candidateCanonicals[0] = `${canonical.candidateCanonicals[0]}-changed`;
     expect(validateRawPsroScoreChunk(reseal(canonical), heldProtocol)).toBe(false);
+    const telemetry = structuredClone(chunks[0]!);
+    telemetry.telemetryByCandidate[0]!.byOrientation.firstOchre.normal.played = 1;
+    expect(validateRawPsroScoreChunk(reseal(telemetry), heldProtocol)).toBe(false);
     const protocolChanged = structuredClone(chunks[0]!); protocolChanged.protocolHash = 'b'.repeat(64);
     expect(validateRawPsroScoreChunk(reseal(protocolChanged), heldProtocol)).toBe(false);
     const sourceChanged = structuredClone(chunks[0]!); sourceChanged.sourceHash = 'short';
@@ -117,6 +120,18 @@ describe('kingdom-independent threshold-racing raw evidence', () => {
     const field = candidates(2), saved = new Map<string, RawPsroScoreChunk>(), firstCalls: string[] = [];
     const heldProtocol = protocol(), schedule = weightedFairSchedule({ opponent: 1 },
       Array.from({ length: 8 }, (_unused, index) => 200 + index));
+    const telemetryEvaluator = async (strategies: readonly Strategy[], _opponents: unknown,
+      heldSchedule: { blocks: Array<{ seed: number; opponentId: string }> }): Promise<CandidateEvaluation[]> => {
+      firstCalls.push(strategies.map((strategy) => strategy.id).join(','));
+      return strategies.map((strategy) => {
+        const telemetry = emptyAggregate(), count = heldSchedule.blocks.length;
+        telemetry.damageByCard.volley = count;
+        telemetry.byOrientation.firstOchre.normal = { played: count, wins: count, draws: 0, losses: 0, aborted: 0 };
+        telemetry.byOrientation.firstIndigo.normal = { played: count, wins: 0, draws: 0, losses: count, aborted: 0 };
+        return { strategy, mean: 0.5, interval: null, blockScores: Array(count).fill(0.5),
+          matches: count * 2, telemetry };
+      });
+    };
     const key = (lookId: string, start: number, end: number) => `${lookId}:${start}:${end}`;
     const store = { protocol: heldProtocol, raceKind: 'confirmation' as const,
       loadChunk(identity: { lookId: string; candidateStart: number; candidateEnd: number }) {
@@ -126,8 +141,7 @@ describe('kingdom-independent threshold-racing raw evidence', () => {
       }, sealLook() {} };
     const first = await runConfirmationRace({ candidates: field, opponents: new Map(), schedule,
       kingdomId: 'current-duel', runner, looks: [4, 8], chunkSize: 1,
-      evaluate: evaluator((strategy) => strategy.id === field[0]!.strategy.id ? 1 : 0.5, firstCalls) as never,
-      raw: store });
+      evaluate: telemetryEvaluator as never, raw: store });
     const replayCalls: string[] = [];
     const replay = await runConfirmationRace({ candidates: field, opponents: new Map(), schedule,
       kingdomId: 'current-duel', runner, looks: [4, 8], chunkSize: 1,
@@ -136,6 +150,8 @@ describe('kingdom-independent threshold-racing raw evidence', () => {
     expect(replayCalls).toEqual([]);
     expect(replay.confirmed).toEqual(first.confirmed);
     expect(replay.unresolved).toEqual(first.unresolved);
+    expect(replay.telemetry).toEqual(first.telemetry);
+    expect(replay.telemetry.damageByCard.volley).toBeGreaterThan(0);
     expect(saved.size).toBe(firstCalls.length);
   });
 

@@ -3,6 +3,7 @@ import { performance } from 'node:perf_hooks';
 import { anytimeConfidenceBounds } from './anytimeMeanEvidence';
 import { InlineConfidenceRunner } from './confidenceRunner';
 import type { ConfidenceBounds, ConfidenceRunner } from './confidenceRunner';
+import { validateTelemetryAggregate } from './lotteryAcquisition';
 import { evaluateCandidates } from './mixtureEvaluation';
 import type { CandidateEvaluation, MixtureSchedule } from './mixtureEvaluation';
 import { GAMES_PER_SEED, emptyAggregate, mergeAggregate } from './pairing';
@@ -104,6 +105,7 @@ export interface RawPsroScoreChunk {
   familySize: number; alpha: number; threshold: number; candidateStart: number; candidateEnd: number;
   candidateIds: string[]; candidateCanonicals: string[]; fullSchedule: MixtureSchedule; suffixSchedule: MixtureSchedule;
   scheduleStart: number; scheduleEnd: number; scoreBytes: number[]; played: number[];
+  telemetryByCandidate: TelemetryAggregate[];
   dimensions: { candidates: number; blocks: number; scoreBytes: number; played: number };
   artifactHash: string;
 }
@@ -138,7 +140,7 @@ const mean = (values: readonly number[]): number => values.reduce((sum, value) =
 const RAW_CHUNK_KEYS = ['schemaVersion', 'experiment', 'protocolHash', 'sourceHash', 'raceKind', 'lookId',
   'lookDepth', 'familySize', 'alpha', 'threshold', 'candidateStart', 'candidateEnd', 'candidateIds',
   'candidateCanonicals', 'fullSchedule', 'suffixSchedule', 'scheduleStart', 'scheduleEnd', 'scoreBytes',
-  'played', 'dimensions', 'artifactHash'] as const;
+  'played', 'telemetryByCandidate', 'dimensions', 'artifactHash'] as const;
 const RAW_LOOK_KEYS = ['schemaVersion', 'experiment', 'protocolHash', 'sourceHash', 'raceKind', 'lookId',
   'lookDepth', 'familySize', 'alpha', 'threshold', 'candidateIds', 'candidateCanonicals', 'scheduleStart',
   'scheduleEnd', 'chunks', 'artifactHash'] as const;
@@ -268,6 +270,7 @@ function createRawChunk(input: { store: RawPsroArtifactStore; lookId: string; lo
     fullSchedule: structuredClone(input.fullSchedule), suffixSchedule: structuredClone(input.suffixSchedule),
     scheduleStart: input.scheduleStart, scheduleEnd: input.scheduleStart + input.suffixSchedule.blocks.length,
     scoreBytes, played: input.rows.flatMap(() => input.suffixSchedule.blocks.map(() => GAMES_PER_SEED)),
+    telemetryByCandidate: input.rows.map((row) => structuredClone(row.telemetry)),
     dimensions: { candidates: input.candidates.length, blocks: input.suffixSchedule.blocks.length,
       scoreBytes: scoreBytes.length, played: scoreBytes.length }, artifactHash: '' };
   return { ...base, artifactHash: hash(base) };
@@ -306,6 +309,10 @@ export function validateRawPsroScoreChunk(value: unknown, protocol?: ThresholdRa
     && fullScheduleValid && suffixScheduleValid
     && expectedSuffix !== null && JSON.stringify(held.suffixSchedule) === JSON.stringify(expectedSuffix)
     && held.scoreBytes?.length === expectedSize && held.played?.length === expectedSize
+    && Array.isArray(held.telemetryByCandidate)
+    && held.telemetryByCandidate.length === held.dimensions.candidates
+    && held.telemetryByCandidate.every((telemetry) => validateTelemetryAggregate(telemetry,
+      held.dimensions.blocks * GAMES_PER_SEED) || JSON.stringify(telemetry) === JSON.stringify(emptyAggregate()))
     && held.scoreBytes.every((score) => Number.isSafeInteger(score) && score >= 0 && score <= 4)
     && held.played.every((played) => Number.isSafeInteger(played) && played === GAMES_PER_SEED)
     && held.artifactHash === hash(copy);
@@ -412,7 +419,9 @@ async function evaluateField(input: { candidates: readonly CandidateRef[]; oppon
       const scores = rawScoreRows(loaded);
       rows.push(...field.map((entry, index) => ({ strategy: entry.strategy,
         mean: mean(scores[index]!), blockScores: scores[index]!, interval: null,
-        matches: scores[index]!.length * GAMES_PER_SEED, telemetry: emptyAggregate() })));
+        matches: scores[index]!.length * GAMES_PER_SEED,
+        telemetry: structuredClone(loaded.telemetryByCandidate[index]!) })));
+      loaded.telemetryByCandidate.forEach((entry) => mergeAggregate(telemetry, entry));
       games += loaded.played.reduce((sum, played) => sum + played, 0);
       continue;
     }

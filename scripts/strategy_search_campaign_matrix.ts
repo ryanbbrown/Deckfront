@@ -8,7 +8,8 @@ import type { PairingJob } from '../src/sim/pairingRunner';
 import { seedRecordFromOutcome } from '../src/sim/initialMatrixCalibration';
 import {
   createStrategySearchMatrixCommandTiming, createStrategySearchMatrixP75Source,
-  executeStrategySearchMatrixBatches, strategySearchMatrixChunkPath, strategySearchMatrixJobs,
+  executeStrategySearchMatrixBatches, reconcileStrategySearchMatrixResume,
+  runStrategySearchMatrixPairingBatch, strategySearchMatrixChunkPath, strategySearchMatrixJobs,
   strategySearchMatrixTimingPath, validateStrategySearchMatrixBatchTiming,
   validateStrategySearchMatrixChunk, validateStrategySearchMatrixCommandTiming,
   validateStrategySearchMatrixManifest, validateStrategySearchMatrixP75Source
@@ -33,6 +34,7 @@ function integer(name: string): number {
   return value;
 }
 function readJson<T>(file: string): T { return JSON.parse(fs.readFileSync(file, 'utf8')) as T; }
+function sha256File(file: string): string { return createHash('sha256').update(fs.readFileSync(file)).digest('hex'); }
 function writeAtomic(file: string, value: unknown): void {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const temporary = `${file}.tmp-${process.pid}`;
@@ -50,16 +52,29 @@ function allFiles(root: string): string[] {
   if (!fs.existsSync(root)) return [];
   const result: string[] = [];
   const visit = (directory: string): void => { for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-    const file = path.join(directory, entry.name); if (entry.isDirectory()) visit(file); else result.push(file);
+    const file = path.join(directory, entry.name);
+    if (entry.isSymbolicLink()) throw new Error(`Campaign Matrix output contains a symlink: ${file}`);
+    if (entry.isDirectory()) visit(file); else result.push(file);
   } };
   visit(root); return result;
 }
 function jsonFiles(root: string): string[] { return allFiles(root).filter((file) => file.endsWith('.json')); }
 
-const manifestFile = path.resolve(option('manifest')), outputRoot = path.resolve(option('out'));
-const controlRoot = path.resolve(option('control')), workers = integer('workers'), jobsPerBatch = integer('jobs-per-batch');
+const campaignRoot = path.resolve(option('campaign-root'));
+function confined(file: string): string {
+  const resolved = path.resolve(file);
+  if (resolved === campaignRoot || !resolved.startsWith(`${campaignRoot}${path.sep}`)) {
+    throw new Error(`Campaign Matrix path escapes its root: ${file}`);
+  }
+  return resolved;
+}
+const manifestFile = confined(option('manifest')), outputRoot = confined(option('out'));
+const controlRoot = confined(option('control')), workers = integer('workers'), jobsPerBatch = integer('jobs-per-batch');
 const shutdownAtMs = Number(option('shutdown-at-ms'));
-if (!Number.isSafeInteger(shutdownAtMs) || shutdownAtMs <= Date.now()) throw new Error('--shutdown-at-ms must be in the future.');
+if (!Number.isSafeInteger(shutdownAtMs) || shutdownAtMs <= Date.now() || outputRoot === controlRoot
+  || outputRoot.startsWith(`${controlRoot}${path.sep}`) || controlRoot.startsWith(`${outputRoot}${path.sep}`)) {
+  throw new Error('Campaign Matrix roots or shutdown margin are invalid.');
+}
 const manifest = readJson<unknown>(manifestFile);
 if (!validateStrategySearchMatrixManifest(manifest)) throw new Error('Campaign Matrix manifest is invalid.');
 const heldManifest: StrategySearchMatrixManifest = manifest;
@@ -83,23 +98,26 @@ for (const file of allFiles(outputRoot)) {
 for (const job of jobs) {
   const file = path.join(outputRoot, strategySearchMatrixChunkPath(job));
   if (!fs.existsSync(file)) continue;
-  const chunk = readJson<unknown>(file);
-  if (!validateStrategySearchMatrixChunk(chunk, heldManifest, job)) {
-    preserveCorrupt(file); continue;
-  }
-  chunks.set(job.slot, chunk);
+  try {
+    const chunk = readJson<unknown>(file);
+    if (!validateStrategySearchMatrixChunk(chunk, heldManifest, job)) throw new Error('invalid chunk');
+    chunks.set(job.slot, chunk);
+  } catch { preserveCorrupt(file); }
 }
-const timings: StrategySearchMatrixBatchTiming[] = [];
+let timings: StrategySearchMatrixBatchTiming[] = [];
+const timingCovered = new Set<number>();
 for (const file of jsonFiles(path.join(outputRoot, 'timing')).filter((entry) => path.basename(entry).startsWith('batch-'))) {
-  const timing = readJson<unknown>(file);
+  let timing: unknown;
+  try { timing = readJson<unknown>(file); } catch { preserveCorrupt(file); continue; }
   if (!timing || typeof timing !== 'object' || !Array.isArray((timing as { slots?: unknown }).slots)) {
     preserveCorrupt(file); continue;
   }
-  const held = timing as StrategySearchMatrixBatchTiming;
-  const timingJobs = held.slots.map((slot) => jobs[slot]);
-  if (timingJobs.some((job) => !job) || !validateStrategySearchMatrixBatchTiming(held, heldManifest,
-    { batchIndex: held.batchIndex, jobs: timingJobs as StrategySearchMatrixJob[], workerCount: held.workerCount })
-    || file !== path.join(outputRoot, strategySearchMatrixTimingPath(held.batchIdentity))) {
+  const held = timing as StrategySearchMatrixBatchTiming, timingJobs = held.slots.map((slot) => jobs[slot]);
+  const structurallyValid = !timingJobs.some((job) => !job)
+    && validateStrategySearchMatrixBatchTiming(held, heldManifest,
+      { batchIndex: held.batchIndex, jobs: timingJobs as StrategySearchMatrixJob[], workerCount: held.workerCount })
+    && file === path.join(outputRoot, strategySearchMatrixTimingPath(held.batchIdentity));
+  if (!structurallyValid || held.slots.some((slot) => !chunks.has(slot))) {
     preserveCorrupt(file);
     for (const slot of held.slots) {
       const job = jobs[slot], chunkFile = job && path.join(outputRoot, strategySearchMatrixChunkPath(job));
@@ -108,13 +126,30 @@ for (const file of jsonFiles(path.join(outputRoot, 'timing')).filter((entry) => 
     }
     continue;
   }
-  timings.push(held);
+  if (held.slots.some((slot) => timingCovered.has(slot))) { preserveCorrupt(file); continue; }
+  held.slots.forEach((slot) => timingCovered.add(slot)); timings.push(held);
 }
+const reconciliation = reconcileStrategySearchMatrixResume({ manifest: heldManifest,
+  chunks: [...chunks.values()], timings });
+for (const slot of reconciliation.quarantineChunkSlots) {
+  const file = path.join(outputRoot, strategySearchMatrixChunkPath(jobs[slot]!));
+  if (fs.existsSync(file)) preserveCorrupt(file);
+  chunks.delete(slot);
+}
+for (const digest of reconciliation.quarantineTimingHashes) {
+  const timing = timings.find((entry) => entry.evidenceHash === digest);
+  if (!timing) continue;
+  const file = path.join(outputRoot, strategySearchMatrixTimingPath(timing.batchIdentity));
+  if (fs.existsSync(file)) preserveCorrupt(file);
+}
+const acceptedTimingHashes = new Set(reconciliation.acceptedTimingHashes);
+timings = timings.filter((timing) => acceptedTimingHashes.has(timing.evidenceHash));
 const recoveryStarted = performance.now();
 const commandTimings: StrategySearchMatrixCommandTiming[] = [], claimedTimingHashes = new Set<string>();
 const availableTimingHashes = new Set(timings.map((timing) => timing.evidenceHash));
 for (const file of jsonFiles(path.join(outputRoot, 'commands'))) {
-  const timing = readJson<unknown>(file);
+  let timing: unknown;
+  try { timing = readJson<unknown>(file); } catch { preserveCorrupt(file); continue; }
   if (!validateStrategySearchMatrixCommandTiming(timing, heldManifest)
     || timing.batchTimingHashes.some((digest) => !availableTimingHashes.has(digest)
       || claimedTimingHashes.has(digest))) {
@@ -131,8 +166,6 @@ if (orphanTimingHashes.length) {
   writeAtomic(path.join(outputRoot, 'commands', `${recovered.evidenceHash}.json`), recovered);
   commandTimings.push(recovered);
 }
-const covered = new Set(timings.flatMap((timing) => timing.slots));
-if ([...covered].some((slot) => !chunks.has(slot))) throw new Error('Campaign Matrix timing references a missing chunk.');
 const missing = jobs.filter((job) => !chunks.has(job.slot));
 const runner = new WorkerPairingRunner(workers, new URL('../src/server/aiWorker.ts', import.meta.url),
   { kingdom }, ['--import', 'tsx']);
@@ -150,7 +183,8 @@ try {
             options: { kingdomId: heldManifest.source.kingdomId, seeds: [seed], turnLimitPerPlayer: 30,
               actionCapPerTurn: 200, startingDraftEnabled: false, allowEarlyStop: false } });
         }
-        const outcomes = (await runner.run(pairingJobs)).outcomes; let cursor = 0;
+        const batchResult = await runStrategySearchMatrixPairingBatch(runner, pairingJobs, shutdownAtMs);
+        const outcomes = batchResult.outcomes; let cursor = 0;
         return batch.map((job) => ({ slot: job.slot, records: job.seeds.map((_seed) => {
           const outcome = outcomes[cursor++];
           if (!outcome || outcome.record.aborted !== 0 || outcome.stopReason !== 'maximum'
@@ -182,12 +216,19 @@ try {
   }
 } finally { await runner.close(); }
 if (stopReason) {
-  const available: Record<string, string> = { 'output/manifest.json': heldManifest.evidenceHash };
+  const available: Record<string, string> = { 'output/manifest.json': sha256File(savedManifest) };
   for (const chunk of chunks.values()) {
-    available[`output/${strategySearchMatrixChunkPath(jobs[chunk.slot]!)}`] = chunk.evidenceHash;
+    const relative = strategySearchMatrixChunkPath(jobs[chunk.slot]!);
+    available[`output/${relative}`] = sha256File(path.join(outputRoot, relative));
   }
-  for (const timing of timings) available[`output/timing/batch-${timing.batchIdentity}.json`] = timing.evidenceHash;
-  for (const timing of commandTimings) available[`output/commands/${timing.evidenceHash}.json`] = timing.evidenceHash;
+  for (const timing of timings) {
+    const relative = strategySearchMatrixTimingPath(timing.batchIdentity);
+    available[`output/${relative}`] = sha256File(path.join(outputRoot, relative));
+  }
+  for (const timing of commandTimings) {
+    const relative = `commands/${timing.evidenceHash}.json`;
+    available[`output/${relative}`] = sha256File(path.join(outputRoot, relative));
+  }
   const marker = createCampaignStageControlMarker({ stage: 'matrix', stageId: heldManifest.stageId,
     status: 'incomplete', artifactHashes: available, reason: stopReason });
   writeAtomic(path.join(controlRoot, 'incomplete.json'), marker);
@@ -202,17 +243,24 @@ if (stopReason) {
     heldManifest, p75Chunks)) preserveCorrupt(p75File);
   const p75 = createStrategySearchMatrixP75Source(heldManifest, p75Chunks);
   writeAtomic(p75File, p75);
-  const artifactHashes: Record<string, string> = { 'output/manifest.json': heldManifest.evidenceHash,
-    'output/p75.json': p75.evidenceHash };
+  const artifactHashes: Record<string, string> = { 'output/manifest.json': sha256File(savedManifest),
+    'output/p75.json': sha256File(p75File) };
   for (const chunk of chunks.values()) {
-    artifactHashes[`output/${strategySearchMatrixChunkPath(jobs[chunk.slot]!)}`] = chunk.evidenceHash;
+    const relative = strategySearchMatrixChunkPath(jobs[chunk.slot]!);
+    artifactHashes[`output/${relative}`] = sha256File(path.join(outputRoot, relative));
   }
-  for (const timing of timings) artifactHashes[`output/timing/batch-${timing.batchIdentity}.json`] = timing.evidenceHash;
-  for (const timing of commandTimings) artifactHashes[`output/commands/${timing.evidenceHash}.json`] = timing.evidenceHash;
+  for (const timing of timings) {
+    const relative = strategySearchMatrixTimingPath(timing.batchIdentity);
+    artifactHashes[`output/${relative}`] = sha256File(path.join(outputRoot, relative));
+  }
+  for (const timing of commandTimings) {
+    const relative = `commands/${timing.evidenceHash}.json`;
+    artifactHashes[`output/${relative}`] = sha256File(path.join(outputRoot, relative));
+  }
   const marker = createCampaignStageControlMarker({ stage: 'matrix', stageId: heldManifest.stageId,
     status: 'complete', artifactHashes });
   if (!validateCampaignMatrixStage({ stageId: heldManifest.stageId, manifest: heldManifest,
-    chunks: [...chunks.values()], timings, commandTimings, p75, marker })) {
+    chunks: [...chunks.values()], timings, commandTimings, p75, fileHashes: artifactHashes, marker })) {
     throw new Error('Campaign Matrix deep validation failed before completion.');
   }
   writeAtomic(path.join(controlRoot, 'complete.json'), marker);

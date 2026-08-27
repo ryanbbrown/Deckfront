@@ -414,6 +414,9 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             def wait(self): return 0
             def terminate(self): self.terminated = True
         held_volume = HeldVolume(); process = Process()
+        marker = tempfile.NamedTemporaryFile("w", delete=False)
+        json.dump({"status": "complete", "markerHash": "b" * 64,
+                   "artifactHashes": {"output/file.json": "d" * 64}}, marker); marker.close()
         config = {"stage": "matrix", "controller_fence": 2, "source_image": {},
             "timeout_seconds": 30, "shutdown_margin_seconds": 5, "campaign_root": "campaign/root",
             "manifest_path": "matrix/manifest.json", "output_path": "matrix/output",
@@ -422,8 +425,11 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         with patch.object(launcher, "volume", held_volume), \
                 patch.object(launcher, "verify_campaign_source_image"), \
                 patch.object(launcher, "_campaign_stage_command", return_value=["trusted"]), \
+                patch.object(launcher, "_campaign_path", return_value=pathlib.Path(marker.name)), \
+                patch.object(launcher, "_reject_campaign_symlinks"), \
                 patch.object(launcher.subprocess, "Popen", return_value=process) as spawn:
             result = launcher._run_campaign_stage("matrix", config)
+        pathlib.Path(marker.name).unlink()
         self.assertEqual(result["status"], "complete")
         self.assertEqual(result["checkpointCommits"], 1)
         self.assertEqual(held_volume.commits, 2)
@@ -440,12 +446,91 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             {"taskId": "ok", "status": "active", "callId": "call-ok"},
             {"taskId": "bad", "status": "active", "callId": "call-bad"}]}
         configs = {"ok": {"stage": "matrix"}, "bad": {"stage": "psro"}}
-        with patch.object(launcher.modal.FunctionCall, "from_id", side_effect=lambda call_id: calls[call_id]):
-            observations = launcher._campaign_call_observations(checkpoint, configs)
+        validated = {"status": "complete", "artifactPaths": ["output/file.json"],
+                     "artifactHashes": {"output/file.json": "a" * 64}}
+        with patch.object(launcher.modal.FunctionCall, "from_id", side_effect=lambda call_id: calls[call_id]), \
+                patch.object(launcher.volume, "reload"), \
+                patch.object(launcher, "_deep_validate_campaign_result", return_value=validated):
+            observations = launcher._campaign_call_observations(checkpoint, "campaign/root", configs)
         self.assertEqual(observations[0], {"callId": "call-ok", "state": "succeeded",
-                                                   "artifactStatus": "complete"})
+            "artifactStatus": "complete", "reason": None, "artifactPaths": ["output/file.json"],
+            "artifactHashes": {"output/file.json": "a" * 64}})
         self.assertEqual(observations[1]["state"], "failed")
         self.assertIn("RuntimeError", observations[1]["reason"])
+
+    def test_launch_intent_is_durable_before_spawn_and_ambiguous_crash_is_not_bound(self):
+        calls = []
+        state = {"revision": 1}; checkpoint = {"revision": 2, "checkpointHash": "a" * 64}
+        class Mutator:
+            @staticmethod
+            def remote(request):
+                calls.append(request["operation"])
+                return {"state": {"revision": 2},
+                        "scheduler": {"revision": 3, "checkpointHash": "b" * 64}}
+        class Function:
+            def with_options(self, **_options): return self
+            def spawn(self, _config): raise RuntimeError("crash after paid spawn boundary")
+        entry = {"cpu": 4, "memory_mib": 4096, "timeout_seconds": 60,
+                 "config": {"stage_key": "k:matrix"}}
+        action = {"taskId": "matrix", "stage": "matrix"}
+        with patch.object(launcher, "campaign_state_mutator", Mutator), \
+                patch.object(launcher, "_campaign_function", return_value=Function()):
+            with self.assertRaisesRegex(RuntimeError, "crash after"):
+                launcher._durably_spawn_campaign_task(campaign_root="campaign/root", owner_id="owner",
+                    fence=3, state=state, checkpoint=checkpoint, action=action, entry=entry,
+                    source_image={})
+        self.assertEqual(calls, ["launch-intent"])
+
+    def test_saved_call_is_bound_under_the_same_fence_after_spawn(self):
+        operations = []
+        class Mutator:
+            @staticmethod
+            def remote(request):
+                operations.append(request)
+                revision = 2 if request["operation"] == "launch-intent" else 3
+                return {"state": {"revision": revision},
+                        "scheduler": {"revision": revision + 1, "checkpointHash": "b" * 64}}
+        class Call: object_id = "fc-saved"
+        class Function:
+            def with_options(self, **_options): return self
+            def spawn(self, _config): return Call()
+        entry = {"cpu": 4, "memory_mib": 4096, "timeout_seconds": 60,
+                 "config": {"stage_key": "k:matrix"}}
+        with patch.object(launcher, "campaign_state_mutator", Mutator), \
+                patch.object(launcher, "_campaign_function", return_value=Function()):
+            launcher._durably_spawn_campaign_task(campaign_root="campaign/root", owner_id="owner",
+                fence=3, state={"revision": 1}, checkpoint={"revision": 2, "checkpointHash": "a" * 64},
+                action={"taskId": "matrix", "stage": "matrix"}, entry=entry, source_image={})
+        self.assertEqual([request["operation"] for request in operations], ["launch-intent", "bind-call"])
+        self.assertEqual(operations[1]["payload"]["callId"], "fc-saved")
+        self.assertEqual(operations[1]["payload"]["fencingToken"], 3)
+
+    def test_campaign_paths_and_task_resources_fail_closed_before_launch(self):
+        for unsafe in ["../escape", "/absolute", "a/../../escape", "a\\b"]:
+            with self.assertRaises(ValueError): launcher._campaign_path("campaign/root", unsafe)
+        checkpoint = {"tasks": [{"taskId": "task", "kingdomId": "k", "stage": "matrix",
+            "cpus": 4, "containers": 1}]}
+        valid = {"task_id": "task", "kingdom_id": "k", "stage": "matrix", "cpu": 4,
+            "memory_mib": 4096, "timeout_seconds": 60, "stage_terminal": True,
+            "config": {}, "validation": {}}
+        self.assertEqual(launcher._validate_campaign_task_configs(checkpoint, [valid])["task"], valid)
+        with self.assertRaisesRegex(ValueError, "differs"):
+            launcher._validate_campaign_task_configs(checkpoint, [{**valid, "cpu": 8}])
+
+    def test_successful_incomplete_call_keeps_exact_marker_reason_and_hashes(self):
+        class Call:
+            def get(self, timeout): return {"status": "incomplete", "reason": "shutdown margin"}
+        validated = {"status": "incomplete", "reason": "shutdown margin",
+            "artifactPaths": ["output/chunk.json"],
+            "artifactHashes": {"output/chunk.json": "a" * 64}}
+        checkpoint = {"tasks": [{"taskId": "matrix", "status": "active", "callId": "fc"}]}
+        with patch.object(launcher.modal.FunctionCall, "from_id", return_value=Call()), \
+                patch.object(launcher.volume, "reload"), \
+                patch.object(launcher, "_deep_validate_campaign_result", return_value=validated):
+            observations = launcher._campaign_call_observations(checkpoint, "campaign/root",
+                {"matrix": {"stage": "matrix"}})
+        self.assertEqual(observations[0]["reason"], "shutdown margin")
+        self.assertEqual(observations[0]["artifactHashes"], validated["artifactHashes"])
 
     def test_campaign_controller_has_no_cost_ledger_gate(self):
         source = inspect.getsource(launcher.campaign_controller.get_raw_f())

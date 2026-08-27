@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { diagnosticStrategies } from '../../src/sim/baselines';
 import type { CandidateEvaluation } from '../../src/sim/mixtureEvaluation';
@@ -54,13 +55,22 @@ describe('campaign deep stage validators and external markers', () => {
       kingdomId: 'current-duel', runner, depths: [8], evaluate: evaluator as never, chunkSize: 1,
       raw: { protocol, raceKind: 'screen', sealChunk(chunk) { chunks.push(chunk); },
         sealLook(look) { looks.push(look); } } });
-    const stageId = 'b'.repeat(64);
+    const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+    const matrix = { cells: ['saved'] };
+    const unsigned = { experiment: protocol.experimentName, version: protocol.protocolVersion,
+      runId: protocol.runId, status: 'complete', cleanScans: 2, admissions: [], matrix,
+      scans: looks.map((rawLook) => ({ rawLook })), evidenceHash: '' };
+    const checkpoint = { ...unsigned, evidenceHash: digest(unsigned) }, report = structuredClone(checkpoint);
+    const checkpointSha256 = 'c'.repeat(64), reportSha256 = 'd'.repeat(64), stageId = 'b'.repeat(64);
     const closure = createCampaignPsroClosure({ stageId, protocolHash: thresholdRacingProtocolHash(protocol),
       sourceHash: protocol.sourceIdentityHash, status: 'complete', cleanScans: 2,
-      admissions: 0, matrixHash: 'c'.repeat(64), reason: null });
+      admissions: 0, matrixHash: digest(matrix), checkpointHash: checkpointSha256,
+      reportHash: reportSha256, reason: null });
     const artifactHashes: Record<string, string> = {
-      'output/protocol.json': thresholdRacingProtocolHash(protocol),
-      [`output/run-${protocol.runId}/closure.json`]: closure.artifactHash
+      'output/protocol.json': '1'.repeat(64),
+      [`output/run-${protocol.runId}/closure.json`]: '2'.repeat(64),
+      [`output/run-${protocol.runId}/checkpoint.json`]: checkpointSha256,
+      [`output/run-${protocol.runId}/report.json`]: reportSha256
     };
     for (const chunk of chunks) {
       artifactHashes[`output/run-${protocol.runId}/raw/chunks/${chunk.lookId}`
@@ -71,12 +81,13 @@ describe('campaign deep stage validators and external markers', () => {
     }
     const marker = createCampaignStageControlMarker({ stage: 'psro', stageId,
       status: 'complete', artifactHashes });
-    expect(validateCampaignPsroStage({ stageId, protocol, chunks, looks, closure, marker })).toBe(true);
-    const missing = chunks.slice(1);
-    expect(validateCampaignPsroStage({ stageId, protocol, chunks: missing, looks, closure, marker })).toBe(false);
-    const falseClosure = { ...closure, cleanScans: 1 };
-    expect(validateCampaignPsroStage({ stageId, protocol, chunks, looks, closure: falseClosure, marker })).toBe(false);
-    const extraMarker = { ...marker, extra: true };
-    expect(validateCampaignPsroStage({ stageId, protocol, chunks, looks, closure, marker: extraMarker })).toBe(false);
+    const validates = (overrides: Record<string, unknown> = {}) => validateCampaignPsroStage({ stageId,
+      protocol, chunks, looks, checkpoint, report, checkpointSha256, reportSha256, closure,
+      fileHashes: artifactHashes, marker, ...overrides });
+    expect(validates()).toBe(true);
+    expect(validates({ chunks: chunks.slice(1) })).toBe(false);
+    expect(validates({ closure: { ...closure, cleanScans: 1 } })).toBe(false);
+    expect(validates({ checkpoint: { ...checkpoint, matrix: { cells: ['changed'] } } })).toBe(false);
+    expect(validates({ marker: { ...marker, extra: true } })).toBe(false);
   });
 });

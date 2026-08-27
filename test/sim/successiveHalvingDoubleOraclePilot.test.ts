@@ -11,8 +11,10 @@ import { emptyAggregate } from '../../src/sim/pairing';
 import type { Strategy } from '../../src/sim/strategy';
 import { canonicalStrategy, fixedBuyPlan, identify } from '../../src/sim/strategy';
 import {
-  actionAfterConfirmation, actionAfterScreen, cleanScansAfter, orderConfirmedQueue, parseOptions,
-  runConfirmationRace, runThresholdRace, validatePilotInitialMatrixMetadata, weightedFairSchedule
+  actionAfterConfirmation, actionAfterScreen, cleanScansAfter,
+  createThresholdRacingInitialCheckpoint, orderConfirmedQueue, parseOptions,
+  runConfirmationRace, runThresholdRace, validatePilotInitialMatrixMetadata,
+  validateThresholdRacingCheckpoint, weightedFairSchedule
 } from '../../scripts/successive_halving_double_oracle_pilot';
 
 function candidates(count = 3) {
@@ -155,6 +157,21 @@ describe('K007 threshold-racing Double Oracle pilot', () => {
     expect(() => validatePilotInitialMatrixMetadata({ orderedSource: fixture.source,
       topStrategies: fixture.strategies, manifest: fixture.manifest,
       report: other.report })).toThrow('report does not match its manifest and ordered source');
+  });
+
+  it('validates a generic campaign checkpoint by its source experiment while preserving the adapter', () => {
+    const fixture = matrixMetadata(), centeredPayoffs = fixture.strategies.map(() => fixture.strategies.map(() => 0));
+    const source = { entry: { kingdomId: 'deep-beam-tuning-007', ranked: 'ranked', reservoir: 'reservoir',
+      p75Root: 'matrix' }, source: { ...fixture.source, p75ManifestHash: 'c'.repeat(64) },
+      reservoir: { entries: fixture.strategies.map((strategy, index) => ({ strategy, rank: index + 1,
+        canonicalStrategy: canonicalStrategy(strategy) })) },
+      initialMatrix: { protocol: {} as never, strategies: fixture.strategies, cells: [], complete: true,
+        centeredPayoffs }, kingdomId: 'deep-beam-tuning-007', experimentName: 'campaign-generic-run',
+      protocolVersion: 'threshold-racing-psro-v2' } as never;
+    const checkpoint = createThresholdRacingInitialCheckpoint(source, 'run-generic');
+    expect(validateThresholdRacingCheckpoint(checkpoint, source, 'run-generic')).toBe(true);
+    expect(validateThresholdRacingCheckpoint({ ...checkpoint,
+      experiment: 'k007-threshold-racing-double-oracle' }, source, 'run-generic')).toBe(false);
   });
 
   it('keeps local Rust as the default and selects Modal only through the run CLI', () => {

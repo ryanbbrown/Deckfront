@@ -11,8 +11,8 @@ import {
   createStrategySearchMatrixBatchTiming, createStrategySearchMatrixChunk,
   createStrategySearchMatrixCommandTiming, createStrategySearchMatrixManifest,
   createStrategySearchMatrixP75Source,
-  executeStrategySearchMatrixBatches, strategySearchMatrixChunkPath, strategySearchMatrixJobs,
-  strategySearchMatrixTimingPath,
+  executeStrategySearchMatrixBatches, reconcileStrategySearchMatrixResume,
+  runStrategySearchMatrixPairingBatch, strategySearchMatrixChunkPath, strategySearchMatrixJobs, strategySearchMatrixTimingPath,
   validateStrategySearchMatrixBatchTiming, validateStrategySearchMatrixChunk,
   validateStrategySearchMatrixCommandTiming, validateStrategySearchMatrixP75Source
 } from '../../src/sim/strategySearchMatrix';
@@ -104,6 +104,32 @@ describe('campaign Matrix schema and batching', () => {
       .map((timing) => strategySearchMatrixTimingPath(timing.batchIdentity)));
   });
 
+  it('quarantines both Matrix crash orders and reruns only invalid coverage', () => {
+    const held = manifest(), jobs = strategySearchMatrixJobs(held).slice(0, 2);
+    const chunks = jobs.map((job) => createStrategySearchMatrixChunk({ manifest: held, job,
+      records: records(held.strategies[job.rowIndex]!, held.strategies[job.columnIndex]!, job.seeds) }));
+    const orphan = reconcileStrategySearchMatrixResume({ manifest: held, chunks: [chunks[0]!], timings: [] });
+    expect(orphan.quarantineChunkSlots).toEqual([0]);
+    expect(orphan.missingJobs.some((job) => job.slot === 0)).toBe(true);
+    const timing = createStrategySearchMatrixBatchTiming({ manifest: held, batchIndex: 0,
+      jobs, workerCount: 2, simulationMs: 1 });
+    const missingChunk = reconcileStrategySearchMatrixResume({ manifest: held,
+      chunks: [chunks[0]!], timings: [timing] });
+    expect(missingChunk.quarantineTimingHashes).toEqual([timing.evidenceHash]);
+    expect(missingChunk.quarantineChunkSlots).toEqual([0]);
+    expect(missingChunk.missingJobs.slice(0, 2).map((job) => job.slot)).toEqual([0, 1]);
+  });
+
+  it('passes the shutdown margin into the resident pairing runner and rejects partial dispatch', async () => {
+    let seenDeadline = 0;
+    const runner = { async run(jobs: readonly unknown[], options?: { deadline?: number }) {
+      seenDeadline = options?.deadline ?? 0; return { outcomes: Array(jobs.length).fill(null), submitted: 0 };
+    }, async close() {} };
+    await expect(runStrategySearchMatrixPairingBatch(runner as never, [{}] as never, 12345))
+      .rejects.toThrow('shutdown-margin');
+    expect(seenDeadline).toBe(12345);
+  });
+
   it('rejects extra, duplicate, and foreign result slots and jobs', async () => {
     const held = manifest(), jobs = strategySearchMatrixJobs(held).slice(0, 2);
     const result = (job: (typeof jobs)[number]) => ({ slot: job.slot,
@@ -167,7 +193,8 @@ describe('campaign Matrix schema and batching', () => {
     const marker = createCampaignStageControlMarker({ stage: 'matrix', stageId: held.stageId,
       status: 'complete', artifactHashes });
     expect(validateCampaignMatrixStage({ stageId: held.stageId, manifest: held, chunks,
-      timings: [timing], commandTimings: [command], p75: source, marker })).toBe(true);
+      timings: [timing], commandTimings: [command], p75: source,
+      fileHashes: artifactHashes, marker })).toBe(true);
     const corrupt = structuredClone(source); corrupt.centeredPayoffs[0]![1] = 0;
     expect(validateStrategySearchMatrixP75Source(reseal(corrupt), held, chunks)).toBe(false);
     const corruptChunks = [...p75Chunks];

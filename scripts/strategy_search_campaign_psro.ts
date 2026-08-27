@@ -52,11 +52,21 @@ function writeAtomic(file: string, value: unknown): void {
   fs.mkdirSync(path.dirname(file), { recursive: true }); const temporary = `${file}.tmp-${process.pid}`;
   fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`); fs.renameSync(temporary, file);
 }
+function rejectSymlinks(root: string): void {
+  if (!fs.existsSync(root)) return;
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    const file = path.join(root, entry.name);
+    if (entry.isSymbolicLink()) throw new Error(`Campaign PSRO path contains a symlink: ${file}`);
+    if (entry.isDirectory()) rejectSymlinks(file);
+  }
+}
 function files(root: string): string[] {
   if (!fs.existsSync(root)) return [];
   const result: string[] = []; const visit = (directory: string): void => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      const file = path.join(directory, entry.name); if (entry.isDirectory()) visit(file); else result.push(file);
+      const file = path.join(directory, entry.name);
+      if (entry.isSymbolicLink()) throw new Error(`Campaign PSRO output contains a symlink: ${file}`);
+      if (entry.isDirectory()) visit(file); else result.push(file);
     }
   }; visit(root); return result;
 }
@@ -89,9 +99,23 @@ function initialMatrix(manifest: StrategySearchMatrixManifest, p75: StrategySear
   reconstructMatrixCache(snapshot); return snapshot;
 }
 
-const config = readJson<Config>(path.resolve(option('config'))), shutdownAtMs = Number(option('shutdown-at-ms'));
+const campaignRoot = path.resolve(option('campaign-root'));
+function confined(file: string): string {
+  const resolved = path.resolve(file);
+  if (resolved === campaignRoot || !resolved.startsWith(`${campaignRoot}${path.sep}`)) {
+    throw new Error(`Campaign PSRO path escapes its root: ${file}`);
+  }
+  return resolved;
+}
+const configFile = confined(option('config'));
+const config = readJson<Config>(configFile), shutdownAtMs = Number(option('shutdown-at-ms'));
+config.rankedPath = confined(config.rankedPath); config.reservoirPath = confined(config.reservoirPath);
+config.matrixRoot = confined(config.matrixRoot); config.outputRoot = confined(config.outputRoot);
+config.controlRoot = confined(config.controlRoot);
 if (!/^[0-9a-f]{64}$/.test(config.stageId) || !config.runId || !Number.isSafeInteger(config.workers)
   || config.workers < 1 || config.execution !== 'local' || !Number.isSafeInteger(shutdownAtMs)
+  || config.outputRoot === config.controlRoot || config.outputRoot.startsWith(`${config.controlRoot}${path.sep}`)
+  || config.controlRoot.startsWith(`${config.outputRoot}${path.sep}`)
   || shutdownAtMs <= Date.now() || !config.protocolInput?.experimentName
   || !config.protocolInput.protocolVersion || !config.protocolInput.checkpointNamespace) {
   throw new Error('Campaign PSRO stage configuration is invalid.');
@@ -137,6 +161,7 @@ const source: ThresholdRacingSource = { entry: { kingdomId: config.kingdomId, ra
   onRawCheckpoint(event) { process.stdout.write(`${JSON.stringify(event)}\n`); }, deadlineMs: shutdownAtMs,
   terminalOnUnresolved: true };
 fs.mkdirSync(config.outputRoot, { recursive: true }); fs.mkdirSync(config.controlRoot, { recursive: true });
+rejectSymlinks(config.outputRoot); rejectSymlinks(config.controlRoot);
 writeAtomic(path.join(config.outputRoot, 'protocol.json'), protocol);
 try {
   if (Date.now() >= shutdownAtMs) throw new Error('campaign-psro-shutdown-margin');
@@ -149,38 +174,49 @@ try {
     .map((file) => readJson<RawPsroLookArtifact>(file));
   const status = checkpoint.status === 'complete' ? 'complete' as const : 'terminal-incomplete' as const;
   const reason = status === 'complete' ? null : 'fixed-protocol-look-cap-unresolved';
+  const checkpointFile = path.join(runRoot, 'checkpoint.json'), reportFile = path.join(runRoot, 'report.json');
+  const checkpointSha256 = sha256File(checkpointFile), reportSha256 = sha256File(reportFile);
   const closure = createCampaignPsroClosure({ stageId: config.stageId,
     protocolHash: thresholdRacingProtocolHash(protocol), sourceHash: protocol.sourceIdentityHash,
     status, cleanScans: checkpoint.cleanScans, admissions: checkpoint.admissions.length,
-    matrixHash: hash(checkpoint.matrix), reason });
-  writeAtomic(path.join(runRoot, 'closure.json'), closure);
-  const artifactHashes: Record<string, string> = { 'output/protocol.json': thresholdRacingProtocolHash(protocol),
-    [`output/run-${protocol.runId}/closure.json`]: closure.artifactHash };
+    matrixHash: hash(checkpoint.matrix), checkpointHash: checkpointSha256, reportHash: reportSha256, reason });
+  const closureFile = path.join(runRoot, 'closure.json'); writeAtomic(closureFile, closure);
+  const artifactHashes: Record<string, string> = {
+    'output/protocol.json': sha256File(path.join(config.outputRoot, 'protocol.json')),
+    [`output/run-${protocol.runId}/closure.json`]: sha256File(closureFile),
+    [`output/run-${protocol.runId}/checkpoint.json`]: checkpointSha256,
+    [`output/run-${protocol.runId}/report.json`]: reportSha256 };
   for (const chunk of rawChunks) {
-    artifactHashes[`output/run-${protocol.runId}/raw/chunks/${chunk.lookId}`
-      + `/${chunk.candidateStart}-${chunk.candidateEnd}.json`] = chunk.artifactHash;
+    const relative = `run-${protocol.runId}/raw/chunks/${chunk.lookId}`
+      + `/${chunk.candidateStart}-${chunk.candidateEnd}.json`;
+    artifactHashes[`output/${relative}`] = sha256File(path.join(config.outputRoot, relative));
   }
   for (const look of looks) {
-    artifactHashes[`output/run-${protocol.runId}/raw/looks/${look.lookId}.json`] = look.artifactHash;
+    const relative = `run-${protocol.runId}/raw/looks/${look.lookId}.json`;
+    artifactHashes[`output/${relative}`] = sha256File(path.join(config.outputRoot, relative));
   }
   const marker = createCampaignStageControlMarker({ stage: 'psro', stageId: config.stageId,
     status, artifactHashes, ...(reason ? { reason } : {}) });
   if (!validateCampaignPsroStage({ stageId: config.stageId, protocol,
-    chunks: rawChunks, looks, closure, marker })) throw new Error('Campaign PSRO deep validation failed.');
+    chunks: rawChunks, looks, checkpoint, report: readJson<unknown>(reportFile), checkpointSha256,
+    reportSha256, closure, fileHashes: artifactHashes, marker })) {
+    throw new Error('Campaign PSRO deep validation failed.');
+  }
   writeAtomic(path.join(config.controlRoot, `${status}.json`), marker);
   process.stdout.write(`${JSON.stringify({ type: 'strategy-search-stage-stop', stage: 'psro',
     status, markerHash: marker.markerHash })}\n`);
 } catch (error) {
   const reason = error instanceof Error ? error.message : String(error);
   const artifactHashes: Record<string, string> = {
-    'output/protocol.json': thresholdRacingProtocolHash(protocol)
+    'output/protocol.json': sha256File(path.join(config.outputRoot, 'protocol.json'))
   };
   const partialRoot = path.join(config.outputRoot, `run-${protocol.runId}`, 'raw');
   for (const file of files(path.join(partialRoot, 'chunks')).filter((entry) => entry.endsWith('.json'))) {
     try {
       const chunk = readJson<RawPsroScoreChunk>(file);
       if (validateRawPsroScoreChunk(chunk, protocol)) {
-        artifactHashes[`output/${path.relative(config.outputRoot, file).split(path.sep).join('/')}`] = chunk.artifactHash;
+        artifactHashes[`output/${path.relative(config.outputRoot, file).split(path.sep).join('/')}`]
+          = sha256File(file);
       }
     } catch { /* Invalid raw bytes remain on disk but cannot enter the marker. */ }
   }
@@ -188,7 +224,8 @@ try {
     try {
       const look = readJson<RawPsroLookArtifact>(file);
       if (validateRawPsroLookArtifact(look, protocol)) {
-        artifactHashes[`output/${path.relative(config.outputRoot, file).split(path.sep).join('/')}`] = look.artifactHash;
+        artifactHashes[`output/${path.relative(config.outputRoot, file).split(path.sep).join('/')}`]
+          = sha256File(file);
       }
     } catch { /* Invalid raw bytes remain on disk but cannot enter the marker. */ }
   }
