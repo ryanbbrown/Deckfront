@@ -4,6 +4,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
 import { nativeRuleFingerprint, nativeScoreBatchRequest } from '../src/sim/nativeGoldfishProtocol';
+import { readNativeScoreStream } from '../src/sim/nativeScoreStream';
 import {
   CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION, CURRENT_ORDERED_PRODUCT_VERSION,
   ORDERED_PRODUCT_COLLISION_ALLOWANCE, ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES,
@@ -537,23 +538,36 @@ if (mode === 'validate-checkpoint') {
 } else if (mode === 'stage-two-checkpoint') {
   const cohortFile = option('cohort'), cohort = readJson<CohortManifest>(cohortFile);
   const start = integer('start-position'), end = integer('end-position');
-  const held = await readCohortRange(cohortFile, cohort, start, end), scores = nativeScores(option('response'));
-  const metadata = readJson<{ kingdomId: string; candidateDigest: string; ruleFingerprint: string;
-    shuffleSeeds: number[] }>(option('metadata'));
-  if (scores.length !== held.length || metadata.kingdomId !== productTarget.kingdomId
+  const held = await readCohortRange(cohortFile, cohort, start, end);
+  const metadata = readJson<{ kingdomId: string; completeCount: number; candidateDigest: string;
+    ruleFingerprint: string; shuffleSeeds: number[] }>(option('metadata'));
+  const metadataKeys = ['kingdomId', 'completeCount', 'candidateDigest', 'ruleFingerprint', 'shuffleSeeds'];
+  const candidateHash = new StableHashAccumulator();
+  held.forEach((record, index) => { if (index) candidateHash.update('\n'); candidateHash.update(record.canonicalStrategy); });
+  if (JSON.stringify(Object.keys(metadata).sort()) !== JSON.stringify(metadataKeys.sort())
+    || metadata.completeCount !== held.length || metadata.candidateDigest !== candidateHash.digest()
+    || metadata.kingdomId !== productTarget.kingdomId
     || JSON.stringify(metadata.shuffleSeeds) !== JSON.stringify(productSeeds.slice(1))
     || metadata.ruleFingerprint !== cohort.ruleFingerprint) throw new Error('Stage-two inputs differ.');
-  const records = scores.map((raw, index): OrderedProductRankedRecord => {
-    const first = held[index]!, identity = rawIdentity(raw);
-    if (identity.strategyId !== first.displayId || identity.collisionTieKey !== first.canonicalStrategy) throw new Error('Stage-two identity differs.');
+  const records: OrderedProductRankedRecord[] = [];
+  for await (const raw of readNativeScoreStream(option('response'))) {
+    const first = held[records.length];
+    if (!first) throw new Error('Stage-two response contains extra scores.');
+    const identity = rawIdentity(raw);
+    if (identity.strategyId !== first.displayId || identity.collisionTieKey !== first.canonicalStrategy) {
+      throw new Error('Stage-two identity differs.');
+    }
     const additional = compactProfileEvidence(raw), combined = combineScoreEvidence(first.stageOne, additional);
-    return { ...first, additional, combined, combinedRankingKey: rankingKey(combined), rank: 0 };
-  }).sort(compareRankedRecords);
+    records.push({ ...first, additional, combined, combinedRankingKey: rankingKey(combined), rank: 0 });
+  }
+  if (records.length !== held.length) throw new Error('Stage-two response count differs.');
+  records.sort(compareRankedRecords);
+  const scoreHash = new StableHashAccumulator();
+  records.forEach((record, index) => { if (index) scoreHash.update('\n'); scoreHash.update(combinedDigestText(record)); });
   const output = option('out'), recordsFile = `${output}.records.jsonl`, recordsSha256 = writeJsonLines(recordsFile, records);
   const checkpoint = makeCheckpoint('stage-two', { shardId: integer('shard-id'), startPosition: start,
     endPosition: end, completeCount: records.length, retainedCount: records.length,
-    candidateDigest: metadata.candidateDigest, scoreDigest: stableHash(records.map(combinedDigestText).join('\n')) },
-  recordsFile, recordsSha256);
+    candidateDigest: metadata.candidateDigest, scoreDigest: scoreHash.digest() }, recordsFile, recordsSha256);
   writeAtomic(output, fixedJson(checkpoint));
 } else if (mode === 'finalize') {
   const cohortFile = option('cohort'), cohort = readJson<CohortManifest>(cohortFile);

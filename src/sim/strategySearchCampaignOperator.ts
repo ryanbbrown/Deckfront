@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import {
-  createCampaignState, parseCampaignSelectionManifest, runtimeCeilings
+  createCampaignState, parseCampaignSelectionManifest, runtimeCeilings, validateSourceImageIdentity
 } from './strategySearchCampaign';
 import type {
   ParsedCampaignManifest, ParsedCampaignSelectionManifest, StrategySearchCampaignManifest
@@ -12,7 +12,14 @@ import type {
   CampaignSchedulerCheckpoint, CampaignSchedulerTask
 } from './strategySearchScheduler';
 
-const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+function sorted(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sorted);
+  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value)
+    .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
+    .map(([key, held]) => [key, sorted(held)]));
+  return value;
+}
+const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(sorted(value))).digest('hex');
 const relativeStage = (kingdomId: string, stage: 'goldfish' | 'matrix' | 'psro'): string =>
   `kingdoms/${kingdomId}/${stage}`;
 const checkpointName = (shardId: number): string => `shard-${String(shardId).padStart(6, '0')}.json`;
@@ -28,11 +35,24 @@ export interface CampaignTaskConfiguration {
   config: Record<string, unknown>;
   validation: Record<string, unknown>;
 }
+export const CAMPAIGN_SOURCE_REPAIR_ID = 'bounded-stage-two-response-ingestion-v1' as const;
+export interface CampaignSourceRepair {
+  schemaVersion: 1;
+  experiment: 'strategy-search-campaign-source-repair';
+  repairId: typeof CAMPAIGN_SOURCE_REPAIR_ID;
+  campaignEvidenceHash: string;
+  evidenceSourceImage: StrategySearchCampaignManifest['evidence']['sourceImage'];
+  executionSourceImage: StrategySearchCampaignManifest['evidence']['sourceImage'];
+  artifactBuildVersion: string;
+  scope: 'execution-repair-only-protocol-and-artifact-identity-unchanged';
+  lineageHash: string;
+}
 export interface CampaignLaunchBundle {
   schemaVersion: 1;
   campaignRoot: string;
   evidenceHash: string;
   runtimeHash: string;
+  sourceRepair: CampaignSourceRepair | null;
   state: ReturnType<typeof createCampaignState>;
   scheduler: CampaignSchedulerCheckpoint;
   tasks: CampaignTaskConfiguration[];
@@ -212,7 +232,66 @@ export function createCampaignLaunchBundle(input: ParsedCampaignManifest,
     retry_backoff_seconds: manifest.runtime.retryBackoffSeconds,
     retry_backoff_max_seconds: manifest.runtime.retryBackoffMaxSeconds };
   return { schemaVersion: 1, campaignRoot, evidenceHash: input.evidenceHash, runtimeHash: input.runtimeHash,
-    state, scheduler, tasks: configs, files, controller };
+    sourceRepair: null, state, scheduler, tasks: configs, files, controller };
+}
+
+function sourceRepairBase(input: ParsedCampaignManifest,
+  executionSourceImage: StrategySearchCampaignManifest['evidence']['sourceImage']): Omit<CampaignSourceRepair,
+    'lineageHash'> {
+  if (!validateSourceImageIdentity(executionSourceImage)
+    || executionSourceImage.digest === input.manifest.evidence.sourceImage.digest) {
+    throw new Error('Campaign source repair needs a different valid execution source image.');
+  }
+  return { schemaVersion: 1, experiment: 'strategy-search-campaign-source-repair',
+    repairId: CAMPAIGN_SOURCE_REPAIR_ID, campaignEvidenceHash: input.evidenceHash,
+    evidenceSourceImage: structuredClone(input.manifest.evidence.sourceImage),
+    executionSourceImage: structuredClone(executionSourceImage),
+    artifactBuildVersion: input.manifest.evidence.sourceImage.gitVersion,
+    scope: 'execution-repair-only-protocol-and-artifact-identity-unchanged' };
+}
+export function createCampaignSourceRepair(input: ParsedCampaignManifest,
+  executionSourceImage: StrategySearchCampaignManifest['evidence']['sourceImage']): CampaignSourceRepair {
+  const base = sourceRepairBase(input, executionSourceImage);
+  return { ...base, lineageHash: hash(base) };
+}
+export function validateCampaignSourceRepair(value: unknown): value is CampaignSourceRepair {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const held = value as CampaignSourceRepair;
+  if (JSON.stringify(Object.keys(held).sort()) !== JSON.stringify(['schemaVersion', 'experiment', 'repairId',
+    'campaignEvidenceHash', 'evidenceSourceImage', 'executionSourceImage', 'artifactBuildVersion', 'scope',
+    'lineageHash'].sort())) return false;
+  try {
+    if (held.schemaVersion !== 1 || held.experiment !== 'strategy-search-campaign-source-repair'
+      || held.repairId !== CAMPAIGN_SOURCE_REPAIR_ID || !/^[0-9a-f]{64}$/.test(held.campaignEvidenceHash)
+      || !validateSourceImageIdentity(held.evidenceSourceImage)
+      || !validateSourceImageIdentity(held.executionSourceImage)
+      || held.evidenceSourceImage.digest === held.executionSourceImage.digest
+      || held.artifactBuildVersion !== held.evidenceSourceImage.gitVersion
+      || held.scope !== 'execution-repair-only-protocol-and-artifact-identity-unchanged') return false;
+    const base = structuredClone(held) as Partial<CampaignSourceRepair>;
+    delete base.lineageHash;
+    return held.lineageHash === hash(base);
+  } catch { return false; }
+}
+export function deriveCampaignSourceRepairToken(repair: CampaignSourceRepair): string {
+  if (!validateCampaignSourceRepair(repair)) throw new Error('Campaign source repair is invalid.');
+  return `campaign-source-repair-v1.${hash({ repairId: repair.repairId,
+    campaignEvidenceHash: repair.campaignEvidenceHash,
+    evidenceSourceDigest: repair.evidenceSourceImage.digest,
+    executionSourceDigest: repair.executionSourceImage.digest, lineageHash: repair.lineageHash })}`;
+}
+export function createCampaignResumeLaunchBundle(input: ParsedCampaignManifest,
+  executionSourceImage: StrategySearchCampaignManifest['evidence']['sourceImage'], token: string,
+  runtimeAuthorizationToken?: string): CampaignLaunchBundle {
+  const repair = createCampaignSourceRepair(input, executionSourceImage);
+  if (token !== deriveCampaignSourceRepairToken(repair)) {
+    throw new Error('Campaign source repair authorization token differs.');
+  }
+  const bundle = createCampaignLaunchBundle(input, runtimeAuthorizationToken);
+  bundle.sourceRepair = repair;
+  bundle.controller.source_image = structuredClone(executionSourceImage);
+  bundle.files[`control/source-repairs/${repair.lineageHash}.json`] = repair;
+  return bundle;
 }
 
 export function selectionManifestFromBytes(content: string | Uint8Array): ParsedCampaignSelectionManifest {

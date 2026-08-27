@@ -15,7 +15,7 @@ import {
   validateCampaignArchiveManifest
 } from '../../src/sim/strategySearchCampaignArchive';
 import {
-  createCampaignLaunchBundle
+  createCampaignLaunchBundle, validateCampaignSourceRepair
 } from '../../src/sim/strategySearchCampaignOperator';
 import {
   applyCampaignSchedulerUpdates, createCampaignSchedulerCheckpoint
@@ -25,6 +25,7 @@ import {
   deriveTrackedCampaignSourceImage, executeCampaignOperation
 } from '../../scripts/strategy_search_campaign';
 import type { CampaignOperatorAdapter } from '../../scripts/strategy_search_campaign';
+import type { CampaignLaunchBundle } from '../../src/sim/strategySearchCampaignOperator';
 
 function sorted(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sorted);
@@ -171,6 +172,48 @@ describe('campaign operator flow', () => {
       const result = executeCampaignOperation({ operation: 'recover', manifestFile: fixture.manifestFile,
         selectionFile: fixture.selectionFile, recoveryTarget: 'controller', root: fixture.root, adapter });
       expect(recovered).toBe('controller'); expect(result.outcome).toEqual({ status: 'recovered' });
+    } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
+  });
+
+  it('records an authorized execution-source repair while retaining prior evidence and completed-work identity', () => {
+    const fixture = fixtureRoot();
+    try {
+      const parsed = parseStrategySearchCampaignManifest(JSON.parse(
+        fs.readFileSync(fixture.manifestFile, 'utf8')) as unknown);
+      const priorBundle = createCampaignLaunchBundle(parsed);
+      fs.writeFileSync(path.join(fixture.root, 'repair-source.txt'), 'bounded response ingestion\n');
+      execFileSync('git', ['add', 'repair-source.txt'], { cwd: fixture.root });
+      execFileSync('git', ['commit', '-qm', 'repair source'], { cwd: fixture.root });
+      const plan = executeCampaignOperation({ operation: 'resume-plan', manifestFile: fixture.manifestFile,
+        selectionFile: fixture.selectionFile, root: fixture.root });
+      expect(plan).toMatchObject({ campaignEvidenceHash: parsed.evidenceHash,
+        artifactBuildVersion: parsed.manifest.evidence.sourceImage.gitVersion,
+        repairId: 'bounded-stage-two-response-ingestion-v1', campaignCostGate: 'none' });
+      expect(String(plan.sourceRepairToken)).toMatch(/^campaign-source-repair-v1\.[0-9a-f]{64}$/);
+      let launched: CampaignLaunchBundle | undefined;
+      const adapter: CampaignOperatorAdapter = { status() { return { state: priorBundle.state,
+        scheduler: priorBundle.scheduler, download: null, controllerCall: null }; },
+      run({ bundle, stagingRoot }) { launched = bundle; writeIncompleteDownload(stagingRoot, bundle);
+        return { status: 'incomplete' }; } };
+      expect(() => executeCampaignOperation({ operation: 'resume', manifestFile: fixture.manifestFile,
+        selectionFile: fixture.selectionFile, root: fixture.root, adapter })).toThrow('exact resume-plan');
+      const runtimeToken = deriveLaunchAuthorizationToken(parsed.evidenceHash,
+        runtimeCeilings(parsed.manifest.runtime));
+      expect(() => executeCampaignOperation({ operation: 'resume', manifestFile: fixture.manifestFile,
+        selectionFile: fixture.selectionFile, sourceRepairToken: String(plan.sourceRepairToken),
+        authorizationToken: runtimeToken, root: fixture.root, adapter })).toThrow('remains incomplete');
+      expect(launched).toBeDefined();
+      expect(launched!.evidenceHash).toBe(parsed.evidenceHash);
+      expect(launched!.controller.source_image.gitVersion).toBe(plan.executionSourceVersion);
+      expect(launched!.tasks[0]!.config.build_version)
+        .toBe(parsed.manifest.evidence.sourceImage.gitVersion);
+      expect(launched!.sourceRepair).toMatchObject({ campaignEvidenceHash: parsed.evidenceHash,
+        artifactBuildVersion: parsed.manifest.evidence.sourceImage.gitVersion,
+        executionSourceImage: { gitVersion: plan.executionSourceVersion } });
+      expect(launched!.files[`control/source-repairs/${launched!.sourceRepair!.lineageHash}.json`])
+        .toEqual(launched!.sourceRepair);
+      expect(validateCampaignSourceRepair(JSON.parse(JSON.stringify(sorted(launched!.sourceRepair)))))
+        .toBe(true);
     } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
   });
 

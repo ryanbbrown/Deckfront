@@ -67,6 +67,27 @@ A later run under the same or lower authorized ceilings needs no token. Run `pla
 
 `run` exits with an error while any stage is ready, active, operationally incomplete, terminal-incomplete, corrupt, or missing. Download status and local analytics do not change paid campaign completion.
 
+## Resume after an execution-source repair
+
+Use this path only when an implementation repair must continue an existing campaign whose evidence source image is immutable. Keep the exact prior campaign manifest. Commit and verify the repair first, then run:
+
+```sh
+npm run strategy-search:campaign -- resume-plan \
+  --manifest /tmp/hexdeck-prior-campaign.json \
+  --selection-manifest /tmp/hexdeck-balance-smoke-selection.json
+```
+
+`resume-plan` makes no Modal call. It prints a token that binds the prior evidence hash, prior source digest, current clean source digest, repair identifier, and lineage hash. Confirm the existing app has no tasks, then resume with that exact token:
+
+```sh
+npm run strategy-search:campaign -- resume \
+  --manifest /tmp/hexdeck-prior-campaign.json \
+  --selection-manifest /tmp/hexdeck-balance-smoke-selection.json \
+  --authorize-source-repair 'campaign-source-repair-v1.REPLACE_WITH_RESUME_PLAN_TOKEN'
+```
+
+Add `--authorize` only when the runtime ceilings also increase. Resume requires the existing prior-evidence campaign state. It does not create a new campaign, relabel saved artifacts, or change their build identity. It verifies the current execution image, writes a sealed source-repair lineage record, keeps completed scheduler tasks, reattaches saved current calls, and schedules only incomplete or ready dependencies.
+
 ## Recover an ambiguous launch
 
 A controller crash can leave a durable launch intent without a Modal call ID. `run` never relaunches this work automatically. First use the Modal dashboard to confirm that no live call exists. Then make that assertion explicitly:

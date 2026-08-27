@@ -11,8 +11,8 @@ import { registerKingdom } from '../../src/game';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import {
   CURRENT_ORDERED_PRODUCT_VERSION, ORDERED_PRODUCT_COLLISION_ALLOWANCE, ORDERED_PRODUCT_PROFILES,
-  ORDERED_PRODUCT_SPACE_COUNT, deriveCurrentOrderedProductIdentity, deriveScoreEvidence, provenanceDigest,
-  rankingKey, sha256Bytes
+  ORDERED_PRODUCT_SPACE_COUNT, combineScoreEvidence, compactProfileEvidence, compareRankedRecords,
+  deriveCurrentOrderedProductIdentity, deriveScoreEvidence, provenanceDigest, rankingKey, sha256Bytes
 } from '../../src/sim/orderedGoldfishProduct';
 import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
 import { canonicalStrategy, stableHash } from '../../src/sim/strategy';
@@ -126,6 +126,84 @@ describe('native ordered shard input identity', () => {
         '--out', merged, '--metadata-out', path.join(mergedDirectory, 'metadata.json'),
         '--shard-id', '0', '--start-position', '0', '--end-position', '6', ...productArgs],
       { cwd: process.cwd(), stdio: 'pipe' })).toThrow();
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  }, 30_000);
+
+  it('keeps exact stage-two checkpoint bytes across bounded stream layouts', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-ordered-stage-two-'));
+    const kingdomId = 'deep-beam-tuning-002', seeds = [11, 12, 13, 14];
+    const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!;
+    registerKingdom(kingdom);
+    const identity = deriveCurrentOrderedProductIdentity({ kingdomId, seeds,
+      scorerVersion: 'native-goldfish-v1', buildVersion: 'fixture' });
+    const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
+    const profiles = ORDERED_PRODUCT_PROFILES.map((profile) => ({ profile, trials: 1,
+      completions: 0, penalizedTurnsTo50: 10, damageArea: 1, moneySpent: 1 }));
+    const stageOne = deriveScoreEvidence(profiles);
+    const cohortRecords = [0, 1].map((traversalPosition) => {
+      const strategy = space.candidateAt(candidateIndexAt(traversalPosition, space.candidateCount));
+      return { traversalPosition, displayId: strategy.id, canonicalStrategy: canonicalStrategy(strategy),
+        strategy, stageOne, stageOneRankingKey: rankingKey(stageOne), stageOneRank: traversalPosition + 1 };
+    });
+    const partFile = path.join(root, 'cohort.part-0000.jsonl');
+    const partText = cohortRecords.map((record) => JSON.stringify(record)).join('\n') + '\n';
+    fs.writeFileSync(partFile, partText);
+    const config = { kingdomId, candidateCount: ORDERED_PRODUCT_SPACE_COUNT, retainedCount: 2,
+      reservoirCount: 1, seeds, profiles: [...ORDERED_PRODUCT_PROFILES], turnLimit: 30,
+      actionCapPerTurn: 200, collisionAllowance: ORDERED_PRODUCT_COLLISION_ALLOWANCE };
+    const shards = [{ shardId: 0, startPosition: 0, endPosition: ORDERED_PRODUCT_SPACE_COUNT,
+      completeCount: ORDERED_PRODUCT_SPACE_COUNT, retainedCount: 2, candidateDigest: stableHash('candidates'),
+      scoreDigest: stableHash('scores'), contentDigest: stableHash('shard') }];
+    const cohortBase = { schemaVersion: 2, version: CURRENT_ORDERED_PRODUCT_VERSION, productIdentity: identity,
+      runId: 'fixture', buildVersion: 'fixture', ruleFingerprint: nativeRuleFingerprint(kingdomId, 30, 200),
+      scorerVersion: 'native-goldfish-v1', config, shards, provenanceDigest: provenanceDigest(shards),
+      recordCount: 2, stageOneOrderDigest: createHash('sha256').update('order').digest('hex'),
+      parts: [{ file: path.basename(partFile), startIndex: 0, endIndex: 2, count: 2,
+        sha256: sha256Bytes(partText) }] };
+    const cohort = { ...cohortBase, contentDigest: stableHash(JSON.stringify(cohortBase)) };
+    const cohortFile = path.join(root, 'cohort.json'); fs.writeFileSync(cohortFile, JSON.stringify(cohort));
+    const metadata = path.join(root, 'metadata.json');
+    fs.writeFileSync(metadata, JSON.stringify({ kingdomId, completeCount: 2,
+      candidateDigest: stableHash(cohortRecords.map((record) => record.canonicalStrategy).join('\n')),
+      ruleFingerprint: cohort.ruleFingerprint, shuffleSeeds: seeds.slice(1) }));
+    const raws = cohortRecords.map((record, index) => ({ strategyId: record.displayId,
+      collisionTieKey: record.canonicalStrategy, profiles: ORDERED_PRODUCT_PROFILES.map((profile) => ({
+        profile, score: { trials: 3, completions: index + 1, penalizedTurnsTo50: 20 - index,
+          damageArea: 10 + index, moneySpent: 4 + index } })) }));
+    const writeStream = (file: string, blank: boolean): void => fs.writeFileSync(file, [
+      '{"schemaVersion":1,"type":"score-batch-start","scoreCount":2}',
+      ...(blank ? ['   ', ''] : []), ...raws.map((raw) => JSON.stringify(raw)),
+      ...(blank ? ['\t'] : []), '{"schemaVersion":1,"type":"score-batch-end","scoreCount":2}'
+    ].join('\n') + '\n');
+    const responseA = path.join(root, 'response-a.ndjson'), responseB = path.join(root, 'response-b.ndjson');
+    writeStream(responseA, false); writeStream(responseB, true);
+    const productArgs = ['--schema-version', '2', '--kingdom', kingdomId, '--seeds', seeds.join(','),
+      '--build-version', 'fixture', '--scorer-version', 'native-goldfish-v1', '--run-id', 'fixture',
+      '--rule-fingerprint', cohort.ruleFingerprint, '--retained-count', '2', '--reservoir-count', '1'];
+    const run = (directory: string, response: string): string => {
+      fs.mkdirSync(directory); const output = path.join(directory, 'shard.json');
+      execFileSync(process.execPath, ['--import', 'tsx', 'scripts/ordered_goldfish_product.ts',
+        'stage-two-checkpoint', '--cohort', cohortFile, '--response', response, '--metadata', metadata,
+        '--out', output, '--shard-id', '0', '--start-position', '0', '--end-position', '2', ...productArgs],
+      { cwd: process.cwd(), stdio: 'pipe' });
+      return output;
+    };
+    try {
+      const first = run(path.join(root, 'first'), responseA), second = run(path.join(root, 'second'), responseB);
+      expect(fs.readFileSync(first, 'utf8')).toBe(fs.readFileSync(second, 'utf8'));
+      expect(fs.readFileSync(`${first}.records.jsonl`, 'utf8'))
+        .toBe(fs.readFileSync(`${second}.records.jsonl`, 'utf8'));
+      const expected = cohortRecords.map((record, index) => {
+        const additional = compactProfileEvidence(raws[index]!);
+        const combined = combineScoreEvidence(record.stageOne, additional);
+        return { ...record, additional, combined, combinedRankingKey: rankingKey(combined), rank: 0 };
+      }).sort(compareRankedRecords);
+      expect(fs.readFileSync(`${first}.records.jsonl`, 'utf8'))
+        .toBe(expected.map((record) => JSON.stringify(record)).join('\n') + '\n');
+      const checkpoint = JSON.parse(fs.readFileSync(first, 'utf8'));
+      expect(checkpoint.shard.scoreDigest).toBe(stableHash(expected.map((record) =>
+        `${rankingKey(record.combined).join('\t')}\t${record.displayId}\t${record.canonicalStrategy}`
+          + `\t${record.traversalPosition}`).join('\n')));
     } finally { fs.rmSync(root, { recursive: true, force: true }); }
   }, 30_000);
 

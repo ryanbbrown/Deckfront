@@ -263,6 +263,28 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "stage-one merge failed: exact child failure"):
                 launcher._run_checked(["command"], "stage-one merge", text=True, capture_output=True)
 
+    def test_subprocess_failure_exposes_only_the_bounded_stderr_tail(self):
+        failure = subprocess.CalledProcessError(1, ["command"], stderr="x" * (128 * 1024) + "exact-tail")
+        with patch.object(launcher.subprocess, "run", side_effect=failure):
+            with self.assertRaises(RuntimeError) as raised:
+                launcher._run_checked(["command"], "stage-two checkpoint", text=True, capture_output=True)
+        message = str(raised.exception)
+        self.assertIn("stderr tail", message)
+        self.assertTrue(message.endswith("exact-tail"))
+        self.assertLess(len(message), 66 * 1024)
+
+    def test_stage_two_requests_the_streaming_rust_score_protocol(self):
+        with tempfile.TemporaryDirectory() as directory:
+            request = pathlib.Path(directory) / "request.json"
+            response = pathlib.Path(directory) / "response.ndjson"
+            request.write_text("{}\n")
+            with patch.object(launcher.subprocess, "run",
+                    return_value=subprocess.CompletedProcess([], 0, "", "")) as run:
+                launcher._run_rust(request, response, 4, 4, 60, stream_scores=True)
+            command = run.call_args.args[0]
+            self.assertIn("--stream-score-batch", command)
+            self.assertEqual(run.call_args.kwargs["stdout"].name, str(response))
+
     def test_reservation_is_atomic_and_resume_does_not_reserve_twice(self):
         with tempfile.TemporaryDirectory() as directory:
             ledger = pathlib.Path(directory) / "ledger.json"
@@ -749,6 +771,37 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         self.assertEqual([request["operation"] for request in operations], ["launch-intent", "bind-call"])
         self.assertEqual(operations[1]["payload"]["callId"], "fc-saved")
         self.assertEqual(operations[1]["payload"]["fencingToken"], 3)
+
+    def test_campaign_initialize_preserves_existing_state_and_scheduler_for_exact_resume(self):
+        class HeldVolume:
+            def reload(self): pass
+            def commit(self): pass
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory); state_file = root / "state.json"
+            scheduler_file = root / "scheduler.json"
+            saved_state = {"evidenceHash": "a" * 64, "revision": 19, "saved": "state"}
+            saved_scheduler = {"evidenceHash": "a" * 64, "revision": 23,
+                "tasks": [{"taskId": "complete", "status": "complete"}], "saved": "scheduler"}
+            state_file.write_text(json.dumps(saved_state)); scheduler_file.write_text(json.dumps(saved_scheduler))
+            request = {"campaign_root": "campaign/root", "evidence_hash": "a" * 64,
+                "state": {"evidenceHash": "a" * 64, "revision": 0},
+                "scheduler": {"evidenceHash": "a" * 64, "revision": 0},
+                "tasks": [], "files": {}}
+            with patch.object(launcher, "volume", HeldVolume()), \
+                    patch.object(launcher, "_campaign_root", return_value=root), \
+                    patch.object(launcher, "_campaign_state_file", return_value=state_file), \
+                    patch.object(launcher, "_campaign_scheduler_file", return_value=scheduler_file), \
+                    patch.object(launcher, "_campaign_path",
+                        side_effect=lambda _campaign, relative: root / relative), \
+                    patch.object(launcher, "_reject_campaign_symlinks"), \
+                    patch.object(launcher, "_campaign_node",
+                        side_effect=lambda _command, payload, **_kwargs: payload["state"]), \
+                    patch.object(launcher, "_campaign_scheduler_operation",
+                        side_effect=lambda _operation, checkpoint, **_values: checkpoint):
+                result = launcher.campaign_initialize.get_raw_f()(request)
+            self.assertEqual(result["status"], "initialized")
+            self.assertEqual(json.loads(state_file.read_text()), saved_state)
+            self.assertEqual(json.loads(scheduler_file.read_text()), saved_scheduler)
 
     def test_campaign_paths_and_task_resources_fail_closed_before_launch(self):
         for unsafe in ["../escape", "/absolute", "a/../../escape", "a\\b"]:

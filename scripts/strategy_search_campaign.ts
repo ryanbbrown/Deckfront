@@ -12,7 +12,8 @@ import type {
   CampaignContentIndex, CampaignState, ParsedCampaignManifest, SourceImageIdentity
 } from '../src/sim/strategySearchCampaign';
 import {
-  createCampaignLaunchBundle, createCampaignPlanSummary, validateCampaignSelection
+  createCampaignLaunchBundle, createCampaignPlanSummary, createCampaignResumeLaunchBundle,
+  createCampaignSourceRepair, deriveCampaignSourceRepairToken, validateCampaignSelection
 } from '../src/sim/strategySearchCampaignOperator';
 import type {
   CampaignLaunchBundle
@@ -200,14 +201,23 @@ export function validateDownloadedCampaign(root: string, parsed: ParsedCampaignM
     .every(([, stage]) => stage.status === 'complete'), state, index };
 }
 
-export function executeCampaignOperation(input: { operation: 'plan' | 'status' | 'run' | 'recover';
-  manifestFile: string; selectionFile: string; authorizationToken?: string; recoveryTarget?: string; root?: string;
-  adapter?: CampaignOperatorAdapter }): Record<string, unknown> {
+export function executeCampaignOperation(input: {
+  operation: 'plan' | 'status' | 'run' | 'recover' | 'resume-plan' | 'resume';
+  manifestFile: string; selectionFile: string; authorizationToken?: string; sourceRepairToken?: string;
+  recoveryTarget?: string; root?: string; adapter?: CampaignOperatorAdapter
+}): Record<string, unknown> {
   const root = input.root ?? process.cwd(), parsed = loadInputs(input.manifestFile, input.selectionFile);
   if (input.operation === 'plan') {
     verifyCurrentSource(root, parsed);
     const token = deriveLaunchAuthorizationToken(parsed.evidenceHash, runtimeCeilings(parsed.manifest.runtime));
     return { ...createCampaignPlanSummary(parsed, token) };
+  }
+  if (input.operation === 'resume-plan') {
+    const repair = createCampaignSourceRepair(parsed, deriveTrackedCampaignSourceImage(root));
+    return { campaignEvidenceHash: parsed.evidenceHash, artifactBuildVersion: repair.artifactBuildVersion,
+      executionSourceVersion: repair.executionSourceImage.gitVersion, repairId: repair.repairId,
+      lineageHash: repair.lineageHash, sourceRepairToken: deriveCampaignSourceRepairToken(repair),
+      campaignCostGate: 'none', workspaceBudget: 'operator-managed-not-verified' };
   }
   const adapter = input.adapter ?? new ModalCampaignOperatorAdapter();
   const remote = adapter.status({ campaignRoot: campaignRoot(parsed), evidenceHash: parsed.evidenceHash });
@@ -216,11 +226,18 @@ export function executeCampaignOperation(input: { operation: 'plan' | 'status' |
   const local = readLocalDownloadSummary(destination, parsed.evidenceHash);
   if (input.operation === 'status') return summarizeStatus(remote, parsed, local);
   summarizeStatus(remote, parsed, local);
-  verifyCurrentSource(root, parsed);
+  const executionSourceImage = input.operation === 'resume' ? deriveTrackedCampaignSourceImage(root) : undefined;
+  if (input.operation !== 'resume' && input.operation !== 'recover') verifyCurrentSource(root, parsed);
   if (input.operation === 'recover') {
     if (!input.recoveryTarget || !adapter.recover) throw new Error('Recovery needs an explicit ambiguous launch target.');
     return { outcome: adapter.recover({ campaignRoot: campaignRoot(parsed), evidenceHash: parsed.evidenceHash,
       target: input.recoveryTarget }), evidenceHash: parsed.evidenceHash };
+  }
+  if (input.operation === 'resume' && !remote.state) {
+    throw new Error('Source-repair resume requires the existing prior-evidence campaign state.');
+  }
+  if (input.operation === 'resume' && !input.sourceRepairToken) {
+    throw new Error('Source-repair resume requires the exact resume-plan authorization token.');
   }
   if (!remote.state && !input.authorizationToken) throw new Error('First campaign launch requires the plan authorization token.');
   if (remote.state && (remote.state.authorizedCeilings === null
@@ -230,7 +247,10 @@ export function executeCampaignOperation(input: { operation: 'plan' | 'status' |
   }
   const staging = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-campaign-download-'));
   try {
-    const bundle = createCampaignLaunchBundle(parsed, input.authorizationToken);
+    const bundle = input.operation === 'resume'
+      ? createCampaignResumeLaunchBundle(parsed, executionSourceImage!, input.sourceRepairToken!,
+        input.authorizationToken)
+      : createCampaignLaunchBundle(parsed, input.authorizationToken);
     const outcome = adapter.run({ bundle, stagingRoot: staging, destinationRoot: destination });
     const index = readJson(path.join(staging, 'content-index.json'));
     const archives = readJson(path.join(staging, 'archives.json'));
@@ -255,20 +275,25 @@ function option(args: readonly string[], name: string, required = true): string 
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const [operation, ...args] = process.argv.slice(2);
-  if (!['plan', 'status', 'run', 'recover'].includes(operation ?? '')) {
-    throw new Error('Use plan, status, run, or recover.');
+  if (!['plan', 'status', 'run', 'recover', 'resume-plan', 'resume'].includes(operation ?? '')) {
+    throw new Error('Use plan, status, run, recover, resume-plan, or resume.');
   }
-  const known = new Set(['--manifest', '--selection-manifest', '--authorize', '--assert-no-live-call']);
+  const known = new Set(['--manifest', '--selection-manifest', '--authorize', '--authorize-source-repair',
+    '--assert-no-live-call']);
   for (let index = 0; index < args.length; index += 2) {
     if (!known.has(args[index]!) || !args[index + 1] || args[index + 1]!.startsWith('--')) {
       throw new Error(`Unknown or incomplete campaign option ${args[index] ?? ''}.`);
     }
   }
   const authorizationToken = option(args, 'authorize', false);
+  const sourceRepairToken = option(args, 'authorize-source-repair', false);
   const recoveryTarget = option(args, 'assert-no-live-call', false);
-  const result = executeCampaignOperation({ operation: operation as 'plan' | 'status' | 'run' | 'recover',
+  const result = executeCampaignOperation({
+    operation: operation as 'plan' | 'status' | 'run' | 'recover' | 'resume-plan' | 'resume',
     manifestFile: path.resolve(option(args, 'manifest')!),
     selectionFile: path.resolve(option(args, 'selection-manifest')!),
-    ...(authorizationToken ? { authorizationToken } : {}), ...(recoveryTarget ? { recoveryTarget } : {}) });
+    ...(authorizationToken ? { authorizationToken } : {}),
+    ...(sourceRepairToken ? { sourceRepairToken } : {}),
+    ...(recoveryTarget ? { recoveryTarget } : {}) });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }

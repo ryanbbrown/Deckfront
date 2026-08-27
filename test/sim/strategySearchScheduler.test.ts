@@ -160,6 +160,31 @@ describe('fenced global campaign scheduler', () => {
     expect(updated.find((entry) => entry.taskId === 'matrix')?.status).toBe('ready');
   });
 
+  it('resumes only missing work while retaining completed and currently bound Goldfish calls', () => {
+    const stageOne = task({ taskId: 'k1-stage-one', kingdomId: 'k1', stage: 'goldfish',
+      shardId: 'stage-one', status: 'complete', artifactPaths: ['stage-one.json'],
+      artifactHashes: { 'stage-one.json': 'a'.repeat(64) } });
+    const merge = task({ taskId: 'k1-merge', kingdomId: 'k1', stage: 'goldfish', shardId: 'merge',
+      dependencyTaskIds: [stageOne.taskId], status: 'complete', artifactPaths: ['cohort.json'],
+      artifactHashes: { 'cohort.json': 'b'.repeat(64) } });
+    const stageTwo = task({ taskId: 'k1-stage-two', kingdomId: 'k1', stage: 'goldfish',
+      shardId: 'stage-two', dependencyTaskIds: [merge.taskId], status: 'incomplete',
+      reason: 'bounded response ingestion failed' });
+    const current = task({ taskId: 'k2-stage-one', kingdomId: 'k2', stage: 'goldfish',
+      shardId: 'stage-one', status: 'active', callId: 'fc-current' });
+    const ready = applyCampaignSchedulerUpdates([stageOne, merge, stageTwo, current], [
+      { kind: 'ready', taskId: stageTwo.taskId, nowMs: 10 }
+    ]);
+    const actions = planCampaignSchedulerTick({ tasks: ready, observations: [],
+      limits: { maxActiveContainers: 2, maxActiveCpus: 8 }, controllerFence: 3, stopLaunching: false });
+    expect(actions).toEqual([
+      { kind: 'reattach', taskId: current.taskId, callId: 'fc-current' },
+      { kind: 'launch', taskId: stageTwo.taskId, stage: 'goldfish', kingdomId: 'k1',
+        shardId: 'stage-two', containers: 1, cpus: 4, controllerFence: 3 }
+    ]);
+    expect(actions.some((action) => action.taskId === stageOne.taskId || action.taskId === merge.taskId)).toBe(false);
+  });
+
   it('does not replay fixed-protocol terminal-incomplete work', () => {
     const active = task({ taskId: 'psro', kingdomId: 'k', stage: 'psro', status: 'active' });
     const actions = planCampaignSchedulerTick({ tasks: [active], observations: [

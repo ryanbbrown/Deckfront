@@ -153,6 +153,8 @@ def _run_checked(command: list[str], label: str, **kwargs: Any) -> subprocess.Co
         return subprocess.run(command, check=True, **kwargs)
     except subprocess.CalledProcessError as error:
         details = (error.stderr or error.stdout or "").strip() or str(error)
+        if len(details) > 64 * 1024:
+            details = f"[stderr tail; {len(details)} characters total]\n{details[-64 * 1024:]}"
         raise RuntimeError(f"{label} failed: {details}") from error
 
 
@@ -508,11 +510,19 @@ def _preserve_corrupt_file(path: pathlib.Path, control_root: pathlib.Path) -> pa
 
 
 def _run_rust(request_path: pathlib.Path, response_path: pathlib.Path,
-              threads: int, cpu: int, timeout_seconds: int) -> None:
+              threads: int, cpu: int, timeout_seconds: int, stream_scores: bool = False) -> None:
+    command = [CAMPAIGN_RUST_GOLDFISH_BIN, "--threads", str(threads), "--cpu-request", str(cpu)]
+    if stream_scores:
+        command.append("--stream-score-batch")
     with request_path.open() as request, response_path.open("w") as response:
-        subprocess.run([CAMPAIGN_RUST_GOLDFISH_BIN, "--threads", str(threads),
-            "--cpu-request", str(cpu)], stdin=request, stdout=response, stderr=subprocess.PIPE,
-            text=True, timeout=timeout_seconds, check=True)
+        try:
+            subprocess.run(command, stdin=request, stdout=response, stderr=subprocess.PIPE,
+                text=True, timeout=timeout_seconds, check=True)
+        except subprocess.CalledProcessError as error:
+            details = (error.stderr or "").strip()
+            if len(details) > 64 * 1024:
+                details = f"[stderr tail; {len(details)} characters total]\n{details[-64 * 1024:]}"
+            raise RuntimeError(f"native Goldfish scorer failed: {details or error}") from error
 
 
 def _campaign_stage_one_ranges(start: int, end: int,
@@ -685,24 +695,31 @@ def ordered_product_stage_two(spec: dict[str, Any]) -> dict[str, Any]:
         if "campaign_root" in spec else pathlib.Path("/results") / spec["run_id"]
     cohort = root / "stage-one-cohort.json"
     started = time.monotonic()
+    deadline = started + spec["timeout_seconds"]
+    memory_mib = spec.get("memory_mib", spec.get("memory_gib", 4) * 1024)
+    node_environment = {**os.environ, "NODE_OPTIONS":
+        f"--max-old-space-size={max(256, math.floor(memory_mib * 0.75))}"}
     with tempfile.TemporaryDirectory() as directory:
         request = pathlib.Path(directory) / "request.jsonl"
-        response = pathlib.Path(directory) / "response.json"
+        response = pathlib.Path(directory) / "response.ndjson"
         metadata = pathlib.Path(directory) / "metadata.json"
-        generation_timeout, scoring_timeout = ordered_subprocess_timeouts(spec["timeout_seconds"])
         input_command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "stage-two-input",
             "--cohort", str(cohort), "--start-position", str(spec["start_position"]),
             "--end-position", str(spec["end_position"]), "--threads", str(spec["threads"]),
             "--request", str(request), "--metadata", str(metadata)] + _ordered_product_cli(spec)[3:]
-        subprocess.run(input_command, cwd="/workspace", text=True, capture_output=True,
-                       timeout=generation_timeout, check=True)
-        _run_rust(request, response, spec["threads"], spec["cpu"], scoring_timeout)
+        _run_checked(input_command, "campaign bounded stage-two input", cwd="/workspace",
+            env=node_environment, text=True, capture_output=True,
+            timeout=_remaining_stage_seconds(deadline))
+        _run_rust(request, response, spec["threads"], spec["cpu"],
+            _remaining_stage_seconds(deadline), stream_scores=True)
         command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "stage-two-checkpoint",
             "--cohort", str(cohort), "--response", str(response), "--metadata", str(metadata),
             "--out", str(output), "--shard-id", str(spec["shard_id"]),
             "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"])]
         command += _ordered_product_cli(spec)[3:]
-        subprocess.run(command, cwd="/workspace", text=True, capture_output=True, timeout=300, check=True)
+        _run_checked(command, "campaign bounded stage-two checkpoint", cwd="/workspace",
+            env=node_environment, text=True, capture_output=True,
+            timeout=_remaining_stage_seconds(deadline))
     if not _valid_ordered_product_checkpoint(output, spec, "stage-two"):
         raise RuntimeError("new stage-two checkpoint failed validation")
     volume.commit()
@@ -1236,8 +1253,9 @@ def verify_campaign_source_image(identity: dict[str, Any]) -> None:
         raise RuntimeError("campaign source-image digest differs inside the Modal image")
 
 
-def _campaign_node(command: list[str], request: dict[str, Any], timeout: int = 120) -> Any:
-    completed = _run_checked(command, "campaign evidence operation", cwd="/workspace",
+def _campaign_node(command: list[str], request: dict[str, Any], timeout: int = 120,
+                   cwd: str | pathlib.Path = "/workspace") -> Any:
+    completed = _run_checked(command, "campaign evidence operation", cwd=cwd,
         input=json.dumps(request), text=True, capture_output=True, timeout=timeout)
     return json.loads(completed.stdout)
 
@@ -2277,9 +2295,18 @@ def campaign_recover_entry(campaign_root: str, evidence_hash: str, target: str,
 @app.local_entrypoint()
 def campaign_run_entry(launch_config: str, download_dir: str, existing_root: str = "") -> None:
     bundle = json.loads(pathlib.Path(launch_config).read_text())
-    if set(bundle) != {"schemaVersion", "campaignRoot", "evidenceHash", "runtimeHash", "state",
-            "scheduler", "tasks", "files", "controller"} or bundle["schemaVersion"] != 1:
+    if set(bundle) != {"schemaVersion", "campaignRoot", "evidenceHash", "runtimeHash", "sourceRepair",
+            "state", "scheduler", "tasks", "files", "controller"} or bundle["schemaVersion"] != 1:
         raise ValueError("campaign launch bundle is malformed")
+    repair = bundle["sourceRepair"]
+    if repair is not None:
+        validated_repair = _campaign_node(
+            ["npx", "tsx", "scripts/strategy_search_campaign_source_repair.ts"],
+            {"repair": repair, "evidenceHash": bundle["evidenceHash"],
+             "executionSourceImage": bundle["controller"]["source_image"]}, cwd=PROJECT_ROOT)
+        repair_path = f"control/source-repairs/{validated_repair['lineageHash']}.json"
+        if bundle["files"].get(repair_path) != validated_repair:
+            raise ValueError("campaign source repair lineage file differs")
     request = {"campaign_root": bundle["campaignRoot"], "evidence_hash": bundle["evidenceHash"],
         "state": bundle["state"], "scheduler": bundle["scheduler"], "tasks": bundle["tasks"],
         "files": bundle["files"]}
