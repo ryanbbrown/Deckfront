@@ -95,11 +95,12 @@ export function measurePostDownloadValidations(input: { bundle: StrategySearchLa
   destinationRoot: string }, run: DeepValidatorRunner = execFileSync,
   now: () => number = () => performance.now()): { metrics: Record<string, unknown>; error?: unknown } {
   const started = now(), artifacts: Array<Record<string, unknown>> = []; let failure: unknown;
-  for (const task of input.bundle.tasks.filter((entry) => entry.stage === 'psro')) {
+  const finalTasks = [...new Map(input.bundle.tasks.map((task) => [task.evidenceId, task])).values()];
+  for (const task of finalTasks) {
     const evidenceRoot = path.join(input.destinationRoot, 'evidence', task.evidenceId);
     for (const [stage, relative] of [['goldfish-one-reduce', 'goldfish/top-500000.hgf'],
-      ['goldfish-two-reduce', 'goldfish/reservoir.hgf'], ['matrix', 'matrix/evidence.json'],
-      ['psro', 'psro/evidence.json']] as const) {
+      ['goldfish-two-reduce', 'goldfish/reservoir.hgf'], ['matrix-reduce', 'matrix/evidence.json'],
+      ['psro-reduce', 'psro/evidence.json']] as const) {
       const file = path.join(evidenceRoot, relative), validationStarted = now(), bytes = fs.statSync(file).size;
       try {
         run('npx', ['tsx', 'scripts/strategy_search_subprocess.ts', '--entry', 'validator',

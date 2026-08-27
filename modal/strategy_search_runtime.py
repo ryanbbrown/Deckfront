@@ -35,7 +35,7 @@ def _load_bundle(launch_config: str) -> dict[str, Any]:
     bundle = json.loads(pathlib.Path(launch_config).read_text())
     required = {"schemaVersion", "campaignExecutionId", "executionRoot", "request", "sourceImage",
         "partitions", "jobs", "tasks", "controller"}
-    if set(bundle) != required or bundle["schemaVersion"] != 2:
+    if set(bundle) != required or bundle["schemaVersion"] != 3:
         raise ValueError("strategy-search launch bundle is malformed")
     return bundle
 
@@ -149,7 +149,7 @@ def run_deployed_entry(launch_config: str, compute_app_name: str, download_dir: 
     report = call.get(timeout=bundle["controller"]["timeoutSeconds"] + 60)
     destination = pathlib.Path(download_dir)
     destination.mkdir(parents=True, exist_ok=True)
-    evidence_ids = [task["evidenceId"] for task in bundle["tasks"] if task["stage"] == "psro"]
+    evidence_ids = list(dict.fromkeys(task["evidenceId"] for task in bundle["tasks"]))
     downloads = _download_final_artifacts(destination, evidence_ids)
     report = {**report, "clientOperations": {"downloads": downloads}}
     _atomic_json(destination / "report.json", report)

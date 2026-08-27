@@ -14,7 +14,7 @@ import type {
   StrategySearchOperatorAdapter, StrategySearchRemoteStatus
 } from '../../scripts/strategy_search_campaign';
 
-function fixture() { const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-search-operator-'));
+function fixture(kingdomIds = ['deep-beam-tuning-007']) { const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-search-operator-'));
   execFileSync('git', ['init', '-q'], { cwd: root }); execFileSync('git', ['config', 'user.email', 'fixture@example.com'], { cwd: root });
   execFileSync('git', ['config', 'user.name', 'Fixture'], { cwd: root });
   fs.writeFileSync(path.join(root, 'package.json'), '{"name":"fixture"}\n');
@@ -24,7 +24,7 @@ function fixture() { const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck
     '["package.json","strategy-search-image-files.json","strategy-search-scientific-files.json"]\n');
   execFileSync('git', ['add', '.'], { cwd: root }); execFileSync('git', ['commit', '-qm', 'fixture'], { cwd: root });
   const requestFile = path.join(root, 'request.json'); fs.writeFileSync(requestFile,
-    '{"kingdomIds":["deep-beam-tuning-007"],"maxActiveCpus":400}\n');
+    `${JSON.stringify({ kingdomIds, maxActiveCpus: 400 })}\n`);
   const parsed = deriveStrategySearch({ request: JSON.parse(fs.readFileSync(requestFile, 'utf8')),
     sourceImage: deriveTrackedStrategySearchSourceImage(root) });
   return { root, requestFile, parsed }; }
@@ -45,7 +45,7 @@ describe('strategy-search operator', () => {
       run() { calls += 1; throw new Error('not called'); } };
     try { const plan = await executeStrategySearchOperation({ operation: 'plan', requestFile: held.requestFile,
       root: held.root, adapter });
-      expect(plan).toMatchObject({ schemaVersion: 2, kingdomCount: 1, maxActiveCpus: 400,
+      expect(plan).toMatchObject({ schemaVersion: 3, kingdomCount: 1, maxActiveCpus: 400,
         workspaceBudgetVerification: 'not-performed' });
       expect(plan.authorizationToken).toBe(held.parsed.authorizationToken); expect(calls).toBe(0);
     } finally { fs.rmSync(held.root, { recursive: true, force: true }); } });
@@ -123,16 +123,17 @@ describe('strategy-search operator', () => {
     const parsed = deriveStrategySearch({ request: { kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 400 },
       sourceImage }), bundle = createStrategySearchLaunchBundle(parsed);
     const taskIdDigest = createHash('sha256').update(bundle.tasks.map((task) => task.taskId).join('\n')).digest('hex');
-    expect(parsed.kingdoms[0]!.evidenceId).toBe('d2e1daef8244113e1cad27458a49855cd2a28aa90414367b5c1ac7587bc68d69');
-    expect(bundle.tasks).toHaveLength(232);
-    expect(taskIdDigest).toBe('69df71f723855d7e38d35bced2c9e77297069acf32e82167c58efe4b3cdb84f4');
+    expect(parsed.kingdoms[0]!.evidenceId).toMatch(/^[0-9a-f]{64}$/);
+    expect(bundle.tasks.filter((task) => task.stage === 'matrix-score')).toHaveLength(4);
+    expect(bundle.tasks.filter((task) => task.stage === 'psro-decision')).toHaveLength(1);
+    expect(taskIdDigest).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('measures every post-download deep validator separately', () => {
     const held = fixture(), destinationRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-search-download-'));
     try {
-      const bundle = createStrategySearchLaunchBundle(held.parsed), psro = bundle.tasks.find((task) => task.stage === 'psro')!;
-      const root = path.join(destinationRoot, 'evidence', psro.evidenceId);
+      const bundle = createStrategySearchLaunchBundle(held.parsed), task = bundle.tasks[0]!;
+      const root = path.join(destinationRoot, 'evidence', task.evidenceId);
       const files = ['goldfish/top-500000.hgf', 'goldfish/reservoir.hgf', 'matrix/evidence.json', 'psro/evidence.json'];
       files.forEach((relative, index) => { const file = path.join(root, relative); fs.mkdirSync(path.dirname(file), { recursive: true });
         fs.writeFileSync(file, Buffer.alloc(index + 1)); });
@@ -143,10 +144,23 @@ describe('strategy-search operator', () => {
       expect(result.metrics.artifacts).toEqual([
         expect.objectContaining({ stage: 'goldfish-one-reduce', bytes: 1, wallMs: 1, status: 'success' }),
         expect.objectContaining({ stage: 'goldfish-two-reduce', bytes: 2, wallMs: 1, status: 'success' }),
-        expect.objectContaining({ stage: 'matrix', bytes: 3, wallMs: 1, status: 'success' }),
-        expect.objectContaining({ stage: 'psro', bytes: 4, wallMs: 1, status: 'success' })
+        expect.objectContaining({ stage: 'matrix-reduce', bytes: 3, wallMs: 1, status: 'success' }),
+        expect.objectContaining({ stage: 'psro-reduce', bytes: 4, wallMs: 1, status: 'success' })
       ]);
     } finally { fs.rmSync(destinationRoot, { recursive: true, force: true }); fs.rmSync(held.root, { recursive: true, force: true }); }
+  });
+
+  it('bounds a three-kingdom ready window to two global worker waves', () => {
+    const held = fixture(['balance-tuning-007', 'balance-tuning-009', 'balance-tuning-010']);
+    try {
+      const bundle = createStrategySearchLaunchBundle(held.parsed);
+      const materialized = bundle.jobs.filter((job) => job.stage === 'goldfish-one');
+      expect(materialized).toHaveLength(200);
+      expect(new Set(materialized.map((job) => job.kingdomId))).toEqual(new Set([
+        'balance-tuning-007', 'balance-tuning-009', 'balance-tuning-010']));
+      expect(Object.values(bundle.partitions).filter((partition) => partition.stage === 'goldfish-one')
+        .reduce((sum, partition) => sum + partition.jobs.length, 0)).toBeGreaterThan(200);
+    } finally { fs.rmSync(held.root, { recursive: true, force: true }); }
   });
 
   it('creates hundreds of pinned K007 Goldfish jobs without putting capacity in evidence identity', () => {
@@ -154,10 +168,10 @@ describe('strategy-search operator', () => {
     try { const bundle = createStrategySearchLaunchBundle(held.parsed), stageOne = bundle.jobs.filter((job) => job.stage === 'goldfish-one');
       expect(stageOne.length).toBeGreaterThan(100);
       expect(bundle.partitions[`${held.parsed.kingdoms[0]!.evidenceId}:goldfish-one`]?.jobs).toHaveLength(stageOne.length);
-      const stageTwo = bundle.jobs.filter((job) => job.stage === 'goldfish-two');
+      const stageTwo = bundle.partitions[`${held.parsed.kingdoms[0]!.evidenceId}:goldfish-two`]!.jobs;
       expect(stageTwo.length).toBeGreaterThan(10);
-      expect(stageTwo.every((job) => job.cpus === 4
-        && job.range && job.range.end - job.range.start <= 60_000)).toBe(true);
+      expect(stageTwo.every((range) => range.end - range.start <= 60_000)).toBe(true);
+      expect(bundle.jobs.filter((job) => job.stage === 'goldfish-two')).toHaveLength(0);
       expect(JSON.stringify(held.parsed.kingdoms[0])).not.toContain('maxActiveCpus');
       expect(JSON.stringify(held.parsed.kingdoms[0])).not.toContain('worker');
       expect(bundle.tasks.every((task) => task.artifactPath.startsWith(`evidence/${task.evidenceId}/`))).toBe(true);

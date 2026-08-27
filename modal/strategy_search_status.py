@@ -82,7 +82,7 @@ def fail_compute_preflight(campaign_execution_id: str, source_digest: str,
 def prepare_execution(bundle: dict[str, Any], compute_preflight: dict[str, Any]) -> dict[str, Any]:
     required = {"schemaVersion", "campaignExecutionId", "executionRoot", "request", "sourceImage",
         "partitions", "jobs", "tasks", "controller"}
-    if set(bundle) != required or bundle["schemaVersion"] != 2:
+    if set(bundle) != required or bundle["schemaVersion"] != 3:
         raise ValueError("strategy-search launch bundle is malformed")
     preflight_fields = {"ready", "sourceDigest", "readyMs", "computeAppName", "preflightElapsedMs"}
     source_digest = bundle["sourceImage"]["digest"]
@@ -93,7 +93,7 @@ def prepare_execution(bundle: dict[str, Any], compute_preflight: dict[str, Any])
         raise ValueError("strategy-search compute preflight is invalid")
     execution_id = bundle["campaignExecutionId"]
     state_file = _execution_file(execution_id)
-    ordered_evidence_ids = [task["evidenceId"] for task in bundle["tasks"] if task["stage"] == "psro"]
+    ordered_evidence_ids = list(dict.fromkeys(task["evidenceId"] for task in bundle["tasks"]))
     if not ordered_evidence_ids or len(set(ordered_evidence_ids)) != len(ordered_evidence_ids):
         raise ValueError("strategy-search launch bundle evidence order is invalid")
     volume.reload()

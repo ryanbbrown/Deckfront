@@ -50,9 +50,15 @@ The runtime uses Modal Volume `hexdeck-native-strategy-results`. It stores scien
 
 A changed `maxActiveCpus` value needs a new token. The existing execution keeps its pinned Goldfish ranges. The new value changes admission concurrency only.
 
-The scheduler pools ready Goldfish jobs across all kingdoms. A kingdom starts Matrix as soon as its reservoir validates, then starts PSRO as soon as its Matrix validates. Ready Matrix and PSRO work has priority, but the scheduler continues to admit bounded Goldfish work.
+One controller owns all worker-capacity tokens. `maxActiveCpus` covers running Goldfish, Matrix, PSRO, admission-row, and reduction workers. The one-core controller and one-core publisher are separate and appear separately in the report.
 
-Workers write only launch-scoped temporary files. Each worker validates its temporary file once and returns the file digest. One serialized publisher checks that digest, the task lease, controller fence, launch intent, bytes, and deterministic path. The publisher then renames and commits a batch of ready files and writes publication receipts. A retry cannot overwrite different bytes. A job gets at most three retryable worker or launch failures. Module, package, syntax, source-image, and runtime-asset startup failures are terminal. The controller cancels the active sibling wave and persists failed state instead of retrying deterministic failures. Polling follows the installed Modal API contract: built-in `TimeoutError` means pending, while Modal function timeouts and other exceptions mean failure. Every submitted-worker failure records its qualified type, nonempty message, `repr`, traceback, FunctionCall ID, and dashboard URL.
+The scheduler keeps at most two global worker waves ready. The execution state stores complete deterministic Goldfish partitions and adds jobs as workers consume the ready window. Matrix and PSRO add only the current score look and its reducer. A kingdom starts its four-core Matrix score tasks as soon as its reservoir validates. It starts PSRO only after its complete 125-seed Matrix validates. No kingdom waits for another kingdom's stage.
+
+Small reducers and decisions have first priority. Matrix and PSRO score tasks have second priority and use round-robin kingdom order. Goldfish reduction follows. Goldfish score work is last, but at least one Goldfish task can start whenever downstream work and one Goldfish task both fit. A reducer waits with the `reducer-admission-limit` reason when another reducer uses the configured memory and Volume I/O allowance.
+
+Workers write only launch-scoped temporary files. Each worker validates its temporary file once and returns the file digest. One serialized publisher checks that digest, the task lease, controller fence, launch intent, bytes, and deterministic path. The publisher then renames and commits a batch of ready files and writes publication receipts. Matrix and PSRO retries load valid deterministic chunks and run only missing tasks. A reducer can restart from published chunks. A stale worker from an old controller fence cannot publish.
+
+A job gets at most three retryable worker or launch failures. Module, package, syntax, source-image, and runtime-asset startup failures are terminal. The controller cancels the active sibling wave and persists failed state instead of retrying deterministic failures. Polling follows the installed Modal API contract: built-in `TimeoutError` means pending, while Modal function timeouts and other exceptions mean failure. Every submitted-worker failure records its qualified type, nonempty message, `repr`, traceback, FunctionCall ID, and dashboard URL.
 
 A complete kingdom is reusable by any later request that has the same per-kingdom evidence ID. No campaign-state import or source repair exists.
 
@@ -68,15 +74,16 @@ Status reports the exact phase: `image-preparing`, `startup-failed`, `controller
 
 The final report includes:
 
-- critical-path and stage wall time;
-- peak and average running CPUs from worker start and finish events;
+- campaign critical-path time and each kingdom's completion time;
+- stage wall time, throughput, and barrier latency;
+- peak and average running worker CPUs from worker start and finish events;
 - peak and average submitted CPUs as separate values;
-- CPU use and one reason for every unused running-CPU interval;
-- candidate throughput;
+- controller and publisher cores as separate values;
+- CPU use and one reason for every unused running-worker interval;
+- Matrix and PSRO score-worker counts and cross-kingdom score overlap;
 - bytes read and written;
-- Goldfish intermediate I/O ratio;
-- final artifact write time;
-- admission failures, retries, task count, and Modal compute cost calculated from measured resource time.
+- Goldfish intermediate I/O ratio and final artifact write time;
+- admission failures, retries, retry cost, task count, and measured Modal compute cost.
 
 ## Local files
 
@@ -86,19 +93,28 @@ The final report includes:
 .data/strategy-search/<campaign-execution-id>/
 ```
 
-The directory contains `report.json`, `goldfish/top-500000.hgf`, `goldfish/reservoir.hgf`, and the final Matrix and PSRO JSON evidence for each requested evidence ID. `report.json.clientOperations` measures each final download and post-download validator by path, bytes, and wall time. Runtime chunks and temporary launch files stay on the Volume.
+The directory contains `report.json`, `goldfish/top-500000.hgf`, `goldfish/reservoir.hgf`, and the final Matrix and PSRO JSON evidence for each requested evidence ID. `report.json.clientOperations` measures each final download and post-download validator by path, bytes, and wall time. Validated runtime chunks stay on the Volume until the publisher seals the whole kingdom completion receipt. Launch-scoped temporary files are removed during publication.
 
 A `terminal-incomplete` PSRO result is a failed run. Analytics and balance reports run later and do not change strategy-search completion.
 
-## Authorized K007 smoke
+## Authorized runtime smokes
 
-The approved paid acceptance input is:
+Run the one-kingdom smoke first:
 
 ```json
 {
-  "kingdomIds": ["deep-beam-tuning-007"],
+  "kingdomIds": ["balance-tuning-005"],
   "maxActiveCpus": 400
 }
 ```
 
-The authorized range is 400 through 800 CPUs. Do not put K007 in source code as a default. Do not use this authorization for a multi-kingdom run.
+After it passes, run one parallel campaign:
+
+```json
+{
+  "kingdomIds": ["balance-tuning-007", "balance-tuning-009", "balance-tuning-010"],
+  "maxActiveCpus": 400
+}
+```
+
+Both runs must download and deeply validate every final artifact. Do not run the 30- or 160-kingdom campaign under this authorization.

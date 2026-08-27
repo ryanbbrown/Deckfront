@@ -6,8 +6,10 @@ import { fixedBuyPlan } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 import type { InitialMatrixSeedRecord } from '../../src/sim/initialMatrixCalibration';
 import {
-  createStrategySearchMatrixChunk, createStrategySearchMatrixManifest, reduceStrategySearchMatrix,
-  strategySearchMatrixJobs, validateStrategySearchMatrixArtifact, validateStrategySearchMatrixManifest
+  createStrategySearchMatrixChunk, createStrategySearchMatrixManifest,
+  createStrategySearchMatrixScoreTaskChunk, reduceStrategySearchMatrix,
+  reduceStrategySearchMatrixScoreTasks, strategySearchMatrixJobs, strategySearchMatrixScoreTasks,
+  validateStrategySearchMatrixArtifact, validateStrategySearchMatrixManifest
 } from '../../src/sim/strategySearchMatrix';
 import {
   createStrategySearchPsroArtifact, validateStrategySearchPsroArtifact
@@ -33,6 +35,16 @@ function execute(runtimeChunkSize: number) { const held = manifest(), jobs = str
   const chunks = jobs.map((job) => createStrategySearchMatrixChunk({ manifest: held, job,
     records: job.seeds.map((seed) => record(seed, held.strategies[job.rowIndex]!, held.strategies[job.columnIndex]!)) }));
   return { manifest: held, artifact: reduceStrategySearchMatrix({ manifest: held, chunks }) }; }
+function executeScoreTasks(targetTaskMs: number) {
+  const held = manifest(), semanticJobs = strategySearchMatrixJobs(held, 25);
+  const chunks = semanticJobs.map((job) => createStrategySearchMatrixChunk({ manifest: held, job,
+    records: job.seeds.map((seed) => record(seed, held.strategies[job.rowIndex]!, held.strategies[job.columnIndex]!)) }));
+  const tasks = strategySearchMatrixScoreTasks(held, { targetTaskMs });
+  const taskChunks = tasks.map((task) => createStrategySearchMatrixScoreTaskChunk({ manifest: held, task,
+    chunks: task.jobs.map((job) => chunks[job.slot]!) })).reverse();
+  return { manifest: held, tasks, taskChunks,
+    artifact: reduceStrategySearchMatrixScoreTasks({ manifest: held, tasks, chunks: taskChunks }) };
+}
 
 describe('Matrix and PSRO semantic topology', () => {
   it('derives Matrix identity and seeds only from the semantic reservoir', () => {
@@ -51,6 +63,14 @@ describe('Matrix and PSRO semantic topology', () => {
     expect(validateStrategySearchMatrixArtifact(coarse.artifact, coarse.manifest)).toBe(true);
     expect(coarse.artifact).not.toHaveProperty('chunkSize');
     expect(JSON.stringify(coarse.artifact)).not.toContain('workerCount');
+  }, 120_000);
+
+  it('reduces materially different grouped score tasks and shuffled completion to identical evidence', () => {
+    const fine = executeScoreTasks(15_000), coarse = executeScoreTasks(60_000);
+    expect(fine.tasks.length).toBeGreaterThan(coarse.tasks.length);
+    expect(fine.artifact).toEqual(coarse.artifact);
+    expect(() => reduceStrategySearchMatrixScoreTasks({ manifest: fine.manifest, tasks: fine.tasks,
+      chunks: [...fine.taskChunks, fine.taskChunks[0]!] })).toThrow('incomplete');
   }, 120_000);
 
   it('removes candidate chunks and timing from schema-3 PSRO identity', () => {

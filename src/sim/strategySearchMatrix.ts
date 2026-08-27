@@ -41,6 +41,14 @@ export interface StrategySearchMatrixChunk {
   rowIndex: number; columnIndex: number; startSeedOrdinal: number; endSeedOrdinal: number;
   records: InitialMatrixSeedRecord[]; contentHash: string;
 }
+export interface StrategySearchMatrixScoreTask {
+  taskIndex: number; startSlot: number; endSlot: number; expectedGames: number;
+  jobs: StrategySearchMatrixJob[];
+}
+export interface StrategySearchMatrixScoreTaskChunk {
+  schemaVersion: 1; experiment: 'strategy-search-matrix-score-task-chunk'; manifestHash: string;
+  taskIndex: number; startSlot: number; endSlot: number; chunks: StrategySearchMatrixChunk[]; contentHash: string;
+}
 export interface StrategySearchMatrixCell {
   rowIndex: number; columnIndex: number; rowId: string; columnId: string;
   seedRecords: InitialMatrixSeedRecord[];
@@ -99,6 +107,66 @@ export function strategySearchMatrixJobs(manifest: StrategySearchMatrixManifest,
     }
   }
   return jobs;
+}
+export function strategySearchMatrixScoreTasks(manifest: StrategySearchMatrixManifest, input: {
+  targetTaskMs?: number; measuredGamesPerSecond?: number; semanticSeedChunkSize?: number } = {}): readonly StrategySearchMatrixScoreTask[] {
+  const targetTaskMs = input.targetTaskMs ?? 30_000, measuredGamesPerSecond = input.measuredGamesPerSecond ?? 3_307,
+    semanticSeedChunkSize = input.semanticSeedChunkSize ?? 25;
+  if (!Number.isFinite(targetTaskMs) || targetTaskMs < 15_000 || targetTaskMs > 60_000
+    || !Number.isFinite(measuredGamesPerSecond) || measuredGamesPerSecond <= 0) {
+    throw new Error('Matrix score-task sizing input is invalid.');
+  }
+  const jobs = strategySearchMatrixJobs(manifest, semanticSeedChunkSize);
+  const targetGames = targetTaskMs / 1000 * measuredGamesPerSecond;
+  const tasks: StrategySearchMatrixScoreTask[] = []; let held: StrategySearchMatrixJob[] = [], games = 0;
+  const flush = (): void => {
+    if (!held.length) return;
+    tasks.push({ taskIndex: tasks.length, startSlot: held[0]!.slot, endSlot: held.at(-1)!.slot + 1,
+      expectedGames: games, jobs: held }); held = []; games = 0;
+  };
+  for (const job of jobs) {
+    const jobGames = job.count * GAMES_PER_SEED;
+    if (held.length && games + jobGames > targetGames) flush();
+    held.push(job); games += jobGames;
+  }
+  flush();
+  return tasks;
+}
+export function createStrategySearchMatrixScoreTaskChunk(input: { manifest: StrategySearchMatrixManifest;
+  task: StrategySearchMatrixScoreTask; chunks: readonly StrategySearchMatrixChunk[] }): StrategySearchMatrixScoreTaskChunk {
+  const expected = input.task.jobs;
+  if (!expected.length || input.chunks.length !== expected.length || input.chunks.some((chunk, index) =>
+    !validateStrategySearchMatrixChunk(chunk, input.manifest, expected[index]))) {
+    throw new Error('Matrix score-task chunk coverage is invalid.');
+  }
+  const base = { schemaVersion: 1 as const, experiment: 'strategy-search-matrix-score-task-chunk' as const,
+    manifestHash: input.manifest.evidenceHash, taskIndex: input.task.taskIndex,
+    startSlot: input.task.startSlot, endSlot: input.task.endSlot,
+    chunks: input.chunks.map((chunk) => structuredClone(chunk)), contentHash: '' };
+  return { ...base, contentHash: sealField(base, 'contentHash') };
+}
+export function validateStrategySearchMatrixScoreTaskChunk(value: unknown, manifest: StrategySearchMatrixManifest,
+  task: StrategySearchMatrixScoreTask): value is StrategySearchMatrixScoreTaskChunk {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  try {
+    const held = value as StrategySearchMatrixScoreTaskChunk;
+    return exact(held, createStrategySearchMatrixScoreTaskChunk({ manifest, task, chunks: held.chunks }));
+  } catch { return false; }
+}
+export function reduceStrategySearchMatrixScoreTasks(input: { manifest: StrategySearchMatrixManifest;
+  tasks: readonly StrategySearchMatrixScoreTask[]; chunks: readonly StrategySearchMatrixScoreTaskChunk[]
+}): StrategySearchMatrixArtifact {
+  if (input.tasks.length !== input.chunks.length) throw new Error('Matrix score-task coverage is incomplete.');
+  const byTask = new Map<number, StrategySearchMatrixScoreTaskChunk>();
+  for (const chunk of input.chunks) {
+    const task = input.tasks[chunk.taskIndex];
+    if (!task || byTask.has(chunk.taskIndex) || !validateStrategySearchMatrixScoreTaskChunk(chunk, input.manifest, task)) {
+      throw new Error('Matrix score-task chunks are missing, duplicate, stale, or corrupt.');
+    }
+    byTask.set(chunk.taskIndex, chunk);
+  }
+  return reduceStrategySearchMatrix({ manifest: input.manifest,
+    chunks: input.tasks.flatMap((task) => byTask.get(task.taskIndex)!.chunks) });
 }
 export function strategySearchMatrixChunkPath(job: Pick<StrategySearchMatrixJob, 'rowIndex' | 'columnIndex'
   | 'startSeedOrdinal' | 'endSeedOrdinal'>): string {

@@ -5,6 +5,9 @@ import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
 const ENTRYPOINTS = Object.freeze({
   goldfish: 'scripts/strategy_search_goldfish.ts',
   'matrix-manifest': 'scripts/strategy_search_campaign_matrix_manifest.ts',
+  'matrix-score': 'scripts/strategy_search_campaign_matrix_score.ts',
+  'matrix-reduce': 'scripts/strategy_search_campaign_matrix_reduce.ts',
+  'parallel-psro': 'scripts/strategy_search_campaign_parallel_psro.ts',
   matrix: 'scripts/strategy_search_campaign_matrix.ts',
   psro: 'scripts/strategy_search_campaign_psro.ts',
   validator: 'scripts/strategy_search_validate_artifact.ts'

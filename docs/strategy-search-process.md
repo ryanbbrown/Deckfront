@@ -58,10 +58,12 @@ Each shuffle seed produces two games with opposite first players. The search fol
 ## Confirm possible responses
 
 1. Test every possible response again with fresh shuffle seeds.
-2. Increase confirmation evidence through 400, 800, 1,600, 3,200, and 6,400 seeds when needed. (when needed to get 95% CI above 51%?)
-3. Account for the number of possible responses being tested in the same search. (what is this? statistical thing to account for false positives given testing a lot of items?)
-4. Confirm only strategies whose adjusted evidence remains above the 51% threshold.
-5. Leave strategies unresolved when the maximum confirmation evidence is not enough to confirm them.
+2. Increase confirmation evidence through 400, 800, 1,600, 3,200, and 6,400 seeds while the result is unresolved.
+3. Fix the confirmation family to every possible response from the completed screen.
+4. Give each family member an error rate of `0.05 / family size`. Queue retests use the same fixed-family rule and fresh seeds.
+5. Confirm only when the anytime confidence lower bound is strictly greater than 51%.
+6. Reject when the confidence upper bound is at or below 51%.
+7. Leave a strategy unresolved when the 6,400-seed result meets neither boundary.
 
 Fresh confirmation prevents screening results from also serving as final proof.
 
@@ -88,7 +90,7 @@ A search is clean when it finds no confirmed response.
 
 Two clean searches are evidence that the saved 20,000-strategy reservoir contains no response that this process can confirm against the final equilibrium. They do not prove that no response exists outside the reservoir or that the game has only one equilibrium.
 
-An interrupted or inconclusive search is incomplete. A time limit, failed task, or manual stop must not count as a clean search.
+An interrupted or inconclusive search is incomplete. An unresolved screen, confirmation, or queue retest makes the kingdom `terminal-incomplete`. A time limit, failed task, manual stop, or `terminal-incomplete` result must not count as a clean search.
 
 # Save and validate the evidence
 

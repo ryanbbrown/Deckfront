@@ -283,6 +283,16 @@ export function orderConfirmedQueue(rows: readonly ConfirmationDecision[]): Queu
       .map((entry) => entry.strategyId) };
 }
 
+export function createRawPsroScoreChunk(input: { protocol: ThresholdRacingProtocol;
+  raceKind: RawPsroScoreChunk['raceKind']; lookId: string; lookDepth: number; familySize: number;
+  alpha: number; candidates: readonly CandidateRef[]; candidateStart: number; fullSchedule: MixtureSchedule;
+  suffixSchedule: MixtureSchedule; scheduleStart: number; rows: readonly CandidateEvaluation[] }): RawPsroScoreChunk {
+  return createRawChunk({ store: { protocol: input.protocol, raceKind: input.raceKind,
+    sealChunk() {}, sealLook() {} }, lookId: input.lookId, lookDepth: input.lookDepth,
+    familySize: input.familySize, alpha: input.alpha, candidates: input.candidates,
+    candidateStart: input.candidateStart, fullSchedule: input.fullSchedule,
+    suffixSchedule: input.suffixSchedule, scheduleStart: input.scheduleStart, rows: input.rows });
+}
 function createRawChunk(input: { store: RawPsroArtifactStore; lookId: string; lookDepth: number;
   familySize: number; alpha: number; candidates: readonly CandidateRef[]; candidateStart: number;
   fullSchedule: MixtureSchedule; suffixSchedule: MixtureSchedule; scheduleStart: number;
@@ -482,20 +492,31 @@ async function evaluateField(input: { candidates: readonly CandidateRef[]; oppon
   }
   return { rows, games, elapsedMs, telemetry, rawChunks };
 }
-async function sealLook(raw: RawPsroArtifactStore | undefined, input: { lookId: string; lookDepth: number;
-  familySize: number; alpha: number; candidates: readonly CandidateRef[]; scheduleStart: number;
-  scheduleEnd: number; chunks: readonly RawPsroScoreChunk[] }): Promise<RawPsroLookArtifact | undefined> {
-  if (!raw) return undefined;
+export function createRawPsroLookArtifact(input: { protocol: ThresholdRacingProtocol;
+  raceKind: RawPsroScoreChunk['raceKind']; lookId: string; lookDepth: number; familySize: number;
+  alpha: number; candidates: readonly CandidateRef[]; scheduleStart: number; scheduleEnd: number;
+  chunks: readonly RawPsroScoreChunk[] }): RawPsroLookArtifact {
   const base = { schemaVersion: 1 as const, experiment: 'threshold-racing-raw-score-look' as const,
-    protocolHash: thresholdRacingProtocolHash(raw.protocol), sourceHash: raw.protocol.sourceIdentityHash,
-    raceKind: raw.raceKind, lookId: input.lookId, lookDepth: input.lookDepth, familySize: input.familySize,
-    alpha: input.alpha, threshold: RESPONSE_THRESHOLD,
+    protocolHash: thresholdRacingProtocolHash(input.protocol), sourceHash: input.protocol.sourceIdentityHash,
+    raceKind: input.raceKind, lookId: input.lookId, lookDepth: input.lookDepth,
+    familySize: input.familySize, alpha: input.alpha, threshold: RESPONSE_THRESHOLD,
     candidateIds: input.candidates.map((entry) => entry.identity.strategyId),
     candidateCanonicals: input.candidates.map((entry) => entry.identity.canonicalStrategy),
     scheduleStart: input.scheduleStart, scheduleEnd: input.scheduleEnd,
     chunks: input.chunks.map((chunk) => ({ candidateStart: chunk.candidateStart,
       candidateEnd: chunk.candidateEnd, artifactHash: chunk.artifactHash })), artifactHash: '' };
   const look = { ...base, artifactHash: hash(base) };
+  if (!validateRawPsroLookArtifact(look, input.protocol)) throw new Error('PSRO raw look input is invalid.');
+  return look;
+}
+async function sealLook(raw: RawPsroArtifactStore | undefined, input: { lookId: string; lookDepth: number;
+  familySize: number; alpha: number; candidates: readonly CandidateRef[]; scheduleStart: number;
+  scheduleEnd: number; chunks: readonly RawPsroScoreChunk[] }): Promise<RawPsroLookArtifact | undefined> {
+  if (!raw) return undefined;
+  const look = createRawPsroLookArtifact({ protocol: raw.protocol, raceKind: raw.raceKind,
+    lookId: input.lookId, lookDepth: input.lookDepth, familySize: input.familySize, alpha: input.alpha,
+    candidates: input.candidates, scheduleStart: input.scheduleStart, scheduleEnd: input.scheduleEnd,
+    chunks: input.chunks });
   const eventBase = { type: 'strategy-search-checkpoint' as const, stage: 'psro' as const,
     protocolHash: look.protocolHash, sourceHash: look.sourceHash, lookId: look.lookId,
     lookHash: look.artifactHash, chunkHashes: look.chunks.map((chunk) => chunk.artifactHash) };

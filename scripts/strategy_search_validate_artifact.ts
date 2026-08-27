@@ -90,12 +90,12 @@ if (stage === 'goldfish-one-reduce') {
     { expectedSourceHash: top.artifactHash, stageRanks });
   if (value.header.evidenceId !== evidenceId || value.header.kingdomId !== kingdomId
     || value.records.length !== 20_000) throw new Error('Goldfish reservoir artifact is invalid.');
-} else if (stage === 'matrix') {
+} else if (stage === 'matrix' || stage === 'matrix-reduce') {
   const matrix = readJson(file) as StrategySearchMatrixArtifact;
   if (!validateStrategySearchMatrixManifest(matrix.manifest)
     || matrix.manifest.source.evidenceId !== evidenceId || matrix.manifest.source.kingdomId !== kingdomId
     || !validateStrategySearchMatrixArtifact(matrix, matrix.manifest)) throw new Error('Matrix artifact is invalid.');
-} else if (stage === 'psro') {
+} else if (stage === 'psro' || stage === 'psro-reduce') {
   const value = readJson(file), matrix = readJson(path.join(evidenceRoot, 'matrix/evidence.json')) as StrategySearchMatrixArtifact;
   const topFile = path.join(evidenceRoot, 'goldfish/top-500000.hgf');
   const reservoir = readGoldfishReservoirV4(path.join(evidenceRoot, 'goldfish/reservoir.hgf'), strategyAt, { topFile });

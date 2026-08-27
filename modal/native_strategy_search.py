@@ -1299,12 +1299,17 @@ def _strategy_search_validate_publication(publication: dict[str, Any], temporary
     if stage in {"goldfish-one", "goldfish-two"}:
         _strategy_search_validate_compact(publication, temporary)
         return
-    _run_checked(_strategy_search_subprocess_command("validator", publication["kingdomId"], [
-        "--stage", stage, "--file", str(temporary), "--evidence-id", publication["evidenceId"],
-        "--kingdom", publication["kingdomId"], "--evidence-root",
-        str(_strategy_search_path(f"evidence/{publication['evidenceId']}"))]),
-        f"strategy-search {stage} artifact validation", cwd="/workspace",
-        text=True, capture_output=True, timeout=600)
+    if stage in {"goldfish-one-reduce", "goldfish-two-reduce", "matrix-reduce", "psro-reduce"}:
+        _run_checked(_strategy_search_subprocess_command("validator", publication["kingdomId"], [
+            "--stage", stage, "--file", str(temporary), "--evidence-id", publication["evidenceId"],
+            "--kingdom", publication["kingdomId"], "--evidence-root",
+            str(_strategy_search_path(f"evidence/{publication['evidenceId']}"))]),
+            f"strategy-search {stage} artifact validation", cwd="/workspace",
+            text=True, capture_output=True, timeout=600)
+        return
+    value = json.loads(temporary.read_text())
+    if not isinstance(value, dict) or not value.get("schemaVersion"):
+        raise RuntimeError(f"strategy-search {stage} runtime artifact is malformed")
 
 
 def _strategy_search_source_digest(files: list[dict[str, Any]]) -> str:
@@ -1478,19 +1483,35 @@ def strategy_search_publisher(request: dict[str, Any]) -> dict[str, Any]:
     if operation == "evidence-complete":
         evidence_id = request["evidenceId"]
         state = _strategy_search_load(_strategy_search_evidence_state(evidence_id))
-        task_ids = request.get("taskIds", {})
-        if state is None or set(task_ids) != {"goldfish-one-reduce", "goldfish-two-reduce", "matrix", "psro"}:
+        completion = state.get("completion") if state else None
+        if not completion:
             return {"complete": False}
-        receipts = {}
-        for stage, task_id in task_ids.items():
-            receipt = state.get("receipts", {}).get(task_id)
-            if not receipt:
-                return {"complete": False}
+        receipts = completion.get("receipts", {})
+        if set(receipts) != {"goldfish-one-reduce", "goldfish-two-reduce", "matrix-reduce", "psro-reduce"}:
+            return {"complete": False}
+        for stage, receipt in receipts.items():
             artifact = _strategy_search_path(receipt["artifactPath"])
             if not artifact.exists() or _strategy_search_sha256(artifact) != receipt["sha256"]:
                 raise RuntimeError(f"complete evidence receipt differs for {stage}")
-            receipts[stage] = receipt
         return {"complete": True, "receipts": receipts}
+    if operation == "evidence-finalize":
+        evidence_id = request["evidenceId"]
+        state_file = _strategy_search_evidence_state(evidence_id)
+        state = _strategy_search_load(state_file)
+        receipts = {}
+        for stage, task_id in request["taskIds"].items():
+            receipt = state.get("receipts", {}).get(task_id) if state else None
+            if not receipt:
+                raise RuntimeError(f"cannot finalize evidence without {stage} receipt")
+            artifact = _strategy_search_path(receipt["artifactPath"])
+            if not artifact.exists() or _strategy_search_sha256(artifact) != receipt["sha256"]:
+                raise RuntimeError(f"cannot finalize evidence with invalid {stage} artifact")
+            receipts[stage] = receipt
+        state["completion"] = {"completedMs": request.get("nowMs", int(time.time() * 1000)),
+            "receipts": receipts}
+        _atomic_json(state_file, state)
+        volume.commit()
+        return state["completion"]
     if operation == "execution-fail":
         state_file = _strategy_search_execution_file(request["campaignExecutionId"])
         state = _strategy_search_load(state_file)
@@ -1785,43 +1806,79 @@ def strategy_search_downstream_job(config: dict[str, Any]) -> dict[str, Any]:
     stage_started = time.monotonic()
     output = _strategy_search_path(config["temporaryPath"])
     output.parent.mkdir(parents=True, exist_ok=True)
-    work = _strategy_search_path(config["workRoot"])
+    work = output.parent / "input"
     work.mkdir(parents=True, exist_ok=True)
-    if config["stage"] == "matrix":
-        manifest = work / "manifest.json"
-        reservoir = _strategy_search_path(config["reservoirPath"])
-        prepare = _strategy_search_subprocess_command("matrix-manifest", config["kingdomId"], [
+    stage = config["stage"]
+    if stage == "matrix-manifest":
+        command = _strategy_search_subprocess_command("matrix-manifest", config["kingdomId"], [
             "--evidence-id", config["evidenceId"], "--kingdom", config["kingdomId"],
-            "--reservoir", str(reservoir), "--reservoir-sha256", config["reservoirSha256"],
-            "--seed-namespace", "strategy-search-matrix-v2", "--out", str(manifest)])
-        _strategy_search_run_subprocess(prepare, config)
-        evidence = work / "output"
-        control = work / "control"
-        command = _strategy_search_subprocess_command("matrix", config["kingdomId"], [
-            "--manifest", str(manifest), "--out", str(evidence), "--control", str(control),
-            "--workers", str(config["cpu"]), "--jobs-per-batch", str(max(1, config["cpu"])),
-            "--runtime-chunk-size", "25", "--shutdown-at-ms",
-            str(int((time.time() + config["timeoutSeconds"] - 20) * 1000))])
-        result = _strategy_search_run_subprocess(command, config)
-        shutil.copyfile(evidence / "evidence.json", output)
+            "--reservoir", str(_strategy_search_path(config["reservoirPath"])),
+            "--reservoir-sha256", config["reservoirSha256"],
+            "--seed-namespace", "strategy-search-matrix-v2", "--out", str(output)])
+    elif stage == "matrix-score":
+        command = _strategy_search_subprocess_command("matrix-score", config["kingdomId"], [
+            "--manifest", str(_strategy_search_path(config["manifestPath"])),
+            "--task-index", str(config["taskIndex"]), "--workers", str(config["cpu"]), "--out", str(output)])
+    elif stage == "matrix-reduce":
+        chunks = work / "chunks.json"
+        _atomic_json(chunks, [str(_strategy_search_path(held)) for held in config["chunkPaths"]])
+        command = _strategy_search_subprocess_command("matrix-reduce", config["kingdomId"], [
+            "--manifest", str(_strategy_search_path(config["manifestPath"])),
+            "--chunks", str(chunks), "--out", str(output)])
     else:
-        stage_config = work / "psro-config.json"
-        _atomic_json(stage_config, config["psroConfig"])
-        command = _strategy_search_subprocess_command("psro", config["kingdomId"], [
-            "--config", str(stage_config),
-            "--shutdown-at-ms", str(int((time.time() + config["timeoutSeconds"] - 20) * 1000))])
-        result = _strategy_search_run_subprocess(command, config)
-        shutil.copyfile(pathlib.Path(config["psroConfig"]["outputRoot"]) / "evidence.json", output)
+        entry = "parallel-psro"
+        arguments = ["--mode", config["operation"], "--out", str(output)]
+        transition = None
+        if config.get("transitionPath"):
+            transition = _strategy_search_load(_strategy_search_path(config["transitionPath"]))
+            checkpoint = work / "checkpoint.json"
+            _atomic_json(checkpoint, transition["checkpoint"])
+            arguments += ["--checkpoint", str(checkpoint)]
+        if stage == "psro-decision" and config["operation"] == "init":
+            arguments += ["--evidence-id", config["evidenceId"], "--kingdom", config["kingdomId"],
+                "--reservoir", str(_strategy_search_path(config["reservoirPath"])),
+                "--matrix", str(_strategy_search_path(config["matrixPath"]))]
+        elif config["operation"] in {"score", "reduce-score"}:
+            look = work / "look.json"
+            _atomic_json(look, transition["look"])
+            arguments += ["--look", str(look)]
+            if config["operation"] == "score":
+                task = work / "task.json"
+                _atomic_json(task, config["scoreTask"])
+                arguments += ["--task", str(task), "--workers", str(config["cpu"])]
+            else:
+                chunks = work / "chunks.json"
+                _atomic_json(chunks, [str(_strategy_search_path(held)) for held in config["chunkPaths"]])
+                arguments += ["--chunks", str(chunks)]
+        elif config["operation"] in {"admission-score", "admission-reduce"}:
+            row = work / "row.json"
+            _atomic_json(row, transition["row"])
+            arguments += ["--row", str(row)]
+            if config["operation"] == "admission-score":
+                arguments += ["--task-index", str(config["taskIndex"]), "--workers", str(config["cpu"])]
+            else:
+                chunks = work / "chunks.json"
+                _atomic_json(chunks, [str(_strategy_search_path(held)) for held in config["chunkPaths"]])
+                arguments += ["--chunks", str(chunks)]
+        elif config["operation"] == "finalize":
+            transition_file = work / "transition.json"
+            _atomic_json(transition_file, transition)
+            arguments = ["--mode", "finalize", "--out", str(output), "--transition", str(transition_file),
+                "--matrix", str(_strategy_search_path(config["matrixPath"]))]
+        command = _strategy_search_subprocess_command(entry, config["kingdomId"], arguments)
+    result = _strategy_search_run_subprocess(command, config)
     validated_sha256 = _strategy_search_sha256(output)
     _strategy_search_validate_publication(config, output)
     commit_started = time.monotonic()
     volume.commit()
+    commit_ms = (time.monotonic() - commit_started) * 1000
     result["modalWorkerElapsedMs"] = (time.monotonic() - stage_started) * 1000
     result["elapsedMs"] = result["modalWorkerElapsedMs"] \
         + max(0, worker_started_ms - config["enqueuedEpochMs"])
     result["workerFinishedEpochMs"] = int(time.time() * 1000)
     return {**result, "sha256": validated_sha256, "validatedSha256": validated_sha256,
-        "workerStartedEpochMs": worker_started_ms, "temporaryPath": config["temporaryPath"]}
+        "workerStartedEpochMs": worker_started_ms, "workerFinishedEpochMs": result["workerFinishedEpochMs"],
+        "temporaryVolumeWriteCommitMs": commit_ms, "temporaryPath": config["temporaryPath"]}
 
 
 def _strategy_search_attempt_cost(attempt: dict[str, Any], until_ms: int) -> dict[str, Any]:
@@ -1897,8 +1954,10 @@ def _strategy_search_ready_jobs(state: dict[str, Any]) -> list[dict[str, Any]]:
     complete = {job["taskId"] for job in state["jobs"] if job["status"] == "complete"}
     ready = []
     now = int(time.time() * 1000)
-    priority = {"psro": 0, "matrix": 1, "goldfish-one-reduce": 2,
-        "goldfish-two-reduce": 2, "goldfish-two": 3, "goldfish-one": 4}
+    priority = {"psro-decision": 0, "matrix-reduce": 0, "admission-row-reduce": 0,
+        "psro-reduce": 0, "matrix-manifest": 1, "matrix-score": 1, "psro-score": 1,
+        "admission-row-score": 1, "goldfish-one-reduce": 2, "goldfish-two-reduce": 2,
+        "goldfish-two": 3, "goldfish-one": 4}
     for job in state["jobs"]:
         if job["status"] == "retry-backoff" and job.get("retryNotBeforeMs", 0) <= now:
             job["status"] = "ready"
@@ -1932,7 +1991,8 @@ def _strategy_search_task_config(bundle: dict[str, Any], state: dict[str, Any], 
     config = {"taskId": job["taskId"], "evidenceId": job["evidenceId"], "kingdomId": job["kingdomId"],
         "ownerId": owner_id, "taskFence": prepared["fence"], "leaseMs": 600000, **controller_fields,
         "launchId": launch_id, "temporaryPath": temporary, "sourceImage": bundle["sourceImage"],
-        "cpu": task["cpu"], "timeoutSeconds": task["timeoutSeconds"], "stage": job["stage"]}
+        "cpu": task["cpu"], "memoryMiB": task["memoryMiB"],
+        "timeoutSeconds": task["timeoutSeconds"], "stage": job["stage"]}
     if job["stage"] == "goldfish-one":
         config.update({"mode": "score-one", "range": job["range"]})
     elif job["stage"] == "goldfish-two":
@@ -1945,45 +2005,205 @@ def _strategy_search_task_config(bundle: dict[str, Any], state: dict[str, Any], 
             "manifest": [held["receipt"]["artifactPath"] for held in dependencies]})
         if job["stage"] == "goldfish-two-reduce":
             config["topPath"] = f"evidence/{job['evidenceId']}/goldfish/top-500000.hgf"
-    elif job["stage"] == "matrix":
+    elif job["stage"] == "matrix-manifest":
         reservoir_job = next(held for held in state["jobs"]
             if held["evidenceId"] == job["evidenceId"] and held["stage"] == "goldfish-two-reduce")
         config.update({"reservoirPath": f"evidence/{job['evidenceId']}/goldfish/reservoir.hgf",
-            "reservoirSha256": reservoir_job["receipt"]["sha256"], "checkpointCommits": 25,
-            "workRoot": f"executions/{bundle['campaignExecutionId']}/runtime/{job['evidenceId']}/matrix"})
+            "reservoirSha256": reservoir_job["receipt"]["sha256"]})
+    elif job["stage"] == "matrix-score":
+        manifest_job = next(held for held in state["jobs"]
+            if held["evidenceId"] == job["evidenceId"] and held["stage"] == "matrix-manifest")
+        config.update({"manifestPath": manifest_job["receipt"]["artifactPath"],
+            "taskIndex": task.get("metadata", {}).get("taskIndex", job["range"]["start"])})
+    elif job["stage"] == "matrix-reduce":
+        dependencies = [next(held for held in state["jobs"] if held["taskId"] == dependency)
+                        for dependency in job["dependencyTaskIds"]]
+        manifest_job = next(held for held in state["jobs"]
+            if held["evidenceId"] == job["evidenceId"] and held["stage"] == "matrix-manifest")
+        config.update({"manifestPath": manifest_job["receipt"]["artifactPath"],
+            "chunkPaths": [held["receipt"]["artifactPath"] for held in dependencies]})
     else:
-        relative_root = f"executions/{bundle['campaignExecutionId']}/runtime/{job['evidenceId']}/psro"
-        root = f"/results/{relative_root}"
-        config["checkpointCommits"] = 20
-        config["workRoot"] = relative_root
-        matrix_job = next(held for held in state["jobs"]
-            if held["evidenceId"] == job["evidenceId"] and held["stage"] == "matrix")
-        reservoir_job = next(held for held in state["jobs"]
-            if held["evidenceId"] == job["evidenceId"] and held["stage"] == "goldfish-two-reduce")
-        config["psroConfig"] = {"evidenceId": job["evidenceId"], "kingdomId": job["kingdomId"],
-            "runId": "main", "reservoirPath": f"/results/evidence/{job['evidenceId']}/goldfish/reservoir.hgf",
-            "reservoirSha256": reservoir_job["receipt"]["sha256"],
-            "matrixEvidencePath": f"/results/evidence/{job['evidenceId']}/matrix/evidence.json",
-            "matrixSha256": matrix_job["receipt"]["sha256"],
-            "outputRoot": f"{root}/output", "controlRoot": f"{root}/control", "workers": task["cpu"],
-            "protocolInput": {"experimentName": f"strategy-search-{job['evidenceId']}",
-                "protocolVersion": "threshold-racing-psro-v2", "checkpointNamespace": job["evidenceId"],
-                "screenDepths": [8, 16, 32, 64, 128, 256, 512],
-                "confirmationLooks": [400, 800, 1600, 3200, 6400],
-                "matrixSeedNamespace": "strategy-search-matrix-v2",
-                "screenSeedNamespace": "strategy-search-psro-screen-v2",
-                "confirmationSeedNamespace": "strategy-search-psro-confirmation-v2",
-                "queueRetestSeedNamespace": "strategy-search-psro-queue-retest-v2"}}
+        metadata = task.get("metadata", {})
+        config.update(metadata)
+        if job["stage"] == "psro-decision" and metadata.get("operation") == "init":
+            config.update({"reservoirPath": f"evidence/{job['evidenceId']}/goldfish/reservoir.hgf",
+                "matrixPath": f"evidence/{job['evidenceId']}/matrix/evidence.json"})
+        if metadata.get("operation") in {"reduce-score", "admission-reduce"}:
+            dependencies = [next(held for held in state["jobs"] if held["taskId"] == dependency)
+                            for dependency in job["dependencyTaskIds"]]
+            config["chunkPaths"] = [held["receipt"]["artifactPath"] for held in dependencies]
+        if metadata.get("operation") == "finalize":
+            config["matrixPath"] = f"evidence/{job['evidenceId']}/matrix/evidence.json"
     job.update({"status": "launching", "launchId": launch_id, "taskFence": prepared["fence"],
         "temporaryPath": temporary, "cpu": task["cpu"], "leaseUntilMs": prepared["leaseUntilMs"]})
     return config
+
+
+def _strategy_search_goldfish_task_id(evidence_id: str, stage: str,
+                                      range_value: dict[str, int] | None) -> str:
+    value = {"evidenceId": evidence_id, "stage": stage, "range": range_value}
+    return hashlib.sha256(json.dumps(value, separators=(",", ":")).encode()).hexdigest()
+
+
+def _strategy_search_materialize_goldfish(state: dict[str, Any], bundle: dict[str, Any]) -> bool:
+    window = max(1, state["maxActiveCpus"] // 4) * bundle["controller"].get("readyWindowWaves", 2)
+    unlaunched = sum(job["stage"] in {"goldfish-one", "goldfish-two"}
+        and job["status"] in {"blocked", "ready"} for job in state["jobs"])
+    changed = False
+    kingdom_by_evidence = {}
+    for job in state["jobs"]:
+        kingdom_by_evidence[job["evidenceId"]] = job["kingdomId"]
+    partition_entries = []
+    reused = set(state.get("reusedEvidenceIds", []))
+    for key, partition in sorted(state["partitions"].items()):
+        evidence_id, stage = key.split(":", 1)
+        if evidence_id in reused:
+            continue
+        if stage == "goldfish-two":
+            reduce_one_id = _strategy_search_goldfish_task_id(evidence_id, "goldfish-one-reduce", None)
+            if not any(job["taskId"] == reduce_one_id and job["status"] == "complete" for job in state["jobs"]):
+                continue
+        existing = {(job["range"]["start"], job["range"]["end"]) for job in state["jobs"]
+            if job["evidenceId"] == evidence_id and job["stage"] == stage and job.get("range")}
+        missing = [held for held in partition["jobs"] if (held["start"], held["end"]) not in existing]
+        partition_entries.append([evidence_id, stage, missing, 0])
+    while unlaunched < window and any(entry[3] < len(entry[2]) for entry in partition_entries):
+        for entry in partition_entries:
+            if unlaunched >= window or entry[3] >= len(entry[2]):
+                continue
+            evidence_id, stage, ranges, cursor = entry
+            held = ranges[cursor]
+            entry[3] += 1
+            kingdom_id = kingdom_by_evidence[evidence_id]
+            task_id = _strategy_search_goldfish_task_id(evidence_id, stage, held)
+            dependency = [] if stage == "goldfish-one" else [
+                _strategy_search_goldfish_task_id(evidence_id, "goldfish-one-reduce", None)]
+            state["jobs"].append({"taskId": task_id, "evidenceId": evidence_id,
+                "kingdomId": kingdom_id, "stage": stage, "range": held, "cpus": 4,
+                "status": "blocked" if dependency else "ready", "dependencyTaskIds": dependency,
+                "launchIntentId": None, "callId": None, "leaseUntilMs": None, "attemptCount": 0})
+            state["tasks"].append({"taskId": task_id, "kingdomId": kingdom_id,
+                "evidenceId": evidence_id, "stage": stage, "range": held, "cpu": 4,
+                "memoryMiB": 4096, "timeoutSeconds": 180, "dependencyTaskIds": dependency,
+                "artifactPath": f"evidence/{evidence_id}/tasks/{stage}/{held['start']}-{held['end']}.hgs"})
+            unlaunched += 1
+            changed = True
+    for key, partition in sorted(state["partitions"].items()):
+        evidence_id, stage = key.split(":", 1)
+        if evidence_id in reused:
+            continue
+        score_ids = [_strategy_search_goldfish_task_id(evidence_id, stage, held) for held in partition["jobs"]]
+        if not all(any(job["taskId"] == task_id for job in state["jobs"]) for task_id in score_ids):
+            continue
+        reduce_stage = "goldfish-one-reduce" if stage == "goldfish-one" else "goldfish-two-reduce"
+        reduce_id = _strategy_search_goldfish_task_id(evidence_id, reduce_stage, None)
+        if any(job["taskId"] == reduce_id for job in state["jobs"]):
+            continue
+        kingdom_id = kingdom_by_evidence[evidence_id]
+        state["jobs"].append({"taskId": reduce_id, "evidenceId": evidence_id,
+            "kingdomId": kingdom_id, "stage": reduce_stage, "range": None, "cpus": 4,
+            "status": "blocked", "dependencyTaskIds": score_ids, "launchIntentId": None,
+            "callId": None, "leaseUntilMs": None, "attemptCount": 0})
+        state["tasks"].append({"taskId": reduce_id, "kingdomId": kingdom_id,
+            "evidenceId": evidence_id, "stage": reduce_stage, "range": None, "cpu": 4,
+            "memoryMiB": 8192, "timeoutSeconds": 300 if stage == "goldfish-one" else 180,
+            "dependencyTaskIds": score_ids, "artifactPath": f"evidence/{evidence_id}/goldfish/"
+                + ("top-500000.hgf" if stage == "goldfish-one" else "reservoir.hgf")})
+        changed = True
+    return changed
+
+
+def _strategy_search_dynamic_id(evidence_id: str, stage: str, semantic: Any) -> str:
+    return hashlib.sha256(json.dumps({"evidenceId": evidence_id, "stage": stage, "semantic": semantic},
+        sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def _strategy_search_append_dynamic(state: dict[str, Any], *, evidence_id: str, kingdom_id: str,
+                                    stage: str, cpus: int, memory_mib: int, timeout_seconds: int,
+                                    dependencies: list[str], artifact_path: str,
+                                    semantic: Any, metadata: dict[str, Any],
+                                    range_value: dict[str, int] | None = None) -> str:
+    task_id = _strategy_search_dynamic_id(evidence_id, stage, semantic)
+    existing = next((held for held in state["jobs"] if held["taskId"] == task_id), None)
+    if existing:
+        return task_id
+    status = "blocked" if dependencies else "ready"
+    state["jobs"].append({"taskId": task_id, "evidenceId": evidence_id, "kingdomId": kingdom_id,
+        "stage": stage, "range": range_value, "cpus": cpus, "status": status,
+        "dependencyTaskIds": dependencies, "launchIntentId": None, "callId": None,
+        "leaseUntilMs": None, "attemptCount": 0})
+    state["tasks"].append({"taskId": task_id, "kingdomId": kingdom_id, "evidenceId": evidence_id,
+        "stage": stage, "range": range_value, "cpu": cpus, "memoryMiB": memory_mib,
+        "timeoutSeconds": timeout_seconds, "dependencyTaskIds": dependencies,
+        "artifactPath": artifact_path, "metadata": metadata})
+    return task_id
+
+
+def _strategy_search_expand_transition(state: dict[str, Any], job: dict[str, Any]) -> bool:
+    if job["stage"] != "psro-decision" or job.get("expanded") or job.get("status") != "complete":
+        return False
+    transition_path = job["receipt"]["artifactPath"]
+    transition = _strategy_search_load(_strategy_search_path(transition_path))
+    if not isinstance(transition, dict) or transition.get("kind") not in {
+            "score", "admission-row", "complete", "terminal-incomplete"}:
+        raise RuntimeError("PSRO decision returned an invalid transition")
+    evidence_id, kingdom_id = job["evidenceId"], job["kingdomId"]
+    root = f"evidence/{evidence_id}/psro/runtime"
+    if transition["kind"] == "terminal-incomplete":
+        raise RuntimeError(f"PSRO {evidence_id} ended terminal-incomplete: "
+            f"{transition.get('checkpoint', {}).get('stopReason', 'unknown reason')}")
+    if transition["kind"] == "score":
+        descriptor_hash = transition["look"]["descriptorHash"]
+        score_ids = []
+        for score_task in transition["tasks"]:
+            start, end = score_task["candidateStart"], score_task["candidateEnd"]
+            semantic = {"look": descriptor_hash, "candidateStart": start, "candidateEnd": end}
+            task_id = _strategy_search_append_dynamic(state, evidence_id=evidence_id, kingdom_id=kingdom_id,
+                stage="psro-score", cpus=4, memory_mib=8192,
+                timeout_seconds=max(60, math.ceil(score_task["expectedTaskMs"] * 2 / 1000 + 30)),
+                dependencies=[job["taskId"]], artifact_path=f"{root}/{descriptor_hash}/score-{start}-{end}.json",
+                semantic=semantic, metadata={"operation": "score", "transitionPath": transition_path,
+                    "scoreTask": score_task,
+                    "scoreBlocks": transition["look"]["scheduleEnd"] - transition["look"]["scheduleStart"]},
+                range_value={"start": start, "end": end})
+            score_ids.append(task_id)
+        _strategy_search_append_dynamic(state, evidence_id=evidence_id, kingdom_id=kingdom_id,
+            stage="psro-decision", cpus=1, memory_mib=4096, timeout_seconds=120,
+            dependencies=score_ids, artifact_path=f"{root}/{descriptor_hash}/transition.json",
+            semantic={"reduceLook": descriptor_hash}, metadata={"operation": "reduce-score",
+                "transitionPath": transition_path})
+    elif transition["kind"] == "admission-row":
+        row_hash = transition["row"]["descriptorHash"]
+        score_ids = []
+        for row_task in transition["row"]["tasks"]:
+            start, end = row_task["opponentStart"], row_task["opponentEnd"]
+            semantic = {"row": row_hash, "opponentStart": start, "opponentEnd": end}
+            task_id = _strategy_search_append_dynamic(state, evidence_id=evidence_id, kingdom_id=kingdom_id,
+                stage="admission-row-score", cpus=4, memory_mib=8192, timeout_seconds=120,
+                dependencies=[job["taskId"]], artifact_path=f"{root}/{row_hash}/row-{start}-{end}.json",
+                semantic=semantic, metadata={"operation": "admission-score", "transitionPath": transition_path,
+                    "taskIndex": row_task["taskIndex"]}, range_value={"start": start, "end": end})
+            score_ids.append(task_id)
+        _strategy_search_append_dynamic(state, evidence_id=evidence_id, kingdom_id=kingdom_id,
+            stage="psro-decision", cpus=1, memory_mib=4096, timeout_seconds=120,
+            dependencies=score_ids, artifact_path=f"{root}/{row_hash}/transition.json",
+            semantic={"reduceRow": row_hash}, metadata={"operation": "admission-reduce",
+                "transitionPath": transition_path})
+    else:
+        _strategy_search_append_dynamic(state, evidence_id=evidence_id, kingdom_id=kingdom_id,
+            stage="psro-reduce", cpus=1, memory_mib=8192, timeout_seconds=180,
+            dependencies=[job["taskId"]], artifact_path=f"evidence/{evidence_id}/psro/evidence.json",
+            semantic={"final": transition["checkpoint"]["evidenceHash"]}, metadata={"operation": "finalize",
+                "transitionPath": transition_path})
+    job["expanded"] = True
+    return True
 
 
 def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     verify_strategy_search_source(bundle["sourceImage"])
     initialized = strategy_search_publisher.remote({"operation": "execution-init",
         "campaignExecutionId": bundle["campaignExecutionId"],
-        "orderedEvidenceIds": [task["evidenceId"] for task in bundle["tasks"] if task["stage"] == "psro"],
+        "orderedEvidenceIds": list(dict.fromkeys(task["evidenceId"] for task in bundle["tasks"])),
         "partitions": bundle["partitions"], "jobs": bundle["jobs"], "tasks": bundle["tasks"],
         "maxActiveCpus": bundle["request"]["maxActiveCpus"],
         "sourceDigest": bundle["sourceImage"]["digest"]})
@@ -1996,11 +2216,8 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     state["status"] = "running"
     reused_evidence_ids = set(state.get("reusedEvidenceIds", []))
     for evidence_id in {job["evidenceId"] for job in state["jobs"]}:
-        final_tasks = {task["stage"]: task["taskId"] for task in state["tasks"]
-            if task["evidenceId"] == evidence_id
-            and task["stage"] in {"goldfish-one-reduce", "goldfish-two-reduce", "matrix", "psro"}}
         complete_evidence = strategy_search_publisher.remote({"operation": "evidence-complete",
-            "evidenceId": evidence_id, "taskIds": final_tasks})
+            "evidenceId": evidence_id})
         if complete_evidence.get("complete"):
             reused_evidence_ids.add(evidence_id)
             for job in state["jobs"]:
@@ -2055,6 +2272,11 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     last_saved_ms = int(time.time() * 1000)
     while True:
         now_ms = int(time.time() * 1000)
+        if _strategy_search_materialize_goldfish(state, bundle):
+            state = strategy_search_publisher.remote({"operation": "execution-save",
+                "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
+                "ownerId": owner_id, "nowMs": now_ms, "leaseMs": 120000, "state": state})
+            last_saved_ms = now_ms
         transition_before = [(job["taskId"], job["status"], job.get("callId"), job.get("attemptCount", 0),
             len(job.get("attempts", []))) for job in state["jobs"]]
         if now_ms > interval_started:
@@ -2131,6 +2353,26 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                     "finishedMs": int(time.time() * 1000)})
                 job.pop("activeConfig", None)
                 del active[task_id]
+            expansion_results = [_strategy_search_expand_transition(state,
+                next(held for held in state["jobs"] if held["taskId"] == task_id))
+                for task_id, _config, _result in finished]
+            expanded = any(expansion_results)
+            for task_id, _config, _result in finished:
+                completed_job = next(held for held in state["jobs"] if held["taskId"] == task_id)
+                if completed_job["stage"] != "psro-reduce":
+                    continue
+                evidence_id = completed_job["evidenceId"]
+                finals = {stage: next(held["taskId"] for held in state["jobs"]
+                    if held["evidenceId"] == evidence_id and held["stage"] == stage)
+                    for stage in ["goldfish-one-reduce", "goldfish-two-reduce", "matrix-reduce", "psro-reduce"]}
+                strategy_search_publisher.remote({"operation": "evidence-finalize", "evidenceId": evidence_id,
+                    "taskIds": finals, "nowMs": int(time.time() * 1000)})
+            if expanded:
+                state = strategy_search_publisher.remote({"operation": "execution-save",
+                    "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
+                    "ownerId": owner_id, "nowMs": int(time.time() * 1000), "leaseMs": 120000,
+                    "state": state})
+                last_saved_ms = int(time.time() * 1000)
         allocated = sum(config["cpu"] for _, config in active.values())
         ready_jobs = _strategy_search_ready_jobs(state)
         first_goldfish = next((job for job in ready_jobs if job["stage"] in {"goldfish-one", "goldfish-two"}), None)
@@ -2143,11 +2385,20 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 ready_jobs = [first_job, first_goldfish] \
                     + [job for job in ready_jobs if job is not first_job and job is not first_goldfish]
         selected, planned_allocated = [], allocated
+        reducer_memory = sum(config.get("memoryMiB", 0) for _task_id, (_call, config) in active.items()
+            if config["stage"].endswith("reduce"))
+        reducer_admission_blocked = False
         for job in ready_jobs:
             task = next(held for held in state["tasks"] if held["taskId"] == job["taskId"])
+            if job["stage"].endswith("reduce") and reducer_memory + task["memoryMiB"] \
+                    > bundle["controller"].get("maxReducerMemoryMiB", 8192):
+                reducer_admission_blocked = True
+                continue
             if planned_allocated + task["cpu"] <= min(state["maxActiveCpus"], admission_limit_cpus):
                 selected.append((job, task))
                 planned_allocated += task["cpu"]
+                if job["stage"].endswith("reduce"):
+                    reducer_memory += task["memoryMiB"]
         if selected:
             preparation_items = []
             for job, task in selected:
@@ -2173,8 +2424,9 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                         preparation["leaseUntilMs"], int(time.time() * 1000) + 5000)})
                     continue
                 config = _strategy_search_task_config(bundle, state, job, owner_id, preparation)
-                function = strategy_search_downstream_job if job["stage"] in {"matrix", "psro"} \
-                    else strategy_search_goldfish_job
+                function = strategy_search_goldfish_job if job["stage"] in {
+                    "goldfish-one", "goldfish-two", "goldfish-one-reduce", "goldfish-two-reduce"} \
+                    else strategy_search_downstream_job
                 config["enqueuedEpochMs"] = int(time.time() * 1000)
                 pending_launches.append((job, task, config, function))
             def spawn_task(item: tuple[dict[str, Any], dict[str, Any], dict[str, Any], Any]) -> tuple[Any, Any]:
@@ -2244,7 +2496,11 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
             interval_reason = "modal-workspace-rejection"
         elif any(job["status"] == "retry-backoff" for job in state["jobs"]):
             interval_reason = "failure-or-retry-backoff"
-        elif any(job["status"] == "ready" and job["stage"] in {"matrix", "psro"} for job in state["jobs"]):
+        elif reducer_admission_blocked:
+            interval_reason = "reducer-admission-limit"
+        elif any(job["status"] == "ready" and job["stage"] in {"matrix-manifest", "matrix-score",
+                "matrix-reduce", "psro-decision", "psro-score", "admission-row-score",
+                "admission-row-reduce", "psro-reduce"} for job in state["jobs"]):
             interval_reason = "reserved-ready-downstream"
         elif any(job["status"] == "ready" and job.get("cpu", 4) > state["maxActiveCpus"] - allocated
                  for job in state["jobs"]):
@@ -2297,7 +2553,9 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
         * (CPU_RATE_PER_CORE_HOUR + 8 * MEMORY_RATE_PER_GIB_HOUR)
     compute_cost = measured_attempt_cost + unmeasured_failure_cost + controller_cost + publisher_cost
     stage_wall = {}
-    for stage in ["goldfish-one", "goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce", "matrix", "psro"]:
+    for stage in ["goldfish-one", "goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce",
+            "matrix-manifest", "matrix-score", "matrix-reduce", "psro-decision", "psro-score",
+            "admission-row-score", "admission-row-reduce", "psro-reduce"]:
         held = [job for job in state["jobs"] if job["stage"] == stage and job.get("firstStartedMs")]
         stage_wall[stage] = max((job.get("finishedMs", job["firstStartedMs"]) for job in held), default=0) \
             - min((job["firstStartedMs"] for job in held), default=0) if held else 0
@@ -2340,11 +2598,14 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     bytes_written = sum(held.stat().st_size for held in artifacts)
     bytes_read = sum(_strategy_search_path(dependency["receipt"]["artifactPath"]).stat().st_size
         for job in state["jobs"] if not job.get("reused")
-        and job["stage"] in {"goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce", "matrix", "psro"}
+        and job["stage"] in {"goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce",
+            "matrix-manifest", "matrix-score", "matrix-reduce", "psro-decision", "psro-score",
+            "admission-row-score", "admission-row-reduce", "psro-reduce"}
         for dependency in [next(held for held in state["jobs"] if held["taskId"] == task_id)
                            for task_id in job["dependencyTaskIds"]] if dependency.get("receipt"))
     bytes_read += sum(_strategy_search_path(f"evidence/{job['evidenceId']}/goldfish/reservoir.hgf").stat().st_size
-        for job in state["jobs"] if not job.get("reused") and job["stage"] == "psro")
+        for job in state["jobs"] if not job.get("reused") and job["stage"] == "psro-decision"
+        and job.get("expanded") is not True)
     io_ms = sum(held.get("intermediateSerializationAndReadMs", 0)
         + held.get("temporaryVolumeWriteCommitMs", 0) + held.get("publicationCommitMs", 0)
         for held in phase_reports)
@@ -2365,9 +2626,58 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
             raise RuntimeError("Goldfish phase accounting invariant failed")
     if scientific_ms and io_ms / scientific_ms >= 0.05:
         raise RuntimeError("Goldfish intermediate I/O ratio is at least five percent")
-    report = {"schemaVersion": 2, "campaignExecutionId": bundle["campaignExecutionId"],
+    jobs_by_id = {job["taskId"]: job for job in state["jobs"]}
+    barrier_latencies = []
+    for job in state["jobs"]:
+        dependencies = [jobs_by_id[task_id] for task_id in job["dependencyTaskIds"]
+            if task_id in jobs_by_id and jobs_by_id[task_id].get("finishedMs")]
+        if job.get("firstStartedMs") and dependencies:
+            released_ms = max(dependency["finishedMs"] for dependency in dependencies)
+            barrier_latencies.append({"evidenceId": job["evidenceId"], "stage": job["stage"],
+                "releasedMs": released_ms, "startedMs": job["firstStartedMs"],
+                "latencyMs": max(0, job["firstStartedMs"] - released_ms)})
+    evidence_ids = list(dict.fromkeys(task["evidenceId"] for task in bundle["tasks"]))
+    per_kingdom_completion = {}
+    for evidence_id in evidence_ids:
+        held = [job for job in state["jobs"] if job["evidenceId"] == evidence_id]
+        starts = [job["firstStartedMs"] for job in held if job.get("firstStartedMs")]
+        final = next((job for job in held if job["stage"] == "psro-reduce"), None)
+        per_kingdom_completion[evidence_id] = {
+            "kingdomId": held[0]["kingdomId"] if held else None,
+            "wallMs": max(0, final.get("finishedMs", finished_ms) - min(starts)) if final and starts else 0,
+            "completedMs": final.get("finishedMs") if final else None}
+    score_attempts = []
+    for job in state["jobs"]:
+        if job["stage"] not in {"matrix-score", "psro-score"}:
+            continue
+        for attempt in job.get("attempts", []):
+            if isinstance(attempt.get("workerStartedMs"), int) and isinstance(attempt.get("workerFinishedMs"), int):
+                score_attempts.append({"stage": job["stage"], "kingdomId": job["kingdomId"],
+                    "startMs": attempt["workerStartedMs"], "endMs": attempt["workerFinishedMs"],
+                    "cpus": attempt["cpu"]})
+    cross_kingdom_score_overlap = any(left["stage"] == right["stage"]
+        and left["kingdomId"] != right["kingdomId"]
+        and left["startMs"] < right["endMs"] and right["startMs"] < left["endMs"]
+        for index, left in enumerate(score_attempts) for right in score_attempts[index + 1:])
+    psro_candidate_blocks = sum((job["range"]["end"] - job["range"]["start"])
+        * next(task for task in state["tasks"] if task["taskId"] == job["taskId"])
+            .get("metadata", {}).get("scoreBlocks", 0)
+        for job in state["jobs"] if job["stage"] == "psro-score")
+    stage_throughput = {
+        "goldfishCandidatesPerSecond": scored_candidates / (scoring_ms / 1000) if scoring_ms else 0,
+        "matrixGamesPerSecond": 318750 * len(evidence_ids) / (stage_wall.get("matrix-score", 0) / 1000)
+            if stage_wall.get("matrix-score", 0) else 0,
+        "psroCandidateBlocksPerSecond": psro_candidate_blocks / (stage_wall.get("psro-score", 0) / 1000)
+            if stage_wall.get("psro-score", 0) else 0}
+    retry_cost = sum(attempt.get("costUsd", 0) for attempt in attempts
+        if attempt.get("status") not in {"complete", "submitted"})
+    report = {"schemaVersion": 3, "campaignExecutionId": bundle["campaignExecutionId"],
         "status": "complete", "criticalPathWallMs": critical_elapsed_ms,
-        "stageWallMs": stage_wall, "maxActiveCpus": state["maxActiveCpus"],
+        "stageWallMs": stage_wall, "stageThroughput": stage_throughput,
+        "perKingdomCompletion": per_kingdom_completion, "stageBarrierLatency": barrier_latencies,
+        "crossKingdomScoreOverlap": cross_kingdom_score_overlap,
+        "maxActiveCpus": state["maxActiveCpus"], "workerCpuLimit": state["maxActiveCpus"],
+        "controllerCores": 1, "publisherCores": 1,
         "peakActiveCpus": max((entry["allocatedCpus"] for entry in running_intervals), default=0),
         "averageActiveCpus": allocated_cpu_ms / wall_ms if wall_ms else 0,
         "cpuUtilization": allocated_cpu_ms / (wall_ms * state["maxActiveCpus"]) if wall_ms else 0,
@@ -2379,7 +2689,9 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
         "intermediateIoRatio": io_ms / scientific_ms if scientific_ms else 0,
         "finalWriteMs": sum(held.get("finalTop500000WriteMs", 0) + held.get("finalTop20000WriteMs", 0)
                             for held in phase_reports),
-        "admissionFailures": admission_failures,
+        "admissionFailures": admission_failures, "retryCostUsd": retry_cost,
+        "matrixScoreWorkerCount": sum(job["stage"] == "matrix-score" for job in state["jobs"]),
+        "psroScoreWorkerCount": sum(job["stage"] == "psro-score" for job in state["jobs"]),
         "taskCount": len(state["jobs"]), "retries": sum(job.get("attemptCount", 0) for job in state["jobs"]),
         "actualModalCostUsd": compute_cost,
         "modalCostAccounting": {"measuredAttemptUsd": measured_attempt_cost,

@@ -11,7 +11,8 @@ export const GOLDFISH_STAGE_TWO_SEED_COUNT = 3;
 export const MATRIX_CPU_PROFILE = Object.freeze({ minimum: 4, measuredUsefulMaximum: 4 });
 export const PSRO_CPU_PROFILE = Object.freeze({ minimum: 4, measuredUsefulMaximum: 8 });
 export type StrategySearchStage = 'goldfish-one' | 'goldfish-one-reduce' | 'goldfish-two'
-  | 'goldfish-two-reduce' | 'matrix' | 'psro';
+  | 'goldfish-two-reduce' | 'matrix-manifest' | 'matrix-score' | 'matrix-reduce'
+  | 'psro-decision' | 'psro-score' | 'admission-row-score' | 'admission-row-reduce' | 'psro-reduce';
 export interface CandidateRange { start: number; end: number }
 export interface RuntimeJob {
   taskId: string; evidenceId: string; kingdomId: string; stage: StrategySearchStage;
@@ -114,8 +115,10 @@ export function repartitionUnlaunchedSuffix(partition: StagePartition, input: {
 }
 
 function stagePriority(stage: StrategySearchStage): number {
-  if (stage === 'psro') return 0;
-  if (stage === 'matrix') return 1;
+  if (stage === 'psro-decision' || stage === 'matrix-reduce' || stage === 'admission-row-reduce'
+    || stage === 'psro-reduce') return 0;
+  if (stage === 'psro-score' || stage === 'matrix-score' || stage === 'admission-row-score'
+    || stage === 'matrix-manifest') return 1;
   if (stage.endsWith('reduce')) return 2;
   return 3;
 }
@@ -141,16 +144,20 @@ function roundRobinReady(jobs: readonly RuntimeJob[]): RuntimeJob[] {
 export interface SchedulerPlan { launches: RuntimeJob[]; allocatedCpus: number; unusedCpus: number;
   unusedReason: UtilizationReason | null }
 export type UtilizationReason = 'modal-workspace-rejection' | 'modal-queue-delay' | 'failure-or-retry-backoff'
-  | 'reserved-ready-downstream' | 'minimum-useful-job-size' | 'insufficient-ready-work' | 'final-tail';
+  | 'reducer-admission-limit' | 'reserved-ready-downstream' | 'minimum-useful-job-size'
+  | 'insufficient-ready-work' | 'final-tail';
 export function planRuntimeTick(input: { jobs: readonly RuntimeJob[]; maxActiveCpus: number;
-  modalWorkspaceRejected?: boolean; finalTail?: boolean }): SchedulerPlan {
+  modalWorkspaceRejected?: boolean; finalTail?: boolean; maxReducerMemoryMiB?: number }): SchedulerPlan {
   positiveSafe(input.maxActiveCpus, 'maxActiveCpus');
   const active = input.jobs.filter((job) => job.status === 'launching' || job.status === 'active');
   let allocatedCpus = active.reduce((sum, job) => sum + job.cpus, 0);
   if (allocatedCpus > input.maxActiveCpus) throw new Error('Active jobs exceed maxActiveCpus.');
   const ready = roundRobinReady(input.jobs.filter((job) => job.status === 'ready'));
   const launches: RuntimeJob[] = [];
-  let reservedDownstream = false;
+  let reservedDownstream = false, reducerAdmissionBlocked = false;
+  let reducerMemoryMiB = active.filter((job) => job.stage.endsWith('reduce'))
+    .reduce((sum, job) => sum + (job.stage === 'goldfish-one-reduce' || job.stage === 'goldfish-two-reduce'
+      ? 8192 : 4096), 0);
   const firstGoldfish = ready.find((job) => job.stage === 'goldfish-one' || job.stage === 'goldfish-two');
   const first = ready[0];
   const launchOrder = firstGoldfish && first && firstGoldfish !== first
@@ -158,17 +165,24 @@ export function planRuntimeTick(input: { jobs: readonly RuntimeJob[]; maxActiveC
     ? [first, firstGoldfish, ...ready.filter((job) => job !== first && job !== firstGoldfish)] : ready;
   for (const job of launchOrder) {
     if (job.cpus > input.maxActiveCpus) throw new Error(`maxActiveCpus cannot fit ${job.stage}; requires ${job.cpus}.`);
+    const reducerMemory = job.stage.endsWith('reduce')
+      ? job.stage === 'goldfish-one-reduce' || job.stage === 'goldfish-two-reduce' ? 8192 : 4096 : 0;
+    if (reducerMemory && input.maxReducerMemoryMiB !== undefined
+      && reducerMemoryMiB + reducerMemory > input.maxReducerMemoryMiB) {
+      reducerAdmissionBlocked = true; continue;
+    }
     if (allocatedCpus + job.cpus > input.maxActiveCpus) {
-      if (job.stage === 'matrix' || job.stage === 'psro') reservedDownstream = true;
+      if (stagePriority(job.stage) <= 1) reservedDownstream = true;
       continue;
     }
-    launches.push(structuredClone(job)); allocatedCpus += job.cpus;
+    launches.push(structuredClone(job)); allocatedCpus += job.cpus; reducerMemoryMiB += reducerMemory;
   }
   const unusedCpus = input.maxActiveCpus - allocatedCpus;
   let unusedReason: UtilizationReason | null = null;
   if (unusedCpus) {
     if (input.modalWorkspaceRejected) unusedReason = 'modal-workspace-rejection';
     else if (input.jobs.some((job) => job.status === 'retry-backoff')) unusedReason = 'failure-or-retry-backoff';
+    else if (reducerAdmissionBlocked) unusedReason = 'reducer-admission-limit';
     else if (reservedDownstream) unusedReason = 'reserved-ready-downstream';
     else if (ready.some((job) => job.cpus > unusedCpus)) unusedReason = 'minimum-useful-job-size';
     else if (input.finalTail) unusedReason = 'final-tail';
@@ -183,7 +197,8 @@ export interface UtilizationSummary { wallMs: number; allocatedCpuSeconds: numbe
 export function summarizeUtilization(intervals: readonly UtilizationInterval[], maxActiveCpus: number): UtilizationSummary {
   positiveSafe(maxActiveCpus, 'maxActiveCpus');
   const byReason = Object.fromEntries((['modal-workspace-rejection', 'modal-queue-delay', 'failure-or-retry-backoff',
-    'reserved-ready-downstream', 'minimum-useful-job-size', 'insufficient-ready-work', 'final-tail'] as const)
+    'reducer-admission-limit', 'reserved-ready-downstream', 'minimum-useful-job-size',
+    'insufficient-ready-work', 'final-tail'] as const)
     .map((reason) => [reason, 0])) as Record<UtilizationReason, number>;
   let wallMs = 0, allocatedCpuMs = 0, unusedCpuMs = 0, peakActiveCpus = 0;
   for (const interval of intervals) {

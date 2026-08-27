@@ -43,10 +43,10 @@ describe('scalable strategy-search execution policy', () => {
   it('globally prioritizes ready downstream work and accounts for every CPU', () => {
     const jobs = [job({ taskId: 'g1', kingdomId: 'k1', evidenceId, stage: 'goldfish-one' }),
       job({ taskId: 'g2', kingdomId: 'k2', evidenceId, stage: 'goldfish-one' }),
-      job({ taskId: 'm', kingdomId: 'k3', evidenceId, stage: 'matrix' }),
-      job({ taskId: 'p', kingdomId: 'k4', evidenceId, stage: 'psro' })];
+      job({ taskId: 'm', kingdomId: 'k3', evidenceId, stage: 'matrix-score' }),
+      job({ taskId: 'p', kingdomId: 'k4', evidenceId, stage: 'psro-score' })];
     const plan = planRuntimeTick({ jobs, maxActiveCpus: 12 });
-    expect(plan.launches.map((entry) => entry.taskId)).toEqual(['p', 'g1', 'm']);
+    expect(plan.launches.map((entry) => entry.taskId)).toEqual(['m', 'g1', 'p']);
     expect(plan.allocatedCpus + plan.unusedCpus).toBe(12);
     const rejected = planRuntimeTick({ jobs: [jobs[0]!], maxActiveCpus: 10, modalWorkspaceRejected: true });
     expect(rejected).toMatchObject({ allocatedCpus: 4, unusedCpus: 6,
@@ -60,9 +60,9 @@ describe('scalable strategy-search execution policy', () => {
     expect(planRuntimeTick({ jobs, maxActiveCpus: 16 }).launches.map((entry) => entry.kingdomId))
       .toEqual(['a', 'b', 'a', 'b']);
     const downstream = Array.from({ length: 4 }, (_unused, index) => job({ taskId: `p${index}`,
-      kingdomId: `k${index}`, evidenceId, stage: 'psro' }));
+      kingdomId: `k${index}`, evidenceId, stage: 'psro-score' }));
     const plan = planRuntimeTick({ jobs: [...downstream, jobs[0]!], maxActiveCpus: 12 });
-    expect(plan.launches[0]!.stage).toBe('psro');
+    expect(plan.launches[0]!.stage).toBe('psro-score');
     expect(plan.launches.some((entry) => entry.stage === 'goldfish-one')).toBe(true);
   });
 

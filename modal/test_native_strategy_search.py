@@ -727,13 +727,65 @@ print(json.dumps(result))
             self.assertFalse(temporary.exists())
             self.assertEqual(destination.read_bytes(), b"scientific")
 
+    def test_strategy_search_expands_one_sealed_psro_look_into_bounded_score_and_reduce_jobs(self):
+        evidence = "b" * 64
+        transition = {"kind": "score", "checkpoint": {"evidenceHash": "c" * 64},
+            "look": {"descriptorHash": "d" * 64, "scheduleStart": 0, "scheduleEnd": 8},
+            "tasks": [{"taskIndex": 0, "candidateStart": 0, "candidateEnd": 100,
+                "expectedTaskMs": 15000}, {"taskIndex": 1, "candidateStart": 100,
+                "candidateEnd": 200, "expectedTaskMs": 15000}]}
+        job = {"taskId": "decision", "evidenceId": evidence, "kingdomId": "kingdom",
+            "stage": "psro-decision", "status": "complete",
+            "receipt": {"artifactPath": "transition.json"}}
+        state = {"jobs": [job], "tasks": []}
+        with patch.object(launcher, "_strategy_search_path", return_value=pathlib.Path("transition.json")), \
+                patch.object(launcher, "_strategy_search_load", return_value=transition):
+            self.assertTrue(launcher._strategy_search_expand_transition(state, job))
+            self.assertFalse(launcher._strategy_search_expand_transition(state, job))
+        scores = [held for held in state["jobs"] if held["stage"] == "psro-score"]
+        self.assertEqual(len(scores), 2)
+        reducer = next(held for held in state["jobs"]
+            if held["stage"] == "psro-decision" and held["taskId"] != "decision")
+        self.assertEqual(reducer["dependencyTaskIds"], [held["taskId"] for held in scores])
+        self.assertEqual(len(state["jobs"]), 4)
+
+    def test_strategy_search_materializes_only_two_global_goldfish_waves_and_then_reducer(self):
+        evidence = "b" * 64
+        ranges = [{"start": index * 10, "end": (index + 1) * 10} for index in range(10)]
+        state = {"maxActiveCpus": 8, "partitions": {
+            f"{evidence}:goldfish-one": {"jobs": ranges},
+            f"{evidence}:goldfish-two": {"jobs": [{"start": 0, "end": 10}]}
+        }, "jobs": [{"taskId": "matrix", "evidenceId": evidence, "kingdomId": "kingdom",
+            "stage": "matrix-manifest", "status": "blocked"}], "tasks": []}
+        bundle = {"controller": {"readyWindowWaves": 2}}
+        self.assertTrue(launcher._strategy_search_materialize_goldfish(state, bundle))
+        first = [job for job in state["jobs"] if job["stage"] == "goldfish-one"]
+        self.assertEqual(len(first), 4)
+        self.assertFalse(any(job["stage"] == "goldfish-one-reduce" for job in state["jobs"]))
+        for job in first:
+            job["status"] = "complete"
+        self.assertTrue(launcher._strategy_search_materialize_goldfish(state, bundle))
+        second = [job for job in state["jobs"] if job["stage"] == "goldfish-one"]
+        self.assertEqual(len(second), 8)
+        for job in second:
+            job["status"] = "complete"
+        self.assertTrue(launcher._strategy_search_materialize_goldfish(state, bundle))
+        final = [job for job in state["jobs"] if job["stage"] == "goldfish-one"]
+        self.assertEqual(len(final), 10)
+        reducer = next(job for job in state["jobs"] if job["stage"] == "goldfish-one-reduce")
+        self.assertEqual(len(reducer["dependencyTaskIds"]), 10)
+        self.assertFalse(any(job["stage"] == "goldfish-two" for job in state["jobs"]))
+        reducer["status"] = "complete"
+        self.assertTrue(launcher._strategy_search_materialize_goldfish(state, bundle))
+        self.assertEqual(len([job for job in state["jobs"] if job["stage"] == "goldfish-two"]), 1)
+
     def test_strategy_search_complete_evidence_is_reused_across_campaigns(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             evidence = "b" * 64
             state_file = root / "publication.json"
             task_ids = {stage: f"task-{stage}" for stage in
-                ["goldfish-one-reduce", "goldfish-two-reduce", "matrix", "psro"]}
+                ["goldfish-one-reduce", "goldfish-two-reduce", "matrix-reduce", "psro-reduce"]}
             receipts = {}
             paths = {}
             for stage, task_id in task_ids.items():
@@ -744,12 +796,14 @@ print(json.dumps(result))
                 receipts[task_id] = {"taskId": task_id, "evidenceId": evidence,
                     "artifactPath": relative, "sha256": hashlib.sha256(stage.encode()).hexdigest(), "fence": 1}
             state_file.write_text(json.dumps({"schemaVersion": 1, "evidenceId": evidence,
-                "leases": {}, "intents": {}, "receipts": receipts}))
+                "leases": {}, "intents": {}, "receipts": receipts,
+                "completion": {"completedMs": 1,
+                    "receipts": {stage: receipts[task_id] for stage, task_id in task_ids.items()}}}))
             with patch.object(launcher, "_strategy_search_evidence_state", return_value=state_file), \
                     patch.object(launcher, "_strategy_search_path", side_effect=lambda relative: paths[relative]), \
                     patch.object(launcher.volume, "reload"):
                 result = launcher.strategy_search_publisher.get_raw_f()({"operation": "evidence-complete",
-                    "evidenceId": evidence, "taskIds": task_ids})
+                    "evidenceId": evidence})
             self.assertTrue(result["complete"])
             self.assertEqual(set(result["receipts"]), set(task_ids))
 
@@ -890,12 +944,12 @@ print(json.dumps(result))
             self.assertFalse(stale["controllerLeaseLive"])
 
     def test_strategy_search_run_prepares_state_only_after_verified_compute_deployment(self):
-        bundle = {"schemaVersion": 2, "campaignExecutionId": "a" * 64,
+        bundle = {"schemaVersion": 3, "campaignExecutionId": "a" * 64,
             "executionRoot": "executions/" + "a" * 64,
             "request": {"kingdomIds": ["kingdom"], "maxActiveCpus": 400},
             "sourceImage": {"digest": "b" * 64, "files": []}, "partitions": {"one": []},
             "jobs": [{"taskId": "task", "status": "ready"}],
-            "tasks": [{"taskId": "task", "stage": "psro", "evidenceId": "c" * 64}],
+            "tasks": [{"taskId": "task", "stage": "psro-decision", "evidenceId": "c" * 64}],
             "controller": {"timeoutSeconds": 1140}}
         with tempfile.TemporaryDirectory() as directory, \
                 patch.object(status_launcher, "_execution_file",
