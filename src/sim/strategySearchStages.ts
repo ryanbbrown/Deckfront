@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import {
-  validateOrderedProductArtifact, validateOrderedProductReservoir
+  ORDERED_PRODUCT_GENERATOR, ORDERED_PRODUCT_TRAVERSAL, validateOrderedProductArtifact,
+  validateOrderedProductReservoir
 } from './orderedGoldfishProduct';
+import { NATIVE_GOLDFISH_SCORER_VERSION } from './nativeGoldfishProtocol';
 import type {
   OrderedProductRankedArtifact, OrderedProductReservoirArtifact
 } from './orderedGoldfishProduct';
@@ -98,7 +100,10 @@ export function validateCampaignGoldfishStage(input: {
   if (!sha(input.stageId) || !sha(input.rankedSha256) || !sha(input.reservoirSha256)
     || !validateOrderedProductArtifact(input.ranked)) return false;
   const ranked = input.ranked;
-  if (!validateOrderedProductReservoir(input.reservoir, ranked, input.rankedSha256)) return false;
+  if (ranked.scorerVersion !== NATIVE_GOLDFISH_SCORER_VERSION
+    || ranked.candidateSpace.generator !== ORDERED_PRODUCT_GENERATOR
+    || ranked.candidateSpace.traversal !== ORDERED_PRODUCT_TRAVERSAL
+    || !validateOrderedProductReservoir(input.reservoir, ranked, input.rankedSha256)) return false;
   const rankedSidecar = `${input.rankedSha256}  ranked.json\n`;
   const reservoirSidecar = `${input.reservoirSha256}  reservoir.json\n`;
   const expectedPaths = new Set(['output/ranked.json', 'output/ranked.json.sha256',

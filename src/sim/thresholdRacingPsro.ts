@@ -22,6 +22,10 @@ export const SCREEN_ALPHA = 0.05;
 export const CONFIRMATION_FAMILY_ALPHA = 0.05;
 export const PSRO_MATRIX_BLOCKS = 75;
 export const DEFAULT_PSRO_EVALUATION_CHUNK = 250;
+export const LEGACY_THRESHOLD_RACING_SEED_NAMESPACES = Object.freeze({
+  matrix: 'legacy-k007-matrix-v1', screen: 'legacy-k007-screen-v1',
+  confirmation: 'legacy-k007-confirmation-v1', queueRetest: 'legacy-k007-queue-retest-v1'
+});
 
 export type ThresholdStatus = 'below' | 'above' | 'unresolved';
 export type ConfirmationStatus = 'rejected' | 'confirmed' | 'unresolved';
@@ -30,10 +34,13 @@ export interface ThresholdRacingProtocol {
   reservoirCount: number; sourceIdentityHash: string; checkpointNamespace: string;
   threshold: number; screenDepths: readonly number[]; screenAlpha: number;
   confirmationLooks: readonly number[]; confirmationFamilyAlpha: number; matrixBlocks: number; cleanScans: number;
+  matrixSeedNamespace: string; screenSeedNamespace: string; confirmationSeedNamespace: string;
+  queueRetestSeedNamespace: string;
 }
 const PROTOCOL_KEYS = ['experimentName', 'protocolVersion', 'runId', 'kingdomId', 'reservoirCount',
   'sourceIdentityHash', 'checkpointNamespace', 'threshold', 'screenDepths', 'screenAlpha',
-  'confirmationLooks', 'confirmationFamilyAlpha', 'matrixBlocks', 'cleanScans'] as const;
+  'confirmationLooks', 'confirmationFamilyAlpha', 'matrixBlocks', 'cleanScans', 'matrixSeedNamespace',
+  'screenSeedNamespace', 'confirmationSeedNamespace', 'queueRetestSeedNamespace'] as const;
 const exactKeys = (value: object, keys: readonly string[]): boolean => JSON.stringify(Object.keys(value).sort())
   === JSON.stringify([...keys].sort());
 const sha = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
@@ -45,7 +52,13 @@ export function validateThresholdRacingProtocol(value: unknown): value is Thresh
     && held.checkpointNamespace && positiveInteger(held.reservoirCount) && sha(held.sourceIdentityHash)
     && held.threshold === RESPONSE_THRESHOLD && held.screenAlpha === SCREEN_ALPHA
     && held.confirmationFamilyAlpha === CONFIRMATION_FAMILY_ALPHA && held.matrixBlocks === PSRO_MATRIX_BLOCKS
-    && held.cleanScans === 2 && Array.isArray(held.screenDepths) && held.screenDepths.length > 0
+    && held.cleanScans === 2
+    && [held.matrixSeedNamespace, held.screenSeedNamespace, held.confirmationSeedNamespace,
+      held.queueRetestSeedNamespace].every((namespace) => typeof namespace === 'string'
+        && /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(namespace))
+    && new Set([held.matrixSeedNamespace, held.screenSeedNamespace, held.confirmationSeedNamespace,
+      held.queueRetestSeedNamespace]).size === 4
+    && Array.isArray(held.screenDepths) && held.screenDepths.length > 0
     && held.screenDepths[0] === 8 && held.screenDepths.every((depth, index) => positiveInteger(depth)
       && (!index || depth === held.screenDepths[index - 1]! * 2))
     && Array.isArray(held.confirmationLooks) && held.confirmationLooks.length > 0
@@ -56,6 +69,8 @@ export function createThresholdRacingProtocol(input: {
   experimentName: string; protocolVersion?: string; runId: string; kingdomId: string;
   reservoirCount: number; sourceIdentityHash: string; checkpointNamespace: string;
   screenDepths?: readonly number[]; confirmationLooks?: readonly number[];
+  matrixSeedNamespace?: string; screenSeedNamespace?: string; confirmationSeedNamespace?: string;
+  queueRetestSeedNamespace?: string;
 }): ThresholdRacingProtocol {
   const protocol = { experimentName: input.experimentName,
     protocolVersion: input.protocolVersion ?? THRESHOLD_RACING_PSRO_VERSION, runId: input.runId,
@@ -63,12 +78,29 @@ export function createThresholdRacingProtocol(input: {
     sourceIdentityHash: input.sourceIdentityHash, checkpointNamespace: input.checkpointNamespace,
     threshold: RESPONSE_THRESHOLD, screenDepths: [...(input.screenDepths ?? SCREEN_DEPTHS)],
     screenAlpha: SCREEN_ALPHA, confirmationLooks: [...(input.confirmationLooks ?? CONFIRMATION_LOOKS)],
-    confirmationFamilyAlpha: CONFIRMATION_FAMILY_ALPHA, matrixBlocks: PSRO_MATRIX_BLOCKS, cleanScans: 2 };
+    confirmationFamilyAlpha: CONFIRMATION_FAMILY_ALPHA, matrixBlocks: PSRO_MATRIX_BLOCKS, cleanScans: 2,
+    matrixSeedNamespace: input.matrixSeedNamespace ?? LEGACY_THRESHOLD_RACING_SEED_NAMESPACES.matrix,
+    screenSeedNamespace: input.screenSeedNamespace ?? LEGACY_THRESHOLD_RACING_SEED_NAMESPACES.screen,
+    confirmationSeedNamespace: input.confirmationSeedNamespace
+      ?? LEGACY_THRESHOLD_RACING_SEED_NAMESPACES.confirmation,
+    queueRetestSeedNamespace: input.queueRetestSeedNamespace
+      ?? LEGACY_THRESHOLD_RACING_SEED_NAMESPACES.queueRetest };
   if (!validateThresholdRacingProtocol(protocol)) {
     throw new Error('Threshold-racing PSRO protocol input is invalid.');
   }
   return protocol;
 }
+export function thresholdRacingSeedLabel(protocol: ThresholdRacingProtocol | undefined,
+  kind: 'screen' | 'confirmation' | 'queue-retest', label: string): string {
+  if (!label || protocol !== undefined && !validateThresholdRacingProtocol(protocol)) {
+    throw new Error('Threshold-racing seed label input is invalid.');
+  }
+  if (!protocol) return label;
+  const namespace = kind === 'screen' ? protocol.screenSeedNamespace
+    : kind === 'confirmation' ? protocol.confirmationSeedNamespace : protocol.queueRetestSeedNamespace;
+  return `${namespace}:${label}`;
+}
+
 export function thresholdRacingProtocolHash(protocol: ThresholdRacingProtocol): string {
   if (!validateThresholdRacingProtocol(protocol)) throw new Error('Threshold-racing PSRO protocol is invalid.');
   return createHash('sha256').update(JSON.stringify(protocol)).digest('hex');

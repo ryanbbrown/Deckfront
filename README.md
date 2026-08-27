@@ -183,7 +183,7 @@ npm run strategy-search:campaign -- status --manifest CAMPAIGN.json --selection-
 npm run strategy-search:campaign -- run --manifest CAMPAIGN.json --selection-manifest SELECTION.json --authorize TOKEN
 ```
 
-`plan` makes no Modal call. The first `run`, and any runtime-capacity increase, needs the exact token printed by `plan`. The campaign has no code-level cost cap. Use [the campaign operator guide](docs/strategy-search-campaign-operator.md) for authorization, resume, archive download, and local validation.
+`plan` makes no Modal call. The first `run`, and any runtime-capacity increase, needs the exact token printed by `plan`. `status` is bounded and read-only. `recover` needs an explicit assertion that an ambiguous launch has no live Modal call. Retries use manifest backoff with no attempt or spend cap, and the campaign has no code-level cost gate. Use [the campaign operator guide](docs/strategy-search-campaign-operator.md) for authorization, recovery, resume, archive download, and local validation.
 
 The ordered Kingdom 009 benchmark streams bounded chunks and folds candidate and ranking digests in traversal order. The original, lean TypeScript, and standalone Rust paths must return the same digest.
 

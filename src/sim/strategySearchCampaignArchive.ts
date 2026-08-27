@@ -23,38 +23,62 @@ function sort(value: unknown): unknown {
   return value;
 }
 const digest = (value: unknown): string => createHash('sha256').update(canonical(value)).digest('hex');
-const fileDigest = (file: string): string => createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+function fileDigest(file: string): string {
+  const held = createHash('sha256'), descriptor = fs.openSync(file, 'r'), buffer = Buffer.alloc(1024 * 1024);
+  try { for (;;) { const read = fs.readSync(descriptor, buffer, 0, buffer.length, null);
+    if (!read) break; held.update(buffer.subarray(0, read)); } } finally { fs.closeSync(descriptor); }
+  return held.digest('hex');
+}
 
 export interface CampaignArchiveEntry {
   path: string; bytes: number; sha256: string; stageId: string;
-  completeness: 'complete' | 'incomplete' | 'terminal-incomplete'; members: string[];
+  completeness: 'complete' | 'incomplete' | 'terminal-incomplete'; memberCount: number; memberHash: string;
 }
 export interface CampaignArchiveManifest {
-  schemaVersion: 1; indexHash: string; archives: CampaignArchiveEntry[]; manifestHash: string;
+  schemaVersion: 2; indexHash: string; archives: CampaignArchiveEntry[]; manifestHash: string;
 }
-const ARCHIVE_KEYS = ['path', 'bytes', 'sha256', 'stageId', 'completeness', 'members'] as const;
+const ARCHIVE_KEYS = ['path', 'bytes', 'sha256', 'stageId', 'completeness', 'memberCount', 'memberHash'] as const;
+const groupKey = (stageId: string, completeness: string): string => `${stageId}:${completeness}`;
+export function campaignArchiveMembers(index: CampaignContentIndex,
+  identity: Pick<CampaignArchiveEntry, 'stageId' | 'completeness'>): CampaignContentIndexEntry[] {
+  return index.entries.filter((entry) => entry.stageId === identity.stageId
+    && entry.completeness === identity.completeness)
+    .sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
+}
+export function campaignArchiveMemberHash(entries: readonly CampaignContentIndexEntry[]): string {
+  return digest([...entries].sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0)
+    .map((entry) => ({ path: entry.path, bytes: entry.bytes, sha256: entry.sha256,
+      stageId: entry.stageId, completeness: entry.completeness })));
+}
 export function createCampaignArchiveManifest(index: CampaignContentIndex,
   archives: readonly CampaignArchiveEntry[]): CampaignArchiveManifest {
   if (!validateCampaignContentIndex(index) || !archives.length) throw new Error('Campaign archive input is invalid.');
-  const indexed = new Map(index.entries.map((entry) => [entry.path, entry])), used = new Set<string>();
+  const expectedGroups = new Map<string, CampaignContentIndexEntry[]>();
+  for (const entry of index.entries) {
+    const key = groupKey(entry.stageId, entry.completeness), group = expectedGroups.get(key) ?? [];
+    group.push(entry); expectedGroups.set(key, group);
+  }
+  const usedGroups = new Set<string>();
   const held = archives.map((archive) => {
     if (!object(archive) || !exactKeys(archive, ARCHIVE_KEYS) || !Number.isSafeInteger(archive.bytes)
-      || archive.bytes < 1 || !sha(archive.sha256) || !sha(archive.stageId)
+      || archive.bytes < 1 || !sha(archive.sha256) || !sha(archive.stageId) || !sha(archive.memberHash)
       || !['complete', 'incomplete', 'terminal-incomplete'].includes(archive.completeness)
-      || !Array.isArray(archive.members) || !archive.members.length) throw new Error('Campaign archive entry is invalid.');
-    const archivePath = normalizedRelativePath(archive.path);
-    const members = archive.members.map(normalizedRelativePath);
-    if (new Set(members).size !== members.length || members.some((member) => !indexed.has(member)
-      || used.has(member))) throw new Error('Campaign archive members collide or are not indexed.');
-    members.forEach((member) => used.add(member));
-    const evidence = members.map((member) => indexed.get(member)!);
-    if (evidence.some((entry) => entry.stageId !== archive.stageId
-      || entry.completeness !== archive.completeness)) throw new Error('Campaign archive stage identity differs.');
-    return { ...archive, path: archivePath, members: [...members].sort() };
+      || !Number.isSafeInteger(archive.memberCount) || archive.memberCount < 1) {
+      throw new Error('Campaign archive entry is invalid.');
+    }
+    const archivePath = normalizedRelativePath(archive.path), key = groupKey(archive.stageId, archive.completeness);
+    const members = expectedGroups.get(key)?.sort((left, right) => left.path < right.path ? -1 : 1);
+    if (!members || usedGroups.has(key) || members.length !== archive.memberCount
+      || campaignArchiveMemberHash(members) !== archive.memberHash) {
+      throw new Error('Campaign archive compact membership differs from the content index.');
+    }
+    usedGroups.add(key); return { ...archive, path: archivePath };
   }).sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
-  if (used.size !== indexed.size || new Set(held.map((entry) => entry.path.toLocaleLowerCase('en-US'))).size
-    !== held.length) throw new Error('Campaign archives do not cover the exact content index.');
-  const base = { schemaVersion: 1 as const, indexHash: index.indexHash, archives: held, manifestHash: '' };
+  if (usedGroups.size !== expectedGroups.size
+    || new Set(held.map((entry) => entry.path.toLocaleLowerCase('en-US'))).size !== held.length) {
+    throw new Error('Campaign archives do not cover the exact content index.');
+  }
+  const base = { schemaVersion: 2 as const, indexHash: index.indexHash, archives: held, manifestHash: '' };
   return { ...base, manifestHash: digest(base) };
 }
 export function validateCampaignArchiveManifest(value: unknown, index: CampaignContentIndex):
@@ -62,7 +86,7 @@ export function validateCampaignArchiveManifest(value: unknown, index: CampaignC
   if (!object(value) || !exactKeys(value, ['schemaVersion', 'indexHash', 'archives', 'manifestHash'])) return false;
   try {
     const held = value as unknown as CampaignArchiveManifest;
-    return exact(held, createCampaignArchiveManifest(index, held.archives));
+    return held.schemaVersion === 2 && exact(held, createCampaignArchiveManifest(index, held.archives));
   } catch { return false; }
 }
 
@@ -80,8 +104,7 @@ function tarName(header: Buffer): string {
   return normalizedRelativePath(prefix ? `${prefix}/${name}` : name);
 }
 function assertNoSymlinkComponents(target: string): void {
-  const absolute = path.resolve(target), parsed = path.parse(absolute);
-  let cursor = parsed.root;
+  const absolute = path.resolve(target), parsed = path.parse(absolute); let cursor = parsed.root;
   for (const component of absolute.slice(parsed.root.length).split(path.sep).filter(Boolean)) {
     cursor = path.join(cursor, component);
     if (fs.existsSync(cursor) && fs.lstatSync(cursor).isSymbolicLink()) {
@@ -106,9 +129,9 @@ function sameLocalFile(file: string, entry: CampaignContentIndexEntry): boolean 
     && fs.statSync(file).size === entry.bytes && fileDigest(file) === entry.sha256;
 }
 function extractArchive(input: { archiveFile: string; archive: CampaignArchiveEntry;
-  entries: Map<string, CampaignContentIndexEntry>; destinationRoot: string }): void {
+  expected: readonly CampaignContentIndexEntry[]; destinationRoot: string }): void {
   const descriptor = fs.openSync(input.archiveFile, 'r'); let offset = 0, zeroBlocks = 0;
-  const seen = new Set<string>(), expectedMembers = new Set(input.archive.members);
+  const entries = new Map(input.expected.map((entry) => [entry.path, entry])), seen = new Set<string>();
   try {
     const archiveBytes = fs.fstatSync(descriptor).size;
     while (offset + 512 <= archiveBytes) {
@@ -122,8 +145,8 @@ function extractArchive(input: { archiveFile: string; archive: CampaignArchiveEn
       }
       const type = header[156];
       if (type !== 0 && type !== 0x30) throw new Error('Campaign archive contains a link or non-file member.');
-      const member = tarName(header), size = parseOctal(header, 124, 12), entry = input.entries.get(member);
-      if (!entry || !expectedMembers.has(member) || seen.has(member) || size !== entry.bytes) {
+      const member = tarName(header), size = parseOctal(header, 124, 12), entry = entries.get(member);
+      if (!entry || seen.has(member) || size !== entry.bytes) {
         throw new Error(`Campaign archive member is unexpected, duplicated, or has a wrong size: ${member}`);
       }
       seen.add(member);
@@ -143,21 +166,15 @@ function extractArchive(input: { archiveFile: string; archive: CampaignArchiveEn
           }
           if (output !== null) fs.fsyncSync(output);
         } finally { if (output !== null) fs.closeSync(output); }
-        if (memberHash.digest('hex') !== entry.sha256) {
-          throw new Error(`Campaign archive member hash differs: ${member}`);
-        }
+        if (memberHash.digest('hex') !== entry.sha256) throw new Error(`Campaign archive member hash differs: ${member}`);
         if (output !== null) fs.renameSync(temporary, destination);
-      } catch (error) {
-        if (output !== null) fs.rmSync(temporary, { force: true });
-        throw error;
-      }
+      } catch (error) { if (output !== null) fs.rmSync(temporary, { force: true }); throw error; }
       const padding = (512 - size % 512) % 512;
       if (offset + padding > archiveBytes) throw new Error('Campaign archive padding is truncated.');
       offset += padding;
     }
-    if (zeroBlocks !== 2 || !exact([...seen].sort(), [...input.archive.members].sort())) {
-      throw new Error('Campaign archive coverage is incomplete.');
-    }
+    if (zeroBlocks !== 2 || seen.size !== input.expected.length
+      || [...seen].some((member) => !entries.has(member))) throw new Error('Campaign archive coverage is incomplete.');
     const tail = Buffer.alloc(Math.max(0, fs.fstatSync(descriptor).size - offset));
     if (tail.length) fs.readSync(descriptor, tail, 0, tail.length, offset);
     if (tail.some((byte) => byte !== 0)) throw new Error('Campaign archive has nonzero trailing bytes.');
@@ -170,30 +187,26 @@ export function installCampaignArchives(input: { stagingRoot: string; destinatio
     || !validateCampaignArchiveManifest(input.archiveManifest, input.index)) {
     throw new Error('Campaign download index or archive manifest is invalid.');
   }
-  assertNoSymlinkComponents(input.destinationRoot);
-  fs.mkdirSync(input.destinationRoot, { recursive: true });
+  assertNoSymlinkComponents(input.destinationRoot); fs.mkdirSync(input.destinationRoot, { recursive: true });
   if (fs.lstatSync(input.destinationRoot).isSymbolicLink()) throw new Error('Campaign download root is a symlink.');
-  const entries = new Map(input.index.entries.map((entry) => [entry.path, entry]));
   for (const archive of input.archiveManifest.archives) {
+    const expected = campaignArchiveMembers(input.index, archive);
     const archiveFile = contentIndexDestination(input.stagingRoot, archive.path);
     assertNoSymlinkPath(input.stagingRoot, archiveFile);
     if (!fs.existsSync(archiveFile)) {
-      const complete = archive.members.every((member) => {
-        const entry = entries.get(member)!;
-        const destination = contentIndexDestination(input.destinationRoot, member);
-        assertNoSymlinkPath(input.destinationRoot, destination);
-        return sameLocalFile(destination, entry);
+      const complete = expected.every((entry) => {
+        const destination = contentIndexDestination(input.destinationRoot, entry.path);
+        assertNoSymlinkPath(input.destinationRoot, destination); return sameLocalFile(destination, entry);
       });
       if (complete) continue;
       throw new Error(`Campaign archive is missing for incomplete local members: ${archive.path}`);
     }
     if (fs.lstatSync(archiveFile).isSymbolicLink() || fs.statSync(archiveFile).size !== archive.bytes
       || fileDigest(archiveFile) !== archive.sha256) throw new Error(`Campaign archive bytes differ: ${archive.path}`);
-    extractArchive({ archiveFile, archive, entries, destinationRoot: input.destinationRoot });
+    extractArchive({ archiveFile, archive, expected, destinationRoot: input.destinationRoot });
   }
   for (const entry of input.index.entries) {
-    const file = contentIndexDestination(input.destinationRoot, entry.path);
-    assertNoSymlinkPath(input.destinationRoot, file);
+    const file = contentIndexDestination(input.destinationRoot, entry.path); assertNoSymlinkPath(input.destinationRoot, file);
     if (!sameLocalFile(file, entry)) throw new Error(`Installed campaign content differs: ${entry.path}`);
   }
 }

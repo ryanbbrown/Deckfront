@@ -144,7 +144,6 @@ for (const digest of reconciliation.quarantineTimingHashes) {
 }
 const acceptedTimingHashes = new Set(reconciliation.acceptedTimingHashes);
 timings = timings.filter((timing) => acceptedTimingHashes.has(timing.evidenceHash));
-const recoveryStarted = performance.now();
 const commandTimings: StrategySearchMatrixCommandTiming[] = [], claimedTimingHashes = new Set<string>();
 const availableTimingHashes = new Set(timings.map((timing) => timing.evidenceHash));
 for (const file of jsonFiles(path.join(outputRoot, 'commands'))) {
@@ -161,8 +160,8 @@ for (const file of jsonFiles(path.join(outputRoot, 'commands'))) {
 const orphanTimingHashes = timings.map((timing) => timing.evidenceHash)
   .filter((digest) => !claimedTimingHashes.has(digest));
 if (orphanTimingHashes.length) {
-  const recovered = createStrategySearchMatrixCommandTiming({ manifest: heldManifest, workerCount: workers,
-    commandWallMs: performance.now() - recoveryStarted, batchTimingHashes: orphanTimingHashes });
+  const recovered = createStrategySearchMatrixCommandTiming({ manifest: heldManifest, workerCount: null,
+    commandWallMs: null, evidenceKind: 'recovered-batches', batchTimingHashes: orphanTimingHashes });
   writeAtomic(path.join(outputRoot, 'commands', `${recovered.evidenceHash}.json`), recovered);
   commandTimings.push(recovered);
 }

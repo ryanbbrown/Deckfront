@@ -2,8 +2,12 @@ import { createHash } from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { registerKingdom } from '../../src/game';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
-import { DIAGONAL_PURPOSE } from '../../src/sim/initialMatrixCalibration';
-import type { InitialMatrixSeedRecord } from '../../src/sim/initialMatrixCalibration';
+import {
+  createInitialMatrixChunk, createInitialMatrixManifest, DIAGONAL_PURPOSE,
+  initialMatrixChunkRelativePath, validateInitialMatrixChunk
+} from '../../src/sim/initialMatrixCalibration';
+import type { InitialMatrixSeedRecord, InitialMatrixSourceIdentity } from '../../src/sim/initialMatrixCalibration';
+import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
 import { emptyAggregate } from '../../src/sim/pairing';
 import { fixedBuyPlan } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
@@ -29,7 +33,8 @@ function strategies(): Strategy[] {
 }
 function manifest() {
   return createStrategySearchMatrixManifest({ stageId: '1'.repeat(64), source: { kingdomId,
-    orderedProductIdentityHash: '2'.repeat(64), rankedSha256: '3'.repeat(64), reservoirSha256: '4'.repeat(64) },
+    orderedProductIdentityHash: '2'.repeat(64), rankedSha256: '3'.repeat(64), reservoirSha256: '4'.repeat(64),
+    matrixSeedNamespace: 'initial-matrix-calibration-v2' },
   strategies: strategies() });
 }
 function reseal<T extends { evidenceHash: string }>(value: T): T {
@@ -62,6 +67,36 @@ describe('campaign Matrix schema and batching', () => {
     ]);
     expect(held.trainingPrefixes).toEqual([75, 100]);
     expect(held.heldOutOrdinals).toEqual({ start: 101, end: 125 });
+  });
+
+  it('keeps schema-v2 chunk-5 and campaign chunk-25 seed/payoff semantics but not evidence namespaces', () => {
+    const held = manifest(), source: InitialMatrixSourceIdentity = { kingdomId,
+      rankedSha256: held.source.rankedSha256, reservoirSha256: held.source.reservoirSha256,
+      runId: 'legacy', productVersion: 'derived-ordered-product-v2', buildVersion: 'fixture',
+      scorerVersion: 'native-goldfish-v1', ruleFingerprint: nativeRuleFingerprint(kingdomId, 30, 200),
+      candidateProvenanceDigest: '5'.repeat(64) };
+    const legacy = createInitialMatrixManifest({ source, strategies: held.strategies,
+      maxSeedCount: 125, chunkSize: 5 });
+    expect(legacy.protocol.seeds).toEqual(held.seeds);
+    const row = held.strategies[0]!, column = held.strategies[1]!;
+    const semanticRecords = records(row, column, held.seeds.slice(0, 25), 0.625);
+    const legacyChunks = Array.from({ length: 5 }, (_unused, index) => createInitialMatrixChunk({
+      manifest: legacy, rowIndex: 0, columnIndex: 1, startSeedIndex: index * 5,
+      records: semanticRecords.slice(index * 5, index * 5 + 5), simulationMs: 1 }));
+    const campaignJob = strategySearchMatrixJobs(held).find((job) => job.rowIndex === 0
+      && job.columnIndex === 1 && job.startSeedIndex === 0)!;
+    const campaignChunk = createStrategySearchMatrixChunk({ manifest: held, job: campaignJob,
+      records: semanticRecords });
+    expect(legacyChunks.flatMap((chunk) => chunk.records)).toEqual(campaignChunk.records);
+    expect(new Set(legacyChunks.map((chunk) => initialMatrixChunkRelativePath(0, 1, chunk.startSeedIndex))))
+      .not.toEqual(new Set([strategySearchMatrixChunkPath(campaignJob)]));
+    expect(legacyChunks[0]!.evidenceHash).not.toBe(campaignChunk.evidenceHash);
+    expect(validateInitialMatrixChunk(campaignChunk, legacy, 0, 1, 0, 5)).toBe(false);
+    expect(validateStrategySearchMatrixChunk(legacyChunks[0], held, campaignJob)).toBe(false);
+    const otherNamespace = createStrategySearchMatrixManifest({ stageId: held.stageId,
+      source: { ...held.source, matrixSeedNamespace: 'other-matrix-v1' }, strategies: held.strategies });
+    expect(otherNamespace.seeds).not.toEqual(held.seeds);
+    expect(otherNamespace.evidenceHash).not.toBe(held.evidenceHash);
   });
 
   it('places shuffled worker results in slot order and records one exact batch timing', async () => {
@@ -102,6 +137,12 @@ describe('campaign Matrix schema and batching', () => {
     expect(new Set(paths).size).toBe(paths.length);
     expect(paths).toEqual([...first.timings, ...resumed.timings]
       .map((timing) => strategySearchMatrixTimingPath(timing.batchIdentity)));
+    const recovered = createStrategySearchMatrixCommandTiming({ manifest: held, workerCount: null,
+      commandWallMs: null, evidenceKind: 'recovered-batches',
+      batchTimingHashes: [first.timings[0]!.evidenceHash] });
+    expect(validateStrategySearchMatrixCommandTiming(recovered, held)).toBe(true);
+    expect(recovered).toMatchObject({ evidenceKind: 'recovered-batches', workerCount: null,
+      commandWallMs: null });
   });
 
   it('quarantines both Matrix crash orders and reruns only invalid coverage', () => {

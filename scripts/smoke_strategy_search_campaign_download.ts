@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { createCampaignContentIndex } from '../src/sim/strategySearchCampaign';
 import {
-  createCampaignArchiveManifest, installCampaignArchives
+  campaignArchiveMemberHash, createCampaignArchiveManifest, installCampaignArchives
 } from '../src/sim/strategySearchCampaignArchive';
 
 const sha = (value: Buffer): string => createHash('sha256').update(value).digest('hex');
@@ -38,8 +38,9 @@ try {
     path: file.path, bytes: file.content.length, sha256: sha(file.content), stageId,
     completeness: 'complete' as const })));
   const bytes = tar(files), archive = { path: 'archives/chunks.tar', bytes: bytes.length,
-    sha256: sha(bytes), stageId, completeness: 'complete' as const, members: files.map((file) => file.path) };
-  const manifest = createCampaignArchiveManifest(index, [archive]);
+    sha256: sha(bytes), stageId, completeness: 'complete' as const };
+  const manifest = createCampaignArchiveManifest(index, [{ ...archive, memberCount: files.length,
+    memberHash: campaignArchiveMemberHash(index.entries) }]);
   fs.writeFileSync(path.join(staging, archive.path), bytes);
   installCampaignArchives({ stagingRoot: staging, destinationRoot: destination, index,
     archiveManifest: manifest });

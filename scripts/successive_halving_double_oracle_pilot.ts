@@ -31,7 +31,7 @@ import type {
 } from '../src/sim/responseOracleCalibration';
 import { RustCompetitiveEvaluator } from '../src/sim/rustCompetitiveEvaluator';
 import { RustGoldfishScorer } from '../src/sim/rustGoldfishScorer';
-import { stableHash } from '../src/sim/strategy';
+import { canonicalStrategy, stableHash } from '../src/sim/strategy';
 import type { Strategy } from '../src/sim/strategy';
 import type { TelemetryAggregate } from '../src/sim/types';
 import { compareUtf16 } from '../src/sim/utf16';
@@ -193,6 +193,7 @@ export interface Checkpoint {
     cappedUnresolvedPolicy?: 'leave-unresolved-at-look-cap';
     maxAdmissions?: number;
     maxScans?: number;
+    seedNamespaces?: { matrix: string; screen: string; confirmation: string; queueRetest: string };
   };
   status: 'running' | 'complete' | 'unresolved';
   stopReason: StopReason;
@@ -536,14 +537,16 @@ function usedSeeds(checkpoint: Checkpoint): Set<number> {
   if (checkpoint.pending?.kind === 'queue-confirmed') add(checkpoint.pending.report.confirmation.schedule);
   return used;
 }
-function scheduleFor(checkpoint: Checkpoint, label: string, count: number,
+function scheduleFor(checkpoint: Checkpoint, source: ThresholdRacingSource,
+  kind: 'screen' | 'confirmation' | 'queue-retest', label: string, count: number,
   weights: Readonly<Record<string, number>>): MixtureSchedule {
   const used = usedSeeds(checkpoint);
   const seeds = Array.from({ length: count }, (_unused, index) => {
     let nonce = 0;
     for (;;) {
+      const scopedLabel = thresholdRacing.thresholdRacingSeedLabel(source.rawProtocol, kind, label);
       const seed = Number.parseInt(stableHash(`${checkpoint.version}:${checkpoint.source.reservoirSha256}:run:`
-        + `${checkpoint.runId}:${label}:${index}:nonce:${nonce}`).slice(0, 8), 16) >>> 0;
+        + `${checkpoint.runId}:${scopedLabel}:${index}:nonce:${nonce}`).slice(0, 8), 16) >>> 0;
       if (!used.has(seed)) { used.add(seed); return seed; }
       nonce += 1;
     }
@@ -594,11 +597,36 @@ export function validateThresholdRacingCheckpoint(value: unknown, source: Thresh
     const admittedIds = new Set(held.admissions.map((entry) => entry.strategyId));
     held.matrix.cells.filter((cell) => admittedIds.has(cell.rowId) || admittedIds.has(cell.columnId))
       .forEach((cell) => mergeAggregate(telemetry, cell.telemetry));
+    const reservoirById = new Map(source.reservoir.entries.map((entry) => [entry.strategy.id, entry]));
+    const initialIds = source.initialMatrix.strategies.map((strategy) => strategy.id);
+    const expectedStrategies = [...source.initialMatrix.strategies];
+    const admissionChainValid = held.admissions.every((admission, index) => {
+      const entry = reservoirById.get(admission.strategyId), before = initialIds.length + index;
+      if (!entry || expectedStrategies.some((strategy) => strategy.id === admission.strategyId)
+        || admission.admission !== index + 1 || admission.cycle !== index + 1
+        || admission.goldfishRank !== entry.rank || admission.canonicalStrategy !== entry.canonicalStrategy
+        || admission.canonicalStrategy !== canonicalStrategy(entry.strategy)
+        || admission.matrixSizeBefore !== before || admission.matrixSizeAfter !== before + 1
+        || admission.games !== before * MATRIX_BLOCKS * GAMES_PER_SEED) return false;
+      expectedStrategies.push(entry.strategy); return true;
+    });
+    const expectedCellCount = source.initialMatrix.cells.length
+      + held.admissions.reduce((sum, _admission, index) => sum + initialIds.length + index, 0);
+    const cellKeys = held.matrix.cells.map((cell) => `${cell.rowId}\0${cell.columnId}`);
+    const initialCells = held.matrix.cells.filter((cell) => initialIds.includes(cell.rowId)
+      && initialIds.includes(cell.columnId));
+    const expectedNamespaces = source.rawProtocol ? {
+      matrix: source.rawProtocol.matrixSeedNamespace, screen: source.rawProtocol.screenSeedNamespace,
+      confirmation: source.rawProtocol.confirmationSeedNamespace,
+      queueRetest: source.rawProtocol.queueRetestSeedNamespace } : undefined;
     return held.schemaVersion === 1 && held.version === source.protocolVersion
       && held.experiment === source.experimentName && held.runId === runId
-      && held.source.reservoirSha256 === source.source.reservoirSha256
-      && held.source.p75ManifestHash === source.source.p75ManifestHash && held.matrix.complete
-      && held.matrix.strategies.length === 50 + held.admissions.length && exact(held.equilibrium.weights, solved.weights)
+      && exact(held.protocol.seedNamespaces, expectedNamespaces)
+      && exact(held.source, source.source) && exact(held.matrix.protocol, source.initialMatrix.protocol)
+      && held.matrix.complete && admissionChainValid && exact(held.matrix.strategies, expectedStrategies)
+      && exact(initialCells, source.initialMatrix.cells) && held.matrix.cells.length === expectedCellCount
+      && new Set(cellKeys).size === cellKeys.length
+      && exact(held.equilibrium.weights, solved.weights)
       && exact(held.games, { screening: screeningGames, confirmation: confirmationGames,
         matrix: matrixGames, total: screeningGames + confirmationGames + matrixGames })
       && Math.abs(held.elapsedMs.screening - screeningMs) < 1e-6
@@ -618,7 +646,12 @@ export function createThresholdRacingInitialCheckpoint(source: ThresholdRacingSo
       screenAlpha: SCREEN_ALPHA, confirmationLooks: [...CONFIRMATION_LOOKS],
       confirmationFamilyAlpha: CONFIRMATION_FAMILY_ALPHA, familyControl: 'bonferroni',
       opponentSchedule: 'nested-proportional-largest-deficit', matrixBlocks: MATRIX_BLOCKS,
-      cappedUnresolvedPolicy: 'leave-unresolved-at-look-cap' }, status: 'running', stopReason: 'running',
+      cappedUnresolvedPolicy: 'leave-unresolved-at-look-cap',
+      ...(source.rawProtocol ? { seedNamespaces: {
+        matrix: source.rawProtocol.matrixSeedNamespace, screen: source.rawProtocol.screenSeedNamespace,
+        confirmation: source.rawProtocol.confirmationSeedNamespace,
+        queueRetest: source.rawProtocol.queueRetestSeedNamespace } } : {}) },
+    status: 'running', stopReason: 'running',
     phase: 'ready', exploratory: true, formalClosure: false, matrix: source.initialMatrix, equilibrium,
     cleanScans: 0, queue: [], pending: null, scans: [], queueRetests: [], admissions: [],
     games: { screening: 0, confirmation: 0, matrix: 0, total: 0 },
@@ -728,8 +761,8 @@ export async function runThresholdRacingCampaign(root: string, source: Threshold
       if (checkpoint.phase === 'ready' && checkpoint.queue.length) {
         const lottery = positiveLottery(checkpoint.matrix, checkpoint.equilibrium);
         const retest = checkpoint.queueRetests.length + 1;
-        const schedule = scheduleFor(checkpoint, `queue-retest:${retest}:confirmation`,
-          CONFIRMATION_LOOKS.at(-1)!, lottery.weights);
+        const schedule = scheduleFor(checkpoint, source, 'queue-retest',
+          `queue-retest:${retest}:confirmation`, CONFIRMATION_LOOKS.at(-1)!, lottery.weights);
         const queueRaw = rawArtifactStore(root, runId, source, 'queue-retest');
         const confirmation = await runConfirmationRace({ candidates: candidates(source,
           checkpoint.queue.map((entry) => entry.strategyId)), opponents: lottery.opponents, schedule,
@@ -758,7 +791,8 @@ export async function runThresholdRacingCampaign(root: string, source: Threshold
         if (inactive.length !== source.reservoir.entries.length - checkpoint.matrix.strategies.length) {
           throw new Error('Inactive campaign reservoir coverage is incomplete.');
         }
-        const schedule = scheduleFor(checkpoint, `scan:${scan}:screen`, SCREEN_DEPTHS.at(-1)!, lottery.weights);
+        const schedule = scheduleFor(checkpoint, source, 'screen',
+          `scan:${scan}:screen`, SCREEN_DEPTHS.at(-1)!, lottery.weights);
         const screenRaw = rawArtifactStore(root, runId, source, 'screen');
         const screen = await runThresholdRace({ candidates: inactive, opponents: lottery.opponents,
           schedule, kingdomId: source.kingdomId, runner, confidence, evaluate, chunkSize,
@@ -789,8 +823,8 @@ export async function runThresholdRacingCampaign(root: string, source: Threshold
         const base = checkpoint.pending.base;
         const lottery = positiveLottery(checkpoint.matrix, checkpoint.equilibrium);
         if (lottery.lotteryHash !== base.lotteryHash) throw new Error('Lottery changed inside a reservoir scan.');
-        const schedule = scheduleFor(checkpoint, `scan:${base.scan}:confirmation`,
-          CONFIRMATION_LOOKS.at(-1)!, lottery.weights);
+        const schedule = scheduleFor(checkpoint, source, 'confirmation',
+          `scan:${base.scan}:confirmation`, CONFIRMATION_LOOKS.at(-1)!, lottery.weights);
         const confirmationRaw = rawArtifactStore(root, runId, source, 'confirmation');
         const confirmation = await runConfirmationRace({ candidates: candidates(source,
           base.screen.provisional.map((entry) => entry.strategyId)), opponents: lottery.opponents,

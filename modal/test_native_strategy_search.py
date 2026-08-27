@@ -401,16 +401,18 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             def __init__(self): self.commits = 0
             def commit(self): self.commits += 1
         class Pipe:
-            def __init__(self, lines): self.lines = lines
+            def __init__(self, lines): self.lines = lines; self.drained = False
             def __iter__(self): return iter(self.lines)
-            def read(self): return ""
+            def read(self, _size=-1):
+                if self.drained: return ""
+                self.drained = True; return "".join(self.lines)
         class Process:
             def __init__(self):
                 self.stdout = Pipe([json.dumps({"type": launcher.CAMPAIGN_CHECKPOINT_EVENT,
                     "stage": "matrix", "eventHash": "a" * 64}) + "\n",
                     json.dumps({"type": launcher.CAMPAIGN_STAGE_STOP_EVENT,
                     "stage": "matrix", "status": "complete", "markerHash": "b" * 64}) + "\n"])
-                self.stderr = Pipe([]); self.terminated = False
+                self.stderr = Pipe(["Maximum resident set size (kbytes): 12345\n"]); self.terminated = False
             def wait(self): return 0
             def terminate(self): self.terminated = True
         held_volume = HeldVolume(); process = Process()
@@ -421,7 +423,7 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             "timeout_seconds": 30, "shutdown_margin_seconds": 5, "campaign_root": "campaign/root",
             "manifest_path": "matrix/manifest.json", "output_path": "matrix/output",
             "control_path": "matrix/control", "threads": 4, "worker_batch_size": 4,
-            "stage_id": "c" * 64}
+            "stage_id": "c" * 64, "memory_mib": 8192}
         with patch.object(launcher, "volume", held_volume), \
                 patch.object(launcher, "verify_campaign_source_image"), \
                 patch.object(launcher, "_campaign_stage_command", return_value=["trusted"]), \
@@ -433,8 +435,23 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         self.assertEqual(result["status"], "complete")
         self.assertEqual(result["checkpointCommits"], 1)
         self.assertEqual(held_volume.commits, 2)
+        self.assertEqual(result["peakRssKib"], 12345)
+        self.assertEqual(result["nodeHeapMiB"], 6144)
         spawn.assert_called_once()
-        self.assertIsNone(spawn.call_args.kwargs["env"])
+        self.assertEqual(spawn.call_args.kwargs["env"]["NODE_OPTIONS"], "--max-old-space-size=6144")
+
+    def test_whole_stage_stderr_drain_handles_more_than_one_pipe_buffer_with_a_bounded_tail(self):
+        process = subprocess.Popen(["python3", "-c",
+            "import sys; sys.stderr.write('x' * 262144 + 'exact-tail'); sys.stderr.flush(); print('done')"],
+            text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        tail, thread = launcher._drain_bounded_text(process.stderr, 64 * 1024)
+        self.assertEqual(process.stdout.readline().strip(), "done")
+        self.assertEqual(process.wait(timeout=10), 0)
+        thread.join(timeout=10)
+        process.stdout.close(); process.stderr.close()
+        self.assertFalse(thread.is_alive())
+        self.assertLessEqual(len(tail[0]), 64 * 1024)
+        self.assertTrue(tail[0].endswith("exact-tail"))
 
     def test_campaign_goldfish_completion_hashes_sidecars_and_uses_stage_timeout(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -460,7 +477,7 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         class Pipe:
             def __init__(self, lines): self.lines = lines
             def __iter__(self): return iter(self.lines)
-            def read(self): return ""
+            def read(self, _size=-1): return ""
         class Process:
             def __init__(self):
                 self.stdout = Pipe([json.dumps({"type": launcher.CAMPAIGN_STAGE_STOP_EVENT,
@@ -475,7 +492,7 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         config = {"stage": "psro", "controller_fence": 2, "source_image": {},
             "timeout_seconds": 30, "shutdown_margin_seconds": 5, "campaign_root": "campaign/root",
             "stage_config_path": "kingdom/psro/config.json", "control_path": "kingdom/psro/control",
-            "stage_id": "c" * 64}
+            "stage_id": "c" * 64, "memory_mib": 8192}
         command = launcher._campaign_stage_command("psro", config, 123)
         self.assertEqual(command[:3], ["npx", "tsx", "scripts/strategy_search_campaign_psro.ts"])
         with patch.object(launcher, "verify_campaign_source_image"), \
@@ -512,6 +529,64 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             "artifactHashes": {"output/file.json": "a" * 64}})
         self.assertEqual(observations[1]["state"], "failed")
         self.assertIn("RuntimeError", observations[1]["reason"])
+
+    def test_fenced_run_reconciliation_repairs_corrupt_completed_goldfish_matrix_and_psro(self):
+        for stage in ["goldfish", "matrix", "psro"]:
+            with self.subTest(stage=stage):
+                requests = []
+                task = {"taskId": f"k:{stage}", "status": "complete",
+                    "artifactPaths": ["output/evidence.json"],
+                    "artifactHashes": {"output/evidence.json": "a" * 64}}
+                state = {"revision": 7}; checkpoint = {"revision": 9, "tasks": [task]}
+                configs = {task["taskId"]: {"config": {"stage_key": f"k:{stage}"}}}
+                class Mutator:
+                    @staticmethod
+                    def remote(request):
+                        requests.append(request)
+                        return {"state": {"revision": 8}, "scheduler": {"revision": 10}}
+                with patch.object(launcher.volume, "reload"), \
+                        patch.object(launcher, "_deep_validate_campaign_result",
+                            side_effect=RuntimeError(f"{stage} bytes differ")), \
+                        patch.object(launcher, "campaign_state_mutator", Mutator):
+                    changed_state, changed_scheduler, repaired = launcher._reconcile_campaign_completed(
+                        campaign_root="campaign/root", owner_id="owner", fence=3, state=state,
+                        checkpoint=checkpoint, task_configs=configs)
+                self.assertTrue(repaired)
+                self.assertEqual(changed_state["revision"], 8)
+                self.assertEqual(changed_scheduler["revision"], 10)
+                self.assertEqual(requests[0]["operation"], "repair-completed")
+                self.assertEqual(requests[0]["payload"]["repair"]["stageKey"], f"k:{stage}")
+                self.assertIn(f"{stage} bytes differ", requests[0]["payload"]["repair"]["reason"])
+
+    def test_operator_recovery_requires_exact_assertion_and_handles_controller_and_task_intents(self):
+        with patch.object(launcher.campaign_read_status, "remote") as status:
+            with self.assertRaisesRegex(ValueError, "exact no-live-call assertion"):
+                launcher._recover_campaign_launch("campaign/root", "a" * 64, "controller", "maybe")
+            status.assert_not_called()
+        controller_status = {"controllerCall": {"ownerId": "owner", "callId": None}}
+        with patch.object(launcher.campaign_read_status, "remote", return_value=controller_status), \
+                patch.object(launcher.campaign_controller_call_mutator, "remote",
+                    return_value={"controllerCall": None}) as clear:
+            recovered = launcher._recover_campaign_launch("campaign/root", "a" * 64,
+                "controller", "no-live-modal-call-exists")
+        self.assertEqual(recovered, {"status": "recovered", "target": "controller",
+            "controllerCall": None})
+        self.assertEqual(clear.call_args.args[0]["operation"], "clear")
+        task_status = {"controllerCall": None, "state": {"revision": 2}, "scheduler": {"tasks": [{
+            "taskId": "k:matrix", "kingdomId": "k", "stage": "matrix", "status": "launching",
+            "callId": None}]}}
+        changed = {"state": {"revision": 3, "fencingToken": 5},
+            "scheduler": {"revision": 4, "tasks": task_status["scheduler"]["tasks"]}}
+        recovered_changed = {"state": {"fencingToken": 5},
+            "scheduler": {"tasks": [{**task_status["scheduler"]["tasks"][0], "status": "ready"}]}}
+        with patch.object(launcher.campaign_read_status, "remote", return_value=task_status), \
+                patch.object(launcher.campaign_state_mutator, "remote",
+                    side_effect=[changed, recovered_changed]) as mutate:
+            recovered = launcher._recover_campaign_launch("campaign/root", "a" * 64,
+                "k:matrix", "no-live-modal-call-exists")
+        self.assertEqual(recovered["taskStatus"], "ready")
+        self.assertEqual([call.args[0]["operation"] for call in mutate.call_args_list],
+            ["claim", "recover-launch"])
 
     def test_controller_launch_reservation_allows_one_spawn_and_binds_one_call(self):
         class HeldVolume:
@@ -640,16 +715,59 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
 
     def test_campaign_controller_has_no_cost_ledger_gate(self):
         source = inspect.getsource(launcher.campaign_controller.get_raw_f())
-        for forbidden in ["reserve_cost", "LEDGER_PATH", "GROSS_BUDGET_USD", "max_cost_usd"]:
+        for forbidden in ["reserve_cost", "LEDGER_PATH", "GROSS_BUDGET_USD", "max_cost_usd", "MAX_RETRIES"]:
             self.assertNotIn(forbidden, source)
         self.assertIn('launch_actions[:config["dispatch_batch_size"]]', source)
+        self.assertIn('config["retry_backoff_seconds"]', source)
+        self.assertIn('config["retry_backoff_max_seconds"]', source)
 
     def test_campaign_status_is_bounded_and_read_only(self):
         source = inspect.getsource(launcher.campaign_read_status.get_raw_f())
         for forbidden in ["campaign_controller", "campaign_matrix_stage", "campaign_psro_stage",
                           "ordered_product_stage_one", "ordered_product_stage_two", ".spawn("]:
             self.assertNotIn(forbidden, source)
-        self.assertIn("content-index.json", source)
+        self.assertIn("summary.json", source)
+        self.assertNotIn("content-index.json", source)
+
+    def test_packaging_returns_only_compact_hashes_across_the_modal_result_boundary(self):
+        source = inspect.getsource(launcher.campaign_package_download.get_raw_f())
+        self.assertIn("return summary", source)
+        self.assertNotIn('return {"contentIndex"', source)
+        self.assertNotIn('"members": sorted(members)', source)
+
+    def test_compact_archive_membership_hash_matches_the_typescript_index_contract(self):
+        entries = [{"path": "a.json", "bytes": 1, "sha256": "a" * 64,
+            "stageId": "b" * 64, "completeness": "complete"},
+            {"path": "z.json", "bytes": 2, "sha256": "c" * 64,
+             "stageId": "b" * 64, "completeness": "complete"}]
+        self.assertEqual(launcher._campaign_archive_member_hash(entries),
+            "970be64f0e9398306212066d231b6f1301b95ec3b8308c2b1fad0ce3a6f619ba")
+
+    def test_repackaging_prunes_superseded_archives_without_touching_current_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            download = pathlib.Path(directory); archives = download / "archives"; archives.mkdir()
+            current = archives / "current-complete.tar"; old = archives / "old-incomplete.tar"
+            current.write_bytes(b"current"); old.write_bytes(b"old")
+            launcher._prune_campaign_archives(download, {"archives/current-complete.tar"})
+            self.assertTrue(current.exists()); self.assertFalse(old.exists())
+
+    def test_campaign_status_returns_only_a_bounded_summary_without_opening_the_full_index(self):
+        class HeldVolume:
+            def reload(self): pass
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory); download = root / "download"; download.mkdir()
+            (download / "summary.json").write_text(json.dumps({"schemaVersion": 1,
+                "indexHash": "a" * 64, "indexBytes": 250_000_000, "entryCount": 191_250,
+                "archiveManifestHash": "b" * 64, "archiveCount": 91}))
+            (download / "content-index.json").symlink_to(root / "must-not-be-opened")
+            with patch.object(launcher, "volume", HeldVolume()), \
+                    patch.object(launcher, "_campaign_state_file", return_value=root / "missing-state"), \
+                    patch.object(launcher, "_campaign_scheduler_file", return_value=root / "missing-scheduler"), \
+                    patch.object(launcher, "_campaign_root", return_value=root):
+                result = launcher.campaign_read_status.get_raw_f()({"campaign_root": "campaign/root",
+                    "evidence_hash": "c" * 64})
+            self.assertEqual(result["download"]["entryCount"], 191_250)
+            self.assertLess(len(json.dumps(result)), 1024)
 
     def test_result_validation_rejects_partial_corrupt_and_stale_checkpoints(self):
         spec = {"run_id": "run", "kingdom": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM,

@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import {
   bindCampaignStageCall, claimCampaignController, mutateCampaignState,
-  recordCampaignStageLaunchIntent, recordCampaignStageOutcome,
-  transitionCampaignStage, validateCampaignState
+  recordCampaignStageLaunchIntent, recordCampaignStageOutcome, recoverCampaignStageLaunchIntent,
+  repairCampaignCompletedStage, transitionCampaignStage, validateCampaignState
 } from '../src/sim/strategySearchCampaign';
 import type {
   CampaignStageState, CampaignStageStatus, CampaignState, RuntimeCeilings
@@ -52,6 +52,16 @@ if (operation === 'validate' || operation === 'assert-fence') {
     status: input.status as 'complete' | 'incomplete' | 'terminal-incomplete',
     ...(input.reason === undefined ? {} : { reason: String(input.reason) }),
     artifactPaths: input.artifactPaths as string[], artifactHashes: input.artifactHashes as Record<string, string> });
+} else if (operation === 'recover-launch') {
+  result = recoverCampaignStageLaunchIntent({ state,
+    expectedRevision: integer(input.expectedRevision, 'expectedRevision'), ownerId: String(input.ownerId ?? ''),
+    fencingToken: integer(input.fencingToken, 'fencingToken'), stageKey: String(input.stageKey ?? '') });
+} else if (operation === 'repair-completed') {
+  result = repairCampaignCompletedStage({ state,
+    expectedRevision: integer(input.expectedRevision, 'expectedRevision'), ownerId: String(input.ownerId ?? ''),
+    fencingToken: integer(input.fencingToken, 'fencingToken'), stageKey: String(input.stageKey ?? ''),
+    reason: String(input.reason ?? ''), artifactPaths: input.artifactPaths as string[],
+    artifactHashes: input.artifactHashes as Record<string, string> });
 } else if (operation === 'transition') {
   const key = String(input.stageKey ?? ''), status = String(input.status ?? '') as CampaignStageStatus;
   result = mutateCampaignState({ state, expectedRevision: integer(input.expectedRevision, 'expectedRevision'),

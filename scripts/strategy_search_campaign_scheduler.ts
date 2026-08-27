@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import {
-  applyCampaignSchedulerUpdates, createCampaignSchedulerCheckpoint,
-  planCampaignSchedulerTick, reconfigureCampaignSchedulerTasks, refenceCampaignSchedulerCheckpoint,
-  validateCampaignSchedulerCheckpoint
+  applyCampaignSchedulerUpdates, createCampaignSchedulerCheckpoint, planCampaignSchedulerTick,
+  recoverCampaignAmbiguousLaunch, reconfigureCampaignSchedulerTasks, refenceCampaignSchedulerCheckpoint,
+  repairCampaignSchedulerTask, validateCampaignSchedulerCheckpoint
 } from '../src/sim/strategySearchScheduler';
 import type {
   CampaignSchedulerCheckpoint, CampaignSchedulerObservation, CampaignSchedulerUpdate
@@ -26,6 +26,17 @@ if (process.argv[2] === 'validate') {
       (request.updates ?? []) as CampaignSchedulerUpdate[]) });
 } else if (process.argv[2] === 'refence') {
   result = refenceCampaignSchedulerCheckpoint(checkpoint, Number(request.controllerFence));
+} else if (process.argv[2] === 'recover') {
+  result = createCampaignSchedulerCheckpoint({ evidenceHash: checkpoint.evidenceHash,
+    controllerFence: checkpoint.controllerFence, revision: checkpoint.revision + 1,
+    tasks: recoverCampaignAmbiguousLaunch(checkpoint.tasks,
+      request.recovery as { taskId: string; nowMs: number }) });
+} else if (process.argv[2] === 'repair') {
+  result = createCampaignSchedulerCheckpoint({ evidenceHash: checkpoint.evidenceHash,
+    controllerFence: checkpoint.controllerFence, revision: checkpoint.revision + 1,
+    tasks: repairCampaignSchedulerTask(checkpoint.tasks, request.repair as {
+      taskId: string; reason: string; artifactPaths: string[]; artifactHashes: Record<string, string>
+    }) });
 } else if (process.argv[2] === 'runtime') {
   result = createCampaignSchedulerCheckpoint({ evidenceHash: checkpoint.evidenceHash,
     controllerFence: checkpoint.controllerFence, revision: checkpoint.revision + 1,

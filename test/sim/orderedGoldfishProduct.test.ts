@@ -176,6 +176,15 @@ describe('ordered goldfish product correction', () => {
     expect(validateCampaignGoldfishStage({ stageId, ranked: artifact, rankedSha256,
       rankedSidecarContent: rankedSidecarContent.replace('ranked.json', 'changed.json'), reservoir,
       reservoirSha256, reservoirSidecarContent, fileHashes: marker.artifactHashes, marker })).toBe(false);
+    for (const change of [
+      (value: typeof artifact) => { value.scorerVersion = 'changed-scorer'; },
+      (value: typeof artifact) => { value.candidateSpace.generator = 'changed-generator'; },
+      (value: typeof artifact) => { value.candidateSpace.traversal = 'changed-traversal'; }
+    ]) {
+      const changed = structuredClone(artifact); change(changed);
+      expect(validateCampaignGoldfishStage({ stageId, ranked: changed, rankedSha256, rankedSidecarContent,
+        reservoir, reservoirSha256, reservoirSidecarContent, fileHashes: marker.artifactHashes, marker })).toBe(false);
+    }
     const validated = validateOrderedCalibrationSourceForCounts({ kingdomId: artifact.config.kingdomId,
       ranked: { ...artifact, recordCount: artifact.records.length }, reservoir,
       rankedSha256, reservoirSha256 }, { retainedCount: 8, reservoirCount: 3, strategyCount: 3 });
@@ -231,7 +240,8 @@ describe('ordered goldfish product correction', () => {
       const matrixManifest = createStrategySearchMatrixManifest({ stageId: 'd'.repeat(64), source: {
         kingdomId: artifact.config.kingdomId,
         orderedProductIdentityHash: artifact.productIdentity!.identityHash,
-        rankedSha256, reservoirSha256 }, strategies: matrixSource.strategies });
+        rankedSha256, reservoirSha256, matrixSeedNamespace: 'initial-matrix-calibration-v2' },
+      strategies: matrixSource.strategies });
       expect(validateStrategySearchMatrixManifest(matrixManifest)).toBe(true);
       const psroSource = await loadValidatedOrderedProductSplitSource({ kingdomId: artifact.config.kingdomId,
         rankedPath, reservoirPath, counts: { retainedCount: 50, reservoirCount: 50, strategyCount: 50 } });

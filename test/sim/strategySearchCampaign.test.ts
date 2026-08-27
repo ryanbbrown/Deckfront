@@ -9,8 +9,8 @@ import {
   claimCampaignController, contentIndexDestination, createCampaignContentIndex, createCampaignState,
   bindCampaignStageCall, campaignEvidenceComplete, deriveLaunchAuthorizationToken,
   deriveSourceImageIdentity, mutateCampaignState, parseCampaignSelectionManifest,
-  parseStrategySearchCampaignManifest,
-  recordCampaignStageLaunchIntent, recordCampaignStageOutcome, runtimeCeilings,
+  parseStrategySearchCampaignManifest, recordCampaignStageLaunchIntent, recordCampaignStageOutcome,
+  recoverCampaignStageLaunchIntent, repairCampaignCompletedStage, runtimeCeilings,
   runtimeFitsAuthorizedCeilings, transitionCampaignStage, validateCampaignContentIndex,
   validateCampaignState, verifySourceImageFiles
 } from '../../src/sim/strategySearchCampaign';
@@ -42,6 +42,7 @@ function fixture() {
     simulatorVersion: 'strategy-search-simulator-v1' as const, artifactSchemaVersion: 1 as const
   }, runtime: { executionMode: 'local-fixture' as const, downloadRoot: '.data/campaign',
     controllerTimeoutSeconds: 1000, maxActiveContainers: 10, maxActiveCpus: 80, dispatchBatchSize: 5,
+    retryBackoffSeconds: 5, retryBackoffMaxSeconds: 60,
     stages: { goldfish: { cpu: 4, memoryMiB: 4096, threads: 4, workerBatchSize: 2,
       timeoutSeconds: 600, checkpointIntervalSeconds: 10 },
     matrix: { cpu: 8, memoryMiB: 8192, threads: 8, workerBatchSize: 4,
@@ -114,6 +115,13 @@ describe('strategy-search campaign identity and state', () => {
     expect(() => parseStrategySearchCampaignManifest(stale)).toThrow('Rule fingerprint differs');
     const empty = fixture(); empty.evidence.kingdomIds = [];
     expect(() => parseStrategySearchCampaignManifest(empty)).toThrow();
+    const duplicateNamespace = fixture();
+    duplicateNamespace.evidence.psro.queueRetestSeedNamespace = duplicateNamespace.evidence.psro.screenSeedNamespace;
+    expect(() => parseStrategySearchCampaignManifest(duplicateNamespace)).toThrow('namespaces must be distinct');
+    for (const field of ['generator', 'traversal', 'scorerVersion'] as const) {
+      const changed = fixture(); changed.evidence.orderedProduct[field] = `changed-${field}`;
+      expect(() => parseStrategySearchCampaignManifest(changed)).toThrow('implementation identity');
+    }
   });
 
   it('keeps evidence and stage IDs stable across runtime edits but changes them for evidence edits', () => {
@@ -261,6 +269,31 @@ describe('strategy-search campaign identity and state', () => {
     }
     expect(campaignEvidenceComplete(state)).toBe(true);
     expect(validateCampaignState(state)).toBe(true);
+    const repaired = repairCampaignCompletedStage({ state, expectedRevision: state.revision,
+      ownerId: 'second', fencingToken: 2, stageKey: goldfishKey, reason: 'ranked hash differs',
+      artifactPaths: ['output/ranked.json'], artifactHashes: { 'output/ranked.json': 'b'.repeat(64) } });
+    expect(repaired.stages[goldfishKey]).toMatchObject({ status: 'incomplete', reason: 'ranked hash differs' });
+    expect(repaired.stages[`${kingdomId}:matrix`]?.status).toBe('pending');
+    expect(repaired.stages[`${kingdomId}:psro`]?.status).toBe('pending');
+  });
+
+  it('recovers an ambiguous stage intent only under the current explicit operator fence', () => {
+    const parsed = parseStrategySearchCampaignManifest(fixture()), kingdomId = kingdoms[0]!;
+    const initial = createCampaignState({ campaignId: parsed.manifest.evidence.campaignId,
+      evidenceHash: parsed.evidenceHash, runtimeHash: parsed.runtimeHash,
+      stageIds: { [kingdomId]: parsed.stageIds[kingdomId]! } });
+    const ceilings = runtimeCeilings(parsed.manifest.runtime);
+    const claimed = claimCampaignController({ state: initial, expectedRevision: 0, ownerId: 'operator',
+      nowMs: 1, leaseMs: 10, authorization: {
+        token: deriveLaunchAuthorizationToken(parsed.evidenceHash, ceilings), ceilings } });
+    const key = `${kingdomId}:goldfish`;
+    const intent = recordCampaignStageLaunchIntent({ state: claimed, expectedRevision: claimed.revision,
+      ownerId: 'operator', fencingToken: 1, stageKey: key, launchIntentId: 'a'.repeat(64), nowMs: 2,
+      resources: { containers: 1, cpus: 4 } });
+    expect(recoverCampaignStageLaunchIntent({ state: intent, expectedRevision: intent.revision,
+      ownerId: 'operator', fencingToken: 1, stageKey: key }).stages[key]?.status).toBe('ready');
+    expect(() => recoverCampaignStageLaunchIntent({ state: intent, expectedRevision: intent.revision,
+      ownerId: 'stale', fencingToken: 1, stageKey: key })).toThrow('fenced out');
   });
 });
 

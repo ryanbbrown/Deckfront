@@ -38,6 +38,7 @@ function uint32(text: string): number {
 
 export interface StrategySearchMatrixSource {
   kingdomId: string; orderedProductIdentityHash: string; rankedSha256: string; reservoirSha256: string;
+  matrixSeedNamespace: string;
 }
 export interface StrategySearchMatrixManifest {
   schemaVersion: 3; experiment: 'strategy-search-campaign-matrix'; version: typeof STRATEGY_SEARCH_MATRIX_VERSION;
@@ -69,7 +70,8 @@ export interface StrategySearchMatrixCheckpointEvent {
 }
 export interface StrategySearchMatrixCommandTiming {
   schemaVersion: 3; experiment: 'strategy-search-campaign-matrix-command-timing'; manifestHash: string;
-  workerCount: number; commandWallMs: number; batchTimingHashes: string[]; evidenceHash: string;
+  evidenceKind: 'executed-command' | 'recovered-batches'; workerCount: number | null;
+  commandWallMs: number | null; batchTimingHashes: string[]; evidenceHash: string;
 }
 export interface StrategySearchMatrixP75Source {
   schemaVersion: 3; experiment: 'strategy-search-campaign-matrix-p75'; manifestHash: string;
@@ -78,11 +80,11 @@ export interface StrategySearchMatrixP75Source {
 }
 
 export function strategySearchMatrixSeeds(source: StrategySearchMatrixSource, stageId: string): number[] {
-  if (!source.kingdomId || !sha(source.orderedProductIdentityHash) || !sha(source.rankedSha256)
+  if (!source.kingdomId || !source.matrixSeedNamespace || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(source.matrixSeedNamespace)
+    || !sha(source.orderedProductIdentityHash) || !sha(source.rankedSha256)
     || !sha(source.reservoirSha256) || !sha(stageId)) throw new Error('Campaign Matrix seed source is invalid.');
   const seeds = Array.from({ length: INITIAL_MATRIX_MAX_SEEDS }, (_unused, index) => uint32(
-    `${STRATEGY_SEARCH_MATRIX_VERSION}:${stageId}:${source.kingdomId}:${source.orderedProductIdentityHash}:`
-      + `${source.rankedSha256}:${source.reservoirSha256}:${index}`));
+    `${source.matrixSeedNamespace}:${source.kingdomId}:${source.rankedSha256}:${source.reservoirSha256}:${index}`));
   if (new Set(seeds).size !== seeds.length) throw new Error('Campaign Matrix seed namespace collided.');
   return seeds;
 }
@@ -340,29 +342,37 @@ export async function executeStrategySearchMatrixBatches(input: {
 }
 
 export function createStrategySearchMatrixCommandTiming(input: { manifest: StrategySearchMatrixManifest;
-  workerCount: number; commandWallMs: number; batchTimingHashes: readonly string[]
+  workerCount: number | null; commandWallMs: number | null; batchTimingHashes: readonly string[];
+  evidenceKind?: 'executed-command' | 'recovered-batches'
 }): StrategySearchMatrixCommandTiming {
-  if (!validateStrategySearchMatrixManifest(input.manifest) || !Number.isSafeInteger(input.workerCount)
-    || input.workerCount < 1 || !Number.isFinite(input.commandWallMs) || input.commandWallMs < 0
+  const evidenceKind = input.evidenceKind ?? 'executed-command';
+  const executed = evidenceKind === 'executed-command';
+  if (!validateStrategySearchMatrixManifest(input.manifest)
+    || executed && (!Number.isSafeInteger(input.workerCount) || input.workerCount! < 1
+      || !Number.isFinite(input.commandWallMs) || input.commandWallMs! < 0)
+    || !executed && (input.workerCount !== null || input.commandWallMs !== null)
     || !input.batchTimingHashes.length || new Set(input.batchTimingHashes).size !== input.batchTimingHashes.length
     || input.batchTimingHashes.some((digest) => !sha(digest))) {
     throw new Error('Campaign Matrix command timing input is invalid.');
   }
   const base = { schemaVersion: 3 as const,
     experiment: 'strategy-search-campaign-matrix-command-timing' as const,
-    manifestHash: input.manifest.evidenceHash, workerCount: input.workerCount,
+    manifestHash: input.manifest.evidenceHash, evidenceKind, workerCount: input.workerCount,
     commandWallMs: input.commandWallMs, batchTimingHashes: [...input.batchTimingHashes], evidenceHash: '' };
   return { ...base, evidenceHash: unsigned(base) };
 }
 
 export function validateStrategySearchMatrixCommandTiming(value: unknown,
   manifest: StrategySearchMatrixManifest): value is StrategySearchMatrixCommandTiming {
-  if (!object(value) || !exactKeys(value, ['schemaVersion', 'experiment', 'manifestHash', 'workerCount',
-    'commandWallMs', 'batchTimingHashes', 'evidenceHash'])) return false;
+  if (!object(value) || !exactKeys(value, ['schemaVersion', 'experiment', 'manifestHash', 'evidenceKind',
+    'workerCount', 'commandWallMs', 'batchTimingHashes', 'evidenceHash'])) return false;
   const held = value as unknown as StrategySearchMatrixCommandTiming;
   return held.schemaVersion === 3 && held.experiment === 'strategy-search-campaign-matrix-command-timing'
-    && held.manifestHash === manifest.evidenceHash && Number.isSafeInteger(held.workerCount) && held.workerCount >= 1
-    && Number.isFinite(held.commandWallMs) && held.commandWallMs >= 0
+    && held.manifestHash === manifest.evidenceHash
+    && (held.evidenceKind === 'executed-command' && Number.isSafeInteger(held.workerCount) && held.workerCount! >= 1
+      && Number.isFinite(held.commandWallMs) && held.commandWallMs! >= 0
+      || held.evidenceKind === 'recovered-batches' && held.workerCount === null && held.commandWallMs === null)
+    && held.batchTimingHashes.length > 0 && new Set(held.batchTimingHashes).size === held.batchTimingHashes.length
     && held.batchTimingHashes.every((digest) => sha(digest)) && held.evidenceHash === unsigned(held);
 }
 

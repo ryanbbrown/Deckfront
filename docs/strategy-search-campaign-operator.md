@@ -8,7 +8,7 @@ This campaign plan does not replace plans 71 or 72. Those plans remain the proto
 
 Keep both input files outside the tracked source tree:
 
-- a campaign manifest with explicit seeds, protocol settings, runtime capacity, and source-image identity;
+- a campaign manifest with explicit seeds, protocol settings, runtime capacity, retry backoff (`retryBackoffSeconds` and `retryBackoffMaxSeconds`), and source-image identity;
 - a selection manifest with the exact ordered `selectedKingdomIds` list.
 
 The campaign manifest binds the selection manifest's byte SHA-256 and internal digest. The command rejects a different file, reordered IDs, duplicate IDs, unknown IDs, or an ID without four explicit Goldfish seeds.
@@ -61,11 +61,24 @@ npm run strategy-search:campaign -- run \
   --authorize 'campaign-v1.REPLACE_WITH_PLAN_TOKEN'
 ```
 
-A later run under the same or lower authorized ceilings needs no token. Run `plan` again and supply its new token before increasing controller timeout, global CPUs or containers, or any stage CPU, memory, thread, worker-batch, or timeout ceiling.
+A later run under the same or lower authorized ceilings needs no token. Run `plan` again and supply its new token before increasing controller timeout, global CPUs or containers, or any stage CPU, memory, thread, worker-batch, or timeout ceiling. The runtime manifest also sets the initial and maximum retry backoff. Resumable work keeps retrying until the controller deadline or a platform limit. There is no attempt or spend cap.
 
 `run` initializes or attaches to the fenced campaign controller. It reuses saved calls and artifacts, then creates per-stage archives after active calls stop. The downloader verifies the remote content index, archive hashes, every archive member path, byte count, and SHA-256 before an atomic local install. A resumed download skips matching files and replaces corrupt files. It never follows a symlink.
 
 `run` exits with an error while any stage is ready, active, operationally incomplete, terminal-incomplete, corrupt, or missing. Download status and local analytics do not change paid campaign completion.
+
+## Recover an ambiguous launch
+
+A controller crash can leave a durable launch intent without a Modal call ID. `run` never relaunches this work automatically. First use the Modal dashboard to confirm that no live call exists. Then make that assertion explicitly:
+
+```sh
+npm run strategy-search:campaign -- recover \
+  --manifest /tmp/hexdeck-campaign.json \
+  --selection-manifest /tmp/hexdeck-balance-smoke-selection.json \
+  --assert-no-live-call controller
+```
+
+Use the exact scheduler task ID instead of `controller` for an unbound task launch. Recovery rejects a bound call, an active controller lease, stale evidence, or a task without an unbound intent. It takes a new fence before it makes task work ready.
 
 ## Local output
 

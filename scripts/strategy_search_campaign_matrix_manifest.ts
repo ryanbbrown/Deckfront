@@ -14,13 +14,15 @@ function writeAtomic(file: string, value: unknown): void {
   fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`); fs.renameSync(temporary, file);
 }
 const kingdomId = option('kingdom'), ranked = path.resolve(option('ranked')),
-  reservoir = path.resolve(option('reservoir')), stageId = option('stage-id');
+  reservoir = path.resolve(option('reservoir')), stageId = option('stage-id'),
+  matrixSeedNamespace = option('seed-namespace');
 strategySearchKingdom(kingdomId);
 const validated = await loadValidatedOrderedProductSplitSource({ kingdomId, rankedPath: ranked,
   reservoirPath: reservoir });
 const manifest = createStrategySearchMatrixManifest({ stageId, source: { kingdomId,
   orderedProductIdentityHash: validated.manifest.productIdentity?.identityHash ?? '',
-  rankedSha256: validated.rankedSha256, reservoirSha256: validated.reservoirSha256 },
+  rankedSha256: validated.rankedSha256, reservoirSha256: validated.reservoirSha256,
+  matrixSeedNamespace },
 strategies: validated.strategies });
 writeAtomic(path.resolve(option('out')), manifest);
 process.stdout.write(`${JSON.stringify({ manifestHash: manifest.evidenceHash })}\n`);

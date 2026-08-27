@@ -36,7 +36,9 @@ interface Config {
   stageId: string; kingdomId: string; runId: string; rankedPath: string; reservoirPath: string;
   matrixRoot: string; outputRoot: string; controlRoot: string; workers: number;
   protocolInput: { experimentName: string; protocolVersion: string; checkpointNamespace: string;
-    screenDepths: number[]; confirmationLooks: number[] }; execution: 'local';
+    screenDepths: number[]; confirmationLooks: number[]; matrixSeedNamespace: string;
+    screenSeedNamespace: string; confirmationSeedNamespace: string; queueRetestSeedNamespace: string };
+  execution: 'local';
 }
 const hash = (value: unknown): string => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 function option(name: string): string {
@@ -150,7 +152,10 @@ const sourceIdentity: CalibrationSourceIdentity = { kingdomId: config.kingdomId,
   reservoirVersion: ordered.source.productVersion, rulesFingerprint: ordered.source.ruleFingerprint };
 const protocol = createThresholdRacingProtocol({ ...config.protocolInput, runId: config.runId,
   kingdomId: config.kingdomId, reservoirCount: 20_000, sourceIdentityHash: hash(sourceIdentity) });
-if (!validateThresholdRacingProtocol(protocol)) throw new Error('Campaign PSRO protocol is invalid.');
+if (!validateThresholdRacingProtocol(protocol)
+  || protocol.matrixSeedNamespace !== manifest.source.matrixSeedNamespace) {
+  throw new Error('Campaign PSRO protocol or Matrix seed namespace is invalid.');
+}
 const source: ThresholdRacingSource = { entry: { kingdomId: config.kingdomId, ranked: config.rankedPath,
   reservoir: config.reservoirPath, p75Root: config.matrixRoot }, source: sourceIdentity,
   reservoir, initialMatrix: initialMatrix(manifest, p75, chunks),

@@ -14,6 +14,7 @@ import struct
 import subprocess
 import tarfile
 import tempfile
+import threading
 import time
 import uuid
 from typing import Any
@@ -1188,12 +1189,29 @@ def campaign_state_mutator(request: dict[str, Any]) -> dict[str, Any]:
         elif operation == "scheduler-update":
             state_operation = "stage-outcome" if held.get("stageOutcome") \
                 else "transition" if held.get("stageRetry") else None
+        elif operation == "repair-completed":
+            state_operation = "repair-completed"
+        elif operation == "recover-launch":
+            state_operation = "recover-launch"
         else:
             raise ValueError(f"unknown serialized campaign mutation {operation}")
-        scheduler = _campaign_scheduler_operation("apply", scheduler, updates=scheduler_updates)
+        if operation == "repair-completed":
+            scheduler = _campaign_scheduler_operation("repair", scheduler, repair=held["repair"])
+        elif operation == "recover-launch":
+            before = next((task for task in scheduler["tasks"]
+                           if task["taskId"] == held.get("recovery", {}).get("taskId")), None)
+            scheduler = _campaign_scheduler_operation("recover", scheduler, recovery=held["recovery"])
+            if before is None or held.get("stageKey") != f"{before['kingdomId']}:{before['stage']}":
+                raise RuntimeError("campaign launch recovery stage identity differs")
+            if any(task["status"] in {"active", "launching"}
+                   and task["kingdomId"] == before["kingdomId"] and task["stage"] == before["stage"]
+                   for task in scheduler["tasks"]):
+                state_operation = None
+        else:
+            scheduler = _campaign_scheduler_operation("apply", scheduler, updates=scheduler_updates)
         if state_operation:
-            state_payload = held if state_operation not in {"stage-outcome", "transition"} \
-                else {**held, **(held.get("stageOutcome") or held.get("stageRetry"))}
+            state_payload = held if state_operation not in {"stage-outcome", "transition", "repair-completed"} \
+                else {**held, **(held.get("stageOutcome") or held.get("stageRetry") or held.get("repair"))}
             state = _campaign_node(["npx", "tsx", "scripts/strategy_search_campaign_state.ts",
                 state_operation], {**state_payload, "state": state})
     _atomic_json(state_file, state)
@@ -1222,6 +1240,19 @@ def _campaign_stage_command(stage: str, config: dict[str, Any], shutdown_at_ms: 
     raise ValueError(f"unsupported whole campaign stage {stage}")
 
 
+def _drain_bounded_text(stream: Any, maximum_chars: int = 64 * 1024) -> tuple[list[str], threading.Thread]:
+    tail = [""]
+    def drain() -> None:
+        while True:
+            chunk = stream.read(4096)
+            if not chunk:
+                break
+            tail[0] = (tail[0] + chunk)[-maximum_chars:]
+    thread = threading.Thread(target=drain, daemon=True)
+    thread.start()
+    return tail, thread
+
+
 def _run_campaign_stage(stage: str, config: dict[str, Any]) -> dict[str, Any]:
     if stage not in {"matrix", "psro"} or config.get("stage") != stage \
             or not isinstance(config.get("controller_fence"), int) or config["controller_fence"] < 1:
@@ -1236,14 +1267,22 @@ def _run_campaign_stage(stage: str, config: dict[str, Any]) -> dict[str, Any]:
     if timeout_seconds < 2 or shutdown_margin_seconds < 1 or shutdown_margin_seconds >= timeout_seconds:
         raise ValueError("campaign stage shutdown margin is invalid")
     shutdown_at_ms = int((time.time() + timeout_seconds - shutdown_margin_seconds) * 1000)
-    command = _campaign_stage_command(stage, config, shutdown_at_ms)
-    environment = None if stage != "psro" else {
-        **os.environ, "HEXDECK_GOLDFISH_BIN": CAMPAIGN_RUST_GOLDFISH_BIN}
+    command = ["/usr/bin/time", "-v", *_campaign_stage_command(stage, config, shutdown_at_ms)]
+    memory_mib = config.get("memory_mib")
+    if not isinstance(memory_mib, int) or memory_mib < 512:
+        raise ValueError("campaign whole-stage memory authorization is invalid")
+    heap_mib = max(256, min(memory_mib - 256, math.floor(memory_mib * 0.75)))
+    environment = {**os.environ, "NODE_OPTIONS": f"--max-old-space-size={heap_mib}"}
+    if stage == "psro":
+        environment["HEXDECK_GOLDFISH_BIN"] = CAMPAIGN_RUST_GOLDFISH_BIN
+    started = time.monotonic()
     process = subprocess.Popen(command, cwd="/workspace", text=True, stdout=subprocess.PIPE,
         stderr=subprocess.PIPE, bufsize=1, env=environment)
     checkpoint_count = 0
     terminal = None
-    assert process.stdout is not None
+    event_error = None
+    assert process.stdout is not None and process.stderr is not None
+    stderr_tail, stderr_thread = _drain_bounded_text(process.stderr)
     for line in process.stdout:
         line = line.strip()
         if not line:
@@ -1254,19 +1293,26 @@ def _run_campaign_stage(stage: str, config: dict[str, Any]) -> dict[str, Any]:
             continue
         if event.get("type") == CAMPAIGN_CHECKPOINT_EVENT:
             if event.get("stage") != stage or not re.fullmatch(r"[0-9a-f]{64}", event.get("eventHash", "")):
+                event_error = "campaign stage emitted a stale or malformed checkpoint event"
                 process.terminate()
-                raise RuntimeError("campaign stage emitted a stale or malformed checkpoint event")
+                break
             volume.commit()
             checkpoint_count += 1
         elif event.get("type") == CAMPAIGN_STAGE_STOP_EVENT:
             if event.get("stage") != stage or event.get("status") not in {
                     "complete", "incomplete", "terminal-incomplete"} \
                     or not re.fullmatch(r"[0-9a-f]{64}", event.get("markerHash", "")):
+                event_error = "campaign stage emitted a malformed stop event"
                 process.terminate()
-                raise RuntimeError("campaign stage emitted a malformed stop event")
+                break
             terminal = event
     return_code = process.wait()
-    stderr = process.stderr.read() if process.stderr else ""
+    stderr_thread.join(timeout=10)
+    if stderr_thread.is_alive():
+        raise RuntimeError(f"campaign {stage} stderr drain did not stop")
+    stderr = stderr_tail[0]
+    if event_error is not None:
+        raise RuntimeError(f"{event_error}: {stderr[-2000:]}")
     if terminal is None:
         raise RuntimeError(f"campaign {stage} process stopped without a control marker: {stderr[-2000:]}")
     if terminal["status"] == "complete" and return_code != 0:
@@ -1278,11 +1324,29 @@ def _run_campaign_stage(stage: str, config: dict[str, Any]) -> dict[str, Any]:
     marker = json.loads(marker_file.read_text())
     if marker.get("markerHash") != terminal["markerHash"] or marker.get("status") != terminal["status"]:
         raise RuntimeError(f"campaign {stage} stop marker differs from its process event")
+    rss = re.search(r"Maximum resident set size \(kbytes\):\s*(\d+)", stderr)
+    attempt_id = config.get("launch_intent_id")
+    if not isinstance(attempt_id, str) or not re.fullmatch(r"[0-9a-f]{64}", attempt_id):
+        attempt_id = hashlib.sha256(f"{stage}:{config['controller_fence']}".encode()).hexdigest()
+    execution_relative = f"{config['control_path']}/execution-{attempt_id}.json"
+    execution = {"schemaVersion": 1, "stage": stage, "stageId": config["stage_id"],
+        "launchIntentId": attempt_id, "controllerFence": config["controller_fence"],
+        "authorizedMemoryMiB": memory_mib, "nodeHeapMiB": heap_mib,
+        "peakRssKib": int(rss.group(1)) if rss else None,
+        "wallMs": round((time.monotonic() - started) * 1000, 3), "returnCode": return_code,
+        "checkpointCommits": checkpoint_count, "stderrTailSha256": hashlib.sha256(stderr.encode()).hexdigest()}
+    execution_file = _campaign_path(config["campaign_root"], execution_relative)
+    _atomic_json(execution_file, execution)
+    artifact_hashes = dict(marker.get("artifactHashes", {}))
+    stage_root = pathlib.PurePosixPath(config["control_path"]).parent.as_posix()
+    artifact_relative = pathlib.PurePosixPath(execution_relative).relative_to(stage_root).as_posix()
+    artifact_hashes[artifact_relative] = _sha256_path(execution_file)
     volume.commit()
     return {"status": terminal["status"], "stage": stage, "stageId": config["stage_id"],
         "controllerFence": config["controller_fence"], "markerHash": terminal["markerHash"],
-        "reason": marker.get("reason"), "artifactPaths": sorted(marker.get("artifactHashes", {})),
-        "artifactHashes": marker.get("artifactHashes", {}), "checkpointCommits": checkpoint_count,
+        "reason": marker.get("reason"), "artifactPaths": sorted(artifact_hashes),
+        "artifactHashes": artifact_hashes, "checkpointCommits": checkpoint_count,
+        "peakRssKib": execution["peakRssKib"], "nodeHeapMiB": heap_mib,
         "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname())}
 
 
@@ -1408,7 +1472,8 @@ def campaign_goldfish_finalize(config: dict[str, Any]) -> dict[str, Any]:
     matrix_manifest = _campaign_path(config["campaign_root"], config["matrix_manifest_path"])
     prepare_matrix = ["npx", "tsx", "scripts/strategy_search_campaign_matrix_manifest.ts",
         "--kingdom", config["kingdom"], "--ranked", str(ranked), "--reservoir", str(reservoir),
-        "--stage-id", config["matrix_stage_id"], "--out", str(matrix_manifest)]
+        "--stage-id", config["matrix_stage_id"], "--seed-namespace", config["matrix_seed_namespace"],
+        "--out", str(matrix_manifest)]
     _run_checked(prepare_matrix, "campaign Matrix manifest preparation", cwd="/workspace",
         env=node_environment, text=True, capture_output=True, timeout=config["timeout_seconds"])
     volume.commit()
@@ -1498,8 +1563,27 @@ def _deep_validate_campaign_result(campaign_root: str, entry: dict[str, Any],
     request = {"campaignRoot": str(_campaign_root(campaign_root)), "stage": entry["stage"],
         "stageId": entry["config"]["stage_id"], "stageRoot": validation["stage_root"],
         "expectedStatus": expected_status}
-    return _campaign_node(["npx", "tsx", "scripts/strategy_search_campaign_validate_stage.ts"], request,
+    validated = _campaign_node(["npx", "tsx", "scripts/strategy_search_campaign_validate_stage.ts"], request,
         timeout=max(120, entry["timeout_seconds"]))
+    stage_root = _campaign_path(campaign_root, validation["stage_root"])
+    marker = json.loads((stage_root / "control" / f"{expected_status}.json").read_text())
+    marker_entries = sorted(marker.get("artifactHashes", {}).items())
+    marker_set_hash = hashlib.sha256(json.dumps(marker_entries,
+        separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
+    if validated.get("status") != expected_status or validated.get("markerHash") != marker.get("markerHash") \
+            or validated.get("artifactCount") != len(marker_entries) \
+            or validated.get("artifactSetHash") != marker_set_hash:
+        raise RuntimeError("campaign compact stage validation result differs from its marker")
+    artifact_hashes = result.get("artifactHashes", {})
+    if not isinstance(artifact_hashes, dict) or any(
+            artifact_hashes.get(path) != digest for path, digest in marker_entries):
+        raise RuntimeError("campaign call result omits validated marker evidence")
+    for relative, digest in artifact_hashes.items():
+        file = _campaign_path(campaign_root, f"{validation['stage_root']}/{relative}")
+        if not file.exists() or file.is_symlink() or _sha256_path(file) != digest:
+            raise RuntimeError(f"campaign call artifact differs: {relative}")
+    return {"status": expected_status, "reason": marker.get("reason"),
+        "artifactPaths": sorted(artifact_hashes), "artifactHashes": artifact_hashes}
 
 
 def _campaign_call_observations(checkpoint: dict[str, Any], campaign_root: str,
@@ -1549,7 +1633,8 @@ def _durably_spawn_campaign_task(*, campaign_root: str, owner_id: str, fence: in
     changed = campaign_state_mutator.remote({"campaign_root": campaign_root,
         "operation": "launch-intent", "payload": intent_payload})
     state, checkpoint = changed["state"], changed["scheduler"]
-    stage_config = {**entry["config"], "controller_fence": fence, "source_image": source_image}
+    stage_config = {**entry["config"], "controller_fence": fence, "source_image": source_image,
+        "memory_mib": entry["memory_mib"], "launch_intent_id": launch_intent_id}
     function = _campaign_function({**action, "config": entry["config"]})
     call = function.with_options(cpu=entry["cpu"], memory=entry["memory_mib"],
         timeout=entry["timeout_seconds"], retries=0).spawn(stage_config)
@@ -1562,6 +1647,32 @@ def _durably_spawn_campaign_task(*, campaign_root: str, owner_id: str, fence: in
     changed = campaign_state_mutator.remote({"campaign_root": campaign_root,
         "operation": "bind-call", "payload": bind_payload})
     return changed["state"], changed["scheduler"], call
+
+
+def _reconcile_campaign_completed(*, campaign_root: str, owner_id: str, fence: int,
+                                  state: dict[str, Any], checkpoint: dict[str, Any],
+                                  task_configs: dict[str, dict[str, Any]]) -> tuple[dict[str, Any], dict[str, Any], bool]:
+    if any(task["status"] in {"active", "launching"} for task in checkpoint["tasks"]):
+        return state, checkpoint, False
+    for task in checkpoint["tasks"]:
+        if task["status"] != "complete":
+            continue
+        entry = task_configs[task["taskId"]]
+        try:
+            volume.reload()
+            _deep_validate_campaign_result(campaign_root, entry, {"status": "complete",
+                "artifactPaths": task["artifactPaths"], "artifactHashes": task["artifactHashes"]})
+        except Exception as error:
+            reason = f"completed evidence repair: {type(error).__name__}: {error}"
+            repair = {"taskId": task["taskId"], "stageKey": entry["config"]["stage_key"],
+                "reason": reason, "artifactPaths": task["artifactPaths"],
+                "artifactHashes": task["artifactHashes"]}
+            changed = campaign_state_mutator.remote({"campaign_root": campaign_root,
+                "operation": "repair-completed", "payload": {
+                    "expectedSchedulerRevision": checkpoint["revision"], "fencingToken": fence,
+                    "expectedRevision": state["revision"], "ownerId": owner_id, "repair": repair}})
+            return changed["state"], changed["scheduler"], True
+    return state, checkpoint, False
 
 
 def _terminal_campaign_outcome(checkpoint: dict[str, Any]) -> dict[str, Any] | None:
@@ -1599,6 +1710,7 @@ def campaign_controller(config: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(f"campaign task stage identity differs for {task['taskId']}")
     deadline = time.monotonic() + config["controller_timeout_seconds"] - config["shutdown_margin_seconds"]
     renewed_at = time.monotonic()
+    initial_reconciled = False
     while True:
         volume.reload()
         if time.monotonic() - renewed_at >= config["lease_renew_interval_seconds"]:
@@ -1613,27 +1725,24 @@ def campaign_controller(config: dict[str, Any]) -> dict[str, Any]:
             if state["fencingToken"] != fence:
                 raise RuntimeError("campaign controller lost its fencing token during lease renewal")
             renewed_at = time.monotonic()
-        for stage_key, stage in list(state["stages"].items()):
-            resumable = [task for task in checkpoint["tasks"]
-                if task_configs[task["taskId"]]["config"]["stage_key"] == stage_key
-                and task["status"] in {"ready", "incomplete"}]
-            if stage["status"] == "incomplete" and resumable:
-                changed = campaign_state_mutator.remote({"campaign_root": config["campaign_root"],
-                    "operation": "scheduler-update", "payload": {
-                        "expectedSchedulerRevision": checkpoint["revision"], "fencingToken": fence,
-                        "expectedRevision": state["revision"], "ownerId": config["claim"]["ownerId"],
-                        "updates": [], "stageRetry": {"stageKey": stage_key,
-                            "status": "ready", "details": {}}}})
-                state, checkpoint = changed["state"], changed["scheduler"]
-        for task in [entry for entry in checkpoint["tasks"] if entry["status"] == "incomplete"]:
+        if not initial_reconciled and not any(task["status"] in {"active", "launching"}
+                                             for task in checkpoint["tasks"]):
+            state, checkpoint, repaired = _reconcile_campaign_completed(
+                campaign_root=config["campaign_root"], owner_id=config["claim"]["ownerId"],
+                fence=fence, state=state, checkpoint=checkpoint, task_configs=task_configs)
+            if repaired:
+                continue
+            initial_reconciled = True
+        now_ms = int(time.time() * 1000)
+        for task in [entry for entry in checkpoint["tasks"] if entry["status"] == "incomplete"
+                     and entry.get("retryNotBeforeMs", 0) <= now_ms]:
             task_config = task_configs[task["taskId"]]
             payload = {"expectedSchedulerRevision": checkpoint["revision"], "fencingToken": fence,
                 "expectedRevision": state["revision"], "ownerId": config["claim"]["ownerId"],
-                "updates": [{"kind": "ready", "taskId": task["taskId"]}]}
-            if task_config.get("stage_terminal") and state["stages"][task_config["config"]["stage_key"]]["status"] \
-                    == "incomplete":
-                payload["stageRetry"] = {"stageKey": task_config["config"]["stage_key"],
-                    "status": "ready", "details": {}}
+                "updates": [{"kind": "ready", "taskId": task["taskId"], "nowMs": now_ms}]}
+            stage_key = task_config["config"]["stage_key"]
+            if state["stages"][stage_key]["status"] == "incomplete":
+                payload["stageRetry"] = {"stageKey": stage_key, "status": "ready", "details": {}}
             changed = campaign_state_mutator.remote({"campaign_root": config["campaign_root"],
                 "operation": "scheduler-update", "payload": payload})
             state, checkpoint = changed["state"], changed["scheduler"]
@@ -1655,6 +1764,15 @@ def campaign_controller(config: dict[str, Any]) -> dict[str, Any]:
                 "artifactPaths": action["artifactPaths"], "artifactHashes": action["artifactHashes"]}
             if action["kind"] != "complete":
                 update["reason"] = action["reason"]
+            if action["kind"] == "incomplete":
+                task = next(task for task in checkpoint["tasks"] if task["taskId"] == action["taskId"])
+                base = config["retry_backoff_seconds"]
+                maximum = config["retry_backoff_max_seconds"]
+                if not all(isinstance(value, int) and value > 0 for value in [base, maximum]) or maximum < base:
+                    raise ValueError("campaign retry backoff is invalid")
+                exponent = min(max(0, task["attemptCount"] - 1), math.ceil(math.log2(maximum / base)))
+                delay_seconds = min(maximum, base * (2 ** exponent))
+                update["retryNotBeforeMs"] = int(time.time() * 1000) + delay_seconds * 1000
             payload = {"expectedSchedulerRevision": checkpoint["revision"], "fencingToken": fence,
                 "expectedRevision": state["revision"], "ownerId": config["claim"]["ownerId"],
                 "updates": [update]}
@@ -1678,6 +1796,12 @@ def campaign_controller(config: dict[str, Any]) -> dict[str, Any]:
         statuses = {task["status"] for task in checkpoint["tasks"]}
         psro_states = [stage["status"] for key, stage in state["stages"].items() if key.endswith(":psro")]
         if statuses == {"complete"} and psro_states and all(status == "complete" for status in psro_states):
+            state, checkpoint, repaired = _reconcile_campaign_completed(
+                campaign_root=config["campaign_root"], owner_id=config["claim"]["ownerId"],
+                fence=fence, state=state, checkpoint=checkpoint, task_configs=task_configs)
+            if repaired:
+                initial_reconciled = True
+                continue
             return {"status": "complete", "evidenceHash": config["evidence_hash"],
                 "stateRevision": state["revision"], "controllerFence": fence,
                 "schedulerHash": checkpoint["checkpointHash"]}
@@ -1778,8 +1902,15 @@ def campaign_read_status(request: dict[str, Any]) -> dict[str, Any]:
             or scheduler is not None and scheduler["evidenceHash"] != request["evidence_hash"]:
         raise RuntimeError("campaign status evidence differs")
     root = _campaign_root(request["campaign_root"])
-    content_index = _bounded_json(root / "download" / "content-index.json", 128 * 1024 * 1024)
-    archives = _bounded_json(root / "download" / "archives.json")
+    download = _bounded_json(root / "download" / "summary.json", 16 * 1024)
+    if download is not None and (set(download) != {"schemaVersion", "indexHash", "indexBytes",
+            "entryCount", "archiveManifestHash", "archiveCount"}
+            or download["schemaVersion"] != 1
+            or not re.fullmatch(r"[0-9a-f]{64}", download.get("indexHash", ""))
+            or not re.fullmatch(r"[0-9a-f]{64}", download.get("archiveManifestHash", ""))
+            or not all(isinstance(download.get(key), int) and download[key] >= 0
+                       for key in ["indexBytes", "entryCount", "archiveCount"])):
+        raise RuntimeError("campaign download summary is malformed")
     controller_call = _bounded_json(root / "controller-call.json", 4096)
     if controller_call is not None and (set(controller_call) != {
             "schemaVersion", "evidenceHash", "callId", "ownerId"}
@@ -1788,8 +1919,8 @@ def campaign_read_status(request: dict[str, Any]) -> dict[str, Any]:
             or controller_call["callId"] is not None and not isinstance(controller_call["callId"], str)
             or not isinstance(controller_call["ownerId"], str) or not controller_call["ownerId"]):
         raise RuntimeError("campaign controller-call evidence is malformed")
-    return {"state": state, "scheduler": scheduler, "contentIndex": content_index,
-        "archives": archives, "controllerCall": controller_call}
+    return {"state": state, "scheduler": scheduler, "download": download,
+        "controllerCall": controller_call}
 
 
 def _campaign_file_entries(campaign_root: str, state: dict[str, Any]) -> tuple[list[dict[str, Any]],
@@ -1829,18 +1960,39 @@ def _canonical_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
+def _campaign_archive_member_hash(entries: list[dict[str, Any]]) -> str:
+    ordered = sorted(entries, key=lambda entry: entry["path"])
+    return hashlib.sha256(_canonical_json(ordered).encode()).hexdigest()
+
+
+def _prune_campaign_archives(download: pathlib.Path, current_archives: set[str]) -> None:
+    archives_root = download / "archives"
+    if not archives_root.exists():
+        return
+    for existing in archives_root.iterdir():
+        relative = existing.relative_to(download).as_posix()
+        if existing.is_symlink():
+            raise RuntimeError("campaign archive output contains a symlink")
+        if existing.is_file() and relative not in current_archives:
+            existing.unlink()
+
+
 @app.function(image=image, cpu=1, memory=2048, timeout=86400, max_containers=1,
               volumes={"/results": volume})
 @modal.concurrent(max_inputs=1)
 def campaign_package_download(request: dict[str, Any]) -> dict[str, Any]:
     volume.reload()
-    if set(request) != {"campaign_root", "evidence_hash"}:
+    if set(request) != {"campaign_root", "evidence_hash", "reconciled_scheduler_hash",
+            "controller_fence"}:
         raise ValueError("campaign packaging request has unexpected fields")
     root = _campaign_root(request["campaign_root"])
     state = _bounded_json(_campaign_state_file(request["campaign_root"]))
     scheduler = _bounded_json(_campaign_scheduler_file(request["campaign_root"]))
-    if state is None or scheduler is None or state["evidenceHash"] != request["evidence_hash"]:
-        raise RuntimeError("campaign packaging state is missing or stale")
+    if state is None or scheduler is None or state["evidenceHash"] != request["evidence_hash"] \
+            or scheduler.get("checkpointHash") != request["reconciled_scheduler_hash"] \
+            or state.get("fencingToken") != request["controller_fence"] \
+            or scheduler.get("controllerFence") != request["controller_fence"]:
+        raise RuntimeError("campaign packaging state is missing, unreconciled, or stale")
     _campaign_node(["npx", "tsx", "scripts/strategy_search_campaign_state.ts", "validate"],
         {"state": state})
     _campaign_scheduler_operation("validate", scheduler)
@@ -1870,19 +2022,28 @@ def campaign_package_download(request: dict[str, Any]) -> dict[str, Any]:
                 with source.open("rb") as stream:
                     held.addfile(info, stream)
         os.replace(temporary, archive)
+        member_entries = [indexed[member] for member in sorted(members)]
+        for member in member_entries:
+            if member["stageId"] != stage_id or member["completeness"] != completeness:
+                raise RuntimeError("campaign archive grouping differs from the content index")
         archive_entries.append({"path": archive_name, "bytes": archive.stat().st_size,
             "sha256": _sha256_path(archive), "stageId": stage_id,
-            "completeness": completeness, "members": sorted(members)})
-        for member in members:
-            if indexed[member]["stageId"] != stage_id or indexed[member]["completeness"] != completeness:
-                raise RuntimeError("campaign archive grouping differs from the content index")
-    base = {"schemaVersion": 1, "indexHash": content_index["indexHash"],
+            "completeness": completeness, "memberCount": len(member_entries),
+            "memberHash": _campaign_archive_member_hash(member_entries)})
+    base = {"schemaVersion": 2, "indexHash": content_index["indexHash"],
         "archives": sorted(archive_entries, key=lambda entry: entry["path"]), "manifestHash": ""}
     archives = {**base, "manifestHash": hashlib.sha256(_canonical_json(base).encode()).hexdigest()}
     _atomic_json(download / "content-index.json", content_index)
     _atomic_json(download / "archives.json", archives)
+    current_archives = {entry["path"] for entry in archive_entries}
+    _prune_campaign_archives(download, current_archives)
+    summary = {"schemaVersion": 1, "indexHash": content_index["indexHash"],
+        "indexBytes": (download / "content-index.json").stat().st_size,
+        "entryCount": len(content_index["entries"]), "archiveManifestHash": archives["manifestHash"],
+        "archiveCount": len(archive_entries)}
+    _atomic_json(download / "summary.json", summary)
     volume.commit()
-    return {"contentIndex": content_index, "archives": archives}
+    return summary
 
 
 @app.function(image=image, cpu=0.25, memory=512, timeout=60, max_containers=1,
@@ -1958,6 +2119,46 @@ def campaign_status_entry(campaign_root: str, evidence_hash: str) -> None:
         "evidence_hash": evidence_hash})))
 
 
+def _recover_campaign_launch(campaign_root: str, evidence_hash: str, target: str,
+                             assertion: str) -> dict[str, Any]:
+    if assertion != "no-live-modal-call-exists":
+        raise ValueError("campaign launch recovery needs the exact no-live-call assertion")
+    status = campaign_read_status.remote({"campaign_root": campaign_root, "evidence_hash": evidence_hash})
+    if target == "controller":
+        saved = status.get("controllerCall")
+        if not saved or saved.get("callId") is not None:
+            raise RuntimeError("campaign controller has no ambiguous unbound launch intent")
+        recovered = campaign_controller_call_mutator.remote({"campaign_root": campaign_root,
+            "evidence_hash": evidence_hash, "operation": "clear", "call_id": "",
+            "owner_id": saved["ownerId"]})
+        return {"status": "recovered", "target": target,
+            "controllerCall": recovered["controllerCall"]}
+    state, scheduler = status.get("state"), status.get("scheduler")
+    task = next((held for held in (scheduler or {}).get("tasks", []) if held["taskId"] == target), None)
+    if state is None or task is None or task["status"] != "launching" or task.get("callId") is not None:
+        raise RuntimeError("campaign task has no ambiguous unbound launch intent")
+    owner_id = f"recovery-{uuid.uuid4().hex}"
+    claimed = campaign_state_mutator.remote({"campaign_root": campaign_root, "operation": "claim",
+        "payload": {"expectedRevision": state["revision"], "ownerId": owner_id,
+            "nowMs": int(time.time() * 1000), "leaseMs": 60_000}})
+    state, scheduler = claimed["state"], claimed["scheduler"]
+    changed = campaign_state_mutator.remote({"campaign_root": campaign_root,
+        "operation": "recover-launch", "payload": {
+            "expectedSchedulerRevision": scheduler["revision"], "fencingToken": state["fencingToken"],
+            "expectedRevision": state["revision"], "ownerId": owner_id,
+            "stageKey": f"{task['kingdomId']}:{task['stage']}",
+            "recovery": {"taskId": target, "nowMs": int(time.time() * 1000)}}})
+    recovered_task = next(held for held in changed["scheduler"]["tasks"] if held["taskId"] == target)
+    return {"status": "recovered", "target": target,
+        "controllerFence": changed["state"]["fencingToken"], "taskStatus": recovered_task["status"]}
+
+
+@app.local_entrypoint()
+def campaign_recover_entry(campaign_root: str, evidence_hash: str, target: str,
+                           assertion: str) -> None:
+    print(json.dumps(_recover_campaign_launch(campaign_root, evidence_hash, target, assertion)))
+
+
 @app.local_entrypoint()
 def campaign_run_entry(launch_config: str, download_dir: str, existing_root: str = "") -> None:
     bundle = json.loads(pathlib.Path(launch_config).read_text())
@@ -2021,23 +2222,36 @@ def campaign_run_entry(launch_config: str, download_dir: str, existing_root: str
             "owner_id": owner_id})
         raise
     packaged = campaign_package_download.remote({"campaign_root": bundle["campaignRoot"],
-        "evidence_hash": bundle["evidenceHash"]})
+        "evidence_hash": bundle["evidenceHash"],
+        "reconciled_scheduler_hash": outcome["schedulerHash"],
+        "controller_fence": outcome["controllerFence"]})
     destination = pathlib.Path(download_dir)
     _download_campaign_file(f"{bundle['campaignRoot']}/download/content-index.json",
         destination / "content-index.json")
     _download_campaign_file(f"{bundle['campaignRoot']}/download/archives.json",
         destination / "archives.json")
-    indexed = {entry["path"]: entry for entry in packaged["contentIndex"]["entries"]}
+    content_index = json.loads((destination / "content-index.json").read_text())
+    archives = json.loads((destination / "archives.json").read_text())
+    if content_index.get("indexHash") != packaged["indexHash"] \
+            or archives.get("manifestHash") != packaged["archiveManifestHash"]:
+        raise RuntimeError("downloaded campaign control hashes differ from packaging result")
     existing = pathlib.Path(existing_root) if existing_root else None
-    for archive in packaged["archives"]["archives"]:
-        if existing is not None and all(_local_campaign_file_matches(existing, indexed[member])
-                                        for member in archive["members"]):
+    for archive in archives["archives"]:
+        members = [entry for entry in content_index["entries"]
+                   if entry["stageId"] == archive["stageId"]
+                   and entry["completeness"] == archive["completeness"]]
+        members.sort(key=lambda entry: entry["path"])
+        member_hash = _campaign_archive_member_hash(members)
+        if len(members) != archive["memberCount"] or member_hash != archive["memberHash"]:
+            raise RuntimeError("campaign archive compact membership differs from downloaded index")
+        if existing is not None and all(_local_campaign_file_matches(existing, member)
+                                        for member in members):
             continue
         _download_campaign_file(f"{bundle['campaignRoot']}/download/{archive['path']}",
             destination / archive["path"])
     print(json.dumps({"outcome": outcome, "downloadDir": str(destination),
-        "indexHash": packaged["contentIndex"]["indexHash"],
-        "archiveManifestHash": packaged["archives"]["manifestHash"]}))
+        "indexHash": packaged["indexHash"],
+        "archiveManifestHash": packaged["archiveManifestHash"]}))
 
 
 def validate_launch_limits(

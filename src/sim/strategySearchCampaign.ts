@@ -2,9 +2,10 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import path from 'node:path';
 import { z } from 'zod';
 import { strategySearchKingdom, strategySearchKingdoms } from './strategySearchKingdoms';
-import { nativeRuleFingerprint } from './nativeGoldfishProtocol';
+import { nativeRuleFingerprint, NATIVE_GOLDFISH_SCORER_VERSION } from './nativeGoldfishProtocol';
 import {
-  deriveCurrentOrderedProductIdentity, ORDERED_PRODUCT_SPACE_COUNT
+  deriveCurrentOrderedProductIdentity, ORDERED_PRODUCT_GENERATOR, ORDERED_PRODUCT_SPACE_COUNT,
+  ORDERED_PRODUCT_TRAVERSAL
 } from './orderedGoldfishProduct';
 
 export const STRATEGY_SEARCH_CAMPAIGN_SCHEMA_VERSION = 1 as const;
@@ -69,8 +70,8 @@ export const strategySearchCampaignManifestSchema = z.object({
       screenAlpha: z.literal(0.05), confirmationLooks: z.tuple([z.literal(400), z.literal(800),
         z.literal(1600), z.literal(3200), z.literal(6400)]), confirmationFamilyAlpha: z.literal(0.05),
       matrixSeedCount: z.literal(75), cleanScans: z.literal(2),
-      screenSeedNamespace: z.string().min(1), confirmationSeedNamespace: z.string().min(1),
-      queueRetestSeedNamespace: z.string().min(1), matrixSeedNamespace: z.string().min(1)
+      screenSeedNamespace: identifier, confirmationSeedNamespace: identifier,
+      queueRetestSeedNamespace: identifier, matrixSeedNamespace: identifier
     }).strict(),
     simulatorVersion: z.literal(STRATEGY_SEARCH_SIMULATOR_VERSION),
     artifactSchemaVersion: z.literal(STRATEGY_SEARCH_ARTIFACT_SCHEMA_VERSION)
@@ -78,7 +79,7 @@ export const strategySearchCampaignManifestSchema = z.object({
   runtime: z.object({
     executionMode: z.enum(['local-fixture', 'modal']), downloadRoot: z.string().min(1),
     controllerTimeoutSeconds: positive, maxActiveContainers: positive, maxActiveCpus: positive,
-    dispatchBatchSize: positive,
+    dispatchBatchSize: positive, retryBackoffSeconds: positive, retryBackoffMaxSeconds: positive,
     stages: z.object({ goldfish: runtimeStageSchema, matrix: runtimeStageSchema, psro: runtimeStageSchema }).strict()
   }).strict()
 }).strict();
@@ -234,10 +235,24 @@ export function parseStrategySearchCampaignManifest(value: unknown): ParsedCampa
       throw new Error(`Derived ordered-product candidate count differs for ${kingdomId}.`);
     }
   }
+  if (manifest.evidence.orderedProduct.generator !== ORDERED_PRODUCT_GENERATOR
+    || manifest.evidence.orderedProduct.traversal !== ORDERED_PRODUCT_TRAVERSAL
+    || manifest.evidence.orderedProduct.scorerVersion !== NATIVE_GOLDFISH_SCORER_VERSION) {
+    throw new Error('Campaign ordered-product implementation identity differs from the executable implementation.');
+  }
   if (manifest.evidence.orderedProduct.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT
     || manifest.evidence.orderedProduct.retainedCount !== 500_000
     || manifest.evidence.orderedProduct.reservoirCount !== 20_000) {
     throw new Error('Campaign ordered-product counts differ from the settled protocol.');
+  }
+  const seedNamespaces = [manifest.evidence.psro.matrixSeedNamespace,
+    manifest.evidence.psro.screenSeedNamespace, manifest.evidence.psro.confirmationSeedNamespace,
+    manifest.evidence.psro.queueRetestSeedNamespace];
+  if (new Set(seedNamespaces).size !== seedNamespaces.length) {
+    throw new Error('Campaign seed namespaces must be distinct.');
+  }
+  if (manifest.runtime.retryBackoffMaxSeconds < manifest.runtime.retryBackoffSeconds) {
+    throw new Error('Campaign retry backoff maximum is below its initial delay.');
   }
   validateShardPartition(manifest.evidence.orderedProduct.canonicalShards,
     manifest.evidence.orderedProduct.candidateCount);
@@ -560,6 +575,41 @@ export function recordCampaignStageOutcome(input: { state: CampaignState; expect
   if (!validateCampaignState(result)) throw new Error('Campaign stage outcome produced invalid state.');
   return result;
 }
+export function recoverCampaignStageLaunchIntent(input: { state: CampaignState; expectedRevision: number;
+  ownerId: string; fencingToken: number; stageKey: string }): CampaignState {
+  assertCampaignOwner(input.state, input.expectedRevision, input.ownerId, input.fencingToken);
+  const draft = structuredClone(input.state), stage = draft.stages[input.stageKey];
+  if (!stage || stage.status !== 'active') throw new Error('Campaign stage has no active launch intent to recover.');
+  draft.stages[input.stageKey] = { id: stage.id, status: 'ready' };
+  const result = nextState(draft);
+  if (!validateCampaignState(result)) throw new Error('Campaign stage launch recovery produced invalid state.');
+  return result;
+}
+
+export function repairCampaignCompletedStage(input: { state: CampaignState; expectedRevision: number;
+  ownerId: string; fencingToken: number; stageKey: string; reason: string;
+  artifactPaths: string[]; artifactHashes: Record<string, string> }): CampaignState {
+  assertCampaignOwner(input.state, input.expectedRevision, input.ownerId, input.fencingToken);
+  const draft = structuredClone(input.state), stage = draft.stages[input.stageKey];
+  if (!stage || !input.reason || !Array.isArray(input.artifactPaths)
+    || Object.values(input.artifactHashes).some((digest) => !sha.safeParse(digest).success)
+    || !['active', 'complete'].includes(stage.status)) {
+    throw new Error('Campaign completed-stage repair is invalid.');
+  }
+  draft.stages[input.stageKey] = { id: stage.id, status: 'incomplete', reason: input.reason,
+    artifactPaths: [...input.artifactPaths], artifactHashes: { ...input.artifactHashes } };
+  const [kingdomId, kind] = input.stageKey.split(':') as [string, 'goldfish' | 'matrix' | 'psro'];
+  const downstream = kind === 'goldfish' ? ['matrix', 'psro'] : kind === 'matrix' ? ['psro'] : [];
+  for (const downstreamKind of downstream) {
+    const key = `${kingdomId}:${downstreamKind}`, held = draft.stages[key];
+    if (!held || held.status === 'active') throw new Error('Campaign repair waits for active downstream work.');
+    draft.stages[key] = { id: held.id, status: 'pending' };
+  }
+  const result = nextState(draft);
+  if (!validateCampaignState(result)) throw new Error('Campaign completed-stage repair produced invalid state.');
+  return result;
+}
+
 export function campaignEvidenceComplete(state: CampaignState): boolean {
   return validateCampaignState(state) && Object.entries(state.stages)
     .filter(([key]) => key.endsWith(':psro')).every(([, stage]) => stage.status === 'complete');

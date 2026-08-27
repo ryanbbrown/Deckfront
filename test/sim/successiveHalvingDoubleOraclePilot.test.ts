@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -10,7 +11,8 @@ import type { InitialMatrixSourceIdentity } from '../../src/sim/initialMatrixCal
 import type { CandidateEvaluation } from '../../src/sim/mixtureEvaluation';
 import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
 import { orderedProductTarget } from '../../src/sim/orderedGoldfishProduct';
-import { emptyAggregate } from '../../src/sim/pairing';
+import { emptyAggregate, mergeAggregate } from '../../src/sim/pairing';
+import { solveEquilibrium } from '../../src/sim/equilibrium';
 import type { Strategy } from '../../src/sim/strategy';
 import { canonicalStrategy, fixedBuyPlan, identify } from '../../src/sim/strategy';
 import {
@@ -191,6 +193,52 @@ describe('K007 threshold-racing Double Oracle pilot', () => {
         experiment: 'changed' }, null, 2)}\n`);
       expect(readValidatedThresholdRacingCheckpointPair(root, source, 'run-generic')).toBeNull();
     } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  });
+
+  it('validates exact telemetry after one and multiple admitted Matrix rows', () => {
+    const fixture = matrixMetadata(), extra = [1, 2].map((index) => identify({ id: '', startingBuild: [],
+      buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'volley', desiredCount: 100 + index }]) }));
+    const centeredPayoffs = fixture.strategies.map(() => fixture.strategies.map(() => 0));
+    const source = { entry: { kingdomId: 'deep-beam-tuning-007', ranked: 'ranked', reservoir: 'reservoir',
+      p75Root: 'matrix' }, source: { ...fixture.source, p75ManifestHash: 'c'.repeat(64) },
+      reservoir: { entries: [...fixture.strategies, ...extra].map((strategy, index) => ({ strategy,
+        rank: index + 1, canonicalStrategy: canonicalStrategy(strategy) })) },
+      initialMatrix: { protocol: {} as never, strategies: fixture.strategies, cells: [], complete: true,
+        centeredPayoffs }, kingdomId: 'deep-beam-tuning-007', experimentName: 'campaign-generic-run',
+      protocolVersion: 'threshold-racing-psro-v2' } as never;
+    const seal = <T extends { evidenceHash: string }>(checkpoint: T): T => {
+      const copy = structuredClone(checkpoint); copy.evidenceHash = '';
+      return { ...copy, evidenceHash: createHash('sha256').update(JSON.stringify(copy)).digest('hex') };
+    };
+    let checkpoint = createThresholdRacingInitialCheckpoint(source, 'telemetry-run');
+    for (let admissionIndex = 0; admissionIndex < 2; admissionIndex += 1) {
+      const selected = extra[admissionIndex]!, before = checkpoint.matrix.strategies.length;
+      const rowCells = checkpoint.matrix.strategies.map((opponent, cellIndex) => {
+        const telemetry = emptyAggregate(); telemetry.damageByCard.volley = admissionIndex * 100 + cellIndex + 1;
+        return { rowId: opponent.id < selected.id ? opponent.id : selected.id,
+          columnId: opponent.id < selected.id ? selected.id : opponent.id,
+          key: `admission-${admissionIndex}-${cellIndex}`, blocks: [], complete: true,
+          centeredPayoff: 0, matches: 150, telemetry };
+      });
+      checkpoint.matrix.strategies.push(selected); checkpoint.matrix.cells.push(...rowCells);
+      checkpoint.matrix.centeredPayoffs.forEach((row) => row.push(0));
+      checkpoint.matrix.centeredPayoffs.push(Array(before + 1).fill(0));
+      checkpoint.admissions.push({ admission: admissionIndex + 1, cycle: admissionIndex + 1,
+        strategyId: selected.id, goldfishRank: before + 1, canonicalStrategy: canonicalStrategy(selected),
+        queueOrder: { orderedStrategyIds: [selected.id], strongestStrategyId: selected.id,
+          strongestTieIds: [], strongestOverlapIds: [] }, matrixSizeBefore: before, matrixSizeAfter: before + 1,
+        games: before * 75 * 2, elapsedMs: 1, equilibriumElapsedMs: 1 });
+      checkpoint.games.matrix += before * 75 * 2; checkpoint.games.total += before * 75 * 2;
+      checkpoint.elapsedMs.matrix += 1; checkpoint.elapsedMs.equilibrium += 1; checkpoint.elapsedMs.total += 2;
+      rowCells.forEach((cell) => mergeAggregate(checkpoint.telemetry, cell.telemetry));
+      checkpoint.equilibrium = solveEquilibrium(checkpoint.matrix.strategies.map((strategy) => strategy.id),
+        checkpoint.matrix.centeredPayoffs);
+      checkpoint = seal(checkpoint);
+      expect(validateThresholdRacingCheckpoint(checkpoint, source, 'telemetry-run')).toBe(true);
+    }
+    const corrupt = structuredClone(checkpoint);
+    corrupt.telemetry.damageByCard.volley = (corrupt.telemetry.damageByCard.volley ?? 0) + 1;
+    expect(validateThresholdRacingCheckpoint(seal(corrupt), source, 'telemetry-run')).toBe(false);
   });
 
   it('keeps local Rust as the default and selects Modal only through the run CLI', () => {

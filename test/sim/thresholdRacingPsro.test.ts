@@ -8,7 +8,7 @@ import type { Strategy } from '../../src/sim/strategy';
 import {
   assembleRawPsroLook, createThresholdRacingProtocol, fixedProtocolTerminalReason, rawScoreRows,
   runConfirmationRace,
-  runThresholdRace, thresholdRacingProtocolHash, validateRawPsroLookArtifact,
+  runThresholdRace, thresholdRacingProtocolHash, thresholdRacingSeedLabel, validateRawPsroLookArtifact,
   validateRawPsroScoreChunk, validateThresholdRacingProtocol, weightedFairSchedule
 } from '../../src/sim/thresholdRacingPsro';
 import type {
@@ -153,6 +153,22 @@ describe('kingdom-independent threshold-racing raw evidence', () => {
     expect(replay.telemetry).toEqual(first.telemetry);
     expect(replay.telemetry.damageByCard.volley).toBeGreaterThan(0);
     expect(saved.size).toBe(firstCalls.length);
+  });
+
+  it('records four isolated seed namespaces and changes protocol identity when any namespace changes', () => {
+    const held = createThresholdRacingProtocol({ experimentName: 'campaign-psro-fixture', runId: 'run',
+      kingdomId: 'current-duel', reservoirCount: 20_000, sourceIdentityHash: 'a'.repeat(64),
+      checkpointNamespace: 'checkpoints', matrixSeedNamespace: 'matrix-v4', screenSeedNamespace: 'screen-v4',
+      confirmationSeedNamespace: 'confirmation-v4', queueRetestSeedNamespace: 'retest-v4' });
+    expect(held).toMatchObject({ matrixSeedNamespace: 'matrix-v4', screenSeedNamespace: 'screen-v4',
+      confirmationSeedNamespace: 'confirmation-v4', queueRetestSeedNamespace: 'retest-v4' });
+    const changed = createThresholdRacingProtocol({ ...held, screenSeedNamespace: 'screen-v5' });
+    expect(thresholdRacingProtocolHash(changed)).not.toBe(thresholdRacingProtocolHash(held));
+    expect(validateThresholdRacingProtocol({ ...held, queueRetestSeedNamespace: 'screen-v4' })).toBe(false);
+    expect(thresholdRacingSeedLabel(held, 'screen', 'scan:1')).toBe('screen-v4:scan:1');
+    expect(thresholdRacingSeedLabel(held, 'confirmation', 'scan:1')).toBe('confirmation-v4:scan:1');
+    expect(thresholdRacingSeedLabel(held, 'queue-retest', 'queue:1')).toBe('retest-v4:queue:1');
+    expect(thresholdRacingSeedLabel(undefined, 'screen', 'scan:1')).toBe('scan:1');
   });
 
   it('changes protocol identity for a fixed-look extension and rejects malformed protocol fields', () => {

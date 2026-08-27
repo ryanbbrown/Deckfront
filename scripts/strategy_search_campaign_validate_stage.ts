@@ -51,9 +51,15 @@ const marker = read<unknown>(markerFile);
 if (!validateCampaignStageControlMarker(marker) || marker.stage !== request.stage || marker.stageId !== request.stageId
   || marker.status !== request.expectedStatus) throw new Error('Campaign stage marker is invalid.');
 verifyIndexedFiles(marker, stageRoot);
+const validatedMarker = marker;
+function compactResult(): Record<string, unknown> {
+  const entries = Object.entries(validatedMarker.artifactHashes).sort(([left], [right]) => left < right ? -1 : 1);
+  return { status: request.expectedStatus, ...(validatedMarker.reason ? { reason: validatedMarker.reason } : {}),
+    markerHash: validatedMarker.markerHash, artifactCount: entries.length,
+    artifactSetHash: createHash('sha256').update(JSON.stringify(entries)).digest('hex') };
+}
 if (request.expectedStatus !== 'complete') {
-  process.stdout.write(`${JSON.stringify({ status: request.expectedStatus, reason: marker.reason,
-    artifactPaths: Object.keys(marker.artifactHashes).sort(), artifactHashes: marker.artifactHashes })}\n`);
+  process.stdout.write(`${JSON.stringify(compactResult())}\n`);
   process.exit(0);
 }
 if (request.stage === 'goldfish') {
@@ -114,5 +120,4 @@ if (request.stage === 'goldfish') {
     reportSha256: sha(reportFile), closure: read(path.join(runRoot, 'closure.json')),
     fileHashes: marker.artifactHashes, marker })) throw new Error('PSRO deep stage validation failed.');
 }
-process.stdout.write(`${JSON.stringify({ status: 'complete', artifactPaths: Object.keys(marker.artifactHashes).sort(),
-  artifactHashes: marker.artifactHashes })}\n`);
+process.stdout.write(`${JSON.stringify(compactResult())}\n`);

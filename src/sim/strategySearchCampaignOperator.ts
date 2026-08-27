@@ -52,6 +52,8 @@ export interface CampaignLaunchBundle {
     shutdown_margin_seconds: number;
     poll_interval_seconds: number;
     dispatch_batch_size: number;
+    retry_backoff_seconds: number;
+    retry_backoff_max_seconds: number;
   };
 }
 
@@ -79,7 +81,8 @@ function orderedBase(manifest: StrategySearchCampaignManifest, campaignRoot: str
 function schedulerTask(input: Pick<CampaignSchedulerTask, 'taskId' | 'kingdomId' | 'stage' | 'shardId'
   | 'dependencyTaskIds' | 'status' | 'cpus'>): CampaignSchedulerTask {
   return { ...input, readySinceMs: 0, containers: 1, launchIntentId: null, callId: null,
-    controllerFence: null, reason: null, artifactPaths: [], artifactHashes: {} };
+    controllerFence: null, reason: null, artifactPaths: [], artifactHashes: {}, attemptCount: 0,
+    retryNotBeforeMs: 0 };
 }
 
 export function createCampaignLaunchBundle(input: ParsedCampaignManifest,
@@ -145,7 +148,8 @@ export function createCampaignLaunchBundle(input: ParsedCampaignManifest,
       timeout_seconds: manifest.runtime.stages.goldfish.timeoutSeconds, stage_terminal: true,
       config: { ...base, ordered_stage: 'finalize', stage_path: goldfish,
         checkpoint_paths: stageTwoIds.map((_taskId, shardId) => `${goldfish}/stage-two/${checkpointName(shardId)}`),
-        matrix_manifest_path: `${matrix}/output/manifest.json`, matrix_stage_id: ids.matrix },
+        matrix_manifest_path: `${matrix}/output/manifest.json`, matrix_stage_id: ids.matrix,
+        matrix_seed_namespace: manifest.evidence.psro.matrixSeedNamespace },
       validation: { kind: 'stage', stage_root: goldfish } });
     const matrixId = `${kingdomId}:matrix`;
     add(schedulerTask({ taskId: matrixId, kingdomId, stage: 'matrix', shardId: null,
@@ -171,7 +175,11 @@ export function createCampaignLaunchBundle(input: ParsedCampaignManifest,
       protocolInput: { experimentName: `strategy-search-campaign-${campaignId}-${kingdomId}`,
         protocolVersion: manifest.evidence.psro.protocolVersion, checkpointNamespace: `campaign:${ids.psro}`,
         screenDepths: manifest.evidence.psro.screenDepths,
-        confirmationLooks: manifest.evidence.psro.confirmationLooks }, execution: 'local' };
+        confirmationLooks: manifest.evidence.psro.confirmationLooks,
+        matrixSeedNamespace: manifest.evidence.psro.matrixSeedNamespace,
+        screenSeedNamespace: manifest.evidence.psro.screenSeedNamespace,
+        confirmationSeedNamespace: manifest.evidence.psro.confirmationSeedNamespace,
+        queueRetestSeedNamespace: manifest.evidence.psro.queueRetestSeedNamespace }, execution: 'local' };
     const psroId = `${kingdomId}:psro`;
     add(schedulerTask({ taskId: psroId, kingdomId, stage: 'psro', shardId: null,
       dependencyTaskIds: [matrixId], status: 'blocked', cpus: manifest.runtime.stages.psro.cpu }), {
@@ -200,7 +208,9 @@ export function createCampaignLaunchBundle(input: ParsedCampaignManifest,
       maxActiveCpus: manifest.runtime.maxActiveCpus }, source_image: manifest.evidence.sourceImage,
     lease_renew_interval_seconds: 20, controller_timeout_seconds: manifest.runtime.controllerTimeoutSeconds,
     shutdown_margin_seconds: Math.max(1, Math.min(60, Math.floor(manifest.runtime.controllerTimeoutSeconds / 10))),
-    poll_interval_seconds: 2, dispatch_batch_size: manifest.runtime.dispatchBatchSize };
+    poll_interval_seconds: 2, dispatch_batch_size: manifest.runtime.dispatchBatchSize,
+    retry_backoff_seconds: manifest.runtime.retryBackoffSeconds,
+    retry_backoff_max_seconds: manifest.runtime.retryBackoffMaxSeconds };
   return { schemaVersion: 1, campaignRoot, evidenceHash: input.evidenceHash, runtimeHash: input.runtimeHash,
     state, scheduler, tasks: configs, files, controller };
 }

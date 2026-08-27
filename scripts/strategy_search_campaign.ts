@@ -20,19 +20,22 @@ import type {
 import {
   installCampaignArchives, validateCampaignArchiveManifest
 } from '../src/sim/strategySearchCampaignArchive';
-import type { CampaignArchiveManifest } from '../src/sim/strategySearchCampaignArchive';
 import { validateCampaignSchedulerCheckpoint } from '../src/sim/strategySearchScheduler';
 
+interface CampaignDownloadSummary {
+  schemaVersion: 1; indexHash: string; indexBytes: number; entryCount: number;
+  archiveManifestHash: string; archiveCount: number;
+}
 interface CampaignRemoteStatus {
   state: CampaignState | null;
   scheduler: unknown;
-  contentIndex: CampaignContentIndex | null;
-  archives: CampaignArchiveManifest | null;
+  download: CampaignDownloadSummary | null;
   controllerCall: unknown;
 }
 export interface CampaignOperatorAdapter {
   status(input: { campaignRoot: string; evidenceHash: string }): CampaignRemoteStatus;
   run(input: { bundle: CampaignLaunchBundle; stagingRoot: string; destinationRoot: string }): unknown;
+  recover?(input: { campaignRoot: string; evidenceHash: string; target: string }): unknown;
 }
 
 const SOURCE_EXCLUDED = new Set(['.git', 'node_modules', '.experiments', '.reviews', '.data',
@@ -69,6 +72,12 @@ export class ModalCampaignOperatorAdapter implements CampaignOperatorAdapter {
       '--campaign-root', input.campaignRoot, '--evidence-hash', input.evidenceHash], { encoding: 'utf8' });
     return lastJson(output) as CampaignRemoteStatus;
   }
+  recover(input: { campaignRoot: string; evidenceHash: string; target: string }): unknown {
+    const output = execFileSync('modal', ['run', 'modal/native_strategy_search.py::campaign_recover_entry',
+      '--campaign-root', input.campaignRoot, '--evidence-hash', input.evidenceHash,
+      '--target', input.target, '--assertion', 'no-live-modal-call-exists'], { encoding: 'utf8' });
+    return lastJson(output);
+  }
   run(input: { bundle: CampaignLaunchBundle; stagingRoot: string; destinationRoot: string }): unknown {
     fs.mkdirSync(input.stagingRoot, { recursive: true });
     const temporary = path.join(input.stagingRoot, 'launch-bundle.json');
@@ -90,6 +99,29 @@ function installControlFile(source: string, destination: string): void {
   try { fs.fsyncSync(descriptor); } finally { fs.closeSync(descriptor); }
   fs.renameSync(temporary, destination);
 }
+function writeLocalDownloadSummary(destination: string, value: Record<string, unknown>): void {
+  const temporary = path.join(destination, `.download-summary.tmp-${process.pid}`);
+  fs.writeFileSync(temporary, `${JSON.stringify(value)}\n`, { flag: 'wx', mode: 0o600 });
+  const descriptor = fs.openSync(temporary, 'r');
+  try { fs.fsyncSync(descriptor); } finally { fs.closeSync(descriptor); }
+  fs.renameSync(temporary, path.join(destination, 'download-summary.json'));
+}
+function readLocalDownloadSummary(destination: string, evidenceHash: string): { complete: boolean } | undefined {
+  const file = path.join(destination, 'download-summary.json');
+  if (!fs.existsSync(file)) return undefined;
+  if (fs.lstatSync(file).isSymbolicLink() || fs.statSync(file).size > 16 * 1024) {
+    throw new Error('Local campaign download summary is unsafe or unbounded.');
+  }
+  const value = readJson(file) as Record<string, unknown>;
+  if (JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(
+    ['schemaVersion', 'evidenceHash', 'indexHash', 'archiveManifestHash', 'complete'].sort())
+    || value.schemaVersion !== 1 || value.evidenceHash !== evidenceHash
+    || typeof value.complete !== 'boolean' || !/^[0-9a-f]{64}$/.test(String(value.indexHash))
+    || !/^[0-9a-f]{64}$/.test(String(value.archiveManifestHash))) {
+    throw new Error('Local campaign download summary is invalid.');
+  }
+  return { complete: value.complete };
+}
 function loadInputs(manifestFile: string, selectionFile: string): ParsedCampaignManifest {
   const parsed = parseStrategySearchCampaignManifest(readJson(manifestFile));
   const selection = parseCampaignSelectionManifest(fs.readFileSync(selectionFile));
@@ -106,27 +138,30 @@ function campaignRoot(parsed: ParsedCampaignManifest): string {
   return `campaigns/${parsed.manifest.evidence.campaignId}/${parsed.evidenceHash}`;
 }
 function summarizeStatus(status: CampaignRemoteStatus, parsed: ParsedCampaignManifest,
-  local?: ReturnType<typeof validateDownloadedCampaign>): Record<string, unknown> {
+  local?: { complete: boolean }): Record<string, unknown> {
   if (status.state !== null && (!validateCampaignState(status.state)
     || status.state.evidenceHash !== parsed.evidenceHash)) throw new Error('Remote campaign state is invalid.');
   if (status.scheduler !== null && !validateCampaignSchedulerCheckpoint(status.scheduler)) {
     throw new Error('Remote campaign scheduler is invalid.');
   }
-  if (status.contentIndex !== null && !validateCampaignContentIndex(status.contentIndex)) {
-    throw new Error('Remote campaign content index is invalid.');
-  }
-  if (status.archives !== null && (!status.contentIndex
-    || !validateCampaignArchiveManifest(status.archives, status.contentIndex))) {
-    throw new Error('Remote campaign archive manifest is invalid.');
+  if (status.download !== null && (status.download.schemaVersion !== 1
+    || !/^[0-9a-f]{64}$/.test(status.download.indexHash)
+    || !/^[0-9a-f]{64}$/.test(status.download.archiveManifestHash)
+    || ![status.download.indexBytes, status.download.entryCount, status.download.archiveCount]
+      .every((value) => Number.isSafeInteger(value) && value >= 0))) {
+    throw new Error('Remote campaign download summary is invalid.');
   }
   const stages = status.state ? Object.values(status.state.stages) : [];
   const counts = Object.fromEntries(['pending', 'ready', 'active', 'incomplete', 'terminal-incomplete', 'complete']
     .map((state) => [state, stages.filter((stage) => stage.status === state).length]));
-  const active = stages.filter((stage) => stage.status === 'active');
+  const scheduler = status.scheduler as { tasks?: Array<{ status: string; containers: number; cpus: number;
+    callId: string | null }> } | null;
+  const active = scheduler?.tasks?.filter((task) => task.status === 'active' || task.status === 'launching') ?? [];
   return { evidenceHash: parsed.evidenceHash, remoteExists: status.state !== null, stageCounts: counts,
-    activeContainers: active.reduce((sum, stage) => sum + (stage.resources?.containers ?? 0), 0),
-    activeCpus: active.reduce((sum, stage) => sum + (stage.resources?.cpus ?? 0), 0),
-    activeCallIds: active.map((stage) => stage.callId),
+    activeContainers: active.reduce((sum, task) => sum + task.containers, 0),
+    activeCpus: active.reduce((sum, task) => sum + task.cpus, 0),
+    activeCallIds: active.flatMap((task) => task.callId ? [task.callId] : []),
+    downloadSummary: status.download,
     reasons: stages.filter((stage) => stage.reason).map((stage) => stage.reason),
     paidEvidenceComplete: Boolean(status.state && Object.entries(status.state.stages)
       .filter(([key]) => key.endsWith(':psro')).every(([, stage]) => stage.status === 'complete')),
@@ -165,8 +200,8 @@ export function validateDownloadedCampaign(root: string, parsed: ParsedCampaignM
     .every(([, stage]) => stage.status === 'complete'), state, index };
 }
 
-export function executeCampaignOperation(input: { operation: 'plan' | 'status' | 'run';
-  manifestFile: string; selectionFile: string; authorizationToken?: string; root?: string;
+export function executeCampaignOperation(input: { operation: 'plan' | 'status' | 'run' | 'recover';
+  manifestFile: string; selectionFile: string; authorizationToken?: string; recoveryTarget?: string; root?: string;
   adapter?: CampaignOperatorAdapter }): Record<string, unknown> {
   const root = input.root ?? process.cwd(), parsed = loadInputs(input.manifestFile, input.selectionFile);
   if (input.operation === 'plan') {
@@ -178,14 +213,19 @@ export function executeCampaignOperation(input: { operation: 'plan' | 'status' |
   const remote = adapter.status({ campaignRoot: campaignRoot(parsed), evidenceHash: parsed.evidenceHash });
   const destination = path.resolve(root, parsed.manifest.runtime.downloadRoot,
     parsed.manifest.evidence.campaignId, parsed.evidenceHash);
-  const local = fs.existsSync(path.join(destination, 'content-index.json'))
-    ? validateDownloadedCampaign(destination, parsed) : undefined;
+  const local = readLocalDownloadSummary(destination, parsed.evidenceHash);
   if (input.operation === 'status') return summarizeStatus(remote, parsed, local);
   summarizeStatus(remote, parsed, local);
   verifyCurrentSource(root, parsed);
+  if (input.operation === 'recover') {
+    if (!input.recoveryTarget || !adapter.recover) throw new Error('Recovery needs an explicit ambiguous launch target.');
+    return { outcome: adapter.recover({ campaignRoot: campaignRoot(parsed), evidenceHash: parsed.evidenceHash,
+      target: input.recoveryTarget }), evidenceHash: parsed.evidenceHash };
+  }
   if (!remote.state && !input.authorizationToken) throw new Error('First campaign launch requires the plan authorization token.');
-  if (remote.state && !runtimeFitsAuthorizedCeilings(parsed.manifest.runtime,
-    remote.state.authorizedCeilings ?? ({} as never)) && !input.authorizationToken) {
+  if (remote.state && (remote.state.authorizedCeilings === null
+    || !runtimeFitsAuthorizedCeilings(parsed.manifest.runtime, remote.state.authorizedCeilings))
+    && !input.authorizationToken) {
     throw new Error('Campaign runtime increase requires a new plan authorization token.');
   }
   const staging = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-campaign-download-'));
@@ -201,6 +241,8 @@ export function executeCampaignOperation(input: { operation: 'plan' | 'status' |
     installControlFile(path.join(staging, 'content-index.json'), path.join(destination, 'content-index.json'));
     installControlFile(path.join(staging, 'archives.json'), path.join(destination, 'archives.json'));
     const validation = validateDownloadedCampaign(destination, parsed);
+    writeLocalDownloadSummary(destination, { schemaVersion: 1, evidenceHash: parsed.evidenceHash,
+      indexHash: index.indexHash, archiveManifestHash: archives.manifestHash, complete: validation.complete });
     if (!validation.complete) throw new Error('Campaign remains incomplete after validated download.');
     return { outcome, destination, evidenceHash: parsed.evidenceHash, complete: true };
   } finally { fs.rmSync(staging, { recursive: true, force: true }); }
@@ -213,17 +255,20 @@ function option(args: readonly string[], name: string, required = true): string 
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
   const [operation, ...args] = process.argv.slice(2);
-  if (!['plan', 'status', 'run'].includes(operation ?? '')) throw new Error('Use plan, status, or run.');
-  const known = new Set(['--manifest', '--selection-manifest', '--authorize']);
+  if (!['plan', 'status', 'run', 'recover'].includes(operation ?? '')) {
+    throw new Error('Use plan, status, run, or recover.');
+  }
+  const known = new Set(['--manifest', '--selection-manifest', '--authorize', '--assert-no-live-call']);
   for (let index = 0; index < args.length; index += 2) {
     if (!known.has(args[index]!) || !args[index + 1] || args[index + 1]!.startsWith('--')) {
       throw new Error(`Unknown or incomplete campaign option ${args[index] ?? ''}.`);
     }
   }
   const authorizationToken = option(args, 'authorize', false);
-  const result = executeCampaignOperation({ operation: operation as 'plan' | 'status' | 'run',
+  const recoveryTarget = option(args, 'assert-no-live-call', false);
+  const result = executeCampaignOperation({ operation: operation as 'plan' | 'status' | 'run' | 'recover',
     manifestFile: path.resolve(option(args, 'manifest')!),
     selectionFile: path.resolve(option(args, 'selection-manifest')!),
-    ...(authorizationToken ? { authorizationToken } : {}) });
+    ...(authorizationToken ? { authorizationToken } : {}), ...(recoveryTarget ? { recoveryTarget } : {}) });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }

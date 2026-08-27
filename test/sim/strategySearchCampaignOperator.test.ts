@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -11,11 +11,16 @@ import {
   runtimeCeilings
 } from '../../src/sim/strategySearchCampaign';
 import {
-  createCampaignArchiveManifest, installCampaignArchives
+  campaignArchiveMemberHash, createCampaignArchiveManifest, installCampaignArchives,
+  validateCampaignArchiveManifest
 } from '../../src/sim/strategySearchCampaignArchive';
 import {
   createCampaignLaunchBundle
 } from '../../src/sim/strategySearchCampaignOperator';
+import {
+  applyCampaignSchedulerUpdates, createCampaignSchedulerCheckpoint
+} from '../../src/sim/strategySearchScheduler';
+import { createCampaignStageControlMarker } from '../../src/sim/strategySearchStages';
 import {
   deriveTrackedCampaignSourceImage, executeCampaignOperation
 } from '../../scripts/strategy_search_campaign';
@@ -80,6 +85,7 @@ function fixtureRoot(): { root: string; manifestFile: string; selectionFile: str
       matrixSeedNamespace: 'matrix-v1' }, simulatorVersion: 'strategy-search-simulator-v1',
     artifactSchemaVersion: 1 }, runtime: { executionMode: 'local-fixture', downloadRoot: 'download',
       controllerTimeoutSeconds: 600, maxActiveContainers: 2, maxActiveCpus: 8, dispatchBatchSize: 2,
+      retryBackoffSeconds: 5, retryBackoffMaxSeconds: 60,
       stages: { goldfish: { cpu: 2, memoryMiB: 4096, threads: 2, workerBatchSize: 2,
         timeoutSeconds: 300, checkpointIntervalSeconds: 10 },
       matrix: { cpu: 4, memoryMiB: 8192, threads: 4, workerBatchSize: 4,
@@ -101,7 +107,7 @@ function writeIncompleteDownload(stagingRoot: string, bundle: ReturnType<typeof 
   fs.writeFileSync(path.join(stagingRoot, archivePath), archiveBytes);
   const archives = createCampaignArchiveManifest(index, [{ path: archivePath, bytes: archiveBytes.length,
     sha256: sha(archiveBytes), stageId: bundle.evidenceHash, completeness: 'incomplete',
-    members: [...contents.keys()] }]);
+    memberCount: index.entries.length, memberHash: campaignArchiveMemberHash(index.entries) }]);
   fs.writeFileSync(path.join(stagingRoot, 'content-index.json'), `${JSON.stringify(index, null, 2)}\n`);
   fs.writeFileSync(path.join(stagingRoot, 'archives.json'), `${JSON.stringify(archives, null, 2)}\n`);
 }
@@ -110,7 +116,7 @@ describe('campaign operator flow', () => {
   it('plans without a remote call and status uses only the bounded status seam', () => {
     const fixture = fixtureRoot(); let statusCalls = 0, runCalls = 0;
     const adapter: CampaignOperatorAdapter = { status() { statusCalls += 1; return { state: null,
-      scheduler: null, contentIndex: null, archives: null, controllerCall: null }; },
+      scheduler: null, download: null, controllerCall: null }; },
     run() { runCalls += 1; throw new Error('must not run'); } };
     try {
       const plan = executeCampaignOperation({ operation: 'plan', manifestFile: fixture.manifestFile,
@@ -127,12 +133,53 @@ describe('campaign operator flow', () => {
     } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
   });
 
+  it('reports active resources and call IDs from scheduler tasks instead of coarse stage state', () => {
+    const fixture = fixtureRoot();
+    try {
+      const parsed = parseStrategySearchCampaignManifest(JSON.parse(
+        fs.readFileSync(fixture.manifestFile, 'utf8')) as unknown);
+      const bundle = createCampaignLaunchBundle(parsed), first = bundle.scheduler.tasks.find((task) => task.status === 'ready')!;
+      const finalize = bundle.tasks.find((task) => task.config.ordered_stage === 'finalize')!;
+      const psro = bundle.files[Object.keys(bundle.files).find((file) => file.endsWith('/stage-config.json'))!] as {
+        protocolInput: Record<string, string> };
+      expect(finalize.config.matrix_seed_namespace).toBe('matrix-v1');
+      expect(psro.protocolInput).toMatchObject({ matrixSeedNamespace: 'matrix-v1', screenSeedNamespace: 'screen-v1',
+        confirmationSeedNamespace: 'confirmation-v1', queueRetestSeedNamespace: 'retest-v1' });
+      let tasks = applyCampaignSchedulerUpdates(bundle.scheduler.tasks, [{ kind: 'intent', taskId: first.taskId,
+        launchIntentId: 'e'.repeat(64), controllerFence: 1 }]);
+      tasks = applyCampaignSchedulerUpdates(tasks, [{ kind: 'bind', taskId: first.taskId,
+        launchIntentId: 'e'.repeat(64), callId: 'fc-shard', controllerFence: 1 }]);
+      const scheduler = createCampaignSchedulerCheckpoint({ evidenceHash: bundle.evidenceHash,
+        controllerFence: 1, revision: 2, tasks });
+      const adapter: CampaignOperatorAdapter = { status() { return { state: bundle.state, scheduler,
+        download: null, controllerCall: null }; }, run() { throw new Error('must not run'); } };
+      const status = executeCampaignOperation({ operation: 'status', manifestFile: fixture.manifestFile,
+        selectionFile: fixture.selectionFile, root: fixture.root, adapter });
+      expect(status).toMatchObject({ activeContainers: 1, activeCpus: first.cpus,
+        activeCallIds: ['fc-shard'] });
+    } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
+  });
+
+  it('uses a separate explicit recovery seam and never turns status into recovery', () => {
+    const fixture = fixtureRoot(); let recovered = '';
+    const adapter: CampaignOperatorAdapter = { status() { return { state: null, scheduler: null,
+      download: null, controllerCall: null }; }, run() { throw new Error('must not run'); },
+    recover(input) { recovered = input.target; return { status: 'recovered' }; } };
+    try {
+      expect(() => executeCampaignOperation({ operation: 'recover', manifestFile: fixture.manifestFile,
+        selectionFile: fixture.selectionFile, root: fixture.root, adapter })).toThrow('explicit ambiguous');
+      const result = executeCampaignOperation({ operation: 'recover', manifestFile: fixture.manifestFile,
+        selectionFile: fixture.selectionFile, recoveryTarget: 'controller', root: fixture.root, adapter });
+      expect(recovered).toBe('controller'); expect(result.outcome).toEqual({ status: 'recovered' });
+    } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
+  });
+
   it('requires first-launch authorization and returns nonzero semantics for validated incomplete evidence', () => {
     const fixture = fixtureRoot(); let runCalls = 0;
     try {
       const manifest = parseStrategySearchCampaignManifest(JSON.parse(fs.readFileSync(fixture.manifestFile, 'utf8')));
       const adapter: CampaignOperatorAdapter = { status() { return { state: null, scheduler: null,
-        contentIndex: null, archives: null, controllerCall: null }; }, run({ bundle, stagingRoot }) {
+        download: null, controllerCall: null }; }, run({ bundle, stagingRoot }) {
         runCalls += 1; writeIncompleteDownload(stagingRoot, bundle); return { status: 'incomplete' }; } };
       expect(() => executeCampaignOperation({ operation: 'run', manifestFile: fixture.manifestFile,
         selectionFile: fixture.selectionFile, root: fixture.root, adapter }))
@@ -142,13 +189,63 @@ describe('campaign operator flow', () => {
         selectionFile: fixture.selectionFile, authorizationToken: token, root: fixture.root, adapter }))
         .toThrow('Campaign remains incomplete');
       expect(runCalls).toBe(1);
-      expect(fs.existsSync(path.join(fixture.root, 'download', 'operator-fixture', manifest.evidenceHash,
-        'state.json'))).toBe(true);
+      const destination = path.join(fixture.root, 'download', 'operator-fixture', manifest.evidenceHash);
+      expect(fs.existsSync(path.join(destination, 'state.json'))).toBe(true);
+      fs.writeFileSync(path.join(destination, 'content-index.json'), 'must not be parsed by status');
+      expect(executeCampaignOperation({ operation: 'status', manifestFile: fixture.manifestFile,
+        selectionFile: fixture.selectionFile, root: fixture.root, adapter }))
+        .toMatchObject({ localDownloadComplete: false });
     } finally { fs.rmSync(fixture.root, { recursive: true, force: true }); }
   });
 });
 
+describe('campaign local validation scale', () => {
+  it('returns a compact result after validating a 6,375-chunk marker', () => {
+    const root = fs.mkdtempSync(path.join(temporaryRoot(), 'hexdeck-campaign-validator-scale-'));
+    try {
+      const stageId = 'a'.repeat(64), stageRoot = path.join(root, 'kingdoms', 'k', 'matrix');
+      const hashes: Record<string, string> = {}, content = Buffer.from('{}\n'), digest = sha(content);
+      for (let index = 0; index < 6_375; index += 1) {
+        const relative = `output/chunks/chunk-${String(index).padStart(6, '0')}.json`;
+        const file = path.join(stageRoot, relative); fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, content); hashes[relative] = digest;
+      }
+      const marker = createCampaignStageControlMarker({ stage: 'matrix', stageId, status: 'incomplete',
+        reason: 'fixture interruption', artifactHashes: hashes });
+      fs.mkdirSync(path.join(stageRoot, 'control'), { recursive: true });
+      fs.writeFileSync(path.join(stageRoot, 'control', 'incomplete.json'), `${JSON.stringify(marker)}\n`);
+      const result = spawnSync('npx', ['tsx', 'scripts/strategy_search_campaign_validate_stage.ts'], {
+        cwd: process.cwd(), input: JSON.stringify({ campaignRoot: root, stage: 'matrix', stageId,
+          stageRoot: 'kingdoms/k/matrix', expectedStatus: 'incomplete' }), encoding: 'utf8' });
+      expect(result.status, result.stderr).toBe(0);
+      expect(Buffer.byteLength(result.stdout)).toBeLessThan(1_024);
+      expect(JSON.parse(result.stdout)).toMatchObject({ status: 'incomplete', artifactCount: 6_375 });
+      expect(JSON.parse(result.stdout)).not.toHaveProperty('artifactHashes');
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  }, 30_000);
+});
+
 describe('campaign archive installation', () => {
+  it('keeps 191,250 exact members behind one compact index-derived membership hash', () => {
+    const stageId = 'f'.repeat(64);
+    const entries = Array.from({ length: 191_250 }, (_unused, index) => ({
+      path: `chunks/${String(index).padStart(6, '0')}.json`, bytes: index % 17,
+      sha256: createHash('sha256').update(String(index)).digest('hex'), stageId,
+      completeness: 'complete' as const }));
+    const index = createCampaignContentIndex(entries), archive = { path: 'archives/matrix.tar', bytes: 1,
+      sha256: 'a'.repeat(64), stageId, completeness: 'complete' as const,
+      memberCount: entries.length, memberHash: campaignArchiveMemberHash(index.entries) };
+    const manifest = createCampaignArchiveManifest(index, [archive]);
+    expect(JSON.stringify(manifest).length).toBeLessThan(2_000);
+    expect(manifest.archives[0]).not.toHaveProperty('members');
+    expect(validateCampaignArchiveManifest(manifest, index)).toBe(true);
+    expect(validateCampaignArchiveManifest({ ...manifest, schemaVersion: 1 }, index)).toBe(false);
+    expect(validateCampaignArchiveManifest({ ...manifest,
+      archives: [{ ...manifest.archives[0]!, unexpected: true }] }, index)).toBe(false);
+    expect(() => createCampaignArchiveManifest(index, [{ ...archive, memberHash: 'b'.repeat(64) }]))
+      .toThrow('compact membership differs');
+  }, 30_000);
+
   it('validates archive/member hashes, resumes matching files, and preserves prior files on corruption', () => {
     const root = fs.mkdtempSync(path.join(temporaryRoot(), 'hexdeck-campaign-archive-'));
     const staging = path.join(root, 'staging'), destination = path.join(root, 'destination');
@@ -158,7 +255,8 @@ describe('campaign archive installation', () => {
         bytes: content.length, sha256: sha(content), stageId: 'a'.repeat(64), completeness: 'complete' as const };
       const index = createCampaignContentIndex([entry]), bytes = tar([{ path: entry.path, content }]);
       const archive = { path: 'archives/matrix.tar', bytes: bytes.length, sha256: sha(bytes),
-        stageId: entry.stageId, completeness: entry.completeness, members: [entry.path] };
+        stageId: entry.stageId, completeness: entry.completeness, memberCount: 1,
+        memberHash: campaignArchiveMemberHash([entry]) };
       const manifest = createCampaignArchiveManifest(index, [archive]);
       fs.writeFileSync(path.join(staging, archive.path), bytes);
       installCampaignArchives({ stagingRoot: staging, destinationRoot: destination, index,
@@ -184,7 +282,8 @@ describe('campaign archive installation', () => {
         stageId: 'a'.repeat(64), completeness: 'incomplete' as const };
       const index = createCampaignContentIndex([entry]), bytes = tar([{ path: entry.path, content, type: 0x32 }]);
       const archive = { path: 'archives/link.tar', bytes: bytes.length, sha256: sha(bytes),
-        stageId: entry.stageId, completeness: entry.completeness, members: [entry.path] };
+        stageId: entry.stageId, completeness: entry.completeness, memberCount: 1,
+        memberHash: campaignArchiveMemberHash([entry]) };
       const manifest = createCampaignArchiveManifest(index, [archive]); fs.writeFileSync(path.join(staging, archive.path), bytes);
       expect(() => installCampaignArchives({ stagingRoot: staging, destinationRoot: destination, index,
         archiveManifest: manifest })).toThrow('link or non-file');

@@ -16,7 +16,7 @@ export interface CampaignSchedulerTask {
   dependencyTaskIds: string[]; status: CampaignSchedulerTaskStatus; readySinceMs: number;
   containers: number; cpus: number; launchIntentId: string | null; callId: string | null;
   controllerFence: number | null; reason: string | null; artifactPaths: string[];
-  artifactHashes: Record<string, string>;
+  artifactHashes: Record<string, string>; attemptCount: number; retryNotBeforeMs: number;
 }
 export interface CampaignSchedulerLimits { maxActiveContainers: number; maxActiveCpus: number }
 export interface CampaignSchedulerObservation {
@@ -36,7 +36,7 @@ export type CampaignSchedulerAction =
 
 const TASK_KEYS = ['taskId', 'kingdomId', 'stage', 'shardId', 'dependencyTaskIds', 'status',
   'readySinceMs', 'containers', 'cpus', 'launchIntentId', 'callId', 'controllerFence', 'reason',
-  'artifactPaths', 'artifactHashes'] as const;
+  'artifactPaths', 'artifactHashes', 'attemptCount', 'retryNotBeforeMs'] as const;
 function validArtifacts(task: CampaignSchedulerTask): boolean {
   return Array.isArray(task.artifactPaths) && new Set(task.artifactPaths).size === task.artifactPaths.length
     && task.artifactPaths.every((entry) => typeof entry === 'string' && entry.length > 0)
@@ -61,6 +61,8 @@ function validTask(task: unknown): task is CampaignSchedulerTask {
     && Number.isSafeInteger(held.readySinceMs) && held.readySinceMs >= 0
     && Number.isSafeInteger(held.containers) && held.containers > 0
     && Number.isSafeInteger(held.cpus) && held.cpus > 0 && validArtifacts(held)
+    && Number.isSafeInteger(held.attemptCount) && held.attemptCount >= 0
+    && Number.isSafeInteger(held.retryNotBeforeMs) && held.retryNotBeforeMs >= 0
     && (held.status === 'launching'
       ? Boolean(held.launchIntentId) && held.callId === null && Number.isSafeInteger(held.controllerFence)
         && held.controllerFence! >= 1 && emptyOutcome
@@ -77,9 +79,15 @@ function stagePriority(stage: CampaignSchedulerStage): number {
   return stage === 'psro' ? 0 : stage === 'matrix' ? 1 : 2;
 }
 function taskOrder(left: CampaignSchedulerTask, right: CampaignSchedulerTask): number {
-  return stagePriority(left.stage) - stagePriority(right.stage)
-    || left.readySinceMs - right.readySinceMs
-    || (left.kingdomId < right.kingdomId ? -1 : left.kingdomId > right.kingdomId ? 1 : 0)
+  const stage = stagePriority(left.stage) - stagePriority(right.stage);
+  if (stage) return stage;
+  const ready = left.readySinceMs - right.readySinceMs;
+  if (ready) return ready;
+  if (left.stage === 'goldfish' && right.stage === 'goldfish') {
+    const shard = left.shardId! < right.shardId! ? -1 : left.shardId! > right.shardId! ? 1 : 0;
+    if (shard) return shard;
+  }
+  return (left.kingdomId < right.kingdomId ? -1 : left.kingdomId > right.kingdomId ? 1 : 0)
     || (left.taskId < right.taskId ? -1 : left.taskId > right.taskId ? 1 : 0);
 }
 function activeStageKey(task: CampaignSchedulerTask): string {
@@ -179,8 +187,8 @@ export type CampaignSchedulerUpdate =
   | { kind: 'completed'; taskId: string; callId: string; artifactPaths: string[];
     artifactHashes: Record<string, string> }
   | { kind: 'incomplete' | 'terminal-incomplete'; taskId: string; callId: string; reason: string;
-    artifactPaths: string[]; artifactHashes: Record<string, string> }
-  | { kind: 'ready'; taskId: string };
+    artifactPaths: string[]; artifactHashes: Record<string, string>; retryNotBeforeMs?: number }
+  | { kind: 'ready'; taskId: string; nowMs?: number };
 function clearCall(task: CampaignSchedulerTask): void {
   task.launchIntentId = null; task.callId = null; task.controllerFence = null;
 }
@@ -197,7 +205,7 @@ export function applyCampaignSchedulerUpdates(tasks: readonly CampaignSchedulerT
       if (task.status !== 'ready' || !sha(update.launchIntentId) || !Number.isSafeInteger(update.controllerFence)
         || update.controllerFence < 1) throw new Error('Campaign scheduler launch intent is stale.');
       task.status = 'launching'; task.launchIntentId = update.launchIntentId;
-      task.controllerFence = update.controllerFence;
+      task.controllerFence = update.controllerFence; task.attemptCount += 1; task.retryNotBeforeMs = 0;
     } else if (update.kind === 'bind') {
       if (task.status !== 'launching' || task.launchIntentId !== update.launchIntentId
         || task.controllerFence !== update.controllerFence || !update.callId) {
@@ -212,10 +220,18 @@ export function applyCampaignSchedulerUpdates(tasks: readonly CampaignSchedulerT
       task.status = update.kind === 'completed' ? 'complete' : update.kind;
       task.reason = update.kind === 'completed' ? null : update.reason;
       task.artifactPaths = [...update.artifactPaths]; task.artifactHashes = { ...update.artifactHashes };
+      task.retryNotBeforeMs = update.kind === 'incomplete' ? update.retryNotBeforeMs ?? 0 : 0;
+      if (!Number.isSafeInteger(task.retryNotBeforeMs) || task.retryNotBeforeMs < 0) {
+        throw new Error('Campaign scheduler retry time is invalid.');
+      }
       clearCall(task);
     } else {
-      if (task.status !== 'incomplete') throw new Error('Only incomplete campaign work can become ready.');
+      if (update.kind !== 'ready') throw new Error('Unknown campaign scheduler update.');
+      if (task.status !== 'incomplete' || (update.nowMs ?? task.retryNotBeforeMs) < task.retryNotBeforeMs) {
+        throw new Error('Only due incomplete campaign work can become ready.');
+      }
       task.status = 'ready'; task.reason = null; task.artifactPaths = []; task.artifactHashes = {};
+      task.readySinceMs = update.nowMs ?? task.retryNotBeforeMs; task.retryNotBeforeMs = 0;
       clearCall(task);
     }
   }
@@ -226,6 +242,56 @@ export function applyCampaignSchedulerUpdates(tasks: readonly CampaignSchedulerT
     }
   }
   if (!validateCampaignSchedulerTasks(result)) throw new Error('Campaign scheduler updates produced invalid tasks.');
+  return result;
+}
+
+export function recoverCampaignAmbiguousLaunch(tasks: readonly CampaignSchedulerTask[], input: {
+  taskId: string; nowMs: number }): CampaignSchedulerTask[] {
+  if (!validateCampaignSchedulerTasks(tasks)) throw new Error('Campaign scheduler recovery input is invalid.');
+  const recovered = tasks.map((task) => structuredClone(task)),
+    target = recovered.find((task) => task.taskId === input.taskId);
+  if (!Number.isSafeInteger(input.nowMs) || input.nowMs < 0 || !target || target.status !== 'launching' || target.callId !== null || !target.launchIntentId) {
+    throw new Error('Campaign task has no ambiguous unbound launch intent.');
+  }
+  target.status = 'ready'; target.readySinceMs = input.nowMs; target.reason = null;
+  target.artifactPaths = []; target.artifactHashes = {}; target.retryNotBeforeMs = 0; clearCall(target);
+  if (!validateCampaignSchedulerTasks(recovered)) throw new Error('Campaign scheduler recovery produced invalid tasks.');
+  return recovered;
+}
+
+export function repairCampaignSchedulerTask(tasks: readonly CampaignSchedulerTask[], input: {
+  taskId: string; reason: string; artifactPaths: string[]; artifactHashes: Record<string, string>
+}): CampaignSchedulerTask[] {
+  if (!validateCampaignSchedulerTasks(tasks) || !input.reason || !Array.isArray(input.artifactPaths)
+    || !object(input.artifactHashes) || Object.values(input.artifactHashes).some((value) => !sha(value))) {
+    throw new Error('Campaign scheduler repair input is invalid.');
+  }
+  const byId = new Map(tasks.map((task) => [task.taskId, structuredClone(task)]));
+  const target = byId.get(input.taskId);
+  if (!target || target.status !== 'complete') throw new Error('Only completed campaign work can be repaired.');
+  const affected = new Set([target.taskId]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const task of byId.values()) if (!affected.has(task.taskId)
+      && task.dependencyTaskIds.some((id) => affected.has(id))) {
+      if (task.status === 'active' || task.status === 'launching') {
+        throw new Error('Campaign repair waits for active dependent work to stop.');
+      }
+      affected.add(task.taskId); changed = true;
+    }
+  }
+  target.status = 'incomplete'; target.reason = input.reason;
+  target.artifactPaths = [...input.artifactPaths]; target.artifactHashes = { ...input.artifactHashes };
+  target.retryNotBeforeMs = 0; clearCall(target);
+  for (const taskId of affected) {
+    if (taskId === target.taskId) continue;
+    const task = byId.get(taskId)!;
+    task.status = 'blocked'; task.reason = null; task.artifactPaths = []; task.artifactHashes = {};
+    task.retryNotBeforeMs = 0; clearCall(task);
+  }
+  const result = [...byId.values()];
+  if (!validateCampaignSchedulerTasks(result)) throw new Error('Campaign scheduler repair produced invalid tasks.');
   return result;
 }
 

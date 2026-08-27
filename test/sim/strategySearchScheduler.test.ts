@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
-  applyCampaignSchedulerUpdates, createCampaignSchedulerCheckpoint,
-  planCampaignSchedulerTick, reconfigureCampaignSchedulerTasks, refenceCampaignSchedulerCheckpoint,
-  validateCampaignSchedulerCheckpoint
+  applyCampaignSchedulerUpdates, createCampaignSchedulerCheckpoint, planCampaignSchedulerTick,
+  recoverCampaignAmbiguousLaunch, reconfigureCampaignSchedulerTasks, refenceCampaignSchedulerCheckpoint,
+  repairCampaignSchedulerTask, validateCampaignSchedulerCheckpoint
 } from '../../src/sim/strategySearchScheduler';
 import type { CampaignSchedulerTask } from '../../src/sim/strategySearchScheduler';
 
@@ -19,7 +19,8 @@ function task(input: Partial<CampaignSchedulerTask> & Pick<CampaignSchedulerTask
     controllerFence: input.status === 'active' || input.status === 'launching'
       ? input.controllerFence ?? 3 : null,
     reason: input.reason ?? null, artifactPaths: input.artifactPaths ?? [],
-    artifactHashes: input.artifactHashes ?? {} };
+    artifactHashes: input.artifactHashes ?? {}, attemptCount: input.attemptCount ?? 0,
+    retryNotBeforeMs: input.retryNotBeforeMs ?? 0 };
 }
 
 describe('fenced global campaign scheduler', () => {
@@ -44,6 +45,16 @@ describe('fenced global campaign scheduler', () => {
       limits: { maxActiveContainers: 4, maxActiveCpus: 16 }, controllerFence: 5, stopLaunching: false });
     expect(actions.filter((entry) => entry.kind === 'launch').map((entry) => entry.taskId))
       .toEqual(['psro', 'matrix', 'g2', 'g1']);
+  });
+
+  it('rotates same-stage Goldfish shards across kingdoms before taking a second shard', () => {
+    const tasks = ['k1', 'k2', 'k3'].flatMap((kingdomId) => [0, 1].map((shard) => task({
+      taskId: `${kingdomId}-${shard}`, kingdomId, stage: 'goldfish',
+      shardId: `stage-one:shard-${String(shard).padStart(3, '0')}`, readySinceMs: 1 })));
+    const actions = planCampaignSchedulerTick({ tasks, observations: [],
+      limits: { maxActiveContainers: 3, maxActiveCpus: 12 }, controllerFence: 4, stopLaunching: false });
+    expect(actions.filter((entry) => entry.kind === 'launch').map((entry) => entry.taskId))
+      .toEqual(['k1-0', 'k2-0', 'k3-0']);
   });
 
   it('runs independent canonical shards from the same kingdom concurrently', () => {
@@ -134,6 +145,39 @@ describe('fenced global campaign scheduler', () => {
     expect(planCampaignSchedulerTick({ tasks: updated, observations: [],
       limits: { maxActiveContainers: 1, maxActiveCpus: 4 }, controllerFence: 3,
       stopLaunching: false })).toEqual([]);
+  });
+
+  it('persists parameterized retry delay without imposing an attempt cap', () => {
+    const active = task({ taskId: 'matrix', kingdomId: 'k', stage: 'matrix', status: 'active',
+      attemptCount: 12 });
+    const incomplete = applyCampaignSchedulerUpdates([active], [{ kind: 'incomplete', taskId: 'matrix',
+      callId: 'call-matrix', reason: 'platform failure', artifactPaths: [], artifactHashes: {},
+      retryNotBeforeMs: 20_000 }]);
+    expect(incomplete[0]).toMatchObject({ status: 'incomplete', attemptCount: 12, retryNotBeforeMs: 20_000 });
+    expect(() => applyCampaignSchedulerUpdates(incomplete,
+      [{ kind: 'ready', taskId: 'matrix', nowMs: 19_999 }])).toThrow('due incomplete');
+    const ready = applyCampaignSchedulerUpdates(incomplete, [{ kind: 'ready', taskId: 'matrix', nowMs: 20_000 }]);
+    const relaunched = applyCampaignSchedulerUpdates(ready, [{ kind: 'intent', taskId: 'matrix',
+      launchIntentId: 'e'.repeat(64), controllerFence: 4 }]);
+    expect(relaunched[0]).toMatchObject({ status: 'launching', attemptCount: 13 });
+  });
+
+  it('repairs completed dependency closure and recovers only explicitly selected ambiguous launches', () => {
+    const goldfish = task({ taskId: 'goldfish', kingdomId: 'k', stage: 'goldfish', status: 'complete',
+      artifactPaths: ['ranked.json'], artifactHashes: { 'ranked.json': 'a'.repeat(64) } });
+    const matrix = task({ taskId: 'matrix', kingdomId: 'k', stage: 'matrix', status: 'complete',
+      dependencyTaskIds: ['goldfish'], artifactPaths: ['matrix.json'],
+      artifactHashes: { 'matrix.json': 'b'.repeat(64) } });
+    const repaired = repairCampaignSchedulerTask([goldfish, matrix], { taskId: 'goldfish',
+      reason: 'ranked hash differs', artifactPaths: ['ranked.json'],
+      artifactHashes: { 'ranked.json': 'a'.repeat(64) } });
+    expect(repaired.map((entry) => [entry.taskId, entry.status])).toEqual([
+      ['goldfish', 'incomplete'], ['matrix', 'blocked']]);
+    const launching = task({ taskId: 'psro', kingdomId: 'k2', stage: 'psro', status: 'launching' });
+    expect(recoverCampaignAmbiguousLaunch([launching], { taskId: 'psro', nowMs: 9 })[0])
+      .toMatchObject({ status: 'ready', readySinceMs: 9, attemptCount: 0 });
+    expect(() => recoverCampaignAmbiguousLaunch([task({ taskId: 'live', kingdomId: 'k', stage: 'matrix',
+      status: 'active' })], { taskId: 'live', nowMs: 9 })).toThrow('no ambiguous');
   });
 
   it('updates pending runtime resources but preserves saved active allocations', () => {
