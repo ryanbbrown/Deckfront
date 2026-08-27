@@ -9,10 +9,12 @@ import type {
 } from '../src/sim/strategySearchScheduler';
 
 const request = JSON.parse(fs.readFileSync(0, 'utf8')) as Record<string, unknown>;
-const checkpoint = request.checkpoint as CampaignSchedulerCheckpoint;
+const operation = process.argv[2];
+const checkpoint = operation === 'validate' && validateCampaignSchedulerCheckpoint(request)
+  ? request : request.checkpoint as CampaignSchedulerCheckpoint;
 if (!validateCampaignSchedulerCheckpoint(checkpoint)) throw new Error('Campaign scheduler checkpoint is invalid.');
 let result: unknown;
-if (process.argv[2] === 'validate') {
+if (operation === 'validate') {
   result = checkpoint;
 } else if (process.argv[2] === 'plan') {
   result = planCampaignSchedulerTick({ tasks: checkpoint.tasks,

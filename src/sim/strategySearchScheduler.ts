@@ -318,6 +318,16 @@ export interface CampaignSchedulerCheckpoint {
   schemaVersion: 1; experiment: 'strategy-search-campaign-scheduler'; evidenceHash: string;
   controllerFence: number; revision: number; tasks: CampaignSchedulerTask[]; checkpointHash: string;
 }
+function checkpointTask(task: CampaignSchedulerTask): CampaignSchedulerTask {
+  // This property order preserves schema-v1 checkpoint hashes across JSON serializers.
+  return { taskId: task.taskId, kingdomId: task.kingdomId, stage: task.stage, shardId: task.shardId,
+    dependencyTaskIds: [...task.dependencyTaskIds], status: task.status, cpus: task.cpus,
+    readySinceMs: task.readySinceMs, containers: task.containers, launchIntentId: task.launchIntentId,
+    callId: task.callId, controllerFence: task.controllerFence, reason: task.reason,
+    artifactPaths: [...task.artifactPaths], artifactHashes: Object.fromEntries(
+      Object.entries(task.artifactHashes).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)),
+    attemptCount: task.attemptCount, retryNotBeforeMs: task.retryNotBeforeMs };
+}
 export function createCampaignSchedulerCheckpoint(input: Omit<CampaignSchedulerCheckpoint,
   'schemaVersion' | 'experiment' | 'checkpointHash'>): CampaignSchedulerCheckpoint {
   if (!sha(input.evidenceHash) || !Number.isSafeInteger(input.controllerFence) || input.controllerFence < 1
@@ -326,7 +336,7 @@ export function createCampaignSchedulerCheckpoint(input: Omit<CampaignSchedulerC
   }
   const base = { schemaVersion: 1 as const, experiment: 'strategy-search-campaign-scheduler' as const,
     evidenceHash: input.evidenceHash, controllerFence: input.controllerFence, revision: input.revision,
-    tasks: input.tasks.map((task) => structuredClone(task)).sort((left, right) =>
+    tasks: input.tasks.map(checkpointTask).sort((left, right) =>
       left.taskId < right.taskId ? -1 : left.taskId > right.taskId ? 1 : 0), checkpointHash: '' };
   return { ...base, checkpointHash: hash(base) };
 }
@@ -344,7 +354,8 @@ export function validateCampaignSchedulerCheckpoint(value: unknown): value is Ca
     'controllerFence', 'revision', 'tasks', 'checkpointHash'])) return false;
   try {
     const held = value as unknown as CampaignSchedulerCheckpoint;
-    return exact(held, createCampaignSchedulerCheckpoint({ evidenceHash: held.evidenceHash,
-      controllerFence: held.controllerFence, revision: held.revision, tasks: held.tasks }));
+    const expected = createCampaignSchedulerCheckpoint({ evidenceHash: held.evidenceHash,
+      controllerFence: held.controllerFence, revision: held.revision, tasks: held.tasks });
+    return held.checkpointHash === expected.checkpointHash;
   } catch { return false; }
 }

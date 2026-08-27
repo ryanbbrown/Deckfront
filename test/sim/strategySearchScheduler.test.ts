@@ -1,4 +1,6 @@
+import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
+import rawSmokeManifest from '../../src/sim/balance-smoke-suite-manifest.json' with { type: 'json' };
 import {
   applyCampaignSchedulerUpdates, createCampaignSchedulerCheckpoint, planCampaignSchedulerTick,
   recoverCampaignAmbiguousLaunch, reconfigureCampaignSchedulerTasks, refenceCampaignSchedulerCheckpoint,
@@ -21,6 +23,33 @@ function task(input: Partial<CampaignSchedulerTask> & Pick<CampaignSchedulerTask
     reason: input.reason ?? null, artifactPaths: input.artifactPaths ?? [],
     artifactHashes: input.artifactHashes ?? {}, attemptCount: input.attemptCount ?? 0,
     retryNotBeforeMs: input.retryNotBeforeMs ?? 0 };
+}
+function sortedObjectKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sortedObjectKeys);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).sort(([left], [right]) =>
+    left < right ? -1 : left > right ? 1 : 0).map(([key, held]) => [key, sortedObjectKeys(held)]));
+}
+function productionLaunchTasks(): CampaignSchedulerTask[] {
+  return rawSmokeManifest.selectedKingdomIds.flatMap((kingdomId) => {
+    const prefix = `${kingdomId}:goldfish`, stageOne = `${prefix}:stage-one:shard-000`;
+    const merge = `${prefix}:merge-stage-one`, stageTwo = `${prefix}:stage-two:0`;
+    const finalize = `${prefix}:finalize`, matrix = `${kingdomId}:matrix`;
+    return [
+      task({ taskId: stageOne, kingdomId, stage: 'goldfish', shardId: 'stage-one:shard-000',
+        readySinceMs: 0, cpus: 4 }),
+      task({ taskId: merge, kingdomId, stage: 'goldfish', shardId: 'merge-stage-one',
+        dependencyTaskIds: [stageOne], status: 'blocked', readySinceMs: 0, cpus: 4 }),
+      task({ taskId: stageTwo, kingdomId, stage: 'goldfish', shardId: 'stage-two:0',
+        dependencyTaskIds: [merge], status: 'blocked', readySinceMs: 0, cpus: 4 }),
+      task({ taskId: finalize, kingdomId, stage: 'goldfish', shardId: 'finalize',
+        dependencyTaskIds: [stageTwo], status: 'blocked', readySinceMs: 0, cpus: 4 }),
+      task({ taskId: matrix, kingdomId, stage: 'matrix', dependencyTaskIds: [finalize],
+        status: 'blocked', readySinceMs: 0, cpus: 8 }),
+      task({ taskId: `${kingdomId}:psro`, kingdomId, stage: 'psro', dependencyTaskIds: [matrix],
+        status: 'blocked', readySinceMs: 0, cpus: 8 })
+    ];
+  });
 }
 
 describe('fenced global campaign scheduler', () => {
@@ -190,6 +219,33 @@ describe('fenced global campaign scheduler', () => {
     expect(() => reconfigureCampaignSchedulerTasks([active, ready], {
       active: { containers: 1, cpus: 8 } })).toThrow('do not match');
   });
+
+  it('validates the exact persisted thirty-kingdom production scheduler bundle', () => {
+    expect(rawSmokeManifest.selectedKingdomIds).toHaveLength(30);
+    const tasks = productionLaunchTasks();
+    expect(tasks).toHaveLength(180);
+    expect(new Set(tasks.filter((entry) => entry.stage === 'goldfish').map((entry) => entry.cpus)))
+      .toEqual(new Set([4]));
+    expect(new Set(tasks.filter((entry) => entry.stage !== 'goldfish').map((entry) => entry.cpus)))
+      .toEqual(new Set([8]));
+    const checkpoint = createCampaignSchedulerCheckpoint({
+      evidenceHash: '236025f8c1b7fe9bcd2353d6bc971106d390ea77c031d0c51ba023e324d773a8',
+      controllerFence: 1, revision: 0, tasks });
+    expect(checkpoint.checkpointHash)
+      .toBe('a827369b58ab8f562eb34e4508eac68e610666da46b475beeae24bf872061912');
+    const persisted = JSON.parse(JSON.stringify(sortedObjectKeys(checkpoint))) as unknown;
+    expect(validateCampaignSchedulerCheckpoint(persisted)).toBe(true);
+    const command = spawnSync('npx', ['tsx', 'scripts/strategy_search_campaign_scheduler.ts', 'validate'], {
+      cwd: process.cwd(), input: JSON.stringify(persisted), encoding: 'utf8', timeout: 30_000 });
+    expect(command.status, command.stderr).toBe(0);
+    expect(validateCampaignSchedulerCheckpoint(JSON.parse(command.stdout))).toBe(true);
+    const actions = planCampaignSchedulerTick({ tasks, observations: [],
+      limits: { maxActiveContainers: 100, maxActiveCpus: 800 }, controllerFence: 1,
+      stopLaunching: false });
+    expect(actions).toHaveLength(30);
+    expect(actions.every((entry) => entry.kind === 'launch' && entry.stage === 'goldfish'
+      && entry.containers === 1 && entry.cpus === 4)).toBe(true);
+  }, 30_000);
 
   it('fails closed when the runtime cannot fit the smallest eligible stage', () => {
     expect(() => planCampaignSchedulerTick({ tasks: [task({ taskId: 'psro', kingdomId: 'k', stage: 'psro',
