@@ -23,6 +23,7 @@ export const GOLDFISH_MODAL_REDUCE_ONE_TIMEOUT_SECONDS = 600;
 export const GOLDFISH_MODAL_REDUCE_TWO_TIMEOUT_SECONDS = 300;
 export const GOLDFISH_MODAL_ATTEMPTS = 3;
 export const GOLDFISH_MODAL_REDUCER_CORES = 4;
+export const GOLDFISH_MODAL_MAX_CONCURRENT_REDUCERS = 2;
 
 const identifier = z.string().min(1).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
 export const goldfishModalRequestSchema = z.object({
@@ -106,7 +107,8 @@ function resourceShape(request: GoldfishModalRequest): GoldfishModalResourceShap
   const maxScoreContainers = Math.floor(request.maxActiveCpus / request.workerCores);
   const maxScheduledScoreCpus = maxScoreContainers * request.workerCores;
   const maxConcurrentReducers = Math.min(request.kingdomIds.length,
-    Math.floor(request.maxActiveCpus / GOLDFISH_MODAL_REDUCER_CORES));
+    Math.floor(request.maxActiveCpus / GOLDFISH_MODAL_REDUCER_CORES),
+    GOLDFISH_MODAL_MAX_CONCURRENT_REDUCERS);
   return { workerCoresPerContainer: request.workerCores, maxActiveCpus: request.maxActiveCpus,
     maxScoreContainers, maxScheduledScoreCpus,
     unusedCpuCapacity: request.maxActiveCpus - maxScheduledScoreCpus,

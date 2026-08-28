@@ -23,7 +23,7 @@ All five fields are required. The route has no paid defaults.
 - `maxWallSeconds` starts after image deployment, readiness, and execution preparation finish.
 - `maxCostUsd` must cover the calculated worst case and cannot exceed the hard route limit of $100.
 
-Reducers use four cores and 8 GiB of memory. The route can run one reducer per kingdom in parallel while the shared CPU budget has room. The plan reports reducer resources and the maximum reducer concurrency separately from the score-container shape.
+Reducers use four cores and 8 GiB of memory. The route runs at most two reducers in parallel within the shared CPU budget to limit contention on the shared Modal Volume. The plan reports reducer resources and the maximum reducer concurrency separately from the score-container shape.
 
 ## Plan
 
