@@ -64,7 +64,7 @@ export interface CardBalanceSmokeComparison {
     matrixSeeds: '4200001..4200125';
     matrixPayoffSeeds: 75;
     matrixTelemetrySeeds: 125;
-    psroRules: 'unchanged';
+    psroRules: 'confirmed queue capped at 100; thresholds, depths, admission, solver, and stopping rules unchanged';
     scoreWorkerCores: 16;
     maximumActiveScoreCpus: 512;
   };
@@ -165,7 +165,7 @@ export function compareCardBalanceSmoke(input: {
       changedCardIds: [...CARD_BALANCE_SMOKE_CHANGED_CARD_IDS],
       evidenceBasis: 'stored equilibrium lottery versus itself; diagonal included; rates are per player side' },
     scientificSettings: { goldfishRanking: 'unchanged', matrixSeeds: '4200001..4200125',
-      matrixPayoffSeeds: 75, matrixTelemetrySeeds: 125, psroRules: 'unchanged',
+      matrixPayoffSeeds: 75, matrixTelemetrySeeds: 125, psroRules: 'confirmed queue capped at 100; thresholds, depths, admission, solver, and stopping rules unchanged',
       scoreWorkerCores: 16, maximumActiveScoreCpus: 512 },
     source: { baselineReportSha256: input.baselineReportSha256 }, kingdoms,
     crossKingdom: {
@@ -234,7 +234,7 @@ export function renderCardBalanceSmokeReport(report: CardBalanceSmokeComparison)
 :root{font:16px/1.45 system-ui,sans-serif;color:#17231d;background:#f7f5ef}body{margin:0}main{max-width:1400px;margin:auto;padding:32px 24px 70px}h1{font-size:clamp(32px,5vw,58px);line-height:1.05;margin-bottom:8px}h2{margin-top:0}.lede{max-width:82ch;color:#536159}.warning{border:2px solid #9a3f13;background:#fff1e8}section{background:#fff;border:1px solid #ccd6d0;border-radius:12px;padding:22px;margin:22px 0}.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.metrics div{background:#e8f2ed;border-radius:9px;padding:14px}.metrics strong{display:block;font-size:28px}.table-wrap{overflow:auto;border:1px solid #dce4df;border-radius:8px;margin:10px 0 22px}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #e4e9e6}th{background:#edf3ef;font-size:12px;text-transform:uppercase}tr:last-child td{border-bottom:0}code{font-size:12px}@media(max-width:700px){main{padding:20px 10px}.metrics{grid-template-columns:1fr}section{padding:14px}}
 </style></head><body><main><h1>Card balance directional smoke</h1><p class="lede">Before and after comparison for the exact eight Plan 84 kingdoms. Each kingdom has equal weight. Within a kingdom, both players use the stored equilibrium lottery.</p>
 <section class="warning"><h2>Directional smoke, not final balance evidence</h2><p>This small run checks the direction of the agreed card changes. It does not replace the completed 30-kingdom evidence.</p></section>
-<section><h2>Run shape</h2><p>Goldfish used Modal Functions with 16 cores per score container and at most 512 active score CPUs. Matrix and PSRO kept their scientific rules and ran locally.</p><div class="metrics"><div><strong>${fixed(report.crossKingdom.supportSize.before)} → ${fixed(report.crossKingdom.supportSize.after)}</strong>Mean support size</div><div><strong>${fixed(report.crossKingdom.effectiveSize.before)} → ${fixed(report.crossKingdom.effectiveSize.after)}</strong>Mean effective size</div></div></section>
+<section><h2>Run shape</h2><p>Goldfish used Modal Functions with 16 cores per score container and at most 512 active score CPUs. Matrix ran locally with unchanged rules. Local PSRO capped each confirmed queue at 100; thresholds, depths, admission, solver, and stopping rules stayed unchanged.</p><div class="metrics"><div><strong>${fixed(report.crossKingdom.supportSize.before)} → ${fixed(report.crossKingdom.supportSize.after)}</strong>Mean support size</div><div><strong>${fixed(report.crossKingdom.effectiveSize.before)} → ${fixed(report.crossKingdom.effectiveSize.after)}</strong>Mean effective size</div></div></section>
 <section><h2>Equilibrium-weighted archetype shares</h2>${archetypes}</section><section><h2>Changed-card acquisition</h2><p>Copies are expected acquired copies per player side. Selection is the equilibrium share of strategies that start with or acquire the card.</p>${cards}</section><section><h2>Played-card family damage</h2>${families}</section>
 ${kingdomSections}<script id="card-balance-smoke-data" type="application/json">${embedded}</script></main></body></html>\n`;
 }
