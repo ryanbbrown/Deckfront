@@ -122,6 +122,17 @@ def compute_preflight_entry(launch_config: str, compute_app_name: str, result_fi
     print(json.dumps(result), flush=True)
 
 
+def _startup_progress_state(progress: dict[str, Any]) -> str:
+    if progress.get("status") == "failed":
+        return "failed"
+    if progress.get("status") == "complete":
+        return "complete"
+    if progress.get("usefulWorkStarted") and (progress.get("submittedTaskCount", 0) > 0
+            or progress.get("completedTaskCount", 0) > 0):
+        return "useful-work"
+    return "waiting"
+
+
 @app.local_entrypoint()
 def run_deployed_entry(launch_config: str, compute_app_name: str, download_dir: str,
                        startup_timeout_seconds: int = 120) -> None:
@@ -140,12 +151,14 @@ def run_deployed_entry(launch_config: str, compute_app_name: str, download_dir: 
     progress: dict[str, Any] = {}
     while time.monotonic() < deadline:
         progress = read_startup.remote(bundle["campaignExecutionId"])
-        if progress.get("status") == "failed":
+        startup_state = _startup_progress_state(progress)
+        if startup_state == "failed":
             call.cancel(terminate_containers=True)
             raise RuntimeError("strategy-search controller failed before useful work started")
-        if progress.get("usefulWorkStarted") and (progress.get("submittedTaskCount", 0) > 0
-                or progress.get("completedTaskCount", 0) > 0):
-            print(json.dumps({"type": "strategy-search-useful-work-started",
+        if startup_state in {"complete", "useful-work"}:
+            event = "strategy-search-completed-from-existing-evidence" \
+                if startup_state == "complete" else "strategy-search-useful-work-started"
+            print(json.dumps({"type": event,
                 "campaignExecutionId": bundle["campaignExecutionId"], **progress}), flush=True)
             break
         time.sleep(1)

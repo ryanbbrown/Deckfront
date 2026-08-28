@@ -17,6 +17,15 @@ class FakeVolume:
 
 
 class StrategySearchRuntimeTest(unittest.TestCase):
+    def test_completed_reused_execution_does_not_wait_for_new_work(self):
+        self.assertEqual(runtime._startup_progress_state({"status": "complete",
+            "usefulWorkStarted": False, "submittedTaskCount": 0, "completedTaskCount": 1}), "complete")
+        self.assertEqual(runtime._startup_progress_state({"status": "running",
+            "usefulWorkStarted": True, "submittedTaskCount": 1, "completedTaskCount": 0}), "useful-work")
+        self.assertEqual(runtime._startup_progress_state({"status": "running",
+            "usefulWorkStarted": False, "submittedTaskCount": 0, "completedTaskCount": 0}), "waiting")
+        self.assertEqual(runtime._startup_progress_state({"status": "failed"}), "failed")
+
     def test_goldfish_only_route_selects_only_final_goldfish_files(self):
         bundle = {"controller": {"route": "goldfish-only-v1"}}
         self.assertEqual(runtime._final_artifact_relatives(bundle),
