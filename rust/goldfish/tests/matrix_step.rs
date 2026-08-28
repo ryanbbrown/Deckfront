@@ -29,27 +29,33 @@ fn temporary(name: &str) -> PathBuf {
     path
 }
 
+fn matrix_command(out: &Path, threads: usize, report: Option<&Path>) -> Output {
+    let mut command = Command::new(BINARY);
+    command.args([
+        "matrix",
+        "--kingdom-file",
+        fixture("balance-tuning-005.json")
+            .to_str()
+            .expect("kingdom path"),
+        "--reservoir",
+        fixture("balance-tuning-005-reservoir.hgf")
+            .to_str()
+            .expect("reservoir path"),
+        "--out",
+        out.to_str().expect("out path"),
+        "--threads",
+        &threads.to_string(),
+        "--top",
+        &TOP.to_string(),
+    ]);
+    if let Some(report) = report {
+        command.args(["--report", report.to_str().expect("report path")]);
+    }
+    command.output().expect("matrix command")
+}
+
 fn matrix(out: &Path, threads: usize) -> Output {
-    Command::new(BINARY)
-        .args([
-            "matrix",
-            "--kingdom-file",
-            fixture("balance-tuning-005.json")
-                .to_str()
-                .expect("kingdom path"),
-            "--reservoir",
-            fixture("balance-tuning-005-reservoir.hgf")
-                .to_str()
-                .expect("reservoir path"),
-            "--out",
-            out.to_str().expect("out path"),
-            "--threads",
-            &threads.to_string(),
-            "--top",
-            &TOP.to_string(),
-        ])
-        .output()
-        .expect("matrix command")
+    matrix_command(out, threads, None)
 }
 
 fn verify(out: &Path, kingdom: &Path, reservoir: &Path, top: Option<usize>) -> Output {
@@ -108,6 +114,39 @@ fn expect_rejected(out: &Path, kingdom: &Path, reservoir: &Path, top: Option<usi
         "verification unexpectedly passed: {}",
         String::from_utf8_lossy(&output.stdout)
     );
+}
+
+#[test]
+fn matrix_rejects_evidence_report_paths_without_modifying_existing_evidence() {
+    for report_name in ["pairs.hgm", "purchases.hgm", "matrix.hgm"] {
+        let out = temporary(&format!("report-{report_name}"));
+        fs::create_dir(out.join("alias")).expect("alias directory");
+        let evidence = [
+            ("pairs.hgm", b"existing pairs".as_slice()),
+            ("purchases.hgm", b"existing purchases".as_slice()),
+            ("matrix.hgm", b"existing matrix".as_slice()),
+        ];
+        for (name, bytes) in evidence {
+            fs::write(out.join(name), bytes).expect("existing evidence");
+        }
+        let report = out.join("alias").join("..").join(report_name);
+        let result = matrix_command(&out, 1, Some(&report));
+        assert!(!result.status.success());
+        assert!(String::from_utf8_lossy(&result.stderr).contains(&format!(
+            "--report must not resolve to {report_name} under --out"
+        )));
+        for (name, bytes) in evidence {
+            assert_eq!(fs::read(out.join(name)).expect("unchanged evidence"), bytes);
+        }
+        assert!(fs::read_dir(&out).expect("output directory").all(|entry| {
+            !entry
+                .expect("directory entry")
+                .file_name()
+                .to_string_lossy()
+                .ends_with(".tmp")
+        }));
+        fs::remove_dir_all(out).expect("remove report temporary directory");
+    }
 }
 
 #[test]

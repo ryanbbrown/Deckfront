@@ -4,7 +4,7 @@ use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::time::Instant;
 
 const MAGIC: &[u8; 4] = b"HGR1";
@@ -809,14 +809,70 @@ fn elapsed_ms(start: Instant) -> f64 {
     start.elapsed().as_secs_f64() * 1000.0
 }
 
+fn normalize_path(path: &Path) -> PathBuf {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            held => normalized.push(held.as_os_str()),
+        }
+    }
+    normalized
+}
+
+fn resolve_path(path: &Path) -> Result<PathBuf, String> {
+    let mut cursor = if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        std::env::current_dir()
+            .map_err(|error| format!("resolve current directory: {error}"))?
+            .join(path)
+    };
+    let mut missing = Vec::new();
+    loop {
+        if let Ok(mut canonical) = fs::canonicalize(&cursor) {
+            for component in missing.iter().rev() {
+                canonical.push(component);
+            }
+            return Ok(normalize_path(&canonical));
+        }
+        let component = cursor
+            .components()
+            .next_back()
+            .ok_or_else(|| format!("resolve path {}", path.display()))?;
+        missing.push(component.as_os_str().to_os_string());
+        if !cursor.pop() {
+            return Err(format!("resolve path {}", path.display()));
+        }
+    }
+}
+
+fn reject_evidence_report_path(out: &Path, report: Option<&Path>) -> Result<(), String> {
+    let Some(report) = report else {
+        return Ok(());
+    };
+    let report = resolve_path(report)?;
+    for name in ["pairs.hgm", "purchases.hgm", "matrix.hgm"] {
+        if report == resolve_path(&out.join(name))? {
+            return Err(format!("--report must not resolve to {name} under --out"));
+        }
+    }
+    Ok(())
+}
+
 fn run_matrix(options: Options, explicit_top: bool) -> Result<(), String> {
-    let started = Instant::now();
-    let read_started = Instant::now();
     let kingdom_path = options.kingdom_file.expect("required kingdom");
     let reservoir_path = options.reservoir.expect("required reservoir");
     let out = options.out.expect("required out");
     let threads = options.threads.expect("required threads");
     let top = options.top.expect("defaulted top");
+    let report_path = options.report;
+    reject_evidence_report_path(&out, report_path.as_deref())?;
+    let started = Instant::now();
+    let read_started = Instant::now();
     let kingdom = load_kingdom(&kingdom_path)?;
     let reservoir = read_reservoir(&reservoir_path, &kingdom, top, explicit_top)?;
     let strategies = reservoir
@@ -930,7 +986,7 @@ fn run_matrix(options: Options, explicit_top: bool) -> Result<(), String> {
             + reservoir.bytes,
         bytes_written,
     };
-    if let Some(report_path) = options.report {
+    if let Some(report_path) = report_path {
         if let Some(parent) = report_path.parent() {
             fs::create_dir_all(parent)
                 .map_err(|error| format!("create report directory: {error}"))?;
