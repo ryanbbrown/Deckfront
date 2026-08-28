@@ -1,107 +1,57 @@
 import { describe, expect, it } from 'vitest';
-import { VARIABLE_ACTION_IDS, randomKingdom } from '../src/game';
-import { ProductionAiTrainer } from '../src/server/aiTrainer';
-import type { AiTrainingLimits } from '../src/server/aiTrainer';
-import type { EquilibriumResult } from '../src/sim/equilibrium';
-import type { MatrixSnapshot } from '../src/sim/payoffMatrix';
-import type { PairingRunner } from '../src/sim/pairingRunner';
-import type { PsroResult } from '../src/sim/psro';
-import type { Strategy } from '../src/sim/strategy';
+import { randomKingdom } from '../src/game';
+import { PretrainedAiTrainer } from '../src/server/aiTrainer';
+import { findPretrainedKingdom, pretrainedVariableCardSets } from '../src/server/pretrainedCatalog';
 
-const limits: AiTrainingLimits = {
-  restarts: 1, initialStrategies: 1, candidates: 1, iterations: 1,
-  seeds: 1, unionIterations: 1, workers: 1, deadlineMinutes: 1
-};
-const kingdom = randomKingdom('ai-difficulty-fixture', VARIABLE_ACTION_IDS.slice(0, 10));
-const runner: PairingRunner = {
-  run: async () => { throw new Error('Literal training results do not run games.'); },
-  close: async () => undefined
-};
-function strategy(id: string): Strategy {
-  return { id, startingBuild: [], buyAgenda: [], repeatPurchase: 'silver' };
-}
-function result(strategies: Strategy[], payoffs: number[][], weights: number[]): PsroResult {
-  const weightMap = Object.fromEntries(strategies.map((entry, index) => [entry.id, weights[index]!]));
-  const equilibrium: EquilibriumResult = {
-    strategyIds: strategies.map((entry) => entry.id), weights: weightMap,
-    maximumEquilibriumWeight: weightMap, value: 0, maximumKnownAdvantage: 0,
-    residuals: { nonnegative: 0, totalWeight: 0, value: 0, payoff: 0 }
-  };
-  const matrix: MatrixSnapshot = {
-    protocol: {
-      kingdomId: kingdom.id, cards: [], seeds: [1], turnLimitPerPlayer: 30,
-      actionCapPerTurn: 100, orientationProtocol: 'literal', rulesFingerprint: 'literal'
-    },
-    strategies, cells: [], complete: true, centeredPayoffs: payoffs
-  };
-  return {
-    valid: true, restarts: [], strategies, matrix, equilibrium, events: [], finalFailures: [],
-    restartAgreement: [], matches: 1200, stopReason: 'literal', restartStatuses: [], failure: null,
-    seedNamespaces: {}
-  };
-}
-function trainer(trainingResult: PsroResult): ProductionAiTrainer {
-  return new ProductionAiTrainer(limits, {
-    createRunner: () => runner,
-    runSearch: async () => trainingResult
-  });
-}
-describe('AI difficulty strategy selection', () => {
-  it('chooses Easy, Normal, and Hard strategies only from their score bands', async () => {
-    const strategies = ['lottery', 'easy-low', 'easy-high', 'normal', 'hard', 'weak'].map(strategy);
-    const payoffs = [
-      [0, 0.38, 0.32, 0.2, 0.1, 0.8],
-      [-0.38, 0, 0, 0, 0, 0],
-      [-0.32, 0, 0, 0, 0, 0],
-      [-0.2, 0, 0, 0, 0, 0],
-      [-0.1, 0, 0, 0, 0, 0],
-      [-0.8, 0, 0, 0, 0, 0]
-    ];
-    const production = trainer(result(strategies, payoffs, [1, 0, 0, 0, 0, 0]));
+const cards = ['cascade','channel','flurry','heavyBlow','overload','prism','regiment','starfire','strike','volley'];
+const kingdom = randomKingdom('pretrained-ai-test', cards);
 
-    const easy = await production.train(kingdom, 17, 'easy');
-    const normal = await production.train(kingdom, 17, 'normal');
-    const hard = await production.train(kingdom, 17, 'hard');
+describe('pretrained AI difficulty selection', () => {
+  it('loads all exact kingdoms and final-matrix plans as padded ordered plans', () => {
+    const cardSets = pretrainedVariableCardSets();
+    const planCounts = cardSets.map((cardIds) => findPretrainedKingdom(cardIds)!.plans.length);
+    const plans = cardSets.flatMap((cardIds) => findPretrainedKingdom(cardIds)!.plans);
 
-    expect(['easy-low', 'easy-high']).toContain(easy.strategy.id);
-    expect(normal.strategy.id).toBe('normal');
-    expect(hard.strategy.id).toBe('hard');
+    expect(cardSets).toHaveLength(30);
+    expect(new Set(cardSets.map((cardIds) => [...cardIds].sort().join('|'))).size).toBe(30);
+    expect(planCounts.reduce((sum, count) => sum + count, 0)).toBe(1_572);
+    expect(plans.every((plan) => plan.buyPlan.length === 10)).toBe(true);
+    expect(plans.every((plan) => plan.strategy.buyAgenda.length === plan.buyPlan.filter((slot) => slot.kind === 'buy').length)).toBe(true);
+    expect(plans.every((plan) => plan.strategy.repeatPurchase === 'copper')).toBe(true);
   });
 
-  it('uses only nearest strategies when the requested score band is empty', async () => {
-    const strategies = ['lottery', 'below', 'above', 'weak'].map(strategy);
-    const payoffs = [
-      [0, 0.32, 0.08, 0.8],
-      [-0.32, 0, 0, 0],
-      [-0.08, 0, 0, 0],
-      [-0.8, 0, 0, 0]
-    ];
-    const production = trainer(result(strategies, payoffs, [1, 0, 0, 0]));
+  it('matches a kingdom without depending on submitted card order', async () => {
+    const trainer = new PretrainedAiTrainer();
+    const first = await trainer.train(kingdom, 81, 'hard');
+    const reordered = await trainer.train(randomKingdom('reordered', [...cards].reverse()), 81, 'hard');
 
-    const selected = await production.train(kingdom, 4, 'normal');
-
-    expect(['below', 'above']).toContain(selected.strategy.id);
+    expect(reordered.strategy).toEqual(first.strategy);
+    expect(first.summary).toMatchObject({ matches: 0, strategyId: first.strategy.id });
   });
 
-  it('is deterministic for the same training seed and difficulty', async () => {
-    const strategies = ['lottery', 'easy-low', 'easy-high'].map(strategy);
-    const payoffs = [[0, 0.38, 0.32], [-0.38, 0, 0], [-0.32, 0, 0]];
-    const production = trainer(result(strategies, payoffs, [1, 0, 0]));
+  it('keeps deterministic saved score-band choices for Easy, Normal, and Hard', async () => {
+    const trainer = new PretrainedAiTrainer();
 
-    const first = await production.train(kingdom, 81, 'easy');
-    const second = await production.train(kingdom, 81, 'easy');
-
-    expect(second.strategy.id).toBe(first.strategy.id);
+    await expect(trainer.train(kingdom, 17, 'easy')).resolves.toMatchObject({ strategy: { id: 'gf-594448' } });
+    await expect(trainer.train(kingdom, 17, 'normal')).resolves.toMatchObject({ strategy: { id: 'gf-594448' } });
+    await expect(trainer.train(kingdom, 17, 'hard')).resolves.toMatchObject({ strategy: { id: 'gf-7839095' } });
   });
 
-  it('uses the non-uniform final lottery probabilities for Expert', async () => {
-    const strategies = ['primary', 'secondary'].map(strategy);
-    const payoffs = [[0, 0], [0, 0]];
+  it('samples Expert from only the positive-weight saved equilibrium plans', async () => {
+    const trainer = new PretrainedAiTrainer();
+    const trained = findPretrainedKingdom(cards)!;
 
-    const primary = await trainer(result(strategies, payoffs, [0.95, 0.05])).train(kingdom, 0, 'expert');
-    const secondary = await trainer(result(strategies, payoffs, [0.9, 0.1])).train(kingdom, 0, 'expert');
+    for (const seed of [134, 512, 0]) {
+      const selected = await trainer.train(kingdom, seed, 'expert');
+      expect(trained.plans.find((plan) => plan.strategy.id === selected.strategy.id)?.equilibriumWeight).toBeGreaterThan(0);
+    }
+    await expect(trainer.train(kingdom, 134, 'expert')).resolves.toMatchObject({ strategy: { id: 'gf-5261852' } });
+    await expect(trainer.train(kingdom, 512, 'expert')).resolves.toMatchObject({ strategy: { id: 'gf-5256923' } });
+    await expect(trainer.train(kingdom, 0, 'expert')).resolves.toMatchObject({ strategy: { id: 'gf-7839110' } });
+  });
 
-    expect(primary.strategy.id).toBe('primary');
-    expect(secondary.strategy.id).toBe('secondary');
+  it('rejects a kingdom outside the pretrained catalog', async () => {
+    const untrained = randomKingdom('untrained', ['cull','footwork','aim','volley','muster','feint','drive','channel','arcBolt','reclaim']);
+    await expect(new PretrainedAiTrainer().train(untrained, 1, 'expert')).rejects.toThrow('no pretrained AI opponent');
   });
 });

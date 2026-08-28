@@ -10,6 +10,7 @@ export interface SetupCatalog {
   cards: Record<string, CardDefinition>;
   fixedCardIds: string[];
   variableCardIds: string[];
+  trainedVariableCardSets: string[][];
 }
 
 export interface GamePlayerView {

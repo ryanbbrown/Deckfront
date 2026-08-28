@@ -12,7 +12,7 @@ import type {
   PhaseActionPresentation, PresentationFrame, PresentationState, PresentationTransfer, PublicGameEvent
 } from '../shared/api';
 import type { GameRecord, GameRepository, UndoHistoryEntry } from './types';
-import { ProductionAiTrainer } from './aiTrainer';
+import { PretrainedAiTrainer } from './aiTrainer';
 import type { AiTrainer } from './aiTrainer';
 
 export class ConflictError extends Error {}
@@ -28,7 +28,7 @@ export interface CreateGameInput {
   startingDraftEnabled?: boolean | undefined;
 }
 export class GameService {
-  constructor(private readonly repository: GameRepository, private readonly aiTrainer: AiTrainer = new ProductionAiTrainer()) {}
+  constructor(private readonly repository: GameRepository, private readonly aiTrainer: AiTrainer = new PretrainedAiTrainer()) {}
   async create(input: CreateGameInput): Promise<GameUpdateView> {
     const now = new Date().toISOString();
     const id = randomUUID();
@@ -41,7 +41,7 @@ export class GameService {
     const aiPlayerId = humanPlayerId ? opponent(humanPlayerId) : null;
     const aiDifficulty = mode === 'ai' ? input.aiDifficulty ?? 'expert' : null;
     const trained = aiDifficulty ? await this.aiTrainer.train(kingdom, seed, aiDifficulty) : null;
-    const startingDraftEnabled = input.startingDraftEnabled ?? false;
+    const startingDraftEnabled = mode === 'ai' ? false : input.startingDraftEnabled ?? false;
     const initialState = createGame({ seed, firstPlayerId: 'ochre', kingdomId: kingdom.id, startingDraftEnabled });
     const record: GameRecord = {
       schemaVersion: 14, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,

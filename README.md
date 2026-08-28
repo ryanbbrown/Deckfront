@@ -22,15 +22,15 @@ The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, 
 
 ## Play
 
-1. Refresh until the 10 unique variable cards make an interesting kingdom. Copper, Silver, Gold, Step, Focus, and Scrap are the six fixed piles in every market. Cull is a normal kingdom pile.
+1. Refresh until one of the 30 trained 10-card kingdoms looks interesting. Copper, Silver, Gold, Step, Focus, and Scrap are the six fixed piles in every market. Cull is a normal kingdom pile.
 2. Choose two local players or the AI opponent. In an AI game, choose whether you or the AI goes first, select Easy, Normal, Hard, or Expert strength, and choose whether to animate AI turns.
-3. Choose whether to use the starting draft, then start the game. AI training can take several seconds because the server simulates strategies for the chosen kingdom.
-4. With the draft on, Player 1 spends up to 12 money on starting cards, then Player 2 builds. With the draft off, both players start immediately with 7 Copper and 3 Scrap.
+3. For a local game, choose whether to use the starting draft. AI games always start without the draft.
+4. With the local draft on, Player 1 spends up to 12 money on starting cards, then Player 2 builds. With the draft off, both players start immediately with 7 Copper and 3 Scrap.
 5. Play any number of Action cards, end the Action phase to play Treasure cards, buy affordable cards, and end the Buy phase.
 
 Draft-on decks start with 7 Copper. Up to 3 unspent starting money carries into the first Buy phase. Draft-off decks add 3 Scrap, have no carry, and skip the build. Only the first Scrap a player plays each turn deals its 1 damage. Scrap is sold from a 10-card fixed pile for 0 money, but gain effects still exclude it. Starting-build cards do not reduce market piles.
 
-AI strategy training currently uses draft-on simulations. In a draft-off AI game, the trained starting build is ignored, but its purchase plan still controls the opponent.
+AI games select from the server-only `src/server/pretrained-opponents.json` catalog. The catalog contains all 1,572 final-matrix ordered plans for the 30 trained kingdoms. It is derived from `.data/strategy-search-30/rust-balance-analysis-v1.json`. Selection does not start strategy search or worker processes. Expert uses the saved equilibrium lottery. Easy, Normal, and Hard use the saved score against that lottery. The saved purchase plan controls buys, and the shared tactical agent controls card play and movement.
 
 The arena has spaces 1 through 6. Fighters start on the symmetric middle spaces, Player 1 at 3 and Player 2 at 4. Fighters can share a space and move through each other. Distance 0 is Close, 1 is Near, and 2 or more is Far. See the [card reference](./.plans/09-card-list.md) for current costs and card text. Bought cards enter the discard pile and briefly appear as readable card previews above their market piles. Actions resolve at once. Played cards move from the hand to Played this turn, repeated stack plays use the same quick cadence, effect draws rise into the hand, and hits flash the damaged fighter with the damage amount. Small draw and discard piles at the bottom left show the exact draw count, discard count, and latest discarded card. The right rail keeps the public action record visible and shows both full deck compositions without zone counts. In an AI game, the server still resolves the complete turn before it returns, then the table shows the AI hand and replays visible card plays about half a second apart. Consecutive copies of the same card use the quick stack cadence instead. End-of-turn replenishment stays hidden. Turn off `Animate AI turns` for the immediate result. Undo can roll back every submitted action to the completed-setup boundary. Each undo of a turn-ending human action also removes the full AI response that it caused. Reload restores the active game and its undo history. New game clears the browser's active-game link.
 
@@ -46,7 +46,9 @@ npm run build
 npm run build:sim
 ```
 
-Vitest checks the engine, random kingdoms, AI training, server, persistence, replay, and simulator. Playwright uses the built browser and real local server to check the full-table preview, starting builds, AI turns, cards, undo, reload, victory, and the 1280×720 through 1920×1080 layouts. The E2E manifest maps required behavior to exact test IDs.
+When the ignored source report is present, `npx tsx scripts/verify_pretrained_catalog.ts` verifies that the committed catalog is exactly equal to its derived data.
+
+Vitest checks the engine, trained kingdom selection, AI plan selection, server, persistence, replay, and simulator. Playwright uses the built browser and real local server to check the full-table preview, starting builds, AI turns, cards, undo, reload, victory, and the 1280×720 through 1920×1080 layouts. The E2E manifest maps required behavior to exact test IDs.
 
 ## Balance simulator
 
@@ -133,7 +135,7 @@ src/shared -------------> src/game
 src/client -------------> src/shared, src/game
 ```
 
-Game data defines cards and kingdoms. The game module contains deterministic rules. The simulator imports only simulator modules and the game module. The server uses simulator strategies to train and run the AI opponent. The client does not import simulator code. ESLint enforces the game and simulator limits.
+Game data defines cards and kingdoms. The game module contains deterministic rules. The simulator imports only simulator modules and the game module. The server selects a saved purchase strategy and uses the simulator tactical agent to run the AI opponent. The client does not import simulator code or the pretrained catalog. ESLint enforces the game and simulator limits.
 
 ## Repository tree
 

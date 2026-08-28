@@ -3,12 +3,12 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createCard, resetKingdoms } from '../src/game';
-import { ProductionAiTrainer } from '../src/server/aiTrainer';
 import type { AiTrainer } from '../src/server/aiTrainer';
-import type { GameView } from '../src/shared/api';
+import { pretrainedVariableCardSets } from '../src/server/pretrainedCatalog';
 import { GameService } from '../src/server/gameService';
 import { FileGameRepository } from '../src/server/persistence';
 import type { GameRecord, GameRepository } from '../src/server/types';
+import type { GameView } from '../src/shared/api';
 import { identify } from '../src/sim/strategy';
 
 class MemoryRepository implements GameRepository {
@@ -29,66 +29,61 @@ function phaseAction(game: GameView, kind: 'endAction' | 'endBuy') {
 }
 
 describe('AI games', () => {
-  it('trains before saving, builds automatically, and returns only human turns', async () => {
+  it('selects before saving, advances automatically, and returns only human turns', async () => {
     const repository = new MemoryRepository(); const service = new GameService(repository, trainer);
-    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard', variableCardIds: market, startingDraftEnabled: true });
+    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard', variableCardIds: market });
     expect(created).toMatchObject({ mode: 'ai', humanPlayerId: 'indigo', aiPlayerId: 'ochre',
-      aiDifficulty: 'hard', phase: 'startingBuild', activePlayerId: 'indigo' });
+      aiDifficulty: 'hard', startingDraftEnabled: false, phase: 'action', activePlayerId: 'indigo', turn: 2 });
     expect(repository.record?.aiDifficulty).toBe('hard');
     expect(created.fighters.ochre.health).toBe(47); expect(created.training?.strategyId).toBe(strategy.id);
-    const ready = await service.updateBuild(created.id, created.revision, [], true);
-    expect(ready).toMatchObject({ phase: 'action', activePlayerId: 'indigo', turn: 2 });
-    expect(ready.presentation.frames[0]).toMatchObject({ playerId: 'indigo', commandType: 'submitStartingBuild' });
-    expect(ready.presentation.frames.some((frame) => frame.playerId === 'ochre' && frame.commandType === 'aiTurnStart')).toBe(true);
-    expect(ready.presentation.frames.at(-1)?.state).toMatchObject({ activePlayerId: ready.activePlayerId, phase: ready.phase, turn: ready.turn });
-    expect(ready.completedBuilds).toEqual({ ochre: [], indigo: [] });
+    expect(created.completedBuilds).toBeNull();
+    expect(created.presentation.frames[0]).toMatchObject({ playerId: 'ochre', commandType: 'aiTurnStart' });
+    expect(created.presentation.frames.at(-1)?.state).toMatchObject({ activePlayerId: created.activePlayerId, phase: created.phase, turn: created.turn });
   });
 
   it('defaults an AI game to Expert and leaves local games without AI difficulty', async () => {
     const ai = await new GameService(new MemoryRepository(), trainer).create({
-      seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market, startingDraftEnabled: true
+      seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market
     });
     const local = await new GameService(new MemoryRepository(), trainer).create({
       seed: 3, mode: 'local', variableCardIds: market, startingDraftEnabled: true
     });
     expect(ai.aiDifficulty).toBe('expert');
     expect(local.aiDifficulty).toBeNull();
+    expect(local.startingDraftEnabled).toBe(true);
   });
 
-  it('uses the selected AI strategy for its private starting build and later turns', async () => {
+  it('ignores saved starting builds but uses the selected purchase plan', async () => {
     const service = new GameService(new MemoryRepository(), privateBuildTrainer);
-    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'indigo', variableCardIds: market, startingDraftEnabled: true });
-    expect(created).toMatchObject({ phase: 'startingBuild', activePlayerId: 'indigo' });
-    expect(created.players.ochre.deckCounts).toEqual({ copper: 7 }); expect(created.players.indigo.deckCounts).toEqual({ copper: 7 });
+    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'indigo', variableCardIds: market });
+    expect(created).toMatchObject({ startingDraftEnabled: false, phase: 'action', activePlayerId: 'indigo' });
     expect(created.players.ochre.deckCounts).not.toHaveProperty('step');
-    const ready = await service.updateBuild(created.id, created.revision, ['aim'], true);
-    expect(ready.players.ochre.deckCounts).toMatchObject({ copper: 7, step: 1 });
-    expect(ready.players.indigo.deckCounts).toEqual({ copper: 7, aim: 1 });
-    expect(ready.events.some((event) => event.playerId === 'ochre' && event.type === 'purchase'
+    expect(created.players.ochre.deckCounts).toMatchObject({ copper: 7, scrap: 3, silver: 1 });
+    expect(created.players.indigo.deckCounts).toEqual({ copper: 7, scrap: 3 });
+    expect(created.events.some((event) => event.playerId === 'ochre' && event.type === 'purchase'
       && event.detail.definitionId === 'silver')).toBe(true);
   });
 
-  it('starts draft-off AI games without using the trained starting build', async () => {
+  it('forces AI games draft-off even when the request enables the draft', async () => {
     const repository = new MemoryRepository(); const service = new GameService(repository, privateBuildTrainer);
-    const view = await service.create({ seed:3, mode:'ai', humanPlayerId:'indigo', variableCardIds:market, startingDraftEnabled:false });
-    expect(view).toMatchObject({ startingDraftEnabled:false, phase:'action', activePlayerId:'indigo' });
-    expect(view.presentation.frames[0]).toMatchObject({ playerId:'ochre', commandType:'aiTurnStart' });
-    expect(view.presentation.frames.at(-1)?.state).toMatchObject({ activePlayerId:'indigo', phase:'action' });
-    const record = repository.record!; expect(record.state.players.ochre.startingBuild).toBeNull(); expect(record.state.players.indigo.startingBuild).toBeNull();
+    const view = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'indigo', variableCardIds: market, startingDraftEnabled: true });
+    expect(view).toMatchObject({ startingDraftEnabled: false, phase: 'action', activePlayerId: 'indigo' });
+    const record = repository.record!;
+    expect(record.state.players.ochre.startingBuild).toBeNull(); expect(record.state.players.indigo.startingBuild).toBeNull();
     expect(record.state.players.ochre.firstBuyPending).toBe(false); expect(view.completedBuilds).toBeNull();
-    expect(view.players.ochre.deckCounts).toMatchObject({ copper:7, scrap:3 });
+    expect(view.players.ochre.deckCounts).toMatchObject({ copper: 7, scrap: 3 });
   });
-  it('resets an AI-first draft to the same human boundary without retraining', async () => {
+
+  it('resets an AI-first game to the same human boundary without selecting again', async () => {
     let trainingCalls = 0;
     const recordingTrainer: AiTrainer = { train: async () => {
       trainingCalls += 1;
-      return { strategy, summary: { elapsedMs: 7, matches: 11, strategyId: strategy.id } };
+      return { strategy, summary: { elapsedMs: 7, matches: 0, strategyId: strategy.id } };
     } };
     const repository = new MemoryRepository(); const service = new GameService(repository, recordingTrainer);
     const created = await service.create({ seed: 17, mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard', variableCardIds: market, startingDraftEnabled: true });
-    const ready = await service.updateBuild(created.id, created.revision, ['aim'], true);
     const boundary = structuredClone(repository.record!);
-    const buy = await service.commitAction(created.id, ready.revision, phaseAction(ready, 'endAction'));
+    const buy = await service.commitAction(created.id, created.revision, phaseAction(created, 'endAction'));
     const progressed = await service.commitAction(created.id, buy.revision, phaseAction(buy, 'endBuy'));
     repository.record!.finishedAt = '2026-01-01T00:00:00.000Z'; repository.record!.durationSeconds = 12;
 
@@ -100,14 +95,14 @@ describe('AI games', () => {
     expect(saved.completedActions).toBe(boundary.completedActions);
     expect(saved.undoHistory).toEqual([]); expect(saved.finishedAt).toBeNull(); expect(saved.durationSeconds).toBeNull(); expect(saved.buildProposal).toEqual([]);
     expect(saved).toMatchObject({ id: boundary.id, createdAt: boundary.createdAt, kingdom: boundary.kingdom, mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard', aiStrategy: boundary.aiStrategy, training: boundary.training, initialState: boundary.initialState });
-    expect(reset).toMatchObject({ id: created.id, activePlayerId: 'indigo', phase: 'action', turn: 2, canUndo: false, completedBuilds: { ochre: [], indigo: ['aim'] } });
+    expect(reset).toMatchObject({ id: created.id, activePlayerId: 'indigo', phase: 'action', turn: 2, canUndo: false, completedBuilds: null });
     expect(reset.revision).toBe(progressed.revision + 1);
     expect(reset.presentation.frames.some((frame) => frame.commandType === 'aiTurnStart')).toBe(true);
   });
+
   it('executes trained strategies with the simulator tactical policy', async () => {
     const repository = new MemoryRepository(); const service = new GameService(repository, trainer);
-    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market, startingDraftEnabled: true });
-    await service.updateBuild(created.id, created.revision, [], true);
+    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
     const record = repository.record!; const aiDeck = record.state.players.indigo.deck;
     record.state.trash.push(...aiDeck.draw, ...aiDeck.hand, ...aiDeck.discard, ...aiDeck.play);
     aiDeck.hand = [createCard(record.state, 'volley'), createCard(record.state, 'muster')];
@@ -122,29 +117,28 @@ describe('AI games', () => {
     expect(played.slice(0, 2)).toEqual(['muster', 'volley']);
   });
 
-  it('passes the chosen difficulty into training', async () => {
+  it('passes the chosen difficulty into selection', async () => {
     let received = '';
     const recording: AiTrainer = { train: async (_kingdom, _seed, difficulty) => {
-      received = difficulty; return { strategy, summary: { elapsedMs: 1, matches: 4, strategyId: strategy.id } };
+      received = difficulty; return { strategy, summary: { elapsedMs: 1, matches: 0, strategyId: strategy.id } };
     } };
     await new GameService(new MemoryRepository(), recording).create({
-      seed: 3, mode: 'ai', humanPlayerId: 'ochre', aiDifficulty: 'easy', variableCardIds: market, startingDraftEnabled: true
+      seed: 3, mode: 'ai', humanPlayerId: 'ochre', aiDifficulty: 'easy', variableCardIds: market
     });
     expect(received).toBe('easy');
   });
 
   it('puts an AI-second game in the correct seats and penalizes the first human player', async () => {
     const service = new GameService(new MemoryRepository(), trainer);
-    const created = await service.create({ seed: 9, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market, startingDraftEnabled: true });
+    const created = await service.create({ seed: 9, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
     expect(created).toMatchObject({ humanPlayerId: 'ochre', aiPlayerId: 'indigo', selectedFirstPlayerId: 'ochre', activePlayerId: 'ochre' });
     expect(created.fighters.ochre.health).toBe(47); expect(created.fighters.indigo.health).toBe(50);
   });
 
   it('returns public AI events without hidden hand or draw-order details', async () => {
     const repository = new MemoryRepository(); const service = new GameService(repository, trainer);
-    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market, startingDraftEnabled: true });
-    const ready = await service.updateBuild(created.id, created.revision, [], true);
-    const buy = await service.commitAction(created.id, ready.revision, phaseAction(ready, 'endAction'));
+    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
+    const buy = await service.commitAction(created.id, created.revision, phaseAction(created, 'endAction'));
     const returned = await service.commitAction(created.id, buy.revision, phaseAction(buy, 'endBuy'));
     expect(repository.record?.state.events.some((event) => event.playerId === 'indigo' && event.type === 'purchase' && event.detail.definitionId === 'silver')).toBe(true);
     expect(returned.events.some((event) => event.playerId === 'indigo' && event.type === 'turn')).toBe(true);
@@ -156,9 +150,8 @@ describe('AI games', () => {
 
   it('undoes multiple human turns in order and never returns an intermediate AI state', async () => {
     const service = new GameService(new MemoryRepository(), trainer);
-    const created = await service.create({ seed: 4, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market, startingDraftEnabled: true });
-    const ready = await service.updateBuild(created.id, created.revision, [], true);
-    const firstBuy = await service.commitAction(created.id, ready.revision, phaseAction(ready, 'endAction'));
+    const created = await service.create({ seed: 4, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
+    const firstBuy = await service.commitAction(created.id, created.revision, phaseAction(created, 'endAction'));
     const firstReturn = await service.commitAction(created.id, firstBuy.revision, phaseAction(firstBuy, 'endBuy'));
     const secondBuy = await service.commitAction(created.id, firstReturn.revision, phaseAction(firstReturn, 'endAction'));
     const secondReturn = await service.commitAction(created.id, secondBuy.revision, phaseAction(secondBuy, 'endBuy'));
@@ -178,9 +171,8 @@ describe('AI games', () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-ai-reload-'));
     try {
       const first = new GameService(new FileGameRepository(directory), trainer);
-      const created = await first.create({ seed: 12, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market, startingDraftEnabled: true });
-      const ready = await first.updateBuild(created.id, created.revision, [], true);
-      const buy = await first.commitAction(created.id, ready.revision, phaseAction(ready, 'endAction'));
+      const created = await first.create({ seed: 12, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
+      const buy = await first.commitAction(created.id, created.revision, phaseAction(created, 'endAction'));
       const returned = await first.commitAction(created.id, buy.revision, phaseAction(buy, 'endBuy'));
       expect(returned).toMatchObject({ activePlayerId: 'ochre', phase: 'action', turn: 3 });
       resetKingdoms();
@@ -196,21 +188,19 @@ describe('AI games', () => {
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
 
-  it('does not save a game when training fails', async () => {
+  it('does not save a game when selection fails', async () => {
     const repository = new MemoryRepository();
-    const failing: AiTrainer = { train: async () => { throw new Error('training failed'); } };
-    await expect(new GameService(repository, failing).create({ mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market, startingDraftEnabled: true })).rejects.toThrow('training failed');
+    const failing: AiTrainer = { train: async () => { throw new Error('selection failed'); } };
+    await expect(new GameService(repository, failing).create({ mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market })).rejects.toThrow('selection failed');
     expect(repository.record).toBeNull();
   });
 
-  it('runs a reduced production search for a generated kingdom', { timeout: 30_000 }, async () => {
+  it('uses the server-only pretrained catalog by default without running matches', async () => {
     resetKingdoms();
-    const service = new GameService(new MemoryRepository(), new ProductionAiTrainer({
-      restarts: 1, initialStrategies: 2, candidates: 2, iterations: 1,
-      seeds: 1, unionIterations: 1, workers: 2, deadlineMinutes: 1, finalSearch: 'none'
-    }));
-    const created = await service.create({ seed: 19, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market, startingDraftEnabled: true });
-    expect(created.training?.matches).toBeGreaterThan(0);
-    expect(created.training?.strategyId).toMatch(/^sg-/);
+    const created = await new GameService(new MemoryRepository()).create({
+      seed: 19, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: pretrainedVariableCardSets()[0]!
+    });
+    expect(created).toMatchObject({ startingDraftEnabled: false, phase: 'action', training: { matches: 0 } });
+    expect(created.training?.strategyId).toMatch(/^gf-/);
   });
 });
