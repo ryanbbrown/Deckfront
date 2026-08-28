@@ -1,6 +1,6 @@
 # Equilibrium-weighted self-play telemetry
 
-Status: proposed. Implementation needs parent approval.
+Status: approved and in implementation. The ordinary backfill and report paths trust the completed scientific evidence and use structural verification only; deep native replay remains an explicit audit command.
 
 This plan adds the missing same-strategy purchase and family-damage evidence to the completed Rust strategy-search results. It then replaces the current off-diagonal report headlines with exact telemetry for the stored equilibrium lottery playing against itself.
 
@@ -181,11 +181,12 @@ hexdeck-goldfish self-play-backfill \
 
 The Rust command:
 
-1. runs the existing core Goldfish, initial HGM, and complete PSRO checks without requiring an HST file;
+1. checks only existing file headers, lengths, CRCs, source identities, final checkpoint completion, and selected Matrix strategy order;
 2. writes and verifies `matrix/self-play-v1.hst` for the initial 50 strategies;
 3. when PSRO admitted strategies, reuses the initial 50 rows, scores only admitted final strategies, and writes and verifies `psro/self-play-v1.hst` bound to the expanded HGM CRCs;
-4. runs the strict final Matrix and PSRO verification that now requires HST;
-5. prints a JSON summary with kingdom ID, initial and final strategy counts, newly scored strategies, game count, bytes, and both HST SHA-256 hashes.
+4. prints a JSON summary with kingdom ID, initial and final strategy counts, newly scored strategies, game count, and bytes.
+
+The backfill command does not independently replay Goldfish ranking, Matrix solving, PSRO transitions, screening, decisions, or race evidence. The completed scientific evidence is trusted from its prior deep verification. `verify`, `matrix-verify`, and `psro-verify` remain available for a deliberate audit, but ordinary backfill does not call them.
 
 A valid source-linked HST is skipped. A partial, stale, corrupt, wrong-version, or wrong-source HST stops the command; the operator must remove that new HST explicitly before retrying. The command never overwrites or repairs HGF, HGM, or HPS evidence.
 
@@ -258,7 +259,7 @@ HTML: .html/strategy-search-30-rust-balance-v2.html
 
 Delete the tracked v1 HTML and remove a local v1 JSON during the production migration. Do not emit both schemas or add a reader fallback.
 
-Update `src/sim/rustStrategySearchEvidence.ts` to decode the selected HST after native verification. Include its path, bytes, CRC, and SHA-256 in the ordered source list and `evidenceSetSha256`.
+Update `src/sim/rustStrategySearchEvidence.ts` to decode the selected HST after adapter checks for structure, CRCs, source links, checkpoint completion, and selected Matrix order. Include its path, bytes, CRC, and SHA-256 in the ordered source list and `evidenceSetSha256`. Report generation must not call the deep native verifiers.
 
 Update `src/sim/rustStrategySearchBalance.ts` and the report CLI so the primary per-kingdom and cross-kingdom sections contain:
 
@@ -312,7 +313,7 @@ After this plan is implemented, move plan 81 to `.plans/archive/81-rust-strategy
 ### Adapter and binary gate
 
 - zero admissions select the initial HST; admissions select the expanded HST;
-- native verification completes before TypeScript reads HST;
+- structural Goldfish, HGM, checkpoint, and source-link checks complete before TypeScript reads HST, without a native command;
 - HST source CRCs and strategy order must equal the selected HGM set and checkpoint;
 - corrupt headers, counts, row order, CRC, source links, symlinks, and `.tmp` files fail;
 - every consumed HST appears in source hashes and changes `evidenceSetSha256`;
@@ -348,7 +349,7 @@ After this plan is implemented, move plan 81 to `.plans/archive/81-rust-strategy
 
 Update:
 
-- `README.md`: local backfill command, strict verification, v2 report command and outputs, exact equilibrium weighting, and remaining evidence limits;
+- `README.md`: local backfill command, structural verification policy, explicit deep audit commands, v2 report command and outputs, exact equilibrium weighting, and remaining evidence limits;
 - `docs/strategy-search-process.md`: Matrix same-strategy telemetry, fixed payoff diagonal, HST format, PSRO retention, and local backfill;
 - `docs/strategy-search-evidence.md`: define the selected-lottery self-play telemetry basis, both-weight formula, classifier input, singleton behavior, and the audit-only status of raw Matrix telemetry;
 - `.html/strategy-search-30-rust-balance-v2.html`: committed final report.
@@ -362,14 +363,14 @@ Do not change historical result claims in `docs/strategy-search-evidence.md`.
 3. Add HST generation and strict verification to Matrix. Prove the three old HGM files stay byte-identical.
 4. Add HST retention to PSRO admission finalization and strict final verification. Prove all old HPS and expanded HGM files stay byte-identical and restart does not replay scientific work.
 5. Add the dedicated one-kingdom Rust backfill command and the manifest-driven local 30-kingdom wrapper. Test fail-closed resume and deterministic reporting.
-6. Extend the TypeScript adapter and fixtures to require and decode selected HST evidence after native verification.
+6. Extend the TypeScript adapter and fixtures to require and decode selected HST evidence after structural CRC and source-link checks, without invoking deep native verification.
 7. Add the shared exact weighted-cell calculation. Change classification, archetype ranges, card headlines, and family headlines to use both equilibrium weights. Add singleton and semantic-parity tests.
 8. Replace analysis/report/provenance v1 with v2. Move raw counts under `auditTelemetry`; delete misleading fields, v1 output paths, fixtures, and generated artifacts.
 9. Update README and strategy-search docs. Archive plan 81 with the required replacement banner and index row.
 10. Run focused and repository validation before touching completed evidence.
 11. Run the local backfill command once for all 30 kingdoms. Compare the pre-existing-file hash manifest immediately and stop on any difference.
-12. Run every strict native verifier for all 30 kingdoms. Add the local telemetry execution to source provenance v2.
-13. Generate v2 JSON and HTML twice and require byte identity. Inspect invariants and open the final HTML once in normal local Google Chrome.
+12. Run the structural adapter and selected-HST verification for all 30 kingdoms through report generation. Add the local telemetry execution to source provenance v2. Keep deep native verifier commands available for a separate deliberate audit, but do not run them in this workflow.
+13. Generate v2 JSON and HTML twice without native replay and require byte identity. Inspect invariants and open the final HTML once in normal local Google Chrome.
 14. Review the implementation against the recorded pre-implementation SHA before parent acceptance.
 
 Every implementation step ends with its focused tests passing. Do not begin the next step after a byte-preservation or scientific-rule failure.
@@ -390,8 +391,8 @@ Run these checks before completion:
 10. Compare the frozen pre-implementation fixture hashes for old Matrix and PSRO outputs.
 11. Run the local 30-kingdom backfill command. Report elapsed time, same-strategy game count, scored and reused rows, bytes, and every output hash.
 12. Compare the before/after SHA-256 manifest for every pre-existing HGF, HGM, HPL, HPA, HPC, and HPD file. Require exact equality.
-13. For every manifest kingdom, run top verification, reservoir verification, strict initial Matrix verification, strict PSRO verification, and selected HST verification. Require 30 of 30 for each check.
-14. Run the production v2 report command twice. Require byte-identical JSON and HTML.
+13. For every manifest kingdom, require adapter checks for Goldfish/HGM structure and CRC, source identity, checkpoint completion, selected Matrix order, and selected HST structure, bounds, CRC, and source links. Require 30 of 30 without invoking a deep native verifier.
+14. Run the production v2 report command twice without native replay. Require byte-identical JSON and HTML.
 15. Inspect JSON invariants: 30 ordered kingdoms; finite values; exact stored weights; strategy and archetype range containment; both-weight sums; singleton fixture result; family-share sums; HST source links; audit-only raw fields; complete provenance coverage.
 16. Search the repository and generated outputs for removed v1 field names, v1 output names, missing-diagonal prose, and uniform-opponent headline prose. Require no current reference.
 17. Open `.html/strategy-search-30-rust-balance-v2.html` once in normal local Google Chrome after all validation passes.
@@ -404,13 +405,13 @@ Stop and report the blocker if:
 
 - any pre-existing scientific evidence byte changes;
 - implementation needs a change to the game kernel, Matrix payoff, fixed diagonal, solver, equilibrium witness, PSRO source identity, checkpoint, decision, seed, schedule, or admission format;
-- a backfill path can skip core native verification or overwrite old evidence;
+- a backfill path replays Goldfish, Matrix, PSRO screening, decisions, or races, or overwrites old evidence;
 - same-strategy bytes differ by thread count, repeated run, or supported architecture;
 - first- plus second-player totals are divided by 250 instead of 500;
 - the weighted result differs from the two-weight formula or the strategy-report meaning;
 - a singleton equilibrium reads any positive-weight off-diagonal telemetry;
 - the selected HST source CRCs, Matrix order, generation, or checkpoint disagree;
-- any of the exact 30 kingdoms is missing, duplicated, incomplete, or fails native verification;
+- any of the exact 30 kingdoms is missing, duplicated, structurally incomplete, or fails CRC, source-link, checkpoint, Matrix-order, or HST verification;
 - provenance would require inventing or replacing a historical execution fact;
 - v2 JSON or HTML differs across two unchanged runs;
 - validation requires replaying Goldfish, an off-diagonal Matrix pair, PSRO work, a deployment, or paid service.

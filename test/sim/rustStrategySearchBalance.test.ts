@@ -37,7 +37,7 @@ function provenance(ids: string[]): RustStrategySearchSourceProvenanceV2 {
 function evidence(root: string, admissions: 0 | 1 = 0) {
   const fixture = createEvidenceFixture(root, admissions);
   return loadRustStrategySearchKingdomEvidence(fixture.paths, { binary: fixture.binary,
-    runNativeCommand: fixture.runNativeCommand, goldfishReadOptions: { keep: 4, topKeep: 4 } });
+    goldfishReadOptions: { keep: 4, topKeep: 4 } });
 }
 
 describe('Rust strategy-search balance analysis', () => {

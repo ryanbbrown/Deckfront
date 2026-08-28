@@ -482,6 +482,57 @@ pub(crate) fn verify_files(
     Ok(())
 }
 
+pub(crate) struct MatrixStructure {
+    pub(crate) row_crcs: [u32; 3],
+}
+
+pub(crate) fn load_matrix_structure(
+    kingdom: &LoadedKingdom,
+    reservoir_crc: u32,
+    expected_numbers: &[u32],
+    directory: &Path,
+) -> Result<MatrixStructure, String> {
+    let top = expected_numbers.len();
+    let pair_count = top * (top - 1) / 2;
+    let purchase_row_bytes = (8 + kingdom.all_card_ids.len() * 4 + 20) as u32;
+    let matrix_row_bytes = (4 + top * 8 + 8) as u32;
+    let expected = |kind, row_bytes, row_count| Header {
+        kind,
+        row_bytes,
+        range_start: 0,
+        range_end: top as u32,
+        row_count: row_count as u32,
+        row_crc: 0,
+        source_checksum: reservoir_crc,
+        seeds: [FIRST_MATRIX_SEED, LAST_MATRIX_SEED, 0, 0],
+        rule_fingerprint: kingdom.fingerprint.clone(),
+    };
+    let (pairs, _) = read_checked_file(
+        &directory.join("pairs.hgm"),
+        &expected(PAIRS_KIND, PAIRS_ROW_BYTES, pair_count),
+    )?;
+    let (purchases, _) = read_checked_file(
+        &directory.join("purchases.hgm"),
+        &expected(PURCHASES_KIND, purchase_row_bytes, pair_count * 2),
+    )?;
+    let (matrix, rows) = read_checked_file(
+        &directory.join("matrix.hgm"),
+        &expected(MATRIX_KIND, matrix_row_bytes, top),
+    )?;
+    let numbers = (0..top)
+        .map(|row| read_u32(&rows, row * matrix_row_bytes as usize))
+        .collect::<Vec<_>>();
+    if numbers != expected_numbers {
+        return Err(format!(
+            "{} matrix strategy order differs from its selected source",
+            directory.display()
+        ));
+    }
+    Ok(MatrixStructure {
+        row_crcs: [pairs.row_crc, purchases.row_crc, matrix.row_crc],
+    })
+}
+
 pub(crate) struct MatrixEvidence {
     pub(crate) pairs: Vec<PairResult>,
     pub(crate) weights: Vec<f64>,

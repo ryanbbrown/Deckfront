@@ -145,6 +145,32 @@ export function readGoldfishTop(file: string, kingdomId: string,
   validateOrder(records, expectedStart, expectedEnd);
   return { header, records };
 }
+export function readGoldfishReservoirStructurally(file: string, kingdomId: string,
+  options: GoldfishReadOptions & { top: string }): GoldfishFile<GoldfishRecord> {
+  const expectedTopCount = options.topKeep ?? GOLDFISH_RETAINED_COUNT;
+  const expectedKeep = options.keep ?? GOLDFISH_RESERVOIR_COUNT;
+  const { header: topHeader } = readFile(options.top, kingdomId, 'top');
+  const { header, rows } = readFile(file, kingdomId, 'reservoir');
+  if (topHeader.rangeStart !== (options.start ?? 0) || topHeader.rangeEnd !== (options.end ?? GOLDFISH_CANDIDATE_COUNT)
+    || topHeader.rowCount !== expectedTopCount || header.rangeStart !== 0 || header.rangeEnd !== expectedTopCount
+    || header.rowCount !== expectedKeep || header.sourceChecksum !== topHeader.checksum) {
+    throw new Error('Goldfish top or reservoir structure and source link differ.');
+  }
+  const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
+  const numbers = new Set<number>();
+  const records = Array.from({ length: header.rowCount }, (_unused, index): GoldfishRecord => {
+    const offset = index * GOLDFISH_RESERVOIR_ROW_BYTES, strategyNumber = rows.readUInt32LE(offset);
+    if (strategyNumber >= GOLDFISH_CANDIDATE_COUNT || numbers.has(strategyNumber)) {
+      throw new Error('Goldfish reservoir strategy number range or uniqueness differs.');
+    }
+    numbers.add(strategyNumber);
+    const stageOne = decodeEvidence(rows, offset), additional = decodeEvidence(rows, offset + 60);
+    return { rank: index + 1, ...strategyRecord(space, strategyNumber), stageOne, additional,
+      combined: combineScoreEvidence(stageOne, additional) };
+  });
+  return { header, records };
+}
+
 export function readGoldfishReservoir(file: string, kingdomId: string,
   options: GoldfishReadOptions = {}): GoldfishFile<GoldfishRecord> {
   const expectedTopCount = options.topKeep ?? GOLDFISH_RETAINED_COUNT;

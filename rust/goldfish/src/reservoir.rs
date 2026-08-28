@@ -754,6 +754,49 @@ pub(crate) struct VerifiedReservoir {
     pub(crate) numbers: Vec<u32>,
 }
 
+pub(crate) fn read_structural_reservoir(
+    top_path: &Path,
+    reservoir_path: &Path,
+    loaded: &LoadedKingdom,
+    production: bool,
+    minimum_rows: usize,
+) -> Result<VerifiedReservoir, String> {
+    let mut top_reader = RowReader::open(top_path)?;
+    validate_header(&top_reader.header, loaded, Kind::Top)?;
+    let top_header = top_reader.header.clone();
+    for _ in 0..top_header.row_count {
+        top_reader.result()?;
+    }
+    top_reader.finish()?;
+    let (header, rows, _) = read_all_reservoir(reservoir_path, loaded)?;
+    if production
+        && (top_header.range_start != 0
+            || top_header.range_end != CANDIDATE_COUNT
+            || top_header.row_count != TOP_COUNT
+            || header.row_count != RESERVOIR_COUNT)
+    {
+        return Err("Goldfish top or reservoir production shape is invalid".into());
+    }
+    if rows.len() < minimum_rows
+        || header.range_start != 0
+        || header.range_end != top_header.row_count
+        || header.source_checksum != top_header.checksum
+    {
+        return Err("reservoir range, count, or top source checksum differs".into());
+    }
+    let mut seen = std::collections::HashSet::with_capacity(rows.len());
+    if rows
+        .iter()
+        .any(|row| row[0] >= CANDIDATE_COUNT || !seen.insert(row[0]))
+    {
+        return Err("reservoir strategy number range or uniqueness differs".into());
+    }
+    Ok(VerifiedReservoir {
+        row_checksum: header.checksum,
+        numbers: rows.into_iter().map(|row| row[0]).collect(),
+    })
+}
+
 pub(crate) fn read_verified_reservoir(
     top_path: &Path,
     reservoir_path: &Path,

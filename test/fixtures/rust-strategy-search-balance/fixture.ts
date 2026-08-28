@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { crc32 } from 'node:zlib';
 import rawNativeKingdoms from '../../../rust/goldfish/kingdoms.json' with { type: 'json' };
-import type { NativeCommandResult, RustStrategySearchKingdomPaths } from '../../../src/sim/rustStrategySearchEvidence';
+import type { RustStrategySearchKingdomPaths } from '../../../src/sim/rustStrategySearchEvidence';
 
 const KINGDOM_ID = 'balance-tuning-005';
 const native = (rawNativeKingdoms as { kingdoms: Array<{ kingdomId: string; ruleFingerprint: string;
@@ -124,8 +124,6 @@ function psro(directory: string, numbers: readonly number[], weights: readonly n
 export interface EvidenceFixture {
   paths: RustStrategySearchKingdomPaths;
   binary: string;
-  runNativeCommand: (binary: string, args: readonly string[]) => NativeCommandResult;
-  commands: string[][];
 }
 
 export function createEvidenceFixture(root: string, admissions: 0 | 1): EvidenceFixture {
@@ -141,17 +139,6 @@ export function createEvidenceFixture(root: string, admissions: 0 | 1): Evidence
   psro(psroDir, finalNumbers, finalWeights, admissions,
     [source.reservoirCrc, initial.pairsCrc, initial.purchasesCrc, initial.matrixCrc]);
   const binary = path.join(root, 'hexdeck-goldfish'); fs.writeFileSync(binary, 'fixture binary');
-  const commands: string[][] = [];
-  const runNativeCommand = (_binary: string, args: readonly string[]): NativeCommandResult => {
-    commands.push([...args]); const command = args[0]!;
-    const kindIndex = args.indexOf('--kind');
-    const summary = command === 'verify'
-      ? { valid: true, kind: args[kindIndex + 1], kingdomId: KINGDOM_ID }
-      : command === 'psro-verify' ? { command, valid: true, searches: 2 + admissions,
-        admissions, matrixSize: finalNumbers.length, kingdomId: KINGDOM_ID }
-        : { command, valid: true, kingdomId: KINGDOM_ID };
-    return { status: 0, signal: null, stdout: `${JSON.stringify(summary)}\n`, stderr: '' };
-  };
   return { paths: { kingdomId: KINGDOM_ID, topFile: source.top, reservoirFile: source.reservoir,
-    initialMatrixDir: initialDir, psroDir }, binary, runNativeCommand, commands };
+    initialMatrixDir: initialDir, psroDir }, binary };
 }

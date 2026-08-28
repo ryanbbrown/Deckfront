@@ -147,6 +147,33 @@ fn verify(matrix: &Path, out: &Path) -> Output {
         .expect("PSRO verify")
 }
 
+fn self_play_backfill(matrix: &Path, out: &Path, threads: usize) -> Output {
+    Command::new(BINARY)
+        .args([
+            "self-play-backfill",
+            "--kingdom",
+            KINGDOM,
+            "--top-file",
+            fixture("balance-tuning-005-psro-top.hgf").to_str().unwrap(),
+            "--reservoir",
+            fixture("balance-tuning-005-psro-reservoir.hgf")
+                .to_str()
+                .unwrap(),
+            "--matrix-dir",
+            matrix.to_str().unwrap(),
+            "--out",
+            out.to_str().unwrap(),
+            "--threads",
+            &threads.to_string(),
+            "--matrix-size",
+            MATRIX_SIZE,
+            "--candidate-limit",
+            CANDIDATE_LIMIT,
+        ])
+        .output()
+        .expect("self-play backfill")
+}
+
 fn copy_tree(source: &Path, target: &Path) {
     fs::create_dir_all(target).unwrap();
     for entry in fs::read_dir(source).unwrap() {
@@ -499,6 +526,16 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
     fs::write(&path, &bytes).unwrap();
     let resumed = psro(&matrix, &corrupt_decisions, 4, None);
     assert!(!resumed.status.success());
+    assert_eq!(fs::read(&path).unwrap(), bytes);
+    fs::remove_file(corrupt_decisions.join("self-play-v1.hst")).unwrap();
+    let backfill = self_play_backfill(&matrix, &corrupt_decisions, 4);
+    assert!(
+        backfill.status.success(),
+        "structural backfill failed: {}",
+        String::from_utf8_lossy(&backfill.stderr)
+    );
+    let summary: serde_json::Value = serde_json::from_slice(&backfill.stdout).unwrap();
+    assert_eq!(summary["scoredStrategyCount"], 2);
     assert_eq!(fs::read(path).unwrap(), bytes);
 
     let omitted = root.join("semantic-omitted-candidate");

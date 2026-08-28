@@ -175,8 +175,8 @@ export function loadRustBalanceReportInputs(options: CliOptions): RustBalanceAna
     }
     return result;
   });
-  if (evidence.some((row) => row.nativeVerification.binarySha256 !== provenance.verifierBinarySha256)) {
-    throw new Error('Per-kingdom verifier hash differs from provenance.');
+  if (evidence.some((row) => row.adapterVerification.binarySha256 !== provenance.verifierBinarySha256)) {
+    throw new Error('Per-kingdom adapter binary hash differs from provenance.');
   }
   return buildRustBalanceAnalysis(evidence, provenance);
 }
@@ -245,7 +245,7 @@ export function renderRustBalanceReport(analysis: RustBalanceAnalysisV2): string
 </style></head><body><main><h1>Rust strategy-search balance analysis</h1>
 <p class="lede">Equal-weight analysis of ${analysis.scope.kingdomCount} kingdoms in the ${escape(analysis.scope.suiteId)} tuning set. Within each kingdom, both the acting strategy and opponent use the stored equilibrium weights.</p>
 <section class="limits"><h2>Evidence limits</h2><p>Same-strategy purchases and family damage are available from 500 player sides per strategy. The payoff diagonal remains fixed at 50% and does not use those games.</p><p>A paired point byte of 2 can mean one success and one failure, or two ties. Exact W/D/L and first-player outcome rates are not available. Card-play counts, per-card damage, and turns-to-finish are also absent.</p></section>
-<section><h2>Source and verification</h2><p>Every kingdom passed native Goldfish, Matrix, PSRO, and self-play verification before decoding. Provenance SHA-256: <code>${escape(analysis.provenance.provenanceFileSha256)}</code>. Verifier binary SHA-256: <code>${escape(analysis.provenance.verifierBinarySha256)}</code>.</p></section>
+<section><h2>Source and verification</h2><p>The completed scientific evidence is trusted from its recorded deep verification. Report generation checks file structure, CRCs, source links, checkpoint completion, selected Matrix order, and HST evidence without replaying Goldfish, Matrix, or PSRO. Provenance SHA-256: <code>${escape(analysis.provenance.provenanceFileSha256)}</code>. Backfill and audit binary SHA-256: <code>${escape(analysis.provenance.verifierBinarySha256)}</code>.</p></section>
 <section><h2>Archetype shares and full feasible ranges</h2>${archetypes}</section>
 <section><h2>Support and effective sizes</h2>${table(['Measure','Minimum','Median','Mean','Maximum'], [
     ['Support size', number(analysis.crossKingdom.supportSize.minimum), number(analysis.crossKingdom.supportSize.median), number(analysis.crossKingdom.supportSize.mean), number(analysis.crossKingdom.supportSize.maximum)],

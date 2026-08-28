@@ -5,7 +5,7 @@ use crate::matrix::{
 };
 use crate::reservoir::{
     DecodedStrategy, LoadedKingdom, ReservoirSelection, VerifiedReservoir, decode_strategy,
-    load_kingdom, read_verified_reservoir,
+    load_kingdom, read_structural_reservoir, read_verified_reservoir,
 };
 use crate::self_play::{self, SelfPlayRow};
 use crate::stable_hash_value;
@@ -3316,95 +3316,126 @@ fn run_verify(options: Options) -> Result<(), String> {
 
 fn run_self_play_backfill(options: Options) -> Result<(), String> {
     let threads = options.threads.expect("backfill threads");
-    let (mut runtime, state, _) = prepare(&options, threads, false, false)?;
-    verify_complete(&runtime, &state)?;
-    let initial_numbers = runtime.reservoir.numbers[..runtime.initial_count].to_vec();
+    let kingdom = load_kingdom(options.kingdom.as_deref().expect("kingdom"))?;
+    let initial_count = options.matrix_size.unwrap_or(PRODUCTION_MATRIX_SIZE);
+    let candidate_limit = options
+        .candidate_limit
+        .unwrap_or(PRODUCTION_RESERVOIR_SIZE - PRODUCTION_MATRIX_SIZE);
+    let production = options.matrix_size.is_none();
+    let reservoir = read_structural_reservoir(
+        options.top_file.as_deref().expect("top"),
+        options.reservoir.as_deref().expect("reservoir"),
+        &kingdom,
+        production,
+        initial_count + candidate_limit,
+    )?;
+    let initial_numbers = reservoir.numbers[..initial_count].to_vec();
+    let initial_matrix = matrix::load_matrix_structure(
+        &kingdom,
+        reservoir.row_checksum,
+        &initial_numbers,
+        options.matrix_dir.as_deref().expect("matrix dir"),
+    )?;
+    let source = Source {
+        reservoir_crc: reservoir.row_checksum,
+        pairs_crc: initial_matrix.row_crcs[0],
+        purchases_crc: initial_matrix.row_crcs[1],
+        matrix_crc: initial_matrix.row_crcs[2],
+        fingerprint: kingdom.fingerprint.clone(),
+        card_count: kingdom.all_card_ids.len(),
+    };
+    let out = options.out.as_deref().expect("out");
+    let state = read_checkpoint(out, &source)?
+        .ok_or("self-play backfill needs a complete PSRO checkpoint")?;
+    if !state.complete
+        || state.phase != Phase::Complete
+        || state.clean_searches != 2
+        || state.generation != state.admissions
+        || state.matrix_numbers.len() != initial_count + state.admissions as usize
+        || state.matrix_numbers[..initial_count] != initial_numbers
+        || state
+            .matrix_numbers
+            .iter()
+            .any(|number| !reservoir.numbers.contains(number))
+    {
+        return Err("self-play backfill needs a structurally complete final checkpoint".into());
+    }
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(threads)
+        .build()
+        .map_err(|error| error.to_string())?;
     let initial_path = options
         .matrix_dir
         .as_deref()
         .expect("matrix dir")
         .join(self_play::FILE_NAME);
     let initial_source = matrix::self_play_source(
-        runtime.source.reservoir_crc,
-        [
-            runtime.source.pairs_crc,
-            runtime.source.purchases_crc,
-            runtime.source.matrix_crc,
-        ],
+        reservoir.row_checksum,
+        initial_matrix.row_crcs,
         0,
-        &runtime.source.fingerprint,
+        &kingdom.fingerprint,
     );
+    let initial_strategies = initial_numbers
+        .iter()
+        .map(|number| decode_strategy(&kingdom, *number))
+        .collect::<Result<Vec<_>, _>>()?;
     let mut scored = 0usize;
     let initial_rows = if initial_path.exists() {
         self_play::read(
             &initial_path,
             &initial_numbers,
-            runtime.source.card_count,
+            source.card_count,
             &initial_source,
         )?
     } else {
-        let strategies = initial_numbers
-            .iter()
-            .map(|number| decode_strategy(&runtime.kingdom, *number))
-            .collect::<Result<Vec<_>, _>>()?;
-        let rows = self_play::play_rows(&runtime.kingdom.kingdom, &strategies, &runtime.pool);
-        self_play::write_atomic(
-            &initial_path,
-            &rows,
-            runtime.source.card_count,
-            &initial_source,
-        )?;
+        let rows = self_play::play_rows(&kingdom.kingdom, &initial_strategies, &pool);
+        self_play::write_atomic(&initial_path, &rows, source.card_count, &initial_source)?;
         scored += rows.len();
         rows
     };
-    runtime.self_play_rows = initial_rows;
+    self_play::verify_strategy_bounds(&initial_rows, &initial_strategies, &kingdom.all_card_ids)?;
 
     let mut final_path = initial_path.clone();
+    let mut final_rows = initial_rows.clone();
     if state.admissions > 0 {
-        let selection = ReservoirSelection {
-            source_checksum: runtime.source.reservoir_crc,
-            numbers: state.matrix_numbers.clone(),
-            bytes: 0,
-        };
-        let final_matrix = matrix::load_matrix_evidence(
-            &runtime.kingdom,
-            &selection,
-            state.matrix_numbers.len(),
-            &runtime.out,
+        let final_matrix = matrix::load_matrix_structure(
+            &kingdom,
+            reservoir.row_checksum,
+            &state.matrix_numbers,
+            out,
         )?;
         let final_source = matrix::self_play_source(
-            runtime.source.reservoir_crc,
+            reservoir.row_checksum,
             final_matrix.row_crcs,
             state.generation,
-            &runtime.source.fingerprint,
+            &kingdom.fingerprint,
         );
-        final_path = runtime.out.join(self_play::FILE_NAME);
+        final_path = out.join(self_play::FILE_NAME);
         if final_path.exists() {
-            runtime.self_play_rows = self_play::read(
+            final_rows = self_play::read(
                 &final_path,
                 &state.matrix_numbers,
-                runtime.source.card_count,
+                source.card_count,
                 &final_source,
             )?;
         } else {
-            let retained = runtime
-                .self_play_rows
-                .iter()
-                .map(|row| (row.number, row.clone()))
+            let retained = initial_rows
+                .into_iter()
+                .map(|row| (row.number, row))
                 .collect::<HashMap<_, _>>();
             let missing = state
                 .matrix_numbers
                 .iter()
                 .filter(|number| !retained.contains_key(number))
-                .map(|number| decode_strategy(&runtime.kingdom, *number))
+                .map(|number| decode_strategy(&kingdom, *number))
                 .collect::<Result<Vec<_>, _>>()?;
-            let added = self_play::play_rows(&runtime.kingdom.kingdom, &missing, &runtime.pool);
+            let added = self_play::play_rows(&kingdom.kingdom, &missing, &pool);
             scored += added.len();
             let combined = retained
                 .into_iter()
                 .chain(added.into_iter().map(|row| (row.number, row)))
                 .collect::<HashMap<_, _>>();
-            runtime.self_play_rows = state
+            final_rows = state
                 .matrix_numbers
                 .iter()
                 .map(|number| {
@@ -3414,14 +3445,15 @@ fn run_self_play_backfill(options: Options) -> Result<(), String> {
                         .ok_or_else(|| format!("missing self-play row for strategy {number}"))
                 })
                 .collect::<Result<Vec<_>, _>>()?;
-            self_play::write_atomic(
-                &final_path,
-                &runtime.self_play_rows,
-                runtime.source.card_count,
-                &final_source,
-            )?;
+            self_play::write_atomic(&final_path, &final_rows, source.card_count, &final_source)?;
         }
     }
+    let final_strategies = state
+        .matrix_numbers
+        .iter()
+        .map(|number| decode_strategy(&kingdom, *number))
+        .collect::<Result<Vec<_>, _>>()?;
+    self_play::verify_strategy_bounds(&final_rows, &final_strategies, &kingdom.all_card_ids)?;
     let initial_bytes = fs::metadata(&initial_path)
         .map_err(|error| format!("read {} metadata: {error}", initial_path.display()))?
         .len();
@@ -3433,8 +3465,8 @@ fn run_self_play_backfill(options: Options) -> Result<(), String> {
         serde_json::json!({
             "command": "self-play-backfill",
             "valid": true,
-            "kingdomId": runtime.kingdom.id,
-            "initialStrategyCount": runtime.initial_count,
+            "kingdomId": kingdom.id,
+            "initialStrategyCount": initial_count,
             "finalStrategyCount": state.matrix_numbers.len(),
             "scoredStrategyCount": scored,
             "gameCount": scored * 250,

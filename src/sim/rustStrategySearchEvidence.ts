@@ -1,10 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
 import { crc32 } from 'node:zlib';
 import rawNativeKingdoms from '../../rust/goldfish/kingdoms.json' with { type: 'json' };
-import { readGoldfishReservoir } from './goldfishReservoir';
+import { readGoldfishReservoirStructurally } from './goldfishReservoir';
 import type { GoldfishFile, GoldfishReadOptions, GoldfishRecord } from './goldfishReservoir';
 import { nativeRuleFingerprint } from './nativeGoldfishProtocol';
 import { strategySearchKingdom } from './strategySearchKingdoms';
@@ -21,13 +20,6 @@ const SHA256 = /^[0-9a-f]{64}$/;
 
 export type RustDamageFamily = typeof FAMILY_NAMES[number];
 
-export interface NativeCommandResult {
-  status: number | null;
-  signal: NodeJS.Signals | null;
-  stdout: string;
-  stderr: string;
-}
-
 export interface RustStrategySearchKingdomPaths {
   kingdomId: string;
   topFile: string;
@@ -38,7 +30,6 @@ export interface RustStrategySearchKingdomPaths {
 
 export interface LoadRustStrategySearchEvidenceOptions {
   binary: string;
-  runNativeCommand?: (binary: string, args: readonly string[]) => NativeCommandResult;
   goldfishReadOptions?: Omit<GoldfishReadOptions, 'top'>;
 }
 
@@ -84,11 +75,8 @@ export interface RustSelfPlayEvidence {
   totalPlayerSides: 500;
 }
 
-export interface NativeVerificationSummary {
-  top: Record<string, unknown>;
-  reservoir: Record<string, unknown>;
-  matrix: Record<string, unknown>;
-  psro: Record<string, unknown> & { searches: number; admissions: number; matrixSize: number };
+export interface AdapterVerificationSummary {
+  mode: 'structural-crc-source-links';
   binarySha256: string;
 }
 
@@ -114,7 +102,7 @@ export interface RustStrategySearchKingdomEvidence {
   selfPlay: RustSelfPlayEvidence[];
   sourceFiles: RustSourceFileHash[];
   evidenceSetSha256: string;
-  nativeVerification: NativeVerificationSummary;
+  adapterVerification: AdapterVerificationSummary;
 }
 
 interface NativeKingdomRecord {
@@ -142,34 +130,6 @@ interface Checkpoint {
   cleanSearches: number;
   matrixNumbers: number[];
   matrixWeights: number[];
-}
-
-function defaultNativeCommand(binary: string, args: readonly string[]): NativeCommandResult {
-  const result = spawnSync(binary, [...args], { encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
-  return { status: result.status, signal: result.signal, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
-}
-
-function parseSuccess(result: NativeCommandResult, command: string, kingdomId: string,
-  verifyKind?: string): Record<string, unknown> {
-  if (result.signal || result.status !== 0) {
-    const detail = result.stderr.slice(-4_000).trim();
-    throw new Error(`${kingdomId}: native ${command} failed${result.signal ? ` with ${result.signal}` : ''}${detail ? `: ${detail}` : '.'}`);
-  }
-  const line = result.stdout.trim().split(/\r?\n/u).filter(Boolean).at(-1);
-  let parsed: unknown;
-  try { parsed = line ? JSON.parse(line) : null; } catch { parsed = null; }
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error(`${kingdomId}: native ${command} did not return a JSON summary.`);
-  }
-  const summary = parsed as Record<string, unknown>;
-  const commandMatches = command === 'verify'
-    ? summary.command === undefined && summary.valid === true && summary.kind === verifyKind
-    : summary.command === command;
-  if (!commandMatches || summary.valid === false
-    || typeof summary.kingdomId === 'string' && summary.kingdomId !== kingdomId) {
-    throw new Error(`${kingdomId}: native ${command} summary differs from the request.`);
-  }
-  return summary;
 }
 
 function sha256File(file: string): string {
@@ -439,30 +399,25 @@ function sourceHashes(files: readonly string[], root: string): { hashes: RustSou
 export function loadRustStrategySearchKingdomEvidence(paths: RustStrategySearchKingdomPaths,
   options: LoadRustStrategySearchEvidenceOptions): RustStrategySearchKingdomEvidence {
   const kingdom = strategySearchKingdom(paths.kingdomId), native = nativeKingdom(paths.kingdomId);
-  const run = options.runNativeCommand ?? defaultNativeCommand;
   requireRegularFile(options.binary);
-  const commands = [
-    ['verify', '--kingdom', paths.kingdomId, '--kind', 'top', '--file', paths.topFile],
-    ['verify', '--kingdom', paths.kingdomId, '--kind', 'reservoir', '--file', paths.reservoirFile, '--top', paths.topFile],
-    ['matrix-verify', '--kingdom', paths.kingdomId, '--reservoir', paths.reservoirFile, '--out', paths.initialMatrixDir],
-    ['psro-verify', '--kingdom', paths.kingdomId, '--top-file', paths.topFile, '--reservoir', paths.reservoirFile,
-      '--matrix-dir', paths.initialMatrixDir, '--out', paths.psroDir]
-  ] as const;
-  const summaries = commands.map((args) => parseSuccess(run(options.binary, args), args[0], paths.kingdomId,
-    args[0] === 'verify' ? args[4] : undefined));
-  const psro = summaries[3]!;
-  if (!Number.isInteger(psro.searches) || !Number.isInteger(psro.admissions) || !Number.isInteger(psro.matrixSize)) {
-    throw new Error(`${paths.kingdomId}: psro-verify summary is incomplete.`);
-  }
-  const nativeVerification: NativeVerificationSummary = { top: summaries[0]!, reservoir: summaries[1]!, matrix: summaries[2]!,
-    psro: psro as NativeVerificationSummary['psro'], binarySha256: sha256File(options.binary) };
-
-  const goldfish = readGoldfishReservoir(paths.reservoirFile, paths.kingdomId,
+  const adapterVerification: AdapterVerificationSummary = { mode: 'structural-crc-source-links',
+    binarySha256: sha256File(options.binary) };
+  const goldfish = readGoldfishReservoirStructurally(paths.reservoirFile, paths.kingdomId,
     { ...options.goldfishReadOptions, top: paths.topFile });
   const cardIds = native.kingdom.cards.map((card) => card.id);
   const fingerprint = nativeRuleFingerprint(paths.kingdomId, 30, 200);
+  const initialMatrixFile = path.join(paths.initialMatrixDir, 'matrix.hgm');
+  requireRegularFile(initialMatrixFile);
+  const initialHeader = fs.readFileSync(initialMatrixFile);
+  if (initialHeader.length < HGM_HEADER_BYTES || initialHeader.subarray(0, 4).toString('ascii') !== 'HGR1') {
+    throw new Error(`${paths.kingdomId}: initial Matrix header is invalid.`);
+  }
+  const initialSize = initialHeader.readUInt32LE(16);
+  if (!Number.isSafeInteger(initialSize) || initialSize < 1 || initialSize > goldfish.records.length) {
+    throw new Error(`${paths.kingdomId}: initial Matrix size is invalid.`);
+  }
   const initial = readMatrixSet(paths.initialMatrixDir, cardIds,
-    fingerprint, goldfish.header.checksum, Number(psro.matrixSize) - Number(psro.admissions));
+    fingerprint, goldfish.header.checksum, initialSize);
   readSelfPlay(path.join(paths.initialMatrixDir, 'self-play-v1.hst'), cardIds, fingerprint,
     goldfish.header.checksum, initial.rowCrcs, 0, initial.matrix.strategyNumbers);
   const sourceCrcs = [goldfish.header.checksum,
@@ -470,9 +425,6 @@ export function loadRustStrategySearchKingdomEvidence(paths: RustStrategySearchK
     fs.readFileSync(path.join(paths.initialMatrixDir, 'purchases.hgm')).readUInt32LE(24), initial.matrix.rowCrc32];
   const checkpoint = decodeCheckpoint(path.join(paths.psroDir, 'checkpoint.hpc'), native.ruleFingerprint, sourceCrcs);
   validateDecisions(path.join(paths.psroDir, 'decisions.hpd'), native.ruleFingerprint, sourceCrcs, checkpoint);
-  if (checkpoint.search !== psro.searches || checkpoint.admissions !== psro.admissions
-    || checkpoint.matrixNumbers.length !== psro.matrixSize) throw new Error(`${paths.kingdomId}: native summary and checkpoint differ.`);
-
   const psroMatrixFiles = ['pairs.hgm', 'purchases.hgm', 'matrix.hgm'].map((name) => path.join(paths.psroDir, name));
   const present = psroMatrixFiles.filter((file) => fs.existsSync(file));
   if (checkpoint.admissions === 0 && present.length || checkpoint.admissions > 0 && present.length !== 3) {
@@ -513,5 +465,5 @@ export function loadRustStrategySearchKingdomEvidence(paths: RustStrategySearchK
       matrixGeneration: checkpoint.generation, cleanSearchCount: 2, finalStrategyNumbers: checkpoint.matrixNumbers,
       finalWeights: checkpoint.matrixWeights }, finalMatrixSource: checkpoint.admissions === 0 ? 'initial-matrix' : 'psro-expanded-matrix',
     pairs: final.pairs, purchases: final.purchases, matrix: final.matrix, selfPlay, sourceFiles: hashed.hashes,
-    evidenceSetSha256: hashed.digest, nativeVerification };
+    evidenceSetSha256: hashed.digest, adapterVerification };
 }
