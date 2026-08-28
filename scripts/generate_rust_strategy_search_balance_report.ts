@@ -238,7 +238,7 @@ export function renderRustBalanceReport(analysis: RustBalanceAnalysisV2): string
       <details><summary>Paired-game score evidence</summary>${pairEvidence}</details><details><summary>Complete 75-seed score matrix</summary>${matrix}</details>
       <details><summary>Source hashes</summary>${source}</details></section>`;
   }).join('\n');
-  const embedded = stringifyRustBalanceAnalysis(analysis).replaceAll('<', '\\u003c');
+  const embedded = JSON.stringify(analysis).replaceAll('<', '\\u003c');
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rust strategy-search balance analysis</title><style>
 :root{color-scheme:light dark;font:16px/1.45 system-ui,sans-serif}body{margin:0;background:#10141b;color:#edf2f7}main{max-width:1440px;margin:auto;padding:28px}h1,h2,h3{line-height:1.15}section{margin:30px 0;padding:20px;background:#18202b;border:1px solid #334155;border-radius:12px}.limits{border-color:#eab308;background:#30290f}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #334155;white-space:nowrap}th{position:sticky;top:0;background:#202b39}code{font-size:.78rem}details{margin:16px 0}summary{cursor:pointer;font-weight:700}.lede{max-width:80ch;color:#cbd5e1}@media print{body{background:#fff;color:#111}section{break-inside:avoid;background:#fff;border-color:#aaa}th{background:#eee}}
