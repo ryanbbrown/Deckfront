@@ -65,6 +65,41 @@ print(json.dumps({'complete': True}))
                 "matrix", str(root / "out"), 4)
             self.assertIsNone(result["report"])
 
+    def test_acknowledged_checkpoint_resumes_without_replaying_the_look(self):
+        with tempfile.TemporaryDirectory() as held:
+            root = pathlib.Path(held)
+            binary = root / "recover.py"
+            binary.write_text("""#!/usr/bin/env python3
+import json, os, pathlib, sys
+root=pathlib.Path(__file__).parent
+args=sys.argv[1:]
+if args[0] == 'psro-verify':
+ print(json.dumps({'valid': True})); raise SystemExit(0)
+out=pathlib.Path(args[args.index('--out')+1]); out.mkdir(parents=True, exist_ok=True)
+acked=root/'acked'
+count=root/'first-look-count'
+if not acked.exists():
+ count.write_text(str(int(count.read_text()) + 1 if count.exists() else 1))
+ print('checkpoint 1 101', flush=True)
+ if input().strip() != 'committed 1': raise SystemExit(5)
+ acked.write_text('persisted')
+ raise SystemExit(9)
+print('checkpoint 2 202', flush=True)
+if input().strip() != 'committed 2': raise SystemExit(6)
+(out/'decisions.hpd').write_bytes(b'evidence')
+print(json.dumps({'complete': True}))
+""")
+            binary.chmod(binary.stat().st_mode | stat.S_IXUSR)
+            volume = Volume()
+            with self.assertRaisesRegex(RuntimeError, "Rust PSRO failed"):
+                run_psro_step(str(binary), "kingdom", "top", "reservoir", "matrix",
+                    str(root / "out"), 16, volume=volume)
+            result = run_psro_step(str(binary), "kingdom", "top", "reservoir", "matrix",
+                str(root / "out"), 16, volume=volume)
+            self.assertEqual((root / "first-look-count").read_text(), "1")
+            self.assertEqual(volume.commits, 2)
+            self.assertTrue(result["verification"]["valid"])
+
 
 if __name__ == "__main__":
     unittest.main()

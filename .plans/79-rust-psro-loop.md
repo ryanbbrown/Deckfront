@@ -1,6 +1,6 @@
 # Rust PSRO loop
 
-Status: approved after plan review v2 (`.reviews/plans/rust-psro-loop/rust-psro-loop-synthesis-v2.md`).
+Status: approved after plan review v2 (`.reviews/plans/rust-psro-loop/rust-psro-loop-synthesis-v2.md`). During implementation, the manager approved option B: complete the local Rust PSRO path and direct uncalled Modal entrypoint, but keep the current campaign path unchanged until the campaign publishes the Rust matrix artifact.
 
 This plan implements step 3, “Search the reservoir for strategies that beat the mix,” in `.html/single-kingdom-strategy-search.html`. The HTML is the product intent. `docs/strategy-search-evidence.md` defines how to interpret the result. `.plans/77-rust-goldfish-reservoir.md` and `.plans/78-rust-matrix-step.md` define the input files and Rust interfaces.
 
@@ -22,9 +22,15 @@ In scope:
 - binary look, admission, checkpoint, decision, and final matrix evidence;
 - restart after a process or machine loss;
 - a local shell command;
-- a thin Python wrapper and one Modal job that call the same Rust command;
-- removal of the old campaign PSRO task-chunk and TypeScript transition path after the Rust path is wired;
-- tests, documentation, and local timing.
+- a thin Python wrapper and one direct, uncalled Modal job that call the same Rust command;
+- tests, step-3 documentation, and local timing.
+
+Deferred together under approved option B:
+
+- Rust matrix campaign publication;
+- replacement of the campaign PSRO controller with the Rust command;
+- removal of the old campaign task graph and TypeScript transition path;
+- campaign operator-guide changes that depend on the new publication path.
 
 Out of scope:
 
@@ -418,13 +424,13 @@ It runs the Rust command, keeps a bounded stderr tail on failure, runs `psro-ver
 
 Add one Modal function with 16 CPUs and enough memory for the reservoir, scores, and expanded matrix. It gives one kingdom one machine and calls this wrapper with 16 Rust threads. The function does not fan out a look.
 
-Replace the campaign’s dynamic PSRO job graph with one `psro` job per kingdom. That job depends on the kingdom’s validated matrix result, runs the one Modal function, publishes the complete output directory only after `psro-verify` passes, and records one completion receipt. A kingdom starts without waiting for another kingdom. Retries call the same command and use the checkpoint. The controller does not inspect a look or make a scientific transition.
+The direct Modal function is present but uncalled. Campaign wiring is deferred under option B because the current campaign still publishes the TypeScript JSON matrix artifact, not the Rust matrix files required by this command.
 
 Tests patch subprocess, Volume, and Modal calls. Do not deploy or call the function during this task.
 
-## Old campaign path removal
+## Deferred campaign path removal
 
-After the Rust command and wrapper are wired, remove the obsolete distributed campaign PSRO path:
+Do not remove the distributed campaign PSRO path in this implementation. Remove it only after the campaign publishes the Rust matrix files and calls the Rust PSRO command. That later work must remove:
 
 - `src/sim/strategySearchParallelPsro.ts` and its campaign-only tests;
 - `src/sim/strategySearchPsro.ts` if it has no non-campaign caller;
@@ -445,7 +451,7 @@ This removal does not authorize a change to Goldfish or initial matrix behavior.
 - Update `README.md` with the local PSRO command, outputs, restart behavior, and verification command.
 - Update only step 3 in `.html/single-kingdom-strategy-search.html`: replace the imprecise per-look largest-remainder sentence and fixed padded-row description with the prefix-stable largest-deficit schedule and suffix look files from this approved plan. Do not change step 1 or step 2.
 - Rewrite step 3 in `docs/strategy-search-process.md` to match this single-process Rust implementation while preserving the scientific rules.
-- Update `docs/strategy-search-campaign-operator.md` so Modal runs one kingdom per larger machine and does not describe PSRO task chunks.
+- Defer `docs/strategy-search-campaign-operator.md` changes until the campaign calls the Rust matrix and PSRO commands.
 - Keep `docs/strategy-search-evidence.md` unchanged unless a factual file-location sentence needs an update. Do not change its interpretation rules.
 - Archive `.plans/76-global-matrix-psro-runtime.md` with a banner that names plans 78 and 79 as its replacements. Add the archive index row.
 
@@ -517,7 +523,7 @@ No Modal deployment and no paid run.
 4. Add parallel Rust scoring and admission files by reusing the frozen kernel and matrix functions.
 5. Add expanded matrix outputs and final decisions evidence.
 6. Add the local command, thin Python wrapper, and uncalled Modal function.
-7. Remove the old campaign PSRO path and update allowlists and docs.
+7. Update allowlists and step-3 docs. Keep campaign wiring and old-path removal deferred under option B.
 8. Run fixture parity, interruption tests, full repository validation, and available local timing.
 9. Run exactly one implementation review cycle against the recorded pre-implementation SHA. Send required fixes to the same Pi writer and rerun affected validation.
 

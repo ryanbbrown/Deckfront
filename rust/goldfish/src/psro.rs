@@ -499,20 +499,28 @@ fn sync_parent(path: &Path) -> Result<(), String> {
         .map_err(|error| format!("sync {}: {error}", parent.display()))
 }
 
-fn atomic_write(path: &Path, bytes: &[u8]) -> Result<(), String> {
+fn write_synced(path: &Path, bytes: &[u8]) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .map_err(|error| format!("create {}: {error}", parent.display()))?;
     }
-    let temporary = PathBuf::from(format!("{}.tmp", path.display()));
-    let mut file = File::create(&temporary)
-        .map_err(|error| format!("create {}: {error}", temporary.display()))?;
+    let mut file =
+        File::create(path).map_err(|error| format!("create {}: {error}", path.display()))?;
     file.write_all(bytes)
-        .map_err(|error| format!("write {}: {error}", temporary.display()))?;
+        .map_err(|error| format!("write {}: {error}", path.display()))?;
     file.flush()
-        .map_err(|error| format!("flush {}: {error}", temporary.display()))?;
+        .map_err(|error| format!("flush {}: {error}", path.display()))?;
     file.sync_all()
-        .map_err(|error| format!("sync {}: {error}", temporary.display()))?;
+        .map_err(|error| format!("sync {}: {error}", path.display()))
+}
+
+fn atomic_write_verified<F>(path: &Path, bytes: &[u8], verify: F) -> Result<(), String>
+where
+    F: FnOnce(&Path) -> Result<(), String>,
+{
+    let temporary = PathBuf::from(format!("{}.tmp", path.display()));
+    write_synced(&temporary, bytes)?;
+    verify(&temporary)?;
     fs::rename(&temporary, path).map_err(|error| format!("rename {}: {error}", path.display()))?;
     sync_parent(path)
 }
@@ -701,7 +709,20 @@ fn write_checkpoint(
     let mut header = base_header(source, state, CHECKPOINT_KIND);
     header.ordinal = state.refs.len() as u32;
     let bytes = file_bytes(header, &payload)?;
-    atomic_write(&out.join("checkpoint.hpc"), &bytes)?;
+    let path = out.join("checkpoint.hpc");
+    atomic_write_verified(&path, &bytes, |temporary| {
+        let (verified_header, verified_payload) =
+            read_evidence(temporary, source, CHECKPOINT_KIND)?;
+        let verified_state = parse_checkpoint(&verified_payload)?;
+        if verified_state != *state
+            || verified_header.matrix_generation != state.generation
+            || verified_header.search != state.search
+            || verified_header.ordinal != state.refs.len() as u32
+        {
+            return Err("temporary checkpoint verification differs".into());
+        }
+        Ok(())
+    })?;
     if std::env::var("HEXDECK_PSRO_TEST_STOP_AFTER_TRANSITION")
         .ok()
         .is_some_and(|value| value == state.refs.len().to_string())
@@ -864,6 +885,7 @@ struct Runtime {
     initial_count: usize,
     initial_weights: Vec<f64>,
     candidate_limit: usize,
+    initial_pairs: Vec<PairResult>,
     matrix: Vec<PairResult>,
     strategies: HashMap<u32, DecodedStrategy>,
     source: Source,
@@ -1156,7 +1178,19 @@ fn execute_race(runtime: &mut Runtime, state: &mut State, resumed: bool) -> Resu
             header.alpha = alpha;
             header.threshold = THRESHOLD;
             let bytes = file_bytes(header.clone(), &payload)?;
-            atomic_write(&path, &bytes)?;
+            let expected_header = CommonHeader::decode(&bytes)?;
+            atomic_write_verified(&path, &bytes, |temporary| {
+                let (verified_header, verified_payload) =
+                    read_evidence(temporary, &runtime.source, look_kind(phase))?;
+                let (_, verified_rows) = parse_look(&verified_header, &verified_payload)?;
+                if verified_header != expected_header
+                    || verified_payload != payload
+                    || verified_rows.len() != rows.len()
+                {
+                    return Err("temporary look verification differs".into());
+                }
+                Ok(())
+            })?;
             let (verified_header, verified_payload) =
                 read_evidence(&path, &runtime.source, look_kind(phase))?;
             let (_, verified_rows) = parse_look(&verified_header, &verified_payload)?;
@@ -1346,6 +1380,7 @@ fn admission_payload(
     payload
 }
 
+#[derive(Clone)]
 struct ParsedAdmission {
     admission: u32,
     search: u32,
@@ -1504,7 +1539,7 @@ fn expanded_files(runtime: &Runtime, state: &State) -> Result<(), String> {
         let mut bytes = headers[index].encode()?.to_vec();
         bytes.extend_from_slice(rows[index]);
         let temporary = runtime.out.join(format!("{}.tmp", names[index]));
-        atomic_write(&temporary, &bytes)?;
+        write_synced(&temporary, &bytes)?;
     }
     let selection = ReservoirSelection {
         source_checksum: runtime.source.reservoir_crc,
@@ -1638,7 +1673,25 @@ fn admit(runtime: &mut Runtime, state: &mut State) -> Result<(), String> {
         header.row_count = results.len() as u32;
         header.row_bytes = (4 + 125 + 2 * (4 * runtime.source.card_count + 20)) as u32;
         header.matrix_generation = state.generation + 1;
-        atomic_write(&path, &file_bytes(header, &payload)?)?;
+        let bytes = file_bytes(header, &payload)?;
+        let expected_header = CommonHeader::decode(&bytes)?;
+        atomic_write_verified(&path, &bytes, |temporary| {
+            let (verified_header, verified_payload) =
+                read_evidence(temporary, &runtime.source, ADMISSION_KIND)?;
+            let parsed = parse_admission(&verified_payload, runtime.source.card_count)?;
+            if verified_header != expected_header
+                || verified_payload != payload
+                || parsed.candidate != selected.candidate
+                || parsed.queue_numbers
+                    != queue
+                        .iter()
+                        .map(|record| record.candidate.number)
+                        .collect::<Vec<_>>()
+            {
+                return Err("temporary admission verification differs".into());
+            }
+            Ok(())
+        })?;
         let (verified, verified_payload) = read_evidence(&path, &runtime.source, ADMISSION_KIND)?;
         parse_admission(&verified_payload, runtime.source.card_count)?;
         if std::env::var_os("HEXDECK_PSRO_TEST_STOP_AFTER_ADMISSION_RENAME").is_some() {
@@ -1704,187 +1757,691 @@ fn admit(runtime: &mut Runtime, state: &mut State) -> Result<(), String> {
     write_checkpoint(&runtime.out, &runtime.source, state, runtime.handshake)
 }
 
-fn decisions_payload(runtime: &Runtime, state: &State) -> Result<Vec<u8>, String> {
-    let mut decisions = Vec::<(u8, u8, u32, u32, u32, Candidate, u32, u32, Bounds)>::new();
-    for reference in &state.refs {
-        if !matches!(
-            reference.kind,
-            SCREEN_KIND | CONFIRMATION_KIND | RETEST_KIND
-        ) {
-            continue;
+#[derive(Clone)]
+struct DecisionRecord {
+    phase: Phase,
+    status: u8,
+    search: u32,
+    race: u32,
+    depth: u32,
+    candidate: Candidate,
+    family_size: u32,
+    bounds: Bounds,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct SearchSummary {
+    search: u32,
+    result: u32,
+    provisional: u32,
+    confirmed: u32,
+    unresolved_screen: u32,
+    unresolved_confirmation: u32,
+    clean_after: u32,
+}
+
+struct ReplayResult {
+    state: State,
+    decisions: Vec<DecisionRecord>,
+    admissions: Vec<ParsedAdmission>,
+    summaries: Vec<SearchSummary>,
+}
+
+fn weights_equal(left: &[f64], right: &[f64]) -> bool {
+    left.len() == right.len()
+        && left
+            .iter()
+            .zip(right)
+            .all(|(left, right)| left.to_bits() == right.to_bits())
+}
+
+fn candidate_valid(runtime: &Runtime, candidate: &Candidate) -> bool {
+    runtime
+        .reservoir
+        .numbers
+        .get(candidate.rank as usize)
+        .is_some_and(|number| *number == candidate.number)
+}
+
+fn replay_race(
+    runtime: &Runtime,
+    state: &mut State,
+    used_seeds: &mut HashSet<u32>,
+    decisions: &mut Vec<DecisionRecord>,
+) -> Result<(), String> {
+    let phase = state.phase;
+    let depths: &[u32] = if phase == Phase::Screen {
+        &SCREEN_DEPTHS
+    } else {
+        &CONFIRMATION_DEPTHS
+    };
+    let initial = if phase == Phase::Screen {
+        runtime.eligible(&state.matrix_numbers)
+    } else {
+        state.fixed_family.clone()
+    };
+    if initial.is_empty() {
+        return Err("PSRO evidence contains an empty scientific race".into());
+    }
+    if initial
+        .iter()
+        .any(|candidate| !candidate_valid(runtime, candidate))
+        || initial
+            .iter()
+            .any(|candidate| state.matrix_numbers.contains(&candidate.number))
+    {
+        return Err("PSRO race family has an invalid or matrix candidate".into());
+    }
+    let alpha = if phase == Phase::Screen {
+        SCREEN_ALPHA
+    } else {
+        FAMILY_ALPHA / initial.len() as f64
+    };
+    let (seed_kind, maximum) = match phase {
+        Phase::Screen => ("screen", *SCREEN_DEPTHS.last().expect("screen depth")),
+        Phase::Confirmation => (
+            "confirmation",
+            *CONFIRMATION_DEPTHS.last().expect("confirmation depth"),
+        ),
+        Phase::Retest => (
+            "queue-retest",
+            *CONFIRMATION_DEPTHS.last().expect("retest depth"),
+        ),
+        _ => return Err("PSRO replay expected a race phase".into()),
+    };
+    let seeds = (0..maximum)
+        .map(|position| {
+            race_seed(
+                &runtime.kingdom.id,
+                runtime.source.reservoir_crc,
+                runtime.source.pairs_crc,
+                state.search,
+                seed_kind,
+                state.race_ordinal,
+                position,
+                used_seeds,
+            )
+            .0
+        })
+        .collect::<Vec<_>>();
+    let schedule = weighted_schedule(&state.matrix_numbers, &state.matrix_weights, &seeds)?;
+    let mut active = initial.clone();
+    let mut prefixes = initial
+        .iter()
+        .map(|candidate| (candidate.number, Vec::<u8>::new()))
+        .collect::<HashMap<_, _>>();
+    let mut previous = 0u32;
+    state.active = active.clone();
+    state.look_index = 0;
+    state.previous_depth = 0;
+    state.next_depth = depths[0];
+    for (index, depth) in depths.iter().copied().enumerate() {
+        if active.is_empty() {
+            break;
         }
-        let phase = match reference.kind {
-            SCREEN_KIND => Phase::Screen,
-            CONFIRMATION_KIND => Phase::Confirmation,
-            RETEST_KIND => Phase::Retest,
-            _ => unreachable!(),
-        };
-        let path = look_path(
-            &runtime.out,
-            phase,
-            reference.search,
-            reference.ordinal,
-            reference.depth,
-        );
-        let (header, payload) = read_evidence(&path, &runtime.source, reference.kind)?;
-        let (_, rows) = parse_look(&header, &payload)?;
+        let path = look_path(&runtime.out, phase, state.search, state.race_ordinal, depth);
+        let kind = look_kind(phase);
+        let (header, payload) = read_evidence(&path, &runtime.source, kind)?;
+        let (stored_schedule, rows) = parse_look(&header, &payload)?;
+        let suffix = &schedule[previous as usize..depth as usize];
+        let expected_row_bytes = 36 + suffix.len() + runtime.source.card_count * 4 + 20;
+        if header.matrix_generation != state.generation
+            || header.search != state.search
+            || header.ordinal != state.race_ordinal
+            || header.depth != depth
+            || header.previous_depth != previous
+            || header.family_size != initial.len() as u32
+            || header.row_count != active.len() as u32
+            || header.row_bytes != expected_row_bytes as u32
+            || header.suffix_count != suffix.len() as u32
+            || header.alpha.to_bits() != alpha.to_bits()
+            || header.threshold.to_bits() != THRESHOLD.to_bits()
+            || stored_schedule != suffix
+            || rows.iter().map(|row| &row.candidate).ne(active.iter())
+        {
+            return Err(format!(
+                "{} differs from the independently replayed race",
+                path.display()
+            ));
+        }
+        let at_cap = index + 1 == depths.len();
+        let mut next = Vec::new();
         for row in rows {
-            let at_cap = reference.depth
-                == if phase == Phase::Screen {
-                    *SCREEN_DEPTHS.last().unwrap()
-                } else {
-                    *CONFIRMATION_DEPTHS.last().unwrap()
-                };
-            if row.decision != 0 || at_cap {
-                decisions.push((
-                    phase as u8,
-                    row.decision,
-                    reference.search,
-                    reference.ordinal,
-                    reference.depth,
-                    row.candidate,
-                    reference.depth,
-                    header.family_size,
-                    row.bounds,
-                ));
+            let prefix = prefixes
+                .get_mut(&row.candidate.number)
+                .ok_or("race row is outside the derived family")?;
+            prefix.extend_from_slice(&row.points);
+            let expected = confidence(prefix, alpha)?;
+            let status = if expected.upper <= THRESHOLD {
+                1
+            } else if expected.lower > THRESHOLD {
+                2
+            } else {
+                0
+            };
+            if row.bounds.mean.to_bits() != expected.mean.to_bits()
+                || row.bounds.lower.to_bits() != expected.lower.to_bits()
+                || row.bounds.upper.to_bits() != expected.upper.to_bits()
+                || row.decision != status
+            {
+                return Err("race confidence or decision differs from its score prefix".into());
+            }
+            if status == 0 && !at_cap {
+                next.push(row.candidate);
+            } else {
+                decisions.push(DecisionRecord {
+                    phase,
+                    status,
+                    search: state.search,
+                    race: state.race_ordinal,
+                    depth,
+                    candidate: row.candidate.clone(),
+                    family_size: initial.len() as u32,
+                    bounds: row.bounds,
+                });
+                if status == 2 {
+                    if phase == Phase::Screen {
+                        state.fixed_family.push(row.candidate);
+                    } else {
+                        state.queue.push(QueueRecord {
+                            candidate: row.candidate,
+                            blocks: depth,
+                            source_search: state.search,
+                            source_race: state.race_ordinal,
+                            bounds: row.bounds,
+                        });
+                    }
+                }
             }
         }
+        state.refs.push(FileRef {
+            kind,
+            generation: state.generation,
+            search: state.search,
+            ordinal: state.race_ordinal,
+            depth,
+            payload_crc: header.payload_crc,
+        });
+        active = next;
+        state.active = active.clone();
+        state.look_index = (index + 1) as u32;
+        state.previous_depth = depth;
+        state.next_depth = depths.get(index + 1).copied().unwrap_or(0);
+        previous = depth;
     }
+    state.active.clear();
+    state.look_index = depths.len() as u32;
+    if phase == Phase::Screen {
+        state.fixed_family.sort_by_key(|candidate| candidate.rank);
+    } else {
+        order_queue(&mut state.queue);
+    }
+    Ok(())
+}
+
+fn replay_admission(
+    runtime: &Runtime,
+    state: &mut State,
+    pairs: &mut Vec<PairResult>,
+    admissions: &mut Vec<ParsedAdmission>,
+) -> Result<bool, String> {
+    order_queue(&mut state.queue);
+    let queue = state.queue.clone();
+    let selected = queue.first().ok_or("replayed admission queue is empty")?;
+    let ordinal = state.admissions + 1;
+    let (header, payload) = read_evidence(
+        &admission_path(&runtime.out, ordinal),
+        &runtime.source,
+        ADMISSION_KIND,
+    )?;
+    let parsed = parse_admission(&payload, runtime.source.card_count)?;
+    let expected_queue = queue
+        .iter()
+        .map(|record| record.candidate.number)
+        .collect::<Vec<_>>();
+    let row_bytes = (4 + 125 + 2 * (4 * runtime.source.card_count + 20)) as u32;
+    if header.matrix_generation != state.generation + 1
+        || header.search != state.search
+        || header.ordinal != ordinal
+        || header.depth != 0
+        || header.previous_depth != 0
+        || header.family_size != 0
+        || header.row_count != state.matrix_numbers.len() as u32
+        || header.row_bytes != row_bytes
+        || header.suffix_count != 0
+        || header.alpha.to_bits() != 0
+        || header.threshold.to_bits() != 0
+        || parsed.admission != ordinal
+        || parsed.search != state.search
+        || parsed.source_race != selected.source_race
+        || parsed.candidate != selected.candidate
+        || parsed.queue_numbers != expected_queue
+        || parsed.bounds.mean.to_bits() != selected.bounds.mean.to_bits()
+        || parsed.bounds.lower.to_bits() != selected.bounds.lower.to_bits()
+        || parsed.bounds.upper.to_bits() != selected.bounds.upper.to_bits()
+        || parsed.before_numbers != state.matrix_numbers
+        || !weights_equal(&parsed.before_weights, &state.matrix_weights)
+        || parsed.results.len() != state.matrix_numbers.len()
+        || parsed
+            .results
+            .iter()
+            .zip(&state.matrix_numbers)
+            .any(|(result, number)| {
+                result.first != *number || result.second != selected.candidate.number
+            })
+    {
+        return Err(
+            "admission differs from the independently replayed strongest queue entry".into(),
+        );
+    }
+    let grown = grow_pairs(pairs, &parsed.results, state.matrix_numbers.len())?;
+    let mut expected_numbers = state.matrix_numbers.clone();
+    expected_numbers.push(selected.candidate.number);
+    let (_, expected_weights) = matrix::matrix_values(&grown, &expected_numbers)?;
+    if parsed.after_numbers != expected_numbers
+        || !weights_equal(&parsed.after_weights, &expected_weights)
+    {
+        return Err("admission matrix transition differs from its pair evidence".into());
+    }
+    state.refs.push(FileRef {
+        kind: ADMISSION_KIND,
+        generation: state.generation + 1,
+        search: state.search,
+        ordinal,
+        depth: 0,
+        payload_crc: header.payload_crc,
+    });
+    *pairs = grown;
+    state.matrix_numbers = expected_numbers;
+    state.matrix_weights = expected_weights;
+    state.admissions = ordinal;
+    state.generation += 1;
+    state.clean_searches = 0;
+    admissions.push(parsed);
+    let mut remaining = queue
+        .into_iter()
+        .skip(1)
+        .map(|record| record.candidate)
+        .collect::<Vec<_>>();
+    remaining.sort_by_key(|candidate| candidate.rank);
+    state.queue.clear();
+    if remaining.is_empty() {
+        state.search += 1;
+        start_search(runtime, state);
+        return Ok(false);
+    }
+    state.retest_ordinal += 1;
+    state.phase = Phase::Retest;
+    state.race_ordinal = state.retest_ordinal;
+    state.fixed_family = remaining.clone();
+    state.active = remaining;
+    state.look_index = 0;
+    state.previous_depth = 0;
+    state.next_depth = CONFIRMATION_DEPTHS[0];
+    Ok(true)
+}
+
+fn search_summary(
+    decisions: &[DecisionRecord],
+    search: u32,
+    admitted: bool,
+    clean_after: u32,
+) -> SearchSummary {
+    let in_search = decisions.iter().filter(|record| record.search == search);
+    SearchSummary {
+        search,
+        result: u32::from(!admitted),
+        provisional: in_search
+            .clone()
+            .filter(|record| record.phase == Phase::Screen && record.status == 2)
+            .count() as u32,
+        confirmed: in_search
+            .clone()
+            .filter(|record| record.phase != Phase::Screen && record.status == 2)
+            .count() as u32,
+        unresolved_screen: in_search
+            .clone()
+            .filter(|record| record.phase == Phase::Screen && record.status == 0)
+            .count() as u32,
+        unresolved_confirmation: in_search
+            .filter(|record| record.phase != Phase::Screen && record.status == 0)
+            .count() as u32,
+        clean_after,
+    }
+}
+
+fn replay_transitions(runtime: &Runtime) -> Result<ReplayResult, String> {
+    let initial_numbers = runtime.reservoir.numbers[..runtime.initial_count].to_vec();
+    let mut state = State {
+        complete: false,
+        phase: Phase::Screen,
+        search: 1,
+        look_index: 0,
+        retest_ordinal: 0,
+        admissions: 0,
+        generation: 0,
+        clean_searches: 0,
+        matrix_numbers: initial_numbers,
+        matrix_weights: runtime.initial_weights.clone(),
+        fixed_family: Vec::new(),
+        active: Vec::new(),
+        queue: Vec::new(),
+        refs: Vec::new(),
+        race_ordinal: 1,
+        previous_depth: 0,
+        next_depth: SCREEN_DEPTHS[0],
+    };
+    start_search(runtime, &mut state);
+    let mut used_seeds = [4_100_000, 4_100_001, 4_100_002, 4_100_003]
+        .into_iter()
+        .chain(FIRST_MATRIX_SEED..=LAST_MATRIX_SEED)
+        .collect::<HashSet<_>>();
+    let mut pairs = runtime.initial_pairs.clone();
+    let mut decisions = Vec::new();
+    let mut admissions = Vec::new();
+    let mut summaries = Vec::new();
+    while !state.complete {
+        if state.search > runtime.reservoir.numbers.len() as u32 + 2 {
+            return Err("PSRO evidence does not reach its deterministic stop".into());
+        }
+        let search = state.search;
+        state.phase = Phase::Screen;
+        state.race_ordinal = 1;
+        replay_race(runtime, &mut state, &mut used_seeds, &mut decisions)?;
+        if state.fixed_family.is_empty() {
+            finish_clean_search(runtime, &mut state);
+            summaries.push(search_summary(
+                &decisions,
+                search,
+                false,
+                state.clean_searches,
+            ));
+            continue;
+        }
+        state.phase = Phase::Confirmation;
+        state.active = state.fixed_family.clone();
+        state.look_index = 0;
+        state.race_ordinal = 1;
+        state.previous_depth = 0;
+        state.next_depth = CONFIRMATION_DEPTHS[0];
+        replay_race(runtime, &mut state, &mut used_seeds, &mut decisions)?;
+        if state.queue.is_empty() {
+            finish_clean_search(runtime, &mut state);
+            summaries.push(search_summary(
+                &decisions,
+                search,
+                false,
+                state.clean_searches,
+            ));
+            continue;
+        }
+        state.phase = Phase::Admission;
+        state.next_depth = 0;
+        loop {
+            let has_retest = replay_admission(runtime, &mut state, &mut pairs, &mut admissions)?;
+            if !has_retest {
+                break;
+            }
+            replay_race(runtime, &mut state, &mut used_seeds, &mut decisions)?;
+            if state.queue.is_empty() {
+                state.search += 1;
+                start_search(runtime, &mut state);
+                break;
+            }
+            state.phase = Phase::Admission;
+            state.next_depth = 0;
+        }
+        summaries.push(search_summary(&decisions, search, true, 0));
+    }
+    Ok(ReplayResult {
+        state,
+        decisions,
+        admissions,
+        summaries,
+    })
+}
+
+fn decisions_payload(runtime: &Runtime, replay: &ReplayResult) -> Result<Vec<u8>, String> {
+    let state = &replay.state;
     let mut payload = Vec::new();
-    let search_count = state.search;
     for value in [
         1,
         1,
-        decisions.len() as u32,
-        state.admissions,
-        state.admissions + 1,
-        search_count,
+        replay.decisions.len() as u32,
+        replay.admissions.len() as u32,
+        replay.admissions.len() as u32 + 1,
+        replay.summaries.len() as u32,
         state.generation,
         state.clean_searches,
     ] {
         put_u32(&mut payload, value);
     }
-    for (stage, status, search, race, depth, candidate, blocks, family, bounds) in &decisions {
-        payload.push(*stage);
-        payload.push(*status);
+    for decision in &replay.decisions {
+        payload.push(decision.phase as u8);
+        payload.push(decision.status);
         payload.extend_from_slice(&[0, 0]);
         for value in [
-            *search,
-            *race,
-            *depth,
-            candidate.number,
-            candidate.rank,
-            *blocks,
-            *family,
+            decision.search,
+            decision.race,
+            decision.depth,
+            decision.candidate.number,
+            decision.candidate.rank,
+            decision.depth,
+            decision.family_size,
         ] {
             put_u32(&mut payload, value);
         }
-        put_f64(&mut payload, bounds.mean);
-        put_f64(&mut payload, bounds.lower);
-        put_f64(&mut payload, bounds.upper);
+        put_f64(&mut payload, decision.bounds.mean);
+        put_f64(&mut payload, decision.bounds.lower);
+        put_f64(&mut payload, decision.bounds.upper);
     }
-    for admission in 1..=state.admissions {
-        let (_, held) = read_evidence(
-            &admission_path(&runtime.out, admission),
-            &runtime.source,
-            ADMISSION_KIND,
-        )?;
-        let queue_count =
-            u32::from_le_bytes(held[28..32].try_into().expect("queue count")) as usize;
-        payload.extend_from_slice(&held[..56 + queue_count * 4]);
+    for admission in &replay.admissions {
+        for value in [
+            admission.admission,
+            admission.search,
+            admission.source_race,
+            admission.candidate.number,
+            admission.candidate.rank,
+            admission.before_numbers.len() as u32,
+            admission.after_numbers.len() as u32,
+            admission.queue_numbers.len() as u32,
+        ] {
+            put_u32(&mut payload, value);
+        }
+        put_f64(&mut payload, admission.bounds.mean);
+        put_f64(&mut payload, admission.bounds.lower);
+        put_f64(&mut payload, admission.bounds.upper);
+        for number in &admission.queue_numbers {
+            put_u32(&mut payload, *number);
+        }
     }
-    let initial_numbers = runtime.reservoir.numbers[..runtime.initial_count].to_vec();
     put_u32(&mut payload, 0);
     put_u32(&mut payload, runtime.initial_count as u32);
-    for (number, weight) in initial_numbers.into_iter().zip(&runtime.initial_weights) {
-        put_u32(&mut payload, number);
+    for (number, weight) in runtime.reservoir.numbers[..runtime.initial_count]
+        .iter()
+        .zip(&runtime.initial_weights)
+    {
+        put_u32(&mut payload, *number);
         put_f64(&mut payload, *weight);
     }
-    for admission in 1..=state.admissions {
-        let (_, held) = read_evidence(
-            &admission_path(&runtime.out, admission),
-            &runtime.source,
-            ADMISSION_KIND,
-        )?;
-        let queue_count = u32::from_le_bytes(held[28..32].try_into().expect("queue")) as usize;
-        let before_count_offset = 56 + queue_count * 4;
-        let before_count = u32::from_le_bytes(
-            held[before_count_offset..before_count_offset + 4]
-                .try_into()
-                .unwrap(),
-        ) as usize;
-        let after_offset = before_count_offset + 4 + before_count * 12;
-        let after_count =
-            u32::from_le_bytes(held[after_offset..after_offset + 4].try_into().unwrap()) as usize;
-        put_u32(&mut payload, admission);
-        put_u32(&mut payload, after_count as u32);
-        payload.extend_from_slice(&held[after_offset + 4..after_offset + 4 + after_count * 12]);
+    for admission in &replay.admissions {
+        put_u32(&mut payload, admission.admission);
+        put_u32(&mut payload, admission.after_numbers.len() as u32);
+        for (number, weight) in admission.after_numbers.iter().zip(&admission.after_weights) {
+            put_u32(&mut payload, *number);
+            put_f64(&mut payload, *weight);
+        }
     }
-    let admitted_searches = (1..=state.admissions)
-        .filter_map(|admission| {
-            read_evidence(
-                &admission_path(&runtime.out, admission),
-                &runtime.source,
-                ADMISSION_KIND,
-            )
-            .ok()
-        })
-        .map(|(_, held)| u32::from_le_bytes(held[4..8].try_into().unwrap()))
-        .collect::<HashSet<_>>();
-    let mut clean_after = 0;
-    for search in 1..=search_count {
-        let admitted = admitted_searches.contains(&search);
-        clean_after = if admitted { 0 } else { clean_after + 1 };
-        let provisional = decisions
-            .iter()
-            .filter(|entry| entry.0 == Phase::Screen as u8 && entry.2 == search && entry.1 == 2)
-            .count() as u32;
-        let confirmed = decisions
-            .iter()
-            .filter(|entry| entry.0 != Phase::Screen as u8 && entry.2 == search && entry.1 == 2)
-            .count() as u32;
-        let unresolved_screen = decisions
-            .iter()
-            .filter(|entry| entry.0 == Phase::Screen as u8 && entry.2 == search && entry.1 == 0)
-            .count() as u32;
-        let unresolved_confirmation = decisions
-            .iter()
-            .filter(|entry| entry.0 != Phase::Screen as u8 && entry.2 == search && entry.1 == 0)
-            .count() as u32;
+    for summary in &replay.summaries {
         for value in [
-            search,
-            u32::from(!admitted),
-            provisional,
-            confirmed,
-            unresolved_screen,
-            unresolved_confirmation,
-            clean_after,
+            summary.search,
+            summary.result,
+            summary.provisional,
+            summary.confirmed,
+            summary.unresolved_screen,
+            summary.unresolved_confirmation,
+            summary.clean_after,
         ] {
             put_u32(&mut payload, value);
         }
     }
+    validate_decisions_payload(&payload)?;
     Ok(payload)
 }
 
-fn write_decisions(runtime: &Runtime, state: &mut State) -> Result<(), String> {
-    let payload = decisions_payload(runtime, state)?;
-    let header = base_header(&runtime.source, state, DECISIONS_KIND);
-    let bytes = file_bytes(header.clone(), &payload)?;
-    let path = runtime.out.join("decisions.hpd");
-    atomic_write(&path, &bytes)?;
-    let (verified, verified_payload) = read_evidence(&path, &runtime.source, DECISIONS_KIND)?;
-    if verified_payload != payload {
-        return Err("decisions verification differs".into());
+fn validate_decisions_payload(payload: &[u8]) -> Result<(), String> {
+    if payload.len() < 32 {
+        return Err("decisions payload ends before its prefix".into());
     }
-    state.refs.push(FileRef {
+    let mut offset = 0;
+    let status = get_u32(payload, &mut offset)?;
+    let reason = get_u32(payload, &mut offset)?;
+    let decision_count = get_u32(payload, &mut offset)? as usize;
+    let admission_count = get_u32(payload, &mut offset)? as usize;
+    let snapshot_count = get_u32(payload, &mut offset)? as usize;
+    let summary_count = get_u32(payload, &mut offset)? as usize;
+    let generation = get_u32(payload, &mut offset)? as usize;
+    let clean = get_u32(payload, &mut offset)?;
+    if status != 1
+        || reason != 1
+        || snapshot_count != admission_count + 1
+        || generation != admission_count
+        || clean != 2
+    {
+        return Err("decisions prefix is invalid".into());
+    }
+    for _ in 0..decision_count {
+        let held = payload
+            .get(offset..offset + 56)
+            .ok_or("decisions record ends early")?;
+        if held[0] > Phase::Retest as u8 || held[1] > 2 || held[2..4].iter().any(|byte| *byte != 0)
+        {
+            return Err("decisions record enum or padding is invalid".into());
+        }
+        offset += 56;
+    }
+    for expected in 1..=admission_count {
+        let start = offset;
+        let admission = get_u32(payload, &mut offset)? as usize;
+        for _ in 0..6 {
+            get_u32(payload, &mut offset)?;
+        }
+        let queue_count = get_u32(payload, &mut offset)? as usize;
+        for _ in 0..3 {
+            get_f64(payload, &mut offset)?;
+        }
+        offset = offset
+            .checked_add(queue_count * 4)
+            .filter(|end| *end <= payload.len())
+            .ok_or("decisions admission queue ends early")?;
+        if admission != expected || offset - start != 56 + queue_count * 4 {
+            return Err("decisions admission section is invalid".into());
+        }
+    }
+    for expected in 0..snapshot_count {
+        let generation = get_u32(payload, &mut offset)? as usize;
+        let count = get_u32(payload, &mut offset)? as usize;
+        for _ in 0..count {
+            get_u32(payload, &mut offset)?;
+            get_f64(payload, &mut offset)?;
+        }
+        if generation != expected || count < 2 {
+            return Err("decisions equilibrium snapshot is invalid".into());
+        }
+    }
+    for expected in 1..=summary_count {
+        let search = get_u32(payload, &mut offset)? as usize;
+        let result = get_u32(payload, &mut offset)?;
+        for _ in 0..5 {
+            get_u32(payload, &mut offset)?;
+        }
+        if search != expected || result > 1 {
+            return Err("decisions search summary is invalid".into());
+        }
+    }
+    if offset != payload.len() {
+        return Err("decisions payload has trailing bytes".into());
+    }
+    Ok(())
+}
+
+fn scientific_state(state: &State) -> State {
+    let mut scientific = state.clone();
+    scientific
+        .refs
+        .retain(|reference| reference.kind != DECISIONS_KIND);
+    scientific
+}
+
+fn require_replayed_state(state: &State, replay: &ReplayResult) -> Result<(), String> {
+    if scientific_state(state) != replay.state {
+        return Err("checkpoint differs from the independently replayed PSRO state".into());
+    }
+    Ok(())
+}
+
+fn ensure_decisions(
+    runtime: &Runtime,
+    state: &mut State,
+    replay: &ReplayResult,
+) -> Result<(), String> {
+    require_replayed_state(state, replay)?;
+    let payload = decisions_payload(runtime, replay)?;
+    let mut header = base_header(&runtime.source, &replay.state, DECISIONS_KIND);
+    header.ordinal = 0;
+    let bytes = file_bytes(header, &payload)?;
+    let expected_header = CommonHeader::decode(&bytes)?;
+    let path = runtime.out.join("decisions.hpd");
+    let verified = if path.exists() {
+        let (verified, verified_payload) = read_evidence(&path, &runtime.source, DECISIONS_KIND)?;
+        validate_decisions_payload(&verified_payload)?;
+        if verified != expected_header || verified_payload != payload {
+            return Err("renamed decisions evidence differs from replay".into());
+        }
+        verified
+    } else {
+        if state
+            .refs
+            .iter()
+            .any(|reference| reference.kind == DECISIONS_KIND)
+        {
+            return Err("checkpoint references a missing decisions file".into());
+        }
+        atomic_write_verified(&path, &bytes, |temporary| {
+            let (verified_header, verified_payload) =
+                read_evidence(temporary, &runtime.source, DECISIONS_KIND)?;
+            validate_decisions_payload(&verified_payload)?;
+            if verified_header != expected_header || verified_payload != payload {
+                return Err("temporary decisions verification differs".into());
+            }
+            Ok(())
+        })?;
+        if std::env::var_os("HEXDECK_PSRO_TEST_STOP_AFTER_DECISIONS_RENAME").is_some() {
+            return Err("test stop after renamed PSRO decisions".into());
+        }
+        expected_header
+    };
+    let expected_ref = FileRef {
         kind: DECISIONS_KIND,
-        generation: state.generation,
-        search: state.search,
+        generation: replay.state.generation,
+        search: replay.state.search,
         ordinal: 0,
         depth: 0,
         payload_crc: verified.payload_crc,
-    });
-    write_checkpoint(&runtime.out, &runtime.source, state, runtime.handshake)
+    };
+    let decision_refs = state
+        .refs
+        .iter()
+        .filter(|reference| reference.kind == DECISIONS_KIND)
+        .collect::<Vec<_>>();
+    match decision_refs.as_slice() {
+        [] => {
+            state.refs.push(expected_ref);
+            write_checkpoint(&runtime.out, &runtime.source, state, runtime.handshake)
+        }
+        [reference] if **reference == expected_ref => Ok(()),
+        _ => Err("checkpoint decisions reference differs from replay".into()),
+    }
 }
 
 #[derive(Default)]
@@ -2032,13 +2589,15 @@ fn prepare(
         .chain(FIRST_MATRIX_SEED..=LAST_MATRIX_SEED)
         .collect::<HashSet<_>>();
     let handshake = std::env::var_os("HEXDECK_PSRO_HANDSHAKE").is_some();
+    let initial_pairs = matrix_evidence.pairs;
     let mut runtime = Runtime {
         kingdom,
         reservoir,
         initial_count: matrix_size,
         initial_weights: matrix_evidence.weights.clone(),
         candidate_limit,
-        matrix: matrix_evidence.pairs,
+        initial_pairs: initial_pairs.clone(),
+        matrix: initial_pairs,
         strategies: HashMap::new(),
         source,
         out,
@@ -2231,9 +2790,7 @@ fn run_psro(options: Options) -> Result<(), String> {
         return Err("PSRO --report must name a .json file outside binary evidence".into());
     }
     let (mut runtime, mut state, mut resumed) = prepare(&options, threads, true)?;
-    if state.complete {
-        verify_complete(&runtime, &state)?;
-    } else {
+    if !state.complete {
         if !resumed {
             write_checkpoint(&runtime.out, &runtime.source, &state, runtime.handshake)?;
         }
@@ -2284,8 +2841,12 @@ fn run_psro(options: Options) -> Result<(), String> {
                 break;
             }
         }
-        write_decisions(&runtime, &mut state)?;
+        if std::env::var_os("HEXDECK_PSRO_TEST_STOP_AFTER_COMPLETE_CHECKPOINT").is_some() {
+            return Err("test stop after complete PSRO checkpoint".into());
+        }
     }
+    let replay = replay_transitions(&runtime)?;
+    ensure_decisions(&runtime, &mut state, &replay)?;
     verify_complete(&runtime, &state)?;
     let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
     let report = RunReport {
@@ -2464,109 +3025,111 @@ fn verify_look_evidence(runtime: &Runtime, state: &State) -> Result<(), String> 
     Ok(())
 }
 
+fn scientific_evidence_paths(root: &Path) -> Result<HashSet<PathBuf>, String> {
+    fn visit(root: &Path, held: &Path, paths: &mut HashSet<PathBuf>) -> Result<(), String> {
+        for entry in
+            fs::read_dir(held).map_err(|error| format!("read {}: {error}", held.display()))?
+        {
+            let path = entry.map_err(|error| error.to_string())?.path();
+            if path.is_dir() {
+                visit(root, &path, paths)?;
+            } else if path
+                .extension()
+                .is_some_and(|extension| matches!(extension.to_str(), Some("hpl" | "hpa" | "hpd")))
+            {
+                paths.insert(
+                    path.strip_prefix(root)
+                        .map_err(|_| "PSRO evidence path is outside its root")?
+                        .to_path_buf(),
+                );
+            }
+        }
+        Ok(())
+    }
+    let mut paths = HashSet::new();
+    visit(root, root, &mut paths)?;
+    Ok(paths)
+}
+
 fn verify_complete(runtime: &Runtime, state: &State) -> Result<(), String> {
     if !state.complete || state.phase != Phase::Complete || state.clean_searches != 2 {
         return Err("PSRO checkpoint is not complete after two clean searches".into());
     }
-    let mut admission_refs = 0u32;
-    let mut decision_refs = 0u32;
-    let mut unique_refs = HashSet::new();
-    for reference in &state.refs {
-        if !unique_refs.insert((
-            reference.kind,
-            reference.generation,
-            reference.search,
-            reference.ordinal,
-            reference.depth,
-        )) {
-            return Err("checkpoint repeats a completed-file reference".into());
-        }
-        if reference.kind == ADMISSION_KIND {
-            admission_refs += 1;
-            let (header, payload) = read_evidence(
-                &admission_path(&runtime.out, reference.ordinal),
-                &runtime.source,
-                ADMISSION_KIND,
-            )?;
-            let parsed = parse_admission(&payload, runtime.source.card_count)?;
-            if header.payload_crc != reference.payload_crc
-                || header.matrix_generation != reference.generation
-                || parsed.admission != reference.ordinal
-                || parsed.search != reference.search
-            {
-                return Err("admission differs from its checkpoint reference".into());
-            }
-        } else if reference.kind == DECISIONS_KIND {
-            decision_refs += 1;
-            let (header, _) = read_evidence(
-                &runtime.out.join("decisions.hpd"),
-                &runtime.source,
-                DECISIONS_KIND,
-            )?;
-            if header.payload_crc != reference.payload_crc {
-                return Err("decisions file differs from its checkpoint reference".into());
-            }
-        }
-    }
-    if admission_refs != state.admissions || decision_refs != 1 {
-        return Err("checkpoint admission or decisions references are incomplete".into());
-    }
-    if state.search < 2 {
-        return Err("PSRO stopped before two searches".into());
-    }
-    let admitted_searches = (1..=state.admissions)
-        .map(|admission| {
-            read_evidence(
-                &admission_path(&runtime.out, admission),
-                &runtime.source,
-                ADMISSION_KIND,
-            )
-            .and_then(|(_, payload)| {
-                Ok(parse_admission(&payload, runtime.source.card_count)?.search)
-            })
-        })
-        .collect::<Result<HashSet<_>, _>>()?;
-    if admitted_searches.contains(&state.search) || admitted_searches.contains(&(state.search - 1))
-    {
-        return Err("PSRO final searches are not both clean".into());
-    }
-    verify_look_evidence(runtime, state)?;
-    let initial_numbers = runtime.reservoir.numbers[..runtime.initial_count].to_vec();
-    let expected_candidates = runtime.eligible(&initial_numbers);
-    let (first_header, first_payload) = read_evidence(
-        &look_path(&runtime.out, Phase::Screen, 1, 1, SCREEN_DEPTHS[0]),
-        &runtime.source,
-        SCREEN_KIND,
-    )?;
-    let (_, first_rows) = parse_look(&first_header, &first_payload)?;
-    if first_rows
-        .iter()
-        .map(|row| &row.candidate)
-        .ne(expected_candidates.iter())
-    {
-        return Err(
-            "PSRO first screen differs from the matrix-size or candidate-limit contract".into(),
-        );
-    }
-    let (header, payload) = read_evidence(
+    let replay = replay_transitions(runtime)?;
+    require_replayed_state(state, &replay)?;
+    let expected_payload = decisions_payload(runtime, &replay)?;
+    let (decisions_header, decisions) = read_evidence(
         &runtime.out.join("decisions.hpd"),
         &runtime.source,
         DECISIONS_KIND,
     )?;
-    let expected = decisions_payload(runtime, state)?;
-    if payload != expected || header.matrix_generation != state.generation {
-        return Err("PSRO decisions bytes differ from reconstructed evidence".into());
+    validate_decisions_payload(&decisions)?;
+    let mut expected_decisions_header = base_header(&runtime.source, &replay.state, DECISIONS_KIND);
+    expected_decisions_header.ordinal = 0;
+    let expected_header =
+        CommonHeader::decode(&file_bytes(expected_decisions_header, &expected_payload)?)?;
+    if decisions != expected_payload || decisions_header != expected_header {
+        return Err("PSRO decisions differ from independently replayed transitions".into());
+    }
+    let mut expected_refs = replay.state.refs.clone();
+    expected_refs.push(FileRef {
+        kind: DECISIONS_KIND,
+        generation: replay.state.generation,
+        search: replay.state.search,
+        ordinal: 0,
+        depth: 0,
+        payload_crc: decisions_header.payload_crc,
+    });
+    if state.refs != expected_refs {
+        return Err(
+            "final checkpoint references differ from independently replayed transitions".into(),
+        );
+    }
+    verify_look_evidence(runtime, state)?;
+    let mut expected_paths = replay
+        .state
+        .refs
+        .iter()
+        .map(|reference| match reference.kind {
+            SCREEN_KIND => look_path(
+                Path::new(""),
+                Phase::Screen,
+                reference.search,
+                reference.ordinal,
+                reference.depth,
+            ),
+            CONFIRMATION_KIND => look_path(
+                Path::new(""),
+                Phase::Confirmation,
+                reference.search,
+                reference.ordinal,
+                reference.depth,
+            ),
+            RETEST_KIND => look_path(
+                Path::new(""),
+                Phase::Retest,
+                reference.search,
+                reference.ordinal,
+                reference.depth,
+            ),
+            ADMISSION_KIND => PathBuf::from(format!("admission-{:04}.hpa", reference.ordinal)),
+            _ => unreachable!("replayed scientific reference"),
+        })
+        .collect::<HashSet<_>>();
+    expected_paths.insert(PathBuf::from("decisions.hpd"));
+    if scientific_evidence_paths(&runtime.out)? != expected_paths {
+        return Err("PSRO output contains a missing or extra scientific race".into());
     }
     if state.admissions > 0 {
         let selection = ReservoirSelection {
             source_checksum: runtime.source.reservoir_crc,
-            numbers: state.matrix_numbers.clone(),
+            numbers: replay.state.matrix_numbers.clone(),
             bytes: 0,
         };
         matrix::verify_files(
             &runtime.kingdom,
             &selection,
-            state.matrix_numbers.len(),
+            replay.state.matrix_numbers.len(),
             &runtime.out.join("pairs.hgm"),
             &runtime.out.join("purchases.hgm"),
             &runtime.out.join("matrix.hgm"),
@@ -2696,7 +3259,7 @@ mod tests {
     }
 
     #[test]
-    fn state_machine_threshold_cases_cover_every_terminal_status() {
+    fn confidence_classifies_every_terminal_status_at_real_protocol_caps() {
         let classify = |scores: Vec<u8>, alpha: f64| {
             let held = confidence(&scores, alpha).unwrap();
             if held.upper <= THRESHOLD {
@@ -2724,33 +3287,6 @@ mod tests {
         assert_eq!(classify(vec![0; 6_400], 0.025), 1);
         assert_eq!(classify(vec![4; 400], 0.025), 2);
         assert_eq!(classify(threshold_edge(6_400), 0.025), 0);
-
-        let mut state = State {
-            complete: false,
-            phase: Phase::BetweenSearches,
-            search: 1,
-            look_index: 0,
-            retest_ordinal: 0,
-            admissions: 0,
-            generation: 0,
-            clean_searches: 0,
-            matrix_numbers: vec![1, 2],
-            matrix_weights: vec![0.5, 0.5],
-            fixed_family: Vec::new(),
-            active: Vec::new(),
-            queue: Vec::new(),
-            refs: Vec::new(),
-            race_ordinal: 1,
-            previous_depth: 0,
-            next_depth: 0,
-        };
-        state.clean_searches += 1;
-        assert_eq!(state.clean_searches, 1);
-        state.clean_searches = 0;
-        assert_eq!(state.clean_searches, 0);
-        state.clean_searches += 2;
-        state.complete = state.clean_searches == 2;
-        assert!(state.complete);
     }
 
     #[test]

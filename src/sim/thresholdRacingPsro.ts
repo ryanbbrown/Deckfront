@@ -285,6 +285,10 @@ function confirmationDecision(input: CalibrationCandidateIdentity, scores: reado
     : interval.upper <= RESPONSE_THRESHOLD ? 'rejected' : 'unresolved';
   return { ...input, blocks: scores.length, mean: mean(scores), interval, status };
 }
+export function classifyConfirmation(input: CalibrationCandidateIdentity, scores: readonly number[],
+  alpha: number): ConfirmationDecision {
+  return confirmationDecision(input, scores, anytimeConfidenceBounds(scores, alpha));
+}
 export function orderConfirmedQueue(rows: readonly ConfirmationDecision[]): QueueOrder {
   const ordered = [...rows].sort((left, right) => right.interval.lower - left.interval.lower
     || right.mean - left.mean || right.interval.upper - left.interval.upper
