@@ -37,6 +37,7 @@ const TURN_LIMIT: i16 = 30;
 const ACTION_CAP: i16 = 200;
 const PRODUCTION_MATRIX_SIZE: usize = 50;
 const PRODUCTION_RESERVOIR_SIZE: usize = 20_000;
+const MAX_CONFIRMED_QUEUE: usize = 100;
 const BETTING: [f64; 9] = [
     1.0 / 256.0,
     1.0 / 128.0,
@@ -331,7 +332,7 @@ struct QueueRecord {
     bounds: Bounds,
 }
 
-fn order_queue(queue: &mut [QueueRecord]) {
+fn order_queue(queue: &mut Vec<QueueRecord>) {
     queue.sort_by(|left, right| {
         right
             .bounds
@@ -342,6 +343,7 @@ fn order_queue(queue: &mut [QueueRecord]) {
             .then_with(|| left.candidate.rank.cmp(&right.candidate.rank))
             .then_with(|| left.candidate.number.cmp(&right.candidate.number))
     });
+    queue.truncate(MAX_CONFIRMED_QUEUE);
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -675,6 +677,7 @@ fn parse_checkpoint(payload: &[u8]) -> Result<State, String> {
     }
     if offset != payload.len()
         || matrix_numbers.len() != matrix_weights.len()
+        || queue.len() > MAX_CONFIRMED_QUEUE
         || complete != (phase == Phase::Complete)
     {
         return Err("checkpoint section lengths or completion state differ".into());
@@ -709,6 +712,7 @@ fn write_checkpoint(
     let payload = checkpoint_payload(state);
     let mut header = base_header(source, state, CHECKPOINT_KIND);
     header.ordinal = state.refs.len() as u32;
+    header.family_size = MAX_CONFIRMED_QUEUE as u32;
     let bytes = file_bytes(header, &payload)?;
     let path = out.join("checkpoint.hpc");
     atomic_write_verified(&path, &bytes, |temporary| {
@@ -719,6 +723,7 @@ fn write_checkpoint(
             || verified_header.matrix_generation != state.generation
             || verified_header.search != state.search
             || verified_header.ordinal != state.refs.len() as u32
+            || verified_header.family_size != MAX_CONFIRMED_QUEUE as u32
         {
             return Err("temporary checkpoint verification differs".into());
         }
@@ -755,7 +760,10 @@ fn read_checkpoint(out: &Path, source: &Source) -> Result<Option<State>, String>
     }
     let (header, payload) = read_evidence(&path, source, CHECKPOINT_KIND)?;
     let state = parse_checkpoint(&payload)?;
-    if header.matrix_generation != state.generation || header.search != state.search {
+    if header.matrix_generation != state.generation
+        || header.search != state.search
+        || header.family_size != MAX_CONFIRMED_QUEUE as u32
+    {
         return Err("checkpoint header differs from checkpoint payload".into());
     }
     Ok(Some(state))
@@ -3586,6 +3594,29 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec![5, 6, 7, 8, 9]
         );
+    }
+
+    #[test]
+    fn confirmed_queue_keeps_only_the_strongest_hundred() {
+        let mut queue = (0..102)
+            .map(|rank| QueueRecord {
+                candidate: Candidate { number: rank, rank },
+                blocks: 400,
+                source_search: 1,
+                source_race: 1,
+                bounds: Bounds {
+                    mean: f64::from(rank) / 100.0,
+                    lower: f64::from(rank) / 100.0,
+                    upper: f64::from(rank) / 100.0,
+                },
+            })
+            .collect::<Vec<_>>();
+
+        order_queue(&mut queue);
+
+        assert_eq!(queue.len(), MAX_CONFIRMED_QUEUE);
+        assert_eq!(queue.first().unwrap().candidate.number, 101);
+        assert_eq!(queue.last().unwrap().candidate.number, 2);
     }
 
     #[test]
