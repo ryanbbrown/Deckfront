@@ -1162,10 +1162,12 @@ fn command_verify(options: &Options) -> Result<(), String> {
         let (header, rows, _) = read_all_reservoir(file, &loaded)?;
         let top_path = options.required("top")?;
         let (top_header, top_rows, _) = validated_top(Path::new(top_path), &loaded)?;
+        let production_shape = options.optional("keep").is_none();
         let keep = options.optional_integer("keep", RESERVOIR_COUNT)?;
         if header.range_start != 0
             || header.range_end != top_header.row_count
             || header.row_count != keep
+            || production_shape && top_header.row_count != TOP_COUNT
             || header.source_checksum != top_header.checksum
         {
             return Err("reservoir range, count, or source checksum differs".into());
@@ -1236,6 +1238,54 @@ pub fn run(command: &str, args: &[String]) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs::OpenOptions;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temporary(name: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos();
+        std::env::temp_dir().join(format!("hexdeck-{name}-{}-{nonce}", std::process::id()))
+    }
+
+    fn fixture_row(number: u32) -> ResultRow {
+        let mut row = [0_u32; 16];
+        row[0] = number;
+        for profile in 0..3 {
+            row[1 + profile * 5] = 1;
+            row[3 + profile * 5] = 31;
+        }
+        row
+    }
+
+    fn write_results(
+        path: &Path,
+        loaded: &LoadedKingdom,
+        kind: Kind,
+        start: u32,
+        end: u32,
+        source_checksum: u32,
+        rows: &[ResultRow],
+    ) -> u32 {
+        let mut writer = RowWriter::new(path).expect("writer");
+        for row in rows {
+            writer.write(&result_bytes(row)).expect("row");
+        }
+        writer
+            .finish(header_for(loaded, kind, start, end, source_checksum))
+            .expect("file")
+            .0
+    }
+
+    fn options(values: &[(&str, String)]) -> Options {
+        Options {
+            values: values
+                .iter()
+                .map(|(name, value)| ((*name).to_owned(), value.clone()))
+                .collect(),
+        }
+    }
 
     #[test]
     fn quantity_vectors_match_the_nested_order() {
@@ -1321,6 +1371,142 @@ mod tests {
             fingerprint: "123456789abcdef".into(),
         };
         assert_eq!(Header::decode(&header.encode().unwrap()).unwrap(), header);
+    }
+
+    #[test]
+    fn readers_reject_corrupt_rows_and_wrong_header_contracts() {
+        let loaded = load_kingdom("deep-beam-tuning-009").expect("kingdom");
+        let root = temporary("header-rejections");
+        fs::create_dir_all(&root).expect("directory");
+        let clean = root.join("clean.hgs");
+        write_results(&clean, &loaded, Kind::StageOne, 0, 1, 0, &[fixture_row(0)]);
+
+        let flipped = root.join("flipped.hgs");
+        let mut bytes = fs::read(&clean).expect("read");
+        bytes[HEADER_BYTES + 7] ^= 1;
+        fs::write(&flipped, bytes).expect("write");
+        assert!(read_all_results(&flipped, &loaded, Kind::StageOne).is_err());
+
+        let reader = RowReader::open(&clean).expect("header");
+        let mut header = reader.header;
+        header.range_end = 2;
+        assert!(
+            verify_result_rows(
+                &[fixture_row(0)],
+                &header,
+                Kind::StageOne,
+                &Options::default()
+            )
+            .is_err()
+        );
+        header = Header::decode(
+            &fs::read(&clean).expect("read")[..HEADER_BYTES]
+                .try_into()
+                .unwrap(),
+        )
+        .unwrap();
+        header.fingerprint = "wrong".into();
+        assert!(validate_header(&header, &loaded, Kind::StageOne).is_err());
+        header.fingerprint = loaded.fingerprint.clone();
+        header.seeds[0] += 1;
+        assert!(validate_header(&header, &loaded, Kind::StageOne).is_err());
+        header.seeds = Kind::StageOne.seeds();
+        assert!(validate_header(&header, &loaded, Kind::Top).is_err());
+
+        let count = root.join("count.hgs");
+        fs::copy(&clean, &count).expect("copy");
+        let mut file = OpenOptions::new().write(true).open(&count).expect("open");
+        file.seek(SeekFrom::Start(20)).expect("seek");
+        file.write_all(&2_u32.to_le_bytes()).expect("count");
+        assert!(read_all_results(&count, &loaded, Kind::StageOne).is_err());
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn reduce_one_rejects_a_gap_overlap_and_wrong_kind() {
+        let loaded = load_kingdom("deep-beam-tuning-009").expect("kingdom");
+        let root = temporary("reduce-one-rejections");
+        fs::create_dir_all(&root).expect("directory");
+        let first = root.join("first.hgs");
+        let second = root.join("second.hgs");
+        write_results(&first, &loaded, Kind::StageOne, 0, 1, 0, &[fixture_row(0)]);
+        write_results(&second, &loaded, Kind::StageOne, 2, 3, 0, &[fixture_row(2)]);
+        let list = root.join("inputs.json");
+        fs::write(&list, serde_json::to_vec(&vec![&first, &second]).unwrap()).unwrap();
+        let base = [
+            ("kingdom", loaded.id.clone()),
+            ("inputs", list.display().to_string()),
+            ("out", root.join("top.hgf").display().to_string()),
+            ("start", "0".into()),
+            ("end", "3".into()),
+            ("keep", "1".into()),
+        ];
+        assert!(
+            command_reduce_one(&options(&base))
+                .unwrap_err()
+                .contains("gap")
+        );
+        fs::write(&list, serde_json::to_vec(&vec![&first, &first]).unwrap()).unwrap();
+        assert!(command_reduce_one(&options(&base)).is_err());
+        write_results(&second, &loaded, Kind::StageTwo, 1, 2, 7, &[fixture_row(1)]);
+        fs::write(&list, serde_json::to_vec(&vec![&first, &second]).unwrap()).unwrap();
+        assert!(command_reduce_one(&options(&base)).is_err());
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn stage_two_rejects_wrong_rank_numbers_and_source_checksums() {
+        let loaded = load_kingdom("deep-beam-tuning-009").expect("kingdom");
+        let root = temporary("stage-two-rejections");
+        fs::create_dir_all(&root).expect("directory");
+        let top = root.join("top.hgf");
+        let top_checksum = write_results(
+            &top,
+            &loaded,
+            Kind::Top,
+            0,
+            3,
+            0,
+            &[fixture_row(0), fixture_row(1), fixture_row(2)],
+        );
+        let stage = root.join("stage.hgs");
+        write_results(
+            &stage,
+            &loaded,
+            Kind::StageTwo,
+            0,
+            3,
+            top_checksum,
+            &[fixture_row(0), fixture_row(2), fixture_row(2)],
+        );
+        let verify = [
+            ("kingdom", loaded.id.clone()),
+            ("kind", "stage-two".into()),
+            ("file", stage.display().to_string()),
+            ("start", "0".into()),
+            ("end", "3".into()),
+            ("top", top.display().to_string()),
+        ];
+        assert!(
+            command_verify(&options(&verify))
+                .unwrap_err()
+                .contains("top rank")
+        );
+        write_results(
+            &stage,
+            &loaded,
+            Kind::StageTwo,
+            0,
+            3,
+            top_checksum.wrapping_add(1),
+            &[fixture_row(0), fixture_row(1), fixture_row(2)],
+        );
+        assert!(
+            command_verify(&options(&verify))
+                .unwrap_err()
+                .contains("source checksum")
+        );
+        fs::remove_dir_all(root).expect("cleanup");
     }
 
     #[test]
