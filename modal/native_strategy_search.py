@@ -2265,6 +2265,12 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 "ownerId": owner_id, "nowMs": int(time.time() * 1000), "leaseMs": 120000, "state": state})
             last_saved_ms = now_ms
         if all(job["status"] == "complete" for job in state["jobs"]):
+            if goldfish_only and _strategy_search_materialize_goldfish(state, bundle):
+                state = strategy_search_publisher.remote({"operation": "execution-save",
+                    "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],
+                    "ownerId": owner_id, "nowMs": int(time.time() * 1000), "leaseMs": 120000,
+                    "state": state})
+                continue
             if not goldfish_only and _strategy_search_materialize_adaptive(state, bundle):
                 state = strategy_search_publisher.remote({"operation": "execution-save",
                     "campaignExecutionId": bundle["campaignExecutionId"], "fence": state["controllerFence"],

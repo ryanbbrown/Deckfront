@@ -805,6 +805,112 @@ print(json.dumps(result))
         self.assertTrue(launcher._strategy_search_materialize_goldfish(state, bundle))
         self.assertEqual(len([job for job in state["jobs"] if job["stage"] == "goldfish-two"]), 1)
 
+    def test_goldfish_only_controller_resumes_reduced_stage_one_and_materializes_stage_two(self):
+        bundle = self.goldfish_only_bundle()
+        bundle["controller"].update({"pollIntervalSeconds": 0, "readyWindowWaves": 2,
+            "maxReducerMemoryMiB": 8192})
+        initial_task_id = launcher._strategy_search_goldfish_task_id(
+            "a" * 64, "goldfish-one", {"start": 0, "end": 12_972_960})
+        bundle["jobs"][0].update({"taskId": initial_task_id, "cpus": 64, "status": "ready",
+            "dependencyTaskIds": [], "launchIntentId": None, "callId": None,
+            "leaseUntilMs": None, "attemptCount": 0})
+        bundle["tasks"][0].update({"taskId": initial_task_id, "dependencyTaskIds": [],
+            "artifactPath": f"evidence/{'a' * 64}/tasks/goldfish-one/0-12972960.hgs"})
+
+        class CompleteCall:
+            def __init__(self, object_id, stage):
+                self.object_id = object_id
+                self.digest = hashlib.sha256(stage.encode()).hexdigest()
+            def get(self, timeout):
+                return {"sha256": self.digest, "validatedSha256": self.digest,
+                    "modalWorkerElapsedMs": 0}
+
+        class ImmediateWorker:
+            def __init__(self):
+                self.calls = 0
+            def with_options(self, **_options):
+                return self
+            def spawn(self, config):
+                self.calls += 1
+                return CompleteCall(f"fc-{self.calls}", config["stage"])
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            holder = {}
+            finalized = []
+            resumed = []
+            def strategy_path(relative):
+                return root / relative
+            def publish(request):
+                operation = request["operation"]
+                if operation == "execution-init":
+                    return {"status": "ready"}
+                if operation == "controller-claim":
+                    state = {"maxActiveCpus": 64, "partitions": copy.deepcopy(bundle["partitions"]),
+                        "jobs": copy.deepcopy(bundle["jobs"]), "tasks": copy.deepcopy(bundle["tasks"]),
+                        "controllerFence": 1, "controller": {"ownerId": request["ownerId"],
+                            "fence": 1, "leaseUntilMs": request["nowMs"] + request["leaseMs"]},
+                        "startedMs": request["nowMs"], "status": "running"}
+                    holder["state"] = state
+                    return state
+                if operation == "goldfish-evidence-complete":
+                    return {"complete": False}
+                if operation == "execution-save":
+                    holder["state"] = request["state"]
+                    return request["state"]
+                if operation == "prepare-launch-batch":
+                    prepared = {}
+                    for item in request["items"]:
+                        if item["stage"] in {"goldfish-one", "goldfish-one-reduce"}:
+                            artifact = strategy_path(item["artifactPath"])
+                            artifact.parent.mkdir(parents=True, exist_ok=True)
+                            artifact.write_bytes(item["stage"].encode())
+                            receipt = {"taskId": item["taskId"], "evidenceId": item["evidenceId"],
+                                "artifactPath": item["artifactPath"],
+                                "sha256": hashlib.sha256(item["stage"].encode()).hexdigest(), "fence": 1}
+                            prepared[item["taskId"]] = {"complete": True, "receipt": receipt}
+                            resumed.append(item["stage"])
+                        else:
+                            prepared[item["taskId"]] = {"launchId": item["launchId"],
+                                "temporaryPath": item["temporaryPath"], "fence": 1,
+                                "leaseUntilMs": request["nowMs"] + request["leaseMs"]}
+                    return prepared
+                if operation == "publish-batch":
+                    receipts = {}
+                    tasks = {task["taskId"]: task for task in holder["state"]["tasks"]}
+                    for publication in request["publications"]:
+                        task = tasks[publication["taskId"]]
+                        artifact = strategy_path(task["artifactPath"])
+                        artifact.parent.mkdir(parents=True, exist_ok=True)
+                        artifact.write_bytes(publication["stage"].encode())
+                        receipts[publication["taskId"]] = {"taskId": publication["taskId"],
+                            "evidenceId": publication["evidenceId"], "artifactPath": task["artifactPath"],
+                            "sha256": publication["sha256"], "fence": publication["fence"]}
+                    return {"publicationCommitMs": 0, "publicationStartedEpochMs": request["nowMs"],
+                        "receipts": receipts}
+                if operation == "goldfish-evidence-finalize":
+                    finalized.append(request["evidenceId"])
+                    return {"complete": True}
+                raise AssertionError(f"unexpected publisher operation {operation}")
+
+            publisher = MagicMock()
+            publisher.remote.side_effect = publish
+            worker = ImmediateWorker()
+            with patch.object(launcher, "verify_strategy_search_source"), \
+                    patch.object(launcher, "strategy_search_publisher", publisher), \
+                    patch.object(launcher, "strategy_search_goldfish_job", worker), \
+                    patch.object(launcher, "_strategy_search_path", side_effect=strategy_path), \
+                    patch.object(launcher.volume, "reload"), patch.object(launcher.time, "sleep"):
+                report = launcher._strategy_search_controller_impl(bundle)
+
+        self.assertEqual(report["status"], "complete")
+        self.assertEqual([job["stage"] for job in holder["state"]["jobs"]],
+            ["goldfish-one", "goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce"])
+        self.assertTrue(all(job["status"] == "complete" for job in holder["state"]["jobs"]))
+        self.assertEqual(resumed, ["goldfish-one", "goldfish-one-reduce"])
+        self.assertEqual(worker.calls, 2)
+        self.assertIn("a" * 64, finalized)
+
     def test_strategy_search_complete_evidence_is_reused_across_campaigns(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
