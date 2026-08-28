@@ -43,6 +43,7 @@ function fixture() {
 describe('Goldfish-only Modal operator', () => {
   it('accepts only explicit bounded paid inputs', () => {
     expect(parseGoldfishModalRequest(request())).toEqual(request());
+    expect(parseGoldfishModalRequest(request(16, 640))).toEqual(request(16, 640));
     for (const value of [
       { ...request(), extra: true },
       { kingdomIds: [], workerCores: 4, maxActiveCpus: 64, maxWallSeconds: 3600, maxCostUsd: 100 },
@@ -50,8 +51,6 @@ describe('Goldfish-only Modal operator', () => {
       { ...request(), workerCores: 65 },
       { ...request(), workerCores: 16, maxActiveCpus: 8 },
       { ...request(), workerCores: 1, maxActiveCpus: 3 },
-      { ...request(1, 64) },
-      { ...request(), maxActiveCpus: 193 },
       { ...request(), maxWallSeconds: 299 },
       { ...request(), maxWallSeconds: 21_601 },
       { ...request(), maxCostUsd: 100.01 }
@@ -60,9 +59,9 @@ describe('Goldfish-only Modal operator', () => {
 
   it('plans exact 16x4, 4x16, and 1x64 score fleets and complete task counts', () => {
     const expected = [
-      { cores: 4, containers: 16, scoreOne: 121, scoreTwo: 14, total: 137, cost: 16.880823 },
-      { cores: 16, containers: 4, scoreOne: 31, scoreTwo: 4, total: 37, cost: 15.696675 },
-      { cores: 64, containers: 1, scoreOne: 8, scoreTwo: 1, total: 11, cost: 15.65701 }
+      { cores: 4, containers: 16, scoreOne: 121, scoreTwo: 14, total: 137, cost: 5.611193 },
+      { cores: 16, containers: 4, scoreOne: 31, scoreTwo: 4, total: 37, cost: 5.216813 },
+      { cores: 64, containers: 1, scoreOne: 8, scoreTwo: 1, total: 11, cost: 5.203406 }
     ];
     for (const held of expected) {
       const parsed = deriveGoldfishModalRequest({ request: request(held.cores), sourceImage: source() });
@@ -84,10 +83,10 @@ describe('Goldfish-only Modal operator', () => {
   });
 
   it('uses the current Modal list rates and rejects a request below the calculated bound', () => {
-    expect(GOLDFISH_MODAL_CPU_USD_PER_CORE_SECOND).toBe(0.00003942);
-    expect(GOLDFISH_MODAL_MEMORY_USD_PER_GIB_SECOND).toBe(0.00000667);
-    expect(() => deriveGoldfishModalRequest({ request: { ...request(), maxCostUsd: 16 },
-      sourceImage: source() })).toThrow('16.880823');
+    expect(GOLDFISH_MODAL_CPU_USD_PER_CORE_SECOND).toBe(0.0000131);
+    expect(GOLDFISH_MODAL_MEMORY_USD_PER_GIB_SECOND).toBe(0.00000222);
+    expect(() => deriveGoldfishModalRequest({ request: { ...request(), maxCostUsd: 5.5 },
+      sourceImage: source() })).toThrow('5.611193');
   });
 
   it('keeps scientific evidence identity stable across worker shapes and emits no downstream work', () => {

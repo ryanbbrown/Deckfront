@@ -10,11 +10,9 @@ import {
 import type { CandidateRange, RuntimeJob, StagePartition } from './strategySearchScheduler';
 
 export const GOLDFISH_MODAL_ROUTE = 'goldfish-only-v1' as const;
-export const GOLDFISH_MODAL_CPU_USD_PER_CORE_SECOND = 0.00003942;
-export const GOLDFISH_MODAL_MEMORY_USD_PER_GIB_SECOND = 0.00000667;
+export const GOLDFISH_MODAL_CPU_USD_PER_CORE_SECOND = 0.0000131;
+export const GOLDFISH_MODAL_MEMORY_USD_PER_GIB_SECOND = 0.00000222;
 export const GOLDFISH_MODAL_HARD_COST_CAP_USD = 100;
-export const GOLDFISH_MODAL_MAX_ACTIVE_CPUS = 192;
-export const GOLDFISH_MODAL_MAX_CONTAINERS = 48;
 export const GOLDFISH_MODAL_MAX_WORKER_CORES = 64;
 export const GOLDFISH_MODAL_MIN_WALL_SECONDS = 300;
 export const GOLDFISH_MODAL_MAX_WALL_SECONDS = 21_600;
@@ -30,8 +28,7 @@ const identifier = z.string().min(1).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/);
 export const goldfishModalRequestSchema = z.object({
   kingdomIds: z.array(identifier).min(1),
   workerCores: z.number().int().safe().min(1).max(GOLDFISH_MODAL_MAX_WORKER_CORES),
-  maxActiveCpus: z.number().int().safe().min(GOLDFISH_MODAL_REDUCER_CORES)
-    .max(GOLDFISH_MODAL_MAX_ACTIVE_CPUS),
+  maxActiveCpus: z.number().int().safe().min(GOLDFISH_MODAL_REDUCER_CORES),
   maxWallSeconds: z.number().int().safe().min(GOLDFISH_MODAL_MIN_WALL_SECONDS)
     .max(GOLDFISH_MODAL_MAX_WALL_SECONDS),
   maxCostUsd: z.number().positive().finite().max(GOLDFISH_MODAL_HARD_COST_CAP_USD)
@@ -42,10 +39,6 @@ export const goldfishModalRequestSchema = z.object({
   if (request.workerCores > request.maxActiveCpus) {
     context.addIssue({ code: 'custom', path: ['workerCores'],
       message: 'workerCores cannot exceed maxActiveCpus.' });
-  }
-  if (Math.floor(request.maxActiveCpus / request.workerCores) > GOLDFISH_MODAL_MAX_CONTAINERS) {
-    context.addIssue({ code: 'custom', path: ['maxActiveCpus'],
-      message: `The score fleet cannot exceed ${GOLDFISH_MODAL_MAX_CONTAINERS} containers.` });
   }
 });
 export type GoldfishModalRequest = z.infer<typeof goldfishModalRequestSchema>;

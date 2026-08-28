@@ -25,11 +25,11 @@ Every field is required. `workerCores` controls Rust threads and Modal CPU cores
 Validation limits are:
 
 - 1 to 64 score-worker cores;
-- at most 48 score containers and 192 active score-worker CPUs;
+- enough active CPUs to fit one score worker and the four-core reducer;
 - 5 minutes to 6 hours after verified startup;
 - a caller cost limit no greater than the route hard cap of $100.
 
-The cost calculation uses the current Modal list rates supplied for this task: $0.00003942 per physical core-second and $0.00000667 per GiB-second. It includes all three permitted attempts for every score and reduction task, the task timeout margins, the bounded controller and publisher, readiness, the Goldfish canary, and bounded control calls. It does not change the older cost constants used by other routes.
+The route does not impose a workspace-wide CPU or container cap. Modal admission applies the workspace's current limits. The cost calculation uses the current Modal Function rates: $0.0000131 per physical core-second and $0.00000222 per GiB-second. Each Function invocation runs in a container; this route does not use Modal Sandboxes. The calculation includes all three permitted attempts for every score and reduction task, the task timeout margins, the bounded controller and publisher, readiness, the Goldfish canary, and bounded control calls. It does not change the older cost constants used by other routes.
 
 `plan` makes no Modal call. It prints exact stage and total task counts, resource shape, timeout limits, worst-case Modal compute cost, the caller cost limit, and an authorization token. The token binds the complete request, source image digest, ordered evidence IDs, execution ID, partitions, and cost calculation. `run` rejects a missing or different token before the first Modal command. The remote controller recalculates and enforces the task count and cost guard before it starts a worker.
 

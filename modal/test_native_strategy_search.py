@@ -33,8 +33,8 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             "goldfishReducerCores": 4, "goldfishReduceMemoryMiB": 8192,
             "goldfishReduceOneTimeoutSeconds": 600, "goldfishReduceTwoTimeoutSeconds": 300,
             "executionPlanHash": "d" * 64, "costGuard": {
-                "cpuUsdPerCoreSecond": 0.00003942,
-                "memoryUsdPerGibSecond": 0.00000667, "attemptCount": 3,
+                "cpuUsdPerCoreSecond": 0.0000131,
+                "memoryUsdPerGibSecond": 0.00000222, "attemptCount": 3,
                 "hardMaximumCostUsd": 100, "requestedMaximumCostUsd": 100,
                 "worstCaseModalComputeUsd": cost, "taskCounts": task_counts}}
         partitions = {
@@ -248,8 +248,8 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
     def test_goldfish_only_cost_guard_uses_current_rates_and_fails_closed(self):
         bundle = self.goldfish_only_bundle()
         result = launcher._strategy_search_validate_goldfish_only_bundle(bundle)
-        self.assertEqual(launcher.GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND, 0.00003942)
-        self.assertEqual(launcher.GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND, 0.00000667)
+        self.assertEqual(launcher.GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND, 0.0000131)
+        self.assertEqual(launcher.GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND, 0.00000222)
         self.assertEqual(result["taskCounts"], {"scoreOne": 1, "reduceOne": 1,
             "scoreTwo": 1, "reduceTwo": 1, "total": 4})
         self.assertEqual(result["worstCaseModalComputeUsd"],
@@ -258,10 +258,10 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             "submittedMs": 0, "cpu": 1, "memoryMiB": 1024}, 1000,
             launcher.GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND * 3600,
             launcher.GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND * 3600)
-        self.assertAlmostEqual(measured["costUsd"], 0.00003942 + 0.00000667)
+        self.assertAlmostEqual(measured["costUsd"], 0.0000131 + 0.00000222)
         mutations = []
         stale_rate = copy.deepcopy(bundle)
-        stale_rate["controller"]["costGuard"]["cpuUsdPerCoreSecond"] = 0.00001314
+        stale_rate["controller"]["costGuard"]["cpuUsdPerCoreSecond"] = 0.00003942
         mutations.append(stale_rate)
         stale_cost = copy.deepcopy(bundle)
         stale_cost["controller"]["costGuard"]["worstCaseModalComputeUsd"] -= 0.01
@@ -269,10 +269,10 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         downstream = copy.deepcopy(bundle)
         downstream["tasks"][0]["stage"] = "matrix-score"
         mutations.append(downstream)
-        excess_capacity = copy.deepcopy(bundle)
-        excess_capacity["request"]["maxActiveCpus"] = 193
-        excess_capacity["controller"]["maxActiveCpus"] = 193
-        mutations.append(excess_capacity)
+        larger_pool = copy.deepcopy(bundle)
+        larger_pool["request"]["maxActiveCpus"] = 640
+        larger_pool["controller"]["maxActiveCpus"] = 640
+        self.assertIsNotNone(launcher._strategy_search_validate_goldfish_only_bundle(larger_pool))
         for held in mutations:
             with self.assertRaises(ValueError):
                 launcher._strategy_search_validate_goldfish_only_bundle(held)
@@ -827,7 +827,7 @@ print(json.dumps(result))
                     "publisherWaitMs", "publicationCommitMs", "reductionComputeMs",
                     "finalTop500000WriteMs", "finalTop20000WriteMs", "orchestrationQueueMs"]}
                 phases.update({"scoringMs": 1, "intermediateSerializationAndReadMs": 9,
-                    "elapsedMs": 10})
+                    "elapsedMs": 12})
                 now_ms = int(time.time() * 1000)
                 return {"sha256": self.digest, "validatedSha256": self.digest,
                     "modalWorkerElapsedMs": 0, "workerStartedEpochMs": now_ms,
@@ -917,7 +917,9 @@ print(json.dumps(result))
         self.assertTrue(all(job["status"] == "complete" for job in holder["state"]["jobs"]))
         self.assertEqual(resumed, ["goldfish-one", "goldfish-one-reduce"])
         self.assertEqual(worker.calls, 2)
+        self.assertFalse(report["goldfishPhaseAccountingValid"])
         self.assertEqual(report["intermediateIoRatio"], 0.9)
+        self.assertFalse(report["goldfishIntermediateIoTargetMet"])
         self.assertIn("a" * 64, finalized)
 
     def test_strategy_search_complete_evidence_is_reused_across_campaigns(self):

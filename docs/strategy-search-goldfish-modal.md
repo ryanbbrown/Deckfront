@@ -19,7 +19,7 @@ Create `/tmp/goldfish-modal-balance-tuning-005.json`:
 All five fields are required. The route has no paid defaults.
 
 - `workerCores` is the Modal CPU request and Rust thread count for each score container.
-- `maxActiveCpus` is the maximum total CPU count for active score containers. It must be at least 4 so a reducer can run.
+- `maxActiveCpus` is the requested maximum total CPU count for active score containers. It must be at least 4 so a reducer can run. The route does not impose a workspace-wide CPU cap; Modal admits work according to the workspace's current limits.
 - `maxWallSeconds` starts after image deployment, readiness, and execution preparation finish.
 - `maxCostUsd` must cover the calculated worst case and cannot exceed the hard route limit of $100.
 
@@ -42,15 +42,15 @@ npx tsx scripts/strategy_search_goldfish_modal.ts plan \
 - worst-case Modal compute cost;
 - the exact authorization token for this request and source image.
 
-The cost guard uses Modal rates of $0.00003942 per physical core-second and $0.00000667 per GiB-second. The bound includes three attempts for every task, timeout margins, the controller, publisher, readiness, canary, and control calls.
+The route uses Modal Functions. Each Function invocation runs in a container; it does not use Modal Sandboxes. The cost guard uses the current Function rates of $0.0000131 per physical core-second and $0.00000222 per GiB-second. The bound includes three attempts for every task, timeout margins, the controller, publisher, readiness, canary, and control calls.
 
 For one `balance-tuning-005` kingdom, 64 maximum active CPUs, a 3,600-second scientific limit, and the current measured partition policy, the three comparison shapes are:
 
 | Score shape | `workerCores` | Exact tasks | Worst-case compute cost |
 | --- | ---: | ---: | ---: |
-| 16 containers × 4 cores | 4 | 137 | $16.880823 |
-| 4 containers × 16 cores | 16 | 37 | $15.696675 |
-| 1 container × 64 cores | 64 | 11 | $15.657010 |
+| 16 containers × 4 cores | 4 | 137 | $5.611193 |
+| 4 containers × 16 cores | 16 | 37 | $5.216813 |
+| 1 container × 64 cores | 64 | 11 | $5.203406 |
 
 Run `plan` again after any source or request change. The printed token changes when the source, kingdom order, resource shape, timeout, cost limit, partitions, or evidence IDs change.
 

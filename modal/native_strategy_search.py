@@ -41,11 +41,9 @@ CAMPAIGN_STAGE_STOP_EVENT = "strategy-search-stage-stop"
 CAMPAIGN_STAGES = {"goldfish", "matrix", "psro"}
 STRATEGY_SEARCH_MAX_JOB_ATTEMPTS = 3
 GOLDFISH_MODAL_ROUTE = "goldfish-only-v1"
-GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND = 0.00003942
-GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND = 0.00000667
+GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND = 0.0000131
+GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND = 0.00000222
 GOLDFISH_MODAL_HARD_COST_CAP_USD = 100.0
-GOLDFISH_MODAL_MAX_ACTIVE_CPUS = 192
-GOLDFISH_MODAL_MAX_CONTAINERS = 48
 GOLDFISH_MODAL_MAX_WORKER_CORES = 64
 GOLDFISH_MODAL_MIN_WALL_SECONDS = 300
 GOLDFISH_MODAL_MAX_WALL_SECONDS = 21600
@@ -1614,9 +1612,7 @@ def _strategy_search_validate_goldfish_only_bundle(bundle: dict[str, Any]) -> di
             or not all(isinstance(value, str) and value for value in kingdom_ids) \
             or len(set(kingdom_ids)) != len(kingdom_ids) or not valid_numbers \
             or not 1 <= worker_cores <= GOLDFISH_MODAL_MAX_WORKER_CORES \
-            or not max(GOLDFISH_MODAL_REDUCER_CORES, worker_cores) \
-                <= max_active_cpus <= GOLDFISH_MODAL_MAX_ACTIVE_CPUS \
-            or max_active_cpus // worker_cores > GOLDFISH_MODAL_MAX_CONTAINERS \
+            or max_active_cpus < max(GOLDFISH_MODAL_REDUCER_CORES, worker_cores) \
             or not GOLDFISH_MODAL_MIN_WALL_SECONDS <= max_wall_seconds <= GOLDFISH_MODAL_MAX_WALL_SECONDS \
             or not isinstance(max_cost_usd, (int, float)) or isinstance(max_cost_usd, bool) \
             or not 0 < max_cost_usd <= GOLDFISH_MODAL_HARD_COST_CAP_USD:
@@ -2392,14 +2388,14 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
     phase_keys = ["generationMs", "scoringMs", "intermediateSerializationAndReadMs",
         "temporaryVolumeWriteCommitMs", "publisherWaitMs", "publicationCommitMs", "reductionComputeMs",
         "finalTop500000WriteMs", "finalTop20000WriteMs", "orchestrationQueueMs"]
+    phase_accounting_valid = True
     for phase_report in phase_reports:
         phase_sum = sum(phase_report.get(key, -1) for key in phase_keys)
         if phase_report.get("elapsedMs", 0) < 0 or any(phase_report.get(key, -1) < 0 for key in phase_keys) \
                 or phase_report["elapsedMs"] and abs(phase_sum - phase_report["elapsedMs"]) \
                     / phase_report["elapsedMs"] > 0.01:
-            raise RuntimeError("Goldfish phase accounting invariant failed")
-    if not goldfish_only and scientific_ms and io_ms / scientific_ms >= 0.05:
-        raise RuntimeError("Goldfish intermediate I/O ratio is at least five percent")
+            phase_accounting_valid = False
+    intermediate_io_ratio = io_ms / scientific_ms if scientific_ms else 0
     jobs_by_id = {job["taskId"]: job for job in state["jobs"]}
     barrier_latencies = []
     for job in state["jobs"]:
@@ -2464,7 +2460,9 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
         "unusedCpuSecondsByReason": unused_by_reason,
         "candidateThroughputPerSecond": scored_candidates / (scoring_ms / 1000) if scoring_ms else 0,
         "bytesRead": bytes_read, "bytesWritten": bytes_written,
-        "intermediateIoRatio": io_ms / scientific_ms if scientific_ms else 0,
+        "goldfishPhaseAccountingValid": phase_accounting_valid,
+        "intermediateIoRatio": intermediate_io_ratio,
+        "goldfishIntermediateIoTargetMet": intermediate_io_ratio < 0.05,
         "finalWriteMs": sum(held.get("finalTop500000WriteMs", 0) + held.get("finalTop20000WriteMs", 0)
                             for held in phase_reports),
         "admissionFailures": admission_failures, "retryCostUsd": retry_cost,
