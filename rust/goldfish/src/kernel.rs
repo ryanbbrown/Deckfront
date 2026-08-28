@@ -1615,7 +1615,9 @@ impl<'a> State<'a> {
         match c.mechanic {
             Mechanic::Channel => {
                 self.p.mana += c.v.mana;
-                self.draw(c.v.draw)
+                if self.k.cards[ci].id != "focus" || self.copies[ci] == 1 {
+                    self.draw(c.v.draw)
+                }
             }
             Mechanic::Step | Mechanic::LeyStep => {
                 self.pos[0] += movement;

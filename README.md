@@ -266,6 +266,17 @@ The command checks Goldfish and HGM structure and CRCs, source links, checkpoint
 
 The report weights each telemetry cell by both the acting strategy's stored equilibrium weight and the opponent's stored equilibrium weight. Strategy classification uses acquisitions against the equilibrium opponent. Raw unweighted Matrix counts are audit evidence, not balance headlines. The Matrix payoff diagonal stays fixed at 50%. A paired score byte of 2 does not identify one success and one failure versus two ties, so the report does not claim exact W/D/L.
 
+Generate the Plan 84 eight-kingdom directional comparison after its new evidence is complete:
+
+```sh
+npm run strategy-search:card-balance-smoke-report -- \
+  --baseline .data/strategy-search-30/rust-balance-analysis-v2.json \
+  --root .data/card-balance-smoke-84 \
+  --binary rust/target/release/hexdeck-goldfish
+```
+
+The command reads the completed 30-kingdom report without changing it. It structurally checks the eight new evidence sets and writes deterministic before/after JSON to `.html/card-balance-smoke-84.json` and matching HTML to `.html/card-balance-smoke-84.html`. The output is a directional smoke, not final balance evidence.
+
 `rust/goldfish/kingdoms.json` contains every registered strategy-search kingdom. Generate it after kingdom or rule changes, then run the check:
 
 ```sh

@@ -533,7 +533,8 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
     case 'spell':
       player.mana -= cardValue(card, 'manaCost'); state.manaSpent += cardValue(card, 'manaCost'); event(state);
       if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true; break;
-    case 'channel': player.mana += cardValue(card, 'mana'); event(state); draw(state, actor, cardValue(card, 'draw')); break;
+    case 'channel': player.mana += cardValue(card, 'mana'); event(state);
+      if (card.id !== 'focus' || state.copiesPlayed[cardIndex] === 1) draw(state, actor, cardValue(card, 'draw')); break;
     case 'leyStep': case 'step': {
       const movement = decision.movement;
       if (movement === undefined) throw new Error(`${card.id} has no selected direction.`);
