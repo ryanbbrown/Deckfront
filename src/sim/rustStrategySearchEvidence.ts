@@ -12,6 +12,8 @@ import { compareUtf16 } from './utf16';
 
 const HGM_HEADER_BYTES = 64;
 const HPS_HEADER_BYTES = 128;
+const HST_HEADER_BYTES = 128;
+const HST_PROTOCOL = 'equilibrium-self-play-v1';
 const MATRIX_FIRST_SEED = 4_200_001;
 const MATRIX_LAST_SEED = 4_200_125;
 const FAMILY_NAMES = ['treasure', 'mana', 'melee', 'ranged', 'engine'] as const;
@@ -69,6 +71,19 @@ export interface RustMatrixEvidence {
   rowCrc32: number;
 }
 
+export interface RustSelfPlayPositionEvidence {
+  playerSides: 250;
+  purchases: Record<string, number>;
+  familyDamage: Record<RustDamageFamily, number>;
+}
+
+export interface RustSelfPlayEvidence {
+  strategyNumber: number;
+  firstPlayer: RustSelfPlayPositionEvidence;
+  secondPlayer: RustSelfPlayPositionEvidence;
+  totalPlayerSides: 500;
+}
+
 export interface NativeVerificationSummary {
   top: Record<string, unknown>;
   reservoir: Record<string, unknown>;
@@ -96,6 +111,7 @@ export interface RustStrategySearchKingdomEvidence {
   pairs: RustPairEvidence[];
   purchases: RustPurchaseEvidence[];
   matrix: RustMatrixEvidence;
+  selfPlay: RustSelfPlayEvidence[];
   sourceFiles: RustSourceFileHash[];
   evidenceSetSha256: string;
   nativeVerification: NativeVerificationSummary;
@@ -213,7 +229,7 @@ function readHgm(file: string, expectedKind: number, expectedFingerprint: string
 
 function readMatrixSet(directory: string, cardIds: readonly string[], expectedFingerprint: string,
   sourceChecksum: number, expectedSize: number): { pairs: RustPairEvidence[]; purchases: RustPurchaseEvidence[];
-    matrix: RustMatrixEvidence; files: string[] } {
+    matrix: RustMatrixEvidence; rowCrcs: [number, number, number]; files: string[] } {
   const pairFile = path.join(directory, 'pairs.hgm');
   const purchaseFile = path.join(directory, 'purchases.hgm');
   const matrixFile = path.join(directory, 'matrix.hgm');
@@ -284,7 +300,52 @@ function readMatrixSet(directory: string, cardIds: readonly string[], expectedFi
   const maximumAdvantage = Math.max(...centered.map((row) => row.reduce((sum, value, column) => sum + value * weights[column]!, 0)));
   if (maximumAdvantage > 1e-6 + 1e-9) throw new Error(`${directory}: stored matrix witness is not an equilibrium.`);
   return { pairs, purchases, matrix: { strategyNumbers, percentages, weights,
-    sourceChecksum, rowCrc32: matrixHeld.header.checksum }, files: [pairFile, purchaseFile, matrixFile] };
+    sourceChecksum, rowCrc32: matrixHeld.header.checksum },
+    rowCrcs: [pairHeld.header.checksum, purchaseHeld.header.checksum, matrixHeld.header.checksum],
+    files: [pairFile, purchaseFile, matrixFile] };
+}
+
+function readSelfPlay(file: string, cardIds: readonly string[], expectedFingerprint: string,
+  reservoirCrc: number, matrixCrcs: readonly [number, number, number], generation: number,
+  strategyNumbers: readonly number[]): RustSelfPlayEvidence[] {
+  requireRegularFile(file);
+  const bytes = fs.readFileSync(file);
+  if (bytes.length < HST_HEADER_BYTES || bytes.subarray(0, 4).toString('ascii') !== 'HST1'
+    || bytes.readUInt32LE(4) !== 1 || bytes.readUInt32LE(8) !== HST_HEADER_BYTES
+    || bytes.readUInt32LE(20) !== strategyNumbers.length
+    || bytes.readUInt32LE(24) !== 4 + 2 * (4 + 4 * cardIds.length + 20)
+    || bytes.readUInt32LE(28) !== cardIds.length || bytes.readUInt32LE(32) !== reservoirCrc
+    || matrixCrcs.some((value, index) => bytes.readUInt32LE(36 + index * 4) !== value)
+    || bytes.readUInt32LE(48) !== MATRIX_FIRST_SEED || bytes.readUInt32LE(52) !== MATRIX_LAST_SEED
+    || bytes.readUInt32LE(56) !== 125 || bytes.readUInt32LE(60) !== 2
+    || bytes.readUInt32LE(64) !== 2 || bytes.readUInt32LE(68) !== 500
+    || bytes.readUInt32LE(72) !== generation || bytes.readUInt32LE(76) !== 0
+    || paddedAscii(bytes, 80, 96, 'HST fingerprint') !== expectedFingerprint
+    || paddedAscii(bytes, 96, 128, 'HST protocol') !== HST_PROTOCOL) {
+    throw new Error(`${file}: HST header or source differs.`);
+  }
+  const payload = bytes.subarray(HST_HEADER_BYTES);
+  if (payload.length !== bytes.readUInt32LE(12) || bytes.length !== HST_HEADER_BYTES + payload.length
+    || (crc32(payload) >>> 0) !== bytes.readUInt32LE(16)) throw new Error(`${file}: HST length or CRC differs.`);
+  const rowBytes = bytes.readUInt32LE(24);
+  return strategyNumbers.map((expectedNumber, row): RustSelfPlayEvidence => {
+    let offset = row * rowBytes;
+    const strategyNumber = payload.readUInt32LE(offset); offset += 4;
+    if (strategyNumber !== expectedNumber) throw new Error(`${file}: HST strategy order differs.`);
+    const position = (): RustSelfPlayPositionEvidence => {
+      const playerSides = payload.readUInt32LE(offset); offset += 4;
+      if (playerSides !== 250) throw new Error(`${file}: HST player-side count differs.`);
+      const purchases = Object.fromEntries(cardIds.map((cardId) => {
+        const count = payload.readUInt32LE(offset); offset += 4; return [cardId, count];
+      }));
+      const familyDamage = Object.fromEntries(FAMILY_NAMES.map((family) => {
+        const damage = payload.readUInt32LE(offset); offset += 4; return [family, damage];
+      })) as Record<RustDamageFamily, number>;
+      return { playerSides: 250, purchases, familyDamage };
+    };
+    const firstPlayer = position(), secondPlayer = position();
+    return { strategyNumber, firstPlayer, secondPlayer, totalPlayerSides: 500 };
+  });
 }
 
 function readHps(file: string, expectedKind: number, fingerprint: string, sourceCrcs: readonly number[]):
@@ -347,7 +408,8 @@ function sameF64Bits(left: number, right: number): boolean {
 function scientificFiles(paths: RustStrategySearchKingdomPaths, selectedMatrixFiles: readonly string[]): string[] {
   const files = [paths.topFile, paths.reservoirFile,
     path.join(paths.initialMatrixDir, 'pairs.hgm'), path.join(paths.initialMatrixDir, 'purchases.hgm'),
-    path.join(paths.initialMatrixDir, 'matrix.hgm'), path.join(paths.psroDir, 'checkpoint.hpc'),
+    path.join(paths.initialMatrixDir, 'matrix.hgm'), path.join(paths.initialMatrixDir, 'self-play-v1.hst'),
+    path.join(paths.psroDir, 'checkpoint.hpc'),
     path.join(paths.psroDir, 'decisions.hpd'), ...selectedMatrixFiles];
   const visit = (directory: string): void => {
     for (const name of fs.readdirSync(directory).sort()) {
@@ -397,8 +459,12 @@ export function loadRustStrategySearchKingdomEvidence(paths: RustStrategySearchK
 
   const goldfish = readGoldfishReservoir(paths.reservoirFile, paths.kingdomId,
     { ...options.goldfishReadOptions, top: paths.topFile });
-  const initial = readMatrixSet(paths.initialMatrixDir, native.kingdom.cards.map((card) => card.id),
-    nativeRuleFingerprint(paths.kingdomId, 30, 200), goldfish.header.checksum, Number(psro.matrixSize) - Number(psro.admissions));
+  const cardIds = native.kingdom.cards.map((card) => card.id);
+  const fingerprint = nativeRuleFingerprint(paths.kingdomId, 30, 200);
+  const initial = readMatrixSet(paths.initialMatrixDir, cardIds,
+    fingerprint, goldfish.header.checksum, Number(psro.matrixSize) - Number(psro.admissions));
+  readSelfPlay(path.join(paths.initialMatrixDir, 'self-play-v1.hst'), cardIds, fingerprint,
+    goldfish.header.checksum, initial.rowCrcs, 0, initial.matrix.strategyNumbers);
   const sourceCrcs = [goldfish.header.checksum,
     initial.pairs.length ? fs.readFileSync(path.join(paths.initialMatrixDir, 'pairs.hgm')).readUInt32LE(24) : 0,
     fs.readFileSync(path.join(paths.initialMatrixDir, 'purchases.hgm')).readUInt32LE(24), initial.matrix.rowCrc32];
@@ -413,20 +479,39 @@ export function loadRustStrategySearchKingdomEvidence(paths: RustStrategySearchK
     throw new Error(`${paths.kingdomId}: final PSRO HGM presence differs from admission count.`);
   }
   const final = checkpoint.admissions === 0 ? initial : readMatrixSet(paths.psroDir,
-    native.kingdom.cards.map((card) => card.id), native.ruleFingerprint, goldfish.header.checksum, checkpoint.matrixNumbers.length);
+    cardIds, native.ruleFingerprint, goldfish.header.checksum, checkpoint.matrixNumbers.length);
   if (final.matrix.strategyNumbers.some((number, index) => number !== checkpoint.matrixNumbers[index]
     || !sameF64Bits(final.matrix.weights[index]!, checkpoint.matrixWeights[index]!))) {
     throw new Error(`${paths.kingdomId}: final matrix does not preserve the checkpoint witness.`);
   }
+  const selfPlayFile = path.join(checkpoint.admissions === 0 ? paths.initialMatrixDir : paths.psroDir, 'self-play-v1.hst');
+  const selfPlay = readSelfPlay(selfPlayFile, cardIds, native.ruleFingerprint, goldfish.header.checksum,
+    final.rowCrcs, checkpoint.generation, final.matrix.strategyNumbers);
   const byNumber = new Map(goldfish.records.map((record) => [record.strategyNumber, record]));
   if (final.matrix.strategyNumbers.some((number) => !byNumber.has(number))) throw new Error(`${paths.kingdomId}: final strategy is absent from the reservoir.`);
+  for (const row of selfPlay) {
+    const strategy = byNumber.get(row.strategyNumber)!.strategy;
+    const desired = Object.fromEntries(strategy.buyPlan.flatMap((slot) => slot.kind === 'buy'
+      ? [[slot.cardId, slot.desiredCount] as const] : []));
+    for (const position of [row.firstPlayer, row.secondPlayer]) {
+      for (const [cardId, count] of Object.entries(position.purchases)) {
+        if (count > position.playerSides * (desired[cardId] ?? 0)
+          || (cardId === 'copper' || cardId === 'scrap') && count !== 0) {
+          throw new Error(`${paths.kingdomId}: self-play purchase count is outside its strategy bound.`);
+        }
+      }
+      if (Object.values(position.familyDamage).some((damage) => damage > position.playerSides * 50)) {
+        throw new Error(`${paths.kingdomId}: self-play family damage exceeds its player-side bound.`);
+      }
+    }
+  }
   const root = path.resolve(path.dirname(path.dirname(paths.topFile)));
-  const hashed = sourceHashes(scientificFiles(paths, final.files), root);
+  const hashed = sourceHashes(scientificFiles(paths, [...final.files, selfPlayFile]), root);
   return { kingdomId: paths.kingdomId, kingdomName: kingdom.name, startingHealth: kingdom.startingHealth,
     cardIds: native.kingdom.cards.map((card) => card.id), goldfish,
     completion: { complete: true, searchCount: checkpoint.search, admissionCount: checkpoint.admissions,
       matrixGeneration: checkpoint.generation, cleanSearchCount: 2, finalStrategyNumbers: checkpoint.matrixNumbers,
       finalWeights: checkpoint.matrixWeights }, finalMatrixSource: checkpoint.admissions === 0 ? 'initial-matrix' : 'psro-expanded-matrix',
-    pairs: final.pairs, purchases: final.purchases, matrix: final.matrix, sourceFiles: hashed.hashes,
+    pairs: final.pairs, purchases: final.purchases, matrix: final.matrix, selfPlay, sourceFiles: hashed.hashes,
     evidenceSetSha256: hashed.digest, nativeVerification };
 }

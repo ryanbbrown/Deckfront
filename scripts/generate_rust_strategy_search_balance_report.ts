@@ -7,15 +7,15 @@ import {
   buildRustBalanceAnalysis, stringifyRustBalanceAnalysis
 } from '../src/sim/rustStrategySearchBalance';
 import type {
-  RustBalanceAnalysisV1, RustStrategySearchExecutionProvenance, RustStrategySearchSourceProvenanceV1
+  RustBalanceAnalysisV2, RustStrategySearchExecutionProvenance, RustStrategySearchSourceProvenanceV2
 } from '../src/sim/rustStrategySearchBalance';
 import { loadRustStrategySearchKingdomEvidence } from '../src/sim/rustStrategySearchEvidence';
 
 const DEFAULT_ROOT = path.join('.data', 'strategy-search-30');
 const DEFAULT_BINARY = path.join('rust', 'target', 'release', 'hexdeck-goldfish');
-const DEFAULT_PROVENANCE = path.join(DEFAULT_ROOT, 'source-provenance-v1.json');
-const DEFAULT_JSON = path.join(DEFAULT_ROOT, 'rust-balance-analysis-v1.json');
-const DEFAULT_HTML = path.join('.html', 'strategy-search-30-rust-balance-v1.html');
+const DEFAULT_PROVENANCE = path.join(DEFAULT_ROOT, 'source-provenance-v2.json');
+const DEFAULT_JSON = path.join(DEFAULT_ROOT, 'rust-balance-analysis-v2.json');
+const DEFAULT_HTML = path.join('.html', 'strategy-search-30-rust-balance-v2.html');
 const SHA256 = /^[0-9a-f]{64}$/u;
 const GIT_SHA = /^[0-9a-f]{40}$/u;
 
@@ -65,7 +65,9 @@ function nonempty(value: unknown, label: string): string {
 function parseExecution(value: unknown, index: number): RustStrategySearchExecutionProvenance {
   const row = object(value, `executions[${index}]`), stage = row.stage;
   if (!Number.isInteger(row.ordinal) || row.ordinal !== index + 1) throw new Error(`executions[${index}].ordinal differs from its order.`);
-  if (stage !== 'goldfish' && stage !== 'matrix' && stage !== 'psro') throw new Error(`executions[${index}].stage is invalid.`);
+  if (stage !== 'goldfish' && stage !== 'matrix' && stage !== 'psro' && stage !== 'self-play-telemetry') {
+    throw new Error(`executions[${index}].stage is invalid.`);
+  }
   const gitCommit = optionalCommit(row.gitCommit, `executions[${index}].gitCommit`);
   const sourceDigest = optionalDigest(row.sourceDigest, `executions[${index}].sourceDigest`);
   const deploymentDigest = optionalDigest(row.deploymentDigest, `executions[${index}].deploymentDigest`);
@@ -98,7 +100,7 @@ function sameStrings(left: readonly string[], right: readonly string[]): boolean
 
 function validateCoverage(executions: readonly RustStrategySearchExecutionProvenance[], kingdomIds: readonly string[]): void {
   const expected = new Set(kingdomIds);
-  for (const stage of ['goldfish', 'matrix', 'psro'] as const) {
+  for (const stage of ['goldfish', 'matrix', 'psro', 'self-play-telemetry'] as const) {
     const covered = executions.filter((execution) => execution.stage === stage).flatMap((execution) => execution.coveredKingdomIds);
     if (covered.length !== kingdomIds.length || new Set(covered).size !== covered.length
       || covered.some((kingdomId) => !expected.has(kingdomId))) throw new Error(`${stage} execution coverage must assign every smoke kingdom exactly once.`);
@@ -125,10 +127,10 @@ function validateConsolidatedManifest(root: string, kingdomIds: readonly string[
   }
 }
 
-export function loadSourceProvenance(file: string, binary: string, root: string): RustStrategySearchSourceProvenanceV1 {
+export function loadSourceProvenance(file: string, binary: string, root: string): RustStrategySearchSourceProvenanceV2 {
   regularFile(file); regularFile(binary);
   const raw = object(JSON.parse(fs.readFileSync(file, 'utf8')), 'source provenance');
-  if (raw.schemaVersion !== 1 || raw.protocol !== 'rust-strategy-search-source-provenance-v1') {
+  if (raw.schemaVersion !== 2 || raw.protocol !== 'rust-strategy-search-source-provenance-v2') {
     throw new Error('Source provenance version or protocol is invalid.');
   }
   const smokeIds = (rawSmokeManifest as { selectedKingdomIds: string[] }).selectedKingdomIds;
@@ -136,31 +138,30 @@ export function loadSourceProvenance(file: string, binary: string, root: string)
   if (!sameStrings(kingdomIds, smokeIds)) throw new Error('Source provenance kingdom IDs differ from balance-smoke-v1.');
   const commits = object(raw.scientificImplementationCommits, 'scientificImplementationCommits');
   const scientificImplementationCommits = { goldfish: commit(commits.goldfish, 'goldfish implementation commit'),
-    matrix: commit(commits.matrix, 'matrix implementation commit'), psro: commit(commits.psro, 'psro implementation commit') };
-  const current = object(raw.currentReleaseBinaries, 'currentReleaseBinaries');
-  const currentReleaseBinaries = { matrixSha256: digest(current.matrixSha256, 'current matrix binary'),
-    psroSha256: digest(current.psroSha256, 'current PSRO binary') };
+    matrix: commit(commits.matrix, 'matrix implementation commit'), psro: commit(commits.psro, 'psro implementation commit'),
+    selfPlayTelemetry: commit(commits.selfPlayTelemetry, 'self-play telemetry implementation commit') };
+  const currentVerifierAndBackfillBinarySha256 = digest(raw.currentVerifierAndBackfillBinarySha256,
+    'current verifier and backfill binary');
   const verifierBinarySha256 = fileSha256(binary);
-  if (currentReleaseBinaries.matrixSha256 !== verifierBinarySha256
-    || currentReleaseBinaries.psroSha256 !== verifierBinarySha256) {
-    throw new Error('Current Matrix/PSRO release hashes differ from the verifier binary.');
+  if (currentVerifierAndBackfillBinarySha256 !== verifierBinarySha256) {
+    throw new Error('Current verifier and backfill hash differs from the supplied binary.');
   }
   if (!Array.isArray(raw.executions) || !raw.executions.length) throw new Error('Source provenance needs ordered executions.');
   const executions = raw.executions.map(parseExecution);
   validateCoverage(executions, kingdomIds);
   for (const execution of executions) {
-    if ((execution.stage === 'matrix' || execution.stage === 'psro')
-      && execution.binarySha256 !== currentReleaseBinaries[execution.stage === 'matrix' ? 'matrixSha256' : 'psroSha256']) {
-      throw new Error(`Current ${execution.stage} execution binary hash is missing or contradictory.`);
+    if (execution.stage === 'self-play-telemetry'
+      && execution.binarySha256 !== currentVerifierAndBackfillBinarySha256) {
+      throw new Error('Self-play telemetry execution binary hash is missing or contradictory.');
     }
   }
   validateConsolidatedManifest(root, kingdomIds);
-  return { schemaVersion: 1, protocol: 'rust-strategy-search-source-provenance-v1', kingdomIds,
-    scientificImplementationCommits, currentReleaseBinaries, executions,
+  return { schemaVersion: 2, protocol: 'rust-strategy-search-source-provenance-v2', kingdomIds,
+    scientificImplementationCommits, currentVerifierAndBackfillBinarySha256, executions,
     provenanceFileSha256: fileSha256(file), verifierBinarySha256 };
 }
 
-export function loadRustBalanceReportInputs(options: CliOptions): RustBalanceAnalysisV1 {
+export function loadRustBalanceReportInputs(options: CliOptions): RustBalanceAnalysisV2 {
   const provenance = loadSourceProvenance(options.provenance, options.binary, options.root);
   const evidence = provenance.kingdomIds.map((kingdomId, index) => {
     const base = path.join(options.root, kingdomId);
@@ -190,23 +191,22 @@ function rows(values: readonly string[][]): string { return `<tbody>${values.map
 function table(headings: readonly string[], values: readonly string[][]): string {
   return `<div class="table-wrap"><table><thead><tr>${headings.map((heading) => `<th>${escape(heading)}</th>`).join('')}</tr></thead>${rows(values)}</table></div>`;
 }
-function outlierTable(title: string, entries: RustBalanceAnalysisV1['outliers']['pairScoreSkew75']): string {
+function outlierTable(title: string, entries: RustBalanceAnalysisV2['outliers']['pairScoreSkew75']): string {
   return `<section><h3>${escape(title)}</h3>${table(['Kingdom', 'Metric', 'Strategy', 'Opponent', 'Card', 'Family'], entries.map((row) => [
     escape(row.kingdomId), number(row.metric), escape(row.strategyNumber ?? '—'), escape(row.opponentNumber ?? '—'),
     escape(row.cardId ?? '—'), escape(row.family ?? '—')]))}</section>`;
 }
 
-export function renderRustBalanceReport(analysis: RustBalanceAnalysisV1): string {
+export function renderRustBalanceReport(analysis: RustBalanceAnalysisV2): string {
   const archetypes = table(['Archetype', 'Selected', 'Mean minimum', 'Mean maximum', 'Selected kingdoms', 'Feasible kingdoms'],
     analysis.crossKingdom.archetypes.map((row) => [escape(row.archetype), percent(row.selectedShare),
       percent(row.meanMinimumFeasibleShare), percent(row.meanMaximumFeasibleShare), String(row.selectedKingdomCount), String(row.feasibleKingdomCount)]));
-  const cards = table(['Card', 'Offered kingdoms', 'Kingdoms with acquisition usage', 'Copies / player-game', 'Equal-offering mean', 'Selected strategy / uniform off-diagonal opponent'],
+  const cards = table(['Card', 'Offered kingdoms', 'Kingdoms with use', 'Acquisition presence', 'Selection presence', 'Mean owned copies'],
     analysis.crossKingdom.cards.map((row) => [escape(row.cardId), String(row.offeredKingdomCount), String(row.positiveUsageKingdomCount),
-      number(row.copiesPerPlayerGame), number(row.meanOfferingKingdomCopiesPerPlayerGame),
-      number(row.meanSelectedStrategyUniformOffDiagonalOpponentCopiesPerPlayerGame)]));
-  const families = table(['Family', 'Damage', 'Damage / player-game', 'Mean kingdom share', 'Selected strategy / uniform off-diagonal opponent'],
-    analysis.crossKingdom.familyDamage.map((row) => [escape(row.family), String(row.totalDamage), number(row.damagePerPlayerGame),
-      percent(row.meanKingdomShare), number(row.meanSelectedStrategyUniformOffDiagonalOpponentDamagePerPlayerGame)]));
+      percent(row.meanEquilibriumAcquisitionRate), percent(row.meanEquilibriumSelectionRate), number(row.meanEquilibriumOwnedCopies)]));
+  const families = table(['Family', 'Expected damage / player side', 'Mean kingdom share'],
+    analysis.crossKingdom.familyDamage.map((row) => [escape(row.family), number(row.meanExpectedDamagePerPlayerSide),
+      percent(row.meanKingdomShare)]));
   const kingdomSections = analysis.kingdoms.map((kingdom) => {
     const mix = table(['Strategy', 'Weight', 'Archetype', 'Feasible minimum', 'Feasible maximum', 'Score against selected mix'],
       kingdom.strategies.map((strategy) => [escape(strategy.strategyId), percent(strategy.selectedWeight), escape(strategy.archetype),
@@ -214,45 +214,46 @@ export function renderRustBalanceReport(analysis: RustBalanceAnalysisV1): string
         `${strategy.selectedLotteryScorePercent.toFixed(2)}%`]));
     const ranges = table(['Archetype', 'Selected', 'Minimum', 'Maximum'], kingdom.archetypes.map((row) => [escape(row.archetype),
       percent(row.selectedShare), percent(row.minimumFeasibleShare), percent(row.maximumFeasibleShare)]));
-    const definitions = table(['Strategy', 'Goldfish rank', 'Buy definition', 'Off-diagonal player-games'], kingdom.strategies.map((strategy) => [
-      escape(strategy.strategyId), String(strategy.goldfishRank), escape(strategy.buySteps.map((step) => `${step.cardId} × ${step.desiredCount}`).join(' → ')),
-      String(strategy.playerGames)]));
-    const cardUse = table(['Card', 'Copies', 'Player-games', 'Copies / player-game', 'Selected strategy / uniform off-diagonal opponent'],
-      kingdom.cards.map((card) => [escape(card.cardId), String(card.totalCopies), String(card.playerGames), number(card.copiesPerPlayerGame),
-        number(card.selectedStrategyUniformOffDiagonalOpponentCopiesPerPlayerGame)]));
-    const damage = table(['Family', 'Damage', 'Player-games', 'Damage / player-game', 'Share'], kingdom.familyDamage.map((row) => [
-      escape(row.family), String(row.totalDamage), String(row.playerGames), number(row.damagePerPlayerGame), percent(row.share)]));
+    const definitions = table(['Strategy', 'Goldfish rank', 'Buy definition'], kingdom.strategies.map((strategy) => [
+      escape(strategy.strategyId), String(strategy.goldfishRank),
+      escape(strategy.buySteps.map((step) => `${step.cardId} × ${step.desiredCount}`).join(' → '))]));
+    const cardUse = table(['Card', 'Acquisition presence', 'Selection presence', 'Mean owned copies', 'Expected acquired copies / player side'],
+      kingdom.cards.map((card) => [escape(card.cardId), percent(card.equilibriumAcquisitionRate),
+        percent(card.equilibriumSelectionRate), number(card.equilibriumMeanOwnedCopies),
+        number(card.expectedAcquiredCopiesPerPlayerSide)]));
+    const damage = table(['Family', 'Expected damage / player side', 'Share'], kingdom.familyDamage.map((row) => [
+      escape(row.family), number(row.expectedDamagePerPlayerSide), percent(row.share)]));
     const pairEvidence = table(['First strategy', 'Second strategy', 'First-75 score', 'All-125 score', 'Point bytes 0–4'],
       kingdom.pairedScoreEvidence.pairs.map((pair) => [escape(pair.firstStrategyNumber), escape(pair.secondStrategyNumber),
         `${pair.percent75.toFixed(2)}%`, `${pair.percent125.toFixed(2)}%`, pair.byteCounts.join(', ')]));
     const source = table(['Path', 'Bytes', 'SHA-256'], kingdom.sourceFiles.map((file) => [escape(file.path), String(file.bytes), `<code>${escape(file.sha256)}</code>`]));
     const matrix = table(['Strategy', ...kingdom.strategies.map((row) => row.strategyId)], kingdom.pairedScoreEvidence.percentages75.map((row, index) =>
       [escape(kingdom.strategies[index]!.strategyId), ...row.map((value) => `${value.toFixed(2)}%`)]));
+    const audit = table(['Strategy', 'Off-diagonal player sides', 'Diagonal player sides'],
+      kingdom.auditTelemetry.strategies.map((row) => [escape(row.strategyNumber), String(row.offDiagonal.playerSides), String(row.diagonal.playerSides)]));
     return `<section class="kingdom"><h2>${escape(kingdom.kingdom.name)}</h2><p>${kingdom.completion.finalStrategyCount} final strategies; ${kingdom.completion.admissions} admissions; support ${kingdom.equilibrium.supportSize}; effective size ${number(kingdom.equilibrium.effectiveSize)}.</p>
-      <h3>Selected mix and strategy ranges</h3>${mix}<h3>Archetype ranges</h3>${ranges}
-      <h3>Off-diagonal card acquisition usage</h3>${cardUse}<h3>Played-card family damage</h3>${damage}
-      <details><summary>Strategy definitions</summary>${definitions}</details>
-      <details><summary>Paired-game score evidence</summary>${pairEvidence}</details>
-      <details><summary>Complete 75-seed score matrix</summary>${matrix}</details>
+      <p>${escape(kingdom.telemetryBasis)}.</p><h3>Selected mix and strategy ranges</h3>${mix}<h3>Archetype ranges</h3>${ranges}
+      <h3>Equilibrium self-play card acquisition usage</h3>${cardUse}<h3>Equilibrium self-play family damage</h3>${damage}
+      <details><summary>Strategy definitions</summary>${definitions}</details><details><summary>Unweighted full-Matrix observed counts (audit only)</summary>${audit}</details>
+      <details><summary>Paired-game score evidence</summary>${pairEvidence}</details><details><summary>Complete 75-seed score matrix</summary>${matrix}</details>
       <details><summary>Source hashes</summary>${source}</details></section>`;
   }).join('\n');
   const embedded = stringifyRustBalanceAnalysis(analysis).replaceAll('<', '\\u003c');
   return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Rust strategy-search balance analysis</title><style>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rust strategy-search balance analysis</title><style>
 :root{color-scheme:light dark;font:16px/1.45 system-ui,sans-serif}body{margin:0;background:#10141b;color:#edf2f7}main{max-width:1440px;margin:auto;padding:28px}h1,h2,h3{line-height:1.15}section{margin:30px 0;padding:20px;background:#18202b;border:1px solid #334155;border-radius:12px}.limits{border-color:#eab308;background:#30290f}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #334155;white-space:nowrap}th{position:sticky;top:0;background:#202b39}code{font-size:.78rem}details{margin:16px 0}summary{cursor:pointer;font-weight:700}.lede{max-width:80ch;color:#cbd5e1}@media print{body{background:#fff;color:#111}section{break-inside:avoid;background:#fff;border-color:#aaa}th{background:#eee}}
 </style></head><body><main><h1>Rust strategy-search balance analysis</h1>
-<p class="lede">Equal-weight analysis of ${analysis.scope.kingdomCount} kingdoms in the ${escape(analysis.scope.suiteId)} tuning set. The selected mix is the stored Rust equilibrium witness. Feasible bands cover the full equilibrium set of each discovered matrix.</p>
-<section class="limits"><h2>Evidence limits</h2><p>Diagonal self-play telemetry is absent. Matrix diagonal scores are fixed at 50%. Card purchases and family damage use off-diagonal games only.</p><p>A paired point byte of 2 can mean one success and one failure, or two ties. Exact W/D/L and first-player evidence are not available. Card-play counts, per-card damage, and turns-to-finish are also absent.</p></section>
-<section><h2>Source and verification</h2><p>Every kingdom passed native Goldfish, Matrix, and PSRO verification before decoding. Provenance SHA-256: <code>${escape(analysis.provenance.provenanceFileSha256)}</code>. Verifier binary SHA-256: <code>${escape(analysis.provenance.verifierBinarySha256)}</code>.</p></section>
+<p class="lede">Equal-weight analysis of ${analysis.scope.kingdomCount} kingdoms in the ${escape(analysis.scope.suiteId)} tuning set. Within each kingdom, both the acting strategy and opponent use the stored equilibrium weights.</p>
+<section class="limits"><h2>Evidence limits</h2><p>Same-strategy purchases and family damage are available from 500 player sides per strategy. The payoff diagonal remains fixed at 50% and does not use those games.</p><p>A paired point byte of 2 can mean one success and one failure, or two ties. Exact W/D/L and first-player outcome rates are not available. Card-play counts, per-card damage, and turns-to-finish are also absent.</p></section>
+<section><h2>Source and verification</h2><p>Every kingdom passed native Goldfish, Matrix, PSRO, and self-play verification before decoding. Provenance SHA-256: <code>${escape(analysis.provenance.provenanceFileSha256)}</code>. Verifier binary SHA-256: <code>${escape(analysis.provenance.verifierBinarySha256)}</code>.</p></section>
 <section><h2>Archetype shares and full feasible ranges</h2>${archetypes}</section>
 <section><h2>Support and effective sizes</h2>${table(['Measure','Minimum','Median','Mean','Maximum'], [
     ['Support size', number(analysis.crossKingdom.supportSize.minimum), number(analysis.crossKingdom.supportSize.median), number(analysis.crossKingdom.supportSize.mean), number(analysis.crossKingdom.supportSize.maximum)],
     ['Effective size', number(analysis.crossKingdom.effectiveSize.minimum), number(analysis.crossKingdom.effectiveSize.median), number(analysis.crossKingdom.effectiveSize.mean), number(analysis.crossKingdom.effectiveSize.maximum)]])}</section>
-<section><h2>Card offering and acquisition usage</h2><p>Usage means acquired copies, not card plays.</p>${cards}</section>
-<section><h2>Played-card family damage</h2>${families}</section>
+<section><h2>Card offering and equilibrium acquisition usage</h2><p>Usage means acquired copies, not card plays. Each kingdom has equal weight.</p>${cards}</section>
+<section><h2>Equilibrium family damage</h2>${families}</section>
 <section><h2>Paired-game score evidence</h2><p>Point bytes 0–4: ${analysis.crossKingdom.pairedScoreEvidence.byteCounts.join(', ')}. Ambiguous byte-2 share: ${percent(analysis.crossKingdom.pairedScoreEvidence.byteTwoShare)}.</p></section>
-<section><h2>Outliers to inspect</h2>${outlierTable('All-125 score skew', analysis.outliers.pairScoreSkew125)}${outlierTable('First-75 score skew', analysis.outliers.pairScoreSkew75)}${outlierTable('Low effective size', analysis.outliers.lowestEffectiveSize)}${outlierTable('High acquisition intensity', analysis.outliers.cardCopiesPerPlayerGame)}${outlierTable('High family damage', analysis.outliers.familyDamagePerPlayerGame)}</section>
+<section><h2>Outliers to inspect</h2>${outlierTable('All-125 score skew', analysis.outliers.pairScoreSkew125)}${outlierTable('First-75 score skew', analysis.outliers.pairScoreSkew75)}${outlierTable('Low effective size', analysis.outliers.lowestEffectiveSize)}${outlierTable('High equilibrium acquisition intensity', analysis.outliers.equilibriumCardCopiesPerPlayerSide)}${outlierTable('High equilibrium family damage', analysis.outliers.equilibriumFamilyDamagePerPlayerSide)}</section>
 ${kingdomSections}<script id="rust-balance-analysis" type="application/json">${embedded}</script></main></body></html>\n`;
 }
 
@@ -290,7 +291,7 @@ function writePairAtomically(jsonFile: string, json: string, htmlFile: string, h
   }
 }
 
-export function generateRustBalanceReport(options: CliOptions): RustBalanceAnalysisV1 {
+export function generateRustBalanceReport(options: CliOptions): RustBalanceAnalysisV2 {
   const sourceBytes = sourceTreeBytes(options.root), before = availableBytes(options.root);
   process.stderr.write(`Strategy-search evidence uses ${(sourceBytes / 2 ** 30).toFixed(2)} GiB; ${(before / 2 ** 30).toFixed(1)} GiB available.\n`);
   const analysis = loadRustBalanceReportInputs(options), json = stringifyRustBalanceAnalysis(analysis), html = renderRustBalanceReport(analysis);

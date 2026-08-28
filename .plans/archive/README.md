@@ -16,3 +16,4 @@ These documents are superseded. Do not use them for current product or implement
 | `74-scalable-strategy-search-runtime.md` | `../77-rust-goldfish-reservoir.md` for Goldfish; `../78-rust-matrix-step.md` for Matrix; `../79-rust-psro-loop.md` for PSRO |
 | `75-scalable-strategy-search-runtime-results.md` | `../77-rust-goldfish-reservoir.md` for Goldfish; `../78-rust-matrix-step.md` for Matrix; `../79-rust-psro-loop.md` for PSRO |
 | `76-global-matrix-psro-runtime.md` | `../78-rust-matrix-step.md` for Matrix; `../79-rust-psro-loop.md` for PSRO |
+| `81-rust-strategy-search-balance-analysis.md` | `../82-equilibrium-weighted-self-play-telemetry.md` |

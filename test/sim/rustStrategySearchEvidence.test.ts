@@ -23,6 +23,9 @@ describe('Rust strategy-search evidence adapter', () => {
       finalStrategyNumbers: [0, 1], finalWeights: [0.75, 0.25] });
     expect(evidence.matrix.weights).toEqual([0.75, 0.25]);
     expect(evidence.sourceFiles.map((file) => file.path)).toContain('matrix/matrix.hgm');
+    expect(evidence.sourceFiles.map((file) => file.path)).toContain('matrix/self-play-v1.hst');
+    expect(evidence.selfPlay.map((row) => ({ number: row.strategyNumber, sides: row.totalPlayerSides })))
+      .toEqual([{ number: 0, sides: 500 }, { number: 1, sides: 500 }]);
   });
 
   it('selects expanded HGM after admission and preserves stored witness bits', () => {
@@ -33,6 +36,7 @@ describe('Rust strategy-search evidence adapter', () => {
     expect(evidence.completion.finalStrategyNumbers).toEqual([0, 1, 2]);
     expect(evidence.matrix.weights).toEqual([0.2, 0.3, 0.5]);
     expect(evidence.sourceFiles.map((file) => file.path)).toContain('psro/matrix.hgm');
+    expect(evidence.sourceFiles.map((file) => file.path)).toContain('psro/self-play-v1.hst');
   });
 
   it('stops on native failure before it reads missing evidence', () => {
@@ -71,6 +75,21 @@ describe('Rust strategy-search evidence adapter', () => {
     expect(() => loadRustStrategySearchKingdomEvidence(semantic.paths, { binary: semantic.binary,
       runNativeCommand: semantic.runNativeCommand, goldfishReadOptions: { keep: 4, topKeep: 4 } }))
       .toThrow(/pair order or point byte differs/u);
+  });
+
+  it('rejects corrupt or wrong-source same-strategy telemetry', () => {
+    const corrupt = createEvidenceFixture(temporary(), 0), file = path.join(corrupt.paths.initialMatrixDir, 'self-play-v1.hst');
+    const bytes = fs.readFileSync(file); bytes[128 + 8] = bytes[128 + 8]! ^ 1; fs.writeFileSync(file, bytes);
+    expect(() => loadRustStrategySearchKingdomEvidence(corrupt.paths, { binary: corrupt.binary,
+      runNativeCommand: corrupt.runNativeCommand, goldfishReadOptions: { keep: 4, topKeep: 4 } }))
+      .toThrow(/HST length or CRC differs/u);
+
+    const wrongSource = createEvidenceFixture(temporary(), 1), expanded = path.join(wrongSource.paths.psroDir, 'self-play-v1.hst');
+    const sourceBytes = fs.readFileSync(expanded); sourceBytes.writeUInt32LE(sourceBytes.readUInt32LE(44) + 1, 44);
+    fs.writeFileSync(expanded, sourceBytes);
+    expect(() => loadRustStrategySearchKingdomEvidence(wrongSource.paths, { binary: wrongSource.binary,
+      runNativeCommand: wrongSource.runNativeCommand, goldfishReadOptions: { keep: 4, topKeep: 4 } }))
+      .toThrow(/HST header or source differs/u);
   });
 
   it('rejects a final matrix weight that differs from the checkpoint', () => {

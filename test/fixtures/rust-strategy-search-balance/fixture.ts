@@ -79,6 +79,27 @@ function matrixSet(directory: string, numbers: readonly number[], weights: reado
     purchasesCrc: hgm(path.join(directory, 'purchases.hgm'), 6, purchaseRowBytes, numbers.length, purchaseRows, reservoirCrc),
     matrixCrc: hgm(path.join(directory, 'matrix.hgm'), 7, matrixRowBytes, numbers.length, matrixRows, reservoirCrc) };
 }
+function selfPlay(directory: string, numbers: readonly number[], source: readonly [number, number, number],
+  reservoirCrc: number, generation: number): void {
+  const rowBytes = 4 + 2 * (4 + 4 * cardIds.length + 20), rows = Buffer.alloc(numbers.length * rowBytes);
+  numbers.forEach((number, row) => {
+    let offset = row * rowBytes; rows.writeUInt32LE(number, offset); offset += 4;
+    for (const position of [0, 1]) {
+      rows.writeUInt32LE(250, offset); offset += 4;
+      const cardId = number === 0 ? 'cascade' : 'flurry';
+      for (const id of cardIds) { rows.writeUInt32LE(id === cardId ? 50 + number + position * 10 : 0, offset); offset += 4; }
+      for (let family = 0; family < 5; family += 1) {
+        rows.writeUInt32LE(family === number % 3 + 1 ? 25 + number + position * 5 : 0, offset); offset += 4;
+      }
+    }
+  });
+  const header = Buffer.alloc(128); header.write('HST1');
+  [1, 128, rows.length, crc32(rows) >>> 0, numbers.length, rowBytes, cardIds.length, reservoirCrc,
+    ...source, 4_200_001, 4_200_125, 125, 2, 2, 500, generation, 0]
+    .forEach((value, index) => header.writeUInt32LE(value, 4 + index * 4));
+  header.write(native.ruleFingerprint, 80, 'ascii'); header.write('equilibrium-self-play-v1', 96, 'ascii');
+  fs.writeFileSync(path.join(directory, 'self-play-v1.hst'), Buffer.concat([header, rows]));
+}
 function hps(file: string, kind: number, payload: Buffer, source: readonly number[], generation: number, search: number): void {
   const header = Buffer.alloc(128); header.write('HPS1'); header.writeUInt32LE(1, 4); header.writeUInt32LE(kind, 8);
   header.writeUInt32LE(128, 12); header.writeUInt32LE(payload.length, 16); header.writeUInt32LE(crc32(payload) >>> 0, 20);
@@ -110,9 +131,13 @@ export interface EvidenceFixture {
 export function createEvidenceFixture(root: string, admissions: 0 | 1): EvidenceFixture {
   const base = path.join(root, KINGDOM_ID), source = goldfish(base), initialDir = path.join(base, 'matrix');
   const initial = matrixSet(initialDir, [0, 1], [0.75, 0.25], source.reservoirCrc);
+  selfPlay(initialDir, [0, 1], [initial.pairsCrc, initial.purchasesCrc, initial.matrixCrc], source.reservoirCrc, 0);
   const psroDir = path.join(base, 'psro'), finalNumbers = admissions ? [0, 1, 2] : [0, 1];
   const finalWeights = admissions ? [0.2, 0.3, 0.5] : [0.75, 0.25];
-  if (admissions) matrixSet(psroDir, finalNumbers, finalWeights, source.reservoirCrc);
+  if (admissions) {
+    const final = matrixSet(psroDir, finalNumbers, finalWeights, source.reservoirCrc);
+    selfPlay(psroDir, finalNumbers, [final.pairsCrc, final.purchasesCrc, final.matrixCrc], source.reservoirCrc, admissions);
+  }
   psro(psroDir, finalNumbers, finalWeights, admissions,
     [source.reservoirCrc, initial.pairsCrc, initial.purchasesCrc, initial.matrixCrc]);
   const binary = path.join(root, 'hexdeck-goldfish'); fs.writeFileSync(binary, 'fixture binary');

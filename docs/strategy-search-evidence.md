@@ -10,6 +10,12 @@ Use `classifyStrategyDamage` in `scripts/generate_balance_corpus.ts` for Melee, 
 
 A card-family presence check on the purchase plan is not this classification. Do not use plan presence to report a kingdom's Ranged, Melee, or Mage percentage.
 
+For Rust strategy-search evidence, calculate each strategy's acquisition rates against the stored equilibrium opponent before classification. For acting strategy `i`, opponent strategy `j`, stored equilibrium weight `p`, and normalized acquisition cell `A`, use `sum_j p_j × A[i,j]`. The diagonal cell comes from `self-play-v1.hst`; add both player-position totals and divide by 500 player sides. An off-diagonal HGM cell divides by 250 player games.
+
+Balance headlines describe the stored equilibrium lottery playing against itself. Apply both weights: `sum_i p_i × sum_j p_j × A[i,j]`. Apply the same formula to played-card family damage. Each kingdom then has equal weight in the 30-kingdom summary. If one strategy has all equilibrium weight, use only that strategy's diagonal telemetry.
+
+Raw unweighted full-Matrix counts are audit evidence. Do not use pooled counts, uniform opponents, or off-diagonal-only rates for strategy labels, card-usage headlines, family-damage headlines, or balance outliers. The Matrix payoff diagonal remains fixed at 50%; same-strategy games supply telemetry only.
+
 ## Separate three kinds of consistency
 
 - Candidate consistency: the ordered generator exhausts its specified 12,972,960-strategy space. With fixed code, rules, kingdom, and seeds, candidate generation and goldfish ranking are reproducible.

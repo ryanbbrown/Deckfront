@@ -456,12 +456,30 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
     assert_eq!(committed_games + resumed_games, 26_850);
     assert_eq!(evidence(&mid_confirmation), expected);
 
+    let missing_self_play = root.join("missing-self-play");
+    copy_tree(&baseline, &missing_self_play);
+    fs::remove_file(missing_self_play.join("self-play-v1.hst")).unwrap();
+    assert!(!verify(&matrix, &missing_self_play).status.success());
+    let resumed = psro(&matrix, &missing_self_play, 4, None);
+    assert!(resumed.status.success());
+    assert_eq!(evidence(&missing_self_play), expected);
+
     let rebuilt = root.join("rebuilt-matrix");
     copy_tree(&baseline, &rebuilt);
     fs::remove_file(rebuilt.join("matrix.hgm")).unwrap();
     let resumed = psro(&matrix, &rebuilt, 4, None);
     assert!(resumed.status.success());
     assert_eq!(evidence(&rebuilt), expected);
+
+    let corrupt_self_play = root.join("corrupt-self-play");
+    copy_tree(&baseline, &corrupt_self_play);
+    let self_play_path = corrupt_self_play.join("self-play-v1.hst");
+    let mut self_play_bytes = fs::read(&self_play_path).unwrap();
+    self_play_bytes[128] ^= 1;
+    fs::write(&self_play_path, &self_play_bytes).unwrap();
+    let resumed = psro(&matrix, &corrupt_self_play, 4, None);
+    assert!(!resumed.status.success());
+    assert_eq!(fs::read(self_play_path).unwrap(), self_play_bytes);
 
     let corrupt_admission = root.join("corrupt-admission");
     copy_tree(&baseline, &corrupt_admission);

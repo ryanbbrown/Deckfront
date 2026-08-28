@@ -99,7 +99,12 @@ fn repair_crc(bytes: &mut [u8]) {
 
 fn clone_output(source: &Path, name: &str) -> PathBuf {
     let target = temporary(name);
-    for file in ["pairs.hgm", "purchases.hgm", "matrix.hgm"] {
+    for file in [
+        "pairs.hgm",
+        "purchases.hgm",
+        "matrix.hgm",
+        "self-play-v1.hst",
+    ] {
         fs::copy(source.join(file), target.join(file)).expect("copy output");
     }
     target
@@ -116,13 +121,19 @@ fn expect_rejected(out: &Path, kingdom: &str, reservoir: &Path, top: Option<usiz
 
 #[test]
 fn matrix_rejects_evidence_report_paths_without_modifying_existing_evidence() {
-    for report_name in ["pairs.hgm", "purchases.hgm", "matrix.hgm"] {
+    for report_name in [
+        "pairs.hgm",
+        "purchases.hgm",
+        "matrix.hgm",
+        "self-play-v1.hst",
+    ] {
         let out = temporary(&format!("report-{report_name}"));
         fs::create_dir(out.join("alias")).expect("alias directory");
         let evidence = [
             ("pairs.hgm", b"existing pairs".as_slice()),
             ("purchases.hgm", b"existing purchases".as_slice()),
             ("matrix.hgm", b"existing matrix".as_slice()),
+            ("self-play-v1.hst", b"existing self play".as_slice()),
         ];
         for (name, bytes) in evidence {
             fs::write(out.join(name), bytes).expect("existing evidence");
@@ -161,7 +172,12 @@ fn matrix_outputs_are_thread_stable_ranked_and_verified() {
         );
         outputs.push(out);
     }
-    for file in ["pairs.hgm", "purchases.hgm", "matrix.hgm"] {
+    for file in [
+        "pairs.hgm",
+        "purchases.hgm",
+        "matrix.hgm",
+        "self-play-v1.hst",
+    ] {
         let expected = fs::read(outputs[0].join(file)).expect("first output");
         for out in outputs.iter().skip(1) {
             assert_eq!(fs::read(out.join(file)).expect("held output"), expected);
@@ -214,7 +230,12 @@ fn matrix_verify_rejects_corrupt_or_mismatched_evidence() {
     let kingdom = "balance-tuning-005";
     let reservoir = fixture("balance-tuning-005-reservoir.hgf");
 
-    for file in ["pairs.hgm", "purchases.hgm", "matrix.hgm"] {
+    for file in [
+        "pairs.hgm",
+        "purchases.hgm",
+        "matrix.hgm",
+        "self-play-v1.hst",
+    ] {
         let out = clone_output(&baseline, &format!("flip-{file}"));
         let path = out.join(file);
         let mut bytes = fs::read(&path).expect("file");
@@ -222,6 +243,10 @@ fn matrix_verify_rejects_corrupt_or_mismatched_evidence() {
         fs::write(path, bytes).expect("flipped file");
         expect_rejected(&out, kingdom, &reservoir, Some(TOP));
     }
+
+    let missing_self_play = clone_output(&baseline, "missing-self-play");
+    fs::remove_file(missing_self_play.join("self-play-v1.hst")).expect("remove self-play evidence");
+    expect_rejected(&missing_self_play, kingdom, &reservoir, Some(TOP));
 
     let mutate_file = |name: &str, file: &str, change: fn(&mut Vec<u8>)| {
         let out = clone_output(&baseline, name);

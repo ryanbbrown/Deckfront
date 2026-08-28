@@ -68,6 +68,7 @@
     "random-psro:k001-check": "tsx scripts/check_random_psro_k001.ts",
     "random-psro:report": "tsx scripts/report_random_psro.ts",
     "strategy:report": "tsx scripts/generate_strategy_report.ts",
+    "strategy-search:self-play-backfill": "tsx scripts/backfill_rust_strategy_search_self_play.ts",
     "strategy-search:rust-balance-report": "tsx scripts/generate_rust_strategy_search_balance_report.ts",
     "test:e2e:manifest": "tsx scripts/validate_e2e_manifest.ts",
     "test:e2e": "npm run test:e2e:manifest && npm run build && playwright test",

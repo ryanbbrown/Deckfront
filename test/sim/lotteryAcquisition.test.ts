@@ -3,7 +3,7 @@ import type { EquilibriumResult } from '../../src/sim/equilibrium';
 import { emptyAggregate } from '../../src/sim/pairing';
 import {
   acquisitionEquivalentClasses, completeAcquisitionEvidenceKey, stratifiedOpponentSchedule,
-  summarizeLotteryAcquisitions, validateFullCandidateEvidence
+  summarizeEquilibriumWeightedCells, summarizeLotteryAcquisitions, validateFullCandidateEvidence
 } from '../../src/sim/lotteryAcquisition';
 import type { FullCandidateEvidence } from '../../src/sim/lotteryAcquisition';
 import { fixedBuyPlan, identify } from '../../src/sim/strategy';
@@ -23,6 +23,14 @@ function equilibrium(): EquilibriumResult {
 }
 
 describe('lottery acquisition evidence', () => {
+  it('applies opponent and acting weights to complete telemetry cells', () => {
+    const summary = summarizeEquilibriumWeightedCells({ strategyIds: ['a', 'b'], weights: { a: 0.75, b: 0.25 },
+      cells: { a: { a: { card: 0.2 }, b: { card: 0.4 } }, b: { a: { card: 0.8 }, b: { card: 0.6 } } } });
+    expect(summary.byActingStrategy.a?.card).toBeCloseTo(0.25, 12);
+    expect(summary.byActingStrategy.b?.card).toBeCloseTo(0.75, 12);
+    expect(summary.expected.card).toBeCloseTo(0.375, 12);
+  });
+
   it('rejects wrong schedules and corrupt complete telemetry', () => {
     const held = evidence();
     for (const first of ['firstOchre', 'firstIndigo'] as const) {

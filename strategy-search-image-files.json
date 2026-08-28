@@ -13,6 +13,7 @@
   "rust/goldfish/src/matrix.rs",
   "rust/goldfish/src/psro.rs",
   "rust/goldfish/src/reservoir.rs",
+  "rust/goldfish/src/self_play.rs",
   "rust/rust-toolchain.toml",
   "scripts/strategy_search_campaign_matrix.ts",
   "scripts/strategy_search_campaign_matrix_manifest.ts",

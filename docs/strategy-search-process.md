@@ -55,11 +55,14 @@ The reservoir is the candidate set for competitive search. A high Goldfish rank 
 A game matrix records how each selected strategy performs against every other selected strategy.
 
 1. Take the top 50 strategies from the reservoir.
-2. Play the 1,225 off-diagonal unordered pairs. Do not run diagonal self-play; set each diagonal matrix score to 50%.
+2. Play the 1,225 off-diagonal unordered pairs. Set each diagonal payoff score to 50%.
 3. For each pair, use 125 fixed shuffle seeds. Play twice per seed so that each strategy goes first once.
-4. Record the results and gameplay evidence for each off-diagonal pairing.
-5. Use the first 75 seeds to calculate the initial equilibrium.
-6. Keep seeds 76–100 as a depth check and seeds 101–125 as independent evidence for later analysis.
+4. Record pair scores, purchases, and played-card family damage for each off-diagonal pairing.
+5. Play each strategy against itself with the same 125 seeds and both player positions. Record 500 player sides per strategy in `self-play-v1.hst`. These games supply telemetry only and do not change the fixed 50% payoff diagonal.
+6. Use the first 75 seeds to calculate the initial equilibrium.
+7. Keep seeds 76–100 as a depth check and seeds 101–125 as independent evidence for later analysis.
+
+The versioned HST file binds its rows to the reservoir CRC, the three HGM row CRCs, the Matrix generation, and the rule fingerprint. It stores first-player and second-player purchase and family-damage counts separately. Each position has 250 player sides. A report adds both position totals and divides by 500.
 
 The equilibrium is a weighted lottery over strategies. Its weights describe how often each strategy should be selected when no strategy in the current matrix has an advantage over the lottery.
 
@@ -104,7 +107,7 @@ Rust uses the fixed betting mixture, 21 bisection steps, and `libm` logarithm an
 
 Rust orders confirmed responses by higher lower bound, higher mean, higher upper bound, better Goldfish rank, and lower strategy number. It admits only the first response.
 
-For each admission, Rust plays all 125 matrix shuffles against every current matrix strategy, stores both purchase and family-damage evidence, adds the new row and column, rebuilds percentages from shuffles 1 through 75, and runs the same maximum-support solver as the initial matrix step. It then retests the remaining queue against the new equilibrium with fresh confirmation schedules. The process repeats until the queue is empty.
+For each admission, Rust plays all 125 matrix shuffles against every current matrix strategy, stores both purchase and family-damage evidence, adds the new row and column, rebuilds percentages from shuffles 1 through 75, and runs the same maximum-support solver as the initial matrix step. Rust also adds one same-strategy HST row for the admitted strategy. This telemetry does not enter the payoff or solver. Rust then retests the remaining queue against the new equilibrium with fresh confirmation schedules. The process repeats until the queue is empty.
 
 An admission resets the clean-search count. The process then starts another full reservoir search.
 
@@ -134,3 +137,5 @@ When done, save enough evidence to reproduce and inspect every scientific decisi
 - gameplay evidence used for card-balance analysis.
 
 Validate these files before the campaign is complete. Download the validated evidence, then produce balance reports and comparisons locally. Reporting does not change the strategy search or its completion result.
+
+For a completed evidence set that predates HST, run `npm run strategy-search:self-play-backfill` locally. The command verifies the old evidence, creates only the missing same-strategy telemetry, and then runs strict verification. It never reruns Goldfish, off-diagonal Matrix games, or PSRO.

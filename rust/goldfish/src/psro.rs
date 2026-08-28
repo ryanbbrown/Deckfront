@@ -7,6 +7,7 @@ use crate::reservoir::{
     DecodedStrategy, LoadedKingdom, ReservoirSelection, VerifiedReservoir, decode_strategy,
     load_kingdom, read_verified_reservoir,
 };
+use crate::self_play::{self, SelfPlayRow};
 use crate::stable_hash_value;
 use rayon::prelude::*;
 use serde::Serialize;
@@ -895,6 +896,7 @@ struct Runtime {
     handshake: bool,
     games: u64,
     transitions: Vec<TransitionTiming>,
+    self_play_rows: Vec<SelfPlayRow>,
 }
 
 #[derive(Serialize)]
@@ -1490,7 +1492,7 @@ fn parse_admission(payload: &[u8], card_count: usize) -> Result<ParsedAdmission,
     })
 }
 
-fn expanded_files(runtime: &Runtime, state: &State) -> Result<(), String> {
+fn expanded_files(runtime: &mut Runtime, state: &State) -> Result<(), String> {
     let numbers = &state.matrix_numbers;
     let (percentages, weights) = matrix::matrix_values(&runtime.matrix, numbers)?;
     if weights
@@ -1541,6 +1543,101 @@ fn expanded_files(runtime: &Runtime, state: &State) -> Result<(), String> {
         let temporary = runtime.out.join(format!("{}.tmp", names[index]));
         write_synced(&temporary, &bytes)?;
     }
+    let self_play_source = matrix::self_play_source(
+        runtime.source.reservoir_crc,
+        [
+            matrix::crc32(&pair_rows),
+            matrix::crc32(&purchase_rows),
+            matrix::crc32(&matrix_rows),
+        ],
+        state.generation,
+        &runtime.source.fingerprint,
+    );
+    let self_play_path = runtime.out.join(self_play::FILE_NAME);
+    let selected_rows = if self_play_path.exists() {
+        match self_play::read(
+            &self_play_path,
+            numbers,
+            runtime.source.card_count,
+            &self_play_source,
+        ) {
+            Ok(rows) => Some(rows),
+            Err(current_error) => {
+                let old_numbers = runtime
+                    .self_play_rows
+                    .iter()
+                    .map(|row| row.number)
+                    .collect::<Vec<_>>();
+                if old_numbers.len() + 1 != numbers.len() || state.generation == 0 {
+                    return Err(current_error);
+                }
+                let row_crc = |name: &str| -> Result<u32, String> {
+                    let bytes = fs::read(runtime.out.join(name))
+                        .map_err(|error| format!("read prior {name}: {error}"))?;
+                    bytes
+                        .get(24..28)
+                        .map(|held| u32::from_le_bytes(held.try_into().expect("row CRC")))
+                        .ok_or_else(|| format!("prior {name} header ends early"))
+                };
+                let old_source = matrix::self_play_source(
+                    runtime.source.reservoir_crc,
+                    [
+                        row_crc("pairs.hgm")?,
+                        row_crc("purchases.hgm")?,
+                        row_crc("matrix.hgm")?,
+                    ],
+                    state.generation - 1,
+                    &runtime.source.fingerprint,
+                );
+                let old_rows = self_play::read(
+                    &self_play_path,
+                    &old_numbers,
+                    runtime.source.card_count,
+                    &old_source,
+                )?;
+                if old_rows != runtime.self_play_rows {
+                    return Err("prior expanded self-play rows differ from retained rows".into());
+                }
+                None
+            }
+        }
+    } else {
+        None
+    };
+    if let Some(rows) = selected_rows {
+        runtime.self_play_rows = rows;
+    } else {
+        let retained = runtime
+            .self_play_rows
+            .iter()
+            .map(|row| (row.number, row.clone()))
+            .collect::<HashMap<_, _>>();
+        let missing = numbers
+            .iter()
+            .filter(|number| !retained.contains_key(number))
+            .map(|number| decode_strategy(&runtime.kingdom, *number))
+            .collect::<Result<Vec<_>, _>>()?;
+        let scored = self_play::play_rows(&runtime.kingdom.kingdom, &missing, &runtime.pool);
+        let combined = retained
+            .into_iter()
+            .chain(scored.into_iter().map(|row| (row.number, row)))
+            .collect::<HashMap<_, _>>();
+        runtime.self_play_rows = numbers
+            .iter()
+            .map(|number| {
+                combined
+                    .get(number)
+                    .cloned()
+                    .ok_or_else(|| format!("missing self-play row for strategy {number}"))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+    }
+    let self_play_tmp = self_play::write_temporary(
+        &self_play_path,
+        &runtime.self_play_rows,
+        runtime.source.card_count,
+        &self_play_source,
+    )?;
     let selection = ReservoirSelection {
         source_checksum: runtime.source.reservoir_crc,
         numbers: numbers.clone(),
@@ -1554,7 +1651,7 @@ fn expanded_files(runtime: &Runtime, state: &State) -> Result<(), String> {
         &runtime.out.join("purchases.hgm.tmp"),
         &runtime.out.join("matrix.hgm.tmp"),
     )?;
-    for name in names {
+    for name in ["pairs.hgm", "purchases.hgm"] {
         fs::rename(
             runtime.out.join(format!("{name}.tmp")),
             runtime.out.join(name),
@@ -1562,6 +1659,13 @@ fn expanded_files(runtime: &Runtime, state: &State) -> Result<(), String> {
         .map_err(|error| format!("publish expanded {name}: {error}"))?;
         sync_parent(&runtime.out.join(name))?;
     }
+    self_play::publish_temporary(&self_play_tmp, &self_play_path)?;
+    fs::rename(
+        runtime.out.join("matrix.hgm.tmp"),
+        runtime.out.join("matrix.hgm"),
+    )
+    .map_err(|error| format!("publish expanded matrix.hgm: {error}"))?;
+    sync_parent(&runtime.out.join("matrix.hgm"))?;
     Ok(())
 }
 
@@ -2474,7 +2578,10 @@ fn parse_options(command: &str, args: &[String]) -> Result<Options, String> {
                 options.matrix_dir = Some(value.into())
             }
             "--out" if options.out.is_none() => options.out = Some(value.into()),
-            "--threads" if command == "psro" && options.threads.is_none() => {
+            "--threads"
+                if matches!(command, "psro" | "self-play-backfill")
+                    && options.threads.is_none() =>
+            {
                 options.threads = Some(value.parse().map_err(|_| "--threads must be positive")?)
             }
             "--report" if command == "psro" && options.report.is_none() => {
@@ -2508,8 +2615,8 @@ fn parse_options(command: &str, args: &[String]) -> Result<Options, String> {
             "{command} requires --kingdom, --top-file, --reservoir, --matrix-dir, and --out"
         ));
     }
-    if command == "psro" && options.threads.unwrap_or(0) == 0 {
-        return Err("psro requires positive --threads".into());
+    if matches!(command, "psro" | "self-play-backfill") && options.threads.unwrap_or(0) == 0 {
+        return Err(format!("{command} requires positive --threads"));
     }
     if options.matrix_size.is_some() != options.candidate_limit.is_some() {
         return Err("--matrix-size and --candidate-limit must be explicit together".into());
@@ -2543,6 +2650,7 @@ fn prepare(
     options: &Options,
     threads: usize,
     repair_expanded: bool,
+    require_self_play: bool,
 ) -> Result<(Runtime, State, bool), String> {
     let kingdom = load_kingdom(options.kingdom.as_deref().expect("kingdom"))?;
     let matrix_size = options.matrix_size.unwrap_or(PRODUCTION_MATRIX_SIZE);
@@ -2589,6 +2697,32 @@ fn prepare(
         .chain(FIRST_MATRIX_SEED..=LAST_MATRIX_SEED)
         .collect::<HashSet<_>>();
     let handshake = std::env::var_os("HEXDECK_PSRO_HANDSHAKE").is_some();
+    let initial_self_play_path = options
+        .matrix_dir
+        .as_deref()
+        .expect("matrix dir")
+        .join(self_play::FILE_NAME);
+    let initial_self_play_source = matrix::self_play_source(
+        reservoir.row_checksum,
+        matrix_evidence.row_crcs,
+        0,
+        &kingdom.fingerprint,
+    );
+    let initial_self_play_rows = if initial_self_play_path.exists() {
+        self_play::read(
+            &initial_self_play_path,
+            &initial_numbers,
+            kingdom.all_card_ids.len(),
+            &initial_self_play_source,
+        )?
+    } else if require_self_play {
+        return Err(format!(
+            "missing required self-play evidence {}",
+            initial_self_play_path.display()
+        ));
+    } else {
+        Vec::new()
+    };
     let initial_pairs = matrix_evidence.pairs;
     let mut runtime = Runtime {
         kingdom,
@@ -2606,6 +2740,7 @@ fn prepare(
         handshake,
         games: 0,
         transitions: Vec::new(),
+        self_play_rows: initial_self_play_rows,
     };
     let existing = read_checkpoint(&runtime.out, &runtime.source)?;
     let resumed = existing.is_some();
@@ -2747,20 +2882,51 @@ fn prepare(
                     numbers: state.matrix_numbers.clone(),
                     bytes: 0,
                 };
-                matrix::verify_files(
+                let evidence = matrix::load_matrix_evidence(
                     &runtime.kingdom,
                     &selection,
                     state.matrix_numbers.len(),
-                    &expanded[0],
-                    &expanded[1],
-                    &expanded[2],
+                    &runtime.out,
                 )?;
+                let self_play_path = runtime.out.join(self_play::FILE_NAME);
+                if self_play_path.exists() {
+                    runtime.self_play_rows = self_play::read(
+                        &self_play_path,
+                        &state.matrix_numbers,
+                        runtime.source.card_count,
+                        &matrix::self_play_source(
+                            runtime.source.reservoir_crc,
+                            evidence.row_crcs,
+                            state.generation,
+                            &runtime.source.fingerprint,
+                        ),
+                    )?;
+                } else if repair_expanded {
+                    expanded_files(&mut runtime, &state)?;
+                } else if require_self_play {
+                    return Err(format!(
+                        "missing required self-play evidence {}",
+                        self_play_path.display()
+                    ));
+                }
             } else if repair_expanded {
-                expanded_files(&runtime, &state)?;
+                expanded_files(&mut runtime, &state)?;
             } else {
                 return Err("expanded matrix files are incomplete".into());
             }
         }
+    }
+    if !runtime.self_play_rows.is_empty() {
+        let strategies = state
+            .matrix_numbers
+            .iter()
+            .map(|number| decode_strategy(&runtime.kingdom, *number))
+            .collect::<Result<Vec<_>, _>>()?;
+        self_play::verify_strategy_bounds(
+            &runtime.self_play_rows,
+            &strategies,
+            &runtime.kingdom.all_card_ids,
+        )?;
     }
     Ok((runtime, state, resumed))
 }
@@ -2789,7 +2955,7 @@ fn run_psro(options: Options) -> Result<(), String> {
     {
         return Err("PSRO --report must name a .json file outside binary evidence".into());
     }
-    let (mut runtime, mut state, mut resumed) = prepare(&options, threads, true)?;
+    let (mut runtime, mut state, mut resumed) = prepare(&options, threads, true, true)?;
     if !state.complete {
         if !resumed {
             write_checkpoint(&runtime.out, &runtime.source, &state, runtime.handshake)?;
@@ -3139,11 +3305,142 @@ fn verify_complete(runtime: &Runtime, state: &State) -> Result<(), String> {
 }
 
 fn run_verify(options: Options) -> Result<(), String> {
-    let (runtime, state, _) = prepare(&options, 1, false)?;
+    let (runtime, state, _) = prepare(&options, 1, false, true)?;
     verify_complete(&runtime, &state)?;
     println!(
         "{}",
         serde_json::json!({"command":"psro-verify","valid":true,"searches":state.search,"admissions":state.admissions,"matrixSize":state.matrix_numbers.len()})
+    );
+    Ok(())
+}
+
+fn run_self_play_backfill(options: Options) -> Result<(), String> {
+    let threads = options.threads.expect("backfill threads");
+    let (mut runtime, state, _) = prepare(&options, threads, false, false)?;
+    verify_complete(&runtime, &state)?;
+    let initial_numbers = runtime.reservoir.numbers[..runtime.initial_count].to_vec();
+    let initial_path = options
+        .matrix_dir
+        .as_deref()
+        .expect("matrix dir")
+        .join(self_play::FILE_NAME);
+    let initial_source = matrix::self_play_source(
+        runtime.source.reservoir_crc,
+        [
+            runtime.source.pairs_crc,
+            runtime.source.purchases_crc,
+            runtime.source.matrix_crc,
+        ],
+        0,
+        &runtime.source.fingerprint,
+    );
+    let mut scored = 0usize;
+    let initial_rows = if initial_path.exists() {
+        self_play::read(
+            &initial_path,
+            &initial_numbers,
+            runtime.source.card_count,
+            &initial_source,
+        )?
+    } else {
+        let strategies = initial_numbers
+            .iter()
+            .map(|number| decode_strategy(&runtime.kingdom, *number))
+            .collect::<Result<Vec<_>, _>>()?;
+        let rows = self_play::play_rows(&runtime.kingdom.kingdom, &strategies, &runtime.pool);
+        self_play::write_atomic(
+            &initial_path,
+            &rows,
+            runtime.source.card_count,
+            &initial_source,
+        )?;
+        scored += rows.len();
+        rows
+    };
+    runtime.self_play_rows = initial_rows;
+
+    let mut final_path = initial_path.clone();
+    if state.admissions > 0 {
+        let selection = ReservoirSelection {
+            source_checksum: runtime.source.reservoir_crc,
+            numbers: state.matrix_numbers.clone(),
+            bytes: 0,
+        };
+        let final_matrix = matrix::load_matrix_evidence(
+            &runtime.kingdom,
+            &selection,
+            state.matrix_numbers.len(),
+            &runtime.out,
+        )?;
+        let final_source = matrix::self_play_source(
+            runtime.source.reservoir_crc,
+            final_matrix.row_crcs,
+            state.generation,
+            &runtime.source.fingerprint,
+        );
+        final_path = runtime.out.join(self_play::FILE_NAME);
+        if final_path.exists() {
+            runtime.self_play_rows = self_play::read(
+                &final_path,
+                &state.matrix_numbers,
+                runtime.source.card_count,
+                &final_source,
+            )?;
+        } else {
+            let retained = runtime
+                .self_play_rows
+                .iter()
+                .map(|row| (row.number, row.clone()))
+                .collect::<HashMap<_, _>>();
+            let missing = state
+                .matrix_numbers
+                .iter()
+                .filter(|number| !retained.contains_key(number))
+                .map(|number| decode_strategy(&runtime.kingdom, *number))
+                .collect::<Result<Vec<_>, _>>()?;
+            let added = self_play::play_rows(&runtime.kingdom.kingdom, &missing, &runtime.pool);
+            scored += added.len();
+            let combined = retained
+                .into_iter()
+                .chain(added.into_iter().map(|row| (row.number, row)))
+                .collect::<HashMap<_, _>>();
+            runtime.self_play_rows = state
+                .matrix_numbers
+                .iter()
+                .map(|number| {
+                    combined
+                        .get(number)
+                        .cloned()
+                        .ok_or_else(|| format!("missing self-play row for strategy {number}"))
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            self_play::write_atomic(
+                &final_path,
+                &runtime.self_play_rows,
+                runtime.source.card_count,
+                &final_source,
+            )?;
+        }
+    }
+    let initial_bytes = fs::metadata(&initial_path)
+        .map_err(|error| format!("read {} metadata: {error}", initial_path.display()))?
+        .len();
+    let final_bytes = fs::metadata(&final_path)
+        .map_err(|error| format!("read {} metadata: {error}", final_path.display()))?
+        .len();
+    println!(
+        "{}",
+        serde_json::json!({
+            "command": "self-play-backfill",
+            "valid": true,
+            "kingdomId": runtime.kingdom.id,
+            "initialStrategyCount": runtime.initial_count,
+            "finalStrategyCount": state.matrix_numbers.len(),
+            "scoredStrategyCount": scored,
+            "gameCount": scored * 250,
+            "initialBytes": initial_bytes,
+            "finalBytes": final_bytes,
+        })
     );
     Ok(())
 }
@@ -3153,6 +3450,7 @@ pub(crate) fn run(command: &str, args: &[String]) -> Result<(), String> {
     match command {
         "psro" => run_psro(options),
         "psro-verify" => run_verify(options),
+        "self-play-backfill" => run_self_play_backfill(options),
         _ => Err(format!("unknown PSRO command {command}")),
     }
 }

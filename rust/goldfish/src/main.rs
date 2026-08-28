@@ -8,6 +8,7 @@ mod kernel;
 mod matrix;
 mod psro;
 mod reservoir;
+mod self_play;
 
 const PROTOCOL_VERSION: u32 = 1;
 const SCORER_VERSION: &str = "native-goldfish-v1";
@@ -151,7 +152,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return matrix::run(command, &args[1..])
             .map_err(|message| io::Error::other(message).into());
     }
-    if let Some(command @ ("psro" | "psro-verify")) = args.first().map(String::as_str) {
+    if let Some(command @ ("psro" | "psro-verify" | "self-play-backfill")) =
+        args.first().map(String::as_str)
+    {
         return psro::run(command, &args[1..]).map_err(|message| io::Error::other(message).into());
     }
     if let Some(command) = args.first().filter(|value| !value.starts_with("--")) {

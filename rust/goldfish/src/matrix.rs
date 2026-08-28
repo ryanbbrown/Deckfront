@@ -4,6 +4,7 @@ use crate::reservoir::{
     DecodedStrategy, LoadedKingdom, ReservoirSelection, decode_strategy, load_kingdom,
     read_reservoir_selection,
 };
+use crate::self_play::{self, Source as SelfPlaySource};
 use rayon::prelude::*;
 use serde::Serialize;
 use std::fs;
@@ -487,6 +488,22 @@ pub(crate) struct MatrixEvidence {
     pub(crate) row_crcs: [u32; 3],
 }
 
+pub(crate) fn self_play_source(
+    reservoir_crc: u32,
+    row_crcs: [u32; 3],
+    generation: u32,
+    fingerprint: &str,
+) -> SelfPlaySource {
+    SelfPlaySource {
+        reservoir_crc,
+        pairs_crc: row_crcs[0],
+        purchases_crc: row_crcs[1],
+        matrix_crc: row_crcs[2],
+        generation,
+        fingerprint: fingerprint.to_owned(),
+    }
+}
+
 pub(crate) fn load_matrix_evidence(
     kingdom: &LoadedKingdom,
     reservoir: &ReservoirSelection,
@@ -707,7 +724,12 @@ fn reject_evidence_report_path(out: &Path, report: Option<&Path>) -> Result<(), 
         return Ok(());
     };
     let report = resolve_path(report)?;
-    for name in ["pairs.hgm", "purchases.hgm", "matrix.hgm"] {
+    for name in [
+        "pairs.hgm",
+        "purchases.hgm",
+        "matrix.hgm",
+        self_play::FILE_NAME,
+    ] {
         if report == resolve_path(&out.join(name))? {
             return Err(format!("--report must not resolve to {name} under --out"));
         }
@@ -797,6 +819,26 @@ fn run_matrix(options: Options, explicit_top: bool) -> Result<(), String> {
     );
     let matrix_write_started = Instant::now();
     bytes_written += write_file(&matrix_tmp, &matrix_header, &rows)?;
+    let self_play_rows = self_play::play_rows(&kingdom.kingdom, &strategies, &pool);
+    let self_play_path = out.join(self_play::FILE_NAME);
+    let self_play_tmp = self_play::write_temporary(
+        &self_play_path,
+        &self_play_rows,
+        kingdom.all_card_ids.len(),
+        &self_play_source(
+            reservoir.source_checksum,
+            [
+                pair_header.row_crc,
+                purchase_header.row_crc,
+                matrix_header.row_crc,
+            ],
+            0,
+            &kingdom.fingerprint,
+        ),
+    )?;
+    bytes_written += fs::metadata(&self_play_tmp)
+        .map_err(|error| format!("read self-play output size: {error}"))?
+        .len() as usize;
     write_ms += elapsed_ms(matrix_write_started);
 
     let verify_started = Instant::now();
@@ -813,6 +855,7 @@ fn run_matrix(options: Options, explicit_top: bool) -> Result<(), String> {
         .map_err(|error| format!("publish pairs file: {error}"))?;
     fs::rename(&purchases_tmp, out.join("purchases.hgm"))
         .map_err(|error| format!("publish purchases file: {error}"))?;
+    self_play::publish_temporary(&self_play_tmp, &self_play_path)?;
     fs::rename(&matrix_tmp, out.join("matrix.hgm"))
         .map_err(|error| format!("publish matrix file: {error}"))?;
 
@@ -876,6 +919,24 @@ fn run_verify(options: Options, explicit_top: bool) -> Result<(), String> {
         &out.join("purchases.hgm"),
         &out.join("matrix.hgm"),
     )?;
+    let evidence = load_matrix_evidence(&kingdom, &reservoir, top, &out)?;
+    let self_play_rows = self_play::read(
+        &out.join(self_play::FILE_NAME),
+        &reservoir.numbers,
+        kingdom.all_card_ids.len(),
+        &self_play_source(
+            reservoir.source_checksum,
+            evidence.row_crcs,
+            0,
+            &kingdom.fingerprint,
+        ),
+    )?;
+    let strategies = reservoir
+        .numbers
+        .iter()
+        .map(|number| decode_strategy(&kingdom, *number))
+        .collect::<Result<Vec<_>, _>>()?;
+    self_play::verify_strategy_bounds(&self_play_rows, &strategies, &kingdom.all_card_ids)?;
     println!(
         "{}",
         serde_json::json!({"command": "matrix-verify", "strategyCount": top})

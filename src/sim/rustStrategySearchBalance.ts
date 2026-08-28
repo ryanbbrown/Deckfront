@@ -1,18 +1,21 @@
 import { cardDefinition } from '../game';
 import { SUPPORT_TOLERANCE, equilibriumGroupWeightRange } from './equilibrium';
+import { summarizeEquilibriumWeightedCells } from './lotteryAcquisition';
 import { classifyStrategyDamage } from './strategyDamage';
 import { compareUtf16 } from './utf16';
 import type {
   RustDamageFamily, RustPairEvidence, RustStrategySearchKingdomEvidence
 } from './rustStrategySearchEvidence';
 
-export const RUST_BALANCE_ANALYSIS_SCHEMA_VERSION = 1;
-export const RUST_BALANCE_ANALYSIS_PROTOCOL = 'rust-strategy-search-balance-v1';
+export const RUST_BALANCE_ANALYSIS_SCHEMA_VERSION = 2;
+export const RUST_BALANCE_ANALYSIS_PROTOCOL = 'rust-strategy-search-balance-v2';
 export const RUST_DAMAGE_FAMILIES: readonly RustDamageFamily[] = ['treasure', 'mana', 'melee', 'ranged', 'engine'];
+const TELEMETRY_BASIS = 'stored equilibrium lottery versus itself; diagonal included; rates are per player side' as const;
+const AUDIT_BASIS = 'unweighted full-Matrix observed counts' as const;
 
 export interface RustStrategySearchExecutionProvenance {
   ordinal: number;
-  stage: 'goldfish' | 'matrix' | 'psro';
+  stage: 'goldfish' | 'matrix' | 'psro' | 'self-play-telemetry';
   coveredKingdomIds: string[];
   gitCommit?: string;
   sourceDigest?: string;
@@ -22,19 +25,23 @@ export interface RustStrategySearchExecutionProvenance {
   binarySha256UnavailableReason?: string;
 }
 
-export interface RustStrategySearchSourceProvenanceV1 {
-  schemaVersion: 1;
-  protocol: 'rust-strategy-search-source-provenance-v1';
+export interface RustStrategySearchSourceProvenanceV2 {
+  schemaVersion: 2;
+  protocol: 'rust-strategy-search-source-provenance-v2';
   kingdomIds: string[];
-  scientificImplementationCommits: { goldfish: string; matrix: string; psro: string };
-  currentReleaseBinaries: { matrixSha256: string; psroSha256: string };
+  scientificImplementationCommits: { goldfish: string; matrix: string; psro: string; selfPlayTelemetry: string };
+  currentVerifierAndBackfillBinarySha256: string;
   executions: RustStrategySearchExecutionProvenance[];
   provenanceFileSha256?: string;
   verifierBinarySha256?: string;
 }
 
 export interface RustBalanceEvidenceLimits {
-  diagonalSelfPlay: { available: false; matrixPayoff: 'fixed-50-percent'; purchases: 'absent'; familyDamage: 'absent' };
+  matrixDiagonal: {
+    payoff: 'fixed-50-percent';
+    sameStrategyTelemetry: 'available-separate-from-payoff';
+    playerSidesPerStrategy: 500;
+  };
   pairedPointByteTwo: { exactWinDrawLossAvailable: false; meaning: 'one-win-one-loss-or-two-draws' };
   exactFirstPlayerWinRateAvailable: false;
   cardPlayCountsAvailable: false;
@@ -55,10 +62,8 @@ export interface RustStrategyBalanceRow {
   archetype: string;
   startingBuild: string[];
   buySteps: Array<{ cardId: string; desiredCount: number }>;
-  offDiagonalOpponentCount: number;
-  playerGames: number;
-  purchases: Array<{ cardId: string; copies: number; copiesPerPlayerGame: number }>;
-  familyDamage: Array<{ family: RustDamageFamily; damage: number; damagePerPlayerGame: number; share: number }>;
+  equilibriumOpponentAcquisitions: Array<{ cardId: string; copiesPerPlayerSide: number }>;
+  equilibriumOpponentFamilyDamage: Array<{ family: RustDamageFamily; damagePerPlayerSide: number; share: number }>;
 }
 
 export interface RustArchetypeBalanceRow {
@@ -68,6 +73,23 @@ export interface RustArchetypeBalanceRow {
   minimumFeasibleShare: number;
   maximumFeasibleShare: number;
   rangeWidth: number;
+}
+
+export interface RustAuditStrategyTelemetry {
+  strategyNumber: number;
+  offDiagonal: {
+    opponentCount: number;
+    playerSides: number;
+    purchases: Array<{ cardId: string; copies: number }>;
+    familyDamage: Array<{ family: RustDamageFamily; damage: number }>;
+  };
+  diagonal: {
+    playerSides: 500;
+    firstPlayerSides: 250;
+    secondPlayerSides: 250;
+    purchases: Array<{ cardId: string; copies: number }>;
+    familyDamage: Array<{ family: RustDamageFamily; damage: number }>;
+  };
 }
 
 export interface RustKingdomBalanceAnalysis {
@@ -89,6 +111,7 @@ export interface RustKingdomBalanceAnalysis {
     effectiveSize: number;
     maximumAdvantage: number;
   };
+  telemetryBasis: typeof TELEMETRY_BASIS;
   strategies: RustStrategyBalanceRow[];
   archetypes: RustArchetypeBalanceRow[];
   pairedScoreEvidence: {
@@ -102,21 +125,19 @@ export interface RustKingdomBalanceAnalysis {
   };
   cards: Array<{
     cardId: string;
-    totalCopies: number;
-    playerGames: number;
-    copiesPerPlayerGame: number;
-    strategiesWithPurchases: number;
-    selectedStrategyUniformOffDiagonalOpponentCopiesPerPlayerGame: number;
-    evidenceBasis: 'off-diagonal-full-matrix-acquisitions';
+    equilibriumAcquisitionRate: number;
+    equilibriumSelectionRate: number;
+    equilibriumMeanOwnedCopies: number;
+    expectedAcquiredCopiesPerPlayerSide: number;
+    evidenceBasis: typeof TELEMETRY_BASIS;
   }>;
   familyDamage: Array<{
     family: RustDamageFamily;
-    totalDamage: number;
-    playerGames: number;
-    damagePerPlayerGame: number;
+    expectedDamagePerPlayerSide: number;
     share: number;
-    selectedStrategyUniformOffDiagonalOpponentDamagePerPlayerGame: number;
+    evidenceBasis: typeof TELEMETRY_BASIS;
   }>;
+  auditTelemetry: { basis: typeof AUDIT_BASIS; strategies: RustAuditStrategyTelemetry[] };
   evidenceLimits: RustBalanceEvidenceLimits;
   sourceFiles: RustStrategySearchKingdomEvidence['sourceFiles'];
   evidenceSetSha256: string;
@@ -131,18 +152,17 @@ export interface DistributionSummary {
 }
 
 export interface RustCrossKingdomBalanceAnalysis {
+  telemetryBasis: typeof TELEMETRY_BASIS;
   archetypes: Array<{ archetype: string; selectedShare: number; meanMinimumFeasibleShare: number;
     meanMaximumFeasibleShare: number; selectedKingdomCount: number; materialKingdomCount: number;
     feasibleKingdomCount: number }>;
   supportSize: DistributionSummary;
   effectiveSize: DistributionSummary;
   cards: Array<{ cardId: string; offeredKingdomCount: number; positiveUsageKingdomCount: number;
-    totalCopies: number; playerGames: number; copiesPerPlayerGame: number;
-    meanOfferingKingdomCopiesPerPlayerGame: number;
-    meanSelectedStrategyUniformOffDiagonalOpponentCopiesPerPlayerGame: number }>;
-  familyDamage: Array<{ family: RustDamageFamily; totalDamage: number; playerGames: number;
-    damagePerPlayerGame: number; meanKingdomShare: number;
-    meanSelectedStrategyUniformOffDiagonalOpponentDamagePerPlayerGame: number }>;
+    meanEquilibriumAcquisitionRate: number; meanEquilibriumSelectionRate: number;
+    meanEquilibriumOwnedCopies: number; meanExpectedAcquiredCopiesPerPlayerSide: number }>;
+  familyDamage: Array<{ family: RustDamageFamily; meanExpectedDamagePerPlayerSide: number;
+    meanKingdomShare: number }>;
   pairedScoreEvidence: { byteCounts: [number, number, number, number, number]; byteTwoShare: number;
     maximumAbsoluteSkew75: number; maximumAbsoluteSkew125: number };
 }
@@ -164,14 +184,13 @@ export interface RustBalanceOutliers {
   lowestEffectiveSize: RustBalanceOutlierEntry[];
   highestEffectiveSize: RustBalanceOutlierEntry[];
   pointByteTwoShare: RustBalanceOutlierEntry[];
-  cardCopiesPerPlayerGame: RustBalanceOutlierEntry[];
-  familyDamagePerPlayerGame: RustBalanceOutlierEntry[];
-  telemetryWeightingDifference: RustBalanceOutlierEntry[];
+  equilibriumCardCopiesPerPlayerSide: RustBalanceOutlierEntry[];
+  equilibriumFamilyDamagePerPlayerSide: RustBalanceOutlierEntry[];
 }
 
-export interface RustBalanceAnalysisV1 {
-  schemaVersion: 1;
-  protocol: 'rust-strategy-search-balance-v1';
+export interface RustBalanceAnalysisV2 {
+  schemaVersion: 2;
+  protocol: 'rust-strategy-search-balance-v2';
   scope: {
     suiteId: 'balance-smoke-v1';
     sourceSuiteId: 'balance-suite-v4';
@@ -179,20 +198,22 @@ export interface RustBalanceAnalysisV1 {
     kingdomCount: number;
     payoffSeedCount: 75;
     telemetrySeedCount: 125;
-    gamesPerPair: 250;
-    pairPolicy: 'off-diagonal-upper-triangle';
+    gamesPerOffDiagonalPair: 250;
+    playerSidesPerDiagonalStrategy: 500;
+    telemetryPolicy: 'full-ordered-matrix-including-diagonal';
     kingdomWeighting: 'equal';
-    evidenceBases: ['off-diagonal-full-matrix-acquisitions', 'played-card-family-damage', 'paired-game-score-only'];
+    evidenceBases: [typeof TELEMETRY_BASIS, 'paired-game-score-only', typeof AUDIT_BASIS];
   };
   evidenceLimits: RustBalanceEvidenceLimits;
-  provenance: RustStrategySearchSourceProvenanceV1;
+  provenance: RustStrategySearchSourceProvenanceV2;
   kingdoms: RustKingdomBalanceAnalysis[];
   crossKingdom: RustCrossKingdomBalanceAnalysis;
   outliers: RustBalanceOutliers;
 }
 
 export const RUST_BALANCE_EVIDENCE_LIMITS: RustBalanceEvidenceLimits = Object.freeze({
-  diagonalSelfPlay: { available: false, matrixPayoff: 'fixed-50-percent', purchases: 'absent', familyDamage: 'absent' },
+  matrixDiagonal: { payoff: 'fixed-50-percent', sameStrategyTelemetry: 'available-separate-from-payoff',
+    playerSidesPerStrategy: 500 },
   pairedPointByteTwo: { exactWinDrawLossAvailable: false, meaning: 'one-win-one-loss-or-two-draws' },
   exactFirstPlayerWinRateAvailable: false, cardPlayCountsAvailable: false,
   perCardDamageAvailable: false, turnsToWinAvailable: false
@@ -218,56 +239,75 @@ function distribution(rows: readonly RustKingdomBalanceAnalysis[], value: (row: 
   const median = sorted.length % 2 ? sorted[middle]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
   return { minimum: sorted[0]!, median, mean: mean(sorted), maximum: sorted.at(-1)!, values };
 }
-function selectedTelemetry(strategyRows: readonly RustStrategyBalanceRow[], cardId: string): number {
-  return sum(strategyRows.map((strategy) => strategy.selectedWeight
-    * (strategy.purchases.find((card) => card.cardId === cardId)?.copiesPerPlayerGame ?? 0)));
-}
-function selectedFamilyTelemetry(strategyRows: readonly RustStrategyBalanceRow[], family: RustDamageFamily): number {
-  return sum(strategyRows.map((strategy) => strategy.selectedWeight
-    * (strategy.familyDamage.find((held) => held.family === family)?.damagePerPlayerGame ?? 0)));
+function countStarting(strategy: { startingBuild: readonly string[] }, cardId: string): number {
+  return strategy.startingBuild.filter((id) => id === cardId).length;
 }
 
 function buildKingdom(evidence: RustStrategySearchKingdomEvidence): RustKingdomBalanceAnalysis {
   const numbers = evidence.matrix.strategyNumbers, ids = numbers.map((number) => `gf-${number}`);
   const payoff = evidence.matrix.percentages.map((row) => row.map((value) => (value - 50) / 50));
-  const records = recordByStrategy(evidence), purchaseRows = new Map<number, typeof evidence.purchases>();
-  for (const row of evidence.purchases) purchaseRows.set(row.strategyNumber, [...(purchaseRows.get(row.strategyNumber) ?? []), row]);
-  const preliminary = numbers.map((number, index) => {
-    const record = records.get(number);
-    if (!record) throw new Error(`${evidence.kingdomId}: missing final strategy ${number}.`);
-    const rows = purchaseRows.get(number) ?? [], playerGames = rows.length * 250;
-    if (!rows.length || rows.length !== numbers.length - 1) throw new Error(`${evidence.kingdomId}: incomplete purchase rows for ${number}.`);
-    const cardTotals = Object.fromEntries(evidence.cardIds.map((cardId) => [cardId,
-      sum(rows.map((row) => row.purchases[cardId] ?? 0))]));
-    const familyTotals = Object.fromEntries(RUST_DAMAGE_FAMILIES.map((family) => [family,
-      sum(rows.map((row) => row.familyDamage[family]))])) as Record<RustDamageFamily, number>;
-    const damageTotal = sum(Object.values(familyTotals));
-    const acquisitionRates = Object.fromEntries(evidence.cardIds.map((cardId) => [cardId, cardTotals[cardId]! / playerGames]));
-    return { number, index, record, rows, playerGames, cardTotals, familyTotals,
-      archetype: classifyStrategyDamage({ startingBuild: record.strategy.startingBuild, acquisitionRates }), damageTotal };
-  });
-  const archetypeById = new Map(preliminary.map((row) => [`gf-${row.number}`, row.archetype]));
-  const strategies: RustStrategyBalanceRow[] = preliminary.map((row) => {
-    const selectedWeight = evidence.matrix.weights[row.index]!;
-    const selectedLotteryScorePercent = sum(evidence.matrix.percentages[row.index]!
+  const weights = Object.fromEntries(ids.map((id, index) => [id, evidence.matrix.weights[index]!]));
+  const records = recordByStrategy(evidence);
+  const purchaseByCell = new Map(evidence.purchases.map((row) => [`${row.strategyNumber}:${row.opponentNumber}`, row]));
+  const diagonal = new Map(evidence.selfPlay.map((row) => [row.strategyNumber, row]));
+  if (evidence.selfPlay.length !== numbers.length || diagonal.size !== numbers.length) {
+    throw new Error(`${evidence.kingdomId}: same-strategy telemetry does not cover the final Matrix.`);
+  }
+
+  const acquisitionCells: Record<string, Record<string, Record<string, number>>> = {};
+  const damageCells: Record<string, Record<string, Record<string, number>>> = {};
+  for (const [actingIndex, actingNumber] of numbers.entries()) {
+    const actingId = ids[actingIndex]!;
+    acquisitionCells[actingId] = {}; damageCells[actingId] = {};
+    for (const [opponentIndex, opponentNumber] of numbers.entries()) {
+      const opponentId = ids[opponentIndex]!;
+      if (actingNumber === opponentNumber) {
+        const row = diagonal.get(actingNumber)!;
+        acquisitionCells[actingId]![opponentId] = Object.fromEntries(evidence.cardIds.map((cardId) => [cardId,
+          ((row.firstPlayer.purchases[cardId] ?? 0) + (row.secondPlayer.purchases[cardId] ?? 0)) / 500]));
+        damageCells[actingId]![opponentId] = Object.fromEntries(RUST_DAMAGE_FAMILIES.map((family) => [family,
+          (row.firstPlayer.familyDamage[family] + row.secondPlayer.familyDamage[family]) / 500]));
+      } else {
+        const row = purchaseByCell.get(`${actingNumber}:${opponentNumber}`);
+        if (!row) throw new Error(`${evidence.kingdomId}: missing telemetry cell ${actingNumber},${opponentNumber}.`);
+        acquisitionCells[actingId]![opponentId] = Object.fromEntries(evidence.cardIds.map((cardId) =>
+          [cardId, (row.purchases[cardId] ?? 0) / row.playerGames]));
+        damageCells[actingId]![opponentId] = Object.fromEntries(RUST_DAMAGE_FAMILIES.map((family) =>
+          [family, row.familyDamage[family] / row.playerGames]));
+      }
+    }
+  }
+  const acquisitions = summarizeEquilibriumWeightedCells({ strategyIds: ids, weights, cells: acquisitionCells });
+  const damage = summarizeEquilibriumWeightedCells({ strategyIds: ids, weights, cells: damageCells });
+
+  const archetypeById = new Map(ids.map((id, index) => {
+    const record = records.get(numbers[index]!);
+    if (!record) throw new Error(`${evidence.kingdomId}: missing final strategy ${numbers[index]}.`);
+    return [id, classifyStrategyDamage({ startingBuild: record.strategy.startingBuild,
+      acquisitionRates: acquisitions.byActingStrategy[id] ?? {} })];
+  }));
+  const strategies: RustStrategyBalanceRow[] = numbers.map((number, index) => {
+    const id = ids[index]!, record = records.get(number)!;
+    const selectedWeight = evidence.matrix.weights[index]!;
+    const selectedLotteryScorePercent = sum(evidence.matrix.percentages[index]!
       .map((value, column) => value * evidence.matrix.weights[column]!));
-    const range = equilibriumGroupWeightRange(ids, payoff, 0, [`gf-${row.number}`]);
-    return { strategyNumber: row.number, strategyId: `gf-${row.number}`, goldfishRank: row.record.rank,
+    const familyRates = damage.byActingStrategy[id] ?? {};
+    const familyTotal = sum(RUST_DAMAGE_FAMILIES.map((family) => familyRates[family] ?? 0));
+    return { strategyNumber: number, strategyId: id, goldfishRank: record.rank,
       selectedWeight, supportMember: selectedWeight > SUPPORT_TOLERANCE, selectedLotteryScorePercent,
-      feasibleWeightRange: range, archetype: row.archetype, startingBuild: [...row.record.strategy.startingBuild],
-      buySteps: row.record.strategy.buyPlan.flatMap((slot) => slot.kind === 'buy'
+      feasibleWeightRange: equilibriumGroupWeightRange(ids, payoff, 0, [id]), archetype: archetypeById.get(id)!,
+      startingBuild: [...record.strategy.startingBuild], buySteps: record.strategy.buyPlan.flatMap((slot) => slot.kind === 'buy'
         ? [{ cardId: slot.cardId, desiredCount: slot.desiredCount }] : []),
-      offDiagonalOpponentCount: row.rows.length, playerGames: row.playerGames,
-      purchases: evidence.cardIds.map((cardId) => ({ cardId, copies: row.cardTotals[cardId]!,
-        copiesPerPlayerGame: row.cardTotals[cardId]! / row.playerGames })),
-      familyDamage: RUST_DAMAGE_FAMILIES.map((family) => ({ family, damage: row.familyTotals[family],
-        damagePerPlayerGame: row.familyTotals[family] / row.playerGames,
-        share: row.damageTotal ? row.familyTotals[family] / row.damageTotal : 0 })) };
+      equilibriumOpponentAcquisitions: evidence.cardIds.map((cardId) => ({ cardId,
+        copiesPerPlayerSide: acquisitions.byActingStrategy[id]?.[cardId] ?? 0 })),
+      equilibriumOpponentFamilyDamage: RUST_DAMAGE_FAMILIES.map((family) => ({ family,
+        damagePerPlayerSide: familyRates[family] ?? 0,
+        share: familyTotal ? (familyRates[family] ?? 0) / familyTotal : 0 })) };
   });
-  const archetypeNames = [...new Set(preliminary.map((row) => row.archetype))].sort();
+  const archetypeNames = [...new Set(strategies.map((row) => row.archetype))].sort();
   const archetypes = archetypeNames.map((archetype): RustArchetypeBalanceRow => {
     const strategyIds = ids.filter((id) => archetypeById.get(id) === archetype);
-    const selectedShare = sum(strategyIds.map((id) => evidence.matrix.weights[ids.indexOf(id)]!));
+    const selectedShare = sum(strategyIds.map((id) => weights[id] ?? 0));
     const range = equilibriumGroupWeightRange(ids, payoff, 0, strategyIds);
     return { archetype, strategyIds, selectedShare, minimumFeasibleShare: range.minimum,
       maximumFeasibleShare: range.maximum, rangeWidth: range.maximum - range.minimum };
@@ -276,7 +316,9 @@ function buildKingdom(evidence: RustStrategySearchKingdomEvidence): RustKingdomB
     || strategies.some((row) => row.selectedWeight < row.feasibleWeightRange.minimum - 1e-7
       || row.selectedWeight > row.feasibleWeightRange.maximum + 1e-7)
     || archetypes.some((row) => row.selectedShare < row.minimumFeasibleShare - 1e-7
-      || row.selectedShare > row.maximumFeasibleShare + 1e-7)) throw new Error(`${evidence.kingdomId}: selected witness lies outside a feasible range.`);
+      || row.selectedShare > row.maximumFeasibleShare + 1e-7)) {
+    throw new Error(`${evidence.kingdomId}: selected witness lies outside a feasible range.`);
+  }
 
   const pairs = evidence.pairs.map((pair) => {
     const counts = byteCounts(pair);
@@ -285,34 +327,56 @@ function buildKingdom(evidence: RustStrategySearchKingdomEvidence): RustKingdomB
   });
   const totalByteCounts: [number, number, number, number, number] = [0, 0, 0, 0, 0];
   for (const pair of pairs) addCounts(totalByteCounts, pair.byteCounts);
-  const totalPlayerGames = sum(strategies.map((row) => row.playerGames));
+
   const cards = evidence.cardIds.map((cardId) => {
-    const totalCopies = sum(strategies.map((row) => row.purchases.find((card) => card.cardId === cardId)!.copies));
-    return { cardId, totalCopies, playerGames: totalPlayerGames, copiesPerPlayerGame: totalCopies / totalPlayerGames,
-      strategiesWithPurchases: strategies.filter((row) => row.purchases.find((card) => card.cardId === cardId)!.copies > 0).length,
-      selectedStrategyUniformOffDiagonalOpponentCopiesPerPlayerGame: selectedTelemetry(strategies, cardId),
-      evidenceBasis: 'off-diagonal-full-matrix-acquisitions' as const };
+    const equilibriumAcquisitionRate = sum(strategies.map((strategy) => strategy.selectedWeight
+      * Number((acquisitions.byActingStrategy[strategy.strategyId]?.[cardId] ?? 0) > 0)));
+    const equilibriumSelectionRate = sum(strategies.map((strategy) => strategy.selectedWeight
+      * Number(countStarting(strategy, cardId) > 0
+        || (acquisitions.byActingStrategy[strategy.strategyId]?.[cardId] ?? 0) > 0)));
+    const equilibriumMeanOwnedCopies = sum(strategies.map((strategy) => strategy.selectedWeight
+      * (countStarting(strategy, cardId) + (acquisitions.byActingStrategy[strategy.strategyId]?.[cardId] ?? 0))));
+    return { cardId, equilibriumAcquisitionRate, equilibriumSelectionRate, equilibriumMeanOwnedCopies,
+      expectedAcquiredCopiesPerPlayerSide: acquisitions.expected[cardId] ?? 0, evidenceBasis: TELEMETRY_BASIS };
   });
-  const totalDamage = sum(strategies.flatMap((row) => row.familyDamage.map((held) => held.damage)));
-  const familyDamage = RUST_DAMAGE_FAMILIES.map((family) => {
-    const held = sum(strategies.map((row) => row.familyDamage.find((entry) => entry.family === family)!.damage));
-    return { family, totalDamage: held, playerGames: totalPlayerGames, damagePerPlayerGame: held / totalPlayerGames,
-      share: totalDamage ? held / totalDamage : 0,
-      selectedStrategyUniformOffDiagonalOpponentDamagePerPlayerGame: selectedFamilyTelemetry(strategies, family) };
+  const expectedDamageTotal = sum(RUST_DAMAGE_FAMILIES.map((family) => damage.expected[family] ?? 0));
+  const familyDamage = RUST_DAMAGE_FAMILIES.map((family) => ({ family,
+    expectedDamagePerPlayerSide: damage.expected[family] ?? 0,
+    share: expectedDamageTotal ? (damage.expected[family] ?? 0) / expectedDamageTotal : 0,
+    evidenceBasis: TELEMETRY_BASIS }));
+
+  const auditStrategies = numbers.map((number): RustAuditStrategyTelemetry => {
+    const offDiagonal = evidence.purchases.filter((row) => row.strategyNumber === number);
+    const self = diagonal.get(number)!;
+    return { strategyNumber: number, offDiagonal: { opponentCount: offDiagonal.length,
+      playerSides: sum(offDiagonal.map((row) => row.playerGames)),
+      purchases: evidence.cardIds.map((cardId) => ({ cardId,
+        copies: sum(offDiagonal.map((row) => row.purchases[cardId] ?? 0)) })),
+      familyDamage: RUST_DAMAGE_FAMILIES.map((family) => ({ family,
+        damage: sum(offDiagonal.map((row) => row.familyDamage[family])) })) },
+    diagonal: { playerSides: 500, firstPlayerSides: 250, secondPlayerSides: 250,
+      purchases: evidence.cardIds.map((cardId) => ({ cardId,
+        copies: (self.firstPlayer.purchases[cardId] ?? 0) + (self.secondPlayer.purchases[cardId] ?? 0) })),
+      familyDamage: RUST_DAMAGE_FAMILIES.map((family) => ({ family,
+        damage: self.firstPlayer.familyDamage[family] + self.secondPlayer.familyDamage[family] })) } };
   });
-  const maximumAdvantage = Math.max(...payoff.map((row) => sum(row.map((value, column) => value * evidence.matrix.weights[column]!))));
+  const maximumAdvantage = Math.max(...payoff.map((row) => sum(row.map((value, column) =>
+    value * evidence.matrix.weights[column]!))));
   return { kingdom: { id: evidence.kingdomId, name: evidence.kingdomName, startingHealth: evidence.startingHealth,
-    offeredCards: evidence.cardIds.map((id) => { const card = cardDefinition(id); return { id, name: card.name, cost: card.cost,
-      family: card.family, mechanic: card.mechanic }; }) },
+    offeredCards: evidence.cardIds.map((id) => { const card = cardDefinition(id); return { id, name: card.name,
+      cost: card.cost, family: card.family, mechanic: card.mechanic }; }) },
   completion: { nativeVerified: true, searches: evidence.completion.searchCount, admissions: evidence.completion.admissionCount,
     matrixGeneration: evidence.completion.matrixGeneration, cleanSearches: 2,
     finalMatrixSource: evidence.finalMatrixSource, finalStrategyCount: numbers.length },
-  equilibrium: { selectedWitness: numbers.map((number, index) => ({ strategyNumber: number, strategyId: `gf-${number}`,
-    weight: evidence.matrix.weights[index]! })), supportSize: strategies.filter((row) => row.supportMember).length,
+  equilibrium: { selectedWitness: numbers.map((number, index) => ({ strategyNumber: number,
+    strategyId: ids[index]!, weight: evidence.matrix.weights[index]! })),
+    supportSize: strategies.filter((row) => row.supportMember).length,
     effectiveSize: 1 / sum(evidence.matrix.weights.map((weight) => weight * weight)), maximumAdvantage },
-  strategies, archetypes, pairedScoreEvidence: { payoffSeedCount: 75, telemetrySeedCount: 125,
+  telemetryBasis: TELEMETRY_BASIS, strategies, archetypes,
+  pairedScoreEvidence: { payoffSeedCount: 75, telemetrySeedCount: 125,
     percentages75: evidence.matrix.percentages.map((row) => [...row]), byteCounts: totalByteCounts,
     byteTwoShare: totalByteCounts[2] / sum(totalByteCounts), pairs }, cards, familyDamage,
+  auditTelemetry: { basis: AUDIT_BASIS, strategies: auditStrategies },
   evidenceLimits: RUST_BALANCE_EVIDENCE_LIMITS, sourceFiles: evidence.sourceFiles,
   evidenceSetSha256: evidence.evidenceSetSha256 };
 }
@@ -339,45 +403,44 @@ function crossKingdom(kingdoms: readonly RustKingdomBalanceAnalysis[]): RustCros
   const cardIds = [...new Set(kingdoms.flatMap((kingdom) => kingdom.cards.map((card) => card.cardId)))].sort();
   const cards = cardIds.map((cardId) => {
     const rows = kingdoms.flatMap((kingdom) => { const row = kingdom.cards.find((card) => card.cardId === cardId);
-      return row ? [{ kingdom, row }] : []; });
-    const totalCopies = sum(rows.map(({ row }) => row.totalCopies)), playerGames = sum(rows.map(({ row }) => row.playerGames));
-    return { cardId, offeredKingdomCount: rows.length, positiveUsageKingdomCount: rows.filter(({ row }) => row.totalCopies > 0).length,
-      totalCopies, playerGames, copiesPerPlayerGame: totalCopies / playerGames,
-      meanOfferingKingdomCopiesPerPlayerGame: mean(rows.map(({ row }) => row.copiesPerPlayerGame)),
-      meanSelectedStrategyUniformOffDiagonalOpponentCopiesPerPlayerGame:
-        mean(rows.map(({ row }) => row.selectedStrategyUniformOffDiagonalOpponentCopiesPerPlayerGame)) };
+      return row ? [row] : []; });
+    return { cardId, offeredKingdomCount: rows.length,
+      positiveUsageKingdomCount: rows.filter((row) => row.expectedAcquiredCopiesPerPlayerSide > 0).length,
+      meanEquilibriumAcquisitionRate: mean(rows.map((row) => row.equilibriumAcquisitionRate)),
+      meanEquilibriumSelectionRate: mean(rows.map((row) => row.equilibriumSelectionRate)),
+      meanEquilibriumOwnedCopies: mean(rows.map((row) => row.equilibriumMeanOwnedCopies)),
+      meanExpectedAcquiredCopiesPerPlayerSide: mean(rows.map((row) => row.expectedAcquiredCopiesPerPlayerSide)) };
   });
   const familyDamage = RUST_DAMAGE_FAMILIES.map((family) => {
     const rows = kingdoms.map((kingdom) => kingdom.familyDamage.find((row) => row.family === family)!);
-    const totalDamage = sum(rows.map((row) => row.totalDamage)), playerGames = sum(rows.map((row) => row.playerGames));
-    return { family, totalDamage, playerGames, damagePerPlayerGame: totalDamage / playerGames,
-      meanKingdomShare: mean(rows.map((row) => row.share)),
-      meanSelectedStrategyUniformOffDiagonalOpponentDamagePerPlayerGame:
-        mean(rows.map((row) => row.selectedStrategyUniformOffDiagonalOpponentDamagePerPlayerGame)) };
+    return { family, meanExpectedDamagePerPlayerSide: mean(rows.map((row) => row.expectedDamagePerPlayerSide)),
+      meanKingdomShare: mean(rows.map((row) => row.share)) };
   });
   const counts: [number, number, number, number, number] = [0, 0, 0, 0, 0];
   for (const kingdom of kingdoms) addCounts(counts, kingdom.pairedScoreEvidence.byteCounts);
-  return { archetypes, supportSize: distribution(kingdoms, (kingdom) => kingdom.equilibrium.supportSize),
+  return { telemetryBasis: TELEMETRY_BASIS, archetypes,
+    supportSize: distribution(kingdoms, (kingdom) => kingdom.equilibrium.supportSize),
     effectiveSize: distribution(kingdoms, (kingdom) => kingdom.equilibrium.effectiveSize), cards, familyDamage,
     pairedScoreEvidence: { byteCounts: counts, byteTwoShare: counts[2] / sum(counts),
-      maximumAbsoluteSkew75: Math.max(...kingdoms.flatMap((kingdom) => kingdom.pairedScoreEvidence.pairs.map((pair) => Math.abs(pair.percent75 - 50)))),
-      maximumAbsoluteSkew125: Math.max(...kingdoms.flatMap((kingdom) => kingdom.pairedScoreEvidence.pairs.map((pair) => Math.abs(pair.percent125 - 50)))) } };
+      maximumAbsoluteSkew75: Math.max(...kingdoms.flatMap((kingdom) => kingdom.pairedScoreEvidence.pairs
+        .map((pair) => Math.abs(pair.percent75 - 50)))),
+      maximumAbsoluteSkew125: Math.max(...kingdoms.flatMap((kingdom) => kingdom.pairedScoreEvidence.pairs
+        .map((pair) => Math.abs(pair.percent125 - 50)))) } };
 }
 
 function outliers(kingdoms: readonly RustKingdomBalanceAnalysis[]): RustBalanceOutliers {
-  const pairs = kingdoms.flatMap((kingdom) => kingdom.pairedScoreEvidence.pairs.map((pair) => ({ kingdomId: kingdom.kingdom.id,
-    strategyNumber: pair.firstStrategyNumber, opponentNumber: pair.secondStrategyNumber, pair })));
+  const pairs = kingdoms.flatMap((kingdom) => kingdom.pairedScoreEvidence.pairs.map((pair) => ({
+    kingdomId: kingdom.kingdom.id, strategyNumber: pair.firstStrategyNumber,
+    opponentNumber: pair.secondStrategyNumber, pair })));
   const archetypeRangeWidth = kingdoms.flatMap((kingdom) => kingdom.archetypes.map((row) => ({
     kingdomId: kingdom.kingdom.id, archetype: row.archetype, metric: row.rangeWidth
   }))).sort((left, right) => right.metric - left.metric || compareUtf16(left.kingdomId, right.kingdomId)
     || compareUtf16(left.archetype, right.archetype)).slice(0, 10);
   const effective = kingdoms.map((kingdom) => ({ kingdomId: kingdom.kingdom.id, metric: kingdom.equilibrium.effectiveSize }));
   const cardRows = kingdoms.flatMap((kingdom) => kingdom.cards.map((card) => ({ kingdomId: kingdom.kingdom.id,
-    cardId: card.cardId, metric: card.copiesPerPlayerGame })));
+    cardId: card.cardId, metric: card.expectedAcquiredCopiesPerPlayerSide })));
   const familyRows = kingdoms.flatMap((kingdom) => kingdom.familyDamage.map((row) => ({ kingdomId: kingdom.kingdom.id,
-    family: row.family, metric: row.damagePerPlayerGame })));
-  const telemetryDifference = kingdoms.flatMap((kingdom) => kingdom.cards.map((card) => ({ kingdomId: kingdom.kingdom.id,
-    cardId: card.cardId, metric: Math.abs(card.selectedStrategyUniformOffDiagonalOpponentCopiesPerPlayerGame - card.copiesPerPlayerGame) })));
+    family: row.family, metric: row.expectedDamagePerPlayerSide })));
   return { evidenceBasis: 'deterministic-ranked-review-queues',
     pairScoreSkew125: top(pairs.map((row) => ({ kingdomId: row.kingdomId, strategyNumber: row.strategyNumber,
       opponentNumber: row.opponentNumber, metric: Math.abs(row.pair.percent125 - 50) }))),
@@ -385,34 +448,37 @@ function outliers(kingdoms: readonly RustKingdomBalanceAnalysis[]): RustBalanceO
       opponentNumber: row.opponentNumber, metric: Math.abs(row.pair.percent75 - 50) }))),
     archetypeRangeWidth, lowestEffectiveSize: top(effective, 'low'), highestEffectiveSize: top(effective),
     pointByteTwoShare: top(kingdoms.map((kingdom) => ({ kingdomId: kingdom.kingdom.id,
-      metric: kingdom.pairedScoreEvidence.byteTwoShare }))), cardCopiesPerPlayerGame: top(cardRows),
-    familyDamagePerPlayerGame: top(familyRows), telemetryWeightingDifference: top(telemetryDifference) };
+      metric: kingdom.pairedScoreEvidence.byteTwoShare }))),
+    equilibriumCardCopiesPerPlayerSide: top(cardRows), equilibriumFamilyDamagePerPlayerSide: top(familyRows) };
 }
 
-function finite(value: unknown, path = 'analysis'): void {
-  if (typeof value === 'number' && !Number.isFinite(value)) throw new Error(`${path} contains a non-finite number.`);
-  if (Array.isArray(value)) value.forEach((entry, index) => finite(entry, `${path}[${index}]`));
-  else if (value && typeof value === 'object') for (const [key, entry] of Object.entries(value)) finite(entry, `${path}.${key}`);
+function finite(value: unknown, heldPath = 'analysis'): void {
+  if (typeof value === 'number' && !Number.isFinite(value)) throw new Error(`${heldPath} contains a non-finite number.`);
+  if (Array.isArray(value)) value.forEach((entry, index) => finite(entry, `${heldPath}[${index}]`));
+  else if (value && typeof value === 'object') for (const [key, entry] of Object.entries(value)) finite(entry, `${heldPath}.${key}`);
 }
 
 export function buildRustBalanceAnalysis(evidence: readonly RustStrategySearchKingdomEvidence[],
-  provenance: RustStrategySearchSourceProvenanceV1): RustBalanceAnalysisV1 {
+  provenance: RustStrategySearchSourceProvenanceV2): RustBalanceAnalysisV2 {
   if (!evidence.length || evidence.length !== provenance.kingdomIds.length
     || evidence.some((row, index) => row.kingdomId !== provenance.kingdomIds[index])
-    || new Set(provenance.kingdomIds).size !== provenance.kingdomIds.length) throw new Error('Analysis evidence order differs from provenance.');
+    || new Set(provenance.kingdomIds).size !== provenance.kingdomIds.length) {
+    throw new Error('Analysis evidence order differs from provenance.');
+  }
   const kingdoms = evidence.map(buildKingdom);
-  const analysis: RustBalanceAnalysisV1 = { schemaVersion: 1, protocol: RUST_BALANCE_ANALYSIS_PROTOCOL,
+  const analysis: RustBalanceAnalysisV2 = { schemaVersion: 2, protocol: RUST_BALANCE_ANALYSIS_PROTOCOL,
     scope: { suiteId: 'balance-smoke-v1', sourceSuiteId: 'balance-suite-v4', kingdomIds: [...provenance.kingdomIds],
-      kingdomCount: kingdoms.length, payoffSeedCount: 75, telemetrySeedCount: 125, gamesPerPair: 250,
-      pairPolicy: 'off-diagonal-upper-triangle', kingdomWeighting: 'equal', evidenceBases:
-      ['off-diagonal-full-matrix-acquisitions', 'played-card-family-damage', 'paired-game-score-only'] },
+      kingdomCount: kingdoms.length, payoffSeedCount: 75, telemetrySeedCount: 125,
+      gamesPerOffDiagonalPair: 250, playerSidesPerDiagonalStrategy: 500,
+      telemetryPolicy: 'full-ordered-matrix-including-diagonal', kingdomWeighting: 'equal',
+      evidenceBases: [TELEMETRY_BASIS, 'paired-game-score-only', AUDIT_BASIS] },
     evidenceLimits: RUST_BALANCE_EVIDENCE_LIMITS, provenance, kingdoms,
     crossKingdom: crossKingdom(kingdoms), outliers: outliers(kingdoms) };
   finite(analysis);
   return analysis;
 }
 
-export function stringifyRustBalanceAnalysis(analysis: RustBalanceAnalysisV1): string {
+export function stringifyRustBalanceAnalysis(analysis: RustBalanceAnalysisV2): string {
   finite(analysis);
   return `${JSON.stringify(analysis, null, 2)}\n`;
 }

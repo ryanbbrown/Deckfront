@@ -182,6 +182,39 @@ function acquisitionsFor(block: ProductBlockEvidence, strategyId: string): { cou
   return { counts, games: block.matches * (self ? 2 : 1) };
 }
 
+export interface EquilibriumWeightedCellSummary {
+  byActingStrategy: Record<string, Record<string, number>>;
+  expected: Record<string, number>;
+}
+
+export function summarizeEquilibriumWeightedCells(input: {
+  strategyIds: readonly string[];
+  weights: Readonly<Record<string, number>>;
+  cells: Readonly<Record<string, Readonly<Record<string, Readonly<Record<string, number>>>>>>;
+}): EquilibriumWeightedCellSummary {
+  const total = input.strategyIds.reduce((sum, id) => sum + (input.weights[id] ?? 0), 0);
+  if (!input.strategyIds.length || new Set(input.strategyIds).size !== input.strategyIds.length
+    || input.strategyIds.some((id) => !Number.isFinite(input.weights[id]) || (input.weights[id] ?? 0) < 0)
+    || Math.abs(total - 1) > 1e-9) throw new Error('Equilibrium-weighted cell input has invalid strategy weights.');
+  const byActingStrategy: Record<string, Record<string, number>> = {}, expected: Record<string, number> = {};
+  for (const actingId of input.strategyIds) {
+    const rates: Record<string, number> = {};
+    for (const opponentId of input.strategyIds) {
+      const cell = input.cells[actingId]?.[opponentId];
+      if (!cell) throw new Error(`Equilibrium-weighted cell input is missing ${actingId} against ${opponentId}.`);
+      const opponentWeight = input.weights[opponentId] ?? 0;
+      for (const [key, value] of Object.entries(cell)) {
+        if (!Number.isFinite(value) || value < 0) throw new Error('Equilibrium-weighted cell rate is invalid.');
+        rates[key] = (rates[key] ?? 0) + opponentWeight * value;
+      }
+    }
+    byActingStrategy[actingId] = rates;
+    const actingWeight = input.weights[actingId] ?? 0;
+    for (const [key, value] of Object.entries(rates)) expected[key] = (expected[key] ?? 0) + actingWeight * value;
+  }
+  return { byActingStrategy, expected };
+}
+
 export interface LotteryAcquisitionSummary {
   strategyAcquisitionRates: Record<string, Record<string, number>>;
   strategyLabels: Record<string, string>;
