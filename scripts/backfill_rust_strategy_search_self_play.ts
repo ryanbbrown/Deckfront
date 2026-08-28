@@ -87,8 +87,10 @@ export function backfillRustStrategySearchSelfPlay(options: SelfPlayBackfillOpti
     return row;
   });
   const report = { schemaVersion: 1, protocol: 'rust-self-play-backfill-v1', kingdomIds, gitCommit,
-    binarySha256, totalScoredStrategies: summaries.reduce((sum, row) => sum + row.scoredStrategyCount, 0),
-    totalGames: summaries.reduce((sum, row) => sum + row.gameCount, 0), summaries };
+    binarySha256,
+    totalStrategies: summaries.reduce((sum, row) => sum + row.finalStrategyCount, 0),
+    scoredStrategiesThisRun: summaries.reduce((sum, row) => sum + row.scoredStrategyCount, 0),
+    totalGames: summaries.reduce((sum, row) => sum + row.finalStrategyCount * 250, 0), summaries };
   fs.mkdirSync(path.dirname(options.report), { recursive: true });
   const temporary = `${options.report}.${process.pid}.tmp`;
   fs.writeFileSync(temporary, `${JSON.stringify(report, null, 2)}\n`);
