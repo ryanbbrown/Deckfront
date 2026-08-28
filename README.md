@@ -183,57 +183,42 @@ npm run strategy-search:campaign -- status --request REQUEST.json
 npm run strategy-search:campaign -- run --request REQUEST.json --authorize TOKEN
 ```
 
-`plan` makes no Modal call. Every `run` needs the exact token printed for that request and capacity. `run` deploys and verifies a versioned compute app before it starts the timed campaign. `status` is bounded and read-only. Goldfish schema 4 streams fixed binary records and reconstructs strategies from traversal positions. Matrix and PSRO score work runs as adaptive four-core tasks in the same global worker pool. PSRO can split candidate and schedule-block ranges, then restore scores in exact schedule order. One controller enforces `maxActiveCpus`, adds only two ready worker waves, and releases each kingdom's next stage without a campaign-wide barrier. Scientific source identity is separate from deployment identity. The runtime has no paused-campaign import, source repair, manual launch recovery, or code-level cost gate. Use [the operator guide](docs/strategy-search-campaign-operator.md) for the request contract, authorization, status, output, and paid smoke boundaries.
+`plan` makes no Modal call. Every `run` needs the exact token printed for that request and capacity. `run` builds and checks the Rust binary before the campaign starts. Rust maps strategy numbers to shopping lists, runs every Goldfish game, ranks rows, writes the final files, and verifies them. Matrix and PSRO read the reservoir after Rust verifies it. Use [the operator guide](docs/strategy-search-campaign-operator.md) for the request contract, status, output, and paid smoke boundaries.
 
-The ordered Kingdom 009 benchmark streams bounded chunks and folds candidate and ranking digests in traversal order. The original, lean TypeScript, and standalone Rust paths must return the same digest.
+Run the full Goldfish reservoir step locally with 10 threads:
 
 ```sh
-npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 250 --scorer original
-npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 250 --scorer lean
-npm run goldfish:ordered-benchmark -- --limit 100000 --workers 10 --chunk-size 250 --scorer rust
-npm run psro:worker-benchmark -- --workers 4 --candidates 1000 --blocks 1 --mode score-only
-npm run psro:worker-benchmark -- --workers 14 --candidates 1000 --blocks 8 --mode score-only
-npm run psro:competitive-benchmark
-npm run staged-goldfish:native-pool -- --pool-seed 5 --chunk-size 1000 --shard-size 100000 --threads 10
+npm run goldfish:reservoir -- balance-tuning-005 10 .data/goldfish/balance-tuning-005
 ```
 
-The staged product command keeps generation on one ordered TypeScript coordinator. Both scoring stages retain independent bounded shard top sets and merge them deterministically. Goldfish scoring defaults to 10 Rust threads. The K007 threshold-racing controller loads its strategy table into the Rust process once, scores two-player blocks as exact quarter-point bytes, and keeps matrix telemetry in TypeScript. Confidence bounds run in parallel by candidate without changing the bound calculation. Local Rust is the default execution mode. Pass `--execution modal` to submit each screening and confirmation look to the restart-safe Modal adapter; matrix telemetry stays on the local TypeScript runner:
+The command writes:
+
+- `goldfish/top-500000.hgf`: the best 500,000 rows after shuffle 1;
+- `goldfish/reservoir.hgf`: the best 20,000 rows after shuffles 1 to 4;
+- `reports/*.json`: command timings, byte counts, and verification output.
+
+Verify the final files directly:
 
 ```sh
-npm run successive-halving:double-oracle-pilot -- --run --inputs INPUTS.json --out OUTPUT \
-  --run-id 1 --workers 4
-npm run successive-halving:double-oracle-pilot -- --run --inputs INPUTS.json --out OUTPUT \
-  --run-id 1 --workers 4 --execution modal
-npm run psro:modal-digest-smoke -- --local
-npm run psro:modal-digest-smoke -- --modal --out .experiments/modal-competitive-digest-smoke
+rust/target/release/hexdeck-goldfish verify --kingdom balance-tuning-005 \
+  --kind top --file .data/goldfish/balance-tuning-005/goldfish/top-500000.hgf
+rust/target/release/hexdeck-goldfish verify --kingdom balance-tuning-005 \
+  --kind reservoir --file .data/goldfish/balance-tuning-005/goldfish/reservoir.hgf \
+  --top .data/goldfish/balance-tuning-005/goldfish/top-500000.hgf
 ```
 
-The digest smoke uses a saved 16-candidate slice of the first run-1 broad eight-block look. `--local` runs no paid work. `--modal` compares the downloaded candidate-major score digest with local Rust. `psro:competitive-benchmark` checks exact parity before reporting local kernel and worker-shape timings. The native workspace pins Rust 1.98.0. The local build targets the current host. The Modal image builds the pinned Linux x86-64 target. Build and verify the local target with:
+`rust/goldfish/kingdoms.json` contains every registered strategy-search kingdom. Generate it after kingdom or rule changes, then run the check:
 
 ```sh
-npm run goldfish:native-build
-npm run goldfish:native-verify
 npm run goldfish:native-kingdom-write
 npm run goldfish:native-kingdom-check
+npm run goldfish:native-verify
 npm run modal:test
 ```
 
-`hexdeck-goldfish` uses versioned line-delimited JSON. It rejects a thread count above the CPU request. Get a supported kingdom's rule fingerprint with `npm run goldfish:native-metadata -- --kingdom <kingdom-id>`.
+With no subcommand, `hexdeck-goldfish` keeps the versioned JSON line protocol for Rust-versus-TypeScript conformance tests and the competitive PSRO kernel. It rejects a thread count above the CPU request.
 
-The Modal launcher reserves the worst-case cost for all attempts before launch. It caps total reserved spend at $25, aggregate allocation at 192 physical cores, retries at two, and full-space runs at three. Ordered-run accounting includes the one-core controller. This unattended command launches a detached restart-safe controller. A repeat of the same command resumes the same run without a second reservation:
-
-```sh
-modal profile activate ryanburnettebrown
-modal run --detach modal/native_strategy_search.py --build-version "$(git rev-parse HEAD)" \
-  --kingdom deep-beam-tuning-009 \
-  --rule-fingerprint "$(npm run goldfish:native-metadata --silent -- --kingdom deep-beam-tuning-009)" \
-  --count 5000 --shard-size 2500 --cpu 4 --memory-gib 4 --threads 4 \
-  --max-containers 2 --timeout-seconds 120 --max-cost-usd 1 --scorer rust
-```
-
-Shard checkpoints and the ordered merge live in the `hexdeck-native-strategy-results` Modal Volume. The local reservation ledger is `~/.hexdeck-modal-cost-ledger.json`. Ordered shards call the production TypeScript candidate helper in the image and send its versioned request to Rust. Python does not generate strategies.
-
-`nativeCompetitiveModalInput` creates the fixed candidate-table and schedule artifact for one PSRO look. The competitive Modal entry point shards broad looks by candidates and narrow looks by contiguous schedule ranges. It keeps one loaded Rust process per warm container, retries only missing shards, writes digest-checked score-byte artifacts, and assembles exact candidate-major output. The automatic adapter waits for the detached controller, resumes its existing call and valid shards after interruption, and validates `complete.hps` before confidence calculation. The launch rejects more than 48 containers or a cost cap above $2:
+`nativeCompetitiveModalInput` creates the fixed candidate table and schedule artifact for one PSRO look. The competitive Modal entry point retries missing shards, writes digest-checked score-byte artifacts, and restores candidate-major output. The launch rejects more than 48 containers or a cost cap above $2:
 
 ```sh
 modal run --detach modal/native_strategy_search.py::launch_competitive \
@@ -241,63 +226,6 @@ modal run --detach modal/native_strategy_search.py::launch_competitive \
   --cpu 4 --memory-gib 4 --threads 4 --max-containers 16 \
   --timeout-seconds 180 --max-cost-usd 2
 ```
-
-The deterministic ordered product supports `deep-beam-tuning-001`, `deep-beam-tuning-007`, `deep-beam-tuning-008`, and `deep-beam-tuning-009`. Their original one-use authorizations are `k001-ordered-product-calibration-v2`, `k007-ordered-product-calibration-v2`, `k008-ordered-product-calibration-v2`, and `k009-ordered-product-correction-v1`. These contracts use seeds 4,100,000 through 4,100,003, and existing artifacts with those seeds remain valid. Set one matching kingdom and authorization before launch. This configuration reserves at most $2.88503333 for all retry attempts, uses at most 191 physical cores, and does not launch a local full-space scorer:
-
-```sh
-KINGDOM=deep-beam-tuning-009
-AUTHORIZATION=k009-ordered-product-correction-v1
-modal run --detach modal/native_strategy_search.py --ordered-product \
-  --kingdom "$KINGDOM" --authorization "$AUTHORIZATION" \
-  --build-version "$(git rev-parse HEAD)" \
-  --rule-fingerprint "$(npm run goldfish:native-metadata --silent -- --kingdom "$KINGDOM")" \
-  --count 12972960 --retained-count 500000 --reservoir-count 20000 \
-  --shard-size 250000 --cpu 2 --memory-gib 4 --threads 2 \
-  --max-containers 95 --timeout-seconds 420 --max-cost-usd 5 --scorer rust
-```
-
-Kingdom 007 has three independent paid replication contracts. Run each command at most once:
-
-```sh
-modal run --detach modal/native_strategy_search.py --ordered-product --kingdom deep-beam-tuning-007 \
-  --authorization k007-ordered-product-seed-replication-1-v1 --shuffle-seeds 5100000,5100001,5100002,5100003 \
-  --build-version "$(git rev-parse HEAD)" --rule-fingerprint "$(npm run goldfish:native-metadata --silent -- --kingdom deep-beam-tuning-007)" \
-  --count 12972960 --retained-count 500000 --reservoir-count 20000 --shard-size 250000 \
-  --cpu 2 --memory-gib 4 --threads 2 --max-containers 95 --timeout-seconds 420 --max-cost-usd 5 --scorer rust
-
-modal run --detach modal/native_strategy_search.py --ordered-product --kingdom deep-beam-tuning-007 \
-  --authorization k007-ordered-product-seed-replication-2-v1 --shuffle-seeds 6100000,6100001,6100002,6100003 \
-  --build-version "$(git rev-parse HEAD)" --rule-fingerprint "$(npm run goldfish:native-metadata --silent -- --kingdom deep-beam-tuning-007)" \
-  --count 12972960 --retained-count 500000 --reservoir-count 20000 --shard-size 250000 \
-  --cpu 2 --memory-gib 4 --threads 2 --max-containers 95 --timeout-seconds 420 --max-cost-usd 5 --scorer rust
-
-modal run --detach modal/native_strategy_search.py --ordered-product --kingdom deep-beam-tuning-007 \
-  --authorization k007-ordered-product-seed-replication-3-v1 --shuffle-seeds 7100000,7100001,7100002,7100003 \
-  --build-version "$(git rev-parse HEAD)" --rule-fingerprint "$(npm run goldfish:native-metadata --silent -- --kingdom deep-beam-tuning-007)" \
-  --count 12972960 --retained-count 500000 --reservoir-count 20000 --shard-size 250000 \
-  --cpu 2 --memory-gib 4 --threads 2 --max-containers 95 --timeout-seconds 420 --max-cost-usd 5 --scorer rust
-```
-
-All three reservations total $8.6551, within the existing $25 ledger. After each controller stops, set its printed run ID and matching seed set. Then fetch and validate the ranked artifact and exact ranked-prefix reservoir:
-
-```sh
-KINGDOM=<same-kingdom-id-used-for-launch>
-SEEDS=<same-comma-separated-seed-set-used-for-launch>
-RUN_ID=<run-id-printed-by-launch>
-mkdir -p .experiments/ordered-goldfish-product/$RUN_ID
-modal volume get hexdeck-native-strategy-results \
-  "$RUN_ID" ".experiments/ordered-goldfish-product/$RUN_ID"
-npm run goldfish:ordered-product -- validate --kingdom "$KINGDOM" --seeds "$SEEDS" \
-  --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json"
-npm run goldfish:ordered-product -- build-reservoir --kingdom "$KINGDOM" --seeds "$SEEDS" \
-  --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json" \
-  --out ".experiments/ordered-goldfish-product/$RUN_ID/reservoir.json"
-npm run goldfish:ordered-product -- validate-reservoir --kingdom "$KINGDOM" --seeds "$SEEDS" \
-  --artifact ".experiments/ordered-goldfish-product/$RUN_ID/ranked.json" \
-  --reservoir ".experiments/ordered-goldfish-product/$RUN_ID/reservoir.json"
-```
-
-The ranked bytes contain the 500,000-candidate stage-one cohort, all four-seed score evidence, ranks, and shard provenance. Runtime and container data remain in `run-summary.json` on the Modal Volume.
 
 Build or resume protocol v2 calibration for ordered ranks 1–50:
 

@@ -1,3 +1,5 @@
+> Archived: Goldfish process replaced by .plans/77-rust-goldfish-reservoir.md; Matrix and PSRO runtime rules live in .plans/76-global-matrix-psro-runtime.md.
+
 # Scalable strategy-search runtime
 
 Status: approved after plan review v1.

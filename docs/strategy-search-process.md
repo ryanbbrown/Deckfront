@@ -15,15 +15,40 @@ For each kingdom:
 
 # 1. Build the Goldfish reservoir
 
-Goldfish scoring is a fast first filter. It measures each strategy against three movement profiles: stationary, chaser, and kiter. It does not measure how well the strategy performs against the other strategies.
+A strategy number from 0 to 12,972,959 identifies one five-card shopping list. The number maps directly to the ordered card permutation and one of 54 quantity vectors. Files store the number. They do not store a hash, display ID, or shopping list.
 
-1. Generate and score all 12,972,960 legal strategies with the first fixed shuffle seed against all three movement profiles.
-2. Take the best 500,000 unique strategies and save them with their results.
-3. Score each of the saved 500,000 strategies with three more fixed shuffle seeds against the same movement profiles.
-4. Combine the results from all four shuffle seeds.
-5. Take the best 20,000 unique strategies and save them with their results as the reservoir.
+Run the full local step with:
 
-The reservoir is the candidate set for the competitive search. A high Goldfish rank does not prove that a strategy is competitively strong. The later stages test that through head-to-head games.
+```sh
+npm run goldfish:reservoir -- balance-tuning-005 10 .data/goldfish/balance-tuning-005
+```
+
+Rust runs the full Goldfish process:
+
+1. Play every strategy with shuffle 4,100,000 against stationary, chaser, and kiter dummy opponents.
+2. Rank all strategies and write the best 500,000 to `top-500000.hgf`.
+3. Play those 500,000 strategies with shuffles 4,100,001 through 4,100,003 against all three dummy opponents.
+4. Add each profile's results from all four shuffles.
+5. Rank the totals and write the best 20,000 to `reservoir.hgf`.
+
+Each game stops at 50 damage or 30 turns. An unfinished game counts as 31 turns. A turn stops after 200 actions.
+
+The ranking compares these values in order:
+
+1. more completions against the weakest profile;
+2. more completions in total;
+3. fewer penalized turns against the slowest profile;
+4. fewer penalized turns in total;
+5. more damage total against the weakest profile;
+6. more damage total in total;
+7. more money spent;
+8. lower strategy number.
+
+Every result file starts with a 64-byte little-endian header. The header records the file kind, row size, range, row count, shuffle seeds, rule fingerprint, and a CRC-32 checksum of the row bytes. Stage-two files and `reservoir.hgf` also record the checksum of their source `top-500000.hgf`. A result row is 64 bytes. A reservoir row is 124 bytes and keeps both the shuffle-1 and shuffle-2-to-4 results.
+
+Rust verifies ranges, checksums, row counts, strategy numbers, source links, uniqueness, and best-first order. The controller deletes range files only after both final files pass verification. Command reports are separate JSON files with elapsed time, scoring time, read time, write time, reduction time, and byte counts. Timings do not change result bytes.
+
+The reservoir is the candidate set for competitive search. A high Goldfish rank does not prove that a strategy is competitively strong. Later stages test strategies in head-to-head games.
 
 # 2. Build the initial game matrix
 

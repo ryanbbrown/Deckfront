@@ -196,7 +196,7 @@ Python (`npm run modal:test`): goldfish job command shape and report mapping (pa
 2. `npm run verify:native` (kingdom check, `test:native` with `test/sim/goldfishReservoir.test.ts` added to the `test:native` script, native verify).
 3. `npm test`, `npm run typecheck`, `npm run lint`.
 4. `npm run modal:test`.
-5. Full local run on `deep-beam-tuning-009` with 10 threads through `scripts/goldfish_reservoir.sh`, run as a durable terminal job. Report wall time per stage from the reports. Expectation: about 6 minutes for stage one and under 10 minutes total. Report the measured numbers whatever they are.
+5. Full local run on `balance-tuning-005` with 10 threads through `scripts/goldfish_reservoir.sh`, run as a durable terminal job. Report wall time per stage from the reports. Expectation: about 6 minutes for stage one and under 10 minutes total. Report the measured numbers whatever they are.
 
 No Modal deployment and no paid run. Report the final diff summary, validation output, local timings, and residual risks.
 
