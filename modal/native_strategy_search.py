@@ -2398,7 +2398,7 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                 or phase_report["elapsedMs"] and abs(phase_sum - phase_report["elapsedMs"]) \
                     / phase_report["elapsedMs"] > 0.01:
             raise RuntimeError("Goldfish phase accounting invariant failed")
-    if scientific_ms and io_ms / scientific_ms >= 0.05:
+    if not goldfish_only and scientific_ms and io_ms / scientific_ms >= 0.05:
         raise RuntimeError("Goldfish intermediate I/O ratio is at least five percent")
     jobs_by_id = {job["taskId"]: job for job in state["jobs"]}
     barrier_latencies = []

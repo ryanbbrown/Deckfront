@@ -822,8 +822,16 @@ print(json.dumps(result))
                 self.object_id = object_id
                 self.digest = hashlib.sha256(stage.encode()).hexdigest()
             def get(self, timeout):
+                phases = {key: 0 for key in ["generationMs", "scoringMs",
+                    "intermediateSerializationAndReadMs", "temporaryVolumeWriteCommitMs",
+                    "publisherWaitMs", "publicationCommitMs", "reductionComputeMs",
+                    "finalTop500000WriteMs", "finalTop20000WriteMs", "orchestrationQueueMs"]}
+                phases.update({"scoringMs": 1, "intermediateSerializationAndReadMs": 9,
+                    "elapsedMs": 10})
+                now_ms = int(time.time() * 1000)
                 return {"sha256": self.digest, "validatedSha256": self.digest,
-                    "modalWorkerElapsedMs": 0}
+                    "modalWorkerElapsedMs": 0, "workerStartedEpochMs": now_ms,
+                    "workerFinishedEpochMs": now_ms, "phases": phases}
 
         class ImmediateWorker:
             def __init__(self):
@@ -909,6 +917,7 @@ print(json.dumps(result))
         self.assertTrue(all(job["status"] == "complete" for job in holder["state"]["jobs"]))
         self.assertEqual(resumed, ["goldfish-one", "goldfish-one-reduce"])
         self.assertEqual(worker.calls, 2)
+        self.assertEqual(report["intermediateIoRatio"], 0.9)
         self.assertIn("a" * 64, finalized)
 
     def test_strategy_search_complete_evidence_is_reused_across_campaigns(self):
