@@ -75,7 +75,7 @@ export interface GoldfishModalResourceShape {
   scoreMemoryMiBPerContainer: typeof GOLDFISH_MODAL_SCORE_MEMORY_MIB;
   reducerCores: typeof GOLDFISH_MODAL_REDUCER_CORES;
   reducerMemoryMiB: typeof GOLDFISH_MODAL_REDUCE_MEMORY_MIB;
-  maxConcurrentReducers: 1;
+  maxConcurrentReducers: number;
 }
 
 export interface GoldfishModalCostGuard {
@@ -105,12 +105,14 @@ export interface ParsedGoldfishModalRequest {
 function resourceShape(request: GoldfishModalRequest): GoldfishModalResourceShape {
   const maxScoreContainers = Math.floor(request.maxActiveCpus / request.workerCores);
   const maxScheduledScoreCpus = maxScoreContainers * request.workerCores;
+  const maxConcurrentReducers = Math.min(request.kingdomIds.length,
+    Math.floor(request.maxActiveCpus / GOLDFISH_MODAL_REDUCER_CORES));
   return { workerCoresPerContainer: request.workerCores, maxActiveCpus: request.maxActiveCpus,
     maxScoreContainers, maxScheduledScoreCpus,
     unusedCpuCapacity: request.maxActiveCpus - maxScheduledScoreCpus,
     scoreMemoryMiBPerContainer: GOLDFISH_MODAL_SCORE_MEMORY_MIB,
     reducerCores: GOLDFISH_MODAL_REDUCER_CORES, reducerMemoryMiB: GOLDFISH_MODAL_REDUCE_MEMORY_MIB,
-    maxConcurrentReducers: 1 };
+    maxConcurrentReducers };
 }
 
 function modalComputeCost(cpu: number, memoryMiB: number, seconds: number): number {
@@ -237,7 +239,7 @@ export interface GoldfishModalLaunchBundle {
     pollIntervalSeconds: 1;
     volumeName: 'hexdeck-native-strategy-results';
     readyWindowWaves: 2;
-    maxReducerMemoryMiB: typeof GOLDFISH_MODAL_REDUCE_MEMORY_MIB;
+    maxReducerMemoryMiB: number;
     goldfishWorkerCores: number;
     goldfishScoreMemoryMiB: typeof GOLDFISH_MODAL_SCORE_MEMORY_MIB;
     goldfishScoreTimeoutSeconds: typeof GOLDFISH_MODAL_SCORE_TIMEOUT_SECONDS;
@@ -282,7 +284,7 @@ export function createGoldfishModalLaunchBundle(parsed: ParsedGoldfishModalReque
     controller: { route: GOLDFISH_MODAL_ROUTE, maxActiveCpus: parsed.request.maxActiveCpus,
       timeoutSeconds: parsed.request.maxWallSeconds, maxWallSeconds: parsed.request.maxWallSeconds,
       pollIntervalSeconds: 1, volumeName: 'hexdeck-native-strategy-results', readyWindowWaves: 2,
-      maxReducerMemoryMiB: GOLDFISH_MODAL_REDUCE_MEMORY_MIB,
+      maxReducerMemoryMiB: parsed.resourceShape.maxConcurrentReducers * GOLDFISH_MODAL_REDUCE_MEMORY_MIB,
       goldfishWorkerCores: parsed.request.workerCores,
       goldfishScoreMemoryMiB: GOLDFISH_MODAL_SCORE_MEMORY_MIB,
       goldfishScoreTimeoutSeconds: GOLDFISH_MODAL_SCORE_TIMEOUT_SECONDS,

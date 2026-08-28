@@ -20,7 +20,7 @@ The route accepts one strict JSON request:
 }
 ```
 
-Every field is required. `workerCores` controls Rust threads and Modal CPU cores for each score container. `maxActiveCpus` controls the maximum total score-worker CPUs. The plan reports `floor(maxActiveCpus / workerCores)` score containers and any CPUs that cannot fit another complete container. Reducers keep their measured four-core shape and run one at a time.
+Every field is required. `workerCores` controls Rust threads and Modal CPU cores for each score container. `maxActiveCpus` controls the maximum total worker CPUs. The plan reports `floor(maxActiveCpus / workerCores)` score containers and any CPUs that cannot fit another complete container. Reducers keep their measured four-core shape and can run one per kingdom in parallel within the same CPU budget.
 
 Validation limits are:
 

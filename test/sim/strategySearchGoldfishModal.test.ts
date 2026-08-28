@@ -82,6 +82,15 @@ describe('Goldfish-only Modal operator', () => {
     }
   });
 
+  it('allows one reducer per kingdom within the active CPU budget', () => {
+    const parsed = deriveGoldfishModalRequest({ request: {
+      ...request(16, 256),
+      kingdomIds: ['balance-tuning-005', 'balance-tuning-007', 'balance-tuning-009', 'balance-tuning-010']
+    }, sourceImage: source() });
+    expect(parsed.resourceShape.maxConcurrentReducers).toBe(4);
+    expect(createGoldfishModalLaunchBundle(parsed).controller.maxReducerMemoryMiB).toBe(32_768);
+  });
+
   it('uses the current Modal list rates and rejects a request below the calculated bound', () => {
     expect(GOLDFISH_MODAL_CPU_USD_PER_CORE_SECOND).toBe(0.0000131);
     expect(GOLDFISH_MODAL_MEMORY_USD_PER_GIB_SECOND).toBe(0.00000222);
