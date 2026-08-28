@@ -241,6 +241,19 @@ rust/target/release/hexdeck-goldfish psro-verify \
 
 The campaign still uses its existing JSON Matrix and PSRO path. Wiring the Rust commands into campaign publication is deferred until the campaign publishes the three Rust initial-matrix files. The old campaign PSRO path stays in place until that prerequisite is complete.
 
+After all 30 tuning kingdoms have complete native evidence, generate the dedicated balance analysis:
+
+```sh
+npm run strategy-search:rust-balance-report -- \
+  --root .data/strategy-search-30 \
+  --binary rust/target/release/hexdeck-goldfish \
+  --provenance .data/strategy-search-30/source-provenance-v1.json
+```
+
+The command runs native Goldfish, Matrix, and PSRO verification before it decodes a kingdom. It writes deterministic JSON to `.data/strategy-search-30/rust-balance-analysis-v1.json` and standalone HTML to `.html/strategy-search-30-rust-balance-v1.html`. The provenance file records scientific implementation commits separately from each local or Modal execution. A historical Goldfish binary hash can have an explicit unavailable reason, but current Matrix and PSRO binary hashes are required.
+
+The report uses off-diagonal Matrix telemetry. Diagonal card purchases and family damage are absent. A paired score byte of 2 does not identify one success and one failure versus two ties, so the report does not claim exact W/D/L.
+
 `rust/goldfish/kingdoms.json` contains every registered strategy-search kingdom. Generate it after kingdom or rule changes, then run the check:
 
 ```sh

@@ -55,9 +55,9 @@ The reservoir is the candidate set for competitive search. A high Goldfish rank 
 A game matrix records how each selected strategy performs against every other selected strategy.
 
 1. Take the top 50 strategies from the reservoir.
-2. Play every pair of strategies, including each strategy against itself.
+2. Play the 1,225 off-diagonal unordered pairs. Do not run diagonal self-play; set each diagonal matrix score to 50%.
 3. For each pair, use 125 fixed shuffle seeds. Play twice per seed so that each strategy goes first once.
-4. Record the results and gameplay evidence for each pairing.
+4. Record the results and gameplay evidence for each off-diagonal pairing.
 5. Use the first 75 seeds to calculate the initial equilibrium.
 6. Keep seeds 76–100 as a depth check and seeds 101–125 as independent evidence for later analysis.
 
