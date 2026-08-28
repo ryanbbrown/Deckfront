@@ -3,7 +3,9 @@ use serde_json::Value;
 use std::cmp::Ordering;
 use std::io::{self, BufRead, Write};
 
+mod equilibrium;
 mod kernel;
+mod matrix;
 
 const PROTOCOL_VERSION: u32 = 1;
 const SCORER_VERSION: &str = "native-goldfish-v1";
@@ -166,6 +168,12 @@ fn write_score_stream<T: Serialize>(
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    if matches!(
+        std::env::args().nth(1).as_deref(),
+        Some("matrix" | "matrix-verify")
+    ) {
+        return matrix::run().map_err(|message| io::Error::other(message).into());
+    }
     let options = parse_runtime_options().map_err(io::Error::other)?;
     let thread_budget = options.thread_budget;
     let stdin = io::stdin();

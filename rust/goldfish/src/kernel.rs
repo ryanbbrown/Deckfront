@@ -89,6 +89,17 @@ enum Family {
     Ranged,
     Engine,
 }
+impl Family {
+    fn index(self) -> usize {
+        match self {
+            Self::Treasure => 0,
+            Self::Mana => 1,
+            Self::Melee => 2,
+            Self::Ranged => 3,
+            Self::Engine => 4,
+        }
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Mechanic {
     Money,
@@ -238,7 +249,7 @@ enum Slot {
     Inactive,
 }
 #[derive(Clone, Debug)]
-struct Strategy {
+pub(crate) struct Strategy {
     id: String,
     canonical: String,
     build: Vec<usize>,
@@ -315,7 +326,7 @@ pub struct CompetitiveFixtureInput {
 }
 
 #[derive(Clone)]
-struct Kingdom {
+pub(crate) struct Kingdom {
     health: i16,
     aim_bonus: i16,
     feint_bonus: i16,
@@ -324,7 +335,7 @@ struct Kingdom {
     scrap: usize,
 }
 impl Kingdom {
-    fn compile(raw: KingdomInput) -> Result<Self, String> {
+    pub(crate) fn compile(raw: KingdomInput) -> Result<Self, String> {
         if raw.cards.len() > MAX_CARDS {
             return Err(format!("kingdom exceeds {MAX_CARDS} native cards"));
         }
@@ -357,7 +368,7 @@ impl Kingdom {
             cards,
         })
     }
-    fn strategy(&self, raw: RawStrategy) -> Result<Strategy, String> {
+    pub(crate) fn strategy(&self, raw: RawStrategy) -> Result<Strategy, String> {
         if raw.buy_plan.len() > MAX_PLAN {
             return Err(format!("strategy exceeds {MAX_PLAN} purchase slots"));
         }
@@ -436,6 +447,7 @@ struct State<'a> {
     spells: i16,
     copies: Vec<i16>,
     families: u8,
+    family_damage: [[i32; 5]; 2],
 }
 fn attack_mechanic(m: Mechanic) -> bool {
     matches!(
@@ -564,6 +576,7 @@ impl<'a> State<'a> {
             spells: 0,
             copies: vec![0; k.cards.len()],
             families: 0,
+            family_damage: [[0; 5]; 2],
         };
         state.draw(5);
         state.swap_active();
@@ -621,6 +634,7 @@ impl<'a> State<'a> {
             spells: 0,
             copies: vec![0; k.cards.len()],
             families: 0,
+            family_damage: [[0; 5]; 2],
         };
         state.draw(5);
         state.swap_active();
@@ -1510,13 +1524,16 @@ impl<'a> State<'a> {
     fn remove_hand(&mut self, i: usize) -> usize {
         self.p.hand.remove(i)
     }
-    fn damage(&mut self, n: i16, close: bool) -> bool {
+    fn damage(&mut self, n: i16, close: bool, family: Family) -> bool {
         let actual = n + if close && self.exposed[1] {
             self.k.feint_bonus
         } else {
             0
         };
+        let before = self.health[1];
         self.health[1] = (self.health[1] - actual).max(0);
+        self.family_damage[self.active_seat as usize][family.index()] +=
+            i32::from(before - self.health[1]);
         self.health[1] == 0
     }
     fn play(&mut self, decision: Decision) -> bool {
@@ -1560,7 +1577,7 @@ impl<'a> State<'a> {
         self.families |= family_bit(c.family);
         macro_rules! hit {
             ($n:expr,$close:expr) => {
-                if self.damage($n, $close) {
+                if self.damage($n, $close, c.family) {
                     return true;
                 }
             };
@@ -1996,15 +2013,15 @@ pub struct CompetitiveSession {
 #[derive(Clone, Debug, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct CompetitiveMatchResult {
-    outcome: String,
-    reason: String,
-    turns: i16,
+    pub(crate) outcome: String,
+    pub(crate) reason: String,
+    pub(crate) turns: i16,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct CompetitiveBatchScore {
-    score_bytes: Vec<u8>,
+    pub(crate) score_bytes: Vec<u8>,
     played: Vec<u8>,
     aborts: Vec<CompetitiveAbort>,
 }
@@ -2015,6 +2032,126 @@ pub struct CompetitiveAbort {
     block_index: usize,
     orientation_index: u8,
     reason: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct CompetitiveTelemetry {
+    pub(crate) purchases: Vec<i16>,
+    pub(crate) money_spent: i32,
+    pub(crate) starting_health: i16,
+    pub(crate) final_health: i16,
+    pub(crate) family_damage: [i32; 5],
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct CompetitiveGame {
+    pub(crate) result: CompetitiveMatchResult,
+    pub(crate) seats: [CompetitiveTelemetry; 2],
+}
+
+pub(crate) fn competitive_game(
+    kingdom: &Kingdom,
+    ochre: &Strategy,
+    indigo: &Strategy,
+    seed: u32,
+    first_indigo: bool,
+    draft: bool,
+    turn_limit: i16,
+    action_cap: i16,
+) -> CompetitiveGame {
+    let starting_health = if first_indigo {
+        [
+            kingdom.health,
+            (kingdom.health - FIRST_PLAYER_HEALTH_PENALTY).max(1),
+        ]
+    } else {
+        [
+            (kingdom.health - FIRST_PLAYER_HEALTH_PENALTY).max(1),
+            kingdom.health,
+        ]
+    };
+    let mut state = State::competitive(
+        kingdom,
+        ochre.clone(),
+        indigo.clone(),
+        seed,
+        first_indigo,
+        false,
+        draft,
+        turn_limit,
+        action_cap,
+    );
+    let mut phase = false;
+    let mut actions = 0;
+    let result = loop {
+        let mut changed = false;
+        if !phase {
+            match state.choose() {
+                Decision::End => {
+                    state.end_action();
+                    actions += 1;
+                    phase = true;
+                }
+                decision => {
+                    actions += 1;
+                    if state.play(decision) {
+                        break CompetitiveMatchResult {
+                            outcome: if state.active_seat == 0 {
+                                "ochre".into()
+                            } else {
+                                "indigo".into()
+                            },
+                            reason: "victory".into(),
+                            turns: state.turn - 1,
+                        };
+                    }
+                }
+            }
+        } else if let Some(card) = state.purchase() {
+            state.buy(card);
+            actions += 1;
+        } else {
+            state.end_competitive_buy();
+            actions += 1;
+            phase = false;
+            changed = true;
+        }
+        if actions > action_cap {
+            break CompetitiveMatchResult {
+                outcome: "draw".into(),
+                reason: "actionCap".into(),
+                turns: state.turn - 1,
+            };
+        }
+        if state.turn > turn_limit * 2 {
+            break CompetitiveMatchResult {
+                outcome: "draw".into(),
+                reason: "turnLimit".into(),
+                turns: state.turn - 1,
+            };
+        }
+        if changed {
+            actions = 0;
+        }
+    };
+    let active = state.active_seat as usize;
+    let other = active ^ 1;
+    let mut final_health = [0; 2];
+    final_health[active] = state.health[0];
+    final_health[other] = state.health[1];
+    let telemetry = |player: &Player, seat: usize| CompetitiveTelemetry {
+        purchases: player.acquired.clone(),
+        money_spent: player.money_spent,
+        starting_health: starting_health[seat],
+        final_health: final_health[seat],
+        family_damage: state.family_damage[seat],
+    };
+    let seats = if active == 0 {
+        [telemetry(&state.p, 0), telemetry(&state.op, 1)]
+    } else {
+        [telemetry(&state.op, 0), telemetry(&state.p, 1)]
+    };
+    CompetitiveGame { result, seats }
 }
 
 fn competitive_match(
@@ -2032,70 +2169,17 @@ fn competitive_match(
         .strategies
         .get(opponent_index)
         .ok_or_else(|| format!("opponent index {opponent_index} is out of range"))?;
-    let mut state = State::competitive(
+    Ok(competitive_game(
         &session.kingdom,
-        candidate.clone(),
-        opponent.clone(),
+        candidate,
+        opponent,
         seed,
         first_indigo,
-        false,
         session.starting_draft_enabled,
         session.turn_limit_per_player,
         session.action_cap_per_turn,
-    );
-    let mut phase = false;
-    let mut actions = 0;
-    loop {
-        let mut changed = false;
-        if !phase {
-            match state.choose() {
-                Decision::End => {
-                    state.end_action();
-                    actions += 1;
-                    phase = true;
-                }
-                decision => {
-                    actions += 1;
-                    if state.play(decision) {
-                        return Ok(CompetitiveMatchResult {
-                            outcome: if state.active_seat == 0 {
-                                "ochre".into()
-                            } else {
-                                "indigo".into()
-                            },
-                            reason: "victory".into(),
-                            turns: state.turn - 1,
-                        });
-                    }
-                }
-            }
-        } else if let Some(card) = state.purchase() {
-            state.buy(card);
-            actions += 1;
-        } else {
-            state.end_competitive_buy();
-            actions += 1;
-            phase = false;
-            changed = true;
-        }
-        if actions > session.action_cap_per_turn {
-            return Ok(CompetitiveMatchResult {
-                outcome: "draw".into(),
-                reason: "actionCap".into(),
-                turns: state.turn - 1,
-            });
-        }
-        if state.turn > session.turn_limit_per_player * 2 {
-            return Ok(CompetitiveMatchResult {
-                outcome: "draw".into(),
-                reason: "turnLimit".into(),
-                turns: state.turn - 1,
-            });
-        }
-        if changed {
-            actions = 0;
-        }
-    }
+    )
+    .result)
 }
 
 pub fn load_competitive(input: CompetitiveLoadInput) -> Result<CompetitiveSession, String> {
@@ -2505,6 +2589,29 @@ mod tests {
                     },
                 ),
                 card(
+                    "step",
+                    "action",
+                    "step",
+                    "engine",
+                    2,
+                    0,
+                    10,
+                    RawValues::default(),
+                ),
+                card(
+                    "strike",
+                    "action",
+                    "melee",
+                    "melee",
+                    3,
+                    0,
+                    10,
+                    RawValues {
+                        damage: 3,
+                        ..RawValues::default()
+                    },
+                ),
+                card(
                     "scrap",
                     "action",
                     "scrap",
@@ -2546,5 +2653,179 @@ mod tests {
         assert_eq!(turn.area, i32::from(turn.damage));
         assert_eq!(action.area, i32::from(action.damage) * 30);
         assert!(complete.area >= i32::from(complete.damage));
+    }
+
+    fn raw_strategy(id: &str, build: &[&str], buys: &[(&str, i16)]) -> RawStrategy {
+        let mut buy_plan = buys
+            .iter()
+            .map(|(card_id, desired_count)| RawSlot::Buy {
+                card_id: (*card_id).into(),
+                desired_count: *desired_count,
+            })
+            .collect::<Vec<_>>();
+        buy_plan.resize(MAX_PLAN, RawSlot::Inactive);
+        RawStrategy {
+            id: id.into(),
+            canonical_strategy: id.into(),
+            starting_build: build.iter().map(|value| (*value).into()).collect(),
+            buy_plan,
+        }
+    }
+
+    fn balance_fixture() -> Kingdom {
+        #[derive(Deserialize)]
+        struct Fixture {
+            kingdom: KingdomInput,
+        }
+        let fixture: Fixture =
+            serde_json::from_str(include_str!("../fixtures/balance-tuning-005.json"))
+                .expect("balance fixture json");
+        Kingdom::compile(fixture.kingdom).expect("balance fixture kingdom")
+    }
+
+    #[test]
+    fn competitive_game_split_preserves_draft_on_and_off_results() {
+        let kingdom = balance_fixture();
+        let alpha = kingdom
+            .strategy(raw_strategy(
+                "alpha",
+                &["silver", "step"],
+                &[("volley", 2), ("gold", 3)],
+            ))
+            .expect("alpha");
+        let beta = kingdom
+            .strategy(raw_strategy(
+                "beta",
+                &["focus", "strike", "scrap"],
+                &[("focus", 4), ("starfire", 2), ("silver", 2)],
+            ))
+            .expect("beta");
+        let fixtures = [
+            (false, &alpha, &beta, 91, false, "ochre", "victory", 50),
+            (
+                false, &alpha, &beta, 4_200_001, true, "ochre", "victory", 51,
+            ),
+            (
+                false, &beta, &alpha, 4_200_125, false, "indigo", "victory", 53,
+            ),
+            (true, &alpha, &beta, 91, false, "ochre", "victory", 26),
+            (true, &alpha, &beta, 4_200_001, true, "ochre", "victory", 25),
+            (
+                true, &beta, &alpha, 4_200_125, false, "indigo", "victory", 25,
+            ),
+        ];
+        for (draft, ochre, indigo, seed, first_indigo, outcome, reason, turns) in fixtures {
+            let actual =
+                competitive_game(&kingdom, ochre, indigo, seed, first_indigo, draft, 30, 200);
+            assert_eq!(actual.result.outcome, outcome);
+            assert_eq!(actual.result.reason, reason);
+            assert_eq!(actual.result.turns, turns);
+        }
+    }
+
+    #[test]
+    fn competitive_telemetry_matches_health_and_spending() {
+        let kingdom = balance_fixture();
+        let ochre = kingdom
+            .strategy(raw_strategy(
+                "ochre",
+                &[],
+                &[("volley", 2), ("gold", 3), ("silver", 2)],
+            ))
+            .expect("ochre");
+        let indigo = kingdom
+            .strategy(raw_strategy(
+                "indigo",
+                &[],
+                &[("focus", 4), ("starfire", 2), ("silver", 2)],
+            ))
+            .expect("indigo");
+        for seed in [4_200_001, 4_200_063, 4_200_125] {
+            for first_indigo in [false, true] {
+                let game = competitive_game(
+                    &kingdom,
+                    &ochre,
+                    &indigo,
+                    seed,
+                    first_indigo,
+                    false,
+                    30,
+                    200,
+                );
+                for seat in 0..2 {
+                    let telemetry = &game.seats[seat];
+                    assert_eq!(
+                        telemetry.family_damage.iter().sum::<i32>(),
+                        i32::from(
+                            game.seats[seat ^ 1].starting_health
+                                - game.seats[seat ^ 1].final_health
+                        )
+                    );
+                    let purchase_cost = telemetry
+                        .purchases
+                        .iter()
+                        .zip(&kingdom.cards)
+                        .map(|(count, card)| i32::from(*count) * i32::from(card.cost))
+                        .sum::<i32>();
+                    assert_eq!(purchase_cost, telemetry.money_spent);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn competitive_telemetry_attributes_damage_to_played_card_family() {
+        let (kingdom, ranged) = fixture();
+        let precision = kingdom
+            .cards
+            .iter()
+            .position(|card| card.id == "precisionShot")
+            .expect("precision shot");
+        let ranged_game = (1..=500)
+            .flat_map(|seed| [false, true].map(move |first_indigo| (seed, first_indigo)))
+            .map(|(seed, first_indigo)| {
+                competitive_game(
+                    &kingdom,
+                    &ranged,
+                    &ranged,
+                    seed,
+                    first_indigo,
+                    false,
+                    30,
+                    200,
+                )
+            })
+            .find(|game| {
+                game.seats.iter().all(|telemetry| {
+                    telemetry.purchases[precision] > 0
+                        && telemetry.family_damage[3] > 0
+                        && telemetry.family_damage[4] > 0
+                })
+            })
+            .expect("ranged attribution fixture");
+        for telemetry in &ranged_game.seats {
+            assert_eq!(telemetry.family_damage[0], 0);
+            assert_eq!(telemetry.family_damage[1], 0);
+            assert_eq!(telemetry.family_damage[2], 0);
+        }
+
+        let melee = kingdom
+            .strategy(raw_strategy(
+                "melee",
+                &[],
+                &[("step", 2), ("strike", INFINITE_BUY_COUNT)],
+            ))
+            .expect("melee");
+        (1..=500)
+            .flat_map(|seed| [false, true].map(move |first_indigo| (seed, first_indigo)))
+            .map(|(seed, first_indigo)| {
+                competitive_game(&kingdom, &melee, &melee, seed, first_indigo, false, 30, 200)
+            })
+            .find(|game| {
+                game.seats
+                    .iter()
+                    .all(|telemetry| telemetry.family_damage[2] > 0)
+            })
+            .expect("melee attribution fixture");
     }
 }
