@@ -22,15 +22,15 @@ The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, 
 
 ## Play
 
-1. Refresh until the 10 unique variable cards make an interesting kingdom. Copper, Silver, Gold, Step, and Focus are in every market. Cull is a normal kingdom pile.
+1. Refresh until one of the 30 trained 10-card kingdoms looks interesting. Copper, Silver, Gold, Step, and Focus are in every market. Cull is a normal kingdom pile.
 2. Choose two local players or the AI opponent. In an AI game, choose whether you or the AI goes first and select Easy, Normal, Hard, or Expert strength.
-3. Choose whether to use the starting draft, then start the game. AI training can take several seconds because the server simulates strategies for the chosen kingdom.
-4. With the draft on, Player 1 spends up to 12 money on starting cards, then Player 2 builds. With the draft off, both players start immediately with 7 Copper and 3 Scrap.
+3. For a local game, choose whether to use the starting draft. AI games always start without the draft.
+4. With the local draft on, Player 1 spends up to 12 money on starting cards, then Player 2 builds. With the draft off, both players start immediately with 7 Copper and 3 Scrap.
 5. Play any number of Action cards, end the Action phase to play Treasure cards, buy affordable cards, and end the Buy phase.
 
 Draft-on decks start with 7 Copper. Up to 3 unspent starting money carries into the first Buy phase. Draft-off decks add 3 Scrap, have no carry, and skip the build. Only the first Scrap a player plays each turn deals its 1 damage. Scrap is never sold or gained. Starting-build cards do not reduce market piles.
 
-AI strategy training currently uses draft-on simulations. In a draft-off AI game, the trained starting build is ignored, but its purchase plan still controls the opponent.
+Normal AI play selects from the server-only `src/server/pretrained-opponents.json` catalog. The catalog contains all 1,572 final-matrix ordered plans for the 30 trained kingdoms, derived from `.data/strategy-search-30/rust-balance-analysis-v1.json`. Selection does not start Rust, strategy-search, or worker processes. Expert uses the saved equilibrium lottery. Easy, Normal, and Hard use the saved score against that lottery. The saved purchase plan controls buys, and the shared tactical agent controls card play and movement.
 
 The arena has spaces 1 through 6. Fighters start on the symmetric middle spaces, Player 1 at 3 and Player 2 at 4. Fighters can share a space and move through each other. Distance 0 is Close, 1 is Near, and 2 or more is Far. Bought cards enter the discard pile. Actions resolve at once. The right rail keeps the public action record visible and shows both full deck compositions without zone counts. In an AI game, a complete AI turn resolves before the server returns the next human state. Its public actions appear in the rail. Undo can roll back every submitted action to the completed-setup boundary. Each undo of a turn-ending human action also removes the full AI response that it caused. Reload restores the active game and its undo history. New game clears the browser's active-game link.
 

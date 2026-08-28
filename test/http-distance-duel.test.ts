@@ -4,11 +4,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { VARIABLE_ACTION_IDS } from '../src/game';
-import { ProductionAiTrainer } from '../src/server/aiTrainer';
+import { AiTrainingError } from '../src/server/aiTrainer';
 import type { AiTrainer } from '../src/server/aiTrainer';
 import { createHexdeckServer } from '../src/server/httpServer';
 import type { GameView } from '../src/shared/api';
-import type { PairingRunner } from '../src/sim/pairingRunner';
 import { INFINITE_COUNT, fixedBuyPlan } from '../src/sim/strategy';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cleanups: Array<() => Promise<void>> = [];
@@ -27,11 +26,25 @@ async function create(base: string, body: Record<string, unknown> = {}) {
 describe('local game HTTP interface', () => {
   it('serves the setup catalog with fixed and variable cards separated', async () => {
     const { base } = await server(); const response = await fetch(`${base}/api/setup`);
-    const setup = await response.json() as { fixedCardIds: string[]; variableCardIds: string[]; cards: Record<string, unknown> };
+    const setup = await response.json() as { fixedCardIds: string[]; variableCardIds: string[]; trainedVariableCardSets: string[][]; cards: Record<string, unknown> };
     expect(response.status).toBe(200);
     expect(setup.fixedCardIds).toEqual(['copper', 'silver', 'gold', 'step', 'focus']);
     expect(setup.variableCardIds).toContain('footwork'); expect(setup.variableCardIds).not.toContain('step');
+    expect(setup.trainedVariableCardSets).toHaveLength(30);
+    expect(new Set(setup.trainedVariableCardSets.map((cards) => [...cards].sort().join('|'))).size).toBe(30);
+    expect(setup.trainedVariableCardSets.every((cards) => cards.length === 10 && new Set(cards).size === 10
+      && cards.every((cardId) => setup.variableCardIds.includes(cardId)))).toBe(true);
     expect(Object.keys(setup.cards)).toContain('starfire');
+  });
+  it('creates a pretrained AI game immediately from a reordered trained kingdom', async () => {
+    const { base } = await server();
+    const setup = await fetch(`${base}/api/setup`).then((response) => response.json()) as { trainedVariableCardSets: string[][] };
+    const response = await create(base, { mode: 'ai', humanPlayerId: 'ochre', aiDifficulty: 'expert',
+      startingDraftEnabled: true, variableCardIds: [...setup.trainedVariableCardSets[0]!].reverse() });
+    const view = await response.json() as GameView;
+    expect(response.status).toBe(201);
+    expect(view).toMatchObject({ mode: 'ai', startingDraftEnabled: false, phase: 'action', training: { matches: 0 } });
+    expect(view.training?.strategyId).toMatch(/^gf-/);
   });
   it('creates a game and accepts both sequential builds', async () => {
     const { base } = await server(); const createdResponse = await create(base); expect(createdResponse.status).toBe(201);
@@ -75,9 +88,9 @@ describe('local game HTTP interface', () => {
     ]) };
     const aiTrainer: AiTrainer = { train: async () => ({ strategy, summary: { elapsedMs: 1, matches: 1, strategyId: strategy.id } }) };
     const { base } = await server(aiTrainer);
-    const created = await (await create(base, { mode: 'ai', humanPlayerId: 'ochre', aiDifficulty: 'normal' })).json() as GameView;
-    expect(created.aiDifficulty).toBe('normal');
-    let view = await fetch(`${base}/api/games/${created.id}/build`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: created.revision, definitionIds: [], complete: true }) }).then((response) => response.json()) as GameView;
+    const created = await (await create(base, { mode: 'ai', humanPlayerId: 'ochre', aiDifficulty: 'normal', startingDraftEnabled: true })).json() as GameView;
+    expect(created).toMatchObject({ aiDifficulty: 'normal', startingDraftEnabled: false, phase: 'action' });
+    let view = created;
     for (const kind of ['endAction', 'endBuy'] as const) {
       const actionId = view.actions.phases.find((action) => action.kind === kind)!.id;
       view = await fetch(`${base}/api/games/${created.id}/actions`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ expectedRevision: view.revision, actionId }) }).then((response) => response.json()) as GameView;
@@ -85,27 +98,16 @@ describe('local game HTTP interface', () => {
     expect(view.events.some((event) => event.playerId === 'indigo' && event.type === 'purchase' && event.detail.definitionId === 'silver')).toBe(true);
     expect(JSON.stringify(view.events)).not.toMatch(/cardInstanceId|recoverInstanceId|discardInstanceId|drawOrder|"hand"/);
   });
-  it('returns a training-specific 503 and saves nothing after an unexpected production search failure', async () => {
-    let closed = false;
-    const runner: PairingRunner = {
-      run: async () => { throw new Error('runner should not receive work'); },
-      close: async () => { closed = true; }
-    };
-    const trainer = new ProductionAiTrainer({
-      restarts: 1, initialStrategies: 2, candidates: 2, iterations: 1,
-      seeds: 1, unionIterations: 1, workers: 1, deadlineMinutes: 1, finalSearch: 'none'
-    }, {
-      createRunner: () => runner,
-      runSearch: async () => { throw new Error('unexpected search failure'); }
-    });
+  it('returns a training-specific 503 and saves nothing after opponent selection fails', async () => {
+    const trainer: AiTrainer = { train: async () => { throw new AiTrainingError('AI selection failed.'); } };
     const { base, games } = await server(trainer);
     const response = await fetch(`${base}/api/games`, {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ seed: 2, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10) })
     });
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({ error: 'AI training failed: unexpected search failure' });
-    expect(closed).toBe(true); expect(await readdir(games).catch(() => [])).toEqual([]);
+    expect(await response.json()).toEqual({ error: 'AI selection failed.' });
+    expect(await readdir(games).catch(() => [])).toEqual([]);
   });
   it('returns 400 for an unknown build card without changing revision or proposal', async () => {
     const { base } = await server(); const created = await (await create(base)).json() as { id: string; revision: number; buildProposal: string[] };

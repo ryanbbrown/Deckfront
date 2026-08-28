@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { randomVariableCardIds } from '../game';
 import type { PlayerId, RandomIndexSource } from '../game';
 import type { AiDifficulty, GameMode, GameView, SetupCatalog } from '../shared/api';
 import { createGame, loadGame, loadSetup } from './api';
 import { Game, PreviewTable } from './Game';
+import { chooseTrainedVariableCards } from './setupMarket';
 
 const ACTIVE_GAME_KEY = 'hexdeck.activeGameId';
 const cryptoRandom: RandomIndexSource = {
@@ -15,7 +15,6 @@ const cryptoRandom: RandomIndexSource = {
     return value % maxExclusive;
   }
 };
-function refreshed(ids: readonly string[]): string[] { return randomVariableCardIds(cryptoRandom, ids); }
 
 export function App() {
   const [catalog, setCatalog] = useState<SetupCatalog | null>(null);
@@ -26,7 +25,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     void loadSetup().then(async (setup) => {
-      setCatalog(setup); setMarket(refreshed(setup.variableCardIds));
+      setCatalog(setup); setMarket(chooseTrainedVariableCards(cryptoRandom, setup.trainedVariableCardSets));
       const id = localStorage.getItem(ACTIVE_GAME_KEY);
       if (!id) return;
       try { setGame(await loadGame(id)); }
@@ -36,15 +35,15 @@ export function App() {
   async function start(mode: GameMode, startingDraftEnabled: boolean, humanPlayerId?: PlayerId, aiDifficulty?: AiDifficulty) {
     setTraining(mode === 'ai'); setLoading(mode !== 'ai'); setError(null);
     try {
-      const created = await createGame({ mode, variableCardIds: market, startingDraftEnabled,
-        ...(mode === 'ai' ? { humanPlayerId, aiDifficulty } : {}) });
+      const created = await createGame({ mode, variableCardIds: market,
+        ...(mode === 'ai' ? { humanPlayerId, aiDifficulty } : { startingDraftEnabled }) });
       localStorage.setItem(ACTIVE_GAME_KEY, created.id); setGame(created);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Could not create game.'); }
     finally { setLoading(false); setTraining(false); }
   }
-  function newGame() { localStorage.removeItem(ACTIVE_GAME_KEY); setGame(null); setError(null); if (catalog) setMarket(refreshed(catalog.variableCardIds)); }
+  function newGame() { localStorage.removeItem(ACTIVE_GAME_KEY); setGame(null); setError(null); if (catalog) setMarket(chooseTrainedVariableCards(cryptoRandom, catalog.trainedVariableCardSets, market)); }
   if (training) return <main className="training-state"><div><span className="spinner" /><h1>Training opponent…</h1><p>The AI is testing strategies for this kingdom.</p></div></main>;
   if (loading || !catalog) return <main className="loading">Loading Hexdeck…</main>;
-  if (!game) return <PreviewTable catalog={catalog} market={market} error={error} onRefresh={() => setMarket(refreshed(catalog.variableCardIds))} onStart={start} />;
+  if (!game) return <PreviewTable catalog={catalog} market={market} error={error} onRefresh={() => setMarket(chooseTrainedVariableCards(cryptoRandom, catalog.trainedVariableCardSets, market))} onStart={start} />;
   return <Game game={game} error={error} onGame={setGame} onError={setError} onNew={newGame} />;
 }

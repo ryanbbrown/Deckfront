@@ -24,7 +24,7 @@ export function PreviewTable({ catalog, market, error, onRefresh, onStart }: {
     <TableHeader title="Choose a kingdom" controls={<div className="setup-controls">
       <label><input type="radio" checked={mode === 'local'} onChange={() => setMode('local')} /> Local players</label>
       <label><input type="radio" checked={mode === 'ai'} onChange={() => setMode('ai')} /> Play against AI</label>
-      <label><input type="checkbox" checked={startingDraftEnabled} onChange={(event) => setStartingDraftEnabled(event.target.checked)} /> Starting draft</label>
+      {mode === 'local' ? <label><input type="checkbox" checked={startingDraftEnabled} onChange={(event) => setStartingDraftEnabled(event.target.checked)} /> Starting draft</label> : null}
       {mode === 'ai' ? <><fieldset><legend>Turn order</legend><label><input type="radio" checked={human === 'ochre'} onChange={() => setHuman('ochre')} /> I go first</label><label><input type="radio" checked={human === 'indigo'} onChange={() => setHuman('indigo')} /> AI goes first</label></fieldset><label>AI strength<select aria-label="AI strength" value={difficulty} onChange={(event) => setDifficulty(event.target.value as AiDifficulty)}>{AI_DIFFICULTIES.map((value) => <option key={value} value={value}>{value[0]!.toUpperCase() + value.slice(1)}</option>)}</select></label></> : null}
       <button className="control-button" onClick={onRefresh}>Refresh market</button>
       <button className="control-button" onClick={() => setMarketOpen(true)}>View cards</button>

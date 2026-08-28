@@ -5,6 +5,7 @@ import { ZodError } from 'zod';
 import { ALWAYS_AVAILABLE_ACTION_IDS, CARDS, TREASURE_IDS, VARIABLE_ACTION_IDS } from '../game';
 import { GameService, AiAdvanceError, BadBuildError, ConflictError, ForbiddenActionError } from './gameService';
 import { AiTrainingError } from './aiTrainer';
+import { pretrainedVariableCardSets } from './pretrainedCatalog';
 import type { AiTrainer } from './aiTrainer';
 import { GameNotFoundError, FileGameRepository, UnsupportedSchemaError } from './persistence';
 import { actionRequestSchema, buildRequestSchema, createGameRequestSchema, revisionRequestSchema } from './schemas';
@@ -32,7 +33,7 @@ async function handleApi(request: IncomingMessage, response: ServerResponse, ser
   if (request.method === 'GET' && url.pathname === '/api/setup') {
     sendJson(response, 200, {
       cards: CARDS, fixedCardIds: [...TREASURE_IDS, ...ALWAYS_AVAILABLE_ACTION_IDS],
-      variableCardIds: [...VARIABLE_ACTION_IDS]
+      variableCardIds: [...VARIABLE_ACTION_IDS], trainedVariableCardSets: pretrainedVariableCardSets()
     });
     return true;
   }
