@@ -1,0 +1,237 @@
+{
+  "kingdom": {
+    "id": "balance-tuning-005",
+    "health": 40,
+    "aimBonus": 2,
+    "feintBonus": 1,
+    "cards": [
+      {
+        "id": "copper",
+        "cardType": "treasure",
+        "mechanic": "money",
+        "family": "treasure",
+        "cost": 0,
+        "money": 1,
+        "tactical": false,
+        "supply": -1,
+        "values": {}
+      },
+      {
+        "id": "silver",
+        "cardType": "treasure",
+        "mechanic": "money",
+        "family": "treasure",
+        "cost": 3,
+        "money": 2,
+        "tactical": false,
+        "supply": -1,
+        "values": {}
+      },
+      {
+        "id": "gold",
+        "cardType": "treasure",
+        "mechanic": "money",
+        "family": "treasure",
+        "cost": 6,
+        "money": 3,
+        "tactical": false,
+        "supply": -1,
+        "values": {}
+      },
+      {
+        "id": "cascade",
+        "cardType": "action",
+        "mechanic": "cascade",
+        "family": "mana",
+        "cost": 5,
+        "money": 0,
+        "tactical": true,
+        "supply": 10,
+        "values": {
+          "damage": 4,
+          "manaCost": 1,
+          "perSpell": 2
+        }
+      },
+      {
+        "id": "channel",
+        "cardType": "action",
+        "mechanic": "channel",
+        "family": "mana",
+        "cost": 3,
+        "money": 0,
+        "tactical": false,
+        "supply": 10,
+        "values": {
+          "mana": 1,
+          "draw": 1
+        }
+      },
+      {
+        "id": "flurry",
+        "cardType": "action",
+        "mechanic": "flurry",
+        "family": "melee",
+        "cost": 5,
+        "money": 0,
+        "tactical": true,
+        "supply": 10,
+        "values": {
+          "perAction": 1
+        }
+      },
+      {
+        "id": "heavyBlow",
+        "cardType": "action",
+        "mechanic": "melee",
+        "family": "melee",
+        "cost": 5,
+        "money": 0,
+        "tactical": true,
+        "supply": 10,
+        "values": {
+          "damage": 6,
+          "draw": 0
+        }
+      },
+      {
+        "id": "overload",
+        "cardType": "action",
+        "mechanic": "overload",
+        "family": "mana",
+        "cost": 5,
+        "money": 0,
+        "tactical": true,
+        "supply": 10,
+        "values": {
+          "perManaSpent": 2
+        }
+      },
+      {
+        "id": "prism",
+        "cardType": "action",
+        "mechanic": "prism",
+        "family": "mana",
+        "cost": 5,
+        "money": 0,
+        "tactical": false,
+        "supply": 10,
+        "values": {
+          "mana": 2,
+          "draw": 1,
+          "discard": 1
+        }
+      },
+      {
+        "id": "regiment",
+        "cardType": "action",
+        "mechanic": "muster",
+        "family": "engine",
+        "cost": 7,
+        "money": 0,
+        "tactical": false,
+        "supply": 10,
+        "values": {
+          "draw": 3
+        }
+      },
+      {
+        "id": "starfire",
+        "cardType": "action",
+        "mechanic": "spell",
+        "family": "mana",
+        "cost": 6,
+        "money": 0,
+        "tactical": true,
+        "supply": 10,
+        "values": {
+          "damage": 12,
+          "manaCost": 3
+        }
+      },
+      {
+        "id": "strike",
+        "cardType": "action",
+        "mechanic": "melee",
+        "family": "melee",
+        "cost": 3,
+        "money": 0,
+        "tactical": true,
+        "supply": 10,
+        "values": {
+          "damage": 3,
+          "draw": 0
+        }
+      },
+      {
+        "id": "volley",
+        "cardType": "action",
+        "mechanic": "volley",
+        "family": "ranged",
+        "cost": 5,
+        "money": 0,
+        "tactical": true,
+        "supply": 10,
+        "values": {
+          "near": 1,
+          "far": 4
+        }
+      },
+      {
+        "id": "step",
+        "cardType": "action",
+        "mechanic": "step",
+        "family": "engine",
+        "cost": 2,
+        "money": 0,
+        "tactical": true,
+        "supply": 10,
+        "values": {}
+      },
+      {
+        "id": "focus",
+        "cardType": "action",
+        "mechanic": "channel",
+        "family": "mana",
+        "cost": 1,
+        "money": 0,
+        "tactical": false,
+        "supply": 10,
+        "values": {
+          "mana": 1,
+          "draw": 0
+        }
+      },
+      {
+        "id": "scrap",
+        "cardType": "action",
+        "mechanic": "scrap",
+        "family": "engine",
+        "cost": 0,
+        "money": 0,
+        "tactical": true,
+        "supply": -1,
+        "values": {
+          "damage": 1
+        }
+      }
+    ]
+  },
+  "orderedCardIds": [
+    "cascade",
+    "channel",
+    "flurry",
+    "focus",
+    "gold",
+    "heavyBlow",
+    "overload",
+    "prism",
+    "regiment",
+    "silver",
+    "starfire",
+    "step",
+    "strike",
+    "volley"
+  ],
+  "ruleFingerprint": "b7eaecb3cdb"
+}
