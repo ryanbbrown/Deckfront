@@ -283,6 +283,7 @@ fn candidate_parts(card_count: usize, number: u32) -> Result<([usize; 5], [u32; 
     Ok((selected, quantities))
 }
 
+#[derive(Clone)]
 pub(crate) struct DecodedStrategy {
     pub(crate) number: u32,
     pub(crate) kernel: kernel::Strategy,
@@ -714,7 +715,10 @@ pub(crate) fn read_reservoir_selection(
     allow_test_shape: bool,
 ) -> Result<ReservoirSelection, String> {
     let (header, rows, bytes) = read_all_reservoir(path, loaded)?;
-    if header.range_start != 0 || header.range_end != TOP_COUNT {
+    if header.range_start != 0
+        || !allow_test_shape && header.range_end != TOP_COUNT
+        || allow_test_shape && header.range_end < header.row_count
+    {
         return Err("reservoir range differs from the Goldfish reservoir contract".into());
     }
     if (!allow_test_shape && header.row_count != RESERVOIR_COUNT)
@@ -742,6 +746,56 @@ pub(crate) fn read_reservoir_selection(
         source_checksum: header.checksum,
         numbers,
         bytes,
+    })
+}
+
+pub(crate) struct VerifiedReservoir {
+    pub(crate) row_checksum: u32,
+    pub(crate) numbers: Vec<u32>,
+}
+
+pub(crate) fn read_verified_reservoir(
+    top_path: &Path,
+    reservoir_path: &Path,
+    loaded: &LoadedKingdom,
+    production: bool,
+    minimum_rows: usize,
+) -> Result<VerifiedReservoir, String> {
+    let (top_header, top_rows, _) = validated_top(top_path, loaded)?;
+    let (header, rows, _) = read_all_reservoir(reservoir_path, loaded)?;
+    if production
+        && (top_header.range_start != 0
+            || top_header.range_end != CANDIDATE_COUNT
+            || top_header.row_count != TOP_COUNT
+            || header.row_count != RESERVOIR_COUNT)
+    {
+        return Err("Goldfish top or reservoir production shape is invalid".into());
+    }
+    if rows.len() < minimum_rows
+        || header.range_start != 0
+        || header.range_end != top_header.row_count
+        || header.source_checksum != top_header.checksum
+    {
+        return Err("reservoir range, count, or top source checksum differs".into());
+    }
+    let top_by_number: HashMap<u32, ResultRow> =
+        top_rows.into_iter().map(|row| (row[0], row)).collect();
+    let mut seen = std::collections::HashSet::with_capacity(rows.len());
+    for (index, row) in rows.iter().enumerate() {
+        let top = top_by_number
+            .get(&row[0])
+            .ok_or("reservoir strategy is absent from top")?;
+        if row[0] >= CANDIDATE_COUNT
+            || row[1..16] != top[1..]
+            || !seen.insert(row[0])
+            || index > 0 && compare_reservoir(&rows[index - 1], row) != Ordering::Greater
+        {
+            return Err("reservoir stage-one evidence, uniqueness, range, or order differs".into());
+        }
+    }
+    Ok(VerifiedReservoir {
+        row_checksum: header.checksum,
+        numbers: rows.into_iter().map(|row| row[0]).collect(),
     })
 }
 

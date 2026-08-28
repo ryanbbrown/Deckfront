@@ -263,7 +263,7 @@
       <p>Every shuffle number in this step is fixed by a formula from the search number, the stage (screen, confirm, retest, or admit), and the position in the sequence. Screening, confirmation, and retest use separate number ranges, so they never share a shuffle. The same candidate at the same look in the same search always plays the same games, locally or on Modal.</p>
 
       <h3>Sharing the mix out over shuffles</h3>
-      <p>For a look of N shuffles, each mix strategy gets a whole number of shuffles as close as possible to N times its weight, using largest-remainder rounding, with ties broken by lower strategy number. The opponents are then laid out in a fixed order. Every candidate in the same look faces the same opponent sequence. So candidates are compared on equal terms.</p>
+      <p>Each race builds one opponent schedule at its largest shuffle count. At schedule position k, the program chooses the positive-weight matrix strategy with the largest value of its normalized weight times k, minus its assignments so far. A tie goes to the lower strategy number. Every look uses a prefix of this schedule, so a later look plays only the new suffix. Every candidate in the same look faces the same opponent sequence.</p>
 
       <h3>Screening looks</h3>
       <ol>
@@ -289,21 +289,21 @@
       </ol>
 
       <h3>Result files</h3>
-      <p>Each search writes one screening file and one confirmation file. Both use fixed-size rows so they can be read in one pass. A screening row is the candidate number (4 bytes), the number of shuffles played (2 bytes), the decision (1 byte), and 512 points bytes, one per shuffle, unused bytes set to zero. About 10 MB per search. A confirmation row is the same with 6,400 points bytes; only a handful of candidates reach this file. The pair results grow by one row per new pair. A small decisions file lists, per search, what was admitted, what was confirmed, what was unresolved, and the mix after each admission.</p>
-      <p>All files have the step 1 style header with a checksum. None of them hold timings.</p>
+      <p>Each completed look writes one binary file. The file starts with the new opponent seeds and strategy numbers for that suffix. It then has one fixed-size row for each candidate that entered the look, in reservoir rank order. A row holds the candidate number, rank, decision, cumulative mean and confidence bounds, the new point bytes, purchase counts, and family-damage totals. A resolved candidate does not appear in a later look from the same race.</p>
+      <p>Admission files hold the confirmed queue, the mix before and after admission, and all 125 point bytes and telemetry for each new matrix pair. A binary checkpoint names every completed file and the next transition. The final decisions file records every decision, admission, equilibrium, search result, and stop reason. Each file has a checksum and source identity. None of the scientific files hold timings.</p>
 
       <h3>Running locally</h3>
-      <p>One Rust command runs the whole loop: screen, confirm, admit, resolve, repeat, stop. A first screening look is about 320,000 games, about 30 seconds on a 10-core laptop. A whole search, with its later looks, confirmations, and the admitted row, is about one million games. A full run with 5 to 20 admissions is roughly 10 to 25 million games, so 15 to 40 minutes. Because the state is written after every look, the command can be stopped and started at will.</p>
+      <p>One Rust process runs the whole loop: screen, confirm, admit, solve, repeat, and stop. It loads the reservoir, matrix, and strategies once and uses one thread pool. Each look is one in-memory function call followed by one evidence commit. A first screening look is about 320,000 games. Because the process writes a checkpoint after every look, the same command can continue after a stop without replaying a completed look.</p>
 
       <h3>Running on Modal</h3>
-      <p>One cloud computer runs the whole step for one kingdom, with the same command as the local run. Each look depends on the results of the look before it, so splitting one kingdom across computers would put a file transfer and a start-up wait inside every look. Instead, give the kingdom a bigger computer: with 16 cores this step runs at about the local speed. Modal helps by running many kingdoms at once, each starting as soon as its <code>matrix</code> file passes its checks.</p>
-      <p>If a computer is lost, the Python script starts the same command again on a new one. It reads the saved state and continues from the last finished look.</p>
+      <p>One 16-core cloud computer runs one kingdom with the same Rust command as the local run. Python starts the process, commits the Volume after each Rust checkpoint signal, and returns the matching acknowledgement. Python does not inspect scores or choose the next transition. Different kingdoms can run at the same time.</p>
+      <p>If a computer is lost, Python starts the same command again. Rust checks every saved file, rebuilds its in-memory prefixes, and continues from the first unfinished look.</p>
 
       <h3>Cleanup and outputs</h3>
       <ol>
-        <li>The Rust program reads every result file back and checks headers, checksums, row counts, and that every recorded decision follows from the recorded points bytes and the rules above.</li>
-        <li>The outputs are the final <code>matrix</code>, the full <code>pairs</code> file, every search's screening and confirmation files, the decisions file, and the run report with timings.</li>
-        <li>The same inputs always give the same bytes, locally or on Modal.</li>
+        <li>The Rust verifier starts from the original reservoir and matrix, then checks every file, schedule, confidence bound, decision, admission, expanded matrix, and stopping rule.</li>
+        <li>The outputs are the final <code>pairs.hgm</code>, <code>purchases.hgm</code>, and <code>matrix.hgm</code> files after any admission, every look and admission file, <code>checkpoint.hpc</code>, <code>decisions.hpd</code>, and a separate timing report.</li>
+        <li>The same inputs always give the same scientific bytes, locally or on Modal.</li>
       </ol>
     </details>
   </main>

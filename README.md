@@ -207,6 +207,31 @@ rust/target/release/hexdeck-goldfish verify --kingdom balance-tuning-005 \
   --top .data/goldfish/balance-tuning-005/goldfish/top-500000.hgf
 ```
 
+Run the complete PSRO response search after the initial matrix files exist:
+
+```sh
+npm run psro:search -- balance-tuning-005 10 \
+  .data/goldfish/balance-tuning-005/goldfish/top-500000.hgf \
+  .data/goldfish/balance-tuning-005/goldfish/reservoir.hgf \
+  .data/matrix/balance-tuning-005 \
+  .data/psro/balance-tuning-005
+```
+
+One Rust process screens the reservoir, confirms responses, admits one response at a time, solves each expanded matrix, and stops after two clean searches. It writes binary look and admission files, `checkpoint.hpc`, `decisions.hpd`, expanded matrix files after an admission, and `run-report.json`. Run the same command again to continue from the first unfinished look.
+
+Verify the complete result directly:
+
+```sh
+rust/target/release/hexdeck-goldfish psro-verify \
+  --kingdom balance-tuning-005 \
+  --top-file .data/goldfish/balance-tuning-005/goldfish/top-500000.hgf \
+  --reservoir .data/goldfish/balance-tuning-005/goldfish/reservoir.hgf \
+  --matrix-dir .data/matrix/balance-tuning-005 \
+  --out .data/psro/balance-tuning-005
+```
+
+The campaign still uses its existing JSON Matrix and PSRO path. Wiring the Rust commands into campaign publication is deferred until the campaign publishes the three Rust initial-matrix files. The old campaign PSRO path stays in place until that prerequisite is complete.
+
 `rust/goldfish/kingdoms.json` contains every registered strategy-search kingdom. Generate it after kingdom or rule changes, then run the check:
 
 ```sh

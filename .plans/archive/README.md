@@ -11,7 +11,8 @@ These documents are superseded. Do not use them for current product or implement
 | `key-decisions.md` | `../09-card-list.md`, `../10-automated-balance-search.md`, `../12-repository-cleanup.md`, and `../../README.md` |
 | `card-balance-workshop.md` | `../09-card-list.md` |
 | `distance-duel-goal.md` | `../10-automated-balance-search.md`, `../11-search-performance.md`, and `../12-repository-cleanup.md` |
-| `59-ordered-goldfish-product-correction.md` | `../77-rust-goldfish-reservoir.md` for Goldfish; `../76-global-matrix-psro-runtime.md` for Matrix and PSRO |
-| `60-ordered-goldfish-product-correction-results.md` | `../77-rust-goldfish-reservoir.md` for Goldfish; `../76-global-matrix-psro-runtime.md` for Matrix and PSRO |
-| `74-scalable-strategy-search-runtime.md` | `../77-rust-goldfish-reservoir.md` for Goldfish; `../76-global-matrix-psro-runtime.md` for Matrix and PSRO |
-| `75-scalable-strategy-search-runtime-results.md` | `../77-rust-goldfish-reservoir.md` for Goldfish; `../76-global-matrix-psro-runtime.md` for Matrix and PSRO |
+| `59-ordered-goldfish-product-correction.md` | `../77-rust-goldfish-reservoir.md` for Goldfish; `../78-rust-matrix-step.md` for Matrix; `../79-rust-psro-loop.md` for PSRO |
+| `60-ordered-goldfish-product-correction-results.md` | `../77-rust-goldfish-reservoir.md` for Goldfish; `../78-rust-matrix-step.md` for Matrix; `../79-rust-psro-loop.md` for PSRO |
+| `74-scalable-strategy-search-runtime.md` | `../77-rust-goldfish-reservoir.md` for Goldfish; `../78-rust-matrix-step.md` for Matrix; `../79-rust-psro-loop.md` for PSRO |
+| `75-scalable-strategy-search-runtime-results.md` | `../77-rust-goldfish-reservoir.md` for Goldfish; `../78-rust-matrix-step.md` for Matrix; `../79-rust-psro-loop.md` for PSRO |
+| `76-global-matrix-psro-runtime.md` | `../78-rust-matrix-step.md` for Matrix; `../79-rust-psro-loop.md` for PSRO |

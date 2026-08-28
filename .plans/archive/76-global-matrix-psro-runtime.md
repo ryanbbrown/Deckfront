@@ -1,3 +1,5 @@
+> Archived: Matrix implementation replaced by `.plans/78-rust-matrix-step.md`; PSRO implementation replaced by `.plans/79-rust-psro-loop.md`.
+
 # Global Matrix and PSRO runtime
 
 Status: implementation plan after custom review-panel v1.

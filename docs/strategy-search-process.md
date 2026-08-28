@@ -65,57 +65,60 @@ The equilibrium is a weighted lottery over strategies. Its weights describe how 
 
 # 3. Search for responses with PSRO
 
-Policy-space response oracles (PSRO) repeatedly search for strategies that can beat the current equilibrium. A response is a reservoir strategy that appears to beat the equilibrium by more than the 51% threshold.
+One Rust process runs the complete policy-space response oracle (PSRO) loop for one kingdom. It loads the reservoir, matrix strategies, pair scores, purchase evidence, and equilibrium once. Rust keeps each scientific look in memory and uses one Rayon thread pool. Python can start the process and collect its output, but Python does not choose seeds, opponents, candidates, admissions, or the stopping point.
 
-Each search follows three steps: screening, confirmation, and admission.
+## Allocate opponents
+
+Each race builds one schedule at its maximum depth. At schedule position `k`, Rust chooses the positive-weight matrix strategy with the largest value of:
+
+```text
+normalized weight × k - assignments so far
+```
+
+A tie goes to the lower strategy number. Every later look uses a prefix of the same schedule and plays only its new suffix. Screening, confirmation, and queue retests use separate schedules and fresh deterministic seeds.
+
+Each shuffle produces two games with the seats swapped. The candidate receives 2 points for a win, 1 for a draw, and 0 for a loss in each game. One shuffle therefore produces one score byte from 0 to 4.
 
 ## Screen the reservoir
 
-1. Exclude strategies that are already in the matrix.
-2. Play every remaining reservoir strategy against the current equilibrium.
-3. Start with 8 shuffle seeds and increase the evidence through 16, 32, 64, 128, 256, and 512 seeds when the result is still uncertain.
-4. Reject a strategy when the evidence shows that it does not exceed the 51% threshold.
-5. Send a strategy to confirmation when the evidence shows that it exceeds the threshold.
-6. Mark a strategy as unresolved when the maximum screening evidence is not enough to make either decision.
+1. Freeze the current matrix and equilibrium.
+2. Exclude matrix strategies, then visit the other reservoir strategies in Goldfish rank order.
+3. Play cumulative depths 8, 16, 32, 64, 128, 256, and 512.
+4. Reject a candidate when its confidence upper bound is at or below 51%.
+5. Send a candidate to confirmation when its confidence lower bound is above 51%.
+6. Record a candidate as unresolved when neither rule applies after 512 shuffles.
 
-Each shuffle seed produces two games with opposite first players. The search follows the equilibrium weights as closely as the available number of games allows.
+The whole screen finishes before confirmation starts. This fixes the confirmation family size.
 
 ## Confirm possible responses
 
-1. Test every possible response again with fresh shuffle seeds.
-2. Increase confirmation evidence through 400, 800, 1,600, 3,200, and 6,400 seeds while the result is unresolved.
-3. Fix the confirmation family to every possible response from the completed screen.
-4. Give each family member an error rate of `0.05 / family size`. Queue retests use the same fixed-family rule and fresh seeds.
-5. Confirm only when the anytime confidence lower bound is strictly greater than 51%.
-6. Reject when the confidence upper bound is at or below 51%.
-7. Leave a strategy unresolved when the 6,400-seed result meets neither boundary.
+1. Use fresh shuffles at cumulative depths 400, 800, 1,600, 3,200, and 6,400.
+2. Give each family member alpha `0.05 / family size`.
+3. Confirm a candidate when its confidence lower bound is above 51%.
+4. Reject a candidate when its confidence upper bound is at or below 51%.
+5. Record any candidate still open after 6,400 shuffles as unresolved.
 
-Fresh confirmation prevents screening results from also serving as final proof.
+Rust uses the fixed betting mixture, 21 bisection steps, and `libm` logarithm and exponential functions. These rules keep decisions and evidence bytes stable across supported local and Linux machines.
 
-## Admit a confirmed response
+## Admit one response at a time
 
-1. Order confirmed responses by confidence lower bound, mean score, confidence upper bound, Goldfish rank, and deterministic strategy identity.
-2. Admit the strongest response to the matrix.
-3. Play the admitted strategy against every strategy already in the matrix.
-4. Add the new results as a row and column in the matrix.
-5. Calculate a new equilibrium from the expanded matrix.
-6. Retest the other confirmed responses against the new equilibrium.
-7. Run another full reservoir search after the confirmed queue is empty.
+Rust orders confirmed responses by higher lower bound, higher mean, higher upper bound, better Goldfish rank, and lower strategy number. It admits only the first response.
 
-Only one response is admitted at a time because each admission can change the equilibrium and make other responses irrelevant.
+For each admission, Rust plays all 125 matrix shuffles against every current matrix strategy, stores both purchase and family-damage evidence, adds the new row and column, rebuilds percentages from shuffles 1 through 75, and runs the same maximum-support solver as the initial matrix step. It then retests the remaining queue against the new equilibrium with fresh confirmation schedules. The process repeats until the queue is empty.
+
+An admission resets the clean-search count. The process then starts another full reservoir search.
 
 ## Stop after two clean searches
 
-A search is clean when it finds no confirmed response.
+A search is clean when it produces no confirmed response. Unresolved results at a fixed cap stay in the evidence and do not block a clean result. A missing, partial, corrupt, or failed look is incomplete and cannot count as clean. The process stops after two consecutive clean searches. Elapsed time never changes a decision.
 
-1. Count the first clean search.
-2. Search the same reservoir again against the same matrix and equilibrium.
-3. Finish when the second consecutive search is also clean.
-4. Reset the clean-search count whenever a response is admitted.
+## Evidence and restart
 
-Two clean searches are evidence that the saved 20,000-strategy reservoir contains no response that this process can confirm against the final equilibrium. They do not prove that no response exists outside the reservoir or that the game has only one equilibrium.
+Each completed look writes one binary suffix file. Rows contain only the candidates that entered that look. A checkpoint records the next transition, current matrix, current families and queue, and immutable file references. Admission files hold the exact pair scores and telemetry needed to rebuild the expanded matrix.
 
-A completed search is clean when it has no confirmed response. Candidates can remain unresolved at the screening, confirmation, or queue-retest cap. The evidence keeps each unresolved decision, but uncertainty does not make the search incomplete and does not block a clean-search count. Missing, corrupt, failed, or interrupted work is incomplete. The runtime records elapsed time but does not change a scientific result because of elapsed time alone.
+Writes use a temporary file, file sync, verification, rename, directory sync, and then a checkpoint update. On restart, Rust removes partial temporary files, adopts a valid renamed look that is ahead of its checkpoint, reconstructs score prefixes from committed looks, and continues with the first unfinished suffix. A corrupt final file stops the run instead of being overwritten.
+
+`decisions.hpd` records every final decision, admission, equilibrium snapshot, search result, and the two-clean-search stop. `psro-verify` replays the binary evidence from the original reservoir and matrix. Scientific files contain no paths, host data, thread counts, timestamps, or timings.
 
 # Save and validate the evidence
 

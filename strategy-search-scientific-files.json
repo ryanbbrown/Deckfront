@@ -9,6 +9,7 @@
   "rust/goldfish/src/kernel.rs",
   "rust/goldfish/src/main.rs",
   "rust/goldfish/src/matrix.rs",
+  "rust/goldfish/src/psro.rs",
   "rust/goldfish/src/reservoir.rs",
   "rust/rust-toolchain.toml",
   "scripts/strategy_search_campaign_matrix.ts",

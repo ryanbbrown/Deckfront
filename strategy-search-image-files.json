@@ -1,5 +1,6 @@
 [
   "modal/native_strategy_search.py",
+  "modal/psro_step.py",
   "package-lock.json",
   "package.json",
   "rust/Cargo.lock",
@@ -10,6 +11,7 @@
   "rust/goldfish/src/kernel.rs",
   "rust/goldfish/src/main.rs",
   "rust/goldfish/src/matrix.rs",
+  "rust/goldfish/src/psro.rs",
   "rust/goldfish/src/reservoir.rs",
   "rust/rust-toolchain.toml",
   "scripts/strategy_search_campaign_matrix.ts",
