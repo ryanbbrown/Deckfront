@@ -1,29 +1,14 @@
 import { kingdomFacts } from './mutation';
-import { StableHashAccumulator, canonicalStrategy, fixedBuyPlan, identify } from './strategy';
+import { fixedBuyPlan, identify } from './strategy';
 import type { Strategy } from './strategy';
 import { compareUtf16 } from './utf16';
 
 export const ORDERED_GOLDFISH_RUNG_COUNT = 5;
-export const ORDERED_GOLDFISH_DEFAULT_KINGDOM = 'deep-beam-tuning-009';
-export const ORDERED_GOLDFISH_DEFAULT_LIMIT = 100_000;
-export const ORDERED_GOLDFISH_DEFAULT_WORKERS = 10;
-export const ORDERED_GOLDFISH_DEFAULT_SHUFFLES = 1;
-export const ORDERED_GOLDFISH_DEFAULT_CHUNK_SIZE = 250;
 export const ORDERED_GOLDFISH_TURN_LIMIT = 30;
 export const ORDERED_GOLDFISH_ACTION_CAP = 200;
 export const ORDERED_GOLDFISH_SEED_BASE = 4_100_000;
 export const ORDERED_GOLDFISH_STRIDE_SEED = 0x9e37_79b1;
 export const ORDERED_GOLDFISH_OFFSET_SEED = 0x85eb_ca6b;
-
-export interface OrderedGoldfishCliOptions {
-  kingdomId: string;
-  limit: number;
-  workers: number;
-  shuffles: number;
-  chunkSize: number;
-  scorer: 'original' | 'lean' | 'rust';
-  startPosition: number;
-}
 
 export interface CoprimeTraversalConfig {
   strideSeed: number;
@@ -38,47 +23,6 @@ export interface OrderedCandidateSpace {
   skeletonCount: number;
   candidateCount: number;
   candidateAt(index: number): Strategy;
-}
-
-function nonnegativeInteger(name: string, raw: string | undefined): number {
-  const value = Number(raw);
-  if (!Number.isSafeInteger(value) || value < 0) throw new Error(`--${name} must be a nonnegative integer.`);
-  return value;
-}
-
-function positiveInteger(name: string, raw: string | undefined): number {
-  const value = Number(raw);
-  if (!Number.isSafeInteger(value) || value < 1) throw new Error(`--${name} must be a positive integer.`);
-  return value;
-}
-
-export function parseOrderedGoldfishArgs(args: readonly string[]): OrderedGoldfishCliOptions {
-  const values = new Map<string, string>();
-  const supported = new Set(['kingdom', 'limit', 'count', 'workers', 'shuffles', 'chunk-size', 'scorer',
-    'start-position']);
-  for (let index = 0; index < args.length; index += 2) {
-    const token = args[index]!;
-    if (!token.startsWith('--') || !supported.has(token.slice(2))) {
-      throw new Error(`Unknown ordered goldfish option: ${token}`);
-    }
-    const name = token.slice(2);
-    const value = args[index + 1];
-    if (value === undefined || value.startsWith('--')) throw new Error(`--${name} needs a value.`);
-    if (values.has(name)) throw new Error(`--${name} can be specified only once.`);
-    values.set(name, value);
-  }
-  if (values.has('limit') && values.has('count')) throw new Error('Use either --limit or --count, not both.');
-  const scorer = values.get('scorer') ?? 'original';
-  if (!['original', 'lean', 'rust'].includes(scorer)) throw new Error('--scorer must be original, lean, or rust.');
-  return {
-    kingdomId: values.get('kingdom') ?? ORDERED_GOLDFISH_DEFAULT_KINGDOM,
-    limit: positiveInteger('limit', values.get('limit') ?? values.get('count') ?? String(ORDERED_GOLDFISH_DEFAULT_LIMIT)),
-    workers: positiveInteger('workers', values.get('workers') ?? String(ORDERED_GOLDFISH_DEFAULT_WORKERS)),
-    shuffles: positiveInteger('shuffles', values.get('shuffles') ?? String(ORDERED_GOLDFISH_DEFAULT_SHUFFLES)),
-    chunkSize: positiveInteger('chunk-size', values.get('chunk-size') ?? String(ORDERED_GOLDFISH_DEFAULT_CHUNK_SIZE)),
-    scorer: scorer as OrderedGoldfishCliOptions['scorer'],
-    startPosition: nonnegativeInteger('start-position', values.get('start-position') ?? '0')
-  };
 }
 
 export function orderedGoldfishQuantityVectors(): readonly (readonly number[])[] {
@@ -180,15 +124,4 @@ export function* representativeCandidateIndices(
     candidate += traversal.stride;
     if (candidate >= total) candidate %= total;
   }
-}
-
-export function candidateChecksumFromIterable(strategies: Iterable<Strategy>): string {
-  const digest = new StableHashAccumulator();
-  let first = true;
-  for (const strategy of strategies) {
-    if (!first) digest.update('\n');
-    digest.update(canonicalStrategy(strategy));
-    first = false;
-  }
-  return digest.digest();
 }

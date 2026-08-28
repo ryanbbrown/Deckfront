@@ -4,8 +4,7 @@ import path from 'node:path';
 import { WorkerPairingRunner } from '../src/sim/pairingRunner';
 import { GAMES_PER_SEED } from '../src/sim/pairing';
 import { evaluateCandidates } from '../src/sim/mixtureEvaluation';
-import { candidateIndexAt, createOrderedCandidateSpace, orderedGoldfishCardIds } from '../src/sim/orderedGoldfishBenchmark';
-import { readGoldfishReservoirV4 } from '../src/sim/strategySearchCompact';
+import { readGoldfishReservoir } from '../src/sim/goldfishReservoir';
 import { createStrategySearchPsroArtifact } from '../src/sim/strategySearchPsro';
 import {
   createParallelAdmissionRowChunk, createParallelPsroCheckpoint, createParallelPsroScoreTaskChunk,
@@ -43,23 +42,22 @@ if (mode === 'init') {
   const evidenceId = option('evidence-id'), kingdomId = option('kingdom'), reservoirFile = path.resolve(option('reservoir')),
     matrixFile = path.resolve(option('matrix'));
   strategySearchKingdom(kingdomId);
-  const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
-  const strategyAt = (position: number) => space.candidateAt(candidateIndexAt(position, space.candidateCount));
-  const reservoir = readGoldfishReservoirV4(reservoirFile, strategyAt,
-    { topFile: path.join(path.dirname(reservoirFile), 'top-500000.hgf') });
+  const topFile = path.join(path.dirname(reservoirFile), 'top-500000.hgf');
+  const reservoir = readGoldfishReservoir(reservoirFile, kingdomId, { top: topFile });
   const matrix = JSON.parse(fs.readFileSync(matrixFile, 'utf8')) as StrategySearchMatrixArtifact;
-  if (reservoir.header.evidenceId !== evidenceId || !validateStrategySearchMatrixManifest(matrix.manifest)
-    || matrix.source.evidenceId !== evidenceId || !validateStrategySearchMatrixArtifactIdentity(matrix, matrix.manifest)
+  if (!validateStrategySearchMatrixManifest(matrix.manifest) || matrix.source.evidenceId !== evidenceId
+    || !validateStrategySearchMatrixArtifactIdentity(matrix, matrix.manifest)
     || !validateStrategySearchMatrixArtifact(matrix, matrix.manifest)) throw new Error('Parallel PSRO source is invalid.');
-  const sourceIdentityHash = hash({ evidenceId, reservoirArtifactHash: reservoir.artifactHash,
-    reservoirSha256: fileHash(reservoirFile), matrixSha256: fileHash(matrixFile), matrixEvidenceHash: matrix.evidenceHash });
+  const reservoirSha256 = fileHash(reservoirFile), topSha256 = fileHash(topFile), matrixSha256 = fileHash(matrixFile);
+  const sourceIdentityHash = hash({ evidenceId, reservoirSha256, topSha256,
+    matrixSha256, matrixEvidenceHash: matrix.evidenceHash });
   const protocol = createThresholdRacingProtocol({ experimentName: `strategy-search-${evidenceId}`,
     runId: 'main', kingdomId, reservoirCount: reservoir.records.length, sourceIdentityHash,
     checkpointNamespace: evidenceId, matrixSeedNamespace: 'strategy-search-matrix-v2',
     screenSeedNamespace: 'strategy-search-psro-screen-v2',
     confirmationSeedNamespace: 'strategy-search-psro-confirmation-v2',
     queueRetestSeedNamespace: 'strategy-search-psro-queue-retest-v2' });
-  const checkpoint = createParallelPsroCheckpoint({ protocol, seedSourceHash: fileHash(reservoirFile),
+  const checkpoint = createParallelPsroCheckpoint({ protocol, seedSourceHash: reservoirSha256,
     matrix: matrixSnapshotFromStrategySearchArtifact(matrix),
     candidates: reservoir.records.map((entry) => ({ goldfishRank: entry.rank, strategyId: entry.strategy.id,
       canonicalStrategy: entry.canonicalStrategy, strategy: entry.strategy })) });

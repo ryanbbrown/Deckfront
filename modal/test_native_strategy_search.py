@@ -7,6 +7,7 @@ import shutil
 import struct
 import subprocess
 import tempfile
+import time
 import unittest
 import sys
 from unittest.mock import MagicMock, patch
@@ -18,101 +19,11 @@ from modal.exception import FunctionTimeoutError
 
 
 class NativeStrategySearchLauncherTest(unittest.TestCase):
-    @staticmethod
-    def launch_limits(**overrides):
-        values = {"count": 5_000, "start_position": 0, "shard_size": 2_500,
-                  "cpu": 4, "memory_gib": 4, "threads": 4, "max_containers": 2,
-                  "timeout_seconds": 600, "max_cost_usd": 100, "chunk_size": 250,
-                  "shuffles": 1, "scorer": "rust", "product": False}
-        values.update(overrides)
-        if values.get("ordered_product") and "shuffle_seeds" not in overrides:
-            values["shuffle_seeds"] = launcher.ORDERED_PRODUCT_SEEDS
-        return launcher.validate_launch_limits(**values)
-
     def test_worst_case_includes_all_retry_attempts(self):
         value = launcher.projected_cost_usd(2, 4, 4, 600, 2)
         expected = (2 * 3 * (630 / 3600) * (4 * 0.0473 + 4 * 0.008)
                     + (3 * 1 * 630 + 300) / 3600 * (0.0473 + 0.008))
         self.assertAlmostEqual(value, expected)
-
-    def test_ordered_cpu_cap_includes_the_one_cpu_controller(self):
-        self.assertEqual(self.launch_limits(cpu=191, threads=1, max_containers=1)["aggregate_cpu"], 192)
-        with self.assertRaisesRegex(ValueError, "192 physical cores"):
-            self.launch_limits(cpu=192, threads=1, max_containers=1)
-        self.assertEqual(self.launch_limits(product=True, count=20_000, cpu=192, threads=1,
-                                            max_containers=1)["aggregate_cpu"], 192)
-
-    def test_launch_rejects_max_cost_threads_and_mode_specific_limits(self):
-        with self.assertRaisesRegex(ValueError, "worst-case cost"):
-            self.launch_limits(max_cost_usd=0.001)
-        with self.assertRaisesRegex(ValueError, "threads cannot exceed"):
-            self.launch_limits(cpu=4, threads=5)
-        with self.assertRaisesRegex(ValueError, "product count"):
-            self.launch_limits(product=True, count=19_999, max_containers=1)
-        with self.assertRaisesRegex(ValueError, "ordered product coordinator"):
-            self.launch_limits(product=True, count=20_000, max_containers=2)
-        with self.assertRaisesRegex(ValueError, "ordered space"):
-            self.launch_limits(start_position=launcher.FULL_CANDIDATE_COUNT, count=1)
-        with self.assertRaisesRegex(ValueError, "cannot exceed \\$5"):
-            self.launch_limits(count=launcher.FULL_CANDIDATE_COUNT,
-                               shard_size=150_000, max_containers=47, max_cost_usd=11)
-
-    def test_ordered_product_requires_exact_scope_authorization_and_bounded_counts(self):
-        values = self.launch_limits(count=launcher.FULL_CANDIDATE_COUNT, shard_size=250_000,
-            cpu=2, threads=2, max_containers=95, timeout_seconds=420, max_cost_usd=5, ordered_product=True,
-            retained_count=500_000, reservoir_count=20_000,
-            authorization=launcher.ORDERED_PRODUCT_AUTHORIZATION)
-        expected = launcher.projected_ordered_product_cost_usd(52, 2, 2, 4, 420, 95)
-        self.assertAlmostEqual(values["projected"], expected)
-        self.assertAlmostEqual(values["projected"], 2.885033333333333)
-        self.assertLess(3 * values["projected"], launcher.GROSS_BUDGET_USD)
-        self.assertTrue(values["full_run"])
-        with self.assertRaisesRegex(ValueError, "authorization does not match"):
-            self.launch_limits(count=launcher.FULL_CANDIDATE_COUNT, ordered_product=True,
-                retained_count=500_000, reservoir_count=20_000)
-        with self.assertRaisesRegex(ValueError, "retained and reservoir"):
-            self.launch_limits(count=launcher.FULL_CANDIDATE_COUNT, ordered_product=True,
-                retained_count=10, reservoir_count=20,
-                authorization=launcher.ORDERED_PRODUCT_AUTHORIZATION)
-        with self.assertRaisesRegex(ValueError, "complete ordered"):
-            self.launch_limits(count=20_000, ordered_product=True,
-                authorization=launcher.ORDERED_PRODUCT_AUTHORIZATION)
-        for kingdom, authorization in launcher.ORDERED_PRODUCT_AUTHORIZATIONS.items():
-            with self.subTest(kingdom=kingdom):
-                accepted = self.launch_limits(kingdom=kingdom,
-                    count=launcher.FULL_CANDIDATE_COUNT, shard_size=250_000,
-                    max_containers=47, timeout_seconds=420, max_cost_usd=5,
-                    ordered_product=True, authorization=authorization)
-                self.assertTrue(accepted["full_run"])
-                wrong_authorization = (launcher.ORDERED_PRODUCT_AUTHORIZATION
-                    if kingdom != launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM
-                    else launcher.ORDERED_PRODUCT_AUTHORIZATIONS["deep-beam-tuning-001"])
-                with self.assertRaisesRegex(ValueError, "authorization does not match"):
-                    self.launch_limits(kingdom=kingdom, count=launcher.FULL_CANDIDATE_COUNT,
-                        shard_size=250_000, max_containers=47, timeout_seconds=420,
-                        max_cost_usd=5, ordered_product=True, authorization=wrong_authorization)
-        for index in range(1, 4):
-            authorization = f"k007-ordered-product-seed-replication-{index}-v1"
-            seeds = [4_100_000 + index * 1_000_000 + offset for offset in range(4)]
-            accepted = self.launch_limits(kingdom="deep-beam-tuning-007",
-                count=launcher.FULL_CANDIDATE_COUNT, shard_size=250_000,
-                cpu=2, threads=2, max_containers=95, timeout_seconds=420, max_cost_usd=5,
-                ordered_product=True, authorization=authorization, shuffle_seeds=seeds)
-            self.assertEqual(accepted["shuffle_seeds"], seeds)
-            with self.assertRaisesRegex(ValueError, "authorization does not match"):
-                self.launch_limits(kingdom="deep-beam-tuning-007",
-                    count=launcher.FULL_CANDIDATE_COUNT, ordered_product=True,
-                    authorization=authorization, shuffle_seeds=launcher.ORDERED_PRODUCT_SEEDS)
-        with self.assertRaisesRegex(ValueError, "unsupported ordered product kingdom"):
-            self.launch_limits(kingdom="deep-beam-tuning-002")
-        with self.assertRaisesRegex(ValueError, "not valid for this mode"):
-            self.launch_limits(authorization=launcher.ORDERED_PRODUCT_AUTHORIZATION)
-
-    def test_ordered_subprocess_timeouts_fit_below_the_modal_timeout(self):
-        generation, scoring = launcher.ordered_subprocess_timeouts(600)
-        self.assertLessEqual(generation + scoring, 630)
-        self.assertGreater(generation, 0)
-        self.assertGreater(scoring, 0)
 
     def test_competitive_shards_adapt_from_candidates_to_schedule_ranges(self):
         broad = launcher.adaptive_competitive_shards(20_000, 8, 48)
@@ -220,50 +131,6 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                 launcher._download_competitive_artifact("remote/complete.hps", output)
             self.assertEqual(output.read_bytes(), b"HPS1payload")
 
-    def test_product_controller_reloads_remote_stage_commits_before_each_merge(self):
-        class SnapshotVolume:
-            remote_version = 0
-            visible_version = 0
-            reload_count = 0
-
-            def reload(self):
-                self.visible_version = self.remote_version
-                self.reload_count += 1
-
-            def commit(self):
-                pass
-
-        held_volume = SnapshotVolume()
-        config = {"run_id": "run", "kingdom": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM,
-                  "build_version": "build", "rule_fingerprint": "rules",
-                  "retained_count": 500_000, "reservoir_count": 20_000,
-                  "shuffle_seeds": launcher.ORDERED_PRODUCT_SEEDS,
-                  "shard_size": 250_000, "cpu": 2, "memory_gib": 4,
-                  "timeout_seconds": 420, "max_containers": 95}
-
-        def complete_stage(_function, specs, _config):
-            held_volume.remote_version += 1
-            stage = "stage-one" if len(specs) == 52 else "stage-two"
-            return [{"status": "success", "stage": stage, "shardId": spec["shard_id"],
-                     "contentDigest": f"digest-{spec['shard_id']}", "reused": True}
-                    for spec in specs]
-
-        def require_visible_snapshot(command, _label, **_kwargs):
-            required = 1 if "merge-stage-one" in command else 2
-            if held_volume.visible_version < required:
-                raise RuntimeError("remote stage commit is not visible")
-            return subprocess.CompletedProcess(command, 0, "", "")
-
-        with patch.object(launcher, "volume", held_volume), \
-                patch.object(launcher, "_run_product_stage", side_effect=complete_stage), \
-                patch.object(launcher, "_run_checked", side_effect=require_visible_snapshot), \
-                patch.object(launcher, "_atomic_json"):
-            summary = launcher.ordered_product_controller.get_raw_f()(config)
-
-        self.assertEqual(summary["status"], "success")
-        self.assertEqual(held_volume.reload_count, 3)
-        self.assertEqual(held_volume.visible_version, 2)
-
     def test_controller_subprocess_failure_exposes_stderr(self):
         failure = subprocess.CalledProcessError(1, ["command"], stderr="exact child failure\n")
         with patch.object(launcher.subprocess, "run", side_effect=failure):
@@ -299,18 +166,6 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         self.assertIn("subprocess.CalledProcessError", diagnostic["error"])
         self.assertIn("exact validator failure", diagnostic["error"])
 
-    def test_stage_two_requests_the_streaming_rust_score_protocol(self):
-        with tempfile.TemporaryDirectory() as directory:
-            request = pathlib.Path(directory) / "request.json"
-            response = pathlib.Path(directory) / "response.ndjson"
-            request.write_text("{}\n")
-            with patch.object(launcher.subprocess, "run",
-                    return_value=subprocess.CompletedProcess([], 0, "", "")) as run:
-                launcher._run_rust(request, response, 4, 4, 60, stream_scores=True)
-            command = run.call_args.args[0]
-            self.assertIn("--stream-score-batch", command)
-            self.assertEqual(run.call_args.kwargs["stdout"].name, str(response))
-
     def test_reservation_is_atomic_and_resume_does_not_reserve_twice(self):
         with tempfile.TemporaryDirectory() as directory:
             ledger = pathlib.Path(directory) / "ledger.json"
@@ -338,69 +193,6 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                     launcher.reserve_cost(f"full-{index}", 1, True, {"run": index})
                 with self.assertRaisesRegex(RuntimeError, "full-space run limit"):
                     launcher.reserve_cost("full-3", 1, True, {"run": 3})
-
-    def test_each_product_authorization_is_one_use_and_bypasses_only_the_full_run_cap(self):
-        for authorization, contract in launcher.ORDERED_PRODUCT_AUTHORIZATION_CONTRACTS.items():
-            kingdom = contract["kingdom"]
-            with self.subTest(authorization=authorization), tempfile.TemporaryDirectory() as directory:
-                ledger = pathlib.Path(directory) / "ledger.json"
-                with patch.object(launcher, "LEDGER_PATH", ledger):
-                    for index in range(3):
-                        launcher.reserve_cost(f"full-{index}", 1, True, {"run": index})
-                    config = {"kind": "ordered-product", "kingdom": kingdom,
-                              "authorization": authorization,
-                              "shuffle_seeds": contract["shuffle_seeds"]}
-                    launcher.reserve_cost("authorized", 1, True, config)
-                    self.assertEqual(launcher.reserve_cost("authorized", 1, True, config)["runId"],
-                                     "authorized")
-                    with self.assertRaisesRegex(RuntimeError, "already used"):
-                        launcher.reserve_cost("authorized-again", 1, True, config)
-
-    def test_correction_continuation_replaces_failed_reservation_with_actual_spend(self):
-        with tempfile.TemporaryDirectory() as directory:
-            ledger = pathlib.Path(directory) / "ledger.json"
-            with patch.object(launcher, "LEDGER_PATH", ledger):
-                authorization = launcher.ORDERED_PRODUCT_AUTHORIZATION
-                launcher.reserve_cost("failed", 2.8, True,
-                    {"kind": "ordered-product", "kingdom": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM,
-                     "authorization": authorization, "shuffle_seeds": launcher.ORDERED_PRODUCT_SEEDS})
-                continued = {"kind": "ordered-product",
-                    "kingdom": launcher.DEFAULT_ORDERED_PRODUCT_KINGDOM,
-                    "authorization": authorization, "shuffle_seeds": launcher.ORDERED_PRODUCT_SEEDS,
-                    "continuation_run_id": "failed",
-                    "prior_actual_usd": 0.43796662}
-                launcher.reserve_cost("continued", 2.9, True, continued)
-                held = json.loads(ledger.read_text())
-                self.assertEqual(held["runs"]["failed"]["reservedUsd"], 0.43796662)
-                self.assertEqual(held["runs"]["failed"]["status"], "superseded")
-                self.assertEqual(held["runs"]["continued"]["reservedUsd"], 2.9)
-
-    def test_production_typescript_helper_generates_each_supported_ordered_shard(self):
-        expected = {
-            "deep-beam-tuning-001": "fe10624e178e8",
-            "deep-beam-tuning-007": "65257033178f5",
-            "deep-beam-tuning-008": "fea778e71849c",
-            "deep-beam-tuning-009": "fa0328fb18315",
-        }
-        for kingdom, digest in expected.items():
-            with self.subTest(kingdom=kingdom), tempfile.TemporaryDirectory() as directory:
-                request = pathlib.Path(directory) / "request.jsonl"
-                metadata = pathlib.Path(directory) / "metadata.json"
-                seeds = [5_100_000, 5_100_001, 5_100_002, 5_100_003] \
-                    if kingdom == "deep-beam-tuning-007" else [4_100_000]
-                subprocess.run(["npx", "tsx", "scripts/native_ordered_shard_input.ts",
-                    "--kingdom", kingdom, "--start-position", "0", "--end-position", "500",
-                    "--threads", "1", "--cpu", "1", "--seeds", ",".join(map(str, seeds)),
-                    "--request", str(request), "--metadata", str(metadata)], check=True)
-                payload = json.loads(request.read_text())["payload"]
-                held = json.loads(metadata.read_text())
-                self.assertEqual(payload["kingdom"]["id"], kingdom)
-                self.assertEqual(len(payload["strategies"]), 500)
-                self.assertEqual(held["kingdomId"], kingdom)
-                self.assertEqual(held["candidateDigest"], digest)
-                self.assertEqual(held["completeCount"], 500)
-                self.assertEqual(payload["seeds"], seeds)
-                self.assertEqual(held["shuffleSeeds"], seeds)
 
     def test_controller_claim_blocks_duplicates_and_allows_failed_resume(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -439,7 +231,7 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
         campaign_source = inspect.getsource(launcher.verify_strategy_search_source)
         self.assertIn("_strategy_search_source_digest", campaign_source)
 
-    def deployed_worker_readiness(self, omitted=()):
+    def deployed_worker_readiness(self, omitted=(), binary=None):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             container_module = root / "root" / "native_strategy_search.py"
@@ -482,18 +274,20 @@ result = namespace["_strategy_search_compute_readiness_impl"](identity, False)
 print(json.dumps(result))
 """ % str(container_module)
             return subprocess.run([sys.executable, "-c", script], text=True, capture_output=True,
-                env={**os.environ, "HEXDECK_STRATEGY_WORKSPACE": str(workspace)}, timeout=60)
+                env={**os.environ, "HEXDECK_STRATEGY_WORKSPACE": str(workspace),
+                    "HEXDECK_GOLDFISH_BIN": binary or str(pathlib.Path(
+                        "rust/target/release/hexdeck-goldfish").resolve())}, timeout=60)
 
     def test_deployed_container_readiness_starts_the_real_goldfish_module_path(self):
         completed = self.deployed_worker_readiness()
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertTrue(json.loads(completed.stdout.splitlines()[-1])["ready"])
 
-    def test_deployed_container_readiness_fails_fast_when_a_transitive_asset_is_absent(self):
-        completed = self.deployed_worker_readiness({"src/game-data/cards.json"})
+    def test_deployed_container_readiness_fails_when_the_rust_binary_is_absent(self):
+        completed = self.deployed_worker_readiness(binary="/missing/hexdeck-goldfish")
         self.assertNotEqual(completed.returncode, 0)
-        self.assertIn("ERR_MODULE_NOT_FOUND", completed.stderr)
-        self.assertIn("src/game-data/cards.json", completed.stderr)
+        self.assertIn("No such file or directory", completed.stderr)
+        self.assertIn("/missing/hexdeck-goldfish", completed.stderr)
 
     def test_strategy_search_execution_reuses_pinned_partitions_when_capacity_changes(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -972,26 +766,85 @@ print(json.dumps(result))
         self.assertIn("_strategy_search_validate_publication(config, output)", goldfish_worker_source)
         self.assertNotIn("heartbeat", subprocess_source)
 
-    def test_strategy_search_compact_validator_checks_semantic_coverage_and_checksum(self):
+    def test_goldfish_phase_mapping_preserves_the_controller_sum_for_all_commands(self):
+        reports = [
+            {"command": "score-one", "elapsedMs": 100, "scoringMs": 70, "readMs": 5,
+             "writeMs": 10, "reduceMs": 0},
+            {"command": "score-two", "elapsedMs": 100, "scoringMs": 60, "readMs": 15,
+             "writeMs": 10, "reduceMs": 0},
+            {"command": "reduce-one", "elapsedMs": 100, "scoringMs": 0, "readMs": 50,
+             "writeMs": 15, "reduceMs": 20},
+            {"command": "reduce-two", "elapsedMs": 100, "scoringMs": 0, "readMs": 45,
+             "writeMs": 10, "reduceMs": 30},
+        ]
+        keys = ["generationMs", "scoringMs", "intermediateSerializationAndReadMs",
+            "temporaryVolumeWriteCommitMs", "publisherWaitMs", "publicationCommitMs",
+            "reductionComputeMs", "finalTop500000WriteMs", "finalTop20000WriteMs",
+            "orchestrationQueueMs"]
+        for report in reports:
+            phases = launcher._strategy_search_goldfish_phases(report)
+            self.assertEqual(sum(phases[key] for key in keys), phases["elapsedMs"])
+
+    def test_goldfish_job_launches_the_rust_subcommands_and_maps_reports(self):
         with tempfile.TemporaryDirectory() as directory:
-            file = pathlib.Path(directory) / "job.hgs"
-            metrics = [1, 1, 30, 10, 5] * 3
-            record = struct.pack(">I15I", 7, *metrics) + "sg-0000000007".encode("utf-16-be") + bytes(6)
-            digest = hashlib.sha256(record).hexdigest()
-            header = {"schemaVersion": 1, "magic": "HGS1", "stage": "stage-one", "evidenceId": "b" * 64,
-                "semanticStart": 7, "semanticEnd": 8, "recordCount": 1, "recordBytes": 96,
-                "payloadSha256": digest}
-            encoded = json.dumps(header, separators=(",", ":")).encode()
-            file.write_bytes(b"HGS1" + struct.pack(">I", len(encoded)) + encoded
-                + bytes(512 - 8 - len(encoded)) + record)
-            publication = {"stage": "goldfish-one", "evidenceId": "b" * 64,
-                "range": {"start": 7, "end": 8}}
-            launcher._strategy_search_validate_compact(publication, file)
-            changed = bytearray(file.read_bytes())
-            changed[-1] = 1
-            file.write_bytes(changed)
-            with self.assertRaisesRegex(RuntimeError, "padding differs"):
-                launcher._strategy_search_validate_compact(publication, file)
+            root = pathlib.Path(directory)
+            commands = []
+            def strategy_path(relative):
+                return root / relative
+            def run_subprocess(command, _config):
+                commands.append(command)
+                output = pathlib.Path(command[command.index("--out") + 1])
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_bytes(b"artifact")
+                mode = command[1]
+                report = {"command": mode, "elapsedMs": 100, "scoringMs": 60 if mode.startswith("score") else 0,
+                    "readMs": 10, "writeMs": 10, "reduceMs": 10 if mode.startswith("reduce") else 0}
+                pathlib.Path(command[command.index("--report") + 1]).write_text(json.dumps(report))
+                return {"elapsedMs": 100}
+            base = {"taskId": "task", "evidenceId": "a" * 64,
+                "kingdomId": "deep-beam-tuning-007", "sourceImage": {}, "cpu": 4,
+                "timeoutSeconds": 120, "enqueuedEpochMs": int(time.time() * 1000)}
+            raw = launcher.strategy_search_goldfish_job.get_raw_f()
+            with patch.object(launcher, "_strategy_search_path", side_effect=strategy_path), \
+                    patch.object(launcher, "_strategy_search_run_subprocess", side_effect=run_subprocess), \
+                    patch.object(launcher, "_strategy_search_validate_publication"), \
+                    patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"):
+                raw({**base, "stage": "goldfish-one", "mode": "score-one",
+                    "temporaryPath": "one.hgs", "range": {"start": 0, "end": 1}})
+                raw({**base, "stage": "goldfish-one-reduce", "mode": "reduce-one",
+                    "temporaryPath": "top.hgf", "manifest": ["one.hgs"]})
+                raw({**base, "stage": "goldfish-two", "mode": "score-two",
+                    "temporaryPath": "two.hgs", "range": {"start": 0, "end": 1},
+                    "topPath": "top.hgf"})
+                raw({**base, "stage": "goldfish-two-reduce", "mode": "reduce-two",
+                    "temporaryPath": "reservoir.hgf", "manifest": ["two.hgs"],
+                    "topPath": "top.hgf"})
+            self.assertEqual([command[1] for command in commands],
+                ["score-one", "reduce-one", "score-two", "reduce-two"])
+            self.assertTrue(all(command[0] == launcher.CAMPAIGN_RUST_GOLDFISH_BIN for command in commands))
+            self.assertIn("--inputs", commands[1])
+            self.assertIn("--top", commands[2])
+            self.assertIn("--top", commands[3])
+            self.assertTrue(all("--evidence-id" not in command for command in commands))
+
+    def test_goldfish_publication_validation_uses_rust_verify_and_top_links(self):
+        calls = []
+        with patch.object(launcher, "_run_checked", side_effect=lambda command, *_args, **_kwargs: calls.append(command)), \
+                patch.object(launcher, "_strategy_search_path", side_effect=lambda relative: pathlib.Path("/results") / relative):
+            for stage in ["goldfish-one", "goldfish-two", "goldfish-one-reduce", "goldfish-two-reduce"]:
+                publication = {"stage": stage, "kingdomId": "deep-beam-tuning-007",
+                    "evidenceId": "a" * 64, "topPath": "top.hgf",
+                    "range": {"start": 2, "end": 5}}
+                launcher._strategy_search_validate_publication(publication, pathlib.Path("/tmp/artifact"))
+        self.assertEqual([call[1:3] for call in calls], [["verify", "--kingdom"]] * 4)
+        self.assertIn("stage-one", calls[0])
+        self.assertIn("stage-two", calls[1])
+        self.assertIn("top", calls[2])
+        self.assertIn("reservoir", calls[3])
+        self.assertNotIn("--top", calls[0])
+        self.assertIn("--top", calls[1])
+        self.assertNotIn("--top", calls[2])
+        self.assertIn("--top", calls[3])
 
     def test_strategy_search_status_uses_only_its_bounded_control_app(self):
         status_source = inspect.getsource(status_launcher)

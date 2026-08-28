@@ -238,7 +238,7 @@ enum Slot {
     Inactive,
 }
 #[derive(Clone, Debug)]
-struct Strategy {
+pub(crate) struct Strategy {
     id: String,
     canonical: String,
     build: Vec<usize>,
@@ -315,7 +315,7 @@ pub struct CompetitiveFixtureInput {
 }
 
 #[derive(Clone)]
-struct Kingdom {
+pub(crate) struct Kingdom {
     health: i16,
     aim_bonus: i16,
     feint_bonus: i16,
@@ -324,7 +324,7 @@ struct Kingdom {
     scrap: usize,
 }
 impl Kingdom {
-    fn compile(raw: KingdomInput) -> Result<Self, String> {
+    pub(crate) fn compile(raw: KingdomInput) -> Result<Self, String> {
         if raw.cards.len() > MAX_CARDS {
             return Err(format!("kingdom exceeds {MAX_CARDS} native cards"));
         }
@@ -357,7 +357,7 @@ impl Kingdom {
             cards,
         })
     }
-    fn strategy(&self, raw: RawStrategy) -> Result<Strategy, String> {
+    pub(crate) fn strategy(&self, raw: RawStrategy) -> Result<Strategy, String> {
         if raw.buy_plan.len() > MAX_PLAN {
             return Err(format!("strategy exceeds {MAX_PLAN} purchase slots"));
         }
@@ -393,6 +393,36 @@ impl Kingdom {
             id: raw.id,
             canonical: raw.canonical_strategy,
             build,
+            plan,
+        })
+    }
+
+    pub(crate) fn card_index(&self, id: &str) -> Result<usize, String> {
+        self.cards
+            .iter()
+            .position(|card| card.id == id)
+            .ok_or_else(|| format!("missing strategy card {id}"))
+    }
+
+    pub(crate) fn ordered_strategy(
+        &self,
+        number: u32,
+        card_indexes: &[usize],
+        counts: &[u32],
+    ) -> Result<Strategy, String> {
+        if card_indexes.len() != 5 || counts.len() != 5 {
+            return Err("ordered strategy needs five cards and five counts".into());
+        }
+        let mut plan = Vec::with_capacity(MAX_PLAN);
+        for (&card, &count) in card_indexes.iter().zip(counts) {
+            let count = i16::try_from(count).map_err(|_| "ordered strategy count is too large")?;
+            plan.push(Slot::Buy { card, count });
+        }
+        plan.extend(std::iter::repeat_n(Slot::Inactive, 5));
+        Ok(Strategy {
+            id: format!("gf-{number}"),
+            canonical: String::new(),
+            build: vec![],
             plan,
         })
     }
@@ -2199,16 +2229,16 @@ pub fn fixture_competitive(
 #[derive(Clone, Debug, Serialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Metrics {
-    trials: i32,
-    completions: i32,
+    pub(crate) trials: i32,
+    pub(crate) completions: i32,
     mean_turns_to50: Option<f64>,
     total_turns_to50: i32,
-    damage_area: i32,
+    pub(crate) damage_area: i32,
     total_damage: i32,
     mean_damage: f64,
-    money_spent: i32,
+    pub(crate) money_spent: i32,
     unspent_money: i32,
-    penalized_turns_to50: i32,
+    pub(crate) penalized_turns_to50: i32,
 }
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -2317,7 +2347,7 @@ fn trial(k: &Kingdom, s: &Strategy, seed: u32, profile: &str, limit: i16, cap: i
         unspent: st.p.unspent,
     }
 }
-fn metrics(
+pub(crate) fn metrics(
     k: &Kingdom,
     s: &Strategy,
     seeds: &[u32],

@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 use std::io::{self, BufRead, Write};
 
 mod kernel;
+mod reservoir;
 
 const PROTOCOL_VERSION: u32 = 1;
 const SCORER_VERSION: &str = "native-goldfish-v1";
@@ -102,21 +103,16 @@ fn shuffle(seed: u32, mut deck: Vec<i32>) -> Vec<i32> {
 
 struct RuntimeOptions {
     thread_budget: usize,
-    stream_score_batch: bool,
 }
 
-fn parse_runtime_options() -> Result<RuntimeOptions, String> {
+fn parse_runtime_options(args: &[String]) -> Result<RuntimeOptions, String> {
     let mut threads = 1_usize;
     let mut cpu_request = 1_usize;
-    let mut stream_score_batch = false;
-    let mut args = std::env::args().skip(1);
-    while let Some(arg) = args.next() {
-        if arg == "--stream-score-batch" {
-            stream_score_batch = true;
-            continue;
-        }
+    let mut index = 0;
+    while index < args.len() {
+        let arg = &args[index];
         let value = args
-            .next()
+            .get(index + 1)
             .ok_or_else(|| format!("{arg} needs a value"))?
             .parse::<usize>()
             .map_err(|_| format!("{arg} must be a positive integer"))?;
@@ -125,6 +121,7 @@ fn parse_runtime_options() -> Result<RuntimeOptions, String> {
             "--cpu-request" => cpu_request = value,
             _ => return Err(format!("unknown option {arg}")),
         }
+        index += 2;
     }
     if threads == 0 || cpu_request == 0 || threads > cpu_request {
         return Err(format!(
@@ -133,40 +130,16 @@ fn parse_runtime_options() -> Result<RuntimeOptions, String> {
     }
     Ok(RuntimeOptions {
         thread_budget: threads,
-        stream_score_batch,
     })
 }
 
-fn write_score_stream<T: Serialize>(
-    writer: &mut impl Write,
-    scores: &[T],
-) -> Result<(), serde_json::Error> {
-    serde_json::to_writer(
-        &mut *writer,
-        &serde_json::json!({
-            "schemaVersion": 1,
-            "type": "score-batch-start",
-            "scoreCount": scores.len(),
-        }),
-    )?;
-    writer.write_all(b"\n").map_err(serde_json::Error::io)?;
-    for score in scores {
-        serde_json::to_writer(&mut *writer, score)?;
-        writer.write_all(b"\n").map_err(serde_json::Error::io)?;
-    }
-    serde_json::to_writer(
-        &mut *writer,
-        &serde_json::json!({
-            "schemaVersion": 1,
-            "type": "score-batch-end",
-            "scoreCount": scores.len(),
-        }),
-    )?;
-    writer.write_all(b"\n").map_err(serde_json::Error::io)
-}
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let options = parse_runtime_options().map_err(io::Error::other)?;
+    let args: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(command) = args.first().filter(|value| !value.starts_with("--")) {
+        return reservoir::run(command, &args[1..])
+            .map_err(|message| io::Error::other(message).into());
+    }
+    let options = parse_runtime_options(&args).map_err(io::Error::other)?;
     let thread_budget = options.thread_budget;
     let stdin = io::stdin();
     let mut stdout = io::BufWriter::new(io::stdout().lock());
@@ -222,11 +195,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ))?
             }
             Ok(Request::ScoreBatch { payload }) => match kernel::score_batch(payload) {
-                Ok(scores) if options.stream_score_batch => {
-                    write_score_stream(&mut stdout, &scores)?;
-                    stdout.flush()?;
-                    continue;
-                }
                 Ok(scores) => {
                     serde_json::to_value(success(serde_json::json!({ "scores": scores })))?
                 }
@@ -309,27 +277,5 @@ mod tests {
             shuffle(11, (0..10).collect()),
             vec![1, 3, 7, 6, 5, 4, 0, 8, 9, 2]
         );
-    }
-
-    #[test]
-    fn streams_score_batches_as_bounded_independent_json_lines() {
-        let mut output = Vec::new();
-        write_score_stream(
-            &mut output,
-            &[serde_json::json!({"id": 1}), serde_json::json!({"id": 2})],
-        )
-        .expect("score stream");
-        let lines: Vec<Value> = String::from_utf8(output)
-            .expect("utf8")
-            .lines()
-            .map(|line| serde_json::from_str(line).expect("json line"))
-            .collect();
-        assert_eq!(lines.len(), 4);
-        assert_eq!(lines[0]["type"], "score-batch-start");
-        assert_eq!(lines[0]["scoreCount"], 2);
-        assert_eq!(lines[1]["id"], 1);
-        assert_eq!(lines[2]["id"], 2);
-        assert_eq!(lines[3]["type"], "score-batch-end");
-        assert_eq!(lines[3]["scoreCount"], 2);
     }
 }

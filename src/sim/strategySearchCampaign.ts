@@ -3,11 +3,8 @@ import path from 'node:path';
 import { z } from 'zod';
 import { strategySearchKingdom, strategySearchKingdoms } from './strategySearchKingdoms';
 import { nativeRuleFingerprint, NATIVE_GOLDFISH_SCORER_VERSION } from './nativeGoldfishProtocol';
-import {
-  deriveCurrentOrderedProductIdentity, ORDERED_PRODUCT_COLLISION_ALLOWANCE,
-  ORDERED_PRODUCT_GENERATOR, ORDERED_PRODUCT_PROFILES, ORDERED_PRODUCT_SEEDS,
-  ORDERED_PRODUCT_SPACE_COUNT, ORDERED_PRODUCT_TRAVERSAL
-} from './orderedGoldfishProduct';
+import { ORDERED_PRODUCT_PROFILES, ORDERED_PRODUCT_SEEDS, ORDERED_PRODUCT_SPACE_COUNT } from './orderedGoldfishProduct';
+import { orderedGoldfishCardIds } from './orderedGoldfishBenchmark';
 
 export const STRATEGY_SEARCH_CAMPAIGN_SCHEMA_VERSION = 2 as const;
 export const STRATEGY_SEARCH_ARTIFACT_SCHEMA_VERSION = 4 as const;
@@ -140,18 +137,16 @@ export interface KingdomEvidenceIdentity {
   kingdomId: string;
   scientificDigest: string;
   rulesFingerprint: string;
-  orderedProduct: {
-    generator: typeof ORDERED_PRODUCT_GENERATOR;
-    traversal: typeof ORDERED_PRODUCT_TRAVERSAL;
+  goldfish: {
+    generator: 'ordered-five-rung-v1';
+    rowFormat: 'goldfish-rows-v1';
     scorerVersion: typeof NATIVE_GOLDFISH_SCORER_VERSION;
-    artifactSchemaVersion: typeof STRATEGY_SEARCH_ARTIFACT_SCHEMA_VERSION;
     candidateCount: typeof ORDERED_PRODUCT_SPACE_COUNT;
     retainedCount: 500000;
     reservoirCount: 20000;
-    collisionAllowance: typeof ORDERED_PRODUCT_COLLISION_ALLOWANCE;
     profiles: typeof ORDERED_PRODUCT_PROFILES;
     seeds: typeof ORDERED_PRODUCT_SEEDS;
-    candidateProvenanceDigest: string;
+    cardIds: string[];
   };
   matrix: { schemaVersion: 4; seedNamespace: typeof MATRIX_SEED_NAMESPACE; strategyCount: 50; seedCount: 125 };
   psro: {
@@ -171,19 +166,17 @@ export interface ParsedStrategySearchRequest {
   downloadRoot: string;
 }
 function kingdomEvidenceIdentity(kingdomId: string, source: SourceImageIdentity): KingdomEvidenceIdentity {
-  const ordered = deriveCurrentOrderedProductIdentity({ kingdomId, seeds: ORDERED_PRODUCT_SEEDS,
-    scorerVersion: NATIVE_GOLDFISH_SCORER_VERSION, buildVersion: source.scientificDigest });
-  if (ordered.candidateCount !== ORDERED_PRODUCT_SPACE_COUNT) {
-    throw new Error(`Registered kingdom ${kingdomId} derives ${ordered.candidateCount} candidates; expected ${ORDERED_PRODUCT_SPACE_COUNT}.`);
+  const cardIds = orderedGoldfishCardIds(kingdomId);
+  const candidateCount = cardIds.length === 14 ? ORDERED_PRODUCT_SPACE_COUNT : 0;
+  if (candidateCount !== ORDERED_PRODUCT_SPACE_COUNT) {
+    throw new Error(`Registered kingdom ${kingdomId} derives ${candidateCount} candidates; expected ${ORDERED_PRODUCT_SPACE_COUNT}.`);
   }
   const base = { schemaVersion: 1 as const, kingdomId, scientificDigest: source.scientificDigest,
-    rulesFingerprint: nativeRuleFingerprint(kingdomId, 30, 200), orderedProduct: {
-      generator: ORDERED_PRODUCT_GENERATOR, traversal: ORDERED_PRODUCT_TRAVERSAL,
-      scorerVersion: NATIVE_GOLDFISH_SCORER_VERSION, artifactSchemaVersion: STRATEGY_SEARCH_ARTIFACT_SCHEMA_VERSION,
-      candidateCount: ORDERED_PRODUCT_SPACE_COUNT,
+    rulesFingerprint: nativeRuleFingerprint(kingdomId, 30, 200), goldfish: {
+      generator: 'ordered-five-rung-v1' as const, rowFormat: 'goldfish-rows-v1' as const,
+      scorerVersion: NATIVE_GOLDFISH_SCORER_VERSION, candidateCount: ORDERED_PRODUCT_SPACE_COUNT,
       retainedCount: 500_000 as const, reservoirCount: 20_000 as const,
-      collisionAllowance: ORDERED_PRODUCT_COLLISION_ALLOWANCE, profiles: ORDERED_PRODUCT_PROFILES,
-      seeds: ORDERED_PRODUCT_SEEDS, candidateProvenanceDigest: ordered.candidateProvenanceDigest
+      profiles: ORDERED_PRODUCT_PROFILES, seeds: ORDERED_PRODUCT_SEEDS, cardIds
     } as const, matrix: { schemaVersion: 4 as const, seedNamespace: MATRIX_SEED_NAMESPACE,
       strategyCount: 50 as const, seedCount: 125 as const }, psro: { schemaVersion: 3 as const,
       protocolVersion: 'threshold-racing-psro-v2' as const, screenSeedNamespace: PSRO_SCREEN_SEED_NAMESPACE,

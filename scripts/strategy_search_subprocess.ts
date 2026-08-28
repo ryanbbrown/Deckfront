@@ -4,7 +4,6 @@ import { pathToFileURL } from 'node:url';
 import { strategySearchKingdom } from '../src/sim/strategySearchKingdoms';
 
 const ENTRYPOINTS = Object.freeze({
-  goldfish: 'scripts/strategy_search_goldfish.ts',
   'matrix-manifest': 'scripts/strategy_search_campaign_matrix_manifest.ts',
   'matrix-score': 'scripts/strategy_search_campaign_matrix_score.ts',
   'matrix-reduce': 'scripts/strategy_search_campaign_matrix_reduce.ts',

@@ -6,8 +6,7 @@ import {
 } from './successive_halving_double_oracle_pilot';
 import type { ThresholdRacingSource } from './successive_halving_double_oracle_pilot';
 import type { CalibrationSourceIdentity } from '../src/sim/responseOracleCalibration';
-import { readGoldfishReservoirV4 } from '../src/sim/strategySearchCompact';
-import { candidateIndexAt, createOrderedCandidateSpace, orderedGoldfishCardIds } from '../src/sim/orderedGoldfishBenchmark';
+import { readGoldfishReservoir } from '../src/sim/goldfishReservoir';
 import { validateStrategySearchMatrixArtifactIdentity, validateStrategySearchMatrixManifest } from '../src/sim/strategySearchMatrix';
 import type { StrategySearchMatrixArtifact } from '../src/sim/strategySearchMatrix';
 import { matrixProtocol, payoffMatrixPairKey } from '../src/sim/payoffMatrix';
@@ -40,10 +39,8 @@ if (!/^[0-9a-f]{64}$/.test(config.evidenceId) || !Number.isSafeInteger(config.wo
   throw new Error('PSRO execution input is invalid.');
 }
 strategySearchKingdom(config.kingdomId);
-const candidateSpace = createOrderedCandidateSpace(orderedGoldfishCardIds(config.kingdomId));
-const strategyAt = (position: number) => candidateSpace.candidateAt(candidateIndexAt(position, candidateSpace.candidateCount));
 const topFile = path.join(path.dirname(config.reservoirPath), 'top-500000.hgf');
-const reservoir = readGoldfishReservoirV4(config.reservoirPath, strategyAt, { topFile });
+const reservoir = readGoldfishReservoir(config.reservoirPath, config.kingdomId, { top: topFile });
 const reservoirSha256 = fileHash(config.reservoirPath), matrixSha256 = fileHash(config.matrixEvidencePath);
 if (reservoirSha256 !== config.reservoirSha256 || matrixSha256 !== config.matrixSha256) {
   throw new Error('PSRO source publication hash differs.');
@@ -51,8 +48,7 @@ if (reservoirSha256 !== config.reservoirSha256 || matrixSha256 !== config.matrix
 const matrix = JSON.parse(fs.readFileSync(config.matrixEvidencePath, 'utf8')) as unknown;
 if (!matrix || typeof matrix !== 'object' || Array.isArray(matrix)) throw new Error('PSRO Matrix evidence is malformed.');
 const manifest = (matrix as StrategySearchMatrixArtifact).manifest;
-if (reservoir.header.evidenceId !== config.evidenceId
-  || !validateStrategySearchMatrixManifest(manifest) || manifest.source.evidenceId !== config.evidenceId
+if (!validateStrategySearchMatrixManifest(manifest) || manifest.source.evidenceId !== config.evidenceId
   || !validateStrategySearchMatrixArtifactIdentity(matrix, manifest)) throw new Error('PSRO scientific source is invalid.');
 function initialMatrix(artifact: StrategySearchMatrixArtifact): MatrixSnapshot {
   const protocol = matrixProtocol(config.kingdomId, manifest.seeds.slice(0, 75), 30, 200, false);
@@ -72,9 +68,9 @@ function initialMatrix(artifact: StrategySearchMatrixArtifact): MatrixSnapshot {
   reconstructMatrixCache(snapshot); return snapshot;
 }
 const sourceIdentity: CalibrationSourceIdentity = { kingdomId: config.kingdomId,
-  rankedPath: config.reservoirPath, reservoirPath: config.reservoirPath,
+  rankedPath: topFile, reservoirPath: config.reservoirPath,
   p75ManifestPath: config.matrixEvidencePath, p75ReportPath: config.matrixEvidencePath,
-  rankedSha256: reservoir.header.sourceArtifactHash!, reservoirSha256,
+  rankedSha256: fileHash(topFile), reservoirSha256,
   p75ManifestSha256: matrixSha256, p75ReportSha256: matrixSha256,
   p75ManifestHash: manifest.evidenceHash, reservoirRunId: config.evidenceId,
   reservoirVersion: 'strategy-search-goldfish-v4', rulesFingerprint: manifest.rulesFingerprint };

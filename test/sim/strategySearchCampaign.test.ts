@@ -25,8 +25,10 @@ describe('strategy-search request and semantic identity', () => {
     for (const kingdom of strategySearchKingdoms) {
       const parsed = deriveStrategySearch({ request: { kingdomIds: [kingdom.id], maxActiveCpus: 400 },
         sourceImage: source() });
-      expect(parsed.kingdoms[0]).toMatchObject({ kingdomId: kingdom.id,
-        orderedProduct: { candidateCount: 12_972_960, seeds: [4_100_000, 4_100_001, 4_100_002, 4_100_003] } });
+      expect(parsed.kingdoms[0]).toMatchObject({ kingdomId: kingdom.id, goldfish: {
+        generator: 'ordered-five-rung-v1', rowFormat: 'goldfish-rows-v1', candidateCount: 12_972_960,
+        retainedCount: 500_000, reservoirCount: 20_000,
+        seeds: [4_100_000, 4_100_001, 4_100_002, 4_100_003], cardIds: expect.any(Array) } });
       expect(parsed.kingdoms[0]!.evidenceId).toMatch(/^[0-9a-f]{64}$/);
     }
   });

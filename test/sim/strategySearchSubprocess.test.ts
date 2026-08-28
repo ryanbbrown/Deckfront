@@ -16,19 +16,13 @@ import { createStrategySearchMatrixManifest } from '../../src/sim/strategySearch
 import { createThresholdRacingProtocol } from '../../src/sim/thresholdRacingPsro';
 
 const kingdomId = 'balance-tuning-005', evidenceId = 'a'.repeat(64);
-const entries = ['goldfish', 'matrix-manifest', 'matrix', 'psro', 'validator',
+const entries = ['matrix-manifest', 'matrix', 'psro', 'validator',
   'psro-score-receipt-validator'] as const;
 const execute = (entry: typeof entries[number], args: string[]) => spawnSync(process.execPath,
   ['--import', 'tsx', 'scripts/strategy_search_subprocess.ts', '--entry', entry,
     '--kingdom', kingdomId, '--', ...args], { encoding: 'utf8', timeout: 10_000 });
 
 describe('deployment-only strategy-search subprocess bootstrap', () => {
-  it('starts Goldfish normally with an authoritative balance kingdom', () => {
-    const result = execute('goldfish', ['readiness', '--evidence-id', evidenceId, '--kingdom', kingdomId]);
-    expect(result.status, result.stderr).toBe(0);
-    expect(JSON.parse(result.stdout)).toMatchObject({ ready: true, kingdomId, candidateCount: 12_972_960 });
-  });
-
   it('starts Matrix-manifest normally after wrapper registration', () => {
     const result = execute('matrix-manifest', ['--evidence-id', evidenceId, '--kingdom', kingdomId,
       '--reservoir', '/missing/reservoir.hgf', '--reservoir-sha256', 'b'.repeat(64),
@@ -133,7 +127,7 @@ describe('deployment-only strategy-search subprocess bootstrap', () => {
     for (const entry of [...entries, 'matrix-score', 'matrix-reduce', 'parallel-psro']) {
       expect(wrapper).toMatch(new RegExp(`(?:^|\\s)(?:'${entry}'|${entry}):`, 'm'));
     }
-    for (const direct of ['scripts/strategy_search_goldfish.ts', 'scripts/strategy_search_campaign_matrix_manifest.ts',
+    for (const direct of ['scripts/strategy_search_campaign_matrix_manifest.ts',
       'scripts/strategy_search_campaign_matrix.ts', 'scripts/strategy_search_campaign_psro.ts',
       'scripts/strategy_search_validate_artifact.ts']) expect(source).not.toContain(`"${direct}"`);
   });

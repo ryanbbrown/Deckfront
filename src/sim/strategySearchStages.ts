@@ -1,9 +1,4 @@
 import { createHash } from 'node:crypto';
-import {
-  ORDERED_PRODUCT_GENERATOR, ORDERED_PRODUCT_TRAVERSAL, validateOrderedProductArtifact,
-  validateOrderedProductReservoir
-} from './orderedGoldfishProduct';
-import { NATIVE_GOLDFISH_SCORER_VERSION } from './nativeGoldfishProtocol';
 import type { StrategySearchMatrixArtifact, StrategySearchMatrixManifest } from './strategySearchMatrix';
 import { validateStrategySearchMatrixArtifact } from './strategySearchMatrix';
 import type { StrategySearchPsroArtifact } from './strategySearchPsro';
@@ -51,27 +46,6 @@ export function validateCampaignStageControlMarker(value: unknown,
       ...(held.reason === undefined ? {} : { reason: held.reason }) });
     return JSON.stringify(held) === JSON.stringify(rebuilt) && (!expected || JSON.stringify(held) === JSON.stringify(expected));
   } catch { return false; }
-}
-export function validateCampaignGoldfishStage(input: { evidenceId?: string; stageId?: string;
-  ranked: unknown; reservoir: unknown;
-  rankedSha256?: string; reservoirSha256?: string; rankedSidecarContent?: string;
-  reservoirSidecarContent?: string; fileHashes: Readonly<Record<string, string>>; marker: unknown }): boolean {
-  const evidenceId = input.evidenceId ?? input.stageId ?? '';
-  const expected = createCampaignStageControlMarker({ stage: 'goldfish', evidenceId, status: 'complete',
-    artifactHashes: input.fileHashes });
-  if (!validateCampaignStageControlMarker(input.marker, expected)) return false;
-  if (!validateOrderedProductArtifact(input.ranked) || !input.rankedSha256 || !input.reservoirSha256
-    || !validateOrderedProductReservoir(input.reservoir, input.ranked, input.rankedSha256)
-    || input.ranked.scorerVersion !== NATIVE_GOLDFISH_SCORER_VERSION
-    || input.ranked.candidateSpace.generator !== ORDERED_PRODUCT_GENERATOR
-    || input.ranked.candidateSpace.traversal !== ORDERED_PRODUCT_TRAVERSAL) return false;
-  const rankedSidecar = `${input.rankedSha256}  ranked.json\n`;
-  const reservoirSidecar = `${input.reservoirSha256}  reservoir.json\n`;
-  return input.rankedSidecarContent === rankedSidecar && input.reservoirSidecarContent === reservoirSidecar
-    && input.fileHashes['output/ranked.json'] === input.rankedSha256
-    && input.fileHashes['output/reservoir.json'] === input.reservoirSha256
-    && input.fileHashes['output/ranked.json.sha256'] === createHash('sha256').update(rankedSidecar).digest('hex')
-    && input.fileHashes['output/reservoir.json.sha256'] === createHash('sha256').update(reservoirSidecar).digest('hex');
 }
 export function validateCampaignMatrixStage(input: { evidenceId?: string; stageId?: string;
   manifest: StrategySearchMatrixManifest; artifact: StrategySearchMatrixArtifact;

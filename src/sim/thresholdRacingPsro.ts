@@ -9,10 +9,11 @@ import type { CandidateEvaluation, MixtureSchedule } from './mixtureEvaluation';
 import { GAMES_PER_SEED, emptyAggregate, mergeAggregate } from './pairing';
 import type { PairingRunner } from './pairingRunner';
 import type { CalibrationCandidateIdentity } from './responseOracleCalibration';
-import { stableHash } from './strategy';
+import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 import type { TelemetryAggregate } from './types';
 import { compareUtf16 } from './utf16';
+import { createOrderedCandidateSpace, orderedGoldfishCardIds } from './orderedGoldfishBenchmark';
 
 export const THRESHOLD_RACING_PSRO_VERSION = 'threshold-racing-psro-v2' as const;
 export const SCREEN_DEPTHS = Object.freeze([8, 16, 32, 64, 128, 256, 512] as const);
@@ -178,11 +179,19 @@ const RAW_LOOK_KEYS = ['schemaVersion', 'experiment', 'protocolHash', 'sourceHas
   'scheduleEnd', 'chunks', 'artifactHash'] as const;
 const SCHEDULE_KEYS = ['targetWeights', 'blocks', 'realizedOpponentCounts',
   'unsampledPositiveWeightStrategies'] as const;
-function candidateIdentitiesValid(ids: readonly string[], canonicals: readonly string[]): boolean {
-  return ids.length > 0 && ids.length === canonicals.length && new Set(ids).size === ids.length
-    && new Set(canonicals).size === canonicals.length && ids.every((id, index) => typeof id === 'string'
-      && typeof canonicals[index] === 'string' && canonicals[index]!.length > 0
-      && id === `sg-${stableHash(canonicals[index]!)}`);
+export function candidateIdentitiesValid(ids: readonly string[], canonicals: readonly string[],
+  kingdomId?: string): boolean {
+  if (!ids.length || ids.length !== canonicals.length || new Set(ids).size !== ids.length
+    || new Set(canonicals).size !== canonicals.length) return false;
+  const space = kingdomId ? createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId)) : undefined;
+  return ids.every((id, index) => {
+    const canonical = canonicals[index];
+    if (typeof id !== 'string' || typeof canonical !== 'string' || !canonical) return false;
+    if (id === `sg-${stableHash(canonical)}`) return true;
+    const match = /^gf-(\d+)$/.exec(id), number = match ? Number(match[1]) : Number.NaN;
+    return Boolean(space && Number.isSafeInteger(number) && number >= 0 && number < space.candidateCount
+      && canonicalStrategy(space.candidateAt(number)) === canonical);
+  });
 }
 export function validateMixtureSchedule(value: unknown): value is MixtureSchedule {
   if (!value || typeof value !== 'object' || !exactKeys(value, SCHEDULE_KEYS)) return false;
@@ -343,7 +352,7 @@ export function validateRawPsroScoreChunk(value: unknown, protocol?: ThresholdRa
     && Number.isSafeInteger(held.candidateStart) && held.candidateStart >= 0
     && Number.isSafeInteger(held.candidateEnd) && held.candidateEnd > held.candidateStart
     && held.candidateEnd <= held.familySize
-    && candidateIdentitiesValid(held.candidateIds, held.candidateCanonicals)
+    && candidateIdentitiesValid(held.candidateIds, held.candidateCanonicals, protocol?.kingdomId)
     && held.candidateEnd - held.candidateStart === held.dimensions.candidates
     && positiveInteger(held.dimensions.candidates) && positiveInteger(held.dimensions.blocks)
     && held.dimensions.blocks === held.scheduleEnd - held.scheduleStart
@@ -376,7 +385,8 @@ export function validateRawPsroLookArtifact(value: unknown,
     || !['screen', 'confirmation', 'queue-retest'].includes(held.raceKind) || !held.lookId
     || !positiveInteger(held.lookDepth) || held.lookDepth !== held.scheduleEnd
     || !protocolLookDepthValid(held.raceKind, held.lookDepth, protocol)
-    || !positiveInteger(held.familySize) || !candidateIdentitiesValid(held.candidateIds, held.candidateCanonicals)
+    || !positiveInteger(held.familySize)
+    || !candidateIdentitiesValid(held.candidateIds, held.candidateCanonicals, protocol?.kingdomId)
     || held.candidateIds.length > held.familySize || !Number.isFinite(held.alpha) || held.alpha <= 0 || held.alpha > 1
     || held.alpha !== expectedAlpha(held.raceKind, held.familySize, protocol)
     || held.threshold !== (protocol?.threshold ?? RESPONSE_THRESHOLD)

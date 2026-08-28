@@ -1,4 +1,4 @@
-"""Detached, restart-safe Modal launcher for ordered native-strategy shards."""
+"""Restart-safe Modal launcher for strategy-search and competitive scoring."""
 
 from __future__ import annotations
 
@@ -31,43 +31,17 @@ MEMORY_RATE_PER_GIB_HOUR = 0.008
 GROSS_BUDGET_USD = 25.0
 MAX_PHYSICAL_CORES = 192
 MAX_FULL_RUNS = 3
-FULL_CANDIDATE_COUNT = 12_972_960
 MAX_RETRIES = 2
-DEFAULT_ORDERED_PRODUCT_KINGDOM = "deep-beam-tuning-009"
-ORDERED_PRODUCT_SEEDS = [4_100_000, 4_100_001, 4_100_002, 4_100_003]
-ORDERED_PRODUCT_AUTHORIZATIONS = {
-    "deep-beam-tuning-001": "k001-ordered-product-calibration-v2",
-    "deep-beam-tuning-007": "k007-ordered-product-calibration-v2",
-    "deep-beam-tuning-008": "k008-ordered-product-calibration-v2",
-    DEFAULT_ORDERED_PRODUCT_KINGDOM: "k009-ordered-product-correction-v1",
-}
-ORDERED_PRODUCT_AUTHORIZATION_CONTRACTS = {
-    authorization: {"kingdom": kingdom, "shuffle_seeds": ORDERED_PRODUCT_SEEDS}
-    for kingdom, authorization in ORDERED_PRODUCT_AUTHORIZATIONS.items()
-}
-ORDERED_PRODUCT_AUTHORIZATION_CONTRACTS.update({
-    "k007-ordered-product-seed-replication-1-v1": {
-        "kingdom": "deep-beam-tuning-007", "shuffle_seeds": [5_100_000, 5_100_001, 5_100_002, 5_100_003]},
-    "k007-ordered-product-seed-replication-2-v1": {
-        "kingdom": "deep-beam-tuning-007", "shuffle_seeds": [6_100_000, 6_100_001, 6_100_002, 6_100_003]},
-    "k007-ordered-product-seed-replication-3-v1": {
-        "kingdom": "deep-beam-tuning-007", "shuffle_seeds": [7_100_000, 7_100_001, 7_100_002, 7_100_003]},
-})
-ORDERED_PRODUCT_AUTHORIZATION = ORDERED_PRODUCT_AUTHORIZATIONS[DEFAULT_ORDERED_PRODUCT_KINGDOM]
-ORDERED_PRODUCT_RETAINED_COUNT = 500_000
-ORDERED_PRODUCT_RESERVOIR_COUNT = 20_000
-SCORER_VERSION = "native-goldfish-v1"
 COMPETITIVE_SCORER_VERSION = "native-competitive-v1"
 COMPETITIVE_RUN_CAP_USD = 2.0
 COMPETITIVE_TARGET_BLOCKS = 65_536
 COMPETITIVE_ARTIFACT_MAGIC = b"HPS1"
-RESULT_SCHEMA_VERSION = 1
 CAMPAIGN_CHECKPOINT_EVENT = "strategy-search-checkpoint"
 CAMPAIGN_STAGE_STOP_EVENT = "strategy-search-stage-stop"
 CAMPAIGN_STAGES = {"goldfish", "matrix", "psro"}
 STRATEGY_SEARCH_MAX_JOB_ATTEMPTS = 3
-CAMPAIGN_RUST_GOLDFISH_BIN = "/workspace/rust/target/release/hexdeck-goldfish"
-CAMPAIGN_STAGE_ONE_CHUNK_SIZE = 250_000
+CAMPAIGN_RUST_GOLDFISH_BIN = os.environ.get(
+    "HEXDECK_GOLDFISH_BIN", "/workspace/rust/target/release/hexdeck-goldfish")
 LEDGER_PATH = pathlib.Path.home() / ".hexdeck-modal-cost-ledger.json"
 
 LOCAL_PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -137,26 +111,6 @@ def projected_cost_usd(
     return shard_cost + controller_cost
 
 
-def projected_product_cost_usd(
-    cpu: int, memory_gib: float, timeout_seconds: int, retries: int = MAX_RETRIES
-) -> float:
-    hourly = cpu * CPU_RATE_PER_CORE_HOUR + memory_gib * MEMORY_RATE_PER_GIB_HOUR
-    return (retries + 1) * (timeout_seconds + 30) / 3600 * hourly
-
-
-def projected_ordered_product_cost_usd(
-    stage_one_shards: int, stage_two_shards: int, cpu: int, memory_gib: float,
-    timeout_seconds: int, max_containers: int, retries: int = MAX_RETRIES
-) -> float:
-    attempts = retries + 1
-    shard_count = stage_one_shards + stage_two_shards
-    hourly = cpu * CPU_RATE_PER_CORE_HOUR + memory_gib * MEMORY_RATE_PER_GIB_HOUR
-    shard_cost = shard_count * attempts * (timeout_seconds + 30) / 3600 * hourly
-    waves = math.ceil(stage_one_shards / max_containers) + math.ceil(stage_two_shards / max_containers)
-    controller_seconds = attempts * waves * (timeout_seconds + 30) + 3900
-    return shard_cost + controller_seconds / 3600 * (CPU_RATE_PER_CORE_HOUR + 16 * MEMORY_RATE_PER_GIB_HOUR)
-
-
 def _called_process_details(error: subprocess.CalledProcessError) -> str:
     captured = []
     for name in ("stdout", "stderr"):
@@ -217,40 +171,11 @@ def reserve_cost(run_id: str, projected: float, full_run: bool, config: dict[str
             return existing
         reserved = sum(float(run["reservedUsd"]) for run in ledger["runs"].values())
         full_runs = sum(bool(run["fullRun"]) for run in ledger["runs"].values())
-        authorization = config.get("authorization")
-        authorization_contract = ORDERED_PRODUCT_AUTHORIZATION_CONTRACTS.get(authorization)
-        authorized_campaign = config.get("kind") == "ordered-product" \
-            and authorization_contract is not None \
-            and config.get("kingdom") == authorization_contract["kingdom"] \
-            and config.get("shuffle_seeds") == authorization_contract["shuffle_seeds"]
-        if authorization and not authorized_campaign:
-            raise RuntimeError("authorization does not match its ordered product kingdom and seed set")
-        authorized_runs = [run for run in ledger["runs"].values()
-                           if run.get("config", {}).get("authorization") == authorization] \
-            if authorization else []
-        continuation_id = config.get("continuation_run_id")
-        if authorized_runs:
-            if len(authorized_runs) != 1 or not continuation_id \
-                    or authorized_runs[0].get("runId") != continuation_id:
-                raise RuntimeError(f"authorization {authorization} was already used")
-            prior = authorized_runs[0]
-            prior_actual = float(config.get("prior_actual_usd", -1))
-            prior_config = prior.get("config", {})
-            prior_kingdom = prior_config.get("kingdom", DEFAULT_ORDERED_PRODUCT_KINGDOM)
-            if prior_config.get("kind") != "ordered-product" \
-                    or prior_kingdom != config.get("kingdom") \
-                    or prior_config.get("shuffle_seeds") != config.get("shuffle_seeds") \
-                    or prior_actual < 0 or prior_actual > float(prior["reservedUsd"]):
-                raise RuntimeError("ordered product continuation does not match the failed campaign")
-            prior["reservedUsd"] = round(prior_actual, 8)
-            prior["actualUsd"] = round(prior_actual, 8)
-            prior["status"] = "superseded"
-            reserved = sum(float(run["reservedUsd"]) for run in ledger["runs"].values())
         if reserved + projected > GROSS_BUDGET_USD:
             raise RuntimeError(
                 f"cumulative reservation ${reserved + projected:.4f} exceeds ${GROSS_BUDGET_USD:.2f}"
             )
-        if full_run and full_runs >= MAX_FULL_RUNS and not authorized_campaign:
+        if full_run and full_runs >= MAX_FULL_RUNS:
             raise RuntimeError(f"full-space run limit {MAX_FULL_RUNS} is exhausted")
         entry = {
             "runId": run_id,
@@ -301,582 +226,46 @@ def record_controller_call(run_id: str, call_id: str) -> None:
         _atomic_json(LEDGER_PATH, ledger)
 
 
-def _result_hash(value: dict[str, Any]) -> str:
-    held = {key: value[key] for key in ["runId", "kingdomId", "shardId", "startPosition", "endPosition",
-        "completeCount", "candidateDigest", "scoreDigest", "ruleFingerprint", "scorerVersion",
-        "buildVersion", "shuffleSeeds", "movementProfiles", "requestedCpu", "threads"]}
-    return hashlib.sha256(json.dumps(held, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
-def valid_result(value: Any, spec: dict[str, Any]) -> bool:
-    try:
-        return (
-            value["schemaVersion"] == RESULT_SCHEMA_VERSION
-            and value["status"] == "success"
-            and value["runId"] == spec["run_id"]
-            and value["kingdomId"] == spec["kingdom"]
-            and value["shardId"] == spec["shard_id"]
-            and value["startPosition"] == spec["start_position"]
-            and value["endPosition"] == spec["end_position"]
-            and value["completeCount"] == spec["end_position"] - spec["start_position"]
-            and value["ruleFingerprint"] == spec["rule_fingerprint"]
-            and value["scorerVersion"] == SCORER_VERSION
-            and value["buildVersion"] == spec["build_version"]
-            and value["shuffleSeeds"] == spec["shuffle_seeds"]
-            and value["movementProfiles"] == ["stationary", "chaser", "kiter"]
-            and value["requestedCpu"] == spec["cpu"]
-            and value["threads"] == spec["threads"]
-            and isinstance(value["candidateDigest"], str)
-            and re.fullmatch(r"[0-9a-f]{9,}", value["candidateDigest"]) is not None
-            and isinstance(value["scoreDigest"], str)
-            and re.fullmatch(r"[0-9a-f]{9,}", value["scoreDigest"]) is not None
-            and value["resultHash"] == _result_hash(value)
-        )
-    except (KeyError, TypeError):
-        return False
 
 
-def _result_path(spec: dict[str, Any]) -> pathlib.Path:
-    return pathlib.Path("/results") / spec["run_id"] / f"shard-{spec['shard_id']:06d}.json"
 
 
-def _stable_hash(lines: list[str]) -> str:
-    text = "\n".join(lines)
-    value = 0x811C9DC5
-    units = text.encode("utf-16-le")
-    for index in range(0, len(units), 2):
-        value ^= units[index] | (units[index + 1] << 8)
-        value = (value * 0x01000193) & 0xFFFFFFFF
-    return f"{value:08x}{len(units) // 2:x}"
 
 
-def ordered_subprocess_timeouts(timeout_seconds: int) -> tuple[int, int]:
-    generation = max(1, timeout_seconds // 3)
-    scoring = max(1, timeout_seconds - generation)
-    return generation, scoring
 
 
-def _native_shard(spec: dict[str, Any]) -> tuple[list[dict[str, Any]], str, str, dict[str, Any]]:
-    generation_timeout, scoring_timeout = ordered_subprocess_timeouts(spec["timeout_seconds"])
-    with tempfile.TemporaryDirectory() as directory:
-        request_path = pathlib.Path(directory) / "request.jsonl"
-        metadata_path = pathlib.Path(directory) / "metadata.json"
-        subprocess.run(["npx", "tsx", "scripts/native_ordered_shard_input.ts",
-            "--kingdom", spec["kingdom"],
-            "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"]),
-            "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]),
-            "--seeds", ",".join(str(seed) for seed in spec["shuffle_seeds"]),
-            "--request", str(request_path),
-            "--metadata", str(metadata_path)], cwd="/workspace", text=True, capture_output=True,
-            timeout=generation_timeout, check=True)
-        metadata = json.loads(metadata_path.read_text())
-        if metadata["kingdomId"] != spec["kingdom"] \
-                or metadata["shuffleSeeds"] != spec["shuffle_seeds"] \
-                or metadata["ruleFingerprint"] != spec["rule_fingerprint"]:
-            raise RuntimeError("TypeScript kingdom or rule fingerprint does not match the shard specification")
-        executable = "/workspace/rust/target/release/hexdeck-goldfish"
-        with request_path.open() as request:
-            completed = subprocess.run([executable, "--threads", str(spec["threads"]),
-                "--cpu-request", str(spec["cpu"])], stdin=request, text=True, capture_output=True,
-                timeout=scoring_timeout, check=True)
-    response = json.loads(completed.stdout)
-    if not response.get("ok"):
-        raise RuntimeError(str(response.get("error")))
-    scores = response["result"]["scores"]
-    ranking = ["\t".join(str(score[key]) for key in ["worstCompletions", "totalCompletions",
-        "worstPenalizedTurnsTo50", "totalPenalizedTurnsTo50", "worstDamageArea",
-        "totalDamageArea", "totalMoneySpent"]) + "\t" + score["strategyId"] + "\t"
-        + score["collisionTieKey"] for score in scores]
-    return scores, metadata["candidateDigest"], _stable_hash(ranking), metadata
 
 
-@app.function(image=image, cpu=4, memory=4096, timeout=3600, volumes={"/results": volume})
-@modal.concurrent(max_inputs=1)
-def score_shard(spec: dict[str, Any]) -> dict[str, Any]:
-    volume.reload()
-    path = _result_path(spec)
-    if path.exists():
-        try:
-            held = json.loads(path.read_text())
-            if valid_result(held, spec):
-                return held
-        except (OSError, json.JSONDecodeError):
-            pass
-    started = time.monotonic()
-    try:
-        scores, candidate_digest, score_digest, metadata = _native_shard(spec)
-        result = {
-            "schemaVersion": RESULT_SCHEMA_VERSION,
-            "status": "success",
-            "runId": spec["run_id"],
-            "kingdomId": spec["kingdom"],
-            "shardId": spec["shard_id"],
-            "startPosition": spec["start_position"],
-            "endPosition": spec["end_position"],
-            "completeCount": len(scores),
-            "candidateDigest": candidate_digest,
-            "scoreDigest": score_digest,
-            "ruleFingerprint": metadata["ruleFingerprint"],
-            "scorerVersion": SCORER_VERSION,
-            "buildVersion": spec["build_version"],
-            "shuffleSeeds": spec["shuffle_seeds"],
-            "movementProfiles": ["stationary", "chaser", "kiter"],
-            "requestedCpu": spec["cpu"],
-            "threads": spec["threads"],
-            "maxContainers": spec["max_containers"],
-            "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname()),
-            "elapsedMs": round((time.monotonic() - started) * 1000, 3),
-            "scoringPath": "standalone-rust-process",
-        }
-        result["resultHash"] = _result_hash(result)
-        if not valid_result(result, spec):
-            raise RuntimeError("shard result failed its schema and provenance check")
-        _atomic_json(path, result)
-        volume.commit()
-        return result
-    except Exception as error:
-        return {
-            "schemaVersion": RESULT_SCHEMA_VERSION,
-            "status": "failure",
-            "runId": spec["run_id"],
-            "kingdomId": spec["kingdom"],
-            "shardId": spec["shard_id"],
-            "errorType": type(error).__name__,
-            "error": str(error),
-            "elapsedMs": round((time.monotonic() - started) * 1000, 3),
-        }
 
 
-@app.function(image=image, cpu=10, memory=8192, timeout=7200, retries=0, volumes={"/results": volume})
-@modal.concurrent(max_inputs=1)
-def product_search(config: dict[str, Any]) -> dict[str, Any]:
-    volume.reload()
-    root = pathlib.Path("/results") / config["run_id"]
-    output = root / "pool.json"
-    summary_path = root / "product-summary.json"
-    command = ["/usr/bin/time", "-v", "npm", "run", "staged-goldfish:native-pool", "--",
-        "--count", str(config["count"]), "--chunk-size", str(config["chunk_size"]),
-        "--shard-size", str(config["shard_size"]), "--threads", str(config["threads"]),
-        "--pool-seed", str(config["pool_seed"]), "--out", str(output)]
-    environment = {**os.environ,
-        "HEXDECK_GOLDFISH_BIN": "/workspace/rust/target/release/hexdeck-goldfish",
-        "HEXDECK_BUILD_VERSION": config["build_version"]}
-    started = time.monotonic()
-    completed = subprocess.run(command, cwd="/workspace", env=environment, text=True,
-        capture_output=True, timeout=config["timeout_seconds"], check=True)
-    volume.commit()
-    lines = [line for line in completed.stdout.splitlines() if line.startswith("{")]
-    if not lines:
-        raise RuntimeError(f"product command returned no summary: {completed.stdout[-2000:]}")
-    command_summary = json.loads(lines[-1])
-    rss = re.search(r"Maximum resident set size \(kbytes\):\s*(\d+)", completed.stderr)
-    summary = {"schemaVersion": 1, "status": "success", "runId": config["run_id"],
-        "kingdomId": config["kingdom"], "buildVersion": config["build_version"],
-        "ruleFingerprint": config["rule_fingerprint"],
-        "scorerVersion": SCORER_VERSION, "generatedCount": config["count"],
-        "prefilterCount": command_summary["prefilterCount"],
-        "leaderCount": command_summary["leaderCount"], "tailCount": command_summary["tailCount"],
-        "generatedHash": command_summary["generatedHash"],
-        "canonicalProvenanceDigest": command_summary["canonicalProvenanceDigest"],
-        "prefilterDigest": command_summary["prefilterDigest"],
-        "leaderDigest": command_summary["leaderDigest"], "tailDigest": command_summary["tailDigest"],
-        "elapsedMs": round((time.monotonic() - started) * 1000, 3),
-        "peakRssKib": int(rss.group(1)) if rss else None,
-        "requestedCpu": config["cpu"], "threads": config["threads"],
-        "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname()),
-        "artifact": f"hexdeck-native-strategy-results:/{config['run_id']}/pool.json"}
-    _atomic_json(summary_path, summary)
-    volume.commit()
-    return summary
 
 
-def _ordered_product_checkpoint_path(config: dict[str, Any], stage: str, shard_id: int) -> pathlib.Path:
-    root = _campaign_ordered_run_root(config["campaign_root"], config["run_id"]) \
-        if "campaign_root" in config else pathlib.Path("/results") / config["run_id"]
-    return root / stage / f"shard-{shard_id:06d}.json"
 
 
-def _ordered_product_cli(config: dict[str, Any]) -> list[str]:
-    return ["npx", "tsx", "scripts/ordered_goldfish_product.ts",
-        "--schema-version", str(config.get("schema_version", 1)),
-        "--kingdom", config["kingdom"], "--run-id", config["run_id"],
-        "--build-version", config["build_version"],
-        "--rule-fingerprint", config["rule_fingerprint"], "--scorer-version", SCORER_VERSION,
-        "--retained-count", str(config["retained_count"]),
-        "--reservoir-count", str(config["reservoir_count"]),
-        "--seeds", ",".join(str(seed) for seed in config["shuffle_seeds"])]
 
 
-def _valid_ordered_product_checkpoint(path: pathlib.Path, spec: dict[str, Any], stage: str) -> bool:
-    if not path.exists():
-        return False
-    base = _ordered_product_cli(spec)
-    command = base[:3] + ["validate-checkpoint"] + base[3:] + ["--checkpoint", str(path),
-        "--stage", stage, "--shard-id", str(spec["shard_id"]),
-        "--start-position", str(spec["start_position"]),
-        "--end-position", str(spec["end_position"])]
-    try:
-        subprocess.run(command, cwd="/workspace", text=True, capture_output=True,
-                       timeout=spec["timeout_seconds"], check=True)
-        return True
-    except (OSError, subprocess.SubprocessError):
-        return False
 
 
-def _preserve_corrupt_file(path: pathlib.Path, control_root: pathlib.Path) -> pathlib.Path:
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()
-    destination = control_root / "corrupt" / f"{path.name}.{digest}"
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    if not destination.exists():
-        os.replace(path, destination)
-    else:
-        path.unlink()
-    return destination
 
 
-def _run_rust(request_path: pathlib.Path, response_path: pathlib.Path,
-              threads: int, cpu: int, timeout_seconds: int, stream_scores: bool = False) -> None:
-    command = [CAMPAIGN_RUST_GOLDFISH_BIN, "--threads", str(threads), "--cpu-request", str(cpu)]
-    if stream_scores:
-        command.append("--stream-score-batch")
-    with request_path.open() as request, response_path.open("w") as response:
-        try:
-            subprocess.run(command, stdin=request, stdout=response, stderr=subprocess.PIPE,
-                text=True, timeout=timeout_seconds, check=True)
-        except subprocess.CalledProcessError as error:
-            details = (error.stderr or "").strip()
-            if len(details) > 64 * 1024:
-                details = f"[stderr tail; {len(details)} characters total]\n{details[-64 * 1024:]}"
-            raise RuntimeError(f"native Goldfish scorer failed: {details or error}") from error
 
 
-def _campaign_stage_one_ranges(start: int, end: int,
-                               chunk_size: int = CAMPAIGN_STAGE_ONE_CHUNK_SIZE) -> list[tuple[int, int]]:
-    if not all(isinstance(value, int) for value in [start, end, chunk_size]) \
-            or start < 0 or end <= start or chunk_size < 1:
-        raise ValueError("campaign stage-one chunk bounds are invalid")
-    return [(position, min(position + chunk_size, end)) for position in range(start, end, chunk_size)]
 
 
-def _remaining_stage_seconds(deadline: float) -> int:
-    remaining = math.floor(deadline - time.monotonic())
-    if remaining < 1:
-        raise TimeoutError("campaign Goldfish stage-one authorized timeout elapsed")
-    return remaining
 
 
-def _valid_stage_one_chunk_metadata(path: pathlib.Path, checkpoint: pathlib.Path,
-                                    spec: dict[str, Any], prior_digest: str | None) -> str | None:
-    try:
-        value = json.loads(path.read_text())
-        held = json.loads(checkpoint.read_text())
-    except (OSError, ValueError):
-        return None
-    keys = {"schemaVersion", "kingdomId", "startPosition", "endPosition", "completeCount",
-        "priorCandidateDigest", "candidateDigest", "ruleFingerprint", "shuffleSeeds", "cpu", "threads",
-        "firstCanonical", "lastCanonical"}
-    if not isinstance(value, dict) or not isinstance(held, dict) or set(value) != keys \
-            or value.get("schemaVersion") != spec.get("schema_version", 1) \
-            or value.get("kingdomId") != spec["kingdom"] or value.get("startPosition") != spec["start_position"] \
-            or value.get("endPosition") != spec["end_position"] \
-            or value.get("completeCount") != spec["end_position"] - spec["start_position"] \
-            or value.get("priorCandidateDigest") != prior_digest \
-            or not isinstance(value.get("candidateDigest"), str) \
-            or not re.fullmatch(r"[0-9a-f]{9,16}", value["candidateDigest"]) \
-            or value.get("ruleFingerprint") != spec["rule_fingerprint"] \
-            or value.get("shuffleSeeds") != [spec["shuffle_seeds"][0]] \
-            or held.get("shard", {}).get("candidateDigest") != value.get("candidateDigest"):
-        return None
-    return value["candidateDigest"]
 
 
-@app.function(image=image, cpu=4, memory=4096, timeout=7200, volumes={"/results": volume})
-@modal.concurrent(max_inputs=1)
-def ordered_product_stage_one(spec: dict[str, Any]) -> dict[str, Any]:
-    volume.reload()
-    if "source_image" in spec:
-        verify_campaign_source_image(spec["source_image"])
-    output = _ordered_product_checkpoint_path(spec, "stage-one", spec["shard_id"])
-    if _valid_ordered_product_checkpoint(output, spec, "stage-one"):
-        work = pathlib.Path(f"{output}.work")
-        if work.exists():
-            shutil.rmtree(work)
-            volume.commit()
-        held = json.loads(output.read_text())
-        return {"status": "success", "stage": "stage-one", "shardId": spec["shard_id"],
-                "contentDigest": held["contentDigest"], "reused": True}
-    for corrupt in [output, pathlib.Path(f"{output}.records.jsonl")]:
-        if corrupt.exists():
-            _preserve_corrupt_file(corrupt, output.parent.parent / "control")
-    started = time.monotonic()
-    deadline = started + spec["timeout_seconds"]
-    work = pathlib.Path(f"{output}.work")
-    work.mkdir(parents=True, exist_ok=True)
-    memory_mib = spec.get("memory_mib", spec.get("memory_gib", 4) * 1024)
-    node_environment = {**os.environ, "NODE_OPTIONS":
-        f"--max-old-space-size={max(256, math.floor(memory_mib * 0.75))}"}
-    aggregates = []
-    for slot in range(2):
-        checkpoint = work / f"aggregate-{slot}.json"
-        metadata = work / f"aggregate-{slot}.metadata.json"
-        try:
-            held_metadata = json.loads(metadata.read_text())
-            aggregate_end = held_metadata["endPosition"]
-        except (OSError, ValueError, KeyError, TypeError):
-            aggregate_end = None
-        aggregate_spec = {**spec, "shard_id": 0, "start_position": spec["start_position"],
-            "end_position": aggregate_end, "timeout_seconds": _remaining_stage_seconds(deadline)}
-        digest = _valid_stage_one_chunk_metadata(metadata, checkpoint, aggregate_spec, None) \
-            if isinstance(aggregate_end, int) and spec["start_position"] < aggregate_end < spec["end_position"] \
-            and _valid_ordered_product_checkpoint(checkpoint, aggregate_spec, "stage-one") else None
-        if digest is not None:
-            aggregates.append((aggregate_end, checkpoint, metadata, digest))
-        elif checkpoint.exists() or metadata.exists() or pathlib.Path(f"{checkpoint}.records.jsonl").exists():
-            for corrupt in [checkpoint, pathlib.Path(f"{checkpoint}.records.jsonl"), metadata]:
-                if corrupt.exists():
-                    _preserve_corrupt_file(corrupt, output.parent.parent / "control")
-    current = max(aggregates, default=None, key=lambda entry: entry[0])
-    current_end = current[0] if current else spec["start_position"]
-    for start, end in _campaign_stage_one_ranges(current_end, spec["end_position"]):
-        with tempfile.TemporaryDirectory() as directory:
-            temporary = pathlib.Path(directory)
-            request, response = temporary / "request.jsonl", temporary / "response.json"
-            chunk_metadata, chunk_checkpoint = temporary / "metadata.json", temporary / "checkpoint.json"
-            prior_digest = current[3] if current else None
-            input_command = ["npx", "tsx", "scripts/native_ordered_shard_input.ts",
-                "--schema-version", str(spec.get("schema_version", 1)), "--kingdom", spec["kingdom"],
-                "--start-position", str(start), "--end-position", str(end),
-                "--threads", str(spec["threads"]), "--cpu", str(spec["cpu"]),
-                "--seeds", str(spec["shuffle_seeds"][0]), "--mode", "full",
-                "--request", str(request), "--metadata", str(chunk_metadata)]
-            if prior_digest is not None:
-                input_command += ["--candidate-digest", prior_digest]
-            _run_checked(input_command, "campaign bounded stage-one input", cwd="/workspace",
-                env=node_environment, text=True, capture_output=True,
-                timeout=_remaining_stage_seconds(deadline))
-            _run_rust(request, response, spec["threads"], spec["cpu"],
-                _remaining_stage_seconds(deadline))
-            checkpoint_command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts",
-                "stage-one-checkpoint", "--request", str(request), "--response", str(response),
-                "--metadata", str(chunk_metadata), "--out", str(chunk_checkpoint),
-                "--shard-id", "1" if current else "0", "--start-position", str(start),
-                "--end-position", str(end)] + _ordered_product_cli(spec)[3:]
-            _run_checked(checkpoint_command, "campaign bounded stage-one checkpoint", cwd="/workspace",
-                env=node_environment, text=True, capture_output=True,
-                timeout=_remaining_stage_seconds(deadline))
-            manifest = temporary / "manifest.json"
-            entries = ([{"checkpoint": str(current[1]), "metadata": str(current[2])}]
-                if current else []) + [{"checkpoint": str(chunk_checkpoint), "metadata": str(chunk_metadata)}]
-            _atomic_json(manifest, entries)
-            final = end == spec["end_position"]
-            next_slot = 0 if current is None or current[1].name == "aggregate-1.json" else 1
-            merged = output if final else work / f"aggregate-{next_slot}.json"
-            merged_metadata = temporary / "merged.metadata.json" if final \
-                else work / f"aggregate-{next_slot}.metadata.json"
-            merge_command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts",
-                "stage-one-merge-shard", "--manifest", str(manifest), "--out", str(merged),
-                "--metadata-out", str(merged_metadata), "--shard-id", str(spec["shard_id"] if final else 0),
-                "--start-position", str(spec["start_position"]), "--end-position", str(end)]
-            merge_command += _ordered_product_cli(spec)[3:]
-            _run_checked(merge_command, "campaign bounded stage-one merge", cwd="/workspace",
-                env=node_environment, text=True, capture_output=True,
-                timeout=_remaining_stage_seconds(deadline))
-            merged_spec = {**spec, "shard_id": spec["shard_id"] if final else 0,
-                "start_position": spec["start_position"], "end_position": end,
-                "timeout_seconds": _remaining_stage_seconds(deadline)}
-            if not _valid_ordered_product_checkpoint(merged, merged_spec, "stage-one"):
-                raise RuntimeError("new bounded stage-one aggregate failed validation")
-            digest = _valid_stage_one_chunk_metadata(merged_metadata, merged, merged_spec, None)
-            if digest is None:
-                raise RuntimeError("new bounded stage-one aggregate metadata failed validation")
-            volume.commit()
-            current = (end, merged, merged_metadata, digest)
-    if not _valid_ordered_product_checkpoint(output, spec, "stage-one"):
-        raise RuntimeError("new stage-one checkpoint failed validation")
-    shutil.rmtree(work)
-    volume.commit()
-    held = json.loads(output.read_text())
-    return {"status": "success", "stage": "stage-one", "shardId": spec["shard_id"],
-            "contentDigest": held["contentDigest"], "reused": False,
-            "elapsedMs": round((time.monotonic() - started) * 1000, 3),
-            "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname())}
 
 
-@app.function(image=image, cpu=4, memory=4096, timeout=7200, volumes={"/results": volume})
-@modal.concurrent(max_inputs=1)
-def ordered_product_stage_two(spec: dict[str, Any]) -> dict[str, Any]:
-    volume.reload()
-    if "source_image" in spec:
-        verify_campaign_source_image(spec["source_image"])
-    output = _ordered_product_checkpoint_path(spec, "stage-two", spec["shard_id"])
-    if _valid_ordered_product_checkpoint(output, spec, "stage-two"):
-        held = json.loads(output.read_text())
-        return {"status": "success", "stage": "stage-two", "shardId": spec["shard_id"],
-                "contentDigest": held["contentDigest"], "reused": True}
-    for corrupt in [output, pathlib.Path(f"{output}.records.jsonl")]:
-        if corrupt.exists():
-            _preserve_corrupt_file(corrupt, output.parent.parent / "control")
-    root = _campaign_ordered_run_root(spec["campaign_root"], spec["run_id"]) \
-        if "campaign_root" in spec else pathlib.Path("/results") / spec["run_id"]
-    cohort = root / "stage-one-cohort.json"
-    started = time.monotonic()
-    deadline = started + spec["timeout_seconds"]
-    memory_mib = spec.get("memory_mib", spec.get("memory_gib", 4) * 1024)
-    node_environment = {**os.environ, "NODE_OPTIONS":
-        f"--max-old-space-size={max(256, math.floor(memory_mib * 0.75))}"}
-    with tempfile.TemporaryDirectory() as directory:
-        request = pathlib.Path(directory) / "request.jsonl"
-        response = pathlib.Path(directory) / "response.ndjson"
-        metadata = pathlib.Path(directory) / "metadata.json"
-        input_command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "stage-two-input",
-            "--cohort", str(cohort), "--start-position", str(spec["start_position"]),
-            "--end-position", str(spec["end_position"]), "--threads", str(spec["threads"]),
-            "--request", str(request), "--metadata", str(metadata)] + _ordered_product_cli(spec)[3:]
-        _run_checked(input_command, "campaign bounded stage-two input", cwd="/workspace",
-            env=node_environment, text=True, capture_output=True,
-            timeout=_remaining_stage_seconds(deadline))
-        _run_rust(request, response, spec["threads"], spec["cpu"],
-            _remaining_stage_seconds(deadline), stream_scores=True)
-        command = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "stage-two-checkpoint",
-            "--cohort", str(cohort), "--response", str(response), "--metadata", str(metadata),
-            "--out", str(output), "--shard-id", str(spec["shard_id"]),
-            "--start-position", str(spec["start_position"]), "--end-position", str(spec["end_position"])]
-        command += _ordered_product_cli(spec)[3:]
-        _run_checked(command, "campaign bounded stage-two checkpoint", cwd="/workspace",
-            env=node_environment, text=True, capture_output=True,
-            timeout=_remaining_stage_seconds(deadline))
-    if not _valid_ordered_product_checkpoint(output, spec, "stage-two"):
-        raise RuntimeError("new stage-two checkpoint failed validation")
-    volume.commit()
-    held = json.loads(output.read_text())
-    return {"status": "success", "stage": "stage-two", "shardId": spec["shard_id"],
-            "contentDigest": held["contentDigest"], "reused": False,
-            "elapsedMs": round((time.monotonic() - started) * 1000, 3),
-            "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname())}
 
 
-def _run_product_stage(function: Any, specs: list[dict[str, Any]], config: dict[str, Any]) -> list[dict[str, Any]]:
-    completed: dict[int, dict[str, Any]] = {}
-    remote = function.with_options(cpu=config["cpu"], memory=config["memory_gib"] * 1024,
-        timeout=config["timeout_seconds"] + 30, max_containers=config["max_containers"], retries=0)
-    for attempt in range(MAX_RETRIES + 1):
-        pending = [spec for spec in specs if spec["shard_id"] not in completed]
-        if not pending:
-            break
-        replies = list(remote.map(pending, order_outputs=False, return_exceptions=True))
-        for reply in replies:
-            if isinstance(reply, dict) and reply.get("status") == "success":
-                completed[reply["shardId"]] = reply
-        if len(completed) < len(specs) and attempt < MAX_RETRIES:
-            time.sleep(min(30, 2 ** attempt))
-    if len(completed) != len(specs):
-        raise RuntimeError(f"{len(specs) - len(completed)} ordered product shards failed")
-    return [completed[index] for index in range(len(specs))]
 
 
-@app.function(image=image, cpu=1, memory=16384, timeout=86400, volumes={"/results": volume})
-def ordered_product_controller(config: dict[str, Any]) -> dict[str, Any]:
-    volume.reload()
-    root = pathlib.Path("/results") / config["run_id"]
-    started = time.monotonic()
-    stage_one_specs = [{**config, "shard_id": shard_id, "start_position": start,
-        "end_position": min(start + config["shard_size"], FULL_CANDIDATE_COUNT)}
-        for shard_id, start in enumerate(range(0, FULL_CANDIDATE_COUNT, config["shard_size"]))]
-    stage_one_results = _run_product_stage(ordered_product_stage_one, stage_one_specs, config)
-    volume.reload()
-    stage_one_manifest = root / "stage-one-manifest.json"
-    _atomic_json(stage_one_manifest, [str(_ordered_product_checkpoint_path(config, "stage-one", spec["shard_id"]))
-                                      for spec in stage_one_specs])
-    cohort = root / "stage-one-cohort.json"
-    merge = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "merge-stage-one",
-        "--manifest", str(stage_one_manifest), "--out", str(cohort)] + _ordered_product_cli(config)[3:]
-    node_environment = {**os.environ, "NODE_OPTIONS": "--max-old-space-size=12288"}
-    _run_checked(merge, "stage-one merge", cwd="/workspace", env=node_environment,
-                 text=True, capture_output=True, timeout=1800)
-    volume.commit()
-    stage_two_specs = [{**config, "shard_id": shard_id, "start_position": start,
-        "end_position": min(start + config["shard_size"], config["retained_count"])}
-        for shard_id, start in enumerate(range(0, config["retained_count"], config["shard_size"]))]
-    stage_two_results = _run_product_stage(ordered_product_stage_two, stage_two_specs, config)
-    volume.reload()
-    stage_two_manifest = root / "stage-two-manifest.json"
-    _atomic_json(stage_two_manifest, [str(_ordered_product_checkpoint_path(config, "stage-two", spec["shard_id"]))
-                                      for spec in stage_two_specs])
-    artifact = root / "ranked.json"
-    finalize = ["npx", "tsx", "scripts/ordered_goldfish_product.ts", "finalize",
-        "--cohort", str(cohort), "--manifest", str(stage_two_manifest), "--out", str(artifact)] \
-        + _ordered_product_cli(config)[3:]
-    _run_checked(finalize, "ordered-product finalize", cwd="/workspace", env=node_environment,
-                 text=True, capture_output=True, timeout=1800)
-    summary = {"schemaVersion": 1, "status": "success", "runId": config["run_id"],
-        "kingdomId": config["kingdom"], "buildVersion": config["build_version"],
-        "ruleFingerprint": config["rule_fingerprint"],
-        "scorerVersion": SCORER_VERSION, "retainedCount": config["retained_count"],
-        "reservoirCount": config["reservoir_count"], "shuffleSeeds": config["shuffle_seeds"],
-        "stageOneShards": stage_one_results,
-        "stageTwoShards": stage_two_results, "elapsedMs": round((time.monotonic() - started) * 1000, 3),
-        "containerIdentity": os.environ.get("MODAL_TASK_ID", socket.gethostname()),
-        "artifact": f"hexdeck-native-strategy-results:/{config['run_id']}/ranked.json"}
-    _atomic_json(root / "run-summary.json", summary)
-    volume.commit()
-    return summary
 
 
-@app.function(image=image, cpu=1, memory=1024, timeout=86400, volumes={"/results": volume})
-def controller(config: dict[str, Any]) -> dict[str, Any]:
-    specs = []
-    for shard_id, start in enumerate(range(config["start_position"], config["end_position"], config["shard_size"])):
-        specs.append({
-            **config,
-            "shard_id": shard_id,
-            "start_position": start,
-            "end_position": min(start + config["shard_size"], config["end_position"]),
-        })
-    completed: dict[int, dict[str, Any]] = {}
-    pending = specs
-    shard_function = score_shard.with_options(
-        cpu=config["cpu"], memory=config["memory_gib"] * 1024,
-        timeout=config["timeout_seconds"] + 30, max_containers=config["max_containers"], retries=0,
-    )
-    for attempt in range(MAX_RETRIES + 1):
-        if not pending:
-            break
-        replies = list(shard_function.map(pending, order_outputs=False, return_exceptions=True))
-        by_id = {spec["shard_id"]: spec for spec in pending}
-        for reply in replies:
-            if isinstance(reply, BaseException) or not isinstance(reply, dict):
-                continue
-            shard_id = reply.get("shardId")
-            spec = by_id.get(shard_id)
-            if spec and valid_result(reply, spec):
-                completed[shard_id] = reply
-        pending = [spec for spec in specs if spec["shard_id"] not in completed]
-        if pending and attempt < MAX_RETRIES:
-            time.sleep(min(30, 2 ** attempt))
-    if pending:
-        raise RuntimeError(f"{len(pending)} shards failed after {MAX_RETRIES + 1} attempts")
-    ordered = [completed[index] for index in range(len(specs))]
-    if any(left["endPosition"] != right["startPosition"] for left, right in zip(ordered, ordered[1:])):
-        raise RuntimeError("merged shard ranges are not contiguous")
-    merge = {
-        "schemaVersion": 1,
-        "status": "success",
-        "runId": config["run_id"],
-        "kingdomId": config["kingdom"],
-        "buildVersion": config["build_version"],
-        "ruleFingerprint": config["rule_fingerprint"],
-        "scorerVersion": SCORER_VERSION,
-        "completeCount": sum(item["completeCount"] for item in ordered),
-        "candidateDigests": [item["candidateDigest"] for item in ordered],
-        "scoreDigests": [item["scoreDigest"] for item in ordered],
-        "shards": [{"shardId": item["shardId"], "startPosition": item["startPosition"],
-                    "endPosition": item["endPosition"], "containerIdentity": item["containerIdentity"]}
-                   for item in ordered],
-    }
-    merge_path = pathlib.Path("/results") / config["run_id"] / "merge.json"
-    _atomic_json(merge_path, merge)
-    volume.commit()
-    return merge
 
 
 def adaptive_competitive_shards(
@@ -1227,68 +616,6 @@ def _strategy_search_sha256(path: pathlib.Path) -> str:
     return digest.hexdigest()
 
 
-def _strategy_search_validate_compact(publication: dict[str, Any], temporary: pathlib.Path) -> None:
-    expected_stage = "stage-one" if publication["stage"] == "goldfish-one" else "stage-two"
-    expected_range = publication.get("range")
-    if not expected_range:
-        raise RuntimeError("compact publication has no semantic range")
-    with temporary.open("rb") as stream:
-        header_bytes = stream.read(512)
-        if len(header_bytes) != 512 or header_bytes[:4] != b"HGS1":
-            raise RuntimeError("compact publication header is invalid")
-        length = struct.unpack(">I", header_bytes[4:8])[0]
-        if length < 2 or length > 504 or any(header_bytes[8 + length:]):
-            raise RuntimeError("compact publication header padding differs")
-        header = json.loads(header_bytes[8:8 + length])
-        required = {"schemaVersion", "magic", "stage", "evidenceId", "semanticStart", "semanticEnd",
-                    "recordCount", "recordBytes", "payloadSha256"}
-        if set(header) != required or header["schemaVersion"] != 1 or header["magic"] != "HGS1" \
-                or header["stage"] != expected_stage or header["evidenceId"] != publication["evidenceId"] \
-                or header["semanticStart"] != expected_range["start"] \
-                or header["semanticEnd"] != expected_range["end"] \
-                or header["recordCount"] != expected_range["end"] - expected_range["start"] \
-                or header["recordBytes"] != 96 \
-                or not re.fullmatch(r"[0-9a-f]{64}", header["payloadSha256"]):
-            raise RuntimeError("compact publication semantic header differs")
-        if temporary.stat().st_size != 512 + 96 * header["recordCount"]:
-            raise RuntimeError("compact publication byte length differs")
-        positions = bytearray(header["recordCount"])
-        digest = hashlib.sha256()
-        previous_key = None
-        for _index in range(header["recordCount"]):
-            record = stream.read(96)
-            if len(record) != 96:
-                raise RuntimeError("compact publication record is invalid")
-            digest.update(record)
-            position = struct.unpack(">I", record[:4])[0]
-            offset = position - header["semanticStart"]
-            if offset < 0 or offset >= len(positions) or positions[offset]:
-                raise RuntimeError("compact publication positions overlap or escape the range")
-            positions[offset] = 1
-            metrics = struct.unpack(">15I", record[4:64])
-            if any(metrics[start] < 1 or metrics[start + 1] > metrics[start] for start in (0, 5, 10)):
-                raise RuntimeError("compact publication profile metrics are invalid")
-            display_units = struct.unpack(">16H", record[64:96])
-            try:
-                padding = display_units.index(0)
-            except ValueError:
-                padding = len(display_units)
-            if padding == 0 or any(display_units[padding:]):
-                raise RuntimeError("compact publication display ID padding differs")
-            key = (-min(metrics[1], metrics[6], metrics[11]),
-                   -(metrics[1] + metrics[6] + metrics[11]),
-                   max(metrics[2], metrics[7], metrics[12]),
-                   metrics[2] + metrics[7] + metrics[12],
-                   -min(metrics[3], metrics[8], metrics[13]),
-                   -(metrics[3] + metrics[8] + metrics[13]),
-                   -(metrics[4] + metrics[9] + metrics[14]), display_units[:padding])
-            if previous_key is not None and previous_key > key:
-                raise RuntimeError("compact publication records are not in semantic order")
-            previous_key = key
-        if any(value != 1 for value in positions) or digest.hexdigest() != header["payloadSha256"]:
-            raise RuntimeError("compact publication coverage or checksum differs")
-
-
 def _strategy_search_subprocess_command(entry: str, kingdom_id: str, arguments: list[str]) -> list[str]:
     return ["npx", "tsx", "scripts/strategy_search_subprocess.ts", "--entry", entry,
         "--kingdom", kingdom_id, "--", *arguments]
@@ -1316,14 +643,26 @@ def _strategy_search_validate_psro_score_receipt(publication: dict[str, Any], ar
 
 def _strategy_search_validate_publication(publication: dict[str, Any], temporary: pathlib.Path) -> None:
     stage = publication["stage"]
-    if stage in {"goldfish-one", "goldfish-two"}:
-        _strategy_search_validate_compact(publication, temporary)
+    goldfish_kinds = {"goldfish-one": "stage-one", "goldfish-two": "stage-two",
+        "goldfish-one-reduce": "top", "goldfish-two-reduce": "reservoir"}
+    if stage in goldfish_kinds:
+        command = [CAMPAIGN_RUST_GOLDFISH_BIN, "verify", "--kingdom", publication["kingdomId"],
+            "--kind", goldfish_kinds[stage], "--file", str(temporary)]
+        if stage in {"goldfish-one", "goldfish-two"}:
+            expected = publication.get("range")
+            if not expected:
+                raise RuntimeError("Goldfish publication has no semantic range")
+            command += ["--start", str(expected["start"]), "--end", str(expected["end"])]
+        if stage in {"goldfish-two", "goldfish-two-reduce"}:
+            command += ["--top", str(_strategy_search_path(publication["topPath"]))]
+        _run_checked(command, f"strategy-search {stage} artifact validation",
+            text=True, capture_output=True, timeout=600)
         return
     if stage == "psro-score":
         if not _strategy_search_validate_psro_score_receipt(publication, temporary):
             raise RuntimeError("strategy-search PSRO score chunk does not match its sealed look")
         return
-    if stage in {"goldfish-one-reduce", "goldfish-two-reduce", "matrix-reduce", "psro-reduce"}:
+    if stage in {"matrix-reduce", "psro-reduce"}:
         _run_checked(_strategy_search_subprocess_command("validator", publication["kingdomId"], [
             "--stage", stage, "--file", str(temporary), "--evidence-id", publication["evidenceId"],
             "--kingdom", publication["kingdomId"], "--evidence-root",
@@ -1380,10 +719,15 @@ def verify_strategy_search_source(identity: dict[str, Any]) -> None:
 
 
 def _strategy_search_verify_goldfish_startup() -> None:
-    _run_checked(_strategy_search_subprocess_command("goldfish", "deep-beam-tuning-007", ["readiness",
-        "--evidence-id", "0" * 64, "--kingdom", "deep-beam-tuning-007"]),
+    result = _run_checked([CAMPAIGN_RUST_GOLDFISH_BIN, "kingdom", "--kingdom", "deep-beam-tuning-007"],
         "strategy-search Goldfish worker readiness", cwd=RUNTIME_WORKSPACE_ROOT,
         text=True, capture_output=True, timeout=60)
+    try:
+        value = json.loads(result.stdout)
+    except (json.JSONDecodeError, TypeError) as error:
+        raise RuntimeError("strategy-search Goldfish readiness returned invalid JSON") from error
+    if value.get("kingdomId") != "deep-beam-tuning-007" or value.get("candidateCount") != 12_972_960:
+        raise RuntimeError("strategy-search Goldfish readiness returned the wrong kingdom")
 
 
 def _strategy_search_remote_goldfish_canary(source_identity: dict[str, Any]) -> None:
@@ -1798,28 +1142,56 @@ def _strategy_search_run_subprocess(command: list[str], config: dict[str, Any]) 
         "workerFinishedEpochMs": int(time.time() * 1000), "checkpointCount": checkpoint_count}
 
 
+def _strategy_search_goldfish_phases(report: dict[str, Any]) -> dict[str, Any]:
+    keys = ["generationMs", "scoringMs", "intermediateSerializationAndReadMs",
+        "temporaryVolumeWriteCommitMs", "publisherWaitMs", "publicationCommitMs",
+        "reductionComputeMs", "finalTop500000WriteMs", "finalTop20000WriteMs",
+        "orchestrationQueueMs"]
+    phases = {key: 0 for key in keys}
+    command = report["command"]
+    if command in {"score-one", "score-two"}:
+        phases["scoringMs"] = report["scoringMs"]
+        phases["intermediateSerializationAndReadMs"] = report["readMs"] + report["writeMs"]
+    elif command == "reduce-one":
+        phases["intermediateSerializationAndReadMs"] = report["readMs"]
+        phases["reductionComputeMs"] = report["reduceMs"]
+        phases["finalTop500000WriteMs"] = report["writeMs"]
+    elif command == "reduce-two":
+        phases["intermediateSerializationAndReadMs"] = report["readMs"]
+        phases["reductionComputeMs"] = report["reduceMs"]
+        phases["finalTop20000WriteMs"] = report["writeMs"]
+    else:
+        raise RuntimeError(f"unknown Rust Goldfish report command {command}")
+    assigned = sum(phases.values())
+    if assigned > report["elapsedMs"]:
+        raise RuntimeError("Rust Goldfish report phases exceed elapsed time")
+    phases["orchestrationQueueMs"] = report["elapsedMs"] - assigned
+    return {**phases, "elapsedMs": report["elapsedMs"]}
+
+
 @app.function(image=image, cpu=4, memory=4096, timeout=900, retries=0, volumes={"/results": volume})
 @modal.concurrent(max_inputs=1)
 def strategy_search_goldfish_job(config: dict[str, Any]) -> dict[str, Any]:
     volume.reload()
     config["workerStartedEpochMs"] = int(time.time() * 1000)
     output = _strategy_search_path(config["temporaryPath"])
-    phases = output.with_suffix(output.suffix + ".phases.json")
+    rust_report_path = output.with_suffix(output.suffix + ".rust-report.json")
+    phases_path = output.with_suffix(output.suffix + ".phases.json")
     output.parent.mkdir(parents=True, exist_ok=True)
-    command = _strategy_search_subprocess_command("goldfish", config["kingdomId"], [config["mode"],
-        "--evidence-id", config["evidenceId"], "--kingdom", config["kingdomId"],
-        "--out", str(output), "--phases", str(phases)])
+    command = [CAMPAIGN_RUST_GOLDFISH_BIN, config["mode"], "--kingdom", config["kingdomId"],
+        "--out", str(output), "--report", str(rust_report_path)]
     if config.get("range"):
         command += ["--start", str(config["range"]["start"]), "--end", str(config["range"]["end"]),
-            "--cpu", str(config["cpu"]), "--threads", str(config["cpu"])]
+            "--threads", str(config["cpu"])]
     if config.get("manifest"):
         manifest = output.with_suffix(".manifest.json")
         _atomic_json(manifest, [_strategy_search_path(held).as_posix() for held in config["manifest"]])
-        command += ["--manifest", str(manifest)]
+        command += ["--inputs", str(manifest)]
     if config.get("topPath"):
         command += ["--top", str(_strategy_search_path(config["topPath"]))]
     result = _strategy_search_run_subprocess(command, config)
-    phase_report = _strategy_search_load(phases)
+    phase_report = _strategy_search_goldfish_phases(_strategy_search_load(rust_report_path))
+    _atomic_json(phases_path, phase_report)
     validated_sha256 = _strategy_search_sha256(output)
     _strategy_search_validate_publication(config, output)
     commit_started = time.monotonic()
@@ -2925,192 +2297,8 @@ def strategy_search_controller(bundle: dict[str, Any]) -> dict[str, Any]:
         raise
 
 
-def validate_launch_limits(
-    *, count: int, start_position: int, shard_size: int, cpu: int, memory_gib: int,
-    threads: int, max_containers: int, timeout_seconds: int, max_cost_usd: float,
-    chunk_size: int, shuffles: int, scorer: str, product: bool,
-    kingdom: str = DEFAULT_ORDERED_PRODUCT_KINGDOM,
-    ordered_product: bool = False, retained_count: int = ORDERED_PRODUCT_RETAINED_COUNT,
-    reservoir_count: int = ORDERED_PRODUCT_RESERVOIR_COUNT,
-    authorization: str = "", prior_actual_usd: float = 0.0,
-    continuation_run_id: str = "", shuffle_seeds: list[int] | None = None
-) -> dict[str, Any]:
-    if min(count, shard_size, cpu, memory_gib, threads, max_containers,
-           timeout_seconds, chunk_size, shuffles) < 1:
-        raise ValueError("counts and resource limits must be positive")
-    if shuffle_seeds is None:
-        shuffle_seeds = [4_100_000 + index for index in range(shuffles)]
-    if not shuffle_seeds or any(not isinstance(seed, int) or seed < 0 for seed in shuffle_seeds) \
-            or len(set(shuffle_seeds)) != len(shuffle_seeds):
-        raise ValueError("shuffle seeds must be distinct nonnegative integers")
-    if scorer != "rust":
-        raise ValueError("Modal production supports only the standalone Rust scorer")
-    if threads > cpu:
-        raise ValueError("Rust/worker threads cannot exceed the integer CPU request")
-    if product and ordered_product:
-        raise ValueError("choose only one product mode")
-    if not ordered_product and (authorization or continuation_run_id or prior_actual_usd):
-        raise ValueError("ordered product authorization is not valid for this mode")
-    if kingdom not in ORDERED_PRODUCT_AUTHORIZATIONS:
-        raise ValueError(f"unsupported ordered product kingdom {kingdom}")
-    if product and kingdom != DEFAULT_ORDERED_PRODUCT_KINGDOM:
-        raise ValueError("the seeded-random product supports only deep-beam-tuning-009")
-    aggregate_cpu = cpu if product else 1 + cpu * max_containers
-    if aggregate_cpu > MAX_PHYSICAL_CORES:
-        raise ValueError(f"aggregate allocation exceeds {MAX_PHYSICAL_CORES} physical cores")
-    end_position = start_position + count
-    if ordered_product:
-        if start_position != 0 or count != FULL_CANDIDATE_COUNT:
-            raise ValueError("ordered product must score the complete ordered candidate space")
-        authorization_contract = ORDERED_PRODUCT_AUTHORIZATION_CONTRACTS.get(authorization)
-        if authorization_contract is None or authorization_contract["kingdom"] != kingdom \
-                or authorization_contract["shuffle_seeds"] != shuffle_seeds:
-            raise ValueError("ordered product authorization does not match the exact kingdom and seed set")
-        if prior_actual_usd < 0 or (continuation_run_id and prior_actual_usd <= 0):
-            raise ValueError("ordered product continuation actual cost is invalid")
-        if retained_count < 1 or reservoir_count < 1 or reservoir_count > retained_count \
-                or retained_count > count:
-            raise ValueError("ordered product retained and reservoir counts are invalid")
-        stage_one_shards = math.ceil(count / shard_size)
-        stage_two_shards = math.ceil(retained_count / shard_size)
-        projected = projected_ordered_product_cost_usd(stage_one_shards, stage_two_shards,
-            cpu, memory_gib, timeout_seconds, max_containers)
-        full_run = True
-        if projected + prior_actual_usd > 5:
-            raise ValueError("ordered product continuation gross worst-case cost exceeds $5")
-        waves = math.ceil(stage_one_shards / max_containers) + math.ceil(stage_two_shards / max_containers)
-        controller_timeout = (MAX_RETRIES + 1) * waves * (timeout_seconds + 30) + 3900
-    elif product:
-        if start_position != 0 or count > 500_000 or count < 20_000:
-            raise ValueError("product count must be from 20,000 through 500,000 with start position zero")
-        if max_containers != 1:
-            raise ValueError("the ordered product coordinator requires --max-containers 1")
-        projected = projected_product_cost_usd(cpu, memory_gib, timeout_seconds)
-        full_run = count == 500_000
-        controller_timeout = (MAX_RETRIES + 1) * (timeout_seconds + 30) + 300
-    else:
-        if start_position < 0 or end_position > FULL_CANDIDATE_COUNT:
-            raise ValueError("candidate range is outside the ordered space")
-        shard_count = math.ceil(count / shard_size)
-        projected = projected_cost_usd(shard_count, cpu, memory_gib, timeout_seconds, max_containers)
-        full_run = start_position == 0 and count == FULL_CANDIDATE_COUNT
-        controller_timeout = (MAX_RETRIES + 1) * math.ceil(shard_count / max_containers) \
-            * (timeout_seconds + 30) + 300
-    if projected > max_cost_usd:
-        raise ValueError(f"worst-case cost ${projected:.4f} exceeds run cap ${max_cost_usd:.4f}")
-    if full_run and max_cost_usd > 5:
-        raise ValueError("a full production run cap cannot exceed $5")
-    return {"end_position": end_position, "projected": projected, "full_run": full_run,
-            "controller_timeout": controller_timeout, "aggregate_cpu": aggregate_cpu,
-            "shuffle_seeds": shuffle_seeds}
 
 
-@app.local_entrypoint()
-def launch(
-    build_version: str,
-    rule_fingerprint: str,
-    kingdom: str = DEFAULT_ORDERED_PRODUCT_KINGDOM,
-    count: int = 5_000,
-    start_position: int = 0,
-    shard_size: int = 2_500,
-    cpu: int = 4,
-    memory_gib: int = 4,
-    threads: int = 4,
-    max_containers: int = 2,
-    timeout_seconds: int = 600,
-    max_cost_usd: float = 5.0,
-    chunk_size: int = 250,
-    shuffles: int = 1,
-    scorer: str = "rust",
-    product: bool = False,
-    pool_seed: int = 5,
-    ordered_product: bool = False,
-    retained_count: int = ORDERED_PRODUCT_RETAINED_COUNT,
-    reservoir_count: int = ORDERED_PRODUCT_RESERVOIR_COUNT,
-    authorization: str = "",
-    continuation_run_id: str = "",
-    prior_actual_usd: float = 0.0,
-    shuffle_seeds: str = "",
-) -> None:
-    try:
-        parsed_shuffle_seeds = [int(seed) for seed in shuffle_seeds.split(",")] \
-            if shuffle_seeds else ORDERED_PRODUCT_SEEDS if ordered_product else None
-    except ValueError as error:
-        raise ValueError("--shuffle-seeds must be comma-separated integers") from error
-    limits = validate_launch_limits(count=count, start_position=start_position,
-        shard_size=shard_size, cpu=cpu, memory_gib=memory_gib, threads=threads,
-        max_containers=max_containers, timeout_seconds=timeout_seconds,
-        max_cost_usd=max_cost_usd, chunk_size=chunk_size, shuffles=shuffles,
-        scorer=scorer, product=product, kingdom=kingdom, ordered_product=ordered_product,
-        retained_count=retained_count, reservoir_count=reservoir_count,
-        authorization=authorization, continuation_run_id=continuation_run_id,
-        prior_actual_usd=prior_actual_usd, shuffle_seeds=parsed_shuffle_seeds)
-    end_position = limits["end_position"]
-    projected = limits["projected"]
-    full_run = limits["full_run"]
-    controller_timeout = limits["controller_timeout"]
-    config = {
-        "kind": "ordered-product" if ordered_product else "product" if product else "ordered",
-        "kingdom": kingdom,
-        "build_version": build_version,
-        "rule_fingerprint": rule_fingerprint,
-        "count": count,
-        "pool_seed": pool_seed,
-        "retained_count": retained_count,
-        "reservoir_count": reservoir_count,
-        "authorization": authorization,
-        "continuation_run_id": continuation_run_id,
-        "prior_actual_usd": prior_actual_usd,
-        "start_position": start_position,
-        "end_position": end_position,
-        "shard_size": shard_size,
-        "cpu": cpu,
-        "memory_gib": memory_gib,
-        "threads": threads,
-        "max_containers": max_containers,
-        "timeout_seconds": timeout_seconds,
-        "chunk_size": chunk_size,
-        "shuffles": len(limits["shuffle_seeds"]),
-        "shuffle_seeds": limits["shuffle_seeds"],
-        "scorer": scorer,
-        "controller_timeout": controller_timeout,
-    }
-    identity = hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()[:20]
-    run_id = f"native-{build_version[:12]}-{identity}"
-    config["run_id"] = run_id
-    entry = reserve_cost(run_id, projected, full_run, config)
-    print(json.dumps({
-        "runId": run_id,
-        "profile": "ryanburnettebrown",
-        "worstCaseCostUsd": projected,
-        "reservation": entry,
-        "resultLocation": f"hexdeck-native-strategy-results:/{run_id}/{'ranked.json' if ordered_product else 'pool.json' if product else 'merge.json'}",
-    }, indent=2))
-    if entry.get("status") == "launched" and entry.get("controllerCallId"):
-        try:
-            modal.FunctionCall.from_id(entry["controllerCallId"]).get(timeout=0)
-        except builtins.TimeoutError:
-            print(f"controller still owns run {run_id}; no duplicate was launched")
-            return
-        except Exception:
-            update_run_status(run_id, "reserved")
-        else:
-            update_run_status(run_id, "complete")
-            print(f"run {run_id} is already complete")
-            return
-    if not claim_controller(run_id, config["controller_timeout"]):
-        print(f"controller already owns run {run_id}; no duplicate was launched")
-        return
-    if ordered_product:
-        call = ordered_product_controller.with_options(timeout=config["controller_timeout"], retries=0).spawn(config)
-    elif product:
-        call = product_search.with_options(cpu=cpu, memory=memory_gib * 1024,
-            timeout=timeout_seconds + 30, retries=MAX_RETRIES).spawn(config)
-    else:
-        call = controller.with_options(timeout=config["controller_timeout"], retries=0).spawn(config)
-    record_controller_call(run_id, call.object_id)
-    mode = "ordered-product" if ordered_product else "product" if product else "ordered"
-    print(f"detached {mode} call: {call.object_id}")
 
 
 def _competitive_launch_data(

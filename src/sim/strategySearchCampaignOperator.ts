@@ -52,9 +52,9 @@ export function createStrategySearchLaunchBundle(parsed: ParsedStrategySearchReq
   };
   for (const kingdom of parsed.kingdoms) {
     const one = createStagePartition({ evidenceId: kingdom.evidenceId, stage: 'goldfish-one',
-      total: kingdom.orderedProduct.candidateCount, candidatesPerJob: policy.candidatesPerJob });
+      total: kingdom.goldfish.candidateCount, candidatesPerJob: policy.candidatesPerJob });
     const two = createStagePartition({ evidenceId: kingdom.evidenceId, stage: 'goldfish-two',
-      total: kingdom.orderedProduct.retainedCount, candidatesPerJob: policy.stageTwoCandidatesPerJob });
+      total: kingdom.goldfish.retainedCount, candidatesPerJob: policy.stageTwoCandidatesPerJob });
     partitions[`${kingdom.evidenceId}:goldfish-one`] = one;
     partitions[`${kingdom.evidenceId}:goldfish-two`] = two;
     const oneIds = one.jobs.map((range) => taskIdentity(kingdom.evidenceId, 'goldfish-one', range));
