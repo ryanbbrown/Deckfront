@@ -3,7 +3,9 @@ use serde_json::Value;
 use std::cmp::Ordering;
 use std::io::{self, BufRead, Write};
 
+mod equilibrium;
 mod kernel;
+mod matrix;
 mod reservoir;
 
 const PROTOCOL_VERSION: u32 = 1;
@@ -135,6 +137,10 @@ fn parse_runtime_options(args: &[String]) -> Result<RuntimeOptions, String> {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(command @ ("matrix" | "matrix-verify")) = args.first().map(String::as_str) {
+        return matrix::run(command, &args[1..])
+            .map_err(|message| io::Error::other(message).into());
+    }
     if let Some(command) = args.first().filter(|value| !value.starts_with("--")) {
         return reservoir::run(command, &args[1..])
             .map_err(|message| io::Error::other(message).into());

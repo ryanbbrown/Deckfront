@@ -161,15 +161,16 @@ struct NativeKingdoms {
     kingdoms: Vec<NativeKingdomRecord>,
 }
 
-struct LoadedKingdom {
-    id: String,
-    kingdom: Kingdom,
-    card_ids: Vec<String>,
+pub(crate) struct LoadedKingdom {
+    pub(crate) id: String,
+    pub(crate) kingdom: Kingdom,
+    pub(crate) card_ids: Vec<String>,
+    pub(crate) all_card_ids: Vec<String>,
     card_indexes: Vec<usize>,
-    fingerprint: String,
+    pub(crate) fingerprint: String,
 }
 
-fn load_kingdom(id: &str) -> Result<LoadedKingdom, String> {
+pub(crate) fn load_kingdom(id: &str) -> Result<LoadedKingdom, String> {
     let database: NativeKingdoms = serde_json::from_str(include_str!("../kingdoms.json"))
         .map_err(|error| format!("embedded kingdoms.json is invalid: {error}"))?;
     let raw = database
@@ -183,7 +184,13 @@ fn load_kingdom(id: &str) -> Result<LoadedKingdom, String> {
     if raw.ordered_card_ids.len() != 14 {
         return Err(format!("kingdom {id} does not have 14 purchase cards"));
     }
-    let kingdom = Kingdom::compile(raw.kingdom)?;
+    let input = raw.kingdom;
+    let all_card_ids = input
+        .cards
+        .iter()
+        .map(|card| card.id.clone())
+        .collect::<Vec<_>>();
+    let kingdom = Kingdom::compile(input.clone())?;
     let card_indexes = raw
         .ordered_card_ids
         .iter()
@@ -198,9 +205,22 @@ fn load_kingdom(id: &str) -> Result<LoadedKingdom, String> {
         id: raw.kingdom_id,
         kingdom,
         card_ids: raw.ordered_card_ids,
+        all_card_ids,
         card_indexes,
         fingerprint: raw.rule_fingerprint,
     })
+}
+
+#[cfg(test)]
+pub(crate) fn kingdom_input(id: &str) -> Result<KingdomInput, String> {
+    let database: NativeKingdoms = serde_json::from_str(include_str!("../kingdoms.json"))
+        .map_err(|error| format!("embedded kingdoms.json is invalid: {error}"))?;
+    database
+        .kingdoms
+        .into_iter()
+        .find(|entry| entry.kingdom_id == id)
+        .map(|entry| entry.kingdom)
+        .ok_or_else(|| format!("unknown registered strategy-search kingdom {id}"))
 }
 
 fn permutation_count(cards: usize, slots: usize) -> Result<u32, String> {
@@ -263,10 +283,56 @@ fn candidate_parts(card_count: usize, number: u32) -> Result<([usize; 5], [u32; 
     Ok((selected, quantities))
 }
 
-fn strategy_for(loaded: &LoadedKingdom, number: u32) -> Result<kernel::Strategy, String> {
+pub(crate) struct DecodedStrategy {
+    pub(crate) number: u32,
+    pub(crate) kernel: kernel::Strategy,
+    pub(crate) desired: Vec<u32>,
+}
+
+#[cfg(test)]
+pub(crate) fn raw_strategy_for(
+    loaded: &LoadedKingdom,
+    number: u32,
+) -> Result<kernel::RawStrategy, String> {
+    let (positions, counts) = candidate_parts(loaded.card_ids.len(), number)?;
+    let mut buy_plan = positions
+        .iter()
+        .zip(counts)
+        .map(|(&position, desired_count)| kernel::RawSlot::Buy {
+            card_id: loaded.card_ids[position].clone(),
+            desired_count: i16::try_from(desired_count)
+                .expect("ordered strategy count fits in i16"),
+        })
+        .collect::<Vec<_>>();
+    buy_plan.extend(std::iter::repeat_n(kernel::RawSlot::Inactive, 5));
+    Ok(kernel::RawStrategy {
+        id: format!("gf-{number}"),
+        canonical_strategy: format!("gf-{number}"),
+        starting_build: Vec::new(),
+        buy_plan,
+    })
+}
+
+pub(crate) fn decode_strategy(
+    loaded: &LoadedKingdom,
+    number: u32,
+) -> Result<DecodedStrategy, String> {
     let (positions, counts) = candidate_parts(loaded.card_ids.len(), number)?;
     let indexes = positions.map(|position| loaded.card_indexes[position]);
-    loaded.kingdom.ordered_strategy(number, &indexes, &counts)
+    let kernel = loaded.kingdom.ordered_strategy(number, &indexes, &counts)?;
+    let mut desired = vec![0; loaded.all_card_ids.len()];
+    for (&index, count) in indexes.iter().zip(counts) {
+        desired[index] = count;
+    }
+    Ok(DecodedStrategy {
+        number,
+        kernel,
+        desired,
+    })
+}
+
+fn strategy_for(loaded: &LoadedKingdom, number: u32) -> Result<kernel::Strategy, String> {
+    Ok(decode_strategy(loaded, number)?.kernel)
 }
 
 fn checked_u32(value: i32, name: &str) -> Result<u32, String> {
@@ -633,6 +699,50 @@ fn read_all_reservoir(
     }
     let bytes = reader.finish()?;
     Ok((header, rows, bytes))
+}
+
+pub(crate) struct ReservoirSelection {
+    pub(crate) source_checksum: u32,
+    pub(crate) numbers: Vec<u32>,
+    pub(crate) bytes: u64,
+}
+
+pub(crate) fn read_reservoir_selection(
+    path: &Path,
+    loaded: &LoadedKingdom,
+    count: usize,
+    allow_test_shape: bool,
+) -> Result<ReservoirSelection, String> {
+    let (header, rows, bytes) = read_all_reservoir(path, loaded)?;
+    if header.range_start != 0 || header.range_end != TOP_COUNT {
+        return Err("reservoir range differs from the Goldfish reservoir contract".into());
+    }
+    if (!allow_test_shape && header.row_count != RESERVOIR_COUNT)
+        || (allow_test_shape && header.row_count < count as u32)
+    {
+        return Err("reservoir row count is invalid for the requested selection".into());
+    }
+    let mut seen = std::collections::HashSet::with_capacity(count);
+    let mut numbers = Vec::with_capacity(count);
+    for row in rows.iter().take(count) {
+        let number = row[0];
+        if number >= CANDIDATE_COUNT {
+            return Err(format!(
+                "reservoir strategy number {number} is out of range"
+            ));
+        }
+        if !seen.insert(number) {
+            return Err(format!(
+                "reservoir selected rows repeat strategy number {number}"
+            ));
+        }
+        numbers.push(number);
+    }
+    Ok(ReservoirSelection {
+        source_checksum: header.checksum,
+        numbers,
+        bytes,
+    })
 }
 
 #[derive(Default, Serialize)]
@@ -1278,6 +1388,47 @@ mod tests {
 
     fn fixture_row(number: u32) -> ResultRow {
         comparator_row(number, [1; 3], [31; 3], [0; 3], [0; 3])
+    }
+
+    #[test]
+    fn committed_matrix_reservoir_fixture_is_exact() {
+        let row_count = 60_usize;
+        let mut numbers = vec![
+            9_597_038, 10_927_691, 5_155_614, 5_426_963, 4_034_976, 5_715_683,
+        ];
+        let mut position = 0_u64;
+        while numbers.len() < row_count {
+            let number = ((position * 1_000_003 + 7_654_321) % u64::from(CANDIDATE_COUNT)) as u32;
+            if !numbers.contains(&number) {
+                numbers.push(number);
+            }
+            position += 1;
+        }
+        let rows = numbers
+            .into_iter()
+            .flat_map(|number| {
+                let mut row = [0_u32; 31];
+                row[0] = number;
+                reservoir_bytes(&row)
+            })
+            .collect::<Vec<_>>();
+        let header = Header {
+            kind: Kind::Reservoir,
+            row_bytes: RESERVOIR_ROW_BYTES as u32,
+            range_start: 0,
+            range_end: TOP_COUNT,
+            row_count: row_count as u32,
+            checksum: crc32(&rows),
+            source_checksum: 0,
+            seeds: SEEDS,
+            fingerprint: "b7eaecb3cdb".into(),
+        };
+        let mut bytes = header.encode().expect("reservoir header").to_vec();
+        bytes.extend(rows);
+        assert_eq!(
+            bytes,
+            include_bytes!("../fixtures/balance-tuning-005-reservoir.hgf")
+        );
     }
 
     fn comparator_row(
