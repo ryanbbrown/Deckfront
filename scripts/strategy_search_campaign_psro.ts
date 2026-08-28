@@ -76,7 +76,7 @@ const sourceIdentity: CalibrationSourceIdentity = { kingdomId: config.kingdomId,
   reservoirVersion: 'strategy-search-goldfish-v4', rulesFingerprint: manifest.rulesFingerprint };
 const protocol = createThresholdRacingProtocol({ ...config.protocolInput, runId: config.runId,
   kingdomId: config.kingdomId, reservoirCount: reservoir.records.length, sourceIdentityHash: hash(sourceIdentity) });
-const source: ThresholdRacingSource = { entry: { kingdomId: config.kingdomId, ranked: config.reservoirPath,
+const source: ThresholdRacingSource = { entry: { kingdomId: config.kingdomId, ranked: topFile,
   reservoir: config.reservoirPath, p75Root: path.dirname(config.matrixEvidencePath) }, source: sourceIdentity,
   reservoir: { entries: reservoir.records } as never, initialMatrix: initialMatrix(matrix), kingdomId: config.kingdomId,
   experimentName: protocol.experimentName, protocolVersion: protocol.protocolVersion, rawProtocol: protocol,

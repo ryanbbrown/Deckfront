@@ -755,7 +755,8 @@ def _strategy_search_remote_goldfish_canary(source_identity: dict[str, Any]) -> 
     finally:
         volume.reload()
         output = pathlib.Path("/results") / relative
-        for held in [output, output.with_suffix(output.suffix + ".phases.json")]:
+        for held in [output, output.with_suffix(output.suffix + ".phases.json"),
+                output.with_suffix(output.suffix + ".rust-report.json")]:
             held.unlink(missing_ok=True)
         volume.commit()
 
