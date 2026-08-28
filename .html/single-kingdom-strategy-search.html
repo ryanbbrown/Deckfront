@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>1. Build the Goldfish reservoir</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: #171a1f;
+      background: #f5f5f3;
+      font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main {
+      width: min(900px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 40px 0;
+    }
+    h1 {
+      margin: 0 0 20px;
+      font-size: clamp(30px, 5vw, 42px);
+      line-height: 1.1;
+    }
+    details {
+      margin: 12px 0;
+      padding: 20px 24px;
+      border: 1px solid #d4d4d0;
+      border-radius: 8px;
+      background: #fff;
+    }
+    summary {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    h3 {
+      margin: 18px 0 0;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    p { margin: 12px 0 0; }
+    ol, ul {
+      margin: 12px 0 0;
+      padding-left: 24px;
+    }
+    li { margin: 7px 0; }
+    code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #f0f0ee;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>1. Build the Goldfish reservoir</h1>
+
+    <details open>
+      <summary>The process in five steps</summary>
+      <ol>
+        <li>Play all 12,972,960 strategies with shuffle number 1 against all three dummy opponents. That is three games per strategy.</li>
+        <li>Rank them. Keep the best 500,000. The rank rewards, in order: wins against the weakest dummy opponent, wins in total, fewer turns to win, more damage early, and more money spent.</li>
+        <li>Play those 500,000 strategies with shuffle numbers 2, 3, and 4 against all three dummy opponents. That is nine more games per strategy.</li>
+        <li>Add up each strategy's numbers from all four shuffles.</li>
+        <li>Rank them again with the same rules. Keep the best 20,000. That is the reservoir.</li>
+      </ol>
+    </details>
+
+    <details>
+      <summary>Plain language description</summary>
+      <p>This step takes every legal strategy for one kingdom and keeps the 20,000 that play best on their own. That set is called the reservoir. Later steps play those 20,000 strategies against each other.</p>
+      <p>A strategy is a shopping list: five cards to buy, in order, each with a target count. There are 12,972,960 possible shopping lists for a kingdom.</p>
+      <p>A Goldfish game is a solo game. The strategy plays against a dummy opponent that never attacks back. We test each strategy against three dummy opponents: one that stays still, one that walks toward the strategy, and one that walks away. The strategy wins when it deals 50 damage. The game stops after 30 turns.</p>
+      <p>Every game uses a fixed deck shuffle. A shuffle number chooses the shuffle. The same strategy with the same shuffle number always plays the exact same game, so every result can be checked again later.</p>
+    </details>
+
+    <details>
+      <summary>How we rank strategies</summary>
+      <p>Each strategy gets five numbers per dummy opponent from its games:</p>
+      <ol>
+        <li>Games played.</li>
+        <li>Games where it reached 50 damage.</li>
+        <li>Turns it took to reach 50 damage. An unfinished game counts as 31 turns.</li>
+        <li>Damage total across all 30 turns. This rewards early damage.</li>
+        <li>Money spent.</li>
+      </ol>
+      <p>To compare two strategies, look at these things in this order. The first difference decides.</p>
+      <ol>
+        <li>More wins against its weakest dummy opponent.</li>
+        <li>More wins in total.</li>
+        <li>Fewer turns against its slowest dummy opponent.</li>
+        <li>Fewer turns in total.</li>
+        <li>More damage total against its weakest dummy opponent.</li>
+        <li>More damage total in total.</li>
+        <li>More money spent.</li>
+        <li>Lower strategy number.</li>
+      </ol>
+      <p>The last rule means no two strategies ever tie.</p>
+    </details>
+
+    <details>
+      <summary>Implementation detail</summary>
+
+      <h3>Strategy numbers instead of strategy lists</h3>
+      <p>We never write down all 12,972,960 shopping lists. Instead, each strategy has a number from 0 to 12,972,959. The Rust program can turn any number into its shopping list in a few nanoseconds, and the same number always gives the same list. Every file stores the number, not the list.</p>
+      <p>Each number gives a different list. So there are no duplicates to remove.</p>
+
+      <h3>Fixed settings</h3>
+      <p>The kingdom, the four shuffle numbers, the 30-turn limit, and the 200-action safety limit per turn are the same for the whole run. Each cloud computer loads them once at start.</p>
+
+      <h3>Result rows and result files</h3>
+      <p>Every result is one row of exactly 64 bytes: the strategy number (4 bytes), then the 15 result numbers (three dummy opponents × five numbers, 4 bytes each). Rows are written straight into a file, one after another, with no text and no formatting. A file of one million results is 64 MB. Reading or writing it is a single pass with no parsing.</p>
+      <p>Each file starts with a short header: which range of strategy numbers it covers, how many rows it has, and a checksum. The checksum is a number computed from every byte of the rows. A reader computes it again and compares. If the file was cut short or damaged, the two numbers differ and the reader rejects the file.</p>
+
+      <h3>Step 1: play every strategy with shuffle 1</h3>
+      <ol>
+        <li>The Python script splits 0 to 12,972,959 into numbered ranges of equal size. It picks the size so one range takes a few minutes on a 4-core computer.</li>
+        <li>Each cloud computer receives one range: a start number and an end number.</li>
+        <li>The Rust program splits the range across its 4 cores. Each core takes a number, builds the shopping list, plays three games, writes one 64-byte row, and moves to the next number. It keeps nothing else in memory.</li>
+        <li>Each computer appends its rows to its own file as it goes, in strategy-number order. There is no shared file, so computers never wait for each other. When the range is done, the computer fills in the header and the file is complete.</li>
+        <li>If a range fails, only that range runs again. Its result is identical because nothing is random.</li>
+      </ol>
+
+      <h3>Step 2: keep the best 500,000</h3>
+      <ol>
+        <li>One computer with more memory runs the Rust program in reduce mode. It has to be one computer because the best-500,000 list must see every row.</li>
+        <li>It reads every range file once, in order. It checks each file's checksum and checks that the ranges cover every strategy number exactly once. That is about 830 MB of reading, and the reading is the slow part.</li>
+        <li>It keeps a running list of the best 500,000 rows. Each new row is compared to the current worst row on the list. Most rows lose and are dropped after that one compare. The list needs about 32 MB of memory.</li>
+        <li>It writes <code>top-500000</code>: a header, then 500,000 rows of 64 bytes, best first. About 32 MB.</li>
+      </ol>
+
+      <h3>Step 3: play the best 500,000 with shuffles 2, 3, and 4</h3>
+      <ol>
+        <li>The Python script splits the 500,000 rows into numbered ranges.</li>
+        <li>Each cloud computer reads only its slice of <code>top-500000</code>. It needs only the strategy numbers from those rows.</li>
+        <li>For each number it rebuilds the shopping list, plays nine games (three shuffles × three dummy opponents), and writes one 64-byte row with the totals from those nine games.</li>
+        <li>Each computer appends its rows to its own file, in the same layout as step 1.</li>
+      </ol>
+
+      <h3>Step 4 and 5: add up and keep the best 20,000</h3>
+      <ol>
+        <li>The reduce computer reads <code>top-500000</code> and the new result files side by side. It checks the checksums and checks that every one of the 500,000 strategies has a new row.</li>
+        <li>For each strategy it adds the shuffle-1 numbers and the shuffle-2-to-4 numbers.</li>
+        <li>It ranks all 500,000 strategies by the totals and keeps the best 20,000.</li>
+        <li>It writes <code>reservoir</code>: a header, then 20,000 rows of 124 bytes, best first. Each row holds the strategy number, the 15 numbers from shuffle 1, and the 15 numbers from shuffles 2 to 4. Keeping both sets lets anyone check the ranking later. About 2.5 MB.</li>
+      </ol>
+
+      <h3>Cleanup</h3>
+      <ol>
+        <li>The Rust program reads both final files back and checks every header, checksum, row count, and the sort order.</li>
+        <li>Only then does the Python script delete the range result files.</li>
+        <li>Three files remain: <code>top-500000</code>, <code>reservoir</code>, and a small run report with timings, computer counts, and bytes read and written. The two result files hold no timing information, so the same run always produces the same bytes.</li>
+      </ol>
+    </details>
+  </main>
+</body>
+</html>
