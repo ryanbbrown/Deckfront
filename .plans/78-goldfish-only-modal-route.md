@@ -16,7 +16,7 @@ The route accepts one strict JSON request:
   "workerCores": 4,
   "maxActiveCpus": 64,
   "maxWallSeconds": 3600,
-  "maxCostUsd": 10
+  "maxCostUsd": 20
 }
 ```
 
@@ -27,7 +27,7 @@ Validation limits are:
 - 1 to 64 score-worker cores;
 - at most 48 score containers and 192 active score-worker CPUs;
 - 5 minutes to 6 hours after verified startup;
-- a caller cost limit no greater than the route hard cap of $25.
+- a caller cost limit no greater than the route hard cap of $100.
 
 The cost calculation uses the current Modal list rates supplied for this task: $0.00003942 per physical core-second and $0.00000667 per GiB-second. It includes all three permitted attempts for every score and reduction task, the task timeout margins, the bounded controller and publisher, readiness, the Goldfish canary, and bounded control calls. It does not change the older cost constants used by other routes.
 
@@ -85,7 +85,7 @@ Update:
 - `modal/native_strategy_search.py` for Goldfish-only validation, configurable score shape, bounded completion, and reporting;
 - `modal/strategy_search_runtime.py` to download only the route finals;
 - the matching Python tests;
-- `package.json` and `README.md`.
+- `README.md`.
 
 Do not edit Rust scientific logic, Matrix logic, PSRO logic, or the scientific source allowlist.
 

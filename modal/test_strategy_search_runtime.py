@@ -17,6 +17,14 @@ class FakeVolume:
 
 
 class StrategySearchRuntimeTest(unittest.TestCase):
+    def test_goldfish_only_route_selects_only_final_goldfish_files(self):
+        bundle = {"controller": {"route": "goldfish-only-v1"}}
+        self.assertEqual(runtime._final_artifact_relatives(bundle),
+            ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf"])
+        self.assertEqual(runtime._final_artifact_relatives({"controller": {}}),
+            ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
+             "matrix/evidence.json", "psro/evidence.json"])
+
     def test_final_downloads_measure_each_artifact_and_total_bytes(self):
         evidence_id = "a" * 64
         relatives = ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",

@@ -113,6 +113,8 @@ def prepare_execution(bundle: dict[str, Any], compute_preflight: dict[str, Any])
         "controllerFence": 0, "controller": None, "status": "ready", "report": None,
         "startedMs": started_ms, "usefulWorkStartedMs": None,
         "computePreflight": compute_preflight, "utilizationIntervals": [],
+        "route": bundle.get("controller", {}).get("route", "full-strategy-search"),
+        "costGuard": bundle.get("controller", {}).get("costGuard"),
         "admissionFailures": 0, "publisherCommitMs": 0.0,
         "admissionLimitCpus": bundle["request"]["maxActiveCpus"]}
     _atomic_json(state_file, state)

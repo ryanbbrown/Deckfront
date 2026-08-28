@@ -51,12 +51,20 @@ def _atomic_json(file: pathlib.Path, value: Any) -> None:
     os.replace(temporary, file)
 
 
-def _download_final_artifacts(destination: pathlib.Path, evidence_ids: list[str]) -> dict[str, Any]:
+def _final_artifact_relatives(bundle: dict[str, Any]) -> list[str]:
+    if bundle.get("controller", {}).get("route") == "goldfish-only-v1":
+        return ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf"]
+    return ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
+        "matrix/evidence.json", "psro/evidence.json"]
+
+
+def _download_final_artifacts(destination: pathlib.Path, evidence_ids: list[str],
+                              relatives: list[str] | None = None) -> dict[str, Any]:
     started = time.monotonic()
     artifacts = []
     for evidence_id in evidence_ids:
-        for relative in ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
-                         "matrix/evidence.json", "psro/evidence.json"]:
+        for relative in relatives or ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
+                "matrix/evidence.json", "psro/evidence.json"]:
             remote = f"evidence/{evidence_id}/{relative}"
             local = destination / remote
             local.parent.mkdir(parents=True, exist_ok=True)
@@ -150,7 +158,8 @@ def run_deployed_entry(launch_config: str, compute_app_name: str, download_dir: 
     destination = pathlib.Path(download_dir)
     destination.mkdir(parents=True, exist_ok=True)
     evidence_ids = list(dict.fromkeys(task["evidenceId"] for task in bundle["tasks"]))
-    downloads = _download_final_artifacts(destination, evidence_ids)
+    downloads = _download_final_artifacts(
+        destination, evidence_ids, _final_artifact_relatives(bundle))
     report = {**report, "clientOperations": {"downloads": downloads}}
     _atomic_json(destination / "report.json", report)
     print(json.dumps(report), flush=True)

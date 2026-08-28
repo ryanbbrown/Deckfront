@@ -1,3 +1,4 @@
+import copy
 import hashlib
 import inspect
 import json
@@ -19,6 +20,36 @@ from modal.exception import FunctionTimeoutError
 
 
 class NativeStrategySearchLauncherTest(unittest.TestCase):
+    def goldfish_only_bundle(self):
+        evidence_id = "a" * 64
+        request = {"kingdomIds": ["balance-tuning-005"], "workerCores": 64,
+            "maxActiveCpus": 64, "maxWallSeconds": 3600, "maxCostUsd": 100}
+        task_counts = {"scoreOne": 1, "reduceOne": 1, "scoreTwo": 1,
+            "reduceTwo": 1, "total": 4}
+        cost = launcher._strategy_search_goldfish_worst_case_cost(request, task_counts)
+        controller = {"route": launcher.GOLDFISH_MODAL_ROUTE, "maxActiveCpus": 64,
+            "timeoutSeconds": 3600, "maxWallSeconds": 3600, "goldfishWorkerCores": 64,
+            "goldfishScoreMemoryMiB": 4096, "goldfishScoreTimeoutSeconds": 180,
+            "goldfishReducerCores": 4, "goldfishReduceMemoryMiB": 8192,
+            "goldfishReduceOneTimeoutSeconds": 600, "goldfishReduceTwoTimeoutSeconds": 300,
+            "executionPlanHash": "d" * 64, "costGuard": {
+                "cpuUsdPerCoreSecond": 0.00003942,
+                "memoryUsdPerGibSecond": 0.00000667, "attemptCount": 3,
+                "hardMaximumCostUsd": 100, "requestedMaximumCostUsd": 100,
+                "worstCaseModalComputeUsd": cost, "taskCounts": task_counts}}
+        partitions = {
+            f"{evidence_id}:goldfish-one": {"stage": "goldfish-one", "evidenceId": evidence_id,
+                "total": 12_972_960, "jobs": [{"start": 0, "end": 12_972_960}]},
+            f"{evidence_id}:goldfish-two": {"stage": "goldfish-two", "evidenceId": evidence_id,
+                "total": 500_000, "jobs": [{"start": 0, "end": 500_000}]}}
+        job = {"taskId": "task", "evidenceId": evidence_id, "kingdomId": "balance-tuning-005",
+            "stage": "goldfish-one", "range": {"start": 0, "end": 12_972_960}}
+        task = {**job, "cpu": 64, "memoryMiB": 4096, "timeoutSeconds": 180}
+        return {"schemaVersion": 3, "campaignExecutionId": "b" * 64,
+            "executionRoot": "executions/" + "b" * 64, "request": request,
+            "sourceImage": {"digest": "c" * 64}, "partitions": partitions,
+            "jobs": [job], "tasks": [task], "controller": controller}
+
     def test_worst_case_includes_all_retry_attempts(self):
         value = launcher.projected_cost_usd(2, 4, 4, 600, 2)
         expected = (2 * 3 * (630 / 3600) * (4 * 0.0473 + 4 * 0.008)
@@ -213,6 +244,95 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
                     launcher._atomic_json(target, {"complete": False})
             self.assertEqual(json.loads(target.read_text()), {"complete": True})
 
+
+    def test_goldfish_only_cost_guard_uses_current_rates_and_fails_closed(self):
+        bundle = self.goldfish_only_bundle()
+        result = launcher._strategy_search_validate_goldfish_only_bundle(bundle)
+        self.assertEqual(launcher.GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND, 0.00003942)
+        self.assertEqual(launcher.GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND, 0.00000667)
+        self.assertEqual(result["taskCounts"], {"scoreOne": 1, "reduceOne": 1,
+            "scoreTwo": 1, "reduceTwo": 1, "total": 4})
+        self.assertEqual(result["worstCaseModalComputeUsd"],
+            bundle["controller"]["costGuard"]["worstCaseModalComputeUsd"])
+        measured = launcher._strategy_search_attempt_cost({"modalWorkerElapsedMs": 1000,
+            "submittedMs": 0, "cpu": 1, "memoryMiB": 1024}, 1000,
+            launcher.GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND * 3600,
+            launcher.GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND * 3600)
+        self.assertAlmostEqual(measured["costUsd"], 0.00003942 + 0.00000667)
+        mutations = []
+        stale_rate = copy.deepcopy(bundle)
+        stale_rate["controller"]["costGuard"]["cpuUsdPerCoreSecond"] = 0.00001314
+        mutations.append(stale_rate)
+        stale_cost = copy.deepcopy(bundle)
+        stale_cost["controller"]["costGuard"]["worstCaseModalComputeUsd"] -= 0.01
+        mutations.append(stale_cost)
+        downstream = copy.deepcopy(bundle)
+        downstream["tasks"][0]["stage"] = "matrix-score"
+        mutations.append(downstream)
+        excess_capacity = copy.deepcopy(bundle)
+        excess_capacity["request"]["maxActiveCpus"] = 193
+        excess_capacity["controller"]["maxActiveCpus"] = 193
+        mutations.append(excess_capacity)
+        for held in mutations:
+            with self.assertRaises(ValueError):
+                launcher._strategy_search_validate_goldfish_only_bundle(held)
+
+    def test_goldfish_only_materialization_uses_requested_score_cores_and_fixed_reducer_shape(self):
+        evidence = "a" * 64
+        one = [{"start": 0, "end": 10}, {"start": 10, "end": 20}]
+        state = {"maxActiveCpus": 64, "partitions": {
+            f"{evidence}:goldfish-one": {"jobs": one},
+            f"{evidence}:goldfish-two": {"jobs": [{"start": 0, "end": 10}]}
+        }, "jobs": [{"taskId": launcher._strategy_search_goldfish_task_id(
+                evidence, "goldfish-one", one[0]), "evidenceId": evidence,
+            "kingdomId": "balance-tuning-005", "stage": "goldfish-one",
+            "range": one[0], "cpus": 64, "status": "ready", "dependencyTaskIds": []}],
+            "tasks": []}
+        bundle = {"controller": {"readyWindowWaves": 2, "goldfishWorkerCores": 64,
+            "goldfishScoreMemoryMiB": 4096, "goldfishScoreTimeoutSeconds": 180,
+            "goldfishReducerCores": 4, "goldfishReduceMemoryMiB": 8192,
+            "goldfishReduceOneTimeoutSeconds": 600, "goldfishReduceTwoTimeoutSeconds": 300}}
+        self.assertTrue(launcher._strategy_search_materialize_goldfish(state, bundle))
+        scores = [task for task in state["tasks"] if task["stage"] == "goldfish-one"]
+        self.assertEqual(len(scores), 1)
+        self.assertEqual((scores[0]["cpu"], scores[0]["timeoutSeconds"]), (64, 180))
+        reducer = next(task for task in state["tasks"] if task["stage"] == "goldfish-one-reduce")
+        self.assertEqual((reducer["cpu"], reducer["memoryMiB"], reducer["timeoutSeconds"]),
+            (4, 8192, 600))
+        self.assertFalse(any(task["stage"].startswith("matrix") or task["stage"].startswith("psro")
+            for task in state["tasks"]))
+
+    def test_goldfish_only_completion_records_only_verified_final_goldfish_receipts(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            evidence = "a" * 64
+            state_file = root / "publication.json"
+            paths = {}
+            receipts = {}
+            task_ids = {stage: f"task-{stage}" for stage in
+                ["goldfish-one-reduce", "goldfish-two-reduce"]}
+            for stage, task_id in task_ids.items():
+                artifact = root / f"{stage}.hgf"
+                artifact.write_bytes(stage.encode())
+                relative = f"evidence/{evidence}/{stage}.hgf"
+                paths[relative] = artifact
+                receipts[task_id] = {"taskId": task_id, "evidenceId": evidence,
+                    "artifactPath": relative,
+                    "sha256": hashlib.sha256(stage.encode()).hexdigest(), "fence": 1}
+            state_file.write_text(json.dumps({"schemaVersion": 1, "evidenceId": evidence,
+                "leases": {}, "intents": {}, "receipts": receipts}))
+            with patch.object(launcher, "_strategy_search_evidence_state", return_value=state_file), \
+                    patch.object(launcher, "_strategy_search_path", side_effect=lambda relative: paths[relative]), \
+                    patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"):
+                raw = launcher.strategy_search_publisher.get_raw_f()
+                completion = raw({"operation": "goldfish-evidence-finalize", "evidenceId": evidence,
+                    "taskIds": task_ids, "nowMs": 10})
+                reusable = raw({"operation": "goldfish-evidence-complete", "evidenceId": evidence})
+            self.assertEqual(set(completion["receipts"]), set(task_ids))
+            self.assertTrue(reusable["complete"])
+            self.assertNotIn("completion", json.loads(state_file.read_text()))
+            self.assertEqual(set(json.loads(state_file.read_text())["goldfishCompletion"]["receipts"]),
+                set(task_ids))
 
     def test_strategy_search_image_uses_the_exact_committed_allowlist(self):
         source = inspect.getsource(launcher)
@@ -809,7 +929,7 @@ print(json.dumps(result))
                     patch.object(launcher, "_strategy_search_run_subprocess", side_effect=run_subprocess), \
                     patch.object(launcher, "_strategy_search_validate_publication"), \
                     patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"):
-                raw({**base, "stage": "goldfish-one", "mode": "score-one",
+                raw({**base, "cpu": 16, "stage": "goldfish-one", "mode": "score-one",
                     "temporaryPath": "one.hgs", "range": {"start": 0, "end": 1}})
                 raw({**base, "stage": "goldfish-one-reduce", "mode": "reduce-one",
                     "temporaryPath": "top.hgf", "manifest": ["one.hgs"]})
@@ -822,6 +942,7 @@ print(json.dumps(result))
             self.assertEqual([command[1] for command in commands],
                 ["score-one", "reduce-one", "score-two", "reduce-two"])
             self.assertTrue(all(command[0] == launcher.CAMPAIGN_RUST_GOLDFISH_BIN for command in commands))
+            self.assertEqual(commands[0][commands[0].index("--threads") + 1], "16")
             self.assertIn("--inputs", commands[1])
             self.assertIn("--top", commands[2])
             self.assertIn("--top", commands[3])
