@@ -2,11 +2,13 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { crc32 } from 'node:zlib';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { registerKingdom, resetKingdoms } from '../../src/game';
 import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
 import { readGoldfishReservoir, readGoldfishTop } from '../../src/sim/goldfishReservoir';
 import { nativeKingdomsJson } from '../../src/sim/nativeKingdoms';
+import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
 import { createOrderedCandidateSpace, orderedGoldfishCardIds } from '../../src/sim/orderedGoldfishBenchmark';
 import { canonicalStrategy } from '../../src/sim/strategy';
 import { candidateIdentitiesValid } from '../../src/sim/thresholdRacingPsro';
@@ -15,6 +17,47 @@ const binary = process.env.HEXDECK_GOLDFISH_BIN ?? path.resolve('rust/target/rel
 const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
 const run = (args: string[]): string => execFileSync(binary, args, { encoding: 'utf8' });
 const writeList = (file: string, paths: string[]): void => fs.writeFileSync(file, `${JSON.stringify(paths)}\n`);
+
+function writeResultFixture(file: string, kind: 1 | 2 | 3, numbers: readonly number[],
+  sourceChecksum = 0): number {
+  const rows = Buffer.alloc(numbers.length * 64);
+  numbers.forEach((number, rowIndex) => {
+    const offset = rowIndex * 64;
+    rows.writeUInt32LE(number, offset);
+    for (let profile = 0; profile < 3; profile += 1) {
+      rows.writeUInt32LE(4, offset + (1 + profile * 5) * 4);
+      rows.writeUInt32LE(2, offset + (2 + profile * 5) * 4);
+      rows.writeUInt32LE(20, offset + (3 + profile * 5) * 4);
+      rows.writeUInt32LE(100, offset + (4 + profile * 5) * 4);
+      rows.writeUInt32LE(10, offset + (5 + profile * 5) * 4);
+    }
+  });
+  const checksum = crc32(rows);
+  const header = Buffer.alloc(64);
+  header.write('HGR1');
+  header.writeUInt32LE(kind, 4);
+  header.writeUInt32LE(64, 8);
+  header.writeUInt32LE(0, 12);
+  header.writeUInt32LE(numbers.length, 16);
+  header.writeUInt32LE(numbers.length, 20);
+  header.writeUInt32LE(checksum, 24);
+  header.writeUInt32LE(sourceChecksum, 28);
+  const seeds = kind === 2 ? [4_100_001, 4_100_002, 4_100_003, 0] : [4_100_000, 0, 0, 0];
+  seeds.forEach((seed, index) => header.writeUInt32LE(seed, 32 + index * 4));
+  header.write(nativeRuleFingerprint(kingdom.id, 30, 200), 48, 'ascii');
+  fs.writeFileSync(file, Buffer.concat([header, rows]));
+  return checksum;
+}
+
+interface ReducerReport {
+  command: string;
+  bytesRead: number;
+  bytesWritten: number;
+  elapsedMs: number;
+  readMs: number;
+  reduceMs: number;
+  writeMs: number;
+}
 
 beforeEach(() => registerKingdom(kingdom));
 afterEach(() => resetKingdoms());
@@ -123,6 +166,42 @@ describe.skipIf(!fs.existsSync(binary))('Rust Goldfish reservoir', () => {
       }
     } finally { fs.rmSync(root, { recursive: true, force: true }); }
   });
+
+  it('reports reducer file reads separately from heap ranking and final sorting', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-goldfish-timing-'));
+    try {
+      const stageOne = path.join(root, 'one.hgs');
+      const stageOneNumbers = Array.from({ length: 500_000 }, (_unused, number) => number);
+      writeResultFixture(stageOne, 1, stageOneNumbers);
+      const oneInputs = path.join(root, 'one.json'); writeList(oneInputs, [stageOne]);
+      const oneReportFile = path.join(root, 'reduce-one.json');
+      run(['reduce-one', '--kingdom', kingdom.id, '--inputs', oneInputs,
+        '--out', path.join(root, 'reduced-top.hgf'), '--start', '0', '--end', '500000', '--keep', '1',
+        '--report', oneReportFile]);
+
+      const top = path.join(root, 'top.hgf');
+      const topNumbers = Array.from({ length: 500_000 }, (_unused, number) => number);
+      const topChecksum = writeResultFixture(top, 3, topNumbers);
+      const stageTwo = path.join(root, 'two.hgs');
+      writeResultFixture(stageTwo, 2, topNumbers, topChecksum);
+      const twoInputs = path.join(root, 'two.json'); writeList(twoInputs, [stageTwo]);
+      const twoReportFile = path.join(root, 'reduce-two.json');
+      run(['reduce-two', '--kingdom', kingdom.id, '--top', top, '--inputs', twoInputs,
+        '--out', path.join(root, 'reservoir.hgf'), '--keep', '1', '--report', twoReportFile]);
+
+      const reports = [JSON.parse(fs.readFileSync(oneReportFile, 'utf8')) as ReducerReport,
+        JSON.parse(fs.readFileSync(twoReportFile, 'utf8')) as ReducerReport];
+      expect(reports.map((report) => [report.command, report.bytesWritten]))
+        .toEqual([['reduce-one', 128], ['reduce-two', 188]]);
+      for (const report of reports) {
+        expect(report.bytesRead).toBeGreaterThan(30_000_000);
+        expect(report.readMs).toBeGreaterThan(0);
+        expect(report.reduceMs).toBeGreaterThan(0);
+        expect(report.writeMs).toBeGreaterThanOrEqual(0);
+        expect(report.readMs + report.reduceMs + report.writeMs).toBeLessThanOrEqual(report.elapsedMs);
+      }
+    } finally { fs.rmSync(root, { recursive: true, force: true }); }
+  }, 30_000);
 
   it('accepts unique gf identities only when their numbered strategy canonical matches', () => {
     const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));

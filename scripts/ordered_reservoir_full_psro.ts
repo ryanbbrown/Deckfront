@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
-import { spawnSync } from 'node:child_process';
 import { cardDefinition, registerKingdom } from '../src/game';
 import { anytimeConfidenceBounds } from '../src/sim/anytimeMeanEvidence';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
@@ -104,16 +103,13 @@ function kingdom() {
   if (!held || held.startingHealth !== 50) throw new Error('Kingdom 009 is missing.');
   registerKingdom(held); return held;
 }
-function validateSource(): void {
+function assertSourceFiles(): void {
   for (const file of ['ranked.json', 'reservoir.json']) if (!fs.existsSync(sourceFile(file))) {
     throw new Error(`Missing ordered source ${sourceFile(file)}.`);
   }
-  const result = spawnSync('npm', ['run', 'goldfish:ordered-product', '--', 'validate-reservoir',
-    '--artifact', sourceFile('ranked.json'), '--reservoir', sourceFile('reservoir.json')], { stdio: 'inherit' });
-  if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error('Ordered source validation failed.');
 }
 function loadOrPreparePool(): OrderedChallengePoolArtifact {
+  assertSourceFiles();
   if (fs.existsSync(POOL_FILE)) {
     const held = readJson<unknown>(POOL_FILE);
     if (!validateOrderedChallengePool(held) || held.source.rankedSha256 !== sha256File(sourceFile('ranked.json'))
@@ -122,7 +118,6 @@ function loadOrPreparePool(): OrderedChallengePoolArtifact {
     }
     return held;
   }
-  validateSource();
   const ranked = fs.readFileSync(sourceFile('ranked.json'), 'utf8');
   const reservoir = fs.readFileSync(sourceFile('reservoir.json'), 'utf8');
   const pool = adaptValidatedOrderedReservoir({ manifest: JSON.parse(ranked) as OrderedRankedManifestHeader,

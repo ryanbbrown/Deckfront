@@ -857,14 +857,18 @@ fn command_reduce_one(options: &Options) -> Result<(), String> {
     if start >= end || end > CANDIDATE_COUNT || keep == 0 || keep > end - start {
         return Err("reduce-one universe or keep count is invalid".into());
     }
-    let mut inputs: Vec<(PathBuf, Header)> = input_paths(options.required("inputs")?)?
-        .into_iter()
-        .map(|path| {
-            let reader = RowReader::open(&path)?;
-            validate_header(&reader.header, &loaded, Kind::StageOne)?;
-            Ok((path, reader.header))
-        })
-        .collect::<Result<_, String>>()?;
+    let mut read_elapsed = Duration::ZERO;
+    let read_started = Instant::now();
+    let input_files = input_paths(options.required("inputs")?)?;
+    read_elapsed += read_started.elapsed();
+    let mut inputs = Vec::with_capacity(input_files.len());
+    for path in input_files {
+        let read_started = Instant::now();
+        let reader = RowReader::open(&path)?;
+        validate_header(&reader.header, &loaded, Kind::StageOne)?;
+        inputs.push((path, reader.header));
+        read_elapsed += read_started.elapsed();
+    }
     inputs.sort_by_key(|(_, header)| header.range_start);
     let mut cursor = start;
     for (_, header) in &inputs {
@@ -881,14 +885,18 @@ fn command_reduce_one(options: &Options) -> Result<(), String> {
     if cursor != end {
         return Err("stage-one inputs do not cover the requested universe".into());
     }
-    let read_started = Instant::now();
-    let reduce_started = Instant::now();
+    let mut reduce_elapsed = Duration::ZERO;
     let mut heap = BinaryHeap::with_capacity(keep as usize);
     let mut bytes_read = 0_u64;
     for (path, expected) in inputs {
+        let read_started = Instant::now();
         let mut reader = RowReader::open(&path)?;
+        read_elapsed += read_started.elapsed();
         for index in 0..expected.row_count {
+            let read_started = Instant::now();
             let row = reader.result()?;
+            read_elapsed += read_started.elapsed();
+            let reduce_started = Instant::now();
             if row[0] != expected.range_start + index {
                 return Err("stage-one row strategy number differs from its range position".into());
             }
@@ -899,13 +907,16 @@ fn command_reduce_one(options: &Options) -> Result<(), String> {
                 heap.pop();
                 heap.push(HeapResult(row));
             }
+            reduce_elapsed += reduce_started.elapsed();
         }
+        let read_started = Instant::now();
         bytes_read += reader.finish()?;
+        read_elapsed += read_started.elapsed();
     }
-    let read_reduce_elapsed = read_started.elapsed();
+    let reduce_started = Instant::now();
     let mut rows: Vec<_> = heap.into_iter().map(|entry| entry.0).collect();
     rows.sort_by(|left, right| compare_metrics(right, left));
-    let reduce_elapsed = reduce_started.elapsed();
+    reduce_elapsed += reduce_started.elapsed();
     let write_started = Instant::now();
     let mut writer = RowWriter::new(Path::new(options.required("out")?))?;
     for row in &rows {
@@ -923,9 +934,9 @@ fn command_reduce_one(options: &Options) -> Result<(), String> {
         bytes_read,
         bytes_written,
         elapsed_ms: ms(started.elapsed()),
-        read_ms: ms(read_reduce_elapsed.min(reduce_elapsed)),
+        read_ms: ms(read_elapsed),
         write_ms: ms(write_elapsed),
-        reduce_ms: ms(reduce_elapsed.saturating_sub(read_reduce_elapsed.min(reduce_elapsed))),
+        reduce_ms: ms(reduce_elapsed),
         ..Report::default()
     };
     write_report(options.optional("report"), &report)
@@ -1017,21 +1028,25 @@ fn command_reduce_two(options: &Options) -> Result<(), String> {
     let read_started = Instant::now();
     let (top_header, top_rows, mut bytes_read) =
         validated_top(Path::new(options.required("top")?), &loaded)?;
+    let mut read_elapsed = read_started.elapsed();
     let keep = options.optional_integer("keep", RESERVOIR_COUNT)?;
     if keep == 0 || keep > top_header.row_count {
         return Err("reduce-two keep count is invalid".into());
     }
-    let mut inputs: Vec<(PathBuf, Header)> = input_paths(options.required("inputs")?)?
-        .into_iter()
-        .map(|path| {
-            let reader = RowReader::open(&path)?;
-            validate_header(&reader.header, &loaded, Kind::StageTwo)?;
-            if reader.header.source_checksum != top_header.checksum {
-                return Err("stage-two source checksum differs from top".into());
-            }
-            Ok((path, reader.header))
-        })
-        .collect::<Result<_, String>>()?;
+    let read_started = Instant::now();
+    let input_files = input_paths(options.required("inputs")?)?;
+    read_elapsed += read_started.elapsed();
+    let mut inputs = Vec::with_capacity(input_files.len());
+    for path in input_files {
+        let read_started = Instant::now();
+        let reader = RowReader::open(&path)?;
+        validate_header(&reader.header, &loaded, Kind::StageTwo)?;
+        if reader.header.source_checksum != top_header.checksum {
+            return Err("stage-two source checksum differs from top".into());
+        }
+        inputs.push((path, reader.header));
+        read_elapsed += read_started.elapsed();
+    }
     inputs.sort_by_key(|(_, header)| header.range_start);
     let mut cursor = 0;
     for (_, header) in &inputs {
@@ -1048,12 +1063,18 @@ fn command_reduce_two(options: &Options) -> Result<(), String> {
     if cursor != top_header.row_count {
         return Err("stage-two inputs do not cover the top file".into());
     }
+    let mut reduce_elapsed = Duration::ZERO;
     let mut heap = BinaryHeap::with_capacity(keep as usize);
     for (path, header) in inputs {
+        let read_started = Instant::now();
         let mut reader = RowReader::open(&path)?;
+        read_elapsed += read_started.elapsed();
         for index in 0..header.row_count {
-            let rank = header.range_start + index;
+            let read_started = Instant::now();
             let additional = reader.result()?;
+            read_elapsed += read_started.elapsed();
+            let reduce_started = Instant::now();
+            let rank = header.range_start + index;
             let stage_one = top_rows[rank as usize];
             if additional[0] != stage_one[0] {
                 return Err("stage-two strategy number differs from the top rank".into());
@@ -1070,14 +1091,16 @@ fn command_reduce_two(options: &Options) -> Result<(), String> {
                 heap.pop();
                 heap.push(HeapReservoir(row));
             }
+            reduce_elapsed += reduce_started.elapsed();
         }
+        let read_started = Instant::now();
         bytes_read += reader.finish()?;
+        read_elapsed += read_started.elapsed();
     }
-    let read_elapsed = read_started.elapsed();
     let reduce_started = Instant::now();
     let mut rows: Vec<_> = heap.into_iter().map(|entry| entry.0).collect();
     rows.sort_by(|left, right| compare_reservoir(right, left));
-    let reduce_elapsed = reduce_started.elapsed();
+    reduce_elapsed += reduce_started.elapsed();
     let write_started = Instant::now();
     let mut writer = RowWriter::new(Path::new(options.required("out")?))?;
     for row in &rows {
@@ -1254,11 +1277,25 @@ mod tests {
     }
 
     fn fixture_row(number: u32) -> ResultRow {
+        comparator_row(number, [1; 3], [31; 3], [0; 3], [0; 3])
+    }
+
+    fn comparator_row(
+        number: u32,
+        completions: [u32; 3],
+        penalized_turns: [u32; 3],
+        damage: [u32; 3],
+        money: [u32; 3],
+    ) -> ResultRow {
         let mut row = [0_u32; 16];
         row[0] = number;
         for profile in 0..3 {
-            row[1 + profile * 5] = 1;
-            row[3 + profile * 5] = 31;
+            let start = 1 + profile * 5;
+            row[start] = 100;
+            row[start + 1] = completions[profile];
+            row[start + 2] = penalized_turns[profile];
+            row[start + 3] = damage[profile];
+            row[start + 4] = money[profile];
         }
         row
     }
@@ -1322,13 +1359,51 @@ mod tests {
 
     #[test]
     fn comparator_uses_each_rule_and_number_tiebreak() {
-        let base = [1, 1, 1, 5, 10, 2, 1, 1, 5, 10, 2, 1, 1, 5, 10, 2];
-        let mut better = base;
-        better[2] = 2;
-        assert_eq!(compare_metrics(&better, &base), Ordering::Greater);
-        let mut lower_number = base;
-        lower_number[0] = 0;
-        assert_eq!(compare_metrics(&lower_number, &base), Ordering::Greater);
+        let completions_min = (
+            comparator_row(1, [2, 2, 2], [30; 3], [10; 3], [5; 3]),
+            comparator_row(1, [1, 100, 100], [30; 3], [10; 3], [5; 3]),
+        );
+        let completions_sum = (
+            comparator_row(1, [1, 1, 2], [30; 3], [10; 3], [5; 3]),
+            comparator_row(1, [1, 1, 1], [30; 3], [10; 3], [5; 3]),
+        );
+        let turns_max = (
+            comparator_row(1, [2; 3], [9, 9, 9], [10; 3], [5; 3]),
+            comparator_row(1, [2; 3], [10, 1, 1], [10; 3], [5; 3]),
+        );
+        let turns_sum = (
+            comparator_row(1, [2; 3], [10, 1, 1], [10; 3], [5; 3]),
+            comparator_row(1, [2; 3], [10, 10, 10], [10; 3], [5; 3]),
+        );
+        let damage_min = (
+            comparator_row(1, [2; 3], [30; 3], [2, 2, 2], [5; 3]),
+            comparator_row(1, [2; 3], [30; 3], [1, 100, 100], [5; 3]),
+        );
+        let damage_sum = (
+            comparator_row(1, [2; 3], [30; 3], [1, 1, 2], [5; 3]),
+            comparator_row(1, [2; 3], [30; 3], [1, 1, 1], [5; 3]),
+        );
+        let money_sum = (
+            comparator_row(1, [2; 3], [30; 3], [10; 3], [5, 5, 6]),
+            comparator_row(1, [2; 3], [30; 3], [10; 3], [5; 3]),
+        );
+        let number = (
+            comparator_row(0, [2; 3], [30; 3], [10; 3], [5; 3]),
+            comparator_row(1, [2; 3], [30; 3], [10; 3], [5; 3]),
+        );
+        for (better, worse) in [
+            completions_min,
+            completions_sum,
+            turns_max,
+            turns_sum,
+            damage_min,
+            damage_sum,
+            money_sum,
+            number,
+        ] {
+            assert_eq!(compare_metrics(&better, &worse), Ordering::Greater);
+            assert_eq!(compare_metrics(&worse, &better), Ordering::Less);
+        }
     }
 
     #[test]
@@ -1483,6 +1558,15 @@ mod tests {
             top_checksum,
             &[fixture_row(0), fixture_row(2), fixture_row(2)],
         );
+        let list = root.join("inputs.json");
+        fs::write(&list, serde_json::to_vec(&vec![&stage]).unwrap()).unwrap();
+        let reduce = [
+            ("kingdom", loaded.id.clone()),
+            ("top", top.display().to_string()),
+            ("inputs", list.display().to_string()),
+            ("out", root.join("reservoir.hgf").display().to_string()),
+            ("keep", "1".into()),
+        ];
         let verify = [
             ("kingdom", loaded.id.clone()),
             ("kind", "stage-two".into()),
@@ -1491,6 +1575,11 @@ mod tests {
             ("end", "3".into()),
             ("top", top.display().to_string()),
         ];
+        assert!(
+            command_reduce_two(&options(&reduce))
+                .unwrap_err()
+                .contains("top rank")
+        );
         assert!(
             command_verify(&options(&verify))
                 .unwrap_err()
@@ -1504,6 +1593,11 @@ mod tests {
             3,
             top_checksum.wrapping_add(1),
             &[fixture_row(0), fixture_row(1), fixture_row(2)],
+        );
+        assert!(
+            command_reduce_two(&options(&reduce))
+                .unwrap_err()
+                .contains("source checksum")
         );
         assert!(
             command_verify(&options(&verify))

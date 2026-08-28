@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { performance } from 'node:perf_hooks';
@@ -163,23 +162,18 @@ function assertOutputFiles(root: string): void {
   }
 }
 
-function validateOrderedArtifacts(options: RunOptions): void {
+function assertCalibrationSourceFiles(options: RunOptions): void {
   for (const file of [options.rankedFile, `${options.rankedFile}.sha256`, options.reservoirFile,
     `${options.reservoirFile}.sha256`, options.p75ManifestFile, options.p75ReportFile]) {
     if (!fs.existsSync(file)) throw new Error(`Missing calibration source ${file}.`);
   }
-  const result = spawnSync('npm', ['run', 'goldfish:ordered-product', '--', 'validate-reservoir',
-    '--kingdom', options.kingdomId, '--artifact', options.rankedFile, '--reservoir', options.reservoirFile],
-  { stdio: 'inherit' });
-  if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error('Ordered ranked/reservoir validation failed.');
 }
 
 export function loadCalibrationSources(options: RunOptions): {
   manifest: ResponseOracleCalibrationManifest;
   reservoir: OrderedProductReservoirArtifact;
 } {
-  validateOrderedArtifacts(options);
+  assertCalibrationSourceFiles(options);
   const ranked = readJson<unknown>(options.rankedFile);
   const reservoir = readJson<OrderedProductReservoirArtifact>(options.reservoirFile);
   const p75ManifestValue = readJson<unknown>(options.p75ManifestFile);

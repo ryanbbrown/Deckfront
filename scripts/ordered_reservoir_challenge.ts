@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { registerKingdom } from '../src/game';
 import { deepBeamSuite } from '../src/sim/deepBeamSuite';
@@ -92,17 +91,6 @@ function assertOrderedSourceExists(): void {
     }
   }
 }
-function validateOrderedSource(): void {
-  assertOrderedSourceExists();
-  console.log(`source: validating ${ORDERED_RESERVOIR_SOURCE}`);
-  const result = spawnSync('npm', ['run', 'goldfish:ordered-product', '--', 'validate-reservoir',
-    '--artifact', sourceFile('ranked.json'), '--reservoir', sourceFile('reservoir.json')], {
-    cwd: process.cwd(), stdio: 'inherit'
-  });
-  if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error('The ordered-product validation CLI rejected the source.');
-}
-
 function loadOrAdaptPool(): OrderedChallengePoolArtifact {
   assertOrderedSourceExists();
   if (fs.existsSync(POOL_FILE)) {
@@ -113,9 +101,8 @@ function loadOrAdaptPool(): OrderedChallengePoolArtifact {
       console.log('pool: resumed validated adaptation');
       return held;
     }
-    console.log('pool: invalid or source bytes changed; rebuilding from validated source');
+    console.log('pool: invalid or source bytes changed; rebuilding from source');
   }
-  validateOrderedSource();
   const rankedText = fs.readFileSync(sourceFile('ranked.json'), 'utf8');
   const reservoirText = fs.readFileSync(sourceFile('reservoir.json'), 'utf8');
   const pool = adaptValidatedOrderedReservoir({
@@ -316,7 +303,7 @@ function renderReport(
     oneRound: { assessment, rounds: run.rounds.length, matrixSize: run.matrix.strategies.length,
       supportSize: supportEntries(run).length, elapsedMs: run.elapsedMs }, comparisons, aggregate };
   const markdown = [`# Ordered reservoir one-round challenge`, '', assessment.message, '',
-    `Source: \`${ORDERED_RESERVOIR_SOURCE}\`. The ordered-product validation CLI validated the ranked artifact and its exact 20,000-entry prefix before adaptation.`, '',
+    `Source: \`${ORDERED_RESERVOIR_SOURCE}\`. The adapter validated the ranked metadata, source binding, and exact 20,000-entry reservoir before use.`, '',
     `The response protocol kept draft off, 50 health, race seed evaluations ${FIXED_RESERVOIR_CONFIG.raceBlocks.join('/')}, ${FIXED_RESERVOIR_CONFIG.confirmationBlocks} confirmation shuffle seeds, and ${FIXED_RESERVOIR_CONFIG.matrixBlocks} matrix shuffle seeds. It stopped after exactly one response round.`, '',
     '| Historical pool | Ordered row score | Historical row score | Ordered-pool exploits | Historical-pool exploits | Overlap |',
     '|---:|---:|---:|---:|---:|---:|',

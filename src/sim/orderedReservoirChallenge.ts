@@ -20,6 +20,7 @@ import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 
 export const ORDERED_RESERVOIR_CHALLENGE_VERSION = 'ordered-reservoir-challenge-v1';
+export const ORDERED_RESERVOIR_VALIDATION = 'ordered-reservoir-direct-validation-v1';
 export const ORDERED_RESERVOIR_RUN_ID = 'native-e760135dba6f-5625a0ff0bf6048653f9';
 export const ORDERED_RESERVOIR_SOURCE = `.experiments/ordered-goldfish-product/${ORDERED_RESERVOIR_RUN_ID}`;
 export const ORDERED_RESERVOIR_OUTPUT = `.experiments/ordered-reservoir-challenge/${ORDERED_RESERVOIR_CHALLENGE_VERSION}`;
@@ -70,7 +71,7 @@ export interface ValidatedOrderedReservoirInput {
 
 export interface OrderedChallengePoolArtifact extends FixedReservoirPoolArtifact {
   source: {
-    validation: 'goldfish:ordered-product validate-reservoir';
+    validation: typeof ORDERED_RESERVOIR_VALIDATION;
     runId: string;
     rankedSha256: string;
     reservoirSha256: string;
@@ -92,7 +93,7 @@ function adaptedScore(entry: OrderedProductRankedRecord): ReservoirEntry['score'
   };
 }
 
-/** Adapts bytes only after the ordered-product CLI has validated the ranked artifact and its prefix. */
+/** Validates the ordered source and adapts its reservoir to the retained challenge format. */
 export function adaptValidatedOrderedReservoir(input: ValidatedOrderedReservoirInput): OrderedChallengePoolArtifact {
   const { manifest, reservoir } = input;
   if (!validSha256(input.rankedSha256) || !validSha256(input.reservoirSha256)
@@ -136,7 +137,7 @@ export function adaptValidatedOrderedReservoir(input: ValidatedOrderedReservoirI
     reservoir: entries,
     elapsedMs: 0,
     source: {
-      validation: 'goldfish:ordered-product validate-reservoir',
+      validation: ORDERED_RESERVOIR_VALIDATION,
       runId: manifest.runId,
       rankedSha256: input.rankedSha256,
       reservoirSha256: input.reservoirSha256,
@@ -173,7 +174,7 @@ export function validateOrderedChallengePool(value: unknown): value is OrderedCh
     goldfishSeeds: ORDERED_PRODUCT_SEEDS
   })) return false;
   const pool = value as OrderedChallengePoolArtifact;
-  return pool.source?.validation === 'goldfish:ordered-product validate-reservoir'
+  return pool.source?.validation === ORDERED_RESERVOIR_VALIDATION
     && pool.source.runId === ORDERED_RESERVOIR_RUN_ID
     && validSha256(pool.source.rankedSha256) && validSha256(pool.source.reservoirSha256)
     && pool.generatedHash === stableHash(`${pool.source.rankedSha256}:${pool.source.reservoirSha256}`)

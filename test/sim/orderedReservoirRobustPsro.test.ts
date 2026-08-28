@@ -14,6 +14,7 @@ import type { ScoreAllocation } from '../../src/sim/fixedReservoirConsistency';
 import { matrixProtocol, PayoffMatrix } from '../../src/sim/payoffMatrix';
 import type { MatrixSnapshot } from '../../src/sim/payoffMatrix';
 import type { ReservoirEntry } from '../../src/sim/fixedReservoirPsro';
+import { ORDERED_RESERVOIR_VALIDATION } from '../../src/sim/orderedReservoirChallenge';
 import type { OrderedChallengePoolArtifact } from '../../src/sim/orderedReservoirChallenge';
 import {
   createOrderedRobustCheckpoint, historicalAuditCandidates, initialRobustRunState,
@@ -94,7 +95,7 @@ function smallPool(candidate: Strategy): OrderedChallengePoolArtifact {
     shardProvenance: [{ shardId: '0', startPosition: 0, endPosition: 1,
       candidateDigest: 'abcdef123', scoreDigest: '987654321' }], reservoirHash: 'abcdef123',
     reservoir: [poolEntry(candidate, 1)], elapsedMs: 0,
-    source: { validation: 'goldfish:ordered-product validate-reservoir',
+    source: { validation: ORDERED_RESERVOIR_VALIDATION,
       runId: 'native-e760135dba6f-5625a0ff0bf6048653f9', rankedSha256: 'a'.repeat(64),
       reservoirSha256: 'b'.repeat(64), buildVersion: 'fixture', ruleFingerprint: 'fixture' } };
 }

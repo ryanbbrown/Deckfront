@@ -400,17 +400,10 @@ function loadP75Matrix(manifest: InitialMatrixManifest, p75Weights: Readonly<Rec
   return snapshot;
 }
 
-function validateOrderedArtifacts(entry: InputEntry): void {
+function assertOrderedArtifactFiles(entry: InputEntry): void {
   for (const file of [entry.ranked, `${entry.ranked}.sha256`, entry.reservoir, `${entry.reservoir}.sha256`]) {
     if (!fs.existsSync(file)) throw new Error(`Missing ordered pilot input ${file}.`);
   }
-  const seeds = readJson<{ config?: { seeds?: unknown } }>(entry.ranked).config?.seeds;
-  if (!Array.isArray(seeds) || seeds.some((seed) => !Number.isSafeInteger(seed) || Number(seed) < 0)) {
-    throw new Error('Ordered pilot ranked seeds are invalid.');
-  }
-  execFileSync('npm', ['run', 'goldfish:ordered-product', '--', 'validate-reservoir',
-    '--kingdom', PILOT_KINGDOM, '--artifact', entry.ranked, '--reservoir', entry.reservoir,
-    '--seeds', seeds.join(',')], { stdio: 'inherit' });
 }
 
 async function loadSource(inputsFile: string): Promise<ThresholdRacingSource> {
@@ -422,7 +415,7 @@ async function loadSource(inputsFile: string): Promise<ThresholdRacingSource> {
   const entry = { ...held, ranked: path.resolve(base, held.ranked), reservoir: path.resolve(base, held.reservoir),
     p75Root: path.resolve(base, held.p75Root) };
   strategySearchKingdom(PILOT_KINGDOM);
-  validateOrderedArtifacts(entry);
+  assertOrderedArtifactFiles(entry);
   const ranked = readJson<unknown>(entry.ranked);
   const reservoir = readJson<OrderedProductReservoirArtifact>(entry.reservoir);
   const rankedSha256 = sha256File(entry.ranked), reservoirSha256 = sha256File(entry.reservoir);
