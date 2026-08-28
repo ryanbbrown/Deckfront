@@ -1,6 +1,6 @@
 # Rust PSRO loop
 
-Status: draft for plan review.
+Status: approved after plan review v2 (`.reviews/plans/rust-psro-loop/rust-psro-loop-synthesis-v2.md`).
 
 This plan implements step 3, “Search the reservoir for strategies that beat the mix,” in `.html/single-kingdom-strategy-search.html`. The HTML is the product intent. `docs/strategy-search-evidence.md` defines how to interpret the result. `.plans/77-rust-goldfish-reservoir.md` and `.plans/78-rust-matrix-step.md` define the input files and Rust interfaces.
 
@@ -45,7 +45,7 @@ The implementation base must provide the plan-78 behavior in:
 - `rust/goldfish/src/equilibrium.rs`: deterministic maximum-support solve and mix checks;
 - `rust/goldfish/src/kernel.rs`: `competitive_game` and purchase and family-damage telemetry;
 - `rust/goldfish/src/main.rs`: the step-2 dispatch;
-- the plan-78 `balance-tuning-005` kingdom and reservoir fixtures.
+- the plan-78 `balance-tuning-005` kingdom fixture and test-size matrix command.
 
 The base must also preserve the plan-77 reservoir contract: kind 4, 124-byte rows, exactly 20,000 production rows, strategy-number identity, the four Goldfish seeds, the rule fingerprint, and the row CRC. The writer must reuse the frozen Rust readers and game code. The writer must not create another reservoir decoder, strategy mapping, competitive game loop, matrix solver, or matrix file implementation.
 
@@ -63,11 +63,12 @@ A behavior change to step-2 scoring, telemetry, matrix percentages, solver selec
 
 Production command inputs are:
 
+- one plan-77 `top-500000.hgf` with 500,000 rows;
 - one plan-77 `reservoir.hgf` with 20,000 rows;
 - one plan-78 directory containing `pairs.hgm`, `purchases.hgm`, and `matrix.hgm` for 50 strategies;
 - the same kingdom input used by the two earlier steps.
 
-Before any game runs, Rust performs the full plan-77 reservoir checks and the full plan-78 `matrix-verify` checks. It also requires:
+Before any game runs, Rust performs the full plan-77 reservoir checks against `top-500000.hgf` and the full plan-78 `matrix-verify` checks. It also requires:
 
 - the 50 matrix strategy numbers to equal the first 50 reservoir rows in the same order;
 - every strategy number to be unique and inside `0..12,972,960`;
@@ -129,7 +130,9 @@ Rust ports `anytimeConfidenceBounds` from `src/sim/anytimeMeanEvidence.ts` exact
 - the same clamp to `[1e-9, 1 - 1e-9]`;
 - exactly 21 bisection iterations and the same returned endpoints.
 
-Use the pure-Rust `libm` logarithm and exponential functions. The standard library does not promise bit-identical transcendental results on macOS arm64 and Linux x86-64. `libm` is the only new dependency and is required for cross-machine evidence determinism. Golden tests pin the returned `f64` bits and decisions against TypeScript reference vectors.
+Use the pure-Rust `libm` logarithm and exponential functions. The standard library does not promise bit-identical transcendental results on macOS arm64 and Linux x86-64. `libm` is the only new dependency and is required for cross-machine evidence determinism.
+
+Rust `libm` is the evidence authority. Golden tests pin its returned `f64` bits on macOS arm64 and Linux x86-64. TypeScript uses JavaScript `Math.log` and `Math.exp`, so it is not an exact-bit authority. TypeScript parity requires the same decision for every fixture and bounds within `2^-20`. Include threshold-edge fixtures; any Rust-versus-TypeScript decision difference is a blocker.
 
 ### Opponent schedule
 
@@ -139,7 +142,9 @@ For schedule position `k`, starting at 1, choose the positive-weight matrix stra
 
 `normalized weight × k - assignments so far`
 
-Break equal deficits by lower strategy number. This is the current `weightedFairSchedule` rule. It gives every candidate in one race the same ordered opponents and follows the mix at every prefix.
+Break equal deficits by lower strategy number. This differs from the old TypeScript implementation when unpadded text IDs such as `gf-10` and `gf-2` tie: the old code used UTF-16 text order. Numeric order is authoritative because the HTML defines strategy-number identity and requires the lower strategy number for ties. Update the retained TypeScript reference helper to accept an explicit numeric tie key; do not use display IDs as schedule keys.
+
+This prefix-stable largest-deficit rule is the exact meaning of the HTML’s current “largest-remainder” sentence. Independent per-look largest-remainder allocations are not guaranteed to be prefixes, so they cannot support suffix-only looks. Update only the step-3 schedule paragraph in the HTML and process document to name this exact rule. This plan supersedes that imprecise sentence; it does not change any screening, confirmation, or admission threshold.
 
 Screening and confirmation each build their own full schedule because confirmation needs fresh shuffles. The matrix and equilibrium weights stay frozen across both races. A queue retest gets the new mix after an admission and builds another fresh schedule.
 
@@ -149,7 +154,15 @@ Goldfish and matrix seeds remain unchanged. Race seeds are deterministic unsigne
 
 `rust-psro-v1:<kingdom>:<reservoir-crc>:<initial-pairs-crc>:<search>:<race-kind>:<race-ordinal>:<position>:nonce:<nonce>`
 
-Rust applies the existing UTF-16 FNV-1a `stable_hash` function and uses the first 32 bits. It starts `nonce` at 0 and increments it until the value is not in the run’s used-seed set. The used set starts with the four Goldfish seeds and 125 matrix seeds and grows with every race. Race kinds are `screen`, `confirmation`, and `queue-retest`, so their seed domains cannot share a preimage. Search and retest ordinals make every repeated test fresh.
+Rendering is exact:
+
+- `<kingdom>` is the registered campaign kingdom ID, without the fingerprint;
+- every integer and CRC is lowercase ASCII decimal, without a sign, padding, separators, `0x`, or leading zero except the value 0;
+- `<search>` and `<race-ordinal>` start at 1;
+- `<position>` is the zero-based index in the race’s full maximum-depth schedule; schedule position `k` in the assignment rule is `<position> + 1`;
+- `<nonce>` starts at 0.
+
+Rust applies the existing UTF-16 FNV-1a `stable_hash` function and uses the 32-bit hash value, excluding the display-length suffix. It increments `nonce` until the value is not in the run’s used-seed set. The used set starts with the four Goldfish seeds and 125 matrix seeds and grows with every race. Race kinds are the exact strings `screen`, `confirmation`, and `queue-retest`, so their preimages differ. Search and retest ordinals make every repeated test fresh.
 
 The verifier regenerates every seed and rejects a duplicate, wrong order, reused screen seed, or reused confirmation or retest seed.
 
@@ -165,7 +178,7 @@ Order confirmed candidates by:
 
 Admit only the first candidate.
 
-For one admission, play the candidate against every current matrix strategy with all 125 matrix shuffles and both seats. Store all 125 point bytes and both strategies’ purchase counts and family-damage totals. Add the new row and column. Rebuild percentages from shuffles 1 through 75 and solve the mix with the frozen plan-78 solver.
+For one admission, play the candidate against every current matrix strategy with all 125 matrix shuffles and both seats. The current matrix order appends the admitted candidate, so each new upper-triangle pair is `(prior matrix strategy, admitted strategy)`. Store the prior strategy’s 0-to-4 point byte for each shuffle; if scoring first produces the admitted candidate’s byte `x`, write `4 - x`. Store both strategies’ purchase counts and family-damage totals. Add the new row and column. Rebuild percentages from shuffles 1 through 75 and solve the mix with the frozen plan-78 solver.
 
 Retest the remaining confirmed queue against the new mix. A queue retest uses fresh seeds, confirmation depths, and per-candidate alpha `0.05 / family size`, where the family is fixed to the remaining queue at the start of that retest. Order the candidates that confirm again by the same five rules. Admit one, solve again, and repeat. Rejected or unresolved retest candidates leave the queue.
 
@@ -197,6 +210,7 @@ Commands:
 ```text
 hexdeck-goldfish psro \
   --kingdom <id> \
+  --top-file FILE \
   --reservoir FILE \
   --matrix-dir DIR \
   --out DIR \
@@ -205,6 +219,7 @@ hexdeck-goldfish psro \
 
 hexdeck-goldfish psro-verify \
   --kingdom <id> \
+  --top-file FILE \
   --reservoir FILE \
   --matrix-dir DIR \
   --out DIR
@@ -212,7 +227,13 @@ hexdeck-goldfish psro-verify \
 
 If the frozen merged base still exposes only plan 78’s `--kingdom-file`, use the same kingdom-file argument for these commands. Do not add a second kingdom representation. Normalize on plan 77’s embedded table only when that table is present in the parent-provided base.
 
-A test-only invocation may add `--top N --candidate-limit M`. Both options must be explicit together. Production and Python callers pass neither. `psro-verify` rejects a shortened reservoir or matrix unless it receives the same test options.
+A test-only invocation may add `--matrix-size N --candidate-limit M`. Both options must be explicit together.
+
+- `--matrix-size N` requires `N >= 2`, requires the input matrix files to contain exactly the first `N` reservoir strategies, and passes the equivalent explicit size to the frozen plan-78 readers.
+- `--candidate-limit M` requires `M >= 1` and restricts each full search to the first `M` eligible nonmatrix reservoir rows in rank order. Matrix strategies are excluded before the limit is applied.
+- The reservoir must contain at least `N + M` rows. Its production 20,000-row rule is lifted only for this paired test invocation. The plan-77 top-file cross-check still runs against every reservoir row present.
+
+Production and Python callers pass neither option and require matrix size 50 and reservoir size 20,000. `psro-verify` rejects shortened inputs unless it receives the same pair and values.
 
 ## Binary evidence
 
@@ -265,42 +286,70 @@ Each fixed-size row contains:
 
 - candidate strategy number `u32`;
 - Goldfish rank `u32`;
-- decision byte: unresolved, rejected or below, provisional or confirmed;
+- decision byte: 0 unresolved, 1 below or rejected, 2 provisional or confirmed; the file kind gives the stage meaning;
 - three zero padding bytes;
 - cumulative mean, lower bound, and upper bound as three `f64` values;
 - one point byte for each suffix shuffle;
 - candidate purchase counts as one `u32` per kingdom card for the suffix games;
 - candidate family-damage totals as five `u32` values for the suffix games.
 
-The row size is recorded because suffix depths differ. The score prefix lives in prior files from the same race. The verifier joins those files in depth order before it recomputes each bound and decision. Unused fixed-width point padding is not written.
+Rows contain only candidates that were active when that look started, in reservoir rank order. A candidate resolved in this file does not appear in a later look from the same race. The row size is recorded because suffix depths differ. The score prefix lives in prior files from the same race. The verifier joins those files in depth order before it recomputes each bound and decision. Unused fixed-width point padding is not written.
 
 ### Admission files
 
-`admission-0001.hpa` is immutable. It records:
+`admission-0001.hpa` is immutable. Its payload order is:
 
-- the admitted strategy number, rank, confirmation bounds, mean, and queue order;
-- the matrix generation and complete mix before admission;
-- one row per prior matrix strategy with the opponent number, all 125 point bytes, and the plan-78 purchase and family-damage telemetry for both strategies;
-- the complete mix after admission.
+1. a 56-byte admission prefix: admission ordinal, search ordinal, confirmation or retest race ordinal, candidate number, Goldfish rank, matrix size before, matrix size after, and queue count as eight `u32` values, then mean, lower bound, and upper bound as three `f64` values;
+2. the complete ordered queue as `queue count` strategy-number `u32` values;
+3. the mix before admission: count `u32`, then count entries of strategy number `u32` and weight `f64` in matrix order;
+4. the mix after admission in the same encoding;
+5. one fixed row per prior matrix strategy.
 
-Rows use matrix order. The file binds the exact evidence that grows the matrix without replaying any game.
+An admission row is `opponent number u32`, 125 point bytes for the prior matrix strategy, then candidate telemetry and opponent telemetry. Each telemetry value is one `u32` per kingdom card followed by five family-damage `u32` values. Its row size is `4 + 125 + 2 × (4 × card count + 20)`. Rows use prior matrix order. The file binds the exact evidence that grows the matrix without replaying a game.
 
 ### Checkpoint and decisions
 
-`checkpoint.hpc` is one manually encoded, versioned binary state. It contains:
+`checkpoint.hpc` is one manually encoded, versioned binary state. Its payload starts with a 96-byte checkpoint prefix:
 
-- source checksums and protocol tag;
-- running or complete status;
-- search, look, queue-retest, admission, matrix-generation, and clean-search counters;
-- current phase and the next expected deterministic file name;
-- current matrix strategy numbers and mix weights;
-- the fixed family and active candidates for the current race;
-- confirmed queue records and their ordering fields;
-- all completed look and admission references with their payload CRCs.
+| Offset | Bytes | Field |
+| ---: | ---: | --- |
+| 0 | 1 | status: 0 running, 1 complete |
+| 1 | 1 | phase: 0 screen, 1 confirmation, 2 queue retest, 3 admission, 4 between searches, 5 complete |
+| 2 | 2 | zero padding |
+| 4 | 4 | search ordinal |
+| 8 | 4 | look index inside the current depth list |
+| 12 | 4 | queue-retest ordinal |
+| 16 | 4 | admission count |
+| 20 | 4 | matrix generation |
+| 24 | 4 | clean-search count |
+| 28 | 4 | matrix entry count |
+| 32 | 4 | fixed-family entry count |
+| 36 | 4 | active-candidate entry count |
+| 40 | 4 | queue-record count |
+| 44 | 4 | completed-file reference count |
+| 48 | 4 | current race ordinal |
+| 52 | 4 | previous completed depth |
+| 56 | 4 | next expected depth, or 0 |
+| 60 | 36 | zero reserved bytes |
 
-The checkpoint does not copy point bytes. Those stay in immutable look and admission files.
+Variable sections follow in this exact order:
 
-At completion, Rust writes `decisions.hpd`. It is the deterministic scientific summary: every final candidate decision, every admission, every mix, both clean searches, unresolved results, and the stop reason. `psro-verify` derives this summary from the immutable files and requires byte equality.
+1. matrix entries in matrix order, each `strategy number u32, weight f64`;
+2. fixed-family entries in reservoir rank order, each `strategy number u32, Goldfish rank u32`;
+3. active-candidate entries in reservoir rank order with the same 8-byte layout;
+4. queue records in queue order, each 48 bytes: strategy number, rank, blocks, source search, source race, and zero reserved as six `u32` values, then mean, lower bound, and upper bound as three `f64` values;
+5. completed-file references in transition order, each 24 bytes: kind, matrix generation, search, race or admission ordinal, depth, and payload CRC as six `u32` values.
+
+The next expected file name is derived from the phase and counters; no path or string is encoded. Every reserved byte must be zero. The checkpoint does not copy point bytes. Those stay in immutable look and admission files.
+
+At completion, Rust writes `decisions.hpd`. Its payload starts with eight `u32` values: final status 1, stop reason 1 for two clean searches, decision-record count, admission-record count, equilibrium-snapshot count, search-summary count, final matrix generation, and final clean-search count. The following sections are exact:
+
+1. decision records in transition order, 56 bytes each: stage byte (0 screen, 1 confirmation, 2 queue retest), status byte (0 unresolved, 1 below or rejected, 2 provisional or confirmed), two zero bytes, then search, race, look depth, candidate number, Goldfish rank, blocks, and family size as seven `u32` values, then mean, lower, and upper as three `f64` values;
+2. admission records in admission order, using the 56-byte admission prefix from `.hpa`, followed immediately by that record’s queue strategy numbers;
+3. equilibrium snapshots in matrix-generation order: generation `u32`, count `u32`, then count entries of strategy number `u32` and weight `f64` in matrix order;
+4. search summaries in search order, 28 bytes each: search ordinal, result (0 admitted, 1 clean), provisional count, confirmed count, unresolved-screen count, unresolved-confirmation count, and clean-search count after the search as seven `u32` values.
+
+The verifier rejects unknown enums, wrong counts, nonzero padding, wrong section order, or trailing bytes. It derives this summary from the immutable files and requires byte equality.
 
 ### Expanded matrix outputs
 
@@ -321,17 +370,19 @@ For each completed look or admission:
 1. Build the complete evidence bytes in memory.
 2. Write a `.tmp` file, flush it, and sync it.
 3. Verify its header, CRC, source identity, schedule, rows, and decisions.
-4. Rename it to its deterministic final name.
-5. Write and sync `checkpoint.hpc.tmp`, then rename it to `checkpoint.hpc`.
+4. Rename it to its deterministic final name and sync its parent directory.
+5. Write and sync `checkpoint.hpc.tmp`, rename it to `checkpoint.hpc`, and sync the output parent directory.
+6. In Modal handshake mode, print and flush `checkpoint <transition-ordinal> <checkpoint-payload-crc>` and wait. Python commits the Modal Volume, then replies `committed <transition-ordinal>`. Rust checks the ordinal before it starts the next look. The two lines are operational control text, not JSON or evidence. Local mode has no handshake.
 
 On startup:
 
-- verify all three input files before reading the checkpoint;
+- verify the top file, reservoir, and all three matrix input files before reading the checkpoint;
 - reject a checkpoint with another source identity or invalid transition;
 - remove an incomplete `.tmp` file;
 - if the next deterministic final evidence file exists and is valid but the checkpoint does not name it, replay the transition from that file and advance the checkpoint without replaying games;
 - reject a corrupt final evidence file instead of overwriting it;
-- continue at the first unfinished look.
+- rebuild every active candidate’s ordered score prefix from committed look files, checking active membership and decisions at each depth;
+- continue by scoring only the suffix for the first unfinished look.
 
 An admission file is committed before expanded matrix files. If the process stops between those writes, restart rebuilds the matrix files from the admission file. No completed games are replayed.
 
@@ -357,13 +408,13 @@ Verification prints one small JSON summary for operators. JSON is not evidence a
 
 ## Local and Modal entrypoints
 
-Add `scripts/psro_search.sh <kingdom-id> <threads> <reservoir> <matrix-dir> <out-dir>`. It builds or locates the release binary, runs `psro`, then runs `psro-verify`. Add an npm command that calls the script. Local execution needs no Python or TypeScript.
+Add `scripts/psro_search.sh <kingdom-id> <threads> <top-file> <reservoir> <matrix-dir> <out-dir>`. It builds or locates the release binary, runs `psro`, then runs `psro-verify`. Add an npm command that calls the script. Local execution needs no Python or TypeScript.
 
 Add `modal/psro_step.py` with one plain wrapper:
 
-`run_psro_step(binary, kingdom, reservoir, matrix_dir, out_dir, threads, report=None)`
+`run_psro_step(binary, kingdom, top_file, reservoir, matrix_dir, out_dir, threads, report=None)`
 
-It runs the Rust command, keeps a bounded stderr tail on failure, runs `psro-verify`, and returns output paths, byte counts, and the parsed operational report. It makes no schedule, confidence, queue, admission, or stopping decision.
+It runs the Rust command, keeps a bounded stderr tail on failure, runs `psro-verify`, and returns output paths, byte counts, and the parsed operational report. In Modal mode it owns the checkpoint handshake: on each valid Rust checkpoint signal it calls `volume.commit()`, then sends the matching acknowledgement. A commit failure stops the child process and leaves the look operationally incomplete. The wrapper makes no schedule, confidence, queue, admission, or stopping decision.
 
 Add one Modal function with 16 CPUs and enough memory for the reservoir, scores, and expanded matrix. It gives one kingdom one machine and calls this wrapper with 16 Rust threads. The function does not fan out a look.
 
@@ -392,6 +443,7 @@ This removal does not authorize a change to Goldfish or initial matrix behavior.
 ## Documentation
 
 - Update `README.md` with the local PSRO command, outputs, restart behavior, and verification command.
+- Update only step 3 in `.html/single-kingdom-strategy-search.html`: replace the imprecise per-look largest-remainder sentence and fixed padded-row description with the prefix-stable largest-deficit schedule and suffix look files from this approved plan. Do not change step 1 or step 2.
 - Rewrite step 3 in `docs/strategy-search-process.md` to match this single-process Rust implementation while preserving the scientific rules.
 - Update `docs/strategy-search-campaign-operator.md` so Modal runs one kingdom per larger machine and does not describe PSRO task chunks.
 - Keep `docs/strategy-search-evidence.md` unchanged unless a factual file-location sentence needs an update. Do not change its interpretation rules.
@@ -401,13 +453,15 @@ This removal does not authorize a change to Goldfish or initial matrix behavior.
 
 ### Rust unit tests
 
-- confidence bounds match TypeScript golden vectors at all seven screen depths and all five confirmation depths; pin lower and upper `f64` bits and boundary decisions;
+- Rust confidence bounds have pinned `f64` golden bits at all seven screen depths and all five confirmation depths; TypeScript bounds are within `2^-20` and every decision matches, including threshold-edge cases;
 - `libm` results and final evidence bytes match on macOS arm64 and Linux x86-64;
-- schedule assignment matches TypeScript `weightedFairSchedule` golden vectors, including zero weights and deficit ties;
-- seed generation is stable, fresh across searches and retests, disjoint from Goldfish and matrix seeds, and collision retry is deterministic;
+- schedule assignment matches numeric-key TypeScript golden vectors, including zero weights and the equal-deficit `gf-2` versus `gf-10` case;
+- seed generation pins exact decimal preimages, zero-based positions, fresh searches and retests, disjointness from Goldfish and matrix seeds, and deterministic collision nonces;
 - queue order covers every tie field;
 - a state-machine fixture covers screen rejection, provisional response, capped unresolved screening, confirmation rejection, confirmation success, capped unresolved confirmation, admission, queue-retest rejection and success, clean-search reset, and two-clean-search completion;
-- malformed headers, CRCs, source checksums, schedules, score bytes, ranks, family sizes, bounds, decisions, queues, admissions, mixes, and stop states are rejected.
+- malformed headers, CRCs, source checksums, schedules, score bytes, ranks, family sizes, bounds, decisions, queues, admissions, mixes, and stop states are rejected;
+- a reservoir with a valid CRC but a wrong top-file source link or wrong shuffle-1 rows is rejected;
+- an asymmetric admission pair proves that expanded upper-triangle bytes store the prior matrix strategy’s score, not the admitted strategy’s score.
 
 ### Restart tests
 
@@ -415,6 +469,8 @@ At every persistence boundary, stop and start the command again. Prove:
 
 - a partial `.tmp` file causes only the unfinished look to run again;
 - a valid renamed look with a stale checkpoint is adopted without scoring it again;
+- mid-screen and mid-confirmation restarts rebuild exact prefixes and score suffix games only;
+- a Modal worker killed after an acknowledged Volume commit resumes in a new container without replaying that look;
 - a valid admission file with missing expanded matrix files rebuilds them without scoring;
 - a corrupt final look or admission stops with a clear error;
 - another reservoir or initial matrix cannot resume the directory;
@@ -424,10 +480,14 @@ Use a test scorer counter to prove which games run again. Do not rely only on fi
 
 ### End-to-end fixture
 
-Use `balance-tuning-005` and the frozen plan-78 fixture files. Run a small explicit `--top N --candidate-limit M` process at thread counts 1, 4, and 10. Require:
+Use `balance-tuning-005`. Add a PSRO-specific committed test top file and reservoir with a valid plan-77 source link, valid shuffle-1 rows, valid sorting, and enough rows for the test sizes. Do not weaken verification to accept the plan-78 zero-source-checksum reservoir. Build the small input matrix from these PSRO fixtures with the frozen plan-78 command.
+
+Run an explicit `--matrix-size N --candidate-limit M` process at thread counts 1, 4, and 10. Require:
 
 - `psro-verify` passes;
 - all scientific output bytes match across thread counts and a repeated run;
+- test knobs have the exact matrix-size and post-exclusion candidate-limit meanings above, and verify accepts only matching values;
+- later look files contain only candidates that remained active after the prior look;
 - at least one fixture path reaches admission and queue retest;
 - another reaches capped unresolved and two-clean-search completion;
 - an independent TypeScript reference fixture produces the same schedules, bounds, decisions, admission order, and final support.
