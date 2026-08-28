@@ -221,15 +221,13 @@ function scoreTaskMatchesLook(task: ParallelPsroScoreTaskDescriptor, look: Paral
     && task.scheduleStart >= look.scheduleStart && task.scheduleEnd > task.scheduleStart
     && task.scheduleEnd <= look.scheduleEnd && Number.isFinite(task.expectedTaskMs) && task.expectedTaskMs > 0;
 }
-export function createParallelPsroScoreTaskChunk(input: { checkpoint: ParallelPsroSemanticCheckpoint;
-  look: ParallelPsroLookDescriptor; task: ParallelPsroScoreTaskDescriptor;
-  rows: readonly CandidateEvaluation[] }): ParallelPsroScoreTaskChunk {
-  if (!validateParallelPsroCheckpoint(input.checkpoint)
-    || lookDescriptor(structuredClone(input.checkpoint)).descriptorHash !== input.look.descriptorHash
-    || !scoreTaskMatchesLook(input.task, input.look)) throw new Error('Parallel PSRO score task is stale.');
+type CandidateMap = ReturnType<typeof candidateMap>;
+type ScoreTaskChunkInput = { checkpoint: ParallelPsroSemanticCheckpoint; look: ParallelPsroLookDescriptor;
+  task: ParallelPsroScoreTaskDescriptor; rows: readonly CandidateEvaluation[] };
+function createScoreTaskChunk(input: ScoreTaskChunkInput, candidates: CandidateMap): ParallelPsroScoreTaskChunk {
   const ids = input.look.candidateIds.slice(input.task.candidateStart, input.task.candidateEnd);
   const canonicals = input.look.candidateCanonicals.slice(input.task.candidateStart, input.task.candidateEnd);
-  const candidates = candidateMap(input.checkpoint), blocks = input.task.scheduleEnd - input.task.scheduleStart;
+  const blocks = input.task.scheduleEnd - input.task.scheduleStart;
   if (input.rows.length !== ids.length || input.rows.some((row, index) => row.strategy.id !== ids[index]
     || candidates.get(ids[index]!)?.canonicalStrategy !== canonicals[index]
     || row.blockScores.length !== blocks || row.matches !== blocks * GAMES_PER_SEED
@@ -248,8 +246,15 @@ export function createParallelPsroScoreTaskChunk(input: { checkpoint: ParallelPs
     contentHash: '' };
   return { ...base, contentHash: hash(base) };
 }
-export function validateParallelPsroScoreTaskChunk(value: unknown, checkpoint: ParallelPsroSemanticCheckpoint,
-  look: ParallelPsroLookDescriptor, task: ParallelPsroScoreTaskDescriptor): value is ParallelPsroScoreTaskChunk {
+export function createParallelPsroScoreTaskChunk(input: ScoreTaskChunkInput): ParallelPsroScoreTaskChunk {
+  if (!validateParallelPsroCheckpoint(input.checkpoint)
+    || lookDescriptor(structuredClone(input.checkpoint)).descriptorHash !== input.look.descriptorHash
+    || !scoreTaskMatchesLook(input.task, input.look)) throw new Error('Parallel PSRO score task is stale.');
+  return createScoreTaskChunk(input, candidateMap(input.checkpoint));
+}
+function validateScoreTaskChunk(value: unknown, checkpoint: ParallelPsroSemanticCheckpoint,
+  look: ParallelPsroLookDescriptor, task: ParallelPsroScoreTaskDescriptor,
+  candidates: CandidateMap): value is ParallelPsroScoreTaskChunk {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   try {
     const held = value as ParallelPsroScoreTaskChunk, blocks = held.scheduleEnd - held.scheduleStart;
@@ -259,7 +264,6 @@ export function validateParallelPsroScoreTaskChunk(value: unknown, checkpoint: P
       || held.dimensions.played !== held.dimensions.scoreBytes
       || held.scoreBytes.some((score) => !Number.isSafeInteger(score) || score < 0 || score > 4)
       || held.played.some((played) => played !== GAMES_PER_SEED)) return false;
-    const candidates = candidateMap(checkpoint);
     const rows = held.candidateIds.map((id, index) => {
       const strategy = candidates.get(id)?.strategy;
       if (!strategy) throw new Error('candidate missing');
@@ -267,8 +271,15 @@ export function validateParallelPsroScoreTaskChunk(value: unknown, checkpoint: P
       return { strategy, mean: mean(scores), blockScores: scores, interval: null,
         matches: blocks * GAMES_PER_SEED, telemetry: held.telemetryByCandidate[index]! };
     });
-    return exact(held, createParallelPsroScoreTaskChunk({ checkpoint, look, task, rows }));
+    return exact(held, createScoreTaskChunk({ checkpoint, look, task, rows }, candidates));
   } catch { return false; }
+}
+export function validateParallelPsroScoreTaskChunk(value: unknown, checkpoint: ParallelPsroSemanticCheckpoint,
+  look: ParallelPsroLookDescriptor, task: ParallelPsroScoreTaskDescriptor): value is ParallelPsroScoreTaskChunk {
+  return validateParallelPsroCheckpoint(checkpoint)
+    && lookDescriptor(structuredClone(checkpoint)).descriptorHash === look.descriptorHash
+    && scoreTaskMatchesLook(task, look)
+    && validateScoreTaskChunk(value, checkpoint, look, task, candidateMap(checkpoint));
 }
 function requestNext(checkpoint: ParallelPsroSemanticCheckpoint, targetTasks = PARALLEL_PSRO_MAX_SCORE_TASKS): ParallelPsroTransition {
   if (checkpoint.status !== 'running') return { kind: checkpoint.status, checkpoint: seal(checkpoint) };
@@ -329,10 +340,11 @@ export function reduceParallelPsroLook(input: { checkpoint: ParallelPsroSemantic
     throw new Error('Parallel PSRO score-task coverage is incomplete.');
   }
   const byTask = new Map<number, ParallelPsroScoreTaskChunk>();
+  const candidates = candidateMap(checkpoint);
   for (const chunk of input.chunks) {
     const task = input.tasks[chunk.taskIndex];
     if (!task || byTask.has(chunk.taskIndex)
-      || !validateParallelPsroScoreTaskChunk(chunk, input.checkpoint, input.look, task)) {
+      || !validateScoreTaskChunk(chunk, input.checkpoint, input.look, task, candidates)) {
       throw new Error('Parallel PSRO score-task chunks are missing, duplicate, stale, or corrupt.');
     }
     byTask.set(chunk.taskIndex, chunk);
@@ -357,7 +369,6 @@ export function reduceParallelPsroLook(input: { checkpoint: ParallelPsroSemantic
   if (scores.some((row) => row.some((score) => score < 0))) {
     throw new Error('Parallel PSRO score-task coverage is incomplete.');
   }
-  const candidates = candidateMap(checkpoint);
   const candidateRanges = [...new Map(input.tasks.map((task) => [
     `${task.candidateStart}:${task.candidateEnd}`,
     { start: task.candidateStart, end: task.candidateEnd }
