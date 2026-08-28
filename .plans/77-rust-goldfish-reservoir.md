@@ -2,7 +2,7 @@
 
 Status: implementation plan for review.
 
-This plan implements step 1 of the strategy-search process as described in `.html/single-kingdom-strategy-search.html` (committed at `16a8a02`). That HTML is the product intent. This plan replaces the Goldfish parts of `.plans/74-scalable-strategy-search-runtime.md`. Matrix and PSRO keep the rules in `.plans/76-global-matrix-psro-runtime.md`.
+This plan implements step 1 of the strategy-search process as described in `.html/single-kingdom-strategy-search.html` (step 1 committed at `16a8a02`; the file now also holds step 2, which is out of scope here). That HTML is the product intent. This plan replaces the Goldfish parts of `.plans/74-scalable-strategy-search-runtime.md` and deletes the legacy Goldfish experiment paths. Matrix and PSRO keep the rules in `.plans/76-global-matrix-psro-runtime.md`.
 
 ## Goal
 
@@ -30,7 +30,8 @@ These come from the task brief and are not open for review.
 - Kingdom data: one generated file `rust/goldfish/kingdoms.json` holds the native kingdom input, the sorted purchase card IDs, and the rule fingerprint for every registered strategy-search kingdom (260 kingdoms, about 1.2 MB). The binary embeds it at build time with `include_str!`. A test checks the committed file is current. This replaces `rust/goldfish/kingdom009.json` and `src/sim/nativeKingdom009.ts`.
 - Test knobs: the reducers accept an explicit universe (`--start/--end`) and keep count (`--keep`) so a small local run can exercise the full pipeline. Production callers pass none of these; the defaults are the full space, 500,000, and 20,000. `verify` enforces the production shape unless the caller passes the same knobs.
 - Runtime file names stay `tasks/<stage>/<start>-<end>.hgs`, `goldfish/top-500000.hgf`, and `goldfish/reservoir.hgf`. Names are runtime paths, not evidence; keeping them avoids churn in the operator, runtime, and status code.
-- The Rust JSON line protocol (`--threads N --cpu-request N`, stdin requests) stays because the Rust-versus-TypeScript conformance tests use it. The campaign's JSON request file and NDJSON response file round trip lives only in `scripts/strategy_search_goldfish.ts` and is deleted with it. The Rust `--stream-score-batch` flag and `src/sim/nativeScoreStream.ts` stay only because the legacy experiment script `scripts/ordered_goldfish_product.ts` `score` mode and its Modal `ordered_product_stage_*` callers still use them; that legacy experiment path is not the campaign Goldfish step and is out of scope. Its removal is a follow-up cleanup.
+- The Rust JSON line protocol (`--threads N --cpu-request N`, stdin requests: `hello`, `shuffle`, `compare_utf16`, `stable_hash`, `score_batch`, and the `*_competitive` requests) stays because the Rust-versus-TypeScript Goldfish conformance tests need `score_batch` with arbitrary strategies, turn limits, and action caps, and the competitive kernel serves PSRO through the same process. The `--stream-score-batch` NDJSON file mode, `write_score_stream`, its test, and `src/sim/nativeScoreStream.ts` are deleted together with every caller. Nothing in the campaign uses the JSON protocol for Goldfish after this change.
+- Legacy Goldfish experiment paths are deleted, not kept behind flags. The "Legacy path deletions" section lists the seed set and the rule for dependent modules.
 - Job sizing policy in `src/sim/strategySearchScheduler.ts` does not change. It is runtime policy, not evidence.
 
 ## File formats
@@ -123,7 +124,7 @@ Local run: `scripts/goldfish_reservoir.sh <kingdom-id> <threads> <out-dir>` runs
 - Add `src/sim/nativeKingdoms.ts` with `nativeKingdomsJson()` for every registered strategy-search kingdom. Rewrite `scripts/write_native_kingdom.ts` to write and check `rust/goldfish/kingdoms.json`. Keep the npm script names `goldfish:native-kingdom-write` and `goldfish:native-kingdom-check`.
 - Update readers: `scripts/strategy_search_campaign_matrix_manifest.ts` (`reservoirIdentityHash` and `reservoirContentHash` both become the reservoir file SHA-256; strategies are the first 50 records), `scripts/strategy_search_campaign_parallel_psro.ts` init mode (`goldfishRank: rank`, `seedSourceHash` and `sourceIdentityHash` from file SHA-256 values), `scripts/strategy_search_campaign_psro.ts` (`rankedSha256` becomes the top file SHA-256; `entries` are the new records), and `scripts/strategy_search_validate_artifact.ts` (`goldfish-one-reduce` reads and validates the top file; `goldfish-two-reduce` reads the reservoir with the top cross-check; `psro` candidate IDs come from the reservoir records). Drop the evidence-ID header checks; the fingerprint check replaces them.
 - `src/sim/strategySearchCampaign.ts`: replace `orderedProduct` in `KingdomEvidenceIdentity` with `goldfish: { generator: 'ordered-five-rung-v1', rowFormat: 'goldfish-rows-v1', scorerVersion, candidateCount, retainedCount, reservoirCount, profiles, seeds, cardIds }`. No traversal, no collision allowance. Evidence IDs change; there is no compatibility requirement.
-- Delete `scripts/strategy_search_goldfish.ts`, `src/sim/strategySearchCompact.ts`, `src/sim/nativeKingdom009.ts`, `rust/goldfish/kingdom009.json`, `scripts/benchmark_strategy_search_compact.ts` and its npm script, and `test/sim/strategySearchCompact.test.ts`. Remove the `goldfish` entry from `scripts/strategy_search_subprocess.ts` and the matching subprocess test case.
+- Delete `scripts/strategy_search_goldfish.ts`, `src/sim/strategySearchCompact.ts`, `src/sim/nativeKingdom009.ts`, `rust/goldfish/kingdom009.json`, and `test/sim/strategySearchCompact.test.ts`. Remove the `goldfish` entry from `scripts/strategy_search_subprocess.ts` and the matching subprocess test case. The legacy experiment deletions are listed in their own section below.
 - Update `strategy-search-image-files.json` and `strategy-search-scientific-files.json`: remove the deleted files, add `rust/goldfish/kingdoms.json` and `src/sim/goldfishReservoir.ts`. The image build already compiles everything under `rust/`.
 
 ## Python changes (`modal/`)
@@ -132,8 +133,28 @@ Local run: `scripts/goldfish_reservoir.sh <kingdom-id> <threads> <out-dir>` runs
 - `_strategy_search_validate_publication` for `goldfish-one`, `goldfish-two`, `goldfish-one-reduce`, and `goldfish-two-reduce` runs `hexdeck-goldfish verify` with the expected kind, range, and (for the reservoir) the published top file. `_strategy_search_validate_compact` and its `struct` parsing are removed.
 - `_strategy_search_verify_goldfish_startup` runs `hexdeck-goldfish kingdom --kingdom deep-beam-tuning-007` and requires `candidateCount == 12972960`. The binary path comes from `HEXDECK_GOLDFISH_BIN` with the image default `/workspace/rust/target/release/hexdeck-goldfish` so tests can point at the local build.
 - The remote canary keeps its shape (`score-one`, range `0..1`).
-- The legacy ordered-product functions (`score_shard`, `product_search`, `ordered_product_stage_*`, `_run_rust`) and their tests do not change.
+- The legacy ordered-product launcher is deleted from `modal/native_strategy_search.py`: `score_shard`, `product_search`, `ordered_product_stage_one`, `ordered_product_stage_two`, `_run_product_stage`, `ordered_product_controller`, `controller`, the `launch` local entrypoint, `validate_launch_limits`, `reserve_cost` and the cost ledger constants, the ordered-product authorization tables, `_native_shard`, `_run_rust`, `_ordered_product_cli`, `_valid_ordered_product_checkpoint`, `_preserve_corrupt_file`, `_campaign_stage_one_ranges`, `_remaining_stage_seconds`, `_valid_stage_one_chunk_metadata`, `projected_cost_usd`, `projected_product_cost_usd`, `projected_ordered_product_cost_usd`, `claim_controller`, `update_run_status`, `record_controller_call`, `_result_hash`, `valid_result`, `_result_path`, `_stable_hash`, `ordered_subprocess_timeouts`, and every test that exists only for them. Keep `_run_checked`, `_called_process_details`, `_atomic_json`, the image definition, the competitive functions and entrypoints (`competitive_*`, `stage_competitive_input`, `launch_competitive`, `run_competitive`, and their helpers), and every `strategy_search_*` function.
 - The controller's phase invariant, I/O ratio check, byte accounting, and report shape stay.
+
+## Legacy path deletions
+
+Delete these files and the npm scripts, README sections, and tests that exist only for them. The seed set is every script that only drives the old Goldfish path (ordered-product shards, staged Goldfish pools, random and enrichment pilots, Goldfish benchmarks):
+
+- `scripts/ordered_goldfish_product.ts` (`goldfish:ordered-product`);
+- `scripts/native_staged_product_search.ts` (`staged-goldfish:native-pool`);
+- `scripts/native_ordered_shard_input.ts` and `test/sim/nativeOrderedShardInput.test.ts`;
+- `scripts/ordered_goldfish_benchmark.ts` (`goldfish:ordered-benchmark`, `build:goldfish-worker`);
+- `scripts/benchmark_strategy_search_compact.ts` (`strategy-search:compact-benchmark`);
+- `scripts/native_goldfish_metadata.ts` (`goldfish:native-metadata`);
+- `scripts/staged_goldfish_ab.ts` (all `staged-goldfish:*` scripts), `src/sim/stagedGoldfishSuite.ts`, `test/sim/stagedGoldfishSuite.test.ts`;
+- `scripts/goldfish_random_pilot.ts` (`goldfish:pilot`) and `scripts/goldfish_enrichment_pilot.ts` (`goldfish:enrichment`);
+- `src/sim/nativeScoreStream.ts` and `test/sim/nativeScoreStream.test.ts`;
+- `src/sim/orderedGoldfishSplitArtifact.ts` and its test block in `test/sim/orderedGoldfishProduct.test.ts`;
+- the Rust `--stream-score-batch` mode.
+
+Rule for dependents: after the seed set is gone, delete any `src/sim` module, worker, or test whose only importers were deleted (for example `src/sim/stagedGoldfish.ts` and `test/sim/stagedGoldfish.test.ts` if nothing else imports them). Keep a module when a retained script or test still imports it (for example `src/sim/nativeStrategySearch.ts` while the fixed-reservoir PSRO scripts import it, and `src/server/goldfishWorker.ts` while those scripts spawn it). Keep `src/sim/goldfish.ts`, `src/sim/orderedGoldfishBenchmark.ts`, `src/sim/orderedGoldfishProduct.ts`, `src/sim/rustGoldfishScorer.ts`, and `src/sim/nativeGoldfishProtocol.ts`: they are the TypeScript reference, the mapping, the ranking evidence types, and the conformance and competitive clients. Do not delete fixed-reservoir, ordered-reservoir, response-oracle, or PSRO experiment scripts; they are not the Goldfish path.
+
+Remove the deleted files from `strategy-search-image-files.json` and `strategy-search-scientific-files.json`. `npm run typecheck`, `npm run lint`, and `npm test` prove nothing dangling remains. The README loses the ordered-product, staged-Goldfish, benchmark, pilot, and `native-metadata` command sections.
 
 ## Documentation
 
@@ -159,7 +180,7 @@ TypeScript (vitest, `test/sim/goldfishReservoir.test.ts`, skipped when the binar
 - `kingdoms.json` is current;
 - existing conformance tests keep passing.
 
-Python (`npm run modal:test`): goldfish job command shape and report mapping (patched subprocess), validation calls `verify` with the expected arguments, readiness uses the Rust `kingdom` command and fails when the binary is missing, controller materialization tests unchanged.
+Python (`npm run modal:test`): goldfish job command shape and report mapping (patched subprocess), validation calls `verify` with the expected arguments, readiness uses the Rust `kingdom` command and fails when the binary is missing, controller materialization tests unchanged, and the ordered-product launcher tests are removed with the launcher.
 
 ## Validation before completion
 
