@@ -805,28 +805,32 @@ fn command_score_one(options: &Options) -> Result<(), String> {
         .build()
         .map_err(|error| error.to_string())?;
     let mut writer = RowWriter::new(Path::new(options.required("out")?))?;
-    let scoring_started = Instant::now();
+    let mut scoring_elapsed = Duration::ZERO;
+    let mut write_elapsed = Duration::ZERO;
     let group_size = BLOCK_SIZE
         .saturating_mul(u32::try_from(threads).unwrap_or(u32::MAX))
         .saturating_mul(8);
     let mut cursor = start;
     while cursor < end {
         let group_end = cursor.saturating_add(group_size).min(end);
+        let scoring_started = Instant::now();
         let rows: Vec<Result<ResultRow, String>> = pool.install(|| {
             (cursor..group_end)
                 .into_par_iter()
                 .map(|number| score_row(&loaded, number, &SEEDS[..1]))
                 .collect()
         });
+        scoring_elapsed += scoring_started.elapsed();
+        let write_started = Instant::now();
         for row in rows {
             writer.write(&result_bytes(&row?))?;
         }
+        write_elapsed += write_started.elapsed();
         cursor = group_end;
     }
-    let scoring_elapsed = scoring_started.elapsed();
     let write_started = Instant::now();
     let (_, bytes_written) = writer.finish(header_for(&loaded, Kind::StageOne, start, end, 0))?;
-    let write_elapsed = write_started.elapsed();
+    write_elapsed += write_started.elapsed();
     let report = Report {
         command: "score-one".into(),
         kingdom_id: loaded.id,
