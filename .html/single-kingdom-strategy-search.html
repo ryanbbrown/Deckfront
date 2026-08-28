@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>1. Build the Goldfish reservoir</title>
+  <title>Single-kingdom strategy search</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -35,6 +35,11 @@
       font-weight: 700;
       cursor: pointer;
     }
+    h2 {
+      margin: 36px 0 8px;
+      font-size: 26px;
+      line-height: 1.2;
+    }
     h3 {
       margin: 18px 0 0;
       font-size: 16px;
@@ -56,7 +61,10 @@
 </head>
 <body>
   <main>
-    <h1>1. Build the Goldfish reservoir</h1>
+    <h1>Single-kingdom strategy search</h1>
+    <p>Each step below has three sections: the process, a plain language description, and the implementation detail. Open a section to read it.</p>
+
+    <h2>1. Build the Goldfish reservoir</h2>
 
     <details open>
       <summary>The process in five steps</summary>
@@ -153,6 +161,149 @@
         <li>The Rust program reads both final files back and checks every header, checksum, row count, and the sort order.</li>
         <li>Only then does the Python script delete the range result files.</li>
         <li>Three files remain: <code>top-500000</code>, <code>reservoir</code>, and a small run report with timings, computer counts, and bytes read and written. The two result files hold no timing information, so the same run always produces the same bytes.</li>
+      </ol>
+    </details>
+
+    <h2>2. Build the first game matrix</h2>
+
+    <details open>
+      <summary>The process in seven steps</summary>
+      <ol>
+        <li>Take the best 50 strategies from the reservoir.</li>
+        <li>Pair each strategy with every other strategy. That is 1,225 pairs. A strategy is not paired with itself, because that result is always 50%.</li>
+        <li>For each pair, play 125 fixed shuffles. Play each shuffle twice, so each strategy goes first once. That is 250 games per pair and 306,250 games in total.</li>
+        <li>Score each shuffle for the pair: 2 points for a win, 1 for a draw, 0 for a loss, added over the two games. So a strategy gets 0 to 4 points per shuffle against its partner. Keep every shuffle's points.</li>
+        <li>Record what each strategy bought in every game. Later balance reports need this.</li>
+        <li>Build the matrix from shuffles 1 to 75 only. A cell holds one strategy's average score against another, as a percentage. Shuffles 76 to 100 and 101 to 125 are kept for later checks and are not used here.</li>
+        <li>Find the mix: a set of weights on the 50 strategies such that no strategy in the matrix scores better than 50% against a random draw from the mix. Save the matrix, the purchases, and the mix.</li>
+      </ol>
+    </details>
+
+    <details>
+      <summary>Plain language description</summary>
+      <p>Goldfish scoring showed which strategies are fast on their own. It said nothing about how they do against each other. This step plays the 50 best Goldfish strategies head to head and writes down the results in a grid. The grid is the matrix. Row A, column B holds how well strategy A does against strategy B.</p>
+      <p>Going first is an advantage, so the game gives the first player a small health penalty. Even so, both seats can matter. That is why every shuffle is played twice with the seats swapped. The two results are added so seat order cancels out.</p>
+      <p>125 fixed shuffles per pair give a stable average. The shuffles are split into three groups: 75 for building the matrix, 25 for a later depth check, and 25 that stay untouched as independent evidence. This step plays all 125 but uses only the first 75.</p>
+      <p>The mix is the answer to: if you had to pick one of these 50 strategies at random, with what odds should you pick each one so that no strategy in the grid can beat your pick on average? Some strategies get weight zero. The mix is the starting point for the next step, which searches the reservoir for strategies that beat it.</p>
+      <p>Every game uses a fixed shuffle number, so any cell can be replayed and checked later. The 125 shuffle numbers for this step are fixed and are different from the four Goldfish shuffle numbers.</p>
+    </details>
+
+    <details>
+      <summary>Implementation detail</summary>
+
+      <h3>Inputs</h3>
+      <p>The Rust program reads the first 50 rows of <code>reservoir</code> from step 1. It needs only the 50 strategy numbers. It rebuilds each shopping list from its number, the same way as step 1.</p>
+
+      <h3>Work unit</h3>
+      <p>One work unit is one pair: 125 shuffles × 2 games = 250 games. There are 1,225 work units. The Rust program splits them across its cores. One core plays a pair from start to finish and keeps nothing in memory but the current game and its 125 result bytes.</p>
+      <p>The pair (A, B) gives both cells at once. B's points against A are 4 minus A's points against B. So the program never plays the reverse pair.</p>
+
+      <h3>Result rows and result files</h3>
+      <p>The pair result file has one row per pair: the two strategy numbers (4 bytes each), then 125 bytes, one per shuffle, holding the first strategy's points for that shuffle (0 to 4). Rows are in pair order: (1, 2), (1, 3), ... (49, 50). That is 133 bytes per row and about 163 KB for the whole file.</p>
+      <p>The purchase file has one row per pair and seat: the strategy number, the partner number, then one count per card in the kingdom for how many copies it bought across all 250 games, and one damage total per card family. About 200 KB.</p>
+      <p>Both files start with the same kind of header as step 1: what they cover, how many rows, and a checksum of the row bytes. Neither file holds timings.</p>
+
+      <h3>The matrix and the mix</h3>
+      <ol>
+        <li>The Rust program reads the pair file back and checks the checksum and the row count.</li>
+        <li>For each cell it averages the first 75 shuffle scores and divides by 4. That gives a percentage from 0% to 100%. The diagonal is exactly 50%.</li>
+        <li>It solves for the mix. This is a small linear program over 50 unknowns. It takes milliseconds. When more than one mix is equally good, the program chooses the one that spreads weight over the most strategies, then breaks any remaining tie by lower strategy number, so the answer is the same every run.</li>
+        <li>It checks the answer: every weight is 0 or more, the weights add up to 1, and no strategy in the matrix scores more than 50% against the mix, within a fixed tiny tolerance.</li>
+        <li>It writes <code>matrix</code>: a header, the 50 strategy numbers, the 50 × 50 percentages, and the 50 mix weights. About 12 KB.</li>
+      </ol>
+
+      <h3>Running locally</h3>
+      <p>One Rust command does the whole step: read the reservoir, play the 1,225 pairs on all cores, write the two result files, build the matrix, solve the mix, verify, and write <code>matrix</code>. At the measured 10,000 to 12,000 games per second on a 10-core laptop, the 306,250 games take about 30 seconds. The whole step takes under a minute.</p>
+
+      <h3>Running on Modal</h3>
+      <p>This step is too small to split across computers. Splitting it would cost more in start-up and file transfer than it saves. So one cloud computer runs the whole step for one kingdom, the same command as the local run. On a 4-core cloud computer that is about 90 seconds.</p>
+      <p>Modal helps by running many kingdoms at the same time. Each kingdom's step 2 starts as soon as its <code>reservoir</code> file passes its checks. It does not wait for any other kingdom. The Python script only picks the computer, runs the command, and collects the three output files.</p>
+
+      <h3>Cleanup and outputs</h3>
+      <ol>
+        <li>The Rust program reads all three files back and checks headers, checksums, row counts, and that every matrix cell matches the pair file.</li>
+        <li>Three files remain: <code>pairs</code> (all 125 shuffle results), <code>purchases</code>, and <code>matrix</code>. Plus the small run report with timings.</li>
+        <li>The same inputs always give the same bytes, locally or on Modal.</li>
+      </ol>
+    </details>
+
+    <h2>3. Search the reservoir for strategies that beat the mix</h2>
+
+    <details open>
+      <summary>The process in nine steps</summary>
+      <ol>
+        <li>Take every reservoir strategy that is not in the matrix. At the start that is 19,950 candidates.</li>
+        <li>Screen them. Play each candidate against the mix for 8 shuffles, two games per shuffle. The mix's strategies are shared out over the shuffles in proportion to their weights.</li>
+        <li>Decide each candidate from its win rate and a confidence range. A candidate that clearly scores 51% or less is rejected. A candidate that clearly scores more than 51% goes to confirmation. Anything else plays more shuffles: 16, 32, 64, 128, 256, then 512. A candidate still unclear at 512 is marked unresolved and set aside.</li>
+        <li>Confirm the candidates that passed screening with fresh shuffles: 400, then 800, 1,600, 3,200, and 6,400 while still unclear. The confidence requirement is stricter here, and it is shared across all candidates being confirmed at once, so confirming many at once is not easier than confirming one.</li>
+        <li>Order the confirmed candidates by strength. Admit the strongest one to the matrix: play it against every matrix strategy for 125 shuffles, two games each, and add its row and column.</li>
+        <li>Find the new mix from the bigger matrix.</li>
+        <li>Retest the other confirmed candidates against the new mix with fresh shuffles. Admit the strongest one that still confirms, find the new mix again, and repeat until none are left.</li>
+        <li>Run the search again from step 1 against the final mix of this round.</li>
+        <li>Stop after two searches in a row that admit nothing. Save everything.</li>
+      </ol>
+    </details>
+
+    <details>
+      <summary>Plain language description</summary>
+      <p>The matrix says which of the 50 strategies do well against each other, and the mix is the best way to pick among them. But the reservoir has 20,000 strategies. Maybe one of the other 19,950 beats the mix. This step looks for such a strategy, and when it finds one, it adds it to the matrix and tries again. It stops when it looks twice and finds nothing.</p>
+      <p>Playing against the mix means: for each shuffle, the candidate's opponent is one of the matrix strategies, chosen so that over all the shuffles the opponents appear in the same proportions as the mix weights. A strategy with weight 0 is never the opponent.</p>
+      <p>Screening is cheap and rough. It uses few shuffles and spends more only on candidates that are close to the line. Confirmation is expensive and strict. It uses fresh shuffles so a candidate cannot pass on a lucky screening result, and it demands a confidence range whose low end is above 51%. The 51% line, rather than 50%, means a candidate must beat the mix by a clear margin, not by noise.</p>
+      <p>Only one candidate is admitted at a time. Adding a strategy changes the mix, and a change in the mix can make the other confirmed candidates stop winning. So each one is tested again against the new mix before it gets its turn.</p>
+      <p>A candidate that stays unclear at the largest number of shuffles is recorded as unresolved. That is a result, not an error. Two clean searches in a row mean the reservoir has no strategy this process can confirm against the final mix. They do not prove that no such strategy exists outside the reservoir.</p>
+    </details>
+
+    <details>
+      <summary>Implementation detail</summary>
+
+      <h3>Inputs and state</h3>
+      <p>The Rust program reads <code>reservoir</code> from step 1 and <code>matrix</code> and <code>pairs</code> from step 2. Its working state is small: the list of matrix strategy numbers, the pair results (125 bytes per pair), the current mix weights, the candidate decisions so far, and which search and look it is on. After every look it writes this state to disk. If the run is stopped, the next run reads the state and continues from the last finished look. Nothing is replayed.</p>
+
+      <h3>Shuffle numbers</h3>
+      <p>Every shuffle number in this step is fixed by a formula from the search number, the stage (screen, confirm, retest, or admit), and the position in the sequence. Screening, confirmation, and retest use separate number ranges, so they never share a shuffle. The same candidate at the same look in the same search always plays the same games, locally or on Modal.</p>
+
+      <h3>Sharing the mix out over shuffles</h3>
+      <p>For a look of N shuffles, each mix strategy gets a whole number of shuffles as close as possible to N times its weight, using largest-remainder rounding, with ties broken by lower strategy number. The opponents are then laid out in a fixed order. Every candidate in the same look faces the same opponent sequence. So candidates are compared on equal terms.</p>
+
+      <h3>Screening looks</h3>
+      <ol>
+        <li>A look is one pass over all still-open candidates at one shuffle count. The first look plays 8 shuffles for every open candidate: 19,950 candidates × 8 shuffles × 2 games = 319,200 games.</li>
+        <li>The program splits the candidates across its cores. A core takes a candidate number, rebuilds its shopping list, plays its games in shuffle order, and writes one byte per shuffle: the candidate's points, 0 to 4.</li>
+        <li>After the look, the program computes each candidate's win rate and a confidence range that stays valid when it is checked again after more shuffles. Whole range at or below 51%: reject. Whole range above 51%: send to confirmation. Otherwise the candidate stays open for the next look.</li>
+        <li>The next look doubles the shuffle count. It plays only the new shuffles and keeps the old bytes. Most candidates are rejected at 8 or 16 shuffles, so later looks are small.</li>
+        <li>After the 512-shuffle look, any candidate still open is marked unresolved.</li>
+      </ol>
+
+      <h3>Confirmation looks</h3>
+      <ol>
+        <li>The candidates that passed screening form one family. The confidence requirement for each is 5% divided by the family size, so the chance that any wrong candidate is confirmed stays at 5% for the whole family.</li>
+        <li>The first look plays 400 fresh shuffles per candidate. Low end of the range above 51%: confirmed. High end at or below 51%: rejected. Otherwise double, up to 6,400. Still open at 6,400: unresolved.</li>
+      </ol>
+
+      <h3>Admission</h3>
+      <ol>
+        <li>Confirmed candidates are ordered by: higher low end of the range, higher win rate, higher high end, better Goldfish rank, then lower strategy number.</li>
+        <li>The first one is admitted. The program plays it against every matrix strategy for 125 shuffles, two games each, in the same layout as a step 2 pair, and appends the new pairs to the pair results. With 50 strategies in the matrix that is 12,500 games.</li>
+        <li>It rebuilds the matrix percentages from shuffles 1 to 75 and solves for the new mix, the same way as step 2.</li>
+        <li>The remaining confirmed candidates are retested against the new mix with fresh shuffles, using the confirmation rules and the same family requirement. The strongest one that still confirms is admitted next. This repeats until the confirmed list is empty.</li>
+      </ol>
+
+      <h3>Result files</h3>
+      <p>Each search writes one screening file and one confirmation file. Both use fixed-size rows so they can be read in one pass. A screening row is the candidate number (4 bytes), the number of shuffles played (2 bytes), the decision (1 byte), and 512 points bytes, one per shuffle, unused bytes set to zero. About 10 MB per search. A confirmation row is the same with 6,400 points bytes; only a handful of candidates reach this file. The pair results grow by one row per new pair. A small decisions file lists, per search, what was admitted, what was confirmed, what was unresolved, and the mix after each admission.</p>
+      <p>All files have the step 1 style header with a checksum. None of them hold timings.</p>
+
+      <h3>Running locally</h3>
+      <p>One Rust command runs the whole loop: screen, confirm, admit, resolve, repeat, stop. A first screening look is about 320,000 games, about 30 seconds on a 10-core laptop. A whole search, with its later looks, confirmations, and the admitted row, is about one million games. A full run with 5 to 20 admissions is roughly 10 to 25 million games, so 15 to 40 minutes. Because the state is written after every look, the command can be stopped and started at will.</p>
+
+      <h3>Running on Modal</h3>
+      <p>One cloud computer runs the whole step for one kingdom, with the same command as the local run. Each look depends on the results of the look before it, so splitting one kingdom across computers would put a file transfer and a start-up wait inside every look. Instead, give the kingdom a bigger computer: with 16 cores this step runs at about the local speed. Modal helps by running many kingdoms at once, each starting as soon as its <code>matrix</code> file passes its checks.</p>
+      <p>If a computer is lost, the Python script starts the same command again on a new one. It reads the saved state and continues from the last finished look.</p>
+
+      <h3>Cleanup and outputs</h3>
+      <ol>
+        <li>The Rust program reads every result file back and checks headers, checksums, row counts, and that every recorded decision follows from the recorded points bytes and the rules above.</li>
+        <li>The outputs are the final <code>matrix</code>, the full <code>pairs</code> file, every search's screening and confirmation files, the decisions file, and the run report with timings.</li>
+        <li>The same inputs always give the same bytes, locally or on Modal.</li>
       </ol>
     </details>
   </main>
