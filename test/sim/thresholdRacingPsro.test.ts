@@ -41,6 +41,14 @@ function evaluator(score: (strategy: Strategy) => number, calls: string[]) {
 }
 
 describe('kingdom-independent threshold-racing raw evidence', () => {
+  it('uses explicit numeric strategy keys for equal schedule deficits', () => {
+    const schedule = weightedFairSchedule({ 'gf-10': 0.5, 'gf-2': 0.5, zero: 0 },
+      Array.from({ length: 8 }, (_unused, index) => index + 1), { 'gf-10': 10, 'gf-2': 2 });
+    expect(schedule.blocks.map((block) => block.opponentId))
+      .toEqual(['gf-2', 'gf-10', 'gf-2', 'gf-10', 'gf-2', 'gf-10', 'gf-2', 'gf-10']);
+    expect(() => weightedFairSchedule({ a: 1, b: 1 }, [1], { a: 1, b: 1 })).toThrow();
+  });
+
   it('seals candidate-major 0..4 score chunks before each look decision and reconstructs prefixes', async () => {
     const field = candidates(), chunks: RawPsroScoreChunk[] = [], looks: RawPsroLookArtifact[] = [],
       events: RawPsroCheckpointEvent[] = [], calls: string[] = [];

@@ -12,20 +12,20 @@ use std::time::Instant;
 
 const MAGIC: &[u8; 4] = b"HGR1";
 const HEADER_BYTES: usize = 64;
-const PAIRS_KIND: u32 = 5;
-const PURCHASES_KIND: u32 = 6;
-const MATRIX_KIND: u32 = 7;
-const PAIRS_ROW_BYTES: u32 = 133;
+pub(crate) const PAIRS_KIND: u32 = 5;
+pub(crate) const PURCHASES_KIND: u32 = 6;
+pub(crate) const MATRIX_KIND: u32 = 7;
+pub(crate) const PAIRS_ROW_BYTES: u32 = 133;
 const DEFAULT_TOP: usize = 50;
 const SHUFFLE_COUNT: usize = 125;
 const MATRIX_SHUFFLES: usize = 75;
-const FIRST_MATRIX_SEED: u32 = 4_200_001;
-const LAST_MATRIX_SEED: u32 = 4_200_125;
+pub(crate) const FIRST_MATRIX_SEED: u32 = 4_200_001;
+pub(crate) const LAST_MATRIX_SEED: u32 = 4_200_125;
 const TURN_LIMIT: i16 = 30;
 const ACTION_CAP: i16 = 200;
 
 #[derive(Clone, Debug)]
-struct Header {
+pub(crate) struct Header {
     kind: u32,
     row_bytes: u32,
     range_start: u32,
@@ -38,7 +38,7 @@ struct Header {
 }
 
 impl Header {
-    fn encode(&self) -> Result<[u8; HEADER_BYTES], String> {
+    pub(crate) fn encode(&self) -> Result<[u8; HEADER_BYTES], String> {
         if !self.rule_fingerprint.is_ascii() || self.rule_fingerprint.len() > 16 {
             return Err("rule fingerprint must be at most 16 ASCII bytes".into());
         }
@@ -102,7 +102,7 @@ impl Header {
     }
 }
 
-fn crc32(bytes: &[u8]) -> u32 {
+pub(crate) fn crc32(bytes: &[u8]) -> u32 {
     let mut table = [0u32; 256];
     for (index, entry) in table.iter_mut().enumerate() {
         let mut value = index as u32;
@@ -123,15 +123,15 @@ fn crc32(bytes: &[u8]) -> u32 {
 }
 
 #[derive(Clone)]
-struct PairResult {
-    first: u32,
-    second: u32,
-    points: Vec<u8>,
-    purchases: [Vec<u32>; 2],
-    damage: [[u32; 5]; 2],
+pub(crate) struct PairResult {
+    pub(crate) first: u32,
+    pub(crate) second: u32,
+    pub(crate) points: Vec<u8>,
+    pub(crate) purchases: [Vec<u32>; 2],
+    pub(crate) damage: [[u32; 5]; 2],
 }
 
-fn play_pair_with_kingdom(
+pub(crate) fn play_pair_with_kingdom(
     kingdom: &Kingdom,
     first: &DecodedStrategy,
     second: &DecodedStrategy,
@@ -180,7 +180,7 @@ fn play_pair_with_kingdom(
     }
 }
 
-fn make_header(
+pub(crate) fn make_header(
     kind: u32,
     row_bytes: u32,
     top: usize,
@@ -210,7 +210,7 @@ fn write_file(path: &Path, header: &Header, rows: &[u8]) -> Result<usize, String
     Ok(bytes.len())
 }
 
-fn pair_rows(results: &[PairResult]) -> Vec<u8> {
+pub(crate) fn pair_rows(results: &[PairResult]) -> Vec<u8> {
     let mut rows = Vec::with_capacity(results.len() * PAIRS_ROW_BYTES as usize);
     for result in results {
         rows.extend_from_slice(&result.first.to_le_bytes());
@@ -220,7 +220,7 @@ fn pair_rows(results: &[PairResult]) -> Vec<u8> {
     rows
 }
 
-fn purchase_rows(results: &[PairResult]) -> Vec<u8> {
+pub(crate) fn purchase_rows(results: &[PairResult]) -> Vec<u8> {
     let card_count = results
         .first()
         .map(|result| result.purchases[0].len())
@@ -247,7 +247,7 @@ fn purchase_rows(results: &[PairResult]) -> Vec<u8> {
     rows
 }
 
-fn matrix_values(
+pub(crate) fn matrix_values(
     results: &[PairResult],
     numbers: &[u32],
 ) -> Result<(Vec<Vec<f64>>, Vec<f64>), String> {
@@ -299,7 +299,7 @@ fn matrix_values(
     Ok((percentages, weights))
 }
 
-fn matrix_rows(numbers: &[u32], percentages: &[Vec<f64>], weights: &[f64]) -> Vec<u8> {
+pub(crate) fn matrix_rows(numbers: &[u32], percentages: &[Vec<f64>], weights: &[f64]) -> Vec<u8> {
     let row_bytes = 4 + numbers.len() * 8 + 8;
     let mut rows = Vec::with_capacity(numbers.len() * row_bytes);
     for rank in 0..numbers.len() {
@@ -348,7 +348,7 @@ fn read_f64(bytes: &[u8], offset: usize) -> f64 {
     f64::from_le_bytes(bytes[offset..offset + 8].try_into().expect("f64 bytes"))
 }
 
-fn verify_files(
+pub(crate) fn verify_files(
     kingdom: &LoadedKingdom,
     reservoir: &ReservoirSelection,
     top: usize,
@@ -479,6 +479,99 @@ fn verify_files(
         .collect::<Vec<Vec<f64>>>();
     verify_mix(&payoff, &expected_weights)?;
     Ok(())
+}
+
+pub(crate) struct MatrixEvidence {
+    pub(crate) pairs: Vec<PairResult>,
+    pub(crate) weights: Vec<f64>,
+    pub(crate) row_crcs: [u32; 3],
+}
+
+pub(crate) fn load_matrix_evidence(
+    kingdom: &LoadedKingdom,
+    reservoir: &ReservoirSelection,
+    top: usize,
+    directory: &Path,
+) -> Result<MatrixEvidence, String> {
+    let pair_count = top * (top - 1) / 2;
+    let purchase_row_bytes = (8 + kingdom.all_card_ids.len() * 4 + 20) as u32;
+    let matrix_row_bytes = (4 + top * 8 + 8) as u32;
+    let expected = |kind, row_bytes, row_count| Header {
+        kind,
+        row_bytes,
+        range_start: 0,
+        range_end: top as u32,
+        row_count: row_count as u32,
+        row_crc: 0,
+        source_checksum: reservoir.source_checksum,
+        seeds: [FIRST_MATRIX_SEED, LAST_MATRIX_SEED, 0, 0],
+        rule_fingerprint: kingdom.fingerprint.clone(),
+    };
+    let (pairs_header, pair_bytes) = read_checked_file(
+        &directory.join("pairs.hgm"),
+        &expected(PAIRS_KIND, PAIRS_ROW_BYTES, pair_count),
+    )?;
+    let (purchases_header, purchase_bytes) = read_checked_file(
+        &directory.join("purchases.hgm"),
+        &expected(PURCHASES_KIND, purchase_row_bytes, pair_count * 2),
+    )?;
+    let (matrix_header, matrix_bytes) = read_checked_file(
+        &directory.join("matrix.hgm"),
+        &expected(MATRIX_KIND, matrix_row_bytes, top),
+    )?;
+    verify_files(
+        kingdom,
+        reservoir,
+        top,
+        &directory.join("pairs.hgm"),
+        &directory.join("purchases.hgm"),
+        &directory.join("matrix.hgm"),
+    )?;
+    let mut pairs = Vec::with_capacity(pair_count);
+    for pair_index in 0..pair_count {
+        let pair_offset = pair_index * PAIRS_ROW_BYTES as usize;
+        let mut purchases = [
+            vec![0; kingdom.all_card_ids.len()],
+            vec![0; kingdom.all_card_ids.len()],
+        ];
+        let mut damage = [[0; 5]; 2];
+        for seat in 0..2 {
+            let offset = (pair_index * 2 + seat) * purchase_row_bytes as usize;
+            for (card, count) in purchases[seat].iter_mut().enumerate() {
+                *count = read_u32(&purchase_bytes, offset + 8 + card * 4);
+            }
+            for (family, total) in damage[seat].iter_mut().enumerate() {
+                *total = read_u32(
+                    &purchase_bytes,
+                    offset + 8 + kingdom.all_card_ids.len() * 4 + family * 4,
+                );
+            }
+        }
+        pairs.push(PairResult {
+            first: read_u32(&pair_bytes, pair_offset),
+            second: read_u32(&pair_bytes, pair_offset + 4),
+            points: pair_bytes[pair_offset + 8..pair_offset + PAIRS_ROW_BYTES as usize].to_vec(),
+            purchases,
+            damage,
+        });
+    }
+    let weights = (0..top)
+        .map(|rank| {
+            read_f64(
+                &matrix_bytes,
+                rank * matrix_row_bytes as usize + 4 + top * 8,
+            )
+        })
+        .collect();
+    Ok(MatrixEvidence {
+        pairs,
+        weights,
+        row_crcs: [
+            pairs_header.row_crc,
+            purchases_header.row_crc,
+            matrix_header.row_crc,
+        ],
+    })
 }
 
 #[derive(Default)]

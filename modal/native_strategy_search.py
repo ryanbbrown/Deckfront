@@ -1245,6 +1245,31 @@ def strategy_search_goldfish_job(config: dict[str, Any]) -> dict[str, Any]:
         "workerFinishedEpochMs": int(time.time() * 1000), "temporaryPath": config["temporaryPath"]}
 
 
+@app.function(image=image, cpu=16, memory=16384, timeout=86400, retries=0,
+              scaledown_window=300, volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
+def strategy_search_psro_job(config: dict[str, Any]) -> dict[str, Any]:
+    from psro_step import run_psro_step
+
+    volume.reload()
+    out = _strategy_search_path(config["outPath"])
+    out.mkdir(parents=True, exist_ok=True)
+    report = out / "run-report.json"
+    result = run_psro_step(
+        CAMPAIGN_RUST_GOLDFISH_BIN,
+        config["kingdomId"],
+        str(_strategy_search_path(config["topPath"])),
+        str(_strategy_search_path(config["reservoirPath"])),
+        str(_strategy_search_path(config["matrixDir"])),
+        str(out),
+        16,
+        str(report),
+        volume=volume,
+    )
+    volume.commit()
+    return result
+
+
 @app.function(image=image, cpu=4, memory=8192, timeout=900, retries=0,
               scaledown_window=300, volumes={"/results": volume})
 @modal.concurrent(max_inputs=1)

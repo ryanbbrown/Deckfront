@@ -49,6 +49,7 @@
     "goldfish:native-build": "cd rust && PATH=\"$HOME/.cargo/bin:$PATH\" cargo build --release",
     "goldfish:native-verify": "cd rust && PATH=\"$HOME/.cargo/bin:$PATH\" cargo test && PATH=\"$HOME/.cargo/bin:$PATH\" cargo fmt --check && PATH=\"$HOME/.cargo/bin:$PATH\" cargo clippy --all-targets -- -D warnings",
     "goldfish:reservoir": "scripts/goldfish_reservoir.sh",
+    "psro:search": "scripts/psro_search.sh",
     "verify:native": "npm run goldfish:native-kingdom-check && npm run test:native && npm run goldfish:native-verify",
     "modal:test": "uv tool run --from modal python -m unittest discover -s modal -p 'test_*.py'",
     "fixed-reservoir:pilot": "tsx scripts/fixed_reservoir_psro_pilot.ts",

@@ -225,19 +225,29 @@ function protocolLookDepthValid(kind: RawPsroScoreChunk['raceKind'], depth: numb
 }
 
 /** Largest deficit assigns each next block to the most under-served positive-weight opponent. */
-export function weightedFairSchedule(weights: Readonly<Record<string, number>>, seeds: readonly number[]): MixtureSchedule {
+export function weightedFairSchedule(weights: Readonly<Record<string, number>>, seeds: readonly number[],
+  numericTieKeys?: Readonly<Record<string, number>>): MixtureSchedule {
   if (!seeds.length || new Set(seeds).size !== seeds.length
     || seeds.some((seed) => !Number.isSafeInteger(seed) || seed < 0 || seed > 0xffff_ffff)) {
     throw new Error('Weighted-fair schedule needs unique uint32 seeds.');
   }
+  const positiveIds = Object.entries(weights).filter((entry) => entry[1] > 0).map(([id]) => id);
+  if (numericTieKeys && (Object.keys(numericTieKeys).length !== positiveIds.length
+    || positiveIds.some((id) => !Number.isSafeInteger(numericTieKeys[id]) || numericTieKeys[id]! < 0)
+    || new Set(positiveIds.map((id) => numericTieKeys[id])).size !== positiveIds.length)) {
+    throw new Error('Weighted-fair numeric tie keys must be unique nonnegative integers for each opponent.');
+  }
   const entries = Object.entries(weights).filter((entry) => entry[1] > 0)
-    .sort(([left], [right]) => compareUtf16(left, right));
+    .sort(([left], [right]) => numericTieKeys
+      ? numericTieKeys[left]! - numericTieKeys[right]! : compareUtf16(left, right));
   const total = entries.reduce((sum, entry) => sum + entry[1], 0);
   if (!entries.length || !(total > 0) || entries.some((entry) => !Number.isFinite(entry[1]))) {
     throw new Error('Weighted-fair schedule needs finite positive weight.');
   }
-  const targetWeights = Object.fromEntries(entries.map(([id, weight]) => [id, weight / total]));
-  const realizedOpponentCounts = Object.fromEntries(entries.map(([id]) => [id, 0])) as Record<string, number>;
+  const ids = entries.map(([id]) => id).sort(compareUtf16);
+  const normalized = Object.fromEntries(entries.map(([id, weight]) => [id, weight / total]));
+  const targetWeights = Object.fromEntries(ids.map((id) => [id, normalized[id]!]));
+  const realizedOpponentCounts = Object.fromEntries(ids.map((id) => [id, 0])) as Record<string, number>;
   const blocks = seeds.map((seed, index) => {
     let selected = entries[0]![0], largest = Number.NEGATIVE_INFINITY;
     for (const [id] of entries) {
@@ -248,7 +258,7 @@ export function weightedFairSchedule(weights: Readonly<Record<string, number>>, 
     return { seed, opponentId: selected };
   });
   const schedule = { targetWeights, blocks, realizedOpponentCounts,
-    unsampledPositiveWeightStrategies: entries.map(([id]) => id).filter((id) => !realizedOpponentCounts[id]) };
+    unsampledPositiveWeightStrategies: ids.filter((id) => !realizedOpponentCounts[id]) };
   if (!validateMixtureSchedule(schedule)) throw new Error('Weighted-fair schedule is invalid.');
   return schedule;
 }
@@ -274,6 +284,10 @@ function confirmationDecision(input: CalibrationCandidateIdentity, scores: reado
   const status: ConfirmationStatus = interval.lower > RESPONSE_THRESHOLD ? 'confirmed'
     : interval.upper <= RESPONSE_THRESHOLD ? 'rejected' : 'unresolved';
   return { ...input, blocks: scores.length, mean: mean(scores), interval, status };
+}
+export function classifyConfirmation(input: CalibrationCandidateIdentity, scores: readonly number[],
+  alpha: number): ConfirmationDecision {
+  return confirmationDecision(input, scores, anytimeConfidenceBounds(scores, alpha));
 }
 export function orderConfirmedQueue(rows: readonly ConfirmationDecision[]): QueueOrder {
   const ordered = [...rows].sort((left, right) => right.interval.lower - left.interval.lower

@@ -6,6 +6,7 @@ use std::io::{self, BufRead, Write};
 mod equilibrium;
 mod kernel;
 mod matrix;
+mod psro;
 mod reservoir;
 
 const PROTOCOL_VERSION: u32 = 1;
@@ -82,6 +83,15 @@ fn compare_utf16(left: &str, right: &str) -> Ordering {
     left.encode_utf16().cmp(right.encode_utf16())
 }
 
+pub(crate) fn stable_hash_value(text: &str) -> u32 {
+    let mut hash = 0x811c9dc5_u32;
+    for unit in text.encode_utf16() {
+        hash ^= u32::from(unit);
+        hash = hash.wrapping_mul(0x01000193);
+    }
+    hash
+}
+
 fn stable_hash(text: &str) -> String {
     let mut hash = 0x811c9dc5_u32;
     let mut length = 0_u32;
@@ -140,6 +150,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if let Some(command @ ("matrix" | "matrix-verify")) = args.first().map(String::as_str) {
         return matrix::run(command, &args[1..])
             .map_err(|message| io::Error::other(message).into());
+    }
+    if let Some(command @ ("psro" | "psro-verify")) = args.first().map(String::as_str) {
+        return psro::run(command, &args[1..]).map_err(|message| io::Error::other(message).into());
     }
     if let Some(command) = args.first().filter(|value| !value.starts_with("--")) {
         return reservoir::run(command, &args[1..])
