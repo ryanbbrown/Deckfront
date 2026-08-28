@@ -133,7 +133,8 @@ function defaultNativeCommand(binary: string, args: readonly string[]): NativeCo
   return { status: result.status, signal: result.signal, stdout: result.stdout ?? '', stderr: result.stderr ?? '' };
 }
 
-function parseSuccess(result: NativeCommandResult, command: string, kingdomId: string): Record<string, unknown> {
+function parseSuccess(result: NativeCommandResult, command: string, kingdomId: string,
+  verifyKind?: string): Record<string, unknown> {
   if (result.signal || result.status !== 0) {
     const detail = result.stderr.slice(-4_000).trim();
     throw new Error(`${kingdomId}: native ${command} failed${result.signal ? ` with ${result.signal}` : ''}${detail ? `: ${detail}` : '.'}`);
@@ -145,7 +146,10 @@ function parseSuccess(result: NativeCommandResult, command: string, kingdomId: s
     throw new Error(`${kingdomId}: native ${command} did not return a JSON summary.`);
   }
   const summary = parsed as Record<string, unknown>;
-  if (summary.command !== command || summary.valid === false
+  const commandMatches = command === 'verify'
+    ? summary.command === undefined && summary.valid === true && summary.kind === verifyKind
+    : summary.command === command;
+  if (!commandMatches || summary.valid === false
     || typeof summary.kingdomId === 'string' && summary.kingdomId !== kingdomId) {
     throw new Error(`${kingdomId}: native ${command} summary differs from the request.`);
   }
@@ -382,7 +386,8 @@ export function loadRustStrategySearchKingdomEvidence(paths: RustStrategySearchK
     ['psro-verify', '--kingdom', paths.kingdomId, '--top-file', paths.topFile, '--reservoir', paths.reservoirFile,
       '--matrix-dir', paths.initialMatrixDir, '--out', paths.psroDir]
   ] as const;
-  const summaries = commands.map((args) => parseSuccess(run(options.binary, args), args[0], paths.kingdomId));
+  const summaries = commands.map((args) => parseSuccess(run(options.binary, args), args[0], paths.kingdomId,
+    args[0] === 'verify' ? args[4] : undefined));
   const psro = summaries[3]!;
   if (!Number.isInteger(psro.searches) || !Number.isInteger(psro.admissions) || !Number.isInteger(psro.matrixSize)) {
     throw new Error(`${paths.kingdomId}: psro-verify summary is incomplete.`);

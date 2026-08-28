@@ -119,9 +119,12 @@ export function createEvidenceFixture(root: string, admissions: 0 | 1): Evidence
   const commands: string[][] = [];
   const runNativeCommand = (_binary: string, args: readonly string[]): NativeCommandResult => {
     commands.push([...args]); const command = args[0]!;
-    const summary = command === 'psro-verify' ? { command, valid: true, searches: 2 + admissions,
-      admissions, matrixSize: finalNumbers.length, kingdomId: KINGDOM_ID }
-      : { command, valid: true, kingdomId: KINGDOM_ID };
+    const kindIndex = args.indexOf('--kind');
+    const summary = command === 'verify'
+      ? { valid: true, kind: args[kindIndex + 1], kingdomId: KINGDOM_ID }
+      : command === 'psro-verify' ? { command, valid: true, searches: 2 + admissions,
+        admissions, matrixSize: finalNumbers.length, kingdomId: KINGDOM_ID }
+        : { command, valid: true, kingdomId: KINGDOM_ID };
     return { status: 0, signal: null, stdout: `${JSON.stringify(summary)}\n`, stderr: '' };
   };
   return { paths: { kingdomId: KINGDOM_ID, topFile: source.top, reservoirFile: source.reservoir,
