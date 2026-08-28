@@ -1,6 +1,6 @@
 # Equilibrium-weighted self-play telemetry
 
-Status: approved and in implementation. The ordinary backfill and report paths trust the completed scientific evidence and use structural verification only; deep native replay remains an explicit audit command.
+Status: implemented. All 30 kingdoms have source-linked HST v1 evidence. Ordinary backfill and report generation trust the completed scientific evidence and use structural verification only; deep native replay remains an explicit audit command.
 
 This plan adds the missing same-strategy purchase and family-damage evidence to the completed Rust strategy-search results. It then replaces the current off-diagonal report headlines with exact telemetry for the stored equilibrium lottery playing against itself.
 

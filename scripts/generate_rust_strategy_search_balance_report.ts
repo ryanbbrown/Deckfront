@@ -171,7 +171,7 @@ export function loadRustBalanceReportInputs(options: CliOptions): RustBalanceAna
       initialMatrixDir: path.join(base, 'matrix'), psroDir: path.join(base, 'psro') }, { binary: options.binary });
     if ((index + 1) % 5 === 0) {
       const stat = fs.statfsSync(options.root);
-      process.stderr.write(`Verified ${index + 1}/${provenance.kingdomIds.length}; ${(Number(stat.bavail) * Number(stat.bsize) / 2 ** 30).toFixed(1)} GiB available.\n`);
+      process.stderr.write(`Checked ${index + 1}/${provenance.kingdomIds.length}; ${(Number(stat.bavail) * Number(stat.bsize) / 2 ** 30).toFixed(1)} GiB available.\n`);
     }
     return result;
   });
