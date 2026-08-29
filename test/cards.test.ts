@@ -184,6 +184,15 @@ describe('attacks', () => {
     let melee = ready(); melee.fighters.indigo.position = 3; melee.fighters.indigo.exposed = true; isolateHand(melee, 'ochre', ['strike']);
     melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(36); expect(melee.fighters.indigo.exposed).toBe(true);
   });
+  it('Opening Strike deals 4 after setup and 1 after an earlier attack', () => {
+    let setup = ready(); setup.fighters.indigo.position = 3; isolateHand(setup, 'ochre', ['focus', 'openingStrike']);
+    setup = playCard(setup, 'focus'); setup = playCard(setup, 'openingStrike');
+    expect(setup.fighters.indigo.health).toBe(36);
+
+    let attacked = ready(); attacked.fighters.indigo.position = 3; isolateHand(attacked, 'ochre', ['strike', 'openingStrike']);
+    attacked = playCard(attacked, 'strike'); attacked = playCard(attacked, 'openingStrike');
+    expect(attacked.fighters.indigo.health).toBe(36);
+  });
 });
 
 describe('mage cards', () => {
@@ -196,12 +205,17 @@ describe('mage cards', () => {
     expect(state.players.ochre.deck.draw.map((card) => card.definitionId)).toEqual(['gold']);
     assertInvariants(state);
   });
-  it('Channel gains 1 mana per player and the Action phase reset touches only the player who ended it', () => {
-    let state = ready(); isolateHand(state, 'ochre', ['channel']); setDraw(state, 'ochre', ['gold']); state.players.indigo.mana = 2;
-    state = playCard(state, 'channel');
-    expect(state.players.ochre.mana).toBe(1); expect(state.players.indigo.mana).toBe(2); expect(definitions(state.players.ochre.deck.hand)).toEqual(['gold']);
+  it('allows current-turn mana above 3, then persists at most 3 mana after the turn', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['focus', 'focus', 'focus', 'focus']); state.players.indigo.mana = 2;
+    for (let count = 0; count < 4; count += 1) state = playCard(state, 'focus');
+    expect(state.players.ochre.mana).toBe(4); expect(state.players.indigo.mana).toBe(2);
+
     state = applyAction(state, action(state, (command) => command.type === 'endActionPhase').id);
-    expect(state.players.ochre.mana).toBe(0); expect(state.players.indigo.mana).toBe(2); assertInvariants(state);
+    expect(state.players.ochre.mana).toBe(4);
+    state = applyAction(state, action(state, (command) => command.type === 'endBuyPhase').id);
+    expect(state.players.ochre.mana).toBe(3); expect(state.players.indigo.mana).toBe(2);
+    state = endTurn(state);
+    expect(state.activePlayerId).toBe('ochre'); expect(state.players.ochre.mana).toBe(3); assertInvariants(state);
   });
   it('Ley Step moves exactly one space, gains mana, and offers no move into a wall', () => {
     expect(cardDefinition('leyStep').cost).toBe(3);
@@ -243,6 +257,16 @@ describe('mage cards', () => {
     expect(legal.every((entry) => entry.command.type === 'resolveDiscard')).toBe(true);
     expect(legal).toHaveLength(2);
     expect(availability(state, 'muster')).toMatchObject({ enabled: false, reasonCode: 'RESOLVE_CHOICE_FIRST', selection: 'discard' });
+  });
+  it('Overload deals 3 damage per mana spent this turn', () => {
+    expect(cardDefinition('overload')).toMatchObject({ cost: 5, values: { perManaSpent: 3 } });
+    let state = ready(); state.players.ochre.mana = 1; isolateHand(state, 'ochre', ['arcBolt', 'overload']);
+    state = playCard(state, 'arcBolt'); state = playCard(state, 'overload');
+    expect(state.turnState.manaSpent).toBe(1); expect(state.fighters.indigo.health).toBe(33);
+  });
+  it('uses the approved Volley and Bull Rush costs and damage', () => {
+    expect(cardDefinition('volley')).toMatchObject({ cost: 5, values: { near: 2, far: 4 } });
+    expect(cardDefinition('bullRush')).toMatchObject({ cost: 3, values: { damage: 7 } });
   });
   it('spells spend their mana cost and are illegal without it', () => {
     for (const [definitionId, mana, damage] of [['arcBolt', 1, 4], ['fireball', 2, 8], ['starfire', 3, 12]] as const) {

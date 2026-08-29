@@ -4,7 +4,7 @@
     { "id": "silver", "name": "Silver", "type": "treasure", "cost": 3, "text": "Provide 2 money.", "mechanic": "money", "money": 2, "family": "treasure" },
     { "id": "gold", "name": "Gold", "type": "treasure", "cost": 6, "text": "Provide 3 money.", "mechanic": "money", "money": 3, "family": "treasure" },
 
-    { "id": "focus", "name": "Focus", "type": "action", "cost": 1, "text": "Gain 1 mana. The first Focus you play each turn also draws 1 card.", "mechanic": "channel", "values": { "mana": 1, "draw": 1 }, "family": "mana" },
+    { "id": "focus", "name": "Focus", "type": "action", "cost": 1, "text": "Gain 1 mana.", "mechanic": "channel", "values": { "mana": 1, "draw": 0 }, "family": "mana" },
     { "id": "channel", "name": "Channel", "type": "action", "cost": 3, "text": "Gain 1 mana. Draw 1 card.", "mechanic": "channel", "values": { "mana": 1, "draw": 1 }, "family": "mana" },
     { "id": "leyStep", "name": "Ley Step", "type": "action", "cost": 3, "text": "Move 1 space. Gain 1 mana. Gain 1 additional mana if you are at Far range after moving.", "mechanic": "leyStep", "values": { "mana": 1, "farMana": 1 }, "family": "mana" },
     { "id": "attune", "name": "Attune", "type": "action", "cost": 4, "text": "Gain 1 mana. Draw 1 card. Gain 1 additional mana for each other copy of Attune you played this turn.", "mechanic": "attune", "values": { "mana": 1, "draw": 1, "perCopy": 1 }, "family": "mana" },
@@ -21,9 +21,9 @@
     { "id": "strike", "name": "Strike", "type": "action", "cost": 3, "text": "At Close range, deal 3 damage.", "mechanic": "melee", "values": { "damage": 3, "draw": 0 }, "family": "melee" },
     { "id": "drive", "name": "Drive", "type": "action", "cost": 4, "text": "At Close range, deal 3 damage. Then move both fighters 1 space so they remain Close. If a wall blocks the move, neither fighter moves and the attack deals 2 additional damage.", "mechanic": "drive", "values": { "damage": 3, "wallDamage": 2 }, "family": "melee" },
     { "id": "heavyBlow", "name": "Heavy Blow", "type": "action", "cost": 5, "text": "At Close range, deal 6 damage.", "mechanic": "melee", "values": { "damage": 6, "draw": 0 }, "family": "melee" },
-    { "id": "openingStrike", "name": "Opening Strike", "type": "action", "cost": 3, "text": "At Close range, deal 4 damage if this is the first card you played this turn. Otherwise deal 1 damage.", "mechanic": "openingStrike", "values": { "first": 4, "later": 1 }, "family": "melee" },
+    { "id": "openingStrike", "name": "Opening Strike", "type": "action", "cost": 3, "text": "At Close range, deal 4 damage if this is the first attack you played this turn. Otherwise deal 1 damage.", "mechanic": "openingStrike", "values": { "first": 4, "later": 1 }, "family": "melee" },
     { "id": "rally", "name": "Rally", "type": "action", "cost": 3, "text": "At Close range, deal 2 damage. Deal 2 additional damage for each other copy of Rally you played this turn.", "mechanic": "rally", "values": { "damage": 2, "perCopy": 2 }, "family": "melee" },
-    { "id": "bullRush", "name": "Bull Rush", "type": "action", "cost": 4, "text": "At Close range, discard 1 Melee card: deal 7 damage.", "mechanic": "bullRush", "values": { "damage": 7 }, "family": "melee" },
+    { "id": "bullRush", "name": "Bull Rush", "type": "action", "cost": 3, "text": "At Close range, discard 1 Melee card: deal 7 damage.", "mechanic": "bullRush", "values": { "damage": 7 }, "family": "melee" },
     { "id": "flurry", "name": "Flurry", "type": "action", "cost": 5, "text": "At Close range, deal 1 damage for each other Tactical Action played this turn.", "mechanic": "flurry", "values": { "perAction": 1 }, "family": "melee" },
 
     { "id": "aim", "name": "Aim", "type": "action", "cost": 5, "text": "At Near or Far range, draw 1 card. Add 2 damage to the next ranged attack you make this turn.", "mechanic": "aim", "values": { "draw": 1, "bonus": 2 }, "family": "ranged" },
@@ -31,7 +31,7 @@
     { "id": "steadyShot", "name": "Steady Shot", "type": "action", "cost": 3, "text": "At Near or Far range, deal 2 damage.", "mechanic": "ranged", "values": { "damage": 2, "draw": 0 }, "family": "ranged" },
     { "id": "repellingShot", "name": "Repelling Shot", "type": "action", "cost": 4, "text": "At Far range, deal 2 damage. At Near range, deal 1 damage. Move the opponent 1 space farther away. If they cannot move, move yourself 1 space farther away instead.", "mechanic": "repellingShot", "values": { "near": 1, "far": 2 }, "family": "ranged" },
     { "id": "longshot", "name": "Longshot", "type": "action", "cost": 3, "text": "At Near or Far range, deal damage equal to the distance between you and your opponent.", "mechanic": "longshot", "values": {}, "family": "ranged" },
-    { "id": "volley", "name": "Volley", "type": "action", "cost": 4, "text": "At Near range, deal 2 damage. At Far range, deal 4 damage.", "mechanic": "volley", "values": { "near": 2, "far": 4 }, "family": "ranged" },
+    { "id": "volley", "name": "Volley", "type": "action", "cost": 5, "text": "At Near range, deal 2 damage. At Far range, deal 4 damage.", "mechanic": "volley", "values": { "near": 2, "far": 4 }, "family": "ranged" },
     { "id": "salvageShot", "name": "Salvage Shot", "type": "action", "cost": 4, "text": "At Near or Far range, discard 1 Ranged card: deal damage equal to its cost. Draw 1 card.", "mechanic": "salvageShot", "values": { "draw": 1 }, "family": "ranged" },
     { "id": "precisionShot", "name": "Precision Shot", "type": "action", "cost": 5, "text": "At Near or Far range, deal 4 damage. Each other copy of Precision Shot you play this turn deals 2 damage instead.", "mechanic": "precisionShot", "values": { "first": 4, "later": 2 }, "family": "ranged" },
 

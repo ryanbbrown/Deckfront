@@ -44,7 +44,7 @@ export interface TacticalView {
   mana: number;
   manaSpent: number;
   spellsPlayed: number;
-  cardsPlayed: number;
+  attacksPlayed: number;
   copiesPlayed: Readonly<Record<string, number>>;
   familiesPlayed: readonly CardFamily[];
   positionChanged: boolean;
@@ -70,7 +70,7 @@ function immediateDamage(card: PilotCard, view: TacticalView): number {
     case 'drive': return value(card, 'damage') + view.opponentExposedBonus
       + ((view.actorPosition === ARENA_MIN || view.actorPosition === ARENA_MAX) ? value(card, 'wallDamage') : 0);
     case 'flurry': return view.tacticalPlayed * value(card, 'perAction') + view.opponentExposedBonus;
-    case 'openingStrike': return value(card, view.cardsPlayed === 0 ? 'first' : 'later') + view.opponentExposedBonus;
+    case 'openingStrike': return value(card, view.attacksPlayed === 0 ? 'first' : 'later') + view.opponentExposedBonus;
     case 'rally': return value(card, 'damage') + (view.copiesPlayed[card.definitionId] ?? 0) * value(card, 'perCopy') + view.opponentExposedBonus;
     case 'bullRush': return value(card, 'damage') + view.opponentExposedBonus;
     case 'ranged': return value(card, 'damage') + view.aimBonus;
@@ -98,7 +98,8 @@ function attackState(card: PilotCard, view: TacticalView, mana: number, tactical
   return {
     aimed: view.aimed, aimBonus: view.aimBonus, closeBonus: view.opponentExposedBonus,
     tacticalPlayed, publicFuture: false, mana, manaSpent: view.manaSpent,
-    spellsPlayed: view.spellsPlayed, copiesPlayed: view.copiesPlayed, familiesPlayed: view.familiesPlayed,
+    spellsPlayed: view.spellsPlayed, attacksPlayed: view.attacksPlayed,
+    copiesPlayed: view.copiesPlayed, familiesPlayed: view.familiesPlayed,
     definitionId: card.definitionId,
     salvageCost: Math.max(0, ...view.hand.filter((candidate) =>
       candidate.handIndex !== card.handIndex && candidate.family === 'ranged').map((candidate) => candidate.cost))
@@ -389,7 +390,7 @@ export function chooseTacticalAction(view: TacticalView): TacticalDecision {
   if (view.aimed && volley) return play(volley);
 
   const openingStrike = first(view, 'openingStrike');
-  if (openingStrike && view.cardsPlayed === 0) return play(openingStrike);
+  if (openingStrike && view.attacksPlayed === 0) return play(openingStrike);
 
   const reclaim = first(view, 'reclaim');
   if (reclaim && view.discard.length > 0) return play(reclaim);

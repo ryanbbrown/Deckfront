@@ -207,15 +207,24 @@ describe('the shared tactical pilot', () => {
     expect(state.players.ochre.deck.hand.find((card) => card.id === targetId)?.definitionId).toBe('copper');
   });
 
-  it('plays Opening Strike before a setup card keeps it from dealing full damage', () => {
+  it('treats Opening Strike as the first attack after a setup card', () => {
     registerKingdom({
       id: 'opening-policy', name: 'Opening policy', startingHealth: 40,
       actionPiles: [{ cardId: 'channel', count: 10 }, { cardId: 'openingStrike', count: 10 }]
     });
     const state = arena({
-      kingdomId: 'opening-policy', hand: ['channel', 'openingStrike'], ochre: 2, indigo: 2
+      kingdomId: 'opening-policy', hand: ['openingStrike'], ochre: 2, indigo: 2
     });
+    state.turnState.cardsPlayed = ['channel'];
     expect(playedDefinition(state, choose(state))).toBe('openingStrike');
+  });
+
+  it('values Opening Strike at 1 after an earlier attack', () => {
+    const state = arena({
+      kingdomId: 'current-duel', hand: ['openingStrike', 'strike'], ochre: 2, indigo: 2
+    });
+    state.turnState.cardsPlayed = ['scrap'];
+    expect(playedDefinition(state, choose(state))).toBe('strike');
   });
 
   it('plays another affordable spell before Cascade increases its damage', () => {

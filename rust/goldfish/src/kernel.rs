@@ -702,6 +702,11 @@ impl<'a> State<'a> {
     fn close(&self) -> bool {
         self.pos[0] == self.pos[1]
     }
+    fn attack_played(&self) -> bool {
+        self.cards_played
+            .iter()
+            .any(|&ci| attack_mechanic(self.k.cards[ci].mechanic))
+    }
     fn enabled(&self, ci: usize) -> bool {
         let c = &self.k.cards[ci];
         match c.mechanic {
@@ -865,7 +870,11 @@ impl<'a> State<'a> {
             }
             Mechanic::OpeningStrike => {
                 if close {
-                    c.v.first + close_bonus
+                    (if public || !self.attack_played() {
+                        c.v.first
+                    } else {
+                        c.v.later
+                    }) + close_bonus
                 } else {
                     0
                 }
@@ -988,10 +997,10 @@ impl<'a> State<'a> {
             }
             Mechanic::Flurry => self.tactical * card.v.per_action + close_bonus,
             Mechanic::OpeningStrike => {
-                (if self.cards_played.is_empty() {
-                    card.v.first
-                } else {
+                (if self.attack_played() {
                     card.v.later
+                } else {
+                    card.v.first
                 }) + close_bonus
             }
             Mechanic::Rally => card.v.damage + self.copies[ci] * card.v.per_copy + close_bonus,
@@ -1284,7 +1293,7 @@ impl<'a> State<'a> {
                 return Decision::Play(i, 0, None, false);
             }
         }
-        if self.cards_played.is_empty() {
+        if !self.attack_played() {
             if let Some(i) = find(Mechanic::OpeningStrike) {
                 return Decision::Play(i, 0, None, false);
             }
@@ -1615,9 +1624,7 @@ impl<'a> State<'a> {
         match c.mechanic {
             Mechanic::Channel => {
                 self.p.mana += c.v.mana;
-                if self.k.cards[ci].id != "focus" || self.copies[ci] == 1 {
-                    self.draw(c.v.draw)
-                }
+                self.draw(c.v.draw)
             }
             Mechanic::Step | Mechanic::LeyStep => {
                 self.pos[0] += movement;
@@ -1800,10 +1807,13 @@ impl<'a> State<'a> {
             }
             Mechanic::Overload => hit!(self.mana_spent * c.v.per_mana_spent, false),
             Mechanic::OpeningStrike => hit!(
-                if self.cards_played.len() == 1 {
-                    c.v.first
-                } else {
+                if self.cards_played[..self.cards_played.len() - 1]
+                    .iter()
+                    .any(|&played| attack_mechanic(self.k.cards[played].mechanic))
+                {
                     c.v.later
+                } else {
+                    c.v.first
                 },
                 true
             ),
@@ -1960,7 +1970,6 @@ impl<'a> State<'a> {
         if self.p.first_buy_pending {
             self.p.money += self.p.first_buy_money;
         }
-        self.p.mana = 0
     }
     fn purchase(&self) -> Option<usize> {
         for slot in &self.p.strategy.plan {
@@ -2005,7 +2014,7 @@ impl<'a> State<'a> {
         self.p.discard.append(&mut self.p.hand);
         self.p.discard.append(&mut self.p.play);
         self.p.money = 0;
-        self.p.mana = 0;
+        self.p.mana = self.p.mana.min(3);
         self.p.first_buy_money = 0;
         self.p.first_buy_pending = false;
         self.aimed[0] = false;
@@ -2723,6 +2732,134 @@ mod tests {
             .find(|fixture| fixture.kingdom_id == "balance-tuning-005")
             .expect("balance fixture kingdom");
         Kingdom::compile(fixture.kingdom).expect("balance fixture kingdom")
+    }
+
+    fn focused_rules_fixture() -> Kingdom {
+        #[derive(Deserialize)]
+        #[serde(rename_all = "camelCase")]
+        struct Fixture {
+            kingdom: KingdomInput,
+        }
+        #[derive(Deserialize)]
+        struct Fixtures {
+            kingdoms: Vec<Fixture>,
+        }
+        let fixtures: Fixtures =
+            serde_json::from_str(include_str!("../kingdoms.json")).expect("embedded kingdoms json");
+        let ids = [
+            "copper",
+            "scrap",
+            "focus",
+            "channel",
+            "arcBolt",
+            "overload",
+            "openingStrike",
+            "strike",
+            "volley",
+            "bullRush",
+        ];
+        let cards = ids
+            .iter()
+            .map(|id| {
+                fixtures
+                    .kingdoms
+                    .iter()
+                    .flat_map(|fixture| &fixture.kingdom.cards)
+                    .find(|card| card.id == *id)
+                    .unwrap_or_else(|| panic!("missing focused card {id}"))
+                    .clone()
+            })
+            .collect();
+        Kingdom::compile(KingdomInput {
+            health: 50,
+            aim_bonus: 2,
+            feint_bonus: 1,
+            cards,
+        })
+        .expect("focused rules kingdom")
+    }
+
+    fn focused_state<'a>(kingdom: &'a Kingdom) -> State<'a> {
+        let strategy = kingdom
+            .strategy(raw_strategy("focused", &[], &[]))
+            .expect("focused strategy");
+        State::competitive(
+            kingdom,
+            strategy.clone(),
+            strategy,
+            17,
+            false,
+            false,
+            false,
+            30,
+            200,
+        )
+    }
+
+    fn set_hand(state: &mut State<'_>, ids: &[&str]) {
+        state.p.hand = ids
+            .iter()
+            .map(|id| state.k.card_index(id).expect("focused card"))
+            .collect();
+        state.p.draw.clear();
+        state.p.head = 0;
+        state.p.discard.clear();
+    }
+
+    #[test]
+    fn persistent_mana_caps_at_three_only_after_the_turn() {
+        let kingdom = focused_rules_fixture();
+        let focus = kingdom.card_index("focus").expect("focus");
+        assert_eq!(kingdom.cards[focus].cost, 1);
+        assert_eq!(kingdom.cards[focus].v.draw, 0);
+
+        let mut state = focused_state(&kingdom);
+        set_hand(&mut state, &["focus", "focus", "focus", "focus"]);
+        for _ in 0..4 {
+            assert!(!state.play(Decision::Play(0, 0, None, false)));
+        }
+        assert_eq!(state.p.mana, 4);
+        assert!(state.p.hand.is_empty());
+        state.end_action();
+        assert_eq!(state.p.mana, 4);
+        state.end_buy();
+        assert_eq!(state.p.mana, 3);
+    }
+
+    #[test]
+    fn approved_attacks_use_native_card_data_and_first_attack_order() {
+        let kingdom = focused_rules_fixture();
+        let overload_card = &kingdom.cards[kingdom.card_index("overload").expect("overload")];
+        assert_eq!(overload_card.cost, 5);
+        assert_eq!(overload_card.v.per_mana_spent, 3);
+        let volley = &kingdom.cards[kingdom.card_index("volley").expect("volley")];
+        assert_eq!(volley.cost, 5);
+        assert_eq!((volley.v.near, volley.v.far), (2, 4));
+        let bull_rush = &kingdom.cards[kingdom.card_index("bullRush").expect("bull rush")];
+        assert_eq!(bull_rush.cost, 3);
+        assert_eq!(bull_rush.v.damage, 7);
+
+        let mut setup = focused_state(&kingdom);
+        setup.pos = [2, 2];
+        set_hand(&mut setup, &["channel", "openingStrike"]);
+        assert!(!setup.play(Decision::Play(0, 0, None, false)));
+        assert!(!setup.play(Decision::Play(0, 0, None, false)));
+        assert_eq!(setup.health[1], 46);
+
+        let mut attacked = focused_state(&kingdom);
+        attacked.pos = [2, 2];
+        set_hand(&mut attacked, &["strike", "openingStrike"]);
+        assert!(!attacked.play(Decision::Play(0, 0, None, false)));
+        assert!(!attacked.play(Decision::Play(0, 0, None, false)));
+        assert_eq!(attacked.health[1], 46);
+
+        let mut overload = focused_state(&kingdom);
+        overload.p.mana = 1;
+        set_hand(&mut overload, &["arcBolt", "overload"]);
+        assert!(!overload.play(Decision::Play(0, 0, None, false)));
+        assert!(!overload.play(Decision::Play(0, 0, None, false)));
+        assert_eq!(overload.mana_spent, 1);
+        assert_eq!(overload.health[1], 43);
     }
 
     #[test]

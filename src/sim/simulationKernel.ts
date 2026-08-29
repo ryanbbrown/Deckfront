@@ -1,6 +1,6 @@
 import {
-  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, ARENA_MAX, ARENA_MIN, cardDefinition, firstBuyCarry, isTacticalAction, kingdomEpoch,
-  kingdomMarket, kingdomOf, playerStartingHealth
+  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, ARENA_MAX, ARENA_MIN, ATTACK_MECHANICS, cardDefinition,
+  firstBuyCarry, isTacticalAction, kingdomEpoch, kingdomMarket, kingdomOf, playerStartingHealth
 } from '../game';
 import type { CardFamily, CardMechanic, CardValues, MovementChoice, PlayerId } from '../game';
 import { repairBuildIn } from './build';
@@ -391,7 +391,8 @@ function pilotView(state: KernelState, actor: 0 | 1, pending: 'discard' | 'recov
     aimBonus: state.aimed[actor] ? kingdomValue(state, 'aim', 'bonus') : 0,
     opponentExposed: state.exposed[other(actor)],
     opponentExposedBonus: state.exposed[other(actor)] ? kingdomValue(state, 'feint', 'bonus') : 0,
-    mana: player.mana, manaSpent: state.manaSpent, spellsPlayed: state.spellsPlayed, cardsPlayed: state.cardsPlayed.length,
+    mana: player.mana, manaSpent: state.manaSpent, spellsPlayed: state.spellsPlayed,
+    attacksPlayed: state.cardsPlayed.filter((index) => ATTACK_MECHANICS.has(state.kingdom.cards[index]!.mechanic)).length,
     copiesPlayed: Object.fromEntries(state.kingdom.cards.map((card, index) => [card.id, state.copiesPlayed[index]!])),
     familiesPlayed: [...state.familiesPlayed], positionChanged: state.spacesMoved > 0, tacticalPlayed: state.tacticalPlayed, cullOptions,
     discardOptions: pending === 'discard' ? hand.map((card): DiscardOption => ({
@@ -533,8 +534,7 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
     case 'spell':
       player.mana -= cardValue(card, 'manaCost'); state.manaSpent += cardValue(card, 'manaCost'); event(state);
       if (addDamage(state, actor, cardValue(card, 'damage'), false, cardIndex)) return true; break;
-    case 'channel': player.mana += cardValue(card, 'mana'); event(state);
-      if (card.id !== 'focus' || state.copiesPlayed[cardIndex] === 1) draw(state, actor, cardValue(card, 'draw')); break;
+    case 'channel': player.mana += cardValue(card, 'mana'); event(state); draw(state, actor, cardValue(card, 'draw')); break;
     case 'leyStep': case 'step': {
       const movement = decision.movement;
       if (movement === undefined) throw new Error(`${card.id} has no selected direction.`);
@@ -555,7 +555,8 @@ function playCard(state: KernelState, actor: 0 | 1, decision: Extract<ReturnType
     }
     case 'cascade': player.mana -= cardValue(card, 'manaCost'); state.manaSpent += cardValue(card, 'manaCost'); event(state); if (addDamage(state, actor, cardValue(card, 'damage') + (state.spellsPlayed - 1) * cardValue(card, 'perSpell'), false, cardIndex)) return true; break;
     case 'overload': if (addDamage(state, actor, state.manaSpent * cardValue(card, 'perManaSpent'), false, cardIndex)) return true; break;
-    case 'openingStrike': if (addDamage(state, actor, cardValue(card, state.cardsPlayed.length === 1 ? 'first' : 'later'), true, cardIndex)) return true; break;
+    case 'openingStrike': if (addDamage(state, actor, cardValue(card,
+      state.cardsPlayed.slice(0, -1).some((index) => ATTACK_MECHANICS.has(state.kingdom.cards[index]!.mechanic)) ? 'later' : 'first'), true, cardIndex)) return true; break;
     case 'rally': if (addDamage(state, actor, cardValue(card, 'damage') + (state.copiesPlayed[cardIndex]! - 1) * cardValue(card, 'perCopy'), true, cardIndex)) return true; break;
     case 'bullRush': {
       const discarded = removeFamilyTarget('melee');
@@ -680,7 +681,7 @@ function endActionPhase(state: KernelState, actor: 0 | 1): void {
   }
   player.hand = remaining; player.play.push(...treasures);
   if (player.firstBuyPending) player.money += player.firstBuyMoney;
-  player.mana = 0; event(state);
+  event(state);
 }
 
 function pileAvailable(state: KernelState, cardIndex: number): boolean {
@@ -720,7 +721,7 @@ function endBuyPhase(state: KernelState, actor: 0 | 1): void {
   player.unspentMoney += player.money;
   if (state.telemetry) state.telemetry.unspentMoney[playerId(actor)] += player.money;
   player.discard.push(...player.hand, ...player.play); player.hand = []; player.play = [];
-  player.money = 0; player.mana = 0; player.firstBuyPending = false; player.firstBuyMoney = 0;
+  player.money = 0; player.mana = Math.min(player.mana, 3); player.firstBuyPending = false; player.firstBuyMoney = 0;
   state.aimed[actor] = false; state.exposed[other(actor)] = false;
   draw(state, actor, 5); state.tacticalPlayed = 0; state.cardsPlayed = []; state.spacesMoved = 0; state.manaSpent = 0; state.spellsPlayed = 0;
   state.copiesPlayed.fill(0); state.familiesPlayed.clear();

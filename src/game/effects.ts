@@ -69,6 +69,15 @@ function moveActor(context: EffectContext, chosen: DirectionChoice): void {
 function closeAttack(context: EffectContext, amount: number): void { context.damage(context.targetId, amount, true); }
 function rangedAttack(context: EffectContext, amount: number): void { context.rangedDamage(context.targetId, amount); }
 
+export const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set([
+  'melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush', 'ranged', 'repellingShot',
+  'longshot', 'salvageShot', 'precisionShot', 'spell', 'discharge', 'cascade', 'overload',
+  'discipline', 'improvise', 'scrap', 'volley'
+]);
+export function isAttackAction(definitionId: string): boolean {
+  return ATTACK_MECHANICS.has(cardDefinition(definitionId).mechanic);
+}
+
 const EFFECT_MAP: Record<CardMechanic, CardEffect> = {
   money: { ...BASE, tactical: false, command: playAction, gate: () => 'TREASURE_AUTOPLAYS', resolve: () => { throw new Error('Treasure cards play automatically.'); } },
   footwork: { ...BASE, tactical: true, choice: 'movement', movements: movementChoices,
@@ -97,7 +106,7 @@ const EFFECT_MAP: Record<CardMechanic, CardEffect> = {
     resolve: (context, values) => { rangedAttack(context, value(values, rangeBand(context.state) === 'Near' ? 'near' : 'far')); if (context.state.winner) return; const actorPosition = context.state.fighters[context.actorId].position; const targetPosition = context.state.fighters[context.targetId].position; const targetStep = targetPosition > actorPosition ? 1 : -1; const targetDestination = targetPosition + targetStep; if (targetDestination >= ARENA_MIN && targetDestination <= ARENA_MAX) { context.move(context.targetId, targetDestination); context.record('move', { movement: targetStep === 1 ? 'right' : 'left', from: targetPosition, to: targetDestination, playerId: context.targetId, source: 'repellingShot' }); return; } const actorDestination = actorPosition - targetStep; if (actorDestination >= ARENA_MIN && actorDestination <= ARENA_MAX) { context.move(context.actorId, actorDestination); context.record('move', { movement: targetStep === 1 ? 'left' : 'right', from: actorPosition, to: actorDestination, playerId: context.actorId, source: 'repellingShot' }); } } },
   spell: { ...BASE, tactical: true, command: playAction, gate: (state, playerId, values) => state.players[playerId].mana < value(values, 'manaCost') ? 'NEEDS_MANA' : null,
     resolve: (context, values) => { context.spendMana(value(values, 'manaCost')); context.damage(context.targetId, value(values, 'damage'), false); } },
-  channel: { ...BASE, tactical: false, command: playAction, resolve: (context, values) => { context.gainMana(value(values, 'mana')); if (context.card.definitionId !== 'focus' || context.state.turnState.copiesPlayed.focus === 1) context.draw(context.actorId, value(values, 'draw')); } },
+  channel: { ...BASE, tactical: false, command: playAction, resolve: (context, values) => { context.gainMana(value(values, 'mana')); context.draw(context.actorId, value(values, 'draw')); } },
   leyStep: { ...BASE, tactical: true, choice: 'direction', movements: directionChoices, command: (cardInstanceId, choice) => ({ type: 'playMoveAction', cardInstanceId, direction: direction(choice) }), resolve: (context, values, choice) => { moveActor(context, direction(choice)); context.gainMana(value(values, 'mana') + (rangeBand(context.state) === 'Far' ? value(values, 'farMana') : 0)); } },
   prism: { ...BASE, tactical: false, command: playAction, resolve: (context, values) => { context.gainMana(value(values, 'mana')); context.draw(context.actorId, value(values, 'draw')); context.requestDiscard(value(values, 'discard')); } },
   step: { ...BASE, tactical: true, choice: 'direction', movements: directionChoices, command: (cardInstanceId, choice) => ({ type: 'playMoveAction', cardInstanceId, direction: direction(choice) }), resolve: (context, _values, choice) => moveActor(context, direction(choice)) },
@@ -105,7 +114,8 @@ const EFFECT_MAP: Record<CardMechanic, CardEffect> = {
   discharge: { ...BASE, tactical: true, command: playAction, resolve: (context, values) => { const mana = context.state.players[context.actorId].mana; context.damage(context.targetId, mana * value(values, 'perMana'), false); context.gainMana(-mana); } },
   cascade: { ...BASE, tactical: true, command: playAction, gate: (state, playerId, values) => state.players[playerId].mana < value(values, 'manaCost') ? 'NEEDS_MANA' : null, resolve: (context, values) => { context.spendMana(value(values, 'manaCost')); context.damage(context.targetId, value(values, 'damage') + (context.state.turnState.spellsPlayed - 1) * value(values, 'perSpell'), false); } },
   overload: { ...BASE, tactical: true, command: playAction, resolve: (context, values) => context.damage(context.targetId, context.state.turnState.manaSpent * value(values, 'perManaSpent'), false) },
-  openingStrike: { ...BASE, tactical: true, gate: needsClose, command: playAction, resolve: (context, values) => closeAttack(context, value(values, context.state.turnState.cardsPlayed.length === 1 ? 'first' : 'later')) },
+  openingStrike: { ...BASE, tactical: true, gate: needsClose, command: playAction, resolve: (context, values) => closeAttack(context, value(values,
+    context.state.turnState.cardsPlayed.slice(0, -1).some(isAttackAction) ? 'later' : 'first')) },
   rally: { ...BASE, tactical: true, gate: needsClose, command: playAction, resolve: (context, values) => closeAttack(context, value(values, 'damage') + ((context.state.turnState.copiesPlayed.rally ?? 1) - 1) * value(values, 'perCopy')) },
   bullRush: { ...BASE, tactical: true, choice: 'targets', target: { minimum: 1, maximum: 1, zone: 'hand', family: 'melee' }, gate: needsClose, command: targeted, resolve: (context, values) => { context.discard(context.targetCards[0]!.id); closeAttack(context, value(values, 'damage')); } },
   longshot: { ...BASE, tactical: true, gate: needsRange, command: playAction, resolve: (context) => rangedAttack(context, Math.abs(context.state.fighters[context.actorId].position - context.state.fighters[context.targetId].position)) },

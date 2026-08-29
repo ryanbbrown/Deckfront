@@ -128,6 +128,33 @@ describe.skipIf(!fs.existsSync(binary))('Rust competitive scorer conformance', (
     }
   }, 60_000);
 
+  it('matches persistent mana when Focus funds later-turn Starfire plays', async () => {
+    const manaKingdom = { id: 'native-persistent-mana', name: 'Native persistent mana', startingHealth: 30,
+      actionPiles: [{ cardId: 'starfire', count: 10 }] };
+    registerKingdom(manaKingdom);
+    const mage = identify({ id: '', startingBuild: ['focus', 'focus', 'focus'],
+      buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: 'starfire', desiredCount: INFINITE_COUNT }]) });
+    const passive = identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([]) });
+    const strategies = [mage, passive];
+    const heldConfig = { kingdomId: manaKingdom.id, turnLimitPerPlayer: 20,
+      actionCapPerTurn: 200, startingDraftEnabled: true } as const;
+    const rust = new RustGoldfishScorer(1);
+    let starfirePlays = 0;
+    try {
+      const loadId = await rust.loadCompetitive(manaKingdom, strategies, heldConfig, 1);
+      for (const seed of [3, 11, 29]) {
+        const expected = runSimulationMatch({ ...heldConfig, seed, firstPlayerId: 'ochre', swapSides: false,
+          strategies: { ochre: mage, indigo: passive } });
+        starfirePlays += expected.telemetry.playsByCard.ochre.starfire ?? 0;
+        expect(await rust.fixtureCompetitive(loadId, { candidateIndex: 0, opponentIndex: 1, seed }, 'ochre'))
+          .toEqual({ outcome: expected.outcome, reason: expected.reason, turns: expected.turns });
+      }
+      expect(starfirePlays).toBeGreaterThan(0);
+    } finally {
+      await rust.close();
+    }
+  });
+
   it('matches action-cap and turn-limit boundaries in both orientations', async () => {
     const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
     const strategies = [...representativeCandidateIndices(space.candidateCount, 2)]

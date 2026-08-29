@@ -204,7 +204,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -238,7 +238,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "7dcd701cd6c"
+      "ruleFingerprint": "b2d0ef21d34"
     },
     {
       "kingdomId": "deep-beam-tuning-002",
@@ -300,7 +300,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -435,7 +435,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -469,7 +469,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "07eea8c7dc3"
+      "ruleFingerprint": "82802c17d8b"
     },
     {
       "kingdomId": "deep-beam-tuning-003",
@@ -668,7 +668,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -702,7 +702,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "2d7ae1e7d8f"
+      "ruleFingerprint": "3a5ba70ad57"
     },
     {
       "kingdomId": "deep-beam-tuning-004",
@@ -874,7 +874,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -905,7 +905,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -939,7 +939,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "b0c47947dcf"
+      "ruleFingerprint": "a445f421d99"
     },
     {
       "kingdomId": "deep-beam-tuning-005",
@@ -1015,7 +1015,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -1140,7 +1140,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -1174,7 +1174,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "321749e5d87"
+      "ruleFingerprint": "9e54a471d4f"
     },
     {
       "kingdomId": "deep-beam-tuning-006",
@@ -1376,7 +1376,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -1410,7 +1410,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "aea53bf0e96"
+      "ruleFingerprint": "3fa4e90de5e"
     },
     {
       "kingdomId": "deep-beam-tuning-007",
@@ -1581,7 +1581,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -1612,7 +1612,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -1646,7 +1646,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "17d096e7e04"
+      "ruleFingerprint": "eedd7747dcc"
     },
     {
       "kingdomId": "deep-beam-tuning-008",
@@ -1844,7 +1844,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -1878,7 +1878,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "1e7be118d75"
+      "ruleFingerprint": "3f452b67d3f"
     },
     {
       "kingdomId": "deep-beam-tuning-009",
@@ -2074,7 +2074,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -2108,7 +2108,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "a673feffdea"
+      "ruleFingerprint": "63318f12db2"
     },
     {
       "kingdomId": "deep-beam-tuning-010",
@@ -2310,7 +2310,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -2344,7 +2344,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "c831429fe48"
+      "ruleFingerprint": "8770ce1ce12"
     },
     {
       "kingdomId": "deep-beam-tuning-011",
@@ -2392,7 +2392,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -2546,7 +2546,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -2580,7 +2580,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "6ec6c2a1de3"
+      "ruleFingerprint": "a8876bb9dad"
     },
     {
       "kingdomId": "deep-beam-tuning-012",
@@ -2781,7 +2781,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -2815,7 +2815,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "aa1aa207d2a"
+      "ruleFingerprint": "2203e3aacf2"
     },
     {
       "kingdomId": "deep-beam-tuning-013",
@@ -2984,7 +2984,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -3015,7 +3015,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -3049,7 +3049,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "08e79267d87"
+      "ruleFingerprint": "3c90e2c7d4f"
     },
     {
       "kingdomId": "deep-beam-tuning-014",
@@ -3219,7 +3219,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -3250,7 +3250,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -3284,7 +3284,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "9ec9e738eae"
+      "ruleFingerprint": "6094ffe8e76"
     },
     {
       "kingdomId": "deep-beam-tuning-015",
@@ -3347,7 +3347,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -3484,7 +3484,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -3518,7 +3518,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "8ac50f01da1"
+      "ruleFingerprint": "8fa839b1d69"
     },
     {
       "kingdomId": "deep-beam-tuning-016",
@@ -3720,7 +3720,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -3754,7 +3754,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "42123c46cf8"
+      "ruleFingerprint": "18b7b627cc0"
     },
     {
       "kingdomId": "deep-beam-tuning-017",
@@ -3925,7 +3925,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -3956,7 +3956,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -3990,7 +3990,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "a1ae4966d7c"
+      "ruleFingerprint": "73b1a90ad44"
     },
     {
       "kingdomId": "deep-beam-tuning-018",
@@ -4194,7 +4194,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -4228,7 +4228,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "784d9f53e10"
+      "ruleFingerprint": "ebdbd99edd8"
     },
     {
       "kingdomId": "deep-beam-tuning-019",
@@ -4427,7 +4427,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -4461,7 +4461,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "de2f8dadd65"
+      "ruleFingerprint": "b381e736d2f"
     },
     {
       "kingdomId": "deep-beam-tuning-020",
@@ -4509,7 +4509,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -4663,7 +4663,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -4697,7 +4697,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "adc21f0ae33"
+      "ruleFingerprint": "d973d152dfb"
     },
     {
       "kingdomId": "deep-beam-tuning-021",
@@ -4897,7 +4897,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -4931,7 +4931,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "bd3de383db9"
+      "ruleFingerprint": "2ac335ced81"
     },
     {
       "kingdomId": "deep-beam-tuning-022",
@@ -5097,7 +5097,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -5128,7 +5128,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -5162,7 +5162,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "25d16a99d71"
+      "ruleFingerprint": "dc0f0fadd39"
     },
     {
       "kingdomId": "deep-beam-tuning-023",
@@ -5210,7 +5210,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -5364,7 +5364,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -5398,7 +5398,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "06f03753d7a"
+      "ruleFingerprint": "96133895d42"
     },
     {
       "kingdomId": "deep-beam-tuning-024",
@@ -5597,7 +5597,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -5631,7 +5631,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "7f85bbf2e20"
+      "ruleFingerprint": "b085029ddea"
     },
     {
       "kingdomId": "deep-beam-tuning-025",
@@ -5693,7 +5693,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -5831,7 +5831,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -5865,7 +5865,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "7e9397acd30"
+      "ruleFingerprint": "9fb5e10acf8"
     },
     {
       "kingdomId": "deep-beam-tuning-026",
@@ -6062,7 +6062,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -6096,7 +6096,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "520598c4d58"
+      "ruleFingerprint": "6d3da419d20"
     },
     {
       "kingdomId": "deep-beam-tuning-027",
@@ -6300,7 +6300,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -6334,7 +6334,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "d4222bd5e20"
+      "ruleFingerprint": "3958f222dea"
     },
     {
       "kingdomId": "deep-beam-tuning-028",
@@ -6537,7 +6537,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -6571,7 +6571,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "7c8d6d94e1e"
+      "ruleFingerprint": "b38bed29de6"
     },
     {
       "kingdomId": "deep-beam-tuning-029",
@@ -6633,7 +6633,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -6741,7 +6741,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -6772,7 +6772,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -6806,7 +6806,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "df04d2c6e89"
+      "ruleFingerprint": "f55acf93e51"
     },
     {
       "kingdomId": "deep-beam-tuning-030",
@@ -7008,7 +7008,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -7042,7 +7042,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "0b8f0b13e88"
+      "ruleFingerprint": "5b884c4ce52"
     },
     {
       "kingdomId": "deep-beam-tuning-031",
@@ -7213,7 +7213,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -7244,7 +7244,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -7278,7 +7278,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "b06f0522d25"
+      "ruleFingerprint": "5a71210eced"
     },
     {
       "kingdomId": "deep-beam-tuning-032",
@@ -7477,7 +7477,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -7511,7 +7511,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "80fd6ec6d7b"
+      "ruleFingerprint": "1bc038a7d43"
     },
     {
       "kingdomId": "deep-beam-tuning-033",
@@ -7711,7 +7711,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -7745,7 +7745,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "271d7398d50"
+      "ruleFingerprint": "7523f705d18"
     },
     {
       "kingdomId": "deep-beam-tuning-034",
@@ -7948,7 +7948,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -7982,7 +7982,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "e8d3fb27d91"
+      "ruleFingerprint": "b8ca74cad59"
     },
     {
       "kingdomId": "deep-beam-tuning-035",
@@ -8045,7 +8045,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -8181,7 +8181,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -8215,7 +8215,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "9301e4acddb"
+      "ruleFingerprint": "ef92cf00da3"
     },
     {
       "kingdomId": "deep-beam-tuning-036",
@@ -8385,7 +8385,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -8416,7 +8416,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -8450,7 +8450,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "9db4042bdc2"
+      "ruleFingerprint": "b1ea8645d8c"
     },
     {
       "kingdomId": "deep-beam-tuning-037",
@@ -8651,7 +8651,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -8685,7 +8685,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "515c4342daa"
+      "ruleFingerprint": "3e07403bd72"
     },
     {
       "kingdomId": "deep-beam-tuning-038",
@@ -8888,7 +8888,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -8922,7 +8922,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "b5dc2001f11"
+      "ruleFingerprint": "086b11e8ed9"
     },
     {
       "kingdomId": "deep-beam-tuning-039",
@@ -9088,7 +9088,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -9119,7 +9119,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -9153,7 +9153,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "d97a0238cbd"
+      "ruleFingerprint": "12da7ae8c85"
     },
     {
       "kingdomId": "deep-beam-tuning-040",
@@ -9201,7 +9201,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -9352,7 +9352,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -9386,7 +9386,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "87a9c95adcb"
+      "ruleFingerprint": "6d793584d95"
     },
     {
       "kingdomId": "deep-beam-tuning-041",
@@ -9589,7 +9589,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -9623,7 +9623,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "d5bdd3ade74"
+      "ruleFingerprint": "332419aee3e"
     },
     {
       "kingdomId": "deep-beam-tuning-042",
@@ -9671,7 +9671,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -9792,7 +9792,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -9823,7 +9823,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -9857,7 +9857,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "c296d77cd84"
+      "ruleFingerprint": "98b472b9d4c"
     },
     {
       "kingdomId": "deep-beam-tuning-043",
@@ -10059,7 +10059,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -10093,7 +10093,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "84e9cb32d6d"
+      "ruleFingerprint": "a1e15a2bd35"
     },
     {
       "kingdomId": "deep-beam-tuning-044",
@@ -10294,7 +10294,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -10328,7 +10328,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "a1632ac2d49"
+      "ruleFingerprint": "83f017bbd11"
     },
     {
       "kingdomId": "deep-beam-tuning-045",
@@ -10525,7 +10525,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -10559,7 +10559,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "29faf557db7"
+      "ruleFingerprint": "74bd09fad7f"
     },
     {
       "kingdomId": "deep-beam-tuning-046",
@@ -10731,7 +10731,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -10762,7 +10762,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -10796,7 +10796,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "5e5b0a47e1e"
+      "ruleFingerprint": "028f36c5de8"
     },
     {
       "kingdomId": "deep-beam-tuning-047",
@@ -10999,7 +10999,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -11033,7 +11033,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "cfced9f9d97"
+      "ruleFingerprint": "9dec6fb0d5f"
     },
     {
       "kingdomId": "deep-beam-tuning-048",
@@ -11095,7 +11095,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -11231,7 +11231,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -11265,7 +11265,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "dfaa0c67db1"
+      "ruleFingerprint": "165db16bd79"
     },
     {
       "kingdomId": "deep-beam-tuning-049",
@@ -11437,7 +11437,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -11468,7 +11468,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -11502,7 +11502,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "428a4767da2"
+      "ruleFingerprint": "92d837c7d6a"
     },
     {
       "kingdomId": "deep-beam-tuning-050",
@@ -11700,7 +11700,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -11734,7 +11734,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "a7242c90d92"
+      "ruleFingerprint": "6b92baadd5a"
     },
     {
       "kingdomId": "deep-beam-tuning-051",
@@ -11937,7 +11937,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -11971,7 +11971,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "a5516034dae"
+      "ruleFingerprint": "07c983c9d76"
     },
     {
       "kingdomId": "deep-beam-tuning-052",
@@ -12062,7 +12062,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -12172,7 +12172,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -12206,7 +12206,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "7b420ec8e25"
+      "ruleFingerprint": "7c91f114def"
     },
     {
       "kingdomId": "deep-beam-tuning-053",
@@ -12407,7 +12407,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -12441,7 +12441,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "a5665a38dff"
+      "ruleFingerprint": "5e3f40a5dc7"
     },
     {
       "kingdomId": "deep-beam-tuning-054",
@@ -12641,7 +12641,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -12675,7 +12675,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "52b2d1e4dc2"
+      "ruleFingerprint": "9de1f2abd8c"
     },
     {
       "kingdomId": "deep-beam-tuning-055",
@@ -12870,7 +12870,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -12904,7 +12904,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "41059831d3e"
+      "ruleFingerprint": "9039cf18d06"
     },
     {
       "kingdomId": "deep-beam-tuning-056",
@@ -12981,7 +12981,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -13109,7 +13109,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -13143,7 +13143,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "c59363d3e3f"
+      "ruleFingerprint": "9494dec5e07"
     },
     {
       "kingdomId": "deep-beam-tuning-057",
@@ -13219,7 +13219,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -13311,7 +13311,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -13342,7 +13342,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -13376,7 +13376,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "66492a78d3a"
+      "ruleFingerprint": "b59755b3d04"
     },
     {
       "kingdomId": "deep-beam-tuning-058",
@@ -13546,7 +13546,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -13577,7 +13577,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -13611,7 +13611,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "a9f21f00d98"
+      "ruleFingerprint": "d70a5880d60"
     },
     {
       "kingdomId": "deep-beam-tuning-059",
@@ -13659,7 +13659,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -13813,7 +13813,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -13847,7 +13847,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "8ecf13d7dc1"
+      "ruleFingerprint": "47f0f533d89"
     },
     {
       "kingdomId": "deep-beam-tuning-060",
@@ -14048,7 +14048,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -14082,7 +14082,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "ae56b789e5a"
+      "ruleFingerprint": "32835900e22"
     },
     {
       "kingdomId": "deep-beam-tuning-061",
@@ -14281,7 +14281,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -14315,7 +14315,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "1faf992eccb"
+      "ruleFingerprint": "e8d354ffc93"
     },
     {
       "kingdomId": "deep-beam-tuning-062",
@@ -14517,7 +14517,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -14551,7 +14551,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "2ac3e26ce4c"
+      "ruleFingerprint": "8b6f7971e14"
     },
     {
       "kingdomId": "deep-beam-tuning-063",
@@ -14723,7 +14723,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -14754,7 +14754,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -14788,7 +14788,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "6772793ad8e"
+      "ruleFingerprint": "9afdfe96d56"
     },
     {
       "kingdomId": "deep-beam-tuning-064",
@@ -14989,7 +14989,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -15023,7 +15023,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "10a9e6e9df4"
+      "ruleFingerprint": "01aa6dfadbe"
     },
     {
       "kingdomId": "deep-beam-tuning-065",
@@ -15221,7 +15221,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -15255,7 +15255,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "a08e7cbcda9"
+      "ruleFingerprint": "f1f306c1d71"
     },
     {
       "kingdomId": "deep-beam-tuning-066",
@@ -15457,7 +15457,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -15491,7 +15491,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "c170dbace20"
+      "ruleFingerprint": "9af3c58bdea"
     },
     {
       "kingdomId": "deep-beam-tuning-067",
@@ -15539,7 +15539,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -15690,7 +15690,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -15724,7 +15724,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "a370b306d9d"
+      "ruleFingerprint": "74146bbed67"
     },
     {
       "kingdomId": "deep-beam-tuning-068",
@@ -15898,7 +15898,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -15929,7 +15929,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -15963,7 +15963,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "75e987c9de0"
+      "ruleFingerprint": "08ad019dda8"
     },
     {
       "kingdomId": "deep-beam-tuning-069",
@@ -16160,7 +16160,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -16194,7 +16194,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "0fbf33bfe97"
+      "ruleFingerprint": "c3703452e5f"
     },
     {
       "kingdomId": "deep-beam-tuning-070",
@@ -16256,7 +16256,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -16395,7 +16395,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -16429,7 +16429,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "cad8acf4cb0"
+      "ruleFingerprint": "27617a92c78"
     },
     {
       "kingdomId": "deep-beam-tuning-071",
@@ -16477,7 +16477,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -16598,7 +16598,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -16629,7 +16629,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -16663,7 +16663,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "950c955ddb5"
+      "ruleFingerprint": "d26ec4ecd7d"
     },
     {
       "kingdomId": "deep-beam-tuning-072",
@@ -16866,7 +16866,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -16900,7 +16900,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "7fdc2463df9"
+      "ruleFingerprint": "5e3a232edc1"
     },
     {
       "kingdomId": "deep-beam-tuning-073",
@@ -17097,7 +17097,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -17131,7 +17131,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "07d90043dd4"
+      "ruleFingerprint": "06ed2d0ed9c"
     },
     {
       "kingdomId": "deep-beam-tuning-074",
@@ -17335,7 +17335,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -17369,7 +17369,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "b8d63795e3c"
+      "ruleFingerprint": "9f9ad814e04"
     },
     {
       "kingdomId": "deep-beam-tuning-075",
@@ -17571,7 +17571,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -17605,7 +17605,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "f6b90870d5c"
+      "ruleFingerprint": "5ba5458dd24"
     },
     {
       "kingdomId": "deep-beam-tuning-076",
@@ -17776,7 +17776,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -17807,7 +17807,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -17841,7 +17841,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "1e073c4ee24"
+      "ruleFingerprint": "ca313e04dee"
     },
     {
       "kingdomId": "deep-beam-tuning-077",
@@ -18044,7 +18044,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -18078,7 +18078,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "a3f7b1a1e69"
+      "ruleFingerprint": "713dbd92e33"
     },
     {
       "kingdomId": "deep-beam-tuning-078",
@@ -18155,7 +18155,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -18277,7 +18277,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -18311,7 +18311,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "9f399a3fdce"
+      "ruleFingerprint": "2ad3dee7d96"
     },
     {
       "kingdomId": "deep-beam-tuning-079",
@@ -18511,7 +18511,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -18545,7 +18545,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "e4852800d22"
+      "ruleFingerprint": "888b9f5dcea"
     },
     {
       "kingdomId": "deep-beam-tuning-080",
@@ -18713,7 +18713,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -18744,7 +18744,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -18778,7 +18778,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "670d9652d5a"
+      "ruleFingerprint": "ae237b7ed22"
     },
     {
       "kingdomId": "deep-beam-validation-001",
@@ -18868,7 +18868,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -18981,7 +18981,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -19015,7 +19015,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "2b16aebcdfe"
+      "ruleFingerprint": "e50327fedc8"
     },
     {
       "kingdomId": "deep-beam-validation-002",
@@ -19214,7 +19214,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -19248,7 +19248,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "bdf13bb8d75"
+      "ruleFingerprint": "2a275225d3d"
     },
     {
       "kingdomId": "deep-beam-validation-003",
@@ -19445,7 +19445,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -19479,7 +19479,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "6c353767e02"
+      "ruleFingerprint": "d159ac8adca"
     },
     {
       "kingdomId": "deep-beam-validation-004",
@@ -19680,7 +19680,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -19714,7 +19714,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "afa6f47ce28"
+      "ruleFingerprint": "4c6adb01df0"
     },
     {
       "kingdomId": "deep-beam-validation-005",
@@ -19888,7 +19888,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -19919,7 +19919,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -19953,7 +19953,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "5b974ebfde6"
+      "ruleFingerprint": "fa04fc2fdae"
     },
     {
       "kingdomId": "deep-beam-validation-006",
@@ -20001,7 +20001,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -20125,7 +20125,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -20156,7 +20156,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -20190,7 +20190,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "436df59ae30"
+      "ruleFingerprint": "b83981d3dfa"
     },
     {
       "kingdomId": "deep-beam-validation-007",
@@ -20356,7 +20356,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -20387,7 +20387,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -20421,7 +20421,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "cba06920cf5"
+      "ruleFingerprint": "86e43220cbd"
     },
     {
       "kingdomId": "deep-beam-validation-008",
@@ -20588,7 +20588,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -20619,7 +20619,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -20653,7 +20653,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "7004c1b0df9"
+      "ruleFingerprint": "483e3ea2dc3"
     },
     {
       "kingdomId": "deep-beam-validation-009",
@@ -20859,7 +20859,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -20893,7 +20893,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "6260f00ae16"
+      "ruleFingerprint": "8742cf53dde"
     },
     {
       "kingdomId": "deep-beam-validation-010",
@@ -21091,7 +21091,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -21125,7 +21125,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "dc52e02ad6a"
+      "ruleFingerprint": "d1d17cf3d32"
     },
     {
       "kingdomId": "deep-beam-validation-011",
@@ -21188,7 +21188,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -21328,7 +21328,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -21362,7 +21362,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "2fa812d4e0b"
+      "ruleFingerprint": "a0c4ae34dd3"
     },
     {
       "kingdomId": "deep-beam-validation-012",
@@ -21410,7 +21410,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -21560,7 +21560,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -21594,7 +21594,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "29fdb2fad6d"
+      "ruleFingerprint": "57d4df88d35"
     },
     {
       "kingdomId": "deep-beam-validation-013",
@@ -21796,7 +21796,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -21830,7 +21830,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "da028c26df4"
+      "ruleFingerprint": "65ae8569dbe"
     },
     {
       "kingdomId": "deep-beam-validation-014",
@@ -22029,7 +22029,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -22063,7 +22063,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "e404668fda8"
+      "ruleFingerprint": "8c1e9d22d70"
     },
     {
       "kingdomId": "deep-beam-validation-015",
@@ -22262,7 +22262,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -22296,7 +22296,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "4fe84e11e41"
+      "ruleFingerprint": "a236daf8e09"
     },
     {
       "kingdomId": "deep-beam-validation-016",
@@ -22497,7 +22497,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -22531,7 +22531,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "fbac2e75e26"
+      "ruleFingerprint": "3f5d169edf0"
     },
     {
       "kingdomId": "deep-beam-validation-017",
@@ -22732,7 +22732,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -22766,7 +22766,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "2d50841cd7f"
+      "ruleFingerprint": "b96e8321d47"
     },
     {
       "kingdomId": "deep-beam-validation-018",
@@ -22971,7 +22971,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -23005,7 +23005,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "22fa11f6d6c"
+      "ruleFingerprint": "2f58ae17d34"
     },
     {
       "kingdomId": "deep-beam-validation-019",
@@ -23053,7 +23053,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -23204,7 +23204,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -23238,7 +23238,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "5fa016a5e18"
+      "ruleFingerprint": "d3d739f3de0"
     },
     {
       "kingdomId": "deep-beam-validation-020",
@@ -23408,7 +23408,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -23439,7 +23439,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -23473,7 +23473,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "b6d8861ed1a"
+      "ruleFingerprint": "b71981d2ce2"
     },
     {
       "kingdomId": "balance-tuning-001",
@@ -23676,7 +23676,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -23710,7 +23710,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "64a9790ae4f"
+      "ruleFingerprint": "ee227853e17"
     },
     {
       "kingdomId": "balance-tuning-002",
@@ -23875,7 +23875,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -23906,7 +23906,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -23940,7 +23940,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "8a0fd5afdb9"
+      "ruleFingerprint": "36974d5fd81"
     },
     {
       "kingdomId": "balance-tuning-003",
@@ -24136,7 +24136,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -24170,7 +24170,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "db9b44b1de6"
+      "ruleFingerprint": "c0380b98dae"
     },
     {
       "kingdomId": "balance-tuning-004",
@@ -24373,7 +24373,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -24407,7 +24407,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "3102c1ecd7c"
+      "ruleFingerprint": "8fdf48f1d44"
     },
     {
       "kingdomId": "balance-tuning-005",
@@ -24580,7 +24580,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -24611,7 +24611,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -24645,7 +24645,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "c368d4e8d11"
+      "ruleFingerprint": "cd1b4158cd9"
     },
     {
       "kingdomId": "balance-tuning-006",
@@ -24845,7 +24845,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -24879,7 +24879,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "3203e644e24"
+      "ruleFingerprint": "174ea199dec"
     },
     {
       "kingdomId": "balance-tuning-007",
@@ -24942,7 +24942,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -25082,7 +25082,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -25116,7 +25116,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "b09e2636dda"
+      "ruleFingerprint": "6a51c9b2da2"
     },
     {
       "kingdomId": "balance-tuning-008",
@@ -25288,7 +25288,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -25319,7 +25319,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -25353,7 +25353,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "df2c85dae75"
+      "ruleFingerprint": "24defbb6e3d"
     },
     {
       "kingdomId": "balance-tuning-009",
@@ -25556,7 +25556,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -25590,7 +25590,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "63f418ddea8"
+      "ruleFingerprint": "ddf57e4ee72"
     },
     {
       "kingdomId": "balance-tuning-010",
@@ -25652,7 +25652,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -25789,7 +25789,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -25823,7 +25823,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "0b860ea9e15"
+      "ruleFingerprint": "164a00c3ddd"
     },
     {
       "kingdomId": "balance-tuning-011",
@@ -25885,7 +25885,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -26025,7 +26025,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -26059,7 +26059,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "0168c568da7"
+      "ruleFingerprint": "2e2c858cd71"
     },
     {
       "kingdomId": "balance-tuning-012",
@@ -26264,7 +26264,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -26298,7 +26298,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "090cb92adac"
+      "ruleFingerprint": "76851d31d76"
     },
     {
       "kingdomId": "balance-tuning-013",
@@ -26346,7 +26346,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -26499,7 +26499,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -26533,7 +26533,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "a0ad5acce7f"
+      "ruleFingerprint": "0b666cf8e47"
     },
     {
       "kingdomId": "balance-tuning-014",
@@ -26732,7 +26732,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -26766,7 +26766,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "f6530e46d6b"
+      "ruleFingerprint": "369ec827d33"
     },
     {
       "kingdomId": "balance-tuning-015",
@@ -26936,7 +26936,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -26967,7 +26967,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -27001,7 +27001,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "aeb45d99d96"
+      "ruleFingerprint": "7b7262add5e"
     },
     {
       "kingdomId": "balance-tuning-016",
@@ -27201,7 +27201,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -27235,7 +27235,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "b047301ede1"
+      "ruleFingerprint": "48a0b8afda9"
     },
     {
       "kingdomId": "balance-tuning-017",
@@ -27437,7 +27437,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -27471,7 +27471,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "1b10c399db8"
+      "ruleFingerprint": "ad8b97d0d80"
     },
     {
       "kingdomId": "balance-tuning-018",
@@ -27548,7 +27548,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -27675,7 +27675,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -27709,7 +27709,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "ea496a45e46"
+      "ruleFingerprint": "0317cbb3e0e"
     },
     {
       "kingdomId": "balance-tuning-019",
@@ -27757,7 +27757,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -27909,7 +27909,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -27943,7 +27943,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "8ba980adeb7"
+      "ruleFingerprint": "bb59a8cbe81"
     },
     {
       "kingdomId": "balance-tuning-020",
@@ -28140,7 +28140,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -28174,7 +28174,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "df256909d9f"
+      "ruleFingerprint": "135e23b2d69"
     },
     {
       "kingdomId": "balance-tuning-021",
@@ -28222,7 +28222,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -28374,7 +28374,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -28408,7 +28408,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "eff41c6ad49"
+      "ruleFingerprint": "482430b0d11"
     },
     {
       "kingdomId": "balance-tuning-022",
@@ -28456,7 +28456,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -28606,7 +28606,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -28640,7 +28640,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "fa5a85f6daf"
+      "ruleFingerprint": "4557a39ad77"
     },
     {
       "kingdomId": "balance-tuning-023",
@@ -28809,7 +28809,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -28840,7 +28840,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -28874,7 +28874,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "11524e1be32"
+      "ruleFingerprint": "ee06f723dfa"
     },
     {
       "kingdomId": "balance-tuning-024",
@@ -29076,7 +29076,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -29110,7 +29110,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "38ddf95ee04"
+      "ruleFingerprint": "c1896e6fdcc"
     },
     {
       "kingdomId": "balance-tuning-025",
@@ -29277,7 +29277,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -29308,7 +29308,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -29342,7 +29342,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "b914c24fddc"
+      "ruleFingerprint": "0c627171da6"
     },
     {
       "kingdomId": "balance-tuning-026",
@@ -29542,7 +29542,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -29576,7 +29576,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "7afc5b73d6e"
+      "ruleFingerprint": "499f41bed36"
     },
     {
       "kingdomId": "balance-tuning-027",
@@ -29742,7 +29742,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -29773,7 +29773,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -29807,7 +29807,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "a9c543a4d6a"
+      "ruleFingerprint": "38aa643cd32"
     },
     {
       "kingdomId": "balance-tuning-028",
@@ -29869,7 +29869,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -30008,7 +30008,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -30042,7 +30042,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "33775f00dec"
+      "ruleFingerprint": "be2aee1cdb6"
     },
     {
       "kingdomId": "balance-tuning-029",
@@ -30241,7 +30241,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -30275,7 +30275,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "77d17651d89"
+      "ruleFingerprint": "0f8c402ed53"
     },
     {
       "kingdomId": "balance-tuning-030",
@@ -30474,7 +30474,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -30508,7 +30508,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "4c6ed218e29"
+      "ruleFingerprint": "7b2c3603df3"
     },
     {
       "kingdomId": "balance-tuning-031",
@@ -30570,7 +30570,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -30702,7 +30702,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -30736,7 +30736,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "7f9a65d9d09"
+      "ruleFingerprint": "69f36235cd1"
     },
     {
       "kingdomId": "balance-tuning-032",
@@ -30907,7 +30907,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -30938,7 +30938,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -30972,7 +30972,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f98eb824d56"
+      "ruleFingerprint": "f83361fad20"
     },
     {
       "kingdomId": "balance-tuning-033",
@@ -31176,7 +31176,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -31210,7 +31210,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "28d753eddcb"
+      "ruleFingerprint": "09ca24dcd93"
     },
     {
       "kingdomId": "balance-tuning-034",
@@ -31378,7 +31378,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -31409,7 +31409,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -31443,7 +31443,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "c00647a8d9f"
+      "ruleFingerprint": "8d639598d67"
     },
     {
       "kingdomId": "balance-tuning-035",
@@ -31647,7 +31647,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -31681,7 +31681,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "9c69c947def"
+      "ruleFingerprint": "08ed856adb7"
     },
     {
       "kingdomId": "balance-tuning-036",
@@ -31882,7 +31882,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -31916,7 +31916,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "f27e9e53e0f"
+      "ruleFingerprint": "3056b89edd7"
     },
     {
       "kingdomId": "balance-tuning-037",
@@ -31964,7 +31964,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -32117,7 +32117,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -32151,7 +32151,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "a99398e9dca"
+      "ruleFingerprint": "67ba08c5d94"
     },
     {
       "kingdomId": "balance-tuning-038",
@@ -32348,7 +32348,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -32382,7 +32382,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "dc143425d31"
+      "ruleFingerprint": "f72e9324cf9"
     },
     {
       "kingdomId": "balance-tuning-039",
@@ -32583,7 +32583,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -32617,7 +32617,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "d8a019f5d58"
+      "ruleFingerprint": "4f6e66f4d20"
     },
     {
       "kingdomId": "balance-tuning-040",
@@ -32694,7 +32694,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -32821,7 +32821,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -32855,7 +32855,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "43adeb59e94"
+      "ruleFingerprint": "6e76ceebe5c"
     },
     {
       "kingdomId": "balance-tuning-041",
@@ -33028,7 +33028,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -33059,7 +33059,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -33093,7 +33093,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "22493cb3e34"
+      "ruleFingerprint": "6ef77acbdfc"
     },
     {
       "kingdomId": "balance-tuning-042",
@@ -33294,7 +33294,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -33328,7 +33328,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "0f059895cde"
+      "ruleFingerprint": "27cc5914ca6"
     },
     {
       "kingdomId": "balance-tuning-043",
@@ -33404,7 +33404,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -33531,7 +33531,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -33565,7 +33565,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "44fa540ddff"
+      "ruleFingerprint": "1b598d89dc7"
     },
     {
       "kingdomId": "balance-tuning-044",
@@ -33767,7 +33767,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -33801,7 +33801,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "e40e9ac1dd0"
+      "ruleFingerprint": "b67f2c28d98"
     },
     {
       "kingdomId": "balance-tuning-045",
@@ -33863,7 +33863,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -33970,7 +33970,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -34001,7 +34001,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -34035,7 +34035,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "215014e4e09"
+      "ruleFingerprint": "96b78bb9dd1"
     },
     {
       "kingdomId": "balance-tuning-046",
@@ -34234,7 +34234,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -34268,7 +34268,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "1e53ec7dd55"
+      "ruleFingerprint": "801fa6acd1d"
     },
     {
       "kingdomId": "balance-tuning-047",
@@ -34436,7 +34436,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -34467,7 +34467,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -34501,7 +34501,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "2f921ca4e40"
+      "ruleFingerprint": "7e785d3ce08"
     },
     {
       "kingdomId": "balance-tuning-048",
@@ -34549,7 +34549,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -34703,7 +34703,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -34737,7 +34737,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "d2b66b10e2f"
+      "ruleFingerprint": "7a721966df9"
     },
     {
       "kingdomId": "balance-tuning-049",
@@ -34936,7 +34936,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -34970,7 +34970,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "ca885675e6a"
+      "ruleFingerprint": "cfd99e3ae34"
     },
     {
       "kingdomId": "balance-tuning-050",
@@ -35171,7 +35171,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -35205,7 +35205,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "7b385e4bd6f"
+      "ruleFingerprint": "70b151f4d39"
     },
     {
       "kingdomId": "balance-tuning-051",
@@ -35409,7 +35409,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -35443,7 +35443,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "9a84bea5e9e"
+      "ruleFingerprint": "b9f76da4e66"
     },
     {
       "kingdomId": "balance-tuning-052",
@@ -35643,7 +35643,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -35677,7 +35677,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "0a688318e4e"
+      "ruleFingerprint": "5845f685e16"
     },
     {
       "kingdomId": "balance-tuning-053",
@@ -35845,7 +35845,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -35876,7 +35876,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -35910,7 +35910,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "b3dbcaced86"
+      "ruleFingerprint": "5e946482d4e"
     },
     {
       "kingdomId": "balance-tuning-054",
@@ -36081,7 +36081,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -36112,7 +36112,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -36146,7 +36146,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "98c759afd67"
+      "ruleFingerprint": "c897515fd2f"
     },
     {
       "kingdomId": "balance-tuning-055",
@@ -36209,7 +36209,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -36320,7 +36320,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -36351,7 +36351,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -36385,7 +36385,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "104390efe9e"
+      "ruleFingerprint": "f8308068e68"
     },
     {
       "kingdomId": "balance-tuning-056",
@@ -36557,7 +36557,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -36588,7 +36588,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -36622,7 +36622,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "b9456302d93"
+      "ruleFingerprint": "2508e978d5d"
     },
     {
       "kingdomId": "balance-tuning-057",
@@ -36820,7 +36820,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -36854,7 +36854,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "488dedd4e0d"
+      "ruleFingerprint": "f4d34f4bdd7"
     },
     {
       "kingdomId": "balance-tuning-058",
@@ -36917,7 +36917,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -37052,7 +37052,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -37086,7 +37086,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "13aafd79d44"
+      "ruleFingerprint": "3efdc3cbd0c"
     },
     {
       "kingdomId": "balance-tuning-059",
@@ -37134,7 +37134,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -37285,7 +37285,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -37319,7 +37319,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "75cd3811d9e"
+      "ruleFingerprint": "74dee463d66"
     },
     {
       "kingdomId": "balance-tuning-060",
@@ -37523,7 +37523,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -37557,7 +37557,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "0f4ba2d9db5"
+      "ruleFingerprint": "1f7b8990d7d"
     },
     {
       "kingdomId": "balance-tuning-061",
@@ -37727,7 +37727,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -37758,7 +37758,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -37792,7 +37792,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "b5d05c66d0e"
+      "ruleFingerprint": "eaf81c0acd6"
     },
     {
       "kingdomId": "balance-tuning-062",
@@ -37840,7 +37840,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -37994,7 +37994,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -38028,7 +38028,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "3b0d2618e80"
+      "ruleFingerprint": "d5a0d262e4a"
     },
     {
       "kingdomId": "balance-tuning-063",
@@ -38232,7 +38232,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -38266,7 +38266,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "08c4b079e01"
+      "ruleFingerprint": "256c1630dc9"
     },
     {
       "kingdomId": "balance-tuning-064",
@@ -38465,7 +38465,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -38499,7 +38499,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "2aa99f1cd0a"
+      "ruleFingerprint": "c97cfe21cd2"
     },
     {
       "kingdomId": "balance-tuning-065",
@@ -38702,7 +38702,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -38736,7 +38736,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "08cd1f3cd60"
+      "ruleFingerprint": "785cf941d28"
     },
     {
       "kingdomId": "balance-tuning-066",
@@ -38939,7 +38939,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -38973,7 +38973,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "e2297b64d49"
+      "ruleFingerprint": "f866a4b9d11"
     },
     {
       "kingdomId": "balance-tuning-067",
@@ -39174,7 +39174,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -39208,7 +39208,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "262f2486dfa"
+      "ruleFingerprint": "1019b1eddc4"
     },
     {
       "kingdomId": "balance-tuning-068",
@@ -39380,7 +39380,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -39411,7 +39411,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -39445,7 +39445,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "3f15828ce42"
+      "ruleFingerprint": "3d9a3af4e0a"
     },
     {
       "kingdomId": "balance-tuning-069",
@@ -39646,7 +39646,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -39680,7 +39680,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "1b881718dc1"
+      "ruleFingerprint": "2d93cdcfd8b"
     },
     {
       "kingdomId": "balance-tuning-070",
@@ -39881,7 +39881,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -39915,7 +39915,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "1ad1ba45e21"
+      "ruleFingerprint": "7448ce1adeb"
     },
     {
       "kingdomId": "balance-tuning-071",
@@ -40117,7 +40117,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -40151,7 +40151,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "ded90553e06"
+      "ruleFingerprint": "b117ff9edce"
     },
     {
       "kingdomId": "balance-tuning-072",
@@ -40321,7 +40321,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -40352,7 +40352,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -40386,7 +40386,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "68e659f1d9f"
+      "ruleFingerprint": "f3c75695d67"
     },
     {
       "kingdomId": "balance-tuning-073",
@@ -40585,7 +40585,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -40619,7 +40619,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "2fd31192d51"
+      "ruleFingerprint": "bf59e48bd19"
     },
     {
       "kingdomId": "balance-tuning-074",
@@ -40818,7 +40818,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -40852,7 +40852,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "80cb2487d5a"
+      "ruleFingerprint": "f65bb62ad22"
     },
     {
       "kingdomId": "balance-tuning-075",
@@ -40929,7 +40929,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -41022,7 +41022,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -41053,7 +41053,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -41087,7 +41087,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "dc728f00d4f"
+      "ruleFingerprint": "d2472903d17"
     },
     {
       "kingdomId": "balance-tuning-076",
@@ -41284,7 +41284,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -41318,7 +41318,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "b7b943c9d80"
+      "ruleFingerprint": "dac917c0d48"
     },
     {
       "kingdomId": "balance-tuning-077",
@@ -41521,7 +41521,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -41555,7 +41555,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "4cf46885d71"
+      "ruleFingerprint": "4155fa04d39"
     },
     {
       "kingdomId": "balance-tuning-078",
@@ -41754,7 +41754,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -41788,7 +41788,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "215ea03dd96"
+      "ruleFingerprint": "1b705decd5e"
     },
     {
       "kingdomId": "balance-tuning-079",
@@ -41836,7 +41836,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -41956,7 +41956,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -41987,7 +41987,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -42021,7 +42021,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "fad4b0f8da6"
+      "ruleFingerprint": "7ccc5145d6e"
     },
     {
       "kingdomId": "balance-tuning-080",
@@ -42097,7 +42097,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -42220,7 +42220,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -42254,7 +42254,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "917fb534d4a"
+      "ruleFingerprint": "7c6f98a0d12"
     },
     {
       "kingdomId": "balance-tuning-081",
@@ -42316,7 +42316,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -42451,7 +42451,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -42485,7 +42485,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "779e8501e6b"
+      "ruleFingerprint": "3027a445e33"
     },
     {
       "kingdomId": "balance-tuning-082",
@@ -42656,7 +42656,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -42687,7 +42687,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -42721,7 +42721,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "73051c1fed2"
+      "ruleFingerprint": "bc276e8fe9a"
     },
     {
       "kingdomId": "balance-tuning-083",
@@ -42889,7 +42889,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -42920,7 +42920,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -42954,7 +42954,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "6079e5cbd25"
+      "ruleFingerprint": "b41fbbd3ced"
     },
     {
       "kingdomId": "balance-tuning-084",
@@ -43155,7 +43155,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -43189,7 +43189,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "a68460a7e0a"
+      "ruleFingerprint": "6ee08a4add2"
     },
     {
       "kingdomId": "balance-tuning-085",
@@ -43392,7 +43392,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -43426,7 +43426,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "024944e5e10"
+      "ruleFingerprint": "f4f35f64dd8"
     },
     {
       "kingdomId": "balance-tuning-086",
@@ -43628,7 +43628,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -43662,7 +43662,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "cfff5591cf4"
+      "ruleFingerprint": "b4f3d278cbc"
     },
     {
       "kingdomId": "balance-tuning-087",
@@ -43725,7 +43725,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -43862,7 +43862,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -43896,7 +43896,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "162da6e6d1d"
+      "ruleFingerprint": "c6db2cc0ce5"
     },
     {
       "kingdomId": "balance-tuning-088",
@@ -44096,7 +44096,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -44130,7 +44130,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "5b41ef9add1"
+      "ruleFingerprint": "42a98ea3d99"
     },
     {
       "kingdomId": "balance-tuning-089",
@@ -44332,7 +44332,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -44366,7 +44366,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "1f525414dd5"
+      "ruleFingerprint": "061ca3a9d9d"
     },
     {
       "kingdomId": "balance-tuning-090",
@@ -44414,7 +44414,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -44565,7 +44565,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -44599,7 +44599,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "7fda8dadd09"
+      "ruleFingerprint": "8f23a45dcd1"
     },
     {
       "kingdomId": "balance-tuning-091",
@@ -44800,7 +44800,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -44834,7 +44834,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "3ce924f1d6d"
+      "ruleFingerprint": "598cb558d35"
     },
     {
       "kingdomId": "balance-tuning-092",
@@ -45036,7 +45036,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -45070,7 +45070,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "c5a48cade16"
+      "ruleFingerprint": "8ee9051cdde"
     },
     {
       "kingdomId": "balance-tuning-093",
@@ -45132,7 +45132,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -45272,7 +45272,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -45306,7 +45306,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "ebf826afdb1"
+      "ruleFingerprint": "a3f0fa8dd7b"
     },
     {
       "kingdomId": "balance-tuning-094",
@@ -45473,7 +45473,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -45504,7 +45504,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -45538,7 +45538,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "27a121e9d79"
+      "ruleFingerprint": "5ef9ef3dd41"
     },
     {
       "kingdomId": "balance-tuning-095",
@@ -45712,7 +45712,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -45743,7 +45743,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -45777,7 +45777,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "b9b40cade9d"
+      "ruleFingerprint": "609d2dd9e65"
     },
     {
       "kingdomId": "balance-tuning-096",
@@ -45974,7 +45974,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -46008,7 +46008,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "93afcca0d43"
+      "ruleFingerprint": "c73e6aebd0d"
     },
     {
       "kingdomId": "balance-tuning-097",
@@ -46214,7 +46214,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -46248,7 +46248,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "c2c8604fdf1"
+      "ruleFingerprint": "e3eef262db9"
     },
     {
       "kingdomId": "balance-tuning-098",
@@ -46450,7 +46450,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -46484,7 +46484,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "7251c7aed75"
+      "ruleFingerprint": "a91a537fd3d"
     },
     {
       "kingdomId": "balance-tuning-099",
@@ -46683,7 +46683,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -46717,7 +46717,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "a70175c0dcc"
+      "ruleFingerprint": "e4c632fbd96"
     },
     {
       "kingdomId": "balance-tuning-100",
@@ -46918,7 +46918,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -46952,7 +46952,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "91064ffeda4"
+      "ruleFingerprint": "3c7a0c8fd6c"
     },
     {
       "kingdomId": "balance-tuning-101",
@@ -47149,7 +47149,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -47183,7 +47183,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "d3ca7a7fe30"
+      "ruleFingerprint": "0a147a92df8"
     },
     {
       "kingdomId": "balance-tuning-102",
@@ -47245,7 +47245,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -47384,7 +47384,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -47418,7 +47418,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "816939c6d36"
+      "ruleFingerprint": "707a1678cfe"
     },
     {
       "kingdomId": "balance-tuning-103",
@@ -47619,7 +47619,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -47653,7 +47653,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "4b4857a9e11"
+      "ruleFingerprint": "a70285caddb"
     },
     {
       "kingdomId": "balance-tuning-104",
@@ -47851,7 +47851,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -47885,7 +47885,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "95304f1de09"
+      "ruleFingerprint": "aed9c01edd3"
     },
     {
       "kingdomId": "balance-tuning-105",
@@ -48056,7 +48056,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -48087,7 +48087,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -48121,7 +48121,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "24c61463dfc"
+      "ruleFingerprint": "901cde3bdc4"
     },
     {
       "kingdomId": "balance-tuning-106",
@@ -48183,7 +48183,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -48290,7 +48290,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -48321,7 +48321,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -48355,7 +48355,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "e1c92676d3c"
+      "ruleFingerprint": "a5fcd323d04"
     },
     {
       "kingdomId": "balance-tuning-107",
@@ -48526,7 +48526,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -48557,7 +48557,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -48591,7 +48591,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "26683931e0d"
+      "ruleFingerprint": "0fe70855dd5"
     },
     {
       "kingdomId": "balance-tuning-108",
@@ -48792,7 +48792,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -48826,7 +48826,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "3fecbb4ddbc"
+      "ruleFingerprint": "52b8fbbcd84"
     },
     {
       "kingdomId": "balance-tuning-109",
@@ -49026,7 +49026,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -49060,7 +49060,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "018b71e1d88"
+      "ruleFingerprint": "97937ec8d50"
     },
     {
       "kingdomId": "balance-tuning-110",
@@ -49122,7 +49122,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -49257,7 +49257,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -49291,7 +49291,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "0848281fce5"
+      "ruleFingerprint": "844d60fdcad"
     },
     {
       "kingdomId": "balance-tuning-111",
@@ -49494,7 +49494,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -49528,7 +49528,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "1fc32426e2d"
+      "ruleFingerprint": "d53584b1df7"
     },
     {
       "kingdomId": "balance-tuning-112",
@@ -49727,7 +49727,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -49761,7 +49761,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "052eff89d77"
+      "ruleFingerprint": "f894a100d3f"
     },
     {
       "kingdomId": "balance-tuning-113",
@@ -49961,7 +49961,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -49995,7 +49995,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "d217fd40d82"
+      "ruleFingerprint": "4e0cb22fd4c"
     },
     {
       "kingdomId": "balance-tuning-114",
@@ -50201,7 +50201,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -50235,7 +50235,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "66c45195d8a"
+      "ruleFingerprint": "5121f8b6d54"
     },
     {
       "kingdomId": "balance-tuning-115",
@@ -50438,7 +50438,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -50472,7 +50472,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "adb0cba0d4d"
+      "ruleFingerprint": "6b8a532bd17"
     },
     {
       "kingdomId": "balance-tuning-116",
@@ -50676,7 +50676,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -50710,7 +50710,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "e51fdf80d8f"
+      "ruleFingerprint": "f16246ddd57"
     },
     {
       "kingdomId": "balance-tuning-117",
@@ -50907,7 +50907,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -50941,7 +50941,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "7c7f167ccd8"
+      "ruleFingerprint": "62b33d01ca0"
     },
     {
       "kingdomId": "balance-tuning-118",
@@ -51142,7 +51142,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -51176,7 +51176,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "aa23516de41"
+      "ruleFingerprint": "1ffed25ce09"
     },
     {
       "kingdomId": "balance-tuning-119",
@@ -51224,7 +51224,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -51345,7 +51345,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -51376,7 +51376,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -51410,7 +51410,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "5c3f6bd9dda"
+      "ruleFingerprint": "b2d19994da4"
     },
     {
       "kingdomId": "balance-tuning-120",
@@ -51486,7 +51486,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -51583,7 +51583,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -51614,7 +51614,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -51648,7 +51648,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "8c959c3adb7"
+      "ruleFingerprint": "90e5af79d81"
     },
     {
       "kingdomId": "balance-tuning-121",
@@ -51848,7 +51848,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -51882,7 +51882,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "2da0f500d3e"
+      "ruleFingerprint": "af7f0c5dd06"
     },
     {
       "kingdomId": "balance-tuning-122",
@@ -51945,7 +51945,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -52081,7 +52081,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -52115,7 +52115,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "91b3f372d62"
+      "ruleFingerprint": "eae3d9d8d2a"
     },
     {
       "kingdomId": "balance-tuning-123",
@@ -52286,7 +52286,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -52317,7 +52317,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -52351,7 +52351,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "430fa60dd4c"
+      "ruleFingerprint": "bbcdd739d14"
     },
     {
       "kingdomId": "balance-tuning-124",
@@ -52553,7 +52553,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -52587,7 +52587,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "f066b707d67"
+      "ruleFingerprint": "106098aad2f"
     },
     {
       "kingdomId": "balance-tuning-125",
@@ -52789,7 +52789,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -52823,7 +52823,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "30783c23d38"
+      "ruleFingerprint": "a68a836ed00"
     },
     {
       "kingdomId": "balance-tuning-126",
@@ -53019,7 +53019,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -53053,7 +53053,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "6f422dc7e94"
+      "ruleFingerprint": "775579eae5c"
     },
     {
       "kingdomId": "balance-tuning-127",
@@ -53250,7 +53250,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -53284,7 +53284,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "95519de4d64"
+      "ruleFingerprint": "d7ea1739d2c"
     },
     {
       "kingdomId": "balance-tuning-128",
@@ -53456,7 +53456,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -53487,7 +53487,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -53521,7 +53521,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "1e060a9ddce"
+      "ruleFingerprint": "e21f8dc9d96"
     },
     {
       "kingdomId": "balance-validation-001",
@@ -53690,7 +53690,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -53721,7 +53721,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -53755,7 +53755,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "00275bc6e38"
+      "ruleFingerprint": "b05149eae00"
     },
     {
       "kingdomId": "balance-validation-002",
@@ -53956,7 +53956,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -53990,7 +53990,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "1236d18adc6"
+      "ruleFingerprint": "85d5e0d3d8e"
     },
     {
       "kingdomId": "balance-validation-003",
@@ -54066,7 +54066,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -54187,7 +54187,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -54221,7 +54221,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "7a0f84d1df5"
+      "ruleFingerprint": "980935cfdbd"
     },
     {
       "kingdomId": "balance-validation-004",
@@ -54269,7 +54269,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -54390,7 +54390,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -54421,7 +54421,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -54455,7 +54455,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "9862ea28db8"
+      "ruleFingerprint": "fc02bc6dd82"
     },
     {
       "kingdomId": "balance-validation-005",
@@ -54503,7 +54503,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -54655,7 +54655,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -54689,7 +54689,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "17b043c3da9"
+      "ruleFingerprint": "fbcfdf15d73"
     },
     {
       "kingdomId": "balance-validation-006",
@@ -54886,7 +54886,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -54920,7 +54920,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "05f40434e81"
+      "ruleFingerprint": "d5d8a7c9e49"
     },
     {
       "kingdomId": "balance-validation-007",
@@ -55120,7 +55120,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -55154,7 +55154,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "4f0d0ee6ecc"
+      "ruleFingerprint": "2dd8ba15e96"
     },
     {
       "kingdomId": "balance-validation-008",
@@ -55216,7 +55216,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -55355,7 +55355,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -55389,7 +55389,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "198e0fd5d59"
+      "ruleFingerprint": "6e5088f3d21"
     },
     {
       "kingdomId": "balance-validation-009",
@@ -55590,7 +55590,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -55624,7 +55624,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "2feb8577db9"
+      "ruleFingerprint": "98bd321ad81"
     },
     {
       "kingdomId": "balance-validation-010",
@@ -55826,7 +55826,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -55860,7 +55860,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "92c7b19ee0e"
+      "ruleFingerprint": "10f26a2fdd6"
     },
     {
       "kingdomId": "balance-validation-011",
@@ -56062,7 +56062,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -56096,7 +56096,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "b7a961cce7f"
+      "ruleFingerprint": "41e24ed1e47"
     },
     {
       "kingdomId": "balance-validation-012",
@@ -56267,7 +56267,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -56298,7 +56298,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -56332,7 +56332,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "100d9d94d31"
+      "ruleFingerprint": "941bb72ccf9"
     },
     {
       "kingdomId": "balance-validation-013",
@@ -56534,7 +56534,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -56568,7 +56568,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "4a3e66d8dcc"
+      "ruleFingerprint": "fdd391c5d94"
     },
     {
       "kingdomId": "balance-validation-014",
@@ -56738,7 +56738,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -56769,7 +56769,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -56803,7 +56803,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "74c26383d9c"
+      "ruleFingerprint": "a602be5bd64"
     },
     {
       "kingdomId": "balance-validation-015",
@@ -56851,7 +56851,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -57001,7 +57001,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -57035,7 +57035,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "01dc618ddc0"
+      "ruleFingerprint": "228be84dd8a"
     },
     {
       "kingdomId": "balance-validation-016",
@@ -57239,7 +57239,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -57273,7 +57273,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "32a4cea7d0d"
+      "ruleFingerprint": "2902b84acd5"
     },
     {
       "kingdomId": "balance-validation-017",
@@ -57479,7 +57479,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -57513,7 +57513,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "5878233fe5c"
+      "ruleFingerprint": "76e6f63ce26"
     },
     {
       "kingdomId": "balance-validation-018",
@@ -57712,7 +57712,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -57746,7 +57746,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "7d2e0aa9d54"
+      "ruleFingerprint": "658ee516d1e"
     },
     {
       "kingdomId": "balance-validation-019",
@@ -57949,7 +57949,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -57983,7 +57983,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "271679d0e03"
+      "ruleFingerprint": "66a4d93bdcd"
     },
     {
       "kingdomId": "balance-validation-020",
@@ -58060,7 +58060,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -58185,7 +58185,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -58219,7 +58219,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "09d76edfca5"
+      "ruleFingerprint": "94292fa9c6d"
     },
     {
       "kingdomId": "balance-validation-021",
@@ -58281,7 +58281,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -58418,7 +58418,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -58452,7 +58452,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "0bf9ce2cdf6"
+      "ruleFingerprint": "be9a7d2adbe"
     },
     {
       "kingdomId": "balance-validation-022",
@@ -58654,7 +58654,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -58688,7 +58688,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "bd7a1bb2ded"
+      "ruleFingerprint": "1846baabdb5"
     },
     {
       "kingdomId": "balance-validation-023",
@@ -58883,7 +58883,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -58917,7 +58917,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "ca698a23d0b"
+      "ruleFingerprint": "a3d9916ecd3"
     },
     {
       "kingdomId": "balance-validation-024",
@@ -58965,7 +58965,7 @@
             "cardType": "action",
             "mechanic": "bullRush",
             "family": "melee",
-            "cost": 4,
+            "cost": 3,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -59121,7 +59121,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -59155,7 +59155,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "797b0634d96"
+      "ruleFingerprint": "17780c92d5e"
     },
     {
       "kingdomId": "balance-validation-025",
@@ -59324,7 +59324,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -59355,7 +59355,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -59389,7 +59389,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "6a285207e3f"
+      "ruleFingerprint": "6c44cf67e07"
     },
     {
       "kingdomId": "balance-validation-026",
@@ -59591,7 +59591,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -59625,7 +59625,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "42a52546dd1"
+      "ruleFingerprint": "d36dbf27d99"
     },
     {
       "kingdomId": "balance-validation-027",
@@ -59828,7 +59828,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -59862,7 +59862,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "40deaa3de33"
+      "ruleFingerprint": "9d4da7ecdfb"
     },
     {
       "kingdomId": "balance-validation-028",
@@ -60032,7 +60032,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -60063,7 +60063,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -60097,7 +60097,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "49313743dbf"
+      "ruleFingerprint": "5d6aeec5d89"
     },
     {
       "kingdomId": "balance-validation-029",
@@ -60266,7 +60266,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -60297,7 +60297,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -60331,7 +60331,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "6b5aa18ad72"
+      "ruleFingerprint": "c579b326d3a"
     },
     {
       "kingdomId": "balance-validation-030",
@@ -60502,7 +60502,7 @@
             "cardType": "action",
             "mechanic": "volley",
             "family": "ranged",
-            "cost": 4,
+            "cost": 5,
             "money": 0,
             "tactical": true,
             "supply": 10,
@@ -60533,7 +60533,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -60567,7 +60567,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "54574f3edce"
+      "ruleFingerprint": "bc843bf2d96"
     },
     {
       "kingdomId": "balance-validation-031",
@@ -60762,7 +60762,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -60796,7 +60796,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "6d602a54d07"
+      "ruleFingerprint": "5f5c3169ccf"
     },
     {
       "kingdomId": "balance-validation-032",
@@ -60999,7 +60999,7 @@
             "supply": 10,
             "values": {
               "mana": 1,
-              "draw": 1
+              "draw": 0
             }
           },
           {
@@ -61033,7 +61033,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "a600dd90ddd"
+      "ruleFingerprint": "e2fb8badda5"
     }
   ]
 }
