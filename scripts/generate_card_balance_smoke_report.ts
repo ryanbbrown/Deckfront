@@ -44,6 +44,14 @@ export interface KingdomCardBalanceComparison {
   afterEvidenceSetSha256: string;
   supportSize: Difference;
   effectiveSize: Difference;
+  availableCards: Array<{ id: string; name: string; cost: number; family: string }>;
+  equilibriumStrategies: Array<{
+    strategyId: string;
+    selectedShare: number;
+    archetype: string;
+    buySteps: Array<{ cardId: string; cardName: string; desiredCount: number }>;
+    expectedAcquisitions: Array<{ cardId: string; cardName: string; copiesPerPlayerSide: number }>;
+  }>;
   archetypes: Array<{ archetype: string; selectedShare: Difference }>;
   changedCardAcquisition: CardAcquisitionComparison[];
   familyDamage: Array<{ family: DamageFamily; expectedDamagePerPlayerSide: Difference; share: Difference }>;
@@ -97,6 +105,7 @@ function difference(before: number, after: number): Difference {
 function sameOrder(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length && left.every((value, index) => value === right[index]);
 }
+function compareText(left: string, right: string): number { return left < right ? -1 : left > right ? 1 : 0; }
 function kingdomById(analysis: RustBalanceAnalysisV2): Map<string, RustKingdomBalanceAnalysis> {
   return new Map(analysis.kingdoms.map((kingdom) => [kingdom.kingdom.id, kingdom]));
 }
@@ -138,6 +147,15 @@ export function compareCardBalanceSmoke(input: {
   const kingdoms = kingdomIds.map((kingdomId): KingdomCardBalanceComparison => {
     const before = beforeById.get(kingdomId)!, after = afterById.get(kingdomId)!;
     const archetypes = [...new Set([...before.archetypes, ...after.archetypes].map((row) => row.archetype))].sort();
+    const cardNames = new Map(after.kingdom.offeredCards.map((card) => [card.id, card.name]));
+    const equilibriumStrategies = after.strategies.filter((strategy) => strategy.selectedWeight > 1e-12)
+      .sort((left, right) => right.selectedWeight - left.selectedWeight || left.strategyNumber - right.strategyNumber)
+      .map((strategy) => ({ strategyId: strategy.strategyId, selectedShare: strategy.selectedWeight,
+        archetype: strategy.archetype,
+        buySteps: strategy.buySteps.map((step) => ({ ...step, cardName: cardNames.get(step.cardId) ?? step.cardId })),
+        expectedAcquisitions: strategy.equilibriumOpponentAcquisitions
+          .filter((entry) => entry.copiesPerPlayerSide > 1e-6)
+          .map((entry) => ({ ...entry, cardName: cardNames.get(entry.cardId) ?? entry.cardId })) }));
     const changedCardAcquisition = CARD_BALANCE_SMOKE_CHANGED_CARD_IDS.flatMap((cardId) => {
       const beforeCard = cardRow(before, cardId), afterCard = cardRow(after, cardId);
       if (Boolean(beforeCard) !== Boolean(afterCard)) throw new Error(`${kingdomId}: ${cardId} offering changed.`);
@@ -147,6 +165,8 @@ export function compareCardBalanceSmoke(input: {
       afterEvidenceSetSha256: after.evidenceSetSha256,
       supportSize: difference(before.equilibrium.supportSize, after.equilibrium.supportSize),
       effectiveSize: difference(before.equilibrium.effectiveSize, after.equilibrium.effectiveSize),
+      availableCards: after.kingdom.offeredCards.map(({ id, name, cost, family }) => ({ id, name, cost, family })),
+      equilibriumStrategies,
       archetypes: archetypes.map((archetype) => ({ archetype,
         selectedShare: difference(archetypeShare(before, archetype), archetypeShare(after, archetype)) })),
       changedCardAcquisition,
@@ -199,11 +219,41 @@ function escape(value: unknown): string {
   return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;').replaceAll("'", '&#39;');
 }
-function table(headings: readonly string[], rows: readonly string[][]): string {
-  return `<div class="table-wrap"><table><thead><tr>${headings.map((heading) => `<th>${escape(heading)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+function table(headings: readonly string[], rows: readonly string[][], className = ''): string {
+  return `<div class="table-wrap${className ? ` ${className}` : ''}"><table><thead><tr>${headings.map((heading) => `<th>${escape(heading)}</th>`).join('')}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function diffCells(row: Difference, format: (value: number) => string): string[] {
   return [format(row.before), format(row.after), signed(row.difference, format)];
+}
+
+const FAMILY_ORDER = ['treasure', 'mana', 'melee', 'ranged', 'engine'] as const;
+function familyName(family: string): string { return family[0]!.toUpperCase() + family.slice(1); }
+function availabilityLabel(cardId: string): string {
+  if (cardId === 'focus' || cardId === 'step') return 'always available';
+  if (cardId === 'scrap') return 'starter';
+  if (cardId === 'copper' || cardId === 'silver' || cardId === 'gold') return 'treasure';
+  return '';
+}
+function renderAvailableCards(kingdom: KingdomCardBalanceComparison): string {
+  return `<div class="card-groups">${FAMILY_ORDER.map((family) => {
+    const cards = kingdom.availableCards.filter((card) => card.family === family)
+      .sort((left, right) => left.cost - right.cost || compareText(left.name, right.name));
+    if (!cards.length) return '';
+    return `<div class="card-group"><h4>${escape(familyName(family))}</h4><div class="card-chips">${cards.map((card) => {
+      const availability = availabilityLabel(card.id);
+      return `<span class="card-chip"><strong>${escape(card.name)}</strong><span>${card.cost}</span>${availability ? `<small>${escape(availability)}</small>` : ''}</span>`;
+    }).join('')}</div></div>`;
+  }).join('')}</div>`;
+}
+function renderEquilibriumStrategies(kingdom: KingdomCardBalanceComparison): string {
+  const maximumShare = Math.max(...kingdom.equilibriumStrategies.map((strategy) => strategy.selectedShare));
+  return table(['Role', 'Share', 'Archetype', 'Buy plan', 'Expected acquisitions'],
+    kingdom.equilibriumStrategies.map((strategy) => [
+      Math.abs(strategy.selectedShare - maximumShare) < 1e-9 ? 'Primary' : 'Alternative',
+      percent(strategy.selectedShare), escape(strategy.archetype),
+      strategy.buySteps.map((step) => `${escape(step.cardName)} ×${step.desiredCount}`).join(' → '),
+      strategy.expectedAcquisitions.map((entry) => `${escape(entry.cardName)} ${fixed(entry.copiesPerPlayerSide)}`).join(', ')
+    ]), 'strategy-table');
 }
 
 export function renderCardBalanceSmokeReport(report: CardBalanceSmokeComparison): string {
@@ -215,27 +265,33 @@ export function renderCardBalanceSmokeReport(report: CardBalanceSmokeComparison)
   const families = table(['Family', 'Before damage', 'After damage', 'Difference', 'Before share', 'After share', 'Difference'],
     report.crossKingdom.familyDamage.map((row) => [escape(row.family),
       ...diffCells(row.expectedDamagePerPlayerSide, fixed), ...diffCells(row.share, percent)]));
-  const kingdomSections = report.kingdoms.map((kingdom) => `<section><h2>${escape(kingdom.kingdomId)}</h2>
-    ${table(['Measure', 'Before', 'After', 'Difference'], [
+  const kingdomSections = report.kingdoms.map((kingdom) => `<section id="${escape(kingdom.kingdomId)}"><h2>${escape(kingdom.kingdomId)}</h2>
+    <h3>Available cards by type</h3>${renderAvailableCards(kingdom)}
+    <h3>Equilibrium strategies</h3><p class="section-note">Buy plans are priority ladders, not fixed purchase sequences. On each buy, the player scans from left to right and buys the first still-needed card it can afford. Expected acquisitions are MW copies per player side against the equilibrium opponent.</p>${renderEquilibriumStrategies(kingdom)}
+    <h3>Archetype shares</h3>${table(['Archetype', 'Share'], kingdom.archetypes
+      .filter((row) => row.selectedShare.after > 1e-10)
+      .sort((left, right) => right.selectedShare.after - left.selectedShare.after)
+      .map((row) => [escape(row.archetype), percent(row.selectedShare.after)]))}
+    <h3>Played-card family damage</h3>${table(['Family', 'Damage', 'Share'], kingdom.familyDamage
+      .filter((row) => row.share.after > 1e-10)
+      .sort((left, right) => right.share.after - left.share.after)
+      .map((row) => [escape(familyName(row.family)), fixed(row.expectedDamagePerPlayerSide.after), percent(row.share.after)]))}
+    <h3>Before and after run shape</h3>${table(['Measure', 'Before', 'After', 'Difference'], [
       ['Support size', ...diffCells(kingdom.supportSize, fixed)],
       ['Effective size', ...diffCells(kingdom.effectiveSize, fixed)]
     ])}
-    <h3>Archetype shares</h3>${table(['Archetype', 'Before', 'After', 'Difference'], kingdom.archetypes.map((row) =>
-      [escape(row.archetype), ...diffCells(row.selectedShare, percent)]))}
     <h3>Changed-card acquisition</h3>${table(['Card', 'Before copies', 'After copies', 'Difference', 'Before selection', 'After selection', 'Difference'],
       kingdom.changedCardAcquisition.map((row) => [escape(row.cardId), ...diffCells(row.expectedCopiesPerPlayerSide, fixed),
         ...diffCells(row.selectionPresence, percent)]))}
-    <h3>Family damage</h3>${table(['Family', 'Before damage', 'After damage', 'Difference', 'Before share', 'After share', 'Difference'],
-      kingdom.familyDamage.map((row) => [escape(row.family), ...diffCells(row.expectedDamagePerPlayerSide, fixed),
-        ...diffCells(row.share, percent)]))}
     <details><summary>Evidence hashes</summary><p>Before <code>${escape(kingdom.beforeEvidenceSetSha256)}</code><br>After <code>${escape(kingdom.afterEvidenceSetSha256)}</code></p></details></section>`).join('\n');
   const embedded = JSON.stringify(report).replaceAll('<', '\\u003c');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Card balance directional smoke</title><style>
-:root{font:16px/1.45 system-ui,sans-serif;color:#17231d;background:#f7f5ef}body{margin:0}main{max-width:1400px;margin:auto;padding:32px 24px 70px}h1{font-size:clamp(32px,5vw,58px);line-height:1.05;margin-bottom:8px}h2{margin-top:0}.lede{max-width:82ch;color:#536159}.warning{border:2px solid #9a3f13;background:#fff1e8}section{background:#fff;border:1px solid #ccd6d0;border-radius:12px;padding:22px;margin:22px 0}.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.metrics div{background:#e8f2ed;border-radius:9px;padding:14px}.metrics strong{display:block;font-size:28px}.table-wrap{overflow:auto;border:1px solid #dce4df;border-radius:8px;margin:10px 0 22px}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #e4e9e6}th{background:#edf3ef;font-size:12px;text-transform:uppercase}tr:last-child td{border-bottom:0}code{font-size:12px}@media(max-width:700px){main{padding:20px 10px}.metrics{grid-template-columns:1fr}section{padding:14px}}
+:root{font:16px/1.45 system-ui,sans-serif;color:#17231d;background:#f7f5ef}body{margin:0}main{max-width:1400px;margin:auto;padding:32px 24px 70px}h1{font-size:clamp(32px,5vw,58px);line-height:1.05;margin-bottom:8px}h2{margin-top:0}h3{margin:28px 0 8px}.lede{max-width:82ch;color:#536159}.section-note{margin-top:0;color:#536159}.warning{border:2px solid #9a3f13;background:#fff1e8}section{background:#fff;border:1px solid #ccd6d0;border-radius:12px;padding:22px;margin:22px 0;scroll-margin-top:16px}.metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.metrics div{background:#e8f2ed;border-radius:9px;padding:14px}.metrics strong{display:block;font-size:28px}.card-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.card-group{border:1px solid #dce4df;border-radius:9px;padding:12px}.card-group h4{margin:0 0 8px}.card-chips{display:flex;flex-wrap:wrap;gap:7px}.card-chip{display:grid;grid-template-columns:1fr auto;gap:0 8px;align-items:center;background:#edf3ef;border-radius:7px;padding:6px 8px;min-width:120px}.card-chip small{grid-column:1/-1;color:#607168}.kingdom-links{display:flex;flex-wrap:wrap;gap:8px}.kingdom-links a{color:#174c38;background:#e8f2ed;border-radius:7px;padding:8px 10px;text-decoration:none}.kingdom-links a:hover{text-decoration:underline}.table-wrap{overflow:auto;border:1px solid #dce4df;border-radius:8px;margin:10px 0 22px}table{width:100%;border-collapse:collapse;white-space:nowrap}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #e4e9e6}th{background:#edf3ef;font-size:12px;text-transform:uppercase}.strategy-table table{min-width:1000px;white-space:normal}.strategy-table td:nth-child(4),.strategy-table td:nth-child(5){min-width:320px}tr:last-child td{border-bottom:0}code{font-size:12px}@media(max-width:700px){main{padding:20px 10px}.metrics{grid-template-columns:1fr}section{padding:14px}.card-groups{grid-template-columns:1fr}}
 </style></head><body><main><h1>Card balance directional smoke</h1><p class="lede">Before and after comparison for the exact eight Plan 84 kingdoms. Each kingdom has equal weight. Within a kingdom, both players use the stored equilibrium lottery.</p>
 <section class="warning"><h2>Directional smoke, not final balance evidence</h2><p>This small run checks the direction of the agreed card changes. It does not replace the completed 30-kingdom evidence.</p></section>
 <section><h2>Run shape</h2><p>Goldfish used Modal Functions with 16 cores per score container and at most 512 active score CPUs. Matrix ran locally with unchanged rules. Local PSRO capped each confirmed queue at 100; thresholds, depths, admission, solver, and stopping rules stayed unchanged.</p><div class="metrics"><div><strong>${fixed(report.crossKingdom.supportSize.before)} → ${fixed(report.crossKingdom.supportSize.after)}</strong>Mean support size</div><div><strong>${fixed(report.crossKingdom.effectiveSize.before)} → ${fixed(report.crossKingdom.effectiveSize.after)}</strong>Mean effective size</div></div></section>
 <section><h2>Equilibrium-weighted archetype shares</h2>${archetypes}</section><section><h2>Changed-card acquisition</h2><p>Copies are expected acquired copies per player side. Selection is the equilibrium share of strategies that start with or acquire the card.</p>${cards}</section><section><h2>Played-card family damage</h2>${families}</section>
+<section><h2>Kingdom explorer</h2><p>Open a kingdom to compare its available cards, equilibrium strategies, archetype shares, and damage shares.</p><nav class="kingdom-links">${report.kingdoms.map((kingdom) => `<a href="#${escape(kingdom.kingdomId)}">${escape(kingdom.kingdomId)}</a>`).join('')}</nav></section>
 ${kingdomSections}<script id="card-balance-smoke-data" type="application/json">${embedded}</script></main></body></html>\n`;
 }
 
