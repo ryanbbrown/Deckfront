@@ -14,7 +14,8 @@ import type {
 } from '../src/sim/strategySearchGoldfishModal';
 
 export interface GoldfishModalOperatorAdapter {
-  run(input: { bundle: GoldfishModalLaunchBundle; destinationRoot: string }): Promise<unknown> | unknown;
+  run(input: { bundle: GoldfishModalLaunchBundle; destinationRoot: string;
+    deepVerify: boolean }): Promise<unknown> | unknown;
 }
 
 function lastJson(output: string): Record<string, unknown> {
@@ -117,7 +118,8 @@ export function createGoldfishOperatorReport(input: {
 }
 
 export class ModalGoldfishOperatorAdapter implements GoldfishModalOperatorAdapter {
-  async run(input: { bundle: GoldfishModalLaunchBundle; destinationRoot: string }): Promise<unknown> {
+  async run(input: { bundle: GoldfishModalLaunchBundle; destinationRoot: string;
+    deepVerify: boolean }): Promise<unknown> {
     const operatorStarted = performance.now();
     const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-goldfish-modal-'));
     const bundleFile = path.join(directory, 'bundle.json');
@@ -171,7 +173,9 @@ export class ModalGoldfishOperatorAdapter implements GoldfishModalOperatorAdapte
       void controller.value;
       const reportFile = path.join(input.destinationRoot, 'report.json');
       const report = JSON.parse(fs.readFileSync(reportFile, 'utf8')) as Record<string, unknown>;
-      const validation = measureGoldfishPostDownloadValidations(input);
+      const validation = input.deepVerify ? measureGoldfishPostDownloadValidations(input) : {
+        metrics: { bytes: 0, wallMs: 0, artifacts: [] }
+      };
       const finalReport = createGoldfishOperatorReport({ report,
         preflightStateWallMs: preflightState.wallMs,
         imageBuildAndDeployWallMs: deployment.wallMs,
@@ -195,7 +199,7 @@ function parseInput(requestFile: string, root: string): ParsedGoldfishModalReque
 }
 
 export async function executeGoldfishModalOperation(input: {
-  operation: 'plan' | 'run'; requestFile: string; authorizationToken?: string;
+  operation: 'plan' | 'run'; requestFile: string; authorizationToken?: string; deepVerify?: boolean;
   root?: string; adapter?: GoldfishModalOperatorAdapter;
 }): Promise<Record<string, unknown>> {
   const root = input.root ?? process.cwd(), parsed = parseInput(input.requestFile, root);
@@ -207,7 +211,8 @@ export async function executeGoldfishModalOperation(input: {
   const destinationRoot = path.resolve(root, parsed.downloadRoot);
   fs.mkdirSync(destinationRoot, { recursive: true });
   const adapter = input.adapter ?? new ModalGoldfishOperatorAdapter();
-  const outcome = await adapter.run({ bundle: createGoldfishModalLaunchBundle(parsed), destinationRoot });
+  const outcome = await adapter.run({ bundle: createGoldfishModalLaunchBundle(parsed), destinationRoot,
+    deepVerify: input.deepVerify ?? false });
   return { campaignExecutionId: parsed.campaignExecutionId, destinationRoot, outcome };
 }
 
@@ -223,13 +228,17 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
     throw new Error('Use plan or run. No paid operation is the default.');
   }
   const known = new Set(['--request', '--authorize']);
-  for (let index = 0; index < args.length; index += 2) {
+  let deepVerify = false;
+  for (let index = 0; index < args.length;) {
+    if (args[index] === '--verify') { deepVerify = true; index += 1; continue; }
     if (!known.has(args[index]!) || !args[index + 1] || args[index + 1]!.startsWith('--')) {
       throw new Error(`Unknown or incomplete Goldfish Modal option ${args[index] ?? ''}.`);
     }
+    index += 2;
   }
   const authorizationToken = option(args, 'authorize', false);
   const result = await executeGoldfishModalOperation({ operation: operation as 'plan' | 'run',
-    requestFile: path.resolve(option(args, 'request')!), ...(authorizationToken ? { authorizationToken } : {}) });
+    requestFile: path.resolve(option(args, 'request')!), deepVerify,
+    ...(authorizationToken ? { authorizationToken } : {}) });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }

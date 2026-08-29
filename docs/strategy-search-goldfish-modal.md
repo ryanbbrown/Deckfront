@@ -72,9 +72,10 @@ The run performs these steps in order for each kingdom:
 2. `reduce-one`
 3. `score-two`
 4. `reduce-two`
-5. Rust verification of both final files
-6. download and local deep verification
-7. stop
+5. validate publication integrity, then publish and download both final files
+6. stop
+
+Local deep verification is off by default. Add `--verify` to the `run` command only for final production evidence or an explicit audit.
 
 Workers and reducers publish the same evidence paths and bytes as the full campaign route. Partition shape and execution state do not change the kingdom evidence ID.
 

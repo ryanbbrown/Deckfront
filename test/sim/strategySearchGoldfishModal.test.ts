@@ -165,7 +165,10 @@ describe('Goldfish-only Modal operator', () => {
   it('plans without an adapter call and requires the exact token before paid work', async () => {
     const held = fixture();
     let calls = 0;
-    const adapter: GoldfishModalOperatorAdapter = { run() { calls += 1; return { complete: true }; } };
+    const verificationModes: boolean[] = [];
+    const adapter: GoldfishModalOperatorAdapter = { run(input) {
+      calls += 1; verificationModes.push(input.deepVerify); return { complete: true };
+    } };
     try {
       const plan = await executeGoldfishModalOperation({ operation: 'plan', requestFile: held.requestFile,
         root: held.root, adapter });
@@ -179,7 +182,10 @@ describe('Goldfish-only Modal operator', () => {
       const result = await executeGoldfishModalOperation({ operation: 'run', requestFile: held.requestFile,
         authorizationToken: String(plan.authorizationToken), root: held.root, adapter });
       expect(result.outcome).toEqual({ complete: true });
-      expect(calls).toBe(1);
+      await executeGoldfishModalOperation({ operation: 'run', requestFile: held.requestFile,
+        authorizationToken: String(plan.authorizationToken), root: held.root, adapter, deepVerify: true });
+      expect(calls).toBe(2);
+      expect(verificationModes).toEqual([false, true]);
     } finally {
       fs.rmSync(held.root, { recursive: true, force: true });
     }
