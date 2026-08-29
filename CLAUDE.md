@@ -21,3 +21,6 @@
 - Every implementation step must end with passing verification.
 - Write tests for behavior that would be expensive or risky to verify manually.
 - Run the relevant tests, typecheck, and lint before declaring work complete.
+- For routine card-balance tuning, run focused rule and TypeScript/Rust parity tests, required builds, native kingdom and rule-fingerprint checks, and cheap structural evidence checks. Keep the complete Goldfish -> Matrix -> PSRO process and require two clean full searches.
+- Deep Goldfish, Matrix, and PSRO verification is opt-in. Run it when the user requests it, after search-algorithm changes, and for final production evidence.
+- Keep broad hard-coded balance fixtures and generated balance manifests unchanged during routine tuning. Refresh and run them when rules settle for final evidence or when the user requests it.

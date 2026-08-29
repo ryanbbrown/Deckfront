@@ -44,8 +44,9 @@ def run_psro_step(
     report: str | None = None,
     *,
     volume: Any | None = None,
+    deep_verify: bool = False,
 ) -> dict[str, Any]:
-    """Run and verify one kingdom without making a scientific decision in Python."""
+    """Run one kingdom without making a scientific decision in Python."""
     command = [binary, "psro", "--kingdom", kingdom, "--top-file", top_file,
         "--reservoir", reservoir, "--matrix-dir", matrix_dir, "--out", out_dir,
         "--threads", str(threads)]
@@ -88,11 +89,14 @@ def run_psro_step(
         diagnostic = "\n".join(errors)[-64 * 1024:] or "\n".join(output)[-64 * 1024:]
         raise RuntimeError(f"Rust PSRO failed: {diagnostic}")
 
-    verify = _run_verify([binary, "psro-verify", "--kingdom", kingdom,
-        "--top-file", top_file, "--reservoir", reservoir, "--matrix-dir", matrix_dir,
-        "--out", out_dir])
+    verification = None
+    if deep_verify:
+        verification = _run_verify([binary, "psro-verify", "--kingdom", kingdom,
+            "--top-file", top_file, "--reservoir", reservoir, "--matrix-dir", matrix_dir,
+            "--out", out_dir])
     root = pathlib.Path(out_dir)
     files = {path.relative_to(root).as_posix(): {"path": str(path), "bytes": path.stat().st_size}
         for path in sorted(root.rglob("*")) if path.is_file()}
     parsed_report = json.loads(pathlib.Path(report).read_text()) if report is not None else None
-    return {"out": str(root), "files": files, "report": parsed_report, "verification": verify}
+    return {"out": str(root), "files": files, "report": parsed_report,
+        "verification": verification}

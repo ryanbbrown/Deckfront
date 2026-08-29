@@ -1265,6 +1265,7 @@ def strategy_search_psro_job(config: dict[str, Any]) -> dict[str, Any]:
         16,
         str(report),
         volume=volume,
+        deep_verify=bool(config.get("deepVerification", False)),
     )
     volume.commit()
     return result

@@ -22,6 +22,7 @@ class PsroStepTests(unittest.TestCase):
 import json, pathlib, sys
 args=sys.argv[1:]
 if args[0] == 'psro-verify':
+ (pathlib.Path(__file__).parent/'verified').write_text('yes')
  print(json.dumps({'valid': True, 'command': 'psro-verify'})); raise SystemExit(0)
 if %s:
  print('bounded failure', file=sys.stderr); raise SystemExit(4)
@@ -37,7 +38,7 @@ print(json.dumps({'complete': True}))
         path.chmod(path.stat().st_mode | stat.S_IXUSR)
         return path
 
-    def test_runs_handshake_verify_and_collects_files(self):
+    def test_runs_handshake_and_collects_files_without_deep_verification(self):
         with tempfile.TemporaryDirectory() as held:
             root = pathlib.Path(held)
             binary = self.executable(root)
@@ -48,7 +49,16 @@ print(json.dumps({'complete': True}))
             self.assertEqual(volume.commits, 1)
             self.assertEqual(result["report"], {"games": 12})
             self.assertEqual(result["files"]["decisions.hpd"]["bytes"], 8)
+            self.assertIsNone(result["verification"])
+            self.assertFalse((root / "verified").exists())
+
+    def test_runs_deep_verification_when_requested(self):
+        with tempfile.TemporaryDirectory() as held:
+            root = pathlib.Path(held)
+            result = run_psro_step(str(self.executable(root)), "kingdom", "top", "reservoir",
+                "matrix", str(root / "out"), 4, deep_verify=True)
             self.assertTrue(result["verification"]["valid"])
+            self.assertTrue((root / "verified").exists())
 
     def test_returns_bounded_failure(self):
         with tempfile.TemporaryDirectory() as held:
@@ -98,7 +108,7 @@ print(json.dumps({'complete': True}))
                 str(root / "out"), 16, volume=volume)
             self.assertEqual((root / "first-look-count").read_text(), "1")
             self.assertEqual(volume.commits, 2)
-            self.assertTrue(result["verification"]["valid"])
+            self.assertIsNone(result["verification"])
 
 
 if __name__ == "__main__":

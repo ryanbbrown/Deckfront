@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 6 ]]; then
-  echo "usage: $0 <kingdom-id> <threads> <top-file> <reservoir> <matrix-dir> <out-dir>" >&2
+if [[ $# -lt 6 || $# -gt 7 ]]; then
+  echo "usage: $0 <kingdom-id> <threads> <top-file> <reservoir> <matrix-dir> <out-dir> [--verify]" >&2
+  exit 2
+fi
+if [[ $# -eq 7 && $7 != "--verify" ]]; then
+  echo "usage: $0 <kingdom-id> <threads> <top-file> <reservoir> <matrix-dir> <out-dir> [--verify]" >&2
   exit 2
 fi
 
@@ -12,6 +16,7 @@ top_file=$3
 reservoir=$4
 matrix_dir=$5
 out_dir=$6
+deep_verify=${7:-}
 root=$(cd "$(dirname "$0")/.." && pwd)
 binary=${HEXDECK_GOLDFISH_BIN:-$root/rust/target/release/hexdeck-goldfish}
 
@@ -28,9 +33,11 @@ fi
   --threads "$threads" \
   --report "$out_dir/run-report.json"
 
-"$binary" psro-verify \
-  --kingdom "$kingdom" \
-  --top-file "$top_file" \
-  --reservoir "$reservoir" \
-  --matrix-dir "$matrix_dir" \
-  --out "$out_dir"
+if [[ "$deep_verify" == "--verify" ]]; then
+  "$binary" psro-verify \
+    --kingdom "$kingdom" \
+    --top-file "$top_file" \
+    --reservoir "$reservoir" \
+    --matrix-dir "$matrix_dir" \
+    --out "$out_dir"
+fi
