@@ -79,7 +79,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -137,7 +137,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -164,7 +164,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -238,7 +238,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "b2d0ef21d34"
+      "ruleFingerprint": "fc3dc7afd34"
     },
     {
       "kingdomId": "deep-beam-tuning-002",
@@ -291,7 +291,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -469,7 +469,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "82802c17d8b"
+      "ruleFingerprint": "a63013c7d8b"
     },
     {
       "kingdomId": "deep-beam-tuning-003",
@@ -522,7 +522,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -702,7 +702,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "3a5ba70ad57"
+      "ruleFingerprint": "e9139f5ad57"
     },
     {
       "kingdomId": "deep-beam-tuning-004",
@@ -755,7 +755,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -939,7 +939,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "a445f421d99"
+      "ruleFingerprint": "82790c11d99"
     },
     {
       "kingdomId": "deep-beam-tuning-005",
@@ -1699,7 +1699,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -1818,7 +1818,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -1878,7 +1878,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "3f452b67d3f"
+      "ruleFingerprint": "629e89bdd3f"
     },
     {
       "kingdomId": "deep-beam-tuning-009",
@@ -2659,7 +2659,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -2815,7 +2815,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "2203e3aacf2"
+      "ruleFingerprint": "960d2b42cf2"
     },
     {
       "kingdomId": "deep-beam-tuning-013",
@@ -2947,7 +2947,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -3049,7 +3049,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "3c90e2c7d4f"
+      "ruleFingerprint": "169ce7ddd4f"
     },
     {
       "kingdomId": "deep-beam-tuning-014",
@@ -3444,7 +3444,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -3518,7 +3518,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "8fa839b1d69"
+      "ruleFingerprint": "dee90e77d69"
     },
     {
       "kingdomId": "deep-beam-tuning-016",
@@ -3585,7 +3585,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -3754,7 +3754,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "18b7b627cc0"
+      "ruleFingerprint": "23d13397cc0"
     },
     {
       "kingdomId": "deep-beam-tuning-017",
@@ -3849,7 +3849,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -3990,7 +3990,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "73b1a90ad44"
+      "ruleFingerprint": "5dbc4f82d44"
     },
     {
       "kingdomId": "deep-beam-tuning-018",
@@ -4057,7 +4057,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -4168,7 +4168,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -4228,7 +4228,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "ebdbd99edd8"
+      "ruleFingerprint": "89522f50dd8"
     },
     {
       "kingdomId": "deep-beam-tuning-019",
@@ -5009,7 +5009,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -5162,7 +5162,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "dc0f0fadd39"
+      "ruleFingerprint": "1554ed95d39"
     },
     {
       "kingdomId": "deep-beam-tuning-023",
@@ -5324,7 +5324,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -5398,7 +5398,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "96133895d42"
+      "ruleFingerprint": "2bbb8893d42"
     },
     {
       "kingdomId": "deep-beam-tuning-024",
@@ -5451,7 +5451,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -5631,7 +5631,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "b085029ddea"
+      "ruleFingerprint": "64b2936ddea"
     },
     {
       "kingdomId": "deep-beam-tuning-025",
@@ -6163,7 +6163,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -6260,7 +6260,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -6334,7 +6334,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "3958f222dea"
+      "ruleFingerprint": "e7eeb5fcdea"
     },
     {
       "kingdomId": "deep-beam-tuning-028",
@@ -6387,7 +6387,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -6571,7 +6571,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "b38bed29de6"
+      "ruleFingerprint": "9357d5f9de6"
     },
     {
       "kingdomId": "deep-beam-tuning-029",
@@ -6665,7 +6665,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -6806,7 +6806,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f55acf93e51"
+      "ruleFingerprint": "3c15f41be51"
     },
     {
       "kingdomId": "deep-beam-tuning-030",
@@ -6873,7 +6873,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -7042,7 +7042,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "5b884c4ce52"
+      "ruleFingerprint": "9ff9463ce52"
     },
     {
       "kingdomId": "deep-beam-tuning-031",
@@ -7451,7 +7451,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -7511,7 +7511,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "1bc038a7d43"
+      "ruleFingerprint": "914f73b5d43"
     },
     {
       "kingdomId": "deep-beam-tuning-033",
@@ -7630,7 +7630,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -7745,7 +7745,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "7523f705d18"
+      "ruleFingerprint": "a05f8b85d18"
     },
     {
       "kingdomId": "deep-beam-tuning-034",
@@ -8268,7 +8268,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -8376,7 +8376,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -8450,7 +8450,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "b1ea8645d8c"
+      "ruleFingerprint": "3c74405bd8c"
     },
     {
       "kingdomId": "deep-beam-tuning-037",
@@ -8597,7 +8597,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -8685,7 +8685,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "3e07403bd72"
+      "ruleFingerprint": "6d920869d72"
     },
     {
       "kingdomId": "deep-beam-tuning-038",
@@ -8781,7 +8781,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -8922,7 +8922,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "086b11e8ed9"
+      "ruleFingerprint": "e214ada8ed9"
     },
     {
       "kingdomId": "deep-beam-tuning-039",
@@ -8975,7 +8975,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -9153,7 +9153,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "12da7ae8c85"
+      "ruleFingerprint": "dde002f0c85"
     },
     {
       "kingdomId": "deep-beam-tuning-040",
@@ -9783,7 +9783,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -9857,7 +9857,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "98b472b9d4c"
+      "ruleFingerprint": "50acb157d4c"
     },
     {
       "kingdomId": "deep-beam-tuning-043",
@@ -10160,7 +10160,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -10198,7 +10198,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -10328,7 +10328,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "83f017bbd11"
+      "ruleFingerprint": "70191823d11"
     },
     {
       "kingdomId": "deep-beam-tuning-045",
@@ -10499,7 +10499,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -10559,7 +10559,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "74bd09fad7f"
+      "ruleFingerprint": "248f8a44d7f"
     },
     {
       "kingdomId": "deep-beam-tuning-046",
@@ -11086,7 +11086,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -11127,7 +11127,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -11265,7 +11265,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "165db16bd79"
+      "ruleFingerprint": "89bf069bd79"
     },
     {
       "kingdomId": "deep-beam-tuning-049",
@@ -11660,7 +11660,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -11734,7 +11734,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "6b92baadd5a"
+      "ruleFingerprint": "73f12ce3d5a"
     },
     {
       "kingdomId": "deep-beam-tuning-051",
@@ -12038,7 +12038,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -12091,7 +12091,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -12206,7 +12206,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "7c91f114def"
+      "ruleFingerprint": "3409531cdef"
     },
     {
       "kingdomId": "deep-beam-tuning-053",
@@ -12287,7 +12287,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -12441,7 +12441,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "5e3f40a5dc7"
+      "ruleFingerprint": "d482dcbddc7"
     },
     {
       "kingdomId": "deep-beam-tuning-054",
@@ -12508,7 +12508,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -12675,7 +12675,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "9de1f2abd8c"
+      "ruleFingerprint": "53cf2183d8c"
     },
     {
       "kingdomId": "deep-beam-tuning-055",
@@ -12957,7 +12957,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -13083,7 +13083,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -13143,7 +13143,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "9494dec5e07"
+      "ruleFingerprint": "daa5eadbe07"
     },
     {
       "kingdomId": "deep-beam-tuning-057",
@@ -13485,7 +13485,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -13611,7 +13611,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "d70a5880d60"
+      "ruleFingerprint": "9c1105e8d60"
     },
     {
       "kingdomId": "deep-beam-tuning-059",
@@ -14149,7 +14149,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -14241,7 +14241,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -14315,7 +14315,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "e8d354ffc93"
+      "ruleFingerprint": "3b4da35dc93"
     },
     {
       "kingdomId": "deep-beam-tuning-062",
@@ -14382,7 +14382,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -14551,7 +14551,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "8b6f7971e14"
+      "ruleFingerprint": "389d8e99e14"
     },
     {
       "kingdomId": "deep-beam-tuning-063",
@@ -14700,7 +14700,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -14788,7 +14788,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "9afdfe96d56"
+      "ruleFingerprint": "46f99d18d56"
     },
     {
       "kingdomId": "deep-beam-tuning-064",
@@ -14869,7 +14869,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -15023,7 +15023,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "01aa6dfadbe"
+      "ruleFingerprint": "0940b5badbe"
     },
     {
       "kingdomId": "deep-beam-tuning-065",
@@ -15195,7 +15195,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -15255,7 +15255,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "f1f306c1d71"
+      "ruleFingerprint": "2a7d47e7d71"
     },
     {
       "kingdomId": "deep-beam-tuning-066",
@@ -15584,7 +15584,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -15724,7 +15724,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "74146bbed67"
+      "ruleFingerprint": "dc24c5d6d67"
     },
     {
       "kingdomId": "deep-beam-tuning-068",
@@ -15777,7 +15777,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -15963,7 +15963,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "08ad019dda8"
+      "ruleFingerprint": "f9405dadda8"
     },
     {
       "kingdomId": "deep-beam-tuning-069",
@@ -16575,7 +16575,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -16663,7 +16663,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "d26ec4ecd7d"
+      "ruleFingerprint": "65380e56d7d"
     },
     {
       "kingdomId": "deep-beam-tuning-072",
@@ -16992,7 +16992,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -17131,7 +17131,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "06ed2d0ed9c"
+      "ruleFingerprint": "b3fa9bced9c"
     },
     {
       "kingdomId": "deep-beam-tuning-074",
@@ -17295,7 +17295,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -17369,7 +17369,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "9f9ad814e04"
+      "ruleFingerprint": "2e36d576e04"
     },
     {
       "kingdomId": "deep-beam-tuning-075",
@@ -17422,7 +17422,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -17463,7 +17463,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -17605,7 +17605,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "5ba5458dd24"
+      "ruleFingerprint": "a66b7505d24"
     },
     {
       "kingdomId": "deep-beam-tuning-076",
@@ -17908,7 +17908,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -18004,7 +18004,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -18078,7 +18078,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "713dbd92e33"
+      "ruleFingerprint": "8316902ce33"
     },
     {
       "kingdomId": "deep-beam-tuning-078",
@@ -18364,7 +18364,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -18545,7 +18545,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "888b9f5dcea"
+      "ruleFingerprint": "159c074dcea"
     },
     {
       "kingdomId": "deep-beam-tuning-080",
@@ -18859,7 +18859,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -19015,7 +19015,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "e50327fedc8"
+      "ruleFingerprint": "ad09ab6edc8"
     },
     {
       "kingdomId": "deep-beam-validation-002",
@@ -19068,7 +19068,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -19248,7 +19248,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "2a275225d3d"
+      "ruleFingerprint": "1de48bf5d3d"
     },
     {
       "kingdomId": "deep-beam-validation-003",
@@ -19301,7 +19301,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -19342,7 +19342,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -19479,7 +19479,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "d159ac8adca"
+      "ruleFingerprint": "b89adc02dca"
     },
     {
       "kingdomId": "deep-beam-validation-004",
@@ -19532,7 +19532,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -19714,7 +19714,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "4c6adb01df0"
+      "ruleFingerprint": "61dcd931df0"
     },
     {
       "kingdomId": "deep-beam-validation-005",
@@ -19823,7 +19823,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -19953,7 +19953,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "fa04fc2fdae"
+      "ruleFingerprint": "e5050edfdae"
     },
     {
       "kingdomId": "deep-beam-validation-006",
@@ -20333,7 +20333,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -20421,7 +20421,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "86e43220cbd"
+      "ruleFingerprint": "a2f8b35acbd"
     },
     {
       "kingdomId": "deep-beam-validation-008",
@@ -20805,7 +20805,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -20893,7 +20893,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "8742cf53dde"
+      "ruleFingerprint": "096f1231dde"
     },
     {
       "kingdomId": "deep-beam-validation-010",
@@ -21439,7 +21439,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -21594,7 +21594,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "57d4df88d35"
+      "ruleFingerprint": "657e2688d35"
     },
     {
       "kingdomId": "deep-beam-validation-013",
@@ -21662,7 +21662,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -21756,7 +21756,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -21830,7 +21830,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "65ae8569dbe"
+      "ruleFingerprint": "872efc4fdbe"
     },
     {
       "kingdomId": "deep-beam-validation-014",
@@ -22706,7 +22706,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -22766,7 +22766,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "b96e8321d47"
+      "ruleFingerprint": "1de192c7d47"
     },
     {
       "kingdomId": "deep-beam-validation-018",
@@ -22819,7 +22819,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -23005,7 +23005,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "2f58ae17d34"
+      "ruleFingerprint": "4e01f4a7d34"
     },
     {
       "kingdomId": "deep-beam-validation-019",
@@ -23178,7 +23178,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -23238,7 +23238,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "d3d739f3de0"
+      "ruleFingerprint": "832132c1de0"
     },
     {
       "kingdomId": "deep-beam-validation-020",
@@ -23305,7 +23305,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -23473,7 +23473,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "b71981d2ce2"
+      "ruleFingerprint": "9f867602ce2"
     },
     {
       "kingdomId": "balance-tuning-001",
@@ -23540,7 +23540,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -23710,7 +23710,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "ee227853e17"
+      "ruleFingerprint": "a2ed5103e17"
     },
     {
       "kingdomId": "balance-tuning-002",
@@ -23801,7 +23801,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -23940,7 +23940,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "36974d5fd81"
+      "ruleFingerprint": "220553f7d81"
     },
     {
       "kingdomId": "balance-tuning-003",
@@ -24223,7 +24223,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -24265,7 +24265,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -24333,7 +24333,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -24407,7 +24407,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "8fdf48f1d44"
+      "ruleFingerprint": "8dd1cd97d44"
     },
     {
       "kingdomId": "balance-tuning-005",
@@ -24557,7 +24557,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -24645,7 +24645,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "cd1b4158cd9"
+      "ruleFingerprint": "fa751522cd9"
     },
     {
       "kingdomId": "balance-tuning-006",
@@ -24712,7 +24712,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -24879,7 +24879,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "174ea199dec"
+      "ruleFingerprint": "1a333671dec"
     },
     {
       "kingdomId": "balance-tuning-007",
@@ -25183,7 +25183,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -25353,7 +25353,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "24defbb6e3d"
+      "ruleFingerprint": "ca756946e3d"
     },
     {
       "kingdomId": "balance-tuning-009",
@@ -25530,7 +25530,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -25590,7 +25590,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "ddf57e4ee72"
+      "ruleFingerprint": "c1ff75c8e72"
     },
     {
       "kingdomId": "balance-tuning-010",
@@ -25763,7 +25763,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -25823,7 +25823,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "164a00c3ddd"
+      "ruleFingerprint": "c985f151ddd"
     },
     {
       "kingdomId": "balance-tuning-011",
@@ -27288,7 +27288,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -27471,7 +27471,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "ad8b97d0d80"
+      "ruleFingerprint": "f62955e0d80"
     },
     {
       "kingdomId": "balance-tuning-018",
@@ -28265,7 +28265,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -28408,7 +28408,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "482430b0d11"
+      "ruleFingerprint": "735c1e78d11"
     },
     {
       "kingdomId": "balance-tuning-022",
@@ -28786,7 +28786,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -28874,7 +28874,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "ee06f723dfa"
+      "ruleFingerprint": "93527a81dfa"
     },
     {
       "kingdomId": "balance-tuning-024",
@@ -28983,7 +28983,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -29110,7 +29110,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "c1896e6fdcc"
+      "ruleFingerprint": "dbe98e7fdcc"
     },
     {
       "kingdomId": "balance-tuning-025",
@@ -29395,7 +29395,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -29576,7 +29576,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "499f41bed36"
+      "ruleFingerprint": "f63ed5eed36"
     },
     {
       "kingdomId": "balance-tuning-027",
@@ -29719,7 +29719,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -29807,7 +29807,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "38aa643cd32"
+      "ruleFingerprint": "3fa4f726d32"
     },
     {
       "kingdomId": "balance-tuning-028",
@@ -29887,7 +29887,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -30042,7 +30042,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "be2aee1cdb6"
+      "ruleFingerprint": "e596cc44db6"
     },
     {
       "kingdomId": "balance-tuning-029",
@@ -30434,7 +30434,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -30508,7 +30508,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "7b2c3603df3"
+      "ruleFingerprint": "d4ee8169df3"
     },
     {
       "kingdomId": "balance-tuning-031",
@@ -31039,7 +31039,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -31097,7 +31097,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -31150,7 +31150,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -31210,7 +31210,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "09ca24dcd93"
+      "ruleFingerprint": "025e0d56d93"
     },
     {
       "kingdomId": "balance-tuning-034",
@@ -31511,7 +31511,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -31621,7 +31621,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -31681,7 +31681,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "08ed856adb7"
+      "ruleFingerprint": "0791532cdb7"
     },
     {
       "kingdomId": "balance-tuning-036",
@@ -31996,7 +31996,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -32151,7 +32151,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "67ba08c5d94"
+      "ruleFingerprint": "2e707245d94"
     },
     {
       "kingdomId": "balance-tuning-038",
@@ -32322,7 +32322,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -32382,7 +32382,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "f72e9324cf9"
+      "ruleFingerprint": "95e4dddecf9"
     },
     {
       "kingdomId": "balance-tuning-039",
@@ -32435,7 +32435,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -32617,7 +32617,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "4f6e66f4d20"
+      "ruleFingerprint": "bf26863cd20"
     },
     {
       "kingdomId": "balance-tuning-040",
@@ -32951,7 +32951,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -33093,7 +33093,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "6ef77acbdfc"
+      "ruleFingerprint": "1fe2568bdfc"
     },
     {
       "kingdomId": "balance-tuning-042",
@@ -33146,7 +33146,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -33328,7 +33328,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "27cc5914ca6"
+      "ruleFingerprint": "af818c44ca6"
     },
     {
       "kingdomId": "balance-tuning-043",
@@ -33395,7 +33395,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -33491,7 +33491,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -33565,7 +33565,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "1b598d89dc7"
+      "ruleFingerprint": "5c65fb67dc7"
     },
     {
       "kingdomId": "balance-tuning-044",
@@ -34208,7 +34208,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -34268,7 +34268,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "801fa6acd1d"
+      "ruleFingerprint": "8b93f666d1d"
     },
     {
       "kingdomId": "balance-tuning-047",
@@ -34677,7 +34677,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -34737,7 +34737,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "7a721966df9"
+      "ruleFingerprint": "15804060df9"
     },
     {
       "kingdomId": "balance-tuning-049",
@@ -35090,7 +35090,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -35131,7 +35131,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -35205,7 +35205,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "70b151f4d39"
+      "ruleFingerprint": "06e55b06d39"
     },
     {
       "kingdomId": "balance-tuning-051",
@@ -35369,7 +35369,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -35443,7 +35443,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "b9f76da4e66"
+      "ruleFingerprint": "fd352b3ee66"
     },
     {
       "kingdomId": "balance-tuning-052",
@@ -36256,7 +36256,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -36385,7 +36385,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f8308068e68"
+      "ruleFingerprint": "cb2438c0e68"
     },
     {
       "kingdomId": "balance-tuning-056",
@@ -36438,7 +36438,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -36534,7 +36534,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -36622,7 +36622,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "2508e978d5d"
+      "ruleFingerprint": "ce99ce0ad5d"
     },
     {
       "kingdomId": "balance-tuning-057",
@@ -36689,7 +36689,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -36854,7 +36854,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "f4d34f4bdd7"
+      "ruleFingerprint": "0f1214dbdd7"
     },
     {
       "kingdomId": "balance-tuning-058",
@@ -37012,7 +37012,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -37086,7 +37086,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "3efdc3cbd0c"
+      "ruleFingerprint": "8100cbb1d0c"
     },
     {
       "kingdomId": "balance-tuning-059",
@@ -37414,7 +37414,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -37557,7 +37557,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "1f7b8990d7d"
+      "ruleFingerprint": "1f202b00d7d"
     },
     {
       "kingdomId": "balance-tuning-061",
@@ -37610,7 +37610,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -37704,7 +37704,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -37792,7 +37792,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "eaf81c0acd6"
+      "ruleFingerprint": "198c5e54cd6"
     },
     {
       "kingdomId": "balance-tuning-062",
@@ -37968,7 +37968,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -38028,7 +38028,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "d5a0d262e4a"
+      "ruleFingerprint": "40b7eface4a"
     },
     {
       "kingdomId": "balance-tuning-063",
@@ -38192,7 +38192,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -38266,7 +38266,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "256c1630dc9"
+      "ruleFingerprint": "aff77c1adc9"
     },
     {
       "kingdomId": "balance-tuning-064",
@@ -38319,7 +38319,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -38346,7 +38346,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -38499,7 +38499,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "c97cfe21cd2"
+      "ruleFingerprint": "e234ef79cd2"
     },
     {
       "kingdomId": "balance-tuning-065",
@@ -38552,7 +38552,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -38736,7 +38736,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "785cf941d28"
+      "ruleFingerprint": "fd6bad11d28"
     },
     {
       "kingdomId": "balance-tuning-066",
@@ -38803,7 +38803,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -38913,7 +38913,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -38973,7 +38973,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "f866a4b9d11"
+      "ruleFingerprint": "f0789fafd11"
     },
     {
       "kingdomId": "balance-tuning-067",
@@ -39371,7 +39371,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -39445,7 +39445,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "3d9a3af4e0a"
+      "ruleFingerprint": "f4213c86e0a"
     },
     {
       "kingdomId": "balance-tuning-069",
@@ -40233,7 +40233,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -40386,7 +40386,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "f3c75695d67"
+      "ruleFingerprint": "06f9797dd67"
     },
     {
       "kingdomId": "balance-tuning-073",
@@ -40545,7 +40545,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -40619,7 +40619,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "bf59e48bd19"
+      "ruleFingerprint": "62700a91d19"
     },
     {
       "kingdomId": "balance-tuning-074",
@@ -40725,7 +40725,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -40852,7 +40852,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "f65bb62ad22"
+      "ruleFingerprint": "e3e75012d22"
     },
     {
       "kingdomId": "balance-tuning-075",
@@ -40974,7 +40974,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -41087,7 +41087,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "d2472903d17"
+      "ruleFingerprint": "11bc1a0bd17"
     },
     {
       "kingdomId": "balance-tuning-076",
@@ -42088,7 +42088,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -42143,7 +42143,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -42254,7 +42254,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "7c6f98a0d12"
+      "ruleFingerprint": "2470eea0d12"
     },
     {
       "kingdomId": "balance-tuning-081",
@@ -42307,7 +42307,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -42485,7 +42485,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "3027a445e33"
+      "ruleFingerprint": "6bb2ed35e33"
     },
     {
       "kingdomId": "balance-tuning-082",
@@ -43256,7 +43256,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -43426,7 +43426,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "f4f35f64dd8"
+      "ruleFingerprint": "0e8cfe9cdd8"
     },
     {
       "kingdomId": "balance-tuning-086",
@@ -43479,7 +43479,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -43493,7 +43493,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -43662,7 +43662,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "b4f3d278cbc"
+      "ruleFingerprint": "5ba88e58cbc"
     },
     {
       "kingdomId": "balance-tuning-087",
@@ -44016,7 +44016,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -44130,7 +44130,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "42a98ea3d99"
+      "ruleFingerprint": "5e44c9e3d99"
     },
     {
       "kingdomId": "balance-tuning-089",
@@ -44292,7 +44292,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -44366,7 +44366,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "061ca3a9d9d"
+      "ruleFingerprint": "da326847d9d"
     },
     {
       "kingdomId": "balance-tuning-090",
@@ -44525,7 +44525,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -44599,7 +44599,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "8f23a45dcd1"
+      "ruleFingerprint": "f8c99a33cd1"
     },
     {
       "kingdomId": "balance-tuning-091",
@@ -44652,7 +44652,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -44834,7 +44834,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "598cb558d35"
+      "ruleFingerprint": "c68ff050d35"
     },
     {
       "kingdomId": "balance-tuning-092",
@@ -45164,7 +45164,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -45306,7 +45306,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "a3f0fa8dd7b"
+      "ruleFingerprint": "5056b685d7b"
     },
     {
       "kingdomId": "balance-tuning-094",
@@ -45359,7 +45359,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -45538,7 +45538,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "5ef9ef3dd41"
+      "ruleFingerprint": "f192eeadd41"
     },
     {
       "kingdomId": "balance-tuning-095",
@@ -45591,7 +45591,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -45634,7 +45634,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -45777,7 +45777,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "609d2dd9e65"
+      "ruleFingerprint": "a7ef26f9e65"
     },
     {
       "kingdomId": "balance-tuning-096",
@@ -46075,7 +46075,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -46174,7 +46174,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -46248,7 +46248,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "e3eef262db9"
+      "ruleFingerprint": "5db4ee8cdb9"
     },
     {
       "kingdomId": "balance-tuning-098",
@@ -47019,7 +47019,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -47183,7 +47183,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "0a147a92df8"
+      "ruleFingerprint": "ce29ca3adf8"
     },
     {
       "kingdomId": "balance-tuning-102",
@@ -47236,7 +47236,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -47418,7 +47418,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "707a1678cfe"
+      "ruleFingerprint": "a9cedb50cfe"
     },
     {
       "kingdomId": "balance-tuning-103",
@@ -47471,7 +47471,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -47593,7 +47593,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -47653,7 +47653,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "a70285caddb"
+      "ruleFingerprint": "9e2b6dc4ddb"
     },
     {
       "kingdomId": "balance-tuning-104",
@@ -47706,7 +47706,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -47885,7 +47885,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "aed9c01edd3"
+      "ruleFingerprint": "28853b46dd3"
     },
     {
       "kingdomId": "balance-tuning-105",
@@ -47952,7 +47952,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -48121,7 +48121,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "901cde3bdc4"
+      "ruleFingerprint": "a50029b3dc4"
     },
     {
       "kingdomId": "balance-tuning-106",
@@ -48174,7 +48174,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -48355,7 +48355,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "a5fcd323d04"
+      "ruleFingerprint": "aa8ef98bd04"
     },
     {
       "kingdomId": "balance-tuning-107",
@@ -48986,7 +48986,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -49060,7 +49060,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "97937ec8d50"
+      "ruleFingerprint": "0855f2aad50"
     },
     {
       "kingdomId": "balance-tuning-110",
@@ -49113,7 +49113,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -49231,7 +49231,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -49291,7 +49291,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "844d60fdcad"
+      "ruleFingerprint": "aa5c30f3cad"
     },
     {
       "kingdomId": "balance-tuning-111",
@@ -49414,7 +49414,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -49528,7 +49528,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "d53584b1df7"
+      "ruleFingerprint": "77bf0521df7"
     },
     {
       "kingdomId": "balance-tuning-112",
@@ -49633,7 +49633,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -49761,7 +49761,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "f894a100d3f"
+      "ruleFingerprint": "7cb99770d3f"
     },
     {
       "kingdomId": "balance-tuning-113",
@@ -50048,7 +50048,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -50119,7 +50119,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -50235,7 +50235,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "5121f8b6d54"
+      "ruleFingerprint": "5a46198ed54"
     },
     {
       "kingdomId": "balance-tuning-115",
@@ -50302,7 +50302,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -50472,7 +50472,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "6b8a532bd17"
+      "ruleFingerprint": "4a1f263bd17"
     },
     {
       "kingdomId": "balance-tuning-116",
@@ -50525,7 +50525,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -50710,7 +50710,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "f16246ddd57"
+      "ruleFingerprint": "129124cdd57"
     },
     {
       "kingdomId": "balance-tuning-117",
@@ -50763,7 +50763,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -50941,7 +50941,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "62b33d01ca0"
+      "ruleFingerprint": "22fa2df1ca0"
     },
     {
       "kingdomId": "balance-tuning-118",
@@ -51102,7 +51102,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -51176,7 +51176,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "1ffed25ce09"
+      "ruleFingerprint": "d65694bee09"
     },
     {
       "kingdomId": "balance-tuning-119",
@@ -51477,7 +51477,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -51648,7 +51648,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "90e5af79d81"
+      "ruleFingerprint": "f54ca0a9d81"
     },
     {
       "kingdomId": "balance-tuning-121",
@@ -51741,7 +51741,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -51882,7 +51882,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "af7f0c5dd06"
+      "ruleFingerprint": "b3ccefadd06"
     },
     {
       "kingdomId": "balance-tuning-122",
@@ -52182,7 +52182,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -52351,7 +52351,7 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "bbcdd739d14"
+      "ruleFingerprint": "469c7ff1d14"
     },
     {
       "kingdomId": "balance-tuning-124",
@@ -52513,7 +52513,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -52587,7 +52587,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "106098aad2f"
+      "ruleFingerprint": "54c9c46cd2f"
     },
     {
       "kingdomId": "balance-tuning-125",
@@ -52680,7 +52680,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -52823,7 +52823,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "a68a836ed00"
+      "ruleFingerprint": "e434cdded00"
     },
     {
       "kingdomId": "balance-tuning-126",
@@ -52903,7 +52903,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -53053,7 +53053,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "775579eae5c"
+      "ruleFingerprint": "9f25a432e5c"
     },
     {
       "kingdomId": "balance-tuning-127",
@@ -53433,7 +53433,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -53521,7 +53521,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "e21f8dc9d96"
+      "ruleFingerprint": "b6173d87d96"
     },
     {
       "kingdomId": "balance-validation-001",
@@ -54095,7 +54095,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -54221,7 +54221,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "980935cfdbd"
+      "ruleFingerprint": "11baa0dfdbd"
     },
     {
       "kingdomId": "balance-validation-004",
@@ -55536,7 +55536,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -55624,7 +55624,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "98bd321ad81"
+      "ruleFingerprint": "4644f0e4d81"
     },
     {
       "kingdomId": "balance-validation-010",
@@ -55691,7 +55691,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -55860,7 +55860,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "10f26a2fdd6"
+      "ruleFingerprint": "f0761d5fdd6"
     },
     {
       "kingdomId": "balance-validation-011",
@@ -55913,7 +55913,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -56096,7 +56096,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "41e24ed1e47"
+      "ruleFingerprint": "a7564161e47"
     },
     {
       "kingdomId": "balance-validation-012",
@@ -56163,7 +56163,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -56332,7 +56332,7 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "941bb72ccf9"
+      "ruleFingerprint": "20f7885ccf9"
     },
     {
       "kingdomId": "balance-validation-013",
@@ -56399,7 +56399,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -56457,7 +56457,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -56568,7 +56568,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "fdd391c5d94"
+      "ruleFingerprint": "ca832485d94"
     },
     {
       "kingdomId": "balance-validation-014",
@@ -57157,7 +57157,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -57213,7 +57213,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -57273,7 +57273,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "2902b84acd5"
+      "ruleFingerprint": "9b39223ccd5"
     },
     {
       "kingdomId": "balance-validation-017",
@@ -57326,7 +57326,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -57370,7 +57370,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -57439,7 +57439,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -57513,7 +57513,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "76e6f63ce26"
+      "ruleFingerprint": "86f92a16e26"
     },
     {
       "kingdomId": "balance-validation-018",
@@ -57813,7 +57813,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -57983,7 +57983,7 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "66a4d93bdcd"
+      "ruleFingerprint": "3045caa3dcd"
     },
     {
       "kingdomId": "balance-validation-020",
@@ -58036,7 +58036,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -58219,7 +58219,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "94292fa9c6d"
+      "ruleFingerprint": "932a3b31c6d"
     },
     {
       "kingdomId": "balance-validation-021",
@@ -58533,7 +58533,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -58688,7 +58688,7 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "1846baabdb5"
+      "ruleFingerprint": "5fd86c7bdb5"
     },
     {
       "kingdomId": "balance-validation-023",
@@ -59067,7 +59067,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -59155,7 +59155,7 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "17780c92d5e"
+      "ruleFingerprint": "ec12676cd5e"
     },
     {
       "kingdomId": "balance-validation-025",
@@ -59208,7 +59208,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -59389,7 +59389,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "6c44cf67e07"
+      "ruleFingerprint": "d25e1b17e07"
     },
     {
       "kingdomId": "balance-validation-026",
@@ -59442,7 +59442,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 4,
+              "damage": 3,
               "manaCost": 1
             }
           },
@@ -59551,7 +59551,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -59625,7 +59625,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "d36dbf27d99"
+      "ruleFingerprint": "ff83ddb5d99"
     },
     {
       "kingdomId": "balance-validation-027",
@@ -59707,7 +59707,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -59862,7 +59862,7 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "9d4da7ecdfb"
+      "ruleFingerprint": "2a598d14dfb"
     },
     {
       "kingdomId": "balance-validation-028",
@@ -60163,7 +60163,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 8,
+              "damage": 6,
               "manaCost": 2
             }
           },
@@ -60257,7 +60257,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -60331,7 +60331,7 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "c579b326d3a"
+      "ruleFingerprint": "7822d458d3a"
     },
     {
       "kingdomId": "balance-validation-030",
@@ -60722,7 +60722,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -60796,7 +60796,7 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "5f5c3169ccf"
+      "ruleFingerprint": "899cd907ccf"
     },
     {
       "kingdomId": "balance-validation-032",
@@ -60973,7 +60973,7 @@
             "tactical": true,
             "supply": 10,
             "values": {
-              "damage": 15,
+              "damage": 10,
               "manaCost": 3
             }
           },
@@ -61033,7 +61033,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "e2fb8badda5"
+      "ruleFingerprint": "38b8f913da5"
     }
   ]
 }
