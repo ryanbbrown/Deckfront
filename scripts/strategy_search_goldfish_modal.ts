@@ -7,7 +7,7 @@ import { pathToFileURL } from 'node:url';
 import { deriveTrackedStrategySearchSourceImage, streamProcess } from './strategy_search_campaign';
 import {
   createGoldfishModalLaunchBundle, createGoldfishModalPlanSummary, deriveGoldfishModalRequest,
-  validateGoldfishModalAuthorizationToken
+  GOLDFISH_MODAL_ROUTE, validateGoldfishModalAuthorizationToken
 } from '../src/sim/strategySearchGoldfishModal';
 import type {
   GoldfishModalLaunchBundle, ParsedGoldfishModalRequest
@@ -59,7 +59,8 @@ export function measureGoldfishPostDownloadValidations(input: {
 } {
   const started = now(), artifacts: Array<Record<string, unknown>> = [];
   let failure: unknown;
-  for (const task of input.bundle.tasks) {
+  const kingdomTasks = [...new Map(input.bundle.tasks.map((task) => [task.evidenceId, task])).values()];
+  for (const task of kingdomTasks) {
     const evidenceRoot = path.join(input.destinationRoot, 'evidence', task.evidenceId);
     for (const [stage, relative] of [['goldfish-one-reduce', 'goldfish/top-500000.hgf'],
       ['goldfish-two-reduce', 'goldfish/reservoir.hgf']] as const) {
@@ -102,10 +103,8 @@ export function createGoldfishOperatorReport(input: {
   const downloads = client?.downloads as Record<string, unknown> | undefined;
   const downloadWallMs = Number(downloads?.wallMs ?? 0);
   const stageWall = input.report.stageWallMs as Record<string, number> | undefined;
-  return { ...input.report, route: 'goldfish-only-v1', scientificStageWallMs: {
-    'goldfish-one': stageWall?.['goldfish-one'] ?? 0,
+  return { ...input.report, route: GOLDFISH_MODAL_ROUTE, scientificStageWallMs: {
     'goldfish-one-reduce': stageWall?.['goldfish-one-reduce'] ?? 0,
-    'goldfish-two': stageWall?.['goldfish-two'] ?? 0,
     'goldfish-two-reduce': stageWall?.['goldfish-two-reduce'] ?? 0
   }, operatorWallMs: { preflightState: input.preflightStateWallMs,
     imageBuildAndDeploy: input.imageBuildAndDeployWallMs,

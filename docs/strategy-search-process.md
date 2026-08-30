@@ -46,7 +46,7 @@ The ranking compares these values in order:
 
 Every result file starts with a 64-byte little-endian header. The header records the file kind, row size, range, row count, shuffle seeds, rule fingerprint, and a CRC-32 checksum of the row bytes. Stage-two files and `reservoir.hgf` also record the checksum of their source `top-500000.hgf`. A result row is 64 bytes. A reservoir row is 124 bytes and keeps both the shuffle-1 and shuffle-2-to-4 results.
 
-Rust verifies ranges, checksums, row counts, strategy numbers, source links, uniqueness, and best-first order. The controller deletes range files only after both final files pass verification. Command reports are separate JSON files with elapsed time, scoring time, read time, write time, reduction time, and byte counts. Timings do not change result bytes.
+Rust verifies ranges, checksums, row counts, strategy numbers, source links, uniqueness, and best-first order. On the Goldfish-only Modal route, intermediate range files stay on the container's local disk and are removed with the container; only the two final files reach the Volume. Command reports are separate JSON files with elapsed time, scoring time, read time, write time, reduction time, and byte counts. Timings do not change result bytes.
 
 The reservoir is the candidate set for competitive search. A high Goldfish rank does not prove that a strategy is competitively strong. Later stages test strategies in head-to-head games.
 

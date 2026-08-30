@@ -185,14 +185,14 @@ npm run strategy-search:campaign -- run --request REQUEST.json --authorize TOKEN
 
 `plan` makes no Modal call. Every `run` needs the exact token printed for that request and capacity. `run` builds and checks the Rust binary before the campaign starts. Rust maps strategy numbers to shopping lists, runs every Goldfish game, ranks rows, writes the final files, and verifies them. Matrix and PSRO read the reservoir after Rust verifies it. Use [the operator guide](docs/strategy-search-campaign-operator.md) for the request contract, status, output, and paid smoke boundaries.
 
-The separate Goldfish-only Modal route stops after `score-one`, `reduce-one`, `score-two`, `reduce-two`, and final verification. Its strict request sets score-worker cores, maximum active CPUs, scientific wall time, and maximum cost. Plan makes no Modal call, and paid run needs the exact plan token:
+The separate Goldfish-only Modal route runs two container tasks per kingdom: `goldfish-one-reduce` and `goldfish-two-reduce`. Intermediate score files stay on container-local disk, and only the two final files reach the Modal Volume. Its strict request sets 16 to 64 worker cores, maximum active CPUs, scientific wall time, and maximum cost. Plan makes no Modal call, and paid run needs the exact plan token:
 
 ```sh
 npx tsx scripts/strategy_search_goldfish_modal.ts plan --request REQUEST.json
 npx tsx scripts/strategy_search_goldfish_modal.ts run --request REQUEST.json --authorize TOKEN
 ```
 
-Use [the Goldfish-only operator guide](docs/strategy-search-goldfish-modal.md) for the `balance-tuning-005` request, 16×4, 4×16, and 1×64 comparison shapes, current Modal rates, hard cost guard, exact outputs, and timing split. The route never creates Matrix or PSRO work.
+Use [the Goldfish-only operator guide](docs/strategy-search-goldfish-modal.md) for the `balance-tuning-005` request, 32×16, 16×32, and 8×64 comparison shapes at 512 active CPUs, current Modal rates, hard cost guard, exact outputs, and timing split. The route never creates Matrix or PSRO work.
 
 The separate PSRO batch route runs Matrix locally, then runs one complete Rust PSRO search per Modal machine. Every request field is required. `plan`, `status`, `download`, and `report` do not start paid PSRO work. `run` needs the exact token from `plan`:
 

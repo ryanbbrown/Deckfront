@@ -7,7 +7,8 @@ import { deriveSourceImageIdentity, deriveStrategySearch } from '../../src/sim/s
 import {
   createGoldfishModalLaunchBundle, createGoldfishModalPlanSummary, deriveGoldfishModalRequest,
   GOLDFISH_MODAL_CPU_USD_PER_CORE_SECOND, GOLDFISH_MODAL_MEMORY_USD_PER_GIB_SECOND,
-  parseGoldfishModalRequest, validateGoldfishModalAuthorizationToken
+  goldfishKingdomOneTimeoutSeconds, parseGoldfishModalRequest,
+  validateGoldfishModalAuthorizationToken
 } from '../../src/sim/strategySearchGoldfishModal';
 import {
   createGoldfishOperatorReport, executeGoldfishModalOperation, measureGoldfishPostDownloadValidations
@@ -19,7 +20,7 @@ function source() {
   return deriveSourceImageIdentity({ files: [{ path: 'runtime', content: 'one' }],
     expectedPaths: ['runtime'] });
 }
-function request(workerCores = 4, maxActiveCpus = 64) {
+function request(workerCores = 32, maxActiveCpus = 512) {
   return { kingdomIds: [kingdomId], workerCores, maxActiveCpus,
     maxWallSeconds: 3600, maxCostUsd: 100 };
 }
@@ -40,86 +41,106 @@ function fixture() {
   return { root, requestFile };
 }
 
+const shapes = [
+  { cores: 16, containers: 32, timeout: 1113, cost: 1.201972 },
+  { cores: 32, containers: 16, timeout: 707, cost: 1.595977 },
+  { cores: 64, containers: 8, timeout: 504, cost: 2.416435 }
+] as const;
+
 describe('Goldfish-only Modal operator', () => {
   it('accepts only explicit bounded paid inputs', () => {
-    expect(parseGoldfishModalRequest(request())).toEqual(request());
-    expect(parseGoldfishModalRequest(request(16, 640))).toEqual(request(16, 640));
+    expect(parseGoldfishModalRequest(request(16))).toEqual(request(16));
+    expect(parseGoldfishModalRequest(request(64))).toEqual(request(64));
     for (const value of [
       { ...request(), extra: true },
-      { kingdomIds: [], workerCores: 4, maxActiveCpus: 64, maxWallSeconds: 3600, maxCostUsd: 100 },
+      { ...request(), kingdomIds: [] },
       { ...request(), kingdomIds: [kingdomId, kingdomId] },
+      { ...request(), workerCores: 15 },
       { ...request(), workerCores: 65 },
-      { ...request(), workerCores: 16, maxActiveCpus: 8 },
-      { ...request(), workerCores: 1, maxActiveCpus: 3 },
+      { ...request(), workerCores: 16, maxActiveCpus: 15 },
       { ...request(), maxWallSeconds: 299 },
       { ...request(), maxWallSeconds: 21_601 },
       { ...request(), maxCostUsd: 100.01 }
     ]) expect(() => parseGoldfishModalRequest(value)).toThrow();
   });
 
-  it('plans exact 16x4, 4x16, and 1x64 score fleets and complete task counts', () => {
-    const expected = [
-      { cores: 4, containers: 16, scoreOne: 121, scoreTwo: 14, total: 137, cost: 5.611193 },
-      { cores: 16, containers: 4, scoreOne: 31, scoreTwo: 4, total: 37, cost: 5.216813 },
-      { cores: 64, containers: 1, scoreOne: 8, scoreTwo: 1, total: 11, cost: 5.203406 }
-    ];
-    for (const held of expected) {
-      const parsed = deriveGoldfishModalRequest({ request: request(held.cores), sourceImage: source() });
+  it('plans two kingdom tasks at each supported resource shape', () => {
+    for (const shape of shapes) {
+      const parsed = deriveGoldfishModalRequest({ request: request(shape.cores), sourceImage: source() });
       const plan = createGoldfishModalPlanSummary(parsed);
-      expect(plan.resourceShape).toMatchObject({ workerCoresPerContainer: held.cores,
-        maxActiveCpus: 64, maxScoreContainers: held.containers,
-        maxScheduledScoreCpus: 64, unusedCpuCapacity: 0 });
-      expect(plan.taskCounts).toEqual({ scoreOne: held.scoreOne, reduceOne: 1,
-        scoreTwo: held.scoreTwo, reduceTwo: 1, total: held.total });
-      expect(plan.taskCount).toBe(held.total);
-      expect(plan.worstCaseModalComputeUsd).toBe(held.cost);
-      for (const partition of Object.values(parsed.partitions)) {
-        expect(partition.jobs[0]!.start).toBe(0);
-        expect(partition.jobs.at(-1)!.end).toBe(partition.total);
-        expect(partition.jobs.every((range, index) => index === 0
-          || partition.jobs[index - 1]!.end === range.start)).toBe(true);
-      }
+      expect(plan.resourceShape).toEqual({ workerCoresPerContainer: shape.cores,
+        maxActiveCpus: 512, maxKingdomContainers: shape.containers,
+        maxScheduledCpus: 512, unusedCpuCapacity: 0, kingdomMemoryMiB: 8192 });
+      expect(plan.taskCounts).toEqual({ kingdomOne: 1, kingdomTwo: 1, total: 2 });
+      expect(plan.taskCount).toBe(2);
+      expect(plan.timeouts).toEqual({ maximumScientificWallSeconds: 3600,
+        kingdomOneTaskSeconds: shape.timeout, kingdomTwoTaskSeconds: 300 });
+      expect(plan.worstCaseModalComputeUsd).toBe(shape.cost);
+      expect(parsed.partitions).toEqual({});
+    }
+    expect(shapes.map((shape) => goldfishKingdomOneTimeoutSeconds(shape.cores)))
+      .toEqual([1113, 707, 504]);
+  });
+
+  it('creates the exact two-task dependency chain for each kingdom', () => {
+    for (const shape of shapes) {
+      const parsed = deriveGoldfishModalRequest({ request: request(shape.cores), sourceImage: source() });
+      const bundle = createGoldfishModalLaunchBundle(parsed);
+      const [one, two] = bundle.tasks;
+      expect(bundle.partitions).toEqual({});
+      expect(bundle.jobs).toHaveLength(2);
+      expect(bundle.jobs.map((job) => ({ taskId: job.taskId, stage: job.stage, range: job.range,
+        cpus: job.cpus, status: job.status, dependencies: job.dependencyTaskIds }))).toEqual([
+        { taskId: one!.taskId, stage: 'goldfish-one-reduce', range: null,
+          cpus: shape.cores, status: 'ready', dependencies: [] },
+        { taskId: two!.taskId, stage: 'goldfish-two-reduce', range: null,
+          cpus: shape.cores, status: 'blocked', dependencies: [one!.taskId] }
+      ]);
+      expect(one).toEqual({ taskId: one!.taskId, kingdomId, evidenceId: parsed.kingdoms[0]!.evidenceId,
+        stage: 'goldfish-one-reduce', range: null, cpu: shape.cores, memoryMiB: 8192,
+        timeoutSeconds: shape.timeout, dependencyTaskIds: [],
+        artifactPath: `evidence/${parsed.kingdoms[0]!.evidenceId}/goldfish/top-500000.hgf` });
+      expect(two).toEqual({ taskId: two!.taskId, kingdomId, evidenceId: parsed.kingdoms[0]!.evidenceId,
+        stage: 'goldfish-two-reduce', range: null, cpu: shape.cores, memoryMiB: 8192,
+        timeoutSeconds: 300, dependencyTaskIds: [one!.taskId],
+        artifactPath: `evidence/${parsed.kingdoms[0]!.evidenceId}/goldfish/reservoir.hgf` });
+      expect(bundle.controller.maxReducerMemoryMiB).toBe(shape.containers * 8192);
+      expect(bundle.controller).toMatchObject({ route: 'goldfish-only-v2', goldfishWorkerCores: shape.cores,
+        goldfishKingdomMemoryMiB: 8192, goldfishKingdomOneTimeoutSeconds: shape.timeout,
+        goldfishKingdomTwoTimeoutSeconds: 300 });
     }
   });
 
-  it('allows at most two reducers within the active CPU budget', () => {
-    const parsed = deriveGoldfishModalRequest({ request: {
-      ...request(16, 256),
-      kingdomIds: ['balance-tuning-005', 'balance-tuning-007', 'balance-tuning-009', 'balance-tuning-010']
-    }, sourceImage: source() });
-    expect(parsed.resourceShape.maxConcurrentReducers).toBe(2);
-    expect(createGoldfishModalLaunchBundle(parsed).controller.maxReducerMemoryMiB).toBe(16_384);
-  });
-
-  it('uses the current Modal list rates and rejects a request below the calculated bound', () => {
+  it('uses current Modal rates and rejects a request below each exact calculated bound', () => {
     expect(GOLDFISH_MODAL_CPU_USD_PER_CORE_SECOND).toBe(0.0000131);
     expect(GOLDFISH_MODAL_MEMORY_USD_PER_GIB_SECOND).toBe(0.00000222);
-    expect(() => deriveGoldfishModalRequest({ request: { ...request(), maxCostUsd: 5.5 },
-      sourceImage: source() })).toThrow('5.611193');
+    for (const shape of shapes) {
+      expect(() => deriveGoldfishModalRequest({ request: {
+        ...request(shape.cores), maxCostUsd: shape.cost - 0.000001
+      }, sourceImage: source() })).toThrow(shape.cost.toFixed(6));
+    }
   });
 
-  it('keeps scientific evidence identity stable across worker shapes and emits no downstream work', () => {
-    const four = deriveGoldfishModalRequest({ request: request(4), sourceImage: source() });
-    const sixtyFour = deriveGoldfishModalRequest({ request: request(64), sourceImage: source() });
-    const scientific = deriveStrategySearch({ request: { kingdomIds: [kingdomId], maxActiveCpus: 64 },
+  it('keeps evidence IDs stable and changes execution IDs across worker shapes', () => {
+    const parsed = shapes.map((shape) => deriveGoldfishModalRequest({
+      request: request(shape.cores), sourceImage: source() }));
+    const scientific = deriveStrategySearch({ request: { kingdomIds: [kingdomId], maxActiveCpus: 512 },
       sourceImage: source() });
-    expect(four.kingdoms[0]!.evidenceId).toBe(sixtyFour.kingdoms[0]!.evidenceId);
-    expect(four.kingdoms[0]!.evidenceId).toBe(scientific.kingdoms[0]!.evidenceId);
-    expect(four.campaignExecutionId).not.toBe(sixtyFour.campaignExecutionId);
-    const bundle = createGoldfishModalLaunchBundle(four);
-    expect(bundle.controller.route).toBe('goldfish-only-v1');
-    expect(bundle.tasks.every((task) => task.stage.startsWith('goldfish-'))).toBe(true);
-    expect(JSON.stringify(bundle)).not.toMatch(/matrix|psro/i);
-    expect(bundle.tasks[0]).toMatchObject({ kingdomId, cpu: 4, memoryMiB: 4096,
-      timeoutSeconds: 180, artifactPath: expect.stringContaining('/tasks/goldfish-one/') });
+    expect(new Set(parsed.map((entry) => entry.kingdoms[0]!.evidenceId))).toEqual(
+      new Set([scientific.kingdoms[0]!.evidenceId]));
+    expect(new Set(parsed.map((entry) => entry.campaignExecutionId))).toHaveLength(3);
+    for (const entry of parsed) {
+      const bundle = createGoldfishModalLaunchBundle(entry);
+      expect(JSON.stringify(bundle)).not.toMatch(/matrix|psro/i);
+    }
   });
 
-  it('binds authorization to every paid input', () => {
-    const four = deriveGoldfishModalRequest({ request: request(4), sourceImage: source() });
+  it('binds authorization to worker cores', () => {
     const sixteen = deriveGoldfishModalRequest({ request: request(16), sourceImage: source() });
-    expect(validateGoldfishModalAuthorizationToken(four.authorizationToken, four)).toBe(true);
-    expect(validateGoldfishModalAuthorizationToken(four.authorizationToken, sixteen)).toBe(false);
-    expect(four.authorizationToken).not.toBe(sixteen.authorizationToken);
+    const sixtyFour = deriveGoldfishModalRequest({ request: request(64), sourceImage: source() });
+    expect(validateGoldfishModalAuthorizationToken(sixteen.authorizationToken, sixteen)).toBe(true);
+    expect(validateGoldfishModalAuthorizationToken(sixteen.authorizationToken, sixtyFour)).toBe(false);
+    expect(sixteen.authorizationToken).not.toBe(sixtyFour.authorizationToken);
   });
 
   it('downloads and verifies only the two final Goldfish files', () => {
@@ -146,7 +167,7 @@ describe('Goldfish-only Modal operator', () => {
     }
   });
 
-  it('keeps deployment and startup wall time outside scientific stage wall time', () => {
+  it('reports only the two v2 scientific stages', () => {
     const report = createGoldfishOperatorReport({ report: {
       stageWallMs: { 'goldfish-one': 100, 'goldfish-one-reduce': 20,
         'goldfish-two': 50, 'goldfish-two-reduce': 10 },
@@ -155,8 +176,9 @@ describe('Goldfish-only Modal operator', () => {
     startupReadinessAndCanaryWallMs: 80, executionPreparationWallMs: 5,
     controllerCommandWallMs: 225, postDownloadValidation: { bytes: 30, wallMs: 7, artifacts: [] },
     totalOperatorWallMs: 720 });
-    expect(report.scientificStageWallMs).toEqual({ 'goldfish-one': 100,
-      'goldfish-one-reduce': 20, 'goldfish-two': 50, 'goldfish-two-reduce': 10 });
+    expect(report.route).toBe('goldfish-only-v2');
+    expect(report.scientificStageWallMs).toEqual({
+      'goldfish-one-reduce': 20, 'goldfish-two-reduce': 10 });
     expect(report.operatorWallMs).toEqual({ preflightState: 3, imageBuildAndDeploy: 400,
       startupReadinessAndCanary: 80, executionPreparation: 5, scientificController: 200,
       finalDownload: 25, postDownloadVerification: 7, total: 720 });
@@ -172,8 +194,8 @@ describe('Goldfish-only Modal operator', () => {
     try {
       const plan = await executeGoldfishModalOperation({ operation: 'plan', requestFile: held.requestFile,
         root: held.root, adapter });
-      expect(plan).toMatchObject({ route: 'goldfish-only-v1', paidExecution: false,
-        kingdomCount: 1, taskCount: 137 });
+      expect(plan).toMatchObject({ route: 'goldfish-only-v2', paidExecution: false,
+        kingdomCount: 1, taskCount: 2 });
       expect(calls).toBe(0);
       await expect(executeGoldfishModalOperation({ operation: 'run', requestFile: held.requestFile,
         root: held.root, adapter })).rejects.toThrow('exact authorization token');
