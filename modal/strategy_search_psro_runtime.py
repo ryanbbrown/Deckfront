@@ -52,6 +52,14 @@ def _remote_bytes(remote: str) -> bytes | None:
         return None
 
 
+def _remote_exists(remote: str) -> bool:
+    try:
+        next(iter(volume.read_file(remote)), None)
+        return True
+    except FileNotFoundError:
+        return False
+
+
 def _remote_json(remote: str) -> dict[str, Any] | None:
     content = _remote_bytes(remote)
     return json.loads(content) if content is not None else None
@@ -99,7 +107,7 @@ def launch(config: dict[str, Any], state_file: str) -> dict[str, Any]:
     volume.reload()
     for kingdom in config["kingdoms"]:
         for remote in kingdom["goldfishPaths"]:
-            if _remote_bytes(remote) is None:
+            if not _remote_exists(remote):
                 raise RuntimeError(f"PSRO Goldfish input is missing from the Volume: {remote}")
     uploads: list[dict[str, Any]] = []
     for kingdom in config["kingdoms"]:
@@ -153,6 +161,7 @@ def status(state_file: str) -> dict[str, Any]:
             attempt["adoptedFromLease"] = True
         if attempt.get("callId") is None:
             call_state = "unknown"
+            attempt["status"] = "unknown"
         else:
             polled = _poll(modal.FunctionCall.from_id(attempt["callId"]))
             call_state = polled["state"]
@@ -192,6 +201,7 @@ def download(config: dict[str, Any]) -> dict[str, Any]:
         selected = [entry for entry in entries if _is_file(entry)
             and pathlib.PurePosixPath(entry.path).name not in {"lease.json", "progress.json", "job-report.json"}]
         destination = pathlib.Path(kingdom["destination"])
+        destination.parent.mkdir(parents=True, exist_ok=True)
         temporary = pathlib.Path(tempfile.mkdtemp(prefix=f".{destination.name}-", dir=destination.parent))
         try:
             for entry in selected:

@@ -3,6 +3,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { deriveSourceImageIdentity, deriveStrategySearch } from '../../src/sim/strategySearchCampaign';
+import { deriveTrackedStrategySearchSourceImage } from '../../scripts/strategy_search_campaign';
+import { executePsroModalOperation } from '../../scripts/strategy_search_psro_modal';
 import {
   abandonPsroLaunch, adoptPsroLease, buildPsroBatchReport, comparePsroScientificFiles,
   createPsroExecutionState, createPsroModalPlanSummary, derivePsroModalPlan,
@@ -32,6 +34,36 @@ function inputs(requestValue = request(), sourceValue = source()) {
 function plan(requestValue = request(), sourceValue = source(), inputValue = inputs(requestValue, sourceValue)) {
   return derivePsroModalPlan({ request: requestValue, sourceImage: sourceValue, inputSha256: inputValue });
 }
+
+describe('Modal PSRO operator safety', () => {
+  function diskFixture() {
+    const root = temporary(), requestFile = path.join(root, 'request.json'), requestValue = request();
+    fs.writeFileSync(requestFile, JSON.stringify(requestValue));
+    const sourceImage = deriveTrackedStrategySearchSourceImage(process.cwd());
+    const scientific = deriveStrategySearch({ request: { kingdomIds: requestValue.kingdomIds,
+      maxActiveCpus: requestValue.maxActiveCpus }, sourceImage });
+    for (const kingdom of scientific.kingdoms) for (const relative of PSRO_INPUT_RELATIVES) {
+      const file = path.join(root, kingdom.kingdomId, relative); fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, relative);
+    }
+    return { root, requestFile };
+  }
+
+  it('plan makes no adapter or Modal call', async () => {
+    const fixture = diskFixture();
+    const adapter = new Proxy({}, { get: () => () => { throw new Error('adapter called'); } });
+    const summary = await executePsroModalOperation({ operation: 'plan', ...fixture,
+      adapter: adapter as never });
+    expect(summary.paidExecution).toBe(false);
+  });
+
+  it('run refuses a missing token before any adapter call', async () => {
+    const fixture = diskFixture();
+    const adapter = new Proxy({}, { get: () => () => { throw new Error('adapter called'); } });
+    await expect(executePsroModalOperation({ operation: 'run', ...fixture,
+      adapter: adapter as never })).rejects.toThrow(/exact authorization token/u);
+  });
+});
 
 describe('Modal PSRO request and plan', () => {
   it('requires every field and rejects extra, duplicate, unknown, and unsafe values', () => {
