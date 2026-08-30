@@ -20,35 +20,49 @@ from modal.exception import FunctionTimeoutError
 
 
 class NativeStrategySearchLauncherTest(unittest.TestCase):
-    def goldfish_only_bundle(self):
+    def goldfish_only_bundle(self, worker_cores=32, max_active_cpus=512):
         evidence_id = "a" * 64
-        request = {"kingdomIds": ["balance-tuning-005"], "workerCores": 64,
-            "maxActiveCpus": 64, "maxWallSeconds": 3600, "maxCostUsd": 100}
-        task_counts = {"scoreOne": 1, "reduceOne": 1, "scoreTwo": 1,
-            "reduceTwo": 1, "total": 4}
+        kingdom_id = "balance-tuning-005"
+        request = {"kingdomIds": [kingdom_id], "workerCores": worker_cores,
+            "maxActiveCpus": max_active_cpus, "maxWallSeconds": 3600, "maxCostUsd": 100}
+        task_counts = {"kingdomOne": 1, "kingdomTwo": 1, "total": 2}
         cost = launcher._strategy_search_goldfish_worst_case_cost(request, task_counts)
-        controller = {"route": launcher.GOLDFISH_MODAL_ROUTE, "maxActiveCpus": 64,
-            "timeoutSeconds": 3600, "maxWallSeconds": 3600, "goldfishWorkerCores": 64,
-            "goldfishScoreMemoryMiB": 4096, "goldfishScoreTimeoutSeconds": 180,
-            "goldfishReducerCores": 4, "goldfishReduceMemoryMiB": 8192,
-            "goldfishReduceOneTimeoutSeconds": 600, "goldfishReduceTwoTimeoutSeconds": 300,
-            "executionPlanHash": "d" * 64, "costGuard": {
-                "cpuUsdPerCoreSecond": 0.0000131,
+        timeout_one = launcher._strategy_search_goldfish_kingdom_one_timeout(worker_cores)
+        one_id = launcher._strategy_search_goldfish_task_id(evidence_id, "goldfish-one-reduce", None)
+        two_id = launcher._strategy_search_goldfish_task_id(evidence_id, "goldfish-two-reduce", None)
+        controller = {"route": launcher.GOLDFISH_MODAL_ROUTE, "maxActiveCpus": max_active_cpus,
+            "timeoutSeconds": 3600, "maxWallSeconds": 3600, "pollIntervalSeconds": 1,
+            "volumeName": "hexdeck-native-strategy-results", "readyWindowWaves": 2,
+            "maxReducerMemoryMiB": (max_active_cpus // worker_cores) * 8192,
+            "goldfishWorkerCores": worker_cores, "goldfishKingdomMemoryMiB": 8192,
+            "goldfishKingdomOneTimeoutSeconds": timeout_one,
+            "goldfishKingdomTwoTimeoutSeconds": 300, "executionPlanHash": "d" * 64,
+            "costGuard": {"cpuUsdPerCoreSecond": 0.0000131,
                 "memoryUsdPerGibSecond": 0.00000222, "attemptCount": 3,
                 "hardMaximumCostUsd": 100, "requestedMaximumCostUsd": 100,
                 "worstCaseModalComputeUsd": cost, "taskCounts": task_counts}}
-        partitions = {
-            f"{evidence_id}:goldfish-one": {"stage": "goldfish-one", "evidenceId": evidence_id,
-                "total": 12_972_960, "jobs": [{"start": 0, "end": 12_972_960}]},
-            f"{evidence_id}:goldfish-two": {"stage": "goldfish-two", "evidenceId": evidence_id,
-                "total": 500_000, "jobs": [{"start": 0, "end": 500_000}]}}
-        job = {"taskId": "task", "evidenceId": evidence_id, "kingdomId": "balance-tuning-005",
-            "stage": "goldfish-one", "range": {"start": 0, "end": 12_972_960}}
-        task = {**job, "cpu": 64, "memoryMiB": 4096, "timeoutSeconds": 180}
+        jobs = [
+            {"taskId": one_id, "evidenceId": evidence_id, "kingdomId": kingdom_id,
+                "stage": "goldfish-one-reduce", "range": None, "cpus": worker_cores,
+                "status": "ready", "dependencyTaskIds": [], "launchIntentId": None,
+                "callId": None, "leaseUntilMs": None, "attemptCount": 0},
+            {"taskId": two_id, "evidenceId": evidence_id, "kingdomId": kingdom_id,
+                "stage": "goldfish-two-reduce", "range": None, "cpus": worker_cores,
+                "status": "blocked", "dependencyTaskIds": [one_id], "launchIntentId": None,
+                "callId": None, "leaseUntilMs": None, "attemptCount": 0}]
+        tasks = [
+            {"taskId": one_id, "evidenceId": evidence_id, "kingdomId": kingdom_id,
+                "stage": "goldfish-one-reduce", "range": None, "cpu": worker_cores,
+                "memoryMiB": 8192, "timeoutSeconds": timeout_one, "dependencyTaskIds": [],
+                "artifactPath": f"evidence/{evidence_id}/goldfish/top-500000.hgf"},
+            {"taskId": two_id, "evidenceId": evidence_id, "kingdomId": kingdom_id,
+                "stage": "goldfish-two-reduce", "range": None, "cpu": worker_cores,
+                "memoryMiB": 8192, "timeoutSeconds": 300, "dependencyTaskIds": [one_id],
+                "artifactPath": f"evidence/{evidence_id}/goldfish/reservoir.hgf"}]
         return {"schemaVersion": 3, "campaignExecutionId": "b" * 64,
             "executionRoot": "executions/" + "b" * 64, "request": request,
-            "sourceImage": {"digest": "c" * 64}, "partitions": partitions,
-            "jobs": [job], "tasks": [task], "controller": controller}
+            "sourceImage": {"digest": "c" * 64}, "partitions": {},
+            "jobs": jobs, "tasks": tasks, "controller": controller}
 
     def test_worst_case_includes_all_retry_attempts(self):
         value = launcher.projected_cost_usd(2, 4, 4, 600, 2)
@@ -245,62 +259,66 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             self.assertEqual(json.loads(target.read_text()), {"complete": True})
 
 
-    def test_goldfish_only_cost_guard_uses_current_rates_and_fails_closed(self):
-        bundle = self.goldfish_only_bundle()
-        result = launcher._strategy_search_validate_goldfish_only_bundle(bundle)
+    def test_goldfish_only_cost_guard_and_bundle_shape_fail_closed(self):
+        expected_costs = {16: 1.201972, 32: 1.595977, 64: 2.416435}
+        for cores, expected in expected_costs.items():
+            bundle = self.goldfish_only_bundle(cores)
+            result = launcher._strategy_search_validate_goldfish_only_bundle(bundle)
+            self.assertEqual(result["taskCounts"], {"kingdomOne": 1, "kingdomTwo": 1, "total": 2})
+            self.assertEqual(result["worstCaseModalComputeUsd"], expected)
+            self.assertEqual(bundle["controller"]["costGuard"]["worstCaseModalComputeUsd"], expected)
         self.assertEqual(launcher.GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND, 0.0000131)
         self.assertEqual(launcher.GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND, 0.00000222)
-        self.assertEqual(result["taskCounts"], {"scoreOne": 1, "reduceOne": 1,
-            "scoreTwo": 1, "reduceTwo": 1, "total": 4})
-        self.assertEqual(result["worstCaseModalComputeUsd"],
-            bundle["controller"]["costGuard"]["worstCaseModalComputeUsd"])
-        measured = launcher._strategy_search_attempt_cost({"modalWorkerElapsedMs": 1000,
-            "submittedMs": 0, "cpu": 1, "memoryMiB": 1024}, 1000,
-            launcher.GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND * 3600,
-            launcher.GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND * 3600)
-        self.assertAlmostEqual(measured["costUsd"], 0.0000131 + 0.00000222)
+
+        bundle = self.goldfish_only_bundle()
         mutations = []
-        stale_rate = copy.deepcopy(bundle)
-        stale_rate["controller"]["costGuard"]["cpuUsdPerCoreSecond"] = 0.00003942
-        mutations.append(stale_rate)
-        stale_cost = copy.deepcopy(bundle)
-        stale_cost["controller"]["costGuard"]["worstCaseModalComputeUsd"] -= 0.01
-        mutations.append(stale_cost)
-        downstream = copy.deepcopy(bundle)
-        downstream["tasks"][0]["stage"] = "matrix-score"
-        mutations.append(downstream)
-        larger_pool = copy.deepcopy(bundle)
-        larger_pool["request"]["maxActiveCpus"] = 640
-        larger_pool["controller"]["maxActiveCpus"] = 640
-        self.assertIsNotNone(launcher._strategy_search_validate_goldfish_only_bundle(larger_pool))
+        def changed(update):
+            held = copy.deepcopy(bundle)
+            update(held)
+            mutations.append(held)
+        changed(lambda held: held["partitions"].update({"obsolete": {}}))
+        changed(lambda held: held["jobs"][0].update({"stage": "goldfish-one"}))
+        changed(lambda held: (held["jobs"].append(copy.deepcopy(held["jobs"][0])),
+            held["tasks"].append(copy.deepcopy(held["tasks"][0]))))
+        changed(lambda held: held["jobs"][0].update({"taskId": "wrong"}))
+        changed(lambda held: held["jobs"][0].update({"status": "blocked"}))
+        changed(lambda held: held["jobs"][1].update({"evidenceId": "b" * 64}))
+        changed(lambda held: held["jobs"][0].update({"cpus": 16}))
+        changed(lambda held: held["tasks"][0].update({"cpu": 16}))
+        changed(lambda held: held["tasks"][0].update({"memoryMiB": 4096}))
+        changed(lambda held: held["tasks"][0].update({"timeoutSeconds": 300}))
+        changed(lambda held: held["tasks"][1].update({"dependencyTaskIds": []}))
+        changed(lambda held: held["tasks"][0].update({"artifactPath": "wrong"}))
+        changed(lambda held: held["controller"]["costGuard"].update({
+            "worstCaseModalComputeUsd": 0.1}))
+        changed(lambda held: held["request"].update({"workerCores": 15}))
         for held in mutations:
             with self.assertRaises(ValueError):
                 launcher._strategy_search_validate_goldfish_only_bundle(held)
 
-    def test_goldfish_only_materialization_uses_requested_score_cores_and_fixed_reducer_shape(self):
-        evidence = "a" * 64
-        one = [{"start": 0, "end": 10}, {"start": 10, "end": 20}]
-        state = {"maxActiveCpus": 64, "partitions": {
-            f"{evidence}:goldfish-one": {"jobs": one},
-            f"{evidence}:goldfish-two": {"jobs": [{"start": 0, "end": 10}]}
-        }, "jobs": [{"taskId": launcher._strategy_search_goldfish_task_id(
-                evidence, "goldfish-one", one[0]), "evidenceId": evidence,
-            "kingdomId": "balance-tuning-005", "stage": "goldfish-one",
-            "range": one[0], "cpus": 64, "status": "ready", "dependencyTaskIds": []}],
-            "tasks": []}
-        bundle = {"controller": {"readyWindowWaves": 2, "goldfishWorkerCores": 64,
-            "goldfishScoreMemoryMiB": 4096, "goldfishScoreTimeoutSeconds": 180,
-            "goldfishReducerCores": 4, "goldfishReduceMemoryMiB": 8192,
-            "goldfishReduceOneTimeoutSeconds": 600, "goldfishReduceTwoTimeoutSeconds": 300}}
-        self.assertTrue(launcher._strategy_search_materialize_goldfish(state, bundle))
-        scores = [task for task in state["tasks"] if task["stage"] == "goldfish-one"]
-        self.assertEqual(len(scores), 1)
-        self.assertEqual((scores[0]["cpu"], scores[0]["timeoutSeconds"]), (64, 180))
-        reducer = next(task for task in state["tasks"] if task["stage"] == "goldfish-one-reduce")
-        self.assertEqual((reducer["cpu"], reducer["memoryMiB"], reducer["timeoutSeconds"]),
-            (4, 8192, 600))
-        self.assertFalse(any(task["stage"].startswith("matrix") or task["stage"].startswith("psro")
-            for task in state["tasks"]))
+    def test_goldfish_only_materialization_changes_nothing_for_empty_partitions(self):
+        bundle = self.goldfish_only_bundle()
+        state = {"maxActiveCpus": 512, "partitions": {},
+            "jobs": copy.deepcopy(bundle["jobs"]), "tasks": copy.deepcopy(bundle["tasks"])}
+        before = copy.deepcopy(state)
+        self.assertFalse(launcher._strategy_search_materialize_goldfish(state, bundle))
+        self.assertEqual(state, before)
+
+    def test_goldfish_only_task_config_uses_kingdom_modes_top_path_and_batch_lease(self):
+        bundle = self.goldfish_only_bundle()
+        state = {"controllerFence": 1, "tasks": copy.deepcopy(bundle["tasks"]),
+            "jobs": copy.deepcopy(bundle["jobs"])}
+        lease_ms = (707 + 600) * 1000
+        configs = []
+        for job in state["jobs"]:
+            configs.append(launcher._strategy_search_task_config(bundle, state, job, "owner", {
+                "launchId": f"launch-{len(configs)}", "temporaryPath": f"temporary/{len(configs)}.hgf",
+                "fence": 1, "leaseUntilMs": lease_ms, "leaseMs": lease_ms}))
+        self.assertEqual([config["mode"] for config in configs], ["kingdom-one", "kingdom-two"])
+        self.assertNotIn("manifest", configs[0])
+        self.assertEqual(configs[1]["topPath"],
+            f"evidence/{'a' * 64}/goldfish/top-500000.hgf")
+        self.assertEqual([config["leaseMs"] for config in configs], [lease_ms, lease_ms])
 
     def test_goldfish_only_completion_records_only_verified_final_goldfish_receipts(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -832,48 +850,42 @@ print(json.dumps(result))
         self.assertTrue(launcher._strategy_search_materialize_goldfish(state, bundle))
         self.assertEqual(len([job for job in state["jobs"] if job["stage"] == "goldfish-two"]), 1)
 
-    def test_goldfish_only_controller_resumes_reduced_stage_one_and_materializes_stage_two(self):
+    def test_goldfish_only_controller_runs_two_kingdom_tasks_with_scaled_leases_and_throughput(self):
         bundle = self.goldfish_only_bundle()
-        bundle["controller"].update({"pollIntervalSeconds": 0, "readyWindowWaves": 2,
-            "maxReducerMemoryMiB": 8192})
-        initial_task_id = launcher._strategy_search_goldfish_task_id(
-            "a" * 64, "goldfish-one", {"start": 0, "end": 12_972_960})
-        bundle["jobs"][0].update({"taskId": initial_task_id, "cpus": 64, "status": "ready",
-            "dependencyTaskIds": [], "launchIntentId": None, "callId": None,
-            "leaseUntilMs": None, "attemptCount": 0})
-        bundle["tasks"][0].update({"taskId": initial_task_id, "dependencyTaskIds": [],
-            "artifactPath": f"evidence/{'a' * 64}/tasks/goldfish-one/0-12972960.hgs"})
 
         class CompleteCall:
-            def __init__(self, object_id, stage):
+            def __init__(self, object_id, config):
                 self.object_id = object_id
-                self.digest = hashlib.sha256(stage.encode()).hexdigest()
+                self.config = config
+                self.digest = hashlib.sha256(config["stage"].encode()).hexdigest()
             def get(self, timeout):
+                del timeout
                 phases = {key: 0 for key in ["generationMs", "scoringMs",
                     "intermediateSerializationAndReadMs", "temporaryVolumeWriteCommitMs",
                     "publisherWaitMs", "publicationCommitMs", "reductionComputeMs",
                     "finalTop500000WriteMs", "finalTop20000WriteMs", "orchestrationQueueMs"]}
-                phases.update({"scoringMs": 1, "intermediateSerializationAndReadMs": 9,
-                    "elapsedMs": 12})
+                phases.update({"scoringMs": 10, "elapsedMs": 10})
                 now_ms = int(time.time() * 1000)
+                row_count = 12_972_960 if self.config["stage"] == "goldfish-one-reduce" else 500_000
                 return {"sha256": self.digest, "validatedSha256": self.digest,
-                    "modalWorkerElapsedMs": 0, "workerStartedEpochMs": now_ms,
-                    "workerFinishedEpochMs": now_ms, "phases": phases}
+                    "modalWorkerElapsedMs": 10, "workerStartedEpochMs": now_ms,
+                    "workerFinishedEpochMs": now_ms, "phases": phases,
+                    "rustReports": {"score": {"rowCount": row_count}}}
 
         class ImmediateWorker:
             def __init__(self):
-                self.calls = 0
+                self.configs = []
             def with_options(self, **_options):
                 return self
             def spawn(self, config):
-                self.calls += 1
-                return CompleteCall(f"fc-{self.calls}", config["stage"])
+                self.configs.append(config)
+                return CompleteCall(f"fc-{len(self.configs)}", config)
 
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             holder = {}
+            leases = []
             finalized = []
-            resumed = []
             def strategy_path(relative):
                 return root / relative
             def publish(request):
@@ -881,7 +893,7 @@ print(json.dumps(result))
                 if operation == "execution-init":
                     return {"status": "ready"}
                 if operation == "controller-claim":
-                    state = {"maxActiveCpus": 64, "partitions": copy.deepcopy(bundle["partitions"]),
+                    state = {"maxActiveCpus": 512, "partitions": {},
                         "jobs": copy.deepcopy(bundle["jobs"]), "tasks": copy.deepcopy(bundle["tasks"]),
                         "controllerFence": 1, "controller": {"ownerId": request["ownerId"],
                             "fence": 1, "leaseUntilMs": request["nowMs"] + request["leaseMs"]},
@@ -894,22 +906,11 @@ print(json.dumps(result))
                     holder["state"] = request["state"]
                     return request["state"]
                 if operation == "prepare-launch-batch":
-                    prepared = {}
-                    for item in request["items"]:
-                        if item["stage"] in {"goldfish-one", "goldfish-one-reduce"}:
-                            artifact = strategy_path(item["artifactPath"])
-                            artifact.parent.mkdir(parents=True, exist_ok=True)
-                            artifact.write_bytes(item["stage"].encode())
-                            receipt = {"taskId": item["taskId"], "evidenceId": item["evidenceId"],
-                                "artifactPath": item["artifactPath"],
-                                "sha256": hashlib.sha256(item["stage"].encode()).hexdigest(), "fence": 1}
-                            prepared[item["taskId"]] = {"complete": True, "receipt": receipt}
-                            resumed.append(item["stage"])
-                        else:
-                            prepared[item["taskId"]] = {"launchId": item["launchId"],
-                                "temporaryPath": item["temporaryPath"], "fence": 1,
-                                "leaseUntilMs": request["nowMs"] + request["leaseMs"]}
-                    return prepared
+                    leases.append(request["leaseMs"])
+                    return {item["taskId"]: {"launchId": item["launchId"],
+                        "temporaryPath": item["temporaryPath"], "fence": 1,
+                        "leaseUntilMs": request["nowMs"] + request["leaseMs"]}
+                        for item in request["items"]}
                 if operation == "publish-batch":
                     receipts = {}
                     tasks = {task["taskId"]: task for task in holder["state"]["tasks"]}
@@ -931,22 +932,23 @@ print(json.dumps(result))
             publisher = MagicMock()
             publisher.remote.side_effect = publish
             worker = ImmediateWorker()
-            with patch.object(launcher, "verify_strategy_search_source"), \
-                    patch.object(launcher, "strategy_search_publisher", publisher), \
-                    patch.object(launcher, "strategy_search_goldfish_job", worker), \
-                    patch.object(launcher, "_strategy_search_path", side_effect=strategy_path), \
-                    patch.object(launcher.volume, "reload"), patch.object(launcher.time, "sleep"):
+            with patch.object(launcher, "verify_strategy_search_source"),                     patch.object(launcher, "strategy_search_publisher", publisher),                     patch.object(launcher, "strategy_search_goldfish_job", worker),                     patch.object(launcher, "_strategy_search_path", side_effect=strategy_path),                     patch.object(launcher.volume, "reload"), patch.object(launcher.time, "sleep"):
                 report = launcher._strategy_search_controller_impl(bundle)
 
         self.assertEqual(report["status"], "complete")
         self.assertEqual([job["stage"] for job in holder["state"]["jobs"]],
-            ["goldfish-one", "goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce"])
+            ["goldfish-one-reduce", "goldfish-two-reduce"])
         self.assertTrue(all(job["status"] == "complete" for job in holder["state"]["jobs"]))
-        self.assertEqual(resumed, ["goldfish-one", "goldfish-one-reduce"])
-        self.assertEqual(worker.calls, 2)
-        self.assertFalse(report["goldfishPhaseAccountingValid"])
-        self.assertEqual(report["intermediateIoRatio"], 0.9)
-        self.assertFalse(report["goldfishIntermediateIoTargetMet"])
+        self.assertEqual([config["mode"] for config in worker.configs], ["kingdom-one", "kingdom-two"])
+        self.assertEqual(leases, [(707 + 600) * 1000, (300 + 600) * 1000])
+        self.assertEqual(worker.configs[0]["leaseMs"], leases[0])
+        self.assertEqual(worker.configs[1]["leaseMs"], leases[1])
+        self.assertEqual(set(report["stageWallMs"]),
+            {"goldfish-one-reduce", "goldfish-two-reduce"})
+        self.assertGreater(report["candidateThroughputPerSecond"], 0)
+        self.assertGreater(report["stageThroughput"]["goldfishCandidatesPerSecond"], 0)
+        self.assertEqual(sum(job["result"]["rustReports"]["score"]["rowCount"]
+            for job in holder["state"]["jobs"]), 13_472_960)
         self.assertIn("a" * 64, finalized)
 
     def test_strategy_search_complete_evidence_is_reused_across_campaigns(self):
@@ -1024,7 +1026,8 @@ print(json.dumps(result))
 
     def test_strategy_search_validation_and_heartbeat_work_stay_outside_publisher_lock(self):
         publisher_source = inspect.getsource(launcher.strategy_search_publisher.get_raw_f())
-        goldfish_worker_source = inspect.getsource(launcher.strategy_search_goldfish_job.get_raw_f())
+        goldfish_worker_source = inspect.getsource(launcher._strategy_search_goldfish_single_command) \
+            + inspect.getsource(launcher._strategy_search_goldfish_kingdom_stage)
         subprocess_source = inspect.getsource(launcher._strategy_search_run_subprocess)
         self.assertNotIn("_strategy_search_validate_publication(publication", publisher_source)
         self.assertIn("_strategy_search_validate_publication(config, output)", goldfish_worker_source)
@@ -1200,6 +1203,102 @@ print(json.dumps(result))
             self.assertIn("--top", commands[2])
             self.assertIn("--top", commands[3])
             self.assertTrue(all("--evidence-id" not in command for command in commands))
+
+    def test_goldfish_kingdom_jobs_use_local_scratch_publish_one_final_and_remove_scratch(self):
+        for mode, stage, expected_modes, row_count in [
+                ("kingdom-one", "goldfish-one-reduce", ["score-one", "reduce-one"], 12_972_960),
+                ("kingdom-two", "goldfish-two-reduce", ["score-two", "reduce-two"], 500_000)]:
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                scratch_root = root / "scratch"
+                volume_root = root / "results"
+                commands = []
+                subprocess_timeouts = []
+                inputs = []
+                events = []
+                def strategy_path(relative):
+                    return volume_root / relative
+                def run_subprocess(command, held_config):
+                    commands.append(command)
+                    subprocess_timeouts.append(held_config["timeoutSeconds"])
+                    output = pathlib.Path(command[command.index("--out") + 1])
+                    output.parent.mkdir(parents=True, exist_ok=True)
+                    output.write_bytes(command[1].encode())
+                    report_file = pathlib.Path(command[command.index("--report") + 1])
+                    if command[1].startswith("score"):
+                        report = {"command": command[1], "rowCount": row_count,
+                            "scoringMs": 0, "readMs": 0, "writeMs": 0, "reduceMs": 0}
+                    else:
+                        inputs.extend(json.loads(pathlib.Path(
+                            command[command.index("--inputs") + 1]).read_text()))
+                        report = {"command": command[1], "rowCount": 20_000,
+                            "scoringMs": 0, "readMs": 0, "writeMs": 0, "reduceMs": 0}
+                    report_file.write_text(json.dumps(report))
+                    return {"elapsedMs": 1}
+                config = {"taskId": "task", "evidenceId": "a" * 64,
+                    "kingdomId": "balance-tuning-005", "sourceImage": {}, "cpu": 32,
+                    "timeoutSeconds": 707 if mode == "kingdom-one" else 300,
+                    "enqueuedEpochMs": int(time.time() * 1000) - 5, "launchId": f"launch-{mode}",
+                    "stage": stage, "mode": mode, "temporaryPath": f"temporary/{mode}.hgf"}
+                if mode == "kingdom-two":
+                    config["topPath"] = f"evidence/{'a' * 64}/goldfish/top-500000.hgf"
+                raw = launcher.strategy_search_goldfish_job.get_raw_f()
+                with patch.object(launcher, "GOLDFISH_MODAL_SCRATCH_ROOT", scratch_root), \
+                        patch.object(launcher, "_strategy_search_path", side_effect=strategy_path), \
+                        patch.object(launcher, "_strategy_search_run_subprocess", side_effect=run_subprocess), \
+                        patch.object(launcher, "_strategy_search_validate_publication",
+                            side_effect=lambda *_args: events.append("validate")), \
+                        patch.object(launcher.shutil, "disk_usage",
+                            return_value=type("Usage", (), {"free": 3 * 1024 ** 3})()), \
+                        patch.object(launcher.volume, "reload"), \
+                        patch.object(launcher.volume, "commit", side_effect=lambda: events.append("commit")):
+                    result = raw(config)
+                self.assertEqual([command[1] for command in commands], expected_modes)
+                self.assertEqual(commands[0][commands[0].index("--threads") + 1], "32")
+                self.assertEqual(inputs, [(scratch_root / f"launch-{mode}" / "stage.hgs").as_posix()])
+                self.assertEqual(["--top" in command for command in commands],
+                    [mode == "kingdom-two", mode == "kingdom-two"])
+                self.assertTrue(0 < subprocess_timeouts[1] <= subprocess_timeouts[0] <= config["timeoutSeconds"])
+                self.assertEqual(events, ["validate", "commit"])
+                self.assertEqual(result["scratchFreeBytes"], 3 * 1024 ** 3)
+                self.assertEqual(result["rustReports"]["score"]["rowCount"], row_count)
+                self.assertEqual(sum(result["phases"][key] for key in ["generationMs", "scoringMs",
+                    "intermediateSerializationAndReadMs", "temporaryVolumeWriteCommitMs", "publisherWaitMs",
+                    "publicationCommitMs", "reductionComputeMs", "finalTop500000WriteMs",
+                    "finalTop20000WriteMs", "orchestrationQueueMs"]), result["elapsedMs"])
+                self.assertTrue((volume_root / config["temporaryPath"]).is_file())
+                self.assertFalse((scratch_root / f"launch-{mode}").exists())
+
+    def test_goldfish_kingdom_job_fails_before_rust_on_low_disk_and_cleans_failures(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            scratch_root = root / "scratch"
+            config = {"taskId": "task", "evidenceId": "a" * 64,
+                "kingdomId": "balance-tuning-005", "sourceImage": {}, "cpu": 32,
+                "timeoutSeconds": 707, "enqueuedEpochMs": int(time.time() * 1000),
+                "launchId": "low-disk", "stage": "goldfish-one-reduce", "mode": "kingdom-one",
+                "temporaryPath": "temporary/top.hgf"}
+            raw = launcher.strategy_search_goldfish_job.get_raw_f()
+            run = MagicMock()
+            with patch.object(launcher, "GOLDFISH_MODAL_SCRATCH_ROOT", scratch_root), \
+                    patch.object(launcher.shutil, "disk_usage",
+                        return_value=type("Usage", (), {"free": 1024})()), \
+                    patch.object(launcher, "_strategy_search_run_subprocess", run), \
+                    patch.object(launcher.volume, "reload"):
+                with self.assertRaisesRegex(RuntimeError, "at least 2 GiB"):
+                    raw(config)
+            run.assert_not_called()
+            self.assertFalse((scratch_root / "low-disk").exists())
+
+            failing = {**config, "launchId": "rust-failure"}
+            with patch.object(launcher, "GOLDFISH_MODAL_SCRATCH_ROOT", scratch_root), \
+                    patch.object(launcher.shutil, "disk_usage",
+                        return_value=type("Usage", (), {"free": 3 * 1024 ** 3})()), \
+                    patch.object(launcher, "_strategy_search_run_subprocess",
+                        side_effect=RuntimeError("Rust failed")), patch.object(launcher.volume, "reload"):
+                with self.assertRaisesRegex(RuntimeError, "Rust failed"):
+                    raw(failing)
+            self.assertFalse((scratch_root / "rust-failure").exists())
 
     def test_goldfish_publication_validation_uses_rust_verify_and_top_links(self):
         calls = []

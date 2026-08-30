@@ -42,23 +42,22 @@ CAMPAIGN_CHECKPOINT_EVENT = "strategy-search-checkpoint"
 CAMPAIGN_STAGE_STOP_EVENT = "strategy-search-stage-stop"
 CAMPAIGN_STAGES = {"goldfish", "matrix", "psro"}
 STRATEGY_SEARCH_MAX_JOB_ATTEMPTS = 3
-GOLDFISH_MODAL_ROUTE = "goldfish-only-v1"
+GOLDFISH_MODAL_ROUTE = "goldfish-only-v2"
 GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND = 0.0000131
 GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND = 0.00000222
 GOLDFISH_MODAL_HARD_COST_CAP_USD = 100.0
+GOLDFISH_MODAL_MIN_WORKER_CORES = 16
 GOLDFISH_MODAL_MAX_WORKER_CORES = 64
 GOLDFISH_MODAL_MIN_WALL_SECONDS = 300
 GOLDFISH_MODAL_MAX_WALL_SECONDS = 21600
-GOLDFISH_MODAL_SCORE_MEMORY_MIB = 4096
-GOLDFISH_MODAL_REDUCE_MEMORY_MIB = 8192
-GOLDFISH_MODAL_SCORE_TIMEOUT_SECONDS = 180
-GOLDFISH_MODAL_REDUCE_ONE_TIMEOUT_SECONDS = 600
-GOLDFISH_MODAL_REDUCE_TWO_TIMEOUT_SECONDS = 300
+GOLDFISH_MODAL_KINGDOM_MEMORY_MIB = 8192
+GOLDFISH_MODAL_KINGDOM_TWO_TIMEOUT_SECONDS = 300
+GOLDFISH_MODAL_SCRATCH_ROOT = pathlib.Path("/tmp/hexdeck-goldfish")
+GOLDFISH_MODAL_MIN_SCRATCH_FREE_BYTES = 2 * 1024 * 1024 * 1024
 GOLDFISH_MODAL_ATTEMPTS = 3
 PSRO_MODAL_CPU_RATE_PER_CORE_SECOND = 0.0000131
 PSRO_MODAL_MEMORY_RATE_PER_GIB_SECOND = 0.00000222
 PSRO_MODAL_COMMIT_INTERVAL_SECONDS = 600
-GOLDFISH_MODAL_REDUCER_CORES = 4
 CAMPAIGN_RUST_GOLDFISH_BIN = os.environ.get(
     "HEXDECK_GOLDFISH_BIN", "/workspace/rust/target/release/hexdeck-goldfish")
 LEDGER_PATH = pathlib.Path.home() / ".hexdeck-modal-cost-ledger.json"
@@ -1236,9 +1235,7 @@ def _strategy_search_goldfish_phases(report: dict[str, Any]) -> dict[str, Any]:
     return {**phases, "elapsedMs": report["elapsedMs"]}
 
 
-@app.function(image=image, cpu=4, memory=4096, timeout=900, retries=0, volumes={"/results": volume})
-@modal.concurrent(max_inputs=1)
-def strategy_search_goldfish_job(config: dict[str, Any]) -> dict[str, Any]:
+def _strategy_search_goldfish_single_command(config: dict[str, Any]) -> dict[str, Any]:
     volume.reload()
     config["workerStartedEpochMs"] = int(time.time() * 1000)
     output = _strategy_search_path(config["temporaryPath"])
@@ -1272,6 +1269,94 @@ def strategy_search_goldfish_job(config: dict[str, Any]) -> dict[str, Any]:
         "sha256": validated_sha256, "validatedSha256": validated_sha256, "phases": phase_report,
         "workerStartedEpochMs": config["workerStartedEpochMs"],
         "workerFinishedEpochMs": int(time.time() * 1000), "temporaryPath": config["temporaryPath"]}
+
+
+def _strategy_search_goldfish_kingdom_stage(config: dict[str, Any]) -> dict[str, Any]:
+    volume.reload()
+    worker_started_epoch_ms = int(time.time() * 1000)
+    worker_started = time.monotonic()
+    scratch = GOLDFISH_MODAL_SCRATCH_ROOT / config["launchId"]
+    scratch_created = False
+    try:
+        scratch.mkdir(parents=True)
+        scratch_created = True
+        scratch_free_bytes = shutil.disk_usage(scratch).free
+        if scratch_free_bytes < GOLDFISH_MODAL_MIN_SCRATCH_FREE_BYTES:
+            raise RuntimeError("Goldfish kingdom task needs at least 2 GiB of free scratch space")
+        kingdom_one = config["mode"] == "kingdom-one"
+        score_mode = "score-one" if kingdom_one else "score-two"
+        reduce_mode = "reduce-one" if kingdom_one else "reduce-two"
+        score_end = 12_972_960 if kingdom_one else 500_000
+        final_name = "top-500000.hgf" if kingdom_one else "reservoir.hgf"
+        stage_file = scratch / "stage.hgs"
+        score_report_file = scratch / "score.json"
+        reduce_report_file = scratch / "reduce.json"
+        final_file = scratch / final_name
+        inputs_file = scratch / "inputs.json"
+        _atomic_json(inputs_file, [stage_file.as_posix()])
+        top_arguments = [] if kingdom_one else ["--top", str(_strategy_search_path(config["topPath"]))]
+
+        def remaining_config() -> dict[str, Any]:
+            elapsed_seconds = time.monotonic() - worker_started
+            return {**config, "timeoutSeconds": max(1, config["timeoutSeconds"] - elapsed_seconds)}
+
+        score_command = [CAMPAIGN_RUST_GOLDFISH_BIN, score_mode, "--kingdom", config["kingdomId"],
+            "--start", "0", "--end", str(score_end), "--threads", str(config["cpu"]),
+            "--out", str(stage_file), "--report", str(score_report_file), *top_arguments]
+        _strategy_search_run_subprocess(score_command, remaining_config())
+        score_report = _strategy_search_load(score_report_file)
+        reduce_command = [CAMPAIGN_RUST_GOLDFISH_BIN, reduce_mode, "--kingdom", config["kingdomId"],
+            "--inputs", str(inputs_file), "--out", str(final_file), "--report", str(reduce_report_file),
+            *top_arguments]
+        _strategy_search_run_subprocess(reduce_command, remaining_config())
+        reduce_report = _strategy_search_load(reduce_report_file)
+
+        output = _strategy_search_path(config["temporaryPath"])
+        output.parent.mkdir(parents=True, exist_ok=True)
+        copy_started = time.monotonic()
+        shutil.copyfile(final_file, output)
+        copy_ms = (time.monotonic() - copy_started) * 1000
+        validated_sha256 = _strategy_search_sha256(output)
+        _strategy_search_validate_publication(config, output)
+        commit_started = time.monotonic()
+        volume.commit()
+        commit_ms = (time.monotonic() - commit_started) * 1000
+        modal_worker_elapsed_ms = (time.monotonic() - worker_started) * 1000
+        queue_ms = max(0, worker_started_epoch_ms - config["enqueuedEpochMs"])
+        elapsed_ms = modal_worker_elapsed_ms + queue_ms
+        phases = {key: 0 for key in ["generationMs", "scoringMs",
+            "intermediateSerializationAndReadMs", "temporaryVolumeWriteCommitMs", "publisherWaitMs",
+            "publicationCommitMs", "reductionComputeMs", "finalTop500000WriteMs",
+            "finalTop20000WriteMs", "orchestrationQueueMs"]}
+        phases["scoringMs"] = score_report["scoringMs"]
+        phases["intermediateSerializationAndReadMs"] = score_report["readMs"] \
+            + score_report["writeMs"] + reduce_report["readMs"]
+        phases["reductionComputeMs"] = reduce_report["reduceMs"]
+        phases["finalTop500000WriteMs" if kingdom_one else "finalTop20000WriteMs"] = \
+            reduce_report["writeMs"]
+        phases["temporaryVolumeWriteCommitMs"] = copy_ms + commit_ms
+        orchestration_ms = elapsed_ms - sum(phases.values())
+        if orchestration_ms < 0:
+            raise RuntimeError("Goldfish kingdom task phases exceed elapsed time")
+        phases["orchestrationQueueMs"] = orchestration_ms
+        phases["elapsedMs"] = elapsed_ms
+        return {"elapsedMs": elapsed_ms, "workerFinishedEpochMs": int(time.time() * 1000),
+            "checkpointCount": 0, "modalWorkerElapsedMs": modal_worker_elapsed_ms,
+            "sha256": validated_sha256, "validatedSha256": validated_sha256, "phases": phases,
+            "workerStartedEpochMs": worker_started_epoch_ms, "temporaryPath": config["temporaryPath"],
+            "rustReports": {"score": score_report, "reduce": reduce_report},
+            "scratchFreeBytes": scratch_free_bytes}
+    finally:
+        if scratch_created:
+            shutil.rmtree(scratch, ignore_errors=True)
+
+
+@app.function(image=image, cpu=4, memory=4096, timeout=900, retries=0, volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
+def strategy_search_goldfish_job(config: dict[str, Any]) -> dict[str, Any]:
+    if config.get("mode") in {"kingdom-one", "kingdom-two"}:
+        return _strategy_search_goldfish_kingdom_stage(config)
+    return _strategy_search_goldfish_single_command(config)
 
 
 def _strategy_search_psro_input_paths(config: dict[str, Any]) -> list[str]:
@@ -1627,11 +1712,17 @@ def _strategy_search_task_config(bundle: dict[str, Any], state: dict[str, Any], 
         "controllerOwnerId": owner_id, "controllerFence": state["controllerFence"]}
     launch_id, temporary = prepared["launchId"], prepared["temporaryPath"]
     config = {"taskId": job["taskId"], "evidenceId": job["evidenceId"], "kingdomId": job["kingdomId"],
-        "ownerId": owner_id, "taskFence": prepared["fence"], "leaseMs": 600000, **controller_fields,
-        "launchId": launch_id, "temporaryPath": temporary, "sourceImage": bundle["sourceImage"],
-        "cpu": task["cpu"], "memoryMiB": task["memoryMiB"],
+        "ownerId": owner_id, "taskFence": prepared["fence"],
+        "leaseMs": prepared.get("leaseMs", (task["timeoutSeconds"] + 600) * 1000),
+        **controller_fields, "launchId": launch_id, "temporaryPath": temporary,
+        "sourceImage": bundle["sourceImage"], "cpu": task["cpu"], "memoryMiB": task["memoryMiB"],
         "timeoutSeconds": task["timeoutSeconds"], "stage": job["stage"]}
-    if job["stage"] == "goldfish-one":
+    if bundle["controller"].get("route") == GOLDFISH_MODAL_ROUTE \
+            and job["stage"] in {"goldfish-one-reduce", "goldfish-two-reduce"}:
+        config["mode"] = "kingdom-one" if job["stage"] == "goldfish-one-reduce" else "kingdom-two"
+        if job["stage"] == "goldfish-two-reduce":
+            config["topPath"] = f"evidence/{job['evidenceId']}/goldfish/top-500000.hgf"
+    elif job["stage"] == "goldfish-one":
         config.update({"mode": "score-one", "range": job["range"]})
     elif job["stage"] == "goldfish-two":
         config.update({"mode": "score-two", "range": job["range"],
@@ -1694,18 +1785,18 @@ def _strategy_search_goldfish_modal_compute_cost(cpu: float, memory_mib: int,
         + memory_mib / 1024 * GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND)
 
 
+def _strategy_search_goldfish_kingdom_one_timeout(worker_cores: int) -> int:
+    return 300 + (13000 + worker_cores - 1) // worker_cores
+
+
 def _strategy_search_goldfish_worst_case_cost(request: dict[str, Any],
                                                task_counts: dict[str, int]) -> float:
-    score_tasks = task_counts["scoreOne"] + task_counts["scoreTwo"]
-    score = score_tasks * GOLDFISH_MODAL_ATTEMPTS * _strategy_search_goldfish_modal_compute_cost(
-        request["workerCores"], GOLDFISH_MODAL_SCORE_MEMORY_MIB,
-        GOLDFISH_MODAL_SCORE_TIMEOUT_SECONDS + 30)
-    reduce_one = task_counts["reduceOne"] * GOLDFISH_MODAL_ATTEMPTS \
-        * _strategy_search_goldfish_modal_compute_cost(GOLDFISH_MODAL_REDUCER_CORES,
-            GOLDFISH_MODAL_REDUCE_MEMORY_MIB, GOLDFISH_MODAL_REDUCE_ONE_TIMEOUT_SECONDS + 30)
-    reduce_two = task_counts["reduceTwo"] * GOLDFISH_MODAL_ATTEMPTS \
-        * _strategy_search_goldfish_modal_compute_cost(GOLDFISH_MODAL_REDUCER_CORES,
-            GOLDFISH_MODAL_REDUCE_MEMORY_MIB, GOLDFISH_MODAL_REDUCE_TWO_TIMEOUT_SECONDS + 30)
+    timeout_one = _strategy_search_goldfish_kingdom_one_timeout(request["workerCores"])
+    scientific = task_counts["kingdomOne"] * GOLDFISH_MODAL_ATTEMPTS * (
+        _strategy_search_goldfish_modal_compute_cost(request["workerCores"],
+            GOLDFISH_MODAL_KINGDOM_MEMORY_MIB, timeout_one + 30)
+        + _strategy_search_goldfish_modal_compute_cost(request["workerCores"],
+            GOLDFISH_MODAL_KINGDOM_MEMORY_MIB, GOLDFISH_MODAL_KINGDOM_TWO_TIMEOUT_SECONDS + 30))
     controller = _strategy_search_goldfish_modal_compute_cost(
         1, 2048, request["maxWallSeconds"] + 60)
     publisher = _strategy_search_goldfish_modal_compute_cost(
@@ -1714,8 +1805,7 @@ def _strategy_search_goldfish_worst_case_cost(request: dict[str, Any],
     canary = _strategy_search_goldfish_modal_compute_cost(1, 4096, 120)
     control = _strategy_search_goldfish_modal_compute_cost(
         0.25, 512, request["maxWallSeconds"] + 90)
-    return round(score + reduce_one + reduce_two + controller + publisher
-        + readiness + canary + control, 6)
+    return round(scientific + controller + publisher + readiness + canary + control, 6)
 
 
 def _strategy_search_validate_goldfish_only_bundle(bundle: dict[str, Any]) -> dict[str, Any] | None:
@@ -1733,79 +1823,78 @@ def _strategy_search_validate_goldfish_only_bundle(bundle: dict[str, Any]) -> di
     max_cost_usd = request["maxCostUsd"]
     valid_numbers = all(isinstance(value, int) and not isinstance(value, bool) for value in
         [worker_cores, max_active_cpus, max_wall_seconds])
-    if not isinstance(kingdom_ids, list) or not kingdom_ids \
-            or not all(isinstance(value, str) and value for value in kingdom_ids) \
-            or len(set(kingdom_ids)) != len(kingdom_ids) or not valid_numbers \
-            or not 1 <= worker_cores <= GOLDFISH_MODAL_MAX_WORKER_CORES \
-            or max_active_cpus < max(GOLDFISH_MODAL_REDUCER_CORES, worker_cores) \
-            or not GOLDFISH_MODAL_MIN_WALL_SECONDS <= max_wall_seconds <= GOLDFISH_MODAL_MAX_WALL_SECONDS \
-            or not isinstance(max_cost_usd, (int, float)) or isinstance(max_cost_usd, bool) \
-            or not 0 < max_cost_usd <= GOLDFISH_MODAL_HARD_COST_CAP_USD:
+    if not isinstance(kingdom_ids, list) or not kingdom_ids             or not all(isinstance(value, str) and value for value in kingdom_ids)             or len(set(kingdom_ids)) != len(kingdom_ids) or not valid_numbers             or not GOLDFISH_MODAL_MIN_WORKER_CORES <= worker_cores <= GOLDFISH_MODAL_MAX_WORKER_CORES             or max_active_cpus < worker_cores             or not GOLDFISH_MODAL_MIN_WALL_SECONDS <= max_wall_seconds <= GOLDFISH_MODAL_MAX_WALL_SECONDS             or not isinstance(max_cost_usd, (int, float)) or isinstance(max_cost_usd, bool)             or not 0 < max_cost_usd <= GOLDFISH_MODAL_HARD_COST_CAP_USD:
         raise ValueError("Goldfish-only request exceeds a hard resource, time, or cost limit")
-    if controller.get("maxActiveCpus") != max_active_cpus \
-            or controller.get("maxWallSeconds") != max_wall_seconds \
-            or controller.get("timeoutSeconds") != max_wall_seconds \
-            or controller.get("goldfishWorkerCores") != worker_cores \
-            or controller.get("goldfishScoreMemoryMiB") != GOLDFISH_MODAL_SCORE_MEMORY_MIB \
-            or controller.get("goldfishScoreTimeoutSeconds") != GOLDFISH_MODAL_SCORE_TIMEOUT_SECONDS \
-            or controller.get("goldfishReducerCores") != GOLDFISH_MODAL_REDUCER_CORES \
-            or controller.get("goldfishReduceMemoryMiB") != GOLDFISH_MODAL_REDUCE_MEMORY_MIB \
-            or controller.get("goldfishReduceOneTimeoutSeconds") != GOLDFISH_MODAL_REDUCE_ONE_TIMEOUT_SECONDS \
-            or controller.get("goldfishReduceTwoTimeoutSeconds") != GOLDFISH_MODAL_REDUCE_TWO_TIMEOUT_SECONDS \
-            or not re.fullmatch(r"[0-9a-f]{64}", controller.get("executionPlanHash", "")):
+    timeout_one = _strategy_search_goldfish_kingdom_one_timeout(worker_cores)
+    expected_controller_fields = {"route", "maxActiveCpus", "timeoutSeconds", "maxWallSeconds",
+        "pollIntervalSeconds", "volumeName", "readyWindowWaves", "maxReducerMemoryMiB",
+        "goldfishWorkerCores", "goldfishKingdomMemoryMiB", "goldfishKingdomOneTimeoutSeconds",
+        "goldfishKingdomTwoTimeoutSeconds", "executionPlanHash", "costGuard"}
+    if set(controller) != expected_controller_fields             or controller.get("maxActiveCpus") != max_active_cpus             or controller.get("maxWallSeconds") != max_wall_seconds             or controller.get("timeoutSeconds") != max_wall_seconds             or controller.get("pollIntervalSeconds") != 1             or controller.get("volumeName") != "hexdeck-native-strategy-results"             or controller.get("readyWindowWaves") != 2             or controller.get("maxReducerMemoryMiB") != (max_active_cpus // worker_cores)                 * GOLDFISH_MODAL_KINGDOM_MEMORY_MIB             or controller.get("goldfishWorkerCores") != worker_cores             or controller.get("goldfishKingdomMemoryMiB") != GOLDFISH_MODAL_KINGDOM_MEMORY_MIB             or controller.get("goldfishKingdomOneTimeoutSeconds") != timeout_one             or controller.get("goldfishKingdomTwoTimeoutSeconds") != GOLDFISH_MODAL_KINGDOM_TWO_TIMEOUT_SECONDS             or not re.fullmatch(r"[0-9a-f]{64}", controller.get("executionPlanHash", "")):
         raise ValueError("Goldfish-only controller resources differ from the authorized shape")
-    allowed_stages = {"goldfish-one", "goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce"}
-    if any(held.get("stage") not in allowed_stages for held in bundle.get("jobs", [])) \
-            or any(held.get("stage") not in allowed_stages for held in bundle.get("tasks", [])):
-        raise ValueError("Goldfish-only bundle contains Matrix or PSRO work")
-    partitions = bundle.get("partitions")
-    if not isinstance(partitions, dict) or len(partitions) != len(kingdom_ids) * 2:
-        raise ValueError("Goldfish-only partitions do not match the kingdoms")
-    counts = {"scoreOne": 0, "reduceOne": len(kingdom_ids),
-        "scoreTwo": 0, "reduceTwo": len(kingdom_ids)}
-    evidence_stages: dict[str, set[str]] = {}
-    for key, partition in partitions.items():
-        stage = partition.get("stage") if isinstance(partition, dict) else None
-        evidence_id = partition.get("evidenceId") if isinstance(partition, dict) else None
-        total = partition.get("total") if isinstance(partition, dict) else None
-        ranges = partition.get("jobs") if isinstance(partition, dict) else None
-        expected_total = 12_972_960 if stage == "goldfish-one" else 500_000 \
-            if stage == "goldfish-two" else None
-        if key != f"{evidence_id}:{stage}" or not re.fullmatch(r"[0-9a-f]{64}", evidence_id or "") \
-                or expected_total is None or total != expected_total or not isinstance(ranges, list) \
-                or not ranges:
-            raise ValueError("Goldfish-only partition identity or total is invalid")
-        cursor = 0
-        for held in ranges:
-            if not isinstance(held, dict) or set(held) != {"start", "end"} \
-                    or held["start"] != cursor or not isinstance(held["end"], int) \
-                    or held["end"] <= cursor or held["end"] > total:
-                raise ValueError("Goldfish-only partition coverage is invalid")
-            cursor = held["end"]
-        if cursor != total:
-            raise ValueError("Goldfish-only partition coverage is incomplete")
-        evidence_stages.setdefault(evidence_id, set()).add(stage)
-        counts["scoreOne" if stage == "goldfish-one" else "scoreTwo"] += len(ranges)
-    if len(evidence_stages) != len(kingdom_ids) \
-            or any(stages != {"goldfish-one", "goldfish-two"} for stages in evidence_stages.values()):
-        raise ValueError("Goldfish-only evidence partitions are incomplete")
-    counts["total"] = sum(counts.values())
+    if bundle.get("partitions") != {}:
+        raise ValueError("Goldfish-only partitions must be empty")
+    jobs, tasks = bundle.get("jobs"), bundle.get("tasks")
+    if not isinstance(jobs, list) or not isinstance(tasks, list)             or len(jobs) != len(kingdom_ids) * 2 or len(tasks) != len(kingdom_ids) * 2:
+        raise ValueError("Goldfish-only bundle must contain two jobs and tasks per kingdom")
+    ordered_evidence_ids = []
+    for index, kingdom_id in enumerate(kingdom_ids):
+        one_job, two_job = jobs[index * 2:index * 2 + 2]
+        one_task, two_task = tasks[index * 2:index * 2 + 2]
+        evidence_id = one_job.get("evidenceId") if isinstance(one_job, dict) else None
+        one_id = _strategy_search_goldfish_task_id(evidence_id or "", "goldfish-one-reduce", None)
+        two_id = _strategy_search_goldfish_task_id(evidence_id or "", "goldfish-two-reduce", None)
+        expected_jobs = [
+            {"job": one_job, "taskId": one_id, "stage": "goldfish-one-reduce",
+                "status": "ready", "dependencies": []},
+            {"job": two_job, "taskId": two_id, "stage": "goldfish-two-reduce",
+                "status": "blocked", "dependencies": [one_id]}]
+        if not re.fullmatch(r"[0-9a-f]{64}", evidence_id or "")                 or any(not isinstance(entry["job"], dict)
+                    or entry["job"].get("taskId") != entry["taskId"]
+                    or entry["job"].get("kingdomId") != kingdom_id
+                    or entry["job"].get("evidenceId") != evidence_id
+                    or entry["job"].get("stage") != entry["stage"]
+                    or entry["job"].get("range") is not None
+                    or entry["job"].get("cpus") != worker_cores
+                    or entry["job"].get("status") != entry["status"]
+                    or entry["job"].get("dependencyTaskIds") != entry["dependencies"]
+                    for entry in expected_jobs):
+            raise ValueError("Goldfish-only jobs differ from the kingdom task chain")
+        expected_tasks = [
+            {"task": one_task, "taskId": one_id, "stage": "goldfish-one-reduce",
+                "timeout": timeout_one, "dependencies": [],
+                "artifact": f"evidence/{evidence_id}/goldfish/top-500000.hgf"},
+            {"task": two_task, "taskId": two_id, "stage": "goldfish-two-reduce",
+                "timeout": GOLDFISH_MODAL_KINGDOM_TWO_TIMEOUT_SECONDS, "dependencies": [one_id],
+                "artifact": f"evidence/{evidence_id}/goldfish/reservoir.hgf"}]
+        if any(not isinstance(entry["task"], dict)
+                or entry["task"].get("taskId") != entry["taskId"]
+                or entry["task"].get("kingdomId") != kingdom_id
+                or entry["task"].get("evidenceId") != evidence_id
+                or entry["task"].get("stage") != entry["stage"]
+                or entry["task"].get("range") is not None
+                or entry["task"].get("cpu") != worker_cores
+                or entry["task"].get("memoryMiB") != GOLDFISH_MODAL_KINGDOM_MEMORY_MIB
+                or entry["task"].get("timeoutSeconds") != entry["timeout"]
+                or entry["task"].get("dependencyTaskIds") != entry["dependencies"]
+                or entry["task"].get("artifactPath") != entry["artifact"]
+                for entry in expected_tasks):
+            raise ValueError("Goldfish-only tasks differ from the authorized kingdom shape")
+        ordered_evidence_ids.append(evidence_id)
+    if len(set(ordered_evidence_ids)) != len(kingdom_ids):
+        raise ValueError("Goldfish-only kingdom-to-evidence mapping is not one-to-one")
+    counts = {"kingdomOne": len(kingdom_ids), "kingdomTwo": len(kingdom_ids),
+        "total": len(kingdom_ids) * 2}
     guard = controller.get("costGuard")
     expected_guard_fields = {"cpuUsdPerCoreSecond", "memoryUsdPerGibSecond", "attemptCount",
         "hardMaximumCostUsd", "requestedMaximumCostUsd", "worstCaseModalComputeUsd", "taskCounts"}
-    if not isinstance(guard, dict) or set(guard) != expected_guard_fields \
-            or guard["cpuUsdPerCoreSecond"] != GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND \
-            or guard["memoryUsdPerGibSecond"] != GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND \
-            or guard["attemptCount"] != GOLDFISH_MODAL_ATTEMPTS \
-            or guard["hardMaximumCostUsd"] != GOLDFISH_MODAL_HARD_COST_CAP_USD \
-            or guard["requestedMaximumCostUsd"] != max_cost_usd \
-            or guard["taskCounts"] != counts:
+    if not isinstance(guard, dict) or set(guard) != expected_guard_fields             or guard["cpuUsdPerCoreSecond"] != GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND             or guard["memoryUsdPerGibSecond"] != GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND             or guard["attemptCount"] != GOLDFISH_MODAL_ATTEMPTS             or guard["hardMaximumCostUsd"] != GOLDFISH_MODAL_HARD_COST_CAP_USD             or guard["requestedMaximumCostUsd"] != max_cost_usd             or guard["taskCounts"] != counts:
         raise ValueError("Goldfish-only cost guard inputs differ from the runtime calculation")
     worst_case = _strategy_search_goldfish_worst_case_cost(request, counts)
-    if guard["worstCaseModalComputeUsd"] != worst_case \
-            or worst_case > max_cost_usd or worst_case > GOLDFISH_MODAL_HARD_COST_CAP_USD:
+    if guard["worstCaseModalComputeUsd"] != worst_case             or worst_case > max_cost_usd or worst_case > GOLDFISH_MODAL_HARD_COST_CAP_USD:
         raise ValueError("Goldfish-only worst-case cost exceeds the authorized hard guard")
-    return {"taskCounts": counts, "worstCaseModalComputeUsd": worst_case}
+    return {"taskCounts": counts, "worstCaseModalComputeUsd": worst_case,
+        "orderedEvidenceIds": ordered_evidence_ids}
 
 
 def _strategy_search_materialize_goldfish(state: dict[str, Any], bundle: dict[str, Any]) -> bool:
@@ -2270,10 +2359,13 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
                     item.update({"transitionPath": metadata.get("transitionPath"),
                         "scoreTask": metadata.get("scoreTask")})
                 preparation_items.append(item)
+            lease_ms = (max(task["timeoutSeconds"] for _job, task in selected) + 600) * 1000
             prepared = strategy_search_publisher.remote({"operation": "prepare-launch-batch",
                 "campaignExecutionId": bundle["campaignExecutionId"], "controllerOwnerId": owner_id,
                 "controllerFence": state["controllerFence"], "ownerId": owner_id,
-                "nowMs": int(time.time() * 1000), "leaseMs": 600000, "items": preparation_items})
+                "nowMs": int(time.time() * 1000), "leaseMs": lease_ms, "items": preparation_items})
+            for preparation in prepared.values():
+                preparation["leaseMs"] = lease_ms
             pending_launches = []
             for job, task in selected:
                 preparation = prepared[job["taskId"]]
@@ -2445,7 +2537,7 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
         * (cost_rates[0] + 8 * cost_rates[1])
     compute_cost = measured_attempt_cost + unmeasured_failure_cost + controller_cost + publisher_cost
     stage_wall = {}
-    report_stages = ["goldfish-one", "goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce"] \
+    report_stages = ["goldfish-one-reduce", "goldfish-two-reduce"] \
         if goldfish_only else ["goldfish-one", "goldfish-one-reduce", "goldfish-two", "goldfish-two-reduce",
             "matrix-manifest", "matrix-score", "matrix-reduce", "psro-decision", "psro-score",
             "admission-row-score", "admission-row-reduce", "psro-reduce"]
@@ -2509,6 +2601,9 @@ def _strategy_search_controller_impl(bundle: dict[str, Any]) -> dict[str, Any]:
         + held.get("publicationCommitMs", 0) + held.get("reductionComputeMs", 0) for held in phase_reports)
     scored_candidates = sum(job["range"]["end"] - job["range"]["start"] for job in state["jobs"]
         if job["stage"] in {"goldfish-one", "goldfish-two"})
+    scored_candidates += sum(job.get("result", {}).get("rustReports", {}).get("score", {}).get("rowCount", 0)
+        for job in state["jobs"] if job["stage"] in {"goldfish-one-reduce", "goldfish-two-reduce"}
+        and job.get("result", {}).get("rustReports"))
     scoring_ms = sum(held.get("scoringMs", 0) for held in phase_reports)
     phase_keys = ["generationMs", "scoringMs", "intermediateSerializationAndReadMs",
         "temporaryVolumeWriteCommitMs", "publisherWaitMs", "publicationCommitMs", "reductionComputeMs",
