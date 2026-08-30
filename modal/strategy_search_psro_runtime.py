@@ -162,8 +162,8 @@ def status(state_file: str) -> dict[str, Any]:
             attempt["status"] = "pending"
             attempt["adoptedFromLease"] = True
         if attempt.get("callId") is None:
-            call_state = "unknown"
-            attempt["status"] = "unknown"
+            call_state = "abandoned" if attempt.get("status") == "abandoned" else "unknown"
+            attempt["status"] = call_state
         else:
             polled = _poll(modal.FunctionCall.from_id(attempt["callId"]))
             call_state = polled["state"]

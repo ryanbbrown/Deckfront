@@ -154,7 +154,9 @@ class PsroRuntimeTests(unittest.TestCase):
                 {"kingdomId": "one", "launchId": "launch-one", "callId": None,
                     "status": "unknown", "remoteOutPath": "psro/one"},
                 {"kingdomId": "two", "launchId": "launch-two", "callId": "fc-two",
-                    "status": "pending", "remoteOutPath": "psro/two"}]}))
+                    "status": "pending", "remoteOutPath": "psro/two"},
+                {"kingdomId": "old", "launchId": "launch-old", "callId": None,
+                    "status": "abandoned", "remoteOutPath": "psro/old"}]}))
             volume = Volume({"psro/one/lease.json": json.dumps({"launchId": "launch-one",
                 "callId": "fc-one"}).encode(), "psro/one/progress.json": json.dumps({
                     "checkpointOrdinal": 7}).encode()})
@@ -170,6 +172,8 @@ class PsroRuntimeTests(unittest.TestCase):
             self.assertEqual(state["attempts"][0]["callId"], "fc-one")
             self.assertTrue(state["attempts"][0]["adoptedFromLease"])
             self.assertEqual(state["attempts"][1]["status"], "complete")
+            self.assertEqual(state["attempts"][2]["status"], "abandoned")
+            self.assertEqual(result["attempts"][2]["state"], "abandoned")
 
     def test_download_excludes_operational_files_and_replaces_the_destination(self):
         with tempfile.TemporaryDirectory() as directory:
