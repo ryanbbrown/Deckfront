@@ -1,4 +1,5 @@
 import { createCard, kingdomOf, kingdomSupply } from '../../src/game';
+import type { GameView } from '../../src/shared/api';
 import { test, expect, makeAiGame, seedHand, seedPlayerHand } from './fixture';
 
 type CardBounds = { left: number; top: number; width: number; height: number };
@@ -578,12 +579,22 @@ test('DD-E2E-054: Reclaim groups identical discard cards in a canonical picker',
   await expect(picker).toHaveCount(0); await expect(page.locator('[data-card-name="Silver"]')).toBeVisible();
 });
 
-test('DD-E2E-055: Play all resolves direct copies only and movement copies keep their choice', async ({ page, openGame }) => {
-  await openGame(page, (record) => { seedHand(record, ['muster', 'muster', 'muster', 'footwork', 'footwork', 'reclaim', 'reclaim', 'sharpen', 'sharpen']); record.state.fighters.ochre.position = 3; });
+test('DD-E2E-055: Play all resolves only the direct copies present when clicked and movement copies keep their choice', async ({ page, openGame }) => {
+  let originalMusterIds: string[] = []; let drawnMusterIds: string[] = [];
+  await openGame(page, (record) => {
+    seedHand(record, ['muster', 'muster', 'footwork', 'footwork', 'reclaim', 'reclaim', 'sharpen', 'sharpen'], ['muster', 'muster', 'muster', 'muster']);
+    originalMusterIds = record.state.players.ochre.deck.hand.filter((card) => card.definitionId === 'muster').map((card) => card.id).sort();
+    drawnMusterIds = record.state.players.ochre.deck.draw.map((card) => card.id).sort(); record.state.fighters.ochre.position = 3;
+  });
   await expect(page.getByRole('button', { name: 'Play all', exact: true })).toHaveCount(1);
   await page.getByRole('button', { name: 'Play all', exact: true }).click();
-  await expect(page.locator('[data-card-name="Muster"]')).toHaveCount(0);
-  await expect(page.locator('[data-played-card-name="Muster"]')).toHaveAttribute('data-card-count', '3');
+  await expect(page.getByTestId('hand-count-muster')).toHaveText('×4');
+  await expect(page.locator('[data-played-card-name="Muster"]')).toHaveAttribute('data-card-count', '2');
+  const view = await page.evaluate(async () => {
+    const id = localStorage.getItem('hexdeck.activeGameId'); return await (await fetch(`/api/games/${id}`)).json() as GameView;
+  });
+  expect(view.players.ochre.played.filter((card) => card.definitionId === 'muster').map((card) => card.id).sort()).toEqual(originalMusterIds);
+  expect(view.players.ochre.hand.filter((card) => card.definitionId === 'muster').map((card) => card.id).sort()).toEqual(drawnMusterIds);
   await page.locator('[data-card-name="Footwork"]').click();
   await expect(page.getByRole('button', { name: 'Play Footwork: Stay' }).locator('..')).toHaveClass(/arena-space--choice/);
 });

@@ -217,12 +217,14 @@ export function Game({ game, initialPresentation, error, animateAi, onAnimateAi,
     if (busy) return;
     setBusy(true); onError(null); clearChoice();
     let current = game; const updates: GameUpdateView[] = [];
+    const queuedInstanceIds = new Set(current.players[current.activePlayerId].hand
+      .filter((card) => card.definitionId === definitionId).map((card) => card.id));
     try {
-      while (!current.winner && current.phase === 'action' && current.activePlayerId === game.activePlayerId && !current.actions.selection) {
-        const matching = current.players[current.activePlayerId].hand.filter((card) => card.definitionId === definitionId);
-        const direct = matching.map((card) => current.actions.cards.find((item) => item.cardInstanceId === card.id))
-          .find((item) => item?.enabled && item.batchPlayable && item.actionId);
+      while (queuedInstanceIds.size && !current.winner && current.phase === 'action' && current.activePlayerId === game.activePlayerId && !current.actions.selection) {
+        const direct = current.actions.cards.find((item) => queuedInstanceIds.has(item.cardInstanceId)
+          && item.enabled && item.batchPlayable && item.actionId);
         if (!direct?.actionId) break;
+        queuedInstanceIds.delete(direct.cardInstanceId);
         const update = await takeAction(current, direct.actionId); updates.push(update); current = updateGame(update);
       }
       if (updates.length) { setBusy(false); current = await present(combinePlayAllUpdates(updates)); setBusy(true); }
