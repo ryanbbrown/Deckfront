@@ -904,6 +904,7 @@ struct Runtime {
     handshake: bool,
     games: u64,
     transitions: Vec<TransitionTiming>,
+    evidence_write_ms: f64,
     self_play_rows: Vec<SelfPlayRow>,
 }
 
@@ -916,7 +917,16 @@ struct TransitionTiming {
     depth: u32,
     candidates: usize,
     games: u64,
+    game_ms: f64,
+    evaluate_ms: f64,
     elapsed_ms: f64,
+}
+
+fn write_runtime_checkpoint(runtime: &mut Runtime, state: &State) -> Result<(), String> {
+    let started = Instant::now();
+    let result = write_checkpoint(&runtime.out, &runtime.source, state, runtime.handshake);
+    runtime.evidence_write_ms += started.elapsed().as_secs_f64() * 1000.0;
+    result
 }
 
 impl Runtime {
@@ -993,7 +1003,7 @@ impl Runtime {
         }
         let card_count = self.kingdom.all_card_ids.len();
         let jobs = active.len() * suffix.len();
-        let started = Instant::now();
+        let game_started = Instant::now();
         let results = self.pool.install(|| {
             (0..jobs)
                 .into_par_iter()
@@ -1035,6 +1045,8 @@ impl Runtime {
                 })
                 .collect::<Vec<_>>()
         });
+        let game_ms = game_started.elapsed().as_secs_f64() * 1000.0;
+        let evaluate_started = Instant::now();
         let mut rows = Vec::with_capacity(active.len());
         for (candidate_index, candidate) in active.iter().enumerate() {
             let start = candidate_index * suffix.len();
@@ -1069,6 +1081,7 @@ impl Runtime {
                 damage,
             });
         }
+        let evaluate_ms = evaluate_started.elapsed().as_secs_f64() * 1000.0;
         let games = (jobs * 2) as u64;
         self.games += games;
         self.transitions.push(TransitionTiming {
@@ -1078,7 +1091,9 @@ impl Runtime {
             depth: 0,
             candidates: active.len(),
             games,
-            elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
+            game_ms,
+            evaluate_ms,
+            elapsed_ms: game_ms + evaluate_ms,
         });
         Ok(rows)
     }
@@ -1189,6 +1204,7 @@ fn execute_race(runtime: &mut Runtime, state: &mut State, resumed: bool) -> Resu
             header.threshold = THRESHOLD;
             let bytes = file_bytes(header.clone(), &payload)?;
             let expected_header = CommonHeader::decode(&bytes)?;
+            let write_started = Instant::now();
             atomic_write_verified(&path, &bytes, |temporary| {
                 let (verified_header, verified_payload) =
                     read_evidence(temporary, &runtime.source, look_kind(phase))?;
@@ -1201,6 +1217,7 @@ fn execute_race(runtime: &mut Runtime, state: &mut State, resumed: bool) -> Resu
                 }
                 Ok(())
             })?;
+            runtime.evidence_write_ms += write_started.elapsed().as_secs_f64() * 1000.0;
             let (verified_header, verified_payload) =
                 read_evidence(&path, &runtime.source, look_kind(phase))?;
             let (_, verified_rows) = parse_look(&verified_header, &verified_payload)?;
@@ -1288,7 +1305,7 @@ fn execute_race(runtime: &mut Runtime, state: &mut State, resumed: bool) -> Resu
             }
             order_queue(&mut state.queue);
         }
-        write_checkpoint(&runtime.out, &runtime.source, state, runtime.handshake)?;
+        write_runtime_checkpoint(runtime, state)?;
     }
     state.active.clear();
     state.look_index = depths.len() as u32;
@@ -1829,6 +1846,7 @@ fn admit(runtime: &mut Runtime, state: &mut State) -> Result<(), String> {
     if played {
         runtime.games += (results.len() * 250) as u64;
     }
+    let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
     runtime.transitions.push(TransitionTiming {
         kind: if played {
             "admission".into()
@@ -1844,7 +1862,9 @@ fn admit(runtime: &mut Runtime, state: &mut State) -> Result<(), String> {
         } else {
             0
         },
-        elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
+        game_ms: if played { elapsed_ms } else { 0.0 },
+        evaluate_ms: if played { 0.0 } else { elapsed_ms },
+        elapsed_ms,
     });
     let mut remaining = queue
         .into_iter()
@@ -1866,7 +1886,7 @@ fn admit(runtime: &mut Runtime, state: &mut State) -> Result<(), String> {
         state.previous_depth = 0;
         state.next_depth = CONFIRMATION_DEPTHS[0];
     }
-    write_checkpoint(&runtime.out, &runtime.source, state, runtime.handshake)
+    write_runtime_checkpoint(runtime, state)
 }
 
 #[derive(Clone)]
@@ -2493,7 +2513,7 @@ fn require_replayed_state(state: &State, replay: &ReplayResult) -> Result<(), St
 }
 
 fn ensure_decisions(
-    runtime: &Runtime,
+    runtime: &mut Runtime,
     state: &mut State,
     replay: &ReplayResult,
 ) -> Result<(), String> {
@@ -2519,6 +2539,7 @@ fn ensure_decisions(
         {
             return Err("checkpoint references a missing decisions file".into());
         }
+        let write_started = Instant::now();
         atomic_write_verified(&path, &bytes, |temporary| {
             let (verified_header, verified_payload) =
                 read_evidence(temporary, &runtime.source, DECISIONS_KIND)?;
@@ -2528,6 +2549,7 @@ fn ensure_decisions(
             }
             Ok(())
         })?;
+        runtime.evidence_write_ms += write_started.elapsed().as_secs_f64() * 1000.0;
         if std::env::var_os("HEXDECK_PSRO_TEST_STOP_AFTER_DECISIONS_RENAME").is_some() {
             return Err("test stop after renamed PSRO decisions".into());
         }
@@ -2549,7 +2571,7 @@ fn ensure_decisions(
     match decision_refs.as_slice() {
         [] => {
             state.refs.push(expected_ref);
-            write_checkpoint(&runtime.out, &runtime.source, state, runtime.handshake)
+            write_runtime_checkpoint(runtime, state)
         }
         [reference] if **reference == expected_ref => Ok(()),
         _ => Err("checkpoint decisions reference differs from replay".into()),
@@ -2748,6 +2770,7 @@ fn prepare(
         handshake,
         games: 0,
         transitions: Vec::new(),
+        evidence_write_ms: 0.0,
         self_play_rows: initial_self_play_rows,
     };
     let existing = read_checkpoint(&runtime.out, &runtime.source)?;
@@ -2949,6 +2972,10 @@ struct RunReport {
     final_matrix_size: usize,
     total_games: u64,
     elapsed_ms: f64,
+    startup_ms: f64,
+    evidence_write_ms: f64,
+    finalize_ms: f64,
+    other_ms: f64,
     games_per_second: f64,
     transitions: Vec<TransitionTiming>,
 }
@@ -2964,9 +2991,10 @@ fn run_psro(options: Options) -> Result<(), String> {
         return Err("PSRO --report must name a .json file outside binary evidence".into());
     }
     let (mut runtime, mut state, mut resumed) = prepare(&options, threads, true, true)?;
+    let startup_ms = started.elapsed().as_secs_f64() * 1000.0;
     if !state.complete {
         if !resumed {
-            write_checkpoint(&runtime.out, &runtime.source, &state, runtime.handshake)?;
+            write_runtime_checkpoint(&mut runtime, &state)?;
         }
         loop {
             match state.phase {
@@ -2983,7 +3011,7 @@ fn run_psro(options: Options) -> Result<(), String> {
                         state.previous_depth = 0;
                         state.next_depth = CONFIRMATION_DEPTHS[0];
                     }
-                    write_checkpoint(&runtime.out, &runtime.source, &state, runtime.handshake)?;
+                    write_runtime_checkpoint(&mut runtime, &state)?;
                 }
                 Phase::Confirmation | Phase::Retest => {
                     execute_race(&mut runtime, &mut state, resumed)?;
@@ -2999,7 +3027,7 @@ fn run_psro(options: Options) -> Result<(), String> {
                         state.phase = Phase::Admission;
                         state.next_depth = 0;
                     }
-                    write_checkpoint(&runtime.out, &runtime.source, &state, runtime.handshake)?;
+                    write_runtime_checkpoint(&mut runtime, &state)?;
                 }
                 Phase::Admission => {
                     admit(&mut runtime, &mut state)?;
@@ -3020,9 +3048,20 @@ fn run_psro(options: Options) -> Result<(), String> {
         }
     }
     let replay = replay_transitions(&runtime)?;
-    ensure_decisions(&runtime, &mut state, &replay)?;
+    let finalize_started = Instant::now();
+    let evidence_before_finalize = runtime.evidence_write_ms;
+    ensure_decisions(&mut runtime, &mut state, &replay)?;
     verify_complete(&runtime, &state)?;
+    let finalize_ms = finalize_started.elapsed().as_secs_f64() * 1000.0
+        - (runtime.evidence_write_ms - evidence_before_finalize);
     let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
+    let transition_ms = runtime
+        .transitions
+        .iter()
+        .map(|transition| transition.elapsed_ms)
+        .sum::<f64>();
+    let other_ms =
+        elapsed_ms - startup_ms - transition_ms - runtime.evidence_write_ms - finalize_ms;
     let report = RunReport {
         command: "psro",
         kingdom_id: runtime.kingdom.id.clone(),
@@ -3031,6 +3070,10 @@ fn run_psro(options: Options) -> Result<(), String> {
         final_matrix_size: state.matrix_numbers.len(),
         total_games: runtime.games,
         elapsed_ms,
+        startup_ms,
+        evidence_write_ms: runtime.evidence_write_ms,
+        finalize_ms,
+        other_ms,
         games_per_second: if elapsed_ms > 0.0 {
             runtime.games as f64 / (elapsed_ms / 1000.0)
         } else {
