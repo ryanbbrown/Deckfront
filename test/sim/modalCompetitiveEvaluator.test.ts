@@ -9,7 +9,7 @@ import { mixtureSchedule } from '../../src/sim/mixtureEvaluation';
 import { ModalCompetitiveEvaluator } from '../../src/sim/modalCompetitiveEvaluator';
 import { fixedBuyPlan, identify } from '../../src/sim/strategy';
 
-const kingdom = strategySearchKingdom('balance-tuning-001');
+const kingdom = strategySearchKingdom('balance-tuning-003');
 const config = { kingdomId: kingdom.id, turnLimitPerPlayer: 30,
   actionCapPerTurn: 200, startingDraftEnabled: false };
 const runner = { async run() { throw new Error('Modal adapter owns score evaluation.'); }, async close() {} };

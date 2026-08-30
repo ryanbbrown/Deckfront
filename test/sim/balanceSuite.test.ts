@@ -112,7 +112,7 @@ describe('balance-suite design', () => {
     const id = 'balance-tuning-005';
     expect(findKingdom(id)).toBeNull();
     balanceSuite.register();
-    expect(findKingdom(id)).toMatchObject({ id, startingHealth: 40 });
+    expect(findKingdom(id)).toMatchObject({ id, startingHealth: 50 });
     resetKingdoms();
     expect(findKingdom(id)).toBeNull();
   });

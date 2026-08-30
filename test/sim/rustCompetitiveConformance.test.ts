@@ -11,7 +11,7 @@ import { RustGoldfishScorer } from '../../src/sim/rustGoldfishScorer';
 import { runSimulationMatch, runSimulationMatchScoreOnly } from '../../src/sim/simulationKernel';
 import { INFINITE_COUNT, fixedBuyPlan, identify } from '../../src/sim/strategy';
 
-const kingdom = strategySearchKingdom('balance-tuning-001');
+const kingdom = strategySearchKingdom('balance-tuning-003');
 const binary = process.env.HEXDECK_GOLDFISH_BIN
   ?? path.resolve('rust/target/release/hexdeck-goldfish');
 const config = { kingdomId: kingdom.id, turnLimitPerPlayer: 30,

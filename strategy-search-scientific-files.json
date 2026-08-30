@@ -19,6 +19,7 @@
   "scripts/strategy_search_campaign_matrix_score.ts",
   "scripts/strategy_search_campaign_parallel_psro.ts",
   "scripts/strategy_search_campaign_psro.ts",
+  "scripts/successive_halving_double_oracle_pilot.ts",
   "src/game-data/cards.json",
   "src/game-data/kingdoms.json",
   "src/game/config.ts",

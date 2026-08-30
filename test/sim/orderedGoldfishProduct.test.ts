@@ -147,7 +147,7 @@ describe('ordered goldfish product correction', () => {
       .toThrow('stale or invalid');
     const impossible = structuredClone(reservoir);
     const space = createOrderedCandidateSpace(orderedGoldfishCardIds(artifact.config.kingdomId));
-    const wrong = space.candidateAt(candidateIndexAt(1, space.candidateCount));
+    const wrong = space.candidateAt(candidateIndexAt(space.candidateCount - 1, space.candidateCount));
     impossible.entries[0]!.strategy = wrong;
     impossible.entries[0]!.displayId = wrong.id;
     impossible.entries[0]!.canonicalStrategy = canonicalStrategy(wrong);

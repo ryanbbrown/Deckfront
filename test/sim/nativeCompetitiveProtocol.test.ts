@@ -5,7 +5,7 @@ import { mixtureSchedule } from '../../src/sim/mixtureEvaluation';
 import { nativeCompetitiveModalInput } from '../../src/sim/nativeCompetitiveProtocol';
 import { fixedBuyPlan, identify } from '../../src/sim/strategy';
 
-const kingdom = strategySearchKingdom('balance-tuning-001');
+const kingdom = strategySearchKingdom('balance-tuning-003');
 beforeEach(() => registerKingdom(kingdom));
 afterEach(() => resetKingdoms());
 

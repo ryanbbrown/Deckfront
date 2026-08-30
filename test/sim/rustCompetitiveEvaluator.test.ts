@@ -10,7 +10,7 @@ import { InlinePairingRunner } from '../../src/sim/pairingRunner';
 import { RustCompetitiveEvaluator } from '../../src/sim/rustCompetitiveEvaluator';
 import { RustGoldfishScorer } from '../../src/sim/rustGoldfishScorer';
 
-const kingdom = strategySearchKingdom('balance-tuning-001');
+const kingdom = strategySearchKingdom('balance-tuning-003');
 const binary = process.env.HEXDECK_GOLDFISH_BIN
   ?? path.resolve('rust/target/release/hexdeck-goldfish');
 
