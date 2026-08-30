@@ -320,6 +320,25 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
             f"evidence/{'a' * 64}/goldfish/top-500000.hgf")
         self.assertEqual([config["leaseMs"] for config in configs], [lease_ms, lease_ms])
 
+    def test_full_route_goldfish_reducer_keeps_manifest_mode(self):
+        evidence = "a" * 64
+        dependency = {"taskId": "score", "evidenceId": evidence,
+            "kingdomId": "balance-tuning-005", "stage": "goldfish-two", "status": "complete",
+            "receipt": {"artifactPath": f"evidence/{evidence}/tasks/goldfish-two/0-10.hgs"}}
+        reducer = {"taskId": "reduce", "evidenceId": evidence,
+            "kingdomId": "balance-tuning-005", "stage": "goldfish-two-reduce",
+            "dependencyTaskIds": ["score"]}
+        task = {**reducer, "cpu": 4, "memoryMiB": 8192, "timeoutSeconds": 300}
+        bundle = {"campaignExecutionId": "b" * 64, "sourceImage": {},
+            "controller": {"route": "full-strategy-search"}}
+        state = {"controllerFence": 1, "jobs": [dependency, reducer], "tasks": [task]}
+        config = launcher._strategy_search_task_config(bundle, state, reducer, "owner", {
+            "launchId": "launch", "temporaryPath": "temporary/reservoir.hgf", "fence": 1,
+            "leaseUntilMs": 900_000})
+        self.assertEqual(config["mode"], "reduce-two")
+        self.assertEqual(config["manifest"], [dependency["receipt"]["artifactPath"]])
+        self.assertEqual(config["topPath"], f"evidence/{evidence}/goldfish/top-500000.hgf")
+
     def test_goldfish_only_completion_records_only_verified_final_goldfish_receipts(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
@@ -932,7 +951,11 @@ print(json.dumps(result))
             publisher = MagicMock()
             publisher.remote.side_effect = publish
             worker = ImmediateWorker()
-            with patch.object(launcher, "verify_strategy_search_source"),                     patch.object(launcher, "strategy_search_publisher", publisher),                     patch.object(launcher, "strategy_search_goldfish_job", worker),                     patch.object(launcher, "_strategy_search_path", side_effect=strategy_path),                     patch.object(launcher.volume, "reload"), patch.object(launcher.time, "sleep"):
+            with patch.object(launcher, "verify_strategy_search_source"), \
+                    patch.object(launcher, "strategy_search_publisher", publisher), \
+                    patch.object(launcher, "strategy_search_goldfish_job", worker), \
+                    patch.object(launcher, "_strategy_search_path", side_effect=strategy_path), \
+                    patch.object(launcher.volume, "reload"), patch.object(launcher.time, "sleep"):
                 report = launcher._strategy_search_controller_impl(bundle)
 
         self.assertEqual(report["status"], "complete")
@@ -945,6 +968,9 @@ print(json.dumps(result))
         self.assertEqual(worker.configs[1]["leaseMs"], leases[1])
         self.assertEqual(set(report["stageWallMs"]),
             {"goldfish-one-reduce", "goldfish-two-reduce"})
+        self.assertTrue(report["goldfishPhaseAccountingValid"])
+        self.assertEqual(report["intermediateIoRatio"], 0)
+        self.assertTrue(report["goldfishIntermediateIoTargetMet"])
         self.assertGreater(report["candidateThroughputPerSecond"], 0)
         self.assertGreater(report["stageThroughput"]["goldfishCandidatesPerSecond"], 0)
         self.assertEqual(sum(job["result"]["rustReports"]["score"]["rowCount"]
@@ -1299,6 +1325,46 @@ print(json.dumps(result))
                 with self.assertRaisesRegex(RuntimeError, "Rust failed"):
                     raw(failing)
             self.assertFalse((scratch_root / "rust-failure").exists())
+
+    def test_goldfish_kingdom_job_rejects_impossible_rust_phases_before_publication(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            scratch_root = root / "scratch"
+            volume_root = root / "results"
+            def run_subprocess(command, _config):
+                output = pathlib.Path(command[command.index("--out") + 1])
+                output.parent.mkdir(parents=True, exist_ok=True)
+                output.write_bytes(b"artifact")
+                score = command[1] == "score-one"
+                report = {"command": command[1], "rowCount": 1,
+                    "scoringMs": 1_000_000 if score else 0, "readMs": 0,
+                    "writeMs": 0, "reduceMs": 0}
+                pathlib.Path(command[command.index("--report") + 1]).write_text(json.dumps(report))
+                return {"elapsedMs": 1}
+            config = {"taskId": "task", "evidenceId": "a" * 64,
+                "kingdomId": "balance-tuning-005", "sourceImage": {}, "cpu": 32,
+                "timeoutSeconds": 707, "enqueuedEpochMs": int(time.time() * 1000),
+                "launchId": "bad-phases", "stage": "goldfish-one-reduce", "mode": "kingdom-one",
+                "temporaryPath": "temporary/top.hgf"}
+            validate = MagicMock()
+            commit = MagicMock()
+            raw = launcher.strategy_search_goldfish_job.get_raw_f()
+            with patch.object(launcher, "GOLDFISH_MODAL_SCRATCH_ROOT", scratch_root), \
+                    patch.object(launcher, "_strategy_search_path",
+                        side_effect=lambda relative: volume_root / relative), \
+                    patch.object(launcher, "_strategy_search_run_subprocess",
+                        side_effect=run_subprocess), \
+                    patch.object(launcher, "_strategy_search_validate_publication", validate), \
+                    patch.object(launcher.shutil, "disk_usage",
+                        return_value=type("Usage", (), {"free": 3 * 1024 ** 3})()), \
+                    patch.object(launcher.volume, "reload"), \
+                    patch.object(launcher.volume, "commit", commit):
+                with self.assertRaisesRegex(RuntimeError, "Rust phases exceed"):
+                    raw(config)
+            validate.assert_not_called()
+            commit.assert_not_called()
+            self.assertFalse((volume_root / config["temporaryPath"]).exists())
+            self.assertFalse((scratch_root / "bad-phases").exists())
 
     def test_goldfish_publication_validation_uses_rust_verify_and_top_links(self):
         calls = []

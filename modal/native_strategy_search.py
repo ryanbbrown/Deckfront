@@ -1310,6 +1310,12 @@ def _strategy_search_goldfish_kingdom_stage(config: dict[str, Any]) -> dict[str,
             *top_arguments]
         _strategy_search_run_subprocess(reduce_command, remaining_config())
         reduce_report = _strategy_search_load(reduce_report_file)
+        rust_named_ms = score_report["scoringMs"] + score_report["readMs"] \
+            + score_report["writeMs"] + reduce_report["readMs"] \
+            + reduce_report["reduceMs"] + reduce_report["writeMs"]
+        wall_so_far_ms = (time.monotonic() - worker_started) * 1000
+        if rust_named_ms > wall_so_far_ms:
+            raise RuntimeError("Goldfish kingdom Rust phases exceed elapsed wall time")
 
         output = _strategy_search_path(config["temporaryPath"])
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -1336,8 +1342,6 @@ def _strategy_search_goldfish_kingdom_stage(config: dict[str, Any]) -> dict[str,
             reduce_report["writeMs"]
         phases["temporaryVolumeWriteCommitMs"] = copy_ms + commit_ms
         orchestration_ms = elapsed_ms - sum(phases.values())
-        if orchestration_ms < 0:
-            raise RuntimeError("Goldfish kingdom task phases exceed elapsed time")
         phases["orchestrationQueueMs"] = orchestration_ms
         phases["elapsedMs"] = elapsed_ms
         return {"elapsedMs": elapsed_ms, "workerFinishedEpochMs": int(time.time() * 1000),
@@ -1823,19 +1827,41 @@ def _strategy_search_validate_goldfish_only_bundle(bundle: dict[str, Any]) -> di
     max_cost_usd = request["maxCostUsd"]
     valid_numbers = all(isinstance(value, int) and not isinstance(value, bool) for value in
         [worker_cores, max_active_cpus, max_wall_seconds])
-    if not isinstance(kingdom_ids, list) or not kingdom_ids             or not all(isinstance(value, str) and value for value in kingdom_ids)             or len(set(kingdom_ids)) != len(kingdom_ids) or not valid_numbers             or not GOLDFISH_MODAL_MIN_WORKER_CORES <= worker_cores <= GOLDFISH_MODAL_MAX_WORKER_CORES             or max_active_cpus < worker_cores             or not GOLDFISH_MODAL_MIN_WALL_SECONDS <= max_wall_seconds <= GOLDFISH_MODAL_MAX_WALL_SECONDS             or not isinstance(max_cost_usd, (int, float)) or isinstance(max_cost_usd, bool)             or not 0 < max_cost_usd <= GOLDFISH_MODAL_HARD_COST_CAP_USD:
+    if not isinstance(kingdom_ids, list) or not kingdom_ids \
+            or not all(isinstance(value, str) and value for value in kingdom_ids) \
+            or len(set(kingdom_ids)) != len(kingdom_ids) or not valid_numbers \
+            or not GOLDFISH_MODAL_MIN_WORKER_CORES <= worker_cores <= GOLDFISH_MODAL_MAX_WORKER_CORES \
+            or max_active_cpus < worker_cores \
+            or not GOLDFISH_MODAL_MIN_WALL_SECONDS <= max_wall_seconds <= GOLDFISH_MODAL_MAX_WALL_SECONDS \
+            or not isinstance(max_cost_usd, (int, float)) or isinstance(max_cost_usd, bool) \
+            or not 0 < max_cost_usd <= GOLDFISH_MODAL_HARD_COST_CAP_USD:
         raise ValueError("Goldfish-only request exceeds a hard resource, time, or cost limit")
     timeout_one = _strategy_search_goldfish_kingdom_one_timeout(worker_cores)
     expected_controller_fields = {"route", "maxActiveCpus", "timeoutSeconds", "maxWallSeconds",
         "pollIntervalSeconds", "volumeName", "readyWindowWaves", "maxReducerMemoryMiB",
         "goldfishWorkerCores", "goldfishKingdomMemoryMiB", "goldfishKingdomOneTimeoutSeconds",
         "goldfishKingdomTwoTimeoutSeconds", "executionPlanHash", "costGuard"}
-    if set(controller) != expected_controller_fields             or controller.get("maxActiveCpus") != max_active_cpus             or controller.get("maxWallSeconds") != max_wall_seconds             or controller.get("timeoutSeconds") != max_wall_seconds             or controller.get("pollIntervalSeconds") != 1             or controller.get("volumeName") != "hexdeck-native-strategy-results"             or controller.get("readyWindowWaves") != 2             or controller.get("maxReducerMemoryMiB") != (max_active_cpus // worker_cores)                 * GOLDFISH_MODAL_KINGDOM_MEMORY_MIB             or controller.get("goldfishWorkerCores") != worker_cores             or controller.get("goldfishKingdomMemoryMiB") != GOLDFISH_MODAL_KINGDOM_MEMORY_MIB             or controller.get("goldfishKingdomOneTimeoutSeconds") != timeout_one             or controller.get("goldfishKingdomTwoTimeoutSeconds") != GOLDFISH_MODAL_KINGDOM_TWO_TIMEOUT_SECONDS             or not re.fullmatch(r"[0-9a-f]{64}", controller.get("executionPlanHash", "")):
+    if set(controller) != expected_controller_fields \
+            or controller.get("maxActiveCpus") != max_active_cpus \
+            or controller.get("maxWallSeconds") != max_wall_seconds \
+            or controller.get("timeoutSeconds") != max_wall_seconds \
+            or controller.get("pollIntervalSeconds") != 1 \
+            or controller.get("volumeName") != "hexdeck-native-strategy-results" \
+            or controller.get("readyWindowWaves") != 2 \
+            or controller.get("maxReducerMemoryMiB") != (max_active_cpus // worker_cores) \
+                * GOLDFISH_MODAL_KINGDOM_MEMORY_MIB \
+            or controller.get("goldfishWorkerCores") != worker_cores \
+            or controller.get("goldfishKingdomMemoryMiB") != GOLDFISH_MODAL_KINGDOM_MEMORY_MIB \
+            or controller.get("goldfishKingdomOneTimeoutSeconds") != timeout_one \
+            or controller.get("goldfishKingdomTwoTimeoutSeconds") \
+                != GOLDFISH_MODAL_KINGDOM_TWO_TIMEOUT_SECONDS \
+            or not re.fullmatch(r"[0-9a-f]{64}", controller.get("executionPlanHash", "")):
         raise ValueError("Goldfish-only controller resources differ from the authorized shape")
     if bundle.get("partitions") != {}:
         raise ValueError("Goldfish-only partitions must be empty")
     jobs, tasks = bundle.get("jobs"), bundle.get("tasks")
-    if not isinstance(jobs, list) or not isinstance(tasks, list)             or len(jobs) != len(kingdom_ids) * 2 or len(tasks) != len(kingdom_ids) * 2:
+    if not isinstance(jobs, list) or not isinstance(tasks, list) \
+            or len(jobs) != len(kingdom_ids) * 2 or len(tasks) != len(kingdom_ids) * 2:
         raise ValueError("Goldfish-only bundle must contain two jobs and tasks per kingdom")
     ordered_evidence_ids = []
     for index, kingdom_id in enumerate(kingdom_ids):
@@ -1888,10 +1914,17 @@ def _strategy_search_validate_goldfish_only_bundle(bundle: dict[str, Any]) -> di
     guard = controller.get("costGuard")
     expected_guard_fields = {"cpuUsdPerCoreSecond", "memoryUsdPerGibSecond", "attemptCount",
         "hardMaximumCostUsd", "requestedMaximumCostUsd", "worstCaseModalComputeUsd", "taskCounts"}
-    if not isinstance(guard, dict) or set(guard) != expected_guard_fields             or guard["cpuUsdPerCoreSecond"] != GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND             or guard["memoryUsdPerGibSecond"] != GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND             or guard["attemptCount"] != GOLDFISH_MODAL_ATTEMPTS             or guard["hardMaximumCostUsd"] != GOLDFISH_MODAL_HARD_COST_CAP_USD             or guard["requestedMaximumCostUsd"] != max_cost_usd             or guard["taskCounts"] != counts:
+    if not isinstance(guard, dict) or set(guard) != expected_guard_fields \
+            or guard["cpuUsdPerCoreSecond"] != GOLDFISH_MODAL_CPU_RATE_PER_CORE_SECOND \
+            or guard["memoryUsdPerGibSecond"] != GOLDFISH_MODAL_MEMORY_RATE_PER_GIB_SECOND \
+            or guard["attemptCount"] != GOLDFISH_MODAL_ATTEMPTS \
+            or guard["hardMaximumCostUsd"] != GOLDFISH_MODAL_HARD_COST_CAP_USD \
+            or guard["requestedMaximumCostUsd"] != max_cost_usd \
+            or guard["taskCounts"] != counts:
         raise ValueError("Goldfish-only cost guard inputs differ from the runtime calculation")
     worst_case = _strategy_search_goldfish_worst_case_cost(request, counts)
-    if guard["worstCaseModalComputeUsd"] != worst_case             or worst_case > max_cost_usd or worst_case > GOLDFISH_MODAL_HARD_COST_CAP_USD:
+    if guard["worstCaseModalComputeUsd"] != worst_case \
+            or worst_case > max_cost_usd or worst_case > GOLDFISH_MODAL_HARD_COST_CAP_USD:
         raise ValueError("Goldfish-only worst-case cost exceeds the authorized hard guard")
     return {"taskCounts": counts, "worstCaseModalComputeUsd": worst_case,
         "orderedEvidenceIds": ordered_evidence_ids}

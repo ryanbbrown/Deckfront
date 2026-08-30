@@ -76,7 +76,6 @@ describe('Goldfish-only Modal operator', () => {
       expect(plan.timeouts).toEqual({ maximumScientificWallSeconds: 3600,
         kingdomOneTaskSeconds: shape.timeout, kingdomTwoTaskSeconds: 300 });
       expect(plan.worstCaseModalComputeUsd).toBe(shape.cost);
-      expect(parsed.partitions).toEqual({});
     }
     expect(shapes.map((shape) => goldfishKingdomOneTimeoutSeconds(shape.cores)))
       .toEqual([1113, 707, 504]);

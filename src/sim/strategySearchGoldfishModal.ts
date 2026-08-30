@@ -5,7 +5,7 @@ import {
 } from './strategySearchCampaign';
 import type { KingdomEvidenceIdentity, SourceImageIdentity } from './strategySearchCampaign';
 import { taskIdentity } from './strategySearchScheduler';
-import type { CandidateRange, RuntimeJob, StagePartition } from './strategySearchScheduler';
+import type { CandidateRange, RuntimeJob } from './strategySearchScheduler';
 
 export const GOLDFISH_MODAL_ROUTE = 'goldfish-only-v2' as const;
 export const GOLDFISH_MODAL_CPU_USD_PER_CORE_SECOND = 0.0000131;
@@ -80,7 +80,6 @@ export interface ParsedGoldfishModalRequest {
   request: GoldfishModalRequest;
   sourceImage: SourceImageIdentity;
   kingdoms: KingdomEvidenceIdentity[];
-  partitions: Record<string, StagePartition>;
   taskCounts: GoldfishModalTaskCounts;
   resourceShape: GoldfishModalResourceShape;
   costGuard: GoldfishModalCostGuard;
@@ -128,7 +127,6 @@ export function deriveGoldfishModalRequest(input: {
   const scientific = deriveStrategySearch({ request: {
     kingdomIds: request.kingdomIds, maxActiveCpus: request.maxActiveCpus
   }, sourceImage: input.sourceImage });
-  const partitions: Record<string, StagePartition> = {};
   const taskCounts = { kingdomOne: scientific.kingdoms.length,
     kingdomTwo: scientific.kingdoms.length, total: scientific.kingdoms.length * 2 };
   const shape = resourceShape(request);
@@ -158,7 +156,7 @@ export function deriveGoldfishModalRequest(input: {
     campaignExecutionId, executionPlanHash, costGuard
   }))}`;
   return { request, sourceImage: structuredClone(input.sourceImage), kingdoms: scientific.kingdoms,
-    partitions, taskCounts, resourceShape: shape, costGuard, executionPlanHash,
+    taskCounts, resourceShape: shape, costGuard, executionPlanHash,
     campaignExecutionId, authorizationToken,
     downloadRoot: `.data/strategy-search-goldfish/${campaignExecutionId}` };
 }
@@ -188,7 +186,7 @@ export interface GoldfishModalLaunchBundle {
   executionRoot: string;
   request: GoldfishModalRequest;
   sourceImage: SourceImageIdentity;
-  partitions: Record<string, StagePartition>;
+  partitions: Record<string, never>;
   jobs: RuntimeJob[];
   tasks: GoldfishModalTaskConfiguration[];
   controller: {
