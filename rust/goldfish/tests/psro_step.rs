@@ -293,17 +293,6 @@ fn evidence(root: &Path) -> BTreeMap<String, Vec<u8>> {
     files
 }
 
-fn scientific_evidence(root: &Path) -> BTreeMap<String, Vec<u8>> {
-    evidence(root)
-        .into_iter()
-        .filter(|(path, _)| {
-            Path::new(path).extension().is_some_and(|extension| {
-                matches!(extension.to_str(), Some("hpc" | "hpl" | "hpa" | "hpd"))
-            })
-        })
-        .collect()
-}
-
 fn crc32(bytes: &[u8]) -> u32 {
     let mut crc = 0xffff_ffffu32;
     for byte in bytes {
@@ -680,15 +669,20 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
                 word(payload, 56),
             ));
         }
-        let committed = scientific_evidence(&out);
+        let committed = evidence(&out);
         let partial = out.join("search-0001/partial.hpl.tmp");
         fs::create_dir_all(partial.parent().unwrap()).unwrap();
         fs::write(&partial, b"partial").unwrap();
-        let resumed = psro(&matrix, &out, 4, None);
+        let replayed = psro(
+            &matrix,
+            &out,
+            4,
+            Some(("HEXDECK_PSRO_TEST_STOP_AFTER_RESUME_REPLAY", "1")),
+        );
+        assert!(!replayed.status.success());
         assert!(
-            resumed.status.success(),
-            "resume failed: {}",
-            String::from_utf8_lossy(&resumed.stderr)
+            String::from_utf8_lossy(&replayed.stderr)
+                .contains("test stop after bounded PSRO resume replay")
         );
         assert!(!partial.exists());
         for (path, bytes) in committed {
@@ -697,10 +691,16 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
                     fs::read(out.join(&path))
                         .unwrap_or_else(|error| panic!("read committed {path}: {error}")),
                     bytes,
-                    "committed scientific evidence was replayed: {path}"
+                    "committed evidence was replayed: {path}"
                 );
             }
         }
+        let resumed = psro(&matrix, &out, 4, None);
+        assert!(
+            resumed.status.success(),
+            "resume failed: {}",
+            String::from_utf8_lossy(&resumed.stderr)
+        );
         assert_eq!(evidence(&out), expected);
     }
 
