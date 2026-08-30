@@ -28,10 +28,10 @@ const CURATED: Record<string, string[]> = {
 describe('kingdom registry', () => {
   it('uses Distance Duel by default with the literal approved supply', () => {
     const state = createGame({ seed: 1 });
-    expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(state.startingHealth).toBe(40);
+    expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(state.startingHealth).toBe(50);
     expect(state.supply).toEqual({ cull:10, footwork:10, feint:10, jab:10, drive:10, flurry:10,
       aim:10, pepperingShot:10, repellingShot:10, volley:10, step:10, focus:10 });
-    expect(state.fighters.ochre.health).toBe(37); expect(state.fighters.indigo.health).toBe(40); assertInvariants(state);
+    expect(state.fighters.ochre.health).toBe(47); expect(state.fighters.indigo.health).toBe(50); assertInvariants(state);
   });
 
   it('makes Step and Focus universal and keeps Cull variable', () => {
@@ -108,7 +108,7 @@ describe('curated kingdoms', () => {
   it('registers exactly the five approved literal ten-pile lists', () => {
     expect(kingdomLibrary.kingdoms.map((entry) => entry.id)).toEqual(Object.keys(CURATED));
     for (const [id, ids] of Object.entries(CURATED)) {
-      expect(kingdomOf(id).startingHealth).toBe(40);
+      expect(kingdomOf(id).startingHealth).toBe(50);
       expect(kingdomOf(id).actionPiles).toEqual(piles(ids));
       expect(ids).toHaveLength(10); expect(ids).toContain('cull'); expect(ids).not.toContain('scrap');
       expect(kingdomMarket(id).map((card) => card.id)).toEqual(['copper','silver','gold',...ids,'step','focus']);
@@ -117,7 +117,7 @@ describe('curated kingdoms', () => {
 
   it('keeps first-player health and setup invariants in every curated kingdom', () => {
     for (const id of Object.keys(CURATED)) { const state = createGame({ seed:4, kingdomId:id });
-      expect(state.fighters.ochre.health).toBe(37); expect(state.fighters.indigo.health).toBe(40);
+      expect(state.fighters.ochre.health).toBe(47); expect(state.fighters.indigo.health).toBe(50);
       assertInvariants(state); assertInvariants(ready(state)); }
   });
 });

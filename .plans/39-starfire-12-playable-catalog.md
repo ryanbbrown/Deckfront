@@ -11,12 +11,13 @@ Port the final playable rules and final pretrained opponents from the completed 
 - Analysis: `.data/starfire-12-balance-88/rust-balance-analysis-v2.json`, SHA-256 `9c8c0ff5bc09cda7ea4c44bacea99ff301dff23538b7c4047f8e8ecf8cc5a8de`.
 - Provenance: `.data/starfire-12-balance-88/source-provenance-v2.json`, SHA-256 `02ab1ab354d4571bc1e045006a77ee9db749cf90de24b342bafe4e1fdb7e6589`.
 - The evidence has 30 kingdoms, 1,588 final-Matrix strategies, and 71 positive-weight equilibrium entries. All strategies have five ordered buy steps and no starting build.
+- The evidence was trained at 40 starting health. Playable games use 50 starting health, so the saved strategies and weights are provisional for the playable health setting.
 
 ## Decisions
 
 - Preserve the current React UI, card art, `headline` and `detail` presentation fields, setup rail, game playback, persistence, and server API.
 - Port only final product rules that differ from `main`:
-  - 40 starting health with the existing 3-health first-player penalty;
+  - 50 playable starting health with the existing 3-health first-player penalty;
   - Scrap remains in the draft-off starting deck but is not a market pile;
   - Arc Bolt deals 3; Fireball deals 6; Starfire deals 12;
   - Overload deals 3 per mana spent;

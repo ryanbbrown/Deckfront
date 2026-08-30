@@ -12,7 +12,7 @@ export function FighterCounter({ playerId, health, aimed = false, exposed = fals
   const damage = damageFeedback?.targetId === playerId ? damageFeedback : null;
   return <div role="img" className={`fighter fighter--${playerId}${damage ? ' fighter--damaged' : ''}`} data-player-id={playerId} data-position={position} data-player-score={playerId} title={name} aria-label={`${name}, ${health} health${accessibleStatus ? `, ${accessibleStatus}` : ''}`}>
     <span className="fighter__figure" aria-hidden="true"><svg viewBox="0 0 36 42"><path d="M7 40v-7c0-7 4-11 11-11s11 4 11 11v7z" fill="#26332e" stroke="#fff" strokeWidth="2"/><circle cx="18" cy="14" r="7" fill="#e7c49d" stroke="#fff" strokeWidth="2"/><path d="M10 14c0-7 3-10 8-10s8 3 8 10h-4c0-3-1-5-4-5s-4 2-4 5z" fill="#43524b" stroke="#fff" strokeWidth="1.5"/><path d="M4 31 30 5M26 5h5v5" fill="none" stroke="#f4e5b9" strokeWidth="2"/></svg></span>
-    <span className="fighter__details"><strong>{playerId === 'ochre' ? 'P1' : 'P2'}</strong><small style={{ '--health': `${String(Math.max(0, Math.min(100, health / 40 * 100)))}%` } as React.CSSProperties}><span>{health} HP</span></small></span>
+    <span className="fighter__details"><strong>{playerId === 'ochre' ? 'P1' : 'P2'}</strong><small style={{ '--health': `${String(Math.max(0, Math.min(100, health / 50 * 100)))}%` } as React.CSSProperties}><span>{health} HP</span></small></span>
     {statuses.length ? <em>{statuses.join(' · ')}</em> : null}{damage ? <span key={damage.id} className="damage-burst" data-damage-target={playerId} data-damage-amount={damage.amount}>−{damage.amount}</span> : null}
   </div>;
 }
