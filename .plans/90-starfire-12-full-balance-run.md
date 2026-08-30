@@ -29,10 +29,9 @@ Run the two requests one at a time. Copy each completed campaign into the combin
 
 ## Matrix and PSRO plan
 
-1. Run local Matrix for each Goldfish request and rebuild the combined Matrix batch report.
-2. Derive the PSRO plan only after all 122 Matrix inputs pass structural validation.
-3. Run one PSRO request at 16 cores per kingdom, at most 480 active CPUs, a 1,800-second wall limit per kingdom, and a $60 execution guard.
-4. Download through the plan 89 bounded parallel route and rebuild the combined PSRO batch report.
+All 160 Matrix inputs passed structural validation. The 122 new kingdoms use PSRO execution `0d655d46131f1928796c4e488c206fa51d724193b9ef9547e28039c7ec52370a` at 16 cores per kingdom, at most 480 active CPUs, and a 1,800-second wall limit per kingdom. The plan has 30 slots, a `$0.4365312` one-attempt bound, a `$53.264706` full launch bound including readiness, and a `$60` execution guard.
+
+Download through the plan 89 bounded parallel route and rebuild the combined PSRO batch report.
 
 ## Report
 
