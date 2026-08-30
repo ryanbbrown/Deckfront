@@ -87,6 +87,8 @@ export interface BalanceCandidateSummary {
   validationRouteCounts: Record<BalanceRouteLabel, number>;
 }
 
+type BalanceCardDefinition = Omit<CardDefinition, 'headline' | 'detail'>;
+
 export interface BalanceSuiteManifest {
   schemaVersion: 2;
   suiteVersion: 'balance-suite-v4';
@@ -125,10 +127,10 @@ export interface BalanceSuiteManifest {
     kingdomCount: number;
     digest: string;
     semantics: {
-      variable: CardDefinition[];
-      fixedAction: CardDefinition[];
-      treasure: CardDefinition[];
-      nonMarket: CardDefinition[];
+      variable: BalanceCardDefinition[];
+      fixedAction: BalanceCardDefinition[];
+      treasure: BalanceCardDefinition[];
+      nonMarket: BalanceCardDefinition[];
     };
   };
   taxonomy: {
@@ -986,8 +988,9 @@ function randomBaselines(candidateSizes: readonly number[]): BalanceSuiteManifes
   };
 }
 
-function canonicalCard(card: CardDefinition): CardDefinition {
-  return JSON.parse(JSON.stringify(card)) as CardDefinition;
+function canonicalCard(card: CardDefinition): BalanceCardDefinition {
+  const { headline: _headline, detail: _detail, ...semanticCard } = card;
+  return JSON.parse(JSON.stringify(semanticCard)) as BalanceCardDefinition;
 }
 function familyPattern(key: string): string {
   return key.split('|').map((card) => CARDS[card]!.family).sort(compareCodeUnits).join('+');

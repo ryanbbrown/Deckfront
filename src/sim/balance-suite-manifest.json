@@ -652,7 +652,7 @@
     ],
     "variableCount": 40,
     "kingdomCount": 847660528,
-    "digest": "ab22d5bad34c3ee355a32f3042035c13de8156f6e756083d53bb0d880ff0ba1b",
+    "digest": "c50531a9be867a7002ee32af857efa960c80cc14b9abc62b27e292f3f7c5aba9",
     "semantics": {
       "variable": [
         {
@@ -661,7 +661,7 @@
           "type": "action",
           "family": "mana",
           "cost": 3,
-          "headline": "+1 mana · +1 card",
+          "text": "Gain 1 mana. Draw 1 card.",
           "mechanic": "channel",
           "values": {
             "mana": 1,
@@ -674,8 +674,7 @@
           "type": "action",
           "family": "mana",
           "cost": 3,
-          "headline": "Move 1 space · +1 mana",
-          "detail": "+1 additional mana if you are at Far after moving.",
+          "text": "Move 1 space. Gain 1 mana. Gain 1 additional mana if you are at Far range after moving.",
           "mechanic": "leyStep",
           "values": {
             "mana": 1,
@@ -688,8 +687,7 @@
           "type": "action",
           "family": "mana",
           "cost": 4,
-          "headline": "+1 mana · +1 card",
-          "detail": "+1 additional mana for each other Attune you played this turn.",
+          "text": "Gain 1 mana. Draw 1 card. Gain 1 additional mana for each other copy of Attune you played this turn.",
           "mechanic": "attune",
           "values": {
             "mana": 1,
@@ -703,8 +701,7 @@
           "type": "action",
           "family": "mana",
           "cost": 5,
-          "headline": "+2 mana · +1 card",
-          "detail": "Then discard 1 card.",
+          "text": "Gain 2 mana. Draw 1 card, then discard 1 card.",
           "mechanic": "prism",
           "values": {
             "mana": 2,
@@ -718,8 +715,7 @@
           "type": "action",
           "family": "mana",
           "cost": 4,
-          "headline": "3 damage",
-          "detail": "Spend 1 mana.",
+          "text": "Spend 1 mana. Deal 3 damage at any range.",
           "mechanic": "spell",
           "values": {
             "damage": 3,
@@ -732,8 +728,7 @@
           "type": "action",
           "family": "mana",
           "cost": 5,
-          "headline": "6 damage",
-          "detail": "Spend 2 mana.",
+          "text": "Spend 2 mana. Deal 6 damage at any range.",
           "mechanic": "spell",
           "values": {
             "damage": 6,
@@ -746,8 +741,7 @@
           "type": "action",
           "family": "mana",
           "cost": 6,
-          "headline": "12 damage",
-          "detail": "Spend 3 mana.",
+          "text": "Spend 3 mana. Deal 12 damage at any range.",
           "mechanic": "spell",
           "values": {
             "damage": 12,
@@ -760,8 +754,7 @@
           "type": "action",
           "family": "mana",
           "cost": 4,
-          "headline": "2 damage per mana",
-          "detail": "Lose all mana.",
+          "text": "Deal 2 damage at any range for each mana you have. Lose all mana.",
           "mechanic": "discharge",
           "values": {
             "perMana": 2
@@ -773,8 +766,7 @@
           "type": "action",
           "family": "mana",
           "cost": 5,
-          "headline": "4 damage",
-          "detail": "Spend 1 mana. +2 damage for each other spell you played this turn.",
+          "text": "Spend 1 mana. Deal 4 damage at any range. Deal 2 additional damage for each other spell you played this turn.",
           "mechanic": "cascade",
           "values": {
             "damage": 4,
@@ -788,7 +780,7 @@
           "type": "action",
           "family": "mana",
           "cost": 5,
-          "headline": "3 damage per mana spent",
+          "text": "Deal 3 damage at any range for each mana you spent this turn.",
           "mechanic": "overload",
           "values": {
             "perManaSpent": 3
@@ -800,8 +792,7 @@
           "type": "action",
           "family": "melee",
           "cost": 5,
-          "headline": "+1 card",
-          "detail": "Your Close-range attacks this turn deal +1 damage.",
+          "text": "At Close range, draw 1 card. Each Close-range attack you make this turn deals 1 additional damage.",
           "mechanic": "feint",
           "values": {
             "draw": 1,
@@ -814,7 +805,7 @@
           "type": "action",
           "family": "melee",
           "cost": 3,
-          "headline": "2 damage · +1 card",
+          "text": "At Close range, deal 2 damage. Draw 1 card.",
           "mechanic": "melee",
           "values": {
             "damage": 2,
@@ -827,7 +818,7 @@
           "type": "action",
           "family": "melee",
           "cost": 3,
-          "headline": "3 damage",
+          "text": "At Close range, deal 3 damage.",
           "mechanic": "melee",
           "values": {
             "damage": 3,
@@ -840,8 +831,7 @@
           "type": "action",
           "family": "melee",
           "cost": 4,
-          "headline": "3 damage",
-          "detail": "Then move both fighters 1 space together. If a wall blocks the move, neither moves and the attack deals +2 damage.",
+          "text": "At Close range, deal 3 damage. Then move both fighters 1 space so they remain Close. If a wall blocks the move, neither fighter moves and the attack deals 2 additional damage.",
           "mechanic": "drive",
           "values": {
             "damage": 3,
@@ -854,7 +844,7 @@
           "type": "action",
           "family": "melee",
           "cost": 5,
-          "headline": "6 damage",
+          "text": "At Close range, deal 6 damage.",
           "mechanic": "melee",
           "values": {
             "damage": 6,
@@ -867,8 +857,7 @@
           "type": "action",
           "family": "melee",
           "cost": 3,
-          "headline": "4 damage",
-          "detail": "If this is not your first attack this turn, deal 1 damage instead.",
+          "text": "At Close range, deal 4 damage if this is the first attack you played this turn. Otherwise deal 1 damage.",
           "mechanic": "openingStrike",
           "values": {
             "first": 4,
@@ -881,8 +870,7 @@
           "type": "action",
           "family": "melee",
           "cost": 3,
-          "headline": "2 damage",
-          "detail": "+2 damage for each other Rally you played this turn.",
+          "text": "At Close range, deal 2 damage. Deal 2 additional damage for each other copy of Rally you played this turn.",
           "mechanic": "rally",
           "values": {
             "damage": 2,
@@ -895,8 +883,7 @@
           "type": "action",
           "family": "melee",
           "cost": 3,
-          "headline": "7 damage",
-          "detail": "Discard 1 Melee card.",
+          "text": "At Close range, discard 1 Melee card: deal 7 damage.",
           "mechanic": "bullRush",
           "values": {
             "damage": 7
@@ -908,7 +895,7 @@
           "type": "action",
           "family": "melee",
           "cost": 5,
-          "headline": "1 damage per other Tactical Action",
+          "text": "At Close range, deal 1 damage for each other Tactical Action played this turn.",
           "mechanic": "flurry",
           "values": {
             "perAction": 1
@@ -920,8 +907,7 @@
           "type": "action",
           "family": "ranged",
           "cost": 5,
-          "headline": "+1 card",
-          "detail": "+2 damage to your next Ranged attack this turn.",
+          "text": "At Near or Far range, draw 1 card. Add 2 damage to the next ranged attack you make this turn.",
           "mechanic": "aim",
           "values": {
             "draw": 1,
@@ -934,7 +920,7 @@
           "type": "action",
           "family": "ranged",
           "cost": 3,
-          "headline": "1 damage · +1 card",
+          "text": "At Near or Far range, deal 1 damage. Draw 1 card.",
           "mechanic": "ranged",
           "values": {
             "damage": 1,
@@ -947,7 +933,7 @@
           "type": "action",
           "family": "ranged",
           "cost": 3,
-          "headline": "2 damage",
+          "text": "At Near or Far range, deal 2 damage.",
           "mechanic": "ranged",
           "values": {
             "damage": 2,
@@ -960,8 +946,7 @@
           "type": "action",
           "family": "ranged",
           "cost": 4,
-          "headline": "Far: 2 damage · Near: 1 damage",
-          "detail": "Move the opponent 1 space farther away. If they cannot move, move yourself farther away instead.",
+          "text": "At Far range, deal 2 damage. At Near range, deal 1 damage. Move the opponent 1 space farther away. If they cannot move, move yourself 1 space farther away instead.",
           "mechanic": "repellingShot",
           "values": {
             "near": 1,
@@ -974,7 +959,7 @@
           "type": "action",
           "family": "ranged",
           "cost": 3,
-          "headline": "Damage equal to distance",
+          "text": "At Near or Far range, deal damage equal to the distance between you and your opponent.",
           "mechanic": "longshot",
           "values": {}
         },
@@ -984,7 +969,7 @@
           "type": "action",
           "family": "ranged",
           "cost": 5,
-          "headline": "Near: 2 damage · Far: 4 damage",
+          "text": "At Near range, deal 2 damage. At Far range, deal 4 damage.",
           "mechanic": "volley",
           "values": {
             "near": 2,
@@ -997,8 +982,7 @@
           "type": "action",
           "family": "ranged",
           "cost": 4,
-          "headline": "Damage equal to discarded card’s cost",
-          "detail": "Discard 1 Ranged card. +1 card.",
+          "text": "At Near or Far range, discard 1 Ranged card: deal damage equal to its cost. Draw 1 card.",
           "mechanic": "salvageShot",
           "values": {
             "draw": 1
@@ -1010,8 +994,7 @@
           "type": "action",
           "family": "ranged",
           "cost": 5,
-          "headline": "4 damage",
-          "detail": "Other Precision Shots you play this turn deal 2 damage instead.",
+          "text": "At Near or Far range, deal 4 damage. Each other copy of Precision Shot you play this turn deals 2 damage instead.",
           "mechanic": "precisionShot",
           "values": {
             "first": 4,
@@ -1024,7 +1007,7 @@
           "type": "action",
           "family": "engine",
           "cost": 3,
-          "headline": "Move up to 1 space · +1 card",
+          "text": "You may move 1 space. Draw 1 card.",
           "mechanic": "footwork",
           "values": {
             "draw": 1
@@ -1036,7 +1019,7 @@
           "type": "action",
           "family": "engine",
           "cost": 3,
-          "headline": "+1 card · +1 money",
+          "text": "Draw 1 card. Provide 1 money.",
           "mechanic": "stipend",
           "values": {
             "draw": 1,
@@ -1049,8 +1032,7 @@
           "type": "action",
           "family": "engine",
           "cost": 3,
-          "headline": "Recover 1 card",
-          "detail": "Put it into your hand. If your discard pile is empty, +1 card instead.",
+          "text": "Put 1 card from your discard pile into your hand. If your discard pile is empty, draw 1 card.",
           "mechanic": "reclaim",
           "values": {
             "draw": 1
@@ -1062,8 +1044,7 @@
           "type": "action",
           "family": "engine",
           "cost": 3,
-          "headline": "+2 cards",
-          "detail": "Discard 1 card.",
+          "text": "Draw 2 cards. Discard 1 card.",
           "mechanic": "regroup",
           "values": {
             "draw": 2,
@@ -1076,8 +1057,7 @@
           "type": "action",
           "family": "engine",
           "cost": 4,
-          "headline": "+1 card",
-          "detail": "+1 card if your position changed this turn.",
+          "text": "Draw 1 card. If your position changed this turn, draw 1 more.",
           "mechanic": "adapt",
           "values": {
             "draw": 1,
@@ -1090,7 +1070,7 @@
           "type": "action",
           "family": "engine",
           "cost": 5,
-          "headline": "+2 cards",
+          "text": "Draw 2 cards.",
           "mechanic": "muster",
           "values": {
             "draw": 2
@@ -1102,7 +1082,7 @@
           "type": "action",
           "family": "engine",
           "cost": 7,
-          "headline": "+3 cards",
+          "text": "Draw 3 cards.",
           "mechanic": "muster",
           "values": {
             "draw": 3
@@ -1114,8 +1094,7 @@
           "type": "action",
           "family": "engine",
           "cost": 2,
-          "headline": "1 damage at any range",
-          "detail": "Trash 1 card from your hand.",
+          "text": "Trash 1 card from your hand. Deal 1 damage at any range.",
           "mechanic": "discipline",
           "values": {
             "damage": 1
@@ -1127,7 +1106,7 @@
           "type": "action",
           "family": "engine",
           "cost": 3,
-          "headline": "Trash 1 or 2 cards",
+          "text": "Trash 1 or 2 cards from your hand.",
           "mechanic": "cull",
           "values": {}
         },
@@ -1137,8 +1116,7 @@
           "type": "action",
           "family": "engine",
           "cost": 3,
-          "headline": "+1 card",
-          "detail": "You may trash 1 card from your hand.",
+          "text": "Draw 1 card. You may trash 1 card from your hand.",
           "mechanic": "sharpen",
           "values": {
             "draw": 1
@@ -1150,8 +1128,7 @@
           "type": "action",
           "family": "engine",
           "cost": 4,
-          "headline": "Trash 1 card",
-          "detail": "Gain a card costing up to 3 more than it.",
+          "text": "Trash 1 card from your hand. Gain a card costing up to 3 more than it.",
           "mechanic": "reforge",
           "values": {
             "costBonus": 3
@@ -1163,8 +1140,7 @@
           "type": "action",
           "family": "engine",
           "cost": 5,
-          "headline": "Trash up to 2 cards",
-          "detail": "+1 card for each card trashed.",
+          "text": "Trash up to 2 cards from your hand. Draw 1 card for each card trashed.",
           "mechanic": "scour",
           "values": {
             "drawPerTrash": 1
@@ -1176,8 +1152,7 @@
           "type": "action",
           "family": "engine",
           "cost": 5,
-          "headline": "2 damage per family at any range",
-          "detail": "Count each different Mana, Melee, or Ranged family you played this turn.",
+          "text": "Deal 2 damage at any range for each different Mana, Melee, or Ranged family you played this turn.",
           "mechanic": "improvise",
           "values": {
             "perFamily": 2
@@ -1191,7 +1166,7 @@
           "type": "action",
           "family": "engine",
           "cost": 2,
-          "headline": "Move 1 space",
+          "text": "Move 1 space.",
           "mechanic": "step",
           "values": {}
         },
@@ -1201,7 +1176,7 @@
           "type": "action",
           "family": "mana",
           "cost": 1,
-          "headline": "+1 mana",
+          "text": "Gain 1 mana.",
           "mechanic": "channel",
           "values": {
             "mana": 1,
@@ -1216,7 +1191,7 @@
           "type": "treasure",
           "family": "treasure",
           "cost": 0,
-          "headline": "+1 money",
+          "text": "Provide 1 money.",
           "mechanic": "money",
           "money": 1
         },
@@ -1226,7 +1201,7 @@
           "type": "treasure",
           "family": "treasure",
           "cost": 3,
-          "headline": "+2 money",
+          "text": "Provide 2 money.",
           "mechanic": "money",
           "money": 2
         },
@@ -1236,7 +1211,7 @@
           "type": "treasure",
           "family": "treasure",
           "cost": 6,
-          "headline": "+3 money",
+          "text": "Provide 3 money.",
           "mechanic": "money",
           "money": 3
         }
@@ -1248,8 +1223,7 @@
           "type": "action",
           "family": "engine",
           "cost": 0,
-          "headline": "1 damage at any range",
-          "detail": "Only the first Scrap you play each turn deals damage.",
+          "text": "Deal 1 damage at any range.",
           "mechanic": "scrap",
           "values": {
             "damage": 1
@@ -45661,5 +45635,5 @@
       "rowDigest": "07b7f12ee531b724cee750cd33fc42cd061158ae23feb0a5c3783a5d84fc2e0a"
     }
   ],
-  "digest": "0ee93a20078033c129e7155bc129cdf20854c1776aa3925198a826fb68927756"
+  "digest": "15ce9f8187605fe347198f772b0be8069cf155629339a889990b8b85da631d4d"
 }
