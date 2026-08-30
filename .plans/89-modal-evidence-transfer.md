@@ -116,7 +116,8 @@ The full campaign route, any Rust change, the 130-kingdom run, the 160-kingdom r
 
 ## Acceptance
 
-- `npm run verify:native`, `npm run modal:test`, `npm test`, `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
+- `npm run verify:native`, `npm run modal:test`, `npm run typecheck`, `npm run lint`, and `git diff --check` pass.
+- `npm test` has no failure outside the 46 pre-existing card-balance fixture failures in 10 files (`test/sim/balanceSuite.test.ts`, `test/combo-card-batch.test.ts`, `test/cards.test.ts`, `test/sim/positionValue.test.ts`, `test/sim/identity.test.ts`, `test/sim/search.test.ts`, `test/sim/responseOracleReferenceExtension.test.ts`, `test/sim/deepBeamSuite.test.ts`, `test/sim/balanceSuiteDeterminism.test.ts`, `test/distance-duel.test.ts`). The same 46 tests fail at the base SHA `4874524`; those fixtures stay unchanged under the routine-tuning rule and are out of scope.
 - No existing test assertion is weakened.
 - The v2 bundle and the Python validation agree on every field, and the two worst-case cost calculations agree to six decimals for 16, 32, and 64 cores.
 - The plan output for one kingdom at 32 cores and 512 CPUs shows 2 tasks, 16 containers, and a 707 s `kingdom-one` timeout.
