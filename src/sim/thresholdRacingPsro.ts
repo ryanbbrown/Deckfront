@@ -8,7 +8,6 @@ import { evaluateCandidates } from './mixtureEvaluation';
 import type { CandidateEvaluation, MixtureSchedule } from './mixtureEvaluation';
 import { GAMES_PER_SEED, emptyAggregate, mergeAggregate } from './pairing';
 import type { PairingRunner } from './pairingRunner';
-import type { CalibrationCandidateIdentity } from './responseOracleCalibration';
 import { canonicalStrategy, stableHash } from './strategy';
 import type { Strategy } from './strategy';
 import type { TelemetryAggregate } from './types';
@@ -107,6 +106,11 @@ export function thresholdRacingProtocolHash(protocol: ThresholdRacingProtocol): 
   return createHash('sha256').update(JSON.stringify(protocol)).digest('hex');
 }
 
+export interface CalibrationCandidateIdentity {
+  goldfishRank: number;
+  strategyId: string;
+  canonicalStrategy: string;
+}
 export interface CandidateRef { identity: CalibrationCandidateIdentity; strategy: Strategy }
 export interface ThresholdDecision extends CalibrationCandidateIdentity {
   blocks: number; mean: number; interval: { lower: number; upper: number }; status: ThresholdStatus;
