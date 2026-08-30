@@ -989,7 +989,9 @@ function randomBaselines(candidateSizes: readonly number[]): BalanceSuiteManifes
 }
 
 function canonicalCard(card: CardDefinition): BalanceCardDefinition {
-  const { headline: _headline, detail: _detail, ...semanticCard } = card;
+  const semanticCard = structuredClone(card) as Partial<CardDefinition>;
+  delete semanticCard.headline;
+  delete semanticCard.detail;
   return JSON.parse(JSON.stringify(semanticCard)) as BalanceCardDefinition;
 }
 function familyPattern(key: string): string {

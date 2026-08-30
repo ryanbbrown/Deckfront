@@ -12,7 +12,12 @@ export const RULES_FINGERPRINT_VERSION = 1;
 
 type ScientificCardDefinition = Omit<CardDefinition, 'headline' | 'detail'>;
 function scientificMarket(kingdomId: string): ScientificCardDefinition[] {
-  return kingdomMarket(kingdomId).map(({ headline: _headline, detail: _detail, ...card }) => structuredClone(card));
+  return kingdomMarket(kingdomId).map((card) => {
+    const scientificCard = structuredClone(card) as Partial<CardDefinition>;
+    delete scientificCard.headline;
+    delete scientificCard.detail;
+    return scientificCard as ScientificCardDefinition;
+  });
 }
 
 export interface RulesFingerprint {
