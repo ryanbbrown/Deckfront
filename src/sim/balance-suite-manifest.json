@@ -36067,11 +36067,9 @@
       "provenance": {
         "kind": "authored",
         "rationaleId": "strategy-search-continuity-anchor",
-        "reason": "Strategy-search continuity anchor",
-        "sourceId": "strategy-search-continuity-anchor",
-        "sourceDigest": "4e7c9c889fc40b7d52532b756f17121a247d91497ac0e49f9acd7a150a0972a6"
+        "reason": "Strategy-search continuity anchor"
       },
-      "rowDigest": "caf7b867a7706bb9531dc04cf5b1c299f05b29ce58dc582e69e80a8406f024e6"
+      "rowDigest": "f79adc04d397b297eb4d1a551380756ed498d6235020c612ecee3b19c37fcb8e"
     },
     {
       "id": "balance-tuning-004",
@@ -45637,5 +45635,5 @@
       "rowDigest": "07b7f12ee531b724cee750cd33fc42cd061158ae23feb0a5c3783a5d84fc2e0a"
     }
   ],
-  "digest": "bedc1f570aab105386e8e0619c338cecbdf9498dbe2a48bcbb31748cdf78de5a"
+  "digest": "15ce9f8187605fe347198f772b0be8069cf155629339a889990b8b85da631d4d"
 }

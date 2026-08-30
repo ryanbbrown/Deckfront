@@ -10,6 +10,7 @@ import {
 } from '../../src/sim/balanceSuiteDesign';
 
 describe('balance-suite fresh-process determinism', () => {
+
   it('pins the executable covering-search input, implementation, and stages', () => {
     const root = path.resolve(import.meta.dirname, '../..');
     const source = JSON.parse(fs.readFileSync(path.join(root,

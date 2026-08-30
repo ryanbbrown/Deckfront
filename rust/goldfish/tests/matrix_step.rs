@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -197,19 +196,33 @@ fn matrix_outputs_are_thread_stable_ranked_and_verified() {
 
     let reservoir = fs::read(fixture("balance-tuning-005-reservoir.hgf")).expect("reservoir");
     let matrix = fs::read(outputs[0].join("matrix.hgm")).expect("matrix");
-    let weights = (0..TOP)
+    let weight_values = (0..TOP)
         .map(|rank| {
             let expected_number = read_u32(&reservoir, 64 + rank * 124);
             let offset = 64 + rank * MATRIX_ROW_BYTES;
             assert_eq!(read_u32(&matrix, offset), expected_number);
-            u64::from_le_bytes(
-                matrix[offset + 52..offset + 60]
+            f64::from_le_bytes(matrix[offset + 52..offset + 60].try_into().expect("weight bytes"))
+        })
+        .collect::<Vec<_>>();
+    let support = weight_values
+        .iter()
+        .enumerate()
+        .filter_map(|(index, weight)| (*weight > 0.0).then_some(index))
+        .collect::<Vec<_>>();
+    assert_eq!(support, vec![1]);
+    assert_eq!(weight_values[1], 1.0);
+    let selected_row = 64 + support[0] * MATRIX_ROW_BYTES;
+    let selected_payoffs = (0..TOP)
+        .map(|column| {
+            f64::from_le_bytes(
+                matrix[selected_row + 4 + column * 8..selected_row + 12 + column * 8]
                     .try_into()
-                    .expect("weight bytes"),
+                    .expect("payoff bytes"),
             )
         })
-        .collect::<HashSet<_>>();
-    assert_eq!(weights.len(), 2);
+        .collect::<Vec<_>>();
+    assert!(selected_payoffs.iter().all(|payoff| *payoff >= 50.0));
+    assert!(selected_payoffs.iter().any(|payoff| *payoff > 50.0));
 
     let purchases = fs::read(outputs[0].join("purchases.hgm")).expect("purchases");
     assert_eq!(read_u32(&purchases, 8), PURCHASE_ROW_BYTES as u32);

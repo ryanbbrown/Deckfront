@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { deriveSourceImageIdentity, deriveStrategySearch } from '../../src/sim/strategySearchCampaign';
-import { deriveTrackedStrategySearchSourceImage } from '../../scripts/strategy_search_campaign';
+import { deriveTrackedStrategySearchSourceImage } from '../../scripts/strategy_search_source';
 import {
   executePsroModalOperation, psroDownloadTimeoutMs, psroLaunchTimeoutMs, psroStatusTimeoutMs
 } from '../../scripts/strategy_search_psro_modal';

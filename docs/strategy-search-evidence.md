@@ -30,20 +30,6 @@ A fixed matrix has one game value and an equilibrium set. It does not always hav
 
 Earlier draft-off matrices had narrow equilibrium-selection ranges. For example, the selected Mage share was 7.5254%, and its feasible range was 7.5253% to 7.5255%. See `.plans/34-strategy-search-results.md`.
 
-The three robust ordered-reservoir Kingdom 009 matrices also have narrow archetype ranges when the strategy-report classifier is used:
-
-| Evaluation seed | Selected Melee | Feasible Melee range | Selected Ranged | Feasible Ranged range |
-|---:|---:|---:|---:|---:|
-| 9,100,009 | 99.999994% | 99.999865%–100% | 0.000006% | 0%–0.000135% |
-| 9,200,009 | 76.666276% | 76.663292%–76.666683% | 23.333724% | 23.333317%–23.336708% |
-| 9,300,009 | 90.641241% | 90.639488%–90.641599% | 9.358759% | 9.358401%–9.360512% |
-
-The selected witnesses have no Mage or mixed weight. No matrix has a Mage label. Mixed Melee + Ranged can receive at most 0.000053% in another equilibrium. The largest archetype-band width is 0.0034 percentage points. Equilibrium selection is therefore not a material source of family-share uncertainty in these runs.
-
-Per-strategy uniqueness is a different result. The largest single-strategy feasible band is 0.0024 percentage points for seed 9,100,009, 26.6667 points for seed 9,200,009, and 0.0189 points for seed 9,300,009. Seed 9,200,009 contains interchangeable Melee strategies. This large strategy-level band does not change its narrow Melee/Ranged group band.
-
-Across evaluation seeds, the selected Ranged share still changes from effectively 0% to 23.3%. This is cross-seed payoff or discovered-matrix variation, not equilibrium-selection ambiguity inside one matrix. Fresh 400-seed weighted lottery cross-play put every pair close to even, from 49.65% to 51.12%, so canonical support differences overstated the competitive difference.
-
 ## Interpret candidate coverage by executed behavior
 
 Canonical strategy identity is not behavioral identity. Infinite final buys, extra slots, and repeated cards can be irrelevant when games never reach those plan steps. Before claiming that the ordered grammar omitted a counter:

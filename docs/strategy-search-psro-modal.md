@@ -1,6 +1,6 @@
 # Modal PSRO batch operator
 
-This route runs one complete Rust policy-space response oracle (PSRO) search per Modal machine. It runs Matrix locally first. It does not use the older distributed `parallel-psro` campaign path.
+This route runs one complete Rust policy-space response oracle (PSRO) search per Modal machine. It runs Matrix locally first.
 
 ## Request
 

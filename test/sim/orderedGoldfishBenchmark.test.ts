@@ -8,7 +8,7 @@ import {
 
 afterEach(() => { resetKingdoms(); });
 
-function kingdom009Space(): ReturnType<typeof createOrderedCandidateSpace> {
+function benchmarkKingdomSpace(): ReturnType<typeof createOrderedCandidateSpace> {
   const kingdom = strategySearchKingdom('balance-tuning-003');
   registerKingdom(kingdom);
   return createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
@@ -27,7 +27,7 @@ describe('ordered unique-card goldfish candidate space', () => {
   });
 
   it('counts the Kingdom 009 ordered skeletons and complete candidates', () => {
-    const space = kingdom009Space();
+    const space = benchmarkKingdomSpace();
     expect(space.cardIds).toHaveLength(14);
     expect(space.cardIds).not.toContain('copper');
     expect(space.skeletonCount).toBe(240_240);
@@ -35,7 +35,7 @@ describe('ordered unique-card goldfish candidate space', () => {
   });
 
   it('creates five unique finite active slots, an empty build, and no fallback', () => {
-    const strategy = kingdom009Space().candidateAt(7_654_321);
+    const strategy = benchmarkKingdomSpace().candidateAt(7_654_321);
     const active = strategy.buyPlan.filter((slot) => slot.kind !== 'inactive');
     expect(strategy.startingBuild).toEqual([]);
     expect(active).toHaveLength(5);

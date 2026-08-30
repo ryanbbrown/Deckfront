@@ -18,7 +18,7 @@ npm run dev
 
 Open `http://127.0.0.1:4173`.
 
-The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records, browser game views, and exports use schema version 13. The server rejects older saves and does not migrate them.
+The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, or `HEXDECK_DATA_DIR`. Saved game records, browser game views, and exports use schema version 14. The server rejects older saves and does not migrate them.
 
 ## Play
 
@@ -45,52 +45,13 @@ npm run test:e2e
 npm run typecheck
 npm run lint
 npm run build
-npm run build:sim
 ```
 
-Vitest checks the engine, random kingdoms, AI training, server, persistence, replay, and simulator. Playwright uses the built browser and real local server to check the full-table preview, starting builds, AI turns, cards, undo, reload, victory, and the 1920×1080 layout. The E2E manifest maps required behavior to exact test IDs.
+Vitest checks the game, AI, server, persistence, balance suites, native conformance, and local operator contracts. Playwright uses the built browser and real local server to check the playable table. The E2E manifest maps required behavior to exact test IDs.
 
-## Balance simulator
+## Balance suites
 
-The simulator plays seeded headless matches between strategy players. A strategy contains a starting build, finite purchase targets, and one card to repeat after those targets are complete. Every strategy uses the same deterministic Action-phase pilot. The pilot chooses from visible state with bounded rules for movement, setup cards, attacks, spells, draw, Cull, Prism, and Reclaim. It does not read the hidden draw order.
-
-Production experiments run through a compact mutable kernel that stores cards as numeric indexes and counts telemetry directly. The browser keeps the immutable event-producing game engine. Tests compare complete match results from both implementations. The old full-tree pilot remains only as a behavior and speed reference.
-
-Build and run an experiment:
-
-```sh
-npm run build:sim
-npm run experiment -- --kingdom current-duel --mode smoke
-npm run experiment -- --kingdom current-duel --mode full
-```
-
-Measure the full-tree reference, the shared pilot on the immutable engine, and the production kernel:
-
-```sh
-npx tsx scripts/measure_search.ts --kingdom current-duel --pilot full
-npx tsx scripts/measure_search.ts --kingdom current-duel --pilot tactical
-npx tsx scripts/measure_search.ts --kingdom current-duel --pilot kernel --repeats 20
-npm run compare:pilots
-npm run measure:workers -- --workers 4 --jobs 500 --seeds 25
-```
-
-Experiment output goes to `.experiments/<kingdom>/<mode>/`. Each run writes `run.json`,
-`iterations.jsonl`, `matrix.json`, `strategies.json`, `telemetry.json`, and `report.md`. Reports are
-ignored by Git. Generated inputs and results are local experiment artifacts, not cleanup targets. The curated
-kingdoms are `current-duel`, `three-way-open`, `three-way-engine`, and `range-rich-mixed`.
-
-After all four full runs finish, generate the committed diagnostic report:
-
-```sh
-npm run balance:report
-```
-
-The generator reads the ignored local `.experiments/` inputs, rejects stale rules fingerprints or
-incomplete runs, and writes `.html/balance-report.html`.
-
-The deterministic `balance-suite-v4` design has 128 tuning kingdoms and 32 held-back validation
-kingdoms. It uses the same 40 variable cards as playable random markets. Regenerate or check its
-manifest, validate it, and reproduce the design report with:
+The deterministic `balance-suite-v4` design has 128 tuning kingdoms and 32 held-back validation kingdoms. The 30-kingdom process-smoke set uses only tuning kingdoms. Regenerate or check the manifests and reports with:
 
 ```sh
 npm run balance:suite:manifest
@@ -102,47 +63,9 @@ npm run balance:suite:design-report
 npm run balance:suite:design-report -- --check
 ```
 
-`balance:suite:search-check` compiles and reruns the fixed-seed covering search. It takes about five
-minutes on an Apple M4 Pro. Normal manifest checks remeasure the pinned search result and are faster.
-
-The 30-kingdom process-smoke set uses only tuning kingdoms. Its IDs, the 25-to-30 comparison, and
-coverage statistics are in `src/sim/balance-smoke-suite-manifest.json`.
-
-The report is `.html/kingdom-suite-design.html`. The production balance campaign is blocked on the
-Kingdom 009 consistency protocol and needs separate spending approval. `balance:suite:run`, the old
-corpus loader, and the old strategy report fail closed while that protocol is pending.
-
-The search uses policy-space response oracles. It starts each restart from random legal strategies,
-solves a maximum-support equilibrium over the discovered payoff matrix, and searches for a response
-to that weighted strategy mixture. Full mode uses three independent restarts, solves their completed
-union matrix, and automatically repeats a broad random final search until it finds no admitted challenger.
-
-Useful limits can be lowered for a quick run:
-
-```sh
-node dist-sim/experiment.mjs --kingdom current-duel --mode smoke --seed 1 \
-  --restarts 1 --initial-strategies 5 --candidates 20 --iterations 4 \
-  --seeds 8 --union-iterations 2 --workers 4
-```
-
-Four workers are the measured default on an Apple M4 Pro. More workers remain available with `--workers`, but short simulation jobs become slower when process messaging and result transfer exceed the saved game time.
-
-The committed `.html/strategy-report.html` is a historical report from the completed 80-kingdom
-version 2 tuning corpus. `npm run strategy:report` now fails closed while the Kingdom 009 production
-protocol is pending. The historical equilibrium ranges remain conditional on discovered strategies and
-do not cover omitted strategies.
+`balance:suite:search-check` compiles and reruns the fixed-seed covering search. It takes about five minutes on an Apple M4 Pro. Normal manifest checks remeasure the pinned result and are faster. The design report is `.html/kingdom-suite-design.html`.
 
 ## Native strategy search
-
-The scalable command accepts one strict request with `kingdomIds` and `maxActiveCpus`. It derives all seeds, protocols, jobs, resources, and paths. Plan before any launch:
-
-```sh
-npm run strategy-search:campaign -- plan --request REQUEST.json
-npm run strategy-search:campaign -- status --request REQUEST.json
-npm run strategy-search:campaign -- run --request REQUEST.json --authorize TOKEN
-```
-
-`plan` makes no Modal call. Every `run` needs the exact token printed for that request and capacity. `run` builds and checks the Rust binary before the campaign starts. Rust maps strategy numbers to shopping lists, runs every Goldfish game, ranks rows, writes the final files, and verifies them. Matrix and PSRO read the reservoir after Rust verifies it. Use [the operator guide](docs/strategy-search-campaign-operator.md) for the request contract, status, output, and paid smoke boundaries.
 
 The separate Goldfish-only Modal route runs two container tasks per kingdom: `goldfish-one-reduce` and `goldfish-two-reduce`. Intermediate score files stay on container-local disk, and only the two final files reach the Modal Volume. Its strict request sets 16 to 64 worker cores, maximum active CPUs, scientific wall time, and maximum cost. Plan makes no Modal call, and paid run needs the exact plan token:
 
@@ -211,20 +134,6 @@ rust/target/release/hexdeck-goldfish psro-verify \
   --out .data/psro/balance-tuning-005
 ```
 
-The campaign still uses its existing JSON Matrix and PSRO path. Wiring the Rust commands into campaign publication is deferred until the campaign publishes the three Rust initial-matrix files. The old campaign PSRO path stays in place until that prerequisite is complete.
-
-Add verified same-strategy telemetry to a completed local evidence set with:
-
-```sh
-npm run strategy-search:self-play-backfill -- \
-  --root .data/strategy-search-30 \
-  --binary rust/target/release/hexdeck-goldfish \
-  --threads 10 \
-  --report .data/strategy-search-30/self-play-backfill-v1.json
-```
-
-The local command structurally checks file headers, CRCs, source links, checkpoint completion, and final Matrix order. Deep verification is a separate, deliberate `psro-verify` run. It then plays only the 125-seed same-strategy telemetry games. It writes `self-play-v1.hst` beside the initial Matrix and, when PSRO admitted strategies, beside the expanded Matrix. It does not replay Goldfish ranking, Matrix solving, PSRO screening, PSRO decisions, or PSRO races. Existing valid HST files are retained.
-
 Generate the equilibrium-weighted balance analysis with:
 
 ```sh
@@ -258,16 +167,7 @@ npm run goldfish:native-verify
 npm run modal:test
 ```
 
-With no subcommand, `hexdeck-goldfish` keeps the versioned JSON line protocol for Rust-versus-TypeScript conformance tests and the competitive PSRO kernel. It rejects a thread count above the CPU request.
-
-`nativeCompetitiveModalInput` creates the fixed candidate table and schedule artifact for one PSRO look. The competitive Modal entry point retries missing shards, writes digest-checked score-byte artifacts, and restores candidate-major output. The launch rejects more than 48 containers or a cost cap above $2:
-
-```sh
-modal run --detach modal/native_strategy_search.py::launch_competitive \
-  --input-file competitive-input.json --build-version "$(git rev-parse HEAD)" \
-  --cpu 4 --memory-gib 4 --threads 4 --max-containers 16 \
-  --timeout-seconds 180 --max-cost-usd 2
-```
+With no subcommand, `hexdeck-goldfish` keeps the versioned JSON line protocol for Rust-versus-TypeScript conformance tests. It rejects a thread count above the CPU request.
 
 ## Code boundaries
 
@@ -290,10 +190,9 @@ src/game/        Deterministic rules, state, commands, and replay
 src/shared/      Browser-server API types
 src/client/      React local-game UI
 src/server/      HTTP routes, game service, and file persistence
-src/sim/         Deterministic balance strategies and experiment runner
-scripts/         E2E validation and simulator utilities
+src/sim/         Game AI, balance suites, native adapters, and report models
+scripts/         Balance, native-search, and E2E utilities
 test/            Vitest and Playwright behavior tests
 .plans/          Current plans and archived decision history
-.experiments/    Balance reports and ignored generated run data
 .html/           Kept HTML artifacts
 ```

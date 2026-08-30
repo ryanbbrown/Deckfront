@@ -5,7 +5,7 @@ import { execFileSync, spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
 import { pathToFileURL } from 'node:url';
-import { deriveTrackedStrategySearchSourceImage, streamProcess } from './strategy_search_campaign';
+import { deriveTrackedStrategySearchSourceImage, streamProcess } from './strategy_search_source';
 import { deriveStrategySearch } from '../src/sim/strategySearchCampaign';
 import { loadRustInitialMatrixEvidence, loadRustStrategySearchKingdomEvidence } from '../src/sim/rustStrategySearchEvidence';
 import {

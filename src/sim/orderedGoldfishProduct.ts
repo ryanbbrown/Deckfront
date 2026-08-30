@@ -84,12 +84,11 @@ export const ORDERED_PRODUCT_VERSION = ORDERED_PRODUCT_TARGETS[ORDERED_PRODUCT_K
 export const ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST =
   ORDERED_PRODUCT_TARGETS[ORDERED_PRODUCT_KINGDOM]!.candidateProvenanceDigest;
 
-export function legacyOrderedProductTarget(kingdomId: string): OrderedProductTarget {
+export function orderedProductTarget(kingdomId: string): OrderedProductTarget {
   const target = ORDERED_PRODUCT_TARGETS[kingdomId];
   if (!target) throw new Error(`Unsupported ordered product kingdom: ${kingdomId}`);
   return target;
 }
-export const orderedProductTarget = legacyOrderedProductTarget;
 
 export interface OrderedProductProfileEvidence {
   profile: string;
@@ -315,18 +314,16 @@ export function provenanceDigest(shards: readonly OrderedProductShardProvenance[
     entry.contentDigest].join('\t')).join('\n'));
 }
 
-export function legacyOrderedProductSeedsValid(_kingdomId: string, seeds: readonly number[]): boolean {
+export function orderedProductSeedsValid(seeds: readonly number[]): boolean {
   return JSON.stringify(seeds) === JSON.stringify(ORDERED_PRODUCT_SEEDS);
 }
-
-export const orderedProductSeedsValid = legacyOrderedProductSeedsValid;
 
 function validConfig(config: OrderedProductConfig, target: OrderedProductTarget): boolean {
   return config.kingdomId === target.kingdomId && config.candidateCount === ORDERED_PRODUCT_SPACE_COUNT
     && integer(config.retainedCount) && config.retainedCount >= 1
     && integer(config.reservoirCount) && config.reservoirCount >= 1
     && config.reservoirCount <= config.retainedCount
-    && legacyOrderedProductSeedsValid(config.kingdomId, config.seeds)
+    && orderedProductSeedsValid(config.seeds)
     && JSON.stringify(config.profiles) === JSON.stringify(ORDERED_PRODUCT_PROFILES)
     && config.turnLimit === 30 && config.actionCapPerTurn === 200
     && config.collisionAllowance === ORDERED_PRODUCT_COLLISION_ALLOWANCE;
@@ -346,7 +343,7 @@ export function validateLegacyOrderedProductArtifact(value: unknown): value is O
   if (!object(value)) return false;
   const artifact = value as unknown as OrderedProductRankedArtifact;
   let target: OrderedProductTarget;
-  try { target = legacyOrderedProductTarget(artifact.config?.kingdomId); } catch { return false; }
+  try { target = orderedProductTarget(artifact.config?.kingdomId); } catch { return false; }
   if (artifact.schemaVersion !== ORDERED_PRODUCT_SCHEMA_VERSION || artifact.version !== target.version
     || typeof artifact.runId !== 'string' || !artifact.runId || typeof artifact.buildVersion !== 'string'
     || typeof artifact.ruleFingerprint !== 'string' || typeof artifact.scorerVersion !== 'string'

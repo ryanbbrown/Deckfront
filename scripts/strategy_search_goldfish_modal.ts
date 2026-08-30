@@ -4,7 +4,7 @@ import path from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
-import { deriveTrackedStrategySearchSourceImage, streamProcess } from './strategy_search_campaign';
+import { deriveTrackedStrategySearchSourceImage, streamProcess } from './strategy_search_source';
 import {
   createGoldfishModalLaunchBundle, createGoldfishModalPlanSummary, deriveGoldfishModalRequest,
   GOLDFISH_MODAL_ROUTE, validateGoldfishModalAuthorizationToken

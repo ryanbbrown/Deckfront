@@ -10,7 +10,6 @@ import { loadRustStrategySearchKingdomEvidence } from '../../src/sim/rustStrateg
 import {
   loadSourceProvenance, parseCli, renderRustBalanceReport, strongestNonWinningArchetype
 } from '../../scripts/generate_rust_strategy_search_balance_report';
-import { parseSelfPlayBackfillCli } from '../../scripts/backfill_rust_strategy_search_self_play';
 import { createEvidenceFixture } from '../fixtures/rust-strategy-search-balance/fixture';
 
 const roots: string[] = [];
@@ -157,9 +156,6 @@ describe('Rust strategy-search balance analysis', () => {
   });
 
   it('pins exact v2 default output paths', () => {
-    expect(parseSelfPlayBackfillCli([])).toEqual({ root: '.data/strategy-search-30',
-      binary: 'rust/target/release/hexdeck-goldfish', threads: 10,
-      report: '.data/strategy-search-30/self-play-backfill-v1.json' });
     expect(parseCli([])).toEqual({ root: '.data/strategy-search-30', binary: 'rust/target/release/hexdeck-goldfish',
       provenance: '.data/strategy-search-30/source-provenance-v2.json',
       json: '.data/strategy-search-30/rust-balance-analysis-v2.json',

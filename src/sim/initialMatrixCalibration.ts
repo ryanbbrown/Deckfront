@@ -9,7 +9,7 @@ import { nativeRuleFingerprint } from './nativeGoldfishProtocol';
 import {
   CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION, CURRENT_ORDERED_PRODUCT_VERSION,
   ORDERED_PRODUCT_SPACE_COUNT, createCurrentOrderedProductMembershipValidator,
-  deriveCurrentOrderedProductIdentity, legacyOrderedProductSeedsValid, legacyOrderedProductTarget,
+  deriveCurrentOrderedProductIdentity, orderedProductSeedsValid, orderedProductTarget,
   validateOrderedProductRankedRecord
 } from './orderedGoldfishProduct';
 import type { OrderedProductReservoirArtifact } from './orderedGoldfishProduct';
@@ -194,9 +194,9 @@ export function validateOrderedCalibrationSourceForCounts(input: OrderedCalibrat
   let sourceIdentityValid = false;
   if (ranked.schemaVersion === 1) {
     try {
-      const target = legacyOrderedProductTarget(input.kingdomId);
+      const target = orderedProductTarget(input.kingdomId);
       sourceIdentityValid = ranked.version === target.version
-        && legacyOrderedProductSeedsValid(input.kingdomId, ranked.config.seeds)
+        && orderedProductSeedsValid(ranked.config.seeds)
         && ranked.candidateSpace?.provenanceDigest === target.candidateProvenanceDigest;
     } catch { sourceIdentityValid = false; }
   } else if (ranked.schemaVersion === CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION && ranked.productIdentity) {

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "suiteVersion": "balance-smoke-v1",
   "sourceSuiteVersion": "balance-suite-v4",
-  "sourceManifestDigest": "bedc1f570aab105386e8e0619c338cecbdf9498dbe2a48bcbb31748cdf78de5a",
+  "sourceManifestDigest": "15ce9f8187605fe347198f772b0be8069cf155629339a889990b8b85da631d4d",
   "selectedCount": 30,
   "selectedKingdomIds": [
     "balance-tuning-005",
@@ -356,5 +356,5 @@
       }
     ]
   },
-  "digest": "c3c5b950690eeb7c2d8e0a4ddda175ef6f7d40cce70f9f05d2f4ae0f95970575"
+  "digest": "d88c6160c248ed0d5b56f2496a2c268936c2a43747a8cb4cfe7d14a6908cb6eb"
 }

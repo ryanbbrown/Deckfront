@@ -4,8 +4,31 @@ import {
   canonicalStrategySearchJson, campaignExecutionRoot, deriveStrategySearch, kingdomArtifactRoot
 } from './strategySearchCampaign';
 import type { KingdomEvidenceIdentity, SourceImageIdentity } from './strategySearchCampaign';
-import { taskIdentity } from './strategySearchScheduler';
-import type { CandidateRange, RuntimeJob } from './strategySearchScheduler';
+
+export interface CandidateRange { start: number; end: number }
+export interface RuntimeJob {
+  taskId: string;
+  evidenceId: string;
+  kingdomId: string;
+  stage: 'goldfish-one-reduce' | 'goldfish-two-reduce';
+  range: CandidateRange | null;
+  cpus: number;
+  status: 'blocked' | 'ready' | 'launching' | 'active' | 'retry-backoff' | 'complete' | 'terminal-incomplete';
+  dependencyTaskIds: string[];
+  launchIntentId: string | null;
+  callId: string | null;
+  leaseUntilMs: number | null;
+  attemptCount: number;
+}
+export interface StagePartition {
+  evidenceId: string;
+  stage: 'goldfish-one-reduce' | 'goldfish-two-reduce';
+  jobs: CandidateRange[];
+}
+
+export function taskIdentity(evidenceId: string, stage: RuntimeJob['stage'], range: CandidateRange | null): string {
+  return createHash('sha256').update(JSON.stringify({ evidenceId, stage, range })).digest('hex');
+}
 
 export const GOLDFISH_MODAL_ROUTE = 'goldfish-only-v2' as const;
 export const GOLDFISH_MODAL_CPU_USD_PER_CORE_SECOND = 0.0000131;
