@@ -194,6 +194,19 @@ npx tsx scripts/strategy_search_goldfish_modal.ts run --request REQUEST.json --a
 
 Use [the Goldfish-only operator guide](docs/strategy-search-goldfish-modal.md) for the `balance-tuning-005` request, 16×4, 4×16, and 1×64 comparison shapes, current Modal rates, hard cost guard, exact outputs, and timing split. The route never creates Matrix or PSRO work.
 
+The separate PSRO batch route runs Matrix locally, then runs one complete Rust PSRO search per Modal machine. Every request field is required. `plan`, `status`, `download`, and `report` do not start paid PSRO work. `run` needs the exact token from `plan`:
+
+```sh
+npm run strategy-search:psro-modal -- matrix --request REQUEST.json --root ROOT --goldfish-campaign CAMPAIGN_ID
+npm run strategy-search:psro-modal -- plan --request REQUEST.json --root ROOT
+npm run strategy-search:psro-modal -- run --request REQUEST.json --root ROOT --authorize TOKEN
+npm run strategy-search:psro-modal -- status --request REQUEST.json --root ROOT
+npm run strategy-search:psro-modal -- download --request REQUEST.json --root ROOT
+npm run strategy-search:psro-modal -- report --root ROOT
+```
+
+Use [the Modal PSRO batch operator guide](docs/strategy-search-psro-modal.md) for the request limits, current cost formula, ten-minute Volume commit cadence, resume rules, output layout, deep verification, byte comparison, and local dynamic queue.
+
 Run the full Goldfish reservoir step locally with 10 threads:
 
 ```sh
