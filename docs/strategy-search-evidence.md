@@ -16,7 +16,7 @@ Balance headlines describe the stored equilibrium lottery playing against itself
 
 Raw unweighted full-Matrix counts are audit evidence. Do not use pooled counts, uniform opponents, or off-diagonal-only rates for strategy labels, card-usage headlines, family-damage headlines, or balance outliers. The Matrix payoff diagonal remains fixed at 50%; same-strategy games supply telemetry only.
 
-Ordinary HST backfill and v2 report generation trust the scientific evidence from its completed deep verification. They check file structure, CRCs, source links, checkpoint completion, selected Matrix order, and HST evidence. They do not replay Goldfish ranking, Matrix solving, PSRO screening, decisions, or races. Native deep verifier commands remain available for deliberate audits.
+Ordinary HST backfill and v2 report generation structurally check file formats, CRCs, source links, checkpoint completion, selected Matrix order, and HST evidence. They do not replay Goldfish ranking, Matrix solving, PSRO screening, decisions, or races. Deep verification is a separate, deliberate `psro-verify` run.
 
 ## Separate three kinds of consistency
 

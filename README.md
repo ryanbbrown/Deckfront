@@ -264,7 +264,7 @@ npm run strategy-search:self-play-backfill -- \
   --report .data/strategy-search-30/self-play-backfill-v1.json
 ```
 
-The local command trusts the completed scientific evidence from its prior deep verification. It checks file headers, CRCs, source links, checkpoint completion, and final Matrix order. It then plays only the 125-seed same-strategy telemetry games. It writes `self-play-v1.hst` beside the initial Matrix and, when PSRO admitted strategies, beside the expanded Matrix. It does not replay Goldfish ranking, Matrix solving, PSRO screening, PSRO decisions, or PSRO races. Existing valid HST files are retained.
+The local command structurally checks file headers, CRCs, source links, checkpoint completion, and final Matrix order. Deep verification is a separate, deliberate `psro-verify` run. It then plays only the 125-seed same-strategy telemetry games. It writes `self-play-v1.hst` beside the initial Matrix and, when PSRO admitted strategies, beside the expanded Matrix. It does not replay Goldfish ranking, Matrix solving, PSRO screening, PSRO decisions, or PSRO races. Existing valid HST files are retained.
 
 Generate the equilibrium-weighted balance analysis with:
 
@@ -275,7 +275,7 @@ npm run strategy-search:rust-balance-report -- \
   --provenance .data/strategy-search-30/source-provenance-v2.json
 ```
 
-The command checks Goldfish and HGM structure and CRCs, source links, checkpoint completion, selected Matrix order, and HST evidence before it decodes a kingdom. It does not run a native verifier or replay Goldfish, Matrix, or PSRO. It writes deterministic JSON to `.data/strategy-search-30/rust-balance-analysis-v2.json` and standalone HTML to `.html/strategy-search-30-rust-balance-v2.html`. The native `verify`, `matrix-verify`, and `psro-verify` commands remain available for a deliberate deep audit.
+The command structurally checks Goldfish and HGM formats and CRCs, source links, checkpoint completion, selected Matrix order, and HST evidence before it decodes a kingdom. Deep verification is a separate, deliberate `psro-verify` run; reporting does not replay Goldfish, Matrix, or PSRO. It writes deterministic JSON to `.data/strategy-search-30/rust-balance-analysis-v2.json` and standalone HTML to `.html/strategy-search-30-rust-balance-v2.html`. The native `verify`, `matrix-verify`, and `psro-verify` commands remain available for a deliberate deep audit.
 
 The report weights each telemetry cell by both the acting strategy's stored equilibrium weight and the opponent's stored equilibrium weight. Strategy classification uses acquisitions against the equilibrium opponent. Raw unweighted Matrix counts are audit evidence, not balance headlines. The Matrix payoff diagonal stays fixed at 50%. A paired score byte of 2 does not identify one success and one failure versus two ties, so the report does not claim exact W/D/L.
 
