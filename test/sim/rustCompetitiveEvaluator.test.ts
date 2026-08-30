@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { registerKingdom, resetKingdoms } from '../../src/game';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import { evaluateCandidates, mixtureSchedule } from '../../src/sim/mixtureEvaluation';
 import { createOrderedCandidateSpace, orderedGoldfishCardIds,
   representativeCandidateIndices } from '../../src/sim/orderedGoldfishBenchmark';
@@ -10,7 +10,7 @@ import { InlinePairingRunner } from '../../src/sim/pairingRunner';
 import { RustCompetitiveEvaluator } from '../../src/sim/rustCompetitiveEvaluator';
 import { RustGoldfishScorer } from '../../src/sim/rustGoldfishScorer';
 
-const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-007')!;
+const kingdom = strategySearchKingdom('balance-tuning-001');
 const binary = process.env.HEXDECK_GOLDFISH_BIN
   ?? path.resolve('rust/target/release/hexdeck-goldfish');
 

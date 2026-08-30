@@ -194,16 +194,16 @@ class NativeStrategySearchLauncherTest(unittest.TestCase):
 
     def test_artifact_validator_failure_exposes_captured_stdout_and_stderr(self):
         failure = subprocess.CalledProcessError(1, ["validator"], output="validation started\n",
-                                                stderr="Unknown kingdom: deep-beam-tuning-007\n")
+                                                stderr="Unknown kingdom: balance-tuning-001\n")
         publication = {"stage": "goldfish-one-reduce", "evidenceId": "b" * 64,
-                       "kingdomId": "deep-beam-tuning-007"}
+                       "kingdomId": "balance-tuning-001"}
         with patch.object(launcher.subprocess, "run", side_effect=failure), \
                 patch.object(launcher, "_strategy_search_path", return_value=pathlib.Path("/evidence")):
             with self.assertRaises(RuntimeError) as raised:
                 launcher._strategy_search_validate_publication(publication, pathlib.Path("/temporary/top.hgf"))
         message = str(raised.exception)
         self.assertIn("[stdout]\nvalidation started", message)
-        self.assertIn("[stderr]\nUnknown kingdom: deep-beam-tuning-007", message)
+        self.assertIn("[stderr]\nUnknown kingdom: balance-tuning-001", message)
 
     def test_called_process_diagnostic_is_nonblank_and_includes_captured_output(self):
         failure = subprocess.CalledProcessError(1, ["validator"], output="", stderr="exact validator failure")
@@ -1204,7 +1204,7 @@ print(json.dumps(result))
                 pathlib.Path(command[command.index("--report") + 1]).write_text(json.dumps(report))
                 return {"elapsedMs": 100}
             base = {"taskId": "task", "evidenceId": "a" * 64,
-                "kingdomId": "deep-beam-tuning-007", "sourceImage": {}, "cpu": 4,
+                "kingdomId": "balance-tuning-001", "sourceImage": {}, "cpu": 4,
                 "timeoutSeconds": 120, "enqueuedEpochMs": int(time.time() * 1000)}
             raw = launcher.strategy_search_goldfish_job.get_raw_f()
             with patch.object(launcher, "_strategy_search_path", side_effect=strategy_path), \
@@ -1371,7 +1371,7 @@ print(json.dumps(result))
         with patch.object(launcher, "_run_checked", side_effect=lambda command, *_args, **_kwargs: calls.append(command)), \
                 patch.object(launcher, "_strategy_search_path", side_effect=lambda relative: pathlib.Path("/results") / relative):
             for stage in ["goldfish-one", "goldfish-two", "goldfish-one-reduce", "goldfish-two-reduce"]:
-                publication = {"stage": stage, "kingdomId": "deep-beam-tuning-007",
+                publication = {"stage": stage, "kingdomId": "balance-tuning-001",
                     "evidenceId": "a" * 64, "topPath": "top.hgf",
                     "range": {"start": 2, "end": 5}}
                 launcher._strategy_search_validate_publication(publication, pathlib.Path("/tmp/artifact"))

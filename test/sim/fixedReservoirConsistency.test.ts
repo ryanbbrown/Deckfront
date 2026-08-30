@@ -4,7 +4,7 @@ import { identify, fixedBuyPlan, INFINITE_COUNT, canonicalStrategy, stableHash }
 import type { Strategy } from '../../src/sim/strategy';
 import { solveEquilibrium } from '../../src/sim/equilibrium';
 import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from '../../src/sim/experimentConfig';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import { evaluateCandidates } from '../../src/sim/mixtureEvaluation';
 import { InlinePairingRunner } from '../../src/sim/pairingRunner';
 import type { MatrixSnapshot } from '../../src/sim/payoffMatrix';
@@ -154,7 +154,7 @@ describe('fixed-reservoir consistency protocols', () => {
   });
 
   it('keeps full and score-only blocks, races, unions, adaptive allocation, and confirmation equal', async () => {
-    const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
+    const kingdom = strategySearchKingdom('balance-tuning-003');
     registerKingdom(kingdom); const runner = new InlinePairingRunner();
     const full: ScoreAllocation = async ({ candidates, opponents, schedule }) =>
       (await evaluateCandidates(candidates, opponents, schedule, runner, { kingdomId: kingdom.id,

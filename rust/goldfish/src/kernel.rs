@@ -2880,7 +2880,7 @@ mod tests {
             ))
             .expect("beta");
         let fixtures = [
-            (false, &alpha, &beta, 91, false, "ochre", "victory", 38),
+            (false, &alpha, &beta, 91, false, "ochre", "victory", 46),
             (
                 false, &alpha, &beta, 4_200_001, true, "ochre", "victory", 41,
             ),

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { registerKingdom } from '../../src/game';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import { emptyAggregate } from '../../src/sim/pairing';
 import type { PairingOutcome } from '../../src/sim/pairing';
 import {
@@ -25,9 +24,9 @@ function outcome(seeds: number[]): PairingOutcome {
 
 describe('nested payoff matrix evidence', () => {
   it('reuses exact 25-block batches in 50- and 100-block snapshots', () => {
-    registerKingdom(deepBeamSuite.kingdoms.find((kingdom) => kingdom.id === 'deep-beam-tuning-009')!);
+    strategySearchKingdom('balance-tuning-003');
     let matrix = createNestedMatrixEvidence({ version: 'ordered-reservoir-full-nested-matrix-v2',
-      kingdomId: 'deep-beam-tuning-009', seeds: Array.from({ length: 200 }, (_unused, index) => index + 1),
+      kingdomId: 'balance-tuning-003', seeds: Array.from({ length: 200 }, (_unused, index) => index + 1),
       turnLimitPerPlayer: 30, actionCapPerTurn: 200, startingDraftEnabled: false }, [left, right]);
     for (const work of nestedMatrixWork(matrix, 50)) matrix = appendNestedMatrixOutcome(matrix, work, outcome(work.seeds));
     expect(validateNestedMatrixEvidence(matrix)).toBe(true);

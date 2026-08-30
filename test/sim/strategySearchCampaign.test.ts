@@ -10,13 +10,13 @@ function source() { return deriveSourceImageIdentity({ expectedPaths: ['a', 'b']
 ] }); }
 describe('strategy-search request and semantic identity', () => {
   it('accepts only the strict two-field request', () => {
-    expect(parseStrategySearchRequest({ kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 400 }))
-      .toEqual({ kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 400 });
+    expect(parseStrategySearchRequest({ kingdomIds: ['balance-tuning-001'], maxActiveCpus: 400 }))
+      .toEqual({ kingdomIds: ['balance-tuning-001'], maxActiveCpus: 400 });
     for (const value of [{ kingdomIds: [], maxActiveCpus: 400 },
-      { kingdomIds: ['deep-beam-tuning-007', 'deep-beam-tuning-007'], maxActiveCpus: 400 },
-      { kingdomIds: ['unknown'], maxActiveCpus: 400 }, { kingdomIds: ['deep-beam-tuning-007'] },
-      { kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 3 },
-      { kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 400, extra: true }]) {
+      { kingdomIds: ['balance-tuning-001', 'balance-tuning-001'], maxActiveCpus: 400 },
+      { kingdomIds: ['unknown'], maxActiveCpus: 400 }, { kingdomIds: ['balance-tuning-001'] },
+      { kingdomIds: ['balance-tuning-001'], maxActiveCpus: 3 },
+      { kingdomIds: ['balance-tuning-001'], maxActiveCpus: 400, extra: true }]) {
       expect(() => parseStrategySearchRequest(value)).toThrow();
     }
   });
@@ -34,12 +34,12 @@ describe('strategy-search request and semantic identity', () => {
   });
 
   it('keeps kingdom evidence stable across capacity and campaign-list changes', () => {
-    const one = deriveStrategySearch({ request: { kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 400 },
+    const one = deriveStrategySearch({ request: { kingdomIds: ['balance-tuning-001'], maxActiveCpus: 400 },
       sourceImage: source() });
-    const capacity = deriveStrategySearch({ request: { kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 800 },
+    const capacity = deriveStrategySearch({ request: { kingdomIds: ['balance-tuning-001'], maxActiveCpus: 800 },
       sourceImage: source() });
-    const superset = deriveStrategySearch({ request: { kingdomIds: ['deep-beam-tuning-002',
-      'deep-beam-tuning-007'], maxActiveCpus: 400 }, sourceImage: source() });
+    const superset = deriveStrategySearch({ request: { kingdomIds: ['balance-tuning-002',
+      'balance-tuning-001'], maxActiveCpus: 400 }, sourceImage: source() });
     expect(capacity.kingdoms[0]!.evidenceId).toBe(one.kingdoms[0]!.evidenceId);
     expect(superset.kingdoms[1]!.evidenceId).toBe(one.kingdoms[0]!.evidenceId);
     expect(capacity.campaignExecutionId).toBe(one.campaignExecutionId);
@@ -58,9 +58,9 @@ describe('strategy-search request and semantic identity', () => {
     const secondSource = deriveSourceImageIdentity({ expectedPaths: ['scientific', 'runtime'],
       scientificPaths: ['scientific'], files: [{ path: 'scientific', content: 'rules' },
         { path: 'runtime', content: 'scheduler two' }] });
-    const first = deriveStrategySearch({ request: { kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 400 },
+    const first = deriveStrategySearch({ request: { kingdomIds: ['balance-tuning-001'], maxActiveCpus: 400 },
       sourceImage: firstSource });
-    const second = deriveStrategySearch({ request: { kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 400 },
+    const second = deriveStrategySearch({ request: { kingdomIds: ['balance-tuning-001'], maxActiveCpus: 400 },
       sourceImage: secondSource });
     expect(firstSource.digest).not.toBe(secondSource.digest);
     expect(firstSource.scientificDigest).toBe(secondSource.scientificDigest);

@@ -24,7 +24,7 @@ describe('strategy-search artifact CLI validation', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-k007-artifact-'));
     try {
       const artifact = path.join(root, 'top-500000.hgf');
-      strategySearchKingdom('deep-beam-tuning-007');
+      strategySearchKingdom('balance-tuning-001');
       const rows = Buffer.alloc(500_000 * 64);
       for (let index = 0; index < 500_000; index += 1) {
         const offset = index * 64; rows.writeUInt32LE(index, offset);
@@ -37,12 +37,12 @@ describe('strategy-search artifact CLI validation', () => {
       header.writeUInt32LE(64, 8); header.writeUInt32LE(12_972_960, 16);
       header.writeUInt32LE(500_000, 20); header.writeUInt32LE(crc32(rows) >>> 0, 24);
       header.writeUInt32LE(4_100_000, 32);
-      header.write(nativeRuleFingerprint('deep-beam-tuning-007', 30, 200), 48, 'ascii');
+      header.write(nativeRuleFingerprint('balance-tuning-001', 30, 200), 48, 'ascii');
       fs.writeFileSync(artifact, Buffer.concat([header, rows]));
       const output = execFileSync(process.execPath, ['--import', 'tsx',
         'scripts/strategy_search_validate_artifact.ts', '--stage', 'goldfish-one-reduce',
         '--file', artifact, '--evidence-id', K007_EVIDENCE_ID,
-        '--kingdom', 'deep-beam-tuning-007', '--evidence-root', root],
+        '--kingdom', 'balance-tuning-001', '--evidence-root', root],
       { encoding: 'utf8', timeout: 60_000 });
       expect(JSON.parse(output)).toEqual({ valid: true, stage: 'goldfish-one-reduce',
         evidenceId: K007_EVIDENCE_ID });

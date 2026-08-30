@@ -1,6 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { registerKingdom } from '../../src/game';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import { solveEquilibrium } from '../../src/sim/equilibrium';
 import { emptyAggregate } from '../../src/sim/pairing';
 import { matrixProtocol } from '../../src/sim/payoffMatrix';
@@ -16,8 +15,8 @@ import type {
 } from '../../src/sim/strategySearchParallelPsro';
 import { createThresholdRacingProtocol, scheduleSlice } from '../../src/sim/thresholdRacingPsro';
 
-const kingdomId = 'deep-beam-tuning-002';
-beforeAll(() => registerKingdom(deepBeamSuite.kingdoms.find((kingdom) => kingdom.id === kingdomId)!));
+const kingdomId = 'balance-tuning-002';
+beforeAll(() => { strategySearchKingdom(kingdomId); });
 function source() {
   const candidates = Array.from({ length: 52 }, (_unused, index) => {
     const strategy = identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan([{ kind: 'buy',

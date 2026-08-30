@@ -1,6 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { registerKingdom } from '../../src/game';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import { emptyAggregate } from '../../src/sim/pairing';
 import { fixedBuyPlan } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
@@ -15,8 +14,8 @@ import {
   createStrategySearchPsroArtifact, validateStrategySearchPsroArtifact
 } from '../../src/sim/strategySearchPsro';
 
-const kingdomId = 'deep-beam-tuning-002', evidenceId = 'a'.repeat(64);
-beforeAll(() => registerKingdom(deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!));
+const kingdomId = 'balance-tuning-002', evidenceId = 'a'.repeat(64);
+beforeAll(() => { strategySearchKingdom(kingdomId); });
 function strategies(): Strategy[] { return Array.from({ length: 50 }, (_unused, index) => ({ id: `strategy-${index}`,
   startingBuild: [], buyPlan: fixedBuyPlan([{ kind: 'buy', cardId: index % 2 ? 'drive' : 'volley',
     desiredCount: index + 1 }]) })); }

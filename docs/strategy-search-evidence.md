@@ -28,7 +28,7 @@ A fixed matrix has one game value and an equilibrium set. It does not always hav
 
 ## Recorded equilibrium evidence
 
-Earlier deep-beam matrices had narrow equilibrium-selection ranges. For example, the selected Mage share was 7.5254%, and its feasible range was 7.5253% to 7.5255%. See `.plans/34-strategy-search-results.md`.
+Earlier draft-off matrices had narrow equilibrium-selection ranges. For example, the selected Mage share was 7.5254%, and its feasible range was 7.5253% to 7.5255%. See `.plans/34-strategy-search-results.md`.
 
 The three robust ordered-reservoir Kingdom 009 matrices also have narrow archetype ranges when the strategy-report classifier is used:
 

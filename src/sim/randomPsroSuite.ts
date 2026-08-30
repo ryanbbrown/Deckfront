@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { registerKingdom } from '../game';
-import { deepBeamSuite } from './deepBeamSuite';
+import { balanceSuite } from './balanceSuite';
 import { ACTION_CAP_PER_TURN, TURN_LIMIT_PER_PLAYER } from './experimentConfig';
 import { WorkerPairingRunner } from './pairingRunner';
 import {
@@ -13,7 +13,7 @@ import type {
 } from './randomPsro';
 import { rulesFingerprint } from './rulesFingerprint';
 
-export const RANDOM_PSRO_KINGDOMS = Object.freeze(deepBeamSuite.kingdoms.slice(0, 10));
+export const RANDOM_PSRO_KINGDOMS = Object.freeze(balanceSuite.manifest.kingdoms.slice(0, 10));
 
 export interface RandomPsroUnit { kingdomId: string; seed: number }
 export interface RandomPsroBatchOptions {

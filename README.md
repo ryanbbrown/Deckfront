@@ -112,47 +112,6 @@ The report is `.html/kingdom-suite-design.html`. The production balance campaign
 Kingdom 009 consistency protocol and needs separate spending approval. `balance:suite:run`, the old
 corpus loader, and the old strategy report fail closed while that protocol is pending.
 
-The 50-health, draft-off deep-beam suite uses the frozen 100-row v3 strategy-search manifest, not the
-active v4 balance manifest. Each player starts
-with 7 Copper and 3 Scrap. It runs one kingdom at a time with 10 workers, 3 iterations, beam width 32,
-4 confirmations, and at most 8 active purchase
-slots. Run or resume it and check its status with:
-
-```sh
-npm run deep-beam:suite:run
-npm run deep-beam:suite:run -- --limit 10
-npm run deep-beam:suite:status
-npm run deep-beam:strategy-ranges
-```
-
-`deep-beam:strategy-ranges` writes the current ten-kingdom selected/minimum/maximum archetype shares to the ignored `.data/deep-strategy-equilibrium-ranges-pilot-10.json` artifact. Each range optimizes an archetype jointly over the full equilibrium polytope of each kingdom’s discovered payoff matrix. It then averages kingdoms with equal weight. The range is conditional on the discovered matrix and does not cover strategies that search omitted. Damage archetypes use a fixed, provisional classification from the recorded matrix acquisitions; labels do not change when the LP weights change.
-
-The fixed-reservoir five-run suite compares pool seeds 1–5 on Kingdoms 001 and 009. Prepare the reusable Kingdom 009 seed-1 and seed-2 artifacts once, then run, inspect, and report with:
-
-```sh
-npm run fixed-reservoir:five-run:prepare
-npm run fixed-reservoir:five-run
-npm run fixed-reservoir:five-run:status
-npm run fixed-reservoir:five-run:report
-```
-
-The suite resumes each pool and PSRO run independently under `.experiments/fixed-reservoir-psro-five-run/`. The report command requires all ten deeply validated runs.
-
-Use `--limit 10` for a resumable ten-kingdom balance pilot. At 330 seconds per kingdom, the serial search takes about 9.2 hours before overhead. Complete results
-survive interruption. Inputs, results, and atomic status are ignored under
-`.experiments/deep-beam-suite/deep-beam-v1/`.
-
-The response-optimizer pilot compares stratified beam, uniform length-then-token policy racing, dependency-aware discrete CEM, and UCT MCTS against one validated saved target lottery. All four reserve 4,000 of the 60,000 candidate shuffle-seed evaluations for the same eight-candidate final training rerace. Held-out confirmation stays untouched. Run the recorded one-kingdom configuration with:
-
-```sh
-npm run response-optimizer:pilot -- --kingdom deep-beam-tuning-001 \
-  --budget 60000 --seed 1 --restarts 1 --confirmation-blocks 200 --workers 10
-```
-
-The command prints the held-out comparison and writes ignored JSON under
-`.experiments/response-optimizer-pilot/`. Pass `--out` to choose another ignored result path.
-A score above 52% is a practical exploit. The held-out 95% lower bound must exceed 50% for statistical success.
-
 The search uses policy-space response oracles. It starts each restart from random legal strategies,
 solves a maximum-support equilibrium over the discovered payoff matrix, and searches for a response
 to that weighted strategy mixture. Full mode uses three independent restarts, solves their completed

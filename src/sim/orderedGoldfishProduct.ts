@@ -12,14 +12,9 @@ export const CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION = 2;
 export const CURRENT_ORDERED_PRODUCT_VERSION = 'derived-ordered-product-v2' as const;
 export const ORDERED_PRODUCT_GENERATOR = 'ordered-typescript-five-rung-v1' as const;
 export const ORDERED_PRODUCT_TRAVERSAL = 'coprime-position-v1' as const;
-export const ORDERED_PRODUCT_KINGDOM = 'deep-beam-tuning-009';
+export const ORDERED_PRODUCT_KINGDOM = 'balance-tuning-003';
 export const ORDERED_PRODUCT_SPACE_COUNT = 12_972_960;
 export const ORDERED_PRODUCT_SEEDS = [4_100_000, 4_100_001, 4_100_002, 4_100_003] as const;
-export const K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS = Object.freeze([
-  Object.freeze([5_100_000, 5_100_001, 5_100_002, 5_100_003]),
-  Object.freeze([6_100_000, 6_100_001, 6_100_002, 6_100_003]),
-  Object.freeze([7_100_000, 7_100_001, 7_100_002, 7_100_003])
-] as const);
 export const ORDERED_PRODUCT_PROFILES = ['stationary', 'chaser', 'kiter'] as const;
 export const ORDERED_PRODUCT_COLLISION_ALLOWANCE = 1_024;
 
@@ -78,17 +73,9 @@ export function deriveCurrentOrderedProductIdentity(input: {
 }
 
 const ORDERED_PRODUCT_TARGETS: Readonly<Record<string, OrderedProductTarget>> = Object.freeze({
-  'deep-beam-tuning-001': Object.freeze({ kingdomId: 'deep-beam-tuning-001',
-    version: 'k001-ordered-product-calibration-v1', authorization: 'k001-ordered-product-calibration-v2',
-    candidateProvenanceDigest: '8a4759823fa' }),
-  'deep-beam-tuning-007': Object.freeze({ kingdomId: 'deep-beam-tuning-007',
-    version: 'k007-ordered-product-calibration-v1', authorization: 'k007-ordered-product-calibration-v2',
-    candidateProvenanceDigest: '1573ad7d3fa' }),
-  'deep-beam-tuning-008': Object.freeze({ kingdomId: 'deep-beam-tuning-008',
-    version: 'k008-ordered-product-calibration-v1', authorization: 'k008-ordered-product-calibration-v2',
-    candidateProvenanceDigest: '6561f88940b' }),
   [ORDERED_PRODUCT_KINGDOM]: Object.freeze({ kingdomId: ORDERED_PRODUCT_KINGDOM,
-    version: 'k009-ordered-product-correction-v1', authorization: 'k009-ordered-product-correction-v1',
+    version: 'balance-tuning-003-ordered-product-v1',
+    authorization: 'balance-tuning-003-ordered-product-v1',
     candidateProvenanceDigest: '5ce8adb2409' })
 });
 
@@ -328,10 +315,8 @@ export function provenanceDigest(shards: readonly OrderedProductShardProvenance[
     entry.contentDigest].join('\t')).join('\n'));
 }
 
-export function legacyOrderedProductSeedsValid(kingdomId: string, seeds: readonly number[]): boolean {
-  const exact = (expected: readonly number[]): boolean => JSON.stringify(seeds) === JSON.stringify(expected);
-  return exact(ORDERED_PRODUCT_SEEDS) || kingdomId === 'deep-beam-tuning-007'
-    && K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS.some(exact);
+export function legacyOrderedProductSeedsValid(_kingdomId: string, seeds: readonly number[]): boolean {
+  return JSON.stringify(seeds) === JSON.stringify(ORDERED_PRODUCT_SEEDS);
 }
 
 export const orderedProductSeedsValid = legacyOrderedProductSeedsValid;

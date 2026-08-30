@@ -4,7 +4,7 @@ The command accepts one JSON request with exactly two fields:
 
 ```json
 {
-  "kingdomIds": ["deep-beam-tuning-007"],
+  "kingdomIds": ["balance-tuning-001"],
   "maxActiveCpus": 400
 }
 ```

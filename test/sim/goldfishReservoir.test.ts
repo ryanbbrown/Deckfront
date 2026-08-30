@@ -5,7 +5,7 @@ import path from 'node:path';
 import { crc32 } from 'node:zlib';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { registerKingdom, resetKingdoms } from '../../src/game';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import { readGoldfishReservoir, readGoldfishTop } from '../../src/sim/goldfishReservoir';
 import { nativeKingdomsJson } from '../../src/sim/nativeKingdoms';
 import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
@@ -14,7 +14,7 @@ import { canonicalStrategy } from '../../src/sim/strategy';
 import { candidateIdentitiesValid } from '../../src/sim/thresholdRacingPsro';
 
 const binary = process.env.HEXDECK_GOLDFISH_BIN ?? path.resolve('rust/target/release/hexdeck-goldfish');
-const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
+const kingdom = strategySearchKingdom('balance-tuning-003');
 const run = (args: string[]): string => execFileSync(binary, args, { encoding: 'utf8' });
 const writeList = (file: string, paths: string[]): void => fs.writeFileSync(file, `${JSON.stringify(paths)}\n`);
 

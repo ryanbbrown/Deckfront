@@ -5,7 +5,7 @@ import {
   ALWAYS_AVAILABLE_ACTION_IDS, CARDS, FIRST_PLAYER_HEALTH_PENALTY, registerKingdom, resetKingdoms
 } from '../../src/game';
 import { scoreMovementAwareGoldfishStrategyLean } from '../../src/sim/goldfish';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import { createOrderedCandidateSpace, orderedGoldfishCardIds,
   representativeCandidateIndices } from '../../src/sim/orderedGoldfishBenchmark';
 import { nativeScoreBatchRequest } from '../../src/sim/nativeGoldfishProtocol';
@@ -14,7 +14,7 @@ import { runGoldfishTrial } from '../../src/sim/simulationKernel';
 import { INFINITE_COUNT, fixedBuyPlan, identify, stableHash } from '../../src/sim/strategy';
 import { compareUtf16 } from '../../src/sim/utf16';
 
-const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
+const kingdom = strategySearchKingdom('balance-tuning-003');
 
 beforeEach(() => registerKingdom(kingdom));
 afterEach(() => resetKingdoms());
@@ -70,12 +70,12 @@ describe.skipIf(!fs.existsSync(nativeBinary))('Rust goldfish scorer conformance'
   }, 60_000);
 
   it.each([
-    'deep-beam-tuning-001',
-    'deep-beam-tuning-007',
-    'deep-beam-tuning-008',
-    'deep-beam-tuning-009'
+    'balance-tuning-003',
+    'balance-tuning-004',
+    'balance-tuning-005',
+    'balance-tuning-006'
   ])('matches the four-seed ordered product evidence for %s', async (kingdomId) => {
-    const selectedKingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!;
+    const selectedKingdom = strategySearchKingdom(kingdomId);
     registerKingdom(selectedKingdom);
     const space = createOrderedCandidateSpace(orderedGoldfishCardIds(kingdomId));
     const strategies = [...representativeCandidateIndices(space.candidateCount, 32)]

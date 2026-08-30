@@ -740,21 +740,21 @@ def verify_strategy_search_source(identity: dict[str, Any]) -> None:
 
 
 def _strategy_search_verify_goldfish_startup() -> None:
-    result = _run_checked([CAMPAIGN_RUST_GOLDFISH_BIN, "kingdom", "--kingdom", "deep-beam-tuning-007"],
+    result = _run_checked([CAMPAIGN_RUST_GOLDFISH_BIN, "kingdom", "--kingdom", "balance-tuning-001"],
         "strategy-search Goldfish worker readiness", cwd=RUNTIME_WORKSPACE_ROOT,
         text=True, capture_output=True, timeout=60)
     try:
         value = json.loads(result.stdout)
     except (json.JSONDecodeError, TypeError) as error:
         raise RuntimeError("strategy-search Goldfish readiness returned invalid JSON") from error
-    if value.get("kingdomId") != "deep-beam-tuning-007" or value.get("candidateCount") != 12_972_960:
+    if value.get("kingdomId") != "balance-tuning-001" or value.get("candidateCount") != 12_972_960:
         raise RuntimeError("strategy-search Goldfish readiness returned the wrong kingdom")
 
 
 def _strategy_search_remote_goldfish_canary(source_identity: dict[str, Any]) -> None:
     relative = f"preflight/{source_identity['digest']}/goldfish-canary.hgs"
     config = {"taskId": "deployment-goldfish-canary", "evidenceId": source_identity["scientificDigest"],
-        "kingdomId": "deep-beam-tuning-007", "temporaryPath": relative,
+        "kingdomId": "balance-tuning-001", "temporaryPath": relative,
         "sourceImage": source_identity, "cpu": 1, "timeoutSeconds": 90,
         "stage": "goldfish-one", "mode": "score-one", "range": {"start": 0, "end": 1},
         "enqueuedEpochMs": int(time.time() * 1000)}

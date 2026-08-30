@@ -8,7 +8,7 @@ import {
 import type { TraversalScoreRecord } from '../../src/sim/nativeStrategySearch';
 import { canonicalStrategy, fixedBuyPlan, identify } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import { stoplessRandomDomain } from '../../src/sim/randomPsro';
 
 function strategy(index: number, id?: string): Strategy {
@@ -44,7 +44,7 @@ describe('bounded deterministic native strategy search', () => {
     expect(generation.provenance).toEqual(streamUniqueStrategies(values, 4, 3).provenance);
   });
   it('matches the real stateful product generator across chunk sizes', () => {
-    const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
+    const kingdom = strategySearchKingdom('balance-tuning-003');
     registerKingdom(kingdom);
     const source = function* () { const random = new SeededRandom(5), domain = stoplessRandomDomain(kingdom.id);
       for (;;) yield domain.randomComplete(random); };

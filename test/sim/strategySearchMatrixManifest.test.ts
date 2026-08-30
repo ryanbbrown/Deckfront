@@ -13,7 +13,7 @@ function run(kingdomId: string) {
 }
 
 describe('strategy-search Matrix manifest CLI startup', () => {
-  it.each(['deep-beam-tuning-007', 'balance-tuning-005'])(
+  it.each(['balance-tuning-001', 'balance-tuning-005'])(
     'registers %s before the first candidate-space lookup', (kingdomId) => {
       const result = run(kingdomId);
       expect(result.status).not.toBe(0);

@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, expect, it } from 'vitest';
 import { registerKingdom, resetKingdoms } from '../../src/game';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import { mixtureSchedule } from '../../src/sim/mixtureEvaluation';
 import { nativeCompetitiveModalInput } from '../../src/sim/nativeCompetitiveProtocol';
 import { fixedBuyPlan, identify } from '../../src/sim/strategy';
 
-const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-007')!;
+const kingdom = strategySearchKingdom('balance-tuning-001');
 beforeEach(() => registerKingdom(kingdom));
 afterEach(() => resetKingdoms());
 

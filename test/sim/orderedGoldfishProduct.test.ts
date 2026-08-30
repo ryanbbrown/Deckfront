@@ -1,10 +1,9 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { registerKingdom } from '../../src/game';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import { scoreMovementAwareGoldfishStrategyLean } from '../../src/sim/goldfish';
 import {
   CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION, CURRENT_ORDERED_PRODUCT_VERSION,
-  K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS, ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST,
+  ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST,
   ORDERED_PRODUCT_COLLISION_ALLOWANCE, ORDERED_PRODUCT_KINGDOM, ORDERED_PRODUCT_PROFILES,
   ORDERED_PRODUCT_SEEDS,
   ORDERED_PRODUCT_SPACE_COUNT, ORDERED_PRODUCT_SUPPORTED_KINGDOMS, ORDERED_PRODUCT_VERSION,
@@ -28,9 +27,7 @@ import { nativeRuleFingerprint } from '../../src/sim/nativeGoldfishProtocol';
 import { validateOrderedCalibrationSourceForCounts } from '../../src/sim/initialMatrixCalibration';
 import { canonicalStrategy, stableHash } from '../../src/sim/strategy';
 
-const kingdom009 = deepBeamSuite.kingdoms.find((entry) => entry.id === ORDERED_PRODUCT_KINGDOM)!;
-
-beforeAll(() => registerKingdom(kingdom009));
+beforeAll(() => { strategySearchKingdom(ORDERED_PRODUCT_KINGDOM); });
 
 function shard(
   shardId: number, startPosition: number, endPosition: number, retainedCount: number
@@ -43,8 +40,7 @@ function fixture(
   kingdomId = ORDERED_PRODUCT_KINGDOM, seeds: readonly number[] = ORDERED_PRODUCT_SEEDS,
   schemaVersion: 1 | 2 = 1, recordCount = 8, reservoirCount = 3
 ): OrderedProductRankedArtifact {
-  const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!;
-  registerKingdom(kingdom);
+  const kingdom = strategySearchKingdom(kingdomId);
   const productIdentity = schemaVersion === 2 ? deriveCurrentOrderedProductIdentity({ kingdomId, seeds,
     scorerVersion: 'native-goldfish-v1', buildVersion: 'fixture' }) : undefined;
   const targetVersion = productIdentity?.version ?? orderedProductTarget(kingdomId).version;
@@ -90,23 +86,13 @@ function fixture(
 }
 
 describe('ordered goldfish product correction', () => {
-  it('pins the supported target contracts while preserving Kingdom 009 aliases', () => {
-    expect(ORDERED_PRODUCT_SUPPORTED_KINGDOMS).toEqual([
-      'deep-beam-tuning-001', 'deep-beam-tuning-007', 'deep-beam-tuning-008', 'deep-beam-tuning-009'
-    ]);
-    expect(ORDERED_PRODUCT_SUPPORTED_KINGDOMS.map((kingdomId) => orderedProductTarget(kingdomId)))
-      .toEqual([
-        { kingdomId: 'deep-beam-tuning-001', version: 'k001-ordered-product-calibration-v1',
-          authorization: 'k001-ordered-product-calibration-v2', candidateProvenanceDigest: '8a4759823fa' },
-        { kingdomId: 'deep-beam-tuning-007', version: 'k007-ordered-product-calibration-v1',
-          authorization: 'k007-ordered-product-calibration-v2', candidateProvenanceDigest: '1573ad7d3fa' },
-        { kingdomId: 'deep-beam-tuning-008', version: 'k008-ordered-product-calibration-v1',
-          authorization: 'k008-ordered-product-calibration-v2', candidateProvenanceDigest: '6561f88940b' },
-        { kingdomId: ORDERED_PRODUCT_KINGDOM, version: ORDERED_PRODUCT_VERSION,
-          authorization: ORDERED_PRODUCT_VERSION,
-          candidateProvenanceDigest: ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST }
-      ]);
-    expect(() => orderedProductTarget('deep-beam-tuning-002')).toThrow('Unsupported ordered product kingdom');
+  it('pins the active ordered-product target contract', () => {
+    expect(ORDERED_PRODUCT_SUPPORTED_KINGDOMS).toEqual([ORDERED_PRODUCT_KINGDOM]);
+    expect(orderedProductTarget(ORDERED_PRODUCT_KINGDOM)).toEqual({
+      kingdomId: ORDERED_PRODUCT_KINGDOM, version: ORDERED_PRODUCT_VERSION,
+      authorization: ORDERED_PRODUCT_VERSION,
+      candidateProvenanceDigest: ORDERED_PRODUCT_CANDIDATE_PROVENANCE_DIGEST });
+    expect(() => orderedProductTarget('balance-tuning-002')).toThrow('Unsupported ordered product kingdom');
   });
 
   it.each(ORDERED_PRODUCT_SUPPORTED_KINGDOMS)(
@@ -121,8 +107,8 @@ describe('ordered goldfish product correction', () => {
   );
 
   it('derives current targets and proves each record belongs to its traversal position', () => {
-    const kingdomId = 'deep-beam-tuning-002', seeds = [11, 12, 13, 14] as const;
-    registerKingdom(deepBeamSuite.kingdoms.find((entry) => entry.id === kingdomId)!);
+    const kingdomId = 'balance-tuning-002', seeds = [11, 12, 13, 14] as const;
+    strategySearchKingdom(kingdomId);
     const artifact = fixture(kingdomId, seeds, CURRENT_ORDERED_PRODUCT_SCHEMA_VERSION);
     expect(artifact.version).toBe(CURRENT_ORDERED_PRODUCT_VERSION);
     expect(validateCurrentOrderedProductArtifact(artifact)).toBe(true);
@@ -144,7 +130,7 @@ describe('ordered goldfish product correction', () => {
   });
 
   it('builds and validates one coherent v2 reservoir and calibration source', () => {
-    const artifact = fixture('deep-beam-tuning-002', [11, 12, 13, 14], 2);
+    const artifact = fixture('balance-tuning-002', [11, 12, 13, 14], 2);
     const rankedSha256 = 'a'.repeat(64), reservoirSha256 = 'b'.repeat(64);
     const reservoir = buildOrderedProductReservoir(artifact, rankedSha256);
     expect(reservoir).toMatchObject({ schemaVersion: 2,
@@ -171,15 +157,10 @@ describe('ordered goldfish product correction', () => {
       .toThrow('entry 1 is invalid');
   });
 
-  it('accepts only the original seeds or one exact K007 replication set', () => {
-    for (const seeds of K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS) {
-      expect(validateOrderedProductArtifact(fixture('deep-beam-tuning-007', seeds))).toBe(true);
-      expect(validateOrderedProductArtifact(fixture('deep-beam-tuning-008', seeds))).toBe(false);
-    }
-    expect(validateOrderedProductArtifact(fixture('deep-beam-tuning-007',
-      [5_100_000, 5_100_001, 5_100_002, 7_100_003]))).toBe(false);
-    expect(validateOrderedProductArtifact(fixture('deep-beam-tuning-007',
-      [...K007_ORDERED_PRODUCT_REPLICATION_SEED_SETS[0]].reverse()))).toBe(false);
+  it('accepts only the original legacy artifact seeds', () => {
+    expect(validateOrderedProductArtifact(fixture())).toBe(true);
+    expect(validateOrderedProductArtifact(fixture(ORDERED_PRODUCT_KINGDOM,
+      [5_100_000, 5_100_001, 5_100_002, 5_100_003]))).toBe(false);
   });
 
   it('has identical ranked bytes for one process and uneven bounded shards, including a tie and empty shard', () => {

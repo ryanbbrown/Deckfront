@@ -14,7 +14,7 @@ import type {
   StrategySearchOperatorAdapter, StrategySearchRemoteStatus
 } from '../../scripts/strategy_search_campaign';
 
-function fixture(kingdomIds = ['deep-beam-tuning-007'], maxActiveCpus = 400) { const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-search-operator-'));
+function fixture(kingdomIds = ['balance-tuning-001'], maxActiveCpus = 400) { const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hexdeck-search-operator-'));
   execFileSync('git', ['init', '-q'], { cwd: root }); execFileSync('git', ['config', 'user.email', 'fixture@example.com'], { cwd: root });
   execFileSync('git', ['config', 'user.name', 'Fixture'], { cwd: root });
   fs.writeFileSync(path.join(root, 'package.json'), '{"name":"fixture"}\n');
@@ -120,7 +120,7 @@ describe('strategy-search operator', () => {
     const scientificPaths = JSON.parse(fs.readFileSync('strategy-search-scientific-files.json', 'utf8')) as string[];
     const sourceImage = deriveSourceImageIdentity({ expectedPaths, scientificPaths,
       files: expectedPaths.map((relative) => ({ path: relative, content: fs.readFileSync(relative) })) });
-    const parsed = deriveStrategySearch({ request: { kingdomIds: ['deep-beam-tuning-007'], maxActiveCpus: 400 },
+    const parsed = deriveStrategySearch({ request: { kingdomIds: ['balance-tuning-001'], maxActiveCpus: 400 },
       sourceImage }), bundle = createStrategySearchLaunchBundle(parsed);
     const taskIdDigest = createHash('sha256').update(bundle.tasks.map((task) => task.taskId).join('\n')).digest('hex');
     expect(parsed.kingdoms[0]!.evidenceId).toMatch(/^[0-9a-f]{64}$/);
@@ -168,7 +168,7 @@ describe('strategy-search operator', () => {
   });
 
   it('bounds Matrix fan-out by the global CPU cap', () => {
-    const held = fixture(['deep-beam-tuning-007'], 40);
+    const held = fixture(['balance-tuning-001'], 40);
     try {
       const bundle = createStrategySearchLaunchBundle(held.parsed);
       expect(bundle.tasks.filter((task) => task.stage === 'matrix-score')).toHaveLength(10);

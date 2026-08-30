@@ -38,7 +38,7 @@ import { compareUtf16 } from '../src/sim/utf16';
 import * as thresholdRacing from '../src/sim/thresholdRacingPsro';
 
 export const PILOT_VERSION = 'k007-threshold-racing-double-oracle-v1' as const;
-export const PILOT_KINGDOM = 'deep-beam-tuning-007' as const;
+export const PILOT_KINGDOM = 'balance-tuning-001' as const;
 export const SCREEN_DEPTHS = thresholdRacing.SCREEN_DEPTHS;
 export const CONFIRMATION_LOOKS = thresholdRacing.CONFIRMATION_LOOKS;
 export const RESPONSE_THRESHOLD = thresholdRacing.RESPONSE_THRESHOLD;

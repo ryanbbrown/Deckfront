@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { kingdomOf, registerKingdom, resetKingdoms } from '../../src/game';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import {
   deriveResponseCardRoles, proposeResponsePortfolio, responseDamageCores, responsePortfolioAllocation
 } from '../../src/sim/responsePortfolio';
@@ -11,8 +11,8 @@ import type { Strategy } from '../../src/sim/strategy';
 afterEach(() => resetKingdoms());
 
 function kingdom009() {
-  deepBeamSuite.register();
-  return kingdomOf('deep-beam-tuning-009');
+  strategySearchKingdom('balance-tuning-003');
+  return kingdomOf('balance-tuning-003');
 }
 function plan(slots: Parameters<typeof fixedBuyPlan>[0]): Strategy {
   return identify({ id: '', startingBuild: [], buyPlan: fixedBuyPlan(slots) });
@@ -35,8 +35,8 @@ describe('semantic response proposal portfolio', () => {
   });
 
   it('covers every feasible damage core and retains its cards and sampled hard enablers', () => {
-    deepBeamSuite.register();
-    const kingdom = kingdomOf('deep-beam-tuning-003');
+    strategySearchKingdom('balance-tuning-003');
+    const kingdom = kingdomOf('balance-tuning-003');
     const roles = deriveResponseCardRoles(kingdom);
     const cores = responseDamageCores(roles);
     const result = proposeResponsePortfolio({ kingdom, seed: 35_001, count: 500, excludedCanonical: new Set() });
@@ -72,8 +72,8 @@ describe('semantic response proposal portfolio', () => {
   });
 
   it('makes semantic recipes legal, damaging, useful, and free of cumulative no-ops', () => {
-    deepBeamSuite.register();
-    const kingdom = kingdomOf('deep-beam-tuning-001');
+    strategySearchKingdom('balance-tuning-001');
+    const kingdom = kingdomOf('balance-tuning-001');
     const roles = deriveResponseCardRoles(kingdom);
     const domain = stoplessRandomDomain(kingdom.id);
     const result = proposeResponsePortfolio({ kingdom, seed: 91, count: 300, excludedCanonical: new Set() });

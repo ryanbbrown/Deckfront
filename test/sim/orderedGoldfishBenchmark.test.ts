@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { registerKingdom, resetKingdoms } from '../../src/game';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import {
   candidateIndexAt, coprimeTraversalConfig, createOrderedCandidateSpace,
   orderedGoldfishCardIds, orderedGoldfishQuantityVectors, representativeCandidateIndices
@@ -9,7 +9,7 @@ import {
 afterEach(() => { resetKingdoms(); });
 
 function kingdom009Space(): ReturnType<typeof createOrderedCandidateSpace> {
-  const kingdom = deepBeamSuite.kingdoms.find((entry) => entry.id === 'deep-beam-tuning-009')!;
+  const kingdom = strategySearchKingdom('balance-tuning-003');
   registerKingdom(kingdom);
   return createOrderedCandidateSpace(orderedGoldfishCardIds(kingdom.id));
 }

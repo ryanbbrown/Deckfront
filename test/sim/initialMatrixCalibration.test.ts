@@ -1,6 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { registerKingdom } from '../../src/game';
-import { deepBeamSuite } from '../../src/sim/deepBeamSuite';
+import { strategySearchKingdom } from '../../src/sim/strategySearchKingdoms';
 import type { EquilibriumResult } from '../../src/sim/equilibrium';
 import {
   DIAGONAL_PURPOSE, OFF_DIAGONAL_PURPOSE, analyzeInitialMatrix,
@@ -16,9 +15,9 @@ import { emptyAggregate } from '../../src/sim/pairing';
 import { fixedBuyPlan } from '../../src/sim/strategy';
 import type { Strategy } from '../../src/sim/strategy';
 
-const kingdomId = 'deep-beam-tuning-001';
+const kingdomId = 'balance-tuning-001';
 
-beforeAll(() => registerKingdom(deepBeamSuite.kingdoms.find((kingdom) => kingdom.id === kingdomId)!));
+beforeAll(() => { strategySearchKingdom(kingdomId); });
 
 function strategy(id: string, cardId: string, desiredCount = 1): Strategy {
   return { id, startingBuild: [], buyPlan: fixedBuyPlan([{ kind: 'buy', cardId, desiredCount }]) };
