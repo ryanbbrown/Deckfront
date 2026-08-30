@@ -119,9 +119,9 @@ A search is clean when it produces no confirmed response. Unresolved results at 
 
 Each completed look writes one binary suffix file. Rows contain only the candidates that entered that look. A checkpoint records the next transition, current matrix, current families and queue, and immutable file references. Admission files hold the exact pair scores and telemetry needed to rebuild the expanded matrix.
 
-Writes use a temporary file, file sync, verification, rename, directory sync, and then a checkpoint update. On restart, Rust removes partial temporary files, adopts a valid renamed look that is ahead of its checkpoint, reconstructs score prefixes from committed looks, and continues with the first unfinished suffix. A corrupt final file stops the run instead of being overwritten.
+Writes use a temporary file, file sync, byte read-back against the in-memory buffer, rename, directory sync, and then a checkpoint update. They do not decode the temporary payload. On restart, Rust removes partial temporary files, adopts a valid renamed look that is ahead of its checkpoint, reconstructs score prefixes from committed looks, and continues with the first unfinished suffix. A corrupt final file stops the run instead of being overwritten.
 
-`decisions.hpd` records every final decision, admission, equilibrium snapshot, search result, and the two-clean-search stop. `psro-verify` replays the binary evidence from the original reservoir and matrix. Scientific files contain no paths, host data, thread counts, timestamps, or timings.
+`decisions.hpd` records every final decision, admission, equilibrium snapshot, search result, and the two-clean-search stop. A fresh default `psro` run writes it from live records and applies a structural completion check without semantic final replay. A resume from a complete checkpoint rebuilds the decisions and compares the existing file with the rebuilt payload. Deliberate `psro-verify` independently replays decisions and races, verifies look evidence, checks the scientific file set and final references, and verifies expanded Matrix files. Scientific files contain no paths, host data, thread counts, timestamps, or timings.
 
 # Save and validate the evidence
 

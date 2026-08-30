@@ -16,6 +16,12 @@ class Volume:
         self.commits += 1
 
 
+class FailingVolume(Volume):
+    def commit(self):
+        self.commits += 1
+        raise RuntimeError("broken commit")
+
+
 class PsroStepTests(unittest.TestCase):
     def executable(self, root: pathlib.Path, fail: bool = False) -> pathlib.Path:
         path = root / "fake.py"
@@ -46,10 +52,13 @@ print(json.dumps({'complete': True}))
             report = root / "report.json"
             volume = Volume()
             result = run_psro_step(str(binary), "kingdom", "top", "reservoir", "matrix",
-                str(root / "out"), 16, str(report), volume=volume)
+                str(root / "out"), 16, str(report), volume=volume,
+                local_root=root / "local")
             self.assertEqual(volume.commits, 2)
             self.assertEqual(result["report"], {"games": 12})
             self.assertEqual(result["files"]["decisions.hpd"]["bytes"], 8)
+            self.assertEqual(result["files"]["decisions.hpd"]["path"],
+                str(root / "out" / "decisions.hpd"))
             self.assertIsNone(result["verification"])
             self.assertFalse((root / "verified").exists())
 
@@ -74,11 +83,11 @@ print(json.dumps({'complete': True}))
             result = run_psro_step(str(binary), "kingdom", "top", "reservoir", "matrix",
                 str(root / "out"), 16, volume=volume, commit_interval_seconds=600,
                 on_checkpoint=lambda *values: checkpoints.append(values),
-                monotonic=lambda: next(times))
+                monotonic=lambda: next(times), local_root=root / "local")
             self.assertEqual(volume.commits, 2)
             self.assertEqual(result["commitCount"], 2)
             self.assertEqual(result["volumeCommitMs"], 5_000)
-            self.assertEqual(checkpoints, [(2, 22, 0, 0.0)])
+            self.assertEqual(checkpoints, [(2, 22, 0, 0.0), (3, 33, 1, 2_000.0)])
 
     def test_runs_deep_verification_when_requested(self):
         with tempfile.TemporaryDirectory() as held:
@@ -95,6 +104,28 @@ print(json.dumps({'complete': True}))
             with self.assertRaisesRegex(RuntimeError, "bounded failure"):
                 run_psro_step(str(binary), "kingdom", "top", "reservoir", "matrix",
                     str(root / "out"), 4)
+
+    def test_preserves_rust_failure_when_final_commit_also_fails(self):
+        with tempfile.TemporaryDirectory() as held:
+            root = pathlib.Path(held)
+            remote = root / "remote"
+            binary = root / "fail-after-write.py"
+            binary.write_text("""#!/usr/bin/env python3
+import pathlib, sys
+args=sys.argv[1:]
+out=pathlib.Path(args[args.index('--out')+1]); out.mkdir(parents=True, exist_ok=True)
+(out/'partial.hpl').write_bytes(b'partial evidence')
+print('rust stderr detail', file=sys.stderr)
+raise SystemExit(4)
+""")
+            binary.chmod(binary.stat().st_mode | stat.S_IXUSR)
+            volume = FailingVolume()
+            with self.assertRaisesRegex(RuntimeError,
+                    "Rust PSRO failed: rust stderr detail; final publish or commit failed: broken commit"):
+                run_psro_step(str(binary), "kingdom", "top", "reservoir", "matrix",
+                    str(remote), 4, volume=volume, local_root=root / "local")
+            self.assertEqual(volume.commits, 1)
+            self.assertEqual((remote / "partial.hpl").read_bytes(), b"partial evidence")
 
     def test_report_is_optional(self):
         with tempfile.TemporaryDirectory() as held:
@@ -170,11 +201,14 @@ print(json.dumps({'complete': True}))
         with tempfile.TemporaryDirectory() as held:
             root = pathlib.Path(held)
             remote = root / "remote"
+            (remote / "search-9999").mkdir(parents=True)
+            (remote / "search-9999" / "stale.hpl").write_bytes(b"remote stale")
             binary = root / "final.py"
             binary.write_text("""#!/usr/bin/env python3
 import json, pathlib, sys
 args=sys.argv[1:]
 out=pathlib.Path(args[args.index('--out')+1]); out.mkdir(parents=True, exist_ok=True)
+assert not (out/'search-9999'/'stale.hpl').exists()
 (out/'decisions.hpd').write_bytes(b'evidence')
 pathlib.Path(args[args.index('--report')+1]).write_text(json.dumps({'games': 9}))
 print(json.dumps({'complete': True}))
@@ -216,9 +250,9 @@ print(json.dumps({'complete': True}))
             volume = Volume()
             with self.assertRaisesRegex(RuntimeError, "Rust PSRO failed"):
                 run_psro_step(str(binary), "kingdom", "top", "reservoir", "matrix",
-                    str(root / "out"), 16, volume=volume)
+                    str(root / "out"), 16, volume=volume, local_root=root / "local")
             result = run_psro_step(str(binary), "kingdom", "top", "reservoir", "matrix",
-                str(root / "out"), 16, volume=volume)
+                str(root / "out"), 16, volume=volume, local_root=root / "local")
             self.assertEqual((root / "first-look-count").read_text(), "1")
             self.assertEqual(volume.commits, 4)
             self.assertIsNone(result["verification"])

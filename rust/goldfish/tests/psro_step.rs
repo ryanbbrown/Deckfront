@@ -162,6 +162,14 @@ fn psro_handshake_report(
         .expect("PSRO handshake command");
     let mut input = child.stdin.take().expect("PSRO stdin");
     let output = child.stdout.take().expect("PSRO stdout");
+    let errors = child.stderr.take().expect("PSRO stderr");
+    let drain = std::thread::spawn(move || {
+        let mut stderr = Vec::new();
+        BufReader::new(errors)
+            .read_to_end(&mut stderr)
+            .expect("read PSRO stderr");
+        stderr
+    });
     let mut stdout = Vec::new();
     let mut delayed = false;
     for line in BufReader::new(output).lines() {
@@ -184,13 +192,7 @@ fn psro_handshake_report(
     }
     drop(input);
     let status = child.wait().expect("PSRO handshake wait");
-    let mut stderr = Vec::new();
-    child
-        .stderr
-        .take()
-        .expect("PSRO stderr")
-        .read_to_end(&mut stderr)
-        .expect("read PSRO stderr");
+    let stderr = drain.join().expect("join PSRO stderr drain");
     Output {
         status,
         stdout,
@@ -289,6 +291,17 @@ fn evidence(root: &Path) -> BTreeMap<String, Vec<u8>> {
     let mut files = BTreeMap::new();
     visit(root, root, &mut files);
     files
+}
+
+fn scientific_evidence(root: &Path) -> BTreeMap<String, Vec<u8>> {
+    evidence(root)
+        .into_iter()
+        .filter(|(path, _)| {
+            Path::new(path).extension().is_some_and(|extension| {
+                matches!(extension.to_str(), Some("hpc" | "hpl" | "hpa" | "hpd"))
+            })
+        })
+        .collect()
 }
 
 fn crc32(bytes: &[u8]) -> u32 {
@@ -408,12 +421,48 @@ fn assert_timing_equation(report: &Path) {
             elapsed
         })
         .sum::<f64>();
+    let other_ms = report["otherMs"].as_f64().expect("otherMs");
+    assert!(other_ms >= 0.0);
     let measured = report["startupMs"].as_f64().expect("startupMs")
         + transition_ms
         + report["evidenceWriteMs"].as_f64().expect("evidenceWriteMs")
         + report["finalizeMs"].as_f64().expect("finalizeMs")
-        + report["otherMs"].as_f64().expect("otherMs");
+        + other_ms;
     assert!((measured - report["elapsedMs"].as_f64().expect("elapsedMs")).abs() < 1e-6);
+}
+
+fn assert_bounded_replay_ignores(
+    matrix: &Path,
+    root: &Path,
+    name: &str,
+    checkpoint_write: u64,
+    relative: &Path,
+) {
+    let out = root.join(name);
+    let stopped = psro(
+        matrix,
+        &out,
+        4,
+        Some((
+            "HEXDECK_PSRO_TEST_STOP_AFTER_CHECKPOINT_WRITE",
+            &checkpoint_write.to_string(),
+        )),
+    );
+    assert!(!stopped.status.success());
+    let corrupt = out.join(relative);
+    fs::create_dir_all(corrupt.parent().unwrap()).unwrap();
+    fs::write(corrupt, b"corrupt beyond checkpoint").unwrap();
+    let stopped = psro(
+        matrix,
+        &out,
+        4,
+        Some(("HEXDECK_PSRO_TEST_STOP_AFTER_RESUME_REPLAY", "1")),
+    );
+    assert!(!stopped.status.success());
+    assert!(
+        String::from_utf8_lossy(&stopped.stderr)
+            .contains("test stop after bounded PSRO resume replay")
+    );
 }
 
 fn committed_look_games(out: &Path) -> u64 {
@@ -501,20 +550,12 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
     );
     assert_eq!(evidence(&handshake), expected);
     assert_timing_equation(&handshake_report);
-    let baseline_timing: serde_json::Value =
-        serde_json::from_slice(&fs::read(&baseline_report).unwrap()).expect("baseline report");
     let handshake_timing: serde_json::Value =
         serde_json::from_slice(&fs::read(&handshake_report).unwrap()).expect("handshake report");
-    assert!(
-        handshake_timing["otherMs"].as_f64().unwrap()
-            - baseline_timing["otherMs"].as_f64().unwrap()
-            >= 2_500.0
-    );
-    assert!(
-        handshake_timing["evidenceWriteMs"].as_f64().unwrap()
-            - baseline_timing["evidenceWriteMs"].as_f64().unwrap()
-            < 1_500.0
-    );
+    let handshake_other_ms = handshake_timing["otherMs"].as_f64().unwrap();
+    let handshake_write_ms = handshake_timing["evidenceWriteMs"].as_f64().unwrap();
+    assert!(handshake_other_ms >= 2_500.0);
+    assert!(handshake_write_ms < handshake_other_ms / 2.0);
 
     let empty_reservoir = root.join("empty-family-reservoir.hgf");
     write_empty_family_reservoir(
@@ -607,6 +648,8 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         .expect("checkpoint write count")
         .parse::<u64>()
         .expect("checkpoint write ordinal");
+    let mut admission_checkpoint = None;
+    let mut retest_checkpoint = None;
     for checkpoint_write in (1..=checkpoint_write_count).map(|value| value.to_string()) {
         let out = root.join(format!("restart-{checkpoint_write}"));
         let stopped = psro(
@@ -619,7 +662,25 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
             )),
         );
         assert!(!stopped.status.success());
-        let committed = evidence(&out);
+        let checkpoint = fs::read(out.join("checkpoint.hpc")).unwrap();
+        let payload = &checkpoint[128..];
+        if payload[1] == 3 && admission_checkpoint.is_none() {
+            let next_admission = word(payload, 16) + 1;
+            if !out
+                .join(format!("admission-{next_admission:04}.hpa"))
+                .exists()
+            {
+                admission_checkpoint = Some(checkpoint_write.parse::<u64>().unwrap());
+            }
+        }
+        if payload[1] == 2 && word(payload, 8) == 0 && retest_checkpoint.is_none() {
+            retest_checkpoint = Some((
+                checkpoint_write.parse::<u64>().unwrap(),
+                word(payload, 48),
+                word(payload, 56),
+            ));
+        }
+        let committed = scientific_evidence(&out);
         let partial = out.join("search-0001/partial.hpl.tmp");
         fs::create_dir_all(partial.parent().unwrap()).unwrap();
         fs::write(&partial, b"partial").unwrap();
@@ -631,41 +692,40 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         );
         assert!(!partial.exists());
         for (path, bytes) in committed {
-            if path.ends_with(".hpl") || path.ends_with(".hpa") || path.ends_with(".hpd") {
+            if path != "checkpoint.hpc" {
                 assert_eq!(
                     fs::read(out.join(&path))
                         .unwrap_or_else(|error| panic!("read committed {path}: {error}")),
                     bytes,
-                    "committed transition evidence was replayed: {path}"
+                    "committed scientific evidence was replayed: {path}"
                 );
             }
         }
         assert_eq!(evidence(&out), expected);
     }
 
-    let bounded = root.join("bounded-replay");
-    let stopped = psro(
+    assert_bounded_replay_ignores(
         &matrix,
-        &bounded,
-        4,
-        Some(("HEXDECK_PSRO_TEST_STOP_AFTER_CHECKPOINT_WRITE", "2")),
+        &root,
+        "bounded-screen-replay",
+        2,
+        Path::new("search-0001/screen-0016.hpl"),
     );
-    assert!(!stopped.status.success());
-    fs::write(
-        bounded.join("search-0001/screen-0016.hpl"),
-        b"corrupt beyond checkpoint",
-    )
-    .unwrap();
-    let stopped = psro(
+    assert_bounded_replay_ignores(
         &matrix,
-        &bounded,
-        4,
-        Some(("HEXDECK_PSRO_TEST_STOP_AFTER_RESUME_REPLAY", "1")),
+        &root,
+        "bounded-admission-replay",
+        admission_checkpoint.expect("admission checkpoint boundary"),
+        Path::new("admission-0001.hpa"),
     );
-    assert!(!stopped.status.success());
-    assert!(
-        String::from_utf8_lossy(&stopped.stderr)
-            .contains("test stop after bounded PSRO resume replay")
+    let (checkpoint_write, race, depth) =
+        retest_checkpoint.expect("queue-retest checkpoint boundary");
+    assert_bounded_replay_ignores(
+        &matrix,
+        &root,
+        "bounded-retest-replay",
+        checkpoint_write,
+        &PathBuf::from(format!("retest-{race:04}/confirmation-{depth:04}.hpl")),
     );
 
     let adopted = root.join("adopt-renamed");

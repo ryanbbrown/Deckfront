@@ -112,6 +112,7 @@ def run_psro_step(
     commit_count = 0
     commit_ms = 0.0
     last_commit_at = monotonic()
+    latest_checkpoint: tuple[int, int] | None = None
 
     def commit_checkpoint(ordinal: int, crc: int) -> None:
         nonlocal commit_count, commit_ms, last_commit_at
@@ -122,48 +123,70 @@ def run_psro_step(
             _publish_local(rust_root, remote_root)
             volume.commit()
         except Exception as error:
-            process.kill()
-            process.wait()
-            _close_process(process)
             raise RuntimeError("PSRO Volume commit failed") from error
         finished = monotonic()
         commit_count += 1
         commit_ms += (finished - started) * 1000
         last_commit_at = finished
 
-    for raw in process.stdout:
-        line = raw.rstrip()
-        output.append(line)
-        if not line.startswith("checkpoint "):
-            continue
-        parts = line.split()
-        if len(parts) != 3 or not parts[1].isdigit() or not parts[2].isdigit() or volume is None:
+    loop_error: Exception | None = None
+    try:
+        for raw in process.stdout:
+            line = raw.rstrip()
+            output.append(line)
+            if not line.startswith("checkpoint "):
+                continue
+            parts = line.split()
+            if len(parts) != 3 or not parts[1].isdigit() or not parts[2].isdigit() or volume is None:
+                raise RuntimeError("Rust PSRO returned an invalid checkpoint handshake")
+            ordinal, crc = int(parts[1]), int(parts[2])
+            latest_checkpoint = (ordinal, crc)
+            if monotonic() - last_commit_at >= commit_interval_seconds:
+                commit_checkpoint(ordinal, crc)
+            process.stdin.write(f"committed {parts[1]}\n")
+            process.stdin.flush()
+    except Exception as error:
+        loop_error = error
+        if process.poll() is None:
             process.kill()
-            process.wait()
-            _close_process(process)
-            raise RuntimeError("Rust PSRO returned an invalid checkpoint handshake")
-        ordinal, crc = int(parts[1]), int(parts[2])
-        if monotonic() - last_commit_at >= commit_interval_seconds:
-            commit_checkpoint(ordinal, crc)
-        process.stdin.write(f"committed {parts[1]}\n")
-        process.stdin.flush()
     return_code = process.wait()
     drain.join(timeout=5)
     _close_process(process)
+
+    final_errors: list[Exception] = []
     if volume is not None:
+        if latest_checkpoint is not None and on_checkpoint is not None:
+            try:
+                on_checkpoint(*latest_checkpoint, commit_count, commit_ms)
+            except Exception as error:
+                final_errors.append(error)
         started = monotonic()
         try:
             _publish_local(rust_root, remote_root)
             volume.commit()
         except Exception as error:
-            raise RuntimeError("PSRO final Volume commit failed") from error
-        finished = monotonic()
-        commit_count += 1
-        commit_ms += (finished - started) * 1000
-        last_commit_at = finished
+            final_errors.append(error)
+        else:
+            finished = monotonic()
+            commit_count += 1
+            commit_ms += (finished - started) * 1000
+            last_commit_at = finished
+
+    diagnostic = "\n".join(errors)[-64 * 1024:] or "\n".join(output)[-64 * 1024:]
     if return_code:
-        diagnostic = "\n".join(errors)[-64 * 1024:] or "\n".join(output)[-64 * 1024:]
-        raise RuntimeError(f"Rust PSRO failed: {diagnostic}")
+        message = f"Rust PSRO failed: {diagnostic}"
+        if loop_error is not None:
+            message += f"; launcher failed: {loop_error}"
+        if final_errors:
+            message += f"; final publish or commit failed: {final_errors[-1]}"
+        raise RuntimeError(message) from (final_errors[-1] if final_errors else loop_error)
+    if loop_error is not None:
+        message = str(loop_error)
+        if final_errors:
+            message += f"; final publish or commit failed: {final_errors[-1]}"
+        raise RuntimeError(message) from loop_error
+    if final_errors:
+        raise RuntimeError(f"PSRO final publish or commit failed: {final_errors[-1]}") from final_errors[-1]
 
     verification = None
     if deep_verify:
@@ -171,7 +194,8 @@ def run_psro_step(
             "--top-file", top_file, "--reservoir", reservoir, "--matrix-dir", matrix_dir,
             "--out", str(rust_root)])
     root = rust_root
-    files = {path.relative_to(root).as_posix(): {"path": str(path), "bytes": path.stat().st_size}
+    files = {path.relative_to(root).as_posix(): {
+        "path": str(remote_root / path.relative_to(root)), "bytes": path.stat().st_size}
         for path in sorted(root.rglob("*")) if path.is_file()}
     parsed_report = json.loads(rust_report.read_text()) if rust_report is not None else None
     return {"out": str(remote_root), "files": files, "report": parsed_report,
