@@ -1518,7 +1518,7 @@ mod tests {
             checksum: crc32(&rows),
             source_checksum: 0,
             seeds: SEEDS,
-            fingerprint: "440ee0c6cd9".into(),
+            fingerprint: "a837315fcd9".into(),
         };
         let mut bytes = header.encode().expect("reservoir header").to_vec();
         bytes.extend(rows);
