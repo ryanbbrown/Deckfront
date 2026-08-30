@@ -242,6 +242,29 @@ fn confidence(values: &[u8], alpha: f64) -> Result<Bounds, String> {
     })
 }
 
+fn evaluate_candidates(
+    pool: &rayon::ThreadPool,
+    ordered_scores: &[Vec<u8>],
+    alpha: f64,
+) -> Result<Vec<(Bounds, u8)>, String> {
+    pool.install(|| {
+        ordered_scores
+            .par_iter()
+            .map(|scores| {
+                let bounds = confidence(scores, alpha)?;
+                let decision = if bounds.upper <= THRESHOLD {
+                    1
+                } else if bounds.lower > THRESHOLD {
+                    2
+                } else {
+                    0
+                };
+                Ok((bounds, decision))
+            })
+            .collect()
+    })
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct ScheduleEntry {
     seed: u32,
@@ -1047,21 +1070,15 @@ impl Runtime {
         });
         let game_ms = game_started.elapsed().as_secs_f64() * 1000.0;
         let evaluate_started = Instant::now();
-        let mut rows = Vec::with_capacity(active.len());
+        let mut cumulative_scores = Vec::with_capacity(active.len());
+        let mut telemetry = Vec::with_capacity(active.len());
         for (candidate_index, candidate) in active.iter().enumerate() {
             let start = candidate_index * suffix.len();
             let held = &results[start..start + suffix.len()];
             let points = held.iter().map(|entry| entry.0).collect::<Vec<_>>();
             let mut cumulative = prefixes.get(&candidate.number).cloned().unwrap_or_default();
             cumulative.extend_from_slice(&points);
-            let bounds = confidence(&cumulative, alpha)?;
-            let decision = if bounds.upper <= THRESHOLD {
-                1
-            } else if bounds.lower > THRESHOLD {
-                2
-            } else {
-                0
-            };
+            cumulative_scores.push(cumulative);
             let mut purchases = vec![0; card_count];
             let mut damage = [0; 5];
             for (_, held_purchases, held_damage) in held {
@@ -1072,15 +1089,25 @@ impl Runtime {
                     damage[family] += held_damage[family];
                 }
             }
-            rows.push(LookRow {
-                candidate: candidate.clone(),
-                decision,
-                bounds,
-                points,
-                purchases,
-                damage,
-            });
+            telemetry.push((points, purchases, damage));
         }
+        let evaluations = evaluate_candidates(&self.pool, &cumulative_scores, alpha)?;
+        let rows = active
+            .iter()
+            .cloned()
+            .zip(telemetry)
+            .zip(evaluations)
+            .map(
+                |((candidate, (points, purchases, damage)), (bounds, decision))| LookRow {
+                    candidate,
+                    decision,
+                    bounds,
+                    points,
+                    purchases,
+                    damage,
+                },
+            )
+            .collect();
         let evaluate_ms = evaluate_started.elapsed().as_secs_f64() * 1000.0;
         let games = (jobs * 2) as u64;
         self.games += games;
@@ -1150,8 +1177,8 @@ fn execute_race(runtime: &mut Runtime, state: &mut State, resumed: bool) -> Resu
         let previous = if index == 0 { 0 } else { depths[index - 1] };
         let suffix = &full_schedule[previous as usize..depth as usize];
         let path = look_path(&runtime.out, phase, state.search, state.race_ordinal, depth);
-        let (header, rows) = if index < committed || resumed && index == committed && path.exists()
-        {
+        let adopted = index < committed || resumed && index == committed && path.exists();
+        let (header, rows) = if adopted {
             let (header, payload) = read_evidence(&path, &runtime.source, look_kind(phase))?;
             let (stored_schedule, rows) = parse_look(&header, &payload)?;
             if header.matrix_generation != state.generation
@@ -1233,24 +1260,25 @@ fn execute_race(runtime: &mut Runtime, state: &mut State, resumed: bool) -> Resu
             (verified_header, rows)
         };
         for row in &rows {
-            let scores = prefixes
+            prefixes
                 .get_mut(&row.candidate.number)
-                .ok_or("look candidate is outside family")?;
-            scores.extend_from_slice(&row.points);
-            let expected = confidence(scores, alpha)?;
-            let expected_decision = if expected.upper <= THRESHOLD {
-                1
-            } else if expected.lower > THRESHOLD {
-                2
-            } else {
-                0
-            };
-            if row.bounds.mean.to_bits() != expected.mean.to_bits()
-                || row.bounds.lower.to_bits() != expected.lower.to_bits()
-                || row.bounds.upper.to_bits() != expected.upper.to_bits()
-                || row.decision != expected_decision
-            {
-                return Err("look confidence bits or decision differ".into());
+                .ok_or("look candidate is outside family")?
+                .extend_from_slice(&row.points);
+        }
+        if adopted {
+            let ordered_scores = rows
+                .iter()
+                .map(|row| prefixes[&row.candidate.number].clone())
+                .collect::<Vec<_>>();
+            let evaluations = evaluate_candidates(&runtime.pool, &ordered_scores, alpha)?;
+            for (row, (expected, expected_decision)) in rows.iter().zip(evaluations) {
+                if row.bounds.mean.to_bits() != expected.mean.to_bits()
+                    || row.bounds.lower.to_bits() != expected.lower.to_bits()
+                    || row.bounds.upper.to_bits() != expected.upper.to_bits()
+                    || row.decision != expected_decision
+                {
+                    return Err("look confidence bits or decision differ".into());
+                }
             }
         }
         let mut next = Vec::new();
@@ -2036,21 +2064,20 @@ fn replay_race(
                 path.display()
             ));
         }
+        for row in &rows {
+            prefixes
+                .get_mut(&row.candidate.number)
+                .ok_or("race row is outside the derived family")?
+                .extend_from_slice(&row.points);
+        }
+        let ordered_scores = rows
+            .iter()
+            .map(|row| prefixes[&row.candidate.number].clone())
+            .collect::<Vec<_>>();
+        let evaluations = evaluate_candidates(&runtime.pool, &ordered_scores, alpha)?;
         let at_cap = index + 1 == depths.len();
         let mut next = Vec::new();
-        for row in rows {
-            let prefix = prefixes
-                .get_mut(&row.candidate.number)
-                .ok_or("race row is outside the derived family")?;
-            prefix.extend_from_slice(&row.points);
-            let expected = confidence(prefix, alpha)?;
-            let status = if expected.upper <= THRESHOLD {
-                1
-            } else if expected.lower > THRESHOLD {
-                2
-            } else {
-                0
-            };
+        for (row, (expected, status)) in rows.into_iter().zip(evaluations) {
             if row.bounds.mean.to_bits() != expected.mean.to_bits()
                 || row.bounds.lower.to_bits() != expected.lower.to_bits()
                 || row.bounds.upper.to_bits() != expected.upper.to_bits()
@@ -2609,7 +2636,7 @@ fn parse_options(command: &str, args: &[String]) -> Result<Options, String> {
             }
             "--out" if options.out.is_none() => options.out = Some(value.into()),
             "--threads"
-                if matches!(command, "psro" | "self-play-backfill")
+                if matches!(command, "psro" | "psro-verify" | "self-play-backfill")
                     && options.threads.is_none() =>
             {
                 options.threads = Some(value.parse().map_err(|_| "--threads must be positive")?)
@@ -2647,6 +2674,9 @@ fn parse_options(command: &str, args: &[String]) -> Result<Options, String> {
     }
     if matches!(command, "psro" | "self-play-backfill") && options.threads.unwrap_or(0) == 0 {
         return Err(format!("{command} requires positive --threads"));
+    }
+    if command == "psro-verify" && options.threads == Some(0) {
+        return Err("psro-verify --threads must be positive".into());
     }
     if options.matrix_size.is_some() != options.candidate_limit.is_some() {
         return Err("--matrix-size and --candidate-limit must be explicit together".into());
@@ -3356,7 +3386,8 @@ fn verify_complete(runtime: &Runtime, state: &State) -> Result<(), String> {
 }
 
 fn run_verify(options: Options) -> Result<(), String> {
-    let (runtime, state, _) = prepare(&options, 1, false, true)?;
+    let threads = options.threads.unwrap_or(1);
+    let (runtime, state, _) = prepare(&options, threads, false, true)?;
     verify_complete(&runtime, &state)?;
     println!(
         "{}",
