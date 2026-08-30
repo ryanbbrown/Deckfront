@@ -496,9 +496,9 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
             u32::from_le_bytes(bytes[144..148].try_into().unwrap()),
         )
     });
-    assert_eq!(admissions, [(1_681_382, 13), (10_681_409, 22)]);
+    assert_eq!(admissions, [(681_379, 12), (9_681_406, 21)]);
     assert!(baseline.join("retest-0001/confirmation-0400.hpl").exists());
-    assert!(baseline.join("search-0004/screen-0512.hpl").exists());
+    assert!(baseline.join("search-0002/screen-0512.hpl").exists());
     let final_matrix = fs::read(baseline.join("matrix.hgm")).unwrap();
     let size = u32::from_le_bytes(final_matrix[16..20].try_into().unwrap()) as usize;
     let row_bytes = u32::from_le_bytes(final_matrix[8..12].try_into().unwrap()) as usize;
@@ -514,7 +514,7 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
             (weight > 1e-6).then_some(number)
         })
         .collect::<Vec<_>>();
-    assert_eq!(support, vec![10_681_409]);
+    assert_eq!(support, vec![12_681_415]);
     assert!(verify(&matrix, &baseline).status.success());
     assert!(verify_threads(&matrix, &baseline, Some(4)).status.success());
     let decisions = fs::read(baseline.join("decisions.hpd")).unwrap();
@@ -524,7 +524,7 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         .collect::<std::collections::HashSet<_>>();
     assert_eq!(
         terminal_statuses,
-        std::collections::HashSet::from([(0, 0), (0, 1), (0, 2), (1, 2), (2, 1)])
+        std::collections::HashSet::from([(0, 0), (0, 1), (0, 2), (1, 2), (2, 1), (2, 2)])
     );
     let expected = evidence(&baseline);
 
@@ -819,7 +819,7 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         serde_json::from_slice(&fs::read(report).unwrap()).expect("resume report");
     let resumed_games = report["totalGames"].as_u64().expect("total games");
     assert!(committed_games > 0 && resumed_games > 0);
-    assert_eq!(committed_games + resumed_games, 26_850);
+    assert_eq!(committed_games + resumed_games, 38_472);
     assert_eq!(evidence(&mid_confirmation), expected);
 
     let missing_self_play = root.join("missing-self-play");
@@ -892,7 +892,7 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         String::from_utf8_lossy(&backfill.stderr)
     );
     let summary: serde_json::Value = serde_json::from_slice(&backfill.stdout).unwrap();
-    assert_eq!(summary["scoredStrategyCount"], 2);
+    assert_eq!(summary["scoredStrategyCount"], 5);
     assert_eq!(fs::read(path).unwrap(), bytes);
 
     let omitted = root.join("semantic-omitted-candidate");
@@ -918,8 +918,8 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         |bytes| {
             let schedule = u32::from_le_bytes(bytes[72..76].try_into().unwrap()) as usize;
             let first_row = 128 + schedule * 8;
-            bytes[first_row..first_row + 4].copy_from_slice(&1_681_382u32.to_le_bytes());
-            bytes[first_row + 4..first_row + 8].copy_from_slice(&13u32.to_le_bytes());
+            bytes[first_row..first_row + 4].copy_from_slice(&681_379u32.to_le_bytes());
+            bytes[first_row + 4..first_row + 8].copy_from_slice(&12u32.to_le_bytes());
         },
     );
     assert!(!verify(&matrix, &admitted_screen).status.success());

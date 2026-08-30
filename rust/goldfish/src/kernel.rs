@@ -2859,7 +2859,7 @@ mod tests {
         assert!(!overload.play(Decision::Play(0, 0, None, false)));
         assert!(!overload.play(Decision::Play(0, 0, None, false)));
         assert_eq!(overload.mana_spent, 1);
-        assert_eq!(overload.health[1], 43);
+        assert_eq!(overload.health[1], 44);
     }
 
     #[test]
@@ -2880,12 +2880,12 @@ mod tests {
             ))
             .expect("beta");
         let fixtures = [
-            (false, &alpha, &beta, 91, false, "ochre", "victory", 50),
+            (false, &alpha, &beta, 91, false, "ochre", "victory", 38),
             (
-                false, &alpha, &beta, 4_200_001, true, "ochre", "victory", 51,
+                false, &alpha, &beta, 4_200_001, true, "ochre", "victory", 41,
             ),
             (
-                false, &beta, &alpha, 4_200_125, false, "indigo", "victory", 53,
+                false, &beta, &alpha, 4_200_125, false, "indigo", "victory", 35,
             ),
             (true, &alpha, &beta, 91, false, "ochre", "victory", 26),
             (true, &alpha, &beta, 4_200_001, true, "ochre", "victory", 25),
