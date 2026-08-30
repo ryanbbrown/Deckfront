@@ -1037,6 +1037,11 @@ print(json.dumps(result))
             for relative in paths}
         return config
 
+    def test_psro_wrapper_module_is_importable_from_the_image_layout(self):
+        self.assertEqual(launcher.MODAL_SOURCE_ROOT, launcher.PROJECT_ROOT / "modal")
+        self.assertIn(str(launcher.MODAL_SOURCE_ROOT), sys.path)
+        self.assertTrue((launcher.MODAL_SOURCE_ROOT / "psro_step.py").is_file())
+
     def test_psro_job_checks_inputs_and_writes_operational_reports(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)

@@ -17,6 +17,7 @@ import shutil
 import socket
 import struct
 import subprocess
+import sys
 import tarfile
 import tempfile
 import threading
@@ -65,6 +66,9 @@ LEDGER_PATH = pathlib.Path.home() / ".hexdeck-modal-cost-ledger.json"
 LOCAL_PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
 RUNTIME_WORKSPACE_ROOT = pathlib.Path(os.environ.get("HEXDECK_STRATEGY_WORKSPACE", "/workspace"))
 PROJECT_ROOT = LOCAL_PROJECT_ROOT if modal.is_local() else RUNTIME_WORKSPACE_ROOT
+MODAL_SOURCE_ROOT = PROJECT_ROOT / "modal"
+if str(MODAL_SOURCE_ROOT) not in sys.path:
+    sys.path.insert(0, str(MODAL_SOURCE_ROOT))
 _SOURCE_IMAGE_FILES = json.loads((PROJECT_ROOT / "strategy-search-image-files.json").read_text())
 if not isinstance(_SOURCE_IMAGE_FILES, list) or not _SOURCE_IMAGE_FILES \
         or len(set(_SOURCE_IMAGE_FILES)) != len(_SOURCE_IMAGE_FILES):
