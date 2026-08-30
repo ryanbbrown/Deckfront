@@ -225,9 +225,9 @@ describe('local GameService', () => {
     expect(restored).toMatchObject({ phase: 'action', turn: 1, completedBuilds: { ochre: [], indigo: [] }, canUndo: false });
     await expect(service.undoAction(game.id, restored.revision)).rejects.toThrow('There is no action to undo.');
   });
-  it('exports the current local game view with schema 13', async () => {
+  it('exports the current local game view with schema 14', async () => {
     const { service, game } = await setup(); const exported = await service.exportGame(game.id);
-    expect(exported).toMatchObject({ schemaVersion: 13, game: { schemaVersion: 13, id: game.id } });
+    expect(exported).toMatchObject({ schemaVersion: 14, game: { schemaVersion: 14, id: game.id } });
     expect(JSON.stringify(exported)).not.toMatch(/committedCommands|"command"/);
   });
 });
@@ -285,17 +285,17 @@ describe('persistence schema', () => {
       undone = await restarted.undoAction(created.id, undone.revision); expect((await restarted.getRecord(created.id)).state).toEqual(states[0]); expect(undone.canUndo).toBe(false);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
-  it('serializes concurrent file writes and leaves valid schema 13 state', async () => {
+  it('serializes concurrent file writes and leaves valid schema 14 state', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-lock-'));
     try {
       const repository = new FileGameRepository(directory); const service = new GameService(repository); const created = await service.create({ seed: 8 });
       await Promise.all([1, 2].map((marker) => repository.withLock(created.id, async () => { const record = await repository.load(created.id); await new Promise((resolve) => setTimeout(resolve, marker === 1 ? 5 : 0)); record.revision += 1; await repository.save(record); })));
-      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(13);
+      const saved = await repository.load(created.id); expect(saved.revision).toBe(2); expect(saved.schemaVersion).toBe(14);
     } finally { await rm(directory, { recursive: true, force: true }); }
   });
   it('rejects an older save with a specific message', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-old-')); const id = '11111111-1111-4111-8111-111111111111';
-    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 10 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 10 is not supported'); }
+    try { await writeFile(path.join(directory, `${id}.json`), JSON.stringify({ schemaVersion: 13 })); await expect(new FileGameRepository(directory).load(id)).rejects.toBeInstanceOf(UnsupportedSchemaError); await expect(new FileGameRepository(directory).load(id)).rejects.toThrow('schema 13 is not supported'); }
     finally { await rm(directory, { recursive: true, force: true }); }
   });
 });

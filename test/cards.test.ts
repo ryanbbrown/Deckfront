@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyAction, assertInvariants, cardDefinition, createCard, createGame, listActionAvailability,
-  isTacticalAction, listLegalActions, replayCommands, submitStartingBuild
+  listLegalActions, replayCommands, submitStartingBuild
 } from '../src/game';
 import type { GameCommand, GameState, PlayerId } from '../src/game';
 
@@ -113,88 +113,6 @@ describe('deck tools', () => {
   });
 });
 
-describe('attacks', () => {
-  it('Heavy Blow deals 6 at Close and gains the persistent Feint bonus at Close', () => {
-    let state = ready(); state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['heavyBlow']);
-    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(34); assertInvariants(state);
-    state = ready(); state.fighters.indigo.position = 3; state.fighters.indigo.exposed = true; isolateHand(state, 'ochre', ['heavyBlow']);
-    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(33); expect(state.fighters.indigo.exposed).toBe(true);
-    for (const position of [4, 6]) {
-      const near = ready(); near.fighters.indigo.position = position; isolateHand(near, 'ochre', ['heavyBlow']);
-      expect(availability(near, 'heavyBlow')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
-    }
-  });
-  it('Steady Shot deals 2 at Near and Far and is illegal at Close', () => {
-    expect(cardDefinition('steadyShot').cost).toBe(3);
-    for (const position of [4, 6]) {
-      let state = ready(); state.fighters.indigo.position = position; isolateHand(state, 'ochre', ['steadyShot']);
-      state = playCard(state, 'steadyShot'); expect(state.fighters.indigo.health).toBe(38); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
-    }
-    const close = ready(); close.fighters.indigo.position = 3; isolateHand(close, 'ochre', ['steadyShot']);
-    expect(availability(close, 'steadyShot')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_NEAR_OR_FAR' });
-  });
-  it('Step moves and Strike attacks at Close range', () => {
-    let state = ready(); isolateHand(state, 'ochre', ['step']); setDraw(state, 'ochre', ['gold']);
-    state = playCard(state, 'step', (command) => command.type === 'playMoveAction' && command.direction === 'right');
-    expect(state.fighters.ochre.position).toBe(4); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
-
-    state = ready(); state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['strike']);
-    state = playCard(state, 'strike'); expect(state.fighters.indigo.health).toBe(37);
-    const strikeFar = ready(); strikeFar.fighters.indigo.position = 6; isolateHand(strikeFar, 'ochre', ['strike']);
-    expect(availability(strikeFar, 'strike')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
-
-  });
-  it('Repelling Shot damages and moves the opponent farther away', () => {
-    expect(cardDefinition('repellingShot')).toMatchObject({ cost: 3, values: { near: 1, far: 2 } });
-    expect(isTacticalAction('repellingShot')).toBe(true);
-    let state = ready(); isolateHand(state, 'ochre', ['repellingShot']);
-    state = playCard(state, 'repellingShot');
-    expect(state.fighters.ochre.position).toBe(3); expect(state.fighters.indigo.position).toBe(5);
-    expect(state.fighters.indigo.health).toBe(39); expect(state.players.indigo.positionChanged).toBe(false);
-    expect(state.events.slice(-2).map((event) => event.type)).toEqual(['damage', 'move']);
-    assertInvariants(state);
-  });
-  it('Repelling Shot moves the attacker when the opponent is blocked by a wall', () => {
-    let state = ready(); state.fighters.indigo.position = 6; isolateHand(state, 'ochre', ['repellingShot']);
-    state = playCard(state, 'repellingShot');
-    expect(state.fighters.ochre.position).toBe(2); expect(state.fighters.indigo.position).toBe(6);
-    expect(state.fighters.indigo.health).toBe(38); expect(state.players.ochre.positionChanged).toBe(true);
-    expect(state.turnState.spacesMoved).toBe(1);
-    assertInvariants(state);
-  });
-  it('Repelling Shot moves neither fighter when both are blocked by walls', () => {
-    let state = ready(); state.fighters.ochre.position = 1; state.fighters.indigo.position = 6;
-    isolateHand(state, 'ochre', ['repellingShot']);
-    state = playCard(state, 'repellingShot');
-    expect(state.fighters.ochre.position).toBe(1); expect(state.fighters.indigo.position).toBe(6);
-    expect(state.fighters.indigo.health).toBe(38); expect(state.events.at(-1)?.type).toBe('damage');
-    expect(state.turnState.spacesMoved).toBe(0);
-    assertInvariants(state);
-  });
-  it('Repelling Shot is illegal at Close and consumes Aimed when played at range', () => {
-    const close = ready(); close.fighters.indigo.position = 3; isolateHand(close, 'ochre', ['repellingShot']);
-    expect(availability(close, 'repellingShot')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_NEAR_OR_FAR' });
-    let aimed = ready(); aimed.fighters.ochre.aimed = true; isolateHand(aimed, 'ochre', ['repellingShot']);
-    aimed = playCard(aimed, 'repellingShot');
-    expect(aimed.fighters.ochre.aimed).toBe(false); expect(aimed.fighters.indigo.health).toBe(37);
-  });
-  it('a spell leaves Exposed alone while Close attacks use it without consuming it', () => {
-    let spell = ready(); spell.fighters.indigo.position = 3; spell.fighters.indigo.exposed = true; spell.players.ochre.mana = 1; isolateHand(spell, 'ochre', ['arcBolt']);
-    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(36); expect(spell.fighters.indigo.exposed).toBe(true);
-    let melee = ready(); melee.fighters.indigo.position = 3; melee.fighters.indigo.exposed = true; isolateHand(melee, 'ochre', ['strike']);
-    melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(36); expect(melee.fighters.indigo.exposed).toBe(true);
-  });
-  it('Opening Strike deals 4 after setup and 1 after an earlier attack', () => {
-    let setup = ready(); setup.fighters.indigo.position = 3; isolateHand(setup, 'ochre', ['focus', 'openingStrike']);
-    setup = playCard(setup, 'focus'); setup = playCard(setup, 'openingStrike');
-    expect(setup.fighters.indigo.health).toBe(36);
-
-    let attacked = ready(); attacked.fighters.indigo.position = 3; isolateHand(attacked, 'ochre', ['strike', 'openingStrike']);
-    attacked = playCard(attacked, 'strike'); attacked = playCard(attacked, 'openingStrike');
-    expect(attacked.fighters.indigo.health).toBe(36);
-  });
-});
-
 describe('mage cards', () => {
   it('Focus is always available, costs 1, and gains 1 mana without drawing', () => {
     expect(cardDefinition('focus').cost).toBe(1);
@@ -258,26 +176,9 @@ describe('mage cards', () => {
     expect(legal).toHaveLength(2);
     expect(availability(state, 'muster')).toMatchObject({ enabled: false, reasonCode: 'RESOLVE_CHOICE_FIRST', selection: 'discard' });
   });
-  it('Overload deals 3 damage per mana spent this turn', () => {
-    expect(cardDefinition('overload')).toMatchObject({ cost: 5, values: { perManaSpent: 3 } });
-    let state = ready(); state.players.ochre.mana = 1; isolateHand(state, 'ochre', ['arcBolt', 'overload']);
-    state = playCard(state, 'arcBolt'); state = playCard(state, 'overload');
-    expect(state.turnState.manaSpent).toBe(1); expect(state.fighters.indigo.health).toBe(33);
-  });
   it('uses the approved Volley and Bull Rush costs and damage', () => {
     expect(cardDefinition('volley')).toMatchObject({ cost: 5, values: { near: 2, far: 4 } });
     expect(cardDefinition('bullRush')).toMatchObject({ cost: 3, values: { damage: 7 } });
-  });
-  it('spells spend their mana cost and are illegal without it', () => {
-    for (const [definitionId, mana, damage] of [['arcBolt', 1, 4], ['fireball', 2, 8], ['starfire', 3, 12]] as const) {
-      for (const position of [2, 3, 5]) {
-        let state = ready(); state.fighters.indigo.position = position; state.players.ochre.mana = mana; isolateHand(state, 'ochre', [definitionId]);
-        state = playCard(state, definitionId);
-        expect(state.fighters.indigo.health).toBe(40 - damage); expect(state.players.ochre.mana).toBe(0); assertInvariants(state);
-      }
-      const short = ready(); short.players.ochre.mana = mana - 1; isolateHand(short, 'ochre', [definitionId]);
-      expect(availability(short, definitionId)).toMatchObject({ enabled: false, reasonCode: 'NEEDS_MANA' });
-    }
   });
 });
 

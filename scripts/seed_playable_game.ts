@@ -50,7 +50,7 @@ async function writeGame(
   const now = new Date().toISOString();
   const initialState = createGame({ seed, firstPlayerId: 'ochre', kingdomId: kingdom.id, startingDraftEnabled });
   await new FileGameRepository(dataDirectory).create({
-    schemaVersion: 13, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
+    schemaVersion: 14, id, revision: 0, createdAt: now, updatedAt: now, finishedAt: null,
     completedActions: 0, durationSeconds: null, buildProposal: [],
     kingdom, startingDraftEnabled, mode: 'ai', humanPlayerId, aiDifficulty: 'expert',
     aiStrategy: strategy, training: training as { elapsedMs: number; matches: number; strategyId: string },

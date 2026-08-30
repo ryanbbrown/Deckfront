@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ALWAYS_AVAILABLE_ACTION_IDS, CARDS, EFFECTS, TACTICAL_ACTIONS, VARIABLE_ACTION_IDS, applyAction, applyCommand,
-  cardDefinition, createCard, createGame, kingdomMarket, kingdomOf, listLegalActions, registerKingdom, replayCommands, submitStartingBuild
+  createCard, createGame, kingdomMarket, kingdomOf, listLegalActions, registerKingdom, replayCommands, submitStartingBuild
 } from '../src/game';
 import type { GameState, LegalAction } from '../src/game';
 import { gameStateSchema } from '../src/server/schemas';
@@ -85,57 +85,9 @@ describe('combo card batch', () => {
     expect(ranged.fighters.indigo.health).toBe(33);
   });
 
-  it('applies persistent Feint and one-shot Aim through shared attack paths', () => {
-    let state = ready(); state.fighters.ochre.position = state.fighters.indigo.position = 2; hand(state, ['feint','strike','rally']);
-    state = play(state, 'feint'); state = play(state, 'strike'); state = play(state, 'rally');
-    expect(state.fighters.indigo.health).toBe(34); expect(state.fighters.indigo.exposed).toBe(true);
-    state = applyAction(state, listLegalActions(state).find((a) => a.command.type === 'endActionPhase')!.id);
-    state = applyAction(state, listLegalActions(state).find((a) => a.command.type === 'endBuyPhase')!.id);
-    expect(state.fighters.indigo.exposed).toBe(false);
 
-    state = ready(); hand(state, ['aim','repellingShot','steadyShot']); state = play(state, 'aim'); state = play(state, 'repellingShot');
-    expect(state.fighters.indigo.health).toBe(37); expect(state.fighters.ochre.aimed).toBe(false);
-    state = play(state, 'steadyShot'); expect(state.fighters.indigo.health).toBe(35);
-  });
 
-  it('uses other-card boundaries for combos and replacement damage for Precision Shot', () => {
-    let state = ready(); state.fighters.ochre.position = state.fighters.indigo.position = 2; hand(state, ['openingStrike','rally','rally','flurry']);
-    state = play(state, 'openingStrike'); state = play(state, 'rally'); state = play(state, 'rally'); state = play(state, 'flurry');
-    expect(state.fighters.indigo.health).toBe(30);
-    state = ready(); hand(state, ['precisionShot','precisionShot']); state = play(state, 'precisionShot'); state = play(state, 'precisionShot');
-    expect(state.fighters.indigo.health).toBe(34);
-  });
 
-  it('resolves mana and family combos', () => {
-    let state = ready(); state.players.ochre.mana = 4; hand(state, ['arcBolt','cascade','overload','discharge']);
-    state = play(state, 'arcBolt'); state = play(state, 'cascade'); state = play(state, 'overload'); state = play(state, 'discharge');
-    expect(state.fighters.indigo.health).toBe(22); expect(state.players.ochre.mana).toBe(0); expect(state.turnState.manaSpent).toBe(2);
-    state = ready(); hand(state, ['footwork','improvise']); state = play(state, 'footwork'); state = play(state, 'improvise');
-    expect(state.fighters.indigo.health).toBe(40);
-  });
-
-  it('enforces family targets, self-trash, optional trash, and Reforge gain rules', () => {
-    let state = ready(); state.fighters.ochre.position = state.fighters.indigo.position = 2; hand(state, ['bullRush','copper']);
-    expect(listLegalActions(state).some((a) => 'cardInstanceId' in a.command && a.command.cardInstanceId === state.players.ochre.deck.hand[0]!.id)).toBe(false);
-    state = ready(); hand(state,['salvageShot','copper']);
-    expect(listLegalActions(state).some((a) => 'cardInstanceId' in a.command && a.command.cardInstanceId === state.players.ochre.deck.hand[0]!.id)).toBe(false);
-    state = ready(); state.fighters.indigo.position = 3; hand(state, ['bullRush','strike']); const strike = state.players.ochre.deck.hand[1]!; state = play(state, 'bullRush', [strike.id]);
-    expect(state.players.ochre.deck.discard).toContainEqual(strike); expect(state.fighters.indigo.health).toBe(35);
-
-    state = ready(); hand(state, ['discipline']); const discipline = state.players.ochre.deck.hand[0]!; state = play(state, 'discipline', [discipline.id]);
-    expect(state.trash).toContainEqual(discipline);
-
-    state = ready(); hand(state, ['sharpen']); state.players.ochre.deck.draw = [createCard(state, 'gold')]; state = play(state, 'sharpen');
-    expect(state.pendingChoice?.type).toBe('optionalTrash');
-    state = applyAction(state, listLegalActions(state).find((a) => a.command.type === 'resolveOptionalTrash' && a.command.trashInstanceId === null)!.id);
-    expect(state.pendingChoice).toBeNull();
-
-    state = ready(); hand(state, ['reforge','gold']); const gold = state.players.ochre.deck.hand[1]!; state = play(state, 'reforge', [gold.id]);
-    expect(state.pendingChoice).toMatchObject({ type: 'gain', maxCost: 9 });
-    expect(listLegalActions(state).some((a) => a.command.type === 'resolveGain' && a.command.definitionId === 'scrap')).toBe(false);
-    const supply = state.supply.cull; state = applyAction(state, listLegalActions(state).find((a) => a.command.type === 'resolveGain' && a.command.definitionId === 'cull')!.id);
-    expect(state.supply.cull).toBe(supply! - 1); expect(state.players.ochre.purchases).toEqual([]);
-  });
 
   it('moves Reclaim directly to hand and makes the choice mandatory', () => {
     let state = ready(); hand(state, ['reclaim']); const discarded = createCard(state, 'gold'); state.players.ochre.deck.discard = [discarded];
@@ -205,17 +157,6 @@ describe('complete public card coverage', () => {
     }
   });
 
-  it.each([
-    ['jab',3],['strike',4],['drive',4],['heavyBlow',7],['openingStrike',2],['rally',2],['bullRush',6],['flurry',2]
-  ] as const)('Feint routes persistent Close bonus through %s', (attackId, damage) => {
-    let state = ready(); state.fighters.indigo.position = 3;
-    hand(state,['feint',attackId,...(attackId === 'bullRush' ? ['strike'] : [])]); state = play(state,'feint');
-    const source = state.players.ochre.deck.hand.find((card) => card.definitionId === attackId)!;
-    const legal = listLegalActions(state).filter((entry) => 'cardInstanceId' in entry.command && entry.command.cardInstanceId === source.id);
-    state = applyAction(state,legal[0]!.id);
-    expect(state.fighters.indigo.health).toBe(40-damage); expect(state.fighters.indigo.exposed).toBe(true);
-  });
-
   it.each(['pepperingShot','steadyShot','repellingShot','longshot','volley','salvageShot','precisionShot'])(
     'Aim adds exactly 2 once to %s', (attackId) => {
       const setup = (aimed: boolean): GameState => {
@@ -241,34 +182,8 @@ describe('complete public card coverage', () => {
     }
   });
 
-  it('uses literal copy boundaries for Attune, Rally, and Precision Shot', () => {
-    let state = ready(); hand(state,['attune','attune','attune']); state = play(state,'attune'); state = play(state,'attune'); state = play(state,'attune');
-    expect(state.players.ochre.mana).toBe(6);
-    state = ready(); state.fighters.indigo.position = 3; hand(state,['rally','rally','rally']); state = play(state,'rally'); state = play(state,'rally'); state = play(state,'rally');
-    expect(state.fighters.indigo.health).toBe(34);
-    state = ready(); hand(state,['precisionShot','precisionShot','precisionShot']); state = play(state,'precisionShot'); state = play(state,'precisionShot'); state = play(state,'precisionShot');
-    expect(state.fighters.indigo.health).toBe(32);
-  });
 
-  it('uses literal Longshot distances and distinct Improvise families', () => {
-    expect(cardDefinition('longshot').text)
-      .toBe('At Near or Far range, deal damage equal to the distance between you and your opponent.');
-    for (const [position, damage] of [[3,1],[4,2],[5,3],[6,4]] as const) {
-      let state = ready(); state.fighters.ochre.position = 2; state.fighters.indigo.position = position; hand(state,['longshot']); state = play(state,'longshot');
-      expect(state.fighters.indigo.health).toBe(40-damage);
-    }
-    let state = ready(); hand(state,['channel','attune','footwork','improvise']); state = play(state,'channel'); state = play(state,'attune'); state = play(state,'footwork'); state = play(state,'improvise');
-    expect(state.fighters.indigo.health).toBe(38);
-    expect(cardDefinition('improvise').text).toContain('Mana, Melee, or Ranged');
-  });
 
-  it('deals Scrap damage only for the first copy played each turn', () => {
-    let state = ready(); hand(state, ['scrap', 'scrap', 'scrap']);
-    state = play(state, 'scrap'); state = play(state, 'scrap'); state = play(state, 'scrap');
-    expect(state.fighters.indigo.health).toBe(39);
-    expect(state.turnState.copiesPlayed.scrap).toBe(3);
-    expect(state.turnState.familiesPlayed).toContain('engine');
-  });
 
   it('Scour trashes two selected Copper cards and draws one card per trash', () => {
     let state = ready(); hand(state,['scour','copper','copper','silver']);

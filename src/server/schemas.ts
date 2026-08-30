@@ -144,7 +144,7 @@ const trainingSchema = z.object({
 });
 
 export const gameRecordSchema = z.object({
-  schemaVersion: z.literal(13),
+  schemaVersion: z.literal(14),
   id: z.string().uuid(),
   revision: z.number().int().nonnegative(),
   createdAt: z.string().datetime(),

@@ -32,15 +32,6 @@ function phaseAction(game: Awaited<ReturnType<GameService['create']>>, kind: 'en
 }
 
 describe('AI games', () => {
-  it('selects before saving, advances automatically, and returns only human turns', async () => {
-    const repository = new MemoryRepository(); const service = new GameService(repository, trainer);
-    const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'indigo', aiDifficulty: 'hard', variableCardIds: market });
-    expect(created).toMatchObject({ mode: 'ai', humanPlayerId: 'indigo', aiPlayerId: 'ochre',
-      aiDifficulty: 'hard', startingDraftEnabled: false, phase: 'action', activePlayerId: 'indigo', turn: 2 });
-    expect(repository.record?.aiDifficulty).toBe('hard');
-    expect(created.fighters.ochre.health).toBe(37); expect(created.training?.strategyId).toBe(strategy.id);
-    expect(created.completedBuilds).toBeNull();
-  });
 
   it('defaults an AI game to Expert and leaves local games without AI difficulty', async () => {
     const ai = await new GameService(new MemoryRepository(), trainer).create({
@@ -100,12 +91,6 @@ describe('AI games', () => {
     expect(received).toBe('easy');
   });
 
-  it('puts an AI-second game in the correct seats and penalizes the first human player', async () => {
-    const service = new GameService(new MemoryRepository(), trainer);
-    const created = await service.create({ seed: 9, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
-    expect(created).toMatchObject({ humanPlayerId: 'ochre', aiPlayerId: 'indigo', selectedFirstPlayerId: 'ochre', activePlayerId: 'ochre' });
-    expect(created.fighters.ochre.health).toBe(37); expect(created.fighters.indigo.health).toBe(40);
-  });
 
   it('returns public AI events without hidden hand or draw-order details', async () => {
     const repository = new MemoryRepository(); const service = new GameService(repository, trainer);

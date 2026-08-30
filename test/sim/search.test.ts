@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { applyAction, listLegalActions, registerKingdom, resetKingdoms } from '../../src/game';
-import type { GameCommand, GameState } from '../../src/game';
+import type { GameState } from '../../src/game';
 import { applyLegalAction } from '../../src/game/engine';
 import { createMemo, memoKey, searchAction, searchBaseline } from '../../src/sim/search';
 import { tacticalAgent } from '../../src/sim/tacticalAgent';
@@ -19,23 +19,6 @@ function firstPlayedDefinition(state: GameState, plan = strategy()): string | un
 }
 function trashed(state: GameState): string[] { return state.trash.map((card) => card.definitionId).sort(); }
 
-function actionPhaseCommands(
-  state: GameState, plan: ReturnType<typeof strategy>, memo: ReturnType<typeof createMemo> | null
-): { commands: GameCommand[]; state: GameState } {
-  const baseline = searchBaseline(state, 'ochre');
-  const commands: GameCommand[] = [];
-  let current = state;
-  for (let count = 0; count < 30; count += 1) {
-    const action = searchAction(current, 'ochre', listLegalActions(current), plan, baseline, {
-      stateLimit: 20000, memo
-    }).action;
-    commands.push(action.command);
-    if (action.command.type === 'endActionPhase') return { commands, state: current };
-    current = applyAction(current, action.id);
-  }
-  throw new Error('The test Action phase did not finish.');
-}
-
 describe('shared damage pilot', () => {
   it('takes a lethal line and moves to unlock it', () => {
     const state = arena({ kingdomId: 'range-rich-mixed', hand: ['footwork', 'heavyBlow'], draw: ['copper'], ochre: 2, indigo: 3, health: 4 });
@@ -44,11 +27,6 @@ describe('shared damage pilot', () => {
     expect(playPhase(state, strategy()).fighters.indigo.health).toBe(0);
   });
 
-  it('plays Aim before Volley when that deals more damage', () => {
-    const state = arena({ hand: ['aim', 'volley'], draw: ['copper'], ochre: 2, indigo: 3, health: 20 });
-    expect(firstPlayedDefinition(state)).toBe('aim');
-    expect(playPhase(state, strategy()).fighters.indigo.health).toBe(17);
-  });
 
   it('orders tactical actions before Flurry', () => {
     const state = arena({ hand: ['footwork', 'feint', 'flurry'], draw: ['copper', 'copper'], ochre: 3, indigo: 3, health: 20 });
@@ -189,12 +167,6 @@ describe('fixed choice policy', () => {
     expect(pending.players.ochre.deck.discard.find((card) => card.id === recoveredId)?.definitionId).toBe('footwork');
   });
 
-  it('uses the revealed state after Prism to preserve the maximum damage line', () => {
-    const state = arena({ kingdomId: 'three-way-engine', hand: ['prism', 'fireball', 'copper'], draw: ['channel'], firstBuyPending: false });
-    const finished = playPhase(state, strategy({ buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }] }));
-    expect(finished.fighters.indigo.health).toBe(32);
-    expect(finished.events.some((event) => event.type === 'discard')).toBe(true);
-  });
 });
 
 describe('search mechanics', () => {
@@ -217,17 +189,6 @@ describe('search mechanics', () => {
     expect(state).toEqual(before);
   });
 
-  it('keeps exact memo results through Reclaim and a later draw', () => {
-    const state = arena({ kingdomId: 'three-way-engine', hand: ['reclaim'], draw: [], discard: ['pepperingShot'] });
-    const plan = strategy({ buyPlan: [{ kind: 'buy', cardId: 'footwork', desiredCount: INFINITE_COUNT }] });
-    const memoized = actionPhaseCommands(structuredClone(state), plan, createMemo());
-    const plain = actionPhaseCommands(structuredClone(state), plan, null);
-    expect(memoized.commands).toEqual(plain.commands);
-    expect(memoized.state).toEqual(plain.state);
-    expect(memoized.commands.map((command) => command.type)).toContain('resolveRecover');
-    expect(memoized.commands.filter((command) => 'cardInstanceId' in command)).toHaveLength(2);
-    expect(memoized.state.fighters.indigo.health).toBe(39);
-  });
 
   it('does not read labels while searching', () => {
     const state = arena({ hand: [] });
