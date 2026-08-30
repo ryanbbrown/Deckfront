@@ -123,12 +123,13 @@ The full campaign route, any Rust change, the 130-kingdom run, the 160-kingdom r
 - The plan output for one kingdom at 32 cores and 512 CPUs shows 2 tasks, 16 containers, and a 707 s `kingdom-one` timeout.
 - The writer runs no Modal command and no paid operation.
 
-## Operational validation (main agent, after the implementation review)
+## Operational validation (main agent, after the implementation review; measured 2026-08-30)
 
-1. Local reference run of `balance-tuning-005`: done, both finals byte-identical to the Modal v1 evidence (see Measured problem).
-2. Unpaid Volume read: `download --compare-with .data/starfire-12-balance-88` for execution `d6b0497a…` into a scratch root; every scientific file identical; wall at most 90 s.
-3. Paid smoke under the $100 cap: kingdoms `balance-tuning-001`, `002`, `003`, `004`, `006`, `008`, `012`, `016`. Goldfish v2 at 32 cores, `maxActiveCpus` 256, `maxWallSeconds` 1800; a local reference run of `balance-tuning-001` must equal the downloaded bytes. Then local Matrix, PSRO at 16 cores and 128 CPUs, parallel download, structural validation. Targets, not promises: 2.5–4 min per kingdom, at most 6 min controller wall for the 8 kingdoms, PSRO download for 30 kingdoms at most 90 s.
-4. Authorized destructive cleanup: `modal volume rm -r hexdeck-native-strategy-results evidence/<id>/tasks` for the 30 existing evidence IDs.
+1. Local reference run of `balance-tuning-005`: both finals byte-identical to the Modal v1 evidence (see Measured problem).
+2. Unpaid Volume read, execution `d6b0497a…`, 30 kingdoms re-downloaded into a scratch root with `--compare-with .data/starfire-12-balance-88`: 1,690 of 1,690 scientific files identical, structural validation valid for 30 of 30, download 37.0 s for 1.43 GB at concurrency 16 (525 s before), 47 s for the whole command including validation and comparison; per-file wall p50 306 ms, p90 520 ms. The first attempt hit `VolumeListFiles rate limit exceeded` after 30 back-to-back listings; the single-listing fix (D7) resolved it.
+3. Paid Goldfish v2 smoke, execution `271de9f4…`, kingdoms `balance-tuning-001`, `002`, `003`, `004`, `006`, `008`, `012`, `016` at 32 cores, 256 CPUs: status complete, 16 tasks, 0 retries. Controller wall 187.7 s (919 s for the 16-kingdom v1 run); per-kingdom wall 117–152 s; `kingdom-one` worker 91.7 s mean (in-container `score-one` 63–90 s, `reduce-one` 8–10 s), `kingdom-two` worker 8.6 s mean; Modal queue delay 11.5 s mean, 16.1 s max for 32-core containers; CPU utilization 53.5% (21–26% before); Volume bytes written 276 MB and read 256 MB (13.4 GiB and 14.8 GiB before); final download 5.0 s for 16 files; scratch free 8 GiB in every container; measured cost $0.3545 against a $11.29 worst-case guard; operator total 246.8 s including deploy 10.6 s, readiness 20.2 s, and preparation 10.5 s. `balance-tuning-001` finals byte-identical to a local 8-thread reference run (`6c4df486…`, `08d7f4eb…`); Rust `verify` passed on all 16 finals. `intermediateIoRatio` is 0.18 and now measures container-local disk I/O. Local Matrix for the 8 kingdoms: 21 s, all valid.
+4. Paid PSRO smoke, execution `b695aa14…`, the same 8 kingdoms at 16 cores and 128 CPUs: see the result note below.
+5. Authorized destructive cleanup: `modal volume rm -r hexdeck-native-strategy-results evidence/<id>/tasks` for the 30 existing evidence IDs: 30 removed, 0 failed, 36 s.
 
 ## Implementation order
 
