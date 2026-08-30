@@ -85,9 +85,30 @@ describe('combo card batch', () => {
     expect(ranged.fighters.indigo.health).toBe(33);
   });
 
+  it('enforces self-trash, optional-trash, and Reforge gain rules', () => {
+    let state = ready(); hand(state, ['discipline']);
+    const discipline = state.players.ochre.deck.hand[0]!;
+    state = play(state, 'discipline', [discipline.id]);
+    expect(state.trash).toContainEqual(discipline);
 
+    state = ready(); hand(state, ['sharpen']);
+    state.players.ochre.deck.draw = [createCard(state, 'gold')]; state = play(state, 'sharpen');
+    expect(state.pendingChoice?.type).toBe('optionalTrash');
+    state = applyAction(state, listLegalActions(state).find((entry) =>
+      entry.command.type === 'resolveOptionalTrash' && entry.command.trashInstanceId === null)!.id);
+    expect(state.pendingChoice).toBeNull();
 
-
+    state = ready(); hand(state, ['reforge', 'gold']);
+    const gold = state.players.ochre.deck.hand[1]!; state = play(state, 'reforge', [gold.id]);
+    expect(state.pendingChoice).toMatchObject({ type: 'gain', maxCost: 9 });
+    expect(listLegalActions(state).some((entry) =>
+      entry.command.type === 'resolveGain' && entry.command.definitionId === 'scrap')).toBe(false);
+    const supply = state.supply.cull;
+    state = applyAction(state, listLegalActions(state).find((entry) =>
+      entry.command.type === 'resolveGain' && entry.command.definitionId === 'cull')!.id);
+    expect(state.supply.cull).toBe(supply! - 1);
+    expect(state.players.ochre.purchases).toEqual([]);
+  });
 
   it('moves Reclaim directly to hand and makes the choice mandatory', () => {
     let state = ready(); hand(state, ['reclaim']); const discarded = createCard(state, 'gold'); state.players.ochre.deck.discard = [discarded];
@@ -108,7 +129,6 @@ describe('combo card batch', () => {
     expect(rulesFingerprint('distance-duel').hash).not.toBe(rulesFingerprint('distance-duel', undefined, undefined, false).hash);
   });
 });
-
 
 describe('complete public card coverage', () => {
   const melee = new Set(['feint','jab','strike','drive','heavyBlow','openingStrike','rally','bullRush','flurry']);
@@ -182,9 +202,6 @@ describe('complete public card coverage', () => {
     }
   });
 
-
-
-
   it('Scour trashes two selected Copper cards and draws one card per trash', () => {
     let state = ready(); hand(state,['scour','copper','copper','silver']);
     state.players.ochre.deck.draw = [createCard(state,'gold'),createCard(state,'footwork')];
@@ -208,7 +225,6 @@ describe('complete public card coverage', () => {
     }
   });
 });
-
 
 describe('pending choice replay and gain sequencing', () => {
   it('persists and replays optionalTrash after Sharpen draws', () => {

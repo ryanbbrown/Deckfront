@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { cardDefinition } from '../../src/game';
 import {
-  buildAttackProfile, printedAttackDamage, profilePositionValue
+  buildAttackProfile, printedAttackDamage, profilePositionValue, publicPositionAdvantage, removeProfileCard
 } from '../../src/sim/positionValue';
 
 function attack(id: string) {
@@ -108,6 +108,30 @@ describe('public position value', () => {
       .toBe(profilePositionValue(profile('scrap'), 3, 4));
   });
 
+  it('keeps Mage damage position-neutral', () => {
+    const mage = profile('arcBolt');
+    const values = [[3, 3], [2, 3], [1, 3]]
+      .map(([attacker, defender]) => profilePositionValue(mage, attacker!, defender!));
+    expect(new Set(values).size).toBe(1);
+  });
 
+  it('normalizes unequal live deck sizes with exact integer arithmetic', () => {
+    const smallMage = profile('arcBolt');
+    const largeMage = profile('arcBolt', 'copper');
+    const advantage = publicPositionAdvantage(smallMage, largeMage, 1, 3);
+    expect(Number.isInteger(advantage)).toBe(true);
+    expect(advantage).toBeGreaterThan(0);
+    expect(publicPositionAdvantage(largeMage, smallMage, 1, 3)).toBe(-advantage);
+  });
 
+  it('updates normalization when Cull removes a live non-attack card', () => {
+    const card = cardDefinition('copper');
+    const mageWithCopper = profile('arcBolt', 'copper');
+    const mage = profile('arcBolt');
+    expect(publicPositionAdvantage(mageWithCopper, mage, 1, 3)).toBeLessThan(0);
+    removeProfileCard(mageWithCopper, {
+      definitionId: card.id, mechanic: card.mechanic, values: card.values ?? {}
+    });
+    expect(publicPositionAdvantage(mageWithCopper, mage, 1, 3)).toBe(0);
+  });
 });

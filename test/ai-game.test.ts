@@ -91,7 +91,6 @@ describe('AI games', () => {
     expect(received).toBe('easy');
   });
 
-
   it('returns public AI events without hidden hand or draw-order details', async () => {
     const repository = new MemoryRepository(); const service = new GameService(repository, trainer);
     const created = await service.create({ seed: 3, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });

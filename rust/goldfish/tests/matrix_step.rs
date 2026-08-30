@@ -213,6 +213,7 @@ fn matrix_outputs_are_thread_stable_ranked_and_verified() {
         .enumerate()
         .filter_map(|(index, weight)| (*weight > 0.0).then_some(index))
         .collect::<Vec<_>>();
+    // The 50-health fixture has one strategy that weakly dominates every matrix column.
     assert_eq!(support, vec![1]);
     assert_eq!(weight_values[1], 1.0);
     let selected_row = 64 + support[0] * MATRIX_ROW_BYTES;

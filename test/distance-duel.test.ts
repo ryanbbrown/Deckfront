@@ -23,6 +23,20 @@ function setDraw(state: GameState, playerId: PlayerId, definitions: string[]): v
 }
 
 describe('starting build', () => {
+  it('pins card serials, RNG state, and player draw order', () => {
+    let state = createGame({ seed: 7, firstPlayerId: 'ochre' });
+    state = submitStartingBuild(state, 'ochre', ['aim', 'volley']);
+    state = submitStartingBuild(state, 'indigo', ['feint', 'drive']);
+    expect(state.nextCardSerial).toBe(19);
+    expect(state.rngState).toBe(3338981911);
+    expect(state.players.ochre.deck.hand.map((card) => [card.id, card.definitionId])).toEqual([
+      ['card-9', 'volley'], ['card-7', 'copper'], ['card-2', 'copper'], ['card-4', 'copper'], ['card-1', 'copper']
+    ]);
+    expect(state.players.indigo.deck.hand.map((card) => [card.id, card.definitionId])).toEqual([
+      ['card-18', 'drive'], ['card-15', 'copper'], ['card-11', 'copper'], ['card-14', 'copper'], ['card-12', 'copper']
+    ]);
+  });
+
   it('accepts no paid cards, repeats, and free Copper but rejects bad builds', () => {
     const initial = createGame({ seed: 2 }); expect(submitStartingBuild(initial, 'ochre', []).players.ochre.startingBuild).toEqual([]);
     expect(() => submitStartingBuild(createGame({ seed: 2 }), 'ochre', ['gold', 'gold', 'copper', 'copper'])).not.toThrow();

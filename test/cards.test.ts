@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  applyAction, assertInvariants, cardDefinition, createCard, createGame, listActionAvailability,
-  listLegalActions, replayCommands, submitStartingBuild
+  applyAction, assertInvariants, cardDefinition, createCard, createGame, isTacticalAction,
+  listActionAvailability, listLegalActions, replayCommands, submitStartingBuild
 } from '../src/game';
 import type { GameCommand, GameState, PlayerId } from '../src/game';
 
@@ -110,6 +110,45 @@ describe('deck tools', () => {
     expect(state.players.ochre.positionChanged).toBe(false);
     isolateHand(state, 'ochre', ['adapt']); setDraw(state, 'ochre', ['copper', 'copper']);
     state = playCard(state, 'adapt'); expect(definitions(state.players.ochre.deck.hand)).toEqual(['copper']); assertInvariants(state);
+  });
+});
+
+describe('attack behavior', () => {
+  it('classifies Repelling Shot as a Tactical Action', () => {
+    expect(isTacticalAction('repellingShot')).toBe(true);
+  });
+
+  it('reports range and mana legality reasons', () => {
+    const cases = [
+      { id: 'heavyBlow', position: 6, reasonCode: 'NEEDS_CLOSE' },
+      { id: 'steadyShot', position: 3, reasonCode: 'NEEDS_NEAR_OR_FAR' },
+      { id: 'strike', position: 6, reasonCode: 'NEEDS_CLOSE' },
+      { id: 'repellingShot', position: 3, reasonCode: 'NEEDS_NEAR_OR_FAR' }
+    ] as const;
+    for (const entry of cases) {
+      const state = ready(); state.fighters.indigo.position = entry.position;
+      isolateHand(state, 'ochre', [entry.id]);
+      expect(availability(state, entry.id)).toMatchObject({ enabled: false, reasonCode: entry.reasonCode });
+    }
+    const short = ready(); isolateHand(short, 'ochre', ['arcBolt']);
+    expect(availability(short, 'arcBolt')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_MANA' });
+  });
+
+  it('resolves Repelling Shot movement, wall collisions, and event order', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['repellingShot']);
+    state = playCard(state, 'repellingShot');
+    expect(state.fighters.ochre.position).toBe(3); expect(state.fighters.indigo.position).toBe(5);
+    expect(state.events.slice(-2).map((event) => event.type)).toEqual(['damage', 'move']);
+
+    state = ready(); state.fighters.indigo.position = 6; isolateHand(state, 'ochre', ['repellingShot']);
+    state = playCard(state, 'repellingShot');
+    expect(state.fighters.ochre.position).toBe(2); expect(state.fighters.indigo.position).toBe(6);
+    expect(state.turnState.spacesMoved).toBe(1);
+
+    state = ready(); state.fighters.ochre.position = 1; state.fighters.indigo.position = 6;
+    isolateHand(state, 'ochre', ['repellingShot']); state = playCard(state, 'repellingShot');
+    expect(state.fighters.ochre.position).toBe(1); expect(state.fighters.indigo.position).toBe(6);
+    expect(state.turnState.spacesMoved).toBe(0); expect(state.events.at(-1)?.type).toBe('damage');
   });
 });
 

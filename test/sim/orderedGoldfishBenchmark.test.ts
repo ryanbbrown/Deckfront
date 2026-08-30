@@ -26,7 +26,7 @@ describe('ordered unique-card goldfish candidate space', () => {
       && vector.reduce((sum, quantity) => sum + quantity, 0) <= 15)).toBe(true);
   });
 
-  it('counts the Kingdom 009 ordered skeletons and complete candidates', () => {
+  it('counts the benchmark kingdom ordered skeletons and complete candidates', () => {
     const space = benchmarkKingdomSpace();
     expect(space.cardIds).toHaveLength(14);
     expect(space.cardIds).not.toContain('copper');

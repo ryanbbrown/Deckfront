@@ -27,6 +27,10 @@ describe('shared damage pilot', () => {
     expect(playPhase(state, strategy()).fighters.indigo.health).toBe(0);
   });
 
+  it('plays Aim before Volley when that deals more damage', () => {
+    const state = arena({ hand: ['aim', 'volley'], draw: ['copper'], ochre: 2, indigo: 3, health: 20 });
+    expect(firstPlayedDefinition(state)).toBe('aim');
+  });
 
   it('orders tactical actions before Flurry', () => {
     const state = arena({ hand: ['footwork', 'feint', 'flurry'], draw: ['copper', 'copper'], ochre: 3, indigo: 3, health: 20 });
@@ -188,7 +192,6 @@ describe('search mechanics', () => {
 
     expect(state).toEqual(before);
   });
-
 
   it('does not read labels while searching', () => {
     const state = arena({ hand: [] });
