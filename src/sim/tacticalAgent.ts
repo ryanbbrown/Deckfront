@@ -1,4 +1,4 @@
-import { isTacticalAction, opponent, resolveCard } from '../game';
+import { isAttackAction, isTacticalAction, opponent, resolveCard } from '../game';
 import type { CardInstance, GameState, LegalAction, MovementChoice, PlayerId } from '../game';
 import { repairBuild } from './build';
 import { actionPhaseMoney } from './search';
@@ -97,7 +97,8 @@ export function tacticalView(
     opponentExposed: state.fighters[opponentId].exposed,
     opponentExposedBonus: state.fighters[opponentId].exposed ? resolveCard(state, 'feint').values?.bonus ?? 0 : 0,
     mana: state.players[playerId].mana, manaSpent: state.turnState.manaSpent, spellsPlayed: state.turnState.spellsPlayed,
-    cardsPlayed: state.turnState.cardsPlayed.length, copiesPlayed: state.turnState.copiesPlayed,
+    attacksPlayed: state.turnState.cardsPlayed.filter(isAttackAction).length,
+    copiesPlayed: state.turnState.copiesPlayed,
     familiesPlayed: state.turnState.familiesPlayed,
     positionChanged: state.players[playerId].positionChanged,
     tacticalPlayed: state.turnState.cardsPlayed.filter(isTacticalAction).length,

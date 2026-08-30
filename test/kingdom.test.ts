@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import kingdomLibrary from '../src/game-data/kingdoms.json' with { type: 'json' };
 import {
   ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, CARDS, DEFAULT_KINGDOM_ID, VARIABLE_ACTION_IDS,
-  applyAction, assertInvariants, checkInvariants, createGame, kingdomMarket, kingdomOf, listLegalActions,
+  assertInvariants, checkInvariants, createGame, kingdomMarket, kingdomOf, listLegalActions,
   registerKingdom, resetKingdoms, resolveCard, submitStartingBuild
 } from '../src/game';
 import type { GameState, Kingdom } from '../src/game';
@@ -28,37 +28,40 @@ const CURATED: Record<string, string[]> = {
 describe('kingdom registry', () => {
   it('uses Distance Duel by default with the literal approved supply', () => {
     const state = createGame({ seed: 1 });
-    expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(state.startingHealth).toBe(50);
+    expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(state.startingHealth).toBe(40);
     expect(state.supply).toEqual({ cull:10, footwork:10, feint:10, jab:10, drive:10, flurry:10,
-      aim:10, pepperingShot:10, repellingShot:10, volley:10, step:10, focus:10, scrap:10 });
-    expect(state.fighters.ochre.health).toBe(47); expect(state.fighters.indigo.health).toBe(50); assertInvariants(state);
+      aim:10, pepperingShot:10, repellingShot:10, volley:10, step:10, focus:10 });
+    expect(state.fighters.ochre.health).toBe(37); expect(state.fighters.indigo.health).toBe(40); assertInvariants(state);
   });
 
-  it('makes Step, Focus, and Scrap universal and keeps Cull variable', () => {
-    expect(ALWAYS_AVAILABLE_ACTION_IDS).toEqual(['step', 'focus', 'scrap']);
+  it('makes Step and Focus universal and keeps Cull variable', () => {
+    expect(ALWAYS_AVAILABLE_ACTION_IDS).toEqual(['step', 'focus']);
     expect(VARIABLE_ACTION_IDS).toContain('cull'); expect(VARIABLE_ACTION_IDS).not.toContain('scrap');
     registerKingdom(kingdom('narrow', { actionPiles: piles(['aim']) }));
     const state = createGame({ seed: 1, kingdomId: 'narrow' });
-    expect(state.supply).toEqual({ aim:10, step:ALWAYS_AVAILABLE_COUNT, focus:ALWAYS_AVAILABLE_COUNT, scrap:ALWAYS_AVAILABLE_COUNT });
-    expect(kingdomMarket('narrow').map((card) => card.id)).toEqual(['copper','silver','gold','aim','step','focus','scrap']);
+    expect(state.supply).toEqual({ aim:10, step:ALWAYS_AVAILABLE_COUNT, focus:ALWAYS_AVAILABLE_COUNT });
+    expect(kingdomMarket('narrow').map((card) => card.id)).toEqual(['copper','silver','gold','aim','step','focus']);
   });
 
   it('offers market piles, universal actions, treasures, and End Buy only', () => {
     registerKingdom(kingdom('ten', { actionPiles: piles(VARIABLE_ACTION_IDS.slice(0, 10)) }));
     const state = ready(createGame({ seed: 1, kingdomId: 'ten' })); state.phase = 'buy'; state.players.ochre.money = 100;
     expect(listLegalActions(state).map((entry) => entry.label).sort()).toEqual([
-      'Buy Copper','Buy Silver','Buy Gold','Buy Step','Buy Focus','Buy Scrap','End Buy phase',
+      'Buy Copper','Buy Silver','Buy Gold','Buy Step','Buy Focus','End Buy phase',
       ...VARIABLE_ACTION_IDS.slice(0,10).map((id) => `Buy ${CARDS[id]!.name}`)
     ].sort());
   });
 
-  it('buys Scrap for zero money and depletes its fixed supply', () => {
-    const state = ready(createGame({ seed: 1 })); state.phase = 'buy';
-    const buy = listLegalActions(state).find((entry) => entry.label === 'Buy Scrap')!;
-    const bought = applyAction(state, buy.id);
-    expect(bought.players.ochre.money).toBe(0);
-    expect(bought.supply.scrap).toBe(ALWAYS_AVAILABLE_COUNT - 1);
-    expect(bought.players.ochre.deck.discard.at(-1)?.definitionId).toBe('scrap');
+  it('keeps Scrap in draft-off starting decks but out of the market and supply', () => {
+    const state = createGame({ seed: 1, startingDraftEnabled: false });
+    for (const player of Object.values(state.players)) {
+      const cards = [...player.deck.hand, ...player.deck.draw].map((card) => card.definitionId);
+      expect(cards.filter((id) => id === 'scrap')).toHaveLength(3);
+    }
+    expect(kingdomMarket(state.kingdomId).map((card) => card.id)).not.toContain('scrap');
+    expect(state.supply.scrap).toBeUndefined();
+    state.phase = 'buy';
+    expect(listLegalActions(state).map((entry) => entry.label)).not.toContain('Buy Scrap');
   });
 
   it('freezes registered kingdoms and nested resolved values', () => {
@@ -105,16 +108,16 @@ describe('curated kingdoms', () => {
   it('registers exactly the five approved literal ten-pile lists', () => {
     expect(kingdomLibrary.kingdoms.map((entry) => entry.id)).toEqual(Object.keys(CURATED));
     for (const [id, ids] of Object.entries(CURATED)) {
-      expect(kingdomOf(id).startingHealth).toBe(50);
+      expect(kingdomOf(id).startingHealth).toBe(40);
       expect(kingdomOf(id).actionPiles).toEqual(piles(ids));
       expect(ids).toHaveLength(10); expect(ids).toContain('cull'); expect(ids).not.toContain('scrap');
-      expect(kingdomMarket(id).map((card) => card.id)).toEqual(['copper','silver','gold',...ids,'step','focus','scrap']);
+      expect(kingdomMarket(id).map((card) => card.id)).toEqual(['copper','silver','gold',...ids,'step','focus']);
     }
   });
 
   it('keeps first-player health and setup invariants in every curated kingdom', () => {
     for (const id of Object.keys(CURATED)) { const state = createGame({ seed:4, kingdomId:id });
-      expect(state.fighters.ochre.health).toBe(47); expect(state.fighters.indigo.health).toBe(50);
+      expect(state.fighters.ochre.health).toBe(37); expect(state.fighters.indigo.health).toBe(40);
       assertInvariants(state); assertInvariants(ready(state)); }
   });
 });

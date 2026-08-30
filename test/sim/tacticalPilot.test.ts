@@ -120,6 +120,18 @@ describe('the shared tactical pilot', () => {
       .toBe('heavyBlow');
   });
 
+  it('treats Opening Strike as the first attack after a setup card', () => {
+    const state = arena({ hand: ['openingStrike'], ochre: 2, indigo: 2 });
+    state.turnState.cardsPlayed = ['channel'];
+    expect(playedDefinition(state, choose(state))).toBe('openingStrike');
+  });
+
+  it('values Opening Strike at 1 after an earlier attack', () => {
+    const state = arena({ hand: ['openingStrike', 'strike'], ochre: 2, indigo: 2 });
+    state.turnState.cardsPlayed = ['scrap'];
+    expect(playedDefinition(state, choose(state))).toBe('strike');
+  });
+
   it('chooses Drive wall damage at both arena walls', () => {
     const left = arena({ hand: ['drive'], ochre: 1, indigo: 1 });
     const right = arena({ hand: ['drive'], ochre: 6, indigo: 6 });

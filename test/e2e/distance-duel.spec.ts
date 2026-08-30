@@ -84,21 +84,21 @@ async function expectTableWithinViewport(page: import('@playwright/test').Page):
 
 test('DD-E2E-001: full-table preview refreshes, explains, and keeps both local builds', async ({ page, baseUrl }) => {
   await page.setViewportSize({ width: 1920, height: 1080 }); await page.goto(baseUrl);
-  await expect(page.getByRole('heading', { name: 'Deckfront' })).toBeVisible(); await expect(page.getByText('Choose a kingdom')).toBeVisible(); await expect(page.getByLabel('Game setup')).toBeVisible(); const previewArena = page.getByRole('group', { name: 'Six space line arena' }); await expect(previewArena.locator('.arena-space')).toHaveCount(6); await expect(previewArena.getByRole('img', { name: /Player 1, 47 health/ })).toBeVisible(); await expect(previewArena.locator('.fighter__figure svg')).toHaveCount(2); await expect(page.getByText('I go first', { exact: true })).toHaveCount(0); await expect(page.getByText('AI goes first', { exact: true })).toHaveCount(0); await expect(page.getByRole('group', { name: 'AI strength' })).toHaveCount(0);
-  await expect(page.locator('[data-market-card="Step"]')).toBeVisible(); await expect(page.locator('[data-market-card="Focus"]')).toBeVisible(); await expect(page.locator('[data-market-card="Scrap"]')).toBeVisible(); await expect(page.locator('[data-market-card]')).toHaveCount(16); await expect(page.locator('[data-market-card][aria-disabled="true"]')).toHaveCount(16); await expect(page.getByLabel('Starting draft')).not.toBeChecked();
-  await expect(page.locator('.pile-grid--fixed [data-market-card]')).toHaveCount(6); await expect(page.locator('.pile-grid--kingdom [data-market-card]')).toHaveCount(10); expect(await page.locator('.pile-grid--fixed [data-market-card]').evaluateAll((piles) => piles.map((pile) => pile.getAttribute('data-market-card')))).toEqual(['Copper','Silver','Gold','Step','Focus','Scrap']);
+  await expect(page.getByRole('heading', { name: 'Deckfront' })).toBeVisible(); await expect(page.getByText('Choose a kingdom')).toBeVisible(); await expect(page.getByLabel('Game setup')).toBeVisible(); const previewArena = page.getByRole('group', { name: 'Six space line arena' }); await expect(previewArena.locator('.arena-space')).toHaveCount(6); await expect(previewArena.getByRole('img', { name: /Player 1, 37 health/ })).toBeVisible(); await expect(previewArena.locator('.fighter__figure svg')).toHaveCount(2); await expect(page.getByText('I go first', { exact: true })).toHaveCount(0); await expect(page.getByText('AI goes first', { exact: true })).toHaveCount(0); await expect(page.getByRole('group', { name: 'AI strength' })).toHaveCount(0);
+  await expect(page.locator('[data-market-card="Step"]')).toBeVisible(); await expect(page.locator('[data-market-card="Focus"]')).toBeVisible(); await expect(page.locator('[data-market-card="Scrap"]')).toHaveCount(0); await expect(page.locator('[data-market-card]')).toHaveCount(15); await expect(page.locator('[data-market-card][aria-disabled="true"]')).toHaveCount(15); await expect(page.getByLabel('Starting draft')).not.toBeChecked();
+  await expect(page.locator('.pile-grid--fixed [data-market-card]')).toHaveCount(5); await expect(page.locator('.pile-grid--kingdom [data-market-card]')).toHaveCount(10); expect(await page.locator('.pile-grid--fixed [data-market-card]').evaluateAll((piles) => piles.map((pile) => pile.getAttribute('data-market-card')))).toEqual(['Copper','Silver','Gold','Step','Focus']);
   expect(Number.parseFloat(await page.locator('.kingdom-pile__effect').first().evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7);
   const compactLayout = await page.evaluate(() => { const boxes = (selector: string) => [...document.querySelectorAll<HTMLElement>(selector)].map((pile) => pile.getBoundingClientRect()); const fixed = boxes('.pile-grid--fixed [data-market-card]'); const kingdom = boxes('.pile-grid--kingdom [data-market-card]'); const header = document.querySelector('.table-header')!.getBoundingClientRect(); return { headerHeight: Math.round(header.height), fixedRows: new Set(fixed.map((box) => Math.round(box.top))).size, fixedColumns: new Set(fixed.map((box) => Math.round(box.left))).size, kingdomRows: new Set(kingdom.map((box) => Math.round(box.top))).size, kingdomColumns: new Set(kingdom.map((box) => Math.round(box.left))).size, images: document.querySelectorAll('.market-zone [data-market-card] img').length }; });
-  expect(compactLayout).toEqual({ headerHeight: 42, fixedRows: 3, fixedColumns: 2, kingdomRows: 2, kingdomColumns: 5, images: 16 });
+  expect(compactLayout).toEqual({ headerHeight: 42, fixedRows: 3, fixedColumns: 2, kingdomRows: 2, kingdomColumns: 5, images: 15 });
   await page.locator('[data-market-card="Step"]').click({ button: 'right', force: true }); const cardPopup = page.getByRole('dialog', { name: 'Step details' }); await expect(cardPopup).toBeVisible(); await expect(cardPopup).toContainText('Move 1 space'); await expect(cardPopup.getByLabel('Cost 2')).toBeVisible(); expect(await cardPopup.evaluate((element) => element.matches(':modal'))).toBe(true); expect(Number.parseFloat(await cardPopup.locator('.card__rules').evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7); await page.keyboard.press('Escape'); await expect(cardPopup).toHaveCount(0);
   const before = await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents(); await page.getByRole('button', { name: 'Refresh market' }).click(); const after = await page.locator('.pile-grid--kingdom [data-market-card]').allTextContents(); expect(after).not.toEqual(before);
   await page.setViewportSize({ width: 1280, height: 720 }); await expectTableWithinViewport(page); await expect(page.getByRole('button', { name: 'Start game' })).toBeVisible();
   for (const viewport of [{ width: 1690, height: 1550 }, { width: 1920, height: 1080 }, { width: 3840, height: 2160 }]) {
-    await page.setViewportSize(viewport); await page.getByRole('button', { name: 'Card reference' }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.locator('.market-dialog .reference-card')).toHaveCount(16); await expect(page.locator('.market-dialog .card__image')).toHaveCount(16);
-    const layout = await marketLayout(page); expect(layout.cardWidths).toEqual([148]); expect(layout.cardHeights).toEqual([220]); expect(layout.imageHeights).toEqual([96]); expect(layout.rows).toBe(4); expect(layout.columns).toBe(5); expect(layout.surface.width).toBeLessThanOrEqual(840); expect(layout.surface.height).toBeLessThanOrEqual(1002); expect(layout.surface.left).toBeGreaterThanOrEqual(0); expect(layout.surface.top).toBeGreaterThanOrEqual(0); expect(layout.surface.right).toBeLessThanOrEqual(layout.viewport.width); expect(layout.surface.bottom).toBeLessThanOrEqual(layout.viewport.height); expect(layout.centeredInTable).toBe(true); expect(layout.clearOfRail).toBe(true); expect(layout.overflow).toEqual({ horizontal: 0, vertical: 0 }); expect(layout.gridOverflow).toEqual({ horizontal: 0, vertical: 0 }); await page.getByRole('button', { name: 'Close market' }).click();
+    await page.setViewportSize(viewport); await page.getByRole('button', { name: 'Card reference' }).click(); await expect(page.getByRole('dialog')).toBeVisible(); await expect(page.locator('.market-dialog .reference-card')).toHaveCount(15); await expect(page.locator('.market-dialog .card__image')).toHaveCount(15);
+    const layout = await marketLayout(page); expect(layout.cardWidths).toEqual([148]); expect(layout.cardHeights).toEqual([220]); expect(layout.imageHeights).toEqual([96]); expect(layout.rows).toBe(3); expect(layout.columns).toBe(5); expect(layout.surface.width).toBeLessThanOrEqual(840); expect(layout.surface.height).toBeLessThanOrEqual(1002); expect(layout.surface.left).toBeGreaterThanOrEqual(0); expect(layout.surface.top).toBeGreaterThanOrEqual(0); expect(layout.surface.right).toBeLessThanOrEqual(layout.viewport.width); expect(layout.surface.bottom).toBeLessThanOrEqual(layout.viewport.height); expect(layout.centeredInTable).toBe(true); expect(layout.clearOfRail).toBe(true); expect(layout.overflow).toEqual({ horizontal: 0, vertical: 0 }); expect(layout.gridOverflow).toEqual({ horizontal: 0, vertical: 0 }); await page.getByRole('button', { name: 'Close market' }).click();
   }
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.getByLabel('Starting draft').check(); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByText('Player 1 starting build')).toBeVisible(); await expectTableWithinViewport(page); await page.locator('[data-market-card="Scrap"]').click(); await expect(page.getByRole('button', { name: 'Remove Scrap' })).toBeVisible(); await expect(page.getByTestId('build-budget')).toHaveText('0 / 12 · 3 carries'); await page.getByRole('button', { name: 'Remove Scrap' }).click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Step"]').click(); await expect(page.getByTestId('build-budget')).toHaveText('2 / 12 · 3 carries');
+  await page.getByLabel('Starting draft').check(); await page.getByRole('button', { name: 'Start game' }).click(); await expect(page.getByText('Player 1 starting build')).toBeVisible(); await expectTableWithinViewport(page); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Copper"]').click(); await page.locator('[data-market-card="Step"]').click(); await expect(page.getByTestId('build-budget')).toHaveText('2 / 12 · 3 carries');
   await page.reload(); await expect(page.getByRole('button', { name: 'Remove Copper' })).toHaveCount(2); await page.getByRole('button', { name: 'Remove Copper' }).first().click();
   await page.getByRole('button', { name: 'Finish starting build' }).click(); await expect(page.getByText('Player 2 starting build')).toBeVisible();
   await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Copper"]')).toHaveText('Copper×7'); await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Step"]')).toHaveCount(0); await expect(page.getByTestId('deck-summary-indigo').locator('[data-deck-card="Copper"]')).toHaveText('Copper×7');
@@ -126,10 +126,10 @@ test('DD-E2E-075: tactical counters share one space and focused card controls su
   await page.setViewportSize({ width: 1280, height: 720 });
   await openGame(page, (record) => { seedHand(record, ['drive']); record.state.fighters.ochre.position = 3; record.state.fighters.indigo.position = 3; });
   const arena = page.getByRole('group', { name: 'Six space line arena' }); await expect(arena).toBeVisible();
-  await expect(arena.getByRole('img', { name: /Player 1, 47 health/ })).toBeVisible();
-  await expect(arena.getByRole('img', { name: /Player 2, 50 health/ })).toBeVisible();
+  await expect(arena.getByRole('img', { name: /Player 1, 37 health/ })).toBeVisible();
+  await expect(arena.getByRole('img', { name: /Player 2, 40 health/ })).toBeVisible();
   const shared = await page.locator('[data-space="3"]').evaluate((space) => { const parent = space.getBoundingClientRect(); const counters = [...space.querySelectorAll<HTMLElement>('[data-player-id]')].map((counter) => counter.getBoundingClientRect()); return { count: counters.length, inside: counters.every((counter) => counter.left >= parent.left && counter.right <= parent.right && counter.top >= parent.top && counter.bottom <= parent.bottom), separated: counters[0]!.right <= counters[1]!.left, labels: [...space.querySelectorAll<HTMLElement>('.fighter__details')].map((details) => details.innerText) }; });
-  expect(shared).toEqual({ count: 2, inside: true, separated: true, labels: ['P1\n47 HP','P2\n50 HP'] });
+  expect(shared).toEqual({ count: 2, inside: true, separated: true, labels: ['P1\n37 HP','P2\n40 HP'] });
   await expect(page.getByRole('navigation', { name: 'Game controls' }).getByRole('button', { name: 'New game' })).toBeVisible(); await expectTableWithinViewport(page);
 
   const copper = page.locator('[data-market-card="Copper"]'); await copper.click({ button: 'right', force: true }); let inspector = page.getByRole('dialog', { name: 'Copper details' }); await expect(inspector).toBeVisible(); await inspector.getByRole('button', { name: 'Close card details' }).click(); await expect(inspector).toHaveCount(0); await copper.focus(); await page.keyboard.press('Shift+F10');
@@ -212,14 +212,14 @@ test('DD-E2E-006: Close Feint states its damage bonus and Drive moves both fight
   expect(Number.parseFloat(await page.locator('[data-card-name="Feint"] .card__rules').evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(8); expect(Number.parseFloat(await page.locator('[data-card-name="Drive"] .card__rules').evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7);
   await playCard(page, 'Feint'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('Exposed'); expect(Number.parseFloat(await page.locator('[data-player-score="indigo"] em').evaluate((element) => getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(7); await expect(page.locator('[data-player-score="indigo"]')).toHaveAccessibleName(/Exposed, Close-range attacks this turn: \+1 damage/);
   await page.locator('[data-card-name="Drive"]').click(); await expect(page.getByRole('button', { name: 'Play Drive: Move Both Left' })).toBeVisible(); await expect(page.getByRole('button', { name: 'Play Drive: Move Both Right' })).toBeVisible(); await page.getByRole('button', { name: 'Play Drive: Move Both Right' }).click();
-  await expect(page.locator('[data-player-score="indigo"]')).toContainText('46 HP'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '4'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '4'); await expect(page.getByTestId('range')).toHaveText('Close · 0 spaces'); await expect(page.locator('.play-order')).toHaveCount(0); await expect(page.getByText('Numbers show play order.')).toHaveCount(0); await expect(page.getByTestId('action-log').getByText('Moved both fighters right to space 4')).toBeVisible();
-  await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('50 HP'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('Exposed'); await page.locator('[data-card-name="Drive"]').click(); await page.getByRole('button', { name: 'Play Drive: Move Both Right' }).click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('46 HP');
+  await expect(page.locator('[data-player-score="indigo"]')).toContainText('36 HP'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '4'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '4'); await expect(page.getByTestId('range')).toHaveText('Close · 0 spaces'); await expect(page.locator('.play-order')).toHaveCount(0); await expect(page.getByText('Numbers show play order.')).toHaveCount(0); await expect(page.getByTestId('action-log').getByText('Moved both fighters right to space 4')).toBeVisible();
+  await page.getByRole('button', { name: 'Undo last action' }).click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('40 HP'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('Exposed'); await page.locator('[data-card-name="Drive"]').click(); await page.getByRole('button', { name: 'Play Drive: Move Both Right' }).click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('36 HP');
 });
 
 test('DD-E2E-007: six visible Footwork plays make uncapped Close Flurry deal six damage', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['footwork', 'footwork', 'footwork', 'footwork', 'footwork', 'footwork', 'flurry']); record.state.fighters.ochre.position = 3; record.state.fighters.indigo.position = 3; });
   for (let count = 0; count < 6; count += 1) { await page.locator('[data-card-name="Footwork"]').first().click(); await page.getByRole('button', { name: 'Play Footwork: Stay' }).click(); }
-  await playCard(page, 'Flurry'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('44 HP'); await expect(page.getByTestId('range')).toHaveText('Close · 0 spaces');
+  await playCard(page, 'Flurry'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('34 HP'); await expect(page.getByTestId('range')).toHaveText('Close · 0 spaces');
 });
 
 test('DD-E2E-008: consecutive Footwork cards can move onto and past the opponent', async ({ page, openGame }) => {
@@ -231,20 +231,20 @@ test('DD-E2E-008: consecutive Footwork cards can move onto and past the opponent
 test('DD-E2E-009: Far Aim applies Aimed and Volley deals six', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['aim', 'volley']); record.state.fighters.ochre.position = 1; record.state.fighters.indigo.position = 5; });
   await playCard(page, 'Aim'); await expect(page.locator('[data-player-score="ochre"]')).toContainText('Aimed');
-  await playCard(page, 'Volley'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('44 HP'); await expect(page.locator('[data-player-score="ochre"]')).not.toContainText('Aimed');
+  await playCard(page, 'Volley'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('34 HP'); await expect(page.locator('[data-player-score="ochre"]')).not.toContainText('Aimed');
 });
 
 test('DD-E2E-010: close combination resolves Footwork Feint Drive Flurry for eight damage', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['footwork', 'feint', 'drive', 'flurry']); record.state.fighters.ochre.position = 1; record.state.fighters.indigo.position = 2; });
   await page.locator('[data-card-name="Footwork"]').click(); await page.getByRole('button', { name: 'Play Footwork: Right' }).click(); await playCard(page, 'Feint'); await page.locator('[data-card-name="Drive"]').click(); await page.getByRole('button', { name: 'Play Drive: Move Both Right' }).click(); await playCard(page, 'Flurry');
-  await expect(page.locator('[data-player-score="indigo"]')).toContainText('42 HP'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3');
+  await expect(page.locator('[data-player-score="indigo"]')).toContainText('32 HP'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '3'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '3');
 });
 
 test('DD-E2E-011: ranged escape uses two Footwork cards then Aim and Volley for six at Far', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['footwork', 'footwork', 'aim', 'volley']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 2; });
   for (let count = 0; count < 2; count += 1) { await page.locator('[data-card-name="Footwork"]').first().click(); await page.getByRole('button', { name: 'Play Footwork: Right' }).click(); }
   await playCard(page, 'Aim'); await playCard(page, 'Volley');
-  await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '4'); await expect(page.getByTestId('range')).toHaveText('Far · 2 spaces'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('44 HP');
+  await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '4'); await expect(page.getByTestId('range')).toHaveText('Far · 2 spaces'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('34 HP');
 });
 
 test('DD-E2E-012: winning Volley can be undone and a repeated win persists across refresh', async ({ page, openGame }) => {
@@ -260,13 +260,13 @@ test('DD-E2E-013: wall-blocked direction is absent and Close blocks Aim and Voll
 
 test('DD-E2E-014: chosen Drive direction into a wall deals exact six damage and moves neither fighter', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['feint', 'drive']); record.state.fighters.ochre.position = 6; record.state.fighters.indigo.position = 6; });
-  await playCard(page, 'Feint'); await page.locator('[data-card-name="Drive"]').click(); const wall = page.getByRole('button', { name: 'Play Drive: Move Both Right' }); await expect(wall).toHaveAccessibleName('Play Drive: Move Both Right'); await expect(wall.locator('..')).toHaveAttribute('data-space', '6'); await wall.click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('44 HP'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '6'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '6'); await expect(page.getByTestId('action-log').getByText('Wall blocked right; neither fighter moved')).toBeVisible();
+  await playCard(page, 'Feint'); await page.locator('[data-card-name="Drive"]').click(); const wall = page.getByRole('button', { name: 'Play Drive: Move Both Right' }); await expect(wall).toHaveAccessibleName('Play Drive: Move Both Right'); await expect(wall.locator('..')).toHaveAttribute('data-space', '6'); await wall.click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('34 HP'); await expect(page.locator('[data-player-id="ochre"]')).toHaveAttribute('data-position', '6'); await expect(page.locator('[data-player-id="indigo"]')).toHaveAttribute('data-position', '6'); await expect(page.getByTestId('action-log').getByText('Wall blocked right; neither fighter moved')).toBeVisible();
 });
 
-test('DD-E2E-015: two unprepared Near Volleys deal two and Aim plus Near Volley deals three', async ({ page, openGame }) => {
+test('DD-E2E-015: two unprepared Near Volleys deal four and Aim plus Near Volley deals four', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['volley', 'volley']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 3; });
-  await page.locator('[data-card-name="Volley"]').first().click(); await playCard(page, 'Volley'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('48 HP');
-  await openGame(page, (record) => { seedHand(record, ['aim', 'volley']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 3; }); await playCard(page, 'Aim'); await playCard(page, 'Volley'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('47 HP');
+  await page.locator('[data-card-name="Volley"]').first().click(); await playCard(page, 'Volley'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('36 HP');
+  await openGame(page, (record) => { seedHand(record, ['aim', 'volley']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 3; }); await playCard(page, 'Aim'); await playCard(page, 'Volley'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('36 HP');
 });
 
 test('DD-E2E-016: Cull trashes two other hand cards and never offers an already played card', async ({ page, openGame }) => {
@@ -287,7 +287,7 @@ test('DD-E2E-018: Feint and Drive are disabled at Near with a specific reason', 
 
 test('DD-E2E-019: two visible Footwork plays make Close Flurry deal two', async ({ page, openGame }) => {
   await openGame(page, (record) => { seedHand(record, ['footwork', 'footwork', 'flurry']); record.state.fighters.ochre.position = 2; record.state.fighters.indigo.position = 2; });
-  for (let count = 0; count < 2; count += 1) { await page.locator('[data-card-name="Footwork"]').first().click(); await page.getByRole('button', { name: 'Play Footwork: Stay' }).click(); } await playCard(page, 'Flurry'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('48 HP'); await expect(page.getByTestId('range')).toHaveText('Close · 0 spaces');
+  for (let count = 0; count < 2; count += 1) { await page.locator('[data-card-name="Footwork"]').first().click(); await page.getByRole('button', { name: 'Play Footwork: Stay' }).click(); } await playCard(page, 'Flurry'); await expect(page.locator('[data-player-score="indigo"]')).toContainText('38 HP'); await expect(page.getByTestId('range')).toHaveText('Close · 0 spaces');
 });
 
 test('DD-E2E-020: Cull can select and trash itself when it is the only card', async ({ page, openGame }) => {
@@ -454,7 +454,7 @@ test('DD-E2E-047: replacing the latest event at the same count scrolls it into v
   expect(await page.getByTestId('action-log').evaluate((log) => log.scrollTop + log.clientHeight >= log.scrollHeight - 1)).toBe(true);
 });
 
-test('DD-E2E-049: draft-off setup starts with Scrap and its fixed pile remains purchasable', async ({ page, baseUrl, openGame }) => {
+test('DD-E2E-049: draft-off setup starts with Scrap but never adds it to the market', async ({ page, baseUrl, openGame }) => {
   await page.goto(baseUrl);
   const draft = page.getByLabel('Starting draft'); await expect(draft).not.toBeChecked();
   let request: Record<string, unknown> | null = null;
@@ -463,14 +463,14 @@ test('DD-E2E-049: draft-off setup starts with Scrap and its fixed pile remains p
   await expect(page.getByText(/Turn 1 · Player 1 action/)).toBeVisible(); await expect(page.getByText('Player 1 starting build')).toHaveCount(0);
   expect(request).toMatchObject({ mode: 'local', startingDraftEnabled: false });
   await expect(page.getByTestId('deck-summary-ochre').locator('[data-deck-card="Scrap"]')).toHaveText('Scrap×3');
-  await expect(page.locator('[data-market-card="Scrap"]')).toContainText('×10');
+  await expect(page.locator('[data-market-card="Scrap"]')).toHaveCount(0);
 
   await openGame(page, (record) => { seedHand(record, ['scrap']); });
   const scrap = page.locator('[data-card-name="Scrap"]');
   await expect(scrap.locator('.card__headline')).toHaveText('1 damage at any range');
-  await scrap.click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('49 HP');
+  await scrap.click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('39 HP');
   await expect(page.getByTestId('action-log').getByText('Played Scrap')).toBeVisible();
-  await page.getByRole('button', { name: 'End Action phase' }).click(); const scrapPile = page.locator('[data-market-card="Scrap"]'); await expect(scrapPile).toContainText('×10'); await expect(scrapPile).toBeEnabled(); await scrapPile.click(); await expect(scrapPile).toContainText('×9'); await expect(page.getByTestId('action-log').getByText('Bought Scrap')).toBeVisible();
+  await page.getByRole('button', { name: 'End Action phase' }).click(); await expect(page.locator('[data-market-card="Scrap"]')).toHaveCount(0);
 });
 
 test('DD-E2E-050: single-target discard and trash choices complete their card effects', async ({ page, openGame }) => {
@@ -480,7 +480,7 @@ test('DD-E2E-050: single-target discard and trash choices complete their card ef
   await expect(page.getByText('Click a grouped card twice')).toHaveCount(0);
   await page.locator('[data-card-name="Strike"]').click();
   await page.getByRole('button', { name:'Discard selected card' }).click();
-  await expect(page.locator('[data-player-score="indigo"]')).toContainText('45 HP');
+  await expect(page.locator('[data-player-score="indigo"]')).toContainText('33 HP');
   await expect(page.locator('[data-card-name="Strike"]')).toHaveCount(0);
   await expect(page.getByTestId('action-log').getByText('Discarded Strike')).toBeVisible();
 
@@ -489,7 +489,7 @@ test('DD-E2E-050: single-target discard and trash choices complete their card ef
   await expect(page.getByText('Select 1 card to discard. 0 selected.')).toBeVisible();
   await page.locator('[data-card-name="Steady Shot"]').click();
   await page.getByRole('button', { name:'Discard selected card' }).click();
-  await expect(page.locator('[data-player-score="indigo"]')).toContainText('47 HP');
+  await expect(page.locator('[data-player-score="indigo"]')).toContainText('37 HP');
   await expect(page.locator('[data-card-name="Gold"]')).toBeVisible();
   await expect(page.getByTestId('action-log').getByText('Discarded Steady Shot')).toBeVisible();
 
@@ -499,7 +499,7 @@ test('DD-E2E-050: single-target discard and trash choices complete their card ef
   await expect(page.getByText('Click a grouped card twice')).toHaveCount(0);
   await page.locator('[data-card-name="Discipline"]').click();
   await page.getByRole('button', { name: 'Trash selected card' }).click();
-  await expect(page.locator('[data-player-score="indigo"]')).toContainText('49 HP');
+  await expect(page.locator('[data-player-score="indigo"]')).toContainText('39 HP');
   await expect(page.getByTestId('action-log').getByText('Trashed Discipline')).toBeVisible();
 });
 
@@ -724,14 +724,14 @@ test('DD-E2E-068: human and AI purchases show a readable market-anchored card pr
 });
 
 test('DD-E2E-069: damaging human and AI cards mark the correct fighter and exact amount', async ({ page, openGame }) => {
-  await page.setViewportSize({ width: 1920, height: 1080 }); await openGame(page, (record) => { seedHand(record, ['precisionShot']); }); await recordDamageFeedback(page); await page.locator('[data-card-name="Precision Shot"]').click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('46 HP');
+  await page.setViewportSize({ width: 1920, height: 1080 }); await openGame(page, (record) => { seedHand(record, ['precisionShot']); }); await recordDamageFeedback(page); await page.locator('[data-card-name="Precision Shot"]').click(); await expect(page.locator('[data-player-score="indigo"]')).toContainText('36 HP');
   await expect.poll(() => page.evaluate(() => (window as typeof window & { recordedDamage?: Array<{ target: string; amount: string }> }).recordedDamage ?? [])).toContainEqual({ target: 'indigo', amount: '4' }); await expect(page.locator('[data-damage-target]')).toHaveCount(0);
 
   await openGame(page, (record) => { seedHand(record, ['aim']); }); await page.locator('[data-card-name="Aim"]').click(); await expect(page.locator('[data-damage-target]')).toHaveCount(0);
 
   await openGame(page, (record) => { makeAiGame(record); seedPlayerHand(record, 'ochre', []); seedPlayerHand(record, 'indigo', ['precisionShot']); }); await page.getByLabel('Animate AI turns').check(); await recordDamageFeedback(page);
   await page.getByRole('button', { name: 'End Action phase' }).click(); await page.getByRole('button', { name: 'End Buy phase' }).click(); await expect(page.getByText(/Turn 3 · Player 1 action/)).toBeVisible();
-  await expect.poll(() => page.evaluate(() => (window as typeof window & { recordedDamage?: Array<{ target: string; amount: string }> }).recordedDamage ?? [])).toContainEqual({ target: 'ochre', amount: '4' }); await expect(page.locator('[data-player-score="ochre"]')).toContainText('43 HP');
+  await expect.poll(() => page.evaluate(() => (window as typeof window & { recordedDamage?: Array<{ target: string; amount: string }> }).recordedDamage ?? [])).toContainEqual({ target: 'ochre', amount: '4' }); await expect(page.locator('[data-player-score="ochre"]')).toContainText('33 HP');
 });
 
 test('DD-E2E-057: canonical card faces keep long rules inside hand and scaled played cards', async ({ page, openGame }) => {

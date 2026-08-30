@@ -1,14 +1,8 @@
-import { ARENA_MAX, ARENA_MIN } from '../game';
+import { ARENA_MAX, ARENA_MIN, ATTACK_MECHANICS } from '../game';
 import type { CardFamily, CardMechanic, CardValues } from '../game';
 
 // One damage point must outweigh the longest possible arena delay.
 const CURRENT_DAMAGE_WEIGHT = ARENA_MAX - ARENA_MIN + 1;
-
-const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set([
-  'melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush', 'ranged', 'repellingShot',
-  'longshot', 'salvageShot', 'precisionShot', 'spell', 'discharge', 'cascade', 'overload',
-  'discipline', 'improvise', 'scrap', 'volley'
-]);
 
 export interface ProfileCard {
   definitionId: string;
@@ -32,6 +26,7 @@ export interface AttackState {
   mana?: number;
   manaSpent?: number;
   spellsPlayed?: number;
+  attacksPlayed?: number;
   copiesPlayed?: Readonly<Record<string, number>>;
   familiesPlayed?: readonly CardFamily[];
   salvageCost?: number;
@@ -59,7 +54,9 @@ export function printedAttackDamage(
     case 'flurry': return close
       ? (state.publicFuture ? 1 : state.tacticalPlayed) * value(card.values, 'perAction') + closeBonus(state)
       : 0;
-    case 'openingStrike': return close ? value(card.values, 'first') + closeBonus(state) : 0;
+    case 'openingStrike': return close
+      ? value(card.values, state.publicFuture || (state.attacksPlayed ?? 0) === 0 ? 'first' : 'later') + closeBonus(state)
+      : 0;
     case 'rally': return close ? value(card.values, 'damage') + closeBonus(state) : 0;
     case 'bullRush': return close ? value(card.values, 'damage') + closeBonus(state) : 0;
     case 'ranged': return close ? 0 : value(card.values, 'damage') + aimBonus(state);

@@ -38,7 +38,7 @@ describe('draft UI request boundary', () => {
     for (const card of Object.values(CARDS).filter((candidate) => candidate.family === 'mana')) {
       expect(`${card.headline} ${card.detail ?? ''}`).not.toContain('at any range');
     }
-    expect(copy('volley')).toContain('Near: 1 damage · Far: 4 damage');
+    expect(copy('volley')).toContain('Near: 2 damage · Far: 4 damage');
     expect(copy('repellingShot')).toContain('Far: 2 damage · Near: 1 damage');
     expect(copy('scrap')).toContain('at any range');
   });

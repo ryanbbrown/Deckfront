@@ -69,6 +69,15 @@ function moveActor(context: EffectContext, chosen: DirectionChoice): void {
 function closeAttack(context: EffectContext, amount: number): void { context.damage(context.targetId, amount, true); }
 function rangedAttack(context: EffectContext, amount: number): void { context.rangedDamage(context.targetId, amount); }
 
+export const ATTACK_MECHANICS: ReadonlySet<CardMechanic> = new Set([
+  'melee', 'drive', 'flurry', 'openingStrike', 'rally', 'bullRush', 'ranged', 'repellingShot',
+  'longshot', 'salvageShot', 'precisionShot', 'spell', 'discharge', 'cascade', 'overload',
+  'discipline', 'improvise', 'scrap', 'volley'
+]);
+export function isAttackAction(definitionId: string): boolean {
+  return ATTACK_MECHANICS.has(cardDefinition(definitionId).mechanic);
+}
+
 const EFFECT_MAP: Record<CardMechanic, CardEffect> = {
   money: { ...BASE, tactical: false, command: playAction, gate: () => 'TREASURE_AUTOPLAYS', resolve: () => { throw new Error('Treasure cards play automatically.'); } },
   footwork: { ...BASE, tactical: true, choice: 'movement', movements: movementChoices,
@@ -105,7 +114,8 @@ const EFFECT_MAP: Record<CardMechanic, CardEffect> = {
   discharge: { ...BASE, tactical: true, command: playAction, resolve: (context, values) => { const mana = context.state.players[context.actorId].mana; context.damage(context.targetId, mana * value(values, 'perMana'), false); context.gainMana(-mana); } },
   cascade: { ...BASE, tactical: true, command: playAction, gate: (state, playerId, values) => state.players[playerId].mana < value(values, 'manaCost') ? 'NEEDS_MANA' : null, resolve: (context, values) => { context.spendMana(value(values, 'manaCost')); context.damage(context.targetId, value(values, 'damage') + (context.state.turnState.spellsPlayed - 1) * value(values, 'perSpell'), false); } },
   overload: { ...BASE, tactical: true, command: playAction, resolve: (context, values) => context.damage(context.targetId, context.state.turnState.manaSpent * value(values, 'perManaSpent'), false) },
-  openingStrike: { ...BASE, tactical: true, gate: needsClose, command: playAction, resolve: (context, values) => closeAttack(context, value(values, context.state.turnState.cardsPlayed.length === 1 ? 'first' : 'later')) },
+  openingStrike: { ...BASE, tactical: true, gate: needsClose, command: playAction, resolve: (context, values) => closeAttack(context, value(values,
+    context.state.turnState.cardsPlayed.slice(0, -1).some(isAttackAction) ? 'later' : 'first')) },
   rally: { ...BASE, tactical: true, gate: needsClose, command: playAction, resolve: (context, values) => closeAttack(context, value(values, 'damage') + ((context.state.turnState.copiesPlayed.rally ?? 1) - 1) * value(values, 'perCopy')) },
   bullRush: { ...BASE, tactical: true, choice: 'targets', target: { minimum: 1, maximum: 1, zone: 'hand', family: 'melee' }, gate: needsClose, command: targeted, resolve: (context, values) => { context.discard(context.targetCards[0]!.id); closeAttack(context, value(values, 'damage')); } },
   longshot: { ...BASE, tactical: true, gate: needsRange, command: playAction, resolve: (context) => rangedAttack(context, Math.abs(context.state.fighters[context.actorId].position - context.state.fighters[context.targetId].position)) },

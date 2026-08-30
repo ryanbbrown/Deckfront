@@ -35,7 +35,7 @@ describe('AI games', () => {
     expect(created).toMatchObject({ mode: 'ai', humanPlayerId: 'indigo', aiPlayerId: 'ochre',
       aiDifficulty: 'hard', startingDraftEnabled: false, phase: 'action', activePlayerId: 'indigo', turn: 2 });
     expect(repository.record?.aiDifficulty).toBe('hard');
-    expect(created.fighters.ochre.health).toBe(47); expect(created.training?.strategyId).toBe(strategy.id);
+    expect(created.fighters.ochre.health).toBe(37); expect(created.training?.strategyId).toBe(strategy.id);
     expect(created.completedBuilds).toBeNull();
     expect(created.presentation.frames[0]).toMatchObject({ playerId: 'ochre', commandType: 'aiTurnStart' });
     expect(created.presentation.frames.at(-1)?.state).toMatchObject({ activePlayerId: created.activePlayerId, phase: created.phase, turn: created.turn });
@@ -132,7 +132,7 @@ describe('AI games', () => {
     const service = new GameService(new MemoryRepository(), trainer);
     const created = await service.create({ seed: 9, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: market });
     expect(created).toMatchObject({ humanPlayerId: 'ochre', aiPlayerId: 'indigo', selectedFirstPlayerId: 'ochre', activePlayerId: 'ochre' });
-    expect(created.fighters.ochre.health).toBe(47); expect(created.fighters.indigo.health).toBe(50);
+    expect(created.fighters.ochre.health).toBe(37); expect(created.fighters.indigo.health).toBe(40);
   });
 
   it('returns public AI events without hidden hand or draw-order details', async () => {
@@ -195,12 +195,24 @@ describe('AI games', () => {
     expect(repository.record).toBeNull();
   });
 
-  it('uses the server-only pretrained catalog by default without running matches', async () => {
+  it('completes a real catalog-backed AI game without worker matches', async () => {
     resetKingdoms();
-    const created = await new GameService(new MemoryRepository()).create({
+    const repository = new MemoryRepository();
+    const service = new GameService(repository);
+    let view = await service.create({
       seed: 19, mode: 'ai', humanPlayerId: 'ochre', variableCardIds: pretrainedVariableCardSets()[0]!
     });
-    expect(created).toMatchObject({ startingDraftEnabled: false, phase: 'action', training: { matches: 0 } });
-    expect(created.training?.strategyId).toMatch(/^gf-/);
+    expect(view).toMatchObject({ startingDraftEnabled: false, phase: 'action', training: { matches: 0 } });
+    expect(view.training?.strategyId).toMatch(/^gf-/);
+
+    for (let actionCount = 0; view.phase !== 'ended' && actionCount < 400; actionCount += 1) {
+      const kind = view.phase === 'action' ? 'endAction' : 'endBuy';
+      view = await service.commitAction(view.id, view.revision, phaseAction(view, kind));
+    }
+
+    expect(view.phase).toBe('ended');
+    expect(view.winner).toBe('indigo');
+    expect(view.events.some((event) => event.playerId === 'indigo' && event.type === 'cardPlayed')).toBe(true);
+    expect(repository.record?.training?.matches).toBe(0);
   });
 });

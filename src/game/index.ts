@@ -2,7 +2,10 @@ export {
   CARDS, FIRST_PLAYER_HEALTH_PENALTY, MAX_FIRST_BUY_CARRY, STARTING_BUDGET, STARTING_DECK_COPPER_COUNT,
   cardDefinition, firstBuyCarry, playerStartingHealth
 } from './config';
-export { ARENA_MAX, ARENA_MIN, EFFECTS, TACTICAL_ACTIONS, isTacticalAction, rangeBand } from './effects';
+export {
+  ARENA_MAX, ARENA_MIN, ATTACK_MECHANICS, EFFECTS, TACTICAL_ACTIONS,
+  isAttackAction, isTacticalAction, rangeBand
+} from './effects';
 export {
   applyAction, applyCommand, listActionAvailability, listLegalActions, marketCost,
   replayCommands, submitStartingBuild

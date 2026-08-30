@@ -153,7 +153,7 @@ describe('local GameService', () => {
     const view = await service.create({ seed:3, variableCardIds:TEST_MARKET, startingDraftEnabled:false });
     expect(view).toMatchObject({ phase:'action', turn:1, activePlayerId:'ochre', startingDraftEnabled:false, completedBuilds:null });
     expect(view.players.ochre.deckCounts).toEqual({ copper:7, scrap:3 }); expect(view.players.indigo.deckCounts).toEqual({ copper:7, scrap:3 });
-    expect(view.cards.scrap).toMatchObject({ name:'Scrap', cost:0 }); expect(view.fixedCardIds).toContain('scrap'); expect(view.supply.scrap).toBe(10); expect(view.variableCardIds).not.toContain('scrap');
+    expect(view.cards.scrap).toMatchObject({ name:'Scrap', cost:0 }); expect(view.fixedCardIds).not.toContain('scrap'); expect(view.supply.scrap).toBeUndefined(); expect(view.variableCardIds).not.toContain('scrap');
     const record = await service.getRecord(view.id); expect(record.startingDraftEnabled).toBe(false); expect(record.state.players.ochre.startingBuild).toBeNull();
     await expect(service.updateBuild(view.id,view.revision,[],true)).rejects.toThrow('already complete');
   });

@@ -5,7 +5,7 @@ import type { CardDefinition, GameState, Kingdom } from './types';
 import { VALUE_KEYS } from './values';
 
 export const DEFAULT_KINGDOM_ID = 'distance-duel';
-export const ALWAYS_AVAILABLE_ACTION_IDS: readonly string[] = Object.freeze(['step', 'focus', 'scrap']);
+export const ALWAYS_AVAILABLE_ACTION_IDS: readonly string[] = Object.freeze(['step', 'focus']);
 export const ALWAYS_AVAILABLE_COUNT = 10;
 export const MAX_PILE_COUNT = 10;
 export const RANDOM_KINGDOM_SIZE = 10;
@@ -132,7 +132,7 @@ export function randomKingdom(id: string, variableCardIds: readonly string[]): K
     throw new Error(`A random kingdom needs ${RANDOM_KINGDOM_SIZE} unique variable action cards.`);
   }
   return {
-    id, name: 'Random Kingdom', startingHealth: 50,
+    id, name: 'Random Kingdom', startingHealth: 40,
     actionPiles: variableCardIds.map((cardId) => ({ cardId, count: MAX_PILE_COUNT }))
   };
 }

@@ -46,7 +46,7 @@ describe('shared damage pilot', () => {
   it('plays Aim before Volley when that deals more damage', () => {
     const state = arena({ hand: ['aim', 'volley'], draw: ['copper'], ochre: 2, indigo: 3, health: 20 });
     expect(firstPlayedDefinition(state)).toBe('aim');
-    expect(playPhase(state, strategy()).fighters.indigo.health).toBe(17);
+    expect(playPhase(state, strategy()).fighters.indigo.health).toBe(16);
   });
 
   it('orders tactical actions before Flurry', () => {
@@ -185,7 +185,7 @@ describe('fixed choice policy', () => {
   it('uses the revealed state after Prism to preserve the maximum damage line', () => {
     const state = arena({ kingdomId: 'three-way-engine', hand: ['prism', 'fireball', 'copper'], draw: ['channel'], firstBuyPending: false });
     const finished = playPhase(state, strategy({ repeatPurchase: 'footwork' }));
-    expect(finished.fighters.indigo.health).toBe(42);
+    expect(finished.fighters.indigo.health).toBe(34);
     expect(finished.events.some((event) => event.type === 'discard')).toBe(true);
   });
 });
@@ -219,7 +219,7 @@ describe('search mechanics', () => {
     expect(memoized.state).toEqual(plain.state);
     expect(memoized.commands.map((command) => command.type)).toContain('resolveRecover');
     expect(memoized.commands.filter((command) => 'cardInstanceId' in command)).toHaveLength(2);
-    expect(memoized.state.fighters.indigo.health).toBe(49);
+    expect(memoized.state.fighters.indigo.health).toBe(39);
   });
 
   it('does not read labels while searching', () => {

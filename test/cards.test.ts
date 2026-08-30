@@ -115,6 +115,28 @@ describe('deck tools', () => {
   });
 });
 
+describe('approved final card values', () => {
+  it('uses the literal Starfire 12 costs and damage values', () => {
+    expect(Object.fromEntries([
+      'arcBolt', 'fireball', 'starfire', 'overload', 'rally', 'bullRush', 'repellingShot', 'longshot', 'volley'
+    ].map((id) => {
+      const card = cardDefinition(id);
+      return [id, { cost: card.cost, headline: card.headline, values: card.values }];
+    }))).toEqual({
+      arcBolt: { cost: 4, headline: '3 damage', values: { damage: 3, manaCost: 1 } },
+      fireball: { cost: 5, headline: '6 damage', values: { damage: 6, manaCost: 2 } },
+      starfire: { cost: 6, headline: '12 damage', values: { damage: 12, manaCost: 3 } },
+      overload: { cost: 5, headline: '3 damage per mana spent', values: { perManaSpent: 3 } },
+      rally: { cost: 3, headline: '2 damage', values: { damage: 2, perCopy: 2 } },
+      bullRush: { cost: 3, headline: '7 damage', values: { damage: 7 } },
+      repellingShot: { cost: 4, headline: 'Far: 2 damage · Near: 1 damage', values: { near: 1, far: 2 } },
+      longshot: { cost: 3, headline: 'Damage equal to distance', values: {} },
+      volley: { cost: 5, headline: 'Near: 2 damage · Far: 4 damage', values: { near: 2, far: 4 } }
+    });
+    expect(cardDefinition('openingStrike').detail).toBe('If this is not your first attack this turn, deal 1 damage instead.');
+  });
+});
+
 describe('attacks', () => {
   it('Heavy Blow deals 6 at Close and gains the persistent Feint bonus at Close', () => {
     let state = ready(); state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['heavyBlow']);
@@ -147,7 +169,7 @@ describe('attacks', () => {
 
   });
   it('Repelling Shot damages and moves the opponent farther away', () => {
-    expect(cardDefinition('repellingShot')).toMatchObject({ cost: 3, values: { near: 1, far: 2 } });
+    expect(cardDefinition('repellingShot')).toMatchObject({ cost: 4, values: { near: 1, far: 2 } });
     expect(isTacticalAction('repellingShot')).toBe(true);
     let state = ready(); isolateHand(state, 'ochre', ['repellingShot']);
     state = playCard(state, 'repellingShot');
@@ -182,9 +204,18 @@ describe('attacks', () => {
   });
   it('a spell leaves Exposed alone while Close attacks use it without consuming it', () => {
     let spell = ready(); spell.fighters.indigo.position = 3; spell.fighters.indigo.exposed = true; spell.players.ochre.mana = 1; isolateHand(spell, 'ochre', ['arcBolt']);
-    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(36); expect(spell.fighters.indigo.exposed).toBe(true);
+    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(37); expect(spell.fighters.indigo.exposed).toBe(true);
     let melee = ready(); melee.fighters.indigo.position = 3; melee.fighters.indigo.exposed = true; isolateHand(melee, 'ochre', ['strike']);
     melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(36); expect(melee.fighters.indigo.exposed).toBe(true);
+  });
+  it('Opening Strike treats setup as non-attacks and earlier damage cards as attacks', () => {
+    let setup = ready(); setup.fighters.indigo.position = 3; isolateHand(setup, 'ochre', ['focus', 'openingStrike']);
+    setup = playCard(setup, 'focus'); setup = playCard(setup, 'openingStrike');
+    expect(setup.fighters.indigo.health).toBe(36);
+
+    let attacked = ready(); attacked.fighters.indigo.position = 3; isolateHand(attacked, 'ochre', ['strike', 'openingStrike']);
+    attacked = playCard(attacked, 'strike'); attacked = playCard(attacked, 'openingStrike');
+    expect(attacked.fighters.indigo.health).toBe(36);
   });
 });
 
@@ -198,12 +229,17 @@ describe('mage cards', () => {
     expect(state.players.ochre.deck.draw.map((card) => card.definitionId)).toEqual(['gold']);
     assertInvariants(state);
   });
-  it('Channel gains 1 mana per player and the Action phase reset touches only the player who ended it', () => {
-    let state = ready(); isolateHand(state, 'ochre', ['channel']); setDraw(state, 'ochre', ['gold']); state.players.indigo.mana = 2;
-    state = playCard(state, 'channel');
-    expect(state.players.ochre.mana).toBe(1); expect(state.players.indigo.mana).toBe(2); expect(definitions(state.players.ochre.deck.hand)).toEqual(['gold']);
+  it('allows current-turn mana above 3, then persists at most 3 mana between turns', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['focus', 'focus', 'focus', 'focus']); state.players.indigo.mana = 2;
+    for (let count = 0; count < 4; count += 1) state = playCard(state, 'focus');
+    expect(state.players.ochre.mana).toBe(4); expect(state.players.indigo.mana).toBe(2);
+
     state = applyAction(state, action(state, (command) => command.type === 'endActionPhase').id);
-    expect(state.players.ochre.mana).toBe(0); expect(state.players.indigo.mana).toBe(2); assertInvariants(state);
+    expect(state.players.ochre.mana).toBe(4);
+    state = applyAction(state, action(state, (command) => command.type === 'endBuyPhase').id);
+    expect(state.players.ochre.mana).toBe(3); expect(state.players.indigo.mana).toBe(2);
+    state = endTurn(state);
+    expect(state.activePlayerId).toBe('ochre'); expect(state.players.ochre.mana).toBe(3); assertInvariants(state);
   });
   it('Ley Step moves exactly one space, gains mana, and offers no move into a wall', () => {
     expect(cardDefinition('leyStep').cost).toBe(3);
@@ -247,7 +283,7 @@ describe('mage cards', () => {
     expect(availability(state, 'muster')).toMatchObject({ enabled: false, reasonCode: 'RESOLVE_CHOICE_FIRST', selection: 'discard' });
   });
   it('spells spend their mana cost and are illegal without it', () => {
-    for (const [definitionId, mana, damage] of [['arcBolt', 1, 4], ['fireball', 2, 8], ['starfire', 3, 12]] as const) {
+    for (const [definitionId, mana, damage] of [['arcBolt', 1, 3], ['fireball', 2, 6], ['starfire', 3, 12]] as const) {
       for (const position of [2, 3, 5]) {
         let state = ready(); state.fighters.indigo.position = position; state.players.ochre.mana = mana; isolateHand(state, 'ochre', [definitionId]);
         state = playCard(state, definitionId);

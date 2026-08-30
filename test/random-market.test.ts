@@ -20,8 +20,8 @@ describe('random markets', () => {
     expect(first.some((id) => TREASURE_IDS.includes(id) || ALWAYS_AVAILABLE_ACTION_IDS.includes(id))).toBe(false);
   });
 
-  it('defines the six fixed piles and keeps Footwork variable', () => {
-    expect([...TREASURE_IDS, ...ALWAYS_AVAILABLE_ACTION_IDS]).toEqual(['copper', 'silver', 'gold', 'step', 'focus', 'scrap']);
+  it('defines five fixed market piles and keeps starter-only Scrap out of them', () => {
+    expect([...TREASURE_IDS, ...ALWAYS_AVAILABLE_ACTION_IDS]).toEqual(['copper', 'silver', 'gold', 'step', 'focus']);
     expect(VARIABLE_ACTION_IDS).toContain('footwork'); expect(ALWAYS_AVAILABLE_ACTION_IDS).not.toContain('footwork');
     expect(CARDS.step!.headline).toBe('Move 1 space'); expect(CARDS.step!.detail).toBeUndefined();
     expect(VARIABLE_ACTION_IDS).toContain('repellingShot');
@@ -39,7 +39,7 @@ describe('random markets', () => {
       const restarted = new GameService(new FileGameRepository(directory));
       const loaded = await restarted.get(created.id);
       expect(loaded.variableCardIds).toEqual(VARIABLE_ACTION_IDS.slice(0, 10));
-      expect(loaded.fixedCardIds).toEqual(['copper', 'silver', 'gold', 'step', 'focus', 'scrap']);
+      expect(loaded.fixedCardIds).toEqual(['copper', 'silver', 'gold', 'step', 'focus']);
       const exported = await restarted.exportGame(created.id);
       expect(exported).toMatchObject({ schemaVersion: 14, game: { id: created.id, variableCardIds: VARIABLE_ACTION_IDS.slice(0, 10) } });
     } finally { await rm(directory, { recursive: true, force: true }); }
