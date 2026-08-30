@@ -122,29 +122,35 @@ fn psro_report(
     command.output().expect("PSRO report command")
 }
 
+fn verify_threads(matrix: &Path, out: &Path, threads: Option<usize>) -> Output {
+    let mut command = Command::new(BINARY);
+    command.args([
+        "psro-verify",
+        "--kingdom",
+        KINGDOM,
+        "--top-file",
+        fixture("balance-tuning-005-psro-top.hgf").to_str().unwrap(),
+        "--reservoir",
+        fixture("balance-tuning-005-psro-reservoir.hgf")
+            .to_str()
+            .unwrap(),
+        "--matrix-dir",
+        matrix.to_str().unwrap(),
+        "--out",
+        out.to_str().unwrap(),
+        "--matrix-size",
+        MATRIX_SIZE,
+        "--candidate-limit",
+        CANDIDATE_LIMIT,
+    ]);
+    if let Some(threads) = threads {
+        command.args(["--threads", &threads.to_string()]);
+    }
+    command.output().expect("PSRO verify")
+}
+
 fn verify(matrix: &Path, out: &Path) -> Output {
-    Command::new(BINARY)
-        .args([
-            "psro-verify",
-            "--kingdom",
-            KINGDOM,
-            "--top-file",
-            fixture("balance-tuning-005-psro-top.hgf").to_str().unwrap(),
-            "--reservoir",
-            fixture("balance-tuning-005-psro-reservoir.hgf")
-                .to_str()
-                .unwrap(),
-            "--matrix-dir",
-            matrix.to_str().unwrap(),
-            "--out",
-            out.to_str().unwrap(),
-            "--matrix-size",
-            MATRIX_SIZE,
-            "--candidate-limit",
-            CANDIDATE_LIMIT,
-        ])
-        .output()
-        .expect("PSRO verify")
+    verify_threads(matrix, out, None)
 }
 
 fn self_play_backfill(matrix: &Path, out: &Path, threads: usize) -> Output {
@@ -287,6 +293,30 @@ where
     update_checkpoint_reference(target, identity, old_crc, new_crc);
 }
 
+fn assert_timing_equation(report: &Path) {
+    let report: serde_json::Value =
+        serde_json::from_slice(&fs::read(report).unwrap()).expect("timing report");
+    let transitions = report["transitions"].as_array().expect("transitions");
+    let transition_ms = transitions
+        .iter()
+        .map(|transition| {
+            let game = transition["gameMs"].as_f64().expect("gameMs");
+            let evaluate = transition["evaluateMs"].as_f64().expect("evaluateMs");
+            let elapsed = transition["elapsedMs"]
+                .as_f64()
+                .expect("transition elapsedMs");
+            assert!((game + evaluate - elapsed).abs() < 1e-6);
+            elapsed
+        })
+        .sum::<f64>();
+    let measured = report["startupMs"].as_f64().expect("startupMs")
+        + transition_ms
+        + report["evidenceWriteMs"].as_f64().expect("evidenceWriteMs")
+        + report["finalizeMs"].as_f64().expect("finalizeMs")
+        + report["otherMs"].as_f64().expect("otherMs");
+    assert!((measured - report["elapsedMs"].as_f64().expect("elapsedMs")).abs() < 1e-6);
+}
+
 fn committed_look_games(out: &Path) -> u64 {
     evidence(out)
         .into_iter()
@@ -304,12 +334,14 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
     let root = temporary("stable");
     let matrix = initial_matrix(&root, 4);
     let baseline = root.join("baseline");
-    let result = psro(&matrix, &baseline, 1, None);
+    let baseline_report = root.join("baseline-report.json");
+    let result = psro_report(&matrix, &baseline, 1, None, &baseline_report);
     assert!(
         result.status.success(),
         "PSRO failed: {}",
         String::from_utf8_lossy(&result.stderr)
     );
+    assert_timing_equation(&baseline_report);
     let admissions = [1, 2].map(|ordinal| {
         let bytes = fs::read(baseline.join(format!("admission-{ordinal:04}.hpa"))).unwrap();
         (
@@ -337,6 +369,7 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         .collect::<Vec<_>>();
     assert_eq!(support, vec![10_681_409]);
     assert!(verify(&matrix, &baseline).status.success());
+    assert!(verify_threads(&matrix, &baseline, Some(4)).status.success());
     let decisions = fs::read(baseline.join("decisions.hpd")).unwrap();
     let decision_count = u32::from_le_bytes(decisions[136..140].try_into().unwrap()) as usize;
     let terminal_statuses = (0..decision_count)
@@ -363,13 +396,15 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         );
     }
 
-    for transition in ["1", "8"] {
+    let checkpoint = fs::read(baseline.join("checkpoint.hpc")).unwrap();
+    let transition_count = word(&checkpoint[128..], 44) - 1;
+    for transition in (1..=transition_count).map(|value| value.to_string()) {
         let out = root.join(format!("restart-{transition}"));
         let stopped = psro(
             &matrix,
             &out,
             4,
-            Some(("HEXDECK_PSRO_TEST_STOP_AFTER_TRANSITION", transition)),
+            Some(("HEXDECK_PSRO_TEST_STOP_AFTER_TRANSITION", &transition)),
         );
         assert!(!stopped.status.success());
         let committed = evidence(&out);
@@ -394,6 +429,31 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         assert_eq!(evidence(&out), expected);
     }
 
+    let bounded = root.join("bounded-replay");
+    let stopped = psro(
+        &matrix,
+        &bounded,
+        4,
+        Some(("HEXDECK_PSRO_TEST_STOP_AFTER_TRANSITION", "1")),
+    );
+    assert!(!stopped.status.success());
+    fs::write(
+        bounded.join("search-0001/screen-0016.hpl"),
+        b"corrupt beyond checkpoint",
+    )
+    .unwrap();
+    let stopped = psro(
+        &matrix,
+        &bounded,
+        4,
+        Some(("HEXDECK_PSRO_TEST_STOP_AFTER_RESUME_REPLAY", "1")),
+    );
+    assert!(!stopped.status.success());
+    assert!(
+        String::from_utf8_lossy(&stopped.stderr)
+            .contains("test stop after bounded PSRO resume replay")
+    );
+
     let adopted = root.join("adopt-renamed");
     let stopped = psro(
         &matrix,
@@ -403,7 +463,8 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
     );
     assert!(!stopped.status.success());
     let renamed = fs::read(adopted.join("search-0001/screen-0008.hpl")).expect("renamed look");
-    let resumed = psro(&matrix, &adopted, 4, None);
+    let adopted_report = root.join("adopted-report.json");
+    let resumed = psro_report(&matrix, &adopted, 4, None, &adopted_report);
     assert!(
         resumed.status.success(),
         "adoption failed: {}",
@@ -413,6 +474,7 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         fs::read(adopted.join("search-0001/screen-0008.hpl")).unwrap(),
         renamed
     );
+    assert_timing_equation(&adopted_report);
     assert_eq!(evidence(&adopted), expected);
 
     let adopted_admission = root.join("adopt-admission");
@@ -425,7 +487,8 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
     assert!(!stopped.status.success());
     let admission =
         fs::read(adopted_admission.join("admission-0001.hpa")).expect("renamed admission");
-    let resumed = psro(&matrix, &adopted_admission, 4, None);
+    let admission_report = root.join("admission-report.json");
+    let resumed = psro_report(&matrix, &adopted_admission, 4, None, &admission_report);
     assert!(
         resumed.status.success(),
         "admission adoption failed: {}",
@@ -435,6 +498,7 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         fs::read(adopted_admission.join("admission-0001.hpa")).unwrap(),
         admission
     );
+    assert_timing_equation(&admission_report);
     assert_eq!(evidence(&adopted_admission), expected);
 
     for (name, stop) in [
@@ -476,6 +540,7 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
     let report = root.join("resume-report.json");
     let resumed = psro_report(&matrix, &mid_confirmation, 4, None, &report);
     assert!(resumed.status.success());
+    assert_timing_equation(&report);
     let report: serde_json::Value =
         serde_json::from_slice(&fs::read(report).unwrap()).expect("resume report");
     let resumed_games = report["totalGames"].as_u64().expect("total games");
@@ -517,6 +582,24 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
     let resumed = psro(&matrix, &corrupt_admission, 4, None);
     assert!(!resumed.status.success());
     assert_eq!(fs::read(path).unwrap(), bytes);
+
+    let missing_decisions = root.join("missing-decisions");
+    copy_tree(&baseline, &missing_decisions);
+    fs::remove_file(missing_decisions.join("decisions.hpd")).unwrap();
+    assert!(!psro(&matrix, &missing_decisions, 4, None).status.success());
+
+    let mismatched_decisions = root.join("mismatched-decisions-reference");
+    copy_tree(&baseline, &mismatched_decisions);
+    let path = mismatched_decisions.join("decisions.hpd");
+    let mut bytes = fs::read(&path).unwrap();
+    bytes[128] ^= 1;
+    reseal(&mut bytes);
+    fs::write(&path, bytes).unwrap();
+    assert!(
+        !psro(&matrix, &mismatched_decisions, 4, None)
+            .status
+            .success()
+    );
 
     let corrupt_decisions = root.join("corrupt-decisions");
     copy_tree(&baseline, &corrupt_decisions);
@@ -666,6 +749,17 @@ fn verifier_rejects_corrupt_evidence_and_wrong_test_knobs() {
         .output()
         .unwrap();
     assert!(!wrong.status.success());
+
+    let truncated = root.join("truncated-atomic-write");
+    let result = psro(
+        &matrix,
+        &truncated,
+        2,
+        Some(("HEXDECK_PSRO_TEST_TRUNCATE_TEMPORARY", "1")),
+    );
+    assert!(!result.status.success());
+    assert!(!truncated.join("checkpoint.hpc").exists());
+    assert!(truncated.join("checkpoint.hpc.tmp").exists());
 
     let look = out.join("search-0001/screen-0008.hpl");
     let mut bytes = fs::read(&look).unwrap();

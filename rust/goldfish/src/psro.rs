@@ -1125,6 +1125,11 @@ impl Runtime {
     }
 }
 
+fn finish_empty_race(state: &mut State, depths: &[u32]) {
+    state.active.clear();
+    state.look_index = depths.len() as u32;
+}
+
 fn candidate_map(candidates: &[Candidate]) -> HashMap<u32, Candidate> {
     candidates
         .iter()
@@ -1151,8 +1156,7 @@ fn execute_race(runtime: &mut Runtime, state: &mut State, resumed: bool) -> Resu
         state.fixed_family.clone()
     };
     if initial.is_empty() {
-        state.active.clear();
-        state.look_index = depths.len() as u32;
+        finish_empty_race(state, depths);
         return Ok(());
     }
     let full_schedule = runtime.schedule(state, phase, *depths.last().expect("depths"))?;
@@ -2010,8 +2014,7 @@ fn replay_race(
         state.fixed_family.clone()
     };
     if initial.is_empty() {
-        state.active.clear();
-        state.look_index = depths.len() as u32;
+        finish_empty_race(state, depths);
         return Ok(true);
     }
     if initial
@@ -3970,6 +3973,32 @@ mod tests {
         );
         let rows = matrix::pair_rows(&grown);
         assert_eq!(rows[PAIRS_ROW_BYTES as usize + 8], 3);
+    }
+
+    #[test]
+    fn empty_race_clears_active_and_marks_all_looks() {
+        let mut state = State {
+            complete: false,
+            phase: Phase::Screen,
+            search: 1,
+            look_index: 0,
+            retest_ordinal: 0,
+            admissions: 0,
+            generation: 0,
+            clean_searches: 0,
+            matrix_numbers: vec![1, 2],
+            matrix_weights: vec![0.5, 0.5],
+            fixed_family: Vec::new(),
+            active: vec![Candidate { number: 3, rank: 0 }],
+            queue: Vec::new(),
+            refs: Vec::new(),
+            race_ordinal: 1,
+            previous_depth: 0,
+            next_depth: SCREEN_DEPTHS[0],
+        };
+        finish_empty_race(&mut state, &SCREEN_DEPTHS);
+        assert!(state.active.is_empty());
+        assert_eq!(state.look_index, SCREEN_DEPTHS.len() as u32);
     }
 
     #[test]
