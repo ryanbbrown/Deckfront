@@ -1,3 +1,5 @@
+> Superseded by [the current card reference](../09-card-list.md). Do not use this archived plan for current card rules.
+
 # 30 - Card List
 
 ## Mage

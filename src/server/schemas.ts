@@ -186,7 +186,7 @@ export const gameRecordSchema = z.object({
 export const createGameRequestSchema = z.object({
   seed: z.number().int().optional(),
   mode: z.enum(['local', 'ai']),
-  startingDraftEnabled: z.boolean().optional(),
+  startingDraftEnabled: z.boolean().default(false),
   humanPlayerId: playerId.optional(),
   aiDifficulty: z.enum(AI_DIFFICULTIES).optional(),
   variableCardIds: z.array(z.string())

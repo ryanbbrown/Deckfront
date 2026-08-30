@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
-  applyAction, assertInvariants, cardDefinition, createCard, createGame, isTacticalAction,
-  listActionAvailability, listLegalActions, replayCommands, submitStartingBuild
+  applyAction, assertInvariants, cardDefinition, createCard, createGame, listActionAvailability,
+  isTacticalAction, listLegalActions, replayCommands, submitStartingBuild
 } from '../src/game';
 import type { GameCommand, GameState, PlayerId } from '../src/game';
 
 function ready(seed = 1, first: PlayerId = 'ochre'): GameState {
-  let state = createGame({ seed, firstPlayerId: first }); state = submitStartingBuild(state, 'ochre', []); return submitStartingBuild(state, 'indigo', []);
+  let state = createGame({ seed, firstPlayerId: first }); state = submitStartingBuild(state, 'ochre', []); state = submitStartingBuild(state, 'indigo', []);
+  state.fighters.ochre.health = 40; state.fighters.indigo.health = 40;
+  return state;
 }
 function action(state: GameState, predicate: (command: GameCommand) => boolean) {
   const found = listLegalActions(state).find((candidate) => predicate(candidate.command));
@@ -113,42 +115,114 @@ describe('deck tools', () => {
   });
 });
 
-describe('attack behavior', () => {
-  it('classifies Repelling Shot as a Tactical Action', () => {
-    expect(isTacticalAction('repellingShot')).toBe(true);
+describe('approved final card values', () => {
+  it('uses the literal Starfire 12 costs and damage values', () => {
+    expect(Object.fromEntries([
+      'arcBolt', 'fireball', 'starfire', 'overload', 'rally', 'bullRush', 'repellingShot', 'longshot', 'volley'
+    ].map((id) => {
+      const card = cardDefinition(id);
+      return [id, { cost: card.cost, headline: card.headline, values: card.values }];
+    }))).toEqual({
+      arcBolt: { cost: 4, headline: '3 damage', values: { damage: 3, manaCost: 1 } },
+      fireball: { cost: 5, headline: '6 damage', values: { damage: 6, manaCost: 2 } },
+      starfire: { cost: 6, headline: '12 damage', values: { damage: 12, manaCost: 3 } },
+      overload: { cost: 5, headline: '3 damage per mana spent', values: { perManaSpent: 3 } },
+      rally: { cost: 3, headline: '2 damage', values: { damage: 2, perCopy: 2 } },
+      bullRush: { cost: 3, headline: '7 damage', values: { damage: 7 } },
+      repellingShot: { cost: 4, headline: 'Far: 2 damage · Near: 1 damage', values: { near: 1, far: 2 } },
+      longshot: { cost: 3, headline: 'Damage equal to distance', values: {} },
+      volley: { cost: 5, headline: 'Near: 2 damage · Far: 4 damage', values: { near: 2, far: 4 } }
+    });
+    expect(cardDefinition('openingStrike').detail).toBe('If this is not your first attack this turn, deal 1 damage instead.');
   });
+});
 
-  it('reports range and mana legality reasons', () => {
-    const cases = [
-      { id: 'heavyBlow', position: 6, reasonCode: 'NEEDS_CLOSE' },
-      { id: 'steadyShot', position: 3, reasonCode: 'NEEDS_NEAR_OR_FAR' },
-      { id: 'strike', position: 6, reasonCode: 'NEEDS_CLOSE' },
-      { id: 'repellingShot', position: 3, reasonCode: 'NEEDS_NEAR_OR_FAR' }
-    ] as const;
-    for (const entry of cases) {
-      const state = ready(); state.fighters.indigo.position = entry.position;
-      isolateHand(state, 'ochre', [entry.id]);
-      expect(availability(state, entry.id)).toMatchObject({ enabled: false, reasonCode: entry.reasonCode });
+describe('attacks', () => {
+  it('Heavy Blow deals 6 at Close and gains the persistent Feint bonus at Close', () => {
+    let state = ready(); state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['heavyBlow']);
+    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(34); assertInvariants(state);
+    state = ready(); state.fighters.indigo.position = 3; state.fighters.indigo.exposed = true; isolateHand(state, 'ochre', ['heavyBlow']);
+    state = playCard(state, 'heavyBlow'); expect(state.fighters.indigo.health).toBe(33); expect(state.fighters.indigo.exposed).toBe(true);
+    for (const position of [4, 6]) {
+      const near = ready(); near.fighters.indigo.position = position; isolateHand(near, 'ochre', ['heavyBlow']);
+      expect(availability(near, 'heavyBlow')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
     }
-    const short = ready(); isolateHand(short, 'ochre', ['arcBolt']);
-    expect(availability(short, 'arcBolt')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_MANA' });
   });
+  it('Steady Shot deals 2 at Near and Far and is illegal at Close', () => {
+    expect(cardDefinition('steadyShot').cost).toBe(3);
+    for (const position of [4, 6]) {
+      let state = ready(); state.fighters.indigo.position = position; isolateHand(state, 'ochre', ['steadyShot']);
+      state = playCard(state, 'steadyShot'); expect(state.fighters.indigo.health).toBe(38); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
+    }
+    const close = ready(); close.fighters.indigo.position = 3; isolateHand(close, 'ochre', ['steadyShot']);
+    expect(availability(close, 'steadyShot')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_NEAR_OR_FAR' });
+  });
+  it('Step moves and Strike attacks at Close range', () => {
+    let state = ready(); isolateHand(state, 'ochre', ['step']); setDraw(state, 'ochre', ['gold']);
+    state = playCard(state, 'step', (command) => command.type === 'playMoveAction' && command.direction === 'right');
+    expect(state.fighters.ochre.position).toBe(4); expect(state.players.ochre.deck.hand).toEqual([]); assertInvariants(state);
 
-  it('resolves Repelling Shot movement, wall collisions, and event order', () => {
+    state = ready(); state.fighters.indigo.position = 3; isolateHand(state, 'ochre', ['strike']);
+    state = playCard(state, 'strike'); expect(state.fighters.indigo.health).toBe(37);
+    const strikeFar = ready(); strikeFar.fighters.indigo.position = 6; isolateHand(strikeFar, 'ochre', ['strike']);
+    expect(availability(strikeFar, 'strike')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_CLOSE' });
+
+  });
+  it('Repelling Shot damages and moves the opponent farther away', () => {
+    expect(cardDefinition('repellingShot')).toMatchObject({ cost: 4, values: { near: 1, far: 2 } });
+    expect(isTacticalAction('repellingShot')).toBe(true);
     let state = ready(); isolateHand(state, 'ochre', ['repellingShot']);
     state = playCard(state, 'repellingShot');
     expect(state.fighters.ochre.position).toBe(3); expect(state.fighters.indigo.position).toBe(5);
+    expect(state.fighters.indigo.health).toBe(39); expect(state.players.indigo.positionChanged).toBe(false);
     expect(state.events.slice(-2).map((event) => event.type)).toEqual(['damage', 'move']);
-
-    state = ready(); state.fighters.indigo.position = 6; isolateHand(state, 'ochre', ['repellingShot']);
+    assertInvariants(state);
+  });
+  it('Repelling Shot moves the attacker when the opponent is blocked by a wall', () => {
+    let state = ready(); state.fighters.indigo.position = 6; isolateHand(state, 'ochre', ['repellingShot']);
     state = playCard(state, 'repellingShot');
     expect(state.fighters.ochre.position).toBe(2); expect(state.fighters.indigo.position).toBe(6);
+    expect(state.fighters.indigo.health).toBe(38); expect(state.players.ochre.positionChanged).toBe(true);
     expect(state.turnState.spacesMoved).toBe(1);
-
-    state = ready(); state.fighters.ochre.position = 1; state.fighters.indigo.position = 6;
-    isolateHand(state, 'ochre', ['repellingShot']); state = playCard(state, 'repellingShot');
+    assertInvariants(state);
+  });
+  it('Repelling Shot moves neither fighter when both are blocked by walls', () => {
+    let state = ready(); state.fighters.ochre.position = 1; state.fighters.indigo.position = 6;
+    isolateHand(state, 'ochre', ['repellingShot']);
+    state = playCard(state, 'repellingShot');
     expect(state.fighters.ochre.position).toBe(1); expect(state.fighters.indigo.position).toBe(6);
-    expect(state.turnState.spacesMoved).toBe(0); expect(state.events.at(-1)?.type).toBe('damage');
+    expect(state.fighters.indigo.health).toBe(38); expect(state.events.at(-1)?.type).toBe('damage');
+    expect(state.turnState.spacesMoved).toBe(0);
+    assertInvariants(state);
+  });
+  it('Repelling Shot is illegal at Close and consumes Aimed when played at range', () => {
+    const close = ready(); close.fighters.indigo.position = 3; isolateHand(close, 'ochre', ['repellingShot']);
+    expect(availability(close, 'repellingShot')).toMatchObject({ enabled: false, reasonCode: 'NEEDS_NEAR_OR_FAR' });
+    let aimed = ready(); aimed.fighters.ochre.aimed = true; isolateHand(aimed, 'ochre', ['repellingShot']);
+    aimed = playCard(aimed, 'repellingShot');
+    expect(aimed.fighters.ochre.aimed).toBe(false); expect(aimed.fighters.indigo.health).toBe(37);
+  });
+  it('a spell leaves Exposed alone while Close attacks use it without consuming it', () => {
+    let spell = ready(); spell.fighters.indigo.position = 3; spell.fighters.indigo.exposed = true; spell.players.ochre.mana = 1; isolateHand(spell, 'ochre', ['arcBolt']);
+    spell = playCard(spell, 'arcBolt'); expect(spell.fighters.indigo.health).toBe(37); expect(spell.fighters.indigo.exposed).toBe(true);
+    let melee = ready(); melee.fighters.indigo.position = 3; melee.fighters.indigo.exposed = true; isolateHand(melee, 'ochre', ['strike']);
+    melee = playCard(melee, 'strike'); expect(melee.fighters.indigo.health).toBe(36); expect(melee.fighters.indigo.exposed).toBe(true);
+  });
+  it('Opening Strike treats setup as non-attacks and earlier attack cards as attacks', () => {
+    let setup = ready(); setup.fighters.indigo.position = 3; isolateHand(setup, 'ochre', ['focus', 'openingStrike']);
+    setup = playCard(setup, 'focus'); setup = playCard(setup, 'openingStrike');
+    expect(setup.fighters.indigo.health).toBe(36);
+
+    let attacked = ready(); attacked.fighters.indigo.position = 3; isolateHand(attacked, 'ochre', ['strike', 'openingStrike']);
+    attacked = playCard(attacked, 'strike'); attacked = playCard(attacked, 'openingStrike');
+    expect(attacked.fighters.indigo.health).toBe(36);
+
+    let zeroDamage = ready(); zeroDamage.fighters.indigo.position = 3;
+    isolateHand(zeroDamage, 'ochre', ['improvise', 'openingStrike']);
+    zeroDamage = playCard(zeroDamage, 'improvise');
+    expect(zeroDamage.fighters.indigo.health).toBe(40);
+    zeroDamage = playCard(zeroDamage, 'openingStrike');
+    expect(zeroDamage.fighters.indigo.health).toBe(39);
   });
 });
 
@@ -162,7 +236,7 @@ describe('mage cards', () => {
     expect(state.players.ochre.deck.draw.map((card) => card.definitionId)).toEqual(['gold']);
     assertInvariants(state);
   });
-  it('allows current-turn mana above 3, then persists at most 3 mana after the turn', () => {
+  it('allows current-turn mana above 3, then persists at most 3 mana between turns', () => {
     let state = ready(); isolateHand(state, 'ochre', ['focus', 'focus', 'focus', 'focus']); state.players.indigo.mana = 2;
     for (let count = 0; count < 4; count += 1) state = playCard(state, 'focus');
     expect(state.players.ochre.mana).toBe(4); expect(state.players.indigo.mana).toBe(2);
@@ -172,7 +246,10 @@ describe('mage cards', () => {
     state = applyAction(state, action(state, (command) => command.type === 'endBuyPhase').id);
     expect(state.players.ochre.mana).toBe(3); expect(state.players.indigo.mana).toBe(2);
     state = endTurn(state);
-    expect(state.activePlayerId).toBe('ochre'); expect(state.players.ochre.mana).toBe(3); assertInvariants(state);
+    expect(state.activePlayerId).toBe('ochre'); expect(state.players.ochre.mana).toBe(3);
+    isolateHand(state, 'ochre', ['starfire']);
+    state = playCard(state, 'starfire');
+    expect(state.players.ochre.mana).toBe(0); expect(state.fighters.indigo.health).toBe(28); assertInvariants(state);
   });
   it('Ley Step moves exactly one space, gains mana, and offers no move into a wall', () => {
     expect(cardDefinition('leyStep').cost).toBe(3);
@@ -215,9 +292,16 @@ describe('mage cards', () => {
     expect(legal).toHaveLength(2);
     expect(availability(state, 'muster')).toMatchObject({ enabled: false, reasonCode: 'RESOLVE_CHOICE_FIRST', selection: 'discard' });
   });
-  it('uses the approved Volley and Bull Rush costs and damage', () => {
-    expect(cardDefinition('volley')).toMatchObject({ cost: 5, values: { near: 2, far: 4 } });
-    expect(cardDefinition('bullRush')).toMatchObject({ cost: 3, values: { damage: 7 } });
+  it('spells spend their mana cost and are illegal without it', () => {
+    for (const [definitionId, mana, damage] of [['arcBolt', 1, 3], ['fireball', 2, 6], ['starfire', 3, 12]] as const) {
+      for (const position of [2, 3, 5]) {
+        let state = ready(); state.fighters.indigo.position = position; state.players.ochre.mana = mana; isolateHand(state, 'ochre', [definitionId]);
+        state = playCard(state, definitionId);
+        expect(state.fighters.indigo.health).toBe(40 - damage); expect(state.players.ochre.mana).toBe(0); assertInvariants(state);
+      }
+      const short = ready(); short.players.ochre.mana = mana - 1; isolateHand(short, 'ochre', [definitionId]);
+      expect(availability(short, definitionId)).toMatchObject({ enabled: false, reasonCode: 'NEEDS_MANA' });
+    }
   });
 });
 

@@ -44,8 +44,7 @@ export class PretrainedAiTrainer implements AiTrainer {
     const started = Date.now();
     const trained = findPretrainedKingdom(kingdom.actionPiles.map((pile) => pile.cardId));
     if (!trained) throw new AiTrainingError('This kingdom has no pretrained AI opponent.');
-    const selected = selectPlan(trained.plans, seed, difficulty);
-    const strategy = structuredClone(selected.strategy);
+    const strategy = structuredClone(selectPlan(trained.plans, seed, difficulty).strategy);
     return { strategy, summary: { elapsedMs: Date.now() - started, matches: 0, strategyId: strategy.id } };
   }
 }

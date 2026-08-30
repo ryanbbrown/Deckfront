@@ -2,8 +2,9 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import kingdomLibrary from '../src/game-data/kingdoms.json' with { type: 'json' };
 import {
-  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, CARDS, VARIABLE_ACTION_IDS,
+  ALWAYS_AVAILABLE_ACTION_IDS, ALWAYS_AVAILABLE_COUNT, CARDS, DEFAULT_KINGDOM_ID, VARIABLE_ACTION_IDS,
   assertInvariants, checkInvariants, createGame, kingdomMarket, kingdomOf, listLegalActions,
   registerKingdom, resetKingdoms, resolveCard, submitStartingBuild
 } from '../src/game';
@@ -16,9 +17,24 @@ function kingdom(id: string, overrides: Partial<Kingdom> = {}): Kingdom { return
 function ready(state: GameState): GameState { return submitStartingBuild(submitStartingBuild(state, 'ochre', []), 'indigo', []); }
 afterEach(resetKingdoms);
 
-describe('kingdom registry', () => {
+const CURATED: Record<string, string[]> = {
+  'distance-duel': ['cull','footwork','feint','jab','drive','flurry','aim','pepperingShot','repellingShot','volley'],
+  'current-duel': ['cull','channel','attune','arcBolt','cascade','feint','rally','aim','precisionShot','improvise'],
+  'three-way-open': ['cull','leyStep','fireball','discharge','footwork','drive','longshot','volley','stipend','improvise'],
+  'three-way-engine': ['cull','channel','attune','overload','jab','rally','pepperingShot','precisionShot','regroup','improvise'],
+  'range-rich-mixed': ['cull','leyStep','adapt','fireball','bullRush','heavyBlow','aim','repellingShot','longshot','salvageShot']
+};
 
-  it('makes only Step and Focus universal and keeps Cull variable', () => {
+describe('kingdom registry', () => {
+  it('uses Distance Duel by default with the literal approved supply', () => {
+    const state = createGame({ seed: 1 });
+    expect(state.kingdomId).toBe(DEFAULT_KINGDOM_ID); expect(state.startingHealth).toBe(50);
+    expect(state.supply).toEqual({ cull:10, footwork:10, feint:10, jab:10, drive:10, flurry:10,
+      aim:10, pepperingShot:10, repellingShot:10, volley:10, step:10, focus:10 });
+    expect(state.fighters.ochre.health).toBe(47); expect(state.fighters.indigo.health).toBe(50); assertInvariants(state);
+  });
+
+  it('makes Step and Focus universal and keeps Cull variable', () => {
     expect(ALWAYS_AVAILABLE_ACTION_IDS).toEqual(['step', 'focus']);
     expect(VARIABLE_ACTION_IDS).toContain('cull'); expect(VARIABLE_ACTION_IDS).not.toContain('scrap');
     registerKingdom(kingdom('narrow', { actionPiles: piles(['aim']) }));
@@ -34,6 +50,18 @@ describe('kingdom registry', () => {
       'Buy Copper','Buy Silver','Buy Gold','Buy Step','Buy Focus','End Buy phase',
       ...VARIABLE_ACTION_IDS.slice(0,10).map((id) => `Buy ${CARDS[id]!.name}`)
     ].sort());
+  });
+
+  it('keeps Scrap in draft-off starting decks but out of the market and supply', () => {
+    const state = createGame({ seed: 1, startingDraftEnabled: false });
+    for (const player of Object.values(state.players)) {
+      const cards = [...player.deck.hand, ...player.deck.draw].map((card) => card.definitionId);
+      expect(cards.filter((id) => id === 'scrap')).toHaveLength(3);
+    }
+    expect(kingdomMarket(state.kingdomId).map((card) => card.id)).not.toContain('scrap');
+    expect(state.supply.scrap).toBeUndefined();
+    state.phase = 'buy';
+    expect(listLegalActions(state).map((entry) => entry.label)).not.toContain('Buy Scrap');
   });
 
   it('freezes registered kingdoms and nested resolved values', () => {
@@ -69,19 +97,37 @@ describe('kingdom registry', () => {
     const over = structuredClone(state); over.supply.aim = 11; expect(checkInvariants(over)).toContain('aim has invalid supply count.');
   });
 
-  it('limits starting builds to sold cards and the two universal cards', () => {
+  it('limits starting builds to sold cards and the universal cards', () => {
     registerKingdom(kingdom('build', { actionPiles:piles(['aim','cull']) })); const state = createGame({ seed:1, kingdomId:'build' });
     expect(() => submitStartingBuild(state, 'ochre', ['aim','cull','step'])).not.toThrow();
     expect(() => submitStartingBuild(state, 'ochre', ['volley'])).toThrow('does not sell volley');
   });
 });
 
+describe('curated kingdoms', () => {
+  it('registers exactly the five approved literal ten-pile lists', () => {
+    expect(kingdomLibrary.kingdoms.map((entry) => entry.id)).toEqual(Object.keys(CURATED));
+    for (const [id, ids] of Object.entries(CURATED)) {
+      expect(kingdomOf(id).startingHealth).toBe(50);
+      expect(kingdomOf(id).actionPiles).toEqual(piles(ids));
+      expect(ids).toHaveLength(10); expect(ids).toContain('cull'); expect(ids).not.toContain('scrap');
+      expect(kingdomMarket(id).map((card) => card.id)).toEqual(['copper','silver','gold',...ids,'step','focus']);
+    }
+  });
+
+  it('keeps first-player health and setup invariants in every curated kingdom', () => {
+    for (const id of Object.keys(CURATED)) { const state = createGame({ seed:4, kingdomId:id });
+      expect(state.fighters.ochre.health).toBe(47); expect(state.fighters.indigo.health).toBe(50);
+      assertInvariants(state); assertInvariants(ready(state)); }
+  });
+});
+
 describe('overrides and persistence', () => {
   it('applies cost, value, and Treasure money overrides without mutating base definitions', () => {
     expect(CARDS.longshot!.values).toEqual({});
-    registerKingdom(kingdom('tuned', { actionPiles:piles(['heavyBlow']), overrides:{ heavyBlow:{ cost:3, values:{ damage:6 } }, silver:{ money:5 } } }));
+    registerKingdom(kingdom('tuned', { actionPiles:piles(['heavyBlow']), overrides:{ heavyBlow:{ cost:3, values:{ damage:7 } }, silver:{ money:5 } } }));
     const state = createGame({ seed:1, kingdomId:'tuned' });
-    expect(resolveCard(state,'heavyBlow')).toMatchObject({ cost:3, values:{ damage:6, draw:0 } });
+    expect(resolveCard(state,'heavyBlow')).toMatchObject({ cost:3, values:{ damage:7, draw:0 } });
     expect(resolveCard(state,'silver').money).toBe(5); expect(CARDS.heavyBlow).toMatchObject({ cost:5, values:{ damage:6, draw:0 } });
   });
 
@@ -98,7 +144,7 @@ describe('overrides and persistence', () => {
 
   it('persists, reloads, and exposes owned plus starting-only definitions with overrides', async () => {
     const directory = await mkdtemp(path.join(tmpdir(), 'hexdeck-kingdom-'));
-    try { const service = new GameService(new FileGameRepository(directory)); const created = await service.create({ seed:5 });
+    try { const service = new GameService(new FileGameRepository(directory)); const created = await service.create({ seed:5, startingDraftEnabled:true });
       const one = await service.updateBuild(created.id, created.revision, [], true); const both = await service.updateBuild(created.id, one.revision, [], true);
       const after = await service.commitAction(created.id, both.revision, both.actions.phases.find((entry) => entry.kind === 'endAction')!.id);
       const record = await service.getRecord(created.id); expect(after.phase).toBe('buy'); expect(record.state.kingdomId).toBe(record.kingdom.id);

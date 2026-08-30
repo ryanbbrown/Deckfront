@@ -19,7 +19,8 @@ export interface CardDefinition {
   type: CardType;
   family: CardFamily;
   cost: number;
-  text: string;
+  headline: string;
+  detail?: string | undefined;
   mechanic: CardMechanic;
   money?: number | undefined;
   values?: CardValues | undefined;

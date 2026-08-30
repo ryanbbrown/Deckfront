@@ -1,81 +1,238 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { STARTING_BUDGET, firstBuyCarry } from '../game';
 import type { CardDefinition, CardInstance, PlayerId } from '../game';
 import { AI_DIFFICULTIES } from '../shared/api';
-import type { AiDifficulty, BrowserAction, GameMode, GameView, PublicGameEvent, SetupCatalog } from '../shared/api';
-import { takeAction, undoAction, updateBuild } from './api';
-import { Board } from './Board';
+import type { AiDifficulty, BrowserAction, GameMode, GameUpdateView, GameView, PresentationFrame, PresentationSequence, PublicGameEvent, SelectionActionPresentation, SetupCatalog } from '../shared/api';
+import { resetGame, takeAction, undoAction, updateBuild } from './api';
+import { Board, FighterCounter } from './Board';
+import { groupCardCatalog } from './cardCatalog';
+import { AI_SETTLE_MS, DRAW_DURATION_MS, DRAW_STAGGER_MS, FlyingCards, HUMAN_SETTLE_MS, PLAY_DURATION_MS, PURCHASE_PREVIEW_MS, PurchasePreview, gameAtFrame, updateGame, useReducedMotion, wait } from './playback';
+import type { Flight, PurchaseReveal } from './playback';
 
-interface GameProps { game: GameView; error: string | null; onGame: (game: GameView) => void; onError: (value: string | null) => void; onNew: () => void }
+interface GameProps { game: GameView; initialPresentation: PresentationSequence | null; error: string | null; animateAi: boolean; onAnimateAi: (enabled: boolean) => void; onGame: (game: GameView) => void; onError: (value: string | null) => void; onNew: () => void }
 interface CardGroup { definitionId: string; instances: CardInstance[] }
+interface AnimationDestination { kind: 'handToPlayed' | 'drawToHand'; definitionId: string }
+interface DamageFeedback { id: string; targetId: PlayerId; amount: number }
 type PlayedGroup = CardGroup;
 
-export function PreviewTable({ catalog, market, error, onRefresh, onStart }: {
-  catalog: SetupCatalog; market: string[]; error: string | null; onRefresh: () => void;
+export function PreviewTable({ catalog, market, error, animateAi, onAnimateAi, onRefresh, onStart }: {
+  catalog: SetupCatalog; market: string[]; error: string | null; animateAi: boolean; onAnimateAi: (enabled: boolean) => void; onRefresh: () => void;
   onStart: (mode: GameMode, startingDraftEnabled: boolean, humanPlayerId?: PlayerId, aiDifficulty?: AiDifficulty) => Promise<void>;
 }) {
   const [mode, setMode] = useState<GameMode>('local');
-  const [startingDraftEnabled, setStartingDraftEnabled] = useState(true);
+  const [startingDraftEnabled, setStartingDraftEnabled] = useState(false);
   const [human, setHuman] = useState<PlayerId>('ochre');
   const [difficulty, setDifficulty] = useState<AiDifficulty>('expert');
   const [marketOpen, setMarketOpen] = useState(false);
+  const [inspectedCardId, setInspectedCardId] = useState<string | null>(null);
   const cards = Object.fromEntries([...catalog.fixedCardIds, ...market].map((id) => [id, catalog.cards[id]!]));
-  return <main className="table-shell table-shell--preview">
-    <TableHeader title="Choose a kingdom" controls={<div className="setup-controls">
-      <label><input type="radio" checked={mode === 'local'} onChange={() => setMode('local')} /> Local players</label>
-      <label><input type="radio" checked={mode === 'ai'} onChange={() => setMode('ai')} /> Play against AI</label>
-      {mode === 'local' ? <label><input type="checkbox" checked={startingDraftEnabled} onChange={(event) => setStartingDraftEnabled(event.target.checked)} /> Starting draft</label> : null}
-      {mode === 'ai' ? <><fieldset><legend>Turn order</legend><label><input type="radio" checked={human === 'ochre'} onChange={() => setHuman('ochre')} /> I go first</label><label><input type="radio" checked={human === 'indigo'} onChange={() => setHuman('indigo')} /> AI goes first</label></fieldset><label>AI strength<select aria-label="AI strength" value={difficulty} onChange={(event) => setDifficulty(event.target.value as AiDifficulty)}>{AI_DIFFICULTIES.map((value) => <option key={value} value={value}>{value[0]!.toUpperCase() + value.slice(1)}</option>)}</select></label></> : null}
-      <button className="control-button" onClick={onRefresh}>Refresh market</button>
-      <button className="control-button" onClick={() => setMarketOpen(true)}>View cards</button>
-      <button className="control-button primary" onClick={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)}>Start game</button>
-    </div>} />
+  return <main className="table-shell table-shell--preview" onContextMenuCapture={(event) => inspectCard(event, cards, setInspectedCardId)} onKeyDownCapture={(event) => inspectCardFromKeyboard(event, cards, setInspectedCardId)}>
+    <TableHeader title="Choose a kingdom" controls={null} />
     {error ? <p role="alert" className="error">{error}</p> : null}
     <PreviewArena />
     <CompactMarket cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} onView={() => setMarketOpen(true)} />
     <EmptyPlayed />
-    <section className="hand-panel table-zone"><div className="zone-title"><h2>Your hand</h2><span>Cards appear here after both starting builds.</span></div><div className="hand-row"><p className="empty-row">Start the game to build your deck.</p></div></section>
+    <section className="hand-panel table-zone"><div className="zone-title"><h2>Your hand</h2><span>Your opening hand appears here.</span></div><div className="hand-row"><p className="empty-row">Start the game to draw five cards.</p></div></section>
+    <SetupRail mode={mode} startingDraftEnabled={startingDraftEnabled} animateAi={animateAi} human={human} difficulty={difficulty} onMode={setMode} onStartingDraft={setStartingDraftEnabled} onAnimateAi={onAnimateAi} onHuman={setHuman} onDifficulty={setDifficulty} onRefresh={onRefresh} onStart={() => void onStart(mode, startingDraftEnabled, mode === 'ai' ? human : undefined, mode === 'ai' ? difficulty : undefined)} />
     {marketOpen ? <MarketDialog cards={cards} fixedIds={catalog.fixedCardIds} variableIds={market} onClose={() => setMarketOpen(false)} /> : null}
+    {inspectedCardId && cards[inspectedCardId] ? <CardInspectDialog card={cards[inspectedCardId]} onClose={() => setInspectedCardId(null)} /> : null}
   </main>;
 }
 
-export function Game({ game, error, onGame, onError, onNew }: GameProps) {
+export function Game({ game, initialPresentation, error, animateAi, onAnimateAi, onGame, onError, onNew }: GameProps) {
   const [busy, setBusy] = useState(false);
   const [targetedCard, setTargetedCard] = useState<string | null>(null);
   const [movementCard, setMovementCard] = useState<string | null>(null);
   const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
+  const [pendingHandActionId, setPendingHandActionId] = useState<string | null>(null);
   const [marketOpen, setMarketOpen] = useState(false);
-  const actor = game.players[game.activePlayerId];
-  const actorName = playerName(game.activePlayerId);
-  const availability = new Map(game.actions.cards.map((item) => [item.cardInstanceId, item]));
-  const handGroups = groupCards(actor.hand);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [inspectedCardId, setInspectedCardId] = useState<string | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
+  const initialFrames = initialPresentation?.frames ?? [];
+  const initializePlayback = initialFrames.length > 0 && animateAi && !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [presentationGame, setPresentationGame] = useState<GameView | null>(() => initializePlayback ? gameAtFrame(game, initialFrames[0]!) : null);
+  const [playbackActive, setPlaybackActive] = useState(initializePlayback);
+  const [playingAi, setPlayingAi] = useState(() => initializePlayback && initialFrames.some((frame) => game.mode === 'ai' && frame.playerId === game.aiPlayerId));
+  const [flights, setFlights] = useState<Flight[]>([]);
+  const [destinations, setDestinations] = useState<AnimationDestination[]>([]);
+  const [purchaseReveal, setPurchaseReveal] = useState<PurchaseReveal | null>(null);
+  const [damageFeedback, setDamageFeedback] = useState<DamageFeedback | null>(null);
+  const playbackToken = useRef(0);
+  const finalGame = useRef<GameView>(game);
+  const reducedMotion = useReducedMotion();
+  const handOrders = useRef(new Map<string, string[]>());
+  const view = presentationGame ?? game;
+  const interactive = !playbackActive && !busy;
+  const actor = view.players[view.activePlayerId];
+  const actorName = playerName(view.activePlayerId);
+  const availability = new Map((playbackActive ? [] : game.actions.cards).map((item) => [item.cardInstanceId, item]));
+  const handGroups = stableHandGroups(actor.hand, `${view.id}:${view.turn}:${view.activePlayerId}`, handOrders.current);
   const playedGroups = groupPlayedCards(actor.played);
   const proposalCost = game.buildProposal.reduce((sum, id) => sum + (game.cards[id]?.cost ?? 0), 0);
 
+  const finishPlayback = useCallback(() => {
+    playbackToken.current += 1;
+    setFlights([]); setDestinations([]); setPurchaseReveal(null); setDamageFeedback(null); setPresentationGame(null); setPlaybackActive(false); setPlayingAi(false);
+    onGame(finalGame.current);
+  }, [onGame]);
+  async function present(update: GameUpdateView, firstEvent = view.events.length): Promise<GameView> {
+    const final = updateGame(update); finalGame.current = final;
+    const token = ++playbackToken.current;
+    const frames = batchConsecutiveAiPlays(update.presentation.frames, final.aiPlayerId);
+    if (!frames.length || reducedMotion) { setPresentationGame(null); setPlaybackActive(false); onGame(final); return final; }
+    let eventCursor = firstEvent;
+    setPlaybackActive(true); setPlayingAi(frames.some((frame) => final.mode === 'ai' && frame.playerId === final.aiPlayerId)); clearChoice();
+    try {
+      for (const frame of frames) {
+        if (token !== playbackToken.current) return final;
+        const isAiFrame = final.mode === 'ai' && frame.playerId === final.aiPlayerId;
+        if (isAiFrame && !animateAi) { setPresentationGame(null); setPlaybackActive(false); setPlayingAi(false); onGame(final); return final; }
+        const frameEvents = final.events.slice(eventCursor, frame.eventCount); eventCursor = frame.eventCount;
+        const damageEvents = frameEvents.filter((event) => event.type === 'damage');
+        const visibleTransfers = frame.transfers.filter((transfer) => !transfer.hidden);
+        const movementTransfers = visibleTransfers.filter((transfer) => transfer.kind !== 'purchase');
+        const purchases = visibleTransfers.filter((transfer) => transfer.kind === 'purchase');
+        const remainingWithheld = new Set(movementTransfers.map((transfer) => transfer.card.id));
+        const sourceRects = new Map<string, DOMRect>();
+        for (const transfer of movementTransfers.filter((item) => item.kind === 'handToPlayed')) {
+          const source = document.querySelector<HTMLElement>(`[data-hand-definition-id="${transfer.card.definitionId}"] .full-card`);
+          if (source) sourceRects.set(transfer.card.id, source.getBoundingClientRect());
+        }
+        if (!movementTransfers.length) {
+          setPresentationGame(gameAtFrame(final, frame));
+          await nextPaint();
+          if (token !== playbackToken.current) return final;
+          if (isAiFrame && frame.commandType === 'aiTurnStart') await wait(AI_SETTLE_MS);
+        }
+        let playedCard = false; let damageShown = false;
+        const showDamage = async () => {
+          if (damageShown || !damageEvents.length) return; damageShown = true;
+          for (const event of damageEvents) {
+            const targetId = event.detail.targetId; const amount = Number(event.detail.amount);
+            if ((targetId !== 'ochre' && targetId !== 'indigo') || !Number.isFinite(amount)) continue;
+            setDamageFeedback({ id: `${event.sequence}-${token}`, targetId, amount });
+            await wait(isAiFrame ? AI_SETTLE_MS : 320); setDamageFeedback(null);
+            if (token !== playbackToken.current) return;
+          }
+        };
+        for (const kind of ['handToPlayed', 'drawToHand'] as const) {
+          const batch = movementTransfers.filter((transfer) => transfer.kind === kind);
+          if (!batch.length) continue;
+          if (kind === 'handToPlayed') playedCard = true;
+          const uniqueDestinations = new Map<string, AnimationDestination>();
+          for (const transfer of batch) uniqueDestinations.set(`${kind}:${transfer.card.definitionId}`, { kind, definitionId: transfer.card.definitionId });
+          setDestinations([...uniqueDestinations.values()]);
+          setPresentationGame(gameAtFrame(final, frame, remainingWithheld));
+          await nextPaint();
+          if (token !== playbackToken.current) return final;
+          const nextFlights: Flight[] = [];
+          batch.forEach((transfer, index) => {
+            const selector = transfer.kind === 'handToPlayed' ? `[data-played-definition-id="${transfer.card.definitionId}"]` : `[data-hand-definition-id="${transfer.card.definitionId}"] .full-card`;
+            const placeholder = document.querySelector<HTMLElement>(`[data-animation-destination="${transfer.kind}-${transfer.card.definitionId}"]`);
+            const matches = document.querySelectorAll<HTMLElement>(selector);
+            const target = placeholder?.querySelector<HTMLElement>('.hand-card-frame') ?? placeholder ?? matches.item(matches.length - 1);
+            if (!target) return;
+            const to = target.getBoundingClientRect();
+            const from = transfer.kind === 'handToPlayed' ? sourceRects.get(transfer.card.id) : new DOMRect(to.left, window.innerHeight + 12, to.width, to.height);
+            if (!from) return;
+            nextFlights.push({ id: transfer.card.id, card: final.cards[transfer.card.definitionId]!, from, to,
+              duration: transfer.kind === 'handToPlayed' ? PLAY_DURATION_MS : DRAW_DURATION_MS,
+              delay: index * DRAW_STAGGER_MS, kind: transfer.kind === 'handToPlayed' ? 'play' : 'draw' });
+          });
+          setFlights(nextFlights);
+          if (nextFlights.length) await wait(Math.max(...nextFlights.map((flight) => flight.duration + flight.delay)));
+          if (token !== playbackToken.current) return final;
+          for (const transfer of batch) remainingWithheld.delete(transfer.card.id);
+          setFlights([]); setDestinations([]); setPresentationGame(gameAtFrame(final, frame, remainingWithheld));
+          if (kind === 'handToPlayed') {
+            if (damageEvents.length) await showDamage(); else await wait(isAiFrame ? AI_SETTLE_MS : HUMAN_SETTLE_MS);
+          }
+        }
+        for (const transfer of purchases) {
+          const pile = document.querySelector<HTMLElement>(`[data-market-definition-id="${transfer.card.definitionId}"]`);
+          if (!pile) continue;
+          setPurchaseReveal({ id: transfer.card.id, card: final.cards[transfer.card.definitionId]!, anchor: pile.getBoundingClientRect() });
+          await wait(PURCHASE_PREVIEW_MS); setPurchaseReveal(null);
+          if (token !== playbackToken.current) return final;
+        }
+        if (!playedCard) await showDamage();
+      }
+    } finally {
+      if (token === playbackToken.current) { setFlights([]); setDestinations([]); setPurchaseReveal(null); setDamageFeedback(null); setPresentationGame(null); setPlaybackActive(false); setPlayingAi(false); onGame(final); }
+    }
+    return final;
+  }
+  useEffect(() => {
+    if (!initialPresentation?.frames.length) return;
+    void present({ ...game, presentation: initialPresentation });
+  }, []);
+  useEffect(() => {
+    const hidden = () => { if (document.hidden && playbackActive) finishPlayback(); };
+    document.addEventListener('visibilitychange', hidden);
+    return () => document.removeEventListener('visibilitychange', hidden);
+  }, [finishPlayback, playbackActive]);
+  useEffect(() => { if ((reducedMotion || (!animateAi && playingAi)) && playbackActive) finishPlayback(); }, [animateAi, reducedMotion, playingAi, playbackActive]);
+  useEffect(() => { if (!playbackActive) finalGame.current = game; }, [game, playbackActive]);
+
   async function act(action: Pick<BrowserAction, 'id'>) {
+    if (!interactive) return;
     setBusy(true); onError(null);
-    try { onGame(await takeAction(game, action.id)); clearChoice(); }
+    try { const update = await takeAction(game, action.id); setBusy(false); await present(update); clearChoice(); }
     catch (cause) { onError(cause instanceof Error ? cause.message : 'Action failed.'); }
     finally { setBusy(false); }
   }
   async function saveBuild(next: string[], complete = false) {
-    if (busy) return; setBusy(true); onError(null);
-    try { onGame(await updateBuild(game, next, complete)); }
+    if (!interactive) return; setBusy(true); onError(null);
+    try { const update = await updateBuild(game, next, complete); setBusy(false); await present(update); }
     catch (cause) { onError(cause instanceof Error ? cause.message : 'Build failed.'); }
     finally { setBusy(false); }
   }
   async function undo() {
+    const current = playbackActive ? finalGame.current : game;
+    if (playbackActive) finishPlayback();
     setBusy(true); onError(null);
-    try { onGame(await undoAction(game)); clearChoice(); }
+    try { const update = await undoAction(current); finalGame.current = updateGame(update); onGame(updateGame(update)); clearChoice(); }
     catch (cause) { onError(cause instanceof Error ? cause.message : 'Undo failed.'); }
     finally { setBusy(false); }
   }
-  function clearChoice() { setTargetedCard(null); setMovementCard(null); setSelectedTargets([]); }
+  function confirmReset() {
+    if (playbackActive) finishPlayback();
+    setResetOpen(true);
+  }
+  async function reset() {
+    setResetOpen(false); setBusy(true); onError(null);
+    try { const update = await resetGame(finalGame.current); await present(update, 0); clearChoice(); }
+    catch (cause) { onError(cause instanceof Error ? cause.message : 'Reset failed.'); }
+    finally { setBusy(false); }
+  }
+  function clearChoice() { setTargetedCard(null); setMovementCard(null); setSelectedTargets([]); setPendingHandActionId(null); }
   function chooseCard(id: string) {
     const info = availability.get(id); if (!info?.enabled) return;
     if (info.selection === 'targets') { setTargetedCard(id); setMovementCard(null); setSelectedTargets([]); return; }
     if (info.selection === 'movement') { setMovementCard(id); setTargetedCard(null); return; }
     if (info.actionId) void act({ id: info.actionId });
+  }
+  async function playAll(definitionId: string) {
+    if (busy) return;
+    setBusy(true); onError(null); clearChoice();
+    let current = game; const updates: GameUpdateView[] = [];
+    const queuedInstanceIds = new Set(current.players[current.activePlayerId].hand
+      .filter((card) => card.definitionId === definitionId).map((card) => card.id));
+    try {
+      while (queuedInstanceIds.size && !current.winner && current.phase === 'action' && current.activePlayerId === game.activePlayerId && !current.actions.selection) {
+        const direct = current.actions.cards.find((item) => queuedInstanceIds.has(item.cardInstanceId)
+          && item.enabled && item.batchPlayable && item.actionId);
+        if (!direct?.actionId) break;
+        queuedInstanceIds.delete(direct.cardInstanceId);
+        const update = await takeAction(current, direct.actionId); updates.push(update); current = updateGame(update);
+      }
+      if (updates.length) { setBusy(false); current = await present(combinePlayAllUpdates(updates)); setBusy(true); }
+    } catch (cause) {
+      if (updates.length) { setBusy(false); current = await present(combinePlayAllUpdates(updates)); setBusy(true); }
+      else onGame(current);
+      onError(cause instanceof Error ? cause.message : 'Play all failed.');
+    } finally { setBusy(false); }
   }
   function toggleTargetGroup(instanceIds: string[]) {
     const eligible = new Set(targetedCard ? availability.get(targetedCard)?.eligibleCardInstanceIds ?? [] : []);
@@ -101,71 +258,110 @@ export function Game({ game, error, onGame, onError, onNew }: GameProps) {
   const groupedTargetHint = (targetInfo?.maximumTargets ?? 0) > 1
     ? ' Click a grouped card twice to select two physical copies.' : '';
   const selectedTargetLabel = targetVerb === 'discard' ? 'Discard' : 'Trash';
+  const movementChoices = movementCard ? availability.get(movementCard)?.choices ?? [] : [];
+  const pendingHandSelection = !playbackActive && (game.actions.selection?.kind === 'discard' || game.actions.selection?.kind === 'optionalTrash')
+    ? game.actions.selection : null;
+  const pendingHandAction = pendingHandSelection?.choices.find((choice) => choice.id === pendingHandActionId);
+  const pendingSkipAction = pendingHandSelection?.kind === 'optionalTrash'
+    ? pendingHandSelection.choices.find((choice) => choice.cardInstanceId === null) : undefined;
+  const currentSelection = playbackActive ? null : game.actions.selection;
+  const pickerSelection = currentSelection?.kind === 'recover' || currentSelection?.kind === 'gain'
+    ? currentSelection : null;
   const endAction = game.actions.phases.find((action) => action.kind === 'endAction');
   const endBuy = game.actions.phases.find((action) => action.kind === 'endBuy');
-  const turnText = game.winner ? `${playerName(game.winner)} wins`
-    : game.phase === 'startingBuild' ? `${actorName} starting build`
-      : `Turn ${game.turn} · ${actorName} ${game.phase}`;
+  const turnText = view.winner ? `${playerName(view.winner)} wins`
+    : playbackActive && view.mode === 'ai' && view.activePlayerId === view.aiPlayerId ? 'AI turn'
+      : view.phase === 'startingBuild' ? `${actorName} starting build`
+        : `Turn ${view.turn} · ${actorName} ${view.phase}`;
   const buys = new Map(game.actions.buys.map((action) => [action.definitionId, action]));
   const marketAction = (id: string): void => {
     if (game.phase === 'startingBuild') void saveBuild([...game.buildProposal, id]);
     else { const buy = buys.get(id); if (buy) void act(buy); }
   };
-  return <main className="table-shell">
-    <TableHeader title={turnText} controls={<div className="phase-controls">
-      {game.phase === 'startingBuild' ? <><strong data-testid="build-budget">{proposalCost} / {STARTING_BUDGET} · {firstBuyCarry(proposalCost)} carries</strong><button className="control-button primary" disabled={busy || proposalCost > STARTING_BUDGET} onClick={() => void saveBuild(game.buildProposal, true)}>Finish starting build</button></> : <>
-        <strong data-testid="zone-money">{actorName} money: {actor.money}</strong>
-        <button className="control-button" disabled={!game.canUndo || busy} onClick={() => void undo()}>Undo last action</button>
-        {endAction ? <button className="control-button primary" disabled={busy} onClick={() => void act(endAction)}>End Action phase</button> : null}
-        {endBuy ? <button className="control-button primary" disabled={busy} onClick={() => void act(endBuy)}>End Buy phase</button> : null}
-      </>}
-      <button className="control-button" onClick={onNew}>New game</button>
-    </div>} />
+  return <main className="table-shell" onContextMenuCapture={(event) => inspectCard(event, game.cards, setInspectedCardId)} onKeyDownCapture={(event) => inspectCardFromKeyboard(event, game.cards, setInspectedCardId)}>
+    <TableHeader title={turnText} controls={<div className="phase-controls">{game.phase === 'startingBuild' ? <><strong data-testid="build-budget">{proposalCost} / {STARTING_BUDGET} · {firstBuyCarry(proposalCost)} carries</strong><button className="control-button primary" disabled={!interactive || proposalCost > STARTING_BUDGET} onClick={() => void saveBuild(game.buildProposal, true)}>Finish starting build</button></> : null}{game.mode === 'ai' ? <label className="animation-toggle"><input type="checkbox" checked={animateAi} onChange={(event) => onAnimateAi(event.target.checked)} /> Animate AI turns</label> : null}</div>} />
     {error ? <p role="alert" className="error">{error}</p> : null}
-    <section className="arena-zone table-zone"><div className="range-label" data-testid="range">{game.range} · {Math.abs(game.fighters.ochre.position - game.fighters.indigo.position)} {Math.abs(game.fighters.ochre.position - game.fighters.indigo.position) === 1 ? 'space' : 'spaces'}</div><Board game={game} /></section>
+    <section className="arena-zone table-zone"><div className="range-label" data-testid="range">{view.range} · {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position)} {Math.abs(view.fighters.ochre.position - view.fighters.indigo.position) === 1 ? 'space' : 'spaces'}{movementCard && !playbackActive ? <button className="movement-cancel" onClick={clearChoice}>Cancel movement</button> : null}</div><Board game={view} movementChoices={playbackActive ? [] : movementChoices} busy={!interactive} damageFeedback={damageFeedback} onMovement={(choice) => void act(choice)} /></section>
     {game.phase === 'startingBuild' ? <div className="build-strip"><strong>{actorName} selected</strong><div>{game.buildProposal.map((id, index) => <button key={`${id}-${index}`} aria-label={`Remove ${game.cards[id]?.name}`} onClick={() => void saveBuild(game.buildProposal.filter((_, position) => position !== index))}>{game.cards[id]?.name} ×</button>)}</div><span>{game.buildProposal.length ? 'Click a selected card to remove it.' : 'Click market piles to add cards.'}</span></div> : null}
-    {game.actions.selection ? <div className="choice-bar"><strong>{game.actions.selection.kind === 'discard' ? 'Choose a card to discard' : game.actions.selection.kind === 'recover' ? 'Choose a card to recover' : game.actions.selection.kind === 'gain' ? 'Choose a card to gain' : 'Choose a card to trash, or skip'}</strong><div>{game.actions.selection.choices.map((action) => <button className="choice-button" key={action.id} aria-label={action.label} disabled={busy} onClick={() => void act(action)}>{action.text}</button>)}</div></div> : null}
-    <CompactMarket cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} supply={game.supply} onView={() => setMarketOpen(true)} onCard={marketAction} enabled={(id) => game.phase === 'startingBuild' ? !busy : Boolean(buys.get(id)) && !busy} />
-    <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2><span>Consecutive copies share a stack.</span></div><div className="played-row" data-testid="played-row">{playedGroups.length ? playedGroups.map((group) => <PlayedCard key={group.instances[0]!.id} card={game.cards[group.definitionId]!} group={group} />) : <p className="empty-row">Cards move here from your hand.</p>}</div></section>
-    <section className="hand-panel table-zone"><div className="zone-title"><h2>{actorName} hand</h2><span>{actor.zoneCounts.hand} physical cards</span></div><div className="hand-row" data-testid="hand-grid">{handGroups.map((group, index) => {
+    <CompactMarket cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} supply={view.supply} onView={() => setMarketOpen(true)} onCard={marketAction} enabled={(id) => !playbackActive && (game.phase === 'startingBuild' ? !busy : Boolean(buys.get(id)) && !busy)} />
+    <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2><div className="played-summary"><div className="played-resources"><strong data-testid="zone-money">{actorName} money: {actor.money}</strong><strong className="mana-counter" data-testid="zone-mana">Mana: {actor.mana}</strong></div><span>Consecutive copies share a stack.</span></div></div><div className="played-row" data-testid="played-row">{playedGroups.length ? playedGroups.map((group) => { const pendingAction = pendingHandSelection?.choices.find((choice) => choice.cardInstanceId && group.instances.some((card) => card.id === choice.cardInstanceId)); return <PlayedCard key={group.instances[0]!.id} card={game.cards[group.definitionId]!} group={group} pendingAction={pendingAction} selected={pendingAction?.id === pendingHandActionId} busy={!interactive} onSelect={setPendingHandActionId} />; }) : null}{destinations.filter((item) => item.kind === 'handToPlayed' && playedGroups.at(-1)?.definitionId !== item.definitionId).map((item) => <div key={`played-placeholder-${item.definitionId}`} className="played-card-slot animation-placeholder" data-played-definition-id={item.definitionId} data-animation-destination={`handToPlayed-${item.definitionId}`} />)}{!playedGroups.length && !destinations.some((item) => item.kind === 'handToPlayed') ? <p className="empty-row">Cards move here from your hand.</p> : null}</div></section>
+    <section className={`hand-panel table-zone${playbackActive && view.mode === 'ai' && view.activePlayerId === view.aiPlayerId ? ` hand-panel--ai hand-panel--${view.aiPlayerId}` : ''}`}><div className="zone-title"><h2>{playbackActive && view.mode === 'ai' && view.activePlayerId === view.aiPlayerId ? 'AI hand' : `${actorName} hand`}</h2><span>{actor.zoneCounts.hand} physical cards</span></div><div className="hand-control-bar">
+      {!playbackActive && targetedCard ? <div className="choice-bar"><p>Select {targetCount} {targetNoun} to {targetVerb}.{groupedTargetHint} {selectedTargets.length} selected.</p><div><button className="control-button primary" disabled={!targetAction} onClick={() => targetAction && void act(targetAction)}>{selectedTargets.length === 0 ? 'Play with no targets' : `${selectedTargetLabel} selected ${selectedTargets.length === 1 ? 'card' : 'cards'}`}</button><button className="control-button" onClick={clearChoice}>Cancel</button></div></div> : pendingHandSelection ? <div className="hand-choice-controls" role="group" aria-label={pendingHandSelection.kind === 'discard' ? 'Discard choice' : 'Trash choice'}><strong>{pendingHandSelection.kind === 'discard' ? 'Select one card to discard' : 'Select one card to trash, or skip'}</strong><button className="control-button primary" disabled={busy || !pendingHandAction} onClick={() => pendingHandAction && void act(pendingHandAction)}>{pendingHandSelection.kind === 'discard' ? 'Confirm discard' : 'Confirm trash'}</button>{pendingSkipAction ? <button className="control-button" disabled={busy} onClick={() => void act(pendingSkipAction)}>Skip</button> : null}</div> : !playbackActive && !movementCard && endAction ? <button className="hand-phase-button" disabled={busy} onClick={() => void act(endAction)}>End Action phase</button> : !playbackActive && !movementCard && endBuy ? <button className="hand-phase-button" disabled={busy} onClick={() => void act(endBuy)}>End Buy phase</button> : null}
+    </div><div className="hand-content"><ZonePiles game={view} playerId={view.activePlayerId} /><div className="hand-row" data-testid="hand-grid">{handGroups.map((group, index) => {
       const enabledInstance = group.instances.find((card) => availability.get(card.id)?.enabled) ?? group.instances[0]!;
       const info = availability.get(enabledInstance.id);
       const targetIds = targetedCard ? group.instances.filter((card) => availability.get(targetedCard)?.eligibleCardInstanceIds.includes(card.id)).map((card) => card.id) : [];
       const selectedCount = group.instances.filter((card) => selectedTargets.includes(card.id)).length;
-      const unavailable = targetedCard ? targetIds.length === 0 : !info?.enabled;
-      return <div className="hand-card-slot" key={group.definitionId} style={{ zIndex: index + 1 }}>{group.instances.length > 1 ? <span className="quantity-badge" data-testid={`hand-count-${group.definitionId}`}>×{group.instances.length}</span> : null}<button className={`card full-card card--${game.cards[group.definitionId]!.family}${unavailable ? ' card--unavailable' : ''}${selectedCount ? ' card--target' : ''}${movementCard === enabledInstance.id || targetedCard === enabledInstance.id ? ' card--selected' : ''}`} data-card-name={game.cards[group.definitionId]!.name} data-card-instance-id={enabledInstance.id} data-card-count={group.instances.length} disabled={busy} aria-disabled={unavailable} title={!targetedCard ? info?.reason ?? undefined : undefined} onClick={() => { if (unavailable) return; if (targetedCard) toggleTargetGroup(targetIds); else chooseCard(enabledInstance.id); }}><CardFace card={game.cards[group.definitionId]!} />{selectedCount ? <span className="selected-count">Selected ×{selectedCount}</span> : null}{!info?.enabled && !targetedCard && game.cards[group.definitionId]!.type === 'action' ? <em>{info?.reason}</em> : null}</button></div>;
-    })}</div>{targetedCard ? <div className="choice-bar choice-bar--overlay"><p>Select {targetCount} {targetNoun} to {targetVerb}.{groupedTargetHint} {selectedTargets.length} selected.</p><div><button className="control-button primary" disabled={!targetAction} onClick={() => targetAction && void act(targetAction)}>{selectedTargets.length === 0 ? 'Play with no targets' : `${selectedTargetLabel} selected ${selectedTargets.length === 1 ? 'card' : 'cards'}`}</button><button className="control-button" onClick={clearChoice}>Cancel</button></div></div> : null}{movementCard ? <div className="choice-bar choice-bar--overlay"><strong>Choose movement</strong><div>{(availability.get(movementCard)?.choices ?? []).map((action) => <button className="choice-button" key={action.id} aria-label={action.label} disabled={busy} onClick={() => void act(action)}>{action.text}</button>)}<button className="control-button" onClick={clearChoice}>Cancel</button></div></div> : null}</section>
-    <ActionRail game={game} />
+      const pendingActions = pendingHandSelection?.choices.filter((choice) => choice.cardInstanceId && group.instances.some((card) => card.id === choice.cardInstanceId)) ?? [];
+      const pendingAction = pendingActions[0];
+      const pendingSelected = pendingActions.some((choice) => choice.id === pendingHandActionId);
+      const unavailable = playbackActive ? false : pendingHandSelection ? !pendingAction : targetedCard ? targetIds.length === 0 : !info?.enabled;
+      const batchPlayableCount = group.instances.filter((card) => { const action = availability.get(card.id); return action?.enabled && action.batchPlayable && Boolean(action.actionId); }).length;
+      return <div className="hand-card-slot" key={group.definitionId} style={{ zIndex: index + 1 }} data-hand-definition-id={group.definitionId}><div className="hand-card-frame">{group.instances.length > 1 ? <span className="quantity-badge" data-testid={`hand-count-${group.definitionId}`}>×{group.instances.length}</span> : null}<button className={`card full-card card--${game.cards[group.definitionId]!.family}${unavailable ? ' card--unavailable' : ''}${selectedCount ? ' card--target' : ''}${pendingSelected || movementCard === enabledInstance.id || targetedCard === enabledInstance.id ? ' card--selected' : ''}`} data-card-name={game.cards[group.definitionId]!.name} data-card-instance-id={enabledInstance.id} data-card-count={group.instances.length} disabled={!interactive} aria-disabled={unavailable || playbackActive} title={!targetedCard && !pendingHandSelection ? info?.reason ?? undefined : undefined} onClick={() => { if (unavailable || playbackActive) return; if (pendingAction) setPendingHandActionId(pendingAction.id); else if (targetedCard) toggleTargetGroup(targetIds); else chooseCard(enabledInstance.id); }}><CardFace card={game.cards[group.definitionId]!} />{selectedCount ? <span className="selected-count">Selected ×{selectedCount}</span> : null}{!playbackActive && info?.reason && !targetedCard && !pendingHandSelection && game.cards[group.definitionId]!.type === 'action' ? <em>{info.reason}</em> : null}</button>{!playbackActive && batchPlayableCount >= 2 && !targetedCard && !pendingHandSelection ? <button className="play-all-button" disabled={busy} onClick={() => void playAll(group.definitionId)}>Play all</button> : null}</div></div>;
+    })}{destinations.filter((item) => item.kind === 'drawToHand' && !handGroups.some((group) => group.definitionId === item.definitionId)).map((item) => <div key={`hand-placeholder-${item.definitionId}`} className="hand-card-slot animation-placeholder" data-hand-definition-id={item.definitionId} data-animation-destination={`drawToHand-${item.definitionId}`}><div className="hand-card-frame" /></div>)}</div></div></section>
+    <ActionRail game={view} busy={busy} playbackActive={playbackActive} onUndo={() => void undo()} onReset={confirmReset} onNew={() => { if (playbackActive) finishPlayback(); onNew(); }} onCatalog={() => setCatalogOpen(true)} />
+    <FlyingCards flights={flights} renderCard={(card) => <CardFace card={card} />} />
+    <PurchasePreview reveal={purchaseReveal} renderCard={(card) => <CardFace card={card} />} />
     {marketOpen ? <MarketDialog cards={game.cards} fixedIds={game.fixedCardIds} variableIds={game.variableCardIds} onClose={() => setMarketOpen(false)} /> : null}
+    {catalogOpen ? <CardCatalogDialog cards={game.cards} onClose={() => setCatalogOpen(false)} /> : null}
+    {inspectedCardId && game.cards[inspectedCardId] ? <CardInspectDialog card={game.cards[inspectedCardId]} onClose={() => setInspectedCardId(null)} /> : null}
+    {pickerSelection ? <CardPicker cards={game.cards} kind={pickerSelection.kind === 'recover' ? 'recover' : 'gain'} choices={pickerSelection.choices} busy={busy} onChoose={(choice) => void act(choice)} /> : null}
+    {resetOpen ? <ResetDialog onAccept={() => void reset()} onCancel={() => setResetOpen(false)} /> : null}
   </main>;
 }
 
-function TableHeader({ title, controls }: { title: string; controls: React.ReactNode }) { return <header className="table-header"><div className="brand"><span>Distance duel</span><h1>Hexdeck</h1></div><div className="turn-banner" role="status">{title}</div>{controls}</header>; }
-function PreviewArena() { return <section className="arena-zone table-zone"><div className="range-label">Near · 1 space</div><div className="arena" role="img" aria-label="Six space line arena">{[1,2,3,4,5,6].map((space) => <div className="arena-space" key={space}><span>{space}</span>{space === 3 ? <div className="fighter fighter--ochre">P1<small>37 HP</small></div> : null}{space === 4 ? <div className="fighter fighter--indigo">P2<small>40 HP</small></div> : null}</div>)}</div></section>; }
+function TableHeader({ title, controls }: { title: string; controls: React.ReactNode }) { return <header className="table-header"><div className="brand"><h1>Deckfront</h1></div><div className="turn-banner" role="status">{title}</div><div className="table-header__controls">{controls}</div></header>; }
+function PreviewArena() { return <section className="arena-zone table-zone"><div className="range-label">Tactical map · Near · 1 space</div><div className="arena battlefield" role="group" aria-label="Six space line arena">{[1,2,3,4,5,6].map((space) => <div className="arena-space" key={space}><span className="arena-space__number">{space}</span><div className="arena-space__fighters">{space === 3 ? <FighterCounter playerId="ochre" health={47} position={space} /> : null}{space === 4 ? <FighterCounter playerId="indigo" health={50} position={space} /> : null}</div></div>)}</div></section>; }
 function EmptyPlayed() { return <section className="played-panel table-zone"><div className="zone-title"><h2>Played this turn</h2></div><div className="played-row"><p className="empty-row">Cards move here from your hand.</p></div></section>; }
+function SetupRail({ mode, startingDraftEnabled, animateAi, human, difficulty, onMode, onStartingDraft, onAnimateAi, onHuman, onDifficulty, onRefresh, onStart }: {
+  mode: GameMode; startingDraftEnabled: boolean; animateAi: boolean; human: PlayerId; difficulty: AiDifficulty;
+  onMode: (mode: GameMode) => void; onStartingDraft: (enabled: boolean) => void; onAnimateAi: (enabled: boolean) => void; onHuman: (playerId: PlayerId) => void;
+  onDifficulty: (difficulty: AiDifficulty) => void; onRefresh: () => void; onStart: () => void;
+}) {
+  return <aside className="setup-rail" aria-label="Game setup"><header><span>Game setup</span><h2>New match</h2></header><div className="setup-rail__body">
+    <fieldset className="setup-group"><legend>Opponent</legend><div className="setup-options"><button type="button" aria-pressed={mode === 'local'} onClick={() => onMode('local')}>Local players</button><button type="button" aria-pressed={mode === 'ai'} onClick={() => onMode('ai')}>Play against AI</button></div></fieldset>
+    {mode === 'ai' ? <><fieldset className="setup-group"><legend>Turn order</legend><div className="setup-options"><button type="button" aria-pressed={human === 'ochre'} onClick={() => onHuman('ochre')}>I go first</button><button type="button" aria-pressed={human === 'indigo'} onClick={() => onHuman('indigo')}>AI goes first</button></div></fieldset><fieldset className="setup-group"><legend>AI strength</legend><div className="setup-options setup-options--four">{AI_DIFFICULTIES.map((value) => <button type="button" key={value} aria-pressed={difficulty === value} onClick={() => onDifficulty(value)}>{value[0]!.toUpperCase() + value.slice(1)}</button>)}</div></fieldset><label className="setup-switch"><span><strong>Animate AI turns</strong><small>{animateAi ? 'Watch the AI play each card.' : 'Show the final result immediately.'}</small></span><input aria-label="Animate AI turns" type="checkbox" checked={animateAi} onChange={(event) => onAnimateAi(event.target.checked)} /><i aria-hidden="true" /></label></> : null}
+    {mode === 'local' ? <label className="setup-switch"><span><strong>Starting draft</strong><small>{startingDraftEnabled ? 'Build a custom opening deck.' : 'Start with 7 Copper and 3 Scrap.'}</small></span><input type="checkbox" checked={startingDraftEnabled} onChange={(event) => onStartingDraft(event.target.checked)} /><i aria-hidden="true" /></label> : null}
+    <div className="setup-market-actions"><button className="control-button" onClick={onRefresh}>Refresh market</button></div>
+  </div><button className="control-button primary setup-start" onClick={onStart}>Start game</button></aside>;
+}
 function CompactMarket({ cards, fixedIds, variableIds, supply, onView, onCard, enabled }: {
   cards: Record<string, CardDefinition>; fixedIds: readonly string[]; variableIds: readonly string[];
   supply?: Record<string, number>; onView: () => void; onCard?: (id: string) => void; enabled?: (id: string) => boolean;
 }) {
-  const [inspection, setInspection] = useState<{ id: string; left: number; top: number } | null>(null);
-  const inspectionRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (!inspection) return;
-    const dismiss = (event: PointerEvent) => { if (!inspectionRef.current?.contains(event.target as Node)) setInspection(null); };
-    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') setInspection(null); };
-    document.addEventListener('pointerdown', dismiss); document.addEventListener('keydown', escape);
-    return () => { document.removeEventListener('pointerdown', dismiss); document.removeEventListener('keydown', escape); };
-  }, [inspection]);
-  const inspect = (event: React.MouseEvent, id: string) => {
-    event.preventDefault();
-    setInspection({ id, left: Math.max(8, Math.min(event.clientX + 12, window.innerWidth - 156)), top: Math.max(8, Math.min(event.clientY + 12, window.innerHeight - 228)) });
+  const pile = (id: string, fixed: boolean) => {
+    const card = cards[id]; if (!card) return null;
+    const available = Boolean(onCard && enabled?.(id));
+    const quantityRemaining = supply === undefined ? 10 : supply[id] ?? 0;
+    const quantity = card.type === 'treasure' ? '∞' : `×${quantityRemaining}`;
+    const outOfStock = card.type !== 'treasure' && supply !== undefined && quantityRemaining === 0;
+    return <button key={id} data-market-card={card.name} data-market-definition-id={id} className={`${fixed ? 'fixed-pile' : 'kingdom-pile'} family-${card.family}${outOfStock ? ' pile--out-of-stock' : ''}`} aria-disabled={!available} onClick={() => { if (available) onCard?.(id); }}>
+      {fixed ? <><span className="fixed-pile__title">{card.name}</span><span className="fixed-pile__art"><img src={`/card-art/${id}.jpg`} alt="" loading="eager" decoding="async" /><span className="fixed-pile__count">{quantity}</span><span className="pile-cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span></span></>
+        : <><img src={`/card-art/${id}.jpg`} alt="" loading="eager" decoding="async" /><span className="kingdom-pile__top"><strong className="kingdom-pile__title">{card.name}</strong><span className="kingdom-pile__count">{quantity}</span></span><span className="pile-cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span><span className="kingdom-pile__effect">{card.headline}</span></>}
+      {outOfStock ? <span className="pile-stock-label">Out of stock</span> : null}
+    </button>;
   };
-  const row = (ids: readonly string[]) => <div className="compact-market__row">{ids.map((id) => { const card = cards[id]; if (!card) return null; const available = Boolean(onCard && enabled?.(id)); return <span key={id} className="compact-pile-slot" onContextMenu={(event) => inspect(event, id)}><button data-market-card={card.name} className={`compact-pile pile--${card.family}`} aria-disabled={!available} onClick={() => { if (available) onCard?.(id); }}><strong>{card.name}</strong><span className="compact-pile__cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span>{supply ? <small>{card.type === 'action' ? `${supply[id]} left` : '∞'}</small> : null}</button></span>; })}</div>;
-  const inspectedCard = inspection ? cards[inspection.id] : null;
-  return <section className="market-zone table-zone"><div className="zone-title"><h2>Market</h2><button className="text-button" onClick={onView}>View all cards</button></div><div className="market-group"><span>Fixed</span>{row(fixedIds)}</div><div className="market-group"><span>Kingdom</span>{row(variableIds)}</div>{inspection && inspectedCard ? <aside ref={inspectionRef} className="market-card-popover" role="dialog" aria-label={`${inspectedCard.name} details`} style={{ left: inspection.left, top: inspection.top }}><article className={`card full-card card--${inspectedCard.family}`}><CardFace card={inspectedCard} /></article></aside> : null}</section>;
+  return <section className="market-zone table-zone"><div className="zone-title"><h2>Market</h2><button className="text-button" onClick={onView}>Card reference</button></div><div className="market-layout"><section className="market-section"><h3 className="market-section__heading">Fixed piles</h3><div className="pile-grid pile-grid--fixed">{fixedIds.map((id) => pile(id, true))}</div></section><section className="market-section"><h3 className="market-section__heading">Kingdom piles</h3><div className="pile-grid pile-grid--kingdom">{variableIds.map((id) => pile(id, false))}</div></section></div></section>;
 }
 
-function MarketDialog({ cards, fixedIds, variableIds, onClose }: { cards: Record<string, CardDefinition>; fixedIds: readonly string[]; variableIds: readonly string[]; onClose: () => void }) {
+function cardIdAt(target: Element): string | undefined {
+  const source = target.closest<HTMLElement>('[data-card-definition-id],[data-market-definition-id]')
+    ?? target.querySelector<HTMLElement>('[data-card-definition-id],[data-market-definition-id]');
+  return source?.dataset.cardDefinitionId ?? source?.dataset.marketDefinitionId;
+}
+function inspectCard(event: React.MouseEvent<HTMLElement>, cards: Record<string, CardDefinition>, show: (id: string) => void) {
+  const definitionId = cardIdAt(event.target as Element);
+  if (!definitionId || !cards[definitionId]) return;
+  event.preventDefault(); event.stopPropagation(); show(definitionId);
+}
+function inspectCardFromKeyboard(event: React.KeyboardEvent<HTMLElement>, cards: Record<string, CardDefinition>, show: (id: string) => void) {
+  if (event.key !== 'ContextMenu' && !(event.shiftKey && event.key === 'F10')) return;
+  const definitionId = cardIdAt(event.target as Element);
+  if (!definitionId || !cards[definitionId]) return;
+  event.preventDefault(); event.stopPropagation(); show(definitionId);
+}
+
+function CardInspectDialog({ card, onClose }: { card: CardDefinition; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const onCloseRef = useRef(onClose); onCloseRef.current = onClose;
   useEffect(() => {
@@ -174,26 +370,101 @@ function MarketDialog({ cards, fixedIds, variableIds, onClose }: { cards: Record
     dialog.addEventListener('close', close); if (!dialog.open) dialog.showModal();
     return () => dialog.removeEventListener('close', close);
   }, []);
-  const ids = [...fixedIds, ...variableIds];
-  return <dialog ref={ref} className="market-dialog" onClick={(event) => { if (event.target === ref.current) ref.current.close(); }}><div className="market-dialog__surface"><header><div><span>Complete market</span><h2>Card reference</h2></div><button aria-label="Close market" onClick={() => ref.current?.close()}>×</button></header><div className="market-dialog__grid">{ids.map((id) => <article key={id} className={`card full-card reference-card card--${cards[id]!.family}`} data-card-name={cards[id]!.name}><CardFace card={cards[id]!} /></article>)}</div></div></dialog>;
+  return <dialog ref={ref} className="card-inspect-dialog" aria-label={`${card.name} details`} onClick={(event) => { if (event.target === ref.current) ref.current.close(); }}><div className="card-inspect-frame"><article className={`card full-card card--${card.family}`}><CardFace card={card} /></article><button className="card-inspect-close" aria-label="Close card details" onClick={() => ref.current?.close()} /></div></dialog>;
 }
 
-export function CardFace({ card, indicators }: { card: CardDefinition; indicators?: React.ReactNode }) { const dense = card.text.length > 140; return <><span className="card__header"><strong className="card__title">{card.name}</strong><span className="card__meta">{indicators}<span className="card__cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span></span></span><span className="card__image" aria-hidden="true" /><span className={`card__rules${dense ? ' card__rules--dense' : ''}`}>{card.money ? <b>+{card.money} money</b> : null}<small>{card.text}</small></span></>; }
-function PlayedCard({ card, group }: { card: CardDefinition; group: PlayedGroup }) { const count = group.instances.length; return <article className={`card full-card played-card card--${card.family}`} data-played-card-name={card.name} data-card-count={count}><CardFace card={card} indicators={count > 1 ? <span className="quantity-badge quantity-badge--played" data-testid={`played-count-${card.id}`}>×{count}</span> : undefined} /></article>; }
-function ActionRail({ game }: { game: GameView }) {
+function ModalDialog({ className, surfaceClassName, titleId, kicker, title, closeLabel, onClose, children }: {
+  className: string; surfaceClassName: string; titleId: string; kicker: string; title: string; closeLabel: string; onClose: () => void; children: React.ReactNode;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const onCloseRef = useRef(onClose); onCloseRef.current = onClose;
+  useEffect(() => {
+    const dialog = ref.current; if (!dialog) return;
+    const close = () => onCloseRef.current();
+    dialog.addEventListener('close', close); if (!dialog.open) dialog.showModal();
+    return () => dialog.removeEventListener('close', close);
+  }, []);
+  return <dialog ref={ref} className={className} aria-labelledby={titleId} onClick={(event) => { if (event.target === ref.current) ref.current.close(); }}><div className={surfaceClassName}><header><div><span>{kicker}</span><h2 id={titleId}>{title}</h2></div><button aria-label={closeLabel} onClick={() => ref.current?.close()}>×</button></header>{children}</div></dialog>;
+}
+
+function MarketDialog({ cards, fixedIds, variableIds, onClose }: { cards: Record<string, CardDefinition>; fixedIds: readonly string[]; variableIds: readonly string[]; onClose: () => void }) {
+  const ids = [...fixedIds, ...variableIds];
+  return <ModalDialog className="market-dialog" surfaceClassName="market-dialog__surface" titleId="market-dialog-title" kicker="Complete market" title="Card reference" closeLabel="Close market" onClose={onClose}><div className="market-dialog__grid">{ids.map((id) => <article key={id} className={`card full-card reference-card card--${cards[id]!.family}`} data-card-name={cards[id]!.name}><CardFace card={cards[id]!} /></article>)}</div></ModalDialog>;
+}
+
+function CardCatalogDialog({ cards, onClose }: { cards: Record<string, CardDefinition>; onClose: () => void }) {
+  const groups = groupCardCatalog(Object.values(cards));
+  return <ModalDialog className="catalog-dialog" surfaceClassName="catalog-dialog__surface" titleId="catalog-dialog-title" kicker={`${Object.keys(cards).length} cards`} title="All cards" closeLabel="Close all cards" onClose={onClose}><div className="catalog-dialog__body">{groups.map((group) => <section className="catalog-section" data-catalog-family={group.family} key={group.family}><h3>{group.heading}</h3><div className="catalog-section__grid">{group.cards.map((card) => <div className="catalog-card-frame" key={card.id}><article className={`card full-card catalog-card card--${card.family}`} data-card-name={card.name} data-card-cost={card.cost}><CardFace card={card} /></article></div>)}</div></section>)}</div></ModalDialog>;
+}
+
+function ZonePiles({ game, playerId }: { game: GameView; playerId: PlayerId }) {
+  const player = game.players[playerId];
+  const discard = player.discardTop ? game.cards[player.discardTop.definitionId] : null;
+  return <aside className="zone-piles" aria-label={`${playerName(playerId)} draw and discard piles`}>
+    <div className="zone-pile"><div className="card-back" data-testid="draw-pile" aria-label={`${player.zoneCounts.draw} ${cardWord(player.zoneCounts.draw)} in draw pile`}><span>Deckfront</span></div><strong>Draw ×{player.zoneCounts.draw}</strong></div>
+    <div className="zone-pile"><div className="discard-top" data-testid="discard-pile" aria-label={`${player.zoneCounts.discard} ${cardWord(player.zoneCounts.discard)} in discard pile`}>{discard ? <article className={`card full-card card--${discard.family}`} data-discard-card={discard.name}><CardFace card={discard} /></article> : <span>Empty</span>}</div><strong>Discard ×{player.zoneCounts.discard}</strong></div>
+  </aside>;
+}
+
+function CardPicker({ cards, kind, choices, busy, onChoose }: {
+  cards: Record<string, CardDefinition>;
+  kind: 'recover' | 'gain';
+  choices: SelectionActionPresentation[];
+  busy: boolean;
+  onChoose: (choice: SelectionActionPresentation) => void;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => { const dialog = ref.current; if (dialog && !dialog.open) dialog.showModal(); }, []);
+  const groups = new Map<string, SelectionActionPresentation[]>();
+  for (const choice of choices) {
+    if (!choice.definitionId) continue;
+    const group = groups.get(choice.definitionId);
+    if (group) group.push(choice); else groups.set(choice.definitionId, [choice]);
+  }
+  return <dialog ref={ref} className="card-picker" aria-label={kind === 'recover' ? 'Choose a card to recover' : 'Choose a card to gain'} onCancel={(event) => event.preventDefault()}><div className="card-picker__surface"><header><span>{kind === 'recover' ? 'Discard pile' : 'Available supply'}</span><h2>{kind === 'recover' ? 'Choose a card to recover' : 'Choose a card to gain'}</h2></header><div className="card-picker__grid">{[...groups].map(([definitionId, actions]) => { const card = cards[definitionId]!; return <button key={definitionId} className="picker-card-button" disabled={busy} aria-label={actions[0]!.label} onClick={() => onChoose(actions[0]!)}><article className={`card full-card card--${card.family}`} data-picker-card={card.name} data-card-count={actions.length}><CardFace card={card} /></article>{actions.length > 1 ? <span className="quantity-badge" data-testid={`picker-count-${definitionId}`}>×{actions.length}</span> : null}</button>; })}</div></div></dialog>;
+}
+
+export function CardFace({ card }: { card: CardDefinition }) { const copyLength = card.headline.length + (card.detail?.length ?? 0); const detailDensity = copyLength > 150 ? ' card__detail--very-dense' : copyLength > 90 ? ' card__detail--dense' : ''; return <span className="card__face" data-card-definition-id={card.id}><span className="card__header"><strong className="card__title">{card.name}</strong></span><img className="card__image" src={`/card-art/${card.id}.jpg`} alt="" loading="eager" decoding="async" /><span className="card__rules"><strong className="card__headline">{card.headline}</strong>{card.detail ? <small className={`card__detail${detailDensity}`}>{card.detail}</small> : null}</span><span className="card__cost" aria-label={`Cost ${card.cost}`}>{card.cost}</span></span>; }
+function PlayedCard({ card, group, pendingAction, selected, busy, onSelect }: {
+  card: CardDefinition; group: PlayedGroup; pendingAction?: SelectionActionPresentation | undefined;
+  selected: boolean; busy: boolean; onSelect: (actionId: string) => void;
+}) {
+  const count = group.instances.length;
+  const className = `card full-card played-card card--${card.family}${selected ? ' card--selected' : ''}`;
+  const attributes = { 'data-played-card-name': card.name, 'data-played-definition-id': card.id, 'data-card-count': count };
+  return <div className="played-card-slot">{count > 1 ? <span className="quantity-badge played-card-count" data-testid={`played-count-${card.id}`}>×{count}</span> : null}{pendingAction ? <button className={className} {...attributes} disabled={busy} aria-label={pendingAction.label} onClick={() => onSelect(pendingAction.id)}><CardFace card={card} /></button> : <article className={className} {...attributes}><CardFace card={card} /></article>}</div>;
+}
+function ResetDialog({ onAccept, onCancel }: { onAccept: () => void; onCancel: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => { const dialog = ref.current; if (dialog && !dialog.open) dialog.showModal(); }, []);
+  return <dialog ref={ref} className="reset-dialog" aria-labelledby="reset-title" onCancel={(event) => { event.preventDefault(); onCancel(); }}>
+    <div><h2 id="reset-title">Reset this game?</h2><p>This returns the same game and kingdom to its starting point. Your progress will be lost.</p><footer><button className="control-button primary" onClick={onAccept}>Yes, reset</button><button className="control-button" onClick={onCancel}>Cancel</button></footer></div>
+  </dialog>;
+}
+function ActionRail({ game, busy, playbackActive, onUndo, onReset, onNew, onCatalog }: { game: GameView; busy: boolean; playbackActive: boolean; onUndo: () => void; onReset: () => void; onNew: () => void; onCatalog: () => void }) {
   const log = useRef<HTMLOListElement>(null);
   const newestEvent = game.events.at(-1);
   const newestEventIdentity = newestEvent ? `${newestEvent.sequence}:${newestEvent.type}:${newestEvent.playerId}:${JSON.stringify(newestEvent.detail)}` : '';
   useEffect(() => { const element = log.current; if (element) element.scrollTop = element.scrollHeight; }, [newestEventIdentity]);
-  return <aside className="action-rail" aria-label="Action history and deck compositions">
-    <section className="action-log"><header><span>Public record</span><h2>Actions</h2></header><ol ref={log} data-testid="action-log">{game.events.map((event) => <li key={event.sequence} className={event.type === 'turn' ? 'action-log__turn' : undefined}><span>{playerName(event.playerId)}</span><strong>{eventText(game, event)}</strong></li>)}</ol></section>
+  return <aside className="action-rail" aria-label="Action history, deck compositions, and game controls">
+    <section className="action-log"><header><div><span>Public record</span><h2>Actions</h2></div></header><ol ref={log} data-testid="action-log">{game.events.map((event) => <li key={event.sequence} className={event.type === 'turn' ? 'action-log__turn' : undefined}><span>{playerName(event.playerId)}</span><strong>{eventText(game, event)}</strong></li>)}</ol></section>
     <section className="rail-decks"><h2>Deck compositions</h2><div><DeckSummary game={game} playerId="ochre" /><DeckSummary game={game} playerId="indigo" /></div></section>
+    <nav className="rail-controls" aria-label="Game controls"><button className="rail-control-button" aria-label="Undo last action" disabled={!game.canUndo || busy} onClick={onUndo}>Undo</button><button className="rail-control-button" disabled={busy || game.phase === 'startingBuild'} onClick={onReset}>Reset</button><button className="rail-control-button" onClick={onNew}>New game</button><button className="rail-control-button" onClick={onCatalog}>View all cards</button>{playbackActive ? <span className="playback-label" role="status" aria-live="polite" aria-atomic="true">Playing AI turn…</span> : null}</nav>
   </aside>;
 }
 function DeckSummary({ game, playerId }: { game: GameView; playerId: PlayerId }) { const entries = Object.entries(game.players[playerId].deckCounts).sort(([left], [right]) => (game.cards[left]?.name ?? left).localeCompare(game.cards[right]?.name ?? right)); return <section className={`deck-summary deck-summary--${playerId}`} data-testid={`deck-summary-${playerId}`}><h3>{playerName(playerId)}</h3><div>{entries.map(([id, count]) => <span key={id} data-deck-card={game.cards[id]?.name}><span>{game.cards[id]?.name ?? id}</span><strong>×{count}</strong></span>)}</div></section>; }
 function groupCards(cards: CardInstance[]): CardGroup[] { const groups = new Map<string, CardGroup>(); for (const card of cards) { const group = groups.get(card.definitionId); if (group) group.instances.push(card); else groups.set(card.definitionId, { definitionId: card.definitionId, instances: [card] }); } return [...groups.values()]; }
+function stableHandGroups(cards: CardInstance[], turnKey: string, orders: Map<string, string[]>): CardGroup[] {
+  const groups = groupCards(cards);
+  let order = orders.get(turnKey);
+  if (!order) { order = groups.map((group) => group.definitionId); orders.set(turnKey, order); }
+  for (const group of groups) if (!order.includes(group.definitionId)) order.push(group.definitionId);
+  const positions = new Map(order.map((definitionId, index) => [definitionId, index]));
+  return groups.sort((left, right) => positions.get(left.definitionId)! - positions.get(right.definitionId)!);
+}
 function groupPlayedCards(cards: CardInstance[]): PlayedGroup[] { const groups: PlayedGroup[] = []; for (const card of cards) { const previous = groups.at(-1); if (previous?.definitionId === card.definitionId) previous.instances.push(card); else groups.push({ definitionId: card.definitionId, instances: [card] }); } return groups; }
 function playerName(playerId: PlayerId): string { return playerId === 'ochre' ? 'Player 1' : 'Player 2'; }
+function cardWord(count: number): string { return count === 1 ? 'card' : 'cards'; }
 function eventPlayerName(value: unknown): string { return value === 'ochre' || value === 'indigo' ? playerName(value) : 'Unknown player'; }
 function eventText(game: GameView, event: PublicGameEvent): string {
   const detail = event.detail;
@@ -217,4 +488,35 @@ function eventText(game: GameView, event: PublicGameEvent): string {
     case 'mana': return `${Number(detail.amount) >= 0 ? 'Gained' : 'Spent'} ${String(Math.abs(Number(detail.amount)))} mana`;
   }
 }
+function combinePlayAllUpdates(updates: GameUpdateView[]): GameUpdateView {
+  const final = updates.at(-1); if (!final) throw new Error('Play all produced no accepted updates.');
+  const frames = updates.flatMap((update) => update.presentation.frames); const lastFrame = frames.at(-1);
+  if (!lastFrame) return { ...final, presentation: { frames: [] } };
+  return { ...final, presentation: { frames: [{ ...lastFrame, commandType: 'playAll', transfers: frames.flatMap((frame) => frame.transfers) }] } };
+}
+function batchConsecutiveAiPlays(frames: PresentationFrame[], aiPlayerId: PlayerId | null): PresentationFrame[] {
+  if (!aiPlayerId) return frames;
+  const result: PresentationFrame[] = [];
+  for (let index = 0; index < frames.length;) {
+    const first = frames[index]!;
+    const firstPlay = aiCardPlay(first, aiPlayerId);
+    if (!firstPlay) { result.push(first); index += 1; continue; }
+    const group = [first]; let nextIndex = index + 1;
+    while (nextIndex < frames.length) {
+      const next = frames[nextIndex]!; const nextPlay = aiCardPlay(next, aiPlayerId);
+      if (nextPlay?.card.definitionId !== firstPlay.card.definitionId) break;
+      group.push(next); nextIndex += 1;
+    }
+    const last = group.at(-1)!;
+    result.push(group.length === 1 ? first : { ...last, commandType: 'aiPlayAll', transfers: group.flatMap((frame) => frame.transfers) });
+    index = nextIndex;
+  }
+  return result;
+}
+function aiCardPlay(frame: PresentationFrame, aiPlayerId: PlayerId) {
+  if (frame.playerId !== aiPlayerId) return null;
+  const plays = frame.transfers.filter((transfer) => !transfer.hidden && transfer.kind === 'handToPlayed' && transfer.playerId === aiPlayerId);
+  return plays.length === 1 ? plays[0]! : null;
+}
+function nextPaint(): Promise<void> { return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))); }
 function sameSelection(left: readonly string[], right: readonly string[]): boolean { return left.length === right.length && left.every((id) => right.includes(id)); }

@@ -1,8 +1,8 @@
-# Hexdeck
+# Deckfront
 
-Hexdeck is a full-screen desktop deck-building game for two local players or one player against an AI opponent. Players build decks, move on a six-space arena, combine cards, buy improvements, and try to reduce the other fighter from 50 health to 0.
+Deckfront is a full-screen desktop deck-building game for two local players or one player against an AI opponent. Players build decks, move on a six-space arena, combine cards, buy improvements, and try to reduce the other fighter from 50 health to 0.
 
-The table is designed for a 1920×1080 screen. Mobile and smaller desktop layouts are not supported.
+The table supports desktop screens from 1280×720 through 1920×1080. Mobile layouts are not supported.
 
 ## Requirements
 
@@ -22,17 +22,17 @@ The server saves games in `.data/games` by default. You can set `PORT`, `HOST`, 
 
 ## Play
 
-1. Refresh until one of the 30 trained 10-card kingdoms looks interesting. Copper, Silver, Gold, Step, and Focus are in every market. Cull is a normal kingdom pile.
-2. Choose two local players or the AI opponent. In an AI game, choose whether you or the AI goes first and select Easy, Normal, Hard, or Expert strength.
+1. Refresh until one of the 30 trained 10-card kingdoms looks interesting. Copper, Silver, Gold, Step, and Focus are the five fixed market piles. Scrap is a starter card, not a market pile. Cull is a normal kingdom pile.
+2. Choose two local players or the AI opponent. In an AI game, choose whether you or the AI goes first, select Easy, Normal, Hard, or Expert strength, and choose whether to animate AI turns.
 3. For a local game, choose whether to use the starting draft. AI games always start without the draft.
 4. With the local draft on, Player 1 spends up to 12 money on starting cards, then Player 2 builds. With the draft off, both players start immediately with 7 Copper and 3 Scrap.
 5. Play any number of Action cards, end the Action phase to play Treasure cards, buy affordable cards, and end the Buy phase.
 
-Draft-on decks start with 7 Copper. Up to 3 unspent starting money carries into the first Buy phase. Draft-off decks add 3 Scrap, have no carry, and skip the build. Only the first Scrap a player plays each turn deals its 1 damage. Scrap is never sold or gained. Starting-build cards do not reduce market piles.
+Draft-on decks start with 7 Copper. Up to 3 unspent starting money carries into the first Buy phase. Draft-off decks add 3 Scrap, have no carry, and skip the build. Only the first Scrap a player plays each turn deals its 1 damage. Scrap cannot be bought or gained. Starting-build cards do not reduce market piles. Mana persists between turns, but each player keeps at most 3 mana when their Buy phase ends.
 
-Normal AI play selects from the server-only `src/server/pretrained-opponents.json` catalog. The catalog contains all 1,572 final-matrix ordered plans for the 30 trained kingdoms, derived from `.data/strategy-search-30/rust-balance-analysis-v1.json`. Selection does not start Rust, strategy-search, or worker processes. Expert uses the saved equilibrium lottery. Easy, Normal, and Hard use the saved score against that lottery. The saved purchase plan controls buys, and the shared tactical agent controls card play and movement.
+AI games select from the server-only `src/server/pretrained-opponents.json` catalog. The catalog contains 1,588 final-Matrix ordered plans for 30 trained kingdoms, including 71 positive-weight equilibrium entries. The plans and equilibrium weights were trained at 40 starting health; playable games use 50 starting health, so this catalog is provisional. Selection does not start strategy search or worker processes. Expert uses the saved equilibrium lottery. Easy, Normal, and Hard use the saved score against that lottery. The saved purchase plan controls buys, and the shared tactical agent controls card play and movement.
 
-The arena has spaces 1 through 6. Fighters start on the symmetric middle spaces, Player 1 at 3 and Player 2 at 4. Fighters can share a space and move through each other. Distance 0 is Close, 1 is Near, and 2 or more is Far. Bought cards enter the discard pile. Actions resolve at once. The right rail keeps the public action record visible and shows both full deck compositions without zone counts. In an AI game, a complete AI turn resolves before the server returns the next human state. Its public actions appear in the rail. Undo can roll back every submitted action to the completed-setup boundary. Each undo of a turn-ending human action also removes the full AI response that it caused. Reload restores the active game and its undo history. New game clears the browser's active-game link.
+The arena has spaces 1 through 6. Fighters start on the symmetric middle spaces, Player 1 at 3 and Player 2 at 4. Fighters can share a space and move through each other. Distance 0 is Close, 1 is Near, and 2 or more is Far. Bought cards enter the discard pile and briefly appear above their market piles. Actions resolve at once. Played cards move from the hand to the played area, and the table replays visible AI actions when animation is on. The right rail keeps the public action record visible and shows both full deck compositions without zone counts. Undo can roll back every submitted action to the completed-setup boundary. Each undo of a turn-ending human action also removes the full AI response that it caused. Reload restores the active game and its undo history. New game clears the browser's active-game link.
 
 ## Verify
 
