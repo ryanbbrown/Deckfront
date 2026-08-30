@@ -13,6 +13,8 @@ import modal
 
 COMPUTE_APP_PREFIX = "hexdeck-strategy-"
 RESULT_VOLUME = "hexdeck-native-strategy-results"
+GOLDFISH_TOP_BYTES = 32_000_064
+GOLDFISH_RESERVOIR_BYTES = 2_480_064
 
 app = modal.App("hexdeck-strategy-search-runtime")
 volume = modal.Volume.from_name(RESULT_VOLUME)
@@ -52,30 +54,40 @@ def _atomic_json(file: pathlib.Path, value: Any) -> None:
 
 
 def _final_artifact_relatives(bundle: dict[str, Any]) -> list[str]:
-    if bundle.get("controller", {}).get("route") == "goldfish-only-v1":
+    if bundle.get("controller", {}).get("route") == "goldfish-only-v2":
         return ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf"]
     return ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
         "matrix/evidence.json", "psro/evidence.json"]
 
 
+def _listed_file_size(remote: str) -> int:
+    path = pathlib.PurePosixPath(remote)
+    for entry in volume.listdir(path.parent.as_posix()):
+        if entry.path == remote:
+            return entry.size
+    raise FileNotFoundError(remote)
+
+
 def _download_final_artifacts(destination: pathlib.Path, evidence_ids: list[str],
                               relatives: list[str] | None = None) -> dict[str, Any]:
+    from volume_download import fetch_files
+
     started = time.monotonic()
-    artifacts = []
+    selected = relatives or ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
+        "matrix/evidence.json", "psro/evidence.json"]
+    production_sizes = {"goldfish/top-500000.hgf": GOLDFISH_TOP_BYTES,
+        "goldfish/reservoir.hgf": GOLDFISH_RESERVOIR_BYTES}
+    items = []
     for evidence_id in evidence_ids:
-        for relative in relatives or ["goldfish/top-500000.hgf", "goldfish/reservoir.hgf",
-                "matrix/evidence.json", "psro/evidence.json"]:
+        for relative in selected:
             remote = f"evidence/{evidence_id}/{relative}"
-            local = destination / remote
-            local.parent.mkdir(parents=True, exist_ok=True)
-            artifact_started = time.monotonic()
-            byte_count = 0
-            with local.open("wb") as stream:
-                for chunk in volume.read_file(remote):
-                    stream.write(chunk)
-                    byte_count += len(chunk)
-            artifacts.append({"evidenceId": evidence_id, "path": remote, "bytes": byte_count,
-                "wallMs": round((time.monotonic() - artifact_started) * 1000, 3)})
+            items.append({"remote": remote, "local": destination / remote,
+                "expectedSize": production_sizes.get(relative) or _listed_file_size(remote),
+                "evidenceId": evidence_id})
+    metrics = fetch_files(volume, items, concurrency=16)
+    artifacts = [{"evidenceId": item["evidenceId"], "path": item["remote"],
+        "bytes": metric["bytes"], "wallMs": round(metric["wallMs"], 3)}
+        for item, metric in zip(items, metrics)]
     return {"bytes": sum(artifact["bytes"] for artifact in artifacts),
         "wallMs": round((time.monotonic() - started) * 1000, 3), "artifacts": artifacts}
 
