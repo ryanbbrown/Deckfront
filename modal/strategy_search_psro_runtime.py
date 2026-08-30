@@ -104,7 +104,6 @@ def launch(config: dict[str, Any], state_file: str) -> dict[str, Any]:
     for kingdom in config["kingdoms"]:
         if kingdom["launchId"] not in attempts or attempts[kingdom["launchId"]].get("callId") is not None:
             raise RuntimeError("PSRO launch state does not contain one unspawned launch record")
-    volume.reload()
     for kingdom in config["kingdoms"]:
         for remote in kingdom["goldfishPaths"]:
             if not _remote_exists(remote):
@@ -148,7 +147,6 @@ def launch_entry(config_file: str, state_file: str, result_file: str) -> None:
 
 def status(state_file: str) -> dict[str, Any]:
     state = _load(state_file)
-    volume.reload()
     rows = []
     for attempt in state["attempts"]:
         remote_out = attempt["remoteOutPath"].rstrip("/")
@@ -193,7 +191,6 @@ def _is_file(entry: Any) -> bool:
 
 
 def download(config: dict[str, Any]) -> dict[str, Any]:
-    volume.reload()
     artifacts = []
     for kingdom in config["kingdoms"]:
         remote_root = kingdom["remoteOutPath"].rstrip("/")

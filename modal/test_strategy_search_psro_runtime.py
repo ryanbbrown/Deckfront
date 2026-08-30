@@ -36,10 +36,9 @@ class Entry:
 class Volume:
     def __init__(self, files=None):
         self.files = dict(files or {})
-        self.reloads = 0
 
     def reload(self):
-        self.reloads += 1
+        raise AssertionError("local Modal entrypoints cannot reload a Volume")
 
     def read_file(self, remote):
         if remote not in self.files:
