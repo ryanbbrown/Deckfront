@@ -1022,6 +1022,109 @@ print(json.dumps(result))
             phases = launcher._strategy_search_goldfish_phases(report)
             self.assertEqual(sum(phases[key] for key in keys), phases["elapsedMs"])
 
+    def psro_job_fixture(self, root):
+        config = {"sourceImage": {}, "threads": 16, "cpu": 16, "memoryMiB": 8192,
+            "kingdomId": "balance-tuning-090", "evidenceId": "a" * 64,
+            "launchId": "launch-one", "topPath": "evidence/a/goldfish/top-500000.hgf",
+            "reservoirPath": "evidence/a/goldfish/reservoir.hgf",
+            "matrixDir": "evidence/a/matrix", "outPath": "psro-executions/run/a"}
+        paths = launcher._strategy_search_psro_input_paths(config)
+        for index, relative in enumerate(paths):
+            file = root / relative
+            file.parent.mkdir(parents=True, exist_ok=True)
+            file.write_bytes(f"input-{index}".encode())
+        config["inputSha256"] = {relative: hashlib.sha256((root / relative).read_bytes()).hexdigest()
+            for relative in paths}
+        return config
+
+    def test_psro_job_checks_inputs_and_writes_operational_reports(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            config = self.psro_job_fixture(root)
+            rust_report = {"elapsedMs": 1_500, "totalGames": 12_000, "gamesPerSecond": 8_000,
+                "transitions": [{"elapsedMs": 900}, {"elapsedMs": 300}]}
+            run_result = {"report": rust_report, "commitCount": 2, "volumeCommitMs": 50}
+            def run_psro(*_args, **kwargs):
+                kwargs["on_checkpoint"](7, 123, 1, 25)
+                return run_result
+            usage = type("Usage", (), {"ru_maxrss": 262_144})()
+            with patch.object(launcher, "_strategy_search_path", side_effect=lambda value: root / value), \
+                    patch.object(launcher, "verify_strategy_search_source") as verify, \
+                    patch("psro_step.run_psro_step", side_effect=run_psro) as run, \
+                    patch.object(launcher.modal, "current_function_call_id", return_value="fc-current"), \
+                    patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit") as commit, \
+                    patch.object(launcher.time, "monotonic", side_effect=[10, 12]), \
+                    patch.object(launcher.resource, "getrusage", return_value=usage):
+                report = launcher._strategy_search_psro_job_impl(config)
+            verify.assert_called_once_with(config["sourceImage"])
+            self.assertEqual(run.call_args.args[6], 16)
+            self.assertEqual(run.call_args.kwargs["commit_interval_seconds"], 600)
+            self.assertFalse(run.call_args.kwargs["deep_verify"])
+            self.assertEqual(commit.call_count, 2)
+            self.assertEqual(report["totalGames"], 12_000)
+            self.assertEqual(report["transitionCount"], 2)
+            self.assertAlmostEqual(report["nonTransitionShare"], 0.2)
+            self.assertEqual(report["commitCount"], 2)
+            self.assertEqual(report["maxResidentSetSizeMiB"], 256)
+            expected_cost = 2 * (16 * 0.0000131 + 8 * 0.00000222)
+            self.assertAlmostEqual(report["measuredCostUsd"], expected_cost)
+            saved = json.loads((root / config["outPath"] / "job-report.json").read_text())
+            self.assertEqual(saved["callId"], "fc-current")
+            progress = json.loads((root / config["outPath"] / "progress.json").read_text())
+            self.assertEqual((progress["checkpointOrdinal"], progress["commitCount"]), (7, 1))
+
+    def test_psro_job_rejects_thread_and_input_hash_changes_before_rust(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            config = self.psro_job_fixture(root)
+            with patch.object(launcher, "verify_strategy_search_source"), \
+                    patch("psro_step.run_psro_step") as run:
+                with self.assertRaisesRegex(ValueError, "threads must equal"):
+                    launcher._strategy_search_psro_job_impl({**config, "threads": 15})
+                run.assert_not_called()
+            changed = root / config["topPath"]
+            changed.write_bytes(b"changed")
+            with patch.object(launcher, "_strategy_search_path", side_effect=lambda value: root / value), \
+                    patch.object(launcher, "verify_strategy_search_source"), \
+                    patch.object(launcher.volume, "reload"), \
+                    patch("psro_step.run_psro_step") as run:
+                with self.assertRaisesRegex(RuntimeError, "input hash differs"):
+                    launcher._strategy_search_psro_job_impl(config)
+                run.assert_not_called()
+
+    def test_psro_job_rejects_a_live_lease_and_accepts_a_terminal_lease(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            config = self.psro_job_fixture(root)
+            out = root / config["outPath"]
+            out.mkdir(parents=True, exist_ok=True)
+            (out / "lease.json").write_text(json.dumps({"launchId": "old", "callId": "fc-old"}))
+            pending = MagicMock()
+            pending.get.side_effect = TimeoutError()
+            common = [patch.object(launcher, "_strategy_search_path", side_effect=lambda value: root / value),
+                patch.object(launcher, "verify_strategy_search_source"), patch.object(launcher.volume, "reload"),
+                patch.object(launcher.modal, "current_function_call_id", return_value="fc-current")]
+            with common[0], common[1], common[2], common[3], \
+                    patch.object(launcher.modal.FunctionCall, "from_id", return_value=pending), \
+                    patch("psro_step.run_psro_step") as run:
+                with self.assertRaisesRegex(RuntimeError, "duplicate PSRO launch"):
+                    launcher._strategy_search_psro_job_impl(config)
+                run.assert_not_called()
+            terminal = MagicMock()
+            terminal.get.return_value = {"complete": True}
+            rust_report = {"elapsedMs": 1, "totalGames": 0, "gamesPerSecond": 0, "transitions": []}
+            with patch.object(launcher, "_strategy_search_path", side_effect=lambda value: root / value), \
+                    patch.object(launcher, "verify_strategy_search_source"), \
+                    patch.object(launcher.volume, "reload"), patch.object(launcher.volume, "commit"), \
+                    patch.object(launcher.modal, "current_function_call_id", return_value="fc-current"), \
+                    patch.object(launcher.modal.FunctionCall, "from_id", return_value=terminal), \
+                    patch("psro_step.run_psro_step", return_value={"report": rust_report,
+                        "commitCount": 0, "volumeCommitMs": 0}), \
+                    patch.object(launcher.resource, "getrusage",
+                        return_value=type("Usage", (), {"ru_maxrss": 1024})()):
+                report = launcher._strategy_search_psro_job_impl(config)
+            self.assertEqual(report["callId"], "fc-current")
+
     def test_goldfish_job_launches_the_rust_subcommands_and_maps_reports(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)

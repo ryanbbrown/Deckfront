@@ -12,6 +12,7 @@ import os
 import pathlib
 import queue
 import re
+import resource
 import shutil
 import socket
 import struct
@@ -53,6 +54,9 @@ GOLDFISH_MODAL_SCORE_TIMEOUT_SECONDS = 180
 GOLDFISH_MODAL_REDUCE_ONE_TIMEOUT_SECONDS = 600
 GOLDFISH_MODAL_REDUCE_TWO_TIMEOUT_SECONDS = 300
 GOLDFISH_MODAL_ATTEMPTS = 3
+PSRO_MODAL_CPU_RATE_PER_CORE_SECOND = 0.0000131
+PSRO_MODAL_MEMORY_RATE_PER_GIB_SECOND = 0.00000222
+PSRO_MODAL_COMMIT_INTERVAL_SECONDS = 600
 GOLDFISH_MODAL_REDUCER_CORES = 4
 CAMPAIGN_RUST_GOLDFISH_BIN = os.environ.get(
     "HEXDECK_GOLDFISH_BIN", "/workspace/rust/target/release/hexdeck-goldfish")
@@ -1245,16 +1249,53 @@ def strategy_search_goldfish_job(config: dict[str, Any]) -> dict[str, Any]:
         "workerFinishedEpochMs": int(time.time() * 1000), "temporaryPath": config["temporaryPath"]}
 
 
-@app.function(image=image, cpu=16, memory=16384, timeout=86400, retries=0,
-              scaledown_window=300, volumes={"/results": volume})
-@modal.concurrent(max_inputs=1)
-def strategy_search_psro_job(config: dict[str, Any]) -> dict[str, Any]:
+def _strategy_search_psro_input_paths(config: dict[str, Any]) -> list[str]:
+    matrix_dir = config["matrixDir"].rstrip("/")
+    return [config["topPath"], config["reservoirPath"],
+        *[f"{matrix_dir}/{name}" for name in
+            ["pairs.hgm", "purchases.hgm", "matrix.hgm", "self-play-v1.hst"]]]
+
+
+def _strategy_search_psro_job_impl(config: dict[str, Any]) -> dict[str, Any]:
     from psro_step import run_psro_step
 
+    worker_started_ms = int(time.time() * 1000)
+    worker_started = time.monotonic()
+    verify_strategy_search_source(config["sourceImage"])
+    if config["threads"] != config["cpu"]:
+        raise ValueError("PSRO threads must equal the Modal CPU request")
+    input_paths = _strategy_search_psro_input_paths(config)
+    if set(config["inputSha256"]) != set(input_paths):
+        raise ValueError("PSRO input hash set differs from the six required inputs")
     volume.reload()
+    for relative in input_paths:
+        actual = _strategy_search_sha256(_strategy_search_path(relative))
+        if actual != config["inputSha256"][relative]:
+            raise RuntimeError(f"PSRO Volume input hash differs: {relative}")
+
     out = _strategy_search_path(config["outPath"])
     out.mkdir(parents=True, exist_ok=True)
-    report = out / "run-report.json"
+    call_id = modal.current_function_call_id()
+    lease_file = out / "lease.json"
+    existing_lease = _strategy_search_load(lease_file)
+    if existing_lease and existing_lease.get("callId") != call_id:
+        existing_call = modal.FunctionCall.from_id(existing_lease["callId"])
+        if _strategy_search_poll_function_call(existing_call)["state"] == "pending":
+            raise RuntimeError("duplicate PSRO launch")
+    lease = {"protocol": "modal-psro-lease-v1", "launchId": config["launchId"],
+        "callId": call_id, "workerStartedEpochMs": worker_started_ms}
+    _atomic_json(lease_file, lease)
+    volume.commit()
+
+    progress_file = out / "progress.json"
+    def checkpoint_progress(ordinal: int, crc: int, commit_count: int, commit_ms: float) -> None:
+        _atomic_json(progress_file, {"protocol": "modal-psro-progress-v1",
+            "launchId": config["launchId"], "callId": call_id,
+            "checkpointOrdinal": ordinal, "checkpointCrc": crc,
+            "commitCount": commit_count, "volumeCommitMs": commit_ms,
+            "updatedEpochMs": int(time.time() * 1000)})
+
+    rust_report_file = out / "run-report.json"
     result = run_psro_step(
         CAMPAIGN_RUST_GOLDFISH_BIN,
         config["kingdomId"],
@@ -1262,13 +1303,45 @@ def strategy_search_psro_job(config: dict[str, Any]) -> dict[str, Any]:
         str(_strategy_search_path(config["reservoirPath"])),
         str(_strategy_search_path(config["matrixDir"])),
         str(out),
-        16,
-        str(report),
+        config["threads"],
+        str(rust_report_file),
         volume=volume,
-        deep_verify=bool(config.get("deepVerification", False)),
+        commit_interval_seconds=PSRO_MODAL_COMMIT_INTERVAL_SECONDS,
+        on_checkpoint=checkpoint_progress,
+        deep_verify=False,
     )
+    rust_report = result["report"]
+    worker_finished_ms = int(time.time() * 1000)
+    job_wall_ms = (time.monotonic() - worker_started) * 1000
+    transitions = rust_report["transitions"]
+    transition_ms = sum(float(entry["elapsedMs"]) for entry in transitions)
+    rust_elapsed_ms = float(rust_report["elapsedMs"])
+    memory_mib = config["memoryMiB"]
+    measured_cost = job_wall_ms / 1000 * (config["cpu"] * PSRO_MODAL_CPU_RATE_PER_CORE_SECOND
+        + memory_mib / 1024 * PSRO_MODAL_MEMORY_RATE_PER_GIB_SECOND)
+    report = {"protocol": "modal-psro-job-report-v1", "kingdomId": config["kingdomId"],
+        "evidenceId": config["evidenceId"], "launchId": config["launchId"], "callId": call_id,
+        "workerStartedEpochMs": worker_started_ms, "workerFinishedEpochMs": worker_finished_ms,
+        "jobWallMs": job_wall_ms, "rustElapsedMs": rust_elapsed_ms,
+        "totalGames": rust_report["totalGames"], "gamesPerSecond": rust_report["gamesPerSecond"],
+        "transitionCount": len(transitions), "transitionElapsedMs": transition_ms,
+        "nonTransitionShare": max(0.0, rust_elapsed_ms - transition_ms) / rust_elapsed_ms
+            if rust_elapsed_ms > 0 else 0.0,
+        "commitCount": result["commitCount"], "volumeCommitMs": result["volumeCommitMs"],
+        "commitShare": result["volumeCommitMs"] / job_wall_ms if job_wall_ms > 0 else 0.0,
+        "maxResidentSetSizeMiB": resource.getrusage(resource.RUSAGE_CHILDREN).ru_maxrss / 1024,
+        "requestedCores": config["cpu"], "requestedMemoryMiB": memory_mib,
+        "measuredCostUsd": measured_cost, "runReport": rust_report}
+    _atomic_json(out / "job-report.json", report)
     volume.commit()
-    return result
+    return report
+
+
+@app.function(image=image, cpu=16, memory=16384, timeout=86400, retries=0,
+              scaledown_window=300, volumes={"/results": volume})
+@modal.concurrent(max_inputs=1)
+def strategy_search_psro_job(config: dict[str, Any]) -> dict[str, Any]:
+    return _strategy_search_psro_job_impl(config)
 
 
 @app.function(image=image, cpu=4, memory=8192, timeout=900, retries=0,
