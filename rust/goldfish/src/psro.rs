@@ -540,13 +540,22 @@ fn write_synced(path: &Path, bytes: &[u8]) -> Result<(), String> {
         .map_err(|error| format!("sync {}: {error}", path.display()))
 }
 
-fn atomic_write_verified<F>(path: &Path, bytes: &[u8], verify: F) -> Result<(), String>
-where
-    F: FnOnce(&Path) -> Result<(), String>,
-{
+fn atomic_write_verified(path: &Path, bytes: &[u8]) -> Result<(), String> {
     let temporary = PathBuf::from(format!("{}.tmp", path.display()));
     write_synced(&temporary, bytes)?;
-    verify(&temporary)?;
+    if std::env::var_os("HEXDECK_PSRO_TEST_TRUNCATE_TEMPORARY").is_some() {
+        let file = fs::OpenOptions::new()
+            .write(true)
+            .open(&temporary)
+            .map_err(|error| format!("open {}: {error}", temporary.display()))?;
+        file.set_len(bytes.len().saturating_sub(1) as u64)
+            .map_err(|error| format!("truncate {}: {error}", temporary.display()))?;
+    }
+    let verified =
+        fs::read(&temporary).map_err(|error| format!("read {}: {error}", temporary.display()))?;
+    if verified != bytes {
+        return Err(format!("temporary write differs: {}", temporary.display()));
+    }
     fs::rename(&temporary, path).map_err(|error| format!("rename {}: {error}", path.display()))?;
     sync_parent(path)
 }
@@ -738,20 +747,7 @@ fn write_checkpoint(
     header.family_size = MAX_CONFIRMED_QUEUE as u32;
     let bytes = file_bytes(header, &payload)?;
     let path = out.join("checkpoint.hpc");
-    atomic_write_verified(&path, &bytes, |temporary| {
-        let (verified_header, verified_payload) =
-            read_evidence(temporary, source, CHECKPOINT_KIND)?;
-        let verified_state = parse_checkpoint(&verified_payload)?;
-        if verified_state != *state
-            || verified_header.matrix_generation != state.generation
-            || verified_header.search != state.search
-            || verified_header.ordinal != state.refs.len() as u32
-            || verified_header.family_size != MAX_CONFIRMED_QUEUE as u32
-        {
-            return Err("temporary checkpoint verification differs".into());
-        }
-        Ok(())
-    })?;
+    atomic_write_verified(&path, &bytes)?;
     if std::env::var("HEXDECK_PSRO_TEST_STOP_AFTER_TRANSITION")
         .ok()
         .is_some_and(|value| value == state.refs.len().to_string())
@@ -928,6 +924,9 @@ struct Runtime {
     games: u64,
     transitions: Vec<TransitionTiming>,
     evidence_write_ms: f64,
+    decisions: Vec<DecisionRecord>,
+    admissions: Vec<ParsedAdmission>,
+    summaries: Vec<SearchSummary>,
     self_play_rows: Vec<SelfPlayRow>,
 }
 
@@ -1178,7 +1177,7 @@ fn execute_race(runtime: &mut Runtime, state: &mut State, resumed: bool) -> Resu
         let suffix = &full_schedule[previous as usize..depth as usize];
         let path = look_path(&runtime.out, phase, state.search, state.race_ordinal, depth);
         let adopted = index < committed || resumed && index == committed && path.exists();
-        let (header, rows) = if adopted {
+        let (payload_crc, rows) = if adopted {
             let (header, payload) = read_evidence(&path, &runtime.source, look_kind(phase))?;
             let (stored_schedule, rows) = parse_look(&header, &payload)?;
             if header.matrix_generation != state.generation
@@ -1197,7 +1196,7 @@ fn execute_race(runtime: &mut Runtime, state: &mut State, resumed: bool) -> Resu
                     path.display()
                 ));
             }
-            (header, rows)
+            (header.payload_crc, rows)
         } else {
             if path.exists() {
                 return Err(format!(
@@ -1229,35 +1228,18 @@ fn execute_race(runtime: &mut Runtime, state: &mut State, resumed: bool) -> Resu
             header.suffix_count = suffix.len() as u32;
             header.alpha = alpha;
             header.threshold = THRESHOLD;
-            let bytes = file_bytes(header.clone(), &payload)?;
-            let expected_header = CommonHeader::decode(&bytes)?;
+            let payload_crc = matrix::crc32(&payload);
+            let bytes = file_bytes(header, &payload)?;
             let write_started = Instant::now();
-            atomic_write_verified(&path, &bytes, |temporary| {
-                let (verified_header, verified_payload) =
-                    read_evidence(temporary, &runtime.source, look_kind(phase))?;
-                let (_, verified_rows) = parse_look(&verified_header, &verified_payload)?;
-                if verified_header != expected_header
-                    || verified_payload != payload
-                    || verified_rows.len() != rows.len()
-                {
-                    return Err("temporary look verification differs".into());
-                }
-                Ok(())
-            })?;
+            atomic_write_verified(&path, &bytes)?;
             runtime.evidence_write_ms += write_started.elapsed().as_secs_f64() * 1000.0;
-            let (verified_header, verified_payload) =
-                read_evidence(&path, &runtime.source, look_kind(phase))?;
-            let (_, verified_rows) = parse_look(&verified_header, &verified_payload)?;
-            if verified_rows.len() != rows.len() {
-                return Err("written look verification differs".into());
-            }
             if std::env::var("HEXDECK_PSRO_TEST_STOP_AFTER_RENAME")
                 .ok()
                 .is_some_and(|value| value == format!("{}:{depth}", look_kind(phase)))
             {
                 return Err("test stop after renamed PSRO look".into());
             }
-            (verified_header, rows)
+            (payload_crc, rows)
         };
         for row in &rows {
             prefixes
@@ -1286,6 +1268,18 @@ fn execute_race(runtime: &mut Runtime, state: &mut State, resumed: bool) -> Resu
             if row.decision == 0 && index + 1 < depths.len() {
                 next.push(row.candidate);
             } else {
+                if index >= committed {
+                    runtime.decisions.push(DecisionRecord {
+                        phase,
+                        status: row.decision,
+                        search: state.search,
+                        race: state.race_ordinal,
+                        depth,
+                        candidate: row.candidate.clone(),
+                        family_size: initial.len() as u32,
+                        bounds: row.bounds,
+                    });
+                }
                 prior_resolved.push((row.candidate, row.decision, row.bounds, depth));
             }
         }
@@ -1296,7 +1290,7 @@ fn execute_race(runtime: &mut Runtime, state: &mut State, resumed: bool) -> Resu
             search: state.search,
             ordinal: state.race_ordinal,
             depth,
-            payload_crc: header.payload_crc,
+            payload_crc,
         };
         if index >= committed {
             state.refs.push(reference);
@@ -1545,9 +1539,11 @@ fn parse_admission(payload: &[u8], card_count: usize) -> Result<ParsedAdmission,
     })
 }
 
-fn expanded_files(runtime: &mut Runtime, state: &State) -> Result<(), String> {
+fn expanded_files(runtime: &mut Runtime, state: &State) -> Result<(f64, f64), String> {
     let numbers = &state.matrix_numbers;
+    let solve_started = Instant::now();
     let (percentages, weights) = matrix::matrix_values(&runtime.matrix, numbers)?;
+    let solve_ms = solve_started.elapsed().as_secs_f64() * 1000.0;
     if weights
         .iter()
         .zip(&state.matrix_weights)
@@ -1590,12 +1586,14 @@ fn expanded_files(runtime: &mut Runtime, state: &State) -> Result<(), String> {
     ];
     let rows = [&pair_rows, &purchase_rows, &matrix_rows];
     let names = ["pairs.hgm", "purchases.hgm", "matrix.hgm"];
+    let write_started = Instant::now();
     for index in 0..3 {
         let mut bytes = headers[index].encode()?.to_vec();
         bytes.extend_from_slice(rows[index]);
         let temporary = runtime.out.join(format!("{}.tmp", names[index]));
         write_synced(&temporary, &bytes)?;
     }
+    runtime.evidence_write_ms += write_started.elapsed().as_secs_f64() * 1000.0;
     let self_play_source = matrix::self_play_source(
         runtime.source.reservoir_crc,
         [
@@ -1657,6 +1655,7 @@ fn expanded_files(runtime: &mut Runtime, state: &State) -> Result<(), String> {
     } else {
         None
     };
+    let mut game_ms = 0.0;
     if let Some(rows) = selected_rows {
         runtime.self_play_rows = rows;
     } else {
@@ -1670,7 +1669,9 @@ fn expanded_files(runtime: &mut Runtime, state: &State) -> Result<(), String> {
             .filter(|number| !retained.contains_key(number))
             .map(|number| decode_strategy(&runtime.kingdom, *number))
             .collect::<Result<Vec<_>, _>>()?;
+        let game_started = Instant::now();
         let scored = self_play::play_rows(&runtime.kingdom.kingdom, &missing, &runtime.pool);
+        game_ms += game_started.elapsed().as_secs_f64() * 1000.0;
         let combined = retained
             .into_iter()
             .chain(scored.into_iter().map(|row| (row.number, row)))
@@ -1685,12 +1686,14 @@ fn expanded_files(runtime: &mut Runtime, state: &State) -> Result<(), String> {
             })
             .collect::<Result<Vec<_>, _>>()?;
     }
+    let write_started = Instant::now();
     let self_play_tmp = self_play::write_temporary(
         &self_play_path,
         &runtime.self_play_rows,
         runtime.source.card_count,
         &self_play_source,
     )?;
+    runtime.evidence_write_ms += write_started.elapsed().as_secs_f64() * 1000.0;
     let selection = ReservoirSelection {
         source_checksum: runtime.source.reservoir_crc,
         numbers: numbers.clone(),
@@ -1704,6 +1707,7 @@ fn expanded_files(runtime: &mut Runtime, state: &State) -> Result<(), String> {
         &runtime.out.join("purchases.hgm.tmp"),
         &runtime.out.join("matrix.hgm.tmp"),
     )?;
+    let write_started = Instant::now();
     for name in ["pairs.hgm", "purchases.hgm"] {
         fs::rename(
             runtime.out.join(format!("{name}.tmp")),
@@ -1719,7 +1723,24 @@ fn expanded_files(runtime: &mut Runtime, state: &State) -> Result<(), String> {
     )
     .map_err(|error| format!("publish expanded matrix.hgm: {error}"))?;
     sync_parent(&runtime.out.join("matrix.hgm"))?;
-    Ok(())
+    runtime.evidence_write_ms += write_started.elapsed().as_secs_f64() * 1000.0;
+    Ok((game_ms, solve_ms))
+}
+
+fn verify_expanded_files(runtime: &Runtime, state: &State) -> Result<(), String> {
+    let selection = ReservoirSelection {
+        source_checksum: runtime.source.reservoir_crc,
+        numbers: state.matrix_numbers.clone(),
+        bytes: 0,
+    };
+    matrix::verify_files(
+        &runtime.kingdom,
+        &selection,
+        state.matrix_numbers.len(),
+        &runtime.out.join("pairs.hgm"),
+        &runtime.out.join("purchases.hgm"),
+        &runtime.out.join("matrix.hgm"),
+    )
 }
 
 fn grow_pairs(
@@ -1746,116 +1767,120 @@ fn admit(runtime: &mut Runtime, state: &mut State) -> Result<(), String> {
     let queue = state.queue.clone();
     let selected = queue.first().ok_or("admission queue is empty")?.clone();
     let path = admission_path(&runtime.out, state.admissions + 1);
-    let started = Instant::now();
-    let (verified, results, all_pairs, numbers, after, played) = if path.exists() {
-        let (header, payload) = read_evidence(&path, &runtime.source, ADMISSION_KIND)?;
-        let parsed = parse_admission(&payload, runtime.source.card_count)?;
-        let expected_queue = queue
-            .iter()
-            .map(|record| record.candidate.number)
-            .collect::<Vec<_>>();
-        if header.matrix_generation != state.generation + 1
-            || header.ordinal != state.admissions + 1
-            || parsed.admission != state.admissions + 1
-            || parsed.search != state.search
-            || parsed.source_race != selected.source_race
-            || parsed.candidate != selected.candidate
-            || parsed.queue_numbers != expected_queue
-            || parsed.bounds.mean.to_bits() != selected.bounds.mean.to_bits()
-            || parsed.bounds.lower.to_bits() != selected.bounds.lower.to_bits()
-            || parsed.bounds.upper.to_bits() != selected.bounds.upper.to_bits()
-            || parsed.before_numbers != state.matrix_numbers
-            || parsed
-                .before_weights
+    let (payload_crc, parsed, results, all_pairs, numbers, after, played, game_ms, evaluate_ms) =
+        if path.exists() {
+            let (header, payload) = read_evidence(&path, &runtime.source, ADMISSION_KIND)?;
+            let parsed = parse_admission(&payload, runtime.source.card_count)?;
+            let expected_queue = queue
                 .iter()
-                .zip(&state.matrix_weights)
-                .any(|(left, right)| left.to_bits() != right.to_bits())
-        {
-            return Err("renamed admission differs from the pending transition".into());
-        }
-        let all_pairs = grow_pairs(&runtime.matrix, &parsed.results, state.matrix_numbers.len())?;
-        let mut expected_numbers = state.matrix_numbers.clone();
-        expected_numbers.push(selected.candidate.number);
-        let (_, expected_weights) = matrix::matrix_values(&all_pairs, &expected_numbers)?;
-        if parsed.after_numbers != expected_numbers
-            || parsed
-                .after_weights
-                .iter()
-                .zip(&expected_weights)
-                .any(|(left, right)| left.to_bits() != right.to_bits())
-        {
-            return Err("renamed admission mix differs from its pair evidence".into());
-        }
-        (
-            header,
-            parsed.results,
-            all_pairs,
-            expected_numbers,
-            expected_weights,
-            false,
-        )
-    } else {
-        let selected_strategy = runtime.strategy(selected.candidate.number)?.clone();
-        for number in &state.matrix_numbers {
-            runtime.strategy(*number)?;
-        }
-        let results = runtime.pool.install(|| {
-            state
-                .matrix_numbers
-                .par_iter()
-                .map(|number| {
-                    matrix::play_pair_with_kingdom(
-                        &runtime.kingdom.kingdom,
-                        &runtime.strategies[number],
-                        &selected_strategy,
-                    )
-                })
-                .collect::<Vec<_>>()
-        });
-        let all_pairs = grow_pairs(&runtime.matrix, &results, state.matrix_numbers.len())?;
-        let mut numbers = state.matrix_numbers.clone();
-        numbers.push(selected.candidate.number);
-        let (_, after) = matrix::matrix_values(&all_pairs, &numbers)?;
-        let payload = admission_payload(
-            state,
-            &selected,
-            &queue,
-            &state.matrix_weights,
-            &after,
-            &results,
-            runtime.source.card_count,
-        );
-        let mut header = base_header(&runtime.source, state, ADMISSION_KIND);
-        header.ordinal = state.admissions + 1;
-        header.row_count = results.len() as u32;
-        header.row_bytes = (4 + 125 + 2 * (4 * runtime.source.card_count + 20)) as u32;
-        header.matrix_generation = state.generation + 1;
-        let bytes = file_bytes(header, &payload)?;
-        let expected_header = CommonHeader::decode(&bytes)?;
-        atomic_write_verified(&path, &bytes, |temporary| {
-            let (verified_header, verified_payload) =
-                read_evidence(temporary, &runtime.source, ADMISSION_KIND)?;
-            let parsed = parse_admission(&verified_payload, runtime.source.card_count)?;
-            if verified_header != expected_header
-                || verified_payload != payload
+                .map(|record| record.candidate.number)
+                .collect::<Vec<_>>();
+            if header.matrix_generation != state.generation + 1
+                || header.ordinal != state.admissions + 1
+                || parsed.admission != state.admissions + 1
+                || parsed.search != state.search
+                || parsed.source_race != selected.source_race
                 || parsed.candidate != selected.candidate
-                || parsed.queue_numbers
-                    != queue
-                        .iter()
-                        .map(|record| record.candidate.number)
-                        .collect::<Vec<_>>()
+                || parsed.queue_numbers != expected_queue
+                || parsed.bounds.mean.to_bits() != selected.bounds.mean.to_bits()
+                || parsed.bounds.lower.to_bits() != selected.bounds.lower.to_bits()
+                || parsed.bounds.upper.to_bits() != selected.bounds.upper.to_bits()
+                || parsed.before_numbers != state.matrix_numbers
+                || parsed
+                    .before_weights
+                    .iter()
+                    .zip(&state.matrix_weights)
+                    .any(|(left, right)| left.to_bits() != right.to_bits())
             {
-                return Err("temporary admission verification differs".into());
+                return Err("renamed admission differs from the pending transition".into());
             }
-            Ok(())
-        })?;
-        let (verified, verified_payload) = read_evidence(&path, &runtime.source, ADMISSION_KIND)?;
-        parse_admission(&verified_payload, runtime.source.card_count)?;
-        if std::env::var_os("HEXDECK_PSRO_TEST_STOP_AFTER_ADMISSION_RENAME").is_some() {
-            return Err("test stop after renamed PSRO admission".into());
-        }
-        (verified, results, all_pairs, numbers, after, true)
-    };
+            let evaluate_started = Instant::now();
+            let all_pairs =
+                grow_pairs(&runtime.matrix, &parsed.results, state.matrix_numbers.len())?;
+            let mut expected_numbers = state.matrix_numbers.clone();
+            expected_numbers.push(selected.candidate.number);
+            let (_, expected_weights) = matrix::matrix_values(&all_pairs, &expected_numbers)?;
+            if parsed.after_numbers != expected_numbers
+                || parsed
+                    .after_weights
+                    .iter()
+                    .zip(&expected_weights)
+                    .any(|(left, right)| left.to_bits() != right.to_bits())
+            {
+                return Err("renamed admission mix differs from its pair evidence".into());
+            }
+            (
+                header.payload_crc,
+                parsed.clone(),
+                parsed.results,
+                all_pairs,
+                expected_numbers,
+                expected_weights,
+                false,
+                0.0,
+                evaluate_started.elapsed().as_secs_f64() * 1000.0,
+            )
+        } else {
+            let selected_strategy = runtime.strategy(selected.candidate.number)?.clone();
+            for number in &state.matrix_numbers {
+                runtime.strategy(*number)?;
+            }
+            let game_started = Instant::now();
+            let results = runtime.pool.install(|| {
+                state
+                    .matrix_numbers
+                    .par_iter()
+                    .map(|number| {
+                        matrix::play_pair_with_kingdom(
+                            &runtime.kingdom.kingdom,
+                            &runtime.strategies[number],
+                            &selected_strategy,
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            });
+            let game_ms = game_started.elapsed().as_secs_f64() * 1000.0;
+            let evaluate_started = Instant::now();
+            let all_pairs = grow_pairs(&runtime.matrix, &results, state.matrix_numbers.len())?;
+            let mut numbers = state.matrix_numbers.clone();
+            numbers.push(selected.candidate.number);
+            let (_, after) = matrix::matrix_values(&all_pairs, &numbers)?;
+            let evaluate_ms = evaluate_started.elapsed().as_secs_f64() * 1000.0;
+            let payload = admission_payload(
+                state,
+                &selected,
+                &queue,
+                &state.matrix_weights,
+                &after,
+                &results,
+                runtime.source.card_count,
+            );
+            let mut header = base_header(&runtime.source, state, ADMISSION_KIND);
+            header.ordinal = state.admissions + 1;
+            header.row_count = results.len() as u32;
+            header.row_bytes = (4 + 125 + 2 * (4 * runtime.source.card_count + 20)) as u32;
+            header.matrix_generation = state.generation + 1;
+            let parsed = parse_admission(&payload, runtime.source.card_count)?;
+            let payload_crc = matrix::crc32(&payload);
+            let bytes = file_bytes(header, &payload)?;
+            let write_started = Instant::now();
+            atomic_write_verified(&path, &bytes)?;
+            runtime.evidence_write_ms += write_started.elapsed().as_secs_f64() * 1000.0;
+            if std::env::var_os("HEXDECK_PSRO_TEST_STOP_AFTER_ADMISSION_RENAME").is_some() {
+                return Err("test stop after renamed PSRO admission".into());
+            }
+            (
+                payload_crc,
+                parsed,
+                results,
+                all_pairs,
+                numbers,
+                after,
+                true,
+                game_ms,
+                evaluate_ms,
+            )
+        };
     runtime.matrix = all_pairs;
     state.matrix_numbers = numbers;
     state.matrix_weights = after;
@@ -1868,13 +1893,15 @@ fn admit(runtime: &mut Runtime, state: &mut State) -> Result<(), String> {
         search: state.search,
         ordinal: state.admissions,
         depth: 0,
-        payload_crc: verified.payload_crc,
+        payload_crc,
     });
-    expanded_files(runtime, state)?;
+    runtime.admissions.push(parsed);
+    let (hst_game_ms, expanded_solve_ms) = expanded_files(runtime, state)?;
     if played {
         runtime.games += (results.len() * 250) as u64;
     }
-    let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
+    let game_ms = game_ms + hst_game_ms;
+    let evaluate_ms = evaluate_ms + expanded_solve_ms;
     runtime.transitions.push(TransitionTiming {
         kind: if played {
             "admission".into()
@@ -1890,9 +1917,9 @@ fn admit(runtime: &mut Runtime, state: &mut State) -> Result<(), String> {
         } else {
             0
         },
-        game_ms: if played { elapsed_ms } else { 0.0 },
-        evaluate_ms: if played { 0.0 } else { elapsed_ms },
-        elapsed_ms,
+        game_ms,
+        evaluate_ms,
+        elapsed_ms: game_ms + evaluate_ms,
     });
     let mut remaining = queue
         .into_iter()
@@ -1968,7 +1995,9 @@ fn replay_race(
     state: &mut State,
     used_seeds: &mut HashSet<u32>,
     decisions: &mut Vec<DecisionRecord>,
-) -> Result<(), String> {
+    bounded_refs: Option<&[FileRef]>,
+    checkpoint: Option<&State>,
+) -> Result<bool, String> {
     let phase = state.phase;
     let depths: &[u32] = if phase == Phase::Screen {
         &SCREEN_DEPTHS
@@ -1981,7 +2010,9 @@ fn replay_race(
         state.fixed_family.clone()
     };
     if initial.is_empty() {
-        return Err("PSRO evidence contains an empty scientific race".into());
+        state.active.clear();
+        state.look_index = depths.len() as u32;
+        return Ok(true);
     }
     if initial
         .iter()
@@ -2036,11 +2067,33 @@ fn replay_race(
     state.previous_depth = 0;
     state.next_depth = depths[0];
     for (index, depth) in depths.iter().copied().enumerate() {
+        if bounded_refs.is_some_and(|references| state.refs.len() == references.len())
+            && checkpoint.is_some_and(|held| {
+                held.phase == phase
+                    && held.search == state.search
+                    && held.race_ordinal == state.race_ordinal
+            })
+        {
+            return Ok(false);
+        }
         if active.is_empty() {
             break;
         }
         let path = look_path(&runtime.out, phase, state.search, state.race_ordinal, depth);
         let kind = look_kind(phase);
+        if let Some(references) = bounded_refs {
+            let Some(reference) = references.get(state.refs.len()) else {
+                return Ok(false);
+            };
+            if reference.kind != kind
+                || reference.generation != state.generation
+                || reference.search != state.search
+                || reference.ordinal != state.race_ordinal
+                || reference.depth != depth
+            {
+                return Err("checkpoint reference differs from the next replayed look".into());
+            }
+        }
         let (header, payload) = read_evidence(&path, &runtime.source, kind)?;
         let (stored_schedule, rows) = parse_look(&header, &payload)?;
         let suffix = &schedule[previous as usize..depth as usize];
@@ -2113,6 +2166,11 @@ fn replay_race(
                 }
             }
         }
+        if phase == Phase::Screen {
+            state.fixed_family.sort_by_key(|candidate| candidate.rank);
+        } else {
+            order_queue(&mut state.queue);
+        }
         state.refs.push(FileRef {
             kind,
             generation: state.generation,
@@ -2135,7 +2193,7 @@ fn replay_race(
     } else {
         order_queue(&mut state.queue);
     }
-    Ok(())
+    Ok(true)
 }
 
 fn replay_admission(
@@ -2143,11 +2201,25 @@ fn replay_admission(
     state: &mut State,
     pairs: &mut Vec<PairResult>,
     admissions: &mut Vec<ParsedAdmission>,
-) -> Result<bool, String> {
+    bounded_refs: Option<&[FileRef]>,
+) -> Result<Option<bool>, String> {
     order_queue(&mut state.queue);
     let queue = state.queue.clone();
     let selected = queue.first().ok_or("replayed admission queue is empty")?;
     let ordinal = state.admissions + 1;
+    if let Some(references) = bounded_refs {
+        let Some(reference) = references.get(state.refs.len()) else {
+            return Ok(None);
+        };
+        if reference.kind != ADMISSION_KIND
+            || reference.generation != state.generation + 1
+            || reference.search != state.search
+            || reference.ordinal != ordinal
+            || reference.depth != 0
+        {
+            return Err("checkpoint reference differs from the next replayed admission".into());
+        }
+    }
     let (header, payload) = read_evidence(
         &admission_path(&runtime.out, ordinal),
         &runtime.source,
@@ -2227,7 +2299,7 @@ fn replay_admission(
     if remaining.is_empty() {
         state.search += 1;
         start_search(runtime, state);
-        return Ok(false);
+        return Ok(Some(false));
     }
     state.retest_ordinal += 1;
     state.phase = Phase::Retest;
@@ -2237,7 +2309,7 @@ fn replay_admission(
     state.look_index = 0;
     state.previous_depth = 0;
     state.next_depth = CONFIRMATION_DEPTHS[0];
-    Ok(true)
+    Ok(Some(true))
 }
 
 fn search_summary(
@@ -2269,7 +2341,10 @@ fn search_summary(
     }
 }
 
-fn replay_transitions(runtime: &Runtime) -> Result<ReplayResult, String> {
+fn replay_transitions_bounded(
+    runtime: &Runtime,
+    checkpoint: Option<&State>,
+) -> Result<ReplayResult, String> {
     let initial_numbers = runtime.reservoir.numbers[..runtime.initial_count].to_vec();
     let mut state = State {
         complete: false,
@@ -2291,6 +2366,8 @@ fn replay_transitions(runtime: &Runtime) -> Result<ReplayResult, String> {
         next_depth: SCREEN_DEPTHS[0],
     };
     start_search(runtime, &mut state);
+    let target = checkpoint.map(scientific_state);
+    let bounded_refs = target.as_ref().map(|held| held.refs.as_slice());
     let mut used_seeds = [4_100_000, 4_100_001, 4_100_002, 4_100_003]
         .into_iter()
         .chain(FIRST_MATRIX_SEED..=LAST_MATRIX_SEED)
@@ -2299,14 +2376,29 @@ fn replay_transitions(runtime: &Runtime) -> Result<ReplayResult, String> {
     let mut decisions = Vec::new();
     let mut admissions = Vec::new();
     let mut summaries = Vec::new();
-    while !state.complete {
+    'transitions: while !state.complete {
+        if target.as_ref().is_some_and(|held| *held == state) {
+            break;
+        }
         if state.search > runtime.reservoir.numbers.len() as u32 + 2 {
             return Err("PSRO evidence does not reach its deterministic stop".into());
         }
         let search = state.search;
         state.phase = Phase::Screen;
         state.race_ordinal = 1;
-        replay_race(runtime, &mut state, &mut used_seeds, &mut decisions)?;
+        if !replay_race(
+            runtime,
+            &mut state,
+            &mut used_seeds,
+            &mut decisions,
+            bounded_refs,
+            target.as_ref(),
+        )? {
+            break;
+        }
+        if target.as_ref().is_some_and(|held| *held == state) {
+            break;
+        }
         if state.fixed_family.is_empty() {
             finish_clean_search(runtime, &mut state);
             summaries.push(search_summary(
@@ -2323,7 +2415,22 @@ fn replay_transitions(runtime: &Runtime) -> Result<ReplayResult, String> {
         state.race_ordinal = 1;
         state.previous_depth = 0;
         state.next_depth = CONFIRMATION_DEPTHS[0];
-        replay_race(runtime, &mut state, &mut used_seeds, &mut decisions)?;
+        if target.as_ref().is_some_and(|held| *held == state) {
+            break;
+        }
+        if !replay_race(
+            runtime,
+            &mut state,
+            &mut used_seeds,
+            &mut decisions,
+            bounded_refs,
+            target.as_ref(),
+        )? {
+            break;
+        }
+        if target.as_ref().is_some_and(|held| *held == state) {
+            break;
+        }
         if state.queue.is_empty() {
             finish_clean_search(runtime, &mut state);
             summaries.push(search_summary(
@@ -2336,12 +2443,42 @@ fn replay_transitions(runtime: &Runtime) -> Result<ReplayResult, String> {
         }
         state.phase = Phase::Admission;
         state.next_depth = 0;
+        if target.as_ref().is_some_and(|held| *held == state) {
+            break;
+        }
         loop {
-            let has_retest = replay_admission(runtime, &mut state, &mut pairs, &mut admissions)?;
+            let Some(has_retest) = replay_admission(
+                runtime,
+                &mut state,
+                &mut pairs,
+                &mut admissions,
+                bounded_refs,
+            )?
+            else {
+                break 'transitions;
+            };
+            if target.as_ref().is_some_and(|held| *held == state) {
+                if !has_retest {
+                    summaries.push(search_summary(&decisions, search, true, 0));
+                }
+                break 'transitions;
+            }
             if !has_retest {
                 break;
             }
-            replay_race(runtime, &mut state, &mut used_seeds, &mut decisions)?;
+            if !replay_race(
+                runtime,
+                &mut state,
+                &mut used_seeds,
+                &mut decisions,
+                bounded_refs,
+                target.as_ref(),
+            )? {
+                break 'transitions;
+            }
+            if target.as_ref().is_some_and(|held| *held == state) {
+                break 'transitions;
+            }
             if state.queue.is_empty() {
                 state.search += 1;
                 start_search(runtime, &mut state);
@@ -2349,8 +2486,14 @@ fn replay_transitions(runtime: &Runtime) -> Result<ReplayResult, String> {
             }
             state.phase = Phase::Admission;
             state.next_depth = 0;
+            if target.as_ref().is_some_and(|held| *held == state) {
+                break 'transitions;
+            }
         }
         summaries.push(search_summary(&decisions, search, true, 0));
+    }
+    if checkpoint.is_none() && !state.complete {
+        return Err("PSRO evidence does not reach its deterministic stop".into());
     }
     Ok(ReplayResult {
         state,
@@ -2358,6 +2501,14 @@ fn replay_transitions(runtime: &Runtime) -> Result<ReplayResult, String> {
         admissions,
         summaries,
     })
+}
+
+fn replay_transitions(runtime: &Runtime) -> Result<ReplayResult, String> {
+    replay_transitions_bounded(runtime, None)
+}
+
+fn replay_transitions_to(runtime: &Runtime, checkpoint: &State) -> Result<ReplayResult, String> {
+    replay_transitions_bounded(runtime, Some(checkpoint))
 }
 
 fn decisions_payload(runtime: &Runtime, replay: &ReplayResult) -> Result<Vec<u8>, String> {
@@ -2567,15 +2718,7 @@ fn ensure_decisions(
             return Err("checkpoint references a missing decisions file".into());
         }
         let write_started = Instant::now();
-        atomic_write_verified(&path, &bytes, |temporary| {
-            let (verified_header, verified_payload) =
-                read_evidence(temporary, &runtime.source, DECISIONS_KIND)?;
-            validate_decisions_payload(&verified_payload)?;
-            if verified_header != expected_header || verified_payload != payload {
-                return Err("temporary decisions verification differs".into());
-            }
-            Ok(())
-        })?;
+        atomic_write_verified(&path, &bytes)?;
         runtime.evidence_write_ms += write_started.elapsed().as_secs_f64() * 1000.0;
         if std::env::var_os("HEXDECK_PSRO_TEST_STOP_AFTER_DECISIONS_RENAME").is_some() {
             return Err("test stop after renamed PSRO decisions".into());
@@ -2801,6 +2944,9 @@ fn prepare(
         games: 0,
         transitions: Vec::new(),
         evidence_write_ms: 0.0,
+        decisions: Vec::new(),
+        admissions: Vec::new(),
+        summaries: Vec::new(),
         self_play_rows: initial_self_play_rows,
     };
     let existing = read_checkpoint(&runtime.out, &runtime.source)?;
@@ -2830,56 +2976,6 @@ fn prepare(
     });
     if state.matrix_numbers[..matrix_size] != runtime.reservoir.numbers[..matrix_size] {
         return Err("checkpoint initial matrix numbers differ from reservoir".into());
-    }
-    if resumed {
-        let current_kind = match state.phase {
-            Phase::Screen => Some(SCREEN_KIND),
-            Phase::Confirmation => Some(CONFIRMATION_KIND),
-            Phase::Retest => Some(RETEST_KIND),
-            _ => None,
-        };
-        let mut restored = HashSet::new();
-        for reference in &state.refs {
-            if !matches!(
-                reference.kind,
-                SCREEN_KIND | CONFIRMATION_KIND | RETEST_KIND
-            ) {
-                continue;
-            }
-            let key = (reference.kind, reference.search, reference.ordinal);
-            if restored.contains(&key)
-                || current_kind == Some(reference.kind)
-                    && reference.search == state.search
-                    && reference.ordinal == state.race_ordinal
-            {
-                continue;
-            }
-            restored.insert(key);
-            let (kind, maximum) = match reference.kind {
-                SCREEN_KIND => ("screen", *SCREEN_DEPTHS.last().expect("screen depth")),
-                CONFIRMATION_KIND => (
-                    "confirmation",
-                    *CONFIRMATION_DEPTHS.last().expect("confirmation depth"),
-                ),
-                RETEST_KIND => (
-                    "queue-retest",
-                    *CONFIRMATION_DEPTHS.last().expect("retest depth"),
-                ),
-                _ => unreachable!(),
-            };
-            for position in 0..maximum {
-                race_seed(
-                    &runtime.kingdom.id,
-                    runtime.source.reservoir_crc,
-                    runtime.source.pairs_crc,
-                    reference.search,
-                    kind,
-                    reference.ordinal,
-                    position,
-                    &mut runtime.used_seeds,
-                );
-            }
-        }
     }
     if resumed {
         for admission in 1..=state.admissions {
@@ -2963,7 +3059,8 @@ fn prepare(
                         ),
                     )?;
                 } else if repair_expanded {
-                    expanded_files(&mut runtime, &state)?;
+                    let _ = expanded_files(&mut runtime, &state)?;
+                    verify_expanded_files(&runtime, &state)?;
                 } else if require_self_play {
                     return Err(format!(
                         "missing required self-play evidence {}",
@@ -2971,7 +3068,8 @@ fn prepare(
                     ));
                 }
             } else if repair_expanded {
-                expanded_files(&mut runtime, &state)?;
+                let _ = expanded_files(&mut runtime, &state)?;
+                verify_expanded_files(&runtime, &state)?;
             } else {
                 return Err("expanded matrix files are incomplete".into());
             }
@@ -3010,6 +3108,62 @@ struct RunReport {
     transitions: Vec<TransitionTiming>,
 }
 
+fn resumed_used_seeds(runtime: &Runtime, state: &State) -> HashSet<u32> {
+    let mut used = [4_100_000, 4_100_001, 4_100_002, 4_100_003]
+        .into_iter()
+        .chain(FIRST_MATRIX_SEED..=LAST_MATRIX_SEED)
+        .collect::<HashSet<_>>();
+    let current_kind = match state.phase {
+        Phase::Screen => Some(SCREEN_KIND),
+        Phase::Confirmation => Some(CONFIRMATION_KIND),
+        Phase::Retest => Some(RETEST_KIND),
+        _ => None,
+    };
+    let mut restored = HashSet::new();
+    for reference in &state.refs {
+        if !matches!(
+            reference.kind,
+            SCREEN_KIND | CONFIRMATION_KIND | RETEST_KIND
+        ) {
+            continue;
+        }
+        let key = (reference.kind, reference.search, reference.ordinal);
+        if restored.contains(&key)
+            || current_kind == Some(reference.kind)
+                && reference.search == state.search
+                && reference.ordinal == state.race_ordinal
+        {
+            continue;
+        }
+        restored.insert(key);
+        let (kind, maximum) = match reference.kind {
+            SCREEN_KIND => ("screen", *SCREEN_DEPTHS.last().expect("screen depth")),
+            CONFIRMATION_KIND => (
+                "confirmation",
+                *CONFIRMATION_DEPTHS.last().expect("confirmation depth"),
+            ),
+            RETEST_KIND => (
+                "queue-retest",
+                *CONFIRMATION_DEPTHS.last().expect("retest depth"),
+            ),
+            _ => unreachable!(),
+        };
+        for position in 0..maximum {
+            race_seed(
+                &runtime.kingdom.id,
+                runtime.source.reservoir_crc,
+                runtime.source.pairs_crc,
+                reference.search,
+                kind,
+                reference.ordinal,
+                position,
+                &mut used,
+            );
+        }
+    }
+    used
+}
+
 fn run_psro(options: Options) -> Result<(), String> {
     let started = Instant::now();
     let threads = options.threads.expect("threads");
@@ -3021,7 +3175,18 @@ fn run_psro(options: Options) -> Result<(), String> {
         return Err("PSRO --report must name a .json file outside binary evidence".into());
     }
     let (mut runtime, mut state, mut resumed) = prepare(&options, threads, true, true)?;
-    let startup_ms = started.elapsed().as_secs_f64() * 1000.0;
+    if resumed {
+        let replay = replay_transitions_to(&runtime, &state)?;
+        require_replayed_state(&state, &replay)?;
+        runtime.used_seeds = resumed_used_seeds(&runtime, &state);
+        runtime.decisions = replay.decisions;
+        runtime.admissions = replay.admissions;
+        runtime.summaries = replay.summaries;
+        if std::env::var_os("HEXDECK_PSRO_TEST_STOP_AFTER_RESUME_REPLAY").is_some() {
+            return Err("test stop after bounded PSRO resume replay".into());
+        }
+    }
+    let startup_ms = started.elapsed().as_secs_f64() * 1000.0 - runtime.evidence_write_ms;
     if !state.complete {
         if !resumed {
             write_runtime_checkpoint(&mut runtime, &state)?;
@@ -3029,10 +3194,17 @@ fn run_psro(options: Options) -> Result<(), String> {
         loop {
             match state.phase {
                 Phase::Screen => {
+                    let search = state.search;
                     execute_race(&mut runtime, &mut state, resumed)?;
                     resumed = false;
                     if state.fixed_family.is_empty() {
                         finish_clean_search(&runtime, &mut state);
+                        runtime.summaries.push(search_summary(
+                            &runtime.decisions,
+                            search,
+                            false,
+                            state.clean_searches,
+                        ));
                     } else {
                         state.phase = Phase::Confirmation;
                         state.active = state.fixed_family.clone();
@@ -3044,14 +3216,28 @@ fn run_psro(options: Options) -> Result<(), String> {
                     write_runtime_checkpoint(&mut runtime, &state)?;
                 }
                 Phase::Confirmation | Phase::Retest => {
+                    let phase = state.phase;
+                    let search = state.search;
                     execute_race(&mut runtime, &mut state, resumed)?;
                     resumed = false;
                     if state.queue.is_empty() {
-                        if state.phase == Phase::Confirmation {
+                        if phase == Phase::Confirmation {
                             finish_clean_search(&runtime, &mut state);
+                            runtime.summaries.push(search_summary(
+                                &runtime.decisions,
+                                search,
+                                false,
+                                state.clean_searches,
+                            ));
                         } else {
                             state.search += 1;
                             start_search(&runtime, &mut state);
+                            runtime.summaries.push(search_summary(
+                                &runtime.decisions,
+                                search,
+                                true,
+                                0,
+                            ));
                         }
                     } else {
                         state.phase = Phase::Admission;
@@ -3060,8 +3246,14 @@ fn run_psro(options: Options) -> Result<(), String> {
                     write_runtime_checkpoint(&mut runtime, &state)?;
                 }
                 Phase::Admission => {
+                    let search = state.search;
                     admit(&mut runtime, &mut state)?;
                     resumed = false;
+                    if state.search != search {
+                        runtime
+                            .summaries
+                            .push(search_summary(&runtime.decisions, search, true, 0));
+                    }
                 }
                 Phase::BetweenSearches => {
                     state.search += 1;
@@ -3077,11 +3269,16 @@ fn run_psro(options: Options) -> Result<(), String> {
             return Err("test stop after complete PSRO checkpoint".into());
         }
     }
-    let replay = replay_transitions(&runtime)?;
     let finalize_started = Instant::now();
     let evidence_before_finalize = runtime.evidence_write_ms;
-    ensure_decisions(&mut runtime, &mut state, &replay)?;
-    verify_complete(&runtime, &state)?;
+    let live = ReplayResult {
+        state: scientific_state(&state),
+        decisions: runtime.decisions.clone(),
+        admissions: runtime.admissions.clone(),
+        summaries: runtime.summaries.clone(),
+    };
+    ensure_decisions(&mut runtime, &mut state, &live)?;
+    assert_run_complete(&runtime, &state)?;
     let finalize_ms = finalize_started.elapsed().as_secs_f64() * 1000.0
         - (runtime.evidence_write_ms - evidence_before_finalize);
     let elapsed_ms = started.elapsed().as_secs_f64() * 1000.0;
@@ -3296,6 +3493,34 @@ fn scientific_evidence_paths(root: &Path) -> Result<HashSet<PathBuf>, String> {
     let mut paths = HashSet::new();
     visit(root, root, &mut paths)?;
     Ok(paths)
+}
+
+fn assert_run_complete(runtime: &Runtime, state: &State) -> Result<(), String> {
+    if !state.complete || state.phase != Phase::Complete || state.clean_searches != 2 {
+        return Err("PSRO checkpoint is not complete after two clean searches".into());
+    }
+    let (header, _) = read_evidence(
+        &runtime.out.join("decisions.hpd"),
+        &runtime.source,
+        DECISIONS_KIND,
+    )?;
+    let references = state
+        .refs
+        .iter()
+        .filter(|reference| reference.kind == DECISIONS_KIND)
+        .collect::<Vec<_>>();
+    let [reference] = references.as_slice() else {
+        return Err("checkpoint needs one decisions reference".into());
+    };
+    if header.matrix_generation != reference.generation
+        || header.search != reference.search
+        || header.ordinal != reference.ordinal
+        || header.depth != reference.depth
+        || header.payload_crc != reference.payload_crc
+    {
+        return Err("decisions evidence differs from its checkpoint reference".into());
+    }
+    Ok(())
 }
 
 fn verify_complete(runtime: &Runtime, state: &State) -> Result<(), String> {
