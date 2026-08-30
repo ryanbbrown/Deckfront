@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 use std::fs;
+use std::io::{BufRead, BufReader, Read, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::process::{Command, Output, Stdio};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 const BINARY: &str = env!("CARGO_BIN_EXE_hexdeck-goldfish");
 const KINGDOM: &str = "balance-tuning-005";
@@ -122,6 +123,81 @@ fn psro_report(
     command.output().expect("PSRO report command")
 }
 
+fn psro_handshake_report(
+    matrix: &Path,
+    out: &Path,
+    threads: usize,
+    report: &Path,
+    acknowledgement_delay: Duration,
+) -> Output {
+    let mut child = Command::new(BINARY)
+        .args([
+            "psro",
+            "--kingdom",
+            KINGDOM,
+            "--top-file",
+            fixture("balance-tuning-005-psro-top.hgf").to_str().unwrap(),
+            "--reservoir",
+            fixture("balance-tuning-005-psro-reservoir.hgf")
+                .to_str()
+                .unwrap(),
+            "--matrix-dir",
+            matrix.to_str().unwrap(),
+            "--out",
+            out.to_str().unwrap(),
+            "--threads",
+            &threads.to_string(),
+            "--matrix-size",
+            MATRIX_SIZE,
+            "--candidate-limit",
+            CANDIDATE_LIMIT,
+            "--report",
+            report.to_str().unwrap(),
+        ])
+        .env("HEXDECK_PSRO_HANDSHAKE", "1")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("PSRO handshake command");
+    let mut input = child.stdin.take().expect("PSRO stdin");
+    let output = child.stdout.take().expect("PSRO stdout");
+    let mut stdout = Vec::new();
+    let mut delayed = false;
+    for line in BufReader::new(output).lines() {
+        let line = line.expect("PSRO stdout line");
+        stdout.extend_from_slice(line.as_bytes());
+        stdout.push(b'\n');
+        let Some(handshake) = line.strip_prefix("checkpoint ") else {
+            continue;
+        };
+        let ordinal = handshake
+            .split_whitespace()
+            .next()
+            .expect("checkpoint ordinal");
+        if !delayed {
+            std::thread::sleep(acknowledgement_delay);
+            delayed = true;
+        }
+        writeln!(input, "committed {ordinal}").expect("checkpoint acknowledgement");
+        input.flush().expect("flush checkpoint acknowledgement");
+    }
+    drop(input);
+    let status = child.wait().expect("PSRO handshake wait");
+    let mut stderr = Vec::new();
+    child
+        .stderr
+        .take()
+        .expect("PSRO stderr")
+        .read_to_end(&mut stderr)
+        .expect("read PSRO stderr");
+    Output {
+        status,
+        stdout,
+        stderr,
+    }
+}
+
 fn verify_threads(matrix: &Path, out: &Path, threads: Option<usize>) -> Output {
     let mut command = Command::new(BINARY);
     command.args([
@@ -224,6 +300,29 @@ fn crc32(bytes: &[u8]) -> u32 {
         }
     }
     !crc
+}
+
+fn write_empty_family_reservoir(source: &Path, target: &Path, admitted: u32) {
+    let bytes = fs::read(source).expect("reservoir fixture");
+    let row_bytes = word(&bytes, 8) as usize;
+    let row_count = word(&bytes, 20) as usize;
+    let rows = bytes[64..]
+        .chunks_exact(row_bytes)
+        .take(row_count)
+        .collect::<Vec<_>>();
+    let mut selected = rows[..2].to_vec();
+    selected.push(
+        rows.iter()
+            .copied()
+            .find(|row| word(row, 0) == admitted)
+            .expect("admitted candidate row"),
+    );
+    let payload = selected.into_iter().flatten().copied().collect::<Vec<_>>();
+    let mut subset = bytes[..64].to_vec();
+    subset[20..24].copy_from_slice(&3u32.to_le_bytes());
+    subset[24..28].copy_from_slice(&crc32(&payload).to_le_bytes());
+    subset.extend_from_slice(&payload);
+    fs::write(target, subset).expect("empty-family reservoir fixture");
 }
 
 fn reseal(bytes: &mut [u8]) {
@@ -335,7 +434,17 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
     let matrix = initial_matrix(&root, 4);
     let baseline = root.join("baseline");
     let baseline_report = root.join("baseline-report.json");
-    let result = psro_report(&matrix, &baseline, 1, None, &baseline_report);
+    let checkpoint_write_log = root.join("checkpoint-write-count.txt");
+    let result = psro_report(
+        &matrix,
+        &baseline,
+        1,
+        Some((
+            "HEXDECK_PSRO_TEST_CHECKPOINT_WRITE_LOG",
+            checkpoint_write_log.to_str().unwrap(),
+        )),
+        &baseline_report,
+    );
     assert!(
         result.status.success(),
         "PSRO failed: {}",
@@ -381,6 +490,104 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
     );
     let expected = evidence(&baseline);
 
+    let handshake = root.join("handshake-delay");
+    let handshake_report = root.join("handshake-delay-report.json");
+    let delay = Duration::from_millis(3_000);
+    let output = psro_handshake_report(&matrix, &handshake, 1, &handshake_report, delay);
+    assert!(
+        output.status.success(),
+        "handshake run failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(evidence(&handshake), expected);
+    assert_timing_equation(&handshake_report);
+    let baseline_timing: serde_json::Value =
+        serde_json::from_slice(&fs::read(&baseline_report).unwrap()).expect("baseline report");
+    let handshake_timing: serde_json::Value =
+        serde_json::from_slice(&fs::read(&handshake_report).unwrap()).expect("handshake report");
+    assert!(
+        handshake_timing["otherMs"].as_f64().unwrap()
+            - baseline_timing["otherMs"].as_f64().unwrap()
+            >= 2_500.0
+    );
+    assert!(
+        handshake_timing["evidenceWriteMs"].as_f64().unwrap()
+            - baseline_timing["evidenceWriteMs"].as_f64().unwrap()
+            < 1_500.0
+    );
+
+    let empty_reservoir = root.join("empty-family-reservoir.hgf");
+    write_empty_family_reservoir(
+        &fixture("balance-tuning-005-psro-reservoir.hgf"),
+        &empty_reservoir,
+        admissions[0].0,
+    );
+    let empty_matrix = root.join("empty-family-matrix");
+    let output = Command::new(BINARY)
+        .args([
+            "matrix",
+            "--kingdom",
+            KINGDOM,
+            "--reservoir",
+            empty_reservoir.to_str().unwrap(),
+            "--out",
+            empty_matrix.to_str().unwrap(),
+            "--threads",
+            "4",
+            "--top",
+            MATRIX_SIZE,
+        ])
+        .output()
+        .expect("empty-family matrix");
+    assert!(output.status.success());
+    let empty_out = root.join("empty-family");
+    let empty_top = fixture("balance-tuning-005-psro-top.hgf");
+    let empty_args = [
+        "--kingdom",
+        KINGDOM,
+        "--top-file",
+        empty_top.to_str().unwrap(),
+        "--reservoir",
+        empty_reservoir.to_str().unwrap(),
+        "--matrix-dir",
+        empty_matrix.to_str().unwrap(),
+        "--out",
+        empty_out.to_str().unwrap(),
+        "--matrix-size",
+        MATRIX_SIZE,
+        "--candidate-limit",
+        "1",
+    ];
+    let output = Command::new(BINARY)
+        .arg("psro")
+        .args(empty_args)
+        .args(["--threads", "4"])
+        .output()
+        .expect("empty-family PSRO");
+    assert!(
+        output.status.success(),
+        "empty-family PSRO failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(empty_out.join("decisions.hpd").is_file());
+    assert!(
+        evidence(&empty_out)
+            .keys()
+            .filter(|path| path.ends_with(".hpl"))
+            .all(|path| path.starts_with("search-0001/"))
+    );
+    let output = Command::new(BINARY)
+        .arg("psro-verify")
+        .args(empty_args)
+        .args(["--threads", "4"])
+        .output()
+        .expect("empty-family PSRO verify");
+    assert!(
+        output.status.success(),
+        "empty-family verification failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
     for (name, threads) in [("four", 4), ("ten", 10), ("repeat", 1)] {
         let out = root.join(name);
         let output = psro(&matrix, &out, threads, None);
@@ -396,19 +603,25 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         );
     }
 
-    let checkpoint = fs::read(baseline.join("checkpoint.hpc")).unwrap();
-    let transition_count = word(&checkpoint[128..], 44) - 1;
-    for transition in (1..=transition_count).map(|value| value.to_string()) {
-        let out = root.join(format!("restart-{transition}"));
+    let checkpoint_write_count = fs::read_to_string(&checkpoint_write_log)
+        .expect("checkpoint write count")
+        .parse::<u64>()
+        .expect("checkpoint write ordinal");
+    for checkpoint_write in (1..=checkpoint_write_count).map(|value| value.to_string()) {
+        let out = root.join(format!("restart-{checkpoint_write}"));
         let stopped = psro(
             &matrix,
             &out,
             4,
-            Some(("HEXDECK_PSRO_TEST_STOP_AFTER_TRANSITION", &transition)),
+            Some((
+                "HEXDECK_PSRO_TEST_STOP_AFTER_CHECKPOINT_WRITE",
+                &checkpoint_write,
+            )),
         );
         assert!(!stopped.status.success());
         let committed = evidence(&out);
         let partial = out.join("search-0001/partial.hpl.tmp");
+        fs::create_dir_all(partial.parent().unwrap()).unwrap();
         fs::write(&partial, b"partial").unwrap();
         let resumed = psro(&matrix, &out, 4, None);
         assert!(
@@ -418,11 +631,12 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         );
         assert!(!partial.exists());
         for (path, bytes) in committed {
-            if path != "checkpoint.hpc" {
+            if path.ends_with(".hpl") || path.ends_with(".hpa") || path.ends_with(".hpd") {
                 assert_eq!(
-                    fs::read(out.join(path)).unwrap(),
+                    fs::read(out.join(&path))
+                        .unwrap_or_else(|error| panic!("read committed {path}: {error}")),
                     bytes,
-                    "committed evidence was replayed"
+                    "committed transition evidence was replayed: {path}"
                 );
             }
         }
@@ -434,7 +648,7 @@ fn process_outputs_are_thread_restart_and_repeat_stable() {
         &matrix,
         &bounded,
         4,
-        Some(("HEXDECK_PSRO_TEST_STOP_AFTER_TRANSITION", "1")),
+        Some(("HEXDECK_PSRO_TEST_STOP_AFTER_CHECKPOINT_WRITE", "2")),
     );
     assert!(!stopped.status.success());
     fs::write(

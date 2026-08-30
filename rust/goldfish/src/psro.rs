@@ -740,20 +740,29 @@ fn write_checkpoint(
     source: &Source,
     state: &State,
     handshake: bool,
-) -> Result<(), String> {
+    checkpoint_write_ordinal: u32,
+) -> Result<f64, String> {
     let payload = checkpoint_payload(state);
     let mut header = base_header(source, state, CHECKPOINT_KIND);
     header.ordinal = state.refs.len() as u32;
     header.family_size = MAX_CONFIRMED_QUEUE as u32;
     let bytes = file_bytes(header, &payload)?;
     let path = out.join("checkpoint.hpc");
+    let write_started = Instant::now();
     atomic_write_verified(&path, &bytes)?;
-    if std::env::var("HEXDECK_PSRO_TEST_STOP_AFTER_TRANSITION")
+    let write_ms = write_started.elapsed().as_secs_f64() * 1000.0;
+    if let Some(path) = std::env::var_os("HEXDECK_PSRO_TEST_CHECKPOINT_WRITE_LOG") {
+        fs::write(path, checkpoint_write_ordinal.to_string())
+            .map_err(|error| format!("write checkpoint test log: {error}"))?;
+    }
+    let stop_after_checkpoint = std::env::var("HEXDECK_PSRO_TEST_STOP_AFTER_CHECKPOINT_WRITE")
         .ok()
-        .is_some_and(|value| value == state.refs.len().to_string())
-        && !state.complete
-    {
-        return Err("test stop after committed PSRO transition".into());
+        .is_some_and(|value| value == checkpoint_write_ordinal.to_string());
+    let stop_after_transition = std::env::var("HEXDECK_PSRO_TEST_STOP_AFTER_TRANSITION")
+        .ok()
+        .is_some_and(|value| value == state.refs.len().to_string());
+    if stop_after_checkpoint || stop_after_transition && !state.complete {
+        return Err("test stop after committed PSRO checkpoint write".into());
     }
     if handshake {
         let ordinal = state.refs.len();
@@ -769,7 +778,7 @@ fn write_checkpoint(
             return Err("Modal checkpoint acknowledgement differs".into());
         }
     }
-    Ok(())
+    Ok(write_ms)
 }
 
 fn read_checkpoint(out: &Path, source: &Source) -> Result<Option<State>, String> {
@@ -924,6 +933,7 @@ struct Runtime {
     games: u64,
     transitions: Vec<TransitionTiming>,
     evidence_write_ms: f64,
+    checkpoint_writes: u32,
     decisions: Vec<DecisionRecord>,
     admissions: Vec<ParsedAdmission>,
     summaries: Vec<SearchSummary>,
@@ -945,10 +955,16 @@ struct TransitionTiming {
 }
 
 fn write_runtime_checkpoint(runtime: &mut Runtime, state: &State) -> Result<(), String> {
-    let started = Instant::now();
-    let result = write_checkpoint(&runtime.out, &runtime.source, state, runtime.handshake);
-    runtime.evidence_write_ms += started.elapsed().as_secs_f64() * 1000.0;
-    result
+    runtime.checkpoint_writes += 1;
+    let write_ms = write_checkpoint(
+        &runtime.out,
+        &runtime.source,
+        state,
+        runtime.handshake,
+        runtime.checkpoint_writes,
+    )?;
+    runtime.evidence_write_ms += write_ms;
+    Ok(())
 }
 
 impl Runtime {
@@ -2947,6 +2963,7 @@ fn prepare(
         games: 0,
         transitions: Vec::new(),
         evidence_write_ms: 0.0,
+        checkpoint_writes: 0,
         decisions: Vec::new(),
         admissions: Vec::new(),
         summaries: Vec::new(),
