@@ -8,7 +8,8 @@ import os
 import pathlib
 import subprocess
 import threading
-from typing import Any
+import time
+from typing import Any, Callable
 
 
 def _stderr_tail(stream: Any, lines: deque[str]) -> None:
@@ -45,8 +46,13 @@ def run_psro_step(
     *,
     volume: Any | None = None,
     deep_verify: bool = False,
+    commit_interval_seconds: float = 0,
+    on_checkpoint: Callable[[int, int, int, float], None] | None = None,
+    monotonic: Callable[[], float] = time.monotonic,
 ) -> dict[str, Any]:
     """Run one kingdom without making a scientific decision in Python."""
+    if commit_interval_seconds < 0:
+        raise ValueError("PSRO Volume commit interval cannot be negative")
     command = [binary, "psro", "--kingdom", kingdom, "--top-file", top_file,
         "--reservoir", reservoir, "--matrix-dir", matrix_dir, "--out", out_dir,
         "--threads", str(threads)]
@@ -62,6 +68,28 @@ def run_psro_step(
     drain = threading.Thread(target=_stderr_tail, args=(process.stderr, errors), daemon=True)
     drain.start()
     output: list[str] = []
+    commit_count = 0
+    commit_ms = 0.0
+    last_commit_at = monotonic()
+    pending_checkpoint: tuple[int, int] | None = None
+
+    def commit_checkpoint(ordinal: int, crc: int) -> None:
+        nonlocal commit_count, commit_ms, last_commit_at
+        if on_checkpoint is not None:
+            on_checkpoint(ordinal, crc, commit_count, commit_ms)
+        started = monotonic()
+        try:
+            volume.commit()
+        except Exception as error:
+            process.kill()
+            process.wait()
+            _close_process(process)
+            raise RuntimeError("PSRO Volume commit failed") from error
+        finished = monotonic()
+        commit_count += 1
+        commit_ms += (finished - started) * 1000
+        last_commit_at = finished
+
     for raw in process.stdout:
         line = raw.rstrip()
         output.append(line)
@@ -73,13 +101,11 @@ def run_psro_step(
             process.wait()
             _close_process(process)
             raise RuntimeError("Rust PSRO returned an invalid checkpoint handshake")
-        try:
-            volume.commit()
-        except Exception as error:
-            process.kill()
-            process.wait()
-            _close_process(process)
-            raise RuntimeError("PSRO Volume commit failed") from error
+        ordinal, crc = int(parts[1]), int(parts[2])
+        pending_checkpoint = (ordinal, crc)
+        if monotonic() - last_commit_at >= commit_interval_seconds:
+            commit_checkpoint(ordinal, crc)
+            pending_checkpoint = None
         process.stdin.write(f"committed {parts[1]}\n")
         process.stdin.flush()
     return_code = process.wait()
@@ -88,6 +114,8 @@ def run_psro_step(
     if return_code:
         diagnostic = "\n".join(errors)[-64 * 1024:] or "\n".join(output)[-64 * 1024:]
         raise RuntimeError(f"Rust PSRO failed: {diagnostic}")
+    if volume is not None and pending_checkpoint is not None:
+        commit_checkpoint(*pending_checkpoint)
 
     verification = None
     if deep_verify:
@@ -99,4 +127,5 @@ def run_psro_step(
         for path in sorted(root.rglob("*")) if path.is_file()}
     parsed_report = json.loads(pathlib.Path(report).read_text()) if report is not None else None
     return {"out": str(root), "files": files, "report": parsed_report,
-        "verification": verification}
+        "verification": verification, "commitCount": commit_count,
+        "volumeCommitMs": commit_ms}

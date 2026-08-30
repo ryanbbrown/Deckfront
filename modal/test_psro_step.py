@@ -52,6 +52,33 @@ print(json.dumps({'complete': True}))
             self.assertIsNone(result["verification"])
             self.assertFalse((root / "verified").exists())
 
+    def test_commits_on_the_interval_and_after_the_final_checkpoint(self):
+        with tempfile.TemporaryDirectory() as held:
+            root = pathlib.Path(held)
+            binary = root / "cadence.py"
+            binary.write_text("""#!/usr/bin/env python3
+import json, pathlib, sys
+args=sys.argv[1:]
+out=pathlib.Path(args[args.index('--out')+1]); out.mkdir(parents=True, exist_ok=True)
+for ordinal in range(1, 4):
+ print(f'checkpoint {ordinal} {ordinal * 11}', flush=True)
+ if input().strip() != f'committed {ordinal}': raise SystemExit(5)
+(out/'decisions.hpd').write_bytes(b'evidence')
+print(json.dumps({'complete': True}))
+""")
+            binary.chmod(binary.stat().st_mode | stat.S_IXUSR)
+            times = iter([0, 100, 700, 700, 702, 800, 800, 803])
+            checkpoints = []
+            volume = Volume()
+            result = run_psro_step(str(binary), "kingdom", "top", "reservoir", "matrix",
+                str(root / "out"), 16, volume=volume, commit_interval_seconds=600,
+                on_checkpoint=lambda *values: checkpoints.append(values),
+                monotonic=lambda: next(times))
+            self.assertEqual(volume.commits, 2)
+            self.assertEqual(result["commitCount"], 2)
+            self.assertEqual(result["volumeCommitMs"], 5_000)
+            self.assertEqual(checkpoints, [(2, 22, 0, 0.0), (3, 33, 1, 2_000.0)])
+
     def test_runs_deep_verification_when_requested(self):
         with tempfile.TemporaryDirectory() as held:
             root = pathlib.Path(held)
