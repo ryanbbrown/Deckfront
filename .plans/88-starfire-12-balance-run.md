@@ -30,6 +30,8 @@ Execution `d6b0497a366319e56160b9ad8ac0b288ac3342491bb783b4a5b76f2a8b445338` has
 ## Final report
 
 - All 30 kingdoms have valid Matrix and PSRO batch evidence. Every PSRO kingdom reached two clean full searches.
+- The two Goldfish campaigns cost `$3.363120` in total. PSRO used 29 peak machines, took 254.2 seconds, and recorded `$0.631518` in measured attempts plus its readiness reservation. Total Modal cost was `$3.994638`.
+- Modal PSRO Rust time outside transitions averaged 2.89% and reached at most 9.46%. Final Volume publication exceeded 15% of job wall time for four short kingdoms; it did not change scientific bytes or the Rust timing split.
 - The report uses scientific snapshot `c1995c1`, PSRO deployment digest `e63914bfe2d00247aa4c6a20583da7125ac142db8974e2a2f8322d26ee8010b0`, and release binary SHA-256 `6fd370baa192819a69450ced6b833fe152a2dc69f1d85b615cf62dd12c7682d8`.
 - Analysis JSON: `.data/starfire-12-balance-88/rust-balance-analysis-v2.json`.
 - Committed HTML: `.html/starfire-12-balance-88-report.html`.
