@@ -15,7 +15,7 @@ from typing import Any
 
 import modal
 
-from volume_download import fetch_files
+from volume_download import fetch_files, list_files
 
 RESULT_VOLUME = "hexdeck-native-strategy-results"
 PSRO_FUNCTION = "strategy_search_psro_job"
@@ -221,9 +221,14 @@ def download(config: dict[str, Any]) -> dict[str, Any]:
     prepared = []
     items = []
     try:
-        for kingdom in config["kingdoms"]:
-            remote_root = kingdom["remoteOutPath"].rstrip("/")
-            entries = sorted(volume.listdir(remote_root, recursive=True), key=lambda entry: entry.path)
+        remote_roots = [kingdom["remoteOutPath"].rstrip("/") for kingdom in config["kingdoms"]]
+        parent_roots = list(dict.fromkeys(
+            pathlib.PurePosixPath(remote_root).parent.as_posix() for remote_root in remote_roots))
+        listings = {parent_root: list_files(volume, parent_root) for parent_root in parent_roots}
+        for kingdom, remote_root in zip(config["kingdoms"], remote_roots):
+            parent_root = pathlib.PurePosixPath(remote_root).parent.as_posix()
+            entries = sorted((entry for entry in listings[parent_root]
+                if entry.path.startswith(remote_root + "/")), key=lambda entry: entry.path)
             selected = [entry for entry in entries if _is_file(entry)
                 and pathlib.PurePosixPath(entry.path).name not in {"lease.json", "progress.json", "job-report.json"}]
             destination = pathlib.Path(kingdom["destination"])

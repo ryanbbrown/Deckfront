@@ -39,6 +39,7 @@ class Volume:
     def __init__(self, files=None):
         self.files = dict(files or {})
         self.reads = []
+        self.list_calls = []
 
     def reload(self):
         raise AssertionError("local Modal entrypoints cannot reload a Volume")
@@ -54,7 +55,7 @@ class Volume:
         return UploadContext(self)
 
     def listdir(self, remote, recursive=False):
-        del recursive
+        self.list_calls.append((remote, recursive))
         return [Entry(path, len(content)) for path, content in self.files.items()
             if path.startswith(remote + "/")]
 
@@ -245,6 +246,24 @@ class PsroRuntimeTests(unittest.TestCase):
             self.assertEqual(result["kingdoms"], [{"kingdomId": "balance-tuning-090",
                 "files": 3, "bytes": 16}])
             self.assertTrue(all("wallMs" in entry for entry in result["artifacts"]))
+
+    def test_download_lists_each_distinct_execution_parent_once(self):
+        cases = [
+            (["psro-executions/run/one", "psro-executions/run/two"],
+                [("psro-executions/run", True)]),
+            (["psro-executions/run-one/one", "psro-executions/run-two/two"],
+                [("psro-executions/run-one", True), ("psro-executions/run-two", True)])]
+        for remote_roots, expected_calls in cases:
+            with self.subTest(remote_roots=remote_roots), tempfile.TemporaryDirectory() as directory:
+                root = pathlib.Path(directory)
+                volume = Volume({f"{remote_root}/file": remote_root.encode()
+                    for remote_root in remote_roots})
+                config = {"kingdoms": [{"kingdomId": str(index), "remoteOutPath": remote_root,
+                    "destination": str(root / str(index))}
+                    for index, remote_root in enumerate(remote_roots)]}
+                with patch.object(runtime, "volume", volume):
+                    runtime.download(config)
+                self.assertEqual(volume.list_calls, expected_calls)
 
     def test_download_replaces_no_destination_until_every_download_succeeds(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -4,7 +4,7 @@ import threading
 import time
 import unittest
 
-from volume_download import fetch_file, fetch_files
+from volume_download import fetch_file, fetch_files, list_files
 
 
 class Volume:
@@ -37,7 +37,53 @@ class Volume:
                 self.active -= 1
 
 
+class ResourceExhaustedError(Exception):
+    pass
+
+
+class ListingVolume:
+    def __init__(self, results):
+        self.results = list(results)
+        self.calls = 0
+
+    def listdir(self, remote_root, recursive=False):
+        self.calls += 1
+        self.remote_root = remote_root
+        self.recursive = recursive
+        result = self.results.pop(0)
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+
 class VolumeDownloadTests(unittest.TestCase):
+    def test_list_files_retries_rate_limits_then_succeeds(self):
+        entries = [object(), object()]
+        volume = ListingVolume([ResourceExhaustedError("one"),
+            ResourceExhaustedError("two"), entries])
+        sleeps = []
+        self.assertEqual(list_files(volume, "psro-executions/run", sleeps.append), entries)
+        self.assertEqual(sleeps, [2, 4])
+        self.assertEqual(volume.calls, 3)
+        self.assertEqual(volume.remote_root, "psro-executions/run")
+        self.assertTrue(volume.recursive)
+
+    def test_list_files_raises_after_six_rate_limited_attempts(self):
+        volume = ListingVolume([ResourceExhaustedError(str(index)) for index in range(6)])
+        sleeps = []
+        with self.assertRaisesRegex(ResourceExhaustedError, "5"):
+            list_files(volume, "psro-executions/run", sleeps.append)
+        self.assertEqual(volume.calls, 6)
+        self.assertEqual(sleeps, [2, 4, 8, 16, 32])
+
+    def test_list_files_does_not_retry_other_errors(self):
+        volume = ListingVolume([OSError("not a rate limit")])
+        sleeps = []
+        with self.assertRaisesRegex(OSError, "not a rate limit"):
+            list_files(volume, "psro-executions/run", sleeps.append)
+        self.assertEqual(volume.calls, 1)
+        self.assertEqual(sleeps, [])
+
     def test_fetch_files_uses_bounded_parallelism_and_keeps_input_order(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)

@@ -110,7 +110,7 @@ npx tsx scripts/strategy_search_psro_modal.ts report \
   --root .data/damage-retune-86
 ```
 
-`download` copies every PSRO output except `lease.json`, `progress.json`, and `job-report.json` into `<root>/<kingdom-id>/psro/`. It uses up to 16 parallel Volume reads. A failed read gets three retries after delays of 1, 2, and 4 seconds. The client verifies each downloaded size and scales its timeout with the kingdom count.
+`download` copies every PSRO output except `lease.json`, `progress.json`, and `job-report.json` into `<root>/<kingdom-id>/psro/`. It lists the Volume once per execution and retries a listing rate limit after 2, 4, 8, 16, and 32 seconds. It uses up to 16 parallel Volume reads. A failed read gets three retries after delays of 1, 2, and 4 seconds. The client verifies each downloaded size and scales its timeout with the kingdom count.
 
 The client downloads all kingdoms before it replaces any destination. It then removes and replaces each `<root>/<kingdom-id>/psro/` directory in request order. A download failure removes all temporary directories and leaves every destination unchanged. A replacement failure leaves earlier replacements complete and later destinations unchanged. Every command downloads every complete kingdom again. The client then checks headers, CRCs, source links, checkpoint completion, final Matrix order, and same-strategy telemetry.
 

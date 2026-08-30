@@ -8,6 +8,22 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Iterable
 
 _RETRY_DELAYS_SECONDS = (1, 2, 4)
+_LIST_RETRY_DELAYS_SECONDS = (2, 4, 8, 16, 32)
+
+
+def list_files(volume: Any, remote_root: str,
+        sleep: Callable[[float], None] = time.sleep) -> list[Any]:
+    """List one Volume tree, retrying only listing rate limits."""
+    attempts = 0
+    while True:
+        attempts += 1
+        try:
+            return list(volume.listdir(remote_root, recursive=True))
+        except Exception as error:
+            if type(error).__name__ != "ResourceExhaustedError" \
+                    or attempts > len(_LIST_RETRY_DELAYS_SECONDS):
+                raise
+            sleep(_LIST_RETRY_DELAYS_SECONDS[attempts - 1])
 
 
 def fetch_file(volume: Any, remote: str, local: str | pathlib.Path, expected_size: int | None,
