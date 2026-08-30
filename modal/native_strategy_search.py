@@ -1334,6 +1334,7 @@ def _strategy_search_psro_job_impl(config: dict[str, Any]) -> dict[str, Any]:
         commit_interval_seconds=PSRO_MODAL_COMMIT_INTERVAL_SECONDS,
         on_checkpoint=checkpoint_progress,
         deep_verify=False,
+        evidence_id=config["evidenceId"],
     )
     rust_report = result["report"]
     worker_finished_ms = int(time.time() * 1000)
