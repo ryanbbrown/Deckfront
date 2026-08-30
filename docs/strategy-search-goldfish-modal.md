@@ -77,7 +77,7 @@ Each task uses `/tmp/hexdeck-goldfish/<launch-id>/` for scratch files and remove
 
 Local deep verification is off by default. Add `--verify` to the `run` command only for final production evidence or an explicit audit.
 
-The route publishes the same evidence paths and bytes as the full campaign route. Container shape and execution state do not change the kingdom evidence ID.
+The route publishes stable evidence paths and bytes. Container shape and execution state do not change the kingdom evidence ID.
 
 ## Output
 
