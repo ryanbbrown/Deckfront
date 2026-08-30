@@ -1,6 +1,6 @@
 # Starfire 12 balance run
 
-Status: authorized for overnight execution by the user on 2026-08-30.
+Status: complete. The user authorized the run on 2026-08-30.
 
 ## Goal
 
@@ -26,6 +26,14 @@ Use the ordered 30-kingdom `balance-smoke-v1` list from `.data/persistent-mana-b
 ## PSRO plan
 
 Execution `d6b0497a366319e56160b9ad8ac0b288ac3342491bb783b4a5b76f2a8b445338` has 30 slots, a `$1.6642752` one-attempt bound per kingdom, a `$49.9361556` full launch bound including readiness, and a `$60` execution guard.
+
+## Final report
+
+- All 30 kingdoms have valid Matrix and PSRO batch evidence. Every PSRO kingdom reached two clean full searches.
+- The report uses scientific snapshot `c1995c1`, PSRO deployment digest `e63914bfe2d00247aa4c6a20583da7125ac142db8974e2a2f8322d26ee8010b0`, and release binary SHA-256 `6fd370baa192819a69450ced6b833fe152a2dc69f1d85b615cf62dd12c7682d8`.
+- Analysis JSON: `.data/starfire-12-balance-88/rust-balance-analysis-v2.json`.
+- Committed HTML: `.html/starfire-12-balance-88-report.html`.
+- Routine structural verification passed. No deep verification ran.
 
 ## Stop conditions
 

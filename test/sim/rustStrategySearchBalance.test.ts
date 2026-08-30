@@ -7,7 +7,9 @@ import rawSmoke from '../../src/sim/balance-smoke-suite-manifest.json' with { ty
 import { buildRustBalanceAnalysis, stringifyRustBalanceAnalysis } from '../../src/sim/rustStrategySearchBalance';
 import type { RustStrategySearchSourceProvenanceV2 } from '../../src/sim/rustStrategySearchBalance';
 import { loadRustStrategySearchKingdomEvidence } from '../../src/sim/rustStrategySearchEvidence';
-import { loadSourceProvenance, parseCli, renderRustBalanceReport } from '../../scripts/generate_rust_strategy_search_balance_report';
+import {
+  loadSourceProvenance, parseCli, renderRustBalanceReport, strongestNonWinningArchetype
+} from '../../scripts/generate_rust_strategy_search_balance_report';
 import { parseSelfPlayBackfillCli } from '../../scripts/backfill_rust_strategy_search_self_play';
 import { createEvidenceFixture } from '../fixtures/rust-strategy-search-balance/fixture';
 
@@ -41,6 +43,23 @@ function evidence(root: string, admissions: 0 | 1 = 0) {
 }
 
 describe('Rust strategy-search balance analysis', () => {
+  it('excludes tied winning archetypes and selects the highest-scoring alternative strategy', () => {
+    const result = strongestNonWinningArchetype({ kingdomId: 'literal-kingdom', archetypes: [
+      { archetype: 'Melee', selectedShare: 0.45 },
+      { archetype: 'Mage', selectedShare: 0.45 },
+      { archetype: 'Ranged', selectedShare: 0.1 }
+    ], strategies: [
+      { archetype: 'Melee', strategyId: 'gf-11', selectedLotteryScorePercent: 49.99 },
+      { archetype: 'Mage', strategyId: 'gf-22', selectedLotteryScorePercent: 49.98 },
+      { archetype: 'Ranged', strategyId: 'gf-33', selectedLotteryScorePercent: 48.75 },
+      { archetype: 'Ranged', strategyId: 'gf-44', selectedLotteryScorePercent: 49.375 },
+      { archetype: 'Melee + Ranged', strategyId: 'gf-55', selectedLotteryScorePercent: 49.125 }
+    ] });
+    expect(result).toEqual({ kingdomId: 'literal-kingdom', winningArchetypes: ['Melee', 'Mage'],
+      selectedShare: 0.45, alternative: { archetype: 'Ranged', strategyId: 'gf-44',
+        selectedLotteryScorePercent: 49.375, gapBelowFiftyPercent: 0.625 } });
+  });
+
   it('uses equilibrium opponents for classification and keeps full equilibrium ranges', () => {
     const held = evidence(temporary()), analysis = buildRustBalanceAnalysis([held], provenance([held.kingdomId]));
     const kingdom = analysis.kingdoms[0]!;

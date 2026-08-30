@@ -187,10 +187,54 @@ function escape(value: unknown): string {
 }
 function percent(value: number): string { return `${(value * 100).toFixed(2)}%`; }
 function number(value: number): string { return value.toFixed(4); }
-function rows(values: readonly string[][]): string { return `<tbody>${values.map((row) => `<tr>${row.map((cell) => `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>`; }
-function table(headings: readonly string[], values: readonly string[][]): string {
-  return `<div class="table-wrap"><table><thead><tr>${headings.map((heading) => `<th>${escape(heading)}</th>`).join('')}</tr></thead>${rows(values)}</table></div>`;
+function rows(values: readonly string[][]): string {
+  return `<tbody>${values.map((row) => `<tr>${row.map((cell, index) => index === 0
+    ? `<th scope="row">${cell}</th>` : `<td>${cell}</td>`).join('')}</tr>`).join('')}</tbody>`;
 }
+function table(headings: readonly string[], values: readonly string[][], caption?: string): string {
+  return `<div class="table-wrap"><table>${caption ? `<caption class="sr-only">${escape(caption)}</caption>` : ''}<thead><tr>${headings.map((heading) => `<th scope="col">${escape(heading)}</th>`).join('')}</tr></thead>${rows(values)}</table></div>`;
+}
+
+export interface ArchetypeDominanceInput {
+  kingdomId: string;
+  archetypes: ReadonlyArray<{ archetype: string; selectedShare: number }>;
+  strategies: ReadonlyArray<{ archetype: string; strategyId: string; selectedLotteryScorePercent: number }>;
+}
+
+export interface ArchetypeDominanceRow {
+  kingdomId: string;
+  winningArchetypes: string[];
+  selectedShare: number;
+  alternative: null | {
+    archetype: string;
+    strategyId: string;
+    selectedLotteryScorePercent: number;
+    gapBelowFiftyPercent: number;
+  };
+}
+
+export function strongestNonWinningArchetype(input: ArchetypeDominanceInput): ArchetypeDominanceRow {
+  if (!input.archetypes.length) throw new Error(`${input.kingdomId}: no classified archetypes.`);
+  const selectedShare = Math.max(...input.archetypes.map((row) => row.selectedShare));
+  const winningArchetypes = input.archetypes.filter((row) => row.selectedShare === selectedShare)
+    .map((row) => row.archetype);
+  const winners = new Set(winningArchetypes);
+  const alternative = input.strategies.reduce<ArchetypeDominanceInput['strategies'][number] | null>((best, strategy) => {
+    if (winners.has(strategy.archetype)) return best;
+    return !best || strategy.selectedLotteryScorePercent > best.selectedLotteryScorePercent ? strategy : best;
+  }, null);
+  return { kingdomId: input.kingdomId, winningArchetypes, selectedShare,
+    alternative: alternative ? { archetype: alternative.archetype, strategyId: alternative.strategyId,
+      selectedLotteryScorePercent: alternative.selectedLotteryScorePercent,
+      gapBelowFiftyPercent: Math.max(0, 50 - alternative.selectedLotteryScorePercent) } : null };
+}
+
+function dominanceText(row: ArchetypeDominanceRow): string {
+  const leaders = row.winningArchetypes.join(' and ');
+  if (!row.alternative) return `${escape(leaders)} leads at ${percent(row.selectedShare)} selected share. No alternative classifier label exists in the final discovered Matrix.`;
+  return `${escape(leaders)} leads at ${percent(row.selectedShare)} selected share. The strongest non-winning-archetype strategy is ${escape(row.alternative.strategyId)} (${escape(row.alternative.archetype)}) at ${row.alternative.selectedLotteryScorePercent.toFixed(2)}%, ${row.alternative.gapBelowFiftyPercent.toFixed(2)} percentage points below 50%.`;
+}
+
 function outlierTable(title: string, entries: RustBalanceAnalysisV2['outliers']['pairScoreSkew75']): string {
   return `<section><h3>${escape(title)}</h3>${table(['Kingdom', 'Metric', 'Strategy', 'Opponent', 'Card', 'Family'], entries.map((row) => [
     escape(row.kingdomId), number(row.metric), escape(row.strategyNumber ?? '—'), escape(row.opponentNumber ?? '—'),
@@ -201,6 +245,16 @@ export function renderRustBalanceReport(analysis: RustBalanceAnalysisV2): string
   const archetypes = table(['Archetype', 'Selected', 'Mean minimum', 'Mean maximum', 'Selected kingdoms', 'Feasible kingdoms'],
     analysis.crossKingdom.archetypes.map((row) => [escape(row.archetype), percent(row.selectedShare),
       percent(row.meanMinimumFeasibleShare), percent(row.meanMaximumFeasibleShare), String(row.selectedKingdomCount), String(row.feasibleKingdomCount)]));
+  const dominance = analysis.kingdoms.map((kingdom) => strongestNonWinningArchetype({ kingdomId: kingdom.kingdom.id,
+    archetypes: kingdom.archetypes, strategies: kingdom.strategies }));
+  const dominanceTable = table(['Kingdom', 'Leading archetype(s)', 'Selected share', 'Alternative archetype',
+    'Strategy', 'Score vs selected lottery', 'Gap below 50%'], dominance.map((row) => row.alternative
+    ? [escape(row.kingdomId), escape(row.winningArchetypes.join(' and ')), percent(row.selectedShare),
+      escape(row.alternative.archetype), escape(row.alternative.strategyId),
+      `${row.alternative.selectedLotteryScorePercent.toFixed(2)}%`, `${row.alternative.gapBelowFiftyPercent.toFixed(2)} pp`]
+    : [escape(row.kingdomId), escape(row.winningArchetypes.join(' and ')), percent(row.selectedShare),
+      'No alternative label in final Matrix', '—', '—', '—']), 'Archetype leaders and strongest non-winning-archetype strategies for all kingdoms');
+  const dominanceByKingdom = new Map(dominance.map((row) => [row.kingdomId, row]));
   const cards = table(['Card', 'Offered kingdoms', 'Kingdoms with use', 'Acquisition presence', 'Selection presence', 'Mean owned copies'],
     analysis.crossKingdom.cards.map((row) => [escape(row.cardId), String(row.offeredKingdomCount), String(row.positiveUsageKingdomCount),
       percent(row.meanEquilibriumAcquisitionRate), percent(row.meanEquilibriumSelectionRate), number(row.meanEquilibriumOwnedCopies)]));
@@ -231,8 +285,9 @@ export function renderRustBalanceReport(analysis: RustBalanceAnalysisV2): string
       [escape(kingdom.strategies[index]!.strategyId), ...row.map((value) => `${value.toFixed(2)}%`)]));
     const audit = table(['Strategy', 'Off-diagonal player sides', 'Diagonal player sides'],
       kingdom.auditTelemetry.strategies.map((row) => [escape(row.strategyNumber), String(row.offDiagonal.playerSides), String(row.diagonal.playerSides)]));
+    const kingdomDominance = dominanceByKingdom.get(kingdom.kingdom.id)!;
     return `<section class="kingdom"><h2>${escape(kingdom.kingdom.name)}</h2><p>${kingdom.completion.finalStrategyCount} final strategies; ${kingdom.completion.admissions} admissions; support ${kingdom.equilibrium.supportSize}; effective size ${number(kingdom.equilibrium.effectiveSize)}.</p>
-      <p>${escape(kingdom.telemetryBasis)}.</p><h3>Selected mix and strategy ranges</h3>${mix}<h3>Archetype ranges</h3>${ranges}
+      <p>${dominanceText(kingdomDominance)}</p><p>${escape(kingdom.telemetryBasis)}.</p><h3>Selected mix and strategy ranges</h3>${mix}<h3>Archetype ranges</h3>${ranges}
       <h3>Equilibrium self-play card acquisition usage</h3>${cardUse}<h3>Equilibrium self-play family damage</h3>${damage}
       <details><summary>Strategy definitions</summary>${definitions}</details><details><summary>Unweighted full-Matrix observed counts (audit only)</summary>${audit}</details>
       <details><summary>Paired-game score evidence</summary>${pairEvidence}</details><details><summary>Complete 75-seed score matrix</summary>${matrix}</details>
@@ -241,11 +296,12 @@ export function renderRustBalanceReport(analysis: RustBalanceAnalysisV2): string
   const embedded = JSON.stringify(analysis).replaceAll('<', '\\u003c');
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rust strategy-search balance analysis</title><style>
-:root{color-scheme:light dark;font:16px/1.45 system-ui,sans-serif}body{margin:0;background:#10141b;color:#edf2f7}main{max-width:1440px;margin:auto;padding:28px}h1,h2,h3{line-height:1.15}section{margin:30px 0;padding:20px;background:#18202b;border:1px solid #334155;border-radius:12px}.limits{border-color:#eab308;background:#30290f}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #334155;white-space:nowrap}th{position:sticky;top:0;background:#202b39}code{font-size:.78rem}details{margin:16px 0}summary{cursor:pointer;font-weight:700}.lede{max-width:80ch;color:#cbd5e1}@media print{body{background:#fff;color:#111}section{break-inside:avoid;background:#fff;border-color:#aaa}th{background:#eee}}
+:root{color-scheme:light dark;font:16px/1.45 system-ui,sans-serif}body{margin:0;background:#10141b;color:#edf2f7}main{max-width:1440px;margin:auto;padding:28px}h1,h2,h3{line-height:1.15}section{margin:30px 0;padding:20px;background:#18202b;border:1px solid #334155;border-radius:12px}.limits{border-color:#eab308;background:#30290f}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:.9rem}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #334155;white-space:nowrap;font-variant-numeric:tabular-nums}th{background:#202b39}thead th{position:sticky;top:0}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}code{font-size:.78rem;overflow-wrap:break-word}details{margin:16px 0}summary{cursor:pointer;font-weight:700}.lede{max-width:80ch;color:#cbd5e1}@media print{body{background:#fff;color:#111}section{break-inside:avoid;background:#fff;border-color:#aaa}th{background:#eee}}
 </style></head><body><main><h1>Rust strategy-search balance analysis</h1>
 <p class="lede">Equal-weight analysis of ${analysis.scope.kingdomCount} kingdoms in the ${escape(analysis.scope.suiteId)} tuning set. Within each kingdom, both the acting strategy and opponent use the stored equilibrium weights.</p>
 <section class="limits"><h2>Evidence limits</h2><p>Same-strategy purchases and family damage are available from 500 player sides per strategy. The payoff diagonal remains fixed at 50% and does not use those games.</p><p>A paired point byte of 2 can mean one success and one failure, or two ties. Exact W/D/L and first-player outcome rates are not available. Card-play counts, per-card damage, and turns-to-finish are also absent.</p></section>
 <section><h2>Source and verification</h2><p>This routine tuning report uses the completed Goldfish, Matrix, and PSRO evidence without a separate deep replay. Report generation checks file structure, CRCs, source links, checkpoint completion, selected Matrix order, and HST evidence. Provenance SHA-256: <code>${escape(analysis.provenance.provenanceFileSha256)}</code>. Backfill and audit binary SHA-256: <code>${escape(analysis.provenance.verifierBinarySha256)}</code>.</p></section>
+<section><h2>Archetype dominance by kingdom</h2><p>This comparison uses the selected deterministic witness and the final discovered Matrix. A winning archetype is a classifier label tied for the largest selected share in its kingdom. Feasible archetype ranges remain separate evidence in the next section.</p>${dominanceTable}</section>
 <section><h2>Archetype shares and full feasible ranges</h2>${archetypes}</section>
 <section><h2>Support and effective sizes</h2>${table(['Measure','Minimum','Median','Mean','Maximum'], [
     ['Support size', number(analysis.crossKingdom.supportSize.minimum), number(analysis.crossKingdom.supportSize.median), number(analysis.crossKingdom.supportSize.mean), number(analysis.crossKingdom.supportSize.maximum)],
