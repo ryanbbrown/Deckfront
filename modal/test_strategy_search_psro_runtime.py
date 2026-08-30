@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import pathlib
 import tempfile
 import unittest
@@ -242,7 +243,7 @@ class PsroRuntimeTests(unittest.TestCase):
             self.assertEqual((destination / "checkpoint.hpc").read_bytes(), b"checkpoint")
             self.assertEqual(result["concurrency"], 16)
             self.assertEqual(result["kingdoms"], [{"kingdomId": "balance-tuning-090",
-                "files": 3, "bytes": 16, "wallMs": result["kingdoms"][0]["wallMs"]}])
+                "files": 3, "bytes": 16}])
             self.assertTrue(all("wallMs" in entry for entry in result["artifacts"]))
 
     def test_download_replaces_no_destination_until_every_download_succeeds(self):
@@ -266,7 +267,37 @@ class PsroRuntimeTests(unittest.TestCase):
                     runtime.download(config)
             self.assertEqual([(destination / "old").read_text() for destination in destinations],
                 ["unchanged", "unchanged"])
-            self.assertEqual([entry.name for entry in root.iterdir()], ["one", "two"])
+            self.assertCountEqual([entry.name for entry in root.iterdir()], ["one", "two"])
+
+    def test_replacement_failure_restores_the_current_kingdom_and_cleans_temporaries(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            destinations = [root / "one", root / "two"]
+            for destination in destinations:
+                destination.mkdir()
+                (destination / "old").write_text("unchanged")
+            volume = Volume({"psro/one/file": b"one", "psro/two/file": b"two"})
+            config = {"kingdoms": [{"kingdomId": name, "remoteOutPath": f"psro/{name}",
+                "destination": str(destination)} for name, destination in zip(["one", "two"], destinations)]}
+            real_replace = os.replace
+            failed = False
+            def fail_second_temporary(source, destination):
+                nonlocal failed
+                source_path = pathlib.Path(source)
+                if not failed and pathlib.Path(destination) == destinations[1] \
+                        and source_path.name.startswith(".two-"):
+                    failed = True
+                    raise OSError("second replacement failed")
+                return real_replace(source, destination)
+            with patch.object(runtime, "volume", volume), \
+                    patch.object(runtime.os, "replace", side_effect=fail_second_temporary):
+                with self.assertRaisesRegex(OSError, "second replacement failed"):
+                    runtime.download(config)
+            self.assertEqual((destinations[0] / "file").read_bytes(), b"one")
+            self.assertFalse((destinations[0] / "old").exists())
+            self.assertEqual((destinations[1] / "old").read_text(), "unchanged")
+            self.assertFalse((destinations[1] / "file").exists())
+            self.assertCountEqual([entry.name for entry in root.iterdir()], ["one", "two"])
 
     def test_download_replaces_every_destination_after_all_downloads_succeed(self):
         with tempfile.TemporaryDirectory() as directory:

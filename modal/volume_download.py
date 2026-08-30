@@ -10,7 +10,7 @@ from typing import Any, Callable, Iterable
 _RETRY_DELAYS_SECONDS = (1, 2, 4)
 
 
-def fetch_file(volume: Any, remote: str, local: str | pathlib.Path, expected_size: int,
+def fetch_file(volume: Any, remote: str, local: str | pathlib.Path, expected_size: int | None,
         sleep: Callable[[float], None] = time.sleep) -> dict[str, int | float]:
     """Download one file and verify its byte count."""
     destination = pathlib.Path(local)
@@ -25,7 +25,7 @@ def fetch_file(volume: Any, remote: str, local: str | pathlib.Path, expected_siz
                 for chunk in volume.read_file(remote):
                     stream.write(chunk)
                     byte_count += len(chunk)
-            if byte_count != expected_size:
+            if expected_size is not None and byte_count != expected_size:
                 raise RuntimeError(
                     f"Volume file size differs for {remote}: expected {expected_size}, received {byte_count}")
             return {"bytes": byte_count, "wallMs": (time.monotonic() - started) * 1000,

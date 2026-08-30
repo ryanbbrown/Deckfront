@@ -60,14 +60,6 @@ def _final_artifact_relatives(bundle: dict[str, Any]) -> list[str]:
         "matrix/evidence.json", "psro/evidence.json"]
 
 
-def _listed_file_size(remote: str) -> int:
-    path = pathlib.PurePosixPath(remote)
-    for entry in volume.listdir(path.parent.as_posix()):
-        if entry.path == remote:
-            return entry.size
-    raise FileNotFoundError(remote)
-
-
 def _download_final_artifacts(destination: pathlib.Path, evidence_ids: list[str],
                               relatives: list[str] | None = None) -> dict[str, Any]:
     from volume_download import fetch_files
@@ -82,8 +74,7 @@ def _download_final_artifacts(destination: pathlib.Path, evidence_ids: list[str]
         for relative in selected:
             remote = f"evidence/{evidence_id}/{relative}"
             items.append({"remote": remote, "local": destination / remote,
-                "expectedSize": production_sizes.get(relative) or _listed_file_size(remote),
-                "evidenceId": evidence_id})
+                "expectedSize": production_sizes.get(relative), "evidenceId": evidence_id})
     metrics = fetch_files(volume, items, concurrency=16)
     artifacts = [{"evidenceId": item["evidenceId"], "path": item["remote"],
         "bytes": metric["bytes"], "wallMs": round(metric["wallMs"], 3)}

@@ -51,6 +51,21 @@ class VolumeDownloadTests(unittest.TestCase):
             self.assertEqual([result["bytes"] for result in results], [1] * 40)
             self.assertEqual([pathlib.Path(item["local"]).read_bytes() for item in items], list(files.values()))
 
+    def test_fetch_files_drains_the_pool_before_propagating_the_first_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            files = {f"remote/{index:02d}": bytes([index]) for index in range(20)}
+            volume = Volume(files, delay=0.01)
+            del volume.files["remote/00"]
+            items = [{"remote": f"remote/{index:02d}", "local": root / str(index),
+                "expectedSize": 1} for index in range(20)]
+            with self.assertRaisesRegex(FileNotFoundError, "remote/00"):
+                fetch_files(volume, items)
+            self.assertEqual(volume.active, 0)
+            self.assertEqual(volume.attempts, {f"remote/{index:02d}": 1 for index in range(20)})
+            self.assertTrue(all((root / str(index)).read_bytes() == bytes([index])
+                for index in range(1, 20)))
+
     def test_fetch_file_retries_a_transient_error(self):
         with tempfile.TemporaryDirectory() as directory:
             volume = Volume({"remote": b"complete"}, {("remote", 1): OSError("transient")})
@@ -77,6 +92,13 @@ class VolumeDownloadTests(unittest.TestCase):
                 fetch_file(volume, "missing", pathlib.Path(directory) / "file", 1, sleeps.append)
             self.assertEqual(volume.attempts["missing"], 1)
             self.assertEqual(sleeps, [])
+
+    def test_fetch_file_skips_size_validation_when_no_size_is_available(self):
+        with tempfile.TemporaryDirectory() as directory:
+            destination = pathlib.Path(directory) / "file"
+            result = fetch_file(Volume({"remote": b"content"}), "remote", destination, None)
+            self.assertEqual(result["bytes"], 7)
+            self.assertEqual(destination.read_bytes(), b"content")
 
     def test_fetch_file_rejects_a_size_mismatch(self):
         with tempfile.TemporaryDirectory() as directory:

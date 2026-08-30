@@ -245,12 +245,25 @@ def download(config: dict[str, Any]) -> dict[str, Any]:
             first = entry["firstItem"]
             held = artifacts[first:first + entry["fileCount"]]
             kingdoms.append({"kingdomId": entry["kingdom"]["kingdomId"], "files": len(held),
-                "bytes": sum(artifact["bytes"] for artifact in held),
-                "wallMs": max((artifact["wallMs"] for artifact in held), default=0)})
+                "bytes": sum(artifact["bytes"] for artifact in held)})
         for entry in prepared:
+            backup = None
             if entry["destination"].exists():
-                shutil.rmtree(entry["destination"])
-            os.replace(entry["temporary"], entry["destination"])
+                backup = pathlib.Path(tempfile.mkdtemp(prefix=f".{entry['destination'].name}-backup-",
+                    dir=entry["destination"].parent))
+                backup.rmdir()
+                os.replace(entry["destination"], backup)
+            try:
+                os.replace(entry["temporary"], entry["destination"])
+            except Exception:
+                if entry["destination"].exists():
+                    shutil.rmtree(entry["destination"])
+                if backup is not None:
+                    os.replace(backup, entry["destination"])
+                raise
+            else:
+                if backup is not None:
+                    shutil.rmtree(backup)
         return {"artifacts": artifacts, "kingdoms": kingdoms,
             "bytes": sum(entry["bytes"] for entry in artifacts),
             "wallMs": (time.monotonic() - started) * 1000, "concurrency": 16}

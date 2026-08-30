@@ -6,12 +6,6 @@ from unittest.mock import patch
 import strategy_search_runtime as runtime
 
 
-class Entry:
-    def __init__(self, path, size):
-        self.path = path
-        self.size = size
-
-
 class FakeVolume:
     def __init__(self, files):
         self.files = files
@@ -20,11 +14,6 @@ class FakeVolume:
         value = self.files[path]
         yield value[:1]
         yield value[1:]
-
-    def listdir(self, directory):
-        return [Entry(path, len(value)) for path, value in self.files.items()
-            if pathlib.PurePosixPath(path).parent.as_posix() == directory]
-
 
 class StrategySearchRuntimeTest(unittest.TestCase):
     def test_completed_reused_execution_does_not_wait_for_new_work(self):
@@ -58,6 +47,20 @@ class StrategySearchRuntimeTest(unittest.TestCase):
             self.assertTrue(all(entry["wallMs"] >= 0 for entry in result["artifacts"]))
             for remote, content in files.items():
                 self.assertEqual((pathlib.Path(directory) / remote).read_bytes(), content)
+
+    def test_full_route_downloads_all_four_files_without_listing_the_volume(self):
+        evidence_id = "b" * 64
+        files = {
+            f"evidence/{evidence_id}/goldfish/top-500000.hgf": b"t" * runtime.GOLDFISH_TOP_BYTES,
+            f"evidence/{evidence_id}/goldfish/reservoir.hgf": b"r" * runtime.GOLDFISH_RESERVOIR_BYTES,
+            f"evidence/{evidence_id}/matrix/evidence.json": b'{"matrix":true}',
+            f"evidence/{evidence_id}/psro/evidence.json": b'{"psro":true}'}
+        volume = FakeVolume(files)
+        self.assertFalse(hasattr(volume, "listdir"))
+        with tempfile.TemporaryDirectory() as directory, patch.object(runtime, "volume", volume):
+            result = runtime._download_final_artifacts(pathlib.Path(directory), [evidence_id])
+        self.assertEqual([entry["path"] for entry in result["artifacts"]], list(files))
+        self.assertEqual(result["bytes"], sum(len(content) for content in files.values()))
 
     def test_final_download_rejects_a_truncated_goldfish_stream(self):
         evidence_id = "a" * 64
