@@ -42,9 +42,11 @@ The client keeps at most `slots` non-terminal calls: it spawns up to `slots` kin
 
 Each kingdom writes to `psro-executions/<psro-execution-id>/<evidence-id>/`. A second run with the same execution ID resumes from the committed checkpoint. A different core count has a different execution ID and therefore a fresh directory, which makes the 16-versus-32-core benchmark a byte comparison of two complete runs. The route does not publish PSRO files to `evidence/<evidence-id>/psro/`; the local download is the deliverable.
 
-### Volume commits are measured, not assumed
+### Volume commits are time based
 
-The job commits the Volume once per Rust checkpoint and waits for the commit before the next look, so commit time is pure overhead on the critical path. The job reports commit count, total commit time, and the share of job wall time spent in commits. The one-kingdom benchmark measures one committer; the eight-kingdom batch measures eight containers committing to the same Volume, so the batch report carries the same three values per kingdom and the threshold is checked again after the batch. This plan does not change the commit cadence. If the commit share exceeds 15% at the chosen core count in either run, a later plan adds a commit-every-N-checkpoints option; restart granularity would then be N looks.
+Rust writes every look, admission, and checkpoint to the mounted Volume path with its own temporary-file, sync, verify, and rename sequence. That local file I/O is part of the unchanged Rust design and is already inside the measured 21% non-transition share. A Volume commit is different: it uploads the changed files to Modal storage, and Rust waits for it before the next look, so every commit is pure overhead on the critical path. `balance-tuning-090` had 76 checkpoints locally, so a commit per checkpoint could add 76 serialized uploads to a run of roughly ten minutes.
+
+The route therefore commits on a clock, not per checkpoint. On each Rust handshake the wrapper commits only when at least `PSRO_MODAL_COMMIT_INTERVAL_SECONDS` (600) have passed since the last commit; otherwise it acknowledges at once. The job always commits after the final checkpoint and after `job-report.json`. A container loss costs at most ten minutes of one kingdom's work, which the relaunch replays from the last committed checkpoint; scientific bytes are unchanged because the checkpoint files carry the state. A typical kingdom then commits one to three times instead of dozens. The job still reports commit count, total commit time, and commit share per kingdom in the benchmark and the batch.
 
 ### Core count is chosen by measurement
 
@@ -136,6 +138,7 @@ The real duplicate-launch guard is the client. The Volume records are visibility
 
 `modal/psro_step.py::run_psro_step` gains:
 
+- a `commit_interval_seconds` parameter: on a handshake it commits only when that interval has passed since the last commit, then acknowledges; the final checkpoint always commits;
 - timing of every `volume.commit()` and a return value with `commitCount` and `volumeCommitMs` for the handshake commits;
 - an optional `on_checkpoint(ordinal, crc, commit_count, commit_ms)` callback invoked before each commit so the job can write `progress.json` into the same commit. The commit count and time describe earlier commits, so progress is one checkpoint behind for those two values.
 
@@ -144,7 +147,7 @@ The real duplicate-launch guard is the client. The Volume records are visibility
 1. call `verify_strategy_search_source(config["sourceImage"])` and refuse `config["threads"] != config["cpu"]`;
 2. `volume.reload()`, then compare the SHA-256 of the six input files with `config["inputSha256"]` and fail before Rust on any difference;
 3. apply the lease rule above;
-4. run `run_psro_step` with `threads=config["threads"]`, the handshake Volume, the progress callback, and `deep_verify=False`;
+4. run `run_psro_step` with `threads=config["threads"]`, the handshake Volume, `commit_interval_seconds=600`, the progress callback, and `deep_verify=False`;
 5. write `job-report.json` with worker start and finish epoch milliseconds, Rust elapsed time, total games, games per second, transition timings, handshake commit count and time, commit share of job wall time, maximum resident set size in MiB, requested cores and memory, and the measured cost at the guard rates, then run the final `volume.commit()`, which is outside `commitCount`;
 6. return the same report.
 
@@ -256,7 +259,7 @@ TypeScript tests prove:
 
 Python tests prove:
 
-- `run_psro_step` times and counts handshake commits and calls `on_checkpoint` before each commit with the previous count and time;
+- `run_psro_step` commits only when the interval has passed, always commits the final checkpoint, times and counts handshake commits, and calls `on_checkpoint` before each commit with the previous count and time;
 - the job passes `config["threads"]` to Rust, refuses `threads != cpu`, rejects a differing input hash before Rust starts, rejects a live lease from another call, accepts a lease whose call is terminal, always passes `deep_verify=False`, writes `job-report.json` with RSS in MiB, and reports cost at the guard rates;
 - the runtime entrypoints call `Function.from_name(...).with_options(cpu=, memory=8192, timeout=, max_containers=, retries=0, scaledown_window=10)` with exactly those keyword arguments, spawn one kingdom at a time and persist each call ID before the next spawn, skip a matching Matrix upload, upload a missing file, fail on a differing file before any spawn, reattach from a state file, and download only the selected files. Modal Functions, calls, and the Volume are fakes.
 
@@ -282,17 +285,17 @@ No Modal deployment and no paid run are part of implementation or validation.
 7. `scripts/psro_batch_local.sh` and the npm commands.
 8. `docs/strategy-search-psro-modal.md` and `README.md`.
 9. Repository validation above.
-10. One implementation review cycle against the recorded pre-implementation SHA.
+10. Unpaid `matrix` and `plan` for `balance-tuning-090` at 16 cores, then the pre-authorized paid run.
 
 ## Operation after implementation
 
 Each paid step needs explicit user authorization with the exact `plan` output in front of the user. The token is the authorization record.
 
 1. Unpaid: `matrix` for the eight kingdoms with `--goldfish-campaign 84e22f519a74f1476e9522f5367073a0125c645d4c5f2e4f757f99cc9c269db6`. Then `plan` for `balance-tuning-090` at 16 cores and at 32 cores. Present slots, timeouts, bounds, execution IDs, and tokens.
-2. Paid, on authorization: run `balance-tuning-090` at 16 cores with `maxWallSecondsPerKingdom` 7,200 and `maxCostUsd` 5. The attempt bound is $1.67. It is the largest of the eight under the previous rules, so it gives the clearest scaling and commit-overhead signal.
+2. Paid, authorized by the user in advance: run `balance-tuning-090` at 16 cores with `maxWallSecondsPerKingdom` 7,200 and `maxCostUsd` 5 as soon as implementation and validation pass. The attempt bound is $1.67. It is the largest of the eight under the previous rules, so it gives the clearest scaling and commit-overhead signal.
 3. Paid, on separate authorization: run the same kingdom at 32 cores with `maxCostUsd` 5. The attempt bound is $3.20. Download with `--compare-with` against the 16-core directory. Any differing scientific byte is a blocker. Record speedup, cost ratio, and commit share, and apply the core-count rule.
 4. Unpaid: `plan` for all eight kingdoms at the chosen core count with `maxActiveCpus` equal to eight machines. Paid, on authorization: run it. The launch bound is $13.31 at 16 cores or $25.59 at 32 cores, so `maxCostUsd` is 15 or 30. All eight start at once. Check the commit share per kingdom again. The report thread then has all eight kingdoms under one root with both batch reports.
-5. Larger sets later use the same request with `maxActiveCpus` set to the approved machine limit. The queue path is first exercised there; its acceptance evidence is the peak-concurrency value in the batch report.
+5. Larger sets later use the same request with `maxActiveCpus` set to the approved machine limit. The queue path is first exercised there; its acceptance evidence is the peak-concurrency value in the batch report. No earlier queue proof is needed.
 
 Expected scale, to be replaced by measurement: local two-thread processes reached 14,000 to 31,000 games per second, so a 16-core Modal machine at half the per-core rate would play 56,000 to 120,000 games per second. `balance-tuning-090` would then take 8 to 16 minutes of game time plus the measured non-transition share of about 21% and the commit time. The whole eight-kingdom batch would cost under $1 at measured rates against a $13 to $26 bound.
 
@@ -307,10 +310,12 @@ Stop and report the blocker if:
 - a relaunch replays a committed look, which shows in the transition timings;
 - the batch report shows more concurrent machines than `slots`;
 - a bound cannot be computed before a spawn, or a spawn would exceed `maxCostUsd`;
-- the commit share exceeds 50% at the chosen core count, which means the shape is not useful without a cadence change.
+- the commit share exceeds 15% at the chosen core count with the ten-minute cadence, which means the Volume upload itself is the problem.
 
-## Unresolved decisions
+## Resolved decisions
 
-- Commit cadence: this plan commits every checkpoint. A follow-up plan is needed only if the benchmark or the batch shows a commit share above 15%.
-- Benchmark kingdom: `balance-tuning-090` is recommended. Another kingdom works with the same requests and rules.
-- Whether to prove the queue during the eight-kingdom batch by requesting fewer slots than kingdoms. That lengthens the batch; the default is eight slots and a first queue exercise in the larger run.
+- Commit cadence: time based, ten minutes, plus the final commit. A crash loses at most ten minutes of one kingdom.
+- Benchmark kingdom: `balance-tuning-090`.
+- No queue proof before the larger run.
+- The paid `balance-tuning-090` 16-core run is authorized in advance and starts as soon as implementation and validation pass. The 32-core benchmark and the eight-kingdom batch still need authorization.
+- Implementation runs in direct mode with one Pi gpt-5.6-sol writer and no implementation review cycle.
