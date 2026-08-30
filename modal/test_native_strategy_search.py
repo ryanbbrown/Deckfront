@@ -409,6 +409,33 @@ print(json.dumps(result))
         self.assertIn("No such file or directory", completed.stderr)
         self.assertIn("/missing/hexdeck-goldfish", completed.stderr)
 
+    def test_psro_readiness_checks_source_wrapper_and_binary_usage(self):
+        completed = subprocess.CompletedProcess(["hexdeck-goldfish", "psro"], 2,
+            stdout="", stderr="psro requires --threads")
+        local_binary = str(pathlib.Path("rust/target/release/hexdeck-goldfish").resolve())
+        with patch.object(launcher, "verify_strategy_search_source") as verify, \
+                patch.object(launcher, "CAMPAIGN_RUST_GOLDFISH_BIN", local_binary), \
+                patch.object(launcher.subprocess, "run", return_value=completed) as run:
+            result = launcher._strategy_search_psro_readiness_impl({"digest": "a" * 64})
+        verify.assert_called_once_with({"digest": "a" * 64})
+        run.assert_called_once_with([local_binary, "psro"],
+            text=True, capture_output=True, check=False, timeout=30)
+        self.assertEqual(result, {"ready": True, "sourceDigest": "a" * 64})
+
+    def test_psro_readiness_rejects_a_missing_binary_or_wrong_usage_result(self):
+        with patch.object(launcher, "verify_strategy_search_source"), \
+                patch.object(launcher, "CAMPAIGN_RUST_GOLDFISH_BIN", "/missing/hexdeck-goldfish"):
+            with self.assertRaisesRegex(RuntimeError, "missing or not executable"):
+                launcher._strategy_search_psro_readiness_impl({"digest": "a" * 64})
+        completed = subprocess.CompletedProcess(["hexdeck-goldfish", "psro"], 0,
+            stdout="unexpected", stderr="")
+        local_binary = str(pathlib.Path("rust/target/release/hexdeck-goldfish").resolve())
+        with patch.object(launcher, "verify_strategy_search_source"), \
+                patch.object(launcher, "CAMPAIGN_RUST_GOLDFISH_BIN", local_binary), \
+                patch.object(launcher.subprocess, "run", return_value=completed):
+            with self.assertRaisesRegex(RuntimeError, "expected usage error"):
+                launcher._strategy_search_psro_readiness_impl({"digest": "a" * 64})
+
     def test_strategy_search_execution_reuses_pinned_partitions_when_capacity_changes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)

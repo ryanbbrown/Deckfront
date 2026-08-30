@@ -192,12 +192,18 @@ class PsroRuntimeTests(unittest.TestCase):
             self.assertFalse((destination / "lease.json").exists())
             self.assertEqual((destination / "checkpoint.hpc").read_bytes(), b"checkpoint")
 
-    def test_preflight_requires_the_deployed_source_identity(self):
+    def test_preflight_requires_compute_and_psro_runtime_readiness(self):
+        names = []
         ready = type("Ready", (), {"remote": staticmethod(lambda _source: {
             "ready": True, "sourceDigest": "a" * 64})})()
-        function = type("Function", (), {"from_name": staticmethod(lambda *_args: ready)})
+        def from_name(_app, name):
+            names.append(name)
+            return ready
+        function = type("Function", (), {"from_name": staticmethod(from_name)})
         with patch.object(runtime.modal, "Function", function):
             result = runtime.preflight("compute", {"digest": "a" * 64})
+        self.assertEqual(names, ["strategy_search_compute_ready", "strategy_search_psro_ready"])
+        self.assertEqual(result["psroReady"], {"ready": True, "sourceDigest": "a" * 64})
         self.assertEqual(result["computeAppName"], "compute")
 
 

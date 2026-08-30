@@ -88,7 +88,7 @@ The guard uses the current Modal Function rates from the Goldfish route: $0.0000
 (workerCores × 0.0000131 + 8 × 0.00000222) × (maxWallSecondsPerKingdom + 120)
 ```
 
-The 120-second margin covers the 60-second Function timeout margin, the 10-second scale-down tail, and container startup. At 16 cores and 7,200 seconds one attempt is $1.6643; at 32 cores it is $3.1985. Each `run` invocation also reserves the readiness and canary constants from the Goldfish route. `retries=0` means one attempt per spawn.
+The 120-second margin covers the 60-second Function timeout margin, the 10-second scale-down tail, and container startup. At 16 cores and 7,200 seconds one attempt is $1.6643; at 32 cores it is $3.1985. Each `run` invocation also reserves the readiness and canary constants from the Goldfish route plus 120 seconds for the 1-core, 2 GiB PSRO readiness Function. `retries=0` means one attempt per spawn.
 
 The local execution state keeps a ledger. An attempt is measured when its `job-report.json` exists; every other attempt, including a failed, timed-out, cancelled, or unknown attempt, keeps its full bound. The ledger total is the sum of measured attempts, the bounds of every unmeasured attempt, and the readiness reservation of every `run` invocation. `run` refuses a spawn that would push the total above `maxCostUsd`. The route has no shared ledger with the older `~/.hexdeck-modal-cost-ledger.json`; two executions can each spend up to their own `maxCostUsd`, and the hard cap bounds each of them.
 
@@ -178,7 +178,7 @@ Paid. In order:
 
 1. Validate the token against a fresh `plan` derivation.
 2. Take the execution lock and load or create the state file.
-3. If the state file has pending calls, require the same deployment digest and skip deployment and readiness; the app already serves that digest. Otherwise deploy the compute app with `modal deploy --name hexdeck-strategy-<digest24> modal/native_strategy_search.py` and run readiness through `strategy_search_compute_ready`, exactly as the Goldfish route does, with the same timeouts and failure recording.
+3. If the state file has pending calls, require the same deployment digest and skip deployment and readiness; the app already serves that digest. Otherwise deploy the compute app with `modal deploy --name hexdeck-strategy-<digest24> modal/native_strategy_search.py` and run readiness through `strategy_search_compute_ready`, exactly as the Goldfish route does, with the same timeouts and failure recording. Then call the 1-core `strategy_search_psro_ready` Function to prove the PSRO wrapper and Rust subcommand are present before any worker spawn.
 4. `launch_entry`: check that both Goldfish files exist on the Volume for every kingdom. For each Matrix file of each kingdom to launch: if the Volume file is missing, upload it; if it exists and its hash matches the local file, skip it; if it exists and differs, fail before any spawn. Then apply the launch-safety steps and spawn within the slot and ledger limits. Poll every 15 seconds until every call is terminal, spawning the next queued kingdom when a slot frees. A local interruption does not stop the Modal calls.
 5. `download_entry` and structural validation as in `download`.
 6. Write the reports.

@@ -798,6 +798,27 @@ def strategy_search_compute_ready(source_identity: dict[str, Any]) -> dict[str, 
     return _strategy_search_compute_readiness_impl(source_identity, True)
 
 
+def _strategy_search_psro_readiness_impl(source_identity: dict[str, Any]) -> dict[str, Any]:
+    verify_strategy_search_source(source_identity)
+    import psro_step
+
+    if not callable(getattr(psro_step, "run_psro_step", None)):
+        raise RuntimeError("PSRO wrapper is unavailable in the Modal image")
+    binary = pathlib.Path(CAMPAIGN_RUST_GOLDFISH_BIN)
+    if not binary.is_file() or not os.access(binary, os.X_OK):
+        raise RuntimeError(f"PSRO Rust binary is missing or not executable: {binary}")
+    result = subprocess.run([str(binary), "psro"], text=True, capture_output=True,
+        check=False, timeout=30)
+    if result.returncode == 0 or not any(marker in result.stderr for marker in ["--threads", "psro"]):
+        raise RuntimeError("PSRO Rust binary did not return the expected usage error")
+    return {"ready": True, "sourceDigest": source_identity["digest"]}
+
+
+@app.function(image=image, cpu=1, memory=2048, timeout=120, max_containers=1, retries=0)
+def strategy_search_psro_ready(source_identity: dict[str, Any]) -> dict[str, Any]:
+    return _strategy_search_psro_readiness_impl(source_identity)
+
+
 def _strategy_search_execution_file(execution_id: str) -> pathlib.Path:
     if not re.fullmatch(r"[0-9a-f]{64}", execution_id):
         raise ValueError("campaign execution ID is invalid")

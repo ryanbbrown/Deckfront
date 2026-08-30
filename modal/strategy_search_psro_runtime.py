@@ -86,7 +86,11 @@ def preflight(compute_app_name: str, source_image: dict[str, Any]) -> dict[str, 
     result = readiness.remote(source_image)
     if result.get("ready") is not True or result.get("sourceDigest") != source_image["digest"]:
         raise RuntimeError("deployed PSRO compute readiness differs from source identity")
-    return {**result, "computeAppName": compute_app_name,
+    psro_readiness = modal.Function.from_name(compute_app_name, "strategy_search_psro_ready")
+    psro_result = psro_readiness.remote(source_image)
+    if psro_result.get("ready") is not True or psro_result.get("sourceDigest") != source_image["digest"]:
+        raise RuntimeError("deployed PSRO runtime readiness differs from source identity")
+    return {**result, "psroReady": psro_result, "computeAppName": compute_app_name,
         "preflightElapsedMs": (time.monotonic() - started) * 1000}
 
 

@@ -66,7 +66,7 @@ The attempt bound uses the current Modal Function rates:
 (workerCores × $0.0000131 + 8 GiB × $0.00000222) × (maxWallSecondsPerKingdom + 120)
 ```
 
-At 7,200 seconds, the bound is $1.6642752 for 16 cores and $3.1985472 for 32 cores. The launch bound also reserves readiness and canary work.
+At 7,200 seconds, the bound is $1.6642752 for 16 cores and $3.1985472 for 32 cores. The launch bound also reserves general readiness, the Goldfish canary, and the 1-core PSRO readiness check.
 
 ## Run the paid search
 
@@ -79,7 +79,7 @@ npx tsx scripts/strategy_search_psro_modal.ts run \
   --authorize 'psro-batch-v1.REPLACE_WITH_THE_COMPLETE_PLAN_TOKEN'
 ```
 
-`run` rejects a missing or different token before its first Modal command. It deploys the compute image, checks readiness, uploads missing Matrix inputs, and starts at most the planned number of machines. Each machine runs the unchanged Rust `psro` command for one kingdom.
+`run` rejects a missing or different token before its first Modal command. It deploys the compute image, checks general readiness, then uses a 1-core readiness Function to import the PSRO wrapper and check the Rust `psro` subcommand before it uploads Matrix inputs or starts a worker. It starts at most the planned number of machines. Each machine runs the unchanged Rust `psro` command for one kingdom.
 
 Rust checkpoints every scientific transition. The wrapper commits changed Volume files at most once every 600 seconds and after the final checkpoint. Rust waits for each checkpoint acknowledgement, but it does not wait for a Volume commit when the 600-second interval has not passed. A stopped machine resumes from the last committed checkpoint.
 

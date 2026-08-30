@@ -86,6 +86,7 @@ describe('Modal PSRO request and plan', () => {
     expect(psroAttemptBoundUsd(request())).toBeCloseTo(1.6642752, 10);
     expect(psroAttemptBoundUsd(request({ workerCores: 32, maxActiveCpus: 70 }))).toBeCloseTo(3.1985472, 10);
     const parsed = plan(request({ maxActiveCpus: 35 }));
+    expect(PSRO_MODAL_READINESS_RESERVATION_USD).toBeCloseTo(0.0078996, 10);
     const summary = createPsroModalPlanSummary(parsed);
     expect(summary).toMatchObject({ slots: 2, unusedCpuCapacity: 3,
       timeouts: { maximumWallSecondsPerKingdom: 7200, functionTimeoutSeconds: 7260 } });
