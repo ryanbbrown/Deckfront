@@ -128,44 +128,44 @@
         "cardMinimum": 25,
         "tuningCardMinimum": 20,
         "validationCardMinimum": 5,
-        "pairMinimum": 2,
+        "pairMinimum": 1,
         "validationPairMinimum": 0,
         "priorityPairMinimum": 5,
         "validationPriorityPairMinimum": 0,
-        "requiredTripleMinimum": 1,
+        "requiredTripleMinimum": 0,
         "validationRequiredTripleMinimum": 0,
-        "tripleCovered": 7419,
-        "tripleCoverage": 0.750910931174,
+        "tripleCovered": 7461,
+        "tripleCoverage": 0.75516194332,
         "largestOverlap": 6,
         "overlapMean": 2.424242424242,
         "overlapP99": 5,
-        "jaccardMean": 0.142827044339,
-        "pairCountStandardDeviation": 1.604665289191,
+        "jaccardMean": 0.142756512493,
+        "pairCountStandardDeviation": 1.570750897706,
         "deficits": {
-          "fullPairs": 1817,
+          "fullPairs": 1811,
           "validationPairs": 161,
           "priorityPairs": 344,
           "validationPriorityPairs": 24,
-          "requiredTriples": 58,
+          "requiredTriples": 61,
           "validationRequiredTriples": 17,
           "routes": 0,
           "validationRoutes": 0
         },
         "routeCounts": {
-          "all-damage-families": 66,
-          "deck-shaping": 24,
-          "draw-rich": 91,
-          "high-cost-economy": 34,
+          "all-damage-families": 65,
+          "deck-shaping": 23,
+          "draw-rich": 93,
+          "high-cost-economy": 37,
           "improvise-mix": 24,
-          "mana-focused": 9,
-          "mana-melee": 21,
-          "mana-ranged": 17,
-          "mana-route": 64,
-          "melee-focused": 6,
-          "melee-ranged": 33,
-          "melee-route": 45,
-          "ranged-focused": 5,
-          "ranged-route": 46
+          "mana-focused": 10,
+          "mana-melee": 27,
+          "mana-ranged": 20,
+          "mana-route": 58,
+          "melee-focused": 7,
+          "melee-ranged": 32,
+          "melee-route": 49,
+          "ranged-focused": 7,
+          "ranged-route": 38
         },
         "validationRouteCounts": {
           "all-damage-families": 10,
@@ -204,23 +204,23 @@
         "cardMinimum": 37,
         "tuningCardMinimum": 30,
         "validationCardMinimum": 7,
-        "pairMinimum": 5,
+        "pairMinimum": 4,
         "validationPairMinimum": 0,
         "priorityPairMinimum": 9,
         "validationPriorityPairMinimum": 1,
-        "requiredTripleMinimum": 2,
+        "requiredTripleMinimum": 1,
         "validationRequiredTripleMinimum": 0,
-        "tripleCovered": 8830,
-        "tripleCoverage": 0.893724696356,
+        "tripleCovered": 8783,
+        "tripleCoverage": 0.888967611336,
         "largestOverlap": 6,
         "overlapMean": 2.450111856823,
         "overlapP99": 5,
-        "jaccardMean": 0.144420184338,
-        "pairCountStandardDeviation": 1.690296007129,
+        "jaccardMean": 0.144433397834,
+        "pairCountStandardDeviation": 1.700127620224,
         "deficits": {
-          "fullPairs": 268,
+          "fullPairs": 247,
           "validationPairs": 74,
-          "priorityPairs": 67,
+          "priorityPairs": 68,
           "validationPriorityPairs": 1,
           "requiredTriples": 26,
           "validationRequiredTriples": 10,
@@ -228,20 +228,20 @@
           "validationRoutes": 0
         },
         "routeCounts": {
-          "all-damage-families": 101,
-          "deck-shaping": 37,
-          "draw-rich": 138,
-          "high-cost-economy": 46,
-          "improvise-mix": 38,
-          "mana-focused": 15,
-          "mana-melee": 37,
-          "mana-ranged": 31,
-          "mana-route": 89,
-          "melee-focused": 8,
-          "melee-ranged": 45,
-          "melee-route": 76,
+          "all-damage-families": 100,
+          "deck-shaping": 34,
+          "draw-rich": 134,
+          "high-cost-economy": 53,
+          "improvise-mix": 37,
+          "mana-focused": 16,
+          "mana-melee": 42,
+          "mana-ranged": 28,
+          "mana-route": 88,
+          "melee-focused": 9,
+          "melee-ranged": 44,
+          "melee-route": 70,
           "ranged-focused": 8,
-          "ranged-route": 59
+          "ranged-route": 60
         },
         "validationRouteCounts": {
           "all-damage-families": 20,
@@ -354,59 +354,59 @@
         "cardMinimum": 39,
         "tuningCardMinimum": 31,
         "validationCardMinimum": 8,
-        "pairMinimum": 5,
+        "pairMinimum": 4,
         "validationPairMinimum": 0,
-        "priorityPairMinimum": 9,
+        "priorityPairMinimum": 10,
         "validationPriorityPairMinimum": 1,
-        "requiredTripleMinimum": 2,
+        "requiredTripleMinimum": 1,
         "validationRequiredTripleMinimum": 0,
-        "tripleCovered": 8906,
-        "tripleCoverage": 0.901417004049,
+        "tripleCovered": 8904,
+        "tripleCoverage": 0.901214574899,
         "largestOverlap": 6,
         "overlapMean": 2.451612903226,
         "overlapP99": 5,
-        "jaccardMean": 0.144533838814,
-        "pairCountStandardDeviation": 1.692365966363,
+        "jaccardMean": 0.144545521835,
+        "pairCountStandardDeviation": 1.723889460434,
         "deficits": {
-          "fullPairs": 159,
-          "validationPairs": 59,
-          "priorityPairs": 39,
-          "validationPriorityPairs": 3,
-          "requiredTriples": 8,
-          "validationRequiredTriples": 7,
+          "fullPairs": 165,
+          "validationPairs": 47,
+          "priorityPairs": 35,
+          "validationPriorityPairs": 2,
+          "requiredTriples": 23,
+          "validationRequiredTriples": 9,
           "routes": 0,
           "validationRoutes": 0
         },
         "routeCounts": {
-          "all-damage-families": 111,
-          "deck-shaping": 38,
-          "draw-rich": 142,
-          "high-cost-economy": 56,
-          "improvise-mix": 39,
-          "mana-focused": 13,
-          "mana-melee": 33,
-          "mana-ranged": 36,
-          "mana-route": 102,
-          "melee-focused": 9,
-          "melee-ranged": 50,
-          "melee-route": 71,
+          "all-damage-families": 101,
+          "deck-shaping": 33,
+          "draw-rich": 143,
+          "high-cost-economy": 51,
+          "improvise-mix": 38,
+          "mana-focused": 9,
+          "mana-melee": 39,
+          "mana-ranged": 32,
+          "mana-route": 100,
+          "melee-focused": 10,
+          "melee-ranged": 47,
+          "melee-route": 72,
           "ranged-focused": 7,
-          "ranged-route": 73
+          "ranged-route": 65
         },
         "validationRouteCounts": {
-          "all-damage-families": 20,
-          "deck-shaping": 8,
-          "draw-rich": 29,
-          "high-cost-economy": 12,
+          "all-damage-families": 18,
+          "deck-shaping": 7,
+          "draw-rich": 30,
+          "high-cost-economy": 10,
           "improvise-mix": 8,
-          "mana-focused": 2,
-          "mana-melee": 7,
-          "mana-ranged": 6,
-          "mana-route": 19,
-          "melee-focused": 3,
+          "mana-focused": 1,
+          "mana-melee": 9,
+          "mana-ranged": 3,
+          "mana-route": 21,
+          "melee-focused": 2,
           "melee-ranged": 9,
-          "melee-route": 12,
-          "ranged-focused": 2,
+          "melee-route": 15,
+          "ranged-focused": 4,
           "ranged-route": 12
         }
       },
@@ -490,13 +490,13 @@
         "validationPriorityPairMinimum": 2,
         "requiredTripleMinimum": 4,
         "validationRequiredTripleMinimum": 1,
-        "tripleCovered": 9507,
-        "tripleCoverage": 0.962246963563,
+        "tripleCovered": 9505,
+        "tripleCoverage": 0.962044534413,
         "largestOverlap": 6,
         "overlapMean": 2.462311557789,
         "overlapP99": 5,
-        "jaccardMean": 0.145215001367,
-        "pairCountStandardDeviation": 1.638419404779,
+        "jaccardMean": 0.145187414911,
+        "pairCountStandardDeviation": 1.568866222111,
         "deficits": {
           "fullPairs": 0,
           "validationPairs": 0,
@@ -508,36 +508,36 @@
           "validationRoutes": 0
         },
         "routeCounts": {
-          "all-damage-families": 122,
-          "deck-shaping": 47,
+          "all-damage-families": 124,
+          "deck-shaping": 44,
           "draw-rich": 183,
           "high-cost-economy": 66,
-          "improvise-mix": 49,
-          "mana-focused": 16,
-          "mana-melee": 51,
-          "mana-ranged": 43,
-          "mana-route": 123,
-          "melee-focused": 11,
-          "melee-ranged": 69,
-          "melee-route": 98,
+          "improvise-mix": 48,
+          "mana-focused": 17,
+          "mana-melee": 56,
+          "mana-ranged": 44,
+          "mana-route": 122,
+          "melee-focused": 8,
+          "melee-ranged": 73,
+          "melee-route": 102,
           "ranged-focused": 8,
-          "ranged-route": 92
+          "ranged-route": 96
         },
         "validationRouteCounts": {
           "all-damage-families": 20,
-          "deck-shaping": 8,
-          "draw-rich": 36,
-          "high-cost-economy": 11,
+          "deck-shaping": 9,
+          "draw-rich": 34,
+          "high-cost-economy": 12,
           "improvise-mix": 10,
-          "mana-focused": 4,
-          "mana-melee": 10,
-          "mana-ranged": 8,
-          "mana-route": 23,
-          "melee-focused": 2,
-          "melee-ranged": 16,
-          "melee-route": 17,
+          "mana-focused": 5,
+          "mana-melee": 11,
+          "mana-ranged": 9,
+          "mana-route": 21,
+          "melee-focused": 1,
+          "melee-ranged": 18,
+          "melee-route": 18,
           "ranged-focused": 2,
-          "ranged-route": 18
+          "ranged-route": 17
         }
       }
     ]
@@ -652,7 +652,7 @@
     ],
     "variableCount": 40,
     "kingdomCount": 847660528,
-    "digest": "e437409b39695889d824de1e29709428510fc9bb394cc8827bdf60a17a7efade",
+    "digest": "c50531a9be867a7002ee32af857efa960c80cc14b9abc62b27e292f3f7c5aba9",
     "semantics": {
       "variable": [
         {
@@ -715,10 +715,10 @@
           "type": "action",
           "family": "mana",
           "cost": 4,
-          "text": "Spend 1 mana. Deal 4 damage at any range.",
+          "text": "Spend 1 mana. Deal 3 damage at any range.",
           "mechanic": "spell",
           "values": {
-            "damage": 4,
+            "damage": 3,
             "manaCost": 1
           }
         },
@@ -728,10 +728,10 @@
           "type": "action",
           "family": "mana",
           "cost": 5,
-          "text": "Spend 2 mana. Deal 8 damage at any range.",
+          "text": "Spend 2 mana. Deal 6 damage at any range.",
           "mechanic": "spell",
           "values": {
-            "damage": 8,
+            "damage": 6,
             "manaCost": 2
           }
         },
@@ -780,10 +780,10 @@
           "type": "action",
           "family": "mana",
           "cost": 5,
-          "text": "Deal 2 damage at any range for each mana you spent this turn.",
+          "text": "Deal 3 damage at any range for each mana you spent this turn.",
           "mechanic": "overload",
           "values": {
-            "perManaSpent": 2
+            "perManaSpent": 3
           }
         },
         {
@@ -857,7 +857,7 @@
           "type": "action",
           "family": "melee",
           "cost": 3,
-          "text": "At Close range, deal 4 damage if this is the first card you played this turn. Otherwise deal 1 damage.",
+          "text": "At Close range, deal 4 damage if this is the first attack you played this turn. Otherwise deal 1 damage.",
           "mechanic": "openingStrike",
           "values": {
             "first": 4,
@@ -869,12 +869,12 @@
           "name": "Rally",
           "type": "action",
           "family": "melee",
-          "cost": 4,
-          "text": "At Close range, deal 1 damage. Deal 1 additional damage for each other copy of Rally you played this turn.",
+          "cost": 3,
+          "text": "At Close range, deal 2 damage. Deal 2 additional damage for each other copy of Rally you played this turn.",
           "mechanic": "rally",
           "values": {
-            "damage": 1,
-            "perCopy": 1
+            "damage": 2,
+            "perCopy": 2
           }
         },
         {
@@ -882,11 +882,11 @@
           "name": "Bull Rush",
           "type": "action",
           "family": "melee",
-          "cost": 4,
-          "text": "At Close range, discard 1 Melee card: deal 5 damage.",
+          "cost": 3,
+          "text": "At Close range, discard 1 Melee card: deal 7 damage.",
           "mechanic": "bullRush",
           "values": {
-            "damage": 5
+            "damage": 7
           }
         },
         {
@@ -945,7 +945,7 @@
           "name": "Repelling Shot",
           "type": "action",
           "family": "ranged",
-          "cost": 3,
+          "cost": 4,
           "text": "At Far range, deal 2 damage. At Near range, deal 1 damage. Move the opponent 1 space farther away. If they cannot move, move yourself 1 space farther away instead.",
           "mechanic": "repellingShot",
           "values": {
@@ -958,7 +958,7 @@
           "name": "Longshot",
           "type": "action",
           "family": "ranged",
-          "cost": 4,
+          "cost": 3,
           "text": "At Near or Far range, deal damage equal to the distance between you and your opponent.",
           "mechanic": "longshot",
           "values": {}
@@ -969,10 +969,10 @@
           "type": "action",
           "family": "ranged",
           "cost": 5,
-          "text": "At Near range, deal 1 damage. At Far range, deal 4 damage.",
+          "text": "At Near range, deal 2 damage. At Far range, deal 4 damage.",
           "mechanic": "volley",
           "values": {
-            "near": 1,
+            "near": 2,
             "far": 4
           }
         },
@@ -1233,7 +1233,7 @@
     }
   },
   "taxonomy": {
-    "digest": "101eff0e50cf07d06d259690e94513634944b7b87261f5a179e01eb2154b2701",
+    "digest": "19bc41bb2b5df207f513a7581e9e598c3fdbc5f57748e0549df74adce382397f",
     "roles": {
       "manaSource": [
         "attune",
@@ -1353,17 +1353,19 @@
     },
     "costBands": {
       "low": [
+        "bullRush",
         "channel",
         "cull",
         "discipline",
         "footwork",
         "jab",
         "leyStep",
+        "longshot",
         "openingStrike",
         "pepperingShot",
+        "rally",
         "reclaim",
         "regroup",
-        "repellingShot",
         "sharpen",
         "steadyShot",
         "stipend",
@@ -1373,12 +1375,10 @@
         "adapt",
         "arcBolt",
         "attune",
-        "bullRush",
         "discharge",
         "drive",
-        "longshot",
-        "rally",
         "reforge",
+        "repellingShot",
         "salvageShot"
       ],
       "high": [
@@ -35891,7 +35891,7 @@
       "id": "balance-tuning-001",
       "name": "Balance Tuning 001",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -35946,13 +35946,13 @@
         "reason": "Human-play continuity control",
         "sourceId": "current-duel"
       },
-      "rowDigest": "82c0b021698d160a596a95aa3dce1a152ec64aa04588763f79187a54466e8b00"
+      "rowDigest": "e2517c36beb06a076e6a7db90ce2beacaf868b59e7225646ca7a1475c81f2ca6"
     },
     {
       "id": "balance-tuning-002",
       "name": "Balance Tuning 002",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cull",
@@ -36009,13 +36009,13 @@
         "reason": "Human-play continuity control",
         "sourceId": "three-way-open"
       },
-      "rowDigest": "2539e5e0989a5b38ddf9abfb55b10530602a6549548c1bd35fb38f404b999d82"
+      "rowDigest": "3221b8cc7ed4d2e124a13c43cf78415489a51ad59b1a939db2f0de7ba1b021e4"
     },
     {
       "id": "balance-tuning-003",
       "name": "Balance Tuning 003",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "channel",
@@ -36071,13 +36071,13 @@
         "sourceId": "deep-beam-tuning-009",
         "sourceDigest": "4e7c9c889fc40b7d52532b756f17121a247d91497ac0e49f9acd7a150a0972a6"
       },
-      "rowDigest": "2664958dcef6579054eecaae8867ff951043ced94992fa8ea4aefc59d17fed08"
+      "rowDigest": "e66b7326c1f05551e3c27e96216a7125924614e9b1847990ff1ba94b317885ef"
     },
     {
       "id": "balance-tuning-004",
       "name": "Balance Tuning 004",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -36130,13 +36130,13 @@
         "rationaleId": "thin-mana-control",
         "reason": "Measures dependence on always-available Focus"
       },
-      "rowDigest": "9be6fdcfbe91a891cf8285e52a0728b92b4e4d216fa5c6495962e2827cd95a5d"
+      "rowDigest": "df2e8b3bd11ad612fba0d214f5872e7ffccc6ca088b59c0632575b7afba35c90"
     },
     {
       "id": "balance-tuning-005",
       "name": "Balance Tuning 005",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -36191,13 +36191,13 @@
         "rationaleId": "high-cost-choke",
         "reason": "Measures slow baseline economy and search failure"
       },
-      "rowDigest": "7ef9a60cfe83b2dacf33f3b5509c5a1e57f8f71dc66061f5de2fd6d5913eb96d"
+      "rowDigest": "307d406269fb074b27ddcd6f735fabb0d1d799655e0186c7a8cba95954fd22e4"
     },
     {
       "id": "balance-tuning-006",
       "name": "Balance Tuning 006",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -36253,13 +36253,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "4067d49cc7fb4d7fe169ac1cf8a097f61c8da0c0fd9cb6a0da6f2982b05f0ecd"
+      "rowDigest": "d72125646f55494c77fdb8b231ffa9e518fe75b9e302eb42503046c9044c1970"
     },
     {
       "id": "balance-tuning-007",
       "name": "Balance Tuning 007",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -36316,13 +36316,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "64d932ab50b24ab6ab7ba9e6b258f2ac53b3f04d7b08287c05cae8ee6596f5e9"
+      "rowDigest": "9152b8eceade2a8e6e5649545235baa3936c5c37d3f4feb0884fdd779b181573"
     },
     {
       "id": "balance-tuning-008",
       "name": "Balance Tuning 008",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -36377,13 +36377,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "0bd2973c6cbf6405131ce6ce7bff2293e812fde76b2cadab1e5939cf7711c2f9"
+      "rowDigest": "02ab21dbfdddc9e56063a4eed417588e496612e2504b0721b75e1f2ad7636f05"
     },
     {
       "id": "balance-tuning-009",
       "name": "Balance Tuning 009",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -36439,13 +36439,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "c17322e22ae3c7e77fcfc8d4ef7a62379d38dfc64104c443c5a48ddd14d0e259"
+      "rowDigest": "35de5857bc0f1a415018015c21242d2debe16c953715b96e3538a79e0d1a7da6"
     },
     {
       "id": "balance-tuning-010",
       "name": "Balance Tuning 010",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -36502,13 +36502,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "c542a84e6376a02c7eb381867f137ebcf41303c1626966e4a852763fff90d3ea"
+      "rowDigest": "3b447102b40d2c308ed31190c8c385b3f70dbf7bf74d7ce2dfe6890106803aa7"
     },
     {
       "id": "balance-tuning-011",
       "name": "Balance Tuning 011",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -36559,13 +36559,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "6569544641fd31ad1d0e8c5620d26b6896612f804b293866e17b87aac5b3225c"
+      "rowDigest": "45da1721a9ec0e2ed175a51ec52ebbc44cf688de673a59fc973973278f6e01f6"
     },
     {
       "id": "balance-tuning-012",
       "name": "Balance Tuning 012",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -36621,13 +36621,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "20d7862d656ad59640147e330db49aec703966ce06a83a46c313cb6530581c67"
+      "rowDigest": "d9a55136eacf9764646940764e85e22b32b9d04a31e515dfb5505d2b4e004791"
     },
     {
       "id": "balance-tuning-013",
       "name": "Balance Tuning 013",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -36683,13 +36683,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "633d66548a9715e472cbd32ba7f421d0eb7a6a4d781762c7ec768869a1f9e948"
+      "rowDigest": "98d52096aa6eb8f5d24ea8e2388c980760cca1a313410080a67e32cae44473bd"
     },
     {
       "id": "balance-tuning-014",
       "name": "Balance Tuning 014",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -36742,13 +36742,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "3494a209aa0d14ab897d82914cd50edce61eb4085d5477784ede5d71d2435c61"
+      "rowDigest": "7acd1788fe89c701486810721287a1513c68161aa3ec229778ec1c9710cc2839"
     },
     {
       "id": "balance-tuning-015",
       "name": "Balance Tuning 015",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -36804,13 +36804,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "301e5b33ad3cea956e5c26c3683612e12ff84902d3d78cbb4d97c7c77616ceee"
+      "rowDigest": "70bf46ee292f22950bfa3783ddcd9fc89094bd20784c773f8833f3fea84a95d3"
     },
     {
       "id": "balance-tuning-016",
       "name": "Balance Tuning 016",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -36865,13 +36865,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "a7e627fc3a9d299bd278eb19b63d577eaff6a3bbb538ebeaf16d811ea99aa111"
+      "rowDigest": "cf36a18187f3c3bfedff20d4d7ac1546e7e965a6b15c6e71aefb863be1d90d53"
     },
     {
       "id": "balance-tuning-017",
       "name": "Balance Tuning 017",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "fireball",
@@ -36925,13 +36925,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "5b14486068d2d6d7f141283af6bd9d52f0e7c22902fc349141e90352655847fb"
+      "rowDigest": "59d43365fc4e28343a3b2e571138037961c00808bc2d1f1b7082e3ac8530ba76"
     },
     {
       "id": "balance-tuning-018",
       "name": "Balance Tuning 018",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -36986,13 +36986,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "077ec8c4e44a77750752778018189339e5dfffb05d5db0577f5c9a59bd7d8763"
+      "rowDigest": "9c648888fef8a924a3897224c014a16494862016efd12414cbc29c5f24e0bc35"
     },
     {
       "id": "balance-tuning-019",
       "name": "Balance Tuning 019",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -37048,13 +37048,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "cc2c1b979d2b57db0608c901977fb59bc8df40b0d851761179b8a6e5ed24b6c6"
+      "rowDigest": "83e28efa4862eb8b030ccf59292f47ef7c797e262aeca7b678e59554e10bab94"
     },
     {
       "id": "balance-tuning-020",
       "name": "Balance Tuning 020",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -37109,13 +37109,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "2e8074655c2820057ec3cb7fbebba424f0d60e11b4146e4716227600cb60ad50"
+      "rowDigest": "936458fb8fa3cebb15ff34702221c12fba53f11710a4568f2cd8f9a803179bb4"
     },
     {
       "id": "balance-tuning-021",
       "name": "Balance Tuning 021",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -37171,13 +37171,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "5f11406b6c4a7307b4943aa984cd74c3696c0ea7efe82dba0882be5f770e8924"
+      "rowDigest": "ba0a3693c2d0ec9cbf4091b7c4645af5fe046fbf6de17892f31273c99c1df85f"
     },
     {
       "id": "balance-tuning-022",
       "name": "Balance Tuning 022",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -37233,13 +37233,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "c69f967501948e0f2daa8fa0d723c54952aa8dbe0ef8802d452952e2b670ca4e"
+      "rowDigest": "5877eb82ce2abd74bb98195c26d9cb7407c22aaf5acf22fc9095036100fc9d8a"
     },
     {
       "id": "balance-tuning-023",
       "name": "Balance Tuning 023",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cull",
@@ -37296,13 +37296,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "3c9fc2c5f7fba36a97b8df632b055eea94194939235921ac5f2f6f110e86d2f6"
+      "rowDigest": "7379c9065ac9e6704194991e46e7eaf9a6ac74f51724d1df257ae47192b46f22"
     },
     {
       "id": "balance-tuning-024",
       "name": "Balance Tuning 024",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -37356,13 +37356,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "1092f1e22cd8209e167940bc8420ab1e02c0d2b45c5bff427c2cae1c050f7acd"
+      "rowDigest": "d38642d65ceacd86a8521bf90a550d524cf1a2c1917ab713f16a806c77fa0ebd"
     },
     {
       "id": "balance-tuning-025",
       "name": "Balance Tuning 025",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -37416,13 +37416,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "fbaf2ee45d6215465cb5d3ee2866586e6b28b1a5f5e19096c0ff566f3d73474d"
+      "rowDigest": "947a0a463a984e116943e5466d033fe8c97fa76d74e59dea70d3deaa95dc572b"
     },
     {
       "id": "balance-tuning-026",
       "name": "Balance Tuning 026",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -37476,13 +37476,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "ad454e7ae88d80843e28db78e1ab9ab9c30b8b7f2cca46a98f04f03c1a283f9f"
+      "rowDigest": "e76e0b15a267759575480b470188adfa45341afe24370a8816b959d74105a5de"
     },
     {
       "id": "balance-tuning-027",
       "name": "Balance Tuning 027",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "improvise",
@@ -37536,13 +37536,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "27f04ca70c548803ab1ce0a20aa56818a5ec90ae3fbad56b8ea98a14b959f632"
+      "rowDigest": "153d5cdc29579c814b64aca3de7a68ab61542ac19ad37e16ceac258ececd9cd7"
     },
     {
       "id": "balance-tuning-028",
       "name": "Balance Tuning 028",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -37598,13 +37598,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "31ef3fc3cd7009da5b5881d331ee2245051a25644a21d27542d8cca371ea1d71"
+      "rowDigest": "31eee7169bd949836e61ca7a46dcf4e7f8ec8281cf289d65078a13972e4d6dbf"
     },
     {
       "id": "balance-tuning-029",
       "name": "Balance Tuning 029",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -37658,13 +37658,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "040430129bc6e3f7f1d39fea57c1b08243211bbde1ff38e48a05fbce97d16df6"
+      "rowDigest": "754908a36f544aaa9a85c99b68ebe8c7850662a9e3131b6bd95bb8d1095e30b8"
     },
     {
       "id": "balance-tuning-030",
       "name": "Balance Tuning 030",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -37722,13 +37722,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "929f750227c942a5e4d2edb9323ee97ec6a8f8d07004db5bf9b3f69bfaab5b30"
+      "rowDigest": "e872d66c190603cbe42397e728a2f2c617a6c7982318807124d4789e10dd6f5b"
     },
     {
       "id": "balance-tuning-031",
       "name": "Balance Tuning 031",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -37780,13 +37780,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "262155c0072ac334501e397b51ba5239f3adc276408fc0dc8ddece3c30e7d680"
+      "rowDigest": "ad83c8709b42e9bdb4afb1b415f02717fb968613728ac9188e63eb5c05908705"
     },
     {
       "id": "balance-tuning-032",
       "name": "Balance Tuning 032",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "channel",
@@ -37841,13 +37841,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "ea6eaf0deb7031e6aa7cfc57f04d612e8e855d170cbb692d57f10af71ca055f6"
+      "rowDigest": "1a5ccc5619d3275d1f51ac5c83dd0989bc56844795fda47afcbe58e78f8f1de7"
     },
     {
       "id": "balance-tuning-033",
       "name": "Balance Tuning 033",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -37901,13 +37901,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "0883e60ce5dc31455178c350f1d3565e55d4928d7688ae22f545d23b6715cda5"
+      "rowDigest": "3326173e1870b7426a765b8c367fe394c87c2e3db20e62e9a06a1fa90e4f0404"
     },
     {
       "id": "balance-tuning-034",
       "name": "Balance Tuning 034",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -37960,13 +37960,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "c62120f1fd7cb577c69489c36ea19761f79620c9777be5e229bc86cb5136ccb0"
+      "rowDigest": "268c4ace3e47dfe6f84a80417854bc712a7189ee288b0e739dad198c30adfb9e"
     },
     {
       "id": "balance-tuning-035",
       "name": "Balance Tuning 035",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -38021,13 +38021,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "acf0b17c5881c7558ca3c10fa62b5cf975e450496eb94f10d75f742f93755f48"
+      "rowDigest": "95ee9583b5db2a4537b81be21f555582fcf0f28505a7045709d3bc960804ab44"
     },
     {
       "id": "balance-tuning-036",
       "name": "Balance Tuning 036",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -38082,13 +38082,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "e439cdeb72317ed097602c676308b336fa52ba7ee41055d9640850550024ed08"
+      "rowDigest": "cdcddbcb6eca00ad1df238d719b4cd55c59be67640c1460e83fe7b0fa3ed18c2"
     },
     {
       "id": "balance-tuning-037",
       "name": "Balance Tuning 037",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -38144,13 +38144,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "e6d93cc85fa25eb1e6a685863b48dce0d6dff617162679164a892f68070b9c81"
+      "rowDigest": "4eef3f5763edb1e9e01fbe8e2c9882d12a3bf0dc41f92650cf8db14af4f6d195"
     },
     {
       "id": "balance-tuning-038",
       "name": "Balance Tuning 038",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -38204,13 +38204,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "ba5aca0e1cd3bf8dca9763379f4566045d33e1ab5a3d34acbce4e794b7ba6da0"
+      "rowDigest": "0a11e9448e7bbe6c0ddebd8746398796bd63e25539338ee4888301ce46386808"
     },
     {
       "id": "balance-tuning-039",
       "name": "Balance Tuning 039",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -38263,13 +38263,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "4401e9c9bc75a54ebf932262e38debfc99b44a4063c6efc72c86542fa5105ddf"
+      "rowDigest": "52cbe6b76c4bc46f5055f09c4ae054e6f86f69fd5d604d3a38386c224340772e"
     },
     {
       "id": "balance-tuning-040",
       "name": "Balance Tuning 040",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -38325,13 +38325,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "d2c49218264548100e40ee9b81c282d8484951d85704b04e80259b3137a6e880"
+      "rowDigest": "f88eb4b25a45f732bddc08797949248088ce491b85ff807d39f5382d8c69b092"
     },
     {
       "id": "balance-tuning-041",
       "name": "Balance Tuning 041",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -38389,13 +38389,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "ad59b8faf4848c0415b477148ddc3e2129ad2f7d3ee2b7f445e52d84119c8803"
+      "rowDigest": "586db2a01738a01b0e6cf631cecd067eeccbc0ce3446abcb0979d02e64e63185"
     },
     {
       "id": "balance-tuning-042",
       "name": "Balance Tuning 042",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -38449,13 +38449,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "4ba67114619d1599278740c887ea4ff2809c20ea812c863d924663daa84b0160"
+      "rowDigest": "43b05e9fb54bb126f9c3f02a2c57ee37ed024679ecc71aa72955c81bb56bd683"
     },
     {
       "id": "balance-tuning-043",
       "name": "Balance Tuning 043",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -38514,13 +38514,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "c5877150e809f286b28e3fa60bf0fcfdec6fd48f8ed758765e49fc9719cf2d28"
+      "rowDigest": "dbc5f0f1e1c628a939e091c0d1edd471a4e1c5416eacd0015852978463082de9"
     },
     {
       "id": "balance-tuning-044",
       "name": "Balance Tuning 044",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -38575,13 +38575,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "d672bbde4ff71f56f11dd566a1f4f96a0168a89a187c57353979aa21024542b8"
+      "rowDigest": "5c163315b56dac870aeb26e4d04cadcb99c100c79e4969fe4520221b2c69d242"
     },
     {
       "id": "balance-tuning-045",
       "name": "Balance Tuning 045",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -38637,13 +38637,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "32c5425fca36fe169bac91a658a776f2e8f18d26938137da38bccb8f9eb407a9"
+      "rowDigest": "4867d31877f7da1d7bc5583a81321a1744d89f9c73bd0f205bf0766f387b5e05"
     },
     {
       "id": "balance-tuning-046",
       "name": "Balance Tuning 046",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -38697,13 +38697,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "e80207282c41a75ab472f790a1c5d8428041ccab736d316f208809bb21a6f004"
+      "rowDigest": "4e7819cc5aa82506e50de0130039daed1363bc5450ea8b0a7d81af32a3567dd4"
     },
     {
       "id": "balance-tuning-047",
       "name": "Balance Tuning 047",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -38757,13 +38757,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "40601f8850797c10342243f2d061dd5382398106ae76d7dd383107d9815e6608"
+      "rowDigest": "c695a4bc6d72d17218001276ebdc91d69fb8ea6702d2b8a052fb929fd541ed46"
     },
     {
       "id": "balance-tuning-048",
       "name": "Balance Tuning 048",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -38817,13 +38817,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "9a78f48cb93ebcb23de27093ae5ee1e2d52267b4fbdbffaea89b45b8eff7b5fd"
+      "rowDigest": "2466ce289aedee8b7e5489f45dccd7c300e96b54346ec0384ce57d478e581fef"
     },
     {
       "id": "balance-tuning-049",
       "name": "Balance Tuning 049",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -38879,13 +38879,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "c990e86268edecdfbad68ee100f40ff3dbe95ae83928ff941235055e03271f23"
+      "rowDigest": "4c8929a8f20f6a068675e6c583478cb3a680f0f20934c8a9f248f7084a815da1"
     },
     {
       "id": "balance-tuning-050",
       "name": "Balance Tuning 050",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -38940,13 +38940,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "c11c0513977a7db9924c691be62ec463764891caaa14131f15e33d6ab1b1d16c"
+      "rowDigest": "9513a7dec4cb5b14da865ca84ea2bd9ee8ad2c9e67a1b57d1eef80925a619b54"
     },
     {
       "id": "balance-tuning-051",
       "name": "Balance Tuning 051",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -39002,13 +39002,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "5377a63dd44dfb755888a08b660fe5cfeb2399e45f0085f3755c76fc0109af4e"
+      "rowDigest": "8767fd0db4ef96d450dd1090ba765c3009ecd61c8032af922944190c966a18b6"
     },
     {
       "id": "balance-tuning-052",
       "name": "Balance Tuning 052",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -39063,13 +39063,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "f572c50e3cad05cad3dd74d91695219e5be54c21a8cad4e36f6f8f36642a7233"
+      "rowDigest": "061f35a861b98ef04a2b8eaf3cedd40b0dc86bdfae43e16bd7e9427d95f48306"
     },
     {
       "id": "balance-tuning-053",
       "name": "Balance Tuning 053",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "feint",
@@ -39123,13 +39123,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "f08fc6c5072eebe7b8879ffe98dc04d88f2add5ab7caa7a5d5aeb61205f213e4"
+      "rowDigest": "53b145c7f76fd9945978a4566841aa855017b2829b7d9a2d7ac0fa88f115efa4"
     },
     {
       "id": "balance-tuning-054",
       "name": "Balance Tuning 054",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -39185,13 +39185,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "82dcade70af86d44a6a69a67a0c521a96119b3f66ae2168805a617a639c17450"
+      "rowDigest": "3c6f325f1e2dd28c28370f1e07f9f546d4e812b17a5b93407140a2b81b6bdd23"
     },
     {
       "id": "balance-tuning-055",
       "name": "Balance Tuning 055",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -39249,13 +39249,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "59c6b6e92425cab1b63cfdb84596e9b2c92c542e940d0c215ca14d3dcbe4f472"
+      "rowDigest": "7723b354a0d3dd347aad7f69b125504698d1a86f9bd63a9b7c797788ffb30db0"
     },
     {
       "id": "balance-tuning-056",
       "name": "Balance Tuning 056",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "fireball",
@@ -39311,13 +39311,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "67899471dc1e32e73603912b69ca867684aa3eab1dccaa197837512f663de892"
+      "rowDigest": "38ddf3bb5414c1c64590be567c7a5f1efd36b994e9ac21a2674317c77e840b83"
     },
     {
       "id": "balance-tuning-057",
       "name": "Balance Tuning 057",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -39371,13 +39371,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "68f826d2aa7599f15648ce6d40f554c5e665c6f58100b7e706bea4134d500fd2"
+      "rowDigest": "4c83de0cc89a9439514466fd3c60c04e7da64cad1b8cd5d11ead6acf9736ca2c"
     },
     {
       "id": "balance-tuning-058",
       "name": "Balance Tuning 058",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -39431,13 +39431,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "540a23a1e70a0ab64d4de1359bb461e87b29b293acf9dea43d00780b54bdc592"
+      "rowDigest": "e2f11b01304b58ae40289eeafe8a26256cf31661c8e0270389b503d7d7bdcbf0"
     },
     {
       "id": "balance-tuning-059",
       "name": "Balance Tuning 059",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -39490,13 +39490,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "6ab8c0fadf6f40108bf7dca2a7ecdcf96fa86710c74d85d314f2149783ab3384"
+      "rowDigest": "c4e806a7fd79eb154d618a2a6fd1d221df18916e600d7b111914bb2ed7451500"
     },
     {
       "id": "balance-tuning-060",
       "name": "Balance Tuning 060",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -39551,13 +39551,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "a6d76d48d02736ee5a272f3b9d5dbaf036e2c11330061ea7534952374ca8fb43"
+      "rowDigest": "186a71cc5603257654be2714c6ea5304c8a999fc7ef79e13d04f97c34c5f5024"
     },
     {
       "id": "balance-tuning-061",
       "name": "Balance Tuning 061",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "fireball",
@@ -39611,13 +39611,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "910bb01cd32bce002a586bca1d218919a66b79abe32a3d47b0f27a712618f380"
+      "rowDigest": "248f7b050daaa4847dcced62b1e81c532a66d92d8b8e9b255963ba1b24d3ac1d"
     },
     {
       "id": "balance-tuning-062",
       "name": "Balance Tuning 062",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -39672,13 +39672,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "1d12b31734de84bef16c4037f2ede42bf6f08d211d849791d3f018017f96dd60"
+      "rowDigest": "e156b67f9c940bb87dc887f1508f67d1f9a6a086d47d4be9be360d529d749676"
     },
     {
       "id": "balance-tuning-063",
       "name": "Balance Tuning 063",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -39734,13 +39734,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "398a504753e05b85fdeac5b37f693b6e2884e66ee89f6c71e1df86bf723c53c2"
+      "rowDigest": "c131cdb519cd93e66b5cd97986faceca8a44bdf806e2ca9253db8b924533e86c"
     },
     {
       "id": "balance-tuning-064",
       "name": "Balance Tuning 064",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -39794,13 +39794,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "5b0991983cafe428e3a783e74eb385a0d5fc7daac0567439580af6e52072f8c7"
+      "rowDigest": "52d5bbfa8962f826c30e5ecd1b13cc92b45ca96187bd7088dabc2e37871bf563"
     },
     {
       "id": "balance-tuning-065",
       "name": "Balance Tuning 065",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -39854,13 +39854,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "837c54018f9d2c94ba0d17d7d5ec45d9658f095c6c0b14d7f868773716265cf2"
+      "rowDigest": "a1fed47323162fe7e095d2f416c28c45c01dc31a08816f413b5346a980787851"
     },
     {
       "id": "balance-tuning-066",
       "name": "Balance Tuning 066",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -39915,13 +39915,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "bb24f31507b9c9ace8291558ee07efc878b582688326f5aa5e2abe8fa411db8f"
+      "rowDigest": "b0afc0a9772b59bb67d78763d8fc309b48ef85842d470267226c3cdf72ff8bda"
     },
     {
       "id": "balance-tuning-067",
       "name": "Balance Tuning 067",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -39978,13 +39978,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "01ec27c53fe4f726469a1d92ef84a55f1dc562b0ec46dfcfa1a6a24bea65e752"
+      "rowDigest": "41d04c834d542dbe4e844c86f21ba3ee777224b1cfab69808800e5247451ebc5"
     },
     {
       "id": "balance-tuning-068",
       "name": "Balance Tuning 068",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -40038,13 +40038,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "53502c3dee1f58ee6b32901c6ad3918e2ed09e04732ff7cc1f4e4ea240924e30"
+      "rowDigest": "cfeafcd8de45856548370fda910e1966fb6ebc558b0205b4bb8d1893ebcc79f7"
     },
     {
       "id": "balance-tuning-069",
       "name": "Balance Tuning 069",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -40098,13 +40098,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "921782ac694cc9b58c86f631bda30288c6d4c9e53162d4143539850ccee93223"
+      "rowDigest": "19f4d642c027abeb64c116a09fd5cc2c1f958a9c41b26c1db1377fe28db15419"
     },
     {
       "id": "balance-tuning-070",
       "name": "Balance Tuning 070",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "feint",
@@ -40158,13 +40158,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "4d663dda9d5952a77c5e490d87754ad5f73be27944f15534caf6b436f0a2bba9"
+      "rowDigest": "7ff924c8fc7c9e8a0af375044ceebff71561ed2fbcb85d237f3453dfc8ce0167"
     },
     {
       "id": "balance-tuning-071",
       "name": "Balance Tuning 071",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -40220,13 +40220,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "95c11b31bd135005d6f0490e60a32535ae9166869b091f2c6ce464f2c6298efe"
+      "rowDigest": "7ab35b8575d4c1d8457c2689a0ef31895f116f5970b182049e3778140dc3e8df"
     },
     {
       "id": "balance-tuning-072",
       "name": "Balance Tuning 072",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -40283,13 +40283,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "d40c0f2b2fad2fc4f819c55875c268382d33beb68ad1dc45dd5282d5784cb38a"
+      "rowDigest": "5c60117a8afdab5a4548e68eb6d58506b9f595ec7d212022bf9158b54482d4ee"
     },
     {
       "id": "balance-tuning-073",
       "name": "Balance Tuning 073",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -40346,13 +40346,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "f4b142d9255279cca4a519b8735207da0cf279ff2b2441dabd453e0d8e6a69ca"
+      "rowDigest": "255765d29f2fd2b92448a78209870acc722bf8fc394e783c27275abdd4341a02"
     },
     {
       "id": "balance-tuning-074",
       "name": "Balance Tuning 074",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -40405,13 +40405,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "0feb3d22a334041649cb65101a12609206b7b9b2214bf0b7f121d53acd25d730"
+      "rowDigest": "1282eae1c2961c4ad41179e54b8bb62f01f3bc1da2cf01261e1764e561744ace"
     },
     {
       "id": "balance-tuning-075",
       "name": "Balance Tuning 075",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -40465,13 +40465,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "c287bec661787900ac937c77713c8d076e1af92578bbbda7f30691849a2fc113"
+      "rowDigest": "d899f18647bd1dee9a60c4dd772a7f743d1741996578e081437689f3fd5f341a"
     },
     {
       "id": "balance-tuning-076",
       "name": "Balance Tuning 076",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cull",
@@ -40526,13 +40526,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "4c47bc32945faf0c65d7934e393a0555ba2a1762ee74f84a1c19b7a2b8062c2b"
+      "rowDigest": "690eb2a32b9769c5adcb0496447ffe595b23e001efc6411d2d30704650ceedd5"
     },
     {
       "id": "balance-tuning-077",
       "name": "Balance Tuning 077",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -40587,13 +40587,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "c14c49e47d27698a081f6f84d0b0fe296252f3cb1697642c578f05eb2ed5ff5b"
+      "rowDigest": "ad42f05f69874bbd5ca8942ae5347412ecf6ca2aed0d3f2b9330655b1d39baac"
     },
     {
       "id": "balance-tuning-078",
       "name": "Balance Tuning 078",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -40646,13 +40646,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "d82d3a5082c4e8dc72aa94664d192e28b3e91ef0ad7aeb9bbfc8b286f83ab661"
+      "rowDigest": "b7fbeafa351a4ba4761713c7caf9aad50ce204106b356ac41183c298b196ff87"
     },
     {
       "id": "balance-tuning-079",
       "name": "Balance Tuning 079",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -40707,13 +40707,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "766bd0b833b2e40e6f82851035f167ade06be7eafe1bd48e23c2c3a208d71c5e"
+      "rowDigest": "0bce9c8f399a01dfdce6f41eeaf37181d2f9f0e39b72c0fe4fd03d26e929dd10"
     },
     {
       "id": "balance-tuning-080",
       "name": "Balance Tuning 080",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -40768,13 +40768,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "6d0db4a3a5e580f88d8b9e833f2c3be5caca1a9a1b972bc27ab6176f5ac3f7f5"
+      "rowDigest": "5fbbd54ef1abf3e8dee5cb7255274741964d0c21fd132621d04378d70a5884e0"
     },
     {
       "id": "balance-tuning-081",
       "name": "Balance Tuning 081",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -40832,13 +40832,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "af18fdccd8f9b4ef7a239f328ebe8247459ce4b26660fada5b08cbbb37ab4c33"
+      "rowDigest": "a675c1f39c06fc6ab62791ea99a77693855e5ca524afd953f8cb28cad82090aa"
     },
     {
       "id": "balance-tuning-082",
       "name": "Balance Tuning 082",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -40895,13 +40895,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "e67818e2f7e8cb097352b702c07e860638b5788d4ef3aa521fa1a32770ace856"
+      "rowDigest": "f15733fd9034986ff29d5e5e1ffe006fa2981c60dc82315f1708a1d28bb59353"
     },
     {
       "id": "balance-tuning-083",
       "name": "Balance Tuning 083",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -40957,13 +40957,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "9330de52ad04a9306c737e271bad29d5737829190445d96f6d014deb793dc612"
+      "rowDigest": "145fd8f59ac6c7776e16b221d624c39e4911e6f6e5895373e18726e06c77c914"
     },
     {
       "id": "balance-tuning-084",
       "name": "Balance Tuning 084",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -41019,13 +41019,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "2a172a27bab9add3e8e2b0420081393b4d1a79930142094d1b00fc7d7955d438"
+      "rowDigest": "5a0e570bcf8ffaca3b45d6d761086aa17de5e4070eb921f0fb7e87b8f066c26e"
     },
     {
       "id": "balance-tuning-085",
       "name": "Balance Tuning 085",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -41080,13 +41080,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "989b26867d6c858a5552ec485e4fdbce8398c90eb0c98e258d8f2a4ebac12a29"
+      "rowDigest": "4a3363dec7768ce016068a11884de84d4d060f2bf59876feb354034746339704"
     },
     {
       "id": "balance-tuning-086",
       "name": "Balance Tuning 086",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -41141,13 +41141,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "444c652b1403cb3256ad1f2dd7e497c325643676eac9c001de51d3064171e404"
+      "rowDigest": "e3373af9059f261cb52228257f5c94b4983def45f80830295a77795f0508cb3e"
     },
     {
       "id": "balance-tuning-087",
       "name": "Balance Tuning 087",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -41201,13 +41201,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "8a5d67e4626782ef733759d6423cfd8f22ae8e43561d5414416e63c99ca281a8"
+      "rowDigest": "3759070f3a1e7537dab69e55377d2a1ddcd3b90c02a5807cea4bc6759134febb"
     },
     {
       "id": "balance-tuning-088",
       "name": "Balance Tuning 088",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -41262,13 +41262,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "7be6fc435895b502605628e207a6f1b70670c12b954de123c41cfdb810b2c2da"
+      "rowDigest": "6ecec817c5000a81cf2504f16d9ea60306f8443c28b64b1bebe1f1213873bedd"
     },
     {
       "id": "balance-tuning-089",
       "name": "Balance Tuning 089",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -41322,13 +41322,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "a112923dbc9675dd7905b2f7bff3dda87b73b7280ec6dcaa0dde4ca6c0a7141b"
+      "rowDigest": "a75a86257f8aaa2e6cc0224fc443f7b1c980c601e20bf75542a6185a4c382ed2"
     },
     {
       "id": "balance-tuning-090",
       "name": "Balance Tuning 090",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -41381,13 +41381,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "63b038e064c2bfd86e305adcb7525e77436ba4585ecfd0303cdeb3b845b029cf"
+      "rowDigest": "a39e0dfed7b17565ac36e080ee4ada17ddad44f24be9e1783459606f3f4941f2"
     },
     {
       "id": "balance-tuning-091",
       "name": "Balance Tuning 091",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -41442,13 +41442,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "6e9d62863bc6aab82c3ed299f6449552fdf85d46632c6f7db8b4b16eaa80941a"
+      "rowDigest": "c9b0a0ce8a193f061df1f40f8762cdf5597ba7ef797a896a7191bbf63a789177"
     },
     {
       "id": "balance-tuning-092",
       "name": "Balance Tuning 092",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -41502,13 +41502,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "5c4320af81e3973a5ef7c9ff4fe2352a0811d8529aafc82be6afe236b06cb2c1"
+      "rowDigest": "5b1727c6eda8b1adb96e9f90128ddf9a4eb04d68870bf097217682eaae44bf39"
     },
     {
       "id": "balance-tuning-093",
       "name": "Balance Tuning 093",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -41563,13 +41563,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "429867ac02db3dd0dbd9c7b160063aee3cfc1ee79f3bc254bb5d7bc75160f1a0"
+      "rowDigest": "875e540883738ffc7aafbe986d6274079499c47c929054709fbb9aa1a8cadf14"
     },
     {
       "id": "balance-tuning-094",
       "name": "Balance Tuning 094",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -41624,13 +41624,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "797b171b4544eef6ced12f9dbaec595005485c5a0760eaead12f6a2527f57e76"
+      "rowDigest": "514c7dcc789de92bd07e5341a94dceaa62bcd055193834b5ebfe77e7ede9238d"
     },
     {
       "id": "balance-tuning-095",
       "name": "Balance Tuning 095",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -41686,13 +41686,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "a4ef6346b65f1ad552c4b94a517bbf6548e8ada289630b6fddcea29c1012bff1"
+      "rowDigest": "b7f895dbc99e9e2c1b32f392d5aeec0b48ce185fab95940b745409e07e4dcbfb"
     },
     {
       "id": "balance-tuning-096",
       "name": "Balance Tuning 096",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -41744,13 +41744,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "7eba75ffd2970604fb0556fc3279526842a76bb552a1914616ffe71d77b8e267"
+      "rowDigest": "5fa29d1c217c7aa0fb21ae26cc47a57fc3e89df541dcae20be1b741d0712e4a8"
     },
     {
       "id": "balance-tuning-097",
       "name": "Balance Tuning 097",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -41805,13 +41805,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "b815c3641bb6f24128e90a69b25d8a5767146ffe3a17dc47f31b52e7ddde50a7"
+      "rowDigest": "f453020c9d7da7c1db11ecf39982ec18501abdb729fe36ab40b744b7679853e6"
     },
     {
       "id": "balance-tuning-098",
       "name": "Balance Tuning 098",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -41865,13 +41865,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "6425fb2271eb12960990f1e3ddca9aac88148592d1225c5dfae98825dce02a09"
+      "rowDigest": "b6c9b98a2f4e9ecad65135d3191495e048d265f5caf5bb7eba6ff79df7d388b3"
     },
     {
       "id": "balance-tuning-099",
       "name": "Balance Tuning 099",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -41927,13 +41927,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "8f6f25d89aa158703956cf9cb4e651042893679c11aa45d051bb64b91ed7e4b4"
+      "rowDigest": "238633399d84dbd23e0eb6e7fba2c65a1c6017d8bb1c8b04594d26ae40eb2b47"
     },
     {
       "id": "balance-tuning-100",
       "name": "Balance Tuning 100",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -41985,13 +41985,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "214df48035bb954246b634c2ca8e78363d098735f1eaa2888b50827a43a42148"
+      "rowDigest": "c0fc7b6adeca85f24418d8c9f5069c84ff16759a8d54b606e33706aefb2d01fe"
     },
     {
       "id": "balance-tuning-101",
       "name": "Balance Tuning 101",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -42045,13 +42045,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "e27bbb1afa852fe1c9f5f4f9b7b21bf4175258e36765e03b278aee75811a97d4"
+      "rowDigest": "e38abc7a7ee789d169e690509b88f362b0fbdfb62854269eaef14c0428335a54"
     },
     {
       "id": "balance-tuning-102",
       "name": "Balance Tuning 102",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -42106,13 +42106,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "34f42dfddf2f777ef4feb5b66671b93f0be42c73b7880d5327acf7cc3ab6cb47"
+      "rowDigest": "387e64555dfa388cb5ef7435037d8753c01a6928762824bc425ab0dc75e23649"
     },
     {
       "id": "balance-tuning-103",
       "name": "Balance Tuning 103",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -42168,13 +42168,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "8b600b8af66cd17df150dae189acd717f37e23fdf5d6240b06d691680c5b2598"
+      "rowDigest": "71c2d73802366afb294632d88eb01f9b434117249f51a5de19a8606affec7ad0"
     },
     {
       "id": "balance-tuning-104",
       "name": "Balance Tuning 104",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -42231,13 +42231,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "e5349bf8d0a48af66652bb6e39ae03fb6e770f5358bf2288e8e2b834209926c1"
+      "rowDigest": "951a8b72eb4de6c4dbe13aa7f0c1e42643041f3de8142aa7da8cbb6ed6a20460"
     },
     {
       "id": "balance-tuning-105",
       "name": "Balance Tuning 105",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "channel",
@@ -42293,13 +42293,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "639d12b055045a69182440010377bb13f5d886a7c8f559e8840100c4f50eee2d"
+      "rowDigest": "fce954a9170e46ae865d3f84c48993c53251d4dda476777189e77d20c4ac2eea"
     },
     {
       "id": "balance-tuning-106",
       "name": "Balance Tuning 106",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -42355,13 +42355,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "0ca75ecc3fdb518a9583d13cc636d1ab2949d942f47ffd21b8f15d99f32d0c81"
+      "rowDigest": "d8c0f18a5337ba1eda509e8de329228c3f0a04cd70a1f8f8e3d82ebd8a358a78"
     },
     {
       "id": "balance-tuning-107",
       "name": "Balance Tuning 107",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -42416,13 +42416,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "b7c7f8503bbbc8909a4bef9d4bfa6d55dbb02138321f544201d9304f2f873be4"
+      "rowDigest": "64b8ec6fad6c64e3759f3198969f57eea86412e19bfdd1e0a96dda218b05c199"
     },
     {
       "id": "balance-tuning-108",
       "name": "Balance Tuning 108",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -42477,13 +42477,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "0cb7dd6a5593557edf2b7f1a05137f90001538067880ffed56e0cc8b95fae842"
+      "rowDigest": "f02bb452b8cf6ef3eed01fc0a778a732af909ad06dd1083cd80e79f2d672543c"
     },
     {
       "id": "balance-tuning-109",
       "name": "Balance Tuning 109",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cull",
@@ -42537,13 +42537,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "9b005710ae102eacfd17ce95d885dac52d262639ef26ed1a30a237ba14389de5"
+      "rowDigest": "90bdac7a56b644bb73c7b7077a4ede6a56c36af3b2c15bfc86ba26069d087a5f"
     },
     {
       "id": "balance-tuning-110",
       "name": "Balance Tuning 110",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -42598,13 +42598,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "2a084562c16c66602f36e85f9f162a718d3a39f399c3b51c6d9f3a070392d5cc"
+      "rowDigest": "d1825d066d83cdba6224ea91f7fb2e0d181aaadef6a0217bfa1f110c20c64c86"
     },
     {
       "id": "balance-tuning-111",
       "name": "Balance Tuning 111",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -42662,13 +42662,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "2ef43e99a9d75111965190fbd1681389627f014f78bc48ad351ec8d129cd8726"
+      "rowDigest": "5cac3ba6959103509b7ea62faa9395c6090e0b51c5d70f83be35d8e8b6708b8b"
     },
     {
       "id": "balance-tuning-112",
       "name": "Balance Tuning 112",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -42722,13 +42722,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "eb50e47417358332523fd5c96367051c61e1d41a8530bae6664db31dc6b3d11d"
+      "rowDigest": "6282412b321556df492ebc0eb1b9c051a764efe8df51664cca1be250b1c891e9"
     },
     {
       "id": "balance-tuning-113",
       "name": "Balance Tuning 113",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -42782,13 +42782,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "9417aaa7cac6af43313eaf0810dc2cb849625dabaa471d777fb8bc2d7363f62e"
+      "rowDigest": "825daac8a769645aeb45b7a6e5b94c0f4e55cf29ea8e5be0e1a3160eaf17efdf"
     },
     {
       "id": "balance-tuning-114",
       "name": "Balance Tuning 114",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -42842,13 +42842,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "27b94fe664c47b881648a2e09d0699ce5de492c8dfcef02fa3897035bbfae315"
+      "rowDigest": "d0b3f72306f11466211a695dfaec1d0ede9a69c5cc452e20c005b7454120aefc"
     },
     {
       "id": "balance-tuning-115",
       "name": "Balance Tuning 115",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -42902,13 +42902,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "85685391c736333ef7dd412237848eacf255150dbb3bcc164f3625b38ade3289"
+      "rowDigest": "de30cddc8cdd5700b67061bc4ef085b5169b5d7c2ffb86757b52ff9e2f554e3d"
     },
     {
       "id": "balance-tuning-116",
       "name": "Balance Tuning 116",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -42963,13 +42963,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "acdb9378bc2a12b67d92397eff02d9506a974e3a7cc89146cf9b4e8d4cf2f43f"
+      "rowDigest": "5423f6ee4c76efc839a9720fbced901cdd311b81aa844fde63ffa903f2db7fa1"
     },
     {
       "id": "balance-tuning-117",
       "name": "Balance Tuning 117",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -43021,13 +43021,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "ca6d910c8f04d0c60a058a2065c7b1af3ad81564dd940168850410f2a82f5406"
+      "rowDigest": "7e005f920c6cc4a5b6fc49adca7a003d9f01f5b9042041b7be361a8eed6b8bea"
     },
     {
       "id": "balance-tuning-118",
       "name": "Balance Tuning 118",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "channel",
@@ -43083,13 +43083,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "1a05d89f594d425644038cce9d12959961f3b9f5b5eae0ed2232e4cae524f92a"
+      "rowDigest": "18aa3bc261619a2297c9bf590427307bb052a115078a82551aff25636890b0de"
     },
     {
       "id": "balance-tuning-119",
       "name": "Balance Tuning 119",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -43144,13 +43144,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "70e3ff604b9cdaacb0655a33866e010e7d86a435a33eda832d5c71307135ef87"
+      "rowDigest": "a7a58dc513e3935136a8088a6b764e506798c370f414efe27f41d6bab339ae39"
     },
     {
       "id": "balance-tuning-120",
       "name": "Balance Tuning 120",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -43205,13 +43205,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "a941c11fad74c5531ad0d895c7d2845daec6e9e2cf7f42407c125a48510ef553"
+      "rowDigest": "5017abcdc49e47e6286c2d5faf3087c2cb5802010781a1c4013edf15cfeb3a27"
     },
     {
       "id": "balance-tuning-121",
       "name": "Balance Tuning 121",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -43266,13 +43266,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "6fa9b848b24a5bc58601b2b325230753e92a8cabd4c839ed6b19c57f8bea7fd8"
+      "rowDigest": "25fcc917d265e26b30f1135139795f32ff00c1632bf8ba4971b076a13e23d9fc"
     },
     {
       "id": "balance-tuning-122",
       "name": "Balance Tuning 122",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -43327,13 +43327,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "2219673801705a9a216297b48a9568a7ce8c5363d4754226fe8817ecd309ac48"
+      "rowDigest": "6c64fbc12272005efb9557fbcdeb573c6e1e9f3a292b353394bac251d464e406"
     },
     {
       "id": "balance-tuning-123",
       "name": "Balance Tuning 123",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -43389,13 +43389,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "22db484d57b701f53866a86d45f3634527b69a3c4ca828d7dd4b5ea649066247"
+      "rowDigest": "a6f5b8103c24be2af208f244205c72c7b8b5389d40cee9c459fe909515edb45c"
     },
     {
       "id": "balance-tuning-124",
       "name": "Balance Tuning 124",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -43448,13 +43448,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "d148011aaa48a061540d33f313783e06f95cefb53899aeceaa724b7773f346bb"
+      "rowDigest": "3bdab0c6fe436863ec6bad26fabbfdb9cf199e2b740efbb67cf848b0646337ce"
     },
     {
       "id": "balance-tuning-125",
       "name": "Balance Tuning 125",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -43509,13 +43509,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "dcdd27e72a19f4cb10bdd494c9be162130445fedfa3764e1f9d59ef5c5386bf8"
+      "rowDigest": "83489c13e2eb50fe7e39b9deb283befa099573a09ad638846e519b6f893f5eed"
     },
     {
       "id": "balance-tuning-126",
       "name": "Balance Tuning 126",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "discipline",
@@ -43572,13 +43572,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "e9c62ca8aed79801bb434ce79a4e02a27ade31c9a60c877981f861caa342e280"
+      "rowDigest": "b336c4e3f461cbadc513cae405fbd1883d3c5ab0ec9098842c786cc8e96a30eb"
     },
     {
       "id": "balance-tuning-127",
       "name": "Balance Tuning 127",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "channel",
@@ -43633,13 +43633,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "197ee597b9f48360edbc6045a52a1429425f1c1f3d996b33f6f0885037eb029d"
+      "rowDigest": "d588b198b6fe82bdee50e7faf68ab94da6f972dfa32f3971c7d2b018c7b0b0aa"
     },
     {
       "id": "balance-tuning-128",
       "name": "Balance Tuning 128",
       "split": "tuning",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -43693,13 +43693,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "5dbc4bb01ec9673ef9d6ce6721423f759fc925cbbb49e7a8551e442747c998b7"
+      "rowDigest": "68e0bda4eb319b1ac2a1d624e7ed1c77f769ca3fb162af13a466864af647b802"
     },
     {
       "id": "balance-validation-001",
       "name": "Balance Validation 001",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -43754,13 +43754,13 @@
         "reason": "Human-play continuity control",
         "sourceId": "distance-duel"
       },
-      "rowDigest": "ead17216eaebfb73062de6915b2860fec17338e2c0f4533fe8cf0b89643ee4d5"
+      "rowDigest": "c80b15bfe81e17332eab21c89dd980a7e13b2736f3aaad5ce14f11185a447a3b"
     },
     {
       "id": "balance-validation-002",
       "name": "Balance Validation 002",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -43816,13 +43816,13 @@
         "reason": "Human-play continuity control",
         "sourceId": "three-way-engine"
       },
-      "rowDigest": "214be6116c66b359415e3d2385205c70eb0e9ed6c37f99c0e83268ab83f30a0e"
+      "rowDigest": "c456ce2c24647a22cbb28d7026312b5e4dedf675254c2d7169d7890c7782e80d"
     },
     {
       "id": "balance-validation-003",
       "name": "Balance Validation 003",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -43879,13 +43879,13 @@
         "reason": "Human-play continuity control",
         "sourceId": "range-rich-mixed"
       },
-      "rowDigest": "f0679f1965eaed798cdf40be06f2fa3a538e64906249f2cd183656ad81482da4"
+      "rowDigest": "90bc5423288737a30f5d0038f0f2b59990b67ec64c7727cab9b80599f3c90932"
     },
     {
       "id": "balance-validation-004",
       "name": "Balance Validation 004",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -43938,13 +43938,13 @@
         "rationaleId": "fixed-movement-control",
         "reason": "Measures dependence on always-available Step"
       },
-      "rowDigest": "f6aa948b7a4b91a9b52599131d4a7458843f16e78225a446f81154efd83205d9"
+      "rowDigest": "5abf576adc894d8c993749672c3c0d293c4bab8c868d9b8a6aa7f730bb85ccc4"
     },
     {
       "id": "balance-validation-005",
       "name": "Balance Validation 005",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -44000,13 +44000,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "1d6f58a031977797df5db40972b322f4085107d79e5c8bbc8beb1032115085ab"
+      "rowDigest": "16339e31ad52884ba84b6a629bc4a42c88cf4029529623fd045a6921ed16e904"
     },
     {
       "id": "balance-validation-006",
       "name": "Balance Validation 006",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -44061,13 +44061,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "5cef9c8f78fe17de65c50d24aedb50ceb9139a0cb289058f38ca29fd2b9951ef"
+      "rowDigest": "6b8d66751c7c864937e35a961341655f40320b5cf56311fbe132dff8a2ccfecd"
     },
     {
       "id": "balance-validation-007",
       "name": "Balance Validation 007",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "attune",
@@ -44122,13 +44122,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "1c8d45f1bdaf4f599c3d74ed1aa93ee5e2afe91a5298b2c277f756b3dbb40fda"
+      "rowDigest": "aafebe6a7ec1bafa3576db5975a68744bdde2de550308266872da007e77bb887"
     },
     {
       "id": "balance-validation-008",
       "name": "Balance Validation 008",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -44181,13 +44181,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "d24527464654da8aaab6a187834e9a02855e8dd0fd897910bd434160ea3fd5a8"
+      "rowDigest": "889aaf0eb21d1b09e7413974cff249963b81c2c9c5ea2ceeea9b626dcf12d443"
     },
     {
       "id": "balance-validation-009",
       "name": "Balance Validation 009",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -44245,13 +44245,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "152853abdce15e00c5ac3474386b9d8ef5e0a1696894e7ac2e7d5d8282526ca4"
+      "rowDigest": "9227131813d03930b84158472e75e399f5a1191200a4db5d035dce91c82f7c49"
     },
     {
       "id": "balance-validation-010",
       "name": "Balance Validation 010",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -44306,13 +44306,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "65dc0b92907a88bf776094550359d08f62beb7f107e292ba5164782832c94d94"
+      "rowDigest": "3f6a850674ff049f3e05b9a76ccdeeb4d027cd42574937b67932febb5a7492ea"
     },
     {
       "id": "balance-validation-011",
       "name": "Balance Validation 011",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -44368,13 +44368,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "f87dacece0f945ee0d869722b0c8cf928cc538bfb888f01747ed2abcd4b3e526"
+      "rowDigest": "6f68b975931029313b6cf8ec75b26aa1e57d7f60c67e6fcb45db76c3cbec8732"
     },
     {
       "id": "balance-validation-012",
       "name": "Balance Validation 012",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -44429,13 +44429,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "e9c868c0f1948a704ba452d71ec6d603dffd1096d181e305dfb277cf7ce412d8"
+      "rowDigest": "4729e2f0313c95911ac88d166cdfb950bcde0d45aaac2cc10dda3f2a92d216ad"
     },
     {
       "id": "balance-validation-013",
       "name": "Balance Validation 013",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -44488,13 +44488,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "2902bf4c3cb1b6a2a6b4a3b131607e5c0cc9e62354dc7e2830ea35be121e4a9a"
+      "rowDigest": "911ef90b19eed10d2b0a0e4165d6535f462a83a1027ac15bf6efd5fd960c4036"
     },
     {
       "id": "balance-validation-014",
       "name": "Balance Validation 014",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -44547,13 +44547,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "fb56b61c4506c9413a60debd9351bfb07c16792573f43fc5de37752676f15d21"
+      "rowDigest": "c14520ac9a2ad7635500c8ce4d80c508f3e66cdd469614f204b94e906f62ab45"
     },
     {
       "id": "balance-validation-015",
       "name": "Balance Validation 015",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -44605,13 +44605,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "cfd69d670f74747b29001526956e74b6c271f4adc01cee07c08b31014991d2eb"
+      "rowDigest": "2683308a175a5663c6ced0cd5ddb671887fc31b76db9e76220992fa1d4fbc99f"
     },
     {
       "id": "balance-validation-016",
       "name": "Balance Validation 016",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -44664,13 +44664,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "8d5ab77e73acf22607bb249765f1ba05d248433a48407101367fa070d6719646"
+      "rowDigest": "23476821e1ae748ac5900d3da56c30158a8662e03a6f38bfb632246a1fb97418"
     },
     {
       "id": "balance-validation-017",
       "name": "Balance Validation 017",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -44728,13 +44728,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "0258c895319d9604dd9773f68bfa15b20a432ca3b1b3b6b70c2c6bb4a7cd3a25"
+      "rowDigest": "2c0d142399d01ded5c4144acf304998e3e02b07a3a41d608221d7cffa95c20b7"
     },
     {
       "id": "balance-validation-018",
       "name": "Balance Validation 018",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -44788,13 +44788,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "efcce5a770da5383440e9fbd1813c9cd41347f368cf9f03c392901d79034c996"
+      "rowDigest": "82b5c55f29e82801b9ae4b110cbb384740647c43900dddfed0a85c1737b951a1"
     },
     {
       "id": "balance-validation-019",
       "name": "Balance Validation 019",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -44849,13 +44849,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "157e268f6ef2f3c0959b4621988dd58e7eb07503b5a52bf6c1b8bad622bb1a81"
+      "rowDigest": "e9fe6a3f1a549be4e4e802a9cc4a780bbf326bdade6c6afd733b65fae3575f70"
     },
     {
       "id": "balance-validation-020",
       "name": "Balance Validation 020",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -44909,13 +44909,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "2854f545eceb8d5293e4e710f9fe331b354bc5201a53eab597fab42634b86e7b"
+      "rowDigest": "e2aeb05c814938045003d045150cdb1b963fcde5e6bd78872bd7a6e180a30865"
     },
     {
       "id": "balance-validation-021",
       "name": "Balance Validation 021",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -44968,13 +44968,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "7d18ea866b63ec1485351a76f70e7f860fbafe2973d52e100a123d4b5b0d9f21"
+      "rowDigest": "a2d90d96c0b62b197a40650ebf61d93241a483b9dcd503169b6bec1cc8d40249"
     },
     {
       "id": "balance-validation-022",
       "name": "Balance Validation 022",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "drive",
@@ -45029,13 +45029,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "0c844191f3c12ede9158de91c0158c0e2a01bd71cf4ce75a7bdb48dd75695bc9"
+      "rowDigest": "b242c7098b6c8dde2788bdd6ae4be97b30a9567511853e2974156532d3eb30ac"
     },
     {
       "id": "balance-validation-023",
       "name": "Balance Validation 023",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cull",
@@ -45088,13 +45088,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "28fed5d3ec587db2485b6a37e383762bdc5d754856a8f985601cbe01901753f2"
+      "rowDigest": "7deeb9bef1208248302e180afd1c36095b7a632a6f787887a744e0fecf4df074"
     },
     {
       "id": "balance-validation-024",
       "name": "Balance Validation 024",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "bullRush",
@@ -45150,13 +45150,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "d557c40d3dd6e87ae056576a5fc7f195f0d5122e895c047c9f701556cd6291ce"
+      "rowDigest": "b5c2be1e748eba9597c5885606e4d1114305d5debe5ae1ca8becc076ac7ef870"
     },
     {
       "id": "balance-validation-025",
       "name": "Balance Validation 025",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -45212,13 +45212,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "b171ad10da9a654d1e5f8a51250c7cec513904bf17661e86363ac95496667227"
+      "rowDigest": "80f8cf12944eabb4772dea066a2e91ec60b8c1b06e14d6f3dcc57756583c365b"
     },
     {
       "id": "balance-validation-026",
       "name": "Balance Validation 026",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "arcBolt",
@@ -45273,13 +45273,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "efca83e4d3496682c0f454f21411447b60bd21b6f412ed31f0b0dc9da97a34b7"
+      "rowDigest": "31ec0f55ba6e9b25c453a3eec4ee70e12d431b27d3ca4137e0d2c1139b316e69"
     },
     {
       "id": "balance-validation-027",
       "name": "Balance Validation 027",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -45334,13 +45334,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "bb79bec1a4fe053d75aaca3c21743b0dcf8c6a7971fd7ce476214e955b0d0344"
+      "rowDigest": "c05c69160aa4187428d7d611b41a3335e848ef9d1fe8d4044e4d48e324913055"
     },
     {
       "id": "balance-validation-028",
       "name": "Balance Validation 028",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "adapt",
@@ -45394,13 +45394,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "87bc14e3f7b73d3daf799fa43f341ff2c0ffa432a4e0ec66afcfb96f1c6dbeb0"
+      "rowDigest": "05203e155c240e672b43d86c9c822e9ccf32605ec2f526ab86ebffabcf95864b"
     },
     {
       "id": "balance-validation-029",
       "name": "Balance Validation 029",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "discipline",
@@ -45455,13 +45455,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "d6ed0c4e31a1f49f09e1c09cdb51ee7fb3678453701a7e3c4dc3b819cd0d1033"
+      "rowDigest": "4baa554dcb12618d4525f3778928f2d47e1a07a7aa5cfc554590c91ddf1832df"
     },
     {
       "id": "balance-validation-030",
       "name": "Balance Validation 030",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "aim",
@@ -45515,13 +45515,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "7fd947e12de2646053f75b889dc6c1d8f15c257878b0ab043d94e6f89f8b33ca"
+      "rowDigest": "333fe30f7fc6c6bad5d249917f8b5a192bfc3e90399fb27b882e422f8cf74f72"
     },
     {
       "id": "balance-validation-031",
       "name": "Balance Validation 031",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cull",
@@ -45575,13 +45575,13 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "4941ddc55058682e0797002e5a8f1c46ea86e4ec595dc52c18d559aa25871d83"
+      "rowDigest": "f450affa7c9ce5c8328f010d438e8854e38ae5bf07c6e60a3b2aac4b7ad7c664"
     },
     {
       "id": "balance-validation-032",
       "name": "Balance Validation 032",
       "split": "validation",
-      "startingHealth": 40,
+      "startingHealth": 50,
       "actionPiles": [
         {
           "cardId": "cascade",
@@ -45634,8 +45634,8 @@
         "rationaleId": "balanced-covering",
         "reason": "Deterministic balanced covering row"
       },
-      "rowDigest": "9ded2ae9793183c8c1a466882b78eca6f4bdbc4107ac8ecc53898013acd97002"
+      "rowDigest": "07b7f12ee531b724cee750cd33fc42cd061158ae23feb0a5c3783a5d84fc2e0a"
     }
   ],
-  "digest": "7560021e21e2b3e87d5ea10f656c0cd31ca2557e5491708f858aea3ec79b1056"
+  "digest": "fd1b827c52ef0ad6b80002c5ae4e351e2e44617b642a4ae89cb7b01bf7ce73c0"
 }

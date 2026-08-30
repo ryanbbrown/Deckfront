@@ -1,26 +1,26 @@
 {
   "kingdoms": [
-    { "id": "distance-duel", "name": "Distance Duel", "startingHealth": 40, "actionPiles": [
+    { "id": "distance-duel", "name": "Distance Duel", "startingHealth": 50, "actionPiles": [
       { "cardId": "cull", "count": 10 }, { "cardId": "footwork", "count": 10 }, { "cardId": "feint", "count": 10 },
       { "cardId": "jab", "count": 10 }, { "cardId": "drive", "count": 10 }, { "cardId": "flurry", "count": 10 },
       { "cardId": "aim", "count": 10 }, { "cardId": "pepperingShot", "count": 10 }, { "cardId": "repellingShot", "count": 10 }, { "cardId": "volley", "count": 10 }
     ] },
-    { "id": "current-duel", "name": "Current Duel", "startingHealth": 40, "actionPiles": [
+    { "id": "current-duel", "name": "Current Duel", "startingHealth": 50, "actionPiles": [
       { "cardId": "cull", "count": 10 }, { "cardId": "channel", "count": 10 }, { "cardId": "attune", "count": 10 },
       { "cardId": "arcBolt", "count": 10 }, { "cardId": "cascade", "count": 10 }, { "cardId": "feint", "count": 10 },
       { "cardId": "rally", "count": 10 }, { "cardId": "aim", "count": 10 }, { "cardId": "precisionShot", "count": 10 }, { "cardId": "improvise", "count": 10 }
     ] },
-    { "id": "three-way-open", "name": "Three-Way Open", "startingHealth": 40, "actionPiles": [
+    { "id": "three-way-open", "name": "Three-Way Open", "startingHealth": 50, "actionPiles": [
       { "cardId": "cull", "count": 10 }, { "cardId": "leyStep", "count": 10 }, { "cardId": "fireball", "count": 10 },
       { "cardId": "discharge", "count": 10 }, { "cardId": "footwork", "count": 10 }, { "cardId": "drive", "count": 10 },
       { "cardId": "longshot", "count": 10 }, { "cardId": "volley", "count": 10 }, { "cardId": "stipend", "count": 10 }, { "cardId": "improvise", "count": 10 }
     ] },
-    { "id": "three-way-engine", "name": "Three-Way Engine", "startingHealth": 40, "actionPiles": [
+    { "id": "three-way-engine", "name": "Three-Way Engine", "startingHealth": 50, "actionPiles": [
       { "cardId": "cull", "count": 10 }, { "cardId": "channel", "count": 10 }, { "cardId": "attune", "count": 10 },
       { "cardId": "overload", "count": 10 }, { "cardId": "jab", "count": 10 }, { "cardId": "rally", "count": 10 },
       { "cardId": "pepperingShot", "count": 10 }, { "cardId": "precisionShot", "count": 10 }, { "cardId": "regroup", "count": 10 }, { "cardId": "improvise", "count": 10 }
     ] },
-    { "id": "range-rich-mixed", "name": "Range-Rich Mixed", "startingHealth": 40, "actionPiles": [
+    { "id": "range-rich-mixed", "name": "Range-Rich Mixed", "startingHealth": 50, "actionPiles": [
       { "cardId": "cull", "count": 10 }, { "cardId": "leyStep", "count": 10 }, { "cardId": "adapt", "count": 10 },
       { "cardId": "fireball", "count": 10 }, { "cardId": "bullRush", "count": 10 }, { "cardId": "heavyBlow", "count": 10 },
       { "cardId": "aim", "count": 10 }, { "cardId": "repellingShot", "count": 10 }, { "cardId": "longshot", "count": 10 }, { "cardId": "salvageShot", "count": 10 }

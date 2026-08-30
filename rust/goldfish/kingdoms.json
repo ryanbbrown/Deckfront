@@ -23479,7 +23479,7 @@
       "kingdomId": "balance-tuning-001",
       "kingdom": {
         "id": "balance-tuning-001",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -23710,13 +23710,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "a2ed5103e17"
+      "ruleFingerprint": "68a232bee17"
     },
     {
       "kingdomId": "balance-tuning-002",
       "kingdom": {
         "id": "balance-tuning-002",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -23940,13 +23940,13 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "220553f7d81"
+      "ruleFingerprint": "bba38086d81"
     },
     {
       "kingdomId": "balance-tuning-003",
       "kingdom": {
         "id": "balance-tuning-003",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -24170,13 +24170,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "c0380b98dae"
+      "ruleFingerprint": "3f657e2bdae"
     },
     {
       "kingdomId": "balance-tuning-004",
       "kingdom": {
         "id": "balance-tuning-004",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -24407,13 +24407,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "c16060a3d44"
+      "ruleFingerprint": "8dc41170d44"
     },
     {
       "kingdomId": "balance-tuning-005",
       "kingdom": {
         "id": "balance-tuning-005",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -24645,13 +24645,13 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "440ee0c6cd9"
+      "ruleFingerprint": "a837315fcd9"
     },
     {
       "kingdomId": "balance-tuning-006",
       "kingdom": {
         "id": "balance-tuning-006",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -24879,13 +24879,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "1a333671dec"
+      "ruleFingerprint": "2aa8dcaedec"
     },
     {
       "kingdomId": "balance-tuning-007",
       "kingdom": {
         "id": "balance-tuning-007",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -25116,13 +25116,13 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "6a51c9b2da2"
+      "ruleFingerprint": "d7f5e429da2"
     },
     {
       "kingdomId": "balance-tuning-008",
       "kingdom": {
         "id": "balance-tuning-008",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -25353,13 +25353,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "ca756946e3d"
+      "ruleFingerprint": "cae1f1e3e3d"
     },
     {
       "kingdomId": "balance-tuning-009",
       "kingdom": {
         "id": "balance-tuning-009",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -25590,13 +25590,13 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "3cd87c84e72"
+      "ruleFingerprint": "ad5bab53e72"
     },
     {
       "kingdomId": "balance-tuning-010",
       "kingdom": {
         "id": "balance-tuning-010",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -25823,13 +25823,13 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "ea5dae41ddd"
+      "ruleFingerprint": "1de4916cddd"
     },
     {
       "kingdomId": "balance-tuning-011",
       "kingdom": {
         "id": "balance-tuning-011",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -26059,13 +26059,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "2e2c858cd71"
+      "ruleFingerprint": "d427fbf5d71"
     },
     {
       "kingdomId": "balance-tuning-012",
       "kingdom": {
         "id": "balance-tuning-012",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -26298,13 +26298,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "76851d31d76"
+      "ruleFingerprint": "a14aa0fad76"
     },
     {
       "kingdomId": "balance-tuning-013",
       "kingdom": {
         "id": "balance-tuning-013",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -26533,13 +26533,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "0b666cf8e47"
+      "ruleFingerprint": "8f8cb1a5e47"
     },
     {
       "kingdomId": "balance-tuning-014",
       "kingdom": {
         "id": "balance-tuning-014",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -26766,13 +26766,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "369ec827d33"
+      "ruleFingerprint": "06fd7bd2d33"
     },
     {
       "kingdomId": "balance-tuning-015",
       "kingdom": {
         "id": "balance-tuning-015",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -27001,13 +27001,13 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "7b7262add5e"
+      "ruleFingerprint": "f472ecead5e"
     },
     {
       "kingdomId": "balance-tuning-016",
       "kingdom": {
         "id": "balance-tuning-016",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -27235,13 +27235,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "48a0b8afda9"
+      "ruleFingerprint": "4fdd24e6da9"
     },
     {
       "kingdomId": "balance-tuning-017",
       "kingdom": {
         "id": "balance-tuning-017",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -27471,13 +27471,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "f62955e0d80"
+      "ruleFingerprint": "3e5b1437d80"
     },
     {
       "kingdomId": "balance-tuning-018",
       "kingdom": {
         "id": "balance-tuning-018",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -27709,13 +27709,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "0317cbb3e0e"
+      "ruleFingerprint": "b79f74c8e0e"
     },
     {
       "kingdomId": "balance-tuning-019",
       "kingdom": {
         "id": "balance-tuning-019",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -27943,13 +27943,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "bb59a8cbe81"
+      "ruleFingerprint": "cc832a0ee81"
     },
     {
       "kingdomId": "balance-tuning-020",
       "kingdom": {
         "id": "balance-tuning-020",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -28174,13 +28174,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "135e23b2d69"
+      "ruleFingerprint": "e8c06d47d69"
     },
     {
       "kingdomId": "balance-tuning-021",
       "kingdom": {
         "id": "balance-tuning-021",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -28408,13 +28408,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "735c1e78d11"
+      "ruleFingerprint": "ba218e11d11"
     },
     {
       "kingdomId": "balance-tuning-022",
       "kingdom": {
         "id": "balance-tuning-022",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -28640,13 +28640,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "4557a39ad77"
+      "ruleFingerprint": "d840b63fd77"
     },
     {
       "kingdomId": "balance-tuning-023",
       "kingdom": {
         "id": "balance-tuning-023",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -28874,13 +28874,13 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "a899c671dfa"
+      "ruleFingerprint": "86c5f12adfa"
     },
     {
       "kingdomId": "balance-tuning-024",
       "kingdom": {
         "id": "balance-tuning-024",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -29110,13 +29110,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "dbe98e7fdcc"
+      "ruleFingerprint": "2cdc2e14dcc"
     },
     {
       "kingdomId": "balance-tuning-025",
       "kingdom": {
         "id": "balance-tuning-025",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -29342,13 +29342,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "0c627171da6"
+      "ruleFingerprint": "536591eeda6"
     },
     {
       "kingdomId": "balance-tuning-026",
       "kingdom": {
         "id": "balance-tuning-026",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -29576,13 +29576,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "f63ed5eed36"
+      "ruleFingerprint": "14f2b2a9d36"
     },
     {
       "kingdomId": "balance-tuning-027",
       "kingdom": {
         "id": "balance-tuning-027",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -29807,13 +29807,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "dd2a8e42d32"
+      "ruleFingerprint": "94b94ca5d32"
     },
     {
       "kingdomId": "balance-tuning-028",
       "kingdom": {
         "id": "balance-tuning-028",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -30042,13 +30042,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "e596cc44db6"
+      "ruleFingerprint": "12dd32dfdb6"
     },
     {
       "kingdomId": "balance-tuning-029",
       "kingdom": {
         "id": "balance-tuning-029",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -30275,13 +30275,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "0f8c402ed53"
+      "ruleFingerprint": "a2ad9fd3d53"
     },
     {
       "kingdomId": "balance-tuning-030",
       "kingdom": {
         "id": "balance-tuning-030",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -30508,13 +30508,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "bd2de365df3"
+      "ruleFingerprint": "2f543b90df3"
     },
     {
       "kingdomId": "balance-tuning-031",
       "kingdom": {
         "id": "balance-tuning-031",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -30736,13 +30736,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "69f36235cd1"
+      "ruleFingerprint": "24e09a90cd1"
     },
     {
       "kingdomId": "balance-tuning-032",
       "kingdom": {
         "id": "balance-tuning-032",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -30972,13 +30972,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f83361fad20"
+      "ruleFingerprint": "98c236add20"
     },
     {
       "kingdomId": "balance-tuning-033",
       "kingdom": {
         "id": "balance-tuning-033",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -31210,13 +31210,13 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "0f5a4c4ad93"
+      "ruleFingerprint": "4f7aa12fd93"
     },
     {
       "kingdomId": "balance-tuning-034",
       "kingdom": {
         "id": "balance-tuning-034",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -31443,13 +31443,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "8d639598d67"
+      "ruleFingerprint": "af17a615d67"
     },
     {
       "kingdomId": "balance-tuning-035",
       "kingdom": {
         "id": "balance-tuning-035",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -31681,13 +31681,13 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "b3d61408db7"
+      "ruleFingerprint": "501e57addb7"
     },
     {
       "kingdomId": "balance-tuning-036",
       "kingdom": {
         "id": "balance-tuning-036",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -31916,13 +31916,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "3056b89edd7"
+      "ruleFingerprint": "acd334d7dd7"
     },
     {
       "kingdomId": "balance-tuning-037",
       "kingdom": {
         "id": "balance-tuning-037",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -32151,13 +32151,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "2e707245d94"
+      "ruleFingerprint": "0db83ac2d94"
     },
     {
       "kingdomId": "balance-tuning-038",
       "kingdom": {
         "id": "balance-tuning-038",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -32382,13 +32382,13 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "597a7a52cf9"
+      "ruleFingerprint": "662458cbcf9"
     },
     {
       "kingdomId": "balance-tuning-039",
       "kingdom": {
         "id": "balance-tuning-039",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -32617,13 +32617,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "bf26863cd20"
+      "ruleFingerprint": "0122359bd20"
     },
     {
       "kingdomId": "balance-tuning-040",
       "kingdom": {
         "id": "balance-tuning-040",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -32855,13 +32855,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "6e76ceebe5c"
+      "ruleFingerprint": "78395440e5c"
     },
     {
       "kingdomId": "balance-tuning-041",
       "kingdom": {
         "id": "balance-tuning-041",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -33093,13 +33093,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "1fe2568bdfc"
+      "ruleFingerprint": "8758dcc4dfc"
     },
     {
       "kingdomId": "balance-tuning-042",
       "kingdom": {
         "id": "balance-tuning-042",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -33328,13 +33328,13 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "af818c44ca6"
+      "ruleFingerprint": "c2a6694fca6"
     },
     {
       "kingdomId": "balance-tuning-043",
       "kingdom": {
         "id": "balance-tuning-043",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -33565,13 +33565,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "019c0a4bdc7"
+      "ruleFingerprint": "fd4267aedc7"
     },
     {
       "kingdomId": "balance-tuning-044",
       "kingdom": {
         "id": "balance-tuning-044",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -33801,13 +33801,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "b67f2c28d98"
+      "ruleFingerprint": "99a1980fd98"
     },
     {
       "kingdomId": "balance-tuning-045",
       "kingdom": {
         "id": "balance-tuning-045",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -34035,13 +34035,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "96b78bb9dd1"
+      "ruleFingerprint": "bfe00750dd1"
     },
     {
       "kingdomId": "balance-tuning-046",
       "kingdom": {
         "id": "balance-tuning-046",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -34268,13 +34268,13 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "9aae9f9ad1d"
+      "ruleFingerprint": "2c46f0c7d1d"
     },
     {
       "kingdomId": "balance-tuning-047",
       "kingdom": {
         "id": "balance-tuning-047",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -34501,13 +34501,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "7e785d3ce08"
+      "ruleFingerprint": "03a061cbe08"
     },
     {
       "kingdomId": "balance-tuning-048",
       "kingdom": {
         "id": "balance-tuning-048",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -34737,13 +34737,13 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "69a5161cdf9"
+      "ruleFingerprint": "7a637a29df9"
     },
     {
       "kingdomId": "balance-tuning-049",
       "kingdom": {
         "id": "balance-tuning-049",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -34970,13 +34970,13 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "cfd99e3ae34"
+      "ruleFingerprint": "e3c63fd9e34"
     },
     {
       "kingdomId": "balance-tuning-050",
       "kingdom": {
         "id": "balance-tuning-050",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -35205,13 +35205,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "fffc7da6d39"
+      "ruleFingerprint": "7994401fd39"
     },
     {
       "kingdomId": "balance-tuning-051",
       "kingdom": {
         "id": "balance-tuning-051",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -35443,13 +35443,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "cc3275aee66"
+      "ruleFingerprint": "4a9bd321e66"
     },
     {
       "kingdomId": "balance-tuning-052",
       "kingdom": {
         "id": "balance-tuning-052",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -35677,13 +35677,13 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "5845f685e16"
+      "ruleFingerprint": "9354a01ee16"
     },
     {
       "kingdomId": "balance-tuning-053",
       "kingdom": {
         "id": "balance-tuning-053",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -35910,13 +35910,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "5e946482d4e"
+      "ruleFingerprint": "649209d1d4e"
     },
     {
       "kingdomId": "balance-tuning-054",
       "kingdom": {
         "id": "balance-tuning-054",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -36146,13 +36146,13 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "c897515fd2f"
+      "ruleFingerprint": "12081786d2f"
     },
     {
       "kingdomId": "balance-tuning-055",
       "kingdom": {
         "id": "balance-tuning-055",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -36385,13 +36385,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "cb2438c0e68"
+      "ruleFingerprint": "e9588a77e68"
     },
     {
       "kingdomId": "balance-tuning-056",
       "kingdom": {
         "id": "balance-tuning-056",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -36622,13 +36622,13 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "ee15079ed5d"
+      "ruleFingerprint": "e2595b83d5d"
     },
     {
       "kingdomId": "balance-tuning-057",
       "kingdom": {
         "id": "balance-tuning-057",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -36854,13 +36854,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "0f1214dbdd7"
+      "ruleFingerprint": "c3ad830edd7"
     },
     {
       "kingdomId": "balance-tuning-058",
       "kingdom": {
         "id": "balance-tuning-058",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -37086,13 +37086,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "2ad2912dd0c"
+      "ruleFingerprint": "c2726352d0c"
     },
     {
       "kingdomId": "balance-tuning-059",
       "kingdom": {
         "id": "balance-tuning-059",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -37319,13 +37319,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "74dee463d66"
+      "ruleFingerprint": "48a3edc4d66"
     },
     {
       "kingdomId": "balance-tuning-060",
       "kingdom": {
         "id": "balance-tuning-060",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -37557,13 +37557,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "1f202b00d7d"
+      "ruleFingerprint": "7ed731e9d7d"
     },
     {
       "kingdomId": "balance-tuning-061",
       "kingdom": {
         "id": "balance-tuning-061",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -37792,13 +37792,13 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "6ece97c0cd6"
+      "ruleFingerprint": "30ac435bcd6"
     },
     {
       "kingdomId": "balance-tuning-062",
       "kingdom": {
         "id": "balance-tuning-062",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -38028,13 +38028,13 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "ecfcb088e4a"
+      "ruleFingerprint": "869ab33be4a"
     },
     {
       "kingdomId": "balance-tuning-063",
       "kingdom": {
         "id": "balance-tuning-063",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -38266,13 +38266,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "3ebaee6adc9"
+      "ruleFingerprint": "a956c66bdc9"
     },
     {
       "kingdomId": "balance-tuning-064",
       "kingdom": {
         "id": "balance-tuning-064",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -38499,13 +38499,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "e234ef79cd2"
+      "ruleFingerprint": "08efb81ecd2"
     },
     {
       "kingdomId": "balance-tuning-065",
       "kingdom": {
         "id": "balance-tuning-065",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -38736,13 +38736,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "fd6bad11d28"
+      "ruleFingerprint": "c4659c42d28"
     },
     {
       "kingdomId": "balance-tuning-066",
       "kingdom": {
         "id": "balance-tuning-066",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -38973,13 +38973,13 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "0856648fd11"
+      "ruleFingerprint": "47329416d11"
     },
     {
       "kingdomId": "balance-tuning-067",
       "kingdom": {
         "id": "balance-tuning-067",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -39208,13 +39208,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "1019b1eddc4"
+      "ruleFingerprint": "efa79332dc4"
     },
     {
       "kingdomId": "balance-tuning-068",
       "kingdom": {
         "id": "balance-tuning-068",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -39445,13 +39445,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "4f5843e6e0a"
+      "ruleFingerprint": "66a8b475e0a"
     },
     {
       "kingdomId": "balance-tuning-069",
       "kingdom": {
         "id": "balance-tuning-069",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -39680,13 +39680,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "2d93cdcfd8b"
+      "ruleFingerprint": "1f8cfc02d8b"
     },
     {
       "kingdomId": "balance-tuning-070",
       "kingdom": {
         "id": "balance-tuning-070",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -39915,13 +39915,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "7448ce1adeb"
+      "ruleFingerprint": "13a15a7fdeb"
     },
     {
       "kingdomId": "balance-tuning-071",
       "kingdom": {
         "id": "balance-tuning-071",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -40151,13 +40151,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "b117ff9edce"
+      "ruleFingerprint": "463c2d4ddce"
     },
     {
       "kingdomId": "balance-tuning-072",
       "kingdom": {
         "id": "balance-tuning-072",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -40386,13 +40386,13 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "06f9797dd67"
+      "ruleFingerprint": "1248bae8d67"
     },
     {
       "kingdomId": "balance-tuning-073",
       "kingdom": {
         "id": "balance-tuning-073",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -40619,13 +40619,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "1a40ece5d19"
+      "ruleFingerprint": "81dfa368d19"
     },
     {
       "kingdomId": "balance-tuning-074",
       "kingdom": {
         "id": "balance-tuning-074",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -40852,13 +40852,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "e3e75012d22"
+      "ruleFingerprint": "a5a1fb45d22"
     },
     {
       "kingdomId": "balance-tuning-075",
       "kingdom": {
         "id": "balance-tuning-075",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -41087,13 +41087,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "11bc1a0bd17"
+      "ruleFingerprint": "93c9f706d17"
     },
     {
       "kingdomId": "balance-tuning-076",
       "kingdom": {
         "id": "balance-tuning-076",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -41318,13 +41318,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "dac917c0d48"
+      "ruleFingerprint": "acd1c0a3d48"
     },
     {
       "kingdomId": "balance-tuning-077",
       "kingdom": {
         "id": "balance-tuning-077",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -41555,13 +41555,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "4155fa04d39"
+      "ruleFingerprint": "71385c8dd39"
     },
     {
       "kingdomId": "balance-tuning-078",
       "kingdom": {
         "id": "balance-tuning-078",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -41788,13 +41788,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "1b705decd5e"
+      "ruleFingerprint": "78dc598bd5e"
     },
     {
       "kingdomId": "balance-tuning-079",
       "kingdom": {
         "id": "balance-tuning-079",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -42021,13 +42021,13 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "7ccc5145d6e"
+      "ruleFingerprint": "d2f8a966d6e"
     },
     {
       "kingdomId": "balance-tuning-080",
       "kingdom": {
         "id": "balance-tuning-080",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -42254,13 +42254,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "2470eea0d12"
+      "ruleFingerprint": "7600fab7d12"
     },
     {
       "kingdomId": "balance-tuning-081",
       "kingdom": {
         "id": "balance-tuning-081",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -42485,13 +42485,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "6bb2ed35e33"
+      "ruleFingerprint": "3d39e910e33"
     },
     {
       "kingdomId": "balance-tuning-082",
       "kingdom": {
         "id": "balance-tuning-082",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -42721,13 +42721,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "bc276e8fe9a"
+      "ruleFingerprint": "7f5c1ac0e9a"
     },
     {
       "kingdomId": "balance-tuning-083",
       "kingdom": {
         "id": "balance-tuning-083",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -42954,13 +42954,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "b41fbbd3ced"
+      "ruleFingerprint": "8f3cef26ced"
     },
     {
       "kingdomId": "balance-tuning-084",
       "kingdom": {
         "id": "balance-tuning-084",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -43189,13 +43189,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "6ee08a4add2"
+      "ruleFingerprint": "3d1f4f6ddd2"
     },
     {
       "kingdomId": "balance-tuning-085",
       "kingdom": {
         "id": "balance-tuning-085",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -43426,13 +43426,13 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "0e8cfe9cdd8"
+      "ruleFingerprint": "b4df501bdd8"
     },
     {
       "kingdomId": "balance-tuning-086",
       "kingdom": {
         "id": "balance-tuning-086",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -43662,13 +43662,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "5ba88e58cbc"
+      "ruleFingerprint": "9cc2a447cbc"
     },
     {
       "kingdomId": "balance-tuning-087",
       "kingdom": {
         "id": "balance-tuning-087",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -43896,13 +43896,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "c6db2cc0ce5"
+      "ruleFingerprint": "57ef52c9ce5"
     },
     {
       "kingdomId": "balance-tuning-088",
       "kingdom": {
         "id": "balance-tuning-088",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -44130,13 +44130,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "5e44c9e3d99"
+      "ruleFingerprint": "eff8572ed99"
     },
     {
       "kingdomId": "balance-tuning-089",
       "kingdom": {
         "id": "balance-tuning-089",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -44366,13 +44366,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "53bf5613d9d"
+      "ruleFingerprint": "1537354ad9d"
     },
     {
       "kingdomId": "balance-tuning-090",
       "kingdom": {
         "id": "balance-tuning-090",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -44599,13 +44599,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "32f1402fcd1"
+      "ruleFingerprint": "e0443016cd1"
     },
     {
       "kingdomId": "balance-tuning-091",
       "kingdom": {
         "id": "balance-tuning-091",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -44834,13 +44834,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "c68ff050d35"
+      "ruleFingerprint": "6ba68291d35"
     },
     {
       "kingdomId": "balance-tuning-092",
       "kingdom": {
         "id": "balance-tuning-092",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -45070,13 +45070,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "8ee9051cdde"
+      "ruleFingerprint": "7730a69bdde"
     },
     {
       "kingdomId": "balance-tuning-093",
       "kingdom": {
         "id": "balance-tuning-093",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -45306,13 +45306,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "5056b685d7b"
+      "ruleFingerprint": "0a281bfcd7b"
     },
     {
       "kingdomId": "balance-tuning-094",
       "kingdom": {
         "id": "balance-tuning-094",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -45538,13 +45538,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f192eeadd41"
+      "ruleFingerprint": "6a420ee8d41"
     },
     {
       "kingdomId": "balance-tuning-095",
       "kingdom": {
         "id": "balance-tuning-095",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -45777,13 +45777,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "a7ef26f9e65"
+      "ruleFingerprint": "c515c02ce65"
     },
     {
       "kingdomId": "balance-tuning-096",
       "kingdom": {
         "id": "balance-tuning-096",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -46008,13 +46008,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "c73e6aebd0d"
+      "ruleFingerprint": "31555976d0d"
     },
     {
       "kingdomId": "balance-tuning-097",
       "kingdom": {
         "id": "balance-tuning-097",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -46248,13 +46248,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "3c981eecdb9"
+      "ruleFingerprint": "c2335d8ddb9"
     },
     {
       "kingdomId": "balance-tuning-098",
       "kingdom": {
         "id": "balance-tuning-098",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -46484,13 +46484,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "a91a537fd3d"
+      "ruleFingerprint": "9c5d860ad3d"
     },
     {
       "kingdomId": "balance-tuning-099",
       "kingdom": {
         "id": "balance-tuning-099",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -46717,13 +46717,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "e4c632fbd96"
+      "ruleFingerprint": "f273b3f0d96"
     },
     {
       "kingdomId": "balance-tuning-100",
       "kingdom": {
         "id": "balance-tuning-100",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -46952,13 +46952,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "3c7a0c8fd6c"
+      "ruleFingerprint": "0cca464cd6c"
     },
     {
       "kingdomId": "balance-tuning-101",
       "kingdom": {
         "id": "balance-tuning-101",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -47183,13 +47183,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "ce29ca3adf8"
+      "ruleFingerprint": "b1859c55df8"
     },
     {
       "kingdomId": "balance-tuning-102",
       "kingdom": {
         "id": "balance-tuning-102",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -47418,13 +47418,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "a9cedb50cfe"
+      "ruleFingerprint": "61996f5fcfe"
     },
     {
       "kingdomId": "balance-tuning-103",
       "kingdom": {
         "id": "balance-tuning-103",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -47653,13 +47653,13 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "7cd43780ddb"
+      "ruleFingerprint": "2145bd41ddb"
     },
     {
       "kingdomId": "balance-tuning-104",
       "kingdom": {
         "id": "balance-tuning-104",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -47885,13 +47885,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "28853b46dd3"
+      "ruleFingerprint": "bbcc6a97dd3"
     },
     {
       "kingdomId": "balance-tuning-105",
       "kingdom": {
         "id": "balance-tuning-105",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -48121,13 +48121,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "a50029b3dc4"
+      "ruleFingerprint": "f77f3af0dc4"
     },
     {
       "kingdomId": "balance-tuning-106",
       "kingdom": {
         "id": "balance-tuning-106",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -48355,13 +48355,13 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "aa8ef98bd04"
+      "ruleFingerprint": "4c796838d04"
     },
     {
       "kingdomId": "balance-tuning-107",
       "kingdom": {
         "id": "balance-tuning-107",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -48591,13 +48591,13 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "0fe70855dd5"
+      "ruleFingerprint": "4450ad28dd5"
     },
     {
       "kingdomId": "balance-tuning-108",
       "kingdom": {
         "id": "balance-tuning-108",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -48826,13 +48826,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "52b8fbbcd84"
+      "ruleFingerprint": "5e4d60f3d84"
     },
     {
       "kingdomId": "balance-tuning-109",
       "kingdom": {
         "id": "balance-tuning-109",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -49060,13 +49060,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "b4741b7ad50"
+      "ruleFingerprint": "c0362fb1d50"
     },
     {
       "kingdomId": "balance-tuning-110",
       "kingdom": {
         "id": "balance-tuning-110",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -49291,13 +49291,13 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "e9349f03cad"
+      "ruleFingerprint": "1510a9facad"
     },
     {
       "kingdomId": "balance-tuning-111",
       "kingdom": {
         "id": "balance-tuning-111",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -49528,13 +49528,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "77bf0521df7"
+      "ruleFingerprint": "bfde6c30df7"
     },
     {
       "kingdomId": "balance-tuning-112",
       "kingdom": {
         "id": "balance-tuning-112",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -49761,13 +49761,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "7cb99770d3f"
+      "ruleFingerprint": "d7a25df1d3f"
     },
     {
       "kingdomId": "balance-tuning-113",
       "kingdom": {
         "id": "balance-tuning-113",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -49995,13 +49995,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "4e0cb22fd4c"
+      "ruleFingerprint": "637c42ccd4c"
     },
     {
       "kingdomId": "balance-tuning-114",
       "kingdom": {
         "id": "balance-tuning-114",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -50235,13 +50235,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "5a46198ed54"
+      "ruleFingerprint": "7ee44e81d54"
     },
     {
       "kingdomId": "balance-tuning-115",
       "kingdom": {
         "id": "balance-tuning-115",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -50472,13 +50472,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "4a1f263bd17"
+      "ruleFingerprint": "d85fdb5ad17"
     },
     {
       "kingdomId": "balance-tuning-116",
       "kingdom": {
         "id": "balance-tuning-116",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -50710,13 +50710,13 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "129124cdd57"
+      "ruleFingerprint": "9a1c1748d57"
     },
     {
       "kingdomId": "balance-tuning-117",
       "kingdom": {
         "id": "balance-tuning-117",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -50941,13 +50941,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "22fa2df1ca0"
+      "ruleFingerprint": "0d12136aca0"
     },
     {
       "kingdomId": "balance-tuning-118",
       "kingdom": {
         "id": "balance-tuning-118",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -51176,13 +51176,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "edfbc95ee09"
+      "ruleFingerprint": "c8a3b733e09"
     },
     {
       "kingdomId": "balance-tuning-119",
       "kingdom": {
         "id": "balance-tuning-119",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -51410,13 +51410,13 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "b2d19994da4"
+      "ruleFingerprint": "445e45a3da4"
     },
     {
       "kingdomId": "balance-tuning-120",
       "kingdom": {
         "id": "balance-tuning-120",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -51648,13 +51648,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "f54ca0a9d81"
+      "ruleFingerprint": "00445a44d81"
     },
     {
       "kingdomId": "balance-tuning-121",
       "kingdom": {
         "id": "balance-tuning-121",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -51882,13 +51882,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "b3ccefadd06"
+      "ruleFingerprint": "5732cc8ad06"
     },
     {
       "kingdomId": "balance-tuning-122",
       "kingdom": {
         "id": "balance-tuning-122",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -52115,13 +52115,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "eae3d9d8d2a"
+      "ruleFingerprint": "87cf1d1fd2a"
     },
     {
       "kingdomId": "balance-tuning-123",
       "kingdom": {
         "id": "balance-tuning-123",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -52351,13 +52351,13 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "469c7ff1d14"
+      "ruleFingerprint": "c7f9c44ed14"
     },
     {
       "kingdomId": "balance-tuning-124",
       "kingdom": {
         "id": "balance-tuning-124",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -52587,13 +52587,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "fd32d74cd2f"
+      "ruleFingerprint": "a4e8a4c1d2f"
     },
     {
       "kingdomId": "balance-tuning-125",
       "kingdom": {
         "id": "balance-tuning-125",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -52823,13 +52823,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "e434cdded00"
+      "ruleFingerprint": "f9a4c451d00"
     },
     {
       "kingdomId": "balance-tuning-126",
       "kingdom": {
         "id": "balance-tuning-126",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -53053,13 +53053,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "9f25a432e5c"
+      "ruleFingerprint": "7d408455e5c"
     },
     {
       "kingdomId": "balance-tuning-127",
       "kingdom": {
         "id": "balance-tuning-127",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -53284,13 +53284,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "d7ea1739d2c"
+      "ruleFingerprint": "537e595ad2c"
     },
     {
       "kingdomId": "balance-tuning-128",
       "kingdom": {
         "id": "balance-tuning-128",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -53521,13 +53521,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "7a39aeb7d96"
+      "ruleFingerprint": "9b03fbc4d96"
     },
     {
       "kingdomId": "balance-validation-001",
       "kingdom": {
         "id": "balance-validation-001",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -53755,13 +53755,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "b05149eae00"
+      "ruleFingerprint": "66946145e00"
     },
     {
       "kingdomId": "balance-validation-002",
       "kingdom": {
         "id": "balance-validation-002",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -53990,13 +53990,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "85d5e0d3d8e"
+      "ruleFingerprint": "10d0bf44d8e"
     },
     {
       "kingdomId": "balance-validation-003",
       "kingdom": {
         "id": "balance-validation-003",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -54221,13 +54221,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "11baa0dfdbd"
+      "ruleFingerprint": "c1fe88d6dbd"
     },
     {
       "kingdomId": "balance-validation-004",
       "kingdom": {
         "id": "balance-validation-004",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -54455,13 +54455,13 @@
         "strike",
         "volley"
       ],
-      "ruleFingerprint": "fc02bc6dd82"
+      "ruleFingerprint": "362ca4c2d82"
     },
     {
       "kingdomId": "balance-validation-005",
       "kingdom": {
         "id": "balance-validation-005",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -54689,13 +54689,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "fbcfdf15d73"
+      "ruleFingerprint": "7b979b6cd73"
     },
     {
       "kingdomId": "balance-validation-006",
       "kingdom": {
         "id": "balance-validation-006",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -54920,13 +54920,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "d5d8a7c9e49"
+      "ruleFingerprint": "67e50638e49"
     },
     {
       "kingdomId": "balance-validation-007",
       "kingdom": {
         "id": "balance-validation-007",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -55154,13 +55154,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "2dd8ba15e96"
+      "ruleFingerprint": "774f0932e96"
     },
     {
       "kingdomId": "balance-validation-008",
       "kingdom": {
         "id": "balance-validation-008",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -55389,13 +55389,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "6e5088f3d21"
+      "ruleFingerprint": "af0186ead21"
     },
     {
       "kingdomId": "balance-validation-009",
       "kingdom": {
         "id": "balance-validation-009",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -55624,13 +55624,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "729adee8d81"
+      "ruleFingerprint": "31b10135d81"
     },
     {
       "kingdomId": "balance-validation-010",
       "kingdom": {
         "id": "balance-validation-010",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -55860,13 +55860,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "f0761d5fdd6"
+      "ruleFingerprint": "2d4c39a8dd6"
     },
     {
       "kingdomId": "balance-validation-011",
       "kingdom": {
         "id": "balance-validation-011",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -56096,13 +56096,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "a7564161e47"
+      "ruleFingerprint": "e4931c80e47"
     },
     {
       "kingdomId": "balance-validation-012",
       "kingdom": {
         "id": "balance-validation-012",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -56332,13 +56332,13 @@
         "stipend",
         "volley"
       ],
-      "ruleFingerprint": "20f7885ccf9"
+      "ruleFingerprint": "ac0342adcf9"
     },
     {
       "kingdomId": "balance-validation-013",
       "kingdom": {
         "id": "balance-validation-013",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -56568,13 +56568,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "ca832485d94"
+      "ruleFingerprint": "a44cee8ad94"
     },
     {
       "kingdomId": "balance-validation-014",
       "kingdom": {
         "id": "balance-validation-014",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -56803,13 +56803,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "a602be5bd64"
+      "ruleFingerprint": "260fba38d64"
     },
     {
       "kingdomId": "balance-validation-015",
       "kingdom": {
         "id": "balance-validation-015",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -57035,13 +57035,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "228be84dd8a"
+      "ruleFingerprint": "a1fb114ed8a"
     },
     {
       "kingdomId": "balance-validation-016",
       "kingdom": {
         "id": "balance-validation-016",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -57273,13 +57273,13 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "57923398cd5"
+      "ruleFingerprint": "ea8dd2f1cd5"
     },
     {
       "kingdomId": "balance-validation-017",
       "kingdom": {
         "id": "balance-validation-017",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -57513,13 +57513,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "70c19876e26"
+      "ruleFingerprint": "8011e0f9e26"
     },
     {
       "kingdomId": "balance-validation-018",
       "kingdom": {
         "id": "balance-validation-018",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -57746,13 +57746,13 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "658ee516d1e"
+      "ruleFingerprint": "4782b3b1d1e"
     },
     {
       "kingdomId": "balance-validation-019",
       "kingdom": {
         "id": "balance-validation-019",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -57983,13 +57983,13 @@
         "silver",
         "step"
       ],
-      "ruleFingerprint": "3045caa3dcd"
+      "ruleFingerprint": "96e98676dcd"
     },
     {
       "kingdomId": "balance-validation-020",
       "kingdom": {
         "id": "balance-validation-020",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -58219,13 +58219,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "932a3b31c6d"
+      "ruleFingerprint": "6d3f56bcc6d"
     },
     {
       "kingdomId": "balance-validation-021",
       "kingdom": {
         "id": "balance-validation-021",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -58452,13 +58452,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "be9a7d2adbe"
+      "ruleFingerprint": "d483c849dbe"
     },
     {
       "kingdomId": "balance-validation-022",
       "kingdom": {
         "id": "balance-validation-022",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -58688,13 +58688,13 @@
         "step",
         "strike"
       ],
-      "ruleFingerprint": "5fd86c7bdb5"
+      "ruleFingerprint": "db09f47edb5"
     },
     {
       "kingdomId": "balance-validation-023",
       "kingdom": {
         "id": "balance-validation-023",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -58917,13 +58917,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "a3d9916ecd3"
+      "ruleFingerprint": "9af32e77cd3"
     },
     {
       "kingdomId": "balance-validation-024",
       "kingdom": {
         "id": "balance-validation-024",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -59155,13 +59155,13 @@
         "stipend",
         "strike"
       ],
-      "ruleFingerprint": "2c442d08d5e"
+      "ruleFingerprint": "7c2c9d9fd5e"
     },
     {
       "kingdomId": "balance-validation-025",
       "kingdom": {
         "id": "balance-validation-025",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -59389,13 +59389,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "d25e1b17e07"
+      "ruleFingerprint": "56878bfae07"
     },
     {
       "kingdomId": "balance-validation-026",
       "kingdom": {
         "id": "balance-validation-026",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -59625,13 +59625,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "ebd02b09d99"
+      "ruleFingerprint": "0269f900d99"
     },
     {
       "kingdomId": "balance-validation-027",
       "kingdom": {
         "id": "balance-validation-027",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -59862,13 +59862,13 @@
         "steadyShot",
         "step"
       ],
-      "ruleFingerprint": "2a598d14dfb"
+      "ruleFingerprint": "b25f3015dfb"
     },
     {
       "kingdomId": "balance-validation-028",
       "kingdom": {
         "id": "balance-validation-028",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -60097,13 +60097,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "5d6aeec5d89"
+      "ruleFingerprint": "9d46a084d89"
     },
     {
       "kingdomId": "balance-validation-029",
       "kingdom": {
         "id": "balance-validation-029",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -60331,13 +60331,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "b1d5b4a8d3a"
+      "ruleFingerprint": "edcba4abd3a"
     },
     {
       "kingdomId": "balance-validation-030",
       "kingdom": {
         "id": "balance-validation-030",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -60567,13 +60567,13 @@
         "step",
         "volley"
       ],
-      "ruleFingerprint": "bc843bf2d96"
+      "ruleFingerprint": "b0a89991d96"
     },
     {
       "kingdomId": "balance-validation-031",
       "kingdom": {
         "id": "balance-validation-031",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -60796,13 +60796,13 @@
         "step",
         "stipend"
       ],
-      "ruleFingerprint": "784476d3ccf"
+      "ruleFingerprint": "35326a96ccf"
     },
     {
       "kingdomId": "balance-validation-032",
       "kingdom": {
         "id": "balance-validation-032",
-        "health": 40,
+        "health": 50,
         "aimBonus": 2,
         "feintBonus": 1,
         "cards": [
@@ -61033,7 +61033,7 @@
         "starfire",
         "step"
       ],
-      "ruleFingerprint": "38162c23da5"
+      "ruleFingerprint": "e6f6a2e2da5"
     }
   ]
 }

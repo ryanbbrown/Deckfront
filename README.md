@@ -1,6 +1,6 @@
 # Hexdeck
 
-Hexdeck is a full-screen desktop deck-building game for two local players or one player against an AI opponent. Players build decks, move on a six-space arena, combine cards, buy improvements, and try to reduce the other fighter from 40 health to 0.
+Hexdeck is a full-screen desktop deck-building game for two local players or one player against an AI opponent. Players build decks, move on a six-space arena, combine cards, buy improvements, and try to reduce the other fighter from 50 health to 0.
 
 The table is designed for a 1920×1080 screen. Mobile and smaller desktop layouts are not supported.
 

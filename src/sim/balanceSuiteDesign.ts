@@ -1016,7 +1016,7 @@ export function generateBalanceSuiteManifest(): BalanceSuiteManifest {
     const base = {
       id: `balance-${split}-${String(index + 1).padStart(3, '0')}`,
       name: `Balance ${split === 'tuning' ? 'Tuning' : 'Validation'} ${String(index + 1).padStart(3, '0')}`,
-      split, startingHealth: 40, actionPiles: row.cards.map((cardId) => ({ cardId, count: 10 })),
+      split, startingHealth: 50, actionPiles: row.cards.map((cardId) => ({ cardId, count: 10 })),
       routeLabels: routeLabels(row.cards), provenance: { ...row.provenance }
     };
     kingdoms.push({ ...base, rowDigest: rowDigest(base as Omit<BalanceSuiteKingdom, 'rowDigest'>) });
@@ -1163,7 +1163,7 @@ export function validateBalanceSuiteManifest(input: BalanceSuiteManifest): Balan
     if (ids.has(kingdom.id)) throw new Error(`Duplicate kingdom ID ${kingdom.id}.`);
     ids.add(kingdom.id);
     if (kingdom.rowDigest !== rowDigest(kingdom)) throw new Error(`Invalid row digest for ${kingdom.id}.`);
-    if (kingdom.startingHealth !== 40) throw new Error(`Kingdom ${kingdom.id} must start at 40 health.`);
+    if (kingdom.startingHealth !== 50) throw new Error(`Kingdom ${kingdom.id} must start at 50 health.`);
     if (kingdom.actionPiles.length !== 10) throw new Error(`Kingdom ${kingdom.id} must have exactly ten piles.`);
     if (kingdom.overrides !== undefined) throw new Error(`Kingdom ${kingdom.id} must not have overrides.`);
     if (kingdom.actionPiles.some((pile) => pile.count !== 10)) {
