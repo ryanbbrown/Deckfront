@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { deriveSourceImageIdentity, deriveStrategySearch } from '../../src/sim/strategySearchCampaign';
 import { deriveTrackedStrategySearchSourceImage } from '../../scripts/strategy_search_campaign';
 import { executePsroModalOperation } from '../../scripts/strategy_search_psro_modal';
+import { validateConsolidatedManifest } from '../../scripts/generate_rust_strategy_search_balance_report';
 import {
   abandonPsroLaunch, adoptPsroLease, buildPsroBatchReport, comparePsroScientificFiles,
   createPsroExecutionState, createPsroModalPlanSummary, derivePsroModalPlan,
@@ -232,5 +233,8 @@ describe('Modal PSRO downloads and reports', () => {
       stoppingRule: 'two-consecutive-clean-full-searches', allValid: true, missingKingdomIds: [] });
     expect(report.kingdoms.map((entry) => entry.kingdomId)).toEqual(['balance-tuning-005', 'balance-tuning-090']);
     expect(report.kingdoms.every((entry) => entry.cleanFinalSearches === 2)).toBe(true);
+    fs.writeFileSync(path.join(root, 'psro-batch-report.json'), JSON.stringify(report));
+    expect(() => validateConsolidatedManifest(root,
+      ['balance-tuning-005', 'balance-tuning-090'])).not.toThrow();
   });
 });

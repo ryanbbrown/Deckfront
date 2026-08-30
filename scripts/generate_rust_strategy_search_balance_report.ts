@@ -107,7 +107,7 @@ function validateCoverage(executions: readonly RustStrategySearchExecutionProven
   }
 }
 
-function validateConsolidatedManifest(root: string, kingdomIds: readonly string[]): void {
+export function validateConsolidatedManifest(root: string, kingdomIds: readonly string[]): void {
   for (const name of ['goldfish-manifest.json', 'matrix-batch-report.json', 'psro-batch-report.json']) {
     const file = path.join(root, name);
     if (!fs.existsSync(file)) continue;
