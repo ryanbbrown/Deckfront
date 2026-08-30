@@ -67,7 +67,7 @@ class VolumeDownloadTests(unittest.TestCase):
                 raise result
             return result
         sleeps = []
-        self.assertEqual(retry_resource_exhausted(operation, sleeps.append), "complete")
+        self.assertEqual(retry_resource_exhausted(operation, sleeps.append, lambda: 0), "complete")
         self.assertEqual(calls, [1, 2, 3])
         self.assertEqual(sleeps, [2, 4])
 
@@ -78,7 +78,7 @@ class VolumeDownloadTests(unittest.TestCase):
             raise ResourceExhaustedError(str(calls[-1]))
         sleeps = []
         with self.assertRaisesRegex(ResourceExhaustedError, "6"):
-            retry_resource_exhausted(operation, sleeps.append)
+            retry_resource_exhausted(operation, sleeps.append, lambda: 0)
         self.assertEqual(calls, [1, 2, 3, 4, 5, 6])
         self.assertEqual(sleeps, [2, 4, 8, 16, 32])
 
@@ -89,16 +89,27 @@ class VolumeDownloadTests(unittest.TestCase):
             raise OSError("not a rate limit")
         sleeps = []
         with self.assertRaisesRegex(OSError, "not a rate limit"):
-            retry_resource_exhausted(operation, sleeps.append)
+            retry_resource_exhausted(operation, sleeps.append, lambda: 0)
         self.assertEqual(calls, [1])
         self.assertEqual(sleeps, [])
+
+    def test_retry_resource_exhausted_adds_up_to_half_the_delay_as_jitter(self):
+        results = [ResourceExhaustedError("one"), ResourceExhaustedError("two"), "complete"]
+        def operation():
+            result = results.pop(0)
+            if isinstance(result, Exception):
+                raise result
+            return result
+        sleeps = []
+        self.assertEqual(retry_resource_exhausted(operation, sleeps.append, lambda: 1), "complete")
+        self.assertEqual(sleeps, [3, 6])
 
     def test_list_files_retries_rate_limits_then_succeeds(self):
         entries = [object(), object()]
         volume = ListingVolume([ResourceExhaustedError("one"),
             ResourceExhaustedError("two"), entries])
         sleeps = []
-        self.assertEqual(list_files(volume, "psro-executions/run", sleeps.append), entries)
+        self.assertEqual(list_files(volume, "psro-executions/run", sleeps.append, lambda: 0), entries)
         self.assertEqual(sleeps, [2, 4])
         self.assertEqual(volume.calls, 3)
         self.assertEqual(volume.remote_root, "psro-executions/run")
@@ -108,7 +119,7 @@ class VolumeDownloadTests(unittest.TestCase):
         volume = ListingVolume([ResourceExhaustedError(str(index)) for index in range(6)])
         sleeps = []
         with self.assertRaisesRegex(ResourceExhaustedError, "5"):
-            list_files(volume, "psro-executions/run", sleeps.append)
+            list_files(volume, "psro-executions/run", sleeps.append, lambda: 0)
         self.assertEqual(volume.calls, 6)
         self.assertEqual(sleeps, [2, 4, 8, 16, 32])
 
@@ -116,7 +127,7 @@ class VolumeDownloadTests(unittest.TestCase):
         volume = ListingVolume([OSError("not a rate limit")])
         sleeps = []
         with self.assertRaisesRegex(OSError, "not a rate limit"):
-            list_files(volume, "psro-executions/run", sleeps.append)
+            list_files(volume, "psro-executions/run", sleeps.append, lambda: 0)
         self.assertEqual(volume.calls, 1)
         self.assertEqual(sleeps, [])
 

@@ -16,8 +16,14 @@ class Upload:
         self.record = record
 
     def put_file(self, local, remote):
+        if remote in self.volume.files and not self.record["force"]:
+            raise FileExistsError(remote)
         self.record["paths"].append(remote)
         self.volume.files[remote] = pathlib.Path(local).read_bytes()
+        if self.volume.batch_failure_after == len(self.record["paths"]) \
+                and not self.volume.batch_failed:
+            self.volume.batch_failed = True
+            raise ResourceExhaustedError("batch limited")
 
 
 class UploadContext:
@@ -42,9 +48,11 @@ class Entry:
 
 
 class Volume:
-    def __init__(self, files=None, failures=None):
+    def __init__(self, files=None, failures=None, batch_failure_after=None):
         self.files = dict(files or {})
         self.failures = dict(failures or {})
+        self.batch_failure_after = batch_failure_after
+        self.batch_failed = False
         self.reads = []
         self.read_attempts = {}
         self.list_calls = []
@@ -124,23 +132,27 @@ class PsroRuntimeTests(unittest.TestCase):
         state_file.write_text(json.dumps({"attempts": attempts}))
         launch_intent = root / "launch-intent.json"
         launch_intent.write_text("{}\n")
-        matrix_one = root / "matrix-one.hgm"; matrix_one.write_bytes(b"matching")
-        matrix_two = root / "matrix-two.hgm"; matrix_two.write_bytes(b"upload")
         kingdoms = []
+        matrix_names = ["pairs.hgm", "purchases.hgm", "matrix.hgm", "self-play-v1.hst"]
         for index, attempt in enumerate(attempts, 1):
-            matrix = matrix_one if index == 1 else matrix_two
-            remote_matrix = f"evidence/evidence-{index}/matrix/matrix.hgm"
+            uploads = []
+            for name in matrix_names if index == 1 else ["matrix.hgm"]:
+                matrix = root / f"matrix-{index}" / name
+                matrix.parent.mkdir(exist_ok=True)
+                matrix.write_bytes(f"matching-{name}".encode() if index == 1 else b"upload")
+                uploads.append({"localPath": str(matrix),
+                    "remotePath": f"evidence/evidence-{index}/matrix/{name}",
+                    "sha256": hashlib.sha256(matrix.read_bytes()).hexdigest()})
             kingdoms.append({"kingdomId": attempt["kingdomId"], "launchId": attempt["launchId"],
                 "goldfishPaths": [f"evidence/evidence-{index}/goldfish/top-500000.hgf",
                     f"evidence/evidence-{index}/goldfish/reservoir.hgf"],
-                "matrixUploads": [{"localPath": str(matrix), "remotePath": remote_matrix,
-                    "sha256": hashlib.sha256(matrix.read_bytes()).hexdigest()}],
-                "jobConfig": {"kingdomId": attempt["kingdomId"]}})
+                "matrixUploads": uploads, "jobConfig": {"kingdomId": attempt["kingdomId"]}})
         config = {"computeAppName": "compute", "workerCores": 16, "timeoutSeconds": 7260,
             "slots": 2, "launchIntentFile": str(launch_intent),
             "launchIntentRemote": "psro/run/launch-intent.json", "kingdoms": kingdoms}
         files = {path: b"goldfish" for kingdom in kingdoms for path in kingdom["goldfishPaths"]}
-        files[kingdoms[0]["matrixUploads"][0]["remotePath"]] = b"matching"
+        for held in kingdoms[0]["matrixUploads"]:
+            files[held["remotePath"]] = pathlib.Path(held["localPath"]).read_bytes()
         return state_file, config, Volume(files)
 
     def test_launch_pins_resources_uploads_only_missing_matrix_and_persists_each_call(self):
@@ -153,23 +165,26 @@ class PsroRuntimeTests(unittest.TestCase):
                 result = runtime.launch(config, str(state_file))
             self.assertEqual(handle.options, {"cpu": 16, "memory": 8192, "timeout": 7260,
                 "max_containers": 2, "retries": 0, "scaledown_window": 10})
-            self.assertEqual([entry["status"] for entry in result["uploads"]], ["matching", "uploaded"])
+            self.assertEqual([entry["status"] for entry in result["uploads"]],
+                ["matching", "matching", "matching", "matching", "uploaded"])
             self.assertEqual(result["uploadBytes"], len(b"upload"))
             state = json.loads(state_file.read_text())
             self.assertEqual([entry["callId"] for entry in state["attempts"]], ["fc-1", "fc-2"])
             self.assertEqual(volume.batch_uploads, [
-                {"force": False, "paths": [config["kingdoms"][1]["matrixUploads"][0]["remotePath"]]},
+                {"force": True, "paths": [config["kingdoms"][1]["matrixUploads"][0]["remotePath"]]},
                 {"force": True, "paths": ["psro/run/launch-intent.json"]}])
             self.assertIn("psro/run/launch-intent.json", volume.files)
 
-    def test_launch_rejects_a_missing_goldfish_input_before_any_upload(self):
+    def test_launch_reports_the_first_missing_goldfish_input_before_any_upload(self):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             state_file, config, volume = self.launch_fixture(root)
-            missing = config["kingdoms"][1]["goldfishPaths"][0]
-            del volume.files[missing]
+            first = config["kingdoms"][0]["goldfishPaths"][1]
+            second = config["kingdoms"][1]["goldfishPaths"][0]
+            del volume.files[first]
+            del volume.files[second]
             with patch.object(runtime, "volume", volume):
-                with self.assertRaisesRegex(RuntimeError, missing):
+                with self.assertRaisesRegex(RuntimeError, first):
                     runtime.launch(config, str(state_file))
             self.assertEqual(volume.batch_uploads, [])
 
@@ -177,15 +192,21 @@ class PsroRuntimeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = pathlib.Path(directory)
             state_file, config, volume = self.launch_fixture(root)
-            first_remote = config["kingdoms"][0]["matrixUploads"][0]["remotePath"]
-            del volume.files[first_remote]
+            for held in config["kingdoms"][0]["matrixUploads"]:
+                del volume.files[held["remotePath"]]
             handle = Handle(state_file)
             function = type("Function", (), {"from_name": staticmethod(lambda *_args: handle)})
             with patch.object(runtime, "volume", volume), patch.object(runtime.modal, "Function", function):
                 result = runtime.launch(config, str(state_file))
-            matrix_paths = [kingdom["matrixUploads"][0]["remotePath"] for kingdom in config["kingdoms"]]
-            self.assertEqual([entry["status"] for entry in result["uploads"]], ["uploaded", "uploaded"])
-            self.assertEqual(volume.batch_uploads, [{"force": False, "paths": matrix_paths},
+            matrix_paths = [held["remotePath"] for kingdom in config["kingdoms"]
+                for held in kingdom["matrixUploads"]]
+            self.assertEqual(matrix_paths[:4], [
+                "evidence/evidence-1/matrix/pairs.hgm",
+                "evidence/evidence-1/matrix/purchases.hgm",
+                "evidence/evidence-1/matrix/matrix.hgm",
+                "evidence/evidence-1/matrix/self-play-v1.hst"])
+            self.assertEqual([entry["status"] for entry in result["uploads"]], ["uploaded"] * 5)
+            self.assertEqual(volume.batch_uploads, [{"force": True, "paths": matrix_paths},
                 {"force": True, "paths": ["psro/run/launch-intent.json"]}])
 
     def test_launch_retries_a_rate_limited_existence_check(self):
@@ -200,9 +221,50 @@ class PsroRuntimeTests(unittest.TestCase):
             sleeps = []
             with patch.object(runtime, "volume", volume), patch.object(runtime.modal, "Function", function), \
                     patch.object(runtime, "retry_resource_exhausted",
-                        side_effect=lambda operation: retry(operation, sleeps.append)):
+                        side_effect=lambda operation: retry(operation, sleeps.append, lambda: 0)):
                 runtime.launch(config, str(state_file))
             self.assertEqual(volume.read_attempts[remote], 2)
+            self.assertEqual(sleeps, [2])
+
+    def test_launch_retries_a_rate_limited_matrix_read(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            state_file, config, volume = self.launch_fixture(root)
+            remote = config["kingdoms"][0]["matrixUploads"][0]["remotePath"]
+            volume.failures[(remote, 1)] = ResourceExhaustedError("limited")
+            handle = Handle(state_file)
+            function = type("Function", (), {"from_name": staticmethod(lambda *_args: handle)})
+            retry = runtime.retry_resource_exhausted
+            sleeps = []
+            with patch.object(runtime, "volume", volume), patch.object(runtime.modal, "Function", function), \
+                    patch.object(runtime, "retry_resource_exhausted",
+                        side_effect=lambda operation: retry(operation, sleeps.append, lambda: 0)):
+                runtime.launch(config, str(state_file))
+            self.assertEqual(volume.read_attempts[remote], 2)
+            self.assertEqual(sleeps, [2])
+
+    def test_launch_retries_a_partial_matrix_batch_with_force(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            state_file, config, volume = self.launch_fixture(root)
+            for held in config["kingdoms"][0]["matrixUploads"]:
+                del volume.files[held["remotePath"]]
+            volume.batch_failure_after = 1
+            handle = Handle(state_file)
+            function = type("Function", (), {"from_name": staticmethod(lambda *_args: handle)})
+            retry = runtime.retry_resource_exhausted
+            sleeps = []
+            with patch.object(runtime, "volume", volume), patch.object(runtime.modal, "Function", function), \
+                    patch.object(runtime, "retry_resource_exhausted",
+                        side_effect=lambda operation: retry(operation, sleeps.append, lambda: 0)):
+                result = runtime.launch(config, str(state_file))
+            matrix_paths = [held["remotePath"] for kingdom in config["kingdoms"]
+                for held in kingdom["matrixUploads"]]
+            self.assertEqual([entry["status"] for entry in result["uploads"]], ["uploaded"] * 5)
+            self.assertEqual(volume.batch_uploads, [
+                {"force": True, "paths": matrix_paths[:1]},
+                {"force": True, "paths": matrix_paths},
+                {"force": True, "paths": ["psro/run/launch-intent.json"]}])
             self.assertEqual(sleeps, [2])
 
     def test_launch_rejects_a_differing_matrix_before_any_spawn(self):

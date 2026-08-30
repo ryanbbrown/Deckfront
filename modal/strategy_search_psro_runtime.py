@@ -137,7 +137,8 @@ def launch(config: dict[str, Any], state_file: str) -> dict[str, Any]:
     missing = [held for _result, held in comparisons if held is not None]
     if missing:
         def upload_missing() -> None:
-            with volume.batch_upload() as batch:
+            # Every path is absent at pre-check or hash-equal after a partial attempt, so forced retries are safe.
+            with volume.batch_upload(force=True) as batch:
                 for held in missing:
                     batch.put_file(held["localPath"], held["remotePath"])
         retry_resource_exhausted(upload_missing)
