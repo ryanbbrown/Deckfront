@@ -23,6 +23,10 @@ Use the ordered 30-kingdom `balance-smoke-v1` list from `.data/persistent-mana-b
 - First 16: execution `3be529ac19b195c4eaf04891d743f247484c111df87c8039b854ec0ce9d5654d`; worst-case guard bound `$80.414972`; request `.data/starfire-12-balance-88/goldfish-request-a.json`.
 - Final 14: execution `db5cddb9035da82afd2f3cb74c61d33d77cf080370f3806fe8a10f31dc84e7a9`; worst-case guard bound `$70.375882`; request `.data/starfire-12-balance-88/goldfish-request-b.json`.
 
+## PSRO plan
+
+Execution `d6b0497a366319e56160b9ad8ac0b288ac3342491bb783b4a5b76f2a8b445338` has 30 slots, a `$1.6642752` one-attempt bound per kingdom, a `$49.9361556` full launch bound including readiness, and a `$60` execution guard.
+
 ## Stop conditions
 
 Stop and report if a route rejects source or input identity, evidence structure fails, a cost guard blocks a launch, a PSRO kingdom does not reach two clean full searches, active PSRO machines exceed planned slots, or any paid retry needs a changed request or authorization token.
