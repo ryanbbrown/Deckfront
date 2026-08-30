@@ -3,7 +3,9 @@ import os from 'node:os';
 import path from 'node:path';
 import { crc32 } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
-import { loadRustStrategySearchKingdomEvidence } from '../../src/sim/rustStrategySearchEvidence';
+import {
+  loadRustInitialMatrixEvidence, loadRustStrategySearchKingdomEvidence
+} from '../../src/sim/rustStrategySearchEvidence';
 import { createEvidenceFixture } from '../fixtures/rust-strategy-search-balance/fixture';
 
 const roots: string[] = [];
@@ -13,6 +15,36 @@ const options = (fixture: ReturnType<typeof createEvidenceFixture>) => ({ binary
   goldfishReadOptions: { keep: 4, topKeep: 4 } });
 
 describe('Rust strategy-search evidence adapter', () => {
+  it('loads and structurally validates the initial Matrix without PSRO evidence', () => {
+    const fixture = createEvidenceFixture(temporary(), 0);
+    const evidence = loadRustInitialMatrixEvidence({ kingdomId: fixture.paths.kingdomId,
+      topFile: fixture.paths.topFile, reservoirFile: fixture.paths.reservoirFile,
+      matrixDir: fixture.paths.initialMatrixDir }, { goldfishReadOptions: { keep: 4, topKeep: 4 } });
+    expect(evidence).toMatchObject({ kingdomId: fixture.paths.kingdomId,
+      strategyCount: 2, gameCount: 250 });
+    expect(evidence.matrix.strategyNumbers).toEqual([0, 1]);
+    expect(evidence.selfPlay.map((row) => row.strategyNumber)).toEqual([0, 1]);
+  });
+
+  it('rejects a changed initial Matrix CRC and HST header', () => {
+    const matrix = createEvidenceFixture(temporary(), 0);
+    const matrixFile = path.join(matrix.paths.initialMatrixDir, 'matrix.hgm');
+    const matrixBytes = fs.readFileSync(matrixFile); matrixBytes[64] = matrixBytes[64]! ^ 1;
+    fs.writeFileSync(matrixFile, matrixBytes);
+    expect(() => loadRustInitialMatrixEvidence({ kingdomId: matrix.paths.kingdomId,
+      topFile: matrix.paths.topFile, reservoirFile: matrix.paths.reservoirFile,
+      matrixDir: matrix.paths.initialMatrixDir }, { goldfishReadOptions: { keep: 4, topKeep: 4 } }))
+      .toThrow(/HGM header, length, source, or CRC differs/u);
+
+    const selfPlay = createEvidenceFixture(temporary(), 0);
+    const hstFile = path.join(selfPlay.paths.initialMatrixDir, 'self-play-v1.hst');
+    const hstBytes = fs.readFileSync(hstFile); hstBytes.write('BAD1', 0, 'ascii'); fs.writeFileSync(hstFile, hstBytes);
+    expect(() => loadRustInitialMatrixEvidence({ kingdomId: selfPlay.paths.kingdomId,
+      topFile: selfPlay.paths.topFile, reservoirFile: selfPlay.paths.reservoirFile,
+      matrixDir: selfPlay.paths.initialMatrixDir }, { goldfishReadOptions: { keep: 4, topKeep: 4 } }))
+      .toThrow(/HST header or source differs/u);
+  });
+
   it('uses structural checks only and selects initial HGM after no admissions', () => {
     const fixture = createEvidenceFixture(temporary(), 0);
     const evidence = loadRustStrategySearchKingdomEvidence(fixture.paths, options(fixture));

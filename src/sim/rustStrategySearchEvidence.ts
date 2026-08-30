@@ -33,6 +33,23 @@ export interface LoadRustStrategySearchEvidenceOptions {
   goldfishReadOptions?: Omit<GoldfishReadOptions, 'top'>;
 }
 
+export interface RustInitialMatrixPaths {
+  kingdomId: string;
+  topFile: string;
+  reservoirFile: string;
+  matrixDir: string;
+}
+
+export interface RustInitialMatrixEvidence {
+  kingdomId: string;
+  strategyCount: number;
+  gameCount: number;
+  pairs: RustPairEvidence[];
+  purchases: RustPurchaseEvidence[];
+  matrix: RustMatrixEvidence;
+  selfPlay: RustSelfPlayEvidence[];
+}
+
 export interface RustSourceFileHash {
   path: string;
   bytes: number;
@@ -394,6 +411,35 @@ function sourceHashes(files: readonly string[], root: string): { hashes: RustSou
   }).sort((left, right) => compareUtf16(left.path, right.path));
   const digest = createHash('sha256').update(hashes.map((file) => `${file.path}\0${file.bytes}\0${file.sha256}\n`).join('')).digest('hex');
   return { hashes, digest };
+}
+
+export function loadRustInitialMatrixEvidence(paths: RustInitialMatrixPaths,
+  options: { goldfishReadOptions?: Omit<GoldfishReadOptions, 'top'> } = {}): RustInitialMatrixEvidence {
+  const native = nativeKingdom(paths.kingdomId);
+  const goldfish = readGoldfishReservoirStructurally(paths.reservoirFile, paths.kingdomId,
+    { ...options.goldfishReadOptions, top: paths.topFile });
+  const matrixFile = path.join(paths.matrixDir, 'matrix.hgm');
+  requireRegularFile(matrixFile);
+  const header = fs.readFileSync(matrixFile);
+  if (header.length < HGM_HEADER_BYTES || header.subarray(0, 4).toString('ascii') !== 'HGR1') {
+    throw new Error(`${paths.kingdomId}: initial Matrix header is invalid.`);
+  }
+  const strategyCount = header.readUInt32LE(16);
+  if (!Number.isSafeInteger(strategyCount) || strategyCount < 2 || strategyCount > goldfish.records.length) {
+    throw new Error(`${paths.kingdomId}: initial Matrix size is invalid.`);
+  }
+  const cardIds = native.kingdom.cards.map((card) => card.id);
+  const fingerprint = nativeRuleFingerprint(paths.kingdomId, 30, 200);
+  const matrix = readMatrixSet(paths.matrixDir, cardIds, fingerprint,
+    goldfish.header.checksum, strategyCount);
+  if (matrix.matrix.strategyNumbers.some((number, index) => number !== goldfish.records[index]?.strategyNumber)) {
+    throw new Error(`${paths.kingdomId}: initial Matrix order differs from the reservoir prefix.`);
+  }
+  const selfPlay = readSelfPlay(path.join(paths.matrixDir, 'self-play-v1.hst'), cardIds, fingerprint,
+    goldfish.header.checksum, matrix.rowCrcs, 0, matrix.matrix.strategyNumbers);
+  return { kingdomId: paths.kingdomId, strategyCount,
+    gameCount: strategyCount * (strategyCount - 1) / 2 * 250,
+    pairs: matrix.pairs, purchases: matrix.purchases, matrix: matrix.matrix, selfPlay };
 }
 
 export function loadRustStrategySearchKingdomEvidence(paths: RustStrategySearchKingdomPaths,
