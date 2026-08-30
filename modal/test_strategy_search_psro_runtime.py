@@ -3,6 +3,7 @@ import json
 import os
 import pathlib
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -10,18 +11,23 @@ import strategy_search_psro_runtime as runtime
 
 
 class Upload:
-    def __init__(self, volume):
+    def __init__(self, volume, record):
         self.volume = volume
+        self.record = record
 
     def put_file(self, local, remote):
+        self.record["paths"].append(remote)
         self.volume.files[remote] = pathlib.Path(local).read_bytes()
 
 
 class UploadContext:
-    def __init__(self, volume):
-        self.upload = Upload(volume)
+    def __init__(self, volume, force):
+        self.volume = volume
+        self.record = {"force": force, "paths": []}
+        self.upload = Upload(volume, self.record)
 
     def __enter__(self):
+        self.volume.batch_uploads.append(self.record)
         return self.upload
 
     def __exit__(self, *_args):
@@ -36,28 +42,41 @@ class Entry:
 
 
 class Volume:
-    def __init__(self, files=None):
+    def __init__(self, files=None, failures=None):
         self.files = dict(files or {})
+        self.failures = dict(failures or {})
         self.reads = []
+        self.read_attempts = {}
         self.list_calls = []
+        self.batch_uploads = []
+        self.lock = threading.Lock()
 
     def reload(self):
         raise AssertionError("local Modal entrypoints cannot reload a Volume")
 
     def read_file(self, remote):
-        self.reads.append(remote)
+        with self.lock:
+            self.reads.append(remote)
+            self.read_attempts[remote] = self.read_attempts.get(remote, 0) + 1
+            attempt = self.read_attempts[remote]
+        failure = self.failures.get((remote, attempt))
+        if failure:
+            raise failure
         if remote not in self.files:
             raise FileNotFoundError(remote)
         return iter([self.files[remote]])
 
     def batch_upload(self, force=False):
-        del force
-        return UploadContext(self)
+        return UploadContext(self, force)
 
     def listdir(self, remote, recursive=False):
         self.list_calls.append((remote, recursive))
         return [Entry(path, len(content)) for path, content in self.files.items()
             if path.startswith(remote + "/")]
+
+
+class ResourceExhaustedError(Exception):
+    pass
 
 
 class Call:
@@ -138,7 +157,53 @@ class PsroRuntimeTests(unittest.TestCase):
             self.assertEqual(result["uploadBytes"], len(b"upload"))
             state = json.loads(state_file.read_text())
             self.assertEqual([entry["callId"] for entry in state["attempts"]], ["fc-1", "fc-2"])
+            self.assertEqual(volume.batch_uploads, [
+                {"force": False, "paths": [config["kingdoms"][1]["matrixUploads"][0]["remotePath"]]},
+                {"force": True, "paths": ["psro/run/launch-intent.json"]}])
             self.assertIn("psro/run/launch-intent.json", volume.files)
+
+    def test_launch_rejects_a_missing_goldfish_input_before_any_upload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            state_file, config, volume = self.launch_fixture(root)
+            missing = config["kingdoms"][1]["goldfishPaths"][0]
+            del volume.files[missing]
+            with patch.object(runtime, "volume", volume):
+                with self.assertRaisesRegex(RuntimeError, missing):
+                    runtime.launch(config, str(state_file))
+            self.assertEqual(volume.batch_uploads, [])
+
+    def test_launch_uploads_all_missing_matrix_inputs_in_one_batch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            state_file, config, volume = self.launch_fixture(root)
+            first_remote = config["kingdoms"][0]["matrixUploads"][0]["remotePath"]
+            del volume.files[first_remote]
+            handle = Handle(state_file)
+            function = type("Function", (), {"from_name": staticmethod(lambda *_args: handle)})
+            with patch.object(runtime, "volume", volume), patch.object(runtime.modal, "Function", function):
+                result = runtime.launch(config, str(state_file))
+            matrix_paths = [kingdom["matrixUploads"][0]["remotePath"] for kingdom in config["kingdoms"]]
+            self.assertEqual([entry["status"] for entry in result["uploads"]], ["uploaded", "uploaded"])
+            self.assertEqual(volume.batch_uploads, [{"force": False, "paths": matrix_paths},
+                {"force": True, "paths": ["psro/run/launch-intent.json"]}])
+
+    def test_launch_retries_a_rate_limited_existence_check(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = pathlib.Path(directory)
+            state_file, config, volume = self.launch_fixture(root)
+            remote = config["kingdoms"][0]["goldfishPaths"][0]
+            volume.failures[(remote, 1)] = ResourceExhaustedError("limited")
+            handle = Handle(state_file)
+            function = type("Function", (), {"from_name": staticmethod(lambda *_args: handle)})
+            retry = runtime.retry_resource_exhausted
+            sleeps = []
+            with patch.object(runtime, "volume", volume), patch.object(runtime.modal, "Function", function), \
+                    patch.object(runtime, "retry_resource_exhausted",
+                        side_effect=lambda operation: retry(operation, sleeps.append)):
+                runtime.launch(config, str(state_file))
+            self.assertEqual(volume.read_attempts[remote], 2)
+            self.assertEqual(sleeps, [2])
 
     def test_launch_rejects_a_differing_matrix_before_any_spawn(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -150,6 +215,7 @@ class PsroRuntimeTests(unittest.TestCase):
             with patch.object(runtime, "volume", volume), patch.object(runtime.modal, "Function", function):
                 with self.assertRaisesRegex(RuntimeError, "Matrix input differs"):
                     runtime.launch(config, str(state_file))
+            self.assertEqual(volume.batch_uploads, [])
             self.assertEqual(handle.calls, [])
 
     def test_status_adopts_a_matching_lease_and_reattaches_to_calls(self):

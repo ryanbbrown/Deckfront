@@ -15,7 +15,7 @@ from typing import Any
 
 import modal
 
-from volume_download import fetch_files, list_files
+from volume_download import fetch_files, list_files, retry_resource_exhausted
 
 RESULT_VOLUME = "hexdeck-native-strategy-results"
 PSRO_FUNCTION = "strategy_search_psro_job"
@@ -105,27 +105,42 @@ def preflight_entry(config_file: str, result_file: str) -> None:
     print(json.dumps(result), flush=True)
 
 
+def _require_goldfish_input(remote: str) -> None:
+    if not retry_resource_exhausted(lambda: _remote_exists(remote)):
+        raise RuntimeError(f"PSRO Goldfish input is missing from the Volume: {remote}")
+
+
+def _compare_matrix_input(held: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    remote = retry_resource_exhausted(lambda: _remote_bytes(held["remotePath"]))
+    if remote is None:
+        result = {"path": held["remotePath"], "bytes": pathlib.Path(held["localPath"]).stat().st_size,
+            "status": "uploaded"}
+        return result, held
+    if hashlib.sha256(remote).hexdigest() != held["sha256"]:
+        raise RuntimeError(f"PSRO Matrix input differs on the Volume: {held['remotePath']}")
+    return {"path": held["remotePath"], "bytes": len(remote), "status": "matching"}, None
+
+
 def launch(config: dict[str, Any], state_file: str) -> dict[str, Any]:
     state = _load(state_file)
     attempts = {attempt["launchId"]: attempt for attempt in state["attempts"]}
     for kingdom in config["kingdoms"]:
         if kingdom["launchId"] not in attempts or attempts[kingdom["launchId"]].get("callId") is not None:
             raise RuntimeError("PSRO launch state does not contain one unspawned launch record")
-    for kingdom in config["kingdoms"]:
-        for remote in kingdom["goldfishPaths"]:
-            if not _remote_exists(remote):
-                raise RuntimeError(f"PSRO Goldfish input is missing from the Volume: {remote}")
-    uploads: list[dict[str, Any]] = []
-    for kingdom in config["kingdoms"]:
-        for held in kingdom["matrixUploads"]:
-            remote = _remote_bytes(held["remotePath"])
-            if remote is not None:
-                if hashlib.sha256(remote).hexdigest() != held["sha256"]:
-                    raise RuntimeError(f"PSRO Matrix input differs on the Volume: {held['remotePath']}")
-                uploads.append({"path": held["remotePath"], "bytes": len(remote), "status": "matching"})
-            else:
-                size = _upload(held["localPath"], held["remotePath"])
-                uploads.append({"path": held["remotePath"], "bytes": size, "status": "uploaded"})
+    goldfish_paths = [remote for kingdom in config["kingdoms"] for remote in kingdom["goldfishPaths"]]
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        list(pool.map(_require_goldfish_input, goldfish_paths))
+    matrix_inputs = [held for kingdom in config["kingdoms"] for held in kingdom["matrixUploads"]]
+    with ThreadPoolExecutor(max_workers=16) as pool:
+        comparisons = list(pool.map(_compare_matrix_input, matrix_inputs))
+    uploads = [result for result, _held in comparisons]
+    missing = [held for _result, held in comparisons if held is not None]
+    if missing:
+        def upload_missing() -> None:
+            with volume.batch_upload() as batch:
+                for held in missing:
+                    batch.put_file(held["localPath"], held["remotePath"])
+        retry_resource_exhausted(upload_missing)
     _upload(config["launchIntentFile"], config["launchIntentRemote"], force=True)
 
     function = modal.Function.from_name(config["computeAppName"], PSRO_FUNCTION).with_options(
