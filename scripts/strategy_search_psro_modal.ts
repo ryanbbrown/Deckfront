@@ -27,6 +27,10 @@ export function psroStatusTimeoutMs(attemptCount: number): number {
   return 120_000 + 1_000 * attemptCount;
 }
 
+export function psroLaunchTimeoutMs(kingdomCount: number): number {
+  return 300_000 + 5_000 * kingdomCount;
+}
+
 export function psroDownloadTimeoutMs(kingdomCount: number): number {
   return 600_000 + 10_000 * kingdomCount;
 }
@@ -195,7 +199,7 @@ export class ModalPsroOperatorAdapter implements PsroModalOperatorAdapter {
         workerCores: plan.request.workerCores, timeoutSeconds: plan.functionTimeoutSeconds,
         slots: plan.slots, launchIntentFile: intentFile,
         launchIntentRemote: `psro-executions/${plan.executionId}/launch-intent.json`, kingdoms });
-      return await modalRuntime('launch_entry', { configFile, stateFile: statePath }, 300_000);
+      return await modalRuntime('launch_entry', { configFile, stateFile: statePath }, psroLaunchTimeoutMs(kingdoms.length));
     } finally { fs.rmSync(directory, { recursive: true, force: true }); }
   }
   async status(statePath: string): Promise<Record<string, unknown>> {

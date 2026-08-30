@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { deriveSourceImageIdentity, deriveStrategySearch } from '../../src/sim/strategySearchCampaign';
 import { deriveTrackedStrategySearchSourceImage } from '../../scripts/strategy_search_campaign';
 import {
-  executePsroModalOperation, psroDownloadTimeoutMs, psroStatusTimeoutMs
+  executePsroModalOperation, psroDownloadTimeoutMs, psroLaunchTimeoutMs, psroStatusTimeoutMs
 } from '../../scripts/strategy_search_psro_modal';
 import { validateConsolidatedManifest } from '../../scripts/generate_rust_strategy_search_balance_report';
 import {
@@ -39,7 +39,10 @@ function plan(requestValue = request(), sourceValue = source(), inputValue = inp
 }
 
 describe('Modal PSRO operator safety', () => {
-  it('scales status and download timeouts with work size', () => {
+  it('scales launch, status, and download timeouts with work size', () => {
+    expect(psroLaunchTimeoutMs(0)).toBe(300_000);
+    expect(psroLaunchTimeoutMs(8)).toBe(340_000);
+    expect(psroLaunchTimeoutMs(130)).toBe(950_000);
     expect(psroStatusTimeoutMs(0)).toBe(120_000);
     expect(psroStatusTimeoutMs(130)).toBe(250_000);
     expect(psroDownloadTimeoutMs(0)).toBe(600_000);
