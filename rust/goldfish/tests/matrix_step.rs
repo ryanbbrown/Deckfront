@@ -201,7 +201,11 @@ fn matrix_outputs_are_thread_stable_ranked_and_verified() {
             let expected_number = read_u32(&reservoir, 64 + rank * 124);
             let offset = 64 + rank * MATRIX_ROW_BYTES;
             assert_eq!(read_u32(&matrix, offset), expected_number);
-            f64::from_le_bytes(matrix[offset + 52..offset + 60].try_into().expect("weight bytes"))
+            f64::from_le_bytes(
+                matrix[offset + 52..offset + 60]
+                    .try_into()
+                    .expect("weight bytes"),
+            )
         })
         .collect::<Vec<_>>();
     let support = weight_values
